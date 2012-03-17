@@ -1,0 +1,16 @@
+EXPORTS
+    hid_close @1
+    hid_enumerate @2
+    hid_error @3
+    hid_free_enumeration @4
+    hid_get_feature_report @5
+    hid_get_indexed_string @6
+    hid_get_manufacturer_string @7
+    hid_get_product_string @8
+    hid_get_serial_number_string @9
+    hid_open @10
+    hid_open_path @11
+    hid_read @12
+    hid_send_feature_report @13
+    hid_set_nonblocking @14
+    hid_write @15
