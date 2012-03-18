@@ -37,4 +37,4 @@ void fill_buffer(int memory_address,
                  int buffer_size,
                  BOOL validate); /* Validate data read? */
 
-#endif // DEVICEIO_H
+#endif /* DEVICEIO_H */

@@ -26,6 +26,7 @@
 #include "deviceio.h"
 #include "deviceconfig.h"
 #include "debug.h"
+#include "conout.h"
 
 #include "hidapi/hidapi.h"
 

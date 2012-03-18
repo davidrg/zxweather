@@ -29,4 +29,4 @@ void dump_buffer(void* buffer, int buffer_size);
 /* Dumps a buffer to disk */
 void write_buffer(void* buffer, int buffer_size, char* filename);
 
-#endif // DEBUG_H
+#endif /* DEBUG_H */
