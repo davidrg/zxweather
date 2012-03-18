@@ -55,7 +55,7 @@ void read_block(int memory_address, unsigned char *buffer) {
     unsigned char address_high = memory_address / 256;
     unsigned char address_low = memory_address % 256;
 
-    printf("Read address %d\n", memory_address);
+    printf("Read address %d (0x%005X)\n", memory_address, memory_address);
 
     /* Send a command requesting 32 bytes of data from the specified address */
     command_buffer[0] = 0x0;

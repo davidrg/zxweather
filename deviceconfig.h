@@ -105,18 +105,18 @@ typedef struct _DCSR {
     us_record absolute_pressure;
     us_record relative_pressure;
     unsigned short average_wind_speed_max;
-    time_stamp average_wind_speed_max_ts;
     unsigned short gust_wind_speed_max;
-    time_stamp gust_wind_speed_max_ts;
     unsigned short rainfall_1h_max;
-    time_stamp rainfall_1h_max_ts;
     unsigned short rainfall_24h_max;
-    time_stamp rainfall_24h_max_ts;
     unsigned short rainfall_week_max;
-    time_stamp rainfall_week_max_ts;
     unsigned long rainfall_month_max; /* must be > 16 bits */
-    time_stamp rainfall_month_max_ts;
     unsigned long rainfall_total_max; /* must be > 16 bits */
+    time_stamp average_wind_speed_max_ts;
+    time_stamp gust_wind_speed_max_ts;
+    time_stamp rainfall_1h_max_ts;
+    time_stamp rainfall_24h_max_ts;
+    time_stamp rainfall_week_max_ts;
+    time_stamp rainfall_month_max_ts;
     time_stamp rainfall_total_max_ts;
 } dc_station_records;
 
