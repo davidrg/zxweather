@@ -53,7 +53,10 @@ device_config load_device_config() {
     return create_device_config(dc_data, alarm_data, records_data);
 }
 
-#define READ_SHORT(buffer, LSB, MSB) ((buffer[MSB] << 8) + buffer[LSB]);
+#define READ_SHORT(buffer, LSB, MSB) ((buffer[MSB] << 8) + buffer[LSB])
+
+/* Read a Binary-coded decimal value */
+#define READ_BCD(byte)((((byte / 16) & 0x0F) * 10) + (byte & 0x0F))
 
 dc_alarm_settings create_alarm_settings(unsigned char* as_data) {
     dc_alarm_settings as;
@@ -81,8 +84,8 @@ dc_alarm_settings create_alarm_settings(unsigned char* as_data) {
     as.wind_direction_alm = as_data[34];
     as.rainfall_1h_high = READ_SHORT(as_data,35,36);
     as.rainfall_24h_high = READ_SHORT(as_data,37,38);
-    as.time_alarm_hour = as_data[39];
-    as.time_alarm_minute = as_data[40];
+    as.time_alarm_hour = READ_BCD(as_data[39]);
+    as.time_alarm_minute = READ_BCD(as_data[40]);
 
     return as;
 }
@@ -91,28 +94,108 @@ dc_alarm_settings create_alarm_settings(unsigned char* as_data) {
 time_stamp create_time_stamp(unsigned char *offset) {
     time_stamp ts;
 
+    ts.year = READ_BCD(offset[0]);
+    ts.month = READ_BCD(offset[1]);
+    ts.date = READ_BCD(offset[2]);
+    ts.hour = READ_BCD(offset[3]);
+    ts.minute = READ_BCD(offset[4]);
+
     return ts;
 }
 
+/* Creates a new ss_record initialising the min and max components */
 ss_record create_ss_record(unsigned char *offset) {
     ss_record ss;
+
+    ss.max = READ_SHORT(offset, 0, 1);
+    ss.min = READ_SHORT(offset, 2, 3);
+
     return ss;
 }
 
+/* Creates a new us_record initialising the min and max components */
 us_record create_us_record(unsigned char *offset) {
     us_record us;
+
+    us.max = READ_SHORT(offset, 0, 1);
+    us.min = READ_SHORT(offset, 2, 3);
 
     return us;
 }
 
+/* Creates a new uc_record initialising the min and max components */
 uc_record create_uc_record(unsigned char *offset) {
     uc_record uc;
+
+    uc.max = offset[0];
+    uc.min = offset[1];
 
     return uc;
 }
 
+/* Creates station records (min/max values) struct */
 dc_station_records create_station_records(unsigned char* sr_data) {
+    dc_station_records sr;
 
+    sr.indoor_relative_humidity = create_uc_record(&sr_data[0]);
+    sr.outdoor_relative_humidity = create_uc_record(&sr_data[2]);
+    sr.indoor_temperature = create_ss_record(&sr_data[4]);
+    sr.outdoor_temperature = create_ss_record(&sr_data[8]);
+    sr.windchill = create_ss_record(&sr_data[12]);
+    sr.dewpoint = create_ss_record(&sr_data[16]);
+    sr.absolute_pressure = create_us_record(&sr_data[20]);
+    sr.relative_pressure = create_us_record(&sr_data[24]);
+    sr.average_wind_speed_max = READ_SHORT(sr_data,28,29);
+    sr.gust_wind_speed_max = READ_SHORT(sr_data,30,31);
+    sr.rainfall_1h_max = READ_SHORT(sr_data,32,33);
+    sr.rainfall_24h_max = READ_SHORT(sr_data,34,35);
+    sr.rainfall_week_max = READ_SHORT(sr_data,36,37);
+
+    sr.rainfall_month_max = READ_SHORT(sr_data,38,39);
+    sr.rainfall_total_max = READ_SHORT(sr_data,40,41);
+
+    /* The upper four bits of both the month and total maximums are stored
+     * together at offset 0x0008C */
+    const unsigned char rainfall_nibbles = sr_data[42];
+    const unsigned long month_bit = (rainfall_nibbles & 0xF0) << 12;
+    const unsigned long total_bit = (rainfall_nibbles & 0x0F) << 16;
+    sr.rainfall_month_max += month_bit;
+    sr.rainfall_total_max += total_bit;
+
+    /* Now read timestamps. */
+    sr.indoor_relative_humidity.max_ts = create_time_stamp(&sr_data[43]);
+    sr.indoor_relative_humidity.min_ts = create_time_stamp(&sr_data[48]);
+
+    sr.outdoor_relative_humidity.max_ts = create_time_stamp(&sr_data[53]);
+    sr.outdoor_relative_humidity.min_ts = create_time_stamp(&sr_data[58]);
+
+    sr.indoor_temperature.max_ts = create_time_stamp(&sr_data[63]);
+    sr.indoor_temperature.min_ts = create_time_stamp(&sr_data[68]);
+
+    sr.outdoor_temperature.max_ts = create_time_stamp(&sr_data[73]);
+    sr.outdoor_temperature.min_ts = create_time_stamp(&sr_data[78]);
+
+    sr.windchill.max_ts = create_time_stamp(&sr_data[83]);
+    sr.windchill.min_ts = create_time_stamp(&sr_data[88]);
+
+    sr.dewpoint.max_ts = create_time_stamp(&sr_data[93]);
+    sr.dewpoint.min_ts = create_time_stamp(&sr_data[98]);
+
+    sr.absolute_pressure.max_ts = create_time_stamp(&sr_data[103]);
+    sr.absolute_pressure.min_ts = create_time_stamp(&sr_data[108]);
+
+    sr.relative_pressure.max_ts = create_time_stamp(&sr_data[113]);
+    sr.relative_pressure.min_ts = create_time_stamp(&sr_data[118]);
+
+    sr.average_wind_speed_max_ts = create_time_stamp(&sr_data[123]);
+    sr.gust_wind_speed_max_ts = create_time_stamp(&sr_data[128]);
+    sr.rainfall_1h_max_ts = create_time_stamp(&sr_data[133]);
+    sr.rainfall_24h_max_ts = create_time_stamp(&sr_data[138]);
+    sr.rainfall_week_max_ts = create_time_stamp(&sr_data[143]);
+    sr.rainfall_month_max_ts = create_time_stamp(&sr_data[148]);
+    sr.rainfall_total_max_ts = create_time_stamp(&sr_data[153]);
+
+    return sr;
 }
 
 /* Loads device configuration (everything that isn't sample data) */
@@ -325,6 +408,89 @@ void print_alarm_settings(dc_alarm_settings as) {
     printf("\tWind Direction ALM: 0x%02X\n", as.wind_direction_alm);
     printf("\t1H Rainfall High: %d mm\n", as.rainfall_1h_high);
     printf("\t24H Rainfall High: %d mm\n", as.rainfall_24h_high);
+    printf("\tTime: %d:%02d\n", as.time_alarm_hour, as.time_alarm_minute);
+}
+
+/* Prints out the time stamp bit of a station record */
+void print_timestamp(time_stamp ts) {
+    printf(" (%d/%d/%d %d:%d)\n",
+           ts.date,
+           ts.month,
+           ts.year,
+           ts.hour,
+           ts.minute);
+}
+
+void print_station_records(dc_station_records sr) {
+    printf("Station Records:-\n");
+    printf("\tIndoor Relative Humidity Max: %d%%", sr.indoor_relative_humidity.max);
+    print_timestamp(sr.indoor_relative_humidity.max_ts);
+
+    printf("\tIndoor Relative Humidity Min: %d%%", sr.indoor_relative_humidity.min);
+    print_timestamp(sr.indoor_relative_humidity.min_ts);
+
+    printf("\tOutdoor Relative Humidity Max: %d%%", sr.outdoor_relative_humidity.max);
+    print_timestamp(sr.outdoor_relative_humidity.max_ts);
+
+    printf("\tOutdoor Relative Humidity Min: %d%%", sr.outdoor_relative_humidity.min);
+    print_timestamp(sr.outdoor_relative_humidity.min_ts);
+
+    printf("\tIndoor Temperature Max: %d C", sr.indoor_temperature.max);
+    print_timestamp(sr.indoor_temperature.max_ts);
+
+    printf("\tIndoor Temperature Min: %d C", sr.indoor_temperature.min);
+    print_timestamp(sr.indoor_temperature.min_ts);
+
+    printf("\tOutdoor Temperature Max: %d C", sr.outdoor_temperature.max);
+    print_timestamp(sr.outdoor_temperature.max_ts);
+
+    printf("\tOutdoor Temperature Min: %d C", sr.outdoor_temperature.min);
+    print_timestamp(sr.outdoor_temperature.min_ts);
+
+    printf("\tWind Chill Max: %d C", sr.windchill.max);
+    print_timestamp(sr.windchill.max_ts);
+
+    printf("\tWind Chill Min: %d C", sr.windchill.min);
+    print_timestamp(sr.windchill.min_ts);
+
+    printf("\tDewpoint Max: %d C", sr.dewpoint.max);
+    print_timestamp(sr.dewpoint.max_ts);
+
+    printf("\tDewpoint Min: %d C", sr.dewpoint.min);
+    print_timestamp(sr.dewpoint.min_ts);
+
+    printf("\tAbsolute Pressure Max: %d Hpa", sr.absolute_pressure.max);
+    print_timestamp(sr.absolute_pressure.max_ts);
+
+    printf("\tAbsolute Pressure Min: %d Hpa", sr.absolute_pressure.min);
+    print_timestamp(sr.absolute_pressure.min_ts);
+
+    printf("\tRelative Pressure Max: %d Hpa", sr.relative_pressure.max);
+    print_timestamp(sr.relative_pressure.max_ts);
+
+    printf("\tRelative Pressure Min: %d Hpa", sr.relative_pressure.min);
+    print_timestamp(sr.relative_pressure.min_ts);
+
+    printf("\tAverage Wind Speed Max: %d m/s", sr.average_wind_speed_max);
+    print_timestamp(sr.average_wind_speed_max_ts);
+
+    printf("\tGust Wind Speed Max: %d m/s", sr.gust_wind_speed_max);
+    print_timestamp(sr.gust_wind_speed_max_ts);
+
+    printf("\t1-Hour Rainfall Max: %d mm", sr.rainfall_1h_max);
+    print_timestamp(sr.rainfall_1h_max_ts);
+
+    printf("\t24-Hour Rainfall Max: %d mm", sr.rainfall_24h_max);
+    print_timestamp(sr.rainfall_24h_max_ts);
+
+    printf("\tWeek Rainfall Max: %d mm", sr.rainfall_week_max);
+    print_timestamp(sr.rainfall_week_max_ts);
+
+    printf("\tMonth Rainfall Max: %d mm", sr.rainfall_month_max);
+    print_timestamp(sr.rainfall_month_max_ts);
+
+    printf("\tTotal Rainfall Max: %d mm", sr.rainfall_total_max);
+    print_timestamp(sr.rainfall_total_max_ts);
 }
 
 void print_device_config(device_config dc) {
@@ -350,4 +516,6 @@ void print_device_config(device_config dc) {
     printf("Absolute pressure (Hpa): %d\n", dc.absolute_pressure);
     printf("\n");
     print_alarm_settings(dc.alarm_settings);
+    printf("\n");
+    print_station_records(dc.station_records);
 }
