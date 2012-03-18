@@ -336,3 +336,12 @@ void print_history_record(history h) {
     printf("\tTotal Rain: %d\n", h.total_rain);
     printf("\tStatus: 0x%02X\n", h.status);
 }
+
+void print_history_set(history_set hs) {
+    unsigned int i = 0;
+
+    for (i = 0; i < hs.record_count; i += 1) {
+        printf("History Record #%d:-\n", i);
+        print_history_record(hs.records[0]);
+    }
+}

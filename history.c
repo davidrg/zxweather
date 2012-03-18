@@ -22,10 +22,11 @@
 
 #include "history.h"
 #include "deviceio.h"
+#include "deviceconfig.h"
 #include "common.h"
+#include <stdlib.h>
 
 #define HISTORY_OFFSET 0x00100
-#define HISTORY_RECORD_SIZE 16
 
 history create_history(unsigned char* buffer) {
     history h;
@@ -54,4 +55,55 @@ history read_history_record(int record_number) {
     fill_buffer(record_offset, buffer, HISTORY_RECORD_SIZE, TRUE);
 
     return create_history(buffer);
+}
+
+history* load_history(int record_count) {
+    history* h = NULL;
+    int i = 0;
+    unsigned char * data_buffer;
+    int buffer_size = HISTORY_RECORD_SIZE * record_count;
+
+    /* Allocate space for the history set */
+    h = malloc(sizeof(history) * record_count);
+    if (h == NULL) return h;
+
+    /* Read in all the data from the device. This will be 16 bytes of data
+     * for each history record. */
+    data_buffer = malloc(buffer_size);
+    if (data_buffer == NULL) {
+        /* Failed to allocate the memory. Free the history set and give up */
+        free(h);
+        return NULL;
+    }
+    fill_buffer(HISTORY_OFFSET, data_buffer, buffer_size, TRUE);
+
+    /* Load each history record */
+    for (i = 0; i < record_count; i += 1) {
+        h[i] = create_history(data_buffer + (i * HISTORY_RECORD_SIZE));
+    }
+
+    free(data_buffer);
+
+    return h;
+}
+
+history_set read_history() {
+    device_config dc;
+    history_set hs;
+
+    dc = load_device_config();
+
+    hs.record_count = dc.history_data_sets;
+    hs.records = load_history(hs.record_count);
+
+    if (hs.records == NULL)
+        hs.record_count = 0;
+
+    return hs;
+}
+
+void free_history_set(history_set hs) {
+    free(hs.records);
+    hs.records = NULL;
+    hs.record_count = 0;
 }
