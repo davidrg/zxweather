@@ -20,19 +20,38 @@
  *
  ****************************************************************************/
 
-/* Functions for writing information to the console */
-
-#ifndef CONOUT_H
-#define CONOUT_H
-
-/* for device_config */
-#include "deviceconfig.h"
 #include "history.h"
+#include "deviceio.h"
+#include "common.h"
 
-/* Prints weather station configuration to the console */
-void print_device_config(device_config dc);
+#define HISTORY_OFFSET 0x00100
+#define HISTORY_RECORD_SIZE 16
 
-/* Prints a history record to the console */
-void print_history_record(history h);
+history create_history(unsigned char* buffer) {
+    history h;
 
-#endif /* CONOUT_H */
+    h.sample_time = buffer[0];
+    h.indoor_relative_humidity = buffer[1];
+    h.indoor_temperature = READ_SSHORT(buffer, 2, 3);
+    h.outdoor_relative_humidity = buffer[4];
+    h.outdoor_temperature = READ_SSHORT(buffer, 5, 6);
+    h.absolute_pressure = READ_SHORT(buffer, 7, 8);
+
+    /* average wind speed - [9] and part of [11]
+     gust wind speed - [10] and part of [11] */
+
+    h.wind_direction = buffer[12];
+    h.total_rain = buffer[13];
+    h.status = buffer[14];
+
+    return h;
+}
+
+history read_history_record(int record_number) {
+    unsigned char buffer[16];
+    unsigned int record_offset = HISTORY_OFFSET + (record_number * 16);
+
+    fill_buffer(record_offset, buffer, HISTORY_RECORD_SIZE, TRUE);
+
+    return create_history(buffer);
+}

@@ -27,6 +27,10 @@
 
 /* Functions for printing device configuration information to the console. */
 
+static char* wind_direction[] = {"N", "NNE", "NE", "ENE", "E", "ESE", "SE",
+                                 "SSE", "S", "SSW", "SW", "WSW", "W", "WNW",
+                                 "NW", "NNW"};
+
 int print_flag(int char_total, char* flag) {
     int flag_len = strlen(flag) + 1;
     int new_total = char_total + flag_len;
@@ -197,7 +201,9 @@ void print_alarm_settings(dc_alarm_settings as) {
     printf("\tAverage Wind Speed High: %02.1f m/s\n", SFP(as.average_wind_speed_high));
     printf("\tGust BFT High: %d bft\n", as.gust_bft_high);
     printf("\tGust Wind Speed High: %02.1f m/s\n", SFP(as.gust_wind_speed_high));
-    printf("\tWind Direction ALM: 0x%02X\n", as.wind_direction_alm);
+    printf("\tWind Direction ALM: 0x%02X (%s)\n",
+           as.wind_direction_alm,
+           wind_direction[as.wind_direction_alm]);
     printf("\t1H Rainfall High: %02.1f mm\n", SFP(as.rainfall_1h_high));
     printf("\t24H Rainfall High: %02.1f mm\n", SFP(as.rainfall_24h_high));
     printf("\tTime: %d:%02d\n", as.time_alarm_hour, as.time_alarm_minute);
@@ -313,4 +319,20 @@ void print_device_config(device_config dc) {
     print_alarm_settings(dc.alarm_settings);
     printf("\n");
     print_station_records(dc.station_records);
+}
+
+void print_history_record(history h) {
+    printf("\tSample Time: %d\n", h.sample_time);
+    printf("\tIndoor Relative Humidity: %d\n", h.indoor_relative_humidity);
+    printf("\tIndoor Temperature: %02.1f\n", SFP(h.indoor_temperature));
+    printf("\tOutdoor Relative Humidity: %d\n", h.outdoor_relative_humidity);
+    printf("\tOutdoor Temperature: %02.1f\n", SFP(h.outdoor_temperature));
+    printf("\tAbsolute Pressure: %d\n", h.absolute_pressure);
+    printf("\tAverage Wind Speed: %d\n", h.average_wind_speed);
+    printf("\tGust Wind Speed: %d\n", h.gust_wind_speed);
+    printf("\tWind Direction: 0x%02X (%s)\n",
+           h.wind_direction,
+           wind_direction[h.wind_direction]);
+    printf("\tTotal Rain: %d\n", h.total_rain);
+    printf("\tStatus: 0x%02X\n", h.status);
 }

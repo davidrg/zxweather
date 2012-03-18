@@ -20,19 +20,23 @@
  *
  ****************************************************************************/
 
-/* Functions for writing information to the console */
+#ifndef HISTORY_H
+#define HISTORY_H
 
-#ifndef CONOUT_H
-#define CONOUT_H
+typedef struct _WSH {
+    unsigned char sample_time;
+    unsigned char indoor_relative_humidity;
+    signed short indoor_temperature;
+    unsigned char outdoor_relative_humidity;
+    signed short outdoor_temperature;
+    unsigned short absolute_pressure;
+    signed short average_wind_speed;
+    signed short gust_wind_speed;
+    unsigned char wind_direction;
+    unsigned short total_rain;
+    unsigned char status;
+} history;
 
-/* for device_config */
-#include "deviceconfig.h"
-#include "history.h"
+history read_history_record(int record_number);
 
-/* Prints weather station configuration to the console */
-void print_device_config(device_config dc);
-
-/* Prints a history record to the console */
-void print_history_record(history h);
-
-#endif /* CONOUT_H */
+#endif /* HISTORY_H */
