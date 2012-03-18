@@ -23,6 +23,7 @@
 #include <hidapi.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include "common.h"
 
 /* This is what the WH1080 appears as.
@@ -43,6 +44,10 @@ static hid_device *handle;
 
 void open_device() {
     handle = hid_open(VENDOR_ID, PRODUCT_ID, NULL);
+    if (handle == NULL) {
+        printf("Failed to open device.");
+        exit(1);
+    }
 }
 
 /* Reads a block of data in a single pass. No validation is performed.
