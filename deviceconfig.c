@@ -24,6 +24,7 @@
 #include "deviceio.h"
 #include "debug.h"
 #include <stdio.h>
+#include <string.h>
 
 
 /* Loads device configuration from the weather station
@@ -385,12 +386,12 @@ void print_alarm_enable_flags(device_config dc) {
 
 void print_alarm_settings(dc_alarm_settings as) {
     printf("Alarm Settings:-\n");
-    printf("\tIndoor Relative Humidity High: %d%\n", as.indoor_relative_humidity_high);
-    printf("\tIndoor Relative Humidity Low: %d%\n", as.indoor_relative_humidity_low);
+    printf("\tIndoor Relative Humidity High: %d%%\n", as.indoor_relative_humidity_high);
+    printf("\tIndoor Relative Humidity Low: %d%%\n", as.indoor_relative_humidity_low);
     printf("\tIndoor Temperature High: %d C\n", as.indoor_temperature_high);
     printf("\tIndoor Temperature Low: %d C\n", as.indoor_temperature_low);
-    printf("\tOutdoor Relative Humidity High: %d%\n", as.outdoor_relative_humidity_high);
-    printf("\tOutdoor Relative Humidity Low: %d%\n", as.outdoor_relative_humidity_low);
+    printf("\tOutdoor Relative Humidity High: %d%%\n", as.outdoor_relative_humidity_high);
+    printf("\tOutdoor Relative Humidity Low: %d%%\n", as.outdoor_relative_humidity_low);
     printf("\tOutdoor Temperature High: %d C\n", as.outdoor_temperature_high);
     printf("\tOutdoor Temperature Low: %d C\n", as.outdoor_temperature_low);
     printf("\tWind Chill High: %d C\n", as.wind_chill_high);
@@ -486,10 +487,10 @@ void print_station_records(dc_station_records sr) {
     printf("\tWeek Rainfall Max: %d mm", sr.rainfall_week_max);
     print_timestamp(sr.rainfall_week_max_ts);
 
-    printf("\tMonth Rainfall Max: %d mm", sr.rainfall_month_max);
+    printf("\tMonth Rainfall Max: %ld mm", sr.rainfall_month_max);
     print_timestamp(sr.rainfall_month_max_ts);
 
-    printf("\tTotal Rainfall Max: %d mm", sr.rainfall_total_max);
+    printf("\tTotal Rainfall Max: %ld mm", sr.rainfall_total_max);
     print_timestamp(sr.rainfall_total_max_ts);
 }
 
