@@ -50,16 +50,21 @@ void open_device() {
     }
 }
 
+void close_device() {
+    if (handle != NULL) {
+        hid_close(handle);
+        handle = NULL;
+    }
+}
+
 /* Reads a block of data in a single pass. No validation is performed.
  */
 void read_block(int memory_address, unsigned char *buffer) {
     unsigned char command_buffer[9];
     int result;
-    int read_size = READ_SIZE_BYTES;
-    unsigned char read_buffer[READ_SIZE_BYTES];
     unsigned char address_high = memory_address / 256;
     unsigned char address_low = memory_address % 256;
-    unsigned char foo[9];
+    unsigned char read_buffer[9];
 
     printf("Read address %d (0x%05X)\n", memory_address, memory_address);
 
@@ -79,20 +84,16 @@ void read_block(int memory_address, unsigned char *buffer) {
                        sizeof(command_buffer));              /* Buffer length */
 
     /* And then read the 32 bytes of data back in */
-    memset(read_buffer, 0, read_size);
+    memset(read_buffer, 0, 9);
 
-
-
-    hid_read(handle, foo, 9);
-    memcpy(read_buffer, foo, 8);
-    hid_read(handle, foo, 9);
-    memcpy(&read_buffer[8], foo, 8);
-    hid_read(handle, foo, 9);
-    memcpy(&read_buffer[16], foo, 8);
-    hid_read(handle, foo, 9);
-    memcpy(&read_buffer[24], foo, 8);
-
-    memcpy(buffer, read_buffer, READ_SIZE_BYTES);
+    hid_read(handle, read_buffer, 9);
+    memcpy(buffer, read_buffer, 8);
+    hid_read(handle, read_buffer, 9);
+    memcpy(&buffer[8], read_buffer, 8);
+    hid_read(handle, read_buffer, 9);
+    memcpy(&buffer[16], read_buffer, 8);
+    hid_read(handle, read_buffer, 9);
+    memcpy(&buffer[24], read_buffer, 8);
 }
 
 /* Repeatedly reads the requested block of data until two consecutive reads

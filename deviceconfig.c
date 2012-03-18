@@ -143,9 +143,6 @@ dc_station_records create_station_records(unsigned char* sr_data) {
     sr.absolute_pressure = create_us_record(&sr_data[20]);
     sr.relative_pressure = create_us_record(&sr_data[24]);
 
-    printf("AVG_WSP: 0x%02X 0x%02X\n", sr_data[28], sr_data[29]);
-    printf("GUST_WSP: 0x%02X 0x%02X\n", sr_data[30], sr_data[31]);
-
     sr.average_wind_speed_max = READ_SHORT(sr_data,28,29);
     sr.gust_wind_speed_max = READ_SHORT(sr_data,30,31);
     sr.rainfall_1h_max = READ_SHORT(sr_data,32,33);

@@ -8,7 +8,7 @@ CC       ?= gcc
 CFLAGS   ?= -Wall -g
 
 OBJS     = main.o deviceconfig.o deviceio.o dc_conout.o debug.o hidapi/linux-0.7/hid-libusb.o
-LIBS      = `pkg-config libusb-1.0 libudev --libs`
+LIBS      = `pkg-config libusb-1.0 --libs`
 INCLUDES ?= -Ihidapi/linux-0.7 `pkg-config libusb-1.0 --cflags`
 
 cweather : $(OBJS)

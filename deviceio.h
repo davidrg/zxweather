@@ -25,6 +25,7 @@
 
 #include "common.h"
 
+void close_device();
 void open_device();
 
 /* For reading from the weather station */
