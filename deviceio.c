@@ -136,9 +136,4 @@ void fill_buffer(int memory_address,
             pos += READ_SIZE_BYTES;
         }
     }
-
-    if (buffer[0] != 0x55 || buffer[1] != 0xAA) {
-        printf("ERROR: Expected 0x55 0xAA at offset 0. Got 0x%X 0x%X\n",
-               buffer[0], buffer[1]);
-    }
 }

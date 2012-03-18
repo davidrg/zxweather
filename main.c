@@ -42,6 +42,9 @@
 
 int main(void)
 {
+    printf("WH1080 Test Application v1.0\n");
+    printf("\t(C) Copyright David Goodwin, 2012\n\n");
+
     open_device();
 
     device_config dc = load_device_config();
