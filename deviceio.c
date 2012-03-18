@@ -20,7 +20,7 @@
  *
  ****************************************************************************/
 
-#include "hidapi/hidapi.h"
+#include <hidapi.h>
 #include <stdio.h>
 #include <string.h>
 #include "common.h"
@@ -50,10 +50,11 @@ void open_device() {
 void read_block(int memory_address, unsigned char *buffer) {
     unsigned char command_buffer[9];
     int result;
-    int read_size = READ_SIZE_BYTES >= 16 ? READ_SIZE_BYTES : 16;
-    unsigned char read_buffer[read_size];
+    int read_size = READ_SIZE_BYTES;
+    unsigned char read_buffer[READ_SIZE_BYTES];
     unsigned char address_high = memory_address / 256;
     unsigned char address_low = memory_address % 256;
+    unsigned char foo[9];
 
     printf("Read address %d (0x%05X)\n", memory_address, memory_address);
 
@@ -75,7 +76,7 @@ void read_block(int memory_address, unsigned char *buffer) {
     /* And then read the 32 bytes of data back in */
     memset(read_buffer, 0, read_size);
 
-    unsigned char foo[9];
+
 
     hid_read(handle, foo, 9);
     memcpy(read_buffer, foo, 8);
