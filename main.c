@@ -31,6 +31,7 @@
 int main(void)
 {
     device_config dc;
+    /*history_set hs;*/
     history h;
 
     printf("WH1080 Test Application v1.0\n");
@@ -41,6 +42,12 @@ int main(void)
     dc = load_device_config();
     print_device_config(dc);
 
+    /*
+    printf("Loading history data...\n");
+    hs = read_history();
+    print_history_set(hs);
+    free_history_set(hs);
+    */
     h = read_history_record(0);
     printf("History Record #0:-\n");
     print_history_record(h);

@@ -34,5 +34,6 @@ void print_device_config(device_config dc);
 
 /* Prints a history record to the console */
 void print_history_record(history h);
+void print_history_set(history_set hs);
 
 #endif /* CONOUT_H */

@@ -23,6 +23,8 @@
 #ifndef HISTORY_H
 #define HISTORY_H
 
+#define HISTORY_RECORD_SIZE 16
+
 typedef struct _WSH {
     unsigned char sample_time;
     unsigned char indoor_relative_humidity;
@@ -37,6 +39,15 @@ typedef struct _WSH {
     unsigned char status;
 } history;
 
+typedef struct _WSHS {
+    unsigned int record_count;
+    history* records;
+} history_set;
+
 history read_history_record(int record_number);
+
+history_set read_history();
+
+void free_history_set(history_set hs);
 
 #endif /* HISTORY_H */
