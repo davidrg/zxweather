@@ -47,14 +47,6 @@ device_config load_device_config() {
 
     return create_device_config(dc_data, alarm_data, records_data);
 }
-/* Read an unsigned short */
-#define READ_SHORT(buffer, LSB, MSB) ((buffer[MSB] << 8) + buffer[LSB])
-
-/* Read a signed short */
-#define READ_SSHORT(buffer, LSB, MSB) ((buffer[MSB] >= 128 ? -1 : 1) * (((buffer[MSB] >= 128 ? buffer[MSB] - 128 : buffer[MSB]) * 256) + buffer[LSB]))
-
-/* Read a Binary-coded decimal value */
-#define READ_BCD(byte)((((byte / 16) & 0x0F) * 10) + (byte & 0x0F))
 
 dc_alarm_settings create_alarm_settings(unsigned char* as_data) {
     dc_alarm_settings as;

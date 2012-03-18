@@ -15,11 +15,13 @@ SOURCES += main.c \
     deviceconfig.c \
     deviceio.c \
     debug.c \
-    dc_conout.c
+    history.c \
+    conout.c
 
 HEADERS += \
     deviceconfig.h \
     deviceio.h \
     debug.h \
-    conout.h
+    conout.h \
+    history.h
 HEADERS += common.h

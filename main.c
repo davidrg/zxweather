@@ -26,10 +26,12 @@
 #include "deviceio.h"
 #include "deviceconfig.h"
 #include "conout.h"
+#include "history.h"
 
 int main(void)
 {
     device_config dc;
+    history h;
 
     printf("WH1080 Test Application v1.0\n");
     printf("\t(C) Copyright David Goodwin, 2012\n\n");
@@ -38,6 +40,10 @@ int main(void)
 
     dc = load_device_config();
     print_device_config(dc);
+
+    h = read_history_record(0);
+    printf("History Record #0:-\n");
+    print_history_record(h);
 
     close_device();
 
