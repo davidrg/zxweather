@@ -109,8 +109,8 @@ typedef struct _DCSR {
     unsigned short rainfall_1h_max;
     unsigned short rainfall_24h_max;
     unsigned short rainfall_week_max;
-    unsigned long rainfall_month_max; /* must be > 16 bits */
-    unsigned long rainfall_total_max; /* must be > 16 bits */
+    unsigned long rainfall_month_max; /* must be >= 20 bits */
+    unsigned long rainfall_total_max; /* must be >= 20 bits */
     time_stamp average_wind_speed_max_ts;
     time_stamp gust_wind_speed_max_ts;
     time_stamp rainfall_1h_max_ts;
@@ -141,9 +141,6 @@ typedef struct _DCFG {
 
 /* Loads device configuration from the weather station */
 device_config load_device_config();
-
-/* Prints weather station configuration to the console */
-void print_device_config(device_config dc);
 
 /* Creates a new device_config struct from the data in the supplied buffer.
  */
@@ -228,4 +225,4 @@ device_config create_device_config(unsigned char* dc_data,
  * data has been changed by the PC */
 #define PC_DATA_REFRESH 0xAA
 
-#endif // DEVICECONFIG_H
+#endif /* DEVICECONFIG_H */

@@ -1,5 +1,5 @@
 /*****************************************************************************
- *            Created: 17/03/2012
+ *            Created: 18/03/2012
  *          Copyright: (C) Copyright David Goodwin, 2012
  *            License: GNU General Public License
  *****************************************************************************
@@ -20,19 +20,15 @@
  *
  ****************************************************************************/
 
-#ifndef COMMON_H
-#define COMMON_H
+/* Functions for writing information to the console */
 
-#ifndef FALSE
-#define FALSE 0
-#endif
+#ifndef CONOUT_H
+#define CONOUT_H
 
-#ifndef TRUE
-#define TRUE 1
-#endif
+/* for device_config */
+#include "deviceconfig.h"
 
-#ifndef BOOL
-#define BOOL int
-#endif
+/* Prints weather station configuration to the console */
+void print_device_config(device_config dc);
 
-#endif /* COMMON_H */
+#endif /* CONOUT_H */
