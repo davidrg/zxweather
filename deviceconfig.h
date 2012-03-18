@@ -34,29 +34,29 @@
 /* Records alarm settings (levels at which the alarm will go off if it is
  * enabled */
 typedef struct _DCAS {
-    unsigned char indoor_relative_humidity_high;
-    unsigned char indoor_relative_humidity_low;
-    signed short indoor_temperature_high;
-    signed short indoor_temperature_low;
-    unsigned char outdoor_relative_humidity_high;
-    unsigned char outdoor_relative_humidity_low;
-    signed short outdoor_temperature_high;
-    signed short outdoor_temperature_low;
-    signed short wind_chill_high;
-    signed short wind_chill_low;
-    signed short dew_point_high;
-    signed short dew_point_low;
-    unsigned short absolute_pressure_high;
-    unsigned short absolute_pressure_low;
-    unsigned short relative_pressure_high;
-    unsigned short relative_pressure_low;
-    unsigned char average_bft_high;
-    unsigned short average_wind_speed_high;
-    unsigned char gust_bft_high;
-    unsigned short gust_wind_speed_high;
-    unsigned char wind_direction_alm;
-    unsigned short rainfall_1h_high;
-    unsigned short rainfall_24h_high;
+    unsigned char indoor_relative_humidity_high;  /* % */
+    unsigned char indoor_relative_humidity_low;   /* % */
+    signed short indoor_temperature_high;         /* deg C, fixed point */
+    signed short indoor_temperature_low;          /* deg C, fixed point */
+    unsigned char outdoor_relative_humidity_high; /* % */
+    unsigned char outdoor_relative_humidity_low;  /* % */
+    signed short outdoor_temperature_high;        /* deg C, fixed point */
+    signed short outdoor_temperature_low;         /* deg C, fixed point */
+    signed short wind_chill_high;                 /* deg C, fixed point */
+    signed short wind_chill_low;                  /* deg C, fixed point */
+    signed short dew_point_high;                  /* deg C, fixed point */
+    signed short dew_point_low;                   /* deg C, fixed point */
+    unsigned short absolute_pressure_high;        /* Hpa, fixed point */
+    unsigned short absolute_pressure_low;         /* Hpa, fixed point */
+    unsigned short relative_pressure_high;        /* Hpa, fixed point */
+    unsigned short relative_pressure_low;         /* Hpa, fixed point */
+    unsigned char average_bft_high;               /* bft */
+    unsigned short average_wind_speed_high;       /* m/s, fixed point */
+    unsigned char gust_bft_high;                  /* bft */
+    unsigned short gust_wind_speed_high;          /* m/s, fixed point */
+    unsigned char wind_direction_alm;             /* 0=N, 4=E, 8=S, 12=W */
+    unsigned short rainfall_1h_high;              /* mm, fixed point */
+    unsigned short rainfall_24h_high;             /* mm, fixed point */
     unsigned char time_alarm_hour;
     unsigned char time_alarm_minute;
 } dc_alarm_settings;
@@ -94,23 +94,24 @@ typedef struct _UCREC {
     time_stamp max_ts;
 } uc_record;
 
-/* Station records */
+/* Station records. Some values are fixed-point numbers. Use SFP() to convert
+ * them. */
 typedef struct _DCSR {
-    uc_record indoor_relative_humidity;
-    uc_record outdoor_relative_humidity;
-    ss_record indoor_temperature;
-    ss_record outdoor_temperature;
-    ss_record windchill;
-    ss_record dewpoint;
-    us_record absolute_pressure;
-    us_record relative_pressure;
-    unsigned short average_wind_speed_max;
-    unsigned short gust_wind_speed_max;
-    unsigned short rainfall_1h_max;
-    unsigned short rainfall_24h_max;
-    unsigned short rainfall_week_max;
-    unsigned long rainfall_month_max; /* must be >= 20 bits */
-    unsigned long rainfall_total_max; /* must be >= 20 bits */
+    uc_record indoor_relative_humidity; /* % */
+    uc_record outdoor_relative_humidity; /* % */
+    ss_record indoor_temperature;     /* fixed point, deg C */
+    ss_record outdoor_temperature;    /* fixed point, deg C */
+    ss_record windchill;              /* fixed point, deg C */
+    ss_record dewpoint;               /* fixed point, deg C */
+    us_record absolute_pressure;      /* fixed point, Hpa */
+    us_record relative_pressure;      /* fixed point, Hpa */
+    unsigned short average_wind_speed_max; /* fixed point, m/s */
+    unsigned short gust_wind_speed_max; /* fixed point, m/s */
+    unsigned short rainfall_1h_max;   /* fixed point, mm */
+    unsigned short rainfall_24h_max;  /* fixed point, mm */
+    unsigned short rainfall_week_max; /* fixed point, mm */
+    unsigned long rainfall_month_max; /* fixed point, must be >= 20 bits */
+    unsigned long rainfall_total_max; /* fixed point, must be >= 20 bits */
     time_stamp average_wind_speed_max_ts;
     time_stamp gust_wind_speed_max_ts;
     time_stamp rainfall_1h_max_ts;
@@ -123,18 +124,18 @@ typedef struct _DCSR {
 /* Device Configuration */
 typedef struct _DCFG {
     unsigned char current_sampling_time_interval;
-    unsigned char config_flags_A;
-    unsigned char config_flags_B;
-    unsigned char display_format_flags_A;
-    unsigned char display_format_flags_B;
-    unsigned char alarm_enable_flags_A;
-    unsigned char alarm_enable_flags_B;
-    unsigned char alarm_enable_flags_C;
+    unsigned char config_flags_A;           /* use DC_SAF constants */
+    unsigned char config_flags_B;           /* use DC_SBF constants */
+    unsigned char display_format_flags_A;   /* use DC_DAF constants */
+    unsigned char display_format_flags_B;   /* use DC_DBF constants */
+    unsigned char alarm_enable_flags_A;     /* use DC_AAF constants */
+    unsigned char alarm_enable_flags_B;     /* use DC_ABF constants */
+    unsigned char alarm_enable_flags_C;     /* use DC_ABF constants */
     signed char timezone;
     unsigned short history_data_sets;
     unsigned short history_data_stack_address;
-    unsigned short relative_pressure; /* display format is - nnnn.n */
-    unsigned short absolute_pressure; /* display format is - nnnn.n */
+    unsigned short relative_pressure; /* fixed point, Hpa */
+    unsigned short absolute_pressure; /* fixed point, Hpa */
     dc_alarm_settings alarm_settings;
     dc_station_records station_records;
 } device_config;
@@ -147,6 +148,9 @@ device_config load_device_config();
 device_config create_device_config(unsigned char* dc_data,
                                    unsigned char *as_data,
                                    unsigned char *sr_data);
+
+/* Convert a single-digit fixed point integer (eg, 100) to a float (eg, 10.0) */
+#define SFP(val) (val / 10.0)
 
 /* To check if a bit is set. There are plenty of bits to check below. */
 #define CHECK_BIT_FLAG(byte, bit) ((byte & bit) != 0)
