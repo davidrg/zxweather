@@ -39,6 +39,8 @@ int main(void)
     dc = load_device_config();
     print_device_config(dc);
 
+    close_device();
+
     return 0;
 }
 
