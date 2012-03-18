@@ -25,30 +25,18 @@
 
 #include "deviceio.h"
 #include "deviceconfig.h"
-#include "debug.h"
 #include "conout.h"
-
-#include "hidapi/hidapi.h"
-
-/* This is what the WH1080 appears as.
- */
-#define VENDOR_ID 0x1941
-#define PRODUCT_ID 0x8021
-
-/* For reading/writing to the WH1080 */
-#define END_MARK 0x20
-#define WRITE_COMMAND 0xA0
-#define READ_COMMAND 0xA1
-#define WRITE_COMMAND_WORD 0xA2
 
 int main(void)
 {
+    device_config dc;
+
     printf("WH1080 Test Application v1.0\n");
     printf("\t(C) Copyright David Goodwin, 2012\n\n");
 
     open_device();
 
-    device_config dc = load_device_config();
+    dc = load_device_config();
     print_device_config(dc);
 
     return 0;

@@ -30,19 +30,16 @@
 device_config load_device_config() {
     /* Need 36 bytes of data from offset 0x00000 */
     const int dc_offset = 0x00000;
-    const int dc_end = 0x00023;
-    const int dc_size = dc_end - dc_offset;
-    unsigned char dc_data[dc_size];
+    const int dc_size = 0x00024;
+    unsigned char dc_data[0x00024];
 
     const int alarm_offset = 0x00030;
-    const int alarm_end = 0x00058;
-    const int alarm_size = alarm_end - alarm_offset;
-    unsigned char alarm_data[alarm_size];
+    const int alarm_size = 0x00029;
+    unsigned char alarm_data[0x00029];
 
     const int records_offset = 0x00062;
-    const int records_end = 0x000FF;
-    const int records_size = records_end - records_offset;
-    unsigned char records_data[records_size];
+    const int records_size = 0x0009E;
+    unsigned char records_data[0x0009E];
 
     fill_buffer(dc_offset, dc_data, dc_size, FALSE);
     fill_buffer(alarm_offset, alarm_data, alarm_size, FALSE);
@@ -134,6 +131,8 @@ uc_record create_uc_record(unsigned char *offset) {
 /* Creates station records (min/max values) struct */
 dc_station_records create_station_records(unsigned char* sr_data) {
     dc_station_records sr;
+    unsigned char rainfall_nibbles;
+    unsigned long month_bit, total_bit;
 
     sr.indoor_relative_humidity = create_uc_record(&sr_data[0]);
     sr.outdoor_relative_humidity = create_uc_record(&sr_data[2]);
@@ -158,9 +157,9 @@ dc_station_records create_station_records(unsigned char* sr_data) {
 
     /* The upper four bits of both the month and total maximums are stored
      * together at offset 0x0008C */
-    const unsigned char rainfall_nibbles = sr_data[42];
-    const unsigned long month_bit = (rainfall_nibbles & 0xF0) << 12;
-    const unsigned long total_bit = (rainfall_nibbles & 0x0F) << 16;
+    rainfall_nibbles = sr_data[42];
+    month_bit = (rainfall_nibbles & 0xF0) << 12;
+    total_bit = (rainfall_nibbles & 0x0F) << 16;
     sr.rainfall_month_max += month_bit;
     sr.rainfall_total_max += total_bit;
 
