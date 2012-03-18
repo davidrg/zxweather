@@ -47,8 +47,11 @@ device_config load_device_config() {
 
     return create_device_config(dc_data, alarm_data, records_data);
 }
-
+/* Read an unsigned short */
 #define READ_SHORT(buffer, LSB, MSB) ((buffer[MSB] << 8) + buffer[LSB])
+
+/* Read a signed short */
+#define READ_SSHORT(buffer, LSB, MSB) ((buffer[MSB] >= 128 ? -1 : 1) * (((buffer[MSB] >= 128 ? buffer[MSB] - 128 : buffer[MSB]) * 256) + buffer[LSB]))
 
 /* Read a Binary-coded decimal value */
 #define READ_BCD(byte)((((byte / 16) & 0x0F) * 10) + (byte & 0x0F))
@@ -58,16 +61,16 @@ dc_alarm_settings create_alarm_settings(unsigned char* as_data) {
 
     as.indoor_relative_humidity_high = as_data[0];
     as.indoor_relative_humidity_low = as_data[1];
-    as.indoor_temperature_high = READ_SHORT(as_data,2,3);
-    as.indoor_temperature_low = READ_SHORT(as_data,4,5);
+    as.indoor_temperature_high = READ_SSHORT(as_data,2,3);
+    as.indoor_temperature_low = READ_SSHORT(as_data,4,5);
     as.outdoor_relative_humidity_high = as_data[6];
     as.outdoor_relative_humidity_low = as_data[7];
-    as.outdoor_temperature_high = READ_SHORT(as_data,8,9);
-    as.outdoor_temperature_low = READ_SHORT(as_data,10,11);
-    as.wind_chill_high = READ_SHORT(as_data,12,13);
-    as.wind_chill_low = READ_SHORT(as_data,14,15);
-    as.dew_point_high = READ_SHORT(as_data,16,17);
-    as.dew_point_low = READ_SHORT(as_data,18,19);
+    as.outdoor_temperature_high = READ_SSHORT(as_data,8,9);
+    as.outdoor_temperature_low = READ_SSHORT(as_data,10,11);
+    as.wind_chill_high = READ_SSHORT(as_data,12,13);
+    as.wind_chill_low = READ_SSHORT(as_data,14,15);
+    as.dew_point_high = READ_SSHORT(as_data,16,17);
+    as.dew_point_low = READ_SSHORT(as_data,18,19);
     as.absolute_pressure_high = READ_SHORT(as_data,20,21);
     as.absolute_pressure_low = READ_SHORT(as_data,22,23);
     as.relative_pressure_high = READ_SHORT(as_data,24, 25);
@@ -102,8 +105,8 @@ time_stamp create_time_stamp(unsigned char *offset) {
 ss_record create_ss_record(unsigned char *offset) {
     ss_record ss;
 
-    ss.max = READ_SHORT(offset, 0, 1);
-    ss.min = READ_SHORT(offset, 2, 3);
+    ss.max = READ_SSHORT(offset, 0, 1);
+    ss.min = READ_SSHORT(offset, 2, 3);
 
     return ss;
 }
