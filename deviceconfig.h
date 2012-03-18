@@ -20,11 +20,107 @@
  *
  ****************************************************************************/
 
+/* deviceconfig.h: Everything you need to read the device configuration. This
+ * includes station records and alarm settings.
+ *
+ * There is not currently any ability to update settings.
+ */
+
 #ifndef DEVICECONFIG_H
 #define DEVICECONFIG_H
 
 #include "common.h"
 
+/* Records alarm settings (levels at which the alarm will go off if it is
+ * enabled */
+typedef struct _DCAS {
+    unsigned char indoor_relative_humidity_high;
+    unsigned char indoor_relative_humidity_low;
+    signed short indoor_temperature_high;
+    signed short indoor_temperature_low;
+    unsigned char outdoor_relative_humidity_high;
+    unsigned char outdoor_relative_humidity_low;
+    signed short outdoor_temperature_high;
+    signed short outdoor_temperature_low;
+    signed short wind_chill_high;
+    signed short wind_chill_low;
+    signed short dew_point_high;
+    signed short dew_point_low;
+    unsigned short absolute_pressure_high;
+    unsigned short absolute_pressure_low;
+    unsigned short relative_pressure_high;
+    unsigned short relative_pressure_low;
+    unsigned char average_bft_high;
+    unsigned short average_wind_speed_high;
+    unsigned char gust_bft_high;
+    unsigned short gust_wind_speed_high;
+    unsigned char wind_direction_alm;
+    unsigned short rainfall_1h_high;
+    unsigned short rainfall_24h_high;
+    unsigned char time_alarm_hour;
+    unsigned char time_alarm_minute;
+} dc_alarm_settings;
+
+/* A time stamp for a station record */
+typedef struct _TS {
+    unsigned char year;
+    unsigned char month;
+    unsigned char date;
+    unsigned char hour;
+    unsigned char minute;
+} time_stamp;
+
+/* A station record using signed 16bit integers. Used for temperature */
+typedef struct _SSREC {
+    signed short min;
+    signed short max;
+    time_stamp min_ts;
+    time_stamp max_ts;
+} ss_record;
+
+/* A station record using unsigned 16bit integers. */
+typedef struct _USREC {
+    unsigned short min;
+    unsigned short max;
+    time_stamp min_ts;
+    time_stamp max_ts;
+} us_record;
+
+/* A station record using unsigned 8bit integers */
+typedef struct _UCREC {
+    unsigned char min;
+    unsigned char max;
+    time_stamp min_ts;
+    time_stamp max_ts;
+} uc_record;
+
+/* Station records */
+typedef struct _DCSR {
+    uc_record indoor_relative_humidity;
+    uc_record outdoor_relative_humidity;
+    ss_record indoor_temperature;
+    ss_record outdoor_temperature;
+    ss_record windchill;
+    ss_record dewpoint;
+    us_record absolute_pressure;
+    us_record relative_pressure;
+    unsigned short average_wind_speed_max;
+    time_stamp average_wind_speed_max_ts;
+    unsigned short gust_wind_speed_max;
+    time_stamp gust_wind_speed_max_ts;
+    unsigned short rainfall_1h_max;
+    time_stamp rainfall_1h_max_ts;
+    unsigned short rainfall_24h_max;
+    time_stamp rainfall_24h_max_ts;
+    unsigned short rainfall_week_max;
+    time_stamp rainfall_week_max_ts;
+    unsigned long rainfall_month_max; /* must be > 16 bits */
+    time_stamp rainfall_month_max_ts;
+    unsigned long rainfall_total_max; /* must be > 16 bits */
+    time_stamp rainfall_total_max_ts;
+} dc_station_records;
+
+/* Device Configuration */
 typedef struct _DCFG {
     unsigned char current_sampling_time_interval;
     unsigned char config_flags_A;
@@ -37,8 +133,10 @@ typedef struct _DCFG {
     signed char timezone;
     unsigned short history_data_sets;
     unsigned short history_data_stack_address;
-    unsigned short relative_pressure;
-    unsigned short absolute_pressure;
+    unsigned short relative_pressure; /* display format is - nnnn.n */
+    unsigned short absolute_pressure; /* display format is - nnnn.n */
+    dc_alarm_settings alarm_settings;
+    dc_station_records station_records;
 } device_config;
 
 /* Loads device configuration from the weather station */
@@ -49,7 +147,9 @@ void print_device_config(device_config dc);
 
 /* Creates a new device_config struct from the data in the supplied buffer.
  */
-device_config create_device_config(unsigned char* dc_data);
+device_config create_device_config(unsigned char* dc_data,
+                                   unsigned char *as_data,
+                                   unsigned char *sr_data);
 
 /* To check if a bit is set. There are plenty of bits to check below. */
 #define CHECK_BIT_FLAG(byte, bit) ((byte & bit) != 0)
@@ -127,4 +227,5 @@ device_config create_device_config(unsigned char* dc_data);
 /* Written to offset 0x1A to notify the weather station that configuration
  * data has been changed by the PC */
 #define PC_DATA_REFRESH 0xAA
+
 #endif // DEVICECONFIG_H
