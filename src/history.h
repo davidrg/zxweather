@@ -23,22 +23,46 @@
 #ifndef HISTORY_H
 #define HISTORY_H
 
+#include <time.h>
+#include "common.h"
+
 #define HISTORY_RECORD_SIZE 16
 
-/* A single data sample from the weather station */
+/* A single data sample from the weather station
+ * record_number: This is not a field that the weather station stores but
+ *                rather the 'slot' the record was stored in the weather
+ *                stations memory.
+ * download_time: When this particular history struct was created according
+ *                to the computers clock. If last_in_set is set then the value
+ *                of this field will actually be the time that the last record
+ *                was determined (when the ID of the last record was looked up
+ *                in the device configuration structures)
+ * last_in_set: If this history record was the last in a history set. If this
+ *              is set then the download_time on this history record is
+ *              probably fairly close to the stations time for that record.
+ * total_rain: Multiply this by 0.3 to get the real rainfall. This counter
+ *             actually counts the number of times the tipping bucket rain
+ *             gauges bucket has tipped (which requires 0.3mm of rain to do).
+ */
 typedef struct _WSH {
-    unsigned char sample_time;
-    unsigned char indoor_relative_humidity;
-    signed short indoor_temperature;
-    unsigned char outdoor_relative_humidity;
-    signed short outdoor_temperature;
-    unsigned short absolute_pressure;
-    signed short average_wind_speed;
-    signed short gust_wind_speed;
-    unsigned char wind_direction;
-    unsigned short total_rain;
-    unsigned char status;
+    unsigned char sample_time;               /* minute */
+    unsigned char indoor_relative_humidity;  /* % */
+    signed short indoor_temperature;         /* C, fixed point */
+    unsigned char outdoor_relative_humidity; /* % */
+    signed short outdoor_temperature;        /* C, fixed point */
+    unsigned short absolute_pressure;        /* Hpa, fixed point */
+    unsigned short average_wind_speed;       /* m/s, fixed point */
+    unsigned short gust_wind_speed;          /* m/s, fixed point */
+    unsigned char wind_direction;            /* Wind Dir */
+    unsigned short total_rain;               /* Tip bucket tips */
+    unsigned char status;                    /* flags */
+
+    /* This data does not come from the weather station */
+    unsigned short record_number;
+    time_t download_time;
+    BOOL last_in_set;
 } history;
+#define RAIN_MULTIPLY 0.3
 
 /* Stores multiple history records together */
 typedef struct _WSHS {

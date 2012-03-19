@@ -1,5 +1,5 @@
 /*****************************************************************************
- *            Created: 17/03/2012
+ *            Created: 19/03/2012
  *          Copyright: (C) Copyright David Goodwin, 2012
  *            License: GNU General Public License
  *****************************************************************************
@@ -20,52 +20,13 @@
  *
  ****************************************************************************/
 
-#include <stdio.h>
-#include <string.h>
+#ifndef FILEOUT_H
+#define FILEOUT_H
 
-#include "deviceio.h"
-#include "deviceconfig.h"
-#include "conout.h"
-#include "fileout.h"
 #include "history.h"
+#include <stdio.h>
 
-int main(void)
-{
-    device_config dc;
-    history_set hs;
-    FILE* file;
-    history h;
+/* Writes a history set to a csv file */
+void write_history_csv_file(FILE* file, history_set hs);
 
-    printf("WH1080 Test Application v1.0\n");
-    printf("\t(C) Copyright David Goodwin, 2012\n\n");
-
-    open_device();
-
-    dc = load_device_config();
-    print_device_config(dc);
-
-
-    printf("Loading history data...\n");
-    hs = read_history();
-    if (FALSE) {
-        print_history_set(hs);
-    } else {
-        printf("Dumping to CSV file...\n");
-        file = fopen("out.csv","w");
-        write_history_csv_file(file, hs);
-        fclose(file);
-    }
-    free_history_set(hs);
-
-    if (FALSE) {
-        h = read_history_record(0);
-        printf("History Record #0:-\n");
-        print_history_record(h);
-    }
-
-    close_device();
-
-    printf("Done.\n");
-    return 0;
-}
-
+#endif /* FILEOUT_H */

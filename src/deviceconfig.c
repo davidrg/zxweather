@@ -150,7 +150,7 @@ dc_station_records create_station_records(unsigned char* sr_data) {
     /* The upper four bits of both the month and total maximums are stored
      * together at offset 0x0008C */
     rainfall_nibbles = sr_data[42];
-    month_bit = (rainfall_nibbles & 0xF0) << 12;
+    month_bit = (rainfall_nibbles & 0xF0) << 12; /* High Nibble */
     total_bit = (rainfall_nibbles & 0x0F) << 16;
     sr.rainfall_month_max += month_bit;
     sr.rainfall_total_max += total_bit;

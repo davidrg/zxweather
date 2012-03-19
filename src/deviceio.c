@@ -66,7 +66,7 @@ void read_block(int memory_address, unsigned char *buffer) {
     unsigned char address_low = memory_address % 256;
     unsigned char read_buffer[9];
 
-    printf("Read address %d (0x%05X)\n", memory_address, memory_address);
+    /*printf("Read address %d (0x%05X)\n", memory_address, memory_address);*/
 
     /* Send a command requesting 32 bytes of data from the specified address */
     command_buffer[0] = 0x0;
@@ -135,7 +135,7 @@ void fill_buffer(int memory_address,
             read_block(memory_address + pos, read_buffer);
 
         if (pos + READ_SIZE_BYTES > buffer_size) {
-            printf("Taking only %d bytes from block\n", buffer_size-pos);
+            /*printf("Taking only %d bytes from block\n", buffer_size-pos);*/
             memcpy(&buffer[pos], &read_buffer, buffer_size - pos);
             pos += buffer_size - pos;
         } else {

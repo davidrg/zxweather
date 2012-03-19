@@ -16,12 +16,14 @@ SOURCES += src/main.c \
     src/deviceio.c \
     src/debug.c \
     src/history.c \
-    src/conout.c
+    src/conout.c \
+    src/fileout.c
 
 HEADERS += \
     src/deviceconfig.h \
     src/deviceio.h \
     src/debug.h \
     src/conout.h \
-    src/history.h
+    src/history.h \
+    src/fileout.h
 HEADERS += src/common.h

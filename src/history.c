@@ -30,6 +30,8 @@
 
 history create_history(unsigned char* buffer) {
     history h;
+    unsigned char gust_nibble, average_nibble;
+    unsigned int gust_bit, average_bit;
 
     h.sample_time = buffer[0];
     h.indoor_relative_humidity = buffer[1];
@@ -40,14 +42,21 @@ history create_history(unsigned char* buffer) {
 
     /* average wind speed - [9] and part of [11]
      gust wind speed - [10] and part of [11] */
+    gust_nibble = buffer[11] >> 4;
+    average_nibble = buffer[11] & 0x0F;
+    gust_bit = gust_nibble << 8;
+    average_bit = average_nibble << 8;
+
+    h.average_wind_speed = buffer[9] + average_bit;
+    h.gust_wind_speed = buffer[10] + gust_bit;
 
     h.wind_direction = buffer[12];
 
-    /* Magic number alert! The doc says to multiply by 0.3 because "the saved
-     * value is from the rain transducer counter value" */
-    h.total_rain = buffer[13] * 0.3;
+    h.total_rain = buffer[13];
 
     h.status = buffer[14];
+
+    h.last_in_set = FALSE;
 
     return h;
 }
@@ -55,10 +64,18 @@ history create_history(unsigned char* buffer) {
 history read_history_record(int record_number) {
     unsigned char buffer[16];
     unsigned int record_offset = HISTORY_OFFSET + (record_number * 16);
+    history h;
+    time_t download_time;
 
+    download_time = time(NULL);
     fill_buffer(record_offset, buffer, HISTORY_RECORD_SIZE, TRUE);
 
-    return create_history(buffer);
+    h = create_history(buffer);
+    h.record_number = record_number;
+    h.download_time = download_time;
+    h.last_in_set = FALSE; /* Not part of a history set */
+
+    return h;
 }
 
 history* load_history(int record_count) {
@@ -66,6 +83,7 @@ history* load_history(int record_count) {
     int i = 0;
     unsigned char * data_buffer;
     int buffer_size = HISTORY_RECORD_SIZE * record_count;
+    time_t download_time;
 
     /* Allocate space for the history set */
     h = malloc(sizeof(history) * record_count);
@@ -79,11 +97,14 @@ history* load_history(int record_count) {
         free(h);
         return NULL;
     }
+    download_time = time(NULL);
     fill_buffer(HISTORY_OFFSET, data_buffer, buffer_size, TRUE);
 
     /* Load each history record */
     for (i = 0; i < record_count; i += 1) {
         h[i] = create_history(data_buffer + (i * HISTORY_RECORD_SIZE));
+        h[i].record_number = i;
+        h[i].download_time = download_time;
     }
 
     free(data_buffer);
@@ -94,11 +115,22 @@ history* load_history(int record_count) {
 history_set read_history() {
     device_config dc;
     history_set hs;
+    time_t last_record_timestamp;
 
+    last_record_timestamp = time(NULL);
     dc = load_device_config();
 
     hs.record_count = dc.history_data_sets;
     hs.records = load_history(hs.record_count);
+
+    hs.records[hs.record_count-1].last_in_set = TRUE;
+
+    /* We treat the last records timestamp as if the last record was actually
+     * the first to be downloaded. As such, its timestamp should be time time
+     * we checked which record the last record was (when we loaded the device
+     * configuration).
+     */
+    hs.records[hs.record_count-1].download_time = last_record_timestamp;
 
     if (hs.records == NULL)
         hs.record_count = 0;
