@@ -42,7 +42,11 @@ history create_history(unsigned char* buffer) {
      gust wind speed - [10] and part of [11] */
 
     h.wind_direction = buffer[12];
-    h.total_rain = buffer[13];
+
+    /* Magic number alert! The doc says to multiply by 0.3 because "the saved
+     * value is from the rain transducer counter value" */
+    h.total_rain = buffer[13] * 0.3;
+
     h.status = buffer[14];
 
     return h;

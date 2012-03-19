@@ -29,7 +29,9 @@
 
 static char* wind_direction[] = {"N", "NNE", "NE", "ENE", "E", "ESE", "SE",
                                  "SSE", "S", "SSW", "SW", "WSW", "W", "WNW",
-                                 "NW", "NNW"};
+                                 "NW", "NNW", "INVALID"};
+#define WIND_DIR(byte) (wind_direction[byte > 15 ? 16 : byte])
+
 
 int print_flag(int char_total, char* flag) {
     int flag_len = strlen(flag) + 1;
@@ -203,7 +205,7 @@ void print_alarm_settings(dc_alarm_settings as) {
     printf("\tGust Wind Speed High: %02.1f m/s\n", SFP(as.gust_wind_speed_high));
     printf("\tWind Direction ALM: 0x%02X (%s)\n",
            as.wind_direction_alm,
-           wind_direction[as.wind_direction_alm]);
+           WIND_DIR(as.wind_direction_alm));
     printf("\t1H Rainfall High: %02.1f mm\n", SFP(as.rainfall_1h_high));
     printf("\t24H Rainfall High: %02.1f mm\n", SFP(as.rainfall_24h_high));
     printf("\tTime: %d:%02d\n", as.time_alarm_hour, as.time_alarm_minute);
@@ -322,19 +324,38 @@ void print_device_config(device_config dc) {
 }
 
 void print_history_record(history h) {
-    printf("\tSample Time: %d\n", h.sample_time);
-    printf("\tIndoor Relative Humidity: %d\n", h.indoor_relative_humidity);
-    printf("\tIndoor Temperature: %02.1f\n", SFP(h.indoor_temperature));
-    printf("\tOutdoor Relative Humidity: %d\n", h.outdoor_relative_humidity);
-    printf("\tOutdoor Temperature: %02.1f\n", SFP(h.outdoor_temperature));
-    printf("\tAbsolute Pressure: %d\n", h.absolute_pressure);
-    printf("\tAverage Wind Speed: %d\n", h.average_wind_speed);
-    printf("\tGust Wind Speed: %d\n", h.gust_wind_speed);
+    int ct = -1;
+
+    printf("\tSample Time: %d m\n", h.sample_time);
+    printf("\tIndoor Relative Humidity: %d%%\n", h.indoor_relative_humidity);
+    printf("\tIndoor Temperature: %02.1f C\n", SFP(h.indoor_temperature));
+    printf("\tOutdoor Relative Humidity: %d%%\n", h.outdoor_relative_humidity);
+    printf("\tOutdoor Temperature: %02.1f C\n", SFP(h.outdoor_temperature));
+    printf("\tAbsolute Pressure: %02.1f Hpa m/s\n", SFP(h.absolute_pressure));
+    printf("\tAverage Wind Speed: %d m/s\n", h.average_wind_speed);
+    printf("\tGust Wind Speed: %d m/s\n", h.gust_wind_speed);
     printf("\tWind Direction: 0x%02X (%s)\n",
            h.wind_direction,
-           wind_direction[h.wind_direction]);
+           WIND_DIR(h.wind_direction));
     printf("\tTotal Rain: %d\n", h.total_rain);
     printf("\tStatus: 0x%02X\n", h.status);
+    if (CHECK_BIT_FLAG(h.status, H_SF_RESERVED_A))
+        ct = print_flag(ct, "RESERVED_A");
+    if (CHECK_BIT_FLAG(h.status, H_SF_RESERVED_B))
+        ct = print_flag(ct, "RESERVED_B");
+    if (CHECK_BIT_FLAG(h.status, H_SF_RESERVED_C))
+        ct = print_flag(ct, "RESERVED_C");
+    if (CHECK_BIT_FLAG(h.status, H_SF_RESERVED_D))
+        ct = print_flag(ct, "RESERVED_D");
+    if (CHECK_BIT_FLAG(h.status, H_SF_RESERVED_E))
+        ct = print_flag(ct, "RESERVED_E");
+    if (CHECK_BIT_FLAG(h.status, H_SF_RESERVED_F))
+        ct = print_flag(ct, "RESERVED_F");
+    if (CHECK_BIT_FLAG(h.status, H_SF_INVALID_DATA))
+        ct = print_flag(ct, "NO_SENSOR_DATA");
+    if (CHECK_BIT_FLAG(h.status, H_SF_RAINFALL_OVERFLOW))
+        ct = print_flag(ct, "RAINFALL_OVERFLOW");
+    printf("\n");
 }
 
 void print_history_set(history_set hs) {
