@@ -11,7 +11,7 @@ CFLAGS   ?= -Wall -g
 DEVIO_OBJ = lib/hidapi/linux-0.7/hid-libusb.o src/deviceio.o
 
 # Objects for cweather
-CW_OBJS   = src/main.o src/deviceconfig.o src/conout.o src/debug.o src/history.o $(DEVIO_OBJ)
+CW_OBJS   = src/main.o src/deviceconfig.o src/conout.o src/debug.o src/history.o src/fileout.o $(DEVIO_OBJ)
 
 # Objects for memdump
 MD_OBJS   = src/memdump.o src/debug.o $(DEVIO_OBJ)
@@ -20,7 +20,7 @@ MD_OBJS   = src/memdump.o src/debug.o $(DEVIO_OBJ)
 RD_OBJS   = src/readdump.o src/fileio.o src/conout.o src/deviceconfig.o src/history.o
 
 # All objects that don't require memdump stuff
-ALL_OBJS      = src/main.o src/deviceconfig.o src/conout.o src/debug.o src/history.o
+ALL_OBJS      = src/main.o src/deviceconfig.o src/conout.o src/debug.o src/history.o src/fileout.o
 
 LIBS      = `pkg-config libusb-1.0 --libs`
 INCLUDES ?= -Ilib/hidapi/linux-0.7 `pkg-config libusb-1.0 --cflags`

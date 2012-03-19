@@ -44,4 +44,10 @@
 /* Read a Binary-coded decimal value */
 #define READ_BCD(byte)((((byte / 16) & 0x0F) * 10) + (byte & 0x0F))
 
+/* Convert a single-digit fixed point integer (eg, 100) to a float (eg, 10.0) */
+#define SFP(val) (val / 10.0)
+
+/* To check if a bit is set. */
+#define CHECK_BIT_FLAG(byte, bit) ((byte & bit) != 0)
+
 #endif /* COMMON_H */

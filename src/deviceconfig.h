@@ -149,11 +149,7 @@ device_config create_device_config(unsigned char* dc_data,
                                    unsigned char *as_data,
                                    unsigned char *sr_data);
 
-/* Convert a single-digit fixed point integer (eg, 100) to a float (eg, 10.0) */
-#define SFP(val) (val / 10.0)
-
-/* To check if a bit is set. There are plenty of bits to check below. */
-#define CHECK_BIT_FLAG(byte, bit) ((byte & bit) != 0)
+/* Use CHECK_BIT_FLAG to check one of the many bit flags below */
 
 /* Unit settings flag byte A (offset 0x00011) */
 #define DC_SAF_INSIDE_TEMP_UNIT     0x01 /* set = degF, not set = degC */
