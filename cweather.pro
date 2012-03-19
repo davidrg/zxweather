@@ -8,20 +8,20 @@ QMAKE_CFLAGS += -ansi -pedantic -Wall -Wextra -Werror
 
 # Because windows has no standard place to store libraries or anything I am
 # just going to go and distribute distribute it with the program.
-win32:LIBS += -L../cweather/hidapi/windows-binaries -lhidapi
-win32:INCLUDEPATH += hidapi/windows-binaries
+win32:LIBS += -L../cweather/lib/hidapi/windows-binaries -lhidapi
+win32:INCLUDEPATH += lib/hidapi/windows-binaries
 
-SOURCES += main.c \
-    deviceconfig.c \
-    deviceio.c \
-    debug.c \
-    history.c \
-    conout.c
+SOURCES += src/main.c \
+    src/deviceconfig.c \
+    src/deviceio.c \
+    src/debug.c \
+    src/history.c \
+    src/conout.c
 
 HEADERS += \
-    deviceconfig.h \
-    deviceio.h \
-    debug.h \
-    conout.h \
-    history.h
-HEADERS += common.h
+    src/deviceconfig.h \
+    src/deviceio.h \
+    src/debug.h \
+    src/conout.h \
+    src/history.h
+HEADERS += src/common.h
