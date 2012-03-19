@@ -1,3 +1,6 @@
 syntax: glob
 cweather.pro.hy5928
 cweather.pro.user
+memdump.pro.user
+readdump.pro.Rq9604
+readdump.pro.user
