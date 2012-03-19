@@ -7,9 +7,10 @@ all: cweather
 CC       ?= gcc
 CFLAGS   ?= -Wall -g
 
-OBJS     = main.o deviceconfig.o deviceio.o dc_conout.o debug.o hidapi/linux-0.7/hid-libusb.o
+HIDAPIOBJ = lib/hidapi/linux-0.7/hid-libusb.o
+OBJS      = src/main.o src/deviceconfig.o src/deviceio.o src/dc_conout.o src/debug.o $(HIDAPIOBJ)
 LIBS      = `pkg-config libusb-1.0 --libs`
-INCLUDES ?= -Ihidapi/linux-0.7 `pkg-config libusb-1.0 --cflags`
+INCLUDES ?= -Ilib/hidapi/linux-0.7 `pkg-config libusb-1.0 --cflags`
 
 cweather : $(OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LIBS) -o cweather
