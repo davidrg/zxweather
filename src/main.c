@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
         printf("Using defaults\n");
         server = "weather_dev@localhost:5432";
         username="postgres";
-        password="";
+        password="4150162397";
     } else {
         server = argv[1];
         username = argv[2];
