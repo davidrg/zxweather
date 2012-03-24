@@ -49,8 +49,8 @@ int main(int argc, char *argv[])
     if (argc < 4) {
         printf("Using defaults\n");
         server = "weather_dev@localhost:5432";
-        username="postgres";
-        password="";
+        username="zxweather";
+        password="password";
     } else {
         server = argv[1];
         username = argv[2];
