@@ -25,6 +25,11 @@
  * ECPG before you can run it through your C compiler.
  */
 
+/* Functions in this file start with the pgo_ prefix as some names (connect)
+ * were conflicting with functions elsewhere and getting called by library
+ * code somehow.
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include "pgout.h"
@@ -35,11 +40,11 @@ static char* wind_direction[] = {"N", "NNE", "NE", "ENE", "E", "ESE", "SE",
                                 "NW", "NNW", "INVALID"};
 #define WIND_DIR(byte) (wind_direction[byte > 15 ? 16 : byte])
 
-EXEC SQL WHENEVER SQLERROR CALL print_sqlca();
+EXEC SQL WHENEVER SQLERROR CALL pgo_print_sqlca();
 
 /* In the event of a SQL error, print the details to stderr, roll back the
  * transaction, disconnect from the server and exit */
-void print_sqlca()
+void pgo_print_sqlca()
 {
     fprintf(stderr, "==== sqlca ====\n");
     fprintf(stderr, "sqlcode: %ld\n", sqlca.sqlcode);
@@ -59,7 +64,7 @@ void print_sqlca()
 }
 
 /* Connect to the database server */
-void connect(const char *target, const char *username, const char *password) {
+void pgo_connect(const char *target, const char *username, const char *password) {
     EXEC SQL BEGIN DECLARE SECTION;
     const char * target_l = target;
     const char * username_l = username;
@@ -75,7 +80,7 @@ void connect(const char *target, const char *username, const char *password) {
 
 /* Get the record number and time stamp for the most recent sample in the
  * database */
-void get_last_record_number(unsigned int *record_number, time_t *time_stamp) {
+void pgo_get_last_record_number(unsigned int *record_number, time_t *time_stamp) {
     EXEC SQL BEGIN DECLARE SECTION;
     long int ts;
     int rn;
@@ -92,7 +97,7 @@ void get_last_record_number(unsigned int *record_number, time_t *time_stamp) {
 
 /* Insert a history set into the database. All records in the history set will
  * be inserted in order */
-void insert_history_set(history_set hs) {
+void pgo_insert_history_set(history_set hs) {
     unsigned int i = 0;
     history h;
     /*int wind_direction_index = 0;*/
@@ -167,16 +172,16 @@ void insert_history_set(history_set hs) {
 }
 
 /* Commits the transaction that was opened when we connected */
-void commit() {
+void pgo_commit() {
     EXEC SQL COMMIT;
 }
 
 /* roll-back any current transaction */
-void rollback() {
+void pgo_rollback() {
     EXEC SQL ROLLBACK;
 }
 
 /* Disconnect from the database server */
-void disconnect() {
+void pgo_disconnect() {
     EXEC SQL DISCONNECT ALL;
 }
