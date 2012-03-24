@@ -26,23 +26,23 @@
 #include "history.h"
 
 /* Connect to the target server as the specified user */
-void connect(const char* target, const char* username, const char *password);
+void pgo_connect(const char* target, const char* username, const char *password);
 
 /* Gets the record number and time stamp of the most recent sample in the
  * database. Used to determine which samples from the weather station need
  * to be imported into the database. */
-void get_last_record_number(unsigned int *record_number, time_t* time_stamp);
+void pgo_get_last_record_number(unsigned int *record_number, time_t* time_stamp);
 
 /* Inserts an entire history_set, in order, into the database. */
-void insert_history_set(history_set hs);
+void pgo_insert_history_set(history_set hs);
 
 /* Commits the current transaction */
-void commit();
+void pgo_commit();
 
 /* Rolls back the current transaction */
-void rollback();
+void pgo_rollback();
 
 /* Disconnects from the current server */
-void disconnect();
+void pgo_disconnect();
 
 #endif /* PGOUT_H */

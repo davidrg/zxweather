@@ -50,17 +50,17 @@ int main(int argc, char *argv[])
         printf("Using defaults\n");
         server = "weather_dev@localhost:5432";
         username="postgres";
-        password="4150162397";
+        password="";
     } else {
         server = argv[1];
         username = argv[2];
         password = argv[3];
     }
 
-    connect(server, username, password);
-    get_last_record_number(&record_number, &time_stamp);
+    pgo_connect(server, username, password);
+    pgo_get_last_record_number(&record_number, &time_stamp);
     printf("%d\n%d\n", record_number, (long)time_stamp);
-    disconnect();
+    pgo_disconnect();
 
     printf("Open Device...\n");
     open_device();
@@ -75,10 +75,10 @@ int main(int argc, char *argv[])
         if (FALSE) {
             print_history_set(hs);
         } else if (FALSE){
-            connect(argv[1], argv[2], argv[3]);
-            get_last_record_number(&record_number, &time_stamp);
+            pgo_connect(argv[1], argv[2], argv[3]);
+            pgo_get_last_record_number(&record_number, &time_stamp);
             printf("%d\n%d\n", record_number, (long)time_stamp);
-            disconnect();
+            pgo_disconnect();
         } else {
             printf("Dumping to CSV file...\n");
             file = fopen("out.csv","w");
