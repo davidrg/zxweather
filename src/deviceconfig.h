@@ -149,6 +149,10 @@ device_config create_device_config(unsigned char* dc_data,
                                    unsigned char *as_data,
                                    unsigned char *sr_data);
 
+/* Reads in just the history data sets and history data stack values */
+void get_history_data_info(unsigned short *history_data_sets,
+                           unsigned short *history_data_stack);
+
 /* Use CHECK_BIT_FLAG to check one of the many bit flags below */
 
 /* Unit settings flag byte A (offset 0x00011) */

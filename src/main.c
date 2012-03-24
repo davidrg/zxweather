@@ -28,37 +28,66 @@
 #include "conout.h"
 #include "fileout.h"
 #include "history.h"
+#include "pgout.h"
 
-int main(void)
+int main(int argc, char *argv[])
 {
     device_config dc;
     history_set hs;
     FILE* file;
     history h;
+    unsigned int record_number;
+    time_t time_stamp;
+    char *server;
+    char *username;
+    char *password;
 
     printf("WH1080 Test Application v1.0\n");
     printf("\t(C) Copyright David Goodwin, 2012\n\n");
 
+
+    if (argc < 4) {
+        printf("Using defaults\n");
+        server = "weather_dev@localhost:5432";
+        username="postgres";
+        password="";
+    } else {
+        server = argv[1];
+        username = argv[2];
+        password = argv[3];
+    }
+
+    connect(server, username, password);
+    get_last_record_number(&record_number, &time_stamp);
+    printf("%d\n%d\n", record_number, (long)time_stamp);
+    disconnect();
+
+    printf("Open Device...\n");
     open_device();
 
+    printf("Load Device Configuration...\n");
     dc = load_device_config();
     print_device_config(dc);
 
-
-    printf("Loading history data...\n");
-    hs = read_history();
     if (FALSE) {
-        print_history_set(hs);
+        printf("Loading history data...\n");
+        hs = read_history();
+        if (FALSE) {
+            print_history_set(hs);
+        } else if (FALSE){
+            connect(argv[1], argv[2], argv[3]);
+            get_last_record_number(&record_number, &time_stamp);
+            printf("%d\n%d\n", record_number, (long)time_stamp);
+            disconnect();
+        } else {
+            printf("Dumping to CSV file...\n");
+            file = fopen("out.csv","w");
+            write_history_csv_file(file, hs);
+            fclose(file);
+        }
+        free_history_set(hs);
     } else {
-        printf("Dumping to CSV file...\n");
-        file = fopen("out.csv","w");
-        write_history_csv_file(file, hs);
-        fclose(file);
-    }
-    free_history_set(hs);
-
-    if (FALSE) {
-        h = read_history_record(0);
+        h = read_history_record(dc.history_data_sets-1);
         printf("History Record #0:-\n");
         print_history_record(h);
     }
@@ -66,6 +95,7 @@ int main(void)
     close_device();
 
     printf("Done.\n");
+
     return 0;
 }
 

@@ -29,9 +29,9 @@ void write_history_header(FILE* file) {
             "\"Download Time\","
             "\"Last In Set\","
             "\"Sample Time (m)\","
-            "\"Indoor Relative Humidity (%)\","
+            "\"Indoor Relative Humidity (%%)\","
             "\"Indoor Temperature (C)\","
-            "\"Outdoor Relative Humidity (%)\","
+            "\"Outdoor Relative Humidity (%%)\","
             "\"Outdoor Temperature (C)\","
             "\"Absolute Pressure (Hpa)\","
             "\"Average Wind Speed (m/s)\","
@@ -47,7 +47,7 @@ void write_history_record(FILE* file, history h) {
     fprintf(file,
             "%d,%d,%d,%u,%u,%02.1f,%u,%02.1f,%02.1f,%02.1f,%02.1f,%u,%02.1f,%d,%d\n",
             h.record_number,
-            h.download_time,
+            (int)h.download_time,
             h.last_in_set,
             h.sample_time,
             h.indoor_relative_humidity,
