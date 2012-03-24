@@ -25,6 +25,11 @@
 #include "debug.h"
 #include <stdio.h>
 
+/* Offsets for the history data sets field and history data stack field in
+ * the device config data area */
+#define HISTORY_DATA_SETS_OFFSET 0x0001B
+#define HISTORY_DATA_STACK_OFFSET 0x0001E
+
 /* Loads device configuration from the weather station
  */
 device_config load_device_config() {
@@ -222,4 +227,17 @@ device_config create_device_config(unsigned char* dc_data,
     dc.alarm_settings = create_alarm_settings(as_data);
     dc.station_records = create_station_records(sr_data);
     return dc;
+}
+
+void get_history_data_info(unsigned short *history_data_sets,
+                           unsigned short *history_data_stack) {
+    /* History data sets - 2 bytes, history data stack - 2 bytes. There is one
+     * reserved byte between the two. That makes for five bytes.
+     */
+    unsigned char data[5];
+    fill_buffer(HISTORY_DATA_SETS_OFFSET, data, 5, TRUE);
+
+    *history_data_sets = READ_SHORT(data, 0, 1);
+    /* data[2] is just some reserved byte that we had to read as well */
+    *history_data_stack = READ_SHORT(data, 3, 4);
 }

@@ -1,0 +1,182 @@
+/*****************************************************************************
+ *            Created: 20/03/2012
+ *          Copyright: (C) Copyright David Goodwin, 2012
+ *            License: GNU General Public License
+ *****************************************************************************
+ *
+ *   This is free software; you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation; either version 2 of the License, or
+ *   (at your option) any later version.
+ *
+ *   This software is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this software; if not, write to the Free Software
+ *   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ *
+ ****************************************************************************/
+
+/*
+ * Note: This function contains Embedded SQL. It must be pre-processed with
+ * ECPG before you can run it through your C compiler.
+ */
+
+#include <stdlib.h>
+#include <stdio.h>
+#include "pgout.h"
+#include "common.h"
+
+static char* wind_direction[] = {"N", "NNE", "NE", "ENE", "E", "ESE", "SE",
+                                "SSE", "S", "SSW", "SW", "WSW", "W", "WNW",
+                                "NW", "NNW", "INVALID"};
+#define WIND_DIR(byte) (wind_direction[byte > 15 ? 16 : byte])
+
+EXEC SQL WHENEVER SQLERROR CALL print_sqlca();
+
+/* In the event of a SQL error, print the details to stderr, roll back the
+ * transaction, disconnect from the server and exit */
+void print_sqlca()
+{
+    fprintf(stderr, "==== sqlca ====\n");
+    fprintf(stderr, "sqlcode: %ld\n", sqlca.sqlcode);
+    fprintf(stderr, "sqlerrm.sqlerrml: %d\n", sqlca.sqlerrm.sqlerrml);
+    fprintf(stderr, "sqlerrm.sqlerrmc: %s\n", sqlca.sqlerrm.sqlerrmc);
+    fprintf(stderr, "sqlerrd: %ld %ld %ld %ld %ld %ld\n", sqlca.sqlerrd[0],sqlca.sqlerrd[1],sqlca.sqlerrd[2],
+                                                          sqlca.sqlerrd[3],sqlca.sqlerrd[4],sqlca.sqlerrd[5]);
+    fprintf(stderr, "sqlwarn: %d %d %d %d %d %d %d %d\n", sqlca.sqlwarn[0], sqlca.sqlwarn[1], sqlca.sqlwarn[2],
+                                                          sqlca.sqlwarn[3], sqlca.sqlwarn[4], sqlca.sqlwarn[5],
+                                                          sqlca.sqlwarn[6], sqlca.sqlwarn[7]);
+    fprintf(stderr, "sqlstate: %5s\n", sqlca.sqlstate);
+    fprintf(stderr, "===============\n");
+    exit(EXIT_FAILURE);
+   /* rollback();
+    disconnect();
+    exit(EXIT_FAILURE);*/
+}
+
+/* Connect to the database server */
+void connect(const char *target, const char *username, const char *password) {
+    EXEC SQL BEGIN DECLARE SECTION;
+    const char * target_l = target;
+    const char * username_l = username;
+    const char * password_l = password;
+    EXEC SQL END DECLARE SECTION;
+
+    printf("Connecting to database %s\n", target);
+
+    EXEC SQL CONNECT TO :target_l USER :username_l USING :password_l;
+
+    EXEC SQL SET AUTOCOMMIT TO OFF;
+}
+
+/* Get the record number and time stamp for the most recent sample in the
+ * database */
+void get_last_record_number(unsigned int *record_number, time_t *time_stamp) {
+    EXEC SQL BEGIN DECLARE SECTION;
+    long int ts;
+    int rn;
+    EXEC SQL END DECLARE SECTION;
+
+    EXEC SQL SELECT extract(epoch from time_stamp)::bigint,
+                    record_number
+             INTO :ts, :rn
+             FROM public.latest_record_number;
+
+    *record_number = rn;
+    *time_stamp = (time_t)ts;
+}
+
+/* Insert a history set into the database. All records in the history set will
+ * be inserted in order */
+void insert_history_set(history_set hs) {
+    unsigned int i = 0;
+    history h;
+    /*int wind_direction_index = 0;*/
+
+    EXEC SQL BEGIN DECLARE SECTION;
+    unsigned short sample_time;
+    unsigned short indoor_relative_humidity;
+    float indoor_temperature;
+    unsigned short relative_humidity;
+    float temperature;
+    float absolute_pressure;
+    float average_wind_speed;
+    float gust_wind_speed;
+    char* wind_direction_str;
+    float total_rain;
+    int rain_overflow;
+    int invalid_data;
+    unsigned short record_number;
+    long download_time;
+    int last_in_set;
+    EXEC SQL END DECLARE SECTION;
+
+    for (i = 0; i < hs.record_count; i += 1) {
+        h = hs.records[i];
+        sample_time = h.sample_time;
+        indoor_relative_humidity = h.indoor_relative_humidity;
+        indoor_temperature = SFP(h.indoor_temperature);
+        relative_humidity = h.outdoor_relative_humidity;
+        temperature = SFP(h.outdoor_temperature);
+        absolute_pressure = SFP(h.absolute_pressure);
+        average_wind_speed = SFP(h.average_wind_speed);
+        gust_wind_speed = SFP(h.gust_wind_speed);
+        wind_direction_str = WIND_DIR(h.wind_direction);
+        total_rain = h.total_rain * RAIN_MULTIPLY;
+        rain_overflow = CHECK_BIT_FLAG(h.status, H_SF_RAINFALL_OVERFLOW);
+        invalid_data = CHECK_BIT_FLAG(h.status, H_SF_INVALID_DATA);
+        record_number = h.record_number;
+        download_time = h.download_time;
+        last_in_set = h.last_in_set;
+
+        EXEC SQL INSERT INTO public.sample(sample_interval,
+                                           record_number,
+                                           download_timestamp,
+                                           last_in_batch,
+                                           invalid_data,
+                                           indoor_relative_humidity,
+                                           indoor_temperature,
+                                           relative_humidity,
+                                           temperature,
+                                           absolute_pressure,
+                                           average_wind_speed,
+                                           gust_wind_speed,
+                                           wind_direction,
+                                           total_rain,
+                                           rain_overflow)
+                VALUES(:sample_time,
+                       :record_number,
+                       :download_time,
+                       :last_in_set,
+                       :invalid_data,
+                       :indoor_relative_humidity,
+                       :indoor_temperature,
+                       :relative_humidity,
+                       :temperature,
+                       :absolute_pressure,
+                       :average_wind_speed,
+                       :gust_wind_speed,
+                       :wind_direction_str,
+                       :total_rain,
+                       :rain_overflow);
+    }
+}
+
+/* Commits the transaction that was opened when we connected */
+void commit() {
+    EXEC SQL COMMIT;
+}
+
+/* roll-back any current transaction */
+void rollback() {
+    EXEC SQL ROLLBACK;
+}
+
+/* Disconnect from the database server */
+void disconnect() {
+    EXEC SQL DISCONNECT ALL;
+}
