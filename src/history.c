@@ -20,6 +20,13 @@
  *
  ****************************************************************************/
 
+/* For sleep function */
+#ifdef __WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
+
 #include "history.h"
 #include "deviceio.h"
 #include "deviceconfig.h"
@@ -27,6 +34,12 @@
 #include <stdlib.h>
 
 #define HISTORY_OFFSET 0x00100
+
+/* How long to wait between live record checks when attempting to sync clocks */
+#define SYNC_CLOCK_WAIT_TIME 2
+
+/* How many times to attempt clock sync */
+#define SYNC_CLOCK_MAX_RETRY 5
 
 history create_history(unsigned char* buffer) {
     history h;
@@ -112,6 +125,7 @@ history* load_history(int record_count) {
     return h;
 }
 
+/* Reads *all* history records in memory-order */
 history_set read_history() {
     device_config dc;
     history_set hs;
@@ -142,4 +156,129 @@ void free_history_set(history_set hs) {
     free(hs.records);
     hs.records = NULL;
     hs.record_count = 0;
+}
+
+unsigned short previous_record(unsigned short current_record) {
+    if (current_record == 0)
+        return 8175;
+    return current_record - 1;
+}
+
+unsigned short next_record(unsigned short current_record) {
+    if (current_record >= 8175)
+        return 0;
+    return current_record + 1;
+}
+
+/* This function attempts to come up with a timestamp for the latest history
+ * record by waiting for the time offset field in the live record to change.
+ *
+ * Parameters:
+ *    *current_record_id          OUT: Return parameter for the latest history
+ *                                record
+ *    *current_record_timestamp   OUT: The timestamp for current_record_id
+ *    retry_count                 IN: To control the maximum number of retries.
+ *
+ * Returns:
+ *    TRUE if successfull, FALSE if it was unable to come up with a timestamp
+ *    for the current record. This could happen if the interval is set to
+ *    something very low like 1 minute (where case as soon as the live
+ *    records time offset changes its obsolete and a retry is triggered).
+ */
+BOOL sync_clock_r(unsigned short *current_record_id,
+                  time_t *current_record_timestamp,
+                  unsigned short retry_count) {
+    unsigned short history_data_sets, live_record_offset, live_record_id;
+    history live;
+    time_t timestamp;
+    BOOL prev_lstime_initialized = FALSE;
+    unsigned char prev_lstime = 0;
+    unsigned char interval = get_interval();
+    char sbuf[50];
+
+    /* So we don't keep retrying forever. */
+    if (retry_count > SYNC_CLOCK_MAX_RETRY) {
+        fprintf(stderr, "Failed to sync computers clock to weatherstation "
+                "after %d retries.\n", SYNC_CLOCK_MAX_RETRY);
+        return FALSE;
+    }
+
+
+    /* Figure out which is the current and which is the live record */
+    get_current_record_id(&history_data_sets,  /* out */
+                          &live_record_offset, /* out */
+                          &live_record_id      /* out */
+                          );
+
+    printf("Attempting to come up with a timestamp for current record %d.\n"
+           "This could take a minute...\n", live_record_id - 1);
+
+    /* Loop until we observe the live records time offset change or the
+     * current history record becomes obsolete */
+    while (TRUE) {
+        timestamp = time(NULL);
+        live = read_history_record(live_record_id);
+
+        strftime(sbuf,50,"%c",localtime(&timestamp));
+        printf("%s: toffset %d\n", sbuf, live.sample_time);
+
+        /* The live records time offset is the interval. This means it is no
+         * longer the live record.
+         *   - If this is the first time we checked the live record
+         *     (prev_lstime is initialized) then the current record must have
+         *     changed just after calling get_current_record_id. We will try
+         *     again with the new live record.
+         *   - If it has just changed from interval - 1 to interval then the
+         *     live record is now the current record and we can just return it.
+         */
+        if (live.sample_time == interval && !prev_lstime_initialized) {
+            /* What we thought was the live record isn't the live record. The
+             * current record pointer probably changed just after we retrieved
+             * it.*/
+            printf("Record %d is obsolete. Retrying with new live record.\n");
+            return sync_clock_r(current_record_id,          /* out */
+                                current_record_timestamp,   /* out */
+                                retry_count + 1);    /* to limit retries */
+        } else if (live.sample_time == interval &&
+                   prev_lstime == interval - 1) {
+            /* The live record has just become the current history record. That
+             * is good enough for us. */
+            *current_record_id = live_record_id;
+            /* Timestamp doesn't need adjusting as the live record only just
+             * became the current history record (making its timestamp *now*) */
+            *current_record_timestamp = timestamp;
+            return TRUE;
+        }
+
+
+        /* We don't have a previous sample time to compare with */
+        if (!prev_lstime_initialized) {
+            prev_lstime = live.sample_time;
+            prev_lstime_initialized = TRUE;
+        }
+
+        /* The sample time on the live record has just changed */
+        if (prev_lstime < live.sample_time) {
+            *current_record_id = previous_record(live_record_id);
+            /* live.sample_time is the number of minutes since the current
+             * history record. timestamp is seconds since since the epoch.*/
+            *current_record_timestamp = timestamp - (live.sample_time * 60);
+            return TRUE;
+        }
+
+#ifdef __WIN32
+        /* The Win32 function is in miliseconds (POSIX is in seconds) */
+        Sleep(SYNC_CLOCK_WAIT_TIME * 1000);
+#else
+        sleep(SYNC_CLOCK_WAIT_TIME);
+#endif
+    }
+}
+
+/* This function attempts to come up with a timestamp for the latest history
+ * record by waiting for the time offset field in the live record to change.
+ */
+BOOL sync_clock(unsigned short *current_record_id,
+                time_t *current_record_timestamp) {
+    return sync_clock_r(current_record_id, current_record_timestamp, 0);
 }
