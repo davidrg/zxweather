@@ -155,7 +155,10 @@ void pgo_insert_history_set(history_set hs) {
                                            rain_overflow)
                 VALUES(:sample_time,
                        :record_number,
-                       :download_time,
+                       /* :download_time is in UNIX time (seconds since
+                        * the epoch, 1970-01-01 00:00:00 GMT). So we must
+                        * convert it. */
+                       (('epoch'::timestamp) + :download_time * '1 second'::interval) AT TIME ZONE 'GMT',
                        :last_in_set,
                        :invalid_data,
                        :indoor_relative_humidity,
