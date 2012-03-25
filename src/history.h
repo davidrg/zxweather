@@ -81,6 +81,28 @@ history_set read_history();
 /* Frees memory allocated to a history_set */
 void free_history_set(history_set hs);
 
+/* Figure out what record ID comes next (or is previous) from the current one
+ * in the circular buffer */
+unsigned short previous_record(unsigned short current_record);
+unsigned short next_record(unsigned short current_record);
+
+/* This function attempts to come up with a timestamp for the latest history
+ * record by waiting for the time offset field in the live record to change.
+ *
+ * Parameters:
+ *    *current_record_id          OUT: Return parameter for the latest history
+ *                                record
+ *    *current_record_timestamp   OUT: The timestamp for current_record_id
+ *
+ * Returns:
+ *    TRUE if successfull, FALSE if it was unable to come up with a timestamp
+ *    for the current record. This could happen if the interval is set to
+ *    something very low like 1 minute (where case as soon as the live
+ *    records time offset changes its obsolete and a retry is triggered).
+ */
+BOOL sync_clock(unsigned short *current_record_id,
+                time_t *current_record_timestamp);
+
 /* History record status flags */
 #define H_SF_RESERVED_A        0x01 /* Reserved A */
 #define H_SF_RESERVED_B        0x02 /* Reserved B */

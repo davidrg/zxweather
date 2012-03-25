@@ -149,9 +149,16 @@ device_config create_device_config(unsigned char* dc_data,
                                    unsigned char *as_data,
                                    unsigned char *sr_data);
 
-/* Reads in just the history data sets and history data stack values */
-void get_history_data_info(unsigned short *history_data_sets,
-                           unsigned short *history_data_stack);
+/* Reads in just the history data sets and history data stack values
+ * to determine the current record ID. */
+void get_current_record_id(unsigned short *history_data_sets,
+                           unsigned short *live_record_offset,
+                           unsigned short *live_record_id);
+
+/* Reads out only the interval value from the device configuration. This should
+ * be used rather than load_device_config if it needs to be done quickly and
+ * this is the only value you're after. */
+unsigned char get_interval();
 
 /* Use CHECK_BIT_FLAG to check one of the many bit flags below */
 

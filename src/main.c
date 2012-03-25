@@ -30,6 +30,8 @@
 #include "history.h"
 #include "pgout.h"
 
+
+
 int main(int argc, char *argv[])
 {
     device_config dc;
@@ -41,10 +43,13 @@ int main(int argc, char *argv[])
     char *server;
     char *username;
     char *password;
+    unsigned short current_ws_record_id;
+    time_t current_ws_record_timestamp;
+    BOOL result;
+    char sbuf[50];
 
     printf("WH1080 Test Application v1.0\n");
     printf("\t(C) Copyright David Goodwin, 2012\n\n");
-
 
     if (argc < 4) {
         printf("Using defaults\n");
@@ -57,28 +62,64 @@ int main(int argc, char *argv[])
         password = argv[3];
     }
 
-    pgo_connect(server, username, password);
-    pgo_get_last_record_number(&record_number, &time_stamp);
-    printf("%d\n%d\n", record_number, (long)time_stamp);
-    pgo_disconnect();
-
     printf("Open Device...\n");
     open_device();
 
+    dc = load_device_config();
+    printf("RecordCount: %d\n",dc.history_data_sets);
+
+    result = sync_clock(&current_ws_record_id, &current_ws_record_timestamp);
+    if (!result) {
+        fprintf(stderr, "Failed to sync clock.");
+        close_device();
+        return 1;
+    } else {
+        strftime(sbuf, 50, "%c", localtime(&current_ws_record_timestamp));
+        printf("Current record is %d with time stamp %s\n",
+               current_ws_record_id, sbuf);
+    }
+
+    printf("Connect to Database...\n");
+    pgo_connect(server, username, password);
+
+    if (FALSE) {
+        /* Determine WS Latest/current record & sync clocks */
+
+        /* Determine latest record in database */
+
+        /* Fetch that record from the weather station */
+
+        /* Decide if the databases latest record is in the database or not */
+
+        /* If DB Latest is in weatherstation, grab everything from that record
+         * up to WS Latest */
+
+        /* If DB Latest is not in weather station, grab everything from the
+         * weather station. */
+
+        /* Insert history data into database */
+        pgo_insert_history_set(hs);
+
+        /* Commit transaction */
+        pgo_commit();
+    }
+
+
     printf("Load Device Configuration...\n");
     dc = load_device_config();
-    print_device_config(dc);
+    /*print_device_config(dc);*/
 
     if (FALSE) {
         printf("Loading history data...\n");
         hs = read_history();
-        if (FALSE) {
+        if (TRUE) {
             print_history_set(hs);
         } else if (FALSE){
-            pgo_connect(argv[1], argv[2], argv[3]);
             pgo_get_last_record_number(&record_number, &time_stamp);
             printf("%d\n%d\n", record_number, (long)time_stamp);
-            pgo_disconnect();
+            printf("Insert history data...\n");
+            pgo_insert_history_set(hs);
+            pgo_commit();
         } else {
             printf("Dumping to CSV file...\n");
             file = fopen("out.csv","w");
@@ -92,9 +133,12 @@ int main(int argc, char *argv[])
         print_history_record(h);
     }
 
+    printf("Disconnecting...\n");
+    if (TRUE)
+        pgo_disconnect();
     close_device();
 
-    printf("Done.\n");
+    printf("Finished.\n");
 
     return 0;
 }

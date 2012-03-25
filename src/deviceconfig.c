@@ -30,6 +30,12 @@
 #define HISTORY_DATA_SETS_OFFSET 0x0001B
 #define HISTORY_DATA_STACK_OFFSET 0x0001E
 
+/* This is where the history data area begins */
+#define HISTORY_DATA_OFFSET 0x00100
+
+/* The location of the sample interval field */
+#define SAMPLE_INTERVAL_OFFSET 0x0010
+
 /* Loads device configuration from the weather station
  */
 device_config load_device_config() {
@@ -229,8 +235,9 @@ device_config create_device_config(unsigned char* dc_data,
     return dc;
 }
 
-void get_history_data_info(unsigned short *history_data_sets,
-                           unsigned short *history_data_stack) {
+void get_current_record_id(unsigned short *history_data_sets,
+                           unsigned short *live_record_offset,
+                           unsigned short *live_record_id) {
     /* History data sets - 2 bytes, history data stack - 2 bytes. There is one
      * reserved byte between the two. That makes for five bytes.
      */
@@ -239,5 +246,13 @@ void get_history_data_info(unsigned short *history_data_sets,
 
     *history_data_sets = READ_SHORT(data, 0, 1);
     /* data[2] is just some reserved byte that we had to read as well */
-    *history_data_stack = READ_SHORT(data, 3, 4);
+    *live_record_offset = READ_SHORT(data, 3, 4);
+
+    *live_record_id = (*live_record_offset - HISTORY_DATA_OFFSET) / 16;
+}
+
+unsigned char get_interval() {
+    unsigned char interval;
+    fill_buffer(SAMPLE_INTERVAL_OFFSET, &interval, 1, TRUE);
+    return interval;
 }
