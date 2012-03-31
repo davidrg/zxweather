@@ -54,23 +54,23 @@ void close_device() {
     }
 }
 
-void read_block(int memory_address, unsigned char* buffer) {
+void read_block(long memory_address, unsigned char* buffer) {
     memset(buffer, 0, READ_SIZE_BYTES);
     fseek(infile, memory_address, SEEK_SET);
     fread((void*)buffer, READ_SIZE_BYTES, 1, infile);
 }
 
-void read_and_validate_block(int memory_address, unsigned char *output_buffer) {
+void read_and_validate_block(long memory_address, unsigned char *output_buffer) {
     read_block(memory_address, output_buffer);
 }
 
-void fill_buffer(int memory_address,
+void fill_buffer(long memory_address,
                  unsigned char *buffer,
-                 int buffer_size,
+                 long buffer_size,
                  BOOL validate) {
 
     unsigned char read_buffer[READ_SIZE_BYTES];
-    int pos = 0;
+    long pos = 0;
 
     while (pos < buffer_size) {
         if (validate)
