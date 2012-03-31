@@ -82,8 +82,8 @@ void pgo_connect(const char *target, const char *username, const char *password)
  * database */
 void pgo_get_last_record_number(unsigned int *record_number, time_t *time_stamp) {
     EXEC SQL BEGIN DECLARE SECTION;
-    long int ts;
-    int rn;
+    long int ts = 0;
+    int rn = 0;
     EXEC SQL END DECLARE SECTION;
 
     EXEC SQL SELECT extract(epoch from time_stamp)::bigint,
@@ -117,6 +117,7 @@ void pgo_insert_history_set(history_set hs) {
     int invalid_data;
     unsigned short record_number;
     long download_time;
+    long time_stamp;
     int last_in_set;
     EXEC SQL END DECLARE SECTION;
 
@@ -136,29 +137,32 @@ void pgo_insert_history_set(history_set hs) {
         invalid_data = CHECK_BIT_FLAG(h.status, H_SF_INVALID_DATA);
         record_number = h.record_number;
         download_time = h.download_time;
+        time_stamp = h.time_stamp;
         last_in_set = h.last_in_set;
 
-        EXEC SQL INSERT INTO public.sample(sample_interval,
-                                           record_number,
-                                           download_timestamp,
-                                           last_in_batch,
-                                           invalid_data,
-                                           indoor_relative_humidity,
-                                           indoor_temperature,
-                                           relative_humidity,
-                                           temperature,
-                                           absolute_pressure,
-                                           average_wind_speed,
-                                           gust_wind_speed,
-                                           wind_direction,
-                                           total_rain,
-                                           rain_overflow)
+        EXEC SQL INSERT INTO sample(sample_interval,
+                                    record_number,
+                                    download_timestamp,
+                                    time_stamp,
+                                    last_in_batch,
+                                    invalid_data,
+                                    indoor_relative_humidity,
+                                    indoor_temperature,
+                                    relative_humidity,
+                                    temperature,
+                                    absolute_pressure,
+                                    average_wind_speed,
+                                    gust_wind_speed,
+                                    wind_direction,
+                                    total_rain,
+                                    rain_overflow)
                 VALUES(:sample_time,
                        :record_number,
-                       /* :download_time is in UNIX time (seconds since
-                        * the epoch, 1970-01-01 00:00:00 GMT). So we must
-                        * convert it. */
+                       /* :download_time and :time_stamp are in UNIX time
+                        * (seconds since the epoch, 1970-01-01 00:00:00 GMT).
+                        * So we must convert them. */
                        (('epoch'::timestamp) + :download_time * '1 second'::interval) AT TIME ZONE 'GMT',
+                       (('epoch'::timestamp) + :time_stamp * '1 second'::interval) AT TIME ZONE 'GMT',
                        :last_in_set,
                        :invalid_data,
                        :indoor_relative_humidity,
