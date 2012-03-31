@@ -161,14 +161,18 @@ history_set read_history_range(const unsigned short start,
     long first_chunk_size;
     unsigned short second_chunk_record_count = 0;
     long second_chunk_size = 0;
-    unsigned long first_chunk_offset = HISTORY_OFFSET;
+    unsigned long first_chunk_offset;
     unsigned char *data_buffer;
     time_t now = time(NULL);
     int i, record_counter;
+    int real_end = end + 1; /* Add 1 to the end so as to not miss the final
+                               record */
+
+    first_chunk_offset = HISTORY_OFFSET + (start * HISTORY_RECORD_SIZE);
 
     /* Work out the memory addresses and buffer sizes we need */
-    if (start < end) {
-        hs.record_count = end - start;
+    if (start < real_end) {
+        hs.record_count = real_end - start;
         buffer_size = hs.record_count * HISTORY_RECORD_SIZE;
         first_chunk_size = buffer_size;
         first_chunk_record_count = buffer_size / HISTORY_RECORD_SIZE;
@@ -178,13 +182,11 @@ history_set read_history_range(const unsigned short start,
          * record counts (otherwise we'll miss two records). */
         first_chunk_record_count = (FINAL_RECORD_SLOT - start) + 1;
         first_chunk_size = first_chunk_record_count * HISTORY_RECORD_SIZE;
-        second_chunk_record_count = end + 1;
+        second_chunk_record_count = real_end;
         second_chunk_size = second_chunk_record_count * HISTORY_RECORD_SIZE;
 
         hs.record_count = first_chunk_record_count + second_chunk_record_count;
         buffer_size = first_chunk_size + second_chunk_size;
-
-        first_chunk_offset += (start * HISTORY_RECORD_SIZE);
     }
 
     /* Allocate some memory */

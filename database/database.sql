@@ -54,6 +54,30 @@ COMMENT ON COLUMN sample.total_rain IS 'Total rain recorded by the sensor so far
 COMMENT ON COLUMN sample.rain_overflow IS 'If an overflow in the total_rain counter has occurred';
 
 ----------------------------------------------------------------------
+-- INDICIES ----------------------------------------------------------
+----------------------------------------------------------------------
+
+-- For the latest_record_number view.
+--CREATE INDEX idx_latest_record
+--   ON sample (time_stamp DESC NULLS FIRST, record_number DESC NULLS FIRST);
+--COMMENT ON INDEX idx_latest_record
+--  IS 'Index for the latest_record_number view';
+
+----------------------------------------------------------------------
+-- VIEWS -------------------------------------------------------------
+----------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW latest_record_number AS
+ SELECT record_number, time_stamp 
+ from sample
+ order by time_stamp desc, record_number desc
+ limit 1;
+
+ALTER TABLE latest_record_number
+  OWNER TO postgres;
+COMMENT ON VIEW latest_record_number
+  IS 'Gets the number of the most recent record. This is used by cweather to figure out what it needs to load into the database and what is already there.';
+----------------------------------------------------------------------
 -- FUNCTIONS ---------------------------------------------------------
 ----------------------------------------------------------------------
 
