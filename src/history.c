@@ -20,7 +20,7 @@
  *
  ****************************************************************************/
 
-/* For sleep function */
+/* For sleep calls in sync_clock_r() */
 #ifdef __WIN32
 #include <windows.h>
 #else
@@ -32,6 +32,7 @@
 #include "deviceconfig.h"
 #include "common.h"
 #include <stdlib.h>
+#include <stdio.h>  /* For sync_clock_r() */
 
 #define HISTORY_OFFSET 0x00100
 
@@ -74,7 +75,7 @@ history create_history(unsigned char* buffer) {
     return h;
 }
 
-history read_history_record(int record_number) {
+history read_history_record(unsigned short record_number) {
     unsigned char buffer[16];
     unsigned int record_offset = HISTORY_OFFSET + (record_number * 16);
     history h;
@@ -91,7 +92,7 @@ history read_history_record(int record_number) {
     return h;
 }
 
-history* load_history(int record_count) {
+history* load_history(unsigned short record_count) {
     history* h = NULL;
     int i = 0;
     unsigned char * data_buffer;
@@ -137,6 +138,9 @@ history_set read_history() {
     hs.record_count = dc.history_data_sets;
     hs.records = load_history(hs.record_count);
 
+    if (hs.records == NULL)
+        hs.record_count = 0;
+
     hs.records[hs.record_count-1].last_in_set = TRUE;
 
     /* We treat the last records timestamp as if the last record was actually
@@ -146,8 +150,94 @@ history_set read_history() {
      */
     hs.records[hs.record_count-1].download_time = last_record_timestamp;
 
-    if (hs.records == NULL)
+    return hs;
+}
+
+history_set read_history_range(const unsigned short start,
+                               const unsigned short end) {
+    history_set hs;
+    long buffer_size;
+    unsigned short first_chunk_record_count;
+    long first_chunk_size;
+    unsigned short second_chunk_record_count = 0;
+    long second_chunk_size = 0;
+    unsigned long first_chunk_offset = HISTORY_OFFSET;
+    unsigned char *data_buffer;
+    time_t now = time(NULL);
+    int i, record_counter;
+
+    /* Work out the memory addresses and buffer sizes we need */
+    if (start < end) {
+        hs.record_count = end - start;
+        buffer_size = hs.record_count * HISTORY_RECORD_SIZE;
+        first_chunk_size = buffer_size;
+        first_chunk_record_count = buffer_size / HISTORY_RECORD_SIZE;
+    } else {
+        /* Everything from start through to 8175 then from 0 through to end.
+         * Because everything is zero based we need to add one on to the
+         * record counts (otherwise we'll miss two records). */
+        first_chunk_record_count = (FINAL_RECORD_SLOT - start) + 1;
+        first_chunk_size = first_chunk_record_count * HISTORY_RECORD_SIZE;
+        second_chunk_record_count = end + 1;
+        second_chunk_size = second_chunk_record_count * HISTORY_RECORD_SIZE;
+
+        hs.record_count = first_chunk_record_count + second_chunk_record_count;
+        buffer_size = first_chunk_size + second_chunk_size;
+
+        first_chunk_offset += (start * HISTORY_RECORD_SIZE);
+    }
+
+    /* Allocate some memory */
+    hs.records = malloc(sizeof(history) * hs.record_count);
+    data_buffer = malloc(buffer_size);
+    if (hs.records == NULL || data_buffer == NULL) {
+        if (hs.records != NULL) free(hs.records);
+        if (data_buffer != NULL) free(data_buffer);
         hs.record_count = 0;
+        hs.records = NULL;
+        return hs;
+    }
+
+/* Debugging Stuff */
+    printf("Start ID: %d\n", start);
+    printf("  End ID: %d\n\n", end);
+    printf("Chunk A Start Address: 0x%06X\n", first_chunk_offset);
+    printf("Chunk A Length: %d bytes (%d records)\n",
+           first_chunk_size,
+           first_chunk_record_count);
+    if (first_chunk_size < buffer_size) {
+        printf("Chunk B Start Address: 0x0000\n");
+        printf("Chunk B Length: %d bytes (%d records)\n",
+               second_chunk_size,
+               second_chunk_record_count);
+    }
+    printf("Total Buffer Size: %d bytes (%d records)\n",
+           buffer_size, hs.record_count);
+
+/**/
+    /* Read in first chunk */
+    fill_buffer(first_chunk_offset, data_buffer, first_chunk_size, TRUE);
+
+    /* Read in second chunk if there is one */
+    if (first_chunk_size < buffer_size)
+        fill_buffer(HISTORY_OFFSET,                 /* Memory Address */
+                    data_buffer + first_chunk_size, /* Buffer */
+                    second_chunk_size,              /* Buffer size */
+                    TRUE);                          /* Validate */
+
+    /* Convert all the data in the databuffer to history structs */
+    record_counter = start;
+    for (i=0; i < hs.record_count; i += 1) {
+        hs.records[i] = create_history(data_buffer + (i * HISTORY_RECORD_SIZE));
+        hs.records[i].download_time = now;
+        hs.records[i].record_number = record_counter;
+        record_counter = next_record(record_counter);
+    }
+
+    hs.records[hs.record_count-1].last_in_set = TRUE;
+
+    /* Clean up */
+    free(data_buffer);
 
     return hs;
 }
@@ -159,15 +249,36 @@ void free_history_set(history_set hs) {
 }
 
 unsigned short previous_record(unsigned short current_record) {
-    if (current_record == 0)
-        return 8175;
+    if (current_record == FIRST_RECORD_SLOT)
+        return FINAL_RECORD_SLOT;
     return current_record - 1;
 }
 
 unsigned short next_record(unsigned short current_record) {
-    if (current_record >= 8175)
-        return 0;
+    if (current_record >= FINAL_RECORD_SLOT)
+        return FIRST_RECORD_SLOT;
     return current_record + 1;
+}
+
+unsigned short first_record() {
+    unsigned short total_records;
+    unsigned short live_record_id;
+    unsigned short first_record_id;
+
+    get_current_record_id(&total_records,
+                          NULL,   /* Don't care about the live record offset */
+                          &live_record_id);
+
+    /* If the buffer has wrapped around then the final record should be right
+     * after the live record. However, as it might be overwritten by the time
+     * we try to read it we'll skip over it and take the next one.
+     */
+    if (total_records >= MAX_RECORDS)
+        first_record_id = live_record_id + 2;
+    else
+        first_record_id = FIRST_RECORD_SLOT;
+
+    return first_record_id;
 }
 
 /* This function attempts to come up with a timestamp for the latest history
@@ -235,7 +346,8 @@ BOOL sync_clock_r(unsigned short *current_record_id,
             /* What we thought was the live record isn't the live record. The
              * current record pointer probably changed just after we retrieved
              * it.*/
-            printf("Record %d is obsolete. Retrying with new live record.\n");
+            printf("Record %d is obsolete. Retrying with new live record.\n",
+                   live_record_id);
             return sync_clock_r(current_record_id,          /* out */
                                 current_record_timestamp,   /* out */
                                 retry_count + 1);    /* to limit retries */
@@ -281,4 +393,42 @@ BOOL sync_clock_r(unsigned short *current_record_id,
 BOOL sync_clock(unsigned short *current_record_id,
                 time_t *current_record_timestamp) {
     return sync_clock_r(current_record_id, current_record_timestamp, 0);
+}
+
+
+/* Here is how this function works:
+ *  rec    offset
+ *  10/LIS  5      <--- this ones timestamp is the timestamp parameter
+ *   9      5      rec 9 timestamp = rec 10 timestamp - rec 10 offset in seconds
+ *   8      5      rec 8 timestamp = rec 9 timestamp - rec 9 offset in seconds
+ *   7      5      rec 7 timestamp = rec 8 timestamp - rec 8 offset in seconds
+ *   6      5
+ *   5      5      <--- the offset is the number of minutes since record 4
+ *   4      5
+ *   3      5           Note:
+ *   2      5             To start with, we only have a timestamp for the final
+ *   1      5             record (rec 10) so we have to calculate everything
+ *   0      5             from the 'wrong' end.
+ *
+ * (LIS = last_in_set == TRUE)
+ */
+void update_timestamps(history_set *hs, time_t timestamp) {
+    int i;
+    time_t this_timestamp;
+    printf("Computing timestamps...\n");
+
+    /* Loop from the end as that is the record with the real timestamp */
+    for (i = hs->record_count - 1; i >= 0; i -= 1) {
+        if (hs->records[i].last_in_set) {
+            hs->records[i].time_stamp = timestamp;
+        } else {
+            /* Each record stores the number of minutes since the previous
+             * record. So, to compute the timestamp for this record (looping
+             * from the newest to the oldest) we take the next newest records
+             * timestamp and subtract its offset from this record. */
+            this_timestamp = hs->records[i+1].time_stamp;
+            this_timestamp -= hs->records[i+1].sample_time * 60;
+            hs->records[i].time_stamp = this_timestamp;
+        }
+    }
 }

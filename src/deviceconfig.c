@@ -242,13 +242,21 @@ void get_current_record_id(unsigned short *history_data_sets,
      * reserved byte between the two. That makes for five bytes.
      */
     unsigned char data[5];
+    unsigned short live_offset;
+
     fill_buffer(HISTORY_DATA_SETS_OFFSET, data, 5, TRUE);
 
-    *history_data_sets = READ_SHORT(data, 0, 1);
-    /* data[2] is just some reserved byte that we had to read as well */
-    *live_record_offset = READ_SHORT(data, 3, 4);
+    if (history_data_sets != NULL)
+        *history_data_sets = READ_SHORT(data, 0, 1);
 
-    *live_record_id = (*live_record_offset - HISTORY_DATA_OFFSET) / 16;
+    /* data[2] is just some reserved byte that we had to read as well */
+
+    live_offset = READ_SHORT(data, 3, 4);
+    if (live_record_offset != NULL)
+        *live_record_offset = live_offset;
+
+    if (live_record_id != NULL)
+        *live_record_id = (live_offset - HISTORY_DATA_OFFSET) / 16;
 }
 
 unsigned char get_interval() {

@@ -30,27 +30,27 @@
 #include "history.h"
 #include "pgout.h"
 
-
-
 int main(int argc, char *argv[])
 {
-    device_config dc;
-    history_set hs;
-    FILE* file;
-    history h;
-    unsigned int record_number;
-    time_t time_stamp;
-    char *server;
-    char *username;
-    char *password;
+    char *server, *username, *password; /* database details */
+    unsigned short load_start; /* First record the DB doesn't have */
+    history_set new_data;   /* Data to load into database */
+    BOOL result;
+    char sbuf[50];      /* timestamp string */
+
+    /* Latest history record available from the weather station */
     unsigned short current_ws_record_id;
     time_t current_ws_record_timestamp;
-    BOOL result;
-    char sbuf[50];
 
+    /* Latest history record available from the database */
+    unsigned int current_db_record_id;
+    time_t current_db_record_timestamp;
+    history current_db_record_from_ws;
+
+    /* Real program code */
     printf("WH1080 Test Application v1.0\n");
     printf("\t(C) Copyright David Goodwin, 2012\n\n");
-
+/*read_history_range(8175, 8173);*/
     if (argc < 4) {
         printf("Using defaults\n");
         server = "weather_dev@localhost:5432";
@@ -65,9 +65,10 @@ int main(int argc, char *argv[])
     printf("Open Device...\n");
     open_device();
 
-    dc = load_device_config();
-    printf("RecordCount: %d\n",dc.history_data_sets);
+    printf("Connect to Database...\n");
+    pgo_connect(server, username, password);
 
+    /* Determine WS Latest/current record & sync clocks */
     result = sync_clock(&current_ws_record_id, &current_ws_record_timestamp);
     if (!result) {
         fprintf(stderr, "Failed to sync clock.");
@@ -75,48 +76,54 @@ int main(int argc, char *argv[])
         return 1;
     } else {
         strftime(sbuf, 50, "%c", localtime(&current_ws_record_timestamp));
-        printf("Current record is %d with time stamp %s\n",
+        printf("Weather Station current record is %d with time stamp %s\n",
                current_ws_record_id, sbuf);
     }
 
-    printf("Connect to Database...\n");
-    pgo_connect(server, username, password);
+    /* Determine latest record in database */
+    pgo_get_last_record_number(&current_db_record_id,
+                               &current_db_record_timestamp);
+    if (current_db_record_timestamp != 0) {
+        /* Figure out if that record exists in the weather station and if so,
+         * double-check that its the same as whats in the database */
+        current_db_record_from_ws = read_history_record(current_db_record_id);
 
-    if (FALSE) {
-        /* Determine WS Latest/current record & sync clocks */
-
-        /* Determine latest record in database */
-
-        /* Fetch that record from the weather station */
-
-        /* Decide if the databases latest record is in the database or not */
-
-        /* If DB Latest is in weatherstation, grab everything from that record
-         * up to WS Latest */
-
-        /* If DB Latest is not in weather station, grab everything from the
-         * weather station. */
-
-        /* Insert history data into database */
-        pgo_insert_history_set(hs);
-
-        /* Commit transaction */
-        pgo_commit();
+        load_start = next_record(current_db_record_id);
+    } else {
+        /* Database is empty. Fetch everything from the weather station */
+        printf("Database is empty.\n");
+        load_start = first_record();
     }
 
+    /* Fetch the records from the weather station & compute timestamps */
+    printf("Fetching records %d to %d...\n", load_start, current_ws_record_id);
+    new_data = read_history_range(load_start, current_ws_record_id);
+    update_timestamps(&new_data, current_ws_record_timestamp);
 
-    printf("Load Device Configuration...\n");
-    dc = load_device_config();
-    /*print_device_config(dc);*/
+    /* Insert history data into database */
+    pgo_insert_history_set(new_data);
+
+    /* Commit transaction */
+    pgo_commit();
+
+    /* Finish up */
+    pgo_disconnect();
+    close_device();
+    printf("Finished.\n");
+
+    /* Testing crap *
+    device_config dc;
+    history_set hs;
+    FILE* file;
+    history h;
 
     if (FALSE) {
         printf("Loading history data...\n");
         hs = read_history();
-        if (TRUE) {
+        if (FALSE) {
             print_history_set(hs);
-        } else if (FALSE){
-            pgo_get_last_record_number(&record_number, &time_stamp);
-            printf("%d\n%d\n", record_number, (long)time_stamp);
+        } else if (TRUE){
+            pgo_get_last_record_number(&current_db_record_id, &current_db_record_timestamp);
             printf("Insert history data...\n");
             pgo_insert_history_set(hs);
             pgo_commit();
@@ -132,14 +139,7 @@ int main(int argc, char *argv[])
         printf("History Record #0:-\n");
         print_history_record(h);
     }
-
-    printf("Disconnecting...\n");
-    if (TRUE)
-        pgo_disconnect();
-    close_device();
-
-    printf("Finished.\n");
-
+    */
     return 0;
 }
 
