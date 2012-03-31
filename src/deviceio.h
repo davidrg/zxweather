@@ -29,13 +29,13 @@ void close_device();
 void open_device();
 
 /* For reading from the weather station */
-void read_block(int memory_address, unsigned char *buffer);
-void read_and_validate_block(int memory_address, unsigned char* buffer);
+void read_block(long memory_address, unsigned char *buffer);
+void read_and_validate_block(long memory_address, unsigned char* buffer);
 
 /* Fills a buffer with data read from the weather station */
-void fill_buffer(int memory_address,
+void fill_buffer(long memory_address,
                  unsigned char *buffer,
-                 int buffer_size,
+                 long buffer_size,
                  BOOL validate); /* Validate data read? */
 
 #endif /* DEVICEIO_H */

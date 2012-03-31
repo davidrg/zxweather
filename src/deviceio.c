@@ -59,7 +59,7 @@ void close_device() {
 
 /* Reads a block of data in a single pass. No validation is performed.
  */
-void read_block(int memory_address, unsigned char *buffer) {
+void read_block(long memory_address, unsigned char *buffer) {
     unsigned char command_buffer[9];
     int result;
     unsigned char address_high = memory_address / 256;
@@ -99,7 +99,7 @@ void read_block(int memory_address, unsigned char *buffer) {
 /* Repeatedly reads the requested block of data until two consecutive reads
  * return the same data.
  */
-void read_and_validate_block(int memory_address, unsigned char *output_buffer) {
+void read_and_validate_block(long memory_address, unsigned char *output_buffer) {
     unsigned char oldbuffer[READ_SIZE_BYTES];
     unsigned char buffer[READ_SIZE_BYTES];
 
@@ -120,13 +120,13 @@ void read_and_validate_block(int memory_address, unsigned char *output_buffer) {
     memcpy(output_buffer, &buffer, READ_SIZE_BYTES);
 }
 
-void fill_buffer(int memory_address,
+void fill_buffer(long memory_address,
                  unsigned char *buffer,
-                 int buffer_size,
+                 long buffer_size,
                  BOOL validate) {
 
     unsigned char read_buffer[READ_SIZE_BYTES];
-    int pos = 0;
+    long pos = 0;
 
     while (pos < buffer_size) {
         if (validate)
