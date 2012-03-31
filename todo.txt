@@ -1,0 +1,18 @@
+TODO:
+ * Command-line parameters (dump to CSV, dump to console, dump to postgres)
+ * make the .pro file build under linux (use appropriate hidapi code and link
+  against libusb)
+ * Add Visual C++ 2010 project files
+ * Add OpenWatcom project files if its compatible
+ * Only use the history data stack value (not the data sets value as that will
+   hit 8176 and stay there)
+ * Ability to force a full update from the start. For use in the following
+   situations:
+     * Weatherstations memory has been wiped
+     * Update hasn't been run in a long time so the latest record in the
+       database no longer exists in the weather station.
+
+New program - weatherd:
+ * Read latest weather station record every 48 seconds and do a broadcast on
+   postgres to say it has turned up
+ * Load in new history records every interval minutes

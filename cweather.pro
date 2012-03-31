@@ -58,3 +58,9 @@ HEADERS += \
     src/pgout.h \
     src/version.h
 HEADERS += src/common.h
+
+OTHER_FILES += \
+    todo.txt \
+    Makefile \
+    database/database.sql \
+    src/pgout.pgc
