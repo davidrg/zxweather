@@ -27,6 +27,9 @@
 #include "common.h"
 
 #define HISTORY_RECORD_SIZE 16
+#define FIRST_RECORD_SLOT 0
+#define FINAL_RECORD_SLOT 8175
+#define MAX_RECORDS 8176
 
 /* A single data sample from the weather station
  * record_number: This is not a field that the weather station stores but
@@ -60,6 +63,7 @@ typedef struct _WSH {
     /* This data does not come from the weather station */
     unsigned short record_number;
     time_t download_time;
+    time_t time_stamp;
     BOOL last_in_set;
 } history;
 #define RAIN_MULTIPLY 0.3
@@ -71,12 +75,20 @@ typedef struct _WSHS {
 } history_set;
 
 /* Reads a single record from the device */
-history read_history_record(int record_number);
+history read_history_record(unsigned short record_number);
 
 /* Reads all history from the device. These are read two at a time rather than
  * one at a time as with the read_history_record function. That makes this one
  * a little bit more efficient if you need more than one record. */
 history_set read_history();
+
+/* Reads a range of records from the weather station in chronological order.
+ * If end < start then it will:
+ *    read from start to end of history memory
+ *    read from start of history memory to end
+ * (meaning it follows the circular buffer)
+ */
+history_set read_history_range(const unsigned short start, const unsigned short end);
 
 /* Frees memory allocated to a history_set */
 void free_history_set(history_set hs);
@@ -85,6 +97,9 @@ void free_history_set(history_set hs);
  * in the circular buffer */
 unsigned short previous_record(unsigned short current_record);
 unsigned short next_record(unsigned short current_record);
+
+/* The first record in the circular buffer */
+unsigned short first_record();
 
 /* This function attempts to come up with a timestamp for the latest history
  * record by waiting for the time offset field in the live record to change.
@@ -102,6 +117,12 @@ unsigned short next_record(unsigned short current_record);
  */
 BOOL sync_clock(unsigned short *current_record_id,
                 time_t *current_record_timestamp);
+
+/* Calculates timestamps for all records in the history set. Timestamps are
+ * calculated from the last record in the set (which must have last_in_set set)
+ * whose timestamp is specified by the timestamp parameter.
+ */
+void update_timestamps(history_set *hs, time_t timestamp);
 
 /* History record status flags */
 #define H_SF_RESERVED_A        0x01 /* Reserved A */
