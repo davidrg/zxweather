@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
     /* Latest history record available from the database */
     unsigned int current_db_record_id;
     time_t current_db_record_timestamp;
-    history current_db_record_from_ws;
+    /*history current_db_record_from_ws;*/
 
     /* Real program code */
     printf("WH1080 Test Application v1.0\n");
