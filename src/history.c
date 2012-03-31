@@ -200,7 +200,7 @@ history_set read_history_range(const unsigned short start,
         return hs;
     }
 
-/* Debugging Stuff */
+/* Debugging Stuff *
     printf("Start ID: %d\n", start);
     printf("  End ID: %d\n\n", end);
     printf("Chunk A Start Address: 0x%06X\n", first_chunk_offset);
@@ -216,7 +216,7 @@ history_set read_history_range(const unsigned short start,
     printf("Total Buffer Size: %d bytes (%d records)\n",
            buffer_size, hs.record_count);
 
-/**/
+**/
     /* Read in first chunk */
     fill_buffer(first_chunk_offset, data_buffer, first_chunk_size, TRUE);
 
