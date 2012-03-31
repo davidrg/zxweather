@@ -36,6 +36,7 @@ int main(int argc, char *argv[])
     unsigned short load_start; /* First record the DB doesn't have */
     history_set new_data;   /* Data to load into database */
     BOOL result;
+    BOOL new_data_available;/* If there is new data on the weather station */
     char sbuf[50];      /* timestamp string */
 
     /* Latest history record available from the weather station */
@@ -82,31 +83,45 @@ int main(int argc, char *argv[])
 
     /* Determine latest record in database */
     pgo_get_last_record_number(&current_db_record_id,
-                               &current_db_record_timestamp);
+                               &current_db_record_timestamp);    
     if (current_db_record_timestamp != 0) {
+
+        if (current_db_record_id == current_ws_record_id)
+            new_data_available = FALSE;
+        else
+            new_data_available = TRUE;
+
         /* Figure out if that record exists in the weather station and if so,
          * double-check that its the same as whats in the database */
-        current_db_record_from_ws = read_history_record(current_db_record_id);
+        /*current_db_record_from_ws = read_history_record(current_db_record_id);*/
 
         load_start = next_record(current_db_record_id);
     } else {
         /* Database is empty. Fetch everything from the weather station */
         printf("Database is empty.\n");
         load_start = first_record();
+        new_data_available = TRUE;
     }
 
-    /* Fetch the records from the weather station & compute timestamps */
-    printf("Fetching records %d to %d...\n", load_start, current_ws_record_id);
-    new_data = read_history_range(load_start, current_ws_record_id);
-    update_timestamps(&new_data, current_ws_record_timestamp);
+    if (new_data_available) {
+        /* Fetch the records from the weather station & compute timestamps */
+        printf("Fetching records %d to %d...\n", load_start, current_ws_record_id);
+        new_data = read_history_range(load_start, current_ws_record_id);
+        update_timestamps(&new_data, current_ws_record_timestamp);
 
-    /* Insert history data into database */
-    pgo_insert_history_set(new_data);
+        /* Insert history data into database */
+        printf("Inserting records into database...\n");
+        pgo_insert_history_set(new_data);
 
-    /* Commit transaction */
-    pgo_commit();
+        /* Commit transaction */
+        printf("Commit transaction...\n");
+        pgo_commit();
+    } else {
+        printf("No new data on weather station.\n");
+    }
 
     /* Finish up */
+    printf("Disconnect...\n");
     pgo_disconnect();
     close_device();
     printf("Finished.\n");
