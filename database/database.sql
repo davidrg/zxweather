@@ -1,4 +1,28 @@
 ----------------------------------------------------------------------
+-- DOMAINS -----------------------------------------------------------
+----------------------------------------------------------------------
+-- A percentage.
+CREATE DOMAIN rh_percentage
+  AS integer
+  NOT NULL
+   CONSTRAINT rh_percentage_check CHECK (((VALUE > 0) AND (VALUE < 100)));
+ALTER DOMAIN rh_percentage
+  OWNER TO postgres;
+COMMENT ON DOMAIN rh_percentage
+  IS 'Relative Humidity percentage';
+
+-- Valid wind directions
+CREATE DOMAIN wind_direction
+  AS character varying(3)
+  COLLATE pg_catalog."default"
+  NOT NULL
+   CONSTRAINT wind_direction_check CHECK (((VALUE)::text = ANY ((ARRAY['N'::character varying, 'NNE'::character varying, 'NE'::character varying, 'ENE'::character varying, 'E'::character varying, 'ESE'::character varying, 'SE'::character varying, 'SSE'::character varying, 'S'::character varying, 'SSW'::character varying, 'SW'::character varying, 'WSW'::character varying, 'W'::character varying, 'WNW'::character varying, 'NW'::character varying, 'NNW'::character varying, 'INV'::character varying])::text[])));
+ALTER DOMAIN wind_direction
+  OWNER TO postgres;
+COMMENT ON DOMAIN wind_direction
+  IS 'Valid wind directions.';
+
+----------------------------------------------------------------------
 -- TABLES ------------------------------------------------------------
 ----------------------------------------------------------------------
 CREATE TABLE sample
@@ -56,6 +80,12 @@ COMMENT ON COLUMN sample.rain_overflow IS 'If an overflow in the total_rain coun
 ----------------------------------------------------------------------
 -- INDICIES ----------------------------------------------------------
 ----------------------------------------------------------------------
+
+-- Cuts recalculating rainfall for 3000 records from 4200ms to 110ms.
+CREATE INDEX idx_time_stamp
+   ON sample (time_stamp ASC NULLS LAST);
+COMMENT ON INDEX idx_time_stamp
+  IS 'To make operations such as recalculating rainfall a little quicker.';
 
 -- For the latest_record_number view.
 --CREATE INDEX idx_latest_record
