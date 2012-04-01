@@ -164,7 +164,8 @@ history_set read_history_range(const unsigned short start,
     unsigned long first_chunk_offset;
     unsigned char *data_buffer;
     time_t now = time(NULL);
-    int i, record_counter;
+    int record_counter;
+    unsigned int i;
     int real_end = end + 1; /* Add 1 to the end so as to not miss the final
                                record */
 
