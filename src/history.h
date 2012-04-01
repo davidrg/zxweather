@@ -28,8 +28,8 @@
 
 #define HISTORY_RECORD_SIZE 16
 #define FIRST_RECORD_SLOT 0
-#define FINAL_RECORD_SLOT 8175
-#define MAX_RECORDS 8176
+#define FINAL_RECORD_SLOT 4079
+#define MAX_RECORDS 4080
 
 /* A single data sample from the weather station
  * record_number: This is not a field that the weather station stores but

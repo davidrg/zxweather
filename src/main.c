@@ -364,6 +364,9 @@ int main(int argc, char *argv[])
     printf("arg_error: %s\n", arg_error ? "TRUE" : "FALSE");
 **/
 
+    printf("WH1080 Update Tool v1.0\n");
+    printf("\t(C) Copyright David Goodwin, 2012\n");
+
     if (arg_error) {
         usage(argv[0]);
         exit(EXIT_FAILURE);
