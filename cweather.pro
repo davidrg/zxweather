@@ -34,8 +34,6 @@ win32:LIBS += -L../cweather/lib/hidapi/windows-binaries -lhidapi
 win32:INCLUDEPATH += lib/hidapi/windows-binaries
 win32:LIBS += -L../cweather/lib/libecpg-9.1-win32 -lecpg
 win32:INCLUDEPATH += lib/libecpg-9.1-win32/include
-#win32:LIBS += -L../cweather/lib/libpq-9.0-win32 -lpq
-#win32:INCLUDEPATH += lib/libpq-9.0-win32
 
 win32:INCLUDEPATH += src
 
