@@ -3,10 +3,6 @@ TODO:
   against libusb)
  * Add Visual C++ 2010 project files
  * Add OpenWatcom project files if its compatible
- * Only use the history data stack value (not the data sets value as that will
-   hit 8176 and stay there)
- * Rework programs to fit new memory limit (docs lie - there isn't space for
-   8176 records)
  * Work out rainfall stuff
 
 New program - weatherd:
