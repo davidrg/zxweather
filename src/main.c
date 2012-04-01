@@ -22,6 +22,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "deviceio.h"
 #include "deviceconfig.h"
@@ -30,11 +31,63 @@
 #include "history.h"
 #include "pgout.h"
 
-int main(int argc, char *argv[])
-{
-    char *server, *username, *password; /* database details */
-    unsigned short load_start; /* First record the DB doesn't have */
+/* Use the bundled version of getopt on non-POSIX systems */
+#ifdef __WIN32
+#include "getopt/getopt.h"
+#else
+#include <unistd.h>
+#endif
+
+/* Determine latest record in database */
+BOOL find_range_start(unsigned short *range_start,
+                      const unsigned short current_ws_record_id) {
+    /* Latest history record available from the database */
+    unsigned int current_db_record_id;
+    time_t current_db_record_timestamp;
+    /*history current_db_record_from_ws;*/
+
+    pgo_get_last_record_number(&current_db_record_id,
+                               &current_db_record_timestamp);
+    if (current_db_record_timestamp != 0) {
+
+        /* Figure out if that record exists in the weather station and if so,
+         * double-check that its the same as whats in the database */
+        /*current_db_record_from_ws = read_history_record(current_db_record_id);*/
+
+        *range_start = next_record(current_db_record_id);
+
+        if (current_db_record_id == current_ws_record_id)
+            return FALSE;
+        return TRUE;
+    }
+
+    /* Database is empty. Fetch everything from the weather station */
+    printf("Database is empty.\n");
+    *range_start = first_record();
+    return TRUE;
+}
+
+void insert_history_range(const unsigned short start,
+                          const unsigned short end,
+                          const time_t end_timestamp) {
     history_set new_data;   /* Data to load into database */
+
+    /* Fetch the records from the weather station & compute timestamps */
+    printf("Fetching records %d to %d...\n", start, end);
+    new_data = read_history_range(start, end);
+    update_timestamps(&new_data, end_timestamp);
+
+    /* Insert history data into database */
+    printf("Inserting records into database...\n");
+    pgo_insert_history_set(new_data);
+    free_history_set(new_data);
+}
+
+int db_update(char* server,
+              char* username,
+              char* password,
+              const BOOL full_load) {
+    unsigned short load_start; /* First record the DB doesn't have */
     BOOL result;
     BOOL new_data_available;/* If there is new data on the weather station */
     char sbuf[50];      /* timestamp string */
@@ -43,26 +96,7 @@ int main(int argc, char *argv[])
     unsigned short current_ws_record_id;
     time_t current_ws_record_timestamp;
 
-    /* Latest history record available from the database */
-    unsigned int current_db_record_id;
-    time_t current_db_record_timestamp;
-    /*history current_db_record_from_ws;*/
-
     /* Real program code */
-    printf("WH1080 Test Application v1.0\n");
-    printf("\t(C) Copyright David Goodwin, 2012\n\n");
-/*read_history_range(8175, 8173);*/
-    if (argc < 4) {
-        printf("Using defaults\n");
-        server = "weather_dev@localhost:5432";
-        username="zxweather";
-        password="password";
-    } else {
-        server = argv[1];
-        username = argv[2];
-        password = argv[3];
-    }
-
     printf("Open Device...\n");
     open_device();
 
@@ -71,53 +105,34 @@ int main(int argc, char *argv[])
 
     /* Determine WS Latest/current record & sync clocks */
     result = sync_clock(&current_ws_record_id, &current_ws_record_timestamp);
-    if (!result) {
-        fprintf(stderr, "Failed to sync clock.");
-        close_device();
-        return 1;
-    } else {
+    if (result) {
         strftime(sbuf, 50, "%c", localtime(&current_ws_record_timestamp));
         printf("Weather Station current record is %d with time stamp %s\n",
                current_ws_record_id, sbuf);
-    }
 
-    /* Determine latest record in database */
-    pgo_get_last_record_number(&current_db_record_id,
-                               &current_db_record_timestamp);    
-    if (current_db_record_timestamp != 0) {
-
-        if (current_db_record_id == current_ws_record_id)
-            new_data_available = FALSE;
-        else
+        if (full_load) {
+            /* Download *all* records from the very start. */
+            load_start = first_record();
             new_data_available = TRUE;
+        } else {
+            /* Only download new records */
+            new_data_available = find_range_start(&load_start,
+                                                  current_ws_record_id);
+        }
+        if (new_data_available) {
+            /* Load and insert a range of history records */
+            insert_history_range(load_start,
+                                 current_ws_record_id,
+                                 current_ws_record_timestamp);
 
-        /* Figure out if that record exists in the weather station and if so,
-         * double-check that its the same as whats in the database */
-        /*current_db_record_from_ws = read_history_record(current_db_record_id);*/
-
-        load_start = next_record(current_db_record_id);
+            /* Commit transaction */
+            printf("Commit transaction...\n");
+            pgo_commit();
+        } else {
+            printf("Nothing to do: new data on weather station.\n");
+        }
     } else {
-        /* Database is empty. Fetch everything from the weather station */
-        printf("Database is empty.\n");
-        load_start = first_record();
-        new_data_available = TRUE;
-    }
-
-    if (new_data_available) {
-        /* Fetch the records from the weather station & compute timestamps */
-        printf("Fetching records %d to %d...\n", load_start, current_ws_record_id);
-        new_data = read_history_range(load_start, current_ws_record_id);
-        update_timestamps(&new_data, current_ws_record_timestamp);
-
-        /* Insert history data into database */
-        printf("Inserting records into database...\n");
-        pgo_insert_history_set(new_data);
-
-        /* Commit transaction */
-        printf("Commit transaction...\n");
-        pgo_commit();
-    } else {
-        printf("No new data on weather station.\n");
+        fprintf(stderr, "Failed to sync clock.\n");
     }
 
     /* Finish up */
@@ -126,35 +141,246 @@ int main(int argc, char *argv[])
     close_device();
     printf("Finished.\n");
 
-    /* Testing crap *
-    device_config dc;
-    history_set hs;
-    FILE* file;
-    history h;
+    return EXIT_SUCCESS;
+}
 
-    if (FALSE) {
-        printf("Loading history data...\n");
-        hs = read_history();
-        if (FALSE) {
-            print_history_set(hs);
-        } else if (TRUE){
-            pgo_get_last_record_number(&current_db_record_id, &current_db_record_timestamp);
-            printf("Insert history data...\n");
-            pgo_insert_history_set(hs);
-            pgo_commit();
-        } else {
-            printf("Dumping to CSV file...\n");
-            file = fopen("out.csv","w");
-            write_history_csv_file(file, hs);
-            fclose(file);
-        }
+
+/* Writes the devices configuration information to the console */
+void show_dc(void) {
+    device_config dc;
+    open_device();
+    dc = load_device_config();
+    print_device_config(dc);
+    close_device();
+}
+
+/* Shows a specific record. If record_id is -1 then all records are shown */
+void show_record_id(const int record_id) {
+    history h;
+    history_set hs;
+    unsigned short live_record_id;
+
+    open_device();
+
+    /* Show all records */
+    if (record_id == -1) {
+        printf("Loading all records...");
+        get_current_record_id(NULL, NULL, &live_record_id);
+        hs = read_history_range(first_record(), previous_record(live_record_id));
+        print_history_set(hs);
         free_history_set(hs);
-    } else {
-        h = read_history_record(dc.history_data_sets-1);
-        printf("History Record #0:-\n");
+    } else if (record_id >= FIRST_RECORD_SLOT && record_id <= FINAL_RECORD_SLOT){
+        /* Show only one record */
+        printf("Weather station record %d:\n", record_id);
+        h = read_history_record(record_id);
         print_history_record(h);
     }
-    */
-    return 0;
+
+    close_device();
 }
+
+void write_csv(char* filename) {
+    FILE* file;
+    history_set hs;
+    unsigned short current_ws_record_id;
+    time_t current_ws_record_timestamp;
+    BOOL result;
+    char sbuf[50];      /* timestamp string */
+
+    file = fopen(filename, "w");
+    if (file == NULL) {
+        fprintf(stderr, "Failed to open file.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    open_device();
+
+    /* Determine WS Latest/current record & sync clocks */
+    result = sync_clock(&current_ws_record_id, &current_ws_record_timestamp);
+    if (result) {
+        strftime(sbuf, 50, "%c", localtime(&current_ws_record_timestamp));
+        printf("Weather Station current record is %d with time stamp %s\n",
+               current_ws_record_id, sbuf);
+
+        printf("Download history data. This could take some time...\n");
+        hs = read_history_range(first_record(), current_ws_record_id);
+        printf("Updating timestamps...\n");
+        update_timestamps(&hs, current_ws_record_timestamp);
+
+        printf("Write file...\n");
+        write_history_csv_file(file, hs);
+        free_history_set(hs);
+    } else {
+        fprintf(stderr, "Failed to sync clock.\n");
+    }
+
+    close_device();
+    fclose(file);
+}
+
+/* Writes some basic usage information to the console */
+void usage(char* appname) {
+    printf("\nUsage: %s [options]\n", appname);
+    printf("Downloads history records from a Fine Offset WH1080-compatible "
+           "weather station.\n");
+    printf("\nDatabase update options:\n");
+    printf("\t-d database\tThe database to connect to\n");
+    printf("\t-u user\t\tThe user account on the database server\n");
+    printf("\t-p password\tThe database account password\n");
+    printf("\t-l\t\tForce all records to be downloaded, not just new ones.\n");
+    printf("\nOther output options:\n");
+    printf("\t-c\t\tDisplay device configuration\n");
+    printf("\t-f filename\tWrite all history records to a CSV file\n");
+    printf("\t-r<record_id>\tDisplay a specific record from the weather station.\n");
+    printf("\t\t\tIf no recordid is specified, all records are shown.\n");
+    printf("\n\nNote that -c, -f, -r and -dupl are mutually exclusive. You ");
+    printf("can not, for\nexample, update the database *and* write to a CSV ");
+    printf("file at once.\n");
+    printf("\nThe -l option should only be used in the following cases:\n");
+    printf("\t* The weather stations memory has been cleared\n");
+    printf("\t* The database has not been updated in a long time. No records "
+           "in the\n\t  database exist on the weather station.\n");
+    printf("Otherwise you will end up with duplicate data in the database.\n");
+}
+
+/* Program entry point */
+int main(int argc, char *argv[])
+{        
+    /* getopt stuff */
+    extern char *optarg;
+    int c;
+    BOOL arg_error = FALSE;
+
+    /* Just show device configuration */
+    BOOL print_dc = FALSE;
+
+    /* Dump all records to a CSV file */
+    BOOL dump_to_csv = FALSE;
+    char* filename = NULL;
+
+    /* Show a record */
+    BOOL show_record = FALSE;
+    int record_id = -1;
+
+    /* Stuff for database updates */
+    BOOL full_load = FALSE;         /* Force update from first WS record */
+    BOOL update_database = FALSE;
+    char* database = NULL;
+    char* username = NULL;
+    char* password = NULL;
+
+    /* arguments
+     * -d database      database connection string (database@host:port)
+     * -u username      database username
+     * -p password      database password
+     * -l               force full load from the first weatherstation record
+     * -c               print device configuration instead of updating the
+     *                  database
+     * -f filename      dump all records to a CSV file instead of updating the
+     *                  database
+     * -rrecordid       Display recordid from the database.
+     */
+
+    /* Note: This uses the GNU extension for optional arguments (::) */
+    while ((c = getopt(argc, argv, "d:u:p:lcf:r::")) != -1) {
+        switch (c) {
+        case 'd':
+            if (print_dc || dump_to_csv || show_record)
+                arg_error = TRUE;
+            else {
+                update_database = TRUE;
+                database = optarg;
+            }
+            break;
+        case 'u':
+            if (print_dc || dump_to_csv || show_record)
+                arg_error = TRUE;
+            else {
+                update_database = TRUE;
+                username = optarg;
+            }
+            break;
+        case 'p':
+            if (print_dc || dump_to_csv || show_record)
+                arg_error = TRUE;
+            else {
+                update_database = TRUE;
+                password = optarg;
+            }
+            break;
+        case 'l':
+            if (print_dc || dump_to_csv || show_record)
+                arg_error = TRUE;
+            else {
+                update_database = TRUE;
+                full_load = TRUE;
+            }
+            break;
+        case 'c':
+            if (update_database || dump_to_csv || show_record)
+                arg_error = TRUE;
+            else
+                print_dc = TRUE;
+            break;
+        case 'f':
+            if (print_dc || update_database || show_record)
+                arg_error = TRUE;
+            else {
+                dump_to_csv = TRUE;
+                filename = optarg;
+            }
+            break;
+        case 'r':
+            if (print_dc || dump_to_csv || update_database)
+                arg_error = TRUE;
+            else {
+                show_record = TRUE;
+                if (optarg != NULL)
+                    record_id = atoi(optarg);
+            }
+            break;
+        case '?':
+            usage(argv[0]);
+            exit(EXIT_SUCCESS);
+            break;
+        default:
+            fprintf(stderr, "Unrecognised option");
+            usage(argv[0]);
+            exit(EXIT_FAILURE);
+        }
+    }
+
+/* testing stuff *
+    printf("print_dc: %s\n", print_dc ? "TRUE" : "FALSE");
+    printf("dump_to_csv: %s\n", dump_to_csv ? "TRUE" : "FALSE");
+    if (filename != NULL) printf("\tFilename: %s\n", filename);
+    printf("show_record: %s\n", show_record ? "TRUE" : "FALSE");
+    if (record_id != -1) printf("\tRecord ID: %d\n", record_id);
+    printf("full_load: %s\n", full_load ? "TRUE" : "FALSE");
+    printf("update_database: %s\n", update_database ? "TRUE" : "FALSE");
+    if (database != NULL) printf("\tDatabase: %s\n", database);
+    if (username != NULL) printf("\tUsername: %s\n", username);
+    if (password != NULL) printf("\tPassword: %s\n", password);
+    printf("arg_error: %s\n", arg_error ? "TRUE" : "FALSE");
+**/
+
+    if (arg_error) {
+        usage(argv[0]);
+        exit(EXIT_FAILURE);
+    } else if (print_dc) {
+        show_dc();
+    } else if (dump_to_csv) {
+        write_csv(filename);
+    } else if (show_record) {
+        show_record_id(record_id);
+    } else if (update_database) {
+        return db_update(database, username, password, full_load);
+    } else {
+        usage(argv[0]);
+        exit(EXIT_FAILURE);
+    }
+
+    return EXIT_SUCCESS;
+}
+
 

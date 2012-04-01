@@ -47,6 +47,7 @@ SOURCES += src/main.c \
     src/history.c \
     src/conout.c \
     src/fileout.c
+win32:SOURCES += src/getopt/getopt.c
 
 HEADERS += \
     src/deviceconfig.h \
@@ -58,6 +59,7 @@ HEADERS += \
     src/pgout.h \
     src/version.h
 HEADERS += src/common.h
+win32: HEADERS += src/getopt/getopt.h
 
 OTHER_FILES += \
     todo.txt \

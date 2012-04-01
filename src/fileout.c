@@ -23,10 +23,16 @@
 #include "fileout.h"
 #include "common.h"
 
+static char* wind_direction[] = {"N", "NNE", "NE", "ENE", "E", "ESE", "SE",
+                                "SSE", "S", "SSW", "SW", "WSW", "W", "WNW",
+                                "NW", "NNW", "INVALID"};
+#define WIND_DIR(byte) (wind_direction[byte > 15 ? 16 : byte])
+
 void write_history_header(FILE* file) {
     fprintf(file,
             "\"Record Number\","
             "\"Download Time\","
+            "\"Time Stamp\","
             "\"Last In Set\","
             "\"Sample Time (m)\","
             "\"Indoor Relative Humidity (%%)\","
@@ -39,16 +45,24 @@ void write_history_header(FILE* file) {
             "\"Wind Direction\","
             "\"Total Rain\","
             "\"Invalid Data\","
-            "\"Rain Overflow\"\n"
+            "\"Rain Overflow\","
+            "\"Status\"\n"
            );
 }
 
 void write_history_record(FILE* file, history h) {
+    char dltime[50];
+    char timestamp[50];
+
+    strftime(dltime, 50, "%c", localtime(&h.download_time));
+    strftime(timestamp, 50, "%c", localtime(&h.time_stamp));
+
     fprintf(file,
-            "%d,%d,%d,%u,%u,%02.1f,%u,%02.1f,%02.1f,%02.1f,%02.1f,%u,%02.1f,%d,%d\n",
+            "%d,\"%s\",\"%s\",\"%s\",%u,%u,%02.1f,%u,%02.1f,%02.1f,%02.1f,%02.1f,\"%s\",%02.1f,%d,%d,%u\n",
             h.record_number,
-            (int)h.download_time,
-            h.last_in_set,
+            dltime,
+            timestamp,
+            (h.last_in_set) ? "true" : "false",
             h.sample_time,
             h.indoor_relative_humidity,
             SFP(h.indoor_temperature),
@@ -57,10 +71,11 @@ void write_history_record(FILE* file, history h) {
             SFP(h.absolute_pressure),
             SFP(h.average_wind_speed),
             SFP(h.gust_wind_speed),
-            h.wind_direction,
+            WIND_DIR(h.wind_direction),
             h.total_rain * RAIN_MULTIPLY,
             CHECK_BIT_FLAG(h.status, H_SF_INVALID_DATA),
-            CHECK_BIT_FLAG(h.status, H_SF_RAINFALL_OVERFLOW)
+            CHECK_BIT_FLAG(h.status, H_SF_RAINFALL_OVERFLOW),
+            h.status
             );
 }
 

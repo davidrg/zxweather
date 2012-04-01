@@ -45,8 +45,8 @@ static hid_device *handle;
 void open_device() {
     handle = hid_open(VENDOR_ID, PRODUCT_ID, NULL);
     if (handle == NULL) {
-        printf("Failed to open device.");
-        exit(1);
+        fprintf(stderr, "Failed to open device.");
+        exit(EXIT_FAILURE);
     }
 }
 
