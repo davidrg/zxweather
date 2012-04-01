@@ -337,7 +337,7 @@ void print_history_record(history h) {
     printf("\tWind Direction: 0x%02X (%s)\n",
            h.wind_direction,
            WIND_DIR(h.wind_direction));
-    printf("\tTotal Rain: %d\n", h.total_rain);
+    printf("\tTotal Rain: %02.1f mm\n", h.total_rain * RAIN_MULTIPLY);
     printf("\tStatus: 0x%02X\n", h.status);
     if (CHECK_BIT_FLAG(h.status, H_SF_RESERVED_A))
         ct = print_flag(ct, "RESERVED_A");
