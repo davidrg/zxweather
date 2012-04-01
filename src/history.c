@@ -66,9 +66,9 @@ history create_history(unsigned char* buffer) {
 
     h.wind_direction = buffer[12];
 
-    h.total_rain = buffer[13];
+    h.total_rain = READ_SHORT(buffer, 13, 14);
 
-    h.status = buffer[14];
+    h.status = buffer[15];
 
     h.last_in_set = FALSE;
 
