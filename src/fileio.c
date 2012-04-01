@@ -35,9 +35,10 @@
 #define READ_SIZE_BYTES 32
 
 static FILE* infile;
+char* fileio_filename;
 
 void open_device() {
-    infile = fopen("memdump.bin", "rb");
+    infile = fopen(fileio_filename, "rb");
 
     if (infile == NULL) {
         printf("Failed to open memdump.bin\n");

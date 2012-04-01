@@ -24,19 +24,24 @@
 #include "debug.h"
 #include <stdio.h>
 
-#define MEM_SIZE 131071
+#define MEM_SIZE 0x10000
 
-int main(void) {
+int main(int argc, char* argv[]) {
     unsigned char memory[MEM_SIZE];
     printf("WH1080 Memory Dumper v1.0\n");
     printf("\t(C) Copyright David Goodwin, 2012\n\n");
 
-    printf("dumping to memdump.bin...\n");
+    if (argc != 2) {
+        printf("usage: %s filename\n", argv[0]);
+        return 0;
+    }
+
+    printf("dumping to %s...\n", argv[1]);
     open_device();
 
     fill_buffer(0,memory, MEM_SIZE, TRUE);
 
-    write_buffer(memory, MEM_SIZE, "memdump.bin");
+    write_buffer(memory, MEM_SIZE, argv[1]);
 
     close_device();
 
