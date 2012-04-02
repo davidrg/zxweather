@@ -187,9 +187,25 @@ $BODY$
 	BEGIN
                 -- If its an insert, calculate any fields that need calculating. We will ignore updates here.
 		IF(TG_OP = 'INSERT') THEN
+                        -- Various calculated temperatures
                         NEW.dew_point = dew_point(NEW.temperature, NEW.relative_humidity);
                         NEW.wind_chill = wind_chill(NEW.temperature, NEW.average_wind_speed);
                         NEW.apparent_temperature = apparent_temperature(NEW.temperature, NEW.average_wind_speed, NEW.relative_humidity);
+
+                        -- Calculate actual rainfall for this record from the total rainfall 
+                        -- accumulator of this record and the previous record.
+                        -- 19660.8 is the maximum rainfall accumulator value (65536 * 0.3mm).
+                        select into NEW.rainfall
+                                    CASE WHEN NEW.total_rain - prev.total_rain >= 0 THEN
+                                        NEW.total_rain - prev.total_rain
+                                    ELSE
+                                        NEW.total_rain + (19660.8 - prev.total_rain)
+                                    END as rainfall
+                        from sample prev
+                        -- find the previous sample:
+                        where time_stamp = (select max(time_stamp)
+                                            from sample ins
+                                            where ins.time_stamp < NEW.time_stamp);
 		END IF;
 
 		RETURN NEW;
