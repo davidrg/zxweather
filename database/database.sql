@@ -9,7 +9,7 @@ CREATE DOMAIN rh_percentage
 ALTER DOMAIN rh_percentage
   OWNER TO postgres;
 COMMENT ON DOMAIN rh_percentage
-  IS 'Relative Humidity percentage';
+  IS 'Relative Humidity percentage (0-99%)';
 
 -- Valid wind directions
 CREATE DOMAIN wind_direction
@@ -61,21 +61,22 @@ COMMENT ON COLUMN sample.download_timestamp IS 'When this record was downloaded 
 COMMENT ON COLUMN sample.last_in_batch IS 'If this was the last record in a batch of records downloaded from the weather station.';
 COMMENT ON COLUMN sample.invalid_data IS 'If the record from the weather stations "no sensor data received" flag is set.';
 COMMENT ON COLUMN sample.time_stamp IS 'The calculated date and time when this record was likely recorded by the weather station. How far out it could possibly be depends on the size of the sample interval, etc.';
-COMMENT ON COLUMN sample.indoor_relative_humidity IS 'Relative Humidity at the base station';
-COMMENT ON COLUMN sample.indoor_temperature IS 'Temperature at the base station';
-COMMENT ON COLUMN sample.relative_humidity IS 'Relative Humidity';
-COMMENT ON COLUMN sample.temperature IS 'Temperature outside';
-COMMENT ON COLUMN sample.dew_point IS 'Calculated dew point';
-COMMENT ON COLUMN sample.wind_chill IS 'Calculated wind chill';
-COMMENT ON COLUMN sample.apparent_temperature IS 'Calculated apparent temperature.';
-COMMENT ON COLUMN sample.absolute_pressure IS 'Absolute pressure';
+COMMENT ON COLUMN sample.indoor_relative_humidity IS 'Relative Humidity at the base station. 0-99%';
+COMMENT ON COLUMN sample.indoor_temperature IS 'Temperature at the base station in degrees Celsius';
+COMMENT ON COLUMN sample.relative_humidity IS 'Relative Humidity. 0-99%';
+COMMENT ON COLUMN sample.temperature IS 'Temperature outside in degrees Celsius';
+COMMENT ON COLUMN sample.dew_point IS 'Calculated dew point in degrees Celsius. Use the dew_point function to calculate. Calculated automatically by a trigger on insert.';
+COMMENT ON COLUMN sample.wind_chill IS 'Calculated wind chill in degrees Celsius. Use the wind_chill function to calculate. Calculated automatically by a trigger on insert.';
+COMMENT ON COLUMN sample.apparent_temperature IS 'Calculated apparent temperature in degrees Celsius. Use the apparent_temperature to calculate. Calculated automatically by a trigger on insert.';
+COMMENT ON COLUMN sample.absolute_pressure IS 'Absolute pressure in Hpa';
 COMMENT ON COLUMN sample.relative_pressure IS 'Calculated relative pressure.';
-COMMENT ON COLUMN sample.average_wind_speed IS 'Average Wind Speed.';
-COMMENT ON COLUMN sample.gust_wind_speed IS 'Gust wind speed.';
+COMMENT ON COLUMN sample.average_wind_speed IS 'Average Wind Speed in m/s.';
+COMMENT ON COLUMN sample.gust_wind_speed IS 'Gust wind speed in m/s.';
 COMMENT ON COLUMN sample.wind_direction IS 'Wind Direction.';
-COMMENT ON COLUMN sample.rainfall IS 'Calculated rainfall. Calculation is based on total_rainfall and rain_overflow columns compared to the previous sample.';
-COMMENT ON COLUMN sample.total_rain IS 'Total rain recorded by the sensor so far. Subtract the previous samples total rainfall from this one to calculate the amount of rain for this sample.';
+COMMENT ON COLUMN sample.rainfall IS 'Calculated rainfall in mm. Smallest recordable amount is 0.3mm. Calculation is based on total_rainfall and rain_overflow columns compared to the previous sample.';
+COMMENT ON COLUMN sample.total_rain IS 'Total rain recorded by the sensor so far. Smallest possible increment is 0.3mm. Subtract the previous samples total rainfall from this one to calculate the amount of rain for this sample.';
 COMMENT ON COLUMN sample.rain_overflow IS 'If an overflow in the total_rain counter has occurred';
+COMMENT ON COLUMN sample.station_id IS 'Weather station this record came from';
 
 ----------------------------------------------------------------------
 -- INDICIES ----------------------------------------------------------
