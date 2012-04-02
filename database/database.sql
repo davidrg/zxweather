@@ -76,7 +76,6 @@ COMMENT ON COLUMN sample.wind_direction IS 'Wind Direction.';
 COMMENT ON COLUMN sample.rainfall IS 'Calculated rainfall in mm. Smallest recordable amount is 0.3mm. Calculation is based on total_rainfall and rain_overflow columns compared to the previous sample.';
 COMMENT ON COLUMN sample.total_rain IS 'Total rain recorded by the sensor so far. Smallest possible increment is 0.3mm. Subtract the previous samples total rainfall from this one to calculate the amount of rain for this sample.';
 COMMENT ON COLUMN sample.rain_overflow IS 'If an overflow in the total_rain counter has occurred';
-COMMENT ON COLUMN sample.station_id IS 'Weather station this record came from';
 
 ----------------------------------------------------------------------
 -- INDICIES ----------------------------------------------------------
@@ -192,7 +191,7 @@ $BODY$
                         NEW.wind_chill = wind_chill(NEW.temperature, NEW.average_wind_speed);
                         NEW.apparent_temperature = apparent_temperature(NEW.temperature, NEW.average_wind_speed, NEW.relative_humidity);
 
-                        -- Calculate actual rainfall for this record from the total rainfall 
+                        -- Calculate actual rainfall for this record from the total rainfall
                         -- accumulator of this record and the previous record.
                         -- 19660.8 is the maximum rainfall accumulator value (65536 * 0.3mm).
                         select into NEW.rainfall
