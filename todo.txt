@@ -3,7 +3,6 @@ TODO:
   against libusb)
  * Add Visual C++ 2010 project files
  * Add OpenWatcom project files if its compatible
- * Work out rainfall stuff
 
 New program - weatherd:
  * Read latest weather station record every 48 seconds and do a broadcast on
