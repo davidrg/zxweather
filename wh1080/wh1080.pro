@@ -23,16 +23,16 @@ QMAKE_CFLAGS += -ansi -pedantic -Wall -Wextra -Wno-overlength-strings
 ecpg.name = Process Embedded SQL sources
 ecpg.input = ECPG_SOURCES
 ecpg.output = ${QMAKE_FILE_BASE}.c
-ecpg.commands = ../cweather/tools/ecpg-9.1-win32/ecpg.exe -o ${QMAKE_FILE_OUT} ${QMAKE_FILE_IN}
+ecpg.commands = ../wh1080/tools/ecpg-9.1-win32/ecpg.exe -o ${QMAKE_FILE_OUT} ${QMAKE_FILE_IN}
 ecpg.variable_out = SOURCES
 ecpg.dependency_type = TYPE_C
 QMAKE_EXTRA_COMPILERS += ecpg
 
 # Because windows has no standard place to store libraries or anything I am
 # just going to go and distribute distribute it with the program.
-win32:LIBS += -L../cweather/lib/hidapi/windows-binaries -lhidapi
+win32:LIBS += -L../wh1080/lib/hidapi/windows-binaries -lhidapi
 win32:INCLUDEPATH += lib/hidapi/windows-binaries
-win32:LIBS += -L../cweather/lib/libecpg-9.1-win32 -lecpg
+win32:LIBS += -L../wh1080/lib/libecpg-9.1-win32 -lecpg
 win32:INCLUDEPATH += lib/libecpg-9.1-win32/include
 
 win32:INCLUDEPATH += src
@@ -63,7 +63,7 @@ win32:SOURCES += src/getopt/getopt.c
 win32: HEADERS += src/getopt/getopt.h
 
 OTHER_FILES += \
-    todo.txt \
+    ../todo.txt \
     Makefile \
-    database/database.sql \
+    ../database/database.sql \
     src/pgout.pgc
