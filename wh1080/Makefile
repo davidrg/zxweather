@@ -1,5 +1,5 @@
 ###############################################################################
-# cweather makefile for linux
+# zxweather makefile for linux
 ###############################################################################
 
 all: cweather memdump readdump
@@ -37,14 +37,14 @@ USB_INCLUDES  = -Ilib/hidapi/linux-0.7 `pkg-config libusb-1.0 --cflags`
 ECPG_LIBS     = -lecpg
 ECPG_INCLUDES = -I/usr/include/postgresql
 
-cweather : $(CW_OBJS)
-	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(USB_LIBS) $(ECPG_LIBS) -o cweather
+wh1080 : $(CW_OBJS)
+	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(USB_LIBS) $(ECPG_LIBS) -o wh1080
 
-memdump: $(MD_OBJS)
-	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(USB_LIBS) -o memdump
+wh1080memdump: $(MD_OBJS)
+	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(USB_LIBS) -o wh1080memdump
 
-readdump: $(RD_OBJS) 
-	$(CC) $(CFLAGS) $(LDFLAGS) $^ -o readdump
+wh1080readdump: $(RD_OBJS)
+	$(CC) $(CFLAGS) $(LDFLAGS) $^ -o wh1080readdump
 
 $(DEVIO_OBJ): %.o: %.c
 	$(CC) $(CFLAGS) -c $(USB_INCLUDES) $< -o $@
