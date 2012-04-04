@@ -1,5 +1,7 @@
 import datetime
+import web
 from web.contrib.template import render_jinja
+from baseui import month_name
 from config import db
 
 __author__ = 'David Goodwin'
@@ -46,8 +48,18 @@ def get_day(station, year, month, day):
         date_stamp = datetime.date(year, month, day)
         current_data = None
 
+        prev_url = None
+        prev_date = None
+        next_url = None
+        next_date = None
+        this_month = month_name[month]
+
+
     params = dict(date=data.date_stamp)
-    data.records = db.select('daily_records',params, where='date_stamp = $date' )[0]
+    daily_records = db.select('daily_records',params, where='date_stamp = $date' )
+    if not len(daily_records):
+        raise web.NotFound()
+    data.records = daily_records[0]
 
     # Figure out if there is current data to show or if this is a history
     # page
@@ -64,6 +76,38 @@ def get_day(station, year, month, day):
             limit 1""",params)[0]
         data.current_data_ts = data.current_data.time_stamp
 
+    # Figure out the URL for the previous day
+    previous_day = data.date_stamp - datetime.timedelta(1)
+    data.prev_date = previous_day
+    prev_days_data = db.query("""select temperature
+        from sample where date(time_stamp) = $date limit 1""",
+                               dict(date=previous_day))
+    # Only calculate previous days data if there is any.
+    if len(prev_days_data):
+        if previous_day.year != year:
+            data.prev_url = '../../../' + str(previous_day.year) \
+                            + '/' + month_name[previous_day.month] + '/'
+        elif previous_day.month != month:
+            data.prev_url = '../../' + month_name[previous_day.month] + '/'
+        else:
+            data.prev_url = '../'
+        data.prev_url += str(previous_day.day) + '/'
+
+    # Only calculate the URL for tomorrow if there is tomorrow in the database.
+    next_day = data.date_stamp + datetime.timedelta(1)
+    data.next_date = next_day
+    next_days_data = db.query("""select temperature
+        from sample where date(time_stamp) = $date limit 1""",
+                              dict(date=next_day))
+    if len(next_days_data):
+        if next_day.year != year:
+            data.next_url = '../../../' + str(next_day.year)\
+                            + '/' + month_name[next_day.month] + '/'
+        elif next_day.month != month:
+            data.next_url = '../../' + month_name[next_day.month] + '/'
+        else:
+            data.next_url = '../'
+        data.next_url += str(next_day.day) + '/'
 
     return render.day(data=data)
 
