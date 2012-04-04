@@ -107,6 +107,125 @@ ALTER TABLE latest_record_number
   OWNER TO postgres;
 COMMENT ON VIEW latest_record_number
   IS 'Gets the number of the most recent record. This is used by cweather to figure out what it needs to load into the database and what is already there.';
+
+CREATE OR REPLACE VIEW daily_records AS
+select data.date_stamp,
+       data.total_rainfall,
+       data.max_gust_wind_speed,
+       max(data.max_gust_wind_speed_ts) as max_gust_wind_speed_ts,
+       data.max_average_wind_speed,
+       max(data.max_average_wind_speed_ts) as max_average_wind_speed_ts,
+       data.min_absolute_pressure,
+       max(data.min_absolute_pressure_ts) as min_absolute_pressure_ts,
+       data.max_absolute_pressure,
+       max(data.max_absolute_pressure_ts) as max_absolute_pressure_ts,
+       data.min_apparent_temperature,
+       max(data.min_apparent_temperature_ts) as min_apparent_temperature_ts,
+       data.max_apparent_temperature,
+       max(data.max_apparent_temperature_ts) as max_apparent_temperature_ts,       
+       data.min_wind_chill,
+       max(data.min_wind_chill_ts) as min_wind_chill_ts,
+       data.max_wind_chill,
+       max(data.max_wind_chill_ts) as max_wind_chill_ts,
+       data.min_dew_point,
+       max(data.min_dew_point_ts) as min_dew_point_ts,
+       data.max_dew_point,
+       max(data.max_dew_point_ts) as max_dew_point_ts,
+       data.min_temperature,
+       max(data.min_temperature_ts) as min_temperature_ts,
+       data.max_temperature,
+       max(data.max_temperature_ts) as max_temperature_ts,
+       data.min_humidity,
+       max(data.min_humidity_ts) as min_humidity_ts,
+       data.max_humidity,
+       max(data.max_humidity_ts) as max_humidity_ts
+from (
+select dr.date_stamp,
+       dr.max_gust_wind_speed,
+       case when s.gust_wind_speed = dr.max_gust_wind_speed then s.time_stamp else NULL end as max_gust_wind_speed_ts,
+       dr.max_average_wind_speed,
+       case when s.average_wind_speed = dr.max_average_wind_speed then s.time_stamp else NULL end as max_average_wind_speed_ts,
+       dr.max_absolute_pressure,
+       case when s.absolute_pressure = dr.max_absolute_pressure then s.time_stamp else NULL end as max_absolute_pressure_ts,
+       dr.min_absolute_pressure,
+       case when s.absolute_pressure = dr.min_absolute_pressure then s.time_stamp else NULL end as min_absolute_pressure_ts,
+       dr.max_apparent_temperature,
+       case when s.apparent_temperature = dr.max_apparent_temperature then s.time_stamp else NULL end as max_apparent_temperature_ts,
+       dr.min_apparent_temperature,
+       case when s.apparent_temperature = dr.min_apparent_temperature then s.time_stamp else NULL end as min_apparent_temperature_ts,
+       dr.max_wind_chill,
+       case when s.wind_chill = dr.max_wind_chill then s.time_stamp else NULL end as max_wind_chill_ts,
+       dr.min_wind_chill,
+       case when s.wind_chill = dr.min_wind_chill then s.time_stamp else NULL end as min_wind_chill_ts,
+       dr.max_dew_point,
+       case when s.dew_point = dr.max_dew_point then s.time_stamp else NULL end as max_dew_point_ts,
+       dr.min_dew_point,
+       case when s.dew_point = dr.min_dew_point then s.time_stamp else NULL end as min_dew_point_ts,       
+       dr.max_temperature,
+       case when s.temperature = dr.max_temperature then s.time_stamp else NULL end as max_temperature_ts,
+       dr.min_temperature,
+       case when s.temperature = dr.min_temperature then s.time_stamp else NULL end as min_temperature_ts,    
+       dr.max_humidity,
+       case when s.relative_humidity = dr.max_humidity then s.time_stamp else NULL end as max_humidity_ts,
+       dr.min_humidity,
+       case when s.relative_humidity = dr.min_humidity then s.time_stamp else NULL end as min_humidity_ts,
+       dr.total_rainfall
+from sample s
+inner join
+(
+select date(time_stamp) as date_stamp,
+       sum(coalesce(s.rainfall,0)) as "total_rainfall",
+       max(s.gust_wind_speed) as "max_gust_wind_speed",
+       max(s.average_wind_speed) as "max_average_wind_speed",
+       min(s.absolute_pressure) as "min_absolute_pressure",
+       max(s.absolute_pressure) as "max_absolute_pressure",
+       min(s.apparent_temperature) as "min_apparent_temperature",
+       max(s.apparent_temperature) as "max_apparent_temperature",
+       min(s.wind_chill) as "min_wind_chill",
+       max(s.wind_chill) as "max_wind_chill",
+       min(s.dew_point) as "min_dew_point",
+       max(s.dew_point) as "max_dew_point",
+       min(s.temperature) as "min_temperature",
+       max(s.temperature) as "max_temperature",
+       min(s.relative_humidity) as "min_humidity",
+       max(s.relative_humidity) as "max_humidity"
+from sample s
+where invalid_data = false
+group by date_stamp) as dr
+on date(s.time_stamp) = dr.date_stamp
+
+-- Filter the samples down to only those with a maximum or minimum reading
+where ( s.gust_wind_speed = dr.max_gust_wind_speed 
+     or s.average_wind_speed = dr.max_average_wind_speed
+     or s.absolute_pressure in (dr.max_absolute_pressure, dr.min_absolute_pressure)
+     or s.apparent_temperature in (dr.max_apparent_temperature, dr.min_apparent_temperature)
+     or s.wind_chill in (dr.max_wind_chill, dr.min_wind_chill)
+     or s.dew_point in (dr.max_dew_point, dr.min_dew_point)
+     or s.temperature in (dr.max_temperature, dr.min_temperature)
+     or s.relative_humidity in (dr.max_humidity, dr.min_humidity)
+     )
+) as data
+group by data.date_stamp,
+         data.max_gust_wind_speed,
+         data.max_average_wind_speed,
+         data.max_absolute_pressure,
+         data.min_absolute_pressure,
+         data.min_apparent_temperature,
+         data.max_apparent_temperature,         
+         data.max_wind_chill,
+         data.min_wind_chill,
+         data.max_dew_point,
+         data.min_dew_point,
+         data.max_temperature,
+         data.min_temperature,
+         data.max_humidity,
+         data.min_humidity,
+         data.total_rainfall
+order by data.date_stamp desc
+COMMENT ON VIEW daily_records
+  IS 'Minimum and maximum temperature, dew point, wind chill, apparent temperature, gust wind speed, average wind speed, absolute pressure and humidity per day.';
+
+
 ----------------------------------------------------------------------
 -- FUNCTIONS ---------------------------------------------------------
 ----------------------------------------------------------------------
