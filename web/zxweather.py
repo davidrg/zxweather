@@ -16,6 +16,13 @@ urls = (
     '/(\w*)/(\w*)/(\d+)/', 'baseui.year',            # A particular year
     '/(\w*)/(\w*)/(\d+)/(\w*)/', 'baseui.month',     # A particular month
     '/(\w*)/(\w*)/(\d+)/(\w*)/(\d+)/', 'baseui.day', # A particular day
+
+    # Static file downloads
+    '/(\w*)/(\w*)/(\d+)/(\w*)/(\d+)/(.*)', 'baseui.file',  # for day pages
+#    '/(\w*)/(\w*)/(\d+)/(\w*)/(.*)', 'baseui.file',  # for month pages
+#    '/(\w*)/(\w*)/(\d+)/(.*)', 'baseui.file',  # for year pages
+#    '/(\w*)/(\w*)/(.*)', 'baseui.file',  # UI-specific stuff
+#    '/(\w*)/(.*)', 'baseui.file',  # Station-specific stuff
 )
 
 app = web.application(urls, globals())
