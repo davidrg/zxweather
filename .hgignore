@@ -4,3 +4,5 @@ wh1080-build-*
 *.user
 *.pyc
 plot/.idea/*
+plot/graphs/*
+web/static/*
