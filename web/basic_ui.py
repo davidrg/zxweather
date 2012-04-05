@@ -28,20 +28,26 @@ class year:
         return "Station: '" + station \
                + "', Year: '" + str(year) + "'"
 
-class month:
-    """
-    Gives an overview for a month
-    """
-    @staticmethod
-    def GET(station, year, month):
 
-        return "Station: '" + station\
-               + "', Year: '" + year + "', Month: '" + month + "'"
+def get_month(station, year, month):
 
+    class data:
+        this_month = month_name[month]
+        this_year = year
+
+        records = None
+
+        prev_url = None
+        prev_month = None
+        next_url = None
+        next_month = None
+
+    return render.month(data=data)
 
 def get_day(station, year, month, day):
     """
-    Gives an overview for a day.
+    Gives an overview for a day. If the day is today then current weather
+    conditions are also shown.
     """
 
     class data:

@@ -86,6 +86,9 @@ class month:
            month not in month_number:
             raise web.NotFound()
 
+        if ui == 'b':
+            return basic_ui.get_month(station, int(year), month_number[month])
+
         return "Station: '" + station + "', UI: '" + ui\
                + "', Year: '" + year + "', Month: '" + month + "'"
 
