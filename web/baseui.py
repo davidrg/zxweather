@@ -119,6 +119,12 @@ class file:
         return get_file(pathname)
 
 def get_file(pathname):
+    """
+    Streams a file back to the client.
+
+    :param pathname: Local file to stream
+    :return:
+    """
 
     full_filename = config.static_data_dir + pathname
 
