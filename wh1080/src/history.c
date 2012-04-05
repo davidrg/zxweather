@@ -23,6 +23,8 @@
 /* For sleep calls in sync_clock_r() */
 #ifdef __WIN32
 #include <windows.h>
+#elif _MSC_VER
+#include <windows.h>
 #else
 #include <unistd.h>
 #endif
