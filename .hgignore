@@ -3,3 +3,4 @@ web/.idea/*
 wh1080-build-*
 *.user
 *.pyc
+plot/.idea/*
