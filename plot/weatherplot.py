@@ -22,6 +22,60 @@ month_name = {1 : 'january',
 
 gnuplot_binary = r'C:\Program Files (x86)\gnuplot\bin\gnuplot.exe'
 
+def plot_graph(output_filename, title=None, xdata_time=False, ylabel=None,
+               lines=None, key=True, width=None, height=None):
+    """
+    Plots a graph using gnuplot.
+    :param output_filename:
+    :param title:
+    :param xdata_time:
+    :param ylabel:
+    :param lines:
+    :param key:
+    :param width:
+    :param height:
+    :return:
+    """
+
+    script = """set style data lines
+set grid
+set output "{0}"
+""".format(output_filename)
+
+    if width is not None and height is not None:
+        script += "set terminal png size {0}, {1}\n".format(width,height)
+    else:
+        script += "set terminal png\n"
+
+    if title is not None:
+        script += 'set title "{0}"\n'.format(title)
+
+    if xdata_time:
+        script += """set xdata time
+set timefmt "%H:%M:%S"
+set format x "%H:%M"
+set xlabel "Time"
+"""
+    if ylabel is not None:
+        script += 'set ylabel "{0}"\n'.format(ylabel)
+
+    if not key:
+        script += "set key off\n"
+
+    script += "plot "
+
+    if lines is not None:
+        for line in lines:
+            if not script.endswith("plot "):
+                script += ", "
+            script += "'{0}' using {1}:{2} title \"{3}\"".format(line['filename'],
+                line['xcol'], line['ycol'], line['title'])
+
+
+        gnuplot = subprocess.Popen([gnuplot_binary], stdin=subprocess.PIPE)
+        gnuplot.communicate(script)
+
+
 def plot_day(dest_dir, cur, year, month, day):
     print("Plotting graphs for {0} {1} {2}...".format(year, month_name[month], day))
 
@@ -53,141 +107,72 @@ def plot_day(dest_dir, cur, year, month, day):
     file.writelines(file_data)
     file.close()
 
-    # Plot Temperature and Dew Point
-    output_filename = dest_dir + 'temperature_tdp.png'
-    gnuplot = subprocess.Popen([gnuplot_binary], stdin=subprocess.PIPE)
-    gnuplot.communicate('''set style data lines
-set title "Temperature and Dew Point"
-set grid
-set xdata time
-set timefmt "%H:%M:%S"
-set format x "%H:%M"
-set xlabel "Time"
-set ylabel "Temperature (C)"
-set terminal png
-set output "{0}"
-plot '{1}' using 1:2 title "Temperature", '{2}' using 1:3 title "Dew Point" '''
-    .format(output_filename,data_filename,data_filename))
+    for large in [True,False]:
+        # Create both large and regular versions of each plot.
+        if large:
+            width = 1280
+            height = 960
+        else:
+            width = None    # Default width and height
+            height = None
 
-    # Plot Apparent Temperature and Wind Chill
-    output_filename = dest_dir + 'temperature_awc.png'
-    gnuplot = subprocess.Popen([gnuplot_binary], stdin=subprocess.PIPE)
-    gnuplot.communicate('''set style data lines
-set title "Apparent Temperature and Wind Chill"
-set grid
-set xdata time
-set timefmt "%H:%M:%S"
-set format x "%H:%M"
-set xlabel "Time"
-set ylabel "Temperature (C)"
-set terminal png
-set output "{0}"
-plot '{1}' using 1:4 title "Apparent Temperature", '{2}' using 1:5 title "Wind Chill" '''
-    .format(output_filename,data_filename,data_filename))
+        # Plot Temperature and Dew Point
+        plot_graph(dest_dir + 'temperature_tdp.png',
+                   xdata_time=True,
+                   title="Temperature and Dew Point",
+                   ylabel="Temperature (C)",
+                   width=width,
+                   height=height,
+                   lines=[{'filename': data_filename,
+                           'xcol': 1,   # Time
+                           'ycol': 2,   # Temperature
+                           'title':"Temperature"},
+                          {'filename': data_filename,
+                           'xcol': 1,   # Time
+                           'ycol': 3,   # Dew Point
+                           'title':"Dew Point"}])
 
-    # Humidity
-    output_filename = dest_dir + 'humidity.png'
-    gnuplot = subprocess.Popen([gnuplot_binary], stdin=subprocess.PIPE)
-    gnuplot.communicate('''set style data lines
-set title "Humidity"
-set grid
-set xdata time
-set timefmt "%H:%M:%S"
-set format x "%H:%M"
-set xlabel "Time"
-set ylabel "Relative Humidity (%)"
-set terminal png
-set output "{0}"
-set key off
-plot '{1}' using 1:6 title "Relative Humidity"'''
-    .format(output_filename,data_filename))
+        # Plot Apparent Temperature and Wind Chill
+        plot_graph(dest_dir + 'temperature_awc.png',
+                   xdata_time=True,
+                   title="Apparent Temperature and Wind Chill",
+                   ylabel="Temperature (C)",
+                   width=width,
+                   height=height,
+                   lines=[{'filename': data_filename,
+                           'xcol': 1,   # Time
+                           'ycol': 4,   # Apparent temperature
+                           'title': "Apparent Temperature"},
+                          {'filename': data_filename,
+                           'xcol': 1,   # Time
+                           'ycol': 5,   # Wind Chill
+                           'title': "Wind Chill"}])
 
-    # Absolute Pressure
-    output_filename = dest_dir + 'pressure.png'
-    gnuplot = subprocess.Popen([gnuplot_binary], stdin=subprocess.PIPE)
-    gnuplot.communicate('''set style data lines
-set title "Absolute Pressure"
-set grid
-set xdata time
-set timefmt "%H:%M:%S"
-set format x "%H:%M"
-set xlabel "Time"
-set ylabel "Absolute Pressure (hPa)"
-set terminal png
-set output "{0}"
-set key off
-plot '{1}' using 1:7 title "Absolute Pressure"'''
-    .format(output_filename,data_filename))
+        # Humidity
+        plot_graph(dest_dir + 'humidity.png',
+                   xdata_time=True,
+                   title="Humidity",
+                   ylabel="Relative Humidity (%)",
+                   key=False,
+                   width=width,
+                   height=height,
+                   lines=[{'filename': data_filename,
+                           'xcol': 1,   # Time
+                           'ycol': 6,   # Humidity
+                           'title': "Relative Humidity"}])
 
-    ###########
-    ### Now plot larger versions
-    ###########
-    # Plot Temperature and Dew Point
-    output_filename = dest_dir + 'temperature_tdp_large.png'
-    gnuplot = subprocess.Popen([gnuplot_binary], stdin=subprocess.PIPE)
-    gnuplot.communicate('''set style data lines
-set title "Temperature and Dew Point"
-set grid
-set xdata time
-set timefmt "%H:%M:%S"
-set format x "%H:%M"
-set xlabel "Time"
-set ylabel "Temperature (C)"
-set terminal png size 1280, 960
-set output "{0}"
-plot '{1}' using 1:2 title "Temperature", '{2}' using 1:3 title "Dew Point" '''
-    .format(output_filename,data_filename,data_filename))
-
-    # Plot Apparent Temperature and Wind Chill
-    output_filename = dest_dir + 'temperature_awc_large.png'
-    gnuplot = subprocess.Popen([gnuplot_binary], stdin=subprocess.PIPE)
-    gnuplot.communicate('''set style data lines
-set title "Apparent Temperature and Wind Chill"
-set grid
-set xdata time
-set timefmt "%H:%M:%S"
-set format x "%H:%M"
-set xlabel "Time"
-set ylabel "Temperature (C)"
-set terminal png size 1280, 960
-set output "{0}"
-plot '{1}' using 1:4 title "Apparent Temperature", '{2}' using 1:5 title "Wind Chill" '''
-    .format(output_filename,data_filename,data_filename))
-
-    # Humidity
-    output_filename = dest_dir + 'humidity_large.png'
-    gnuplot = subprocess.Popen([gnuplot_binary], stdin=subprocess.PIPE)
-    gnuplot.communicate('''set style data lines
-set title "Humidity"
-set grid
-set xdata time
-set timefmt "%H:%M:%S"
-set format x "%H:%M"
-set xlabel "Time"
-set ylabel "Relative Humidity (%)"
-set terminal png size 1280, 960
-set output "{0}"
-set key off
-plot '{1}' using 1:6 title "Relative Humidity"'''
-    .format(output_filename,data_filename))
-
-    # Absolute Pressure
-    output_filename = dest_dir + 'pressure_large.png'
-    gnuplot = subprocess.Popen([gnuplot_binary], stdin=subprocess.PIPE)
-    gnuplot.communicate('''set style data lines
-set title "Absolute Pressure"
-set grid
-set xdata time
-set timefmt "%H:%M:%S"
-set format x "%H:%M"
-set xlabel "Time"
-set ylabel "Absolute Pressure (hPa)"
-set terminal png size 1280, 960
-set output "{0}"
-set key off
-plot '{1}' using 1:7 title "Absolute Pressure"'''
-    .format(output_filename,data_filename))
-
+        # Absolute Pressure
+        plot_graph(dest_dir + 'pressure.png',
+                   xdata_time=True,
+                   title="Absolute Pressure",
+                   ylabel="Absolute Pressure (hPa)",
+                   key=False,
+                   width=width,
+                   height=height,
+                   lines=[{'filename': data_filename,
+                           'xcol': 1,   # Time
+                           'ycol': 7,   # Absolute Pressure
+                           'title': "Absolute Pressure"}])
     pass
 
 def plot_month(dest_dir, cur, year, month):
