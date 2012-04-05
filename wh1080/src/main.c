@@ -34,6 +34,8 @@
 /* Use the bundled version of getopt on non-POSIX systems */
 #ifdef __WIN32
 #include "getopt/getopt.h"
+#elif _MSC_VER
+#include "getopt/getopt.h"
 #else
 #include <unistd.h>
 #endif
