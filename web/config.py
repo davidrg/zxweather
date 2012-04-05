@@ -11,3 +11,5 @@ db = web.database(dbn='postgres',
 # This is the name of the default station. In a future version
 # this will live in the database instead.
 default_station_name = 'hrua' # Hamilton, Ruakura
+
+static_data_dir = 'Z:/current/zxweather/web/static/'

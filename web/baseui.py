@@ -1,4 +1,6 @@
 import datetime
+from mimetypes import guess_type
+import os
 import web
 import basic_ui
 import config
@@ -108,3 +110,39 @@ class day:
         return "Station: '" + station + "', UI: '" + ui\
                + "', Year: '" + year + "', Month: '" + month \
                + "', Month: '" + day + "'"
+
+class file:
+    def GET(self,station,ui,year,month,day,file):
+        pathname = station + '/' + str(year) + '/' + str(month) \
+                   + '/' + str(day) + '/' + file
+        #return pathname
+        return get_file(pathname)
+
+def get_file(pathname):
+
+    full_filename = config.static_data_dir + pathname
+
+    if not os.path.exists(full_filename):
+        raise web.NotFound()
+
+    #filename = os.path.basename(full_filename)
+
+    # Handle a few extensions specially. Otherwise, for example, python claims
+    # png files are "image/x-png" which causes chrome to download the image
+    # rather than display it.
+    if pathname.endswith(".png"):
+        content_type = "image/png"
+    elif pathname.endswith(".dat"):
+        content_type = "text/plain"
+    else:
+        content_type = guess_type(full_filename)[0]
+
+    #web.header("Content-Disposition", "inline; filename=%s" % filename)
+    web.header("Content-Type", content_type)
+    web.header('Transfer-Encoding','chunked')
+    f = open(full_filename, 'rb')
+    while 1:
+        buf = f.read(1024 * 8)
+        if not buf:
+            break
+        yield buf

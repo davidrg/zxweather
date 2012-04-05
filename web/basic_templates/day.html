@@ -3,11 +3,8 @@
 {% extends "base.html" %}
 {% block title %}Weather for {{ data.date_stamp }}{% endblock %}
 {% block content %}
-
     <h1>Weather for {{ data.date_stamp }}</h1>
-    <hr>
-
-    {#  This is only shown when we are looking at todays weather. #}
+    <hr> {#  This is only shown when we are looking at todays weather. #}
     {% if data.current_data %}
     <h2>Conditions as of {{ data.current_data_ts }}</h2>
     <p>Data is for the five minute period ending at {{ data.current_data_ts }}</p>
@@ -58,7 +55,6 @@
         </tr>
     </table>
     {% endif %}
-
     <h2>Records</h2>
     <table border=2>
         <tr bgcolor="lightseagreen">
@@ -108,6 +104,12 @@
         </tr>
     </table>
     <p>Total Rainfall: {{ data.records.total_rainfall|round(1) }}mm</p>
+
+    <h2>Graphs</h2>
+    <a href="temperature_tdp_large.png"><img src="temperature_tdp.png" alt="[Temperature and Dew Point]"></a>
+    <a href="temperature_awc_large.png"><img src="temperature_awc.png" alt="[Apparent Temperature and Wind Chill]"></a>
+    <a href="humidity_large.png"><img src="humidity.png" alt="[Humidity]"></a>
+    <a href="pressure_large.png"><img src="pressure.png" alt="[Pressure]"></a>
 
     <hr>
     <center>
