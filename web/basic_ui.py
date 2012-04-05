@@ -50,6 +50,13 @@ def get_day(station, year, month, day):
     conditions are also shown.
     """
 
+    # Figure out if there is current data to show or if this is a history
+    # page
+    now = datetime.datetime.now()
+    today = False
+    if now.day == day and now.month == month and now.year == year:
+        today = True
+
     class data:
         date_stamp = datetime.date(year, month, day)
         current_data = None
@@ -64,13 +71,15 @@ def get_day(station, year, month, day):
     params = dict(date=data.date_stamp)
     daily_records = db.select('daily_records',params, where='date_stamp = $date' )
     if not len(daily_records):
-        raise web.NotFound()
+        if today:
+            # We just don't have any records yet.
+            return "Sorry! There isn't any data for today yet. Check back in a few minutes."
+        else:
+            # Bad url or something.
+            raise web.NotFound()
     data.records = daily_records[0]
 
-    # Figure out if there is current data to show or if this is a history
-    # page
-    now = datetime.datetime.now()
-    if now.day == day and now.month == month and now.year == year:
+    if today:
         # Fetch the latest data for today
         data.current_data = db.query("""select timetz(time_stamp) as time_stamp, relative_humidity,
                 temperature,dew_point, wind_chill, apparent_temperature,
