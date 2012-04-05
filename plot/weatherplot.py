@@ -26,7 +26,6 @@ def plot_day(dest_dir, cur, year, month, day):
     print("Plotting graphs for {0} {1} {2}...".format(year, month_name[month], day))
 
     dest_dir += str(day) + '/'
-    print("Destination Directory: {0}".format(dest_dir))
 
     try:
         os.makedirs(dest_dir)
@@ -35,48 +34,94 @@ def plot_day(dest_dir, cur, year, month, day):
 
     date = '{0}-{1}-{2}'.format(day,month,year)
 
-    print("Temperature...")
     cur.execute("""select time_stamp::time, temperature, dew_point,
-        apparent_temperature, wind_chill
+        apparent_temperature, wind_chill, relative_humidity, absolute_pressure
         from sample where date(time_stamp) = %s::date
         order by time_stamp asc""", (date,))
     temperature_data = cur.fetchall()
 
     # Write the data file for gnuplot
-    file_data = ['# timestamp  temperature  dew point  apparent temperature  wind chill\n']
+    file_data = ['# timestamp  temperature  dew point  apparent temperature  wind chill  relative humidity  absolute pressure\n']
     for record in temperature_data:
-        file_data.append('{0}        {1}        {2}        {3}        {4}\n'
+        file_data.append('{0}        {1}        {2}        {3}        {4}        {5}        {6}\n'
             .format(str(record[0]),str(record[1]),str(record[2]),
-                    str(record[3]), str(record[4])))
+                    str(record[3]), str(record[4]),str(record[5]),
+                    str(record[6])))
 
-    data_filename = dest_dir + 'temperature.dat'
+    data_filename = dest_dir + 'gnuplot_data.dat'
     file = open(data_filename,'w+')
     file.writelines(file_data)
     file.close()
 
-    # Run gnuplot
-    output_filename = dest_dir + 'temperature.png'
+    # Plot Temperature and Dew Point
+    output_filename = dest_dir + 'temperature_tdp.png'
     gnuplot = subprocess.Popen([gnuplot_binary], stdin=subprocess.PIPE)
     gnuplot.communicate('''set style data lines
-set title "Temperature"
+set title "Temperature and Dew Point"
 set grid
 set xdata time
 set timefmt "%H:%M:%S"
-set format x "%H:%M:%S"
+set format x "%H:%M"
 set xlabel "Time"
 set ylabel "Temperature"
 set terminal png
-set output "{0}
+set output "{0}"
 plot '{1}' using 1:2 title "Temperature", '{2}' using 1:3 title "Dew Point" '''
     .format(output_filename,data_filename,data_filename))
 
+    # Plot Apparent Temperature and Wind Chill
+    output_filename = dest_dir + 'temperature_awc.png'
+    gnuplot = subprocess.Popen([gnuplot_binary], stdin=subprocess.PIPE)
+    gnuplot.communicate('''set style data lines
+set title "Apparent Temperature and Wind Chill"
+set grid
+set xdata time
+set timefmt "%H:%M:%S"
+set format x "%H:%M"
+set xlabel "Time"
+set ylabel "Temperature"
+set terminal png
+set output "{0}"
+plot '{1}' using 1:4 title "Apparent Temperature", '{2}' using 1:5 title "Wind Chill" '''
+    .format(output_filename,data_filename,data_filename))
+
+    # Humidity
+    output_filename = dest_dir + 'humidity.png'
+    gnuplot = subprocess.Popen([gnuplot_binary], stdin=subprocess.PIPE)
+    gnuplot.communicate('''set style data lines
+set title "Humidity"
+set grid
+set xdata time
+set timefmt "%H:%M:%S"
+set format x "%H:%M"
+set xlabel "Time"
+set ylabel "Relative Humidity (%)"
+set terminal png
+set output "{0}"
+plot '{1}' using 1:6 title "Relative Humidity"'''
+    .format(output_filename,data_filename))
+
+    # Absolute Pressure
+    output_filename = dest_dir + 'pressure.png'
+    gnuplot = subprocess.Popen([gnuplot_binary], stdin=subprocess.PIPE)
+    gnuplot.communicate('''set style data lines
+set title "Absolute Pressure"
+set grid
+set xdata time
+set timefmt "%H:%M:%S"
+set format x "%H:%M"
+set xlabel "Time"
+set ylabel "Absolute Pressure (Hpa)"
+set terminal png
+set output "{0}"
+plot '{1}' using 1:7 title "Absolute Pressure"'''
+    .format(output_filename,data_filename))
     pass
 
 def plot_month(dest_dir, cur, year, month):
     print("Plotting graphs for {0} {1}...".format(year, month_name[month]))
 
     dest_dir += month_name[month] + '/'
-    print("Destination Directory: {0}".format(dest_dir))
 
     # Generate graphs for the entire month
 
@@ -106,7 +151,6 @@ def plot_year(dest_dir, cur, year):
     """
     print("Plotting graphs for {0}...".format(year))
     dest_dir += str(year) + '/'
-    print("Destination Directory: {0}".format(dest_dir))
 
     # Generate graphs for the entire year
 
