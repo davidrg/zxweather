@@ -98,6 +98,7 @@ set xlabel "Time"
 set ylabel "Relative Humidity (%)"
 set terminal png
 set output "{0}"
+set key off
 plot '{1}' using 1:6 title "Relative Humidity"'''
     .format(output_filename,data_filename))
 
@@ -111,9 +112,10 @@ set xdata time
 set timefmt "%H:%M:%S"
 set format x "%H:%M"
 set xlabel "Time"
-set ylabel "Absolute Pressure (Hpa)"
+set ylabel "Absolute Pressure (hPa)"
 set terminal png
 set output "{0}"
+set key off
 plot '{1}' using 1:7 title "Absolute Pressure"'''
     .format(output_filename,data_filename))
 
@@ -165,6 +167,7 @@ set xlabel "Time"
 set ylabel "Relative Humidity (%)"
 set terminal png size 1280, 960
 set output "{0}"
+set key off
 plot '{1}' using 1:6 title "Relative Humidity"'''
     .format(output_filename,data_filename))
 
@@ -178,9 +181,10 @@ set xdata time
 set timefmt "%H:%M:%S"
 set format x "%H:%M"
 set xlabel "Time"
-set ylabel "Absolute Pressure (Hpa)"
+set ylabel "Absolute Pressure (hPa)"
 set terminal png size 1280, 960
 set output "{0}"
+set key off
 plot '{1}' using 1:7 title "Absolute Pressure"'''
     .format(output_filename,data_filename))
 

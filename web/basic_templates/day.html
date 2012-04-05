@@ -35,7 +35,7 @@
         </tr>
         <tr bgcolor="blanchedalmond">
             <td>Absolute Pressure</td>
-            <td>{{ data.current_data.absolute_pressure|round(1) }} Hpa</td>
+            <td>{{ data.current_data.absolute_pressure|round(1) }} hPa</td>
         </tr>
         <tr bgcolor="blanchedalmond">
             <td>Average Wind Speed</td>
@@ -84,8 +84,8 @@
         </tr>
         <tr bgcolor="blanchedalmond">
             <td>Absolute Pressure</td>
-            <td>{{ data.records.min_absolute_pressure|round(1) }} Hpa at {{ data.records.min_absolute_pressure_ts }}</td>
-            <td>{{ data.records.max_absolute_pressure|round(1) }} Hpa at {{ data.records.max_absolute_pressure_ts }}</td>
+            <td>{{ data.records.min_absolute_pressure|round(1) }} hPa at {{ data.records.min_absolute_pressure_ts }}</td>
+            <td>{{ data.records.max_absolute_pressure|round(1) }} hPa at {{ data.records.max_absolute_pressure_ts }}</td>
         </tr>
         <tr bgcolor="blanchedalmond">
             <td>Relative Humidity</td>
@@ -111,6 +111,9 @@
     <a href="humidity_large.png"><img src="humidity.png" alt="[Humidity]"></a>
     <a href="pressure_large.png"><img src="pressure.png" alt="[Pressure]"></a>
 
+    <br>
+    <a href="gnuplot_data.dat">gnuplot data</a>
+    
     <hr>
     <center>
     {% if data.prev_url %}
