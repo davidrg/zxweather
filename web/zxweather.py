@@ -11,11 +11,11 @@ urls = (
                             # pick which UI to use.
 
     # /station/ui/year/month/day
-    '/(\w*)/(\w*)/', 'baseui.index',                 # index page
+    '/(\w*)/(\w*)/(?:index\.html)?', 'baseui.index',                 # index page
     '/(\w*)/(\w*)/now', 'baseui.now',                # Go to todays page
-    '/(\w*)/(\w*)/(\d+)/', 'baseui.year',            # A particular year
-    '/(\w*)/(\w*)/(\d+)/(\w*)/', 'baseui.month',     # A particular month
-    '/(\w*)/(\w*)/(\d+)/(\w*)/(\d+)/', 'baseui.day', # A particular day
+    '/(\w*)/(\w*)/(\d+)/(?:index\.html)?', 'baseui.year',            # A particular year
+    '/(\w*)/(\w*)/(\d+)/(\w*)/(?:index\.html)?', 'baseui.month',     # A particular month
+    '/(\w*)/(\w*)/(\d+)/(\w*)/(\d+)/(?:index\.html)?', 'baseui.day', # A particular day
 
     # Static file downloads
     '/(\w*)/(\w*)/(\d+)/(\w*)/(\d+)/(.*)', 'baseui.file',  # for day pages
