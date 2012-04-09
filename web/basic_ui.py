@@ -1,7 +1,7 @@
 import datetime
 import web
 from web.contrib.template import render_jinja
-from baseui import month_name
+from baseui import month_name, month_number
 from config import db
 
 __author__ = 'David Goodwin'
@@ -43,6 +43,31 @@ def get_month(station, year, month):
         next_month = None
 
     return render.month(data=data)
+
+class indoor_day:
+    def GET(self, station, year, month, day):
+
+        class data:
+            date_stamp = datetime.date(int(year), month_number[month], int(day))
+            current_data = None
+            current_data_ts = None
+
+        # Figure out if there is current data to show or if this is a history
+        # page
+        now = datetime.datetime.now()
+        params = dict(date=data.date_stamp)
+        if now.day == day and now.month == month and now.year == year:
+            # Fetch the latest data for today
+            data.current_data = db.query("""select timetz(time_stamp) as time_stamp,
+                indoor_relative_humidity,
+                indoor_temperature
+            from sample
+            where date(time_stamp) = $date
+            order by time_stamp desc
+            limit 1""",params)[0]
+            data.current_data_ts = data.current_data.time_stamp
+
+        return render.indoor_day(data=data)
 
 def get_day(station, year, month, day):
     """
