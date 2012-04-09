@@ -8,11 +8,19 @@ wh1080 tools:
     - OpenWatcom
   - Add the ability to log raw data to csv files
 
-Other software:
-  - A web interface in python
-  - a desktop app in C++/Qt
-  - A new wh1080 tool to run as a daemon or windows service. It would:
-     - feed live data into the system every 48 seconds
-     - load a new sample into the database every x minutes (x = sample interval)
-    this would also mean fewer clock syncs (just one on startup).
+wh1080 daemon:
+  - Get a reference timestamp on startup
+  - Broadcast live data to all postgresql clients every 48 seconds
+  - Insert a new sample every 5 minutes
+  - Maybe trigger regeneration of charts
 
+Web interface
+  - Tighten up 7 day charts (they currently show a 1 day empty gap at the start
+    of each chart)
+  - Monthly charts
+  - Yearly charts
+  - Styling
+
+Desktop interface
+  - C++/Qt based
+  - Like easyweather

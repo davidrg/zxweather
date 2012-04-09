@@ -6,3 +6,4 @@ wh1080-build-*
 plot/.idea/*
 plot/graphs/*
 web/static/*
+*/Thumbs.db
