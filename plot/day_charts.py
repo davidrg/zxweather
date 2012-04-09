@@ -30,7 +30,8 @@ def charts_1_day(cur, dest_dir, day, month, year):
     COL_ABS_PRESSURE = 6
     COL_INDOOR_TEMP = 7
     COL_INDOOR_REL_HUMIDITY = 8
-    # Fields in the data file for gnuplot
+
+    # Fields in the data file for gnuplot. Field numbers start at 1.
     FIELD_TIMESTAMP = COL_TIMESTAMP + 1
     FIELD_TEMPERATURE = COL_TEMPERATURE + 1
     FIELD_DEW_POINT = COL_DEW_POINT + 1
@@ -190,6 +191,7 @@ where s.time_stamp <= max_ts.ts     -- 604800 seconds in a week.
 order by s.time_stamp asc
 """, (date,))
     temperature_data = cur.fetchall()
+
     # Columns in the query
     COL_TIMESTAMP = 0
     COL_TEMPERATURE = 1
@@ -200,8 +202,12 @@ order by s.time_stamp asc
     COL_ABS_PRESSURE = 6
     COL_INDOOR_TEMP = 7
     COL_INDOOR_REL_HUMIDITY = 8
-    # Fields in the data file for gnuplot
+
+    # Fields in the data file for gnuplot. Field numbers start at 1.
     FIELD_TIMESTAMP = COL_TIMESTAMP + 1
+
+    # The timestamp field actually counts as two fields as far as gnuplot is
+    # concerned. So we must skip over that too.
     FIELD_TEMPERATURE = COL_TEMPERATURE + 2
     FIELD_DEW_POINT = COL_DEW_POINT + 2
     FIELD_APPARENT_TEMP = COL_APPARENT_TEMP + 2

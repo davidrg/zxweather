@@ -75,6 +75,9 @@ def get_day(station, year, month, day):
     conditions are also shown.
     """
 
+    # TODO: Set the Expires header to now + interval if this is a live day.
+    # TODO: Set the Last-Modified header to the timestamp of the most recent sample on the page.
+
     # Figure out if there is current data to show or if this is a history
     # page
     now = datetime.datetime.now()
