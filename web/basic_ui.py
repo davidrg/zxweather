@@ -31,16 +31,76 @@ class year:
 
 def get_month(station, year, month):
 
-    class data:
-        this_month = month_name[month]
-        this_year = year
+    """
+    Gives an overview for a day. If the day is today then current weather
+    conditions are also shown.
+    """
 
-        records = None
+    # TODO: Set the Expires header to now + interval if this is a live day.
+    # TODO: Set the Last-Modified header to the timestamp of the most recent sample on the page.
+
+    # Figure out if there is current data to show or if this is a history
+    # page
+    now = datetime.datetime.now()
+
+    class data:
+        year_stamp = year
+        month_stamp = month
+        current_data = None
 
         prev_url = None
-        prev_month = None
         next_url = None
-        next_month = None
+        next_date = None
+        this_month = month_name[month]
+
+
+    params = dict(year=data.year_stamp, month=data.month_stamp)
+    monthly_records = db.select('monthly_records',params,
+                              where='year_stamp = $year and month_stamp = $month' )
+    if not len(monthly_records):
+        # Bad url or something.
+        raise web.NotFound()
+    data.records = monthly_records[0]
+
+    # Figure out the previous year and month
+    previous_month = data.month_stamp - 1
+    previous_year = data.year_stamp
+
+    if not previous_month:
+        previous_month = 12
+        previous_year -= 1
+
+    # And the next year and month
+    next_month = data.month_stamp + 1
+    next_year = data.year_stamp
+
+    if next_month > 12:
+        next_month = 1
+        next_year += 1
+
+    # See if any data exists for the previous and next months (no point
+    # showing a navigation link if there is no data)
+    data_check = db.query("""select 'foo' from sample
+    where extract(year from time_stamp) = $year
+    and extract(month from time_stamp) = $month limit 1""",
+                          dict(year=previous_year,month=previous_month))
+    if len(data_check):
+        if previous_year != year:
+            data.prev_url = '../../' + str(previous_year) + '/' + \
+                            month_name[previous_month] + '/'
+        else:
+            data.prev_url = '../' + month_name[previous_month] + '/'
+
+    data_check = db.query("""select 'foo' from sample
+        where extract(year from time_stamp) = $year
+        and extract(month from time_stamp) = $month limit 1""",
+                          dict(year=next_year,month=next_month))
+    if len(data_check):
+        if next_year != year:
+            data.next_url = '../../' + str(next_year) + '/' +\
+                            month_name[next_month] + '/'
+        else:
+            data.next_url = '../' + month_name[next_month] + '/'
 
     return render.month(data=data)
 
