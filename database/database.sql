@@ -221,7 +221,7 @@ group by data.date_stamp,
          data.max_humidity,
          data.min_humidity,
          data.total_rainfall
-order by data.date_stamp desc
+order by data.date_stamp desc;
 COMMENT ON VIEW daily_records
   IS 'Minimum and maximum temperature, dew point, wind chill, apparent temperature, gust wind speed, average wind speed, absolute pressure and humidity per day.';
 
