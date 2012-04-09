@@ -15,6 +15,7 @@ urls = (
     '/(\w*)/(\w*)/now', 'baseui.now',                # Go to todays page
     '/(\w*)/(\w*)/(\d+)/(?:index\.html)?', 'baseui.year',            # A particular year
     '/(\w*)/(\w*)/(\d+)/(\w*)/(?:index\.html)?', 'baseui.month',     # A particular month
+    '/(\w*)/b/(\d+)/(\w*)/(\d+)/indoor.html', 'basic_ui.indoor_day', # indoor stats for a particular day. Basic UI only.
     '/(\w*)/(\w*)/(\d+)/(\w*)/(\d+)/(?:index\.html)?', 'baseui.day', # A particular day
 
     # Static file downloads
