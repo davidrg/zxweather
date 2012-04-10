@@ -1,0 +1,387 @@
+% ============================================================================
+% !Document: WG01 [WH1080 Utilities Users Guide]
+% ----------------------------------------------------------------------------
+% !Revision: 001
+% !IssueDate: April 2012
+% !Status: Unreleased
+%
+% !-Classification
+% !ProjectCode: DAZW [Database Applications, zxweather]
+% !Type: UG [Users Guide]
+%
+% !Copyright: (C) David Goodwin, 2012
+% !License: FDL [GNU Free Documentation License]
+% !Auhtor: David Goodwin
+% ============================================================================
+
+% Document information. This should match the above
+\newcommand{\doctitle}{WH1080 Utilities}
+\newcommand{\docsubtitle}{Users Guide}
+%\newcommand{\projectnum}{DAZW}
+\newcommand{\docnum}{WG01}
+\newcommand{\docrev}{001}
+\newcommand{\docdate}{April 2012}
+\newcommand{\docauthor}{David Goodwin}
+\newcommand{\docabstract}{This document provides configuration and usage guidelines for the zxweather utilities for WH1080 compatible weather stations.}
+\newcommand{\docupdateinfo}{This is a DRAFT DOCUMENT.}
+\newcommand{\docosver}{Microsoft Windows NT 5.0+; UNIX.}
+\newcommand{\docswver}{zxweather 1.0}
+\newcommand{\doccopyright}{\textcircled{c} Copyright David Goodwin, 2012.}
+\newcommand{\doclicense}{Use, reproduction and modification of this document is permitted subject to the terms of the GNU Free Documentation License, Version 1.3 or any later vesion published by the Free Software Foundation. See \url{http://www.gnu.org/copyleft/fdl.html} for full license text.}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                 CONFIGURATION                             %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Article type document, A4 paper, 10pt std font size:
+\documentclass[a4paper,10pt,draft]{book} 
+
+\usepackage[scaled=0.90]{helvet} % Use helvetica as the standard font
+\usepackage{courier}			 % Use courier as the fixed-width font
+\usepackage{hyperref}			 % Links in PDF output
+\usepackage{a4wide}				 % Narrower margins for A4 documents
+\usepackage{ifthen}				 % A few if statements
+\usepackage{multirow}			 % Column spanning in tables
+
+% use zxtechdoc styles if they're there
+\IfFileExists{zxtitle.sty}{\usepackage{zxtitle}}{}
+\IfFileExists{zxtechdoc.sty}{\usepackage{zxtechdoc}}{}
+
+\hypersetup{pdfborder={0 0 0}}	 % Disable borders on PDF links
+
+% Build the partnumber. Format is PROJ-DOCU.REV. If revision is 001 then it 
+% is not displayed. If project is undefined it is not displayed.
+\newcommand{\partnumber}{\ifthenelse{\isundefined{\projectnum}}{}{\projectnum-\docnum	\ifthenelse{\equal{\docrev}{001}}{}{.\docrev}}}
+
+\begin{document}
+
+% Roman Numerals for the front matter
+\pagenumbering{roman}
+
+% Setup the titlepage. We will use the zxtitle format if its there,
+% otherwise the much simpler standard LaTeX one.
+\ifthenelse{\isundefined{\ordernumber}}{
+
+% Standard LaTeX titlepage
+\title{\doctitle{} - \docsubtitle}
+\author{\docauthor}
+}{
+
+% zxtitle titlepage
+\title{\doctitle}
+\subtitle{\docsubtitle}
+\titleabstract{\docabstract}
+\ordernumber{\partnumber}
+\updateinfo{\docupdateinfo}
+\osinfo{\docosver}
+\swversion{\docswver}
+\titlecopyright{\doccopyright}
+\licensestatement{\doclicense}
+}
+\date{\docdate}
+
+\maketitle
+
+\clearpage
+
+\tableofcontents
+\clearpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                 DOCUMENT                                  %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter{Introduction}
+% Back to arabac numerals for the proper content
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+zxweather provides a number of utilities for working with weather stations compatible with the Fine Offset WH-1080. All software is available for both UNIX and Microsoft Windows NT systems.
+
+These utilities are:
+\begin{enumerate}
+\item wh1080
+\item wh1080d
+\item wh1080svc
+\item wh1080memdump
+\item wh1080readdump
+\end{enumerate}
+
+The following chapters provide detailed information on these programs including runtime and compilation requirements, command line parameters, etc.
+
+All software covered by this manual has been tested on the following platforms using the GNU C Compiler:
+\begin{itemize}
+\item Microsoft Windows NT 6.1 (Windows 7 x64, 32bit builds)
+\item Debian GNU/Linux 6.0.4 (squeeze, 32bit)
+\end{itemize}
+
+\section{Related Documents}
+\begin{tabular}{l l}
+\verb|DAZW-IM01| & zxweather Installation Reference, version 1.0 \\
+\verb|DAZW-DB01| & zxweather Database Structure, version 1.0 \\
+\end{tabular}
+
+\chapter{wh1080}
+
+The wh1080 utility can perform the following operations:
+\begin{itemize}
+\item Show device configuration.
+\item Dump all history records to a CSV file.
+\item Show a specific history record or all history records.
+\item Update the database.
+\end{itemize}
+These operations are mutually exclusive - you can only do one at a time.
+
+\section{Command-line Arguments}
+\begin{tabular}{l l p{10cm}}
+\hline
+\textbf{Argument} & \textbf{Parameter} & \textbf{Description} \\
+\hline
+-d & database & Database connection string \\
+-u & username & Database username \\
+-p & password & Database password \\
+-l &  & Force full database load \\
+-c &  & Show device configuration \\
+-f & filename & Dump all history records to a CSV file \\
+-r & recordid & Display recordid from the database. If the optional parameter is not supplied then all records are shown. \\
+\hline
+\end{tabular}
+
+\section{Operations}
+\subsection{Show Device Configuration}
+To write device configuration information to the terminal, run supplying only the \verb|-c| parameter:
+
+\verb|wh1080 -c|
+
+Altering the devices configuration is not currently possible - changes must be made on the device or with other software.
+
+\subsection{Dump to CSV}
+To write all history records currently in the device to a CSV file, run
+\verb|wh1080 -f filename.csv|. This will produce a CSV file with the following columns:
+\begin{enumerate}
+\item Record Number
+\item Download Time
+\item Time Stamp
+\item Last In Set
+\item Sample Time (m)
+\item Indoor Relative Humidity (\%)
+\item Indoor Temperature (C)
+\item Outdoor Relative Humidity (\%)
+\item Outdoor Temperature (C)
+\item Absolute Pressure (hPa)
+\item Average Wind Speed (m/s)
+\item Gust Wind Speed
+\item Wind Direction
+\item Total Rain
+\item Invalid Data
+\item Rain Overflow
+\item Status
+\end{enumerate}
+
+These are the same fields stored in the database.
+
+\subsection{Show History}
+The \verb|-r| option is used to inspect history records stored in the weather stations memory. If no record ID is specified then all history records are dumped to the terminal.
+
+Valid record IDs are in the range 0 to 4097 (inclusive).
+
+\subsubsection{Examples}
+\begin{verbatim}
+$ wh1080 -r2
+Weather station record 2:
+        Sample Time: 5 m
+        Indoor Relative Humidity: 51%
+        Indoor Temperature: 22.8 C
+        Outdoor Relative Humidity: 81%
+        Outdoor Temperature: 14.0 C
+        Absolute Pressure: 1012.6 Hpa m/s
+        Average Wind Speed: 0.0 m/s
+        Gust Wind Speed: 0.3 m/s
+        Wind Direction: 0x0A (SW)
+        Total Rain: 79.2 mm
+        Status: 0x00
+\end{verbatim}
+Note that there must not be any space between the \verb|-r| option and the Record ID.
+
+\begin{verbatim}
+$ wh1080 -r
+Loading all records...
+Weather station record 0:
+        Sample Time: 5 m
+        Indoor Relative Humidity: 51%
+        Indoor Temperature: 22.8 C
+        Outdoor Relative Humidity: 78%
+        Outdoor Temperature: 14.0 C
+        Absolute Pressure: 1012.3 hPa m/s
+        Average Wind Speed: 0.0 m/s
+        Gust Wind Speed: 0.0 m/s
+        Wind Direction: 0x06 (SE)
+        Total Rain: 79.2 mm
+        Status: 0x00
+Weather station record 1:
+        Sample Time: 5 m
+        Indoor Relative Humidity: 51%
+        Indoor Temperature: 22.8 C
+        Outdoor Relative Humidity: 80%
+        Outdoor Temperature: 13.9 C
+        Absolute Pressure: 1012.3 hPa m/s
+        Average Wind Speed: 0.0 m/s
+        Gust Wind Speed: 0.3 m/s
+        Wind Direction: 0x08 (S)
+        Total Rain: 79.2 mm
+        Status: 0x00        
+Weather station record 2:
+        Sample Time: 5 m
+        Indoor Relative Humidity: 51%
+        Indoor Temperature: 22.8 C
+        Outdoor Relative Humidity: 81%
+        Outdoor Temperature: 13.8 C
+        Absolute Pressure: 1012.4 hPa m/s
+        Average Wind Speed: 0.0 m/s
+        Gust Wind Speed: 0.3 m/s
+        Wind Direction: 0x08 (S)
+        Total Rain: 79.2 mm
+        Status: 0x00        
+\end{verbatim}
+
+\subsection{Update Database}
+This operation inserts new records into a compatible PostgreSQL database. The required database structure is described in \emph{zxweather Database Structure, version 1.0} (document DAZW-DB01).
+
+To update the database run with the database, username and password options. The format for the database option is \verb|database@hostname:port|. For example:
+\begin{verbatim}
+$ wh1080 -d weatherdb@localhost:5432 -u postgres -p password
+Open Device...
+Connect to Database...
+Connecting to database weatherdb@localhost:5432
+Attempting to come up with a timestamp for current record 14.
+This could take a minute...
+04/10/12 22:20:13: toffset 3
+04/10/12 22:20:15: toffset 3
+04/10/12 22:20:17: toffset 3
+04/10/12 22:20:19: toffset 4
+Weather Station current record is 14 with time stamp 04/10/12 22:16:19
+Fetching records 9 to 14...
+Computing timestamps...
+Inserting records into database...
+Commit transaction...
+Disconnect...
+Finished.
+\end{verbatim}
+
+\subsubsection{Performing Full Updates}
+If the database is very out of date then performing a regular update as described earlier will only load some history records into the database. To avoid this you can run once supplying the \verb|-l| option to force a full load.
+
+The \verb|-l| option causes every history record stored on the device to be downloaded and inserted into the database. No checks are performed to make sure the data does not already exist in the database. If you run it twice in a row with the \verb|-l| option you will end up with two copies of every history record on the device in the database.
+
+The only time it is safe to use the \verb|-l| option is if the database is behind by more than 4080 records (with a 5 minute interval that would be around 14 days). This means that no record on the weather station would exist in the database.
+
+If the database is not more than 4080 records behind then a normal update should be sufficient to bring the database up-to-date.
+
+\section{Compilation Requirements}
+The following is required to compile this program on all supported platforms:
+\begin{itemize}
+\item GNU C Compiler
+\item ECPG (A part of PostgreSQL)
+\item libecpg
+\item libpgtypes
+\end{itemize}
+
+Additionally, on UNIX systems libusb-1.0 is required.
+
+\section{Runtime Requirements}
+On all systems libecpg and libpgtypes are required. On UNIX libusb-1.0 is required. When distributing window binaries hidapi.dll must be supplied.
+
+\chapter{wh1080d and wh1080svc}
+wh1080d is a daemon (service in windows) which continuously feeds weather data into the database. The live data record is updated every 48 seconds and new history records are inserted when ever they appear on the device.
+
+wh1080d and wh1080svc both perform the same job and take the same command-line arguments. There are two of them as they are platform-specific; wh1080d is a daemon for UNIX-like systems and wh1080svc is a service for Windows NT systems. 
+
+\section{Compilation Requirements}
+The following is required to compile this program on all supported platforms:
+\begin{itemize}
+\item GNU C Compiler
+\item ECPG (A part of PostgreSQL)
+\item libecpg
+\item libpgtypes
+\end{itemize}
+
+Additionally, on UNIX systems libusb-1.0 is required.
+
+\section{Runtime Requirements}
+On all systems libecpg and libpgtypes are required. On UNIX libusb-1.0 is required. When distributing window binaries hidapi.dll must be supplied.
+
+\chapter{wh1080memdump}
+This utility dumps the weather stations memory to a binary file on disk. It takes only a single parameter: The name of the file to dump to. The program takes a few minutes to run.
+
+Dump files can be converted to text using the wh1080readdump utility.
+
+\section{Example}
+\begin{verbatim}
+$ wh1080memdump test.bin
+WH1080 Memory Dumper v1.0
+	(C) Copyright David Goodwin, 2012
+
+dumping to test.bin...
+Dump complete.
+\end{verbatim}
+
+
+\section{Compilation Requirements}
+On all supported platforms the GNU C Compiler is required to compile the program. Additionally on UNIX systems libusb-1.0 is required.
+
+\section{Runtime Requirements}
+On UNIX systems libusb-1.0 is required. When distributing windows binaries, hidapi.dll must be supplied.
+
+\chapter{wh1080readdump}
+
+This utility reads memory dump files produced with wh1080memdump. It takes only one parameter: The name of the dump file to read. When run with a dump file the device configuration and all history records are written to the terminal.
+
+\section{Example}
+\begin{verbatim}
+$ wh1080readdump test.bin
+WH1080 Memory Dump Reader v1.0
+	(C) Copyright David Goodwin, 2012
+
+Loading Device Config...
+Taking only 4 bytes from block
+Taking only 9 bytes from block
+Taking only 30 bytes from block
+Loading history data...
+Taking only 4 bytes from block
+Taking only 9 bytes from block
+Taking only 30 bytes from block
+Current sampling time interval: 5
+Config flags: 0x20 0x02
+	INDOOR_TEMP_DEG_C OUTDOOR_TEMP_DEG_C RAINFALL_UNIT_MM 
+	PRESSURE_UNIT_HPA WIND_SPEED_UNIT_KMH 
+Display format flags: 0x30 0x09
+	PRESSURE_ABSOLUTE WIND_SPEED_AVERAGE TIME_FORMAT_24H 
+	DATE_FORMAT_DDMMYY TIME_SCALE_24H SHOW_DATE_COMPLETE SHOW_OUTDOOR_TEMP 
+	SHOW_RAINFALL_1H 
+Alarm enable flags: 0x00 0x00 0x00
+	Reserved A: Disabled
+	Time: Disabled
+	Wind Direction: Disabled
+	Reserved B: Disabled
+...
+\end{verbatim}
+
+\section{Compilation Requirements}
+Only the GNU C Compiler is required to compile this program.
+
+\section{Runtime Requirements}
+This program has no runtime requirements.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                END DOCUMENT                               %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Back page
+\newpage
+\thispagestyle{empty}
+\begin{flushright}
+\null
+\vfill
+\tt \partnumber
+\end{flushright}
+\end{document}
