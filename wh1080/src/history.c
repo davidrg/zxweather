@@ -45,7 +45,7 @@
 #define SYNC_CLOCK_MAX_RETRY 5
 
 /* This is where any logging in here will go */
-FILE* history_log_file = stderr;
+FILE* history_log_file = NULL;
 
 history create_history(unsigned char* buffer) {
     history h;
@@ -315,6 +315,8 @@ BOOL sync_clock_r(unsigned short *current_record_id,
     unsigned char interval = get_interval();
     char sbuf[50];
 
+    if (history_log_file == NULL) history_log_file = stderr;
+
     /* So we don't keep retrying forever. */
     if (retry_count > SYNC_CLOCK_MAX_RETRY) {
         fprintf(stderr, "Failed to sync computers clock to weatherstation "
@@ -423,6 +425,9 @@ BOOL sync_clock(unsigned short *current_record_id,
 void update_timestamps(history_set *hs, time_t timestamp) {
     int i;
     time_t this_timestamp;
+
+    if (history_log_file == NULL) history_log_file = stderr;
+
     fprintf(history_log_file,"Computing timestamps...\n");
 
     /* Loop from the end as that is the record with the real timestamp */
