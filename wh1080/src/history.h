@@ -53,7 +53,7 @@ typedef struct _WSH {
     signed short indoor_temperature;         /* C, fixed point */
     unsigned char outdoor_relative_humidity; /* % */
     signed short outdoor_temperature;        /* C, fixed point */
-    unsigned short absolute_pressure;        /* Hpa, fixed point */
+    unsigned short absolute_pressure;        /* hPa, fixed point */
     unsigned short average_wind_speed;       /* m/s, fixed point */
     unsigned short gust_wind_speed;          /* m/s, fixed point */
     unsigned char wind_direction;            /* Wind Dir */

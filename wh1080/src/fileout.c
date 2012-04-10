@@ -39,7 +39,7 @@ void write_history_header(FILE* file) {
             "\"Indoor Temperature (C)\","
             "\"Outdoor Relative Humidity (%%)\","
             "\"Outdoor Temperature (C)\","
-            "\"Absolute Pressure (Hpa)\","
+            "\"Absolute Pressure (hPa)\","
             "\"Average Wind Speed (m/s)\","
             "\"Gust Wind Speed (m/s)\","
             "\"Wind Direction\","

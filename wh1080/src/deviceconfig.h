@@ -46,10 +46,10 @@ typedef struct _DCAS {
     signed short wind_chill_low;                  /* deg C, fixed point */
     signed short dew_point_high;                  /* deg C, fixed point */
     signed short dew_point_low;                   /* deg C, fixed point */
-    unsigned short absolute_pressure_high;        /* Hpa, fixed point */
-    unsigned short absolute_pressure_low;         /* Hpa, fixed point */
-    unsigned short relative_pressure_high;        /* Hpa, fixed point */
-    unsigned short relative_pressure_low;         /* Hpa, fixed point */
+    unsigned short absolute_pressure_high;        /* hPa, fixed point */
+    unsigned short absolute_pressure_low;         /* hPa, fixed point */
+    unsigned short relative_pressure_high;        /* hPa, fixed point */
+    unsigned short relative_pressure_low;         /* hPa, fixed point */
     unsigned char average_bft_high;               /* bft */
     unsigned short average_wind_speed_high;       /* m/s, fixed point */
     unsigned char gust_bft_high;                  /* bft */
@@ -103,8 +103,8 @@ typedef struct _DCSR {
     ss_record outdoor_temperature;    /* fixed point, deg C */
     ss_record windchill;              /* fixed point, deg C */
     ss_record dewpoint;               /* fixed point, deg C */
-    us_record absolute_pressure;      /* fixed point, Hpa */
-    us_record relative_pressure;      /* fixed point, Hpa */
+    us_record absolute_pressure;      /* fixed point, hPa */
+    us_record relative_pressure;      /* fixed point, hPa */
     unsigned short average_wind_speed_max; /* fixed point, m/s */
     unsigned short gust_wind_speed_max; /* fixed point, m/s */
     unsigned short rainfall_1h_max;   /* fixed point, mm */
@@ -134,8 +134,8 @@ typedef struct _DCFG {
     signed char timezone;
     unsigned short history_data_sets;
     unsigned short history_data_stack_address;
-    unsigned short relative_pressure; /* fixed point, Hpa */
-    unsigned short absolute_pressure; /* fixed point, Hpa */
+    unsigned short relative_pressure; /* fixed point, hPa */
+    unsigned short absolute_pressure; /* fixed point, hPa */
     dc_alarm_settings alarm_settings;
     dc_station_records station_records;
 } device_config;
@@ -168,7 +168,7 @@ unsigned char get_interval();
 #define DC_SAF_RAINFALL_UNIT        0x04 /* set = inches, not set = mm */
 #define DC_SAF_RESERVED_A           0x08 /* Reserved */
 #define DC_SAF_RESERVED_B           0x10 /* Reserved */
-#define DC_SAF_PRESSURE_UNIT_HPA    0x20 /* If the pressure unit is Hpa */
+#define DC_SAF_PRESSURE_UNIT_HPA    0x20 /* If the pressure unit is hPa */
 #define DC_SAF_PRESSURE_UNIT_INHG   0x40 /* If the pressure unit is inHg */
 #define DC_SAF_PRESSURE_UNIT_MMHG   0x80 /* If the pressure unit is mmHg */
 
