@@ -68,7 +68,7 @@ COMMENT ON COLUMN sample.temperature IS 'Temperature outside in degrees Celsius'
 COMMENT ON COLUMN sample.dew_point IS 'Calculated dew point in degrees Celsius. Use the dew_point function to calculate. Calculated automatically by a trigger on insert.';
 COMMENT ON COLUMN sample.wind_chill IS 'Calculated wind chill in degrees Celsius. Use the wind_chill function to calculate. Calculated automatically by a trigger on insert.';
 COMMENT ON COLUMN sample.apparent_temperature IS 'Calculated apparent temperature in degrees Celsius. Use the apparent_temperature to calculate. Calculated automatically by a trigger on insert.';
-COMMENT ON COLUMN sample.absolute_pressure IS 'Absolute pressure in Hpa';
+COMMENT ON COLUMN sample.absolute_pressure IS 'Absolute pressure in hPa';
 COMMENT ON COLUMN sample.relative_pressure IS 'Calculated relative pressure.';
 COMMENT ON COLUMN sample.average_wind_speed IS 'Average Wind Speed in m/s.';
 COMMENT ON COLUMN sample.gust_wind_speed IS 'Gust wind speed in m/s.';
