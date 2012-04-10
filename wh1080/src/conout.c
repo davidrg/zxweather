@@ -195,10 +195,10 @@ void print_alarm_settings(dc_alarm_settings as) {
     printf("\tWind Chill Low: %02.1f C\n", SFP(as.wind_chill_low));
     printf("\tDew Point High: %02.1f C\n", SFP(as.dew_point_high));
     printf("\tDew Point Low: %02.1f C\n", SFP(as.dew_point_low));
-    printf("\tAbsolute Pressure High: %02.1f Hpa\n", SFP(as.absolute_pressure_high));
-    printf("\tAbsolute Pressure Low: %02.1f Hpa\n", SFP(as.absolute_pressure_low));
-    printf("\tRelative Pressure High: %02.1f Hpa\n", SFP(as.relative_pressure_high));
-    printf("\tRelative Pressure Low: %02.1fd Hpa\n", SFP(as.relative_pressure_low));
+    printf("\tAbsolute Pressure High: %02.1f hPa\n", SFP(as.absolute_pressure_high));
+    printf("\tAbsolute Pressure Low: %02.1f hPa\n", SFP(as.absolute_pressure_low));
+    printf("\tRelative Pressure High: %02.1f hPa\n", SFP(as.relative_pressure_high));
+    printf("\tRelative Pressure Low: %02.1fd hPa\n", SFP(as.relative_pressure_low));
     printf("\tAverage BFT High: %d bft\n", as.average_bft_high);
     printf("\tAverage Wind Speed High: %02.1f m/s\n", SFP(as.average_wind_speed_high));
     printf("\tGust BFT High: %d bft\n", as.gust_bft_high);
@@ -261,16 +261,16 @@ void print_station_records(dc_station_records sr) {
     printf("\tDewpoint Min: %02.1f C", SFP(sr.dewpoint.min));
     print_timestamp(sr.dewpoint.min_ts);
 
-    printf("\tAbsolute Pressure Max: %02.1f Hpa", SFP(sr.absolute_pressure.max));
+    printf("\tAbsolute Pressure Max: %02.1f hPa", SFP(sr.absolute_pressure.max));
     print_timestamp(sr.absolute_pressure.max_ts);
 
-    printf("\tAbsolute Pressure Min: %02.1f Hpa", SFP(sr.absolute_pressure.min));
+    printf("\tAbsolute Pressure Min: %02.1f hPa", SFP(sr.absolute_pressure.min));
     print_timestamp(sr.absolute_pressure.min_ts);
 
-    printf("\tRelative Pressure Max: %02.1f Hpa", SFP(sr.relative_pressure.max));
+    printf("\tRelative Pressure Max: %02.1f hPa", SFP(sr.relative_pressure.max));
     print_timestamp(sr.relative_pressure.max_ts);
 
-    printf("\tRelative Pressure Min: %02.1f Hpa", SFP(sr.relative_pressure.min));
+    printf("\tRelative Pressure Min: %02.1f hPa", SFP(sr.relative_pressure.min));
     print_timestamp(sr.relative_pressure.min_ts);
 
     printf("\tAverage Wind Speed Max: %02.1f m/s", SFP(sr.average_wind_speed_max) );
@@ -315,8 +315,8 @@ void print_device_config(device_config dc) {
     printf("History data sets: %d\n", dc.history_data_sets);
     printf("History data stack address: %d (0x%06X)\n",
            dc.history_data_stack_address, dc.history_data_stack_address);
-    printf("Relative pressure (Hpa): %02.1f\n", SFP(dc.relative_pressure));
-    printf("Absolute pressure (Hpa): %02.1f\n", SFP(dc.absolute_pressure));
+    printf("Relative pressure (hPa): %02.1f\n", SFP(dc.relative_pressure));
+    printf("Absolute pressure (hPa): %02.1f\n", SFP(dc.absolute_pressure));
     printf("\n");
     print_alarm_settings(dc.alarm_settings);
     printf("\n");
@@ -331,7 +331,7 @@ void print_history_record(history h) {
     printf("\tIndoor Temperature: %02.1f C\n", SFP(h.indoor_temperature));
     printf("\tOutdoor Relative Humidity: %d%%\n", h.outdoor_relative_humidity);
     printf("\tOutdoor Temperature: %02.1f C\n", SFP(h.outdoor_temperature));
-    printf("\tAbsolute Pressure: %02.1f Hpa m/s\n", SFP(h.absolute_pressure));
+    printf("\tAbsolute Pressure: %02.1f hPa m/s\n", SFP(h.absolute_pressure));
     printf("\tAverage Wind Speed: %02.1f m/s\n", SFP(h.average_wind_speed));
     printf("\tGust Wind Speed: %02.1f m/s\n", SFP(h.gust_wind_speed));
     printf("\tWind Direction: 0x%02X (%s)\n",
