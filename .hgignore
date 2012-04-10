@@ -7,3 +7,11 @@ plot/.idea/*
 plot/graphs/*
 web/static/*
 */Thumbs.db
+doc/*/*.aux
+doc/*/*.log
+doc/*/*.out
+doc/*/*.pdf
+doc/*/*.toc
+doc/*/*.sty
+doc/*/*.synctex.gz
+*-build-desktop-Qt_*/*
