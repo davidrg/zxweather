@@ -44,6 +44,9 @@
 /* How many times to attempt clock sync */
 #define SYNC_CLOCK_MAX_RETRY 5
 
+/* This is where any logging in here will go */
+FILE* history_log_file = stderr;
+
 history create_history(unsigned char* buffer) {
     history h;
     unsigned char gust_nibble, average_nibble;
@@ -204,19 +207,19 @@ history_set read_history_range(const unsigned short start,
     }
 
 /* Debugging Stuff *
-    printf("Start ID: %d\n", start);
-    printf("  End ID: %d\n\n", end);
-    printf("Chunk A Start Address: 0x%06X\n", first_chunk_offset);
-    printf("Chunk A Length: %d bytes (%d records)\n",
+    fprintf(log_file, "Start ID: %d\n", start);
+    fprintf(log_file, "  End ID: %d\n\n", end);
+    fprintf(log_file, "Chunk A Start Address: 0x%06X\n", first_chunk_offset);
+    fprintf(log_file, "Chunk A Length: %d bytes (%d records)\n",
            first_chunk_size,
            first_chunk_record_count);
     if (first_chunk_size < buffer_size) {
-        printf("Chunk B Start Address: 0x0000\n");
-        printf("Chunk B Length: %d bytes (%d records)\n",
+        fprintf(log_file, "Chunk B Start Address: 0x0000\n");
+        fprintf(log_file, "Chunk B Length: %d bytes (%d records)\n",
                second_chunk_size,
                second_chunk_record_count);
     }
-    printf("Total Buffer Size: %d bytes (%d records)\n",
+    fprintf(log_file, "Total Buffer Size: %d bytes (%d records)\n",
            buffer_size, hs.record_count);
 
 **/
@@ -326,7 +329,7 @@ BOOL sync_clock_r(unsigned short *current_record_id,
                           &live_record_id      /* out */
                           );
 
-    printf("Attempting to come up with a timestamp for current record %d.\n"
+    fprintf(history_log_file,"Attempting to come up with a timestamp for current record %d.\n"
            "This could take a minute...\n", live_record_id - 1);
 
     /* Loop until we observe the live records time offset change or the
@@ -336,7 +339,7 @@ BOOL sync_clock_r(unsigned short *current_record_id,
         live = read_history_record(live_record_id);
 
         strftime(sbuf,50,"%c",localtime(&timestamp));
-        printf("%s: toffset %d\n", sbuf, live.sample_time);
+        fprintf(history_log_file,"%s: toffset %d\n", sbuf, live.sample_time);
 
         /* The live records time offset is the interval. This means it is no
          * longer the live record.
@@ -351,7 +354,7 @@ BOOL sync_clock_r(unsigned short *current_record_id,
             /* What we thought was the live record isn't the live record. The
              * current record pointer probably changed just after we retrieved
              * it.*/
-            printf("Record %d is obsolete. Retrying with new live record.\n",
+            fprintf(history_log_file,"Record %d is obsolete. Retrying with new live record.\n",
                    live_record_id);
             return sync_clock_r(current_record_id,          /* out */
                                 current_record_timestamp,   /* out */
@@ -420,7 +423,7 @@ BOOL sync_clock(unsigned short *current_record_id,
 void update_timestamps(history_set *hs, time_t timestamp) {
     int i;
     time_t this_timestamp;
-    printf("Computing timestamps...\n");
+    fprintf(history_log_file,"Computing timestamps...\n");
 
     /* Loop from the end as that is the record with the real timestamp */
     for (i = hs->record_count - 1; i >= 0; i -= 1) {
