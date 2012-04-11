@@ -74,6 +74,9 @@ class year:
            ui not in valid_uis:
             raise web.NotFound()
 
+        if ui == 'b':
+            return basic_ui.get_year(station, int(year))
+
         return "Station: '" + station + "', UI: '" + ui \
                + "', Year: '" + str(year) + "'"
 
@@ -111,16 +114,18 @@ class day:
                + "', Year: '" + year + "', Month: '" + month \
                + "', Month: '" + day + "'"
 
-class file:
+class dayfile:
     def GET(self,station,ui,year,month,day,file):
         pathname = station + '/' + str(year) + '/' + str(month) \
                    + '/' + str(day) + '/' + file
         #return pathname
         return get_file(pathname)
+
+class monthfile:
     def GET(self,station,ui,year,month,file):
         pathname = station + '/' + str(year) + '/' + str(month)\
                    + '/' + file
-        return get_file(pathname)        
+        return get_file(pathname)
 
 def get_file(pathname):
     """
