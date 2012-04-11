@@ -60,17 +60,17 @@
     <hr>
     <center>
         {% if data.prev_url %}
-            <a href="{{ data.prev_url }}">&lt;&lt; {{ data.prev_month }}</a>
+            <a href="{{ data.prev_url }}">&lt;&lt; {{ data.prev_month }} {{ data.prev_year }}</a>
         {% else %}
-            {{ data.prev_month }}
+            {{ data.prev_month }} {{ data.prev_year }}
         {% endif %}
         |
         <a href="../">{{ data.this_year }}</a>
         |
         {% if data.next_url %}
-            <a href="{{ data.next_url }}">{{ data.next_month }} &gt;&gt;</a>
+            <a href="{{ data.next_url }}">{{ data.next_month }} {{ data.next_year }} &gt;&gt;</a>
         {% else %}
-            {{ data.next_month }}
+            {{ data.next_month }} {{ data.next_year }}
         {% endif %}
         <br>
         <a href="../../now">Today</a>

@@ -50,13 +50,19 @@ def get_month(station, year, month):
 
         prev_url = None
         next_url = None
-        next_date = None
+
+        next_month = None
+        next_year = None
+
+        prev_month = None
+        prev_year = None
+
         this_month = month_name[month]
 
 
-    params = dict(year=data.year_stamp, month=data.month_stamp)
+    params = dict(date='01-{0}-{1}'.format(data.month_stamp, data.year_stamp))
     monthly_records = db.select('monthly_records',params,
-                              where='year_stamp = $year and month_stamp = $month' )
+                              where='date_stamp = $date' )
     if not len(monthly_records):
         # Bad url or something.
         raise web.NotFound()
@@ -78,12 +84,17 @@ def get_month(station, year, month):
         next_month = 1
         next_year += 1
 
+    data.prev_month = month_name[previous_month]
+    data.next_month = month_name[next_month]
+    data.prev_year = previous_year
+    data.next_year = next_year
+    data.this_year = year
+
     # See if any data exists for the previous and next months (no point
     # showing a navigation link if there is no data)
     data_check = db.query("""select 'foo' from sample
-    where extract(year from time_stamp) = $year
-    and extract(month from time_stamp) = $month limit 1""",
-                          dict(year=previous_year,month=previous_month))
+    where date(date_trunc('month',time_stamp)) = $date limit 1""",
+                          dict(date='01-{0}-{1}'.format(previous_month,previous_year)))
     if len(data_check):
         if previous_year != year:
             data.prev_url = '../../' + str(previous_year) + '/' + \
@@ -92,9 +103,8 @@ def get_month(station, year, month):
             data.prev_url = '../' + month_name[previous_month] + '/'
 
     data_check = db.query("""select 'foo' from sample
-        where extract(year from time_stamp) = $year
-        and extract(month from time_stamp) = $month limit 1""",
-                          dict(year=next_year,month=next_month))
+        where date(date_trunc('month',time_stamp)) = $date limit 1""",
+                          dict(date='01-{0}-{1}'.format(next_month,next_year)))
     if len(data_check):
         if next_year != year:
             data.next_url = '../../' + str(next_year) + '/' +\
