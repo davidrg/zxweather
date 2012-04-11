@@ -227,8 +227,7 @@ COMMENT ON VIEW daily_records
 
 
 CREATE OR REPLACE VIEW monthly_records AS
-select data.year_stamp,
-       data.month_stamp,
+select data.date_stamp,
        data.total_rainfall,
        data.max_gust_wind_speed,
        max(data.max_gust_wind_speed_ts) as max_gust_wind_speed_ts,
@@ -259,8 +258,7 @@ select data.year_stamp,
        data.max_humidity,
        max(data.max_humidity_ts) as max_humidity_ts
 from (
-select dr.year_stamp,
-       dr.month_stamp,
+select dr.date_stamp,
        dr.max_gust_wind_speed,
        case when s.gust_wind_speed = dr.max_gust_wind_speed then s.time_stamp else NULL end as max_gust_wind_speed_ts,
        dr.max_average_wind_speed,
@@ -293,8 +291,7 @@ select dr.year_stamp,
 from sample s
 inner join
 (
-select extract(year from s.time_stamp) as year_stamp,
-       extract(month from s.time_stamp) as month_stamp,
+select date(date_trunc('month', s.time_stamp)) as date_stamp,
        sum(coalesce(s.rainfall,0)) as "total_rainfall",
        max(s.gust_wind_speed) as "max_gust_wind_speed",
        max(s.average_wind_speed) as "max_average_wind_speed",
@@ -312,8 +309,8 @@ select extract(year from s.time_stamp) as year_stamp,
        max(s.relative_humidity) as "max_humidity"
 from sample s
 where invalid_data = false
-group by year_stamp, month_stamp) as dr
-on extract(year from s.time_stamp) = dr.year_stamp and extract(month from s.time_stamp) = dr.month_stamp
+group by date_stamp) as dr
+on date(date_trunc('month', s.time_stamp)) = dr.date_stamp
 
 -- Filter the samples down to only those with a maximum or minimum reading
 where ( s.gust_wind_speed = dr.max_gust_wind_speed 
@@ -326,8 +323,7 @@ where ( s.gust_wind_speed = dr.max_gust_wind_speed
      or s.relative_humidity in (dr.max_humidity, dr.min_humidity)
      )
 ) as data
-group by data.year_stamp,
-         data.month_stamp,
+group by data.date_stamp,
          data.max_gust_wind_speed,
          data.max_average_wind_speed,
          data.max_absolute_pressure,
@@ -343,7 +339,7 @@ group by data.year_stamp,
          data.max_humidity,
          data.min_humidity,
          data.total_rainfall
-order by data.year_stamp desc, data.month_stamp desc;
+order by data.date_stamp desc;
 COMMENT ON VIEW monthly_records
   IS 'Minimum and maximum values for each month.';
 
