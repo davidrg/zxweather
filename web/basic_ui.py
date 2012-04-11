@@ -116,6 +116,8 @@ def get_month(station, year, month):
 
         this_month = month_name[month]
 
+        days = []
+
 
     params = dict(date='01-{0}-{1}'.format(data.month_stamp, data.year_stamp))
     monthly_records = db.select('monthly_records',params,
@@ -124,6 +126,22 @@ def get_month(station, year, month):
         # Bad url or something.
         raise web.NotFound()
     data.records = monthly_records[0]
+
+    # Grab a list of all months for which there is data for this year.
+    month_data = db.query("""select md.day_stamp from (select extract(year from time_stamp) as year_stamp,
+       extract(month from time_stamp) as month_stamp,
+       extract(day from time_stamp) as day_stamp
+from sample
+group by year_stamp, month_stamp, day_stamp) as md where md.year_stamp = $year and md.month_stamp = $month
+order by day_stamp""", dict(year=year, month=month))
+
+    if not len(month_data):
+        # If there are no months in this year then there can't be any data.
+        raise web.NotFound()
+
+    for day in month_data:
+        day = int(day.day_stamp)
+        data.days.append(day)
 
     # Figure out the previous year and month
     previous_month = data.month_stamp - 1

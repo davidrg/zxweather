@@ -6,7 +6,22 @@
 
     <h1>Weather for {{ data.this_month }}</h1>
     <hr>
+    <center>
+        {% if data.current_data %}<a href="#current">Current Conditions</a> |{% endif %}
+        <a href="#days">Days for this Month</a> |
+        <a href="#records">Records</a> |
+        <a href="#charts">Charts</a>
+    </center>
 
+    <a name="days">
+    <h2>Days for {{ data.this_month }} {{ data.year_stamp }}</h2>
+    <p>
+        {% for day in data.days %}
+            <a href="{{ day }}/">{{ day }}</a> |
+        {% endfor %}
+    </p>
+
+    <a name="records">
     <h2>Records</h2>
     <table border=2>
         <tr bgcolor="lightseagreen">
@@ -57,6 +72,7 @@
     </table>
     <p>Total Rainfall: {{ data.records.total_rainfall|round(1) }}mm</p>
 
+    <a name="charts">
     <h2>Monthly Charts</h2>
     <a href="temperature_tdp_large.png"><img src="temperature_tdp.png" alt="[Month Temperature and Dew Point]"></a>
     <a href="temperature_awc_large.png"><img src="temperature_awc.png" alt="[Month Apparent Temperature and Wind Chill]"></a>
