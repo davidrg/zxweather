@@ -16,8 +16,10 @@
     <a name="days">
     <h2>Days for {{ data.this_month }} {{ data.year_stamp }}</h2>
     <p>
+        {% set i = 0 %}
         {% for day in data.days %}
-            <a href="{{ day }}/">{{ day }}</a> |
+            {% set i = i + 1 %}
+            <a href="{{ day }}/">{{ day }}</a> {% if i < data.days|length %}|{% endif %}
         {% endfor %}
     </p>
 
