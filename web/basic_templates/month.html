@@ -57,6 +57,15 @@
     </table>
     <p>Total Rainfall: {{ data.records.total_rainfall|round(1) }}mm</p>
 
+    <h2>Monthly Charts</h2>
+    <a href="temperature_tdp_large.png"><img src="temperature_tdp.png" alt="[Month Temperature and Dew Point]"></a>
+    <a href="temperature_awc_large.png"><img src="temperature_awc.png" alt="[Month Apparent Temperature and Wind Chill]"></a>
+    <a href="humidity_large.png"><img src="humidity.png" alt="[Month Humidity]"></a>
+    <a href="pressure_large.png"><img src="pressure.png" alt="[Month Pressure]"></a>
+
+    <br>
+    <a href="gnuplot_data.dat">gnuplot data</a>
+
     <hr>
     <center>
         {% if data.prev_url %}

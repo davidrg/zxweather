@@ -117,6 +117,10 @@ class file:
                    + '/' + str(day) + '/' + file
         #return pathname
         return get_file(pathname)
+    def GET(self,station,ui,year,month,file):
+        pathname = station + '/' + str(year) + '/' + str(month)\
+                   + '/' + file
+        return get_file(pathname)        
 
 def get_file(pathname):
     """
