@@ -1,0 +1,436 @@
+% ============================================================================
+% !Document: DB01 [zxweather Database Structure]
+% ----------------------------------------------------------------------------
+% !Revision: 001
+% !IssueDate: April 2012
+% !Status: Unreleased
+%
+% !-Classification
+% !ProjectCode: DAZW [zxweather]
+% !Type: DB [Database Structure]
+%
+% !Copyright: (C) David Goodwin, 2012
+% !License: FDL [GNU Free Documentation License]
+% !Auhtor: David Goodwin
+% ============================================================================
+
+% Document information. This should match the above
+\newcommand{\doctitle}{zxweather}
+\newcommand{\docsubtitle}{Database Structure}
+%\newcommand{\projectnum}{DAZW}
+\newcommand{\docnum}{DB01}
+\newcommand{\docrev}{001}
+\newcommand{\docdate}{April 2012}
+\newcommand{\docauthor}{David Goodwin}
+\newcommand{\docabstract}{This document provides an overview of the database structure used by zxweather.}
+\newcommand{\docupdateinfo}{This is a DRAFT DOCUMENT.}
+\newcommand{\docosver}{Any}
+\newcommand{\docswver}{zxweather 1.0}
+\newcommand{\doccopyright}{\textcircled{c} Copyright David Goodwin, 2012.}
+\newcommand{\doclicense}{Use, reproduction and modification of this document is permitted subject to the terms of the GNU Free Documentation License, Version 1.3 or any later vesion published by the Free Software Foundation. See \url{http://www.gnu.org/copyleft/fdl.html} for full license text.}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                 CONFIGURATION                             %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Article type document, A4 paper, 10pt std font size:
+\documentclass[a4paper,10pt]{book} 
+
+\usepackage[scaled=0.90]{helvet} % Use helvetica as the standard font
+\usepackage{courier}			 % Use courier as the fixed-width font
+\usepackage{hyperref}			 % Links in PDF output
+\usepackage{a4wide}				 % Narrower margins for A4 documents
+\usepackage{ifthen}				 % A few if statements
+\usepackage{multirow}			 % Column spanning in tables
+\usepackage{listings}			 % For SQL code listings
+
+% use zxtechdoc styles if they're there
+\IfFileExists{zxtitle.sty}{\usepackage{zxtitle}}{}
+\IfFileExists{zxtechdoc.sty}{\usepackage{zxtechdoc}}{}
+
+\hypersetup{pdfborder={0 0 0}}	 % Disable borders on PDF links
+
+% Build the partnumber. Format is PROJ-DOCU.REV. If revision is 001 then it 
+% is not displayed. If project is undefined it is not displayed.
+\newcommand{\partnumber}{\ifthenelse{\isundefined{\projectnum}}{}{\projectnum-\docnum	\ifthenelse{\equal{\docrev}{001}}{}{.\docrev}}}
+
+\begin{document}
+
+% Roman Numerals for the front matter
+\pagenumbering{roman}
+
+% Setup the titlepage. We will use the zxtitle format if its there,
+% otherwise the much simpler standard LaTeX one.
+\ifthenelse{\isundefined{\ordernumber}}{
+
+% Standard LaTeX titlepage
+\title{\doctitle{} - \docsubtitle}
+\author{\docauthor}
+}{
+
+% zxtitle titlepage
+\title{\doctitle}
+\subtitle{\docsubtitle}
+\titleabstract{\docabstract}
+\ordernumber{\partnumber}
+\updateinfo{\docupdateinfo}
+\osinfo{\docosver}
+\swversion{\docswver}
+\titlecopyright{\doccopyright}
+\licensestatement{\doclicense}
+}
+\date{\docdate}
+
+\maketitle
+
+\clearpage
+
+\tableofcontents
+\clearpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                 DOCUMENT                                  %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter{Introduction}
+% Back to arabac numerals for the proper content
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+zxweather uses a PostgreSQL database to store weather data and for some communication between components. No other RDMBS is supported.
+
+This document is divided up into five chapters which define the various parts of the database:
+\begin{itemize}
+\item Chapter \ref{cha_tables}: Tables
+\item Chapter \ref{cha_views}: Views
+\item Chapter \ref{cha_functions}: Functions and Trigger Functions
+\item Chapter \ref{cha_domains}: Domains
+\item Chapter \ref{cha_notify}: Notification Channels
+\end{itemize}
+
+\section{Related Documents}
+\begin{tabular}{l l}
+\verb|DAZW-IM01| & zxweather Installation Reference, version 1.0 \\
+\verb|DAZW-WG01| & zxweather WH1080 Utilities Users Guide, version 1.0 \\
+\end{tabular}
+
+\chapter{Tables}
+\label{cha_tables}
+
+This chapter documents the database tables used by zxweather.
+
+\section{sample}
+This table contains weather samples from the weather station. Most columns come direct from the weather station without any processing but some (such as the rainfall column) are calculated by a trigger on insert.
+
+\subsection{Applications}
+The following applications use this table:
+\begin{itemize}
+\item wh1080 (database update utility)
+\item wh1080d/wh1080svc (database update daemon/service)
+\item web interface
+\end{itemize}
+
+\subsection{Columns}
+\subsubsection{sample\_id}
+This is the primary key.
+
+\subsubsection{sample\_interval}
+This is the number of minutes since the previous sample on the weather station. It is used for calculating timestamps. It is not used directly for anything else.
+
+\subsubsection{record\_number}
+The history slot on the weather station this record was downloaded from. Its range is 0-4079. It is only used to track which records have already been downloaded from the weather station when performing updates and for calculating timestamps.
+
+\subsubsection{download\_timestamp}
+When the record was downloaded from the weather station. It is not used directly for anything.
+
+\subsubsection{last\_in\_batch}
+If this record was the final record in a batch of records downloaded from the weather station. This records timestamp is the one used to calculate all other records downloaded in the batch.
+
+\subsubsection{invalid\_data}
+If the record on the weather station had the invalid data status flag set. The WH1080 documentation refers to this as both "rain counter value is not valid" and "no sensor data received"
+
+\subsubsection{time\_stamp}
+The approximate time this sample was taken by the weather station. 
+
+If the \verb|last_in_batch| column is \verb|true| then the timestamp value was determined by waiting for the live data record on the weather station to change. The live data records \verb|sample_time| field is then used to compute the timestamp for this record.
+
+If the \verb|last_in_batch| column is \verb|false| then the records timestamp value was calculated based on the its \verb|record_number|, the \verb|sample_interval| of the previous record and the \verb|time_stamp| of the previous record.
+
+The value in this column may be out by as much as a minute.
+
+\subsubsection{indoor\_relative\_humidity}
+The relative humidity at the base station. Its type is the \verb|rh_percentage| domain type (see section \ref{rh_percentage}). Values are 0-99\%.
+
+\subsubsection{indoor\_temperature}
+The temperature at the base station in degrees Celsius. 
+
+\subsubsection{relative\_humidity}
+The relative humidity at the outdoor unit. Its type is the \verb|rh_percentage| domain type (see section \ref{rh_percentage}). Values are 0-99\%.
+
+\subsubsection{temperature}
+The temperature at the outdoor unit in degrees Celsius.
+
+\subsubsection{dew\_point}
+Dew point. This columns value is calculated on insert by a trigger using the dew\_point function (Section \ref{dew_point}). It is calculated from the \verb|temperature| column.
+
+\subsubsection{wind\_chill}
+Wind chill. This columns value is calculated on insert by a trigger using the wind\_chill function (Section \ref{wind_chill}). It is calculated from the \verb|temperature| column.
+
+\subsubsection{apparent\_temperature}
+Apparent temperature. This columns value is calculated on insert from the \verb|temperature| column by a trigger using the apparent\_temperature function (Section \ref{apparent_temperature}).
+
+\subsubsection{absolute\_pressure}
+The absolute pressure in hectopascals (hPa, same as the millibar).
+
+\subsubsection{relative\_pressure}
+Calculated relative pressure in hectopascals (hPa, same as the millibar).
+
+This column is for future use. Its value is not currently calculated.
+
+\subsubsection{average\_wind\_speed}
+Average wind speed in metres per second.
+
+\subsubsection{gust\_wind\_speed}
+Gust wind speed in metres per second.
+
+\subsubsection{wind\_direction}
+Wind direction. Its type is the \verb|wind_direction| domain type (see section \ref{wind_direction} for valid values).
+
+\subsubsection{rainfall}
+The rainfall for this record. Its value is calculated based on the \verb|total_rain| and \verb|rain_overflow| values. Rain is measured in millimetres. Rainfall is in multiples of 0.3mm.
+
+\subsubsection{total\_rain}
+Total rainfall since it last overflowed. This is used only for calculating the values in the \verb|rainfall| column. Values are a multiple of 0.3. Unit is the millimetre. 
+
+\subsubsection{rain\_overflow}
+If an overflow in the \verb|total_rain| counter has occurred. Used for calculating values in the \verb|rainfall| column.
+
+\subsection{Indices}
+This table has the following indices:
+\begin{itemize}
+\item \verb|idx_time_stamp| on \verb|time_stamp| column.
+\end{itemize}
+
+\subsection{Triggers}
+The \verb|compute_sample_values| trigger function is executed for each row inserted. This trigger calculates values for columns such as \verb|dew_point|. See section \ref{compute_sample_values} for more details on this trigger function.
+
+\chapter{Views}
+\label{cha_views}
+
+\section{latest\_record\_number}
+This view is used by the wh1080 database update utilities to determine what the most recent record in the database is.
+
+\section{Daily, Montly and Yearly Records}
+These views provide minimum and maximum weather conditions (temperature, humidity, etc) for each day, month or year in the database. The views are:
+\begin{itemize}
+\item daily\_records
+\item monthly\_records
+\item yearly\_records
+\end{itemize}
+
+The PostgreSQL query planner seems to have difficulty with the queries behind these views when more than one column is included in a where clause. This has been observed in PostgreSQL version 9.1.
+
+\subsection{Columns}
+\begin{itemize}
+\item \verb|date_stamp|: The date the record is for (daily\_records and monthly\_records only).
+\item \verb|year_stamp|: The year the record is for. Present only in the yearly\_records view.
+\item \verb|total_rainfall|: Total rainfall during this day, month or year.
+\item \verb|max_gust_wind_speed|: Maximum gust wind speed for the period.
+\item \verb|max_gust_wind_speed_ts|: Most recent timestamp for the maximum gust wind speed record.
+\item \verb|max_average_wind_speed|: Maximum average wind speed for the period.
+\item \verb|max_average_wind_speed_ts|: Most recent timestamp for the maximum wind speed record.
+\item \verb|min_absolute_pressure|: Minimum absolute pressure during the period.
+\item \verb|min_absolute_pressure_ts|: Most recent timestamp for the minimum absolute pressure record.
+\item \verb|max_absolute_pressure|: Maximum absolute pressure during the period.
+\item \verb|max_absolute_pressure_ts|: Most recent timestamp for the maximum absolute pressure record.
+\item \verb|min_apparent_temperature|: Minimum apparent temperature during the period.
+\item \verb|min_apparent_temperature_ts|: Most recent timestamp for the minimum apparent temperature record.
+\item \verb|max_apparent_temperature|: Maximum apparent temperature during the period.
+\item \verb|max_apparent_temperature_ts|: Most recent timestamp for the maximum apparent temperature record.
+\item \verb|min_wind_chill|: Minimum wind chill during the period.
+\item \verb|min_wind_chill_ts|: Most recent timestamp for the minimum wind chill record.
+\item \verb|max_wind_chill|: Maximum wind chill during the period.
+\item \verb|max_wind_chill_ts|: Most recent timestamp for the maximum wind chill record.
+\item \verb|min_dew_point|: Minimum dewpoint during the period.
+\item \verb|min_dew_point_ts|: Most recent timestamp for the minimum dewpoint record.
+\item \verb|max_dew_point|: Maximum dewpoint during the period.
+\item \verb|max_dew_point_ts|: Most recent timestamp for the maximum dewpoint record.
+\item \verb|min_temperature|: Minimum outdoor temperature during the period.
+\item \verb|min_temperature_ts|: Most recent timestamp for the minimum outdoor temperature record.
+\item \verb|max_temperature|: Maximum outdoor temperature during the period.
+\item \verb|max_temperature_ts|: Most recent timestamp for the maximum outdoor temperature record.
+\item \verb|min_humidity|: Minimum outdoor relative humidity during the period.
+\item \verb|min_humidity_ts|: Most recent timestamp for the minimum outdoor relative humidity record.
+\item \verb|max_humidity|: Maximum outdoor relative humidity during the period.
+\item \verb|max_humidity_t|: Most recent timestamp for the maximum outdoor relative humidity record.
+\end{itemize}
+
+\chapter{Functions and Trigger Functions}
+\label{cha_functions}
+
+The database contains a number of stored procedures for computing values that don't come directly from the weather station. This chapter gives an overview of those functions.
+
+\section{Functions}
+\label{functions}
+\subsection{dew\_point}
+\label{dew_point}
+
+Calculates the approximate dew point given temperature and relative humidity. The calculation is based on the August-Roche-Magnus approximation for the saturation vapour pressure of water in air as a function of temperature. It is valid for input temperatures 0 to 60 $^{\circ}$C and dew points 0 to 50 $^{\circ}$C
+
+The formula is:
+$$T_d = \frac {b\ \gamma(T,RH)} {a - \gamma(T,RH)}$$
+where
+$$\gamma(T,RH) = \frac {a\ T} {b+T} + \ln (RH/100)$$
+
+where the temperatures are in degrees Celsius The constants are $a$ = 17.271 and $b$ = 237.7 $^{\circ}$C
+
+This function is \emph{immutable}.
+
+See the article on Wikipedia for more details: \url{http://en.wikipedia.org/wiki/Dewpoint}
+
+\subsubsection{Parameters}
+\begin{itemize}
+\item temperature, real
+\item relative\_humidity, integer
+\end{itemize}
+
+\subsection{wind\_chill}
+\label{wind_chill}
+Calculates the North American wind chill using the following formula:
+$$T_{wc}=13.12 + 0.6215 T_a-11.37 V^{+0.16} + 0.3965 T_a V^{+0.16}\,\!$$
+where $T_{wc}$ is the wind chill index in degrees Celsius, $T_a$ is the air temperature in degrees Celsius and $V$ is the wind speed at 10 metres in kilometres per hour.
+
+The Wind chill temperature is only defined for air temperatures below 10 $^{\circ}$C and wind speeds above 4.8 km/h.
+
+This function is \emph{immutable}.
+
+See the article on Wikipedia for more details:
+\url{http://en.wikipedia.org/wiki/Wind_chill}
+
+\subsubsection{Parameters}
+\begin{itemize}
+\item temperature, real
+\item wind\_speed, real
+\end{itemize}
+
+\subsection{apparent\_temperature}
+\label{apparent_temperature}
+Calculates the Apparent Temperature using the formula used by the Australian Bureau of Meteorology.
+
+The formula used is:
+$$AT = Ta + 0.33e - 0.7ws - 4.00$$
+% AT = Ta + 0.33e − 0.70ws − 4.00
+
+Where $Ta$ is the dry bulb temperature ($^{\circ}$C), $e$ is the water vapour pressure in hPa and ws is the Wind speed (m/s) at an elevation of 10 metres.
+
+The vapour pressure is calculated from the temperature and relative humidity using the formula:
+
+$$  e = rh / 100 * 6.105 * 2.718281828 ^ { 17.27Ta / (237.7 + Ta ) }$$
+where $Ta$ is the dry bulb temperature ($^{\circ}$C), rh is the relative humidity (\%).
+
+This function is \emph{immutable}.
+
+See the Australian Bureau of Meteorology website for more details: \\ \url{http://www.bom.gov.au/info/thermal_stress/}
+
+\subsubsection{Parameters}
+\begin{itemize}
+\item temperature, real
+\item wind\_speed, real
+\item relative\_humidity, real
+\end{itemize}
+
+\section{Trigger Functions}
+\label{trig_funcs}
+\subsection{compute\_sample\_values}
+\label{compute_sample_values}
+Computes values for the following fields when a new record is inserted:
+\begin{itemize}
+\item dew\_point
+\item wind\_chill
+\item apparent\_temperature
+\item rainfall
+\end{itemize}
+
+\subsubsection{Rainfall calculation}
+The rainfall value is calculated using the following query:
+
+% Setup listings package
+\lstset{
+  language=SQL,
+  frame=single,
+  numbers=left,
+  basicstyle=\small,
+  commentstyle=\emph
+}
+
+\begin{lstlisting}
+select into NEW.rainfall
+       case when NEW.total_rain - prev.total_rain >= 0 then
+           NEW.total_rain - prev.total_rain
+       else
+           NEW.total_rain + (19660.8 - prev.total_rain)
+       end as rainfall
+from sample prev
+-- find the previous sample:
+where time_stamp = (select max(time_stamp)
+                    from sample ins
+                    where ins.time_stamp < NEW.time_stamp)
+\end{lstlisting}
+
+The value $19660.8$ is the maximum rainfall accumulator value (65536 * 0.3mm). Rainfall values are calculated based on the total rainfall value of the new record and the previous record in the database.
+
+\chapter{Domains}
+\label{cha_domains}
+
+Domains are used on a number of columns to simplify constraints, etc. This chapter gives an overview of those domains and their valid values.
+
+\section{rh\_percentage}
+\label{rh_percentage}
+Used for columns containing relative humidity percentages. Valid values are 1 to 99 (inclusive). It is an \verb|integer| field.
+
+\section{wind\_direction}
+\label{wind_direction}
+
+Used for columns containing wind directions. Valid values are:
+\begin{itemize}
+\item N
+\item NNE
+\item NE
+\item ENE
+\item E
+\item ESE
+\item SE
+\item SSE
+\item S
+\item SSW
+\item SW
+\item WSW
+\item W
+\item WNW
+\item NW
+\item NNW
+\item INV (used for invalid values).
+\end{itemize}
+
+its type is \verb|character varying(3)|
+
+
+\chapter{Notification Channels}
+\label{cha_notify}
+
+The PostgreSQL notify feature will be used in the future to notify connected programs of new sample data and updated live data. This feature is not used at this time.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                END DOCUMENT                               %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Back page
+\newpage
+\thispagestyle{empty}
+\begin{flushright}
+\null
+\vfill
+\tt \partnumber
+\end{flushright}
+\end{document}
