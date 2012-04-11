@@ -19,7 +19,7 @@ def charts_1_day(cur, dest_dir, day, month, year):
         indoor_temperature, indoor_relative_humidity
         from sample where date(time_stamp) = %s::date
         order by time_stamp asc""", (date,))
-    temperature_data = cur.fetchall()
+    weather_data = cur.fetchall()
     # Columns in the query
     COL_TIMESTAMP = 0
     COL_TEMPERATURE = 1
@@ -44,7 +44,7 @@ def charts_1_day(cur, dest_dir, day, month, year):
     # Write the data file for gnuplot
     file_data = [
         '# timestamp  temperature  dew point  apparent temperature  wind chill  relative humidity  absolute pressure  indoor temperature  indoor relative humidity\n']
-    for record in temperature_data:
+    for record in weather_data:
         file_data.append(
             '{0}        {1}        {2}        {3}        {4}        {5}        {6}        {7}        {8}\n'
             .format(str(record[COL_TIMESTAMP]),
