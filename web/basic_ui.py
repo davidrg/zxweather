@@ -18,22 +18,61 @@ class index:
     def GET(station):
         return "Station: '" + station + "'"
 
-class year:
-    """
-    Gives an overview for a year
-    """
-    @staticmethod
-    def GET(station, year):
 
-        return "Station: '" + station \
-               + "', Year: '" + str(year) + "'"
+def get_year(station, year):
+    """
+    Gives an overview for a year.
+    :param station:
+    :param year:
+    :return:
+    """
+
+    # TODO: Set the Expires header to now + interval if this is a live day.
+    # TODO: Set the Last-Modified header to the timestamp of the most recent sample on the page.
+
+    class data:
+        this_year = year
+        prev_url = None
+        next_url = None
+
+        next_year = None
+        prev_year = None
+
+    params = dict(year=year)
+    yearly_records = db.select('yearly_records',params,
+                               where='year_stamp=$year')
+
+    if not len(yearly_records):
+        # Bad url or something.
+        raise web.NotFound()
+
+    data.records = yearly_records[0]
+
+    data.prev_year = year - 1
+    data.next_year = year + 1
+    data.year_stamp = year
+
+    # See if any data exists for the previous and next months (no point
+    # showing a navigation link if there is no data)
+    data_check = db.query("""select 'foo' from sample
+    where extract(year from time_stamp) = $year limit 1""",
+                          dict(year=data.prev_year))
+    if len(data_check):
+        data.prev_url = '../' + str(data.prev_year)
+
+    data_check = db.query("""select 'foo' from sample
+    where extract(year from time_stamp) = $year limit 1""",
+                          dict(year=data.next_year))
+    if len(data_check):
+        data.next_url = '../' + str(data.next_year)
+
+    return render.year(data=data)
 
 
 def get_month(station, year, month):
 
     """
-    Gives an overview for a day. If the day is today then current weather
-    conditions are also shown.
+    Gives an overview for a month.
     """
 
     # TODO: Set the Expires header to now + interval if this is a live day.

@@ -57,32 +57,23 @@
     </table>
     <p>Total Rainfall: {{ data.records.total_rainfall|round(1) }}mm</p>
 
-    <h2>Monthly Charts</h2>
-    <a href="temperature_tdp_large.png"><img src="temperature_tdp.png" alt="[Month Temperature and Dew Point]"></a>
-    <a href="temperature_awc_large.png"><img src="temperature_awc.png" alt="[Month Apparent Temperature and Wind Chill]"></a>
-    <a href="humidity_large.png"><img src="humidity.png" alt="[Month Humidity]"></a>
-    <a href="pressure_large.png"><img src="pressure.png" alt="[Month Pressure]"></a>
-
-    <br>
-    <a href="gnuplot_data.dat">gnuplot data</a>
-
     <hr>
     <center>
         {% if data.prev_url %}
-            <a href="{{ data.prev_url }}">&lt;&lt; {{ data.prev_month }} {{ data.prev_year }}</a>
+            <a href="{{ data.prev_url }}">&lt;&lt; {{ data.prev_year }}</a>
         {% else %}
-            &lt;&lt; {{ data.prev_month }} {{ data.prev_year }}
+            &lt;&lt; {{ data.prev_year }}
         {% endif %}
         |
-        <a href="../">{{ data.this_year }}</a>
+        {{ data.this_year }}
         |
         {% if data.next_url %}
-            <a href="{{ data.next_url }}">{{ data.next_month }} {{ data.next_year }} &gt;&gt;</a>
+            <a href="{{ data.next_url }}">{{ data.next_year }} &gt;&gt;</a>
         {% else %}
-            {{ data.next_month }} {{ data.next_year }} &gt;&gt;
+            {{ data.next_year }} &gt;&gt;
         {% endif %}
         <br>
-        <a href="../../now">Today</a>
+        <a href="../now">Today</a>
     </center>
 
 {% endblock %}
