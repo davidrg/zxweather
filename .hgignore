@@ -15,3 +15,4 @@ doc/*/*.toc
 doc/*/*.sty
 doc/*/*.synctex.gz
 *-build-desktop-Qt_*/*
+*.o
