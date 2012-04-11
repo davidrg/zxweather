@@ -2,7 +2,7 @@
 # zxweather makefile for linux
 ###############################################################################
 
-all: cweather memdump readdump
+all: wh1080 wh1080memdump wh1080readdump
 
 CC       ?= gcc
 CFLAGS   ?= -Wall -g
@@ -17,7 +17,7 @@ PGC_SRC   = pgout.c
 # Objects required by programs doing database I/O
 DBIO_OBJ  = pgout.o
 
-# Objects for cweather
+# Objects for wh1080
 CW_OBJS   = src/main.o src/deviceconfig.o src/conout.o src/debug.o src/history.o src/fileout.o $(DEVIO_OBJ) $(DBIO_OBJ)
 
 # Objects for memdump
