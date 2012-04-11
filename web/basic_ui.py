@@ -38,6 +38,8 @@ def get_year(station, year):
         next_year = None
         prev_year = None
 
+        months = []
+
     params = dict(year=year)
     yearly_records = db.select('yearly_records',params,
                                where='year_stamp=$year')
@@ -48,6 +50,22 @@ def get_year(station, year):
 
     data.records = yearly_records[0]
 
+    # Grab a list of all months for which there is data for this year.
+    month_data = db.query("""select md.month_stamp::integer from (select extract(year from time_stamp) as year_stamp,
+       extract(month from time_stamp) as month_stamp
+from sample
+group by year_stamp, month_stamp) as md where md.year_stamp = $year""", dict(year=year))
+
+
+    if not len(month_data):
+        # If there are no months in this year then there can't be any data.
+        raise web.NotFound()
+
+    for month in month_data:
+        the_month_name = month_name[month.month_stamp]
+        data.months.append(the_month_name)
+
+    # Figure out navigation links
     data.prev_year = year - 1
     data.next_year = year + 1
     data.year_stamp = year

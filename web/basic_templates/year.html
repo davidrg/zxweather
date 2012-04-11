@@ -57,6 +57,13 @@
     </table>
     <p>Total Rainfall: {{ data.records.total_rainfall|round(1) }}mm</p>
 
+    <h2>Months for {{ data.this_year }}</h2>
+    <ul>
+    {% for monthlink in data.months %}
+        <li><a href="{{ monthlink }}/">{{ monthlink }}</a></li>
+    {% endfor %}
+    </ul>
+    
     <hr>
     <center>
         {% if data.prev_url %}
