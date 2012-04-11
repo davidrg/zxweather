@@ -3,6 +3,7 @@ from optparse import OptionParser
 import os
 import psycopg2
 from day_charts import charts_1_day, charts_7_days
+from month_charts import month_charts
 
 __author__ = 'David Goodwin'
 
@@ -27,7 +28,7 @@ def plot_day(dest_dir, cur, year, month, day):
 
     try:
         os.makedirs(dest_dir)
-    except:
+    except Exception:
         pass
 
     # Plot the 1-day charts
@@ -40,7 +41,13 @@ def plot_month(dest_dir, cur, year, month):
 
     dest_dir += month_name[month] + '/'
 
+    try:
+        os.makedirs(dest_dir)
+    except Exception:
+        pass
+
     # Generate graphs for the entire month
+    month_charts(cur,dest_dir, month, year)
 
     # Then deal with each day
     cur.execute("""select distinct extract(day from time_stamp)
@@ -52,6 +59,7 @@ def plot_month(dest_dir, cur, year, month):
 
     for day in days:
         plot_day(dest_dir, cur, year, month, int(day[0]))
+
 
 def plot_year(dest_dir, cur, year):
     """
