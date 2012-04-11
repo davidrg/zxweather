@@ -30,7 +30,7 @@ RD_OBJS   = src/readdump.o src/fileio.o src/conout.o src/deviceconfig.o src/hist
 ALL_OBJS      = src/main.o src/deviceconfig.o src/conout.o src/debug.o src/history.o src/fileout.o
 
 # USB library stuff
-USB_LIBS      = `pkg-config libusb-1.0 --libs`
+USB_LIBS      = `pkg-config libusb-1.0 --libs` -lrt -lpthread
 USB_INCLUDES  = -Ilib/hidapi/linux-0.7 `pkg-config libusb-1.0 --cflags`
 
 # ECPG (database) library stuff
