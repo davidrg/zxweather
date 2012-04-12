@@ -124,6 +124,13 @@ BOOL sync_clock(unsigned short *current_record_id,
  */
 void update_timestamps(history_set *hs, time_t timestamp);
 
+/* Calculates timestamps for all records in the history set. Tmiestamps are
+ * calculated from the ***first*** record in the set whose timestamp is
+ * specified by the timestamp parameter. This function is the same as
+ * update_timestamps() except it operates in the opposite direction and
+ * ignores the last_in_set field */
+void reverse_update_timestamps(history_set *hs, time_t timestamp);
+
 /* History record status flags */
 #define H_SF_RESERVED_A        0x01 /* Reserved A */
 #define H_SF_RESERVED_B        0x02 /* Reserved B */

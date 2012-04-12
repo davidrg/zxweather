@@ -179,6 +179,10 @@ void pgo_insert_history_set(history_set hs) {
     }
 }
 
+void pgo_update_live(history /*live_data*/) {
+    /* Not implemented yet */
+}
+
 /* Commits the transaction that was opened when we connected */
 void pgo_commit() {
     EXEC SQL COMMIT;
