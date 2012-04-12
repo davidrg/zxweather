@@ -20,9 +20,22 @@
  *
  ****************************************************************************/
 
+/* For sleep calls */
+#ifdef __WIN32
+#include <windows.h>    /* Sleep() */
+#elif _MSC_VER
+#include <windows.h>    /* Sleep() */
+#else
+#include <unistd.h>     /* sleep() (note the small s) */
+#endif
+
 #include "daemon.h"
 #include "deviceio.h"
 #include "pgout.h"
+
+#define LIVE_UPDATE_INTERVAL 48
+
+void wait_for_next_live();
 
 /* Main function for daemon functionality.
  *
@@ -36,9 +49,19 @@
  *  7. Go to 4
  */
 void daemon(char *server, char *username, char *password, FILE *logfile) {
+    /* This is the live record. We will fetch this every 48 seconds */
+    unsigned short live_record_id;
+    history live_record;
 
-    unsigned short current_record_id;
-    time_t current_record_timestamp;
+    /* For dealing with history records */
+    unsigned short latest_record_id;  /* Latest record in the DB */
+    unsigned short current_record_id; /* Current record on the device */
+    history_set hs;                   /* History downloaded from the device */
+    time_t first_record_ts;           /* Calculated timestamp of the first hs
+                                       * record */
+    time_t final_record_ts;           /* Final record from previous hs */
+
+    /* misc */
     BOOL result;
     extern FILE* history_log_file;
 
@@ -51,10 +74,100 @@ void daemon(char *server, char *username, char *password, FILE *logfile) {
     fprintf(logfile, "Connect to Database...\n");
     pgo_connect(server, username, password);
 
-    result = sync_clock(&current_record_id, &current_record_timestamp);
+    result = sync_clock(&ts_record_id, &ts_record_timestamp);
 
+    /* as soon as sync_clock() observes a new live record it will do a few
+     * small calculations and return. So the next live record should be
+     * around 48 seconds after sync_clock() returns. The first time
+     * wait_for_next_live() is called it will add 48 onto the current time
+     * and then return immediately instead of actually waiting. */
+    wait_for_next_live();
 
+    /* Loop forever waking up ever 48 seconds to grab live data and any
+     * new history records. Any cleanup required will be done when we receive
+     * a SIGTERM. */
+    while (TRUE) {
+        /* Find and broadcast the live record */
+        get_current_record_id(NULL, NULL, &live_record_id);
+        live_record = read_history_record(live_record_id);
+        pgo_update_live(live_record);
 
+        /* Download any history records that have appeared */
+        current_record_id = live_record_id - 1;
+        pgo_get_last_record_number(&latest_record_id, &final_record_ts);
+
+        if (current_record_id > latest_record_id) {
+            /* There are new history records to load into the database */
+            fprintf(logfile, "Download history records %d to %d...",
+                    latest_record_id, current_record_id);
+            hs = read_history_range(latest_record_id, current_record_id);
+
+            /* Calculate timestamps. To do this we must figure out the time
+             * of the first record in the history set. We can do this by adding
+             * its interval onto the timestamp of the final record from the
+             * previous history set. Note time_t is in seconds and the
+             * interval is in minutes. */
+            first_record_ts = final_record_ts + (hs.records[0].sample_time * 60);
+            reverse_update_timestamps(&hs, first_record_ts);
+            final_record_ts = hs.records[hs.record_count-1].time_stamp;
+
+            pgo_insert_history_set(hs);
+            pgo_commit();
+        }
+
+        wait_for_next_live();
+    }
+}
+
+/* Sleeps until the next live record is due. The first time this function is
+ * called it initialises some static variables and returns immediately */
+void wait_for_next_live() {
+    static time_t next_live_due = 0;
+    static time_t now;
+    static unsigned long sleep_time;
+    static unsigned long fixup;
+
+    if (next_live_due = 0) {
+        next_live_due = time(NULL) + LIVE_UPDATE_INTERVAL;
+        return;
+    }
+
+    /* Figure out when the next live record is due */
+    now = time(NULL);
+    if (now > next_live_due) {
+        /* We missed the live record. Figure out when the next one should
+         * be due.*/
+
+        /* This is how far behind we are */
+        fixup = now - next_live_due;
+
+        /* Make sure what ever we increment next_live_due by is a multiple
+         * of the live update interval */
+        if (fixup % LIVE_UPDATE_INTERVAL)
+            fixup = fixup + (LIVE_UPDATE_INTERVAL - fixup % LIVE_UPDATE_INTERVAL);
+
+        next_live_due += fixup;
+
+    }
+
+    if (now == next_live_due) {
+        /* Live record is due now. No need to sleep. */
+        return;
+    } else {
+        sleep_time = next_live_due - now;
+    }
+
+    if (sleep_time > 60)
+        fprintf(logfile,"WARNING: Sleep time is %d (should be ~48).\n",
+                sleep_time);
+
+    /* Sleep for a while */
+#ifdef __WIN32
+    /* The Win32 function is in miliseconds (POSIX is in seconds) */
+    Sleep(sleep_time * 1000);
+#else
+    sleep(sleep_time);
+#endif
 }
 
 void cleanup() {

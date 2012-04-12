@@ -445,3 +445,27 @@ void update_timestamps(history_set *hs, time_t timestamp) {
         }
     }
 }
+
+
+void reverse_update_timestamps(history_set *hs, time_t timestamp) {
+    int i;
+    time_t this_timestamp;
+
+    if (history_log_file == NULL) history_log_file = stderr;
+
+    /* Loop from the start as that is the record with the real timestamp */
+    for (i = 0; i < hs->record_count; i += 1) {
+
+        if (i == 0) {
+            hs->records[i].time_stamp = timestamp;
+        } else {
+            /* Each record stores the number of minutes since the previous
+             * record. So, to compute the timestamp for t2his record (looping
+             * from the newest to the oldest) we take the next newest records
+             * timestamp and subtract its offset from this record. */
+            this_timestamp = hs->records[i-1].time_stamp;
+            this_timestamp -= hs->records[i-1].sample_time * 60;
+            hs->records[i].time_stamp = this_timestamp;
+        }
+    }
+}
