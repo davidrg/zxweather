@@ -127,6 +127,8 @@ void wait_for_next_live() {
     static unsigned long sleep_time;
     static unsigned long fixup;
 
+    /* On first call calculate next live due time for use in subsequent
+     * calls */
     if (next_live_due = 0) {
         next_live_due = time(NULL) + LIVE_UPDATE_INTERVAL;
         return;
