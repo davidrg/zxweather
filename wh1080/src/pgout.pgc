@@ -37,7 +37,7 @@
 
 static char* wind_direction[] = {"N", "NNE", "NE", "ENE", "E", "ESE", "SE",
                                 "SSE", "S", "SSW", "SW", "WSW", "W", "WNW",
-                                "NW", "NNW", "INVALID"};
+                                "NW", "NNW", "INV"};
 #define WIND_DIR(byte) (wind_direction[byte > 15 ? 16 : byte])
 
 EXEC SQL WHENEVER SQLERROR CALL pgo_print_sqlca();
@@ -179,7 +179,8 @@ void pgo_insert_history_set(history_set hs) {
     }
 }
 
-void pgo_update_live(history /*live_data*/) {
+void pgo_update_live(history live_data) {
+    live_data;
     /* Not implemented yet */
 }
 
