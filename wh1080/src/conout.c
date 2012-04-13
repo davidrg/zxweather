@@ -331,7 +331,7 @@ void print_history_record(history h) {
     printf("\tIndoor Temperature: %02.1f C\n", SFP(h.indoor_temperature));
     printf("\tOutdoor Relative Humidity: %d%%\n", h.outdoor_relative_humidity);
     printf("\tOutdoor Temperature: %02.1f C\n", SFP(h.outdoor_temperature));
-    printf("\tAbsolute Pressure: %02.1f hPa m/s\n", SFP(h.absolute_pressure));
+    printf("\tAbsolute Pressure: %02.1f hPa\n", SFP(h.absolute_pressure));
     printf("\tAverage Wind Speed: %02.1f m/s\n", SFP(h.average_wind_speed));
     printf("\tGust Wind Speed: %02.1f m/s\n", SFP(h.gust_wind_speed));
     printf("\tWind Direction: 0x%02X (%s)\n",
