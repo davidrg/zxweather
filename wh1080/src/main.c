@@ -167,7 +167,7 @@ void show_record_id(const int record_id) {
     /* Show all records */
     if (record_id == -1) {
         printf("Loading all records...");
-        get_current_record_id(NULL, NULL, &live_record_id);
+        get_live_record_id(NULL, NULL, &live_record_id);
         hs = read_history_range(first_record(), previous_record(live_record_id));
         print_history_set(hs);
         free_history_set(hs);

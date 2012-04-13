@@ -151,7 +151,7 @@ device_config create_device_config(unsigned char* dc_data,
 
 /* Reads in just the history data sets and history data stack values
  * to determine the current record ID. */
-void get_current_record_id(unsigned short *history_data_sets,
+void get_live_record_id(unsigned short *history_data_sets,
                            unsigned short *live_record_offset,
                            unsigned short *live_record_id);
 

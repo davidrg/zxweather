@@ -62,12 +62,17 @@ void launch_daemon() {
     freopen("/dev/null", "w", stderr);
 }
 
+void l_cleanup() {
+    cleanup();
+    fclose(logfile);
+
+}
+
 void Signal_Handler(int sig) { /* signal handler function */
     switch(sig){
     case SIGTERM:
         /* Tidyup */
-        cleanup();
-        fclose(logfile);
+        l_cleanup();
         exit(EXIT_SUCCESS);
         break;
     }
@@ -105,11 +110,8 @@ int main( int argc, char *argv[] ) {
         fprintf(stderr, "Supply password (-p option)\n");
     if (filename == NULL)
         fprintf(stderr, "Supply log filename (-f option)\n");
-    if (server == NULL || username == NULL || password == NULL ||
-            filename == NULL) {
-        fprintf(stderr, "Supply server, username, password and logfile");
+    if (server == NULL || username == NULL || password == NULL || filename == NULL)
         exit(EXIT_FAILURE);
-    }
 
     logfile = fopen(filename,"w");
     if (logfile == NULL) {
@@ -125,5 +127,8 @@ int main( int argc, char *argv[] ) {
 
     daemon(server, username, password, logfile);
 
-    return EXIT_SUCCESS; /* We should never get this far */
+    /* If we get this far then something went wrong. */
+    l_cleaup();
+
+    return EXIT_FAILURE;
 }
