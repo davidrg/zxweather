@@ -273,7 +273,7 @@ unsigned short first_record() {
     unsigned short live_record_id;
     unsigned short first_record_id;
 
-    get_current_record_id(&total_records,
+    get_live_record_id(&total_records,
                           NULL,   /* Don't care about the live record offset */
                           &live_record_id);
 
@@ -326,10 +326,10 @@ BOOL sync_clock_r(unsigned short *current_record_id,
 
 
     /* Figure out which is the current and which is the live record */
-    get_current_record_id(&history_data_sets,  /* out */
-                          &live_record_offset, /* out */
-                          &live_record_id      /* out */
-                          );
+    get_live_record_id(&history_data_sets,  /* out */
+                       &live_record_offset, /* out */
+                       &live_record_id      /* out */
+                      );
 
     fprintf(history_log_file,"Attempting to come up with a timestamp for current record %d.\n"
            "This could take a minute...\n", live_record_id - 1);
@@ -347,7 +347,7 @@ BOOL sync_clock_r(unsigned short *current_record_id,
          * longer the live record.
          *   - If this is the first time we checked the live record
          *     (prev_lstime is initialized) then the current record must have
-         *     changed just after calling get_current_record_id. We will try
+         *     changed just after calling get_live_record_id. We will try
          *     again with the new live record.
          *   - If it has just changed from interval - 1 to interval then the
          *     live record is now the current record and we can just return it.
@@ -448,7 +448,7 @@ void update_timestamps(history_set *hs, time_t timestamp) {
 
 
 void reverse_update_timestamps(history_set *hs, time_t timestamp) {
-    int i;
+    unsigned int i;
     time_t this_timestamp;
 
     if (history_log_file == NULL) history_log_file = stderr;

@@ -36,6 +36,7 @@
 #define LIVE_UPDATE_INTERVAL 48
 
 void wait_for_next_live();
+void setup(char *server, char *username, char *password, FILE *logfile);
 
 /* Main function for daemon functionality.
  *
@@ -60,27 +61,21 @@ void daemon(char *server, char *username, char *password, FILE *logfile) {
     time_t first_record_ts;           /* Calculated timestamp of the first hs
                                        * record */
     time_t final_record_ts;           /* Final record from previous hs */
+    time_t clock_sync_current_ts;     /* Timestamp from clock_syc */
 
     /* misc */
     BOOL result;
-    extern FILE* history_log_file;
 
-    /* This is where any log messages from history.c go to */
-    history_log_file = logfile;
+    setup(server, username, password, logfile); /* Connect to device, db, etc */
 
-    fprintf(logfile, "Open Device...\n");
-    open_device();
-
-    fprintf(logfile, "Connect to Database...\n");
-    pgo_connect(server, username, password);
-
-    result = sync_clock(&ts_record_id, &ts_record_timestamp);
+    result = sync_clock(&current_record_id, &clock_sync_current_ts);
 
     /* as soon as sync_clock() observes a new live record it will do a few
      * small calculations and return. So the next live record should be
      * around 48 seconds after sync_clock() returns. The first time
      * wait_for_next_live() is called it will add 48 onto the current time
-     * and then return immediately instead of actually waiting. */
+     * to compute when the next live record is due and then return immediately
+     * instead of actually waiting. */
     wait_for_next_live();
 
     /* Loop forever waking up ever 48 seconds to grab live data and any
@@ -88,7 +83,7 @@ void daemon(char *server, char *username, char *password, FILE *logfile) {
      * a SIGTERM. */
     while (TRUE) {
         /* Find and broadcast the live record */
-        get_current_record_id(NULL, NULL, &live_record_id);
+        get_live_record_id(NULL, NULL, &live_record_id);
         live_record = read_history_record(live_record_id);
         pgo_update_live(live_record);
 
@@ -102,21 +97,50 @@ void daemon(char *server, char *username, char *password, FILE *logfile) {
                     latest_record_id, current_record_id);
             hs = read_history_range(latest_record_id, current_record_id);
 
-            /* Calculate timestamps. To do this we must figure out the time
-             * of the first record in the history set. We can do this by adding
-             * its interval onto the timestamp of the final record from the
-             * previous history set. Note time_t is in seconds and the
-             * interval is in minutes. */
-            first_record_ts = final_record_ts + (hs.records[0].sample_time * 60);
-            reverse_update_timestamps(&hs, first_record_ts);
-            final_record_ts = hs.records[hs.record_count-1].time_stamp;
+            if (final_record_ts != 0) {
+                /* Calculate timestamps. To do this we must figure out the time
+                 * of the first record in the history set. We can do this by adding
+                 * its interval onto the timestamp of the final record from the
+                 * previous history set. Note time_t is in seconds and the
+                 * interval is in minutes. */
+                first_record_ts = final_record_ts + (hs.records[0].sample_time * 60);
+                reverse_update_timestamps(&hs, first_record_ts);
+                final_record_ts = hs.records[hs.record_count-1].time_stamp;
+            } else {
+                /* The database is empty. We must calculate timestamps from
+                 * the other direction (using the timestamp of the current
+                 * weather station record) */
+                if (clock_sync_current_ts != 0) {
+                    fprintf(logfile, "Database empty. Performing full load.\n");
+
+                    clock_sync_current_ts = 0; /* Not valid anymore */
+                } else {
+                    fpritnf(logfile, "ERROR: Database appears to be empty again.\n");
+                    return;
+                }
+            }
 
             pgo_insert_history_set(hs);
             pgo_commit();
+            free_history_set(hs);
         }
 
         wait_for_next_live();
     }
+}
+
+/* Setup the connection, log file, etc */
+void setup(char *server, char *username, char *password, FILE *logfile) {
+    extern FILE* history_log_file;
+
+    /* This is where any log messages from history.c go to */
+    history_log_file = logfile;
+
+    fprintf(logfile, "Open Device...\n");
+    open_device();
+
+    fprintf(logfile, "Connect to Database...\n");
+    pgo_connect(server, username, password);
 }
 
 /* Sleeps until the next live record is due. The first time this function is

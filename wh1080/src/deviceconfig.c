@@ -235,7 +235,7 @@ device_config create_device_config(unsigned char* dc_data,
     return dc;
 }
 
-void get_current_record_id(unsigned short *history_data_sets,
+void get_live_record_id(unsigned short *history_data_sets,
                            unsigned short *live_record_offset,
                            unsigned short *live_record_id) {
     /* History data sets - 2 bytes, history data stack - 2 bytes. There is one
