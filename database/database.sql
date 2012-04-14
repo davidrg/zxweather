@@ -77,6 +77,46 @@ COMMENT ON COLUMN sample.rainfall IS 'Calculated rainfall in mm. Smallest record
 COMMENT ON COLUMN sample.total_rain IS 'Total rain recorded by the sensor so far. Smallest possible increment is 0.3mm. Subtract the previous samples total rainfall from this one to calculate the amount of rain for this sample.';
 COMMENT ON COLUMN sample.rain_overflow IS 'If an overflow in the total_rain counter has occurred';
 
+----------------------
+CREATE TABLE live_data
+(
+  download_timestamp timestamp with time zone, -- When this record was downloaded from the weather station
+  invalid_data boolean, -- If the record from the weather stations "no sensor data received" flag is set.
+  indoor_relative_humidity integer, -- Relative Humidity at the base station
+  indoor_temperature real, -- Temperature at the base station
+  relative_humidity integer, -- Relative Humidity
+  temperature real, -- Temperature outside
+  dew_point real, -- Calculated dew point
+  wind_chill real, -- Calculated wind chill
+  apparent_temperature real, -- Calculated apparent temperature.
+  absolute_pressure real, -- Absolute pressure
+  relative_pressure real, -- Calculated relative pressure.
+  average_wind_speed real, -- Average Wind Speed.
+  gust_wind_speed real, -- Gust wind speed.
+  wind_direction wind_direction -- Wind Direction.
+);
+ALTER TABLE live_data
+  OWNER TO postgres;
+COMMENT ON TABLE live_data
+  IS 'Live data from the weather station. Contains only a single record.';
+COMMENT ON COLUMN live_data.download_timestamp IS 'When this record was downloaded from the weather station';
+COMMENT ON COLUMN live_data.invalid_data IS 'If the record from the weather stations "no sensor data received" flag is set.';
+COMMENT ON COLUMN live_data.indoor_relative_humidity IS 'Relative Humidity at the base station. 0-99%';
+COMMENT ON COLUMN live_data.indoor_temperature IS 'Temperature at the base station in degrees Celsius';
+COMMENT ON COLUMN live_data.relative_humidity IS 'Relative Humidity. 0-99%';
+COMMENT ON COLUMN live_data.temperature IS 'Temperature outside in degrees Celsius';
+COMMENT ON COLUMN live_data.dew_point IS 'Calculated dew point in degrees Celsius. Use the dew_point function to calculate. Calculated automatically by a trigger on insert.';
+COMMENT ON COLUMN live_data.wind_chill IS 'Calculated wind chill in degrees Celsius. Use the wind_chill function to calculate. Calculated automatically by a trigger on insert.';
+COMMENT ON COLUMN live_data.apparent_temperature IS 'Calculated apparent temperature in degrees Celsius. Use the apparent_temperature to calculate. Calculated automatically by a trigger on insert.';
+COMMENT ON COLUMN live_data.absolute_pressure IS 'Absolute pressure in hPa';
+COMMENT ON COLUMN live_data.relative_pressure IS 'Calculated relative pressure.';
+COMMENT ON COLUMN live_data.average_wind_speed IS 'Average Wind Speed in m/s.';
+COMMENT ON COLUMN live_data.gust_wind_speed IS 'Gust wind speed in m/s.';
+COMMENT ON COLUMN live_data.wind_direction IS 'Wind Direction.';
+
+-- Live data table must always have one and only one record.
+insert into live_data(download_timestamp, wind_direction) values(null, 'INV')
+
 ----------------------------------------------------------------------
 -- INDICIES ----------------------------------------------------------
 ----------------------------------------------------------------------
@@ -568,6 +608,26 @@ $BODY$
   LANGUAGE plpgsql VOLATILE;
 COMMENT ON FUNCTION compute_sample_values() IS 'Calculates values for all calculated fields (wind chill, dew point, rainfall, etc).';
 
+-- Prevents anything but updates happening to rows and calculates dewpoint, wind chill, apparent temperature, etc.
+CREATE FUNCTION live_data_update() RETURNS trigger AS
+$BODY$BEGIN
+    IF(TG_OP = 'UPDATE') THEN
+        -- Various calculated temperatures
+        NEW.dew_point = dew_point(NEW.temperature, NEW.relative_humidity);
+        NEW.wind_chill = wind_chill(NEW.temperature, NEW.average_wind_speed);
+        NEW.apparent_temperature = apparent_temperature(NEW.temperature, NEW.average_wind_speed, NEW.relative_humidity);
+
+        -- Allow UPDATE
+        RETURN NEW;
+    END IF;
+
+    -- Ignore INSERT, DELETE
+    RETURN NULL;
+END;$BODY$
+LANGUAGE plpgsql VOLATILE;
+COMMENT ON FUNCTION live_data_update() IS 'Calculates values for all calculated fields. Blocks inserts and deletes.';
+
+
 ----------------------------------------------------------------------
 -- TRIGGERS ----------------------------------------------------------
 ----------------------------------------------------------------------
@@ -577,5 +637,9 @@ CREATE TRIGGER calculate_fields BEFORE INSERT
    EXECUTE PROCEDURE public.compute_sample_values();
 COMMENT ON TRIGGER calculate_fields ON sample IS 'Calculate any calculated fields.';
 
+CREATE TRIGGER live_data_update BEFORE INSERT OR DELETE OR UPDATE
+   ON live_data FOR EACH ROW
+   EXECUTE PROCEDURE public.live_data_update();
+COMMENT ON TRIGGER live_data_update ON live_data IS 'Calculates calculated fields for updates, ignores everything else.';
 
 
