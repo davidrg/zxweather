@@ -31,9 +31,13 @@
 
 #include "daemon.h"
 #include "deviceio.h"
+#include "deviceconfig.h"
+#include "history.h"
 #include "pgout.h"
 
 #define LIVE_UPDATE_INTERVAL 48
+
+FILE *logfile;
 
 void wait_for_next_live();
 void setup(char *server, char *username, char *password, FILE *logfile);
@@ -49,7 +53,7 @@ void setup(char *server, char *username, char *password, FILE *logfile);
  *  6. Sleep for 48 seconds
  *  7. Go to 4
  */
-void daemon(char *server, char *username, char *password, FILE *logfile) {
+void daemon(char *server, char *username, char *password, FILE *log_file) {
     /* This is the live record. We will fetch this every 48 seconds */
     unsigned short live_record_id;
     history live_record;
@@ -66,8 +70,11 @@ void daemon(char *server, char *username, char *password, FILE *logfile) {
     /* misc */
     BOOL result;
 
+    logfile = log_file;
+
     setup(server, username, password, logfile); /* Connect to device, db, etc */
 
+    /* This will give us the current record and its timestamp */
     result = sync_clock(&current_record_id, &clock_sync_current_ts);
 
     /* as soon as sync_clock() observes a new live record it will do a few
@@ -87,11 +94,17 @@ void daemon(char *server, char *username, char *password, FILE *logfile) {
         live_record = read_history_record(live_record_id);
         pgo_update_live(live_record);
 
-        /* Download any history records that have appeared */
-        current_record_id = live_record_id - 1;
+        /* If we have a clock_sync_current_ts then current_record_id is already
+         * set and valid thanks to clock_sync(). */
+        if (clock_sync_current_ts == 0)
+            current_record_id = live_record_id - 1;
+
         pgo_get_last_record_number(&latest_record_id, &final_record_ts);
 
-        if (current_record_id > latest_record_id) {
+        /* Download any history records that have appeared. */
+        if (final_record_ts == 0 || current_record_id > latest_record_id) {
+            /* final_record_ts == 0  means the database is empty */
+
             /* There are new history records to load into the database */
             fprintf(logfile, "Download history records %d to %d...",
                     latest_record_id, current_record_id);
@@ -115,7 +128,7 @@ void daemon(char *server, char *username, char *password, FILE *logfile) {
 
                     clock_sync_current_ts = 0; /* Not valid anymore */
                 } else {
-                    fpritnf(logfile, "ERROR: Database appears to be empty again.\n");
+                    fprintf(logfile, "ERROR: Database appears to be empty again.\n");
                     return;
                 }
             }
@@ -153,7 +166,7 @@ void wait_for_next_live() {
 
     /* On first call calculate next live due time for use in subsequent
      * calls */
-    if (next_live_due = 0) {
+    if (next_live_due == 0) {
         next_live_due = time(NULL) + LIVE_UPDATE_INTERVAL;
         return;
     }

@@ -43,4 +43,4 @@ void daemon(char* server, char* username, char* password, FILE* logfile);
 /* Closes files, disconencts from servers, etc */
 void cleanup();
 
-#endif // DAEMON_H
+#endif /* DAEMON_H */
