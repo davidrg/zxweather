@@ -65,8 +65,9 @@ void daemon(char *server, char *username, char *password, FILE *log_file) {
     history_set hs;                   /* History downloaded from the device */
     time_t first_record_ts;           /* Calculated timestamp of the first hs
                                        * record */
-    time_t final_record_ts;           /* Final record from previous hs */
+    time_t final_record_ts = 0;       /* Final record from previous hs */
     time_t clock_sync_current_ts;     /* Timestamp from clock_syc */
+    time_t database_ts;               /* Timestamp from latest DB record */
 
     /* misc */
     BOOL result;
@@ -105,19 +106,15 @@ void daemon(char *server, char *username, char *password, FILE *log_file) {
 
         fprintf(logfile, "CURRENT is #%d\n", current_record_id);
 
-        pgo_get_last_record_number(&latest_record_id, &final_record_ts);
-
-         /* Calculate timestamps from the DB if its not empty */
-        if (final_record_ts != 0)
-            clock_sync_current_ts = 0;
+        pgo_get_last_record_number(&latest_record_id, &database_ts);
 
         /* Download any history records that have appeared. */
         if (final_record_ts == 0 || current_record_id > latest_record_id) {
             /* final_record_ts == 0  means the database is empty */
 
-            if (final_record_ts == 0)
+            if (database_ts == 0 && latest_record_id == 0)
                 range_start_id = 0; /* Database is empty. Get everything. */
-            else
+            else /* Otherwise, don't duplicate the latest DB record */
                 range_start_id = next_record(latest_record_id);
 
             /* There are new history records to load into the database */
@@ -126,9 +123,15 @@ void daemon(char *server, char *username, char *password, FILE *log_file) {
             hs = read_history_range(range_start_id,
                                     current_record_id);
 
-            if (final_record_ts != 0) {
+            if (clock_sync_current_ts != 0 || final_record_ts == 0) {
+                /* Either the database is empty or we've just started. Either
+                 * way we use the current record timestamp we just calculated.*/
+                update_timestamps(&hs,clock_sync_current_ts);
 
-                fprintf(logfile, "Update...\n");
+                /* Then we throw it away. From now on we calculate timestamps
+                 * based on the most recent sample record */
+                clock_sync_current_ts = 0;
+            } else {
                 /* Calculate timestamps. To do this we must figure out the time
                  * of the first record in the history set. We can do this by adding
                  * its interval onto the timestamp of the final record from the
@@ -136,20 +139,10 @@ void daemon(char *server, char *username, char *password, FILE *log_file) {
                  * interval is in minutes. */
                 first_record_ts = final_record_ts + (hs.records[0].sample_time * 60);
                 reverse_update_timestamps(&hs, first_record_ts);
-                final_record_ts = hs.records[hs.record_count-1].time_stamp;
-            } else {
-                /* The database is empty. We must calculate timestamps from
-                 * the other direction (using the timestamp of the current
-                 * weather station record) */
-                if (clock_sync_current_ts != 0) {
-                    fprintf(logfile, "Database empty. Performing full load.\n");
-                    update_timestamps(&hs,clock_sync_current_ts);
-                    clock_sync_current_ts = 0; /* Not valid anymore */
-                } else {
-                    fprintf(logfile, "ERROR: Database appears to be empty again.\n");
-                    return;
-                }
             }
+
+            /* We will calculate the next set of history records from this */
+            final_record_ts = hs.records[hs.record_count-1].time_stamp;
 
             pgo_insert_history_set(hs);
             pgo_commit();
@@ -225,7 +218,7 @@ void wait_for_next_live() {
 
     fprintf(logfile, "Current time is %d\n", now);
     fprintf(logfile, "Next live due at %d\n", next_live_due);
-    fprintf(logfile, "Sleep for %d seconds", sleep_time);
+    fprintf(logfile, "Sleep for %d seconds\n", sleep_time);
 
     /* Sleep for a while */
 #ifdef __WIN32
