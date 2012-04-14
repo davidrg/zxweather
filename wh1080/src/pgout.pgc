@@ -75,7 +75,7 @@ void pgo_connect(const char *target, const char *username, const char *password)
     const char * password_l = password;
     EXEC SQL END DECLARE SECTION;
 
-    printf("Connecting to database %s\n", target);
+    fprintf(database_log_file,"Connecting to database %s\n", target);
 
     EXEC SQL CONNECT TO :target_l USER :username_l USING :password_l;
 
