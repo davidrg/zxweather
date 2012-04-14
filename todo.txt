@@ -17,8 +17,6 @@ wh1080 daemon:
 Web interface
   - Tighten up 7 day charts (they currently show a 1 day empty gap at the start
     of each chart)
-  - Monthly charts
-  - Yearly charts
   - Styling
 
 Desktop interface
