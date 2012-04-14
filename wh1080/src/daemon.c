@@ -59,6 +59,7 @@ void daemon(char *server, char *username, char *password, FILE *log_file) {
     history live_record;
 
     /* For dealing with history records */
+    unsigned short range_start_id;    /* First history record to download */
     unsigned short latest_record_id;  /* Latest record in the DB */
     unsigned short current_record_id; /* Current record on the device */
     history_set hs;                   /* History downloaded from the device */
@@ -71,6 +72,8 @@ void daemon(char *server, char *username, char *password, FILE *log_file) {
     BOOL result;
 
     logfile = log_file;
+
+    fprintf(logfile, "Daemon started.\n");
 
     setup(server, username, password, logfile); /* Connect to device, db, etc */
 
@@ -93,24 +96,39 @@ void daemon(char *server, char *username, char *password, FILE *log_file) {
         get_live_record_id(NULL, NULL, &live_record_id);
         live_record = read_history_record(live_record_id);
         pgo_update_live(live_record);
+        fprintf(logfile, "LIVE is id%d\n", live_record_id);
 
         /* If we have a clock_sync_current_ts then current_record_id is already
          * set and valid thanks to clock_sync(). */
         if (clock_sync_current_ts == 0)
             current_record_id = live_record_id - 1;
 
+        fprintf(logfile, "CURRENT is id%d\n", current_record_id);
+
         pgo_get_last_record_number(&latest_record_id, &final_record_ts);
+
+         /* Calculate timestamps from the DB if its not empty */
+        if (final_record_ts != 0)
+            clock_sync_current_ts = 0;
 
         /* Download any history records that have appeared. */
         if (final_record_ts == 0 || current_record_id > latest_record_id) {
             /* final_record_ts == 0  means the database is empty */
 
+            if (final_record_ts == 0)
+                range_start_id = 0; /* Database is empty. Get everything. */
+            else
+                range_start_id = next_record(latest_record_id);
+
             /* There are new history records to load into the database */
             fprintf(logfile, "Download history records %d to %d...",
-                    latest_record_id, current_record_id);
-            hs = read_history_range(latest_record_id, current_record_id);
+                    range_start_id, current_record_id);
+            hs = read_history_range(range_start_id,
+                                    current_record_id);
 
             if (final_record_ts != 0) {
+
+                fprintf(logfile, "Update...\n");
                 /* Calculate timestamps. To do this we must figure out the time
                  * of the first record in the history set. We can do this by adding
                  * its interval onto the timestamp of the final record from the
@@ -125,7 +143,7 @@ void daemon(char *server, char *username, char *password, FILE *log_file) {
                  * weather station record) */
                 if (clock_sync_current_ts != 0) {
                     fprintf(logfile, "Database empty. Performing full load.\n");
-
+                    update_timestamps(&hs,clock_sync_current_ts);
                     clock_sync_current_ts = 0; /* Not valid anymore */
                 } else {
                     fprintf(logfile, "ERROR: Database appears to be empty again.\n");
@@ -139,6 +157,7 @@ void daemon(char *server, char *username, char *password, FILE *log_file) {
         }
 
         wait_for_next_live();
+        fprintf(logfile, "WAKE!\n");
     }
 }
 
@@ -177,6 +196,8 @@ void wait_for_next_live() {
         /* We missed the live record. Figure out when the next one should
          * be due.*/
 
+        fprintf(logfile, "Missed live. Recalculating...\n");
+
         /* This is how far behind we are */
         fixup = now - next_live_due;
 
@@ -191,6 +212,8 @@ void wait_for_next_live() {
 
     if (now == next_live_due) {
         /* Live record is due now. No need to sleep. */
+        fprintf(logfile, "No need for sleep\n");
+        next_live_due += LIVE_UPDATE_INTERVAL;
         return;
     } else {
         sleep_time = next_live_due - now;
@@ -200,6 +223,10 @@ void wait_for_next_live() {
         fprintf(logfile,"WARNING: Sleep time is %d (should be ~48).\n",
                 sleep_time);
 
+    fprintf(logfile, "Current time is %d\n", now);
+    fprintf(logfile, "Next live due at %d\n", next_live_due);
+    fprintf(logfile, "Sleep for %d secods\n", sleep_time);
+
     /* Sleep for a while */
 #ifdef __WIN32
     /* The Win32 function is in miliseconds (POSIX is in seconds) */
@@ -207,6 +234,7 @@ void wait_for_next_live() {
 #else
     sleep(sleep_time);
 #endif
+    next_live_due += LIVE_UPDATE_INTERVAL;
 }
 
 void cleanup() {
