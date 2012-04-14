@@ -74,7 +74,7 @@ int main( int argc, char *argv[] ) {
 
     printf("Go!\n");
     fprintf(logfile, "Launch...\n");
-    daemon(server, username, password, logfile);
+    daemon_main(server, username, password, logfile);
 
     /* If we get this far then something went wrong. */
     cleanup();

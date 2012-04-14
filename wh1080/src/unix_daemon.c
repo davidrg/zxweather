@@ -22,11 +22,14 @@
 
 /* This file is UNIX-specific */
 
+#define _XOPEN_SOURCE 520
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <signal.h>
 
 #include "daemon.h"
 
@@ -44,9 +47,13 @@ void launch_daemon() {
     if (pid < 0)
         exit(EXIT_FAILURE);
 
+    /* If we have a good PID then we can exit. */
+    if (pid > 0)
+        exit(EXIT_SUCCESS);
+
     /* We are now the child process */
     umask(0);
-    sid = getsid();
+    sid = getsid(pid);
     if (sid < 0)
         exit(EXIT_FAILURE);
 
@@ -90,7 +97,7 @@ int main( int argc, char *argv[] ) {
     while ((c = getopt(argc, argv, "d:u:p:f:")) != -1) {
         switch(c) {
         case 'd':
-            database = optarg;
+            server = optarg;
             break;
         case 'u':
             username = optarg;
@@ -127,10 +134,10 @@ int main( int argc, char *argv[] ) {
 
     signal(SIGTERM,Signal_Handler);
 
-    daemon(server, username, password, logfile);
+    daemon_main(server, username, password, logfile);
 
     /* If we get this far then something went wrong. */
-    l_cleaup();
+    l_cleanup();
 
     return EXIT_FAILURE;
 }

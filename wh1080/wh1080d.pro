@@ -41,20 +41,14 @@ ECPG_SOURCES += src/pgout.pgc
 
 SOURCES += src/deviceconfig.c \
     src/deviceio.c \
-    src/debug.c \
     src/history.c \
-    src/conout.c \
-    src/fileout.c \
     src/unix_daemon.c \
     src/daemon.c
 
 HEADERS += \
     src/deviceconfig.h \
     src/deviceio.h \
-    src/debug.h \
-    src/conout.h \
     src/history.h \
-    src/fileout.h \
     src/pgout.h \
     src/version.h \
     src/daemon.h
