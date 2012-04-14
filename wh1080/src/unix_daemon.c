@@ -87,7 +87,7 @@ int main( int argc, char *argv[] ) {
     int c;
     extern char *optarg;
 
-    while ((c = getopt(argc, argv, "d:u:p:f:"))) {
+    while ((c = getopt(argc, argv, "d:u:p:f:")) != -1) {
         switch(c) {
         case 'd':
             database = optarg;
