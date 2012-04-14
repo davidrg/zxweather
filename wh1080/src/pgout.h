@@ -31,7 +31,7 @@ void pgo_connect(const char* target, const char* username, const char *password)
 /* Gets the record number and time stamp of the most recent sample in the
  * database. Used to determine which samples from the weather station need
  * to be imported into the database. */
-void pgo_get_last_record_number(unsigned int *record_number,
+void pgo_get_last_record_number(unsigned short *record_number,
                                 time_t* time_stamp);
 
 /* Inserts an entire history_set, in order, into the database. */

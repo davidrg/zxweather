@@ -88,6 +88,7 @@ int main( int argc, char *argv[] ) {
     extern char *optarg;
 
     while ((c = getopt(argc, argv, "d:u:p:f:"))) {
+        switch(c) {
         case 'd':
             database = optarg;
             break;
@@ -100,6 +101,7 @@ int main( int argc, char *argv[] ) {
         case 'f':
             filename = optarg;
             break;
+        }
     }
 
     if (server == NULL)

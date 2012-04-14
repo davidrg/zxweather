@@ -44,7 +44,7 @@
 BOOL find_range_start(unsigned short *range_start,
                       const unsigned short current_ws_record_id) {
     /* Latest history record available from the database */
-    unsigned int current_db_record_id;
+    unsigned short current_db_record_id;
     time_t current_db_record_timestamp;
     /*history current_db_record_from_ws;*/
 
