@@ -37,8 +37,8 @@ void pgo_get_last_record_number(unsigned short *record_number,
 /* Inserts an entire history_set, in order, into the database. */
 void pgo_insert_history_set(history_set hs);
 
-/* Updates live data in the database */
-void pgo_update_live(history live_data);
+/* Updates live data in the database. Note that this commits the transaction.*/
+void pgo_update_live(history live_record);
 
 /* Commits the current transaction */
 void pgo_commit();

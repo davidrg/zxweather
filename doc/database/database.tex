@@ -214,6 +214,67 @@ This table has the following indices:
 \subsection{Triggers}
 The \verb|compute_sample_values| trigger function is executed for each row inserted. This trigger calculates values for columns such as \verb|dew_point|. See section \ref{compute_sample_values} for more details on this trigger function.
 
+\section{live\_data}
+This table stores live data from the weather station. It only ever contains a single record and as such has no primary key. It is updated by the \verb|wh1080d| program whenever there is new live data. Its set of fields is a subset of those in the sample table.
+
+It has a single trigger on INSERT, DELETE and UPDATE. Inserts and Deletes are blocked, Updates cause a number of fields to be recalculated.
+
+This table does not provide access to live rainfall data. Calculating this would be difficult as it requires access to the previous samples rainfall. The wh1080d application updates live data before downloading and inserting any new history records so the previous samples rainfall data is not available from the live\_data update trigger or within the wh1080d application.
+
+\subsection{Applications}
+The following applications use this table:
+\begin{itemize}
+\item wh1080d/wh1080svc (database update daemon/service)
+\item web interface
+\end{itemize}
+
+\subsection{Columns}
+This table has no primary key. All columns except wind direction allow nulls.
+
+\subsubsection{download\_timestamp}
+When this data was downloaded from the weather station.
+
+\subsubsection{invalid\_data}
+If the record on the weather station had the invalid data status flag set. The WH1080 documentation refers to this as both "rain counter is not valid" and "no sensor data received".
+
+\subsubsection{indoor\_relative\_humidity}
+The relative humidity at the base station. Values are 0-99\%. 
+
+\subsubsection{indoor\_temperature}
+The temperature at the base station in degrees Celsius. 
+
+\subsubsection{relative\_humidity}
+The relative humidity at the outdoor unit. Values are 0-99\%.
+
+\subsubsection{temperature}
+The temperature at the outdoor unit in degrees Celsius.
+
+\subsubsection{dew\_point}
+Dew point. This columns value is calculated on update by a trigger using the dew\_point function (Section \ref{dew_point}). It is calculated from the \verb|temperature| column.
+
+\subsubsection{wind\_chill}
+Wind chill. This columns value is calculated on update by a trigger using the wind\_chill function (Section \ref{wind_chill}). It is calculated from the \verb|temperature| column.
+
+\subsubsection{apparent\_temperature}
+Apparent temperature. This columns value is calculated on update from the \verb|temperature| column by a trigger using the apparent\_temperature function (Section \ref{apparent_temperature}).
+
+\subsubsection{absolute\_pressure}
+The absolute pressure in hectopascals (hPa, same as the millibar).
+
+\subsubsection{relative\_pressure}
+Calculated relative pressure in hectopascals (hPa, same as the millibar).
+
+This column is for future use. Its value is not currently calculated.
+
+\subsubsection{average\_wind\_speed}
+Average wind speed in metres per second.
+
+\subsubsection{gust\_wind\_speed}
+Gust wind speed in metres per second.
+
+\subsubsection{wind\_direction}
+Wind direction. Its type is the \verb|wind_direction| domain type (see section \ref{wind_direction} for valid values).
+
 \chapter{Views}
 \label{cha_views}
 
@@ -379,6 +440,20 @@ where time_stamp = (select max(time_stamp)
 
 The value $19660.8$ is the maximum rainfall accumulator value (65536 * 0.3mm). Rainfall values are calculated based on the total rainfall value of the new record and the previous record in the database.
 
+
+\subsection{live\_data\_update}
+Computes values for the live\_data table updates. If the operation is an
+insert or delete it is blocked.
+
+It computes values for the following fields:
+\begin{itemize}
+\item dew\_point
+\item wind\_chill
+\item apparent\_temperature
+\end{itemize}
+
+It is only used on the live\_data table.
+
 \chapter{Domains}
 \label{cha_domains}
 
@@ -386,7 +461,7 @@ Domains are used on a number of columns to simplify constraints, etc. This chapt
 
 \section{rh\_percentage}
 \label{rh_percentage}
-Used for columns containing relative humidity percentages. Valid values are 1 to 99 (inclusive). It is an \verb|integer| field.
+Used for columns containing relative humidity percentages. Valid values are 1 to 99 (inclusive). It is an \verb|integer| field and does not allow nulls.
 
 \section{wind\_direction}
 \label{wind_direction}

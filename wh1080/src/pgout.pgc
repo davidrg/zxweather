@@ -179,9 +179,45 @@ void pgo_insert_history_set(history_set hs) {
     }
 }
 
-void pgo_update_live(history live_data) {
-    live_data;
-    /* Not implemented yet */
+void pgo_update_live(history live_record) {
+
+    EXEC SQL BEGIN DECLARE SECTION;
+    unsigned short indoor_relative_humidity;
+    float indoor_temperature;
+    unsigned short relative_humidity;
+    float temperature;
+    float absolute_pressure;
+    float average_wind_speed;
+    float gust_wind_speed;
+    char* wind_direction_str;
+    int invalid_data;
+    long download_time;
+    EXEC SQL END DECLARE SECTION;
+
+    indoor_relative_humidity = live_record.indoor_relative_humidity;
+    indoor_temperature = SFP(live_record.indoor_temperature);
+    relative_humidity = live_record.outdoor_relative_humidity;
+    temperature = SFP(live_record.outdoor_temperature);
+    absolute_pressure = SFP(live_record.absolute_pressure);
+    average_wind_speed = SFP(live_record.average_wind_speed);
+    gust_wind_speed = SFP(live_record.gust_wind_speed);
+    wind_direction_str = WIND_DIR(live_record.wind_direction);
+    invalid_data = CHECK_BIT_FLAG(live_record.status, H_SF_INVALID_DATA);
+    download_time = live_record.download_time;
+
+    /* There is only ever one record in live_data */
+    EXEC SQL UPDATE live_data
+             SET download_timestamp = (('epoch'::timestamp) + :download_time * '1 second'::interval) AT TIME ZONE 'GMT',
+                 invalid_data = :invalid_data,
+                 indoor_relative_humidity = :indoor_relative_humidity,
+                 indoor_temperature = :indoor_temperature,
+                 relative_humidity = :relative_humidity,
+                 temperature = :temperature,
+                 absolute_pressure = :absolute_pressure,
+                 average_wind_speed = :average_wind_speed,
+                 gust_wind_speed = :gust_wind_speed,
+                 wind_direction = :wind_direction_str;
+    EXEC SQL COMMIT;
 }
 
 /* Commits the transaction that was opened when we connected */

@@ -96,14 +96,14 @@ void daemon(char *server, char *username, char *password, FILE *log_file) {
         get_live_record_id(NULL, NULL, &live_record_id);
         live_record = read_history_record(live_record_id);
         pgo_update_live(live_record);
-        fprintf(logfile, "LIVE is id%d\n", live_record_id);
+        fprintf(logfile, "LIVE is #%d\n", live_record_id);
 
         /* If we have a clock_sync_current_ts then current_record_id is already
          * set and valid thanks to clock_sync(). */
         if (clock_sync_current_ts == 0)
             current_record_id = live_record_id - 1;
 
-        fprintf(logfile, "CURRENT is id%d\n", current_record_id);
+        fprintf(logfile, "CURRENT is #%d\n", current_record_id);
 
         pgo_get_last_record_number(&latest_record_id, &final_record_ts);
 
@@ -121,7 +121,7 @@ void daemon(char *server, char *username, char *password, FILE *log_file) {
                 range_start_id = next_record(latest_record_id);
 
             /* There are new history records to load into the database */
-            fprintf(logfile, "Download history records %d to %d...",
+            fprintf(logfile, "Download history records %d to %d...\n",
                     range_start_id, current_record_id);
             hs = read_history_range(range_start_id,
                                     current_record_id);
@@ -225,7 +225,7 @@ void wait_for_next_live() {
 
     fprintf(logfile, "Current time is %d\n", now);
     fprintf(logfile, "Next live due at %d\n", next_live_due);
-    fprintf(logfile, "Sleep for %d secods\n", sleep_time);
+    fprintf(logfile, "Sleep for %d seconds", sleep_time);
 
     /* Sleep for a while */
 #ifdef __WIN32
