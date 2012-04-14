@@ -53,7 +53,7 @@ void setup(char *server, char *username, char *password, FILE *logfile);
  *  6. Sleep for 48 seconds
  *  7. Go to 4
  */
-void daemon(char *server, char *username, char *password, FILE *log_file) {
+void daemon_main(char *server, char *username, char *password, FILE *log_file) {
     /* This is the live record. We will fetch this every 48 seconds */
     unsigned short live_record_id;
     history live_record;
@@ -157,9 +157,13 @@ void daemon(char *server, char *username, char *password, FILE *log_file) {
 /* Setup the connection, log file, etc */
 void setup(char *server, char *username, char *password, FILE *logfile) {
     extern FILE* history_log_file;
+    extern FILE* database_log_file;
 
     /* This is where any log messages from history.c go to */
     history_log_file = logfile;
+
+    /* Redirect error messages from pgout.pgc */
+    database_log_file = logfile;
 
     fprintf(logfile, "Open Device...\n");
     open_device();

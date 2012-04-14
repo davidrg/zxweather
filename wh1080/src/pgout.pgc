@@ -35,6 +35,8 @@
 #include "pgout.h"
 #include "common.h"
 
+FILE* database_log_file = NULL;
+
 static char* wind_direction[] = {"N", "NNE", "NE", "ENE", "E", "ESE", "SE",
                                 "SSE", "S", "SSW", "SW", "WSW", "W", "WNW",
                                 "NW", "NNW", "INV"};
@@ -46,17 +48,19 @@ EXEC SQL WHENEVER SQLERROR CALL pgo_print_sqlca();
  * transaction, disconnect from the server and exit */
 void pgo_print_sqlca()
 {
-    fprintf(stderr, "==== sqlca ====\n");
-    fprintf(stderr, "sqlcode: %ld\n", sqlca.sqlcode);
-    fprintf(stderr, "sqlerrm.sqlerrml: %d\n", sqlca.sqlerrm.sqlerrml);
-    fprintf(stderr, "sqlerrm.sqlerrmc: %s\n", sqlca.sqlerrm.sqlerrmc);
-    fprintf(stderr, "sqlerrd: %ld %ld %ld %ld %ld %ld\n", sqlca.sqlerrd[0],sqlca.sqlerrd[1],sqlca.sqlerrd[2],
+    if (database_log_file == NULL) database_log_file = stderr;
+
+    fprintf(database_log_file, "==== sqlca ====\n");
+    fprintf(database_log_file, "sqlcode: %ld\n", sqlca.sqlcode);
+    fprintf(database_log_file, "sqlerrm.sqlerrml: %d\n", sqlca.sqlerrm.sqlerrml);
+    fprintf(database_log_file, "sqlerrm.sqlerrmc: %s\n", sqlca.sqlerrm.sqlerrmc);
+    fprintf(database_log_file, "sqlerrd: %ld %ld %ld %ld %ld %ld\n", sqlca.sqlerrd[0],sqlca.sqlerrd[1],sqlca.sqlerrd[2],
                                                           sqlca.sqlerrd[3],sqlca.sqlerrd[4],sqlca.sqlerrd[5]);
-    fprintf(stderr, "sqlwarn: %d %d %d %d %d %d %d %d\n", sqlca.sqlwarn[0], sqlca.sqlwarn[1], sqlca.sqlwarn[2],
+    fprintf(database_log_file, "sqlwarn: %d %d %d %d %d %d %d %d\n", sqlca.sqlwarn[0], sqlca.sqlwarn[1], sqlca.sqlwarn[2],
                                                           sqlca.sqlwarn[3], sqlca.sqlwarn[4], sqlca.sqlwarn[5],
                                                           sqlca.sqlwarn[6], sqlca.sqlwarn[7]);
-    fprintf(stderr, "sqlstate: %5s\n", sqlca.sqlstate);
-    fprintf(stderr, "===============\n");
+    fprintf(database_log_file, "sqlstate: %5s\n", sqlca.sqlstate);
+    fprintf(database_log_file, "===============\n");
     exit(EXIT_FAILURE);
    /* rollback();
     disconnect();

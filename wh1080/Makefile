@@ -2,7 +2,7 @@
 # zxweather makefile for linux
 ###############################################################################
 
-all: wh1080 wh1080memdump wh1080readdump
+all: wh1080 wh1080d wh1080memdump wh1080readdump
 
 CC       ?= gcc
 CFLAGS   ?= -Wall -g
@@ -26,6 +26,9 @@ MD_OBJS   = src/memdump.o src/debug.o $(DEVIO_OBJ)
 # Objects for readdump
 RD_OBJS   = src/readdump.o src/fileio.o src/conout.o src/deviceconfig.o src/history.o
 
+# Objects for wh1080d (unix daemon)
+UD_OBJS   = src/unix_daemon.o src/daemon.o src/deviceconfig.o src/history.o $(DEVIO_OBJ) $(DBIO_OBJ)
+
 # All objects that don't require memdump stuff
 ALL_OBJS      = src/main.o src/deviceconfig.o src/conout.o src/debug.o src/history.o src/fileout.o
 
@@ -39,6 +42,9 @@ ECPG_INCLUDES = -I/usr/include/postgresql
 
 wh1080 : $(CW_OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(USB_LIBS) $(ECPG_LIBS) -o wh1080
+
+wh1080d: $(UD_OBJS)
+	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(USB_LIBS) $(ECPG_LIBS) -o wh1080d
 
 wh1080memdump: $(MD_OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(USB_LIBS) -o wh1080memdump
@@ -60,7 +66,7 @@ $(ALL_OBJS): %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(ALL_OBJS) $(DEVIO_OBJ) $(DBIO_OBJ) $(PGC_SRC) cweather memdump readdump
+	rm -f $(ALL_OBJS) $(DEVIO_OBJ) $(DBIO_OBJ) $(PGC_SRC) wh1080 wh1080d wh1080memdump wh1080readdump
 
 .PHONY: clean
 
