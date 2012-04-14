@@ -464,7 +464,7 @@ void reverse_update_timestamps(history_set *hs, time_t timestamp) {
              * from the newest to the oldest) we take the next newest records
              * timestamp and subtract its offset from this record. */
             this_timestamp = hs->records[i-1].time_stamp;
-            this_timestamp -= hs->records[i-1].sample_time * 60;
+            this_timestamp += hs->records[i-1].sample_time * 60;
             hs->records[i].time_stamp = this_timestamp;
         }
     }
