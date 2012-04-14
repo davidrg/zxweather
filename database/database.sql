@@ -81,7 +81,7 @@ COMMENT ON COLUMN sample.rain_overflow IS 'If an overflow in the total_rain coun
 CREATE TABLE live_data
 (
   download_timestamp timestamp with time zone, -- When this record was downloaded from the weather station
-  invalid_data boolean, -- If the record from the weather stations "no sensor data received" flag is set.
+  invalid_data boolean not null, -- If the record from the weather stations "no sensor data received" flag is set.
   indoor_relative_humidity integer, -- Relative Humidity at the base station
   indoor_temperature real, -- Temperature at the base station
   relative_humidity integer, -- Relative Humidity
@@ -115,7 +115,7 @@ COMMENT ON COLUMN live_data.gust_wind_speed IS 'Gust wind speed in m/s.';
 COMMENT ON COLUMN live_data.wind_direction IS 'Wind Direction.';
 
 -- Live data table must always have one and only one record.
-insert into live_data(download_timestamp, wind_direction) values(null, 'INV')
+insert into live_data(download_timestamp, wind_direction,invalid_data) values(null, 'INV',true)
 
 ----------------------------------------------------------------------
 -- INDICIES ----------------------------------------------------------
@@ -609,13 +609,15 @@ $BODY$
 COMMENT ON FUNCTION compute_sample_values() IS 'Calculates values for all calculated fields (wind chill, dew point, rainfall, etc).';
 
 -- Prevents anything but updates happening to rows and calculates dewpoint, wind chill, apparent temperature, etc.
-CREATE FUNCTION live_data_update() RETURNS trigger AS
+CREATE OR REPLACE FUNCTION live_data_update() RETURNS trigger AS
 $BODY$BEGIN
     IF(TG_OP = 'UPDATE') THEN
         -- Various calculated temperatures
         NEW.dew_point = dew_point(NEW.temperature, NEW.relative_humidity);
         NEW.wind_chill = wind_chill(NEW.temperature, NEW.average_wind_speed);
         NEW.apparent_temperature = apparent_temperature(NEW.temperature, NEW.average_wind_speed, NEW.relative_humidity);
+
+        NOTIFY live_data_updated;
 
         -- Allow UPDATE
         RETURN NEW;

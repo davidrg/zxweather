@@ -229,13 +229,13 @@ The following applications use this table:
 \end{itemize}
 
 \subsection{Columns}
-This table has no primary key. All columns except wind direction allow nulls.
+This table has no primary key. All columns except wind direction and invalid data allow nulls.
 
 \subsubsection{download\_timestamp}
 When this data was downloaded from the weather station.
 
 \subsubsection{invalid\_data}
-If the record on the weather station had the invalid data status flag set. The WH1080 documentation refers to this as both "rain counter is not valid" and "no sensor data received".
+If the record on the weather station had the invalid data status flag set. The WH1080 documentation refers to this as both "rain counter is not valid" and "no sensor data received". This column must not be null.
 
 \subsubsection{indoor\_relative\_humidity}
 The relative humidity at the base station. Values are 0-99\%. 
@@ -452,6 +452,8 @@ It computes values for the following fields:
 \item apparent\_temperature
 \end{itemize}
 
+It also generates a notification on channel live\_data\_updated,
+
 It is only used on the live\_data table.
 
 \chapter{Domains}
@@ -493,7 +495,12 @@ its type is \verb|character varying(3)|
 \chapter{Notification Channels}
 \label{cha_notify}
 
-The PostgreSQL notify feature will be used in the future to notify connected programs of new sample data and updated live data. This feature is not used at this time.
+zxweather uses the PostgreSQL NOTIFY feature to notify components of the system that new data has arrived. This chapter covers the notification channels used by zxweather and their meaning.
+
+\section{live\_data\_updated}
+A message with no payload is broadcast on this channel when data in the live\_data table has been updated. The notification event is sent automatically from the live\_data\_update trigger function.
+
+Clients interested in displaying live data should listen on this channel rather than polling the database.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

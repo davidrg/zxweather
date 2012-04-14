@@ -11,10 +11,13 @@
         <a href="#1day">1-day charts</a> | 
         <a href="#7day">7-day charts</a>
     </center>
+
     {% if data.current_data %}
+    {% if data.current_data.invalid_data %}
+        <p>Live data is invalid.</p>
+    {% else %}
     <a name="current">
     <h2>Conditions as of {{ data.current_data_ts }}</h2>
-    <p>Data is for the five minute period ending at {{ data.current_data_ts }}</p>
     <table border=2>
         <tr bgcolor="lightseagreen">
             <td><b>Sensor</b></td>
@@ -55,12 +58,13 @@
         <tr bgcolor="blanchedalmond">
             <td>Wind Direction</td>
             <td>{{ data.current_data.wind_direction }}</td>
-        </tr>
+        </tr> {#
         <tr bgcolor="blanchedalmond">
             <td>Rainfall</td>
             <td>{{ data.current_data.rainfall|round(1) }} mm</td>
-        </tr>
+        </tr> #}
     </table>
+    {% endif %}
     {% endif %}
     <a name="records">
     <h2>Records</h2>

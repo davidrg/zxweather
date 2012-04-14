@@ -292,9 +292,21 @@ Additionally, on UNIX systems libusb-1.0 is required.
 On all systems libecpg and libpgtypes are required. On UNIX libusb-1.0 is required. When distributing window binaries hidapi.dll must be supplied.
 
 \chapter{wh1080d and wh1080svc}
-wh1080d is a daemon (service in windows) which continuously feeds weather data into the database. The live data record is updated every 48 seconds and new history records are inserted when ever they appear on the device.
+wh1080d is a daemon (service in windows) which continuously feeds weather data into the database. The live\_data table is updated every 48 seconds and new history records are inserted whenever they appear on the device.
 
 wh1080d and wh1080svc both perform the same job and take the same command-line arguments. There are two of them as they are platform-specific; wh1080d is a daemon for UNIX-like systems and wh1080svc is a service for Windows NT systems. 
+
+
+\section{Command-line Arguments}
+\begin{tabular}{l l p{10cm}}
+\hline
+\textbf{Argument} & \textbf{Parameter} & \textbf{Description} \\
+\hline
+-d & database & Database connection string \\
+-u & username & Database username \\
+-p & password & Database password \\
+\hline
+\end{tabular}
 
 \section{Compilation Requirements}
 The following is required to compile this program on all supported platforms:

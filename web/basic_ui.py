@@ -1,10 +1,34 @@
 import datetime
 import web
 from web.contrib.template import render_jinja
-from baseui import month_name, month_number
-from config import db
+from config import db, live_data_available
 
 __author__ = 'David Goodwin'
+
+month_name = {1 : 'january',
+              2 : 'february',
+              3 : 'march',
+              4 : 'april',
+              5 : 'may',
+              6 : 'june',
+              7 : 'july',
+              8 : 'august',
+              9 : 'september',
+              10: 'october',
+              11: 'november',
+              12: 'december'}
+month_number = {'january'  : 1,
+                'february' : 2,
+                'march'    : 3,
+                'april'    : 4,
+                'may'      : 5,
+                'june'     : 6,
+                'july'     : 7,
+                'august'   : 8,
+                'september': 9,
+                'october'  : 10,
+                'november' : 11,
+                'december' : 12}
 
 render = render_jinja('basic_templates',      # Template directory
                       encoding='utf-8')       # Encoding
@@ -252,12 +276,20 @@ def get_day(station, year, month, day):
             raise web.NotFound()
     data.records = daily_records[0]
 
-    if today:
+    if today and live_data_available:
+        # No need to filter or anything - live_data only contains one record.
+        data.current_data = db.query("""select timetz(download_timestamp) as time_stamp,
+                invalid_data, relative_humidity, temperature, dew_point,
+                wind_chill, apparent_temperature, absolute_pressure,
+                average_wind_speed, gust_wind_speed, wind_direction
+                from live_data""")[0]
+        data.current_data_ts = data.current_data.time_stamp
+    elif today:
         # Fetch the latest data for today
         data.current_data = db.query("""select timetz(time_stamp) as time_stamp, relative_humidity,
                 temperature,dew_point, wind_chill, apparent_temperature,
                 absolute_pressure, average_wind_speed, gust_wind_speed,
-                wind_direction, rainfall
+                wind_direction, invalid_data
             from sample
             where date(time_stamp) = $date
             order by time_stamp desc
