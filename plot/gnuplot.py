@@ -30,9 +30,12 @@ def plot_graph(output_filename, title=None, xdata_time=False, ylabel=None,
 
     print("Plot {0}".format(output_filename))
 
+    # Line graph with a grid written to output_filename.
+    # 'set datafile missing "?"' sets the ? character to mean missing data.
     script = """set style data lines
 set grid
 set output "{0}"
+set datafile missing "?"
 """.format(output_filename)
 
     if width is not None and height is not None:
@@ -81,7 +84,11 @@ set output "{0}"
         for line in lines:
             if not script.endswith("plot "):
                 script += ", "
-            script += "'{0}' using {1}:{2} title \"{3}\"".format(line['filename'],
+
+            # We format the second column as ($n) so we don't join dots in the
+            # case of missing data.
+            script += "'{0}' using {1}:(${2}) title \"{3}\"".format(line['filename'],
                                                                  line['xcol'], line['ycol'], line['title'])
+
         gnuplot = subprocess.Popen([gnuplot_binary], stdin=subprocess.PIPE)
         gnuplot.communicate(script)
