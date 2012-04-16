@@ -14,12 +14,27 @@ def charts_1_day(cur, dest_dir, day, month, year):
     """
 
     date = '{0}-{1}-{2}'.format(day, month, year)
-    cur.execute("""select time_stamp::time, temperature, dew_point,
-        apparent_temperature, wind_chill, relative_humidity, absolute_pressure,
-        indoor_temperature, indoor_relative_humidity
-        from sample where date(time_stamp) = %s::date
-        order by time_stamp asc""", (date,))
+    cur.execute("""select cur.time_stamp::time,
+       cur.temperature,
+       cur.dew_point,
+       cur.apparent_temperature,
+       cur.wind_chill,
+       cur.relative_humidity,
+       cur.absolute_pressure,
+       cur.indoor_temperature,
+       cur.indoor_relative_humidity,
+       cur.time_stamp::time - (cur.sample_interval * '1 minute'::interval) as prev_sample_time,
+       CASE WHEN (cur.time_stamp - prev.time_stamp) > ((cur.sample_interval * 2) * '1 minute'::interval) THEN
+          true
+       else
+          false
+       end as gap
+from sample cur, sample prev
+where date(cur.time_stamp) = %s::date
+  and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < cur.time_stamp)
+order by cur.time_stamp asc""", (date,))
     weather_data = cur.fetchall()
+
     # Columns in the query
     COL_TIMESTAMP = 0
     COL_TEMPERATURE = 1
@@ -30,6 +45,8 @@ def charts_1_day(cur, dest_dir, day, month, year):
     COL_ABS_PRESSURE = 6
     COL_INDOOR_TEMP = 7
     COL_INDOOR_REL_HUMIDITY = 8
+    COL_PREV_TIMESTAMP = 9
+    COL_PREV_SAMPLE_MISSING = 10
 
     # Fields in the data file for gnuplot. Field numbers start at 1.
     FIELD_TIMESTAMP = COL_TIMESTAMP + 1
@@ -44,18 +61,23 @@ def charts_1_day(cur, dest_dir, day, month, year):
     # Write the data file for gnuplot
     file_data = [
         '# timestamp  temperature  dew point  apparent temperature  wind chill  relative humidity  absolute pressure  indoor temperature  indoor relative humidity\n']
+
+    FORMAT_STRING = '{0}        {1}        {2}        {3}        {4}        {5}        {6}        {7}        {8}\n'
     for record in weather_data:
-        file_data.append(
-            '{0}        {1}        {2}        {3}        {4}        {5}        {6}        {7}        {8}\n'
-            .format(str(record[COL_TIMESTAMP]),
-                    str(record[COL_TEMPERATURE]),
-                    str(record[COL_DEW_POINT]),
-                    str(record[COL_APPARENT_TEMP]),
-                    str(record[COL_WIND_CHILL]),
-                    str(record[COL_REL_HUMIDITY]),
-                    str(record[COL_ABS_PRESSURE]),
-                    str(record[COL_INDOOR_TEMP]),
-                    str(record[COL_INDOOR_REL_HUMIDITY])))
+        # Handle missing data.
+        if record[COL_PREV_SAMPLE_MISSING]:
+            file_data.append(FORMAT_STRING.format(str(record[COL_PREV_TIMESTAMP]),
+                                                  '?','?','?','?','?','?','?','?'))
+
+        file_data.append(FORMAT_STRING.format(str(record[COL_TIMESTAMP]),
+                                              str(record[COL_TEMPERATURE]),
+                                              str(record[COL_DEW_POINT]),
+                                              str(record[COL_APPARENT_TEMP]),
+                                              str(record[COL_WIND_CHILL]),
+                                              str(record[COL_REL_HUMIDITY]),
+                                              str(record[COL_ABS_PRESSURE]),
+                                              str(record[COL_INDOOR_TEMP]),
+                                              str(record[COL_INDOOR_REL_HUMIDITY])))
     data_filename = dest_dir + 'gnuplot_data.dat'
     file = open(data_filename, 'w+')
     file.writelines(file_data)
@@ -183,11 +205,18 @@ def charts_7_days(cur, dest_dir, day, month, year):
        s.relative_humidity,
        s.absolute_pressure,
        s.indoor_temperature,
-       s.indoor_relative_humidity
-from sample s,
+       s.indoor_relative_humidity,
+       s.time_stamp::time - (s.sample_interval * '1 minute'::interval) as prev_sample_time,
+       CASE WHEN (s.time_stamp - prev.time_stamp) > ((s.sample_interval * 2) * '1 minute'::interval) THEN
+          true
+       else
+          false
+       end as gap
+from sample s, sample prev,
      (select max(time_stamp) as ts from sample where date(time_stamp) = %s::date::date) as max_ts
 where s.time_stamp <= max_ts.ts     -- 604800 seconds in a week.
   and s.time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
+  and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp)
 order by s.time_stamp asc
 """, (date,))
     temperature_data = cur.fetchall()
@@ -202,6 +231,8 @@ order by s.time_stamp asc
     COL_ABS_PRESSURE = 6
     COL_INDOOR_TEMP = 7
     COL_INDOOR_REL_HUMIDITY = 8
+    COL_PREV_TIMESTAMP = 9
+    COL_PREV_SAMPLE_MISSING = 10
 
     # Fields in the data file for gnuplot. Field numbers start at 1.
     FIELD_TIMESTAMP = COL_TIMESTAMP + 1
@@ -219,18 +250,22 @@ order by s.time_stamp asc
     # Write the data file for gnuplot
     file_data = [
         '# timestamp  temperature  dew point  apparent temperature  wind chill  relative humidity  absolute pressure  indoor temperature  indoor relative humidity\n']
+    FORMAT_STRING = '{0}        {1}        {2}        {3}        {4}        {5}        {6}        {7}        {8}\n'
     for record in temperature_data:
-        file_data.append(
-            '{0}        {1}        {2}        {3}        {4}        {5}        {6}        {7}        {8}\n'
-            .format(str(record[COL_TIMESTAMP]),
-                    str(record[COL_TEMPERATURE]),
-                    str(record[COL_DEW_POINT]),
-                    str(record[COL_APPARENT_TEMP]),
-                    str(record[COL_WIND_CHILL]),
-                    str(record[COL_REL_HUMIDITY]),
-                    str(record[COL_ABS_PRESSURE]),
-                    str(record[COL_INDOOR_TEMP]),
-                    str(record[COL_INDOOR_REL_HUMIDITY])))
+        # Handle missing data.
+        if record[COL_PREV_SAMPLE_MISSING]:
+            file_data.append(FORMAT_STRING.format(str(record[COL_PREV_TIMESTAMP]),
+                                                  '?','?','?','?','?','?','?','?'))
+
+        file_data.append(FORMAT_STRING.format(str(record[COL_TIMESTAMP]),
+                                              str(record[COL_TEMPERATURE]),
+                                              str(record[COL_DEW_POINT]),
+                                              str(record[COL_APPARENT_TEMP]),
+                                              str(record[COL_WIND_CHILL]),
+                                              str(record[COL_REL_HUMIDITY]),
+                                              str(record[COL_ABS_PRESSURE]),
+                                              str(record[COL_INDOOR_TEMP]),
+                                              str(record[COL_INDOOR_REL_HUMIDITY])))
     data_filename = dest_dir + '7-day_gnuplot_data.dat'
     file = open(data_filename, 'w+')
     file.writelines(file_data)
