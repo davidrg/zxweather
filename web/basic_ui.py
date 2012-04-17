@@ -225,7 +225,16 @@ class indoor_day:
         # page
         now = datetime.datetime.now()
         params = dict(date=data.date_stamp)
+        today = False
         if now.day == int(day) and now.month == month_number[month] and now.year == int(year):
+            today = True
+        if today and live_data_available:
+            data.current_data = db.query("""select timetz(download_timestamp) as time_stamp,
+                indoor_relative_humidity,
+                indoor_temperature
+                from live_data""")
+            data.current_data_ts = data.current_data.time_stamp
+        elif today:
             # Fetch the latest data for today
             data.current_data = db.query("""select timetz(time_stamp) as time_stamp,
                 indoor_relative_humidity,
