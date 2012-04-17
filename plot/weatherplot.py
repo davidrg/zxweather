@@ -6,6 +6,8 @@ from optparse import OptionParser
 import os
 import pickle
 import psycopg2
+import time
+import signal
 from day_charts import charts_1_day, charts_7_days
 from month_charts import month_charts
 
@@ -32,6 +34,11 @@ start_date = date(2012,4,16)
 # be written to disk when we finish to be the start_date next time.
 final_date = date(1900,01,01)
 
+# Handle Ctr;+C nicely.
+def handler(signum, frame):
+    print("weatherplot stopped.")
+    exit()
+signal.signal(signal.SIGINT, handler)
 
 def plot_day(dest_dir, cur, year, month, day):
     global start_date, final_date
@@ -152,6 +159,8 @@ def main():
                       help="Output Directory")
     parser.add_option("-a", "--plot-new", dest="plot_new",
                       help="Plot charts for days on or after the date in the specified file")
+    parser.add_option("-r", "--replot-pause", dest="replot_pause",
+                      help="Charts will be replotted every x seconds until Ctrl+C is used to terminate the program")
 
     (options, args) = parser.parse_args()
 
@@ -179,10 +188,6 @@ def main():
     if not dest_dir.endswith('/'):
         dest_dir += '/'
 
-    # First up, figure out what years we have
-    cur.execute("select distinct extract(year from time_stamp) from sample")
-    years = cur.fetchall()
-
     if options.plot_new is not None:
         try:
             with open(options.plot_new, "r") as update_file:
@@ -192,12 +197,26 @@ def main():
             print("Update file does not exist. It will be created.")
             # If it doesn't exist the start date is already initialised to 1900/01/01
 
-    for year in years:
-        plot_year(dest_dir, cur, int(year[0]))
+    while True:
+        # First up, figure out what years we have
+        cur.execute("select distinct extract(year from time_stamp) from sample")
+        years = cur.fetchall()
 
-    if options.plot_new is not None:
-        with open(options.plot_new,"w") as update_file:
-            pickle.dump(final_date, update_file)
+        for year in years:
+            plot_year(dest_dir, cur, int(year[0]))
+
+        # Update stored date for next time
+        if options.plot_new is not None:
+            with open(options.plot_new,"w") as update_file:
+                pickle.dump(final_date, update_file)
+            start_date = final_date
+
+        if options.replot_pause is None:
+            break # Only doing one plot
+        else:
+            # Replotting every x seconds.
+            print("Waiting for {0} seconds to plot again. Press Ctrl+C to terminate.".format(options.replot_pause))
+            time.sleep(float(options.replot_pause))
 
     print("Finished.")
 
