@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 
 from __future__ import print_function
+from datetime import date
 from optparse import OptionParser
 import os
+import pickle
 import psycopg2
 from day_charts import charts_1_day, charts_7_days
 from month_charts import month_charts
@@ -22,9 +24,25 @@ month_name = {1 : 'january',
               11: 'november',
               12: 'december'}
 
+# Where we should start plotting from. That is, we will plot all charts for
+# years, months and days greater than or equal to this one.
+start_date = date(2012,4,16)
+
+# Last date that we plotted for. This will climb as the program runs and then
+# be written to disk when we finish to be the start_date next time.
+final_date = date(1900,01,01)
+
 
 def plot_day(dest_dir, cur, year, month, day):
-    print("Plotting graphs for {0} {1} {2}...".format(year, month_name[month], day))
+    global start_date, final_date
+
+    print("Plotting graphs for {0} {1} {2}...".format(year, month_name[month], day),end='')
+
+    if date(year,month,day) < start_date:
+        print("Skip")
+        return
+    else:
+        print("") # newline
 
     dest_dir += str(day) + '/'
 
@@ -36,10 +54,21 @@ def plot_day(dest_dir, cur, year, month, day):
     # Plot the 1-day charts
     charts_1_day(cur, dest_dir, day, month, year)
     charts_7_days(cur, dest_dir, day, month, year)
+
+    final_date = date(year,month, day)
     pass
 
 def plot_month(dest_dir, cur, year, month):
-    print("Plotting graphs for {0} {1}...".format(year, month_name[month]))
+    global start_date
+
+    print("Plotting graphs for {0} {1}...".format(year, month_name[month]),end="")
+
+    if year < start_date.year or (year == start_date.year and month < start_date.month):
+        print("Skip")
+        return
+    else:
+        print("") # newline
+
 
     dest_dir += month_name[month] + '/'
 
@@ -76,7 +105,16 @@ def plot_year(dest_dir, cur, year):
     :return:
     :rtype:
     """
-    print("Plotting graphs for {0}...".format(year))
+    global start_date
+
+    print("Plotting graphs for {0}...".format(year),end="")
+
+    if year < start_date.year:
+        print("Skip")
+        return
+    else:
+        print("") # newline
+
     dest_dir += str(year) + '/'
 
     # Generate graphs for the entire year
@@ -98,6 +136,8 @@ def main():
     :rtype:
     """
 
+    global start_date, final_date
+
     # Configure and run the option parser
     parser = OptionParser()
     parser.add_option("-t", "--database",dest="dbname",
@@ -110,6 +150,8 @@ def main():
                       help="PostgreSQL Password")
     parser.add_option("-d", "--directory", dest="directory",
                       help="Output Directory")
+    parser.add_option("-a", "--plot-new", dest="plot_new",
+                      help="Plot charts for days on or after the date in the specified file")
 
     (options, args) = parser.parse_args()
 
@@ -141,14 +183,23 @@ def main():
     cur.execute("select distinct extract(year from time_stamp) from sample")
     years = cur.fetchall()
 
+    if options.plot_new is not None:
+        try:
+            with open(options.plot_new, "r") as update_file:
+                start_date = pickle.load(update_file)
+                print("Plotting from {0}".format(start_date))
+        except IOError:
+            print("Update file does not exist. It will be created.")
+            # If it doesn't exist the start date is already initialised to 1900/01/01
+
     for year in years:
         plot_year(dest_dir, cur, int(year[0]))
 
+    if options.plot_new is not None:
+        with open(options.plot_new,"w") as update_file:
+            pickle.dump(final_date, update_file)
+
     print("Finished.")
-
-
-
-
 
 
 
