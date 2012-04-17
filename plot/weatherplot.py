@@ -5,6 +5,7 @@ from datetime import date
 from optparse import OptionParser
 import os
 import pickle
+import datetime
 import psycopg2
 import time
 import signal
@@ -210,6 +211,8 @@ def main():
             with open(options.plot_new,"w") as update_file:
                 pickle.dump(final_date, update_file)
             start_date = final_date
+
+        print("Plot completed at {0}".format(datetime.datetime.now()))
 
         if options.replot_pause is None:
             break # Only doing one plot
