@@ -14,6 +14,6 @@ default_station_name = 'hrua' # Hamilton, Ruakura
 
 # Set this to True if you are running wh1080d to feed samples and live data
 # into the database.
-live_data_available = False
+live_data_available = True
 
 static_data_dir = 'Z:/current/zxweather/web/static/'
