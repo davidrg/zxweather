@@ -45,6 +45,7 @@ class index:
            ui not in valid_uis:
             raise web.NotFound()
 
+        web.header('Content-Type','text/html')
         return "Station: '" + station + "', UI: '" + ui + "'"
 
 class now:
@@ -74,6 +75,7 @@ class year:
            ui not in valid_uis:
             raise web.NotFound()
 
+        web.header('Content-Type','text/html')
         if ui == 'b':
             return basic_ui.get_year(station, int(year))
 
@@ -91,6 +93,7 @@ class month:
            month not in month_number:
             raise web.NotFound()
 
+        web.header('Content-Type','text/html')
         if ui == 'b':
             return basic_ui.get_month(station, int(year), month_number[month])
 
@@ -107,6 +110,7 @@ class day:
            month not in month_number:
             raise web.NotFound()
 
+        web.header('Content-Type','text/html')
         if ui == 'b':
             return basic_ui.get_day(station, int(year), month_number[month], int(day))
 

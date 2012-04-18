@@ -1,8 +1,9 @@
 __author__ = 'David Goodwin'
 
+import os,sys
+sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 import web
 import config
-from web.contrib.template import render_jinja
 
 # This is the URL structure for the site
 urls = (
@@ -26,7 +27,6 @@ urls = (
 #    '/(\w*)/(.*)', 'baseui.file',  # Station-specific stuff
 )
 
-app = web.application(urls, globals())
 
 class site_index:
     """
@@ -54,8 +54,16 @@ class station:
                                         "' does not exist.")
 
     def _render_station(self, station_name):
+        web.header('Content-Type','text/plain')
         return "Station info goes here. You are at /hrua/"
 
 # This is so we can run it as an application to launch a development web
 # server.
-if __name__ == "__main__": app.run()
+if __name__ == "__main__":
+    app = web.application(urls, globals())
+    app.run()
+else:
+    # No autoreloading for production
+    app = web.application(urls, globals(), autoreload=False)
+
+application = app.wsgifunc()
