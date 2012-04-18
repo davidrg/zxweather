@@ -2,6 +2,7 @@ import datetime
 import web
 from web.contrib.template import render_jinja
 from config import db, live_data_available
+import os
 
 __author__ = 'David Goodwin'
 
@@ -30,7 +31,7 @@ month_number = {'january'  : 1,
                 'november' : 11,
                 'december' : 12}
 
-render = render_jinja('basic_templates',      # Template directory
+render = render_jinja(os.path.join(os.path.dirname(__file__),os.path.join('basic_templates')),      # Template directory
                       encoding='utf-8')       # Encoding
 
 class index:
@@ -232,7 +233,7 @@ class indoor_day:
             data.current_data = db.query("""select timetz(download_timestamp) as time_stamp,
                 indoor_relative_humidity,
                 indoor_temperature
-                from live_data""")
+                from live_data""")[0]
             data.current_data_ts = data.current_data.time_stamp
         elif today:
             # Fetch the latest data for today

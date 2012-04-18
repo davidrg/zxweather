@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 from __future__ import print_function
 from datetime import date
 from optparse import OptionParser
@@ -29,7 +28,7 @@ month_name = {1 : 'january',
 
 # Where we should start plotting from. That is, we will plot all charts for
 # years, months and days greater than or equal to this one.
-start_date = date(2012,4,16)
+start_date = date(1900,01,01)
 
 # Last date that we plotted for. This will climb as the program runs and then
 # be written to disk when we finish to be the start_date next time.
