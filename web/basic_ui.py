@@ -54,7 +54,13 @@ class BasicUI:
         :param station:
         :return:
         """
-        return "Station: '" + station + "'"
+
+        years_result = db.query("select distinct extract(year from time_stamp) as year from sample order by year desc")
+        years = []
+        for record in years_result:
+            years.append(int(record.year))
+
+        return self.render.station(years=years,station=station)
 
     def get_year(self,station, year):
         """
@@ -122,7 +128,6 @@ class BasicUI:
             data.next_url = '../' + str(data.next_year)
 
         return self.render.year(data=data)
-
 
     def get_month(self,station, year, month):
 

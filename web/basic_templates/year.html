@@ -1,7 +1,7 @@
 {# This template is for a daily overview. #}
 
 {% extends "base.html" %}
-{% block title %}Weather for {{ data.this_month }}{% endblock %}
+{% block title %}Weather for {{ data.this_year }}{% endblock %}
 {% block content %}
 
     <h1>Weather for {{ data.this_month }}</h1>
@@ -72,7 +72,7 @@
             &lt;&lt; {{ data.prev_year }}
         {% endif %}
         |
-        {{ data.this_year }}
+        <a href="../">Station</a>
         |
         {% if data.next_url %}
             <a href="{{ data.next_url }}">{{ data.next_year }} &gt;&gt;</a>
