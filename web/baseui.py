@@ -1,8 +1,14 @@
+"""
+The code in this file receives requests from the URL router, processes them
+slightly, puts on the content-type header where required and then dispatches
+to the appropriate handler function for the specified UI.
+"""
+
 import datetime
 from mimetypes import guess_type
 import os
 import web
-import basic_ui
+from basic_ui import BasicUI
 import config
 
 __author__ = 'David Goodwin'
@@ -32,7 +38,8 @@ month_number = {'january'  : 1,
                 'november' : 11,
                 'december' : 12}
 
-valid_uis = ('m','a','b')
+# Register available UIs
+uis = {BasicUI.ui_code(): BasicUI()}
 
 class index:
     """
@@ -42,11 +49,11 @@ class index:
     def GET(self, station, ui):
 
         if station != config.default_station_name or \
-           ui not in valid_uis:
+           ui not in uis:
             raise web.NotFound()
 
         web.header('Content-Type','text/html')
-        return "Station: '" + station + "', UI: '" + ui + "'"
+        return uis[ui].get_station(station)
 
 class now:
     """
@@ -55,7 +62,7 @@ class now:
     def GET(self, station, ui):
 
         if station != config.default_station_name or\
-           ui not in valid_uis:
+           ui not in uis:
             raise web.NotFound()
 
         now = datetime.datetime.now()
@@ -72,15 +79,11 @@ class year:
     def GET(self, station, ui, year):
 
         if station != config.default_station_name or \
-           ui not in valid_uis:
+           ui not in uis:
             raise web.NotFound()
 
         web.header('Content-Type','text/html')
-        if ui == 'b':
-            return basic_ui.get_year(station, int(year))
-
-        return "Station: '" + station + "', UI: '" + ui \
-               + "', Year: '" + str(year) + "'"
+        return uis[ui].get_year(station, int(year))
 
 class month:
     """
@@ -89,16 +92,25 @@ class month:
     def GET(self, station, ui, year, month):
 
         if station != config.default_station_name or \
-           ui not in valid_uis or \
+           ui not in uis or \
            month not in month_number:
             raise web.NotFound()
 
         web.header('Content-Type','text/html')
-        if ui == 'b':
-            return basic_ui.get_month(station, int(year), month_number[month])
+        return uis[ui].get_month(station, int(year), month_number[month])
 
-        return "Station: '" + station + "', UI: '" + ui\
-               + "', Year: '" + year + "', Month: '" + month + "'"
+class indoor_day:
+    """
+    Gives an overview for a day.
+    """
+    def GET(self, station, ui, year, month, day):
+        if station != config.default_station_name or\
+           ui not in uis or\
+           month not in month_number:
+            raise web.NotFound()
+
+        web.header('Content-Type','text/html')
+        return uis[ui].get_indoor_day(station, int(year), month_number[month], int(day))
 
 class day:
     """
@@ -106,17 +118,12 @@ class day:
     """
     def GET(self, station, ui, year, month, day):
         if station != config.default_station_name or \
-           ui not in valid_uis or \
+           ui not in uis or \
            month not in month_number:
             raise web.NotFound()
 
         web.header('Content-Type','text/html')
-        if ui == 'b':
-            return basic_ui.get_day(station, int(year), month_number[month], int(day))
-
-        return "Station: '" + station + "', UI: '" + ui\
-               + "', Year: '" + year + "', Month: '" + month \
-               + "', Month: '" + day + "'"
+        return uis[ui].get_day(station, int(year), month_number[month], int(day))
 
 class dayfile:
     def GET(self,station,ui,year,month,day,file):
