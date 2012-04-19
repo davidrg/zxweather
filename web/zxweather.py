@@ -11,7 +11,7 @@ urls = (
     '/(\w*)/', 'station',    # Index page for a particular station. Lets you
                             # pick which UI to use.
 
-    # /station/ui/year/month/day
+    # /ui/station/year/month/day
     '/(\w*)/(\w*)/(?:index\.html)?', 'baseui.index',                 # index page
     '/(\w*)/(\w*)/now', 'baseui.now',                # Go to todays page
     '/(\w*)/(\w*)/(\d+)/(?:index\.html)?', 'baseui.year',            # A particular year
