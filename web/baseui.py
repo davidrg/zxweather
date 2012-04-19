@@ -46,7 +46,7 @@ class index:
     Index page for the station. Should give station records, basic yearly
     overview data, etc.
     """
-    def GET(self, station, ui):
+    def GET(self, ui, station):
 
         if station != config.default_station_name or \
            ui not in uis:
@@ -59,7 +59,7 @@ class now:
     """
     Redirects to the page for today.
     """
-    def GET(self, station, ui):
+    def GET(self, ui, station):
 
         if station != config.default_station_name or\
            ui not in uis:
@@ -76,7 +76,7 @@ class year:
     """
     Gives an overview for a year
     """
-    def GET(self, station, ui, year):
+    def GET(self, ui, station, year):
 
         if station != config.default_station_name or \
            ui not in uis:
@@ -89,7 +89,7 @@ class month:
     """
     Gives an overview for a month
     """
-    def GET(self, station, ui, year, month):
+    def GET(self, ui, station, year, month):
 
         if station != config.default_station_name or \
            ui not in uis or \
@@ -103,7 +103,7 @@ class indoor_day:
     """
     Gives an overview for a day.
     """
-    def GET(self, station, ui, year, month, day):
+    def GET(self, ui, station, year, month, day):
         if station != config.default_station_name or\
            ui not in uis or\
            month not in month_number:
@@ -116,7 +116,7 @@ class day:
     """
     Gives an overview for a day.
     """
-    def GET(self, station, ui, year, month, day):
+    def GET(self, ui, station, year, month, day):
         if station != config.default_station_name or \
            ui not in uis or \
            month not in month_number:
@@ -126,14 +126,14 @@ class day:
         return uis[ui].get_day(station, int(year), month_number[month], int(day))
 
 class dayfile:
-    def GET(self,station,ui,year,month,day,file):
+    def GET(self, ui, station,year,month,day,file):
         pathname = station + '/' + str(year) + '/' + str(month) \
                    + '/' + str(day) + '/' + file
         #return pathname
         return get_file(pathname)
 
 class monthfile:
-    def GET(self,station,ui,year,month,file):
+    def GET(self, ui, station,year,month,file):
         pathname = station + '/' + str(year) + '/' + str(month)\
                    + '/' + file
         return get_file(pathname)
