@@ -158,7 +158,7 @@ def get_file(pathname):
 
     #web.header("Content-Disposition", "inline; filename=%s" % filename)
     web.header("Content-Type", content_type)
-    web.header('Transfer-Encoding','chunked')
+    #web.header('Transfer-Encoding','chunked')
     f = open(full_filename, 'rb')
     while 1:
         buf = f.read(1024 * 8)
