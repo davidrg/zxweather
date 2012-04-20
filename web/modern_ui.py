@@ -360,5 +360,6 @@ class ModernUI(BaseUI):
             base_url = '../../../../../data/{0}/{1}/{2}/{3}/'\
                        .format(station,year,month,day)
             samples = base_url + 'datatable/samples.json'
+            samples_7day = base_url + 'datatable/7day_samples.json'
 
         return self.render.day(data=data,dataurls=urls)
