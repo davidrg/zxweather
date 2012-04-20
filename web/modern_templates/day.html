@@ -11,7 +11,56 @@
         google.setOnLoadCallback(drawTable);
         function drawTable() {
 
-            // Grab the data for the table and display it.
+            function drawAllTables(data,
+                                   tdp_element,
+                                   awc_element,
+                                   humidity_element,
+                                   pressure_element) {
+
+                // Temperature and Dewpoint only
+                var temperature_tdp = new google.visualization.DataView(data);
+                temperature_tdp.hideColumns([3,4,5,6]);
+
+                var temperature_tdp_options = {
+                    title: 'Temperature and Dew Point'
+                };
+                var temperature_tdp_chart = new google.visualization.LineChart(tdp_element);
+                temperature_tdp_chart.draw(temperature_tdp, temperature_tdp_options);
+
+                // Apparent Temperature and Wind Chill only
+                var temperature_awc = new google.visualization.DataView(data);
+                temperature_awc.hideColumns([1,2,5,6]);
+
+                var temperature_awc_options = {
+                    title: 'Apparent Temperature and Wind Chill'
+                };
+                var temperature_awc_chart = new google.visualization.LineChart(awc_element);
+                temperature_awc_chart.draw(temperature_awc, temperature_awc_options);
+
+                // Absolute Pressure only
+                var pressure = new google.visualization.DataView(data);
+                pressure.hideColumns([1,2,3,4,5]);
+
+                var pressure_options = {
+                    title: 'Absolute Pressure'
+                };
+                var pressure_chart = new google.visualization.LineChart(pressure_element);
+                pressure_chart.draw(pressure, pressure_options);
+
+                // Humidity only
+                var humidity = new google.visualization.DataView(data);
+                humidity.hideColumns([1,2,3,4,6]);
+
+                var humidity_options = {
+                    title: 'Humidity'
+                };
+                var humidity_chart = new google.visualization.LineChart(humidity_element);
+                humidity_chart.draw(humidity, humidity_options);
+            }
+
+            /***************************************************************
+             * Fetch the days samples and draw the 1-day charts
+             */
             $.getJSON('{{ dataurls.samples }}', function(data) {
                 // This contains all samples for the day. Included columns are
                 // 0: timestamp
@@ -23,49 +72,34 @@
                 // 6: abspressure
                 var sampledata = new google.visualization.DataTable(data);
 
-                // Temperature and Dewpoint only
-                var temperature_tdp = new google.visualization.DataView(sampledata);
-                temperature_tdp.hideColumns([3,4,5,6]);
+                drawAllTables(sampledata,
+                              document.getElementById('chart_temperature_tdp_div'),
+                              document.getElementById('chart_temperature_awc_div'),
+                              document.getElementById('chart_humidity_div'),
+                              document.getElementById('chart_pressure_div')
+                );
+            });
 
-                var temperature_tdp_options = {
-                    title: 'Temperature and Dew Point'
-                };
-                var temperature_tdp_chart = new google.visualization.LineChart(
-                        document.getElementById('chart_temperature_tdp_div'));
-                temperature_tdp_chart.draw(temperature_tdp, temperature_tdp_options);
+            /***************************************************************
+             * Fetch samples for the past 7 days and draw the 7-day charts
+             */
+            $.getJSON('{{ dataurls.samples_7day }}', function(data) {
+                // This contains all samples for the day. Included columns are
+                // 0: timestamp
+                // 1: temperature
+                // 2: dewpoint
+                // 3: apparenttemp
+                // 4: windchill
+                // 5: humidity
+                // 6: abspressure
+                var sampledata = new google.visualization.DataTable(data);
 
-                // Apparent Temperature and Wind Chill only
-                var temperature_awc = new google.visualization.DataView(sampledata);
-                temperature_awc.hideColumns([1,2,5,6]);
-
-                var temperature_awc_options = {
-                    title: 'Apparent Temperature and Wind Chill'
-                };
-                var temperature_awc_chart = new google.visualization.LineChart(
-                        document.getElementById('chart_temperature_awc_div'));
-                temperature_awc_chart.draw(temperature_awc, temperature_awc_options);
-
-                // Absolute Pressure only
-                var pressure = new google.visualization.DataView(sampledata);
-                pressure.hideColumns([1,2,3,4,5]);
-
-                var pressure_options = {
-                    title: 'Absolute Pressure'
-                };
-                var pressure_chart = new google.visualization.LineChart(
-                        document.getElementById('chart_pressure_div'));
-                pressure_chart.draw(pressure, pressure_options);
-
-                // Humidity only
-                var humidity = new google.visualization.DataView(sampledata);
-                humidity.hideColumns([1,2,3,4,6]);
-
-                var humidity_options = {
-                    title: 'Humidity'
-                };
-                var humidity_chart = new google.visualization.LineChart(
-                        document.getElementById('chart_humidity_div'));
-                humidity_chart.draw(humidity, humidity_options);
+                drawAllTables(sampledata,
+                              document.getElementById('chart_7_temperature_tdp_div'),
+                              document.getElementById('chart_7_temperature_awc_div'),
+                              document.getElementById('chart_7_humidity_div'),
+                              document.getElementById('chart_7_pressure_div')
+                );
             });
         }
     </script>
@@ -188,19 +222,19 @@
     </table>
     <p>Total Rainfall: {{ data.records.total_rainfall|round(1) }}mm</p>
 
-    <a name="1day">
+    <a name="1day"></a>
     <h2>1-day Charts</h2>
     <div id="chart_temperature_tdp_div"></div>
     <div id="chart_temperature_awc_div"></div>
     <div id="chart_humidity_div"></div>
     <div id="chart_pressure_div"></div>
-{#    <a href="temperature_tdp_large.png"><img src="temperature_tdp.png" alt="[1-day Temperature and Dew Point]"></a>#}
-{#    <a href="temperature_awc_large.png"><img src="temperature_awc.png" alt="[1-day Apparent Temperature and Wind Chill]"></a>#}
-{#    <a href="humidity_large.png"><img src="humidity.png" alt="[1-day Humidity]"></a>#}
-{#    <a href="pressure_large.png"><img src="pressure.png" alt="[1-day Pressure]"></a>#}
 
-    <br>
-    <a href="gnuplot_data.dat">gnuplot data</a>
+    <a name="7day"></a>
+    <h2>7-day Charts</h2>
+    <div id="chart_7_temperature_tdp_div"></div>
+    <div id="chart_7_temperature_awc_div"></div>
+    <div id="chart_7_humidity_div"></div>
+    <div id="chart_7_pressure_div"></div>
 
     <hr>
     <center>

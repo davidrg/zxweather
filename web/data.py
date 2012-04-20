@@ -12,7 +12,7 @@ import json
 __author__ = 'David Goodwin'
 
 # Pretty-print JSON output? (makes debugging easier)
-pretty_print = True
+pretty_print = False
 
 class day_datatable_json:
     """
@@ -22,11 +22,17 @@ class day_datatable_json:
         if station != config.default_station_name:
             raise web.NotFound()
 
-        if dataset not in ('samples'):
+        if dataset not in ('samples', '7day_samples'):
             raise web.NotFound()
 
+        year = int(year)
+        month = int(month)
+        day = int(day)
+
         if dataset == 'samples':
-            return get_day_samples_datatable_json(int(year),int(month),int(day))
+            return get_day_samples_datatable(year,month,day)
+        elif dataset == '7day_samples':
+            return get_7day_samples_datatable(year,month,day)
 
 
 def datetime_to_js_date(timestamp):
@@ -52,22 +58,16 @@ def datetime_to_js_date(timestamp):
     else:
         raise TypeError
 
-def get_day_samples_datatable_json(year,month,day):
+def sample_result_to_datatable(query_data):
     """
-    Gets data for a specific day in a Google DataTable compatible format.
-    :return:
-    """
-    params = dict(date = date(year,month,day))
-    result = db.query("""select time_stamp::timestamptz,
-        temperature,
-        dew_point,
-        apparent_temperature,
-        wind_chill,
-        relative_humidity,
-        absolute_pressure
-        from sample
-        where date(time_stamp) = $date""", params)
+    Converts a query on the sample table to DataTable-compatible JSON.
 
+    Expected columns are time_stamp, temperature, dew_point,
+    apparent_temperature, wind_chill, relative_humidity, absolute_pressure.
+
+    :param query_data: Result from the query
+    :return: Query data in JSON format.
+    """
     cols = [{'id': 'timestamp',
              'label': 'Time Stamp',
              'type': 'datetime'},
@@ -93,17 +93,17 @@ def get_day_samples_datatable_json(year,month,day):
 
     rows = []
 
-    for record in result:
+    for record in query_data:
 
         rows.append({'c': [{'v': datetime_to_js_date(record.time_stamp)},
-                           {'v': record.temperature},
-                           {'v': record.dew_point},
-                           {'v': record.apparent_temperature},
-                           {'v': record.wind_chill},
-                           {'v': record.relative_humidity},
-                           {'v': record.absolute_pressure},
-                          ]
-                    })
+                {'v': record.temperature},
+                {'v': record.dew_point},
+                {'v': record.apparent_temperature},
+                {'v': record.wind_chill},
+                {'v': record.relative_humidity},
+                {'v': record.absolute_pressure},
+        ]
+        })
 
     data = {'cols': cols,
             'rows': rows}
@@ -114,11 +114,54 @@ def get_day_samples_datatable_json(year,month,day):
         else:
             raise TypeError
 
-    web.header('Content-Type','application/json')
     if pretty_print:
         return json.dumps(data, default=dthandler, sort_keys=True, indent=4)
     else:
         return json.dumps(data, default=dthandler)
+
+def get_7day_samples_datatable(year,month,day):
+    """
+    Gets data for a specific day in a Google DataTable compatible format.
+    :return:
+    """
+    params = dict(date = date(year,month,day))
+    result = db.query("""select s.time_stamp,
+           s.temperature,
+           s.dew_point,
+           s.apparent_temperature,
+           s.wind_chill,
+           s.relative_humidity,
+           s.absolute_pressure,
+           s.indoor_temperature,
+           s.indoor_relative_humidity
+    from sample s,
+         (select max(time_stamp) as ts from sample where date(time_stamp) = $date) as max_ts
+    where s.time_stamp <= max_ts.ts     -- 604800 seconds in a week.
+      and s.time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
+    order by s.time_stamp asc
+    """, params)
+
+    web.header('Content-Type','application/json')
+    return sample_result_to_datatable(result)
+
+def get_day_samples_datatable(year,month,day):
+    """
+    Gets data for a specific day in a Google DataTable compatible format.
+    :return:
+    """
+    params = dict(date = date(year,month,day))
+    result = db.query("""select time_stamp::timestamptz,
+temperature,
+dew_point,
+apparent_temperature,
+wind_chill,
+relative_humidity,
+absolute_pressure
+from sample
+where date(time_stamp) = $date""", params)
+
+    web.header('Content-Type','application/json')
+    return sample_result_to_datatable(result)
 
 
 
