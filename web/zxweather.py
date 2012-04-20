@@ -7,55 +7,29 @@ import config
 
 # This is the URL structure for the site
 urls = (
-    '/', 'site_index',      # This will be a list of available stations.
-    '/(\w*)/', 'station',    # Index page for a particular station. Lets you
-                            # pick which UI to use.
+    '/', 'ui_route.site_index',      # This will be a list of available stations.
+    '/(\w*)/', 'ui_route.stationlist',    # Index page for a particular station. Lets you
+                                          # pick which UI to use.
+    '/data/day', 'data.day_data',
 
     # /ui/station/year/month/day
-    '/(\w*)/(\w*)/(?:index\.html)?', 'baseui.index',                 # index page
-    '/(\w*)/(\w*)/now', 'baseui.now',                # Go to todays page
-    '/(\w*)/(\w*)/(\d+)/(?:index\.html)?', 'baseui.year',            # A particular year
-    '/(\w*)/(\w*)/(\d+)/(\w*)/(?:index\.html)?', 'baseui.month',     # A particular month
-    '/(\w*)/(\w*)/(\d+)/(\w*)/(\d+)/indoor.html', 'baseui.indoor_day', # indoor stats for a particular day. Basic UI only.
-    '/(\w*)/(\w*)/(\d+)/(\w*)/(\d+)/(?:index\.html)?', 'baseui.day', # A particular day
+    '/(\w*)/(\w*)/(?:index\.html)?', 'ui_route.index',                 # index page
+    '/(\w*)/(\w*)/now', 'ui_route.now',                # Go to todays page
+    '/(\w*)/(\w*)/(\d+)/(?:index\.html)?', 'ui_route.year',            # A particular year
+    '/(\w*)/(\w*)/(\d+)/(\w*)/(?:index\.html)?', 'ui_route.month',     # A particular month
+    '/(\w*)/(\w*)/(\d+)/(\w*)/(\d+)/indoor.html', 'ui_route.indoor_day', # indoor stats for a particular day. Basic UI only.
+    '/(\w*)/(\w*)/(\d+)/(\w*)/(\d+)/(?:index\.html)?', 'ui_route.day', # A particular day
 
     # Static file downloads
-    '/(\w*)/(\w*)/(\d+)/(\w*)/(\d+)/(.*)', 'baseui.dayfile',  # for day pages
-    '/(\w*)/(\w*)/(\d+)/(\w*)/(.*)', 'baseui.monthfile',  # for month pages
+    '/(\w*)/(\w*)/(\d+)/(\w*)/(\d+)/(.*)', 'ui_route.dayfile',  # for day pages
+    '/(\w*)/(\w*)/(\d+)/(\w*)/(.*)', 'ui_route.monthfile',  # for month pages
 #    '/(\w*)/(\w*)/(\d+)/(.*)', 'baseui.file',  # for year pages
 #    '/(\w*)/(\w*)/(.*)', 'baseui.file',  # UI-specific stuff
 #    '/(\w*)/(.*)', 'baseui.file',  # Station-specific stuff
 )
 
 
-class site_index:
-    """
-    The sites index page (/). Should redirect to the default station.
-    """
-    def GET(self):
-        raise web.seeother(config.default_station_name + '/')
 
-class station:
-    """
-    Index page for a particular station. Should allow you to choose how to
-    view data I suppose. Or give information on the station.
-    """
-    def GET(self, station_name):
-        """
-        View station details.
-        :param url: The station to view
-        :return: A view.
-        """
-
-        if station_name == config.default_station_name:
-            return self._render_station(station_name)
-        else:
-            raise web.NotFound(message="The station '" + station_name +
-                                        "' does not exist.")
-
-    def _render_station(self, station_name):
-        web.header('Content-Type','text/plain')
-        return "Station info goes here. You are at /hrua/"
 
 # This is so we can run it as an application to launch a development web
 # server.
