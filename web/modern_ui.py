@@ -30,24 +30,23 @@ month_number = {'january'  : 1,
                 'november' : 11,
                 'december' : 12}
 
-class BasicUI(BaseUI):
+class ModernUI(BaseUI):
     """
     Class for the basic UI - plain old HTML 4ish output.
     """
 
     def __init__(self):
-        BaseUI.__init__(self, 'basic_templates')
-        pass
+        BaseUI.__init__(self, 'modern_templates')
 
     @staticmethod
     def ui_code():
-        return 'b'
+        return 's'
     @staticmethod
     def ui_name():
-        return 'Basic HTML'
+        return 'Standard Modern'
     @staticmethod
     def ui_description():
-        return 'Very basic HTML UI. No JavaScript or CSS.'
+        return 'Standard interface.'
 
     def get_station(self,station):
         """
@@ -165,7 +164,7 @@ class BasicUI(BaseUI):
 
         params = dict(date='01-{0}-{1}'.format(data.month_stamp, data.year_stamp))
         monthly_records = db.select('monthly_records',params,
-                                  where='date_stamp = $date' )
+                                    where='date_stamp = $date' )
         if not len(monthly_records):
             # Bad url or something.
             raise web.NotFound()
@@ -216,7 +215,7 @@ class BasicUI(BaseUI):
                               dict(date='01-{0}-{1}'.format(previous_month,previous_year)))
         if len(data_check):
             if previous_year != year:
-                data.prev_url = '../../' + str(previous_year) + '/' + \
+                data.prev_url = '../../' + str(previous_year) + '/' +\
                                 month_name[previous_month] + '/'
             else:
                 data.prev_url = '../' + month_name[previous_month] + '/'
@@ -329,11 +328,11 @@ class BasicUI(BaseUI):
         data.prev_date = previous_day
         prev_days_data = db.query("""select temperature
             from sample where date(time_stamp) = $date limit 1""",
-                                   dict(date=previous_day))
+                                  dict(date=previous_day))
         # Only calculate previous days data if there is any.
         if len(prev_days_data):
             if previous_day.year != year:
-                data.prev_url = '../../../' + str(previous_day.year) \
+                data.prev_url = '../../../' + str(previous_day.year)\
                                 + '/' + month_name[previous_day.month] + '/'
             elif previous_day.month != month:
                 data.prev_url = '../../' + month_name[previous_day.month] + '/'

@@ -1,0 +1,17 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <title>zxweather UIs</title>
+</head>
+<body>
+    <h1>Choose UI</h1>
+    <hr>
+    {% for ui in uis %}
+    <p><b><a href="{{ ui[0] }}/">{{ ui[1] }}</a></b></p>
+    <p>{{ ui[2] }}</p>
+    {% endfor %}
+
+    <hr>
+</body>
+</html>
