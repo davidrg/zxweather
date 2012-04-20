@@ -230,7 +230,13 @@ class ModernUI(BaseUI):
             else:
                 data.next_url = '../' + month_name[next_month] + '/'
 
-        return self.render.month(data=data)
+        class urls:
+            base_url = '../../../../data/{0}/{1}/{2}/'\
+            .format(station,year,month)
+            samples = base_url + 'datatable/samples.json'
+            samples_7day = base_url + 'datatable/7day_samples.json'
+
+        return self.render.month(data=data,dataurls=urls)
 
     def get_indoor_day(self, station, year, month, day):
 
