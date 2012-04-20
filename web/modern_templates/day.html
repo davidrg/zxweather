@@ -1,0 +1,225 @@
+{# This template is for a daily overview. #}
+
+{% extends "base.html" %}
+{% block title %}Weather for {{ data.date_stamp }}{% endblock %}
+{% block head %}
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+    <script type="text/javascript" src="http://www.google.com/jsapi"></script>
+    <script type="text/javascript">
+        //google.load('visualization', '1', {packages:['table']});
+        google.load("visualization", "1", {packages:["corechart"]});
+        google.setOnLoadCallback(drawTable);
+        function drawTable() {
+
+            // Grab the data for the table and display it.
+            $.getJSON('{{ dataurls.samples }}', function(data) {
+                // This contains all samples for the day. Included columns are
+                // 0: timestamp
+                // 1: temperature
+                // 2: dewpoint
+                // 3: apparenttemp
+                // 4: windchill
+                // 5: humidity
+                // 6: abspressure
+                var sampledata = new google.visualization.DataTable(data);
+
+                // Temperature and Dewpoint only
+                var temperature_tdp = new google.visualization.DataView(sampledata);
+                temperature_tdp.hideColumns([3,4,5,6]);
+
+                var temperature_tdp_options = {
+                    title: 'Temperature and Dew Point'
+                };
+                var temperature_tdp_chart = new google.visualization.LineChart(
+                        document.getElementById('chart_temperature_tdp_div'));
+                temperature_tdp_chart.draw(temperature_tdp, temperature_tdp_options);
+
+                // Apparent Temperature and Wind Chill only
+                var temperature_awc = new google.visualization.DataView(sampledata);
+                temperature_awc.hideColumns([1,2,5,6]);
+
+                var temperature_awc_options = {
+                    title: 'Apparent Temperature and Wind Chill'
+                };
+                var temperature_awc_chart = new google.visualization.LineChart(
+                        document.getElementById('chart_temperature_awc_div'));
+                temperature_awc_chart.draw(temperature_awc, temperature_awc_options);
+
+                // Absolute Pressure only
+                var pressure = new google.visualization.DataView(sampledata);
+                pressure.hideColumns([1,2,3,4,5]);
+
+                var pressure_options = {
+                    title: 'Absolute Pressure'
+                };
+                var pressure_chart = new google.visualization.LineChart(
+                        document.getElementById('chart_pressure_div'));
+                pressure_chart.draw(pressure, pressure_options);
+
+                // Humidity only
+                var humidity = new google.visualization.DataView(sampledata);
+                humidity.hideColumns([1,2,3,4,6]);
+
+                var humidity_options = {
+                    title: 'Humidity'
+                };
+                var humidity_chart = new google.visualization.LineChart(
+                        document.getElementById('chart_humidity_div'));
+                humidity_chart.draw(humidity, humidity_options);
+            });
+        }
+    </script>
+{% endblock %}
+{% block content %}
+    <h1>Weather for {{ data.date_stamp }}</h1>
+    <hr> {#  This is only shown when we are looking at todays weather. #}
+    <center>
+        {% if data.current_data %}<a href="#current">Current Conditions</a> |{% endif %}
+        <a href="#records">Records</a> | 
+        <a href="#1day">1-day charts</a> | 
+{#        <a href="#7day">7-day charts</a>#}
+    </center>
+
+
+    <div id="table_div"></div>
+
+    {% if data.current_data %}
+    {% if data.current_data.invalid_data %}
+        <p>Live data is invalid.</p>
+    {% else %}
+    <a name="current">
+    <h2>Conditions as of {{ data.current_data_ts }}</h2>
+    <table border=2>
+        <tr bgcolor="lightseagreen">
+            <td><b>Sensor</b></td>
+            <td><b>Value</b></td>
+        </tr>
+        <tr bgcolor="blanchedalmond">
+            <td>Relative Humidity</td>
+            <td>{{ data.current_data.relative_humidity }}%</td>
+        </tr>
+        <tr bgcolor="blanchedalmond">
+            <td>Temperature</td>
+            <td>{{ data.current_data.temperature|round(1) }}°C</td>
+        </tr>
+        <tr bgcolor="blanchedalmond">
+            <td>Apparent Temperature</td>
+            <td>{{ data.current_data.apparent_temperature|round(1) }}°C</td>
+        </tr>
+        <tr bgcolor="blanchedalmond">
+            <td>Wind Chill</td>
+            <td>{{ data.current_data.wind_chill|round(1) }}°C</td>
+        </tr>
+        <tr bgcolor="blanchedalmond">
+            <td>Dew Point</td>
+            <td>{{ data.current_data.dew_point|round(1) }}°C</td>
+        </tr>
+        <tr bgcolor="blanchedalmond">
+            <td>Absolute Pressure</td>
+            <td>{{ data.current_data.absolute_pressure|round(1) }} hPa</td>
+        </tr>
+        <tr bgcolor="blanchedalmond">
+            <td>Average Wind Speed</td>
+            <td>{{ data.current_data.average_wind_speed|round(1) }} m/s</td>
+        </tr>
+        <tr bgcolor="blanchedalmond">
+            <td>Gust Wind Speed</td>
+            <td>{{ data.current_data.gust_wind_speed|round(1) }} m/s</td>
+        </tr>
+        <tr bgcolor="blanchedalmond">
+            <td>Wind Direction</td>
+            <td>{{ data.current_data.wind_direction }}</td>
+        </tr> {#
+        <tr bgcolor="blanchedalmond">
+            <td>Rainfall</td>
+            <td>{{ data.current_data.rainfall|round(1) }} mm</td>
+        </tr> #}
+    </table>
+    {% endif %}
+    {% endif %}
+    <a name="records">
+    <h2>Records</h2>
+    <table border=2>
+        <tr bgcolor="lightseagreen">
+            <td><b>Sensor</b></td>
+            <td><b>Min</b></td>
+            <td><b>Max</b></td>
+        </tr>
+        <tr bgcolor="blanchedalmond">
+            <td>Temperature</td>
+            <td>{{ data.records.min_temperature|round(1) }}°C at {{ data.records.min_temperature_ts }}</td>
+            <td>{{ data.records.max_temperature|round(1) }}°C at {{ data.records.max_temperature_ts }}</td>
+        </tr>
+        <tr bgcolor="blanchedalmond">
+            <td>Wind Chill</td>
+            <td>{{ data.records.min_wind_chill|round(1) }}°C at {{ data.records.min_wind_chill_ts }}</td>
+            <td>{{ data.records.max_wind_chill|round(1) }}°C at {{ data.records.max_wind_chill_ts }}</td>
+        </tr>
+        <tr bgcolor="blanchedalmond">
+            <td>Apparent Temperature</td>
+            <td>{{ data.records.min_apparent_temperature|round(1) }}°C at {{ data.records.min_apparent_temperature_ts }}</td>
+            <td>{{ data.records.max_apparent_temperature|round(1) }}°C at {{ data.records.max_apparent_temperature_ts }}</td>
+        </tr>
+        <tr bgcolor="blanchedalmond">
+            <td>Dew Point</td>
+            <td>{{ data.records.min_dew_point|round(1) }}°C at {{ data.records.min_dew_point_ts }}</td>
+            <td>{{ data.records.max_dew_point|round(1) }}°C at {{ data.records.max_dew_point_ts }}</td>
+        </tr>
+        <tr bgcolor="blanchedalmond">
+            <td>Absolute Pressure</td>
+            <td>{{ data.records.min_absolute_pressure|round(1) }} hPa at {{ data.records.min_absolute_pressure_ts }}</td>
+            <td>{{ data.records.max_absolute_pressure|round(1) }} hPa at {{ data.records.max_absolute_pressure_ts }}</td>
+        </tr>
+        <tr bgcolor="blanchedalmond">
+            <td>Relative Humidity</td>
+            <td>{{ data.records.min_humidity }}% at {{ data.records.min_humidity_ts }}</td>
+            <td>{{ data.records.max_humidity }}% at {{ data.records.max_humidity_ts }}</td>
+        </tr>
+        <tr>
+            <td bgcolor="blanchedalmond">Gust Wind Speed</td>
+            <td></td>
+            <td bgcolor="blanchedalmond">{{ data.records.max_gust_wind_speed|round(1) }} m/s at {{ data.records.max_gust_wind_speed_ts }}</td>
+        </tr>
+        <tr>
+            <td bgcolor="blanchedalmond">Average Wind Speed</td>
+            <td></td>
+            <td bgcolor="blanchedalmond">{{ data.records.max_average_wind_speed|round(1) }} m/s at {{ data.records.max_average_wind_speed_ts }}</td>
+        </tr>
+    </table>
+    <p>Total Rainfall: {{ data.records.total_rainfall|round(1) }}mm</p>
+
+    <a name="1day">
+    <h2>1-day Charts</h2>
+    <div id="chart_temperature_tdp_div"></div>
+    <div id="chart_temperature_awc_div"></div>
+    <div id="chart_humidity_div"></div>
+    <div id="chart_pressure_div"></div>
+{#    <a href="temperature_tdp_large.png"><img src="temperature_tdp.png" alt="[1-day Temperature and Dew Point]"></a>#}
+{#    <a href="temperature_awc_large.png"><img src="temperature_awc.png" alt="[1-day Apparent Temperature and Wind Chill]"></a>#}
+{#    <a href="humidity_large.png"><img src="humidity.png" alt="[1-day Humidity]"></a>#}
+{#    <a href="pressure_large.png"><img src="pressure.png" alt="[1-day Pressure]"></a>#}
+
+    <br>
+    <a href="gnuplot_data.dat">gnuplot data</a>
+
+    <hr>
+    <center>
+    {% if data.prev_url %}
+        <a href="{{ data.prev_url }}">&lt;&lt; {{ data.prev_date }}</a>
+    {% else %}
+        {{ data.prev_date }}
+    {% endif %}
+    |
+    <a href="../">{{ data.this_month }}</a>
+    |
+    {% if data.next_url %}
+        <a href="{{ data.next_url }}">{{ data.next_date }} &gt;&gt;</a>
+    {% else %}
+        {{ data.next_date }}
+    {% endif %}
+    <br>
+    <a href="../../../now">Today</a>
+    </center>
+    <a href="indoor.html">I</a>
+
+{% endblock %}

@@ -1,0 +1,42 @@
+{# This template is for a daily overview. #}
+
+{% extends "base.html" %}
+{% block title %}Indoor weather for {{ data.date_stamp }}{% endblock %}
+{% block content %}
+    <h1>Indoor weather for {{ data.date_stamp }}</h1>
+    <hr> {#  This is only shown when we are looking at todays weather. #}
+    <p>These are recordings for temperature and humidity at the indoor
+    base station.</p>
+    {% if data.current_data %}
+    <h2>Conditions as of {{ data.current_data_ts }}</h2>
+    <p>Data is for the five minute period ending at {{ data.current_data_ts }}</p>
+    <table border=2>
+        <tr bgcolor="lightseagreen">
+            <td><b>Sensor</b></td>
+            <td><b>Value</b></td>
+        </tr>
+        <tr bgcolor="blanchedalmond">
+            <td>Indoor Relative Humidity</td>
+            <td>{{ data.current_data.indoor_relative_humidity }}%</td>
+        </tr>
+        <tr bgcolor="blanchedalmond">
+            <td>Indoor Temperature</td>
+            <td>{{ data.current_data.indoor_temperature|round(1) }}°C</td>
+        </tr>
+    </table>
+    {% endif %}
+    
+    <h2>1-day Charts</h2>
+    <a href="indoor_temperature_large.png"><img src="indoor_temperature.png" alt="[1-day Indoor Temperature]"></a>
+    <a href="indoor_humidity_large.png"><img src="indoor_humidity.png" alt="[1-day Humidity]"></a>
+
+    <h2>7-day Charts</h2>
+    <a href="7-day_indoor_temperature_large.png"><img src="7-day_indoor_temperature.png" alt="[7-day Indoor Temperature]"></a>
+    <a href="7-day_indoor_humidity_large.png"><img src="7-day_indoor_humidity.png" alt="[7-day Humidity]"></a>
+
+    <hr>
+    <center>
+    <a href="./">Back to outdoor weather</a>
+    </center>
+
+{% endblock %}

@@ -10,7 +10,10 @@ urls = (
     '/', 'ui_route.site_index',      # This will be a list of available stations.
     '/(\w*)/', 'ui_route.stationlist',    # Index page for a particular station. Lets you
                                           # pick which UI to use.
-    '/data/day', 'data.day_data',
+
+    # Data Access (in JSON format mostly)
+    # /data/station/year/month/day/... (month is in number format here)
+    '/data/(\w*)/(\d+)/(\d+)/(\d+)/datatable/(\w*).json', 'data.day_datatable_json',
 
     # /ui/station/year/month/day
     '/(\w*)/(\w*)/(?:index\.html)?', 'ui_route.index',                 # index page
