@@ -13,6 +13,7 @@ urls = (
     # Data Access (in JSON format mostly)
     # /data/station/year/month/day/... (month is in number format here)
     '/data/(\w*)/(\d+)/(\d+)/(\d+)/datatable/(\w*).json', 'data.day_datatable_json',
+    '/data/(\w*)/(\d+)/(\d+)/datatable/(\w*).json', 'data.month_datatable_json',
 
     # /ui/station/year/month/day
     '/(\w*)/(\w*)/(?:index\.html)?', 'ui_route.index',                 # index page

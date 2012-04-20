@@ -14,9 +14,143 @@ __author__ = 'David Goodwin'
 # Pretty-print JSON output? (makes debugging easier)
 pretty_print = False
 
+#############################
+## Helper Functions
+def datetime_to_js_date(timestamp):
+    """
+    Converts a python datetime.datetime or datetime.date object to a
+    representation compatbile with googles DataTable structure
+    :param timestamp: A timestamp
+    :return: datatable representation
+    """
+    if timestamp is None:
+        return "null"
+    elif isinstance(timestamp, datetime):
+        return "Date({0},{1},{2},{3},{4},{5})".format(timestamp.year,
+                                                      timestamp.month - 1,
+                                                      timestamp.day,
+                                                      timestamp.hour,
+                                                      timestamp.minute,
+                                                      timestamp.second)
+    elif isinstance(timestamp, date):
+        return "Date({0},{1},{2})".format(timestamp.year,
+                                          timestamp.month - 1, # for JS
+                                          timestamp.day)
+    elif isinstance(timestamp, time):
+        return [timestamp.hour, timestamp.minute, timestamp.second]
+    else:
+        return type(timestamp)
+        #raise TypeError
+
+#############################
+## Monthly DataTable datasets
+class month_datatable_json:
+    """
+    Gets data for a particular month in Googles DataTable format.
+    """
+
+    def GET(selfself, station, year, month, dataset):
+        if station != config.default_station_name:
+            raise web.NotFound()
+
+        if dataset not in ('samples'):
+            raise web.NotFound()
+
+        year = int(year)
+        month = int(month)
+
+        if dataset == 'samples':
+            return get_month_samples_datatable(year,month)
+
+
+def get_month_samples_datatable(year,month):
+
+    params = dict(date = date(year,month,01))
+    query_data = db.query("""select cur.time_stamp,
+       cur.temperature,
+       cur.dew_point,
+       cur.apparent_temperature,
+       cur.wind_chill,
+       cur.relative_humidity,
+       cur.absolute_pressure,
+       cur.time_stamp - (cur.sample_interval * '1 minute'::interval) as prev_sample_time,
+       CASE WHEN (cur.time_stamp - prev.time_stamp) > ((cur.sample_interval * 2) * '1 minute'::interval) THEN
+          true
+       else
+          false
+       end as gap
+from sample cur, sample prev
+where date(date_trunc('month',cur.time_stamp)) = $date
+  and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < cur.time_stamp)
+order by cur.time_stamp asc""", params)
+
+
+    cols = [{'id': 'timestamp',
+             'label': 'Time Stamp',
+             'type': 'datetime'},
+            {'id': 'temperature',
+             'label': 'Temperature',
+             'type': 'number'},
+            {'id': 'dewpoint',
+             'label': 'Dewpoint',
+             'type': 'number'},
+            {'id': 'apparenttemp',
+             'label': 'Apparent Temperature',
+             'type': 'number'},
+            {'id': 'windchill',
+             'label': 'Wind Chill',
+             'type': 'number'},
+            {'id': 'humidity',
+             'label': 'Humidity',
+             'type': 'number'},
+            {'id': 'abspressure',
+             'label': 'Absolute Pressure',
+             'type': 'number'},
+    ]
+
+    rows = []
+
+    for record in query_data:
+
+        # Handle gaps in the dataset
+        if record.gap:
+            rows.append({'c': [{'v': datetime_to_js_date(record.prev_sample_time)},
+                    {'v': None},
+                    {'v': None},
+                    {'v': None},
+                    {'v': None},
+                    {'v': None},
+                    {'v': None},
+            ]
+            })
+
+        rows.append({'c': [{'v': datetime_to_js_date(record.time_stamp)},
+                {'v': record.temperature},
+                {'v': record.dew_point},
+                {'v': record.apparent_temperature},
+                {'v': record.wind_chill},
+                {'v': record.relative_humidity},
+                {'v': record.absolute_pressure},
+        ]
+        })
+
+    data = {'cols': cols,
+            'rows': rows}
+
+
+    web.header('Content-Type','application/json')
+
+    if pretty_print:
+        return json.dumps(data, sort_keys=True, indent=4)
+    else:
+        return json.dumps(data)
+
+
+#############################
+## Daily DataTable datasets
 class day_datatable_json:
     """
-    Gets data for a particular day in googles DataTable format.
+    Gets data for a particular day in Googles DataTable format.
     """
     def GET(self, station, year, month, day, dataset):
         if station != config.default_station_name:
@@ -38,33 +172,6 @@ class day_datatable_json:
             return get_day_indoor_samples_datatable(year,month,day)
         elif dataset == '7day_indoor_samples':
             return get_7day_indoor_samples_datatable(year,month,day)
-
-
-def datetime_to_js_date(timestamp):
-    """
-    Converts a python datetime.datetime or datetime.date object to a
-    representation compatbile with googles DataTable structure
-    :param timestamp: A timestamp
-    :return: datatable representation
-    """
-    if timestamp is None:
-        return "null"
-    elif isinstance(timestamp, datetime):
-        return "Date({0},{1},{2},{3},{4},{5})".format(timestamp.year,
-                                                      timestamp.month - 1,
-                                                      timestamp.day,
-                                                      timestamp.hour,
-                                                      timestamp.minute,
-                                                      timestamp.second)
-    elif isinstance(timestamp, date):
-        return "Date({0},{1},{2})".format(timestamp.year,
-                                              timestamp.month - 1, # for JS
-                                              timestamp.day)
-    elif isinstance(timestamp, time):
-        return [timestamp.hour, timestamp.minute, timestamp.second]
-    else:
-        return type(timestamp)
-        #raise TypeError
 
 def indoor_sample_result_to_datatable(query_data):
     """
@@ -239,7 +346,6 @@ where date(s.time_stamp) = $date
 
     web.header('Content-Type','application/json')
     return indoor_sample_result_to_datatable(result)
-
 
 def get_7day_samples_datatable(year,month,day):
     """

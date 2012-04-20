@@ -16,8 +16,9 @@ import os
 __author__ = 'David Goodwin'
 
 # Register available UIs
-uis = {BasicUI.ui_code(): BasicUI(),
-       ModernUI.ui_code(): ModernUI()}
+uis = {ModernUI.ui_code(): ModernUI(),
+       BasicUI.ui_code(): BasicUI(),
+      }
 
 month_name = {1 : 'january',
               2 : 'february',
