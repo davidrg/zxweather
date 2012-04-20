@@ -22,7 +22,8 @@ class day_datatable_json:
         if station != config.default_station_name:
             raise web.NotFound()
 
-        if dataset not in ('samples', '7day_samples'):
+        if dataset not in ('samples', '7day_samples',
+                           'indoor_samples', '7day_indoor_samples'):
             raise web.NotFound()
 
         year = int(year)
@@ -33,6 +34,10 @@ class day_datatable_json:
             return get_day_samples_datatable(year,month,day)
         elif dataset == '7day_samples':
             return get_7day_samples_datatable(year,month,day)
+        elif dataset == 'indoor_samples':
+            return get_day_indoor_samples_datatable(year,month,day)
+        elif dataset == '7day_indoor_samples':
+            return get_7day_indoor_samples_datatable(year,month,day)
 
 
 def datetime_to_js_date(timestamp):
@@ -46,11 +51,11 @@ def datetime_to_js_date(timestamp):
         return "null"
     elif isinstance(timestamp, datetime):
         return "Date({0},{1},{2},{3},{4},{5})".format(timestamp.year,
-                                                          timestamp.month - 1,
-                                                          timestamp.day,
-                                                          timestamp.hour,
-                                                          timestamp.minute,
-                                                          timestamp.second)
+                                                      timestamp.month - 1,
+                                                      timestamp.day,
+                                                      timestamp.hour,
+                                                      timestamp.minute,
+                                                      timestamp.second)
     elif isinstance(timestamp, date):
         return "Date({0},{1},{2})".format(timestamp.year,
                                               timestamp.month - 1, # for JS
@@ -58,7 +63,52 @@ def datetime_to_js_date(timestamp):
     else:
         raise TypeError
 
-def sample_result_to_datatable(query_data):
+def indoor_sample_result_to_datatable(query_data):
+    """
+    Converts a query on the sample table to DataTable-compatible JSON.
+
+    Expected columns are time_stamp, indoor_temperature,
+    indoor_relative_humidity.
+
+    :param query_data: Result from the query
+    :return: Query data in JSON format.
+    """
+    cols = [{'id': 'timestamp',
+             'label': 'Time Stamp',
+             'type': 'datetime'},
+            {'id': 'temperature',
+             'label': 'Indoor Temperature',
+             'type': 'number'},
+            {'id': 'humidity',
+             'label': 'Indoor Humidity',
+             'type': 'number'},
+    ]
+
+    rows = []
+
+    for record in query_data:
+
+        rows.append({'c': [{'v': datetime_to_js_date(record.time_stamp)},
+                {'v': record.indoor_temperature},
+                {'v': record.indoor_relative_humidity},
+        ]
+        })
+
+    data = {'cols': cols,
+            'rows': rows}
+
+    def dthandler(obj):
+        if isinstance(obj, datetime) or isinstance(obj,date):
+            return obj.isoformat()
+        else:
+            raise TypeError
+
+    if pretty_print:
+        return json.dumps(data, default=dthandler, sort_keys=True, indent=4)
+    else:
+        return json.dumps(data, default=dthandler)
+
+def outdoor_sample_result_to_datatable(query_data):
     """
     Converts a query on the sample table to DataTable-compatible JSON.
 
@@ -119,6 +169,41 @@ def sample_result_to_datatable(query_data):
     else:
         return json.dumps(data, default=dthandler)
 
+def get_7day_indoor_samples_datatable(year,month,day):
+    """
+    Gets data for a specific day in a Google DataTable compatible format.
+    :return:
+    """
+    params = dict(date = date(year,month,day))
+    result = db.query("""select s.time_stamp,
+               s.indoor_temperature,
+               s.indoor_relative_humidity
+        from sample s,
+             (select max(time_stamp) as ts from sample where date(time_stamp) = $date) as max_ts
+        where s.time_stamp <= max_ts.ts     -- 604800 seconds in a week.
+          and s.time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
+        order by s.time_stamp asc
+        """, params)
+
+    web.header('Content-Type','application/json')
+    return indoor_sample_result_to_datatable(result)
+
+def get_day_indoor_samples_datatable(year,month,day):
+    """
+    Gets indoor data for a specific day in a Google DataTable compatible format.
+    :return:
+    """
+    params = dict(date = date(year,month,day))
+    result = db.query("""select time_stamp::timestamptz,
+indoor_temperature,
+indoor_relative_humidity
+from sample
+where date(time_stamp) = $date""", params)
+
+    web.header('Content-Type','application/json')
+    return indoor_sample_result_to_datatable(result)
+
+
 def get_7day_samples_datatable(year,month,day):
     """
     Gets data for a specific day in a Google DataTable compatible format.
@@ -131,9 +216,7 @@ def get_7day_samples_datatable(year,month,day):
            s.apparent_temperature,
            s.wind_chill,
            s.relative_humidity,
-           s.absolute_pressure,
-           s.indoor_temperature,
-           s.indoor_relative_humidity
+           s.absolute_pressure
     from sample s,
          (select max(time_stamp) as ts from sample where date(time_stamp) = $date) as max_ts
     where s.time_stamp <= max_ts.ts     -- 604800 seconds in a week.
@@ -142,7 +225,7 @@ def get_7day_samples_datatable(year,month,day):
     """, params)
 
     web.header('Content-Type','application/json')
-    return sample_result_to_datatable(result)
+    return outdoor_sample_result_to_datatable(result)
 
 def get_day_samples_datatable(year,month,day):
     """
@@ -161,7 +244,7 @@ from sample
 where date(time_stamp) = $date""", params)
 
     web.header('Content-Type','application/json')
-    return sample_result_to_datatable(result)
+    return outdoor_sample_result_to_datatable(result)
 
 
 

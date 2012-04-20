@@ -2,6 +2,75 @@
 
 {% extends "base.html" %}
 {% block title %}Indoor weather for {{ data.date_stamp }}{% endblock %}
+{% block head %}
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+    <script type="text/javascript" src="http://www.google.com/jsapi"></script>
+    <script type="text/javascript">
+        //google.load('visualization', '1', {packages:['table']});
+        google.load("visualization", "1", {packages:["corechart"]});
+        google.setOnLoadCallback(drawTable);
+        function drawTable() {
+
+            function drawAllTables(data,
+                                   temperature_element,
+                                   humidity_element) {
+
+                // Temperature and Dewpoint only
+                var temperature = new google.visualization.DataView(data);
+                temperature.hideColumns([2]);
+
+                var temperature_options = {
+                    title: 'Indoor Temperature'
+                };
+                var temperature_chart = new google.visualization.LineChart(temperature_element);
+                temperature_chart.draw(temperature, temperature_options);
+
+
+                // Humidity only
+                var humidity = new google.visualization.DataView(data);
+                humidity.hideColumns([1]);
+
+                var humidity_options = {
+                    title: 'Indoor Humidity'
+                };
+                var humidity_chart = new google.visualization.LineChart(humidity_element);
+                humidity_chart.draw(humidity, humidity_options);
+            }
+
+            /***************************************************************
+             * Fetch the days samples and draw the 1-day charts
+             */
+            $.getJSON('{{ dataurls.samples }}', function(data) {
+                // This contains all samples for the day. Included columns are
+                // 0: timestamp
+                // 1: temperature
+                // 2: humidity
+                var sampledata = new google.visualization.DataTable(data);
+
+                drawAllTables(sampledata,
+                              document.getElementById('chart_temperature_div'),
+                              document.getElementById('chart_humidity_div')
+                );
+            });
+
+            /***************************************************************
+             * Fetch samples for the past 7 days and draw the 7-day charts
+             */
+            $.getJSON('{{ dataurls.samples_7day }}', function(data) {
+                // This contains all samples for the day. Included columns are
+                // 0: timestamp
+                // 1: temperature
+                // 2: humidity
+                var sampledata = new google.visualization.DataTable(data);
+
+                drawAllTables(sampledata,
+                              document.getElementById('chart_7_temperature_div'),
+                              document.getElementById('chart_7_humidity_div')
+                );
+            });
+        }
+    </script>
+{% endblock %}
 {% block content %}
     <h1>Indoor weather for {{ data.date_stamp }}</h1>
     <hr> {#  This is only shown when we are looking at todays weather. #}
@@ -27,12 +96,12 @@
     {% endif %}
     
     <h2>1-day Charts</h2>
-    <a href="indoor_temperature_large.png"><img src="indoor_temperature.png" alt="[1-day Indoor Temperature]"></a>
-    <a href="indoor_humidity_large.png"><img src="indoor_humidity.png" alt="[1-day Humidity]"></a>
+    <div id="chart_temperature_div"></div>
+    <div id="chart_humidity_div"></div>
 
     <h2>7-day Charts</h2>
-    <a href="7-day_indoor_temperature_large.png"><img src="7-day_indoor_temperature.png" alt="[7-day Indoor Temperature]"></a>
-    <a href="7-day_indoor_humidity_large.png"><img src="7-day_indoor_humidity.png" alt="[7-day Humidity]"></a>
+    <div id="chart_7_temperature_div"></div>
+    <div id="chart_7_humidity_div"></div>
 
     <hr>
     <center>
