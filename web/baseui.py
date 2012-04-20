@@ -14,4 +14,4 @@ class BaseUI:
     def __init__(self, template_dir):
         self.template_dir = os.path.join(os.path.dirname(__file__),
                                     os.path.join(template_dir))
-        self.render = render_jinja(template_dir, encoding='utf-8')
+        self.render = render_jinja(self.template_dir, encoding='utf-8')
