@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Station  Overview{% endblock %}
+{% block content %}
+    <h1>Station Overview - {{ station }}</h1>
+    <hr>
+    <h2>Available Years</h2>
+    <p>Weather data is available for the following years:</p>
+    <ul>
+    {% for year in years %}
+        <li><a href="{{ year }}/">{{ year }}</a></li>
+    {% endfor %}
+    </ul>
+    <hr>
+{% endblock %}
