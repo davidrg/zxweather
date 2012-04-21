@@ -44,6 +44,13 @@ class datatable_json:
         month = int(month)
         day = int(day)
 
+        # Make sure the day actually exists in the database before we go
+        # any further.
+        params = dict(date=date(year,month,day))
+        recs = db.query("select 42 from sample where date(time_stamp) = $date limit 1", params)
+        if recs is None or len(recs) == 0:
+            raise web.NotFound()
+
         if dataset == 'samples':
             return get_day_samples_datatable(year,month,day)
         elif dataset == '7day_samples':
@@ -64,6 +71,13 @@ class index:
         template_dir = os.path.join(os.path.dirname(__file__),
                                     os.path.join('templates'))
         render = render_jinja(template_dir, encoding='utf-8')
+
+        # Make sure the day actually exists in the database before we go
+        # any further.
+        params = dict(date=date(int(year),int(month),int(day)))
+        recs = db.query("select 42 from sample where date(time_stamp) = $date limit 1", params)
+        if recs is None or len(recs) == 0:
+            raise web.NotFound()
 
         return render.daily_data_index()
 

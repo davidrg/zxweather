@@ -38,6 +38,13 @@ class datatable_json:
         year = int(year)
         month = int(month)
 
+        # Make sure the month actually exists in the database before we go
+        # any further.
+        params = dict(date=date(int(year),int(month),1))
+        recs = db.query("select 42 from sample where date(date_trunc('month',time_stamp)) = $date  limit 1", params)
+        if recs is None or len(recs) == 0:
+            raise web.NotFound()
+
         if dataset == 'samples':
             return get_month_samples_datatable(year,month)
         elif dataset == '30m_avg_samples':
@@ -66,6 +73,9 @@ class index:
         for day in month_data:
             day = int(day.day_stamp)
             days.append(day)
+
+        if not len(days):
+            raise web.NotFound()
 
         return render.monthly_data_index(days=days)
 

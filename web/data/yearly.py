@@ -33,6 +33,13 @@ class datatable_json:
 
         year = int(year)
 
+        # Make sure the year actually exists in the database before we go
+        # any further.
+        params = dict(year=year)
+        recs = db.query("select 42 from sample where extract(year from time_stamp) = $year  limit 1", params)
+        if recs is None or len(recs) == 0:
+            raise web.NotFound()
+
         if dataset == 'daily_records':
             return get_daily_records(year)
         else:
@@ -54,6 +61,9 @@ class index:
 
         for record in month_data:
             months.append(record.month_stamp)
+
+        if not len(months):
+            raise web.NotFound()
 
         return render.yearly_data_index(months=months)
 
