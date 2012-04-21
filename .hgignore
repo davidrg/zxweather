@@ -18,3 +18,9 @@ doc/*/*.synctex.gz
 *.o
 .idea/*
 *.suo
+web/static/rua/*
+wh1080/win32_src/wh1080ctl/Debug/*
+wh1080/win32_src/wh1080ctl/wh1080ctl.vcxproj.filters
+wh1080/wh1080memdump
+*.pdb
+*.ilk
