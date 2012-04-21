@@ -78,6 +78,7 @@
     </div>
     <div class="right-column">
         <div id="chart_rec_pressure"></div>
+        <div id="chart_rainfall"></div>
     </div>
     <div class="column-end"></div>
 
@@ -117,10 +118,32 @@
                 // 4: min humidity
                 // 5: max pressure
                 // 6: min pressure
+                // 7: rainfall
+
+
+                // Do some formatting
+                var temperatureFormatter = new google.visualization.NumberFormat(
+                        { pattern: '##.# °C'});
+                temperatureFormatter.format(record_data,1);
+                temperatureFormatter.format(record_data,2);
+
+                var humidityFormatter = new google.visualization.NumberFormat(
+                        { pattern: '##'});
+                humidityFormatter.format(record_data,3);
+                humidityFormatter.format(record_data,4);
+
+                var pressureFormatter = new google.visualization.NumberFormat(
+                        { pattern: '####.# hPa'});
+                pressureFormatter.format(record_data,5);
+                pressureFormatter.format(record_data,6);
+
+                var rainFormatter = new google.visualization.NumberFormat(
+                        {pattern: '##.# mm'});
+                rainFormatter.format(record_data,7);
 
                 // Temperature
                 var temperature = new google.visualization.DataView(record_data);
-                temperature.hideColumns([3,4,5,6]);
+                temperature.hideColumns([3,4,5,6,7]);
 
                 var temperature_options = {
                     title: 'Temperature (°C)',
@@ -132,7 +155,7 @@
 
                 // Humidity
                 var humidity = new google.visualization.DataView(record_data);
-                humidity.hideColumns([1,2,5,6]);
+                humidity.hideColumns([1,2,5,6,7]);
 
                 var humidity_options = {
                     title: 'Humidity (%)',
@@ -144,7 +167,7 @@
 
                 // Pressure
                 var pressure = new google.visualization.DataView(record_data);
-                pressure.hideColumns([1,2,3,4]);
+                pressure.hideColumns([1,2,3,4,7]);
 
                 var pressure_options = {
                     title: 'Absolute Pressure (hPa)',
@@ -153,6 +176,19 @@
                 var pressure_chart = new google.visualization.LineChart(
                         document.getElementById('chart_rec_pressure'));
                 pressure_chart.draw(pressure, pressure_options);
+
+                // Rainfall
+                var rainfall = new google.visualization.DataView(record_data);
+                rainfall.hideColumns([1,2,3,4,5,6]);
+
+                var rainfall_options = {
+                    title: 'Total Rainfall (mm)',
+                    legend: {position: 'none'},
+                    vAxis: {format: '##.#'}
+                };
+                var rainfall_chart = new google.visualization.LineChart(
+                        document.getElementById('chart_rainfall'));
+                rainfall_chart.draw(rainfall, rainfall_options);
             });
         }
     </script>

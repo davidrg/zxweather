@@ -99,6 +99,15 @@
                 // 2: humidity
                 var sampledata = new google.visualization.DataTable(data);
 
+                // Do some formatting
+                var temperatureFormatter = new google.visualization.NumberFormat(
+                        { pattern: '##.# °C'});
+                temperatureFormatter.format(sampledata,1);
+
+                var humidityFormatter = new google.visualization.NumberFormat(
+                        { pattern: '##'});
+                humidityFormatter.format(sampledata,2);
+
                 drawAllTables(sampledata,
                               document.getElementById('chart_temperature_div'),
                               document.getElementById('chart_humidity_div')
@@ -114,6 +123,16 @@
                 // 1: temperature
                 // 2: humidity
                 var sampledata = new google.visualization.DataTable(data);
+
+                // Do some formatting
+                var temperatureFormatter = new google.visualization.NumberFormat(
+                        { pattern: '##.# °C'});
+                temperatureFormatter.format(sampledata,1);
+
+                var humidityFormatter = new google.visualization.NumberFormat(
+                        { pattern: '##'});
+                humidityFormatter.format(sampledata,2);
+
 
                 drawAllTables(sampledata,
                               document.getElementById('chart_7_temperature_div'),

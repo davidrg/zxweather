@@ -245,6 +245,22 @@
                     // 6: abspressure
                     var sampledata = new google.visualization.DataTable(data);
 
+                    // Do some formatting
+                    var temperatureFormatter = new google.visualization.NumberFormat(
+                            { pattern: '##.# °C'});
+                    temperatureFormatter.format(sampledata,1);
+                    temperatureFormatter.format(sampledata,2);
+                    temperatureFormatter.format(sampledata,3);
+                    temperatureFormatter.format(sampledata,4);
+
+                    var humidityFormatter = new google.visualization.NumberFormat(
+                            { pattern: '##'});
+                    humidityFormatter.format(sampledata,5);
+
+                    var pressureFormatter = new google.visualization.NumberFormat(
+                            { pattern: '####.# hPa'});
+                    pressureFormatter.format(sampledata,6);
+
                     drawAllCharts(sampledata,
                                   document.getElementById('chart_temperature_tdp_div'),
                                   document.getElementById('chart_temperature_awc_div'),
@@ -266,6 +282,22 @@
                     // 5: humidity
                     // 6: abspressure
                     var sampledata = new google.visualization.DataTable(data);
+
+                    // Do some formatting
+                    var temperatureFormatter = new google.visualization.NumberFormat(
+                            { pattern: '##.# °C'});
+                    temperatureFormatter.format(sampledata,1);
+                    temperatureFormatter.format(sampledata,2);
+                    temperatureFormatter.format(sampledata,3);
+                    temperatureFormatter.format(sampledata,4);
+
+                    var humidityFormatter = new google.visualization.NumberFormat(
+                            { pattern: '##'});
+                    humidityFormatter.format(sampledata,5);
+
+                    var pressureFormatter = new google.visualization.NumberFormat(
+                            { pattern: '####.# hPa'});
+                    pressureFormatter.format(sampledata,6);
 
                     drawAllCharts(sampledata,
                                   document.getElementById('chart_7_temperature_tdp_div'),
