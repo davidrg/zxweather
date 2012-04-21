@@ -4,10 +4,11 @@ Used for generating charts in JavaScript, etc.
 """
 
 from datetime import date, datetime, timedelta
+import json
 import web
 from config import db
 import config
-from data.util import rfcformat, outdoor_sample_result_to_datatable
+from data.util import rfcformat, outdoor_sample_result_to_datatable, datetime_to_js_date, pretty_print
 
 __author__ = 'David Goodwin'
 
@@ -18,6 +19,8 @@ __author__ = 'David Goodwin'
 #       All samples for the month.
 # /data/{year}/{month}/datatable/30m_avg_samples.json
 #       30 minute averages for the month.
+# /data/{year}/{month}/datatable/daily_records.json
+#       daily records for the month.
 
 # TODO: round temperatures, etc.
 
@@ -37,6 +40,8 @@ class datatable_json:
             return get_month_samples_datatable(year,month)
         elif dataset == '30m_avg_samples':
             return get_30m_avg_month_samples_datatable(year,month)
+        elif dataset == 'daily_records':
+            return get_daily_records(year,month)
         else:
             raise web.NotFound()
 
@@ -64,6 +69,90 @@ def monthly_cache_control_headers(year,month,age):
         web.header('Expires',
                    rfcformat(now + timedelta(60, 0))) # Age + 60 days
     web.header('Last-Modified', rfcformat(age))
+
+def get_daily_records(year,month):
+    params = dict(date = date(year,month,01))
+    query_data = db.query("""select date_trunc('day', time_stamp) as time_stamp,
+    max(temperature) as max_temp,
+    min(temperature) as min_temp,
+    max(relative_humidity) as max_humid,
+    min(relative_humidity) as min_humid,
+    max(absolute_pressure) as max_pressure,
+    min(absolute_pressure) as min_pressure
+from sample
+where date_trunc('month', date_trunc('day',time_stamp)) = date_trunc('month', $date)
+group by date_trunc('day', time_stamp)
+order by time_stamp asc""", params)
+
+    cols = [{'id': 'timestamp',
+             'label': 'Time Stamp',
+             'type': 'datetime'},
+            {'id': 'max_temp',
+             'label': 'Maximum Temperature',
+             'type': 'number'},
+            {'id': 'min_temp',
+             'label': 'Minimum Temperature',
+             'type': 'number'},
+            {'id': 'max_humid',
+             'label': 'Maximum Relative Humidity',
+             'type': 'number'},
+            {'id': 'min_humid',
+             'label': 'Minimum Relative Humidity',
+             'type': 'number'},
+            {'id': 'max_pressure',
+             'label': 'Maximum Absolute Pressure',
+             'type': 'number'},
+            {'id': 'min_pressure',
+             'label': 'MinimumAbsolute Pressure',
+             'type': 'number'},
+    ]
+
+    rows = []
+
+    # At the end of the following loop, this will contain the timestamp for
+    # the most recent record in this data set.
+    data_age = None
+
+    for record in query_data:
+
+#        # Handle gaps in the dataset
+#        if record.gap:
+#            rows.append({'c': [{'v': datetime_to_js_date(record.prev_sample_time)},
+#                    {'v': None},
+#                    {'v': None},
+#                    {'v': None},
+#                    {'v': None},
+#                    {'v': None},
+#                    {'v': None},
+#            ]
+#            })
+
+        rows.append({'c': [{'v': datetime_to_js_date(record.time_stamp)},
+                {'v': record.max_temp},
+                {'v': record.min_temp},
+                {'v': record.max_humid},
+                {'v': record.min_humid},
+                {'v': record.max_pressure},
+                {'v': record.min_pressure},
+        ]
+        })
+
+        data_age = record.time_stamp
+
+    data = {'cols': cols,
+            'rows': rows}
+
+    if pretty_print:
+        page = json.dumps(data, sort_keys=True, indent=4)
+    else:
+        page = json.dumps(data)
+
+    monthly_cache_control_headers(year,month,data_age)
+    web.header('Content-Type', 'application/json')
+    web.header('Content-Length', str(len(page)))
+
+    return page
+
 
 def get_30m_avg_month_samples_datatable(year, month):
 

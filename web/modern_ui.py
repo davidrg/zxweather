@@ -235,6 +235,7 @@ class ModernUI(BaseUI):
             data_base = root + 'data/{0}/{1}/{2}/'.format(station,year,month)
             samples = data_base + 'datatable/samples.json'
             samples_30m_avg = data_base + 'datatable/30m_avg_samples.json'
+            daily_records = data_base + 'datatable/daily_records.json'
 
         return self.render.month(data=data,dataurls=urls)
 
