@@ -24,7 +24,7 @@ __author__ = 'David Goodwin'
 # /data/{year}/{month}/datatable/daily_records.json
 #       daily records for the month.<b>
 
-# TODO: round temperatures, etc.
+# TODO: handle gaps of an entire day in the daily records output
 
 class datatable_json:
     """
