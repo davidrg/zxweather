@@ -5,7 +5,7 @@ wh1080-build-*
 *.pyc
 plot/.idea/*
 plot/graphs/*
-web/static/*
+web/static/hrua/*
 */Thumbs.db
 doc/*/*.aux
 doc/*/*.log

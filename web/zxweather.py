@@ -23,12 +23,12 @@ urls = (
     '/(\w*)/(\w*)/(\d+)/(\w*)/(\d+)/indoor.html', 'ui_route.indoor_day', # indoor stats for a particular day. Basic UI only.
     '/(\w*)/(\w*)/(\d+)/(\w*)/(\d+)/(?:index\.html)?', 'ui_route.day', # A particular day
 
-    # Static file downloads
+    # Static file downloads. These have to be at the bottom to prevent them
+    # from interfering with other routes.
     '/(\w*)/(\w*)/(\d+)/(\w*)/(\d+)/(.*)', 'ui_route.dayfile',  # for day pages
     '/(\w*)/(\w*)/(\d+)/(\w*)/(.*)', 'ui_route.monthfile',  # for month pages
 #    '/(\w*)/(\w*)/(\d+)/(.*)', 'baseui.file',  # for year pages
-#    '/(\w*)/(\w*)/(.*)', 'baseui.file',  # UI-specific stuff
-#    '/(\w*)/(.*)', 'baseui.file',  # Station-specific stuff
+    '/(\w*)/(.*)', 'ui_route.basefile',
 )
 
 

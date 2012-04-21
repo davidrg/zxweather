@@ -1,0 +1,33 @@
+/****************************************************************************
+ * modern.css: Styles for standard modern UI ('standard')                   *
+ ****************************************************************************
+
+/* TODO: Make this look better */
+table {
+    border: 2px outset gray;
+    border-spacing: 2px;
+    border-collapse: separate;
+}
+
+th,td {
+    border: 1px inset gray;
+    border-collapse: separate;
+}
+
+th {
+    background-color:  lightseagreen;
+    font-weight: bold;
+    text-align: left;
+}
+
+td {
+    background-color: blanchedalmond;
+}
+
+.no-value {
+    background-color: white;
+}
+
+.footer-navlinks, .top-navlinks {
+    text-align: center;
+}

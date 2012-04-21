@@ -3,6 +3,7 @@
 {% extends "base.html" %}
 {% block title %}Indoor weather for {{ data.date_stamp }}{% endblock %}
 {% block head %}
+    <link rel="stylesheet" href="../../../../css/modern.css" type="text/css"/>
 {% endblock %}
 {% block content %}
     <h1>Indoor weather for {{ data.date_stamp }}</h1>
@@ -12,19 +13,23 @@
     {% if data.current_data %}
     <h2>Conditions as of {{ data.current_data_ts }}</h2>
     <p>Data is for the five minute period ending at {{ data.current_data_ts }}</p>
-    <table border=2>
-        <tr bgcolor="lightseagreen">
-            <td><b>Sensor</b></td>
-            <td><b>Value</b></td>
-        </tr>
-        <tr bgcolor="blanchedalmond">
-            <td>Indoor Relative Humidity</td>
-            <td>{{ data.current_data.indoor_relative_humidity }}%</td>
-        </tr>
-        <tr bgcolor="blanchedalmond">
-            <td>Indoor Temperature</td>
-            <td>{{ data.current_data.indoor_temperature|round(1) }}°C</td>
-        </tr>
+    <table>
+        <thead>
+            <tr>
+                <th>Sensor</th>
+                <th>Value</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Indoor Relative Humidity</td>
+                <td>{{ data.current_data.indoor_relative_humidity }}%</td>
+            </tr>
+            <tr>
+                <td>Indoor Temperature</td>
+                <td>{{ data.current_data.indoor_temperature|round(1) }}°C</td>
+            </tr>
+        </tbody>
     </table>
     {% endif %}
     
@@ -37,9 +42,9 @@
     <div id="chart_7_humidity_div"></div>
 
     <hr>
-    <center>
+    <div class="footer-navlinks">
     <a href="./">Back to outdoor weather</a>
-    </center>
+    </div>
 
     <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
     <script type="text/javascript" src="http://www.google.com/jsapi"></script>
