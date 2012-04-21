@@ -108,7 +108,7 @@
             /***************************************************************
              * Fetch samples for the past 7 days and draw the 7-day charts
              */
-            $.getJSON('{{ dataurls.samples_7day }}', function(data) {
+            $.getJSON('{{ dataurls.samples_7day_30mavg }}', function(data) {
                 // This contains all samples for the day. Included columns are
                 // 0: timestamp
                 // 1: temperature

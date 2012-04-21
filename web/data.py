@@ -18,6 +18,24 @@ __author__ = 'David Goodwin'
 # Pretty-print JSON output? (makes debugging easier)
 pretty_print = False
 
+### Data URLs:
+# This file provides URLs to access raw data in json format.
+#
+# /data/{year}/{month}/datatable/samples.json
+#       All samples for the month
+# /data/{year}/{month}/{day}/datatable/samples.json
+#       All samples for the day
+# /data/{year}/{month}/{day}/datatable/7day_samples.json
+#       All samples for the past 7 days
+# /data/{year}/{month}/{day}/datatable/7day_30m_avg_samples.json
+#       30 minute averages for the past 7 days
+# /data/{year}/{month}/{day}/datatable/indoor_samples.json
+#       All indoor samples
+# /data/{year}/{month}/{day}/datatable/7day_indoor_samples.json
+#       All samples for the past 7 days
+
+
+
 #############################
 ## Helper Functions
 def datetime_to_js_date(timestamp):
@@ -68,7 +86,6 @@ class month_datatable_json:
 
         if dataset == 'samples':
             return get_month_samples_datatable(year,month)
-
 
 def get_month_samples_datatable(year,month):
 
@@ -179,17 +196,12 @@ order by cur.time_stamp asc""", params)
 
 #############################
 ## Daily DataTable datasets
-
 class day_datatable_json:
     """
     Gets data for a particular day in Googles DataTable format.
     """
     def GET(self, station, year, month, day, dataset):
         if station != config.default_station_name:
-            raise web.NotFound()
-
-        if dataset not in ('samples', '7day_samples',
-                           'indoor_samples', '7day_indoor_samples'):
             raise web.NotFound()
 
         year = int(year)
@@ -200,10 +212,16 @@ class day_datatable_json:
             return get_day_samples_datatable(year,month,day)
         elif dataset == '7day_samples':
             return get_7day_samples_datatable(year,month,day)
+        elif dataset == '7day_30m_avg_samples':
+            return get_7day_30mavg_samples_datatable(year,month,day)
         elif dataset == 'indoor_samples':
             return get_day_indoor_samples_datatable(year,month,day)
         elif dataset == '7day_indoor_samples':
             return get_7day_indoor_samples_datatable(year,month,day)
+        elif dataset == '7day_30m_avg_indoor_samples':
+            return get_7day_30mavg_indoor_samples_datatable(year,month,day)
+        else:
+            raise web.NotFound()
 
 
 def daily_cache_control_headers(year,month,day,age):
@@ -373,7 +391,7 @@ def outdoor_sample_result_to_datatable(query_data):
 
 def get_7day_indoor_samples_datatable(year,month,day):
     """
-    Gets data for a specific day in a Google DataTable compatible format.
+    Gets data for a 7-day period in a Google DataTable compatible format.
     :return:
     """
     params = dict(date = date(year,month,day))
@@ -393,6 +411,44 @@ def get_7day_indoor_samples_datatable(year,month,day):
           and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp)
         order by s.time_stamp asc
         """, params)
+
+    data,age = indoor_sample_result_to_datatable(result)
+
+    daily_cache_control_headers(year,month,day,age)
+
+    web.header('Content-Type','application/json')
+    web.header('Content-Length', str(len(data)))
+    return data
+
+def get_7day_30mavg_indoor_samples_datatable(year,month,day):
+    """
+    Gets data for a 7-day period in a Google DataTable compatible format.
+    :return:
+    """
+    params = dict(date = date(year,month,day))
+    result = db.query("""select min(iq.time_stamp) as time_stamp,
+       avg(iq.indoor_temperature) as indoor_temperature,
+       avg(indoor_relative_humidity)::integer as indoor_relative_humidity,
+       min(prev_sample_time) as prev_sample_time,
+       bool_or(gap) as gap
+from (
+        select cur.time_stamp,
+               (extract(epoch from cur.time_stamp) / 1800)::integer AS quadrant,
+               cur.indoor_temperature,
+               cur.indoor_relative_humidity,
+               cur.time_stamp - (cur.sample_interval * '1 minute'::interval) as prev_sample_time,
+               CASE WHEN (cur.time_stamp - prev.time_stamp) > ((cur.sample_interval * 2) * '1 minute'::interval) THEN
+                  true
+               else
+                  false
+               end as gap
+        from sample cur, sample prev
+        where date(date_trunc('month',cur.time_stamp)) = date(date_trunc('month',$date))
+          and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < cur.time_stamp)
+        order by cur.time_stamp asc) as iq
+where date(iq.time_stamp) > (date($date) - '7 days'::interval)
+group by iq.quadrant
+order by iq.quadrant asc""", params)
 
     data,age = indoor_sample_result_to_datatable(result)
 
@@ -431,7 +487,7 @@ where date(s.time_stamp) = $date
 
 def get_7day_samples_datatable(year,month,day):
     """
-    Gets data for a specific day in a Google DataTable compatible format.
+    Gets data for a 7-day period in a Google DataTable compatible format.
     :return:
     """
     params = dict(date = date(year,month,day))
@@ -455,6 +511,86 @@ def get_7day_samples_datatable(year,month,day):
       and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp)
     order by s.time_stamp asc
     """, params)
+
+    data,age = outdoor_sample_result_to_datatable(result)
+
+    daily_cache_control_headers(year,month,day,age)
+
+    web.header('Content-Type','application/json')
+    web.header('Content-Length', str(len(data)))
+    return data
+
+def get_7day_30mavg_samples_datatable(year, month, day):
+    """
+    Gets data for a 7-day period in a Google DataTable compatible format.
+    Data is averaged hourly to reduce the sample count.
+    :return:
+    """
+    params = dict(date = date(year,month,day))
+    result = db.query("""select min(iq.time_stamp) as time_stamp,
+       avg(iq.temperature) as temperature,
+       avg(iq.dew_point) as dew_point,
+       avg(iq.apparent_temperature) as apparent_temperature,
+       avg(wind_chill) as wind_chill,
+       avg(relative_humidity)::integer as relative_humidity,
+       avg(absolute_pressure) as absolute_pressure,
+       min(prev_sample_time) as prev_sample_time,
+       bool_or(gap) as gap
+from (
+        select cur.time_stamp,
+               (extract(epoch from cur.time_stamp) / 1800)::integer AS quadrant,
+               cur.temperature,
+               cur.dew_point,
+               cur.apparent_temperature,
+               cur.wind_chill,
+               cur.relative_humidity,
+               cur.absolute_pressure,
+               cur.time_stamp - (cur.sample_interval * '1 minute'::interval) as prev_sample_time,
+               CASE WHEN (cur.time_stamp - prev.time_stamp) > ((cur.sample_interval * 2) * '1 minute'::interval) THEN
+                  true
+               else
+                  false
+               end as gap
+        from sample cur, sample prev
+        where date(date_trunc('month',cur.time_stamp)) = date(date_trunc('month',$date))
+          and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < cur.time_stamp)
+        order by cur.time_stamp asc) as iq
+where date(iq.time_stamp) > (date($date) - '7 days'::interval)
+group by iq.quadrant
+order by iq.quadrant asc""", params)
+
+# 1-hour average query:
+#    """select iq.time_stamp,
+#       avg(iq.temperature) as temperature,
+#       avg(iq.dew_point) as dew_point,
+#       avg(iq.apparent_temperature) as apparent_temperature,
+#       avg(wind_chill) as wind_chill,
+#       avg(relative_humidity)::integer as relative_humidity,
+#       avg(absolute_pressure) as absolute_pressure,
+#       min(prev_sample_time) as prev_sample_time,
+#       bool_or(gap) as gap
+#from (
+#        select date_trunc('hour',cur.time_stamp) as time_stamp,
+#               cur.temperature,
+#               cur.dew_point,
+#               cur.apparent_temperature,
+#               cur.wind_chill,
+#               cur.relative_humidity,
+#               cur.absolute_pressure,
+#               cur.time_stamp - (cur.sample_interval * '1 minute'::interval) as prev_sample_time,
+#               CASE WHEN (cur.time_stamp - prev.time_stamp) > ((cur.sample_interval * 2) * '1 minute'::interval) THEN
+#                  true
+#               else
+#                  false
+#               end as gap
+#        from sample cur, sample prev
+#        where date(date_trunc('month',cur.time_stamp)) = date(date_trunc('month',$date))
+#          and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < cur.time_stamp)
+#        order by cur.time_stamp asc) as iq
+#where date(iq.time_stamp) >= (date($date) - '7 days'::interval)
+#group by iq.time_stamp
+#order by iq.time_stamp asc
+#    """
 
     data,age = outdoor_sample_result_to_datatable(result)
 
