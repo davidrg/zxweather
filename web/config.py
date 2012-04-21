@@ -10,10 +10,15 @@ db = web.database(dbn='postgres',
 
 # This is the name of the default station. In a future version
 # this will live in the database instead.
-default_station_name = 'hrua' # Hamilton, Ruakura
+default_station_name = 'rua' # Ruakura, Hamilton
 
 # Set this to True if you are running wh1080d to feed samples and live data
 # into the database.
 live_data_available = True
 
+# How often new samples appear from the weather station, in seconds.
+sample_interval = 300 # 5 minutes
+
+# Where static data lives
 static_data_dir = 'Z:/current/zxweather/web/static/'
+

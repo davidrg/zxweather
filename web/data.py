@@ -3,13 +3,17 @@ Provides access to zxweather data over HTTP in a number of formats. Used for
 generating charts in JavaScript, etc.
 """
 
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
+from time import mktime
 import web
 from config import db
 import config
 import json
+from wsgiref.handlers import format_date_time
 
 __author__ = 'David Goodwin'
+
+# TODO: round temperatures, etc.
 
 # Pretty-print JSON output? (makes debugging easier)
 pretty_print = False
@@ -42,6 +46,19 @@ def datetime_to_js_date(timestamp):
         return type(timestamp)
         #raise TypeError
 
+# From http://bugs.python.org/issue7584
+def rfcformat(dt):
+    return format_date_time(mktime(dt.timetuple()))
+#    """ Output datetime in RFC 3339 format that is also valid ISO 8601
+#        timestamp representation"""
+#
+#    if dt.tzinfo is None:
+#        suffix = "-00:00"
+#    else:
+#        suffix = dt.strftime("%z")
+#        suffix = suffix[:-2] + ":" + suffix[-2:]
+#    return dt.strftime("%Y-%m-%dT%H:%M:%S") + suffix
+
 #############################
 ## Monthly DataTable datasets
 class month_datatable_json:
@@ -49,7 +66,7 @@ class month_datatable_json:
     Gets data for a particular month in Googles DataTable format.
     """
 
-    def GET(selfself, station, year, month, dataset):
+    def GET(self, station, year, month, dataset):
         if station != config.default_station_name:
             raise web.NotFound()
 
@@ -110,11 +127,16 @@ order by cur.time_stamp asc""", params)
 
     rows = []
 
+    # At the end of the following loop, this will contain the timestamp for
+    # the most recent record in this data set.
+    data_age = None
+
     for record in query_data:
 
         # Handle gaps in the dataset
         if record.gap:
-            rows.append({'c': [{'v': datetime_to_js_date(record.prev_sample_time)},
+            rows.append({'c': [
+                    {'v': datetime_to_js_date(record.prev_sample_time)},
                     {'v': None},
                     {'v': None},
                     {'v': None},
@@ -133,6 +155,7 @@ order by cur.time_stamp asc""", params)
                 {'v': record.absolute_pressure},
         ]
         })
+        data_age = record.time_stamp
 
     data = {'cols': cols,
             'rows': rows}
@@ -140,14 +163,33 @@ order by cur.time_stamp asc""", params)
 
     web.header('Content-Type','application/json')
 
-    if pretty_print:
-        return json.dumps(data, sort_keys=True, indent=4)
+    now = datetime.now()
+    # HTTP-1.1 Cache Control
+    if year == now.year and month == now.month:
+        # We should be getting a new sample every sample_interval seconds if
+        # the requested month is this month.
+        web.header('Cache-Control', 'max-age=' + str(config.sample_interval))
+        web.header('Expires',
+                   rfcformat(data_age + timedelta(0, config.sample_interval)))
     else:
-        return json.dumps(data)
+        # Old data. Never expires.
+        web.header('Expires',
+                   rfcformat(data_age + timedelta(60, 0))) # Age + 60 days
+    web.header('Last-Modified', rfcformat(data_age))
 
+
+
+    if pretty_print:
+        output_data = json.dumps(data, sort_keys=True, indent=4)
+    else:
+        output_data = json.dumps(data)
+
+    web.header('Content-Length', str(len(output_data)))
+    return output_data
 
 #############################
 ## Daily DataTable datasets
+
 class day_datatable_json:
     """
     Gets data for a particular day in Googles DataTable format.
@@ -173,6 +215,34 @@ class day_datatable_json:
         elif dataset == '7day_indoor_samples':
             return get_7day_indoor_samples_datatable(year,month,day)
 
+
+def daily_cache_control_headers(year,month,day,age):
+    """
+    Sets cache control headers for a daily data files.
+    :param year: Year of the data file
+    :type year: int
+    :param month: Month of the data file
+    :type month: int
+    :param day: Day of the data file
+    :type day: int
+    :param age: Timestamp of the last record in the data file
+    :type age: datetime
+    """
+
+    now = datetime.now()
+    # HTTP-1.1 Cache Control
+    if year == now.year and month == now.month and day == now.day:
+        # We should be getting a new sample every sample_interval seconds if
+        # the requested day is today.
+        web.header('Cache-Control', 'max-age=' + str(config.sample_interval))
+        web.header('Expires',
+                   rfcformat(age + timedelta(0, config.sample_interval)))
+    else:
+        # Old data. Never expires.
+        web.header('Expires',
+                   rfcformat(age + timedelta(60, 0))) # Age + 60 days
+    web.header('Last-Modified', rfcformat(age))
+
 def indoor_sample_result_to_datatable(query_data):
     """
     Converts a query on the sample table to DataTable-compatible JSON.
@@ -196,6 +266,10 @@ def indoor_sample_result_to_datatable(query_data):
 
     rows = []
 
+    # At the end of the following loop, this will contain the timestamp for
+    # the most recent record in this data set.
+    data_age = None
+
     for record in query_data:
 
 
@@ -217,6 +291,8 @@ def indoor_sample_result_to_datatable(query_data):
         ]
         })
 
+        data_age = record.time_stamp
+
     data = {'cols': cols,
             'rows': rows}
 
@@ -227,9 +303,9 @@ def indoor_sample_result_to_datatable(query_data):
             raise TypeError
 
     if pretty_print:
-        return json.dumps(data, default=dthandler, sort_keys=True, indent=4)
+        return json.dumps(data, default=dthandler, sort_keys=True, indent=4), data_age
     else:
-        return json.dumps(data, default=dthandler)
+        return json.dumps(data, default=dthandler), data_age
 
 def outdoor_sample_result_to_datatable(query_data):
     """
@@ -267,6 +343,10 @@ def outdoor_sample_result_to_datatable(query_data):
 
     rows = []
 
+    # At the end of the following loop, this will contain the timestamp for
+    # the most recent record in this data set.
+    data_age = None
+
     for record in query_data:
 
         # Handle gaps in the dataset
@@ -291,13 +371,15 @@ def outdoor_sample_result_to_datatable(query_data):
         ]
         })
 
+        data_age = record.time_stamp
+
     data = {'cols': cols,
             'rows': rows}
 
     if pretty_print:
-        return json.dumps(data, sort_keys=True, indent=4)
+        return json.dumps(data, sort_keys=True, indent=4), data_age
     else:
-        return json.dumps(data)
+        return json.dumps(data), data_age
 
 def get_7day_indoor_samples_datatable(year,month,day):
     """
@@ -322,8 +404,13 @@ def get_7day_indoor_samples_datatable(year,month,day):
         order by s.time_stamp asc
         """, params)
 
+    data,age = indoor_sample_result_to_datatable(result)
+
+    daily_cache_control_headers(year,month,day,age)
+
     web.header('Content-Type','application/json')
-    return indoor_sample_result_to_datatable(result)
+    web.header('Content-Length', str(len(data)))
+    return data
 
 def get_day_indoor_samples_datatable(year,month,day):
     """
@@ -344,8 +431,13 @@ from sample s, sample prev
 where date(s.time_stamp) = $date
   and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp)""", params)
 
+    data,age = indoor_sample_result_to_datatable(result)
+
+    daily_cache_control_headers(year,month,day,age)
+
     web.header('Content-Type','application/json')
-    return indoor_sample_result_to_datatable(result)
+    web.header('Content-Length', str(len(data)))
+    return data
 
 def get_7day_samples_datatable(year,month,day):
     """
@@ -374,8 +466,13 @@ def get_7day_samples_datatable(year,month,day):
     order by s.time_stamp asc
     """, params)
 
+    data,age = outdoor_sample_result_to_datatable(result)
+
+    daily_cache_control_headers(year,month,day,age)
+
     web.header('Content-Type','application/json')
-    return outdoor_sample_result_to_datatable(result)
+    web.header('Content-Length', str(len(data)))
+    return data
 
 def get_day_samples_datatable(year,month,day):
     """
@@ -400,8 +497,13 @@ from sample s, sample prev
 where date(s.time_stamp) = $date
   and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp)""", params)
 
+    data,age = outdoor_sample_result_to_datatable(result)
+
+    daily_cache_control_headers(year,month,day,age)
+
     web.header('Content-Type','application/json')
-    return outdoor_sample_result_to_datatable(result)
+    web.header('Content-Length', str(len(data)))
+    return data
 
 
 
