@@ -80,7 +80,7 @@ def get_daily_records(year,month):
     max(absolute_pressure) as max_pressure,
     min(absolute_pressure) as min_pressure
 from sample
-where date_trunc('month', date_trunc('day',time_stamp)) = date_trunc('month', $date)
+where date_trunc('month', time_stamp) = date_trunc('month', $date)
 group by date_trunc('day', time_stamp)
 order by time_stamp asc""", params)
 

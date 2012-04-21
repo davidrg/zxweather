@@ -128,7 +128,12 @@ class ModernUI(BaseUI):
         if len(data_check):
             data.next_url = '../' + str(data.next_year)
 
-        return self.render.year(data=data)
+        class urls:
+            root = '../../../'
+            data_base = root + 'data/{0}/{1}/'.format(station,year)
+            daily_records = data_base + 'datatable/daily_records.json'
+
+        return self.render.year(data=data,dataurls=urls)
 
     def get_month(self,station, year, month):
 
