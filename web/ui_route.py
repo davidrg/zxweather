@@ -176,6 +176,10 @@ class day:
 
 class dayfile:
     def GET(self, ui, station,year,month,day,file):
+
+        if ui not in uis:
+            raise web.NotFound()
+
         pathname = station + '/' + str(year) + '/' + str(month)\
                    + '/' + str(day) + '/' + file
         #return pathname
@@ -183,9 +187,21 @@ class dayfile:
 
 class monthfile:
     def GET(self, ui, station,year,month,file):
+
+        if ui not in uis:
+            raise web.NotFound()
+
         pathname = station + '/' + str(year) + '/' + str(month)\
                    + '/' + file
         return get_file(pathname)
+
+class basefile:
+    def GET(self, ui, file):
+
+        if ui not in uis:
+            raise web.NotFound()
+
+        return get_file(file)
 
 def get_file(pathname):
     """
