@@ -46,18 +46,8 @@ def datetime_to_js_date(timestamp):
         return type(timestamp)
         #raise TypeError
 
-# From http://bugs.python.org/issue7584
 def rfcformat(dt):
     return format_date_time(mktime(dt.timetuple()))
-#    """ Output datetime in RFC 3339 format that is also valid ISO 8601
-#        timestamp representation"""
-#
-#    if dt.tzinfo is None:
-#        suffix = "-00:00"
-#    else:
-#        suffix = dt.strftime("%z")
-#        suffix = suffix[:-2] + ":" + suffix[-2:]
-#    return dt.strftime("%Y-%m-%dT%H:%M:%S") + suffix
 
 #############################
 ## Monthly DataTable datasets
