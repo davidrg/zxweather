@@ -1,0 +1,38 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+    <head>
+        <title>Yearly Data</title>
+    </head>
+    <body>
+        <h1>Yearly Data</h1>
+        <hr>
+        <p>The following datasets are available for each year:</p>
+
+        <table border="2">
+            <tr bgcolor="lightseagreen">
+                <td><b>Format</b></td>
+                <td><b>Link</b></td>
+                <td><b>Description</b></td>
+            </tr>
+            <tr bgcolor="blanchedalmond">
+                <td>Google DataTable JSON</td>
+                <td><a href="datatable/daily_records.json">datatable/daily_records.json</a></td>
+                <td>
+                    Minimum and Maximum temperature, humidity and
+                    pressure for each day of the year.
+                </td>
+            </tr>
+        </table>
+
+        <h2>Months</h2>
+        <p>Data is available for the following months:<br>
+            {% set i = 0 %}
+            {% for month in months %}
+                {% set i = i + 1 %}
+                <a href="{{ month }}/">{{ month }}</a> {% if i < months|length %}|{% endif %}
+            {% endfor %}
+        </p>
+        <hr>
+    </body>
+</html>
