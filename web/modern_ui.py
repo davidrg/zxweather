@@ -231,10 +231,10 @@ class ModernUI(BaseUI):
                 data.next_url = '../' + month_name[next_month] + '/'
 
         class urls:
-            base_url = '../../../../data/{0}/{1}/{2}/'\
-            .format(station,year,month)
-            samples = base_url + 'datatable/samples.json'
-            samples_7day = base_url + 'datatable/7day_samples.json'
+            root = '../../../../'
+            data_base = root + 'data/{0}/{1}/{2}/'.format(station,year,month)
+            samples = data_base + 'datatable/samples.json'
+            samples_30m_avg = data_base + 'datatable/30m_avg_samples.json'
 
         return self.render.month(data=data,dataurls=urls)
 

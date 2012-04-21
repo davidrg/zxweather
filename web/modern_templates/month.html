@@ -170,7 +170,7 @@
             /***************************************************************
              * Fetch the days samples and draw the 1-day charts
              */
-            $.getJSON('{{ dataurls.samples }}', function(data) {
+            $.getJSON('{{ dataurls.samples_30m_avg }}', function(data) {
                 // This contains all samples for the day. Included columns are
                 // 0: timestamp
                 // 1: temperature
