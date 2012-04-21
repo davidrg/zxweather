@@ -19,6 +19,9 @@ live_data_available = True
 # How often new samples appear from the weather station, in seconds.
 sample_interval = 300 # 5 minutes
 
+# How often charts are re-plotted, in seconds
+plot_interval = 1800
+
 # Where static data lives
 static_data_dir = 'Z:/current/zxweather/web/static/'
 
