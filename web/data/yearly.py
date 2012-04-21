@@ -92,13 +92,14 @@ def yearly_cache_control_headers(year,age):
 
 def get_daily_records(year):
     params = dict(date = date(year,01,01))
-    query_data = db.query("""select date_trunc('day', time_stamp) as time_stamp,
+    query_data = db.query("""select date_trunc('day', time_stamp)::date as time_stamp,
     max(temperature) as max_temp,
     min(temperature) as min_temp,
     max(relative_humidity) as max_humid,
     min(relative_humidity) as min_humid,
     max(absolute_pressure) as max_pressure,
-    min(absolute_pressure) as min_pressure
+    min(absolute_pressure) as min_pressure,
+    sum(rainfall) as total_rainfall
 from sample
 where date_trunc('year',time_stamp) = date_trunc('year', $date)
 group by date_trunc('day', time_stamp)
@@ -106,7 +107,7 @@ order by time_stamp asc""", params)
 
     cols = [{'id': 'timestamp',
              'label': 'Time Stamp',
-             'type': 'datetime'},
+             'type': 'date'},
             {'id': 'max_temp',
              'label': 'Maximum Temperature',
              'type': 'number'},
@@ -124,6 +125,9 @@ order by time_stamp asc""", params)
              'type': 'number'},
             {'id': 'min_pressure',
              'label': 'MinimumAbsolute Pressure',
+             'type': 'number'},
+            {'id': 'total_rainfall',
+             'label': 'Total Rainfall',
              'type': 'number'},
     ]
 
@@ -154,6 +158,7 @@ order by time_stamp asc""", params)
                 {'v': record.min_humid},
                 {'v': record.max_pressure},
                 {'v': record.min_pressure},
+                {'v': record.total_rainfall},
         ]
         })
 
