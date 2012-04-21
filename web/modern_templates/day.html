@@ -130,17 +130,28 @@
 
     <a name="1day"></a>
     <h2>1-day Charts</h2>
-    <div id="chart_temperature_tdp_div"></div>
-    <div id="chart_temperature_awc_div"></div>
-    <div id="chart_humidity_div"></div>
-    <div id="chart_pressure_div"></div>
+    <div id="daily-charts">
+        <div class="left-column">
+            <div id="chart_temperature_tdp_div"></div>
+            <div id="chart_humidity_div"></div>
+        </div>
+        <div class="right-column">
+            <div id="chart_temperature_awc_div"></div>
+            <div id="chart_pressure_div"></div>
+        </div>
+        <div class="column-end"></div>
+    </div>
 
     <a name="7day"></a>
     <h2>7-day Charts</h2>
-    <div id="chart_7_temperature_tdp_div"></div>
-    <div id="chart_7_temperature_awc_div"></div>
-    <div id="chart_7_humidity_div"></div>
-    <div id="chart_7_pressure_div"></div>
+    <div id="7day-charts">
+        <div id="chart_7_temperature_tdp_div"></div>
+        <div id="chart_7_temperature_awc_div"></div>
+        <div class="column-end"></div>
+        <div id="chart_7_humidity_div"></div>
+        <div id="chart_7_pressure_div"></div>
+        <div class="column-end"></div>
+    </div>
 
     <hr>
     <div class="footer-navlinks">
@@ -167,10 +178,10 @@
         <script type="text/javascript">
             //google.load('visualization', '1', {packages:['table']});
             google.load("visualization", "1", {packages:["corechart"]});
-            google.setOnLoadCallback(drawTable);
-            function drawTable() {
+            google.setOnLoadCallback(drawCharts);
+            function drawCharts() {
 
-                function drawAllTables(data,
+                function drawAllCharts(data,
                                        tdp_element,
                                        awc_element,
                                        humidity_element,
@@ -181,7 +192,8 @@
                     temperature_tdp.hideColumns([3,4,5,6]);
 
                     var temperature_tdp_options = {
-                        title: 'Temperature and Dew Point'
+                        title: 'Temperature and Dew Point (°C)',
+                        legend: {position: 'bottom'}
                     };
                     var temperature_tdp_chart = new google.visualization.LineChart(tdp_element);
                     temperature_tdp_chart.draw(temperature_tdp, temperature_tdp_options);
@@ -191,7 +203,8 @@
                     temperature_awc.hideColumns([1,2,5,6]);
 
                     var temperature_awc_options = {
-                        title: 'Apparent Temperature and Wind Chill'
+                        title: 'Apparent Temperature and Wind Chill (°C)',
+                        legend: {position: 'bottom'}
                     };
                     var temperature_awc_chart = new google.visualization.LineChart(awc_element);
                     temperature_awc_chart.draw(temperature_awc, temperature_awc_options);
@@ -201,7 +214,9 @@
                     pressure.hideColumns([1,2,3,4,5]);
 
                     var pressure_options = {
-                        title: 'Absolute Pressure'
+                        title: 'Absolute Pressure (hPa)',
+                        legend: {position: 'none'},
+                        vAxis: {format: '####'}
                     };
                     var pressure_chart = new google.visualization.LineChart(pressure_element);
                     pressure_chart.draw(pressure, pressure_options);
@@ -211,7 +226,8 @@
                     humidity.hideColumns([1,2,3,4,6]);
 
                     var humidity_options = {
-                        title: 'Humidity'
+                        title: 'Humidity (%)',
+                        legend: {position: 'none'}
                     };
                     var humidity_chart = new google.visualization.LineChart(humidity_element);
                     humidity_chart.draw(humidity, humidity_options);
@@ -231,7 +247,7 @@
                     // 6: abspressure
                     var sampledata = new google.visualization.DataTable(data);
 
-                    drawAllTables(sampledata,
+                    drawAllCharts(sampledata,
                                   document.getElementById('chart_temperature_tdp_div'),
                                   document.getElementById('chart_temperature_awc_div'),
                                   document.getElementById('chart_humidity_div'),
@@ -253,7 +269,7 @@
                     // 6: abspressure
                     var sampledata = new google.visualization.DataTable(data);
 
-                    drawAllTables(sampledata,
+                    drawAllCharts(sampledata,
                                   document.getElementById('chart_7_temperature_tdp_div'),
                                   document.getElementById('chart_7_temperature_awc_div'),
                                   document.getElementById('chart_7_humidity_div'),
@@ -262,5 +278,4 @@
                 });
             }
         </script>
-
 {% endblock %}

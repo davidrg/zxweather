@@ -9,7 +9,6 @@ from web.contrib.template import render_jinja
 
 from basic_ui import BasicUI
 import config
-from data import rfcformat
 from modern_ui import ModernUI
 import datetime
 from mimetypes import guess_type

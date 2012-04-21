@@ -34,8 +34,15 @@
     {% endif %}
     
     <h2>1-day Charts</h2>
-    <div id="chart_temperature_div"></div>
-    <div id="chart_humidity_div"></div>
+    <div id="daily-charts">
+        <div class="left-column">
+            <div id="chart_temperature_div"></div>
+        </div>
+        <div class="right-column">
+            <div id="chart_humidity_div"></div>
+        </div>
+        <div class="column-end"></div>
+    </div>
 
     <h2>7-day Charts</h2>
     <div id="chart_7_temperature_div"></div>
@@ -63,7 +70,8 @@
                 temperature.hideColumns([2]);
 
                 var temperature_options = {
-                    title: 'Indoor Temperature'
+                    title: 'Indoor Temperature (°C)',
+                    legend: {position: 'none'}
                 };
                 var temperature_chart = new google.visualization.LineChart(temperature_element);
                 temperature_chart.draw(temperature, temperature_options);
@@ -74,7 +82,8 @@
                 humidity.hideColumns([1]);
 
                 var humidity_options = {
-                    title: 'Indoor Humidity'
+                    title: 'Indoor Humidity (%)',
+                    legend: {position: 'none'}
                 };
                 var humidity_chart = new google.visualization.LineChart(humidity_element);
                 humidity_chart.draw(humidity, humidity_options);
