@@ -2,6 +2,24 @@
  * modern.css: Styles for standard modern UI ('standard')                   *
  ****************************************************************************
 
+/*****************
+ * 1-day charts  *
+ *****************/
+
+/* Daily charts container */
+#daily-charts {
+    width: 100%;
+}
+
+#daily-charts #chart_temperature_tdp_div {}
+#daily-charts #chart_temperature_awc_div {}
+#daily-charts #chart_humidity_div {}
+#daily-charts #chart_pressure_div {}
+
+/**************************************
+ * Global Stuff (all pages)           *
+ **************************************/
+
 /* TODO: Make this look better */
 table {
     border: 2px outset gray;
@@ -30,4 +48,20 @@ td {
 
 .footer-navlinks, .top-navlinks {
     text-align: center;
+}
+
+/* For organising stuff into two columns */
+.left-column {
+    width: 50%;
+    float: left;
+}
+
+.right-column {
+    width: 50%;
+    float: right;
+}
+
+/* To clear everything after a set of columns */
+.column-end{
+    clear: both;
 }
