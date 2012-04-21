@@ -71,6 +71,16 @@
     </table>
     <p>Total Rainfall: {{ data.records.total_rainfall|round(1) }}mm</p>
 
+    <h2 id="daily_record_charts">Daily Records</h2>
+    <div class="left-column">
+        <div id="chart_rec_temperature"></div>
+        <div id="chart_rec_humidity"></div>
+    </div>
+    <div class="right-column">
+        <div id="chart_rec_pressure"></div>
+    </div>
+    <div class="column-end"></div>
+
     <hr>
     <div class="footer-navlinks">
         {% if data.prev_url %}
@@ -89,5 +99,62 @@
         <br>
         <a href="../now">Today</a>
     </div>
+
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+    <script type="text/javascript" src="http://www.google.com/jsapi"></script>
+    <script type="text/javascript">
+        google.load("visualization", "1", {packages:["corechart"]});
+        google.setOnLoadCallback(drawTable);
+        function drawTable() {
+            $.getJSON('{{ dataurls.daily_records }}', function(data) {
+                var record_data = new google.visualization.DataTable(data);
+
+                // This contains all samples for the day. Included columns are
+                // 0: timestamp
+                // 1: max temp
+                // 2: min temp
+                // 3: max humidity
+                // 4: min humidity
+                // 5: max pressure
+                // 6: min pressure
+
+                // Temperature
+                var temperature = new google.visualization.DataView(record_data);
+                temperature.hideColumns([3,4,5,6]);
+
+                var temperature_options = {
+                    title: 'Temperature (°C)',
+                    legend: {position: 'bottom'}
+                };
+                var temperature_chart = new google.visualization.LineChart(
+                        document.getElementById('chart_rec_temperature'));
+                temperature_chart.draw(temperature, temperature_options);
+
+                // Humidity
+                var humidity = new google.visualization.DataView(record_data);
+                humidity.hideColumns([1,2,5,6]);
+
+                var humidity_options = {
+                    title: 'Humidity (%)',
+                    legend: {position: 'bottom'}
+                };
+                var humidity_chart = new google.visualization.LineChart(
+                        document.getElementById('chart_rec_humidity'));
+                humidity_chart.draw(humidity, humidity_options);
+
+                // Pressure
+                var pressure = new google.visualization.DataView(record_data);
+                pressure.hideColumns([1,2,3,4]);
+
+                var pressure_options = {
+                    title: 'Absolute Pressure (hPa)',
+                    legend: {position: 'bottom'}
+                };
+                var pressure_chart = new google.visualization.LineChart(
+                        document.getElementById('chart_rec_pressure'));
+                pressure_chart.draw(pressure, pressure_options);
+            });
+        }
+    </script>
 
 {% endblock %}
