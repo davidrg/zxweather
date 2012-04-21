@@ -274,6 +274,7 @@ class ModernUI(BaseUI):
             .format(station,year,month,day)
             samples = base_url + 'datatable/indoor_samples.json'
             samples_7day = base_url + 'datatable/7day_indoor_samples.json'
+            samples_7day_30mavg = base_url + 'datatable/7day_30m_avg_indoor_samples.json'
 
         return self.render.indoor_day(data=data,dataurls=urls)
 
@@ -373,5 +374,6 @@ class ModernUI(BaseUI):
                        .format(station,year,month,day)
             samples = base_url + 'datatable/samples.json'
             samples_7day = base_url + 'datatable/7day_samples.json'
+            samples_7day_30mavg = base_url + 'datatable/7day_30m_avg_samples.json'
 
         return self.render.day(data=data,dataurls=urls)
