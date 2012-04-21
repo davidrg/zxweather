@@ -5,7 +5,9 @@ Used for generating charts in JavaScript, etc.
 
 from datetime import date, datetime, timedelta
 import json
+import os
 import web
+from web.contrib.template import render_jinja
 from config import db
 import config
 from data.util import rfcformat, outdoor_sample_result_to_datatable, datetime_to_js_date, pretty_print
@@ -20,7 +22,7 @@ __author__ = 'David Goodwin'
 # /data/{year}/{month}/datatable/30m_avg_samples.json
 #       30 minute averages for the month.
 # /data/{year}/{month}/datatable/daily_records.json
-#       daily records for the month.
+#       daily records for the month.<b>
 
 # TODO: round temperatures, etc.
 
@@ -44,6 +46,28 @@ class datatable_json:
             return get_daily_records(year,month)
         else:
             raise web.NotFound()
+
+class index:
+    def GET(self, station, year, month):
+        template_dir = os.path.join(os.path.dirname(__file__),
+                                         os.path.join('templates'))
+        render = render_jinja(template_dir, encoding='utf-8')
+
+        # Grab a list of all months for which there is data for this year.
+        month_data = db.query("""select md.day_stamp from (select extract(year from time_stamp) as year_stamp,
+           extract(month from time_stamp) as month_stamp,
+           extract(day from time_stamp) as day_stamp
+    from sample
+    group by year_stamp, month_stamp, day_stamp) as md where md.year_stamp = $year and md.month_stamp = $month
+    order by day_stamp""", dict(year=year, month=month))
+
+        days = []
+
+        for day in month_data:
+            day = int(day.day_stamp)
+            days.append(day)
+
+        return render.monthly_data_index(days=days)
 
 def monthly_cache_control_headers(year,month,age):
     """

@@ -4,7 +4,9 @@ Used for generating charts in JavaScript, etc.
 """
 
 from datetime import date, datetime, timedelta
+import os
 import web
+from web.contrib.template import render_jinja
 from config import db
 import config
 import json
@@ -56,6 +58,14 @@ class datatable_json:
             return get_7day_30mavg_indoor_samples_datatable(year,month,day)
         else:
             raise web.NotFound()
+
+class index:
+    def GET(self, station, year, month, day):
+        template_dir = os.path.join(os.path.dirname(__file__),
+                                    os.path.join('templates'))
+        render = render_jinja(template_dir, encoding='utf-8')
+
+        return render.daily_data_index()
 
 def daily_cache_control_headers(year,month,day,age):
     """

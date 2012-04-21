@@ -5,7 +5,9 @@ Used for generating charts in JavaScript, etc.
 
 from datetime import date, datetime, timedelta
 import json
+import os
 import web
+from web.contrib.template import render_jinja
 from config import db
 import config
 from data.util import rfcformat, outdoor_sample_result_to_datatable, datetime_to_js_date, pretty_print
@@ -35,6 +37,25 @@ class datatable_json:
             return get_daily_records(year)
         else:
             raise web.NotFound()
+
+class index:
+    def GET(self, station, year):
+        template_dir = os.path.join(os.path.dirname(__file__),
+                                    os.path.join('templates'))
+        render = render_jinja(template_dir, encoding='utf-8')
+
+        # Grab a list of all months for which there is data for this year.
+        month_data = db.query("""select md.month_stamp::integer from (select extract(year from time_stamp) as year_stamp,
+           extract(month from time_stamp) as month_stamp
+    from sample
+    group by year_stamp, month_stamp) as md where md.year_stamp = $year""", dict(year=year))
+
+        months = []
+
+        for record in month_data:
+            months.append(record.month_stamp)
+
+        return render.yearly_data_index(months=months)
 
 def yearly_cache_control_headers(year,age):
     """
