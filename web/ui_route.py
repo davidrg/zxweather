@@ -302,6 +302,7 @@ class basefile:
 
 def file_headers(filename):
     if not os.path.exists(filename):
+        print "static file {0} not found".format(filename)
         raise web.NotFound()
 
     #filename = os.path.basename(full_filename)
@@ -330,8 +331,6 @@ def get_file(pathname):
     :param pathname: Local file to stream
     :return:
     """
-
-
 
     file_headers(pathname)
 
