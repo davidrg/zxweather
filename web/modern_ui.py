@@ -5,7 +5,7 @@ Modern HTML5/CSS/Javascript UI.
 from datetime import datetime, date, timedelta
 import web
 from baseui import BaseUI
-from config import db, live_data_available
+from config import db
 
 __author__ = 'David Goodwin'
 
@@ -96,33 +96,11 @@ class ModernUI(BaseUI):
             next_year = None
             prev_year = None
 
-            months = []
+            # A list of months in the year that have data
+            months = BaseUI.get_year_months(year)
 
-        params = dict(year=year)
-        yearly_records = db.select('yearly_records',params,
-                                   where='year_stamp=$year')
-
-        if not len(yearly_records):
-            # Bad url or something.
-            raise web.NotFound()
-
-        data.records = yearly_records[0]
-
-        # Grab a list of all months for which there is data for this year.
-        month_data = db.query("""select md.month_stamp::integer from (select extract(year from time_stamp) as year_stamp,
-           extract(month from time_stamp) as month_stamp
-    from sample
-    group by year_stamp, month_stamp) as md where md.year_stamp = $year""", dict(year=year))
-
-
-        if not len(month_data):
-            # If there are no months in this year then there can't be any data.
-            raise web.NotFound()
-
-        for month in month_data:
-            the_month_name = month_name[month.month_stamp]
-            data.months.append(the_month_name)
-
+            # Min/max values for the year.
+            records = BaseUI.get_yearly_records(year)
 
         # Figure out any URLs the page needs to know.
         class urls:
@@ -186,7 +164,7 @@ class ModernUI(BaseUI):
 
             this_month = month_name[month]
 
-            days = []
+            days = BaseUI.get_month_days(year,month)
 
 
         params = dict(date='01-{0}-{1}'.format(data.month_stamp, data.year_stamp))
@@ -196,22 +174,6 @@ class ModernUI(BaseUI):
             # Bad url or something.
             raise web.NotFound()
         data.records = monthly_records[0]
-
-        # Grab a list of all months for which there is data for this year.
-        month_data = db.query("""select md.day_stamp from (select extract(year from time_stamp) as year_stamp,
-           extract(month from time_stamp) as month_stamp,
-           extract(day from time_stamp) as day_stamp
-    from sample
-    group by year_stamp, month_stamp, day_stamp) as md where md.year_stamp = $year and md.month_stamp = $month
-    order by day_stamp""", dict(year=year, month=month))
-
-        if not len(month_data):
-            # If there are no months in this year then there can't be any data.
-            raise web.NotFound()
-
-        for day in month_data:
-            day = int(day.day_stamp)
-            data.days.append(day)
 
         # Figure out the previous year and month
         previous_month = data.month_stamp - 1
@@ -293,39 +255,20 @@ class ModernUI(BaseUI):
         # Figure out if there is current data to show or if this is a history
         # page
         now = datetime.now()
-        params = dict(date=data.date_stamp)
-        today = False
-        data_age = None
-        if now.day == day and now.month == month and now.year == year:
-            today = True
-        if today and live_data_available:
-            data.current_data = db.query("""select timetz(download_timestamp) as time_stamp,
-                indoor_relative_humidity,
-                indoor_temperature
-                from live_data""")[0]
-            data.current_data_ts = data.current_data.time_stamp
-            data_age = data.current_data_ts
-        elif today:
-            # Fetch the latest data for today
-            data.current_data = db.query("""select timetz(time_stamp) as time_stamp,
-                indoor_relative_humidity,
-                indoor_temperature
-            from sample
-            where date(time_stamp) = $date
-            order by time_stamp desc
-            limit 1""",params)[0]
-            data.current_data_ts = data.current_data.time_stamp
-            data_age = data.current_data_ts
+        today = now.day == day and now.month == month and now.year == year
+
+        if today:
+            data.current_data_ts, data.current_data = BaseUI.get_live_indoor_data()
 
         class urls:
             """Various URLs required by the view"""
-            base_url = '../../../../../data/{0}/{1}/{2}/{3}/'\
+            data_base_url = '../../../../../data/{0}/{1}/{2}/{3}/'\
             .format(station,year,month,day)
-            samples = base_url + 'datatable/indoor_samples.json'
-            samples_7day = base_url + 'datatable/7day_indoor_samples.json'
-            samples_7day_30mavg = base_url + 'datatable/7day_30m_avg_indoor_samples.json'
+            samples = data_base_url + 'datatable/indoor_samples.json'
+            samples_7day = data_base_url + 'datatable/7day_indoor_samples.json'
+            samples_7day_30mavg = data_base_url + 'datatable/7day_30m_avg_indoor_samples.json'
 
-        BaseUI.day_cache_control(data_age, year, month, day)
+        BaseUI.day_cache_control(data.current_data_ts, year, month, day)
         return self.render.indoor_day(data=data,dataurls=urls)
 
     def get_day(self,station, year, month, day):
