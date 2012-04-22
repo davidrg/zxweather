@@ -56,7 +56,7 @@ class site_index:
 
         if len(uis) == 1:
             # If there is only one UI registered just redirect straight to it.
-            raise web.seeother(uis.items()[0][0] + '/'
+            raise web.seeother(config.site_root + uis.items()[0][0] + '/'
                                + config.default_station_name + '/')
 
         ui_list = []
@@ -91,7 +91,7 @@ class stationlist:
 
         # Only one station is currently supported so just redirect straight
         # to it rather than giving the user a choice of only one option.
-        raise web.seeother(config.default_station_name + '/')
+        raise web.seeother(config.site_root + ui + '/' + config.default_station_name + '/')
 
 class index:
     """
@@ -119,8 +119,8 @@ class now:
 
         now = datetime.datetime.now()
 
-        todays_url = '/' + station + '/' + ui + '/' + str(now.year) + '/'\
-                     + month_name[now.month] + '/' + str(now.day) + '/'
+        todays_url = config.site_root + ui + '/' + station + '/' + \
+                     str(now.year) + '/' + month_name[now.month] + '/' + str(now.day) + '/'
 
         raise web.seeother(todays_url)
 

@@ -268,6 +268,7 @@ class BaseUI:
         """
         Gets the records for the year (data from the yearly_records view).
         :param year: Year to get records for.
+        :type year: integer
         :return: Records for the year.
         :raise: web.NotFound() if there is no data for the year.
         """
@@ -280,3 +281,25 @@ class BaseUI:
             raise web.NotFound()
 
         return yearly_records[0]
+
+    @staticmethod
+    def get_monthly_records(year, month):
+        """
+        Gets the records for the month (data from the monthly_records view).
+        :param year: Year to get records for.
+        :type year: integer
+        :param month:  Month to get records for
+        :type month: integer
+        :return: Records for the year.
+        :raise: web.NotFound() if there is no data for the year/month.
+        """
+
+        params = dict(date=date(year,month,01))
+        monthly_records = db.select('monthly_records',params,
+                                    where='date_stamp = $date' )
+
+        if not len(monthly_records):
+            # Bad url or something.
+            raise web.NotFound()
+
+        return monthly_records[0]
