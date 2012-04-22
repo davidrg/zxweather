@@ -3,9 +3,9 @@ Modern HTML5/CSS/Javascript UI.
 """
 
 from datetime import datetime, date, timedelta
-import web
 from baseui import BaseUI
 from config import db
+from data import live_data
 
 __author__ = 'David Goodwin'
 
@@ -69,12 +69,24 @@ class ModernUI(BaseUI):
         :return: View data.
         """
 
-        years_result = db.query("select distinct extract(year from time_stamp) as year from sample order by year desc")
-        years = []
-        for record in years_result:
-            years.append(int(record.year))
+        now = datetime.now()
+        class urls:
+            """
+            Various URLs required by the view.
+            """
+            base_url = '../../data/{0}/{1}/{2}/{3}/'\
+            .format(station, now.year, now.month, now.day)
+            samples = base_url + 'datatable/samples.json'
+            samples_7day = base_url + 'datatable/7day_samples.json'
+            samples_7day_30mavg = base_url + 'datatable/7day_30m_avg_samples.json'
 
-        return self.render.station(years=years,station=station)
+        class data:
+            """ Data required by the view """
+            records = BaseUI.get_daily_records(now.date())
+            years = BaseUI.get_years()
+
+        BaseUI.day_cache_control(None, now.year, now.month, now.day)
+        return self.render.station(data=data,station=station, urls=urls)
 
     def get_year(self,station, year):
         """
@@ -284,9 +296,7 @@ class ModernUI(BaseUI):
         # Figure out if there is current data to show or if this is a history
         # page
         now = datetime.now()
-        today = False
-        if now.day == day and now.month == month and now.year == year:
-            today = True
+        today = now.day == day and now.month == month and now.year == year
 
         class data:
             """ Data required by the view. """
@@ -298,23 +308,13 @@ class ModernUI(BaseUI):
             next_url = None
             next_date = None
             this_month = month_name[month]
+            records = BaseUI.get_daily_records(date_stamp)
 
-
-        params = dict(date=data.date_stamp)
-        daily_records = db.select('daily_records',params, where='date_stamp = $date' )
-        if not len(daily_records):
-            if today:
-                # We just don't have any records yet.
-                return "Sorry! There isn't any data for today yet. Check back in a few minutes."
-            else:
-                # Bad url or something.
-                raise web.NotFound()
-        data.records = daily_records[0]
 
         # Get live data if the page is for today.
         data_age = None
         if today:
-            data.current_data_ts, data.current_data = BaseUI.get_live_data()
+            data.current_data_ts, data.current_data = live_data.get_live_data()
             data_age = datetime.combine(date(year,month,day), data.current_data_ts)
 
         # Figure out the URL for the previous day

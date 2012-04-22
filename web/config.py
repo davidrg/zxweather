@@ -27,3 +27,6 @@ static_data_dir = 'Z:/current/zxweather/web/static/'
 
 # Root directory of the site. Required when doing 301/302 redirects.
 site_root = "http://localhost:8080/"
+
+# Set to None to use the UI picker page.
+default_ui = 's'
