@@ -3,7 +3,7 @@
 {% extends "base.html" %}
 {% block title %}Weather for {{ data.this_year }}{% endblock %}
 {% block head %}
-    <link rel="stylesheet" href="../../css/modern.css" type="text/css"/>
+    <link rel="stylesheet" href="{{ urls.ui_root }}css/modern.css" type="text/css"/>
 {% endblock %}
 {% block content %}
 
@@ -84,16 +84,16 @@
 
     <hr>
     <div class="footer-navlinks">
-        {% if data.prev_url %}
-            <a href="{{ data.prev_url }}">&lt;&lt; {{ data.prev_year }}</a>
+        {% if urls.prev_url %}
+            <a href="{{ urls.prev_url }}">&lt;&lt; {{ data.prev_year }}</a>
         {% else %}
             &lt;&lt; {{ data.prev_year }}
         {% endif %}
         |
         <a href="../">Station</a>
         |
-        {% if data.next_url %}
-            <a href="{{ data.next_url }}">{{ data.next_year }} &gt;&gt;</a>
+        {% if urls.next_url %}
+            <a href="{{ urls.next_url }}">{{ data.next_year }} &gt;&gt;</a>
         {% else %}
             {{ data.next_year }} &gt;&gt;
         {% endif %}
@@ -107,7 +107,7 @@
         google.load("visualization", "1", {packages:["corechart"]});
         google.setOnLoadCallback(drawTable);
         function drawTable() {
-            $.getJSON('{{ dataurls.daily_records }}', function(data) {
+            $.getJSON('{{ urls.daily_records }}', function(data) {
                 var record_data = new google.visualization.DataTable(data);
 
                 // This contains all samples for the day. Included columns are

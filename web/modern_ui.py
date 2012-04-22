@@ -46,7 +46,7 @@ class ModernUI(BaseUI):
         return 'Standard Modern'
     @staticmethod
     def ui_description():
-        return 'Standard interface.'
+        return 'Standard interface. Not compatible with older browsers or computers.'
 
     def get_station(self,station):
         """
@@ -109,6 +109,14 @@ class ModernUI(BaseUI):
             the_month_name = month_name[month.month_stamp]
             data.months.append(the_month_name)
 
+
+        # Figure out any URLs the page needs to know.
+        class urls:
+            root = '../../../'
+            ui_root = '../../'
+            data_base = root + 'data/{0}/{1}/'.format(station,year)
+            daily_records = data_base + 'datatable/daily_records.json'
+
         # Figure out navigation links
         data.prev_year = year - 1
         data.next_year = year + 1
@@ -120,20 +128,16 @@ class ModernUI(BaseUI):
         where extract(year from time_stamp) = $year limit 1""",
                               dict(year=data.prev_year))
         if len(data_check):
-            data.prev_url = '../' + str(data.prev_year)
+            urls.prev_url = '../' + str(data.prev_year)
 
         data_check = db.query("""select 'foo' from sample
         where extract(year from time_stamp) = $year limit 1""",
                               dict(year=data.next_year))
         if len(data_check):
-            data.next_url = '../' + str(data.next_year)
+            urls.next_url = '../' + str(data.next_year)
 
-        class urls:
-            root = '../../../'
-            data_base = root + 'data/{0}/{1}/'.format(station,year)
-            daily_records = data_base + 'datatable/daily_records.json'
 
-        return self.render.year(data=data,dataurls=urls)
+        return self.render.year(data=data,urls=urls)
 
     def get_month(self,station, year, month):
 
