@@ -1,4 +1,9 @@
-import datetime
+"""
+A very basic HTML3/4 UI using images for the charts rather than Javascript.
+Should be compatible with just about anything.
+"""
+
+from datetime import datetime, date, timedelta
 import web
 from baseui import BaseUI
 from config import db, live_data_available
@@ -41,12 +46,21 @@ class BasicUI(BaseUI):
 
     @staticmethod
     def ui_code():
+        """
+        :return: URL code for the UI.
+        """
         return 'b'
     @staticmethod
     def ui_name():
+        """
+        :return: Name of the UI.
+        """
         return 'Basic HTML'
     @staticmethod
     def ui_description():
+        """
+        :return: A description of the UI.
+        """
         return 'Very basic HTML UI. No JavaScript or CSS.'
 
     def get_station(self,station):
@@ -67,15 +81,15 @@ class BasicUI(BaseUI):
     def get_year(self,station, year):
         """
         Gives an overview for a year.
-        :param station:
-        :param year:
-        :return:
+        :param station: Name of the station to get data for. Not currently used.
+        :type station: string
+        :param year: Page year
+        :type year: integer
+        :return: View data
         """
 
-        # TODO: Set the Expires header to now + interval if this is a live day.
-        # TODO: Set the Last-Modified header to the timestamp of the most recent sample on the page.
-
         class data:
+            """ Data required by the view. """
             this_year = year
             prev_url = None
             next_url = None
@@ -133,19 +147,19 @@ class BasicUI(BaseUI):
         return self.render.year(data=data)
 
     def get_month(self,station, year, month):
-
         """
         Gives an overview for a month.
+        :param station: Station to get data for. Not currently used.
+        :type station: string
+        :param year: Page year
+        :type year: integer
+        :param month: Page month
+        :type month: integer
+        :return: view data.
         """
 
-        # TODO: Set the Expires header to now + interval if this is a live day.
-        # TODO: Set the Last-Modified header to the timestamp of the most recent sample on the page.
-
-        # Figure out if there is current data to show or if this is a history
-        # page
-        now = datetime.datetime.now()
-
         class data:
+            """ Data required by the view. """
             year_stamp = year
             month_stamp = month
             current_data = None
@@ -236,15 +250,28 @@ class BasicUI(BaseUI):
         return self.render.month(data=data)
 
     def get_indoor_day(self, station, year, month, day):
+        """
+        Gets a page showing temperature and humidity at the base station.
+        :param station: Station to get the page for. Not currently used.
+        :type station: string
+        :param year: Page year
+        :type year: integer
+        :param month: Page month
+        :type month: integer
+        :param day: Page day
+        :type day: integer
+        :return: View data
+        """
 
         class data:
-            date_stamp = datetime.date(year, month, day)
+            """ Data required by the view. """
+            date_stamp = date(year, month, day)
             current_data = None
             current_data_ts = None
 
         # Figure out if there is current data to show or if this is a history
         # page
-        now = datetime.datetime.now()
+        now = datetime.now()
         params = dict(date=data.date_stamp)
         today = False
         data_age = None
@@ -276,20 +303,28 @@ class BasicUI(BaseUI):
         """
         Gives an overview for a day. If the day is today then current weather
         conditions are also shown.
+        :param station: The station to get the page for. Not currently used.
+        :type station: string
+        :param year: The pages year
+        :type year: integer
+        :param month: The pages month
+        :type month: integer
+        :param day: The pages day
+        :type day: integer
         """
-
-        # TODO: Set the Expires header to now + interval if this is a live day.
-        # TODO: Set the Last-Modified header to the timestamp of the most recent sample on the page.
 
         # Figure out if there is current data to show or if this is a history
         # page
-        now = datetime.datetime.now()
+        now = datetime.now()
         today = False
         if now.day == day and now.month == month and now.year == year:
             today = True
 
         class data:
-            date_stamp = datetime.date(year, month, day)
+            """
+            Data to be passed to the view.
+            """
+            date_stamp = date(year, month, day)
             current_data = None
 
             prev_url = None
@@ -310,35 +345,19 @@ class BasicUI(BaseUI):
                 raise web.NotFound()
         data.records = daily_records[0]
 
+        # Get live data if the page is for today.
         data_age = None
-        if today and live_data_available:
-            # No need to filter or anything - live_data only contains one record.
-            data.current_data = db.query("""select timetz(download_timestamp) as time_stamp,
-                    invalid_data, relative_humidity, temperature, dew_point,
-                    wind_chill, apparent_temperature, absolute_pressure,
-                    average_wind_speed, gust_wind_speed, wind_direction
-                    from live_data""")[0]
-            data.current_data_ts = data.current_data.time_stamp
-            data_age = data.current_data_ts
-        elif today:
-            # Fetch the latest data for today
-            data.current_data = db.query("""select timetz(time_stamp) as time_stamp, relative_humidity,
-                    temperature,dew_point, wind_chill, apparent_temperature,
-                    absolute_pressure, average_wind_speed, gust_wind_speed,
-                    wind_direction, invalid_data
-                from sample
-                where date(time_stamp) = $date
-                order by time_stamp desc
-                limit 1""",params)[0]
-            data.current_data_ts = data.current_data.time_stamp
-            data_age = data.current_data_ts
+        if today:
+            data.current_data_ts, data.current_data = BaseUI.get_live_data()
+            data_age = datetime.combine(date(year,month,day), data.current_data_ts)
 
         # Figure out the URL for the previous day
-        previous_day = data.date_stamp - datetime.timedelta(1)
+        previous_day = data.date_stamp - timedelta(1)
         data.prev_date = previous_day
         prev_days_data = db.query("""select temperature
             from sample where date(time_stamp) = $date limit 1""",
                                    dict(date=previous_day))
+
         # Only calculate previous days data if there is any.
         if len(prev_days_data):
             if previous_day.year != year:
@@ -351,7 +370,7 @@ class BasicUI(BaseUI):
             data.prev_url += str(previous_day.day) + '/'
 
         # Only calculate the URL for tomorrow if there is tomorrow in the database.
-        next_day = data.date_stamp + datetime.timedelta(1)
+        next_day = data.date_stamp + timedelta(1)
         data.next_date = next_day
         next_days_data = db.query("""select temperature
             from sample where date(time_stamp) = $date limit 1""",
