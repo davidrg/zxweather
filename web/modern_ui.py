@@ -1,4 +1,8 @@
-import datetime
+"""
+Modern HTML5/CSS/Javascript UI.
+"""
+
+from datetime import datetime, date, timedelta
 import web
 from baseui import BaseUI
 from config import db, live_data_available
@@ -40,20 +44,29 @@ class ModernUI(BaseUI):
 
     @staticmethod
     def ui_code():
+        """
+        :return: URL code for the UI.
+        """
         return 's'
     @staticmethod
     def ui_name():
+        """
+        :return: Name of the UI
+        """
         return 'Standard Modern'
     @staticmethod
     def ui_description():
+        """
+        :return: Description of the UI.
+        """
         return 'Standard interface. Not compatible with older browsers or computers.'
 
     def get_station(self,station):
         """
         Index page for the weather station. Should give station records and
         perhaps some basic yearly overview data.
-        :param station:
-        :return:
+        :param station: Name of the station to show info for.
+        :return: View data.
         """
 
         years_result = db.query("select distinct extract(year from time_stamp) as year from sample order by year desc")
@@ -66,15 +79,16 @@ class ModernUI(BaseUI):
     def get_year(self,station, year):
         """
         Gives an overview for a year.
-        :param station:
-        :param year:
-        :return:
+        :param station: Station to get data for.  Only used for building
+        URLs at the moment
+        :type station: string
+        :param year: Page year
+        :type year: integer
+        :return: View data
         """
 
-        # TODO: Set the Expires header to now + interval if this is a live day.
-        # TODO: Set the Last-Modified header to the timestamp of the most recent sample on the page.
-
         class data:
+            """ Data required by the view """
             this_year = year
             prev_url = None
             next_url = None
@@ -112,6 +126,7 @@ class ModernUI(BaseUI):
 
         # Figure out any URLs the page needs to know.
         class urls:
+            """Various URLs required by the view"""
             root = '../../../'
             ui_root = '../../'
             data_base = root + 'data/{0}/{1}/'.format(station,year)
@@ -142,19 +157,20 @@ class ModernUI(BaseUI):
 
 
     def get_month(self,station, year, month):
-
         """
         Gives an overview for a month.
+        :param station: Station to get data for.  Only used for building
+        URLs at the moment
+        :type station: string
+        :param year: Page year
+        :type year: integer
+        :param month: Page month
+        :type month: integer
+        :return: View data
         """
 
-        # TODO: Set the Expires header to now + interval if this is a live day.
-        # TODO: Set the Last-Modified header to the timestamp of the most recent sample on the page.
-
-        # Figure out if there is current data to show or if this is a history
-        # page
-        now = datetime.datetime.now()
-
         class data:
+            """ Data required by the view """
             year_stamp = year
             month_stamp = month
             current_data = None
@@ -242,6 +258,7 @@ class ModernUI(BaseUI):
                 data.next_url = '../' + month_name[next_month] + '/'
 
         class urls:
+            """Various URLs required by the view"""
             root = '../../../../'
             data_base = root + 'data/{0}/{1}/{2}/'.format(station,year,month)
             samples = data_base + 'datatable/samples.json'
@@ -252,15 +269,30 @@ class ModernUI(BaseUI):
         return self.render.month(data=data,dataurls=urls)
 
     def get_indoor_day(self, station, year, month, day):
+        """
+        Gets a page showing temperature and humidity at the base station.
+
+        :param station: The station to get data for.  Only used for building
+        URLs at the moment
+        :type station: string
+        :param year: Page year
+        :type year: integer
+        :param month: Page month
+        :type month: integer
+        :param day: Page day
+        :type day: integer
+        :return: View data
+        """
 
         class data:
-            date_stamp = datetime.date(year, month, day)
+            """ Data required by the view """
+            date_stamp = date(year, month, day)
             current_data = None
             current_data_ts = None
 
         # Figure out if there is current data to show or if this is a history
         # page
-        now = datetime.datetime.now()
+        now = datetime.now()
         params = dict(date=data.date_stamp)
         today = False
         data_age = None
@@ -286,6 +318,7 @@ class ModernUI(BaseUI):
             data_age = data.current_data_ts
 
         class urls:
+            """Various URLs required by the view"""
             base_url = '../../../../../data/{0}/{1}/{2}/{3}/'\
             .format(station,year,month,day)
             samples = base_url + 'datatable/indoor_samples.json'
@@ -299,20 +332,27 @@ class ModernUI(BaseUI):
         """
         Gives an overview for a day. If the day is today then current weather
         conditions are also shown.
+        :param station: Station to get the page for. Only used for building
+        URLs at the moment
+        :type station: string
+        :param year: Page year
+        :type year: integer
+        :param month: Page month
+        :type month: integer
+        :param day: Page day
+        :type day: integer
+        :return: View data
         """
-
-        # TODO: Set the Expires header to now + interval if this is a live day.
-        # TODO: Set the Last-Modified header to the timestamp of the most recent sample on the page.
-
         # Figure out if there is current data to show or if this is a history
         # page
-        now = datetime.datetime.now()
+        now = datetime.now()
         today = False
         if now.day == day and now.month == month and now.year == year:
             today = True
 
         class data:
-            date_stamp = datetime.date(year, month, day)
+            """ Data required by the view. """
+            date_stamp = date(year, month, day)
             current_data = None
 
             prev_url = None
@@ -333,31 +373,14 @@ class ModernUI(BaseUI):
                 raise web.NotFound()
         data.records = daily_records[0]
 
+        # Get live data if the page is for today.
         data_age = None
-        if today and live_data_available:
-            # No need to filter or anything - live_data only contains one record.
-            data.current_data = db.query("""select timetz(download_timestamp) as time_stamp,
-                    invalid_data, relative_humidity, temperature, dew_point,
-                    wind_chill, apparent_temperature, absolute_pressure,
-                    average_wind_speed, gust_wind_speed, wind_direction
-                    from live_data""")[0]
-            data.current_data_ts = data.current_data.time_stamp
-            data_age = data.current_data_ts
-        elif today:
-            # Fetch the latest data for today
-            data.current_data = db.query("""select timetz(time_stamp) as time_stamp, relative_humidity,
-                    temperature,dew_point, wind_chill, apparent_temperature,
-                    absolute_pressure, average_wind_speed, gust_wind_speed,
-                    wind_direction, invalid_data
-                from sample
-                where date(time_stamp) = $date
-                order by time_stamp desc
-                limit 1""",params)[0]
-            data.current_data_ts = data.current_data.time_stamp
-            data_age = data.current_data_ts
+        if today:
+            data.current_data_ts, data.current_data = BaseUI.get_live_data()
+            data_age = datetime.combine(date(year,month,day), data.current_data_ts)
 
         # Figure out the URL for the previous day
-        previous_day = data.date_stamp - datetime.timedelta(1)
+        previous_day = data.date_stamp - timedelta(1)
         data.prev_date = previous_day
         prev_days_data = db.query("""select temperature
             from sample where date(time_stamp) = $date limit 1""",
@@ -374,7 +397,7 @@ class ModernUI(BaseUI):
             data.prev_url += str(previous_day.day) + '/'
 
         # Only calculate the URL for tomorrow if there is tomorrow in the database.
-        next_day = data.date_stamp + datetime.timedelta(1)
+        next_day = data.date_stamp + timedelta(1)
         data.next_date = next_day
         next_days_data = db.query("""select temperature
             from sample where date(time_stamp) = $date limit 1""",
@@ -390,6 +413,9 @@ class ModernUI(BaseUI):
             data.next_url += str(next_day.day) + '/'
 
         class urls:
+            """
+            Various URLs required by the view.
+            """
             base_url = '../../../../../data/{0}/{1}/{2}/{3}/'\
                        .format(station,year,month,day)
             samples = base_url + 'datatable/samples.json'

@@ -17,6 +17,12 @@ class BaseUI:
     Base class for user interfaces.
     """
     def __init__(self, template_dir):
+        """
+        Initialise the base UI functionality.
+        :param template_dir: The directory to look for templates in.
+        :type template_dir: string
+        """
+
         self.template_dir = os.path.join(os.path.dirname(__file__),
                                     os.path.join(template_dir))
         self.render = render_jinja(self.template_dir, encoding='utf-8')
@@ -102,3 +108,39 @@ class BaseUI:
             data_age = datetime.combine(date(year,month,day),
                                                  data_age)
         BaseUI.cache_control_headers(data_age, year, month, day)
+
+    @staticmethod
+    def get_live_data():
+        """
+        Gets live data from the database. If config.live_data_available is set
+        then the data will come from the live data table and will be at most
+        48 seconds old. If it is not set then the data returned will be the
+        most recent sample from the sample table.
+
+        :return: Timestamp for the data and the actual data.
+        """
+
+        now = datetime.now()
+        params = dict(date=date(now.year, now.month, now.day))
+
+        if config.live_data_available:
+            # No need to filter or anything - live_data only contains one record.
+            current_data = db.query("""select timetz(download_timestamp) as time_stamp,
+                    invalid_data, relative_humidity, temperature, dew_point,
+                    wind_chill, apparent_temperature, absolute_pressure,
+                    average_wind_speed, gust_wind_speed, wind_direction
+                    from live_data""")[0]
+            current_data_ts = current_data.time_stamp
+        else:
+            # Fetch the latest data for today
+            current_data = db.query("""select timetz(time_stamp) as time_stamp, relative_humidity,
+                    temperature,dew_point, wind_chill, apparent_temperature,
+                    absolute_pressure, average_wind_speed, gust_wind_speed,
+                    wind_direction, invalid_data
+                from sample
+                where date(time_stamp) = $date
+                order by time_stamp desc
+                limit 1""",params)[0]
+            current_data_ts = current_data.time_stamp
+
+        return current_data_ts, current_data
