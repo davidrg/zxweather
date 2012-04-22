@@ -154,16 +154,12 @@ class BasicUI(BaseUI):
 
             this_month = month_name[month]
 
+            # List of days in the month that have data
             days = BaseUI.get_month_days(year,month)
 
+            # Min/Max values for the month
+            records = BaseUI.get_monthly_records(year,month)
 
-        params = dict(date='01-{0}-{1}'.format(data.month_stamp, data.year_stamp))
-        monthly_records = db.select('monthly_records',params,
-                                  where='date_stamp = $date' )
-        if not len(monthly_records):
-            # Bad url or something.
-            raise web.NotFound()
-        data.records = monthly_records[0]
 
         # Figure out the previous year and month
         previous_month = data.month_stamp - 1

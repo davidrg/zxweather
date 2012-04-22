@@ -25,3 +25,5 @@ plot_interval = 1800
 # Where static data lives
 static_data_dir = 'Z:/current/zxweather/web/static/'
 
+# Root directory of the site. Required when doing 301/302 redirects.
+site_root = "http://localhost:8080/"
