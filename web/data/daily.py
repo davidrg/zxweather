@@ -30,8 +30,6 @@ __author__ = 'David Goodwin'
 # /data/{year}/{month}/{day}/datatable/7day_30m_avg_indoor_samples.json
 #       30 minute averages for the past 7 days of indoor weather.
 
-# TODO: round temperatures, etc.
-
 class datatable_json:
     """
     Gets data for a particular day in Googles DataTable format.

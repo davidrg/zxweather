@@ -56,12 +56,13 @@ class site_index:
 
         if len(uis) == 1:
             # If there is only one UI registered just redirect straight to it.
-            raise web.seeother(uis.items()[0][0] + '/')
+            raise web.seeother(uis.items()[0][0] + '/'
+                               + config.default_station_name + '/')
 
         ui_list = []
 
         for ui in uis.items():
-            ui_key = ui[1].ui_code()
+            ui_key = ui[1].ui_code() + '/' + config.default_station_name
             ui_name = ui[1].ui_name()
             ui_desc = ui[1].ui_description()
             ui_list.append((ui_key,ui_name,ui_desc))
