@@ -136,8 +136,10 @@ class ModernUI(BaseUI):
         if len(data_check):
             urls.next_url = '../' + str(data.next_year)
 
-
+        BaseUI.year_cache_control(year)
         return self.render.year(data=data,urls=urls)
+
+
 
     def get_month(self,station, year, month):
 
@@ -246,6 +248,7 @@ class ModernUI(BaseUI):
             samples_30m_avg = data_base + 'datatable/30m_avg_samples.json'
             daily_records = data_base + 'datatable/daily_records.json'
 
+        BaseUI.month_cache_control(year, month)
         return self.render.month(data=data,dataurls=urls)
 
     def get_indoor_day(self, station, year, month, day):
@@ -260,6 +263,7 @@ class ModernUI(BaseUI):
         now = datetime.datetime.now()
         params = dict(date=data.date_stamp)
         today = False
+        data_age = None
         if now.day == day and now.month == month and now.year == year:
             today = True
         if today and live_data_available:
@@ -268,6 +272,7 @@ class ModernUI(BaseUI):
                 indoor_temperature
                 from live_data""")[0]
             data.current_data_ts = data.current_data.time_stamp
+            data_age = data.current_data_ts
         elif today:
             # Fetch the latest data for today
             data.current_data = db.query("""select timetz(time_stamp) as time_stamp,
@@ -278,6 +283,7 @@ class ModernUI(BaseUI):
             order by time_stamp desc
             limit 1""",params)[0]
             data.current_data_ts = data.current_data.time_stamp
+            data_age = data.current_data_ts
 
         class urls:
             base_url = '../../../../../data/{0}/{1}/{2}/{3}/'\
@@ -286,6 +292,7 @@ class ModernUI(BaseUI):
             samples_7day = base_url + 'datatable/7day_indoor_samples.json'
             samples_7day_30mavg = base_url + 'datatable/7day_30m_avg_indoor_samples.json'
 
+        BaseUI.day_cache_control(data_age, year, month, day)
         return self.render.indoor_day(data=data,dataurls=urls)
 
     def get_day(self,station, year, month, day):
@@ -326,6 +333,7 @@ class ModernUI(BaseUI):
                 raise web.NotFound()
         data.records = daily_records[0]
 
+        data_age = None
         if today and live_data_available:
             # No need to filter or anything - live_data only contains one record.
             data.current_data = db.query("""select timetz(download_timestamp) as time_stamp,
@@ -334,6 +342,7 @@ class ModernUI(BaseUI):
                     average_wind_speed, gust_wind_speed, wind_direction
                     from live_data""")[0]
             data.current_data_ts = data.current_data.time_stamp
+            data_age = data.current_data_ts
         elif today:
             # Fetch the latest data for today
             data.current_data = db.query("""select timetz(time_stamp) as time_stamp, relative_humidity,
@@ -345,6 +354,7 @@ class ModernUI(BaseUI):
                 order by time_stamp desc
                 limit 1""",params)[0]
             data.current_data_ts = data.current_data.time_stamp
+            data_age = data.current_data_ts
 
         # Figure out the URL for the previous day
         previous_day = data.date_stamp - datetime.timedelta(1)
@@ -386,4 +396,5 @@ class ModernUI(BaseUI):
             samples_7day = base_url + 'datatable/7day_samples.json'
             samples_7day_30mavg = base_url + 'datatable/7day_30m_avg_samples.json'
 
+        BaseUI.day_cache_control(data_age, year, month, day)
         return self.render.day(data=data,dataurls=urls)
