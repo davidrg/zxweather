@@ -53,6 +53,17 @@ class site_index:
     The sites index page (/). Should redirect to the default station.
     """
     def GET(self):
+        """
+        Shows a UI choosing page (or goes straight to the only UI if there
+        is only one) if config.default_ui is None, redirects to
+        the default UI if config.default_ui is not None.
+        :return: UI Choosing page if anything.
+        :raise: web.seeother() if default is specified or there is only one UI.
+        """
+
+        if config.default_ui is not None:
+            raise web.seeother(config.site_root + config.default_ui + '/' +
+                               config.default_station_name + '/')
 
         if len(uis) == 1:
             # If there is only one UI registered just redirect straight to it.
