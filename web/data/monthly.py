@@ -232,10 +232,10 @@ from (
                   false
                end as gap
         from sample cur, sample prev
-        where date(date_trunc('month',cur.time_stamp)) = date(date_trunc('month',now()))
+        where date(date_trunc('month',cur.time_stamp)) = date(date_trunc('month',$date))
           and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < cur.time_stamp)
         order by cur.time_stamp asc) as iq
-where date_trunc('month',iq.time_stamp) = date_trunc('month', now())
+where date_trunc('month',iq.time_stamp) = date_trunc('month', $date)
 group by iq.quadrant
 order by iq.quadrant asc""", params)
 
