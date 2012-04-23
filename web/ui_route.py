@@ -296,23 +296,38 @@ class monthfile:
         monthfile.generated_file_cache_control(year,month,filename)
         return head_file(filename)
 
-class basefile:
+class static_overlay:
+    """ Handles static overlay files. """
+    def GET(self, file):
+        """
+        Gets the specified static file.
+        :param file: Name of the file to get headers for
+        :type file: string
+        """
+        if file.startswith(".."):
+            raise web.Forbidden()
+        path_name = config.static_data_dir + '/' + file
+        return get_file(path_name)
+    def HEAD(self, file):
+        """
+        Gets headers for the specified file
+        :param file: Name of the file to get headers for
+        :type file: string
+        """
+        if file.startswith(".."):
+            raise web.Forbidden()
+        path_name = config.static_data_dir + '/' + file
+        return head_file(path_name)
 
-    @staticmethod
-    def get_pathname(ui,file):
-
-        if ui not in uis:
-            raise web.NotFound()
-
-        return config.static_data_dir + file
-
-    def GET(self, ui, file):
-        return get_file(basefile.get_pathname(ui,file))
-
-    def HEAD(self, ui, file):
-        return head_file(basefile.get_pathname(ui,file))
 
 def file_headers(filename):
+    """
+    Sets headers for a static file. If the static file does not exist,
+    a 404 error is raised.
+    :param filename: File to set headers for
+    :type filename: string
+    :raise: web.NotFound if the file does not exist.
+    """
     if not os.path.exists(filename):
         print "static file {0} not found".format(filename)
         raise web.NotFound()
@@ -343,7 +358,7 @@ def get_file(pathname):
     :param pathname: Local file to stream
     :return:
     """
-
+    print "GET: " + pathname
     file_headers(pathname)
 
     f = open(pathname, 'rb')
@@ -354,6 +369,12 @@ def get_file(pathname):
         yield buf
 
 def head_file(pathname):
+    """
+    For handling HEAD requests for static files.
+    :param pathname: File to get headers for
+    :type pathname: string
+    :return: Nothing.
+    """
     file_headers(pathname)
 
     return ""
