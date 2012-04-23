@@ -55,7 +55,17 @@ class datatable_json:
             raise web.NotFound()
 
 class index:
+    """Gets an index page for monthly data"""
     def GET(self, station, year, month):
+        """
+        Gets an index page for data sources available at the month level.
+        :param station: Station to get data for.
+        :type station: string
+        :param year: Year to get data for
+        :type year: string
+        :param month: Month to get data for
+        :type month: string
+        """
         template_dir = os.path.join(os.path.dirname(__file__),
                                          os.path.join('templates'))
         render = render_jinja(template_dir, encoding='utf-8')
@@ -77,6 +87,7 @@ class index:
         if not len(days):
             raise web.NotFound()
 
+        web.header('Content-Type', 'text/html')
         return render.monthly_data_index(days=days)
 
 def monthly_cache_control_headers(year,month,age):

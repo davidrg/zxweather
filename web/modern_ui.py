@@ -5,7 +5,7 @@ Modern HTML5/CSS/Javascript UI.
 from datetime import datetime, date, timedelta
 from baseui import BaseUI
 from config import db
-from data import live_data
+from data import live_data, get_years
 
 __author__ = 'David Goodwin'
 
@@ -83,7 +83,7 @@ class ModernUI(BaseUI):
         class data:
             """ Data required by the view """
             records = BaseUI.get_daily_records(now.date())
-            years = BaseUI.get_years()
+            years = get_years()
 
         BaseUI.day_cache_control(None, now.year, now.month, now.day)
         return self.render.station(data=data,station=station, urls=urls)

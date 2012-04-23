@@ -3,13 +3,49 @@ Data sources.
 """
 
 import json
+import os
 import web
+from web.contrib.template import render_jinja
 import config
 from config import db
 from data.util import rfcformat
 from datetime import timedelta, datetime, date
 
 __author__ = 'David Goodwin'
+
+def get_years():
+    """
+    Gets a list of years in the database.
+    :return: A list of years with data in the database
+    :rtype: [integer]
+    """
+    years_result = db.query("select distinct extract(year from time_stamp) as year from sample order by year desc")
+    years = []
+    for record in years_result:
+        years.append(int(record.year))
+
+    return years
+
+class station_index:
+    """ station level data sources"""
+    def GET(self, station):
+        """
+        Gets a list of data sources available at the station level.
+        :param station: Station to get data for
+        :type station: string
+        :return: html view data.
+        """
+        template_dir = os.path.join(os.path.dirname(__file__),
+                                    os.path.join('templates'))
+        render = render_jinja(template_dir, encoding='utf-8')
+
+        if station != config.default_station_name:
+            raise web.NotFound()
+
+        years = get_years()
+
+        web.header('Content-Type', 'text/html')
+        return render.station_data_index(years=years)
 
 class live_data:
     """

@@ -7,7 +7,7 @@ from datetime import datetime, date, timedelta
 import web
 from baseui import BaseUI
 from config import db
-from data import live_data
+from data import live_data, get_years
 
 __author__ = 'David Goodwin'
 
@@ -72,12 +72,7 @@ class BasicUI(BaseUI):
         :return:
         """
 
-        years_result = db.query("select distinct extract(year from time_stamp) as year from sample order by year desc")
-        years = []
-        for record in years_result:
-            years.append(int(record.year))
-
-        return self.render.station(years=years,station=station)
+        return self.render.station(years=get_years(),station=station)
 
     def get_year(self,station, year):
         """

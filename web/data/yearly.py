@@ -46,7 +46,16 @@ class datatable_json:
             raise web.NotFound()
 
 class index:
+    """ Year level data sources"""
     def GET(self, station, year):
+        """
+        Gets a list of data sources available at the year level.
+        :param station: Station to get data for
+        :type station: string
+        :param year: Year to get data for
+        :type year: string
+        :return: html view data.
+        """
         template_dir = os.path.join(os.path.dirname(__file__),
                                     os.path.join('templates'))
         render = render_jinja(template_dir, encoding='utf-8')
@@ -65,6 +74,7 @@ class index:
         if not len(months):
             raise web.NotFound()
 
+        web.header('Content-Type', 'text/html')
         return render.yearly_data_index(months=months)
 
 def yearly_cache_control_headers(year,age):

@@ -227,20 +227,6 @@ class BaseUI:
         return months
 
     @staticmethod
-    def get_years():
-        """
-        Gets a list of years in the database.
-        :return: A list of years with data in the database
-        :rtype: [integer]
-        """
-        years_result = db.query("select distinct extract(year from time_stamp) as year from sample order by year desc")
-        years = []
-        for record in years_result:
-            years.append(int(record.year))
-
-        return years
-
-    @staticmethod
     def get_yearly_records(year):
         """
         Gets the records for the year (data from the yearly_records view).

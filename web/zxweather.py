@@ -19,6 +19,7 @@ urls = (
     '/data/(\w*)/(\d+)/(\d+)/(?:index\.html)?', 'data.monthly.index',
     '/data/(\w*)/(\d+)/datatable/(\w*).json', 'data.yearly.datatable_json',
     '/data/(\w*)/(\d+)/(?:index\.html)?', 'data.yearly.index',
+    '/data/(\w*)/(?:index\.html)?', 'data.station_index',
 
     # /ui/station/year/month/day
     '/(\w*)/(\w*)/(?:index\.html)?', 'ui_route.index',                 # index page
