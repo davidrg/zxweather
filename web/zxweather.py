@@ -22,19 +22,16 @@ urls = (
     '/data/(\w*)/(?:index\.html)?', 'data.station_index',
 
     # /ui/station/year/month/day
-    '/(\w*)/(\w*)/(?:index\.html)?', 'ui_route.index',                 # index page
-    '/(\w*)/(\w*)/now', 'ui_route.now',                # Go to todays page
-    '/(\w*)/(\w*)/(\d+)/(?:index\.html)?', 'ui_route.year',            # A particular year
-    '/(\w*)/(\w*)/(\d+)/(\w*)/(?:index\.html)?', 'ui_route.month',     # A particular month
-    '/(\w*)/(\w*)/(\d+)/(\w*)/(\d+)/indoor.html', 'ui_route.indoor_day', # indoor stats for a particular day. Basic UI only.
-    '/(\w*)/(\w*)/(\d+)/(\w*)/(\d+)/(?:index\.html)?', 'ui_route.day', # A particular day
+    '/(s|b)/(\w*)/(?:index\.html)?', 'ui_route.index',                 # index page
+    '/(s|b)/(\w*)/now', 'ui_route.now',                # Go to todays page
+    '/(s|b)/(\w*)/(\d+)/(?:index\.html)?', 'ui_route.year',            # A particular year
+    '/(s|b)/(\w*)/(\d+)/(\w*)/(?:index\.html)?', 'ui_route.month',     # A particular month
+    '/(s|b)/(\w*)/(\d+)/(\w*)/(\d+)/indoor.html', 'ui_route.indoor_day', # indoor stats for a particular day. Basic UI only.
+    '/(s|b)/(\w*)/(\d+)/(\w*)/(\d+)/(?:index\.html)?', 'ui_route.day', # A particular day
 
-    # Static file downloads. These have to be at the bottom to prevent them
-    # from interfering with other routes.
-    '/(\w*)/(\w*)/(\d+)/(\w*)/(\d+)/(.*)', 'ui_route.dayfile',  # for day pages
-    '/(\w*)/(\w*)/(\d+)/(\w*)/(.*)', 'ui_route.monthfile',  # for month pages
-#    '/(\w*)/(\w*)/(\d+)/(.*)', 'baseui.file',  # for year pages
-    '/(\w*)/(.*)', 'ui_route.basefile',
+    # Static file overlays
+    '/(?:s|b)/(.*)', 'ui_route.static_overlay',
+    '/(.*)', 'ui_route.static_overlay',
 )
 
 
