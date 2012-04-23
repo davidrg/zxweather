@@ -65,7 +65,22 @@ class datatable_json:
             raise web.NotFound()
 
 class index:
+    """
+    Provides an index of available daily data sources
+    """
     def GET(self, station, year, month, day):
+        """
+        Returns an index page containing a list of json files available for
+        the day.
+        :param station: Station to get data for
+        :type station: string
+        :param year: Year to get data for
+        :type year: string
+        :param month: Month to get data for
+        :type month: string
+        :param day: Day to get data for.
+        :type day: string
+        """
         template_dir = os.path.join(os.path.dirname(__file__),
                                     os.path.join('templates'))
         render = render_jinja(template_dir, encoding='utf-8')
@@ -77,6 +92,7 @@ class index:
         if recs is None or len(recs) == 0:
             raise web.NotFound()
 
+        web.header('Content-Type', 'text/html')
         return render.daily_data_index()
 
 def daily_cache_control_headers(year,month,day,age):
