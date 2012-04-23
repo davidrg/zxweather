@@ -130,15 +130,18 @@
     </div>
 
     <h2>Weather History</h2>
-    <p>Weather data is available for the following years:</p>
-    <p>
+    <p>Weather data is available for the following years:
         {% set i = 0 %}
         {% for year in data.years %}
             {% set i = i + 1 %}
             <a href="{{ year }}/">{{ year }}</a> {% if i < data.years|length %}|{% endif %}
         {% endfor %}
     </p>
-    <p><a href="now">History page for Today</a></p>
+    <p>History page for: <a href="now">Today</a>,
+                         {% if data.yesterday %}<a href="{{ data.yesterday.year }}/{{ data.yesterday_month_s }}/{{ data.yesterday.day }}/">Yesterday</a>,{% endif %}
+                         <a href="{{ data.year }}/{{ data.month_s }}/">This Month</a>,
+                         <a href="{{ data.year }}/">This Year</a>.
+    </p>
     <hr>
     <p>Problems?
         <a href="../../b/{{ station }}/now">

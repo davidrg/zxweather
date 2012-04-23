@@ -6,6 +6,7 @@ from datetime import datetime, date, timedelta
 from baseui import BaseUI
 from config import db
 from data import live_data, get_years
+from data.database import day_exists
 
 __author__ = 'David Goodwin'
 
@@ -84,6 +85,14 @@ class ModernUI(BaseUI):
             """ Data required by the view """
             records = BaseUI.get_daily_records(now.date())
             years = get_years()
+            year = now.year
+            month_s = month_name[now.month]
+            yesterday = now - timedelta(1)
+            yesterday_month_s = month_name[yesterday.month]
+
+        if not day_exists(data.yesterday):
+            data.yesterday = None
+            data.yesterday_month_s = None
 
         BaseUI.day_cache_control(None, now.year, now.month, now.day)
         return self.render.station(data=data,station=station, urls=urls)
@@ -143,8 +152,6 @@ class ModernUI(BaseUI):
 
         BaseUI.year_cache_control(year)
         return self.render.year(data=data,urls=urls)
-
-
 
     def get_month(self,station, year, month):
         """
@@ -320,11 +327,9 @@ class ModernUI(BaseUI):
         # Figure out the URL for the previous day
         previous_day = data.date_stamp - timedelta(1)
         data.prev_date = previous_day
-        prev_days_data = db.query("""select temperature
-            from sample where date(time_stamp) = $date limit 1""",
-                                  dict(date=previous_day))
+
         # Only calculate previous days data if there is any.
-        if len(prev_days_data):
+        if day_exists(previous_day):
             if previous_day.year != year:
                 data.prev_url = '../../../' + str(previous_day.year)\
                                 + '/' + month_name[previous_day.month] + '/'
@@ -337,10 +342,8 @@ class ModernUI(BaseUI):
         # Only calculate the URL for tomorrow if there is tomorrow in the database.
         next_day = data.date_stamp + timedelta(1)
         data.next_date = next_day
-        next_days_data = db.query("""select temperature
-            from sample where date(time_stamp) = $date limit 1""",
-                                  dict(date=next_day))
-        if len(next_days_data):
+
+        if day_exists(next_day):
             if next_day.year != year:
                 data.next_url = '../../../' + str(next_day.year)\
                                 + '/' + month_name[next_day.month] + '/'
