@@ -54,6 +54,8 @@
         </tr>
         </tbody>
     </table>
+    <p>Time: <span id="current_time"></span></p>
+
     <h2>Records for Today</h2>
     <table>
         <thead>
@@ -151,17 +153,55 @@
     <script type="text/javascript" src="http://www.google.com/jsapi"></script>
     <script type="text/javascript">
 
+        var previous_live = null;
+
         function refresh_live_data() {
             $.getJSON('../../data/{{ station }}/live.json', function(data) {
-                $("#live_relative_humidity").html(data['relative_humidity'] + '%');
-                $("#live_temperature").html(data['temperature'].toFixed(1) + '°C');
-                $("#live_apparent_temperature").html(data['apparent_temperature'].toFixed(1) + '°C');
-                $("#live_wind_chill").html(data['wind_chill'].toFixed(1) + '°C');
-                $("#live_dew_point").html(data['dew_point'].toFixed(1) + '°C');
-                $("#live_absolute_pressure").html(data['absolute_pressure'].toFixed(1) + ' hPa');
-                $("#live_avg_wind_speed").html(data['average_wind_speed'].toFixed(1) + ' m/s');
-                $("#live_gust_wind_speed").html(data['gust_wind_speed'].toFixed(1) + ' m/s');
+
+                // Icons
+                var rh='', t='', at='', wc='', dp='', ap='', aws='', gws='';
+
+                var relative_humidity = data['relative_humidity'];
+                var temperature = data['temperature'].toFixed(1);
+                var apparent_temp = data['apparent_temperature'].toFixed(1);
+                var wind_chill = data['wind_chill'].toFixed(1);
+                var dew_point = data['dew_point'].toFixed(1);
+                var absolute_pressure = data['absolute_pressure'].toFixed(1);
+                var average_wind_speed = data['average_wind_speed'].toFixed(1);
+                var gust_wind_speed = data['gust_wind_speed'].toFixed(1);
+
+                if (previous_live != null) {
+                    function get_ico(current, prev) {
+                        if (current > prev)
+                            return '<img src="../../images/up.png" alt="increase" title="increase"/>&nbsp;';
+                        else if (current == prev)
+                            return '<img src="../../images/no-change.png" alt="no change" title="no change"/>&nbsp;';
+                        else
+                            return '<img src="../../images/down.png" alt="decrease" title="decrease"/>&nbsp;';
+                    }
+
+                    rh = get_ico(relative_humidity, previous_live['relative_humidity']);
+                    t = get_ico(temperature, previous_live['temperature'].toFixed(1));
+                    at = get_ico(apparent_temp, previous_live['apparent_temperature'].toFixed(1));
+                    wc = get_ico(wind_chill, previous_live['wind_chill'].toFixed(1));
+                    dp = get_ico(dew_point, previous_live['dew_point'].toFixed(1));
+                    ap = get_ico(absolute_pressure, previous_live['absolute_pressure'].toFixed(1));
+                    aws = get_ico(average_wind_speed, previous_live['average_wind_speed'].toFixed(1));
+                    gws = get_ico(gust_wind_speed, previous_live['gust_wind_speed'].toFixed(1));
+                }
+
+                $("#live_relative_humidity").html(rh + relative_humidity + '%');
+                $("#live_temperature").html(t + temperature + '°C');
+                $("#live_apparent_temperature").html(at + apparent_temp + '°C');
+                $("#live_wind_chill").html(wc + wind_chill + '°C');
+                $("#live_dew_point").html(dp + dew_point + '°C');
+                $("#live_absolute_pressure").html(ap + absolute_pressure + ' hPa');
+                $("#live_avg_wind_speed").html(aws + average_wind_speed + ' m/s');
+                $("#live_gust_wind_speed").html(gws + gust_wind_speed + ' m/s');
                 $("#live_wind_direction").html(data['wind_direction']);
+                $("#current_time").html(data['time_stamp']);
+
+                previous_live = data
             });
         }
         refresh_live_data();
