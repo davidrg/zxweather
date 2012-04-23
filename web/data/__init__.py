@@ -9,7 +9,7 @@ from web.contrib.template import render_jinja
 import config
 from config import db
 from data.util import rfcformat
-from datetime import timedelta, datetime, date
+from datetime import timedelta, datetime, date, time
 
 __author__ = 'David Goodwin'
 
@@ -68,7 +68,7 @@ class live_data:
 
         if config.live_data_available:
             # No need to filter or anything - live_data only contains one record.
-            current_data = db.query("""select timetz(download_timestamp) as time_stamp,
+            current_data = db.query("""select download_timestamp::time as time_stamp,
                         invalid_data, relative_humidity, temperature, dew_point,
                         wind_chill, apparent_temperature, absolute_pressure,
                         average_wind_speed, gust_wind_speed, wind_direction
@@ -76,7 +76,7 @@ class live_data:
             current_data_ts = current_data.time_stamp
         else:
             # Fetch the latest data for today
-            current_data = db.query("""select timetz(time_stamp) as time_stamp, relative_humidity,
+            current_data = db.query("""select time_stamp::time as time_stamp, relative_humidity,
                         temperature,dew_point, wind_chill, apparent_temperature,
                         absolute_pressure, average_wind_speed, gust_wind_speed,
                         wind_direction, invalid_data
@@ -111,7 +111,11 @@ class live_data:
                   'absolute_pressure': data.absolute_pressure,
                   'average_wind_speed': data.average_wind_speed,
                   'gust_wind_speed': data.gust_wind_speed,
-                  'wind_direction': data.wind_direction}
+                  'wind_direction': data.wind_direction,
+                  'time_stamp': str(data.time_stamp),
+                  }
+
+
 
         if config.live_data_available:
             web.header('Cache-Control', 'max-age=' + str(48))
