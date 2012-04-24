@@ -8,6 +8,7 @@ import web
 from baseui import BaseUI
 from config import db
 from data import live_data, get_years
+from data.database import year_exists, month_exists, day_exists
 
 __author__ = 'David Goodwin'
 
@@ -106,16 +107,10 @@ class BasicUI(BaseUI):
 
         # See if any data exists for the previous and next months (no point
         # showing a navigation link if there is no data)
-        data_check = db.query("""select 'foo' from sample
-        where extract(year from time_stamp) = $year limit 1""",
-                              dict(year=data.prev_year))
-        if len(data_check):
+        if year_exists(data.prev_year):
             data.prev_url = '../' + str(data.prev_year)
 
-        data_check = db.query("""select 'foo' from sample
-        where extract(year from time_stamp) = $year limit 1""",
-                              dict(year=data.next_year))
-        if len(data_check):
+        if year_exists(data.next_year):
             data.next_url = '../' + str(data.next_year)
 
         BaseUI.year_cache_control(year)
@@ -181,20 +176,14 @@ class BasicUI(BaseUI):
 
         # See if any data exists for the previous and next months (no point
         # showing a navigation link if there is no data)
-        data_check = db.query("""select 'foo' from sample
-        where date(date_trunc('month',time_stamp)) = $date limit 1""",
-                              dict(date='01-{0}-{1}'.format(previous_month,previous_year)))
-        if len(data_check):
+        if month_exists(previous_year, previous_month):
             if previous_year != year:
                 data.prev_url = '../../' + str(previous_year) + '/' + \
                                 month_name[previous_month] + '/'
             else:
                 data.prev_url = '../' + month_name[previous_month] + '/'
 
-        data_check = db.query("""select 'foo' from sample
-            where date(date_trunc('month',time_stamp)) = $date limit 1""",
-                              dict(date='01-{0}-{1}'.format(next_month,next_year)))
-        if len(data_check):
+        if month_exists(next_year, next_month):
             if next_year != year:
                 data.next_url = '../../' + str(next_year) + '/' +\
                                 month_name[next_month] + '/'
@@ -290,12 +279,9 @@ class BasicUI(BaseUI):
         # Figure out the URL for the previous day
         previous_day = data.date_stamp - timedelta(1)
         data.prev_date = previous_day
-        prev_days_data = db.query("""select temperature
-            from sample where date(time_stamp) = $date limit 1""",
-                                   dict(date=previous_day))
 
         # Only calculate previous days data if there is any.
-        if len(prev_days_data):
+        if day_exists(previous_day):
             if previous_day.year != year:
                 data.prev_url = '../../../' + str(previous_day.year) \
                                 + '/' + month_name[previous_day.month] + '/'
@@ -308,10 +294,8 @@ class BasicUI(BaseUI):
         # Only calculate the URL for tomorrow if there is tomorrow in the database.
         next_day = data.date_stamp + timedelta(1)
         data.next_date = next_day
-        next_days_data = db.query("""select temperature
-            from sample where date(time_stamp) = $date limit 1""",
-                                  dict(date=next_day))
-        if len(next_days_data):
+
+        if day_exists(next_day):
             if next_day.year != year:
                 data.next_url = '../../../' + str(next_day.year)\
                                 + '/' + month_name[next_day.month] + '/'

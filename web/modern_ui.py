@@ -6,7 +6,7 @@ from datetime import datetime, date, timedelta
 from baseui import BaseUI
 from config import db
 from data import live_data, get_years
-from data.database import day_exists
+from data.database import day_exists, month_exists, year_exists
 
 __author__ = 'David Goodwin'
 
@@ -138,16 +138,10 @@ class ModernUI(BaseUI):
 
         # See if any data exists for the previous and next months (no point
         # showing a navigation link if there is no data)
-        data_check = db.query("""select 'foo' from sample
-        where extract(year from time_stamp) = $year limit 1""",
-                              dict(year=data.prev_year))
-        if len(data_check):
+        if year_exists(data.prev_year):
             urls.prev_url = '../' + str(data.prev_year)
 
-        data_check = db.query("""select 'foo' from sample
-        where extract(year from time_stamp) = $year limit 1""",
-                              dict(year=data.next_year))
-        if len(data_check):
+        if year_exists(data.next_year):
             urls.next_url = '../' + str(data.next_year)
 
         BaseUI.year_cache_control(year)
@@ -213,20 +207,14 @@ class ModernUI(BaseUI):
 
         # See if any data exists for the previous and next months (no point
         # showing a navigation link if there is no data)
-        data_check = db.query("""select 'foo' from sample
-        where date(date_trunc('month',time_stamp)) = $date limit 1""",
-                              dict(date='01-{0}-{1}'.format(previous_month,previous_year)))
-        if len(data_check):
+        if month_exists(previous_year, previous_month):
             if previous_year != year:
                 data.prev_url = '../../' + str(previous_year) + '/' +\
                                 month_name[previous_month] + '/'
             else:
                 data.prev_url = '../' + month_name[previous_month] + '/'
 
-        data_check = db.query("""select 'foo' from sample
-            where date(date_trunc('month',time_stamp)) = $date limit 1""",
-                              dict(date='01-{0}-{1}'.format(next_month,next_year)))
-        if len(data_check):
+        if month_exists(next_year, next_month):
             if next_year != year:
                 data.next_url = '../../' + str(next_year) + '/' +\
                                 month_name[next_month] + '/'
