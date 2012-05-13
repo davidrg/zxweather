@@ -102,7 +102,7 @@ void daemon_main(char *server, char *username, char *password, FILE *log_file) {
         /* If we have a clock_sync_current_ts then current_record_id is already
          * set and valid thanks to clock_sync(). */
         if (clock_sync_current_ts == 0)
-            current_record_id = live_record_id - 1;
+            current_record_id = previous_record(live_record_id);
 
         fprintf(logfile, "CURRENT is #%d\n", current_record_id);
 
@@ -110,7 +110,9 @@ void daemon_main(char *server, char *username, char *password, FILE *log_file) {
 
         /* Download any history records that have appeared. */
         if (final_record_ts == 0 || current_record_id > latest_record_id) {
-            /* final_record_ts == 0  means the database is empty */
+            /* final_record_ts == 0  means the database is empty.
+             * The current > latest check will fail when a wrap around occurs
+             * but the new records will be picked up next time. */
 
             if (database_ts == 0 && latest_record_id == 0)
                 range_start_id = 0; /* Database is empty. Get everything. */
