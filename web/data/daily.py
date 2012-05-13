@@ -250,11 +250,12 @@ from (
                else
                   false
                end as gap
-        from sample cur, sample prev
-        where date(date_trunc('month',cur.time_stamp)) = date(date_trunc('month',$date))
+        from sample cur, sample prev,
+             (select max(time_stamp) as ts from sample where date(time_stamp) = $date) as max_ts
+        where cur.time_stamp <= max_ts.ts     -- 604800 seconds in a week.
+          and cur.time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
           and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < cur.time_stamp)
         order by cur.time_stamp asc) as iq
-where date(iq.time_stamp) > (date($date) - '7 days'::interval)
 group by iq.quadrant
 order by iq.quadrant asc""", params)
 
@@ -362,11 +363,12 @@ from (
                else
                   false
                end as gap
-        from sample cur, sample prev
-        where date(date_trunc('month',cur.time_stamp)) = date(date_trunc('month',$date))
+        from sample cur, sample prev,
+             (select max(time_stamp) as ts from sample where date(time_stamp) = $date) as max_ts
+        where cur.time_stamp <= max_ts.ts     -- 604800 seconds in a week.
+          and cur.time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
           and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < cur.time_stamp)
         order by cur.time_stamp asc) as iq
-where date(iq.time_stamp) > (date($date) - '7 days'::interval)
 group by iq.quadrant
 order by iq.quadrant asc""", params)
 
