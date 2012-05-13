@@ -38,7 +38,7 @@ def load_settings():
 
     import ConfigParser
     config = ConfigParser.ConfigParser()
-    config.read('Z:/current/zxweather/web/config.cfg')
+    config.read('config.cfg')
 
     # Configuration sections
     S_DB = 'database'   # Database configuration
