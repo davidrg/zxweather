@@ -282,7 +282,7 @@ unsigned short first_record() {
      * we try to read it we'll skip over it and take the next one.
      */
     if (total_records >= MAX_RECORDS)
-        first_record_id = live_record_id + 2;
+        first_record_id = next_record(next_record(live_record_id));
     else
         first_record_id = FIRST_RECORD_SLOT;
 
