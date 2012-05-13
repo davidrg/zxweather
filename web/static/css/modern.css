@@ -65,3 +65,7 @@ td {
 .column-end{
     clear: both;
 }
+
+.warning {
+    color: red;
+}

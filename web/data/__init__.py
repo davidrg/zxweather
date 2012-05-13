@@ -71,7 +71,8 @@ class live_data:
             current_data = db.query("""select download_timestamp::time as time_stamp,
                         invalid_data, relative_humidity, temperature, dew_point,
                         wind_chill, apparent_temperature, absolute_pressure,
-                        average_wind_speed, gust_wind_speed, wind_direction
+                        average_wind_speed, gust_wind_speed, wind_direction,
+                        extract('epoch' from (now() - download_timestamp)) as age
                         from live_data""")[0]
             current_data_ts = current_data.time_stamp
         else:
@@ -79,7 +80,8 @@ class live_data:
             current_data = db.query("""select time_stamp::time as time_stamp, relative_humidity,
                         temperature,dew_point, wind_chill, apparent_temperature,
                         absolute_pressure, average_wind_speed, gust_wind_speed,
-                        wind_direction, invalid_data
+                        wind_direction, invalid_data,
+                        extract('epoch' from (now() - download_timestamp)) as age
                     from sample
                     where date(time_stamp) = $date
                     order by time_stamp desc
@@ -113,6 +115,7 @@ class live_data:
                   'gust_wind_speed': data.gust_wind_speed,
                   'wind_direction': data.wind_direction,
                   'time_stamp': str(data.time_stamp),
+                  'age': data.age,
                   }
 
 
