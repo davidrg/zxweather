@@ -76,3 +76,18 @@ def year_exists(year):
         return True
     else:
         return False
+
+def total_rainfall_in_last_7_days(end_date):
+    """
+    Gets the total rainfall for the 7 day period ending at the specified date.
+    :param end_date: Final day in the 7 day period
+    :return: Total rainfall for the 7 day period.
+    """
+    params = dict(date=end_date)
+    result = db.query("""
+    select sum(rainfall) as total_rainfall
+from sample, (select max(time_stamp) as ts from sample where time_stamp::date = $date) as max_ts
+where time_stamp <= max_ts.ts
+  and time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))""", params)
+
+    return result[0].total_rainfall

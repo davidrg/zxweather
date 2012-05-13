@@ -6,7 +6,7 @@ from datetime import datetime, date, timedelta
 from baseui import BaseUI
 from config import db
 from data import live_data, get_years
-from data.database import day_exists, month_exists, year_exists
+from data.database import day_exists, month_exists, year_exists, total_rainfall_in_last_7_days
 
 __author__ = 'David Goodwin'
 
@@ -80,6 +80,8 @@ class ModernUI(BaseUI):
             samples = base_url + 'datatable/samples.json'
             samples_7day = base_url + 'datatable/7day_samples.json'
             samples_7day_30mavg = base_url + 'datatable/7day_30m_avg_samples.json'
+            rainfall = base_url + 'datatable/hourly_rainfall.json'
+            rainfall_7day = base_url + 'datatable/7day_hourly_rainfall.json'
 
         class data:
             """ Data required by the view """
@@ -89,6 +91,7 @@ class ModernUI(BaseUI):
             month_s = month_name[now.month]
             yesterday = now - timedelta(1)
             yesterday_month_s = month_name[yesterday.month]
+            rainfall_7days_total = total_rainfall_in_last_7_days(now.date())
 
         if not day_exists(data.yesterday):
             data.yesterday = None
@@ -304,6 +307,7 @@ class ModernUI(BaseUI):
             next_date = None
             this_month = month_name[month]
             records = BaseUI.get_daily_records(date_stamp)
+            rainfall_7days_total = total_rainfall_in_last_7_days(date_stamp)
 
 
         # Get live data if the page is for today.
@@ -350,6 +354,8 @@ class ModernUI(BaseUI):
             samples = base_url + 'datatable/samples.json'
             samples_7day = base_url + 'datatable/7day_samples.json'
             samples_7day_30mavg = base_url + 'datatable/7day_30m_avg_samples.json'
+            rainfall = base_url + 'datatable/hourly_rainfall.json'
+            rainfall_7day = base_url + 'datatable/7day_hourly_rainfall.json'
 
         BaseUI.day_cache_control(data_age, year, month, day)
         return self.render.day(data=data,dataurls=urls)
