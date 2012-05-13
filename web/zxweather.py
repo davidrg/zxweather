@@ -3,6 +3,10 @@ __author__ = 'David Goodwin'
 import os,sys
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 import web
+import config
+
+# Load settings.
+config.load_settings()
 
 # This is the URL structure for the site
 urls = (
