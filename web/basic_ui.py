@@ -277,33 +277,30 @@ class BasicUI(BaseUI):
             data_age = datetime.combine(date(year,month,day), data.current_data_ts)
 
         # Figure out the URL for the previous day
-        previous_day = data.date_stamp - timedelta(1)
-        data.prev_date = previous_day
+        data.prev_date = data.date_stamp - timedelta(1)
+        data.next_date = data.date_stamp + timedelta(1)
 
         # Only calculate previous days data if there is any.
-        if day_exists(previous_day):
-            if previous_day.year != year:
-                data.prev_url = '../../../' + str(previous_day.year) \
-                                + '/' + month_name[previous_day.month] + '/'
-            elif previous_day.month != month:
-                data.prev_url = '../../' + month_name[previous_day.month] + '/'
+        if day_exists(data.prev_date):
+            if data.prev_date.year != year:
+                data.prev_url = '../../../' + str(data.prev_date.year) \
+                                + '/' + month_name[data.prev_date.month] + '/'
+            elif data.prev_date.month != month:
+                data.prev_url = '../../' + month_name[data.prev_date.month] + '/'
             else:
                 data.prev_url = '../'
-            data.prev_url += str(previous_day.day) + '/'
+            data.prev_url += str(data.prev_date.day) + '/'
 
         # Only calculate the URL for tomorrow if there is tomorrow in the database.
-        next_day = data.date_stamp + timedelta(1)
-        data.next_date = next_day
-
-        if day_exists(next_day):
-            if next_day.year != year:
-                data.next_url = '../../../' + str(next_day.year)\
-                                + '/' + month_name[next_day.month] + '/'
-            elif next_day.month != month:
-                data.next_url = '../../' + month_name[next_day.month] + '/'
+        if day_exists(data.next_date):
+            if data.next_date.year != year:
+                data.next_url = '../../../' + str(data.next_date.year)\
+                                + '/' + month_name[data.next_date.month] + '/'
+            elif data.next_date.month != month:
+                data.next_url = '../../' + month_name[data.next_date.month] + '/'
             else:
                 data.next_url = '../'
-            data.next_url += str(next_day.day) + '/'
+            data.next_url += str(data.next_date.day) + '/'
 
         BaseUI.day_cache_control(data_age, year, month, day)
         return self.render.day(data=data)

@@ -42,12 +42,15 @@ class datatable_json:
         month = int(month)
         day = int(day)
 
+        this_date = date(year,month,day)
+
         # Make sure the day actually exists in the database before we go
         # any further.
-        params = dict(date=date(year,month,day))
+        params = dict(date=this_date)
         recs = db.query("select 42 from sample where date(time_stamp) = $date limit 1", params)
         if recs is None or len(recs) == 0:
             raise web.NotFound()
+
 
         if dataset == 'samples':
             return get_day_samples_datatable(year,month,day)
@@ -61,6 +64,10 @@ class datatable_json:
             return get_7day_indoor_samples_datatable(year,month,day)
         elif dataset == '7day_30m_avg_indoor_samples':
             return get_7day_30mavg_indoor_samples_datatable(year,month,day)
+        elif dataset == 'hourly_rainfall':
+            return get_days_hourly_rain_datatable(this_date)
+        elif dataset == '7day_hourly_rainfall':
+            return get_7day_hourly_rain_datatable(this_date)
         else:
             raise web.NotFound()
 
@@ -157,10 +164,6 @@ def indoor_sample_result_to_datatable(query_data):
             rows.append({'c': [{'v': datetime_to_js_date(record.prev_sample_time)},
                     {'v': None},
                     {'v': None},
-                    {'v': None},
-                    {'v': None},
-                    {'v': None},
-                    {'v': None},
             ]
             })
 
@@ -189,7 +192,11 @@ def indoor_sample_result_to_datatable(query_data):
 def get_7day_indoor_samples_datatable(year,month,day):
     """
     Gets data for a 7-day period in a Google DataTable compatible format.
-    :return:
+    :param year: Year to get data for
+    :param month: Month to get data for
+    :param day: Day to get data for
+    :return: JSON data in Googles datatable format containing indoor samples
+    for the past seven days.
     """
     params = dict(date = date(year,month,day))
     result = db.query("""select s.time_stamp,
@@ -220,7 +227,11 @@ def get_7day_indoor_samples_datatable(year,month,day):
 def get_7day_30mavg_indoor_samples_datatable(year,month,day):
     """
     Gets data for a 7-day period in a Google DataTable compatible format.
-    :return:
+    :param year: Year to get data for
+    :param month: Month to get data for
+    :param day: Day to get data for
+    :return: JSON in Googles Datatable format containing 30 minute averaged
+    data for the past seven days of indoor samples.
     """
     params = dict(date = date(year,month,day))
     result = db.query("""select min(iq.time_stamp) as time_stamp,
@@ -258,6 +269,9 @@ order by iq.quadrant asc""", params)
 def get_day_indoor_samples_datatable(year,month,day):
     """
     Gets indoor data for a specific day in a Google DataTable compatible format.
+    :param year: Year to get data for
+    :param month: Month to get data for
+    :param day: Day to get data for
     :return:
     """
     params = dict(date = date(year,month,day))
@@ -428,3 +442,94 @@ where date(s.time_stamp) = $date
     web.header('Content-Length', str(len(data)))
     return data
 
+def rainfall_to_datatable(query_result):
+    """
+    Converts a rainfall data query result into Googles DataTable JSON format.
+    :param query_result: Result of the rainfall query.
+    :return: JSON data.
+    """
+    cols = [{'id': 'timestamp',
+             'label': 'Time Stamp',
+             'type': 'datetime'},
+            {'id': 'rainfall',
+             'label': 'Rainfall',
+             'type': 'number'},
+    ]
+
+    rows = []
+
+    # At the end of the following loop, this will contain the timestamp for
+    # the most recent record in this data set.
+    data_age = None
+
+    for record in query_result:
+
+        rows.append({'c': [{'v': datetime_to_js_date(record.time_stamp)},
+                {'v': record.rainfall},
+        ]
+        })
+
+        data_age = record.time_stamp
+
+    data = {'cols': cols,
+            'rows': rows}
+
+    if pretty_print:
+        return json.dumps(data, sort_keys=True, indent=4), data_age
+    else:
+        return json.dumps(data), data_age
+
+def get_days_hourly_rain_datatable(data_date):
+    """
+    Gets total rainfall for each hour during the specified day.
+    :param data_date: Date to get data for
+    :type data_date: datetime.date
+    """
+
+    params = dict(date = data_date)
+
+    result = db.query("""select date_trunc('hour',time_stamp) as time_stamp,
+       sum(rainfall) as rainfall
+from sample
+where time_stamp::date = $date
+group by date_trunc('hour',time_stamp)
+order by date_trunc('hour',time_stamp) asc""", params)
+
+    json_data, data_age = rainfall_to_datatable(result)
+
+    daily_cache_control_headers(data_date.year,
+                                data_date.month,
+                                data_date.day,
+                                data_age)
+
+    web.header('Content-Type','application/json')
+    web.header('Content-Length', str(len(json_data)))
+    return json_data
+
+def get_7day_hourly_rain_datatable(data_date):
+    """
+    Gets total rainfall for each hour during the past 7 days.
+    :param data_date: Date to get data for
+    :type data_date: datetime.date
+    """
+
+    params = dict(date = data_date)
+
+    result = db.query("""select date_trunc('hour',time_stamp) as time_stamp,
+       sum(rainfall) as rainfall
+from sample, (select max(time_stamp) as ts from sample where time_stamp::date = $date) as max_ts
+where time_stamp <= max_ts.ts
+  and time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
+group by date_trunc('hour',time_stamp)
+order by date_trunc('hour',time_stamp) asc""", params)
+
+    json_data, data_age = rainfall_to_datatable(result)
+
+    daily_cache_control_headers(data_date.year,
+                                data_date.month,
+                                data_date.day,
+                                data_age)
+
+    web.header('Content-Type','application/json')
+    web.header('Content-Length', str(len(json_data)))
+    return json_data

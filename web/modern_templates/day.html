@@ -134,6 +134,7 @@
         <div class="left-column">
             <div id="chart_temperature_tdp_div"></div>
             <div id="chart_humidity_div"></div>
+            {% if data.records.total_rainfall > 0 %}<div id="chart_hourly_rainfall_div"></div>{% endif %}
         </div>
         <div class="right-column">
             <div id="chart_temperature_awc_div"></div>
@@ -149,6 +150,7 @@
         <div id="chart_7_temperature_awc_div"></div>
         <div id="chart_7_humidity_div"></div>
         <div id="chart_7_pressure_div"></div>
+        {% if data.rainfall_7days_total > 0 %}<div id="chart_7_hourly_rainfall_div"></div>{% endif %}
     </div>
 
     <hr>
@@ -306,6 +308,87 @@
                                   document.getElementById('chart_7_pressure_div')
                     );
                 });
+
+            {% if data.records.total_rainfall > 0 %}
+                /***************************************************************
+                 * Fetch the days hourly rainfall and chart it
+                 */
+                $.getJSON('{{ dataurls.rainfall }}', function(data) {
+                    // This contains all samples for the day. Included columns are
+                    // 0: timestamp
+                    // 1: temperature
+                    // 2: dewpoint
+                    // 3: apparenttemp
+                    // 4: windchill
+                    // 5: humidity
+                    // 6: abspressure
+                    var rainfall_data = new google.visualization.DataTable(data);
+
+                    // Do some formatting
+                    var rainfallFormatter = new google.visualization.NumberFormat(
+                            { pattern: '##.# mm'});
+                    rainfallFormatter.format(rainfall_data,1);
+
+                    var dateFormatter = new google.visualization.DateFormat(
+                            { pattern: 'hh'});
+                    dateFormatter.format(rainfall_data,0);
+
+
+                    var dataView = new google.visualization.DataView(rainfall_data);
+                    dataView.setColumns([{calc: function(data, row) {
+                        return data.getFormattedValue(row, 0); }, type:'string'}, 1]);
+
+                    var options = {
+                        title: 'Hourly Rainfall (mm)',
+                        legend: {position: 'none'},
+                        isStacked: true,
+                        focusTarget: 'datum'
+                    };
+                    var rainfall_chart = new google.visualization.ColumnChart(
+                            document.getElementById('chart_hourly_rainfall_div'));
+                    rainfall_chart.draw(dataView, options);
+                });
+            {% endif %}
+            {% if data.rainfall_7days_total > 0 %}
+                /***************************************************************
+                 * Fetch the 7 day hourly rainfall and chart it
+                 */
+                $.getJSON('{{ dataurls.rainfall_7day }}', function(data) {
+                    // This contains all samples for the day. Included columns are
+                    // 0: timestamp
+                    // 1: temperature
+                    // 2: dewpoint
+                    // 3: apparenttemp
+                    // 4: windchill
+                    // 5: humidity
+                    // 6: abspressure
+                    var rainfall_data = new google.visualization.DataTable(data);
+
+                    // Do some formatting
+                    var rainfallFormatter = new google.visualization.NumberFormat(
+                            { pattern: '##.# mm'});
+                    rainfallFormatter.format(rainfall_data,1);
+
+                    var dateFormatter = new google.visualization.DateFormat(
+                            { pattern: 'HH:00 dd-MMM-yyyy'});
+                    dateFormatter.format(rainfall_data,0);
+
+
+                    var dataView = new google.visualization.DataView(rainfall_data);
+                    dataView.setColumns([{calc: function(data, row) {
+                        return data.getFormattedValue(row, 0); }, type:'string'}, 1]);
+
+                    var options = {
+                        title: 'Hourly Rainfall (mm)',
+                        legend: {position: 'none'},
+                        isStacked: true,
+                        focusTarget: 'datum'
+                    };
+                    var rainfall_chart = new google.visualization.ColumnChart(
+                            document.getElementById('chart_7_hourly_rainfall_div'));
+                    rainfall_chart.draw(dataView, options);
+                });
+            {% endif %}
             }
         </script>
 {% endblock %}
