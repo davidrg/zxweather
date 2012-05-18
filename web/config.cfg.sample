@@ -24,16 +24,19 @@ sample_interval: 300
 plot_interval: 1800
 
 # Site configuration
+# default_ui      - The default user interface to use if someone requests the
+#                   root directory (that is, / instead of /s/station/)
+# site_name       - The name of your site. Like "Davids awesome weather stuff"
 # site_root       - Site root including hostname, etc. Used for redirects.
 # static_data_dir - Location on disk where static data (images, css, PNG 
 #                   charts, etc) is stored. Everything in here is made
 #                   publicly available.
-# default_ui      - The default user interface to use if none is specified.
 # station_name    - The name of your weather station. This appears in all
 #                   URLs so choose something short and don't change it. See
 #                   the installation documentation for more information.
 [site]
 default_ui: s
+site_name: zxweather
 # UNCOMMENT THESE AND SET THEM! The defaults will NOT work.
 #site_root: http://weather.example.com/
 #static_data_dir: /var/weather/static/
