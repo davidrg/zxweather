@@ -11,7 +11,7 @@ config.load_settings()
 # This is the URL structure for the site
 urls = (
     '/', 'ui_route.site_index',      # This will be a list of available stations.
-    '/(\w*)/', 'ui_route.stationlist',    # Index page for a particular station. Lets you
+    '/(s|b)/', 'ui_route.stationlist',    # Index page for a particular station. Lets you
                                           # pick which UI to use.
 
     # Data Access (in JSON format mostly)

@@ -2,165 +2,325 @@
 
 {% block title %}Station  Overview{% endblock %}
 {% block head %}
-    <link rel="stylesheet" href="../css/modern.css" type="text/css"/>
+{#    <link rel="stylesheet" href="../css/modern.css" type="text/css"/>#}
+    <style>
+        section {
+            padding-top: 60px;
+        }
+
+        /* Subnav */
+        .subnav {
+            width: 100%;
+            height: 36px;
+            background-color: #eeeeee; /* Old browsers */
+            background-repeat: repeat-x; /* Repeat the gradient */
+            background-image: -moz-linear-gradient(top, #f5f5f5 0%, #eeeeee 100%); /* FF3.6+ */
+            background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#f5f5f5), color-stop(100%,#eeeeee)); /* Chrome,Safari4+ */
+            background-image: -webkit-linear-gradient(top, #f5f5f5 0%,#eeeeee 100%); /* Chrome 10+,Safari 5.1+ */
+            background-image: -ms-linear-gradient(top, #f5f5f5 0%,#eeeeee 100%); /* IE10+ */
+            background-image: -o-linear-gradient(top, #f5f5f5 0%,#eeeeee 100%); /* Opera 11.10+ */
+            filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#f5f5f5', endColorstr='#eeeeee',GradientType=0 ); /* IE6-9 */
+            background-image: linear-gradient(top, #f5f5f5 0%,#eeeeee 100%); /* W3C */
+            border: 1px solid #e5e5e5;
+            -webkit-border-radius: 4px;
+            -moz-border-radius: 4px;
+            border-radius: 4px;
+        }
+        .subnav .nav {
+            margin-bottom: 0;
+        }
+        .subnav .nav > li > a {
+            margin: 0;
+            padding-top:    11px;
+            padding-bottom: 11px;
+            border-left: 1px solid #f5f5f5;
+            border-right: 1px solid #e5e5e5;
+            -webkit-border-radius: 0;
+            -moz-border-radius: 0;
+            border-radius: 0;
+        }
+        .subnav .nav > .active > a,
+        .subnav .nav > .active > a:hover {
+            padding-left: 13px;
+            color: #777;
+            background-color: #e9e9e9;
+            border-right-color: #ddd;
+            border-left: 0;
+            -webkit-box-shadow: inset 0 3px 5px rgba(0,0,0,.05);
+            -moz-box-shadow: inset 0 3px 5px rgba(0,0,0,.05);
+            box-shadow: inset 0 3px 5px rgba(0,0,0,.05);
+        }
+        .subnav .nav > .active > a .caret,
+        .subnav .nav > .active > a:hover .caret {
+            border-top-color: #777;
+        }
+        .subnav .nav > li:first-child > a,
+        .subnav .nav > li:first-child > a:hover {
+            border-left: 0;
+            padding-left: 12px;
+            -webkit-border-radius: 4px 0 0 4px;
+            -moz-border-radius: 4px 0 0 4px;
+            border-radius: 4px 0 0 4px;
+        }
+        .subnav .nav > li:last-child > a {
+            border-right: 0;
+        }
+        .subnav .dropdown-menu {
+            -webkit-border-radius: 0 0 4px 4px;
+            -moz-border-radius: 0 0 4px 4px;
+            border-radius: 0 0 4px 4px;
+        }
+
+            /* Fixed subnav on scroll, but only for 980px and up (sorry IE!) */
+        @media (min-width: 980px) {
+            .subnav-fixed {
+                position: fixed;
+                top: 40px;
+                left: 0;
+                right: 0;
+                z-index: 1020; /* 10 less than .navbar-fixed to prevent any overlap */
+                border-color: #d5d5d5;
+                border-width: 0 0 1px; /* drop the border on the fixed edges */
+                -webkit-border-radius: 0;
+                -moz-border-radius: 0;
+                border-radius: 0;
+                -webkit-box-shadow: inset 0 1px 0 #fff, 0 1px 5px rgba(0,0,0,.1);
+                -moz-box-shadow: inset 0 1px 0 #fff, 0 1px 5px rgba(0,0,0,.1);
+                box-shadow: inset 0 1px 0 #fff, 0 1px 5px rgba(0,0,0,.1);
+                filter: progid:DXImageTransform.Microsoft.gradient(enabled=false); /* IE6-9 */
+            }
+            .subnav-fixed .nav {
+                width: 938px;
+                margin: 0 auto;
+                padding: 0 1px;
+            }
+            .subnav .nav > li:first-child > a,
+            .subnav .nav > li:first-child > a:hover {
+                -webkit-border-radius: 0;
+                -moz-border-radius: 0;
+                border-radius: 0;
+            }
+        }
+    </style>
 {% endblock %}
 {% block content %}
-    <h1>Weather</h1>
-    <hr>
-    <h2>Current Conditions</h2>
-    <div id="current_conditions">
-    <table>
-        <thead>
-        <tr>
-            <th>Sensor</th>
-            <th>Value</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr>
-            <td>Relative Humidity</td>
-            <td id="live_relative_humidity"></td>
-        </tr>
-        <tr>
-            <td>Temperature</td>
-            <td id="live_temperature"></td>
-        </tr>
-        <tr>
-            <td>Apparent Temperature</td>
-            <td id="live_apparent_temperature"></td>
-        </tr>
-        <tr>
-            <td>Wind Chill</td>
-            <td id="live_wind_chill"></td>
-        </tr>
-        <tr>
-            <td>Dew Point</td>
-            <td id="live_dew_point"></td>
-        </tr>
-        <tr>
-            <td>Absolute Pressure</td>
-            <td id="live_absolute_pressure"></td>
-        </tr>
-        <tr>
-            <td>Average Wind Speed</td>
-            <td id="live_avg_wind_speed"></td>
-        </tr>
-        <tr>
-            <td>Gust Wind Speed</td>
-            <td id="live_gust_wind_speed"></td>
-        </tr>
-        <tr>
-            <td>Wind Direction</td>
-            <td id="live_wind_direction"></td>
-        </tr>
-        </tbody>
-    </table>
-    <p>Time: <span id="current_time"></span></p>
-    </div>
-    <div id="cc_stale" style="display: none;">
-    <p class="warning">WARNING: Live data has not been refreshed in <span id="cc_data_age"></span> seconds. The
-    update service has likely stopped.</p>
-    </div>
 
-    <h2>Records for Today</h2>
-    <table>
-        <thead>
-        <tr>
-            <th>Sensor</th>
-            <th>Min</th>
-            <th>Max</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr>
-            <td>Temperature</td>
-            <td>{{ data.records.min_temperature|round(1) }}°C at {{ data.records.min_temperature_ts }}</td>
-            <td>{{ data.records.max_temperature|round(1) }}°C at {{ data.records.max_temperature_ts }}</td>
-        </tr>
-        <tr>
-            <td>Wind Chill</td>
-            <td>{{ data.records.min_wind_chill|round(1) }}°C at {{ data.records.min_wind_chill_ts }}</td>
-            <td>{{ data.records.max_wind_chill|round(1) }}°C at {{ data.records.max_wind_chill_ts }}</td>
-        </tr>
-        <tr>
-            <td>Apparent Temperature</td>
-            <td>{{ data.records.min_apparent_temperature|round(1) }}°C at {{ data.records.min_apparent_temperature_ts }}</td>
-            <td>{{ data.records.max_apparent_temperature|round(1) }}°C at {{ data.records.max_apparent_temperature_ts }}</td>
-        </tr>
-        <tr>
-            <td>Dew Point</td>
-            <td>{{ data.records.min_dew_point|round(1) }}°C at {{ data.records.min_dew_point_ts }}</td>
-            <td>{{ data.records.max_dew_point|round(1) }}°C at {{ data.records.max_dew_point_ts }}</td>
-        </tr>
-        <tr>
-            <td>Absolute Pressure</td>
-            <td>{{ data.records.min_absolute_pressure|round(1) }} hPa at {{ data.records.min_absolute_pressure_ts }}</td>
-            <td>{{ data.records.max_absolute_pressure|round(1) }} hPa at {{ data.records.max_absolute_pressure_ts }}</td>
-        </tr>
-        <tr>
-            <td>Relative Humidity</td>
-            <td>{{ data.records.min_humidity }}% at {{ data.records.min_humidity_ts }}</td>
-            <td>{{ data.records.max_humidity }}% at {{ data.records.max_humidity_ts }}</td>
-        </tr>
-        <tr>
-            <td>Gust Wind Speed</td>
-            <td class="no-value"></td>
-            <td>{{ data.records.max_gust_wind_speed|round(1) }} m/s at {{ data.records.max_gust_wind_speed_ts }}</td>
-        </tr>
-        <tr>
-            <td>Average Wind Speed</td>
-            <td class="no-value"></td>
-            <td>{{ data.records.max_average_wind_speed|round(1) }} m/s at {{ data.records.max_average_wind_speed_ts }}</td>
-        </tr>
-        </tbody>
-    </table>
-    <p>Total rainfall today: {{ data.records.total_rainfall|round(1) }}mm</p>
-
-    <h2 id="today">Today</h2>
-    <div id="daily-charts">
-        <div class="left-column">
-            <div id="chart_temperature_tdp_div"></div>
-            <div id="chart_humidity_div"></div>
-            {% if data.records.total_rainfall > 0 %}<div id="chart_hourly_rainfall_div"></div>{% endif %}
+    <header>
+        <div class="subnav">
+            <ul class="nav nav-pills">
+                <li><a href="#live">Current Conditions</a></li>
+                <li><a href="#records">Todays Records</a></li>
+                <li><a href="#today">Charts</a></li>
+                <li><a href="#last_7_days">Last 7 Days</a></li>
+            </ul>
         </div>
-        <div class="right-column">
-            <div id="chart_temperature_awc_div"></div>
-            <div id="chart_pressure_div"></div>
+    </header>
+
+
+
+    <section id="live">
+    <div class="row">
+        <div class="span6">
+        <h1>Current Conditions</h1>
+        <div id="current_conditions">
+        <table class="table table-bordered">
+            <thead>
+            <tr>
+                <th>Sensor</th>
+                <th>Value</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Relative Humidity</td>
+                <td id="live_relative_humidity"></td>
+            </tr>
+            <tr>
+                <td>Temperature</td>
+                <td id="live_temperature"></td>
+            </tr>
+            <tr>
+                <td>Apparent Temperature</td>
+                <td id="live_apparent_temperature"></td>
+            </tr>
+            <tr>
+                <td>Wind Chill</td>
+                <td id="live_wind_chill"></td>
+            </tr>
+            <tr>
+                <td>Dew Point</td>
+                <td id="live_dew_point"></td>
+            </tr>
+            <tr>
+                <td>Absolute Pressure</td>
+                <td id="live_absolute_pressure"></td>
+            </tr>
+            <tr>
+                <td>Average Wind Speed</td>
+                <td id="live_avg_wind_speed"></td>
+            </tr>
+            <tr>
+                <td>Gust Wind Speed</td>
+                <td id="live_gust_wind_speed"></td>
+            </tr>
+            <tr>
+                <td>Wind Direction</td>
+                <td id="live_wind_direction"></td>
+            </tr>
+            </tbody>
+        </table>
+        <p>Time: <span id="current_time"></span></p>
         </div>
-        <div class="column-end"></div>
-    </div>
+        <div id="cc_stale" style="display: none;">
+        <p class="warning">WARNING: Live data has not been refreshed in <span id="cc_data_age"></span> seconds. The
+        update service has likely stopped.</p>
+        </div>
+        </div>
+{#    </section>#}
+{##}
+{#    <section id="records">#}
+        <div class="span6">
+        <h1>Todays Records</h1>
+        <table class="table table-bordered">
+            <thead>
+            <tr>
+                <th>Sensor</th>
+                <th>Min</th>
+                <th>Max</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Temperature</td>
+                <td>{{ data.records.min_temperature|round(1) }}°C at {{ data.records.min_temperature_ts }}</td>
+                <td>{{ data.records.max_temperature|round(1) }}°C at {{ data.records.max_temperature_ts }}</td>
+            </tr>
+            <tr>
+                <td>Wind Chill</td>
+                <td>{{ data.records.min_wind_chill|round(1) }}°C at {{ data.records.min_wind_chill_ts }}</td>
+                <td>{{ data.records.max_wind_chill|round(1) }}°C at {{ data.records.max_wind_chill_ts }}</td>
+            </tr>
+            <tr>
+                <td>Apparent Temperature</td>
+                <td>{{ data.records.min_apparent_temperature|round(1) }}°C at {{ data.records.min_apparent_temperature_ts }}</td>
+                <td>{{ data.records.max_apparent_temperature|round(1) }}°C at {{ data.records.max_apparent_temperature_ts }}</td>
+            </tr>
+            <tr>
+                <td>Dew Point</td>
+                <td>{{ data.records.min_dew_point|round(1) }}°C at {{ data.records.min_dew_point_ts }}</td>
+                <td>{{ data.records.max_dew_point|round(1) }}°C at {{ data.records.max_dew_point_ts }}</td>
+            </tr>
+            <tr>
+                <td>Absolute Pressure</td>
+                <td>{{ data.records.min_absolute_pressure|round(1) }} hPa at {{ data.records.min_absolute_pressure_ts }}</td>
+                <td>{{ data.records.max_absolute_pressure|round(1) }} hPa at {{ data.records.max_absolute_pressure_ts }}</td>
+            </tr>
+            <tr>
+                <td>Relative Humidity</td>
+                <td>{{ data.records.min_humidity }}% at {{ data.records.min_humidity_ts }}</td>
+                <td>{{ data.records.max_humidity }}% at {{ data.records.max_humidity_ts }}</td>
+            </tr>
+            <tr>
+                <td>Gust Wind Speed</td>
+                <td class="no-value"></td>
+                <td>{{ data.records.max_gust_wind_speed|round(1) }} m/s at {{ data.records.max_gust_wind_speed_ts }}</td>
+            </tr>
+            <tr>
+                <td>Average Wind Speed</td>
+                <td class="no-value"></td>
+                <td>{{ data.records.max_average_wind_speed|round(1) }} m/s at {{ data.records.max_average_wind_speed_ts }}</td>
+            </tr>
+            </tbody>
+        </table>
+        <p>Total rainfall today: {{ data.records.total_rainfall|round(1) }}mm</p>
+        </div>
+        </div>
+    </section>
 
-    <h2>Last 7 days</h2>
-    <div id="7day-charts">
-        <div id="chart_7_temperature_tdp_div"></div>
-        <div id="chart_7_temperature_awc_div"></div>
-        <div id="chart_7_humidity_div"></div>
-        <div id="chart_7_pressure_div"></div>
-        {% if data.rainfall_7days_total > 0 %}<div id="chart_7_hourly_rainfall_div"></div>{% endif %}
-    </div>
+    <section id="today">
+        <h1>Today</h1>
+        <div class="row">
+            <div class="span6">
+                <div id="chart_temperature_tdp_div"></div>
+            </div>
+            <div class="span6">
+                <div id="chart_temperature_awc_div"></div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="span6">
+                <div id="chart_humidity_div"></div>
+            </div>
+            <div class="span6">
+                <div id="chart_pressure_div"></div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="span6">
+                {% if data.records.total_rainfall > 0 %}<div id="chart_hourly_rainfall_div"></div>{% endif %}
+            </div>
+            <div class="span6">
 
-    <h2>Weather History</h2>
-    <p>Weather data is available for the following years:
-        {% set i = 0 %}
-        {% for year in data.years %}
-            {% set i = i + 1 %}
-            <a href="{{ year }}/">{{ year }}</a> {% if i < data.years|length %}|{% endif %}
-        {% endfor %}
-    </p>
-    <p>History page for: <a href="now">Today</a>,
-                         {% if data.yesterday %}<a href="{{ data.yesterday.year }}/{{ data.yesterday_month_s }}/{{ data.yesterday.day }}/">Yesterday</a>,{% endif %}
-                         <a href="{{ data.year }}/{{ data.month_s }}/">This Month</a>,
-                         <a href="{{ data.year }}/">This Year</a>.
-    </p>
+            </div>
+        </div>
+
+
+        <div id="daily-charts">
+            <div class="left-column">
+
+
+
+            </div>
+            <div class="right-column">
+
+
+            </div>
+            <div class="column-end"></div>
+        </div>
+    </section>
+
+    <section id="last_7_days">
+        <h1>Last 7 days</h1>
+        <div id="7day-charts">
+            <div id="chart_7_temperature_tdp_div"></div>
+            <div id="chart_7_temperature_awc_div"></div>
+            <div id="chart_7_humidity_div"></div>
+            <div id="chart_7_pressure_div"></div>
+            {% if data.rainfall_7days_total > 0 %}<div id="chart_7_hourly_rainfall_div"></div>{% endif %}
+        </div>
+    </section>
+
+    <section id="history">
+        <h1>Weather History</h1>
+        <p>Weather data is available for the following years:
+            {% set i = 0 %}
+            {% for year in data.years %}
+                {% set i = i + 1 %}
+                <a href="{{ year }}/">{{ year }}</a> {% if i < data.years|length %}|{% endif %}
+            {% endfor %}
+        </p>
+        <p>History page for: <a href="now">Today</a>,
+                             {% if data.yesterday %}<a href="{{ data.yesterday.year }}/{{ data.yesterday_month_s }}/{{ data.yesterday.day }}/">Yesterday</a>,{% endif %}
+                             <a href="{{ data.year }}/{{ data.month_s }}/">This Month</a>,
+                             <a href="{{ data.year }}/">This Year</a>.
+        </p>
+    </section>
     <hr>
     <p>Problems?
         <a href="../../b/{{ station }}/now">
             Basic HTML</a></p>
-    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+    <script type="text/javascript" src="/js/jquery.min.js"></script>
     <script type="text/javascript" src="http://www.google.com/jsapi"></script>
     <script type="text/javascript">
-
         var previous_live = null;
+
+        var sample_count = 0;
+        var rh_trend = 0;
+        var temp_trend = 0;
+        var apparent_temp_trend = 0;
+        var wind_chill_trend = 0;
+        var dew_point_trend = 0;
+        var abs_pressure_trend = 0;
 
         function refresh_live_data() {
             $.getJSON('../../data/{{ station }}/live.json', function(data) {
@@ -174,9 +334,7 @@
                     $("#current_conditions").show();
                     $("#cc_stale").hide();
 
-                    // Icons
-                    var rh='', t='', at='', wc='', dp='', ap='', aws='', gws='';
-
+                    // Current conditions
                     var relative_humidity = data['relative_humidity'];
                     var temperature = data['temperature'].toFixed(1);
                     var apparent_temp = data['apparent_temperature'].toFixed(1);
@@ -185,6 +343,9 @@
                     var absolute_pressure = data['absolute_pressure'].toFixed(1);
                     var average_wind_speed = data['average_wind_speed'].toFixed(1);
                     var gust_wind_speed = data['gust_wind_speed'].toFixed(1);
+
+                    // Icons
+                    var rh='', t='', at='', wc='', dp='', ap='';
 
                     if (previous_live != null) {
                         function get_ico(current, prev) {
@@ -196,14 +357,17 @@
                                 return '<img src="../../images/down.png" alt="decrease" title="decrease"/>&nbsp;';
                         }
 
+                        sample_count++;
+                        if (relative_humidity < previous_live['relative_humidity'] && rh_trend > 0) {
+                            rh_trend--;
+                        }
+
                         rh = get_ico(relative_humidity, previous_live['relative_humidity']);
                         t = get_ico(temperature, previous_live['temperature'].toFixed(1));
                         at = get_ico(apparent_temp, previous_live['apparent_temperature'].toFixed(1));
                         wc = get_ico(wind_chill, previous_live['wind_chill'].toFixed(1));
                         dp = get_ico(dew_point, previous_live['dew_point'].toFixed(1));
                         ap = get_ico(absolute_pressure, previous_live['absolute_pressure'].toFixed(1));
-                        aws = get_ico(average_wind_speed, previous_live['average_wind_speed'].toFixed(1));
-                        gws = get_ico(gust_wind_speed, previous_live['gust_wind_speed'].toFixed(1));
                     }
 
                     $("#live_relative_humidity").html(rh + relative_humidity + '%');
@@ -212,8 +376,8 @@
                     $("#live_wind_chill").html(wc + wind_chill + '°C');
                     $("#live_dew_point").html(dp + dew_point + '°C');
                     $("#live_absolute_pressure").html(ap + absolute_pressure + ' hPa');
-                    $("#live_avg_wind_speed").html(aws + average_wind_speed + ' m/s');
-                    $("#live_gust_wind_speed").html(gws + gust_wind_speed + ' m/s');
+                    $("#live_avg_wind_speed").html(average_wind_speed + ' m/s');
+                    $("#live_gust_wind_speed").html(gust_wind_speed + ' m/s');
                     $("#live_wind_direction").html(data['wind_direction']);
                     $("#current_time").html(data['time_stamp']);
 
