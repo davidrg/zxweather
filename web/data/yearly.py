@@ -134,7 +134,7 @@ order by time_stamp asc""", params)
              'label': 'Maximum Absolute Pressure',
              'type': 'number'},
             {'id': 'min_pressure',
-             'label': 'MinimumAbsolute Pressure',
+             'label': 'Minimum Absolute Pressure',
              'type': 'number'},
             {'id': 'total_rainfall',
              'label': 'Total Rainfall',
