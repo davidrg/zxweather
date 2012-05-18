@@ -28,13 +28,15 @@ site_root = None
 # Set to None to use the UI picker page.
 default_ui = 's'
 
+site_name = 'zxweather'
+
 def load_settings():
     """
     Loads settings from the configuration file.
     """
 
     global db, default_station_name, live_data_available, sample_interval
-    global plot_interval, static_data_dir, site_root, default_ui
+    global plot_interval, static_data_dir, site_root, default_ui, site_name
 
     import ConfigParser
     config = ConfigParser.ConfigParser()
@@ -73,8 +75,12 @@ def load_settings():
 
     # Site
     default_station_name = config.get(S_S, 'station_name')
-    static_data_dir = config.get(S_S, 'static_data_dir')
     site_root = config.get(S_S, 'site_root')
     default_ui = config.get(S_S, 'default_ui')
+    site_name = config.get(S_S, 'site_name')
+    static_data_dir = config.get(S_S, 'static_data_dir')
+
+    if not static_data_dir.endswith("/"):
+        static_data_dir += "/"
 
 

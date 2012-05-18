@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <title>About</title>
+    <link rel="stylesheet" href="/css/bootstrap.css" type="text/css"/>
+    <style>
+        body {
+            padding-top: 60px; /* Account for the navbar */
+        }
+    </style>
+    <link rel="stylesheet" href="/css/bootstrap-responsive.css" type="text.css" />
+</head>
+<body>
+    <div class="navbar navbar-fixed-top">
+        <div class="navbar-inner">
+            <div class="container">
+                <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </a>
+                <a id="nav_brand" class="brand" href="#"></a>
+                <div class="nav-collapse">
+                    <ul class="nav">
+                        <li><a href="index.html">Home</a></li>
+                        <li><a id="nav_lnk_yesterday" href="">Yesterday</a></li>
+                        <li><a id="nav_lnk_this_month" href="">This Month</a></li>
+                        <li><a id="nav_lnk_this_year" href="">This Year</a></li>
+                        <li class="active"><a href="about.html">About</a></li>
+                    </ul>
+                </div><!--/.nav-collapse -->
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+
+        <!-- ------------------------------------------------------------- --
+          -- Make your changes here. You can delete anything between this
+          -- comment and the other comment below (including the comments)
+          -- and replace it with your own content. You can also edit the
+          -- text between the <title> </title> tags near the top of the page.
+          -- ------------------------------------------------------------- -->
+        <h1>About</h1>
+
+        <p>This site is powered by
+            <a href="https://bitbucket.org/davidrg/zxweather">zxweather</a>.
+        </p>
+        <p>You can change this page to display information about your weather
+            station by copying /static/about.html into
+            /static/{station-name}/about.html and modifying it. Consult the
+            installation reference manual for more details.</p>
+        <footer>
+            <p><a href="http://www.python.org"><img src="/images/python-powered-w-100x40.png" alt="python-powered"/></a>
+                <a href="http://www.postgresql.org"><img src="/images/postgresql_88x31_2.gif" alt="postgresql-powered"></a>
+            </p>
+        </footer>
+
+        <!-- ------------------------------------------------------------- --
+          -- Don't make any changes below this point.
+          -- ------------------------------------------------------------- -->
+    </div>
+    <script type="text/javascript" src="/js/jquery.min.js"></script>
+    <script type="text/javascript">
+        /* As this isn't a template we have to ask the server for a few
+         * details (links and site name). */
+        $.getJSON('/data/daynav.json', function(data) {
+            $("#nav_brand").html(data['site_name']);
+            $("#nav_lnk_yesterday").attr('href',data['yesterday']);
+            $("#nav_lnk_this_month").attr('href',data['this_month']);
+            $("#nav_lnk_this_year").attr('href',data['this_year']);
+        });
+    </script>
+</body>
+</html>

@@ -298,25 +298,62 @@ class monthfile:
 
 class static_overlay:
     """ Handles static overlay files. """
+
+    @staticmethod
+    def check_about_html_file(path_name, file):
+        """
+        If the file being requested is /station-name/about.html but that
+        file doesn't exist then /about.html is served up instead. This is to
+        handle cases where the user hasn't copied the file into the station
+        static data directory.
+
+        :param path_name: computed local pathname for the file
+        :param file: File being requested
+        :return: Potentially updated local pathname.
+        """
+
+        # 'about.html', when in the site root or station root, is special. It
+        # is an HTML file intended to be modified by the user to describe
+        # their weather station. This chunk of code is to handle cases where
+        # the user has failed to copy the file into the station static data
+        # directory.
+        if file == config.default_station_name + '/about.html' and\
+           not os.path.exists(path_name):
+            old_pathname = path_name
+            path_name = config.static_data_dir + 'about.html'
+            print("WARNING: Station-level about file redirected to site-level. To suppress this warning, copy {0} to {1}".format(path_name,old_pathname))
+
+        return path_name
+
     def GET(self, file):
         """
         Gets the specified static file.
         :param file: Name of the file to get headers for
         :type file: string
         """
+
         if file.startswith(".."):
             raise web.Forbidden()
-        path_name = config.static_data_dir + '/' + file
+
+        path_name = config.static_data_dir + file
+
+        path_name = static_overlay.check_about_html_file(path_name, file)
+
         return get_file(path_name)
+
     def HEAD(self, file):
         """
         Gets headers for the specified file
         :param file: Name of the file to get headers for
         :type file: string
         """
+
         if file.startswith(".."):
             raise web.Forbidden()
-        path_name = config.static_data_dir + '/' + file
+        path_name = config.static_data_dir + file
+
+        path_name = static_overlay.check_about_html_file(path_name, file)
+
         return head_file(path_name)
 
 
