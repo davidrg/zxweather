@@ -8,12 +8,45 @@
         body {
             padding-top: 60px; /* Account for the navbar */
         }
+        .chart {
+            height: 200px;
+        }
     </style>
     <link rel="stylesheet" href="/css/bootstrap-responsive.css" type="text.css" />
     {% block head %} {% endblock %}
 </head>
 <body>
+{#- ###################### Some macros ###################### -#}
+{#- This Macro implements the Bootstrap breadcrumb component. Usage is:
+      {{ breadcrumb([('/s/rua/','Home'), ('/s/rua/2012/','2012')],'April') }}
+-#}
+{%- macro breadcrumb(parents, this_page) %}
+    {%- if this_page %}
+    <ul class="breadcrumb">
+    {%- if parents %}
+        {%- for parent in parents %}
+        <li>
+            <a href="{{ parent[0] }}">{{ parent[1] }}</a> <span class="divider">/</span>
+        </li>
+        {%- endfor %}
+    {%- endif %}
+        <li class="active">{{ this_page }}</li>
+    </ul>
+    {%- endif %}
+{%- endmacro -%}
+{#- This macro outputs navbar list items and sets the active state based on
+    if the href is '#' or './'
+ -#}
+{%- macro navli(id, name) -%}
+    {% if nav[id] == "#" or nav[id] == "./" -%}
+    <li class="active">
+    {%- else -%}
+    <li>
+    {%- endif -%}
+    <a href="{{ nav[id] }}">{{ name }}</a></li>
+{%- endmacro %}
 
+    {% if nav -%}
     <div class="navbar navbar-fixed-top">
         <div class="navbar-inner">
             <div class="container">
@@ -25,21 +58,20 @@
                 <a class="brand" href="#">zxweather</a>
                 <div class="nav-collapse">
                     <ul class="nav">
-                        <li class="active"><a href="#">Home</a></li>
-                        {% if data.yesterday %}
-                        <li><a href="{{ data.yesterday.year }}/{{ data.yesterday_month_s }}/{{ data.yesterday.day }}/">Yesterday</a></li>
-                        {% endif %}
-                        <li><a href="{{ data.year }}/{{ data.month_s }}/">This Month</a></li>
-                        <li><a href="{{ data.year }}/">This Year</a></li>
-                        <li><a href="about.html">About</a></li>
+                        {{ navli('home','Home') }}
+                        {{ navli('yesterday','Yesterday') }}
+                        {{ navli('this_month','This Month') }}
+                        {{ navli('this_year','This Year') }}
+                        {{ navli('about','About') }}
                     </ul>
                 </div><!--/.nav-collapse -->
             </div>
         </div>
     </div>
+    {%- endif %}
 
     <div class="container">
-    {% block content %}{% endblock %}
+        {%- block content %}{% endblock %}
     </div>
     <script type="text/javascript" src="/js/bootstrap.min.js"></script>
 </body>

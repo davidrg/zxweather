@@ -81,19 +81,35 @@
     <p>Total Rainfall: {{ data.records.total_rainfall|round(1) }}mm</p>
 
     <h2 id="charts">Monthly Charts</h2>
-    <div id="chart_temperature_tdp_div"></div>
-    <div id="chart_temperature_awc_div"></div>
-    <div id="chart_humidity_div"></div>
-    <div id="chart_pressure_div"></div>
+    <div id="chart_temperature_tdp_div" class="chart">
+        <img src="/images/loading.gif" alt="loading"/>
+    </div>
+    <div id="chart_temperature_awc_div" class="chart">
+        <img src="/images/loading.gif" alt="loading"/>
+    </div>
+    <div id="chart_humidity_div" class="chart">
+        <img src="/images/loading.gif" alt="loading"/>
+    </div>
+    <div id="chart_pressure_div" class="chart">
+        <img src="/images/loading.gif" alt="loading"/>
+    </div>
 
     <h2 id="daily_record_charts">Daily Records</h2>
     <div class="left-column">
-        <div id="chart_rec_temperature"></div>
-        <div id="chart_rec_humidity"></div>
+        <div id="chart_rec_temperature" class="chart">
+            <img src="/images/loading.gif" alt="loading"/>
+        </div>
+        <div id="chart_rec_humidity" class="chart">
+            <img src="/images/loading.gif" alt="loading"/>
+        </div>
     </div>
     <div class="right-column">
-        <div id="chart_rec_pressure"></div>
-        <div id="chart_rainfall"></div>
+        <div id="chart_rec_pressure" class="chart">
+            <img src="/images/loading.gif" alt="loading"/>
+        </div>
+        <div id="chart_rainfall" class="chart">
+            <img src="/images/loading.gif" alt="loading"/>
+        </div>
     </div>
     <div class="column-end"></div>
 
