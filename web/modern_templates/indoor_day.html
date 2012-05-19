@@ -2,51 +2,67 @@
 
 {% extends "base.html" %}
 {% block title %}Indoor weather for {{ data.date_stamp }}{% endblock %}
-{% block head %}
-    <link rel="stylesheet" href="../../../../css/modern.css" type="text/css"/>
-{% endblock %}
+{% block head %}{% endblock %}
 {% block content %}
     <h1>Indoor weather for {{ data.date_stamp }}</h1>
     <hr> {#  This is only shown when we are looking at todays weather. #}
     <p>These are recordings for temperature and humidity at the indoor
     base station.</p>
     {% if data.current_data %}
-    <h2>Conditions as of {{ data.current_data_ts }}</h2>
-    <p>Data is for the five minute period ending at {{ data.current_data_ts }}</p>
-    <table>
-        <thead>
-            <tr>
-                <th>Sensor</th>
-                <th>Value</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>Indoor Relative Humidity</td>
-                <td>{{ data.current_data.indoor_relative_humidity }}%</td>
-            </tr>
-            <tr>
-                <td>Indoor Temperature</td>
-                <td>{{ data.current_data.indoor_temperature|round(1) }}°C</td>
-            </tr>
-        </tbody>
-    </table>
+    <section>
+        <h2>Conditions as of {{ data.current_data_ts }}</h2>
+        <div class="row">
+            <div class="span6">
+                <p>Data is for the five minute period ending at {{ data.current_data_ts }}</p>
+                <table class="table table-bordered">
+                    <thead>
+                    <tr>
+                        <th>Sensor</th>
+                        <th>Value</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>Indoor Relative Humidity</td>
+                        <td>{{ data.current_data.indoor_relative_humidity }}%</td>
+                    </tr>
+                    <tr>
+                        <td>Indoor Temperature</td>
+                        <td>{{ data.current_data.indoor_temperature|round(1) }}°C</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="span6"></div>
+        </div>
+    </section>
     {% endif %}
-    
-    <h2>1-day Charts</h2>
-    <div id="daily-charts">
-        <div class="left-column">
-            <div id="chart_temperature_div"></div>
-        </div>
-        <div class="right-column">
-            <div id="chart_humidity_div"></div>
-        </div>
-        <div class="column-end"></div>
-    </div>
 
-    <h2>7-day Charts</h2>
-    <div id="chart_7_temperature_div"></div>
-    <div id="chart_7_humidity_div"></div>
+    <section id="daily-charts">
+        <h2>1-day Charts</h2>
+        <div class="row">
+            <div class="span6">
+                <div id="chart_temperature_div" class="chart">
+                    <img src="/images/loading.gif" alt="loading"/>
+                </div>
+            </div>
+            <div class="span6">
+                <div id="chart_humidity_div" class="chart">
+                    <img src="/images/loading.gif" alt="loading"/>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <h2>7-day Charts</h2>
+        <div id="chart_7_temperature_div" class="chart">
+            <img src="/images/loading.gif" alt="loading"/>
+        </div>
+        <div id="chart_7_humidity_div" class="chart">
+            <img src="/images/loading.gif" alt="loading"/>
+        </div>
+    </section>
 
     <hr>
     <div class="footer-navlinks">

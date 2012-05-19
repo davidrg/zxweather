@@ -148,14 +148,14 @@ class BaseUI:
         params = dict(date=date(now.year, now.month, now.day))
 
         if config.live_data_available:
-            current_data = db.query("""select timetz(download_timestamp) as time_stamp,
+            current_data = db.query("""select download_timestamp::time as time_stamp,
                 indoor_relative_humidity,
                 indoor_temperature
                 from live_data""")[0]
             current_data_ts = current_data.time_stamp
         else:
             # Fetch the latest data for today
-            current_data = db.query("""select timetz(time_stamp) as time_stamp,
+            current_data = db.query("""select time_stamp::time as time_stamp,
                 indoor_relative_humidity,
                 indoor_temperature
             from sample
