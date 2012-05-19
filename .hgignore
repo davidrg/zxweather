@@ -24,3 +24,8 @@ wh1080/win32_src/wh1080ctl/wh1080ctl.vcxproj.filters
 wh1080/wh1080memdump
 *.pdb
 *.ilk
+web-venv/*
+web/config.cfg
+plot/updatefile.txt
+*.pro.user.2.5pre1
+wh1080/Debug/*

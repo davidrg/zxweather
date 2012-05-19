@@ -4,9 +4,9 @@ Modern HTML5/CSS/Javascript UI.
 
 from datetime import datetime, date, timedelta
 from baseui import BaseUI
-from config import db
 from data import live_data, get_years
 from data.database import day_exists, month_exists, year_exists, total_rainfall_in_last_7_days
+from util import relative_url
 
 __author__ = 'David Goodwin'
 
@@ -62,6 +62,38 @@ class ModernUI(BaseUI):
         """
         return 'Standard interface. Not compatible with older browsers or computers.'
 
+    @staticmethod
+    def get_nav_urls(station, current_url):
+        """
+        Gets a dict containing standard navigation URLs relative to the
+        current location in the site.
+        :param station: The station we are currently working with.
+        :type station: str, unicode
+        :param current_url: Where in the site we currently are
+        :type current_url: str
+        """
+
+        now = datetime.now().date()
+        yesterday = now - timedelta(1)
+
+        home = '/s/' + station + '/'
+        yesterday = home + str(yesterday.year) + '/' + \
+                    month_name[yesterday.month] + '/' + \
+                    str(yesterday.day) + '/'
+        this_month = home + str(now.year) + '/' + month_name[now.month] + '/'
+        this_year = home + str(now.year) + '/'
+        about = home + 'about.html'
+
+        urls = {
+            'home': relative_url(current_url, home),
+            'yesterday': relative_url(current_url,yesterday),
+            'this_month': relative_url(current_url,this_month),
+            'this_year': relative_url(current_url,this_year),
+            'about': relative_url(current_url, about),
+        }
+
+        return urls
+
     def get_station(self,station):
         """
         Index page for the weather station. Should give station records and
@@ -69,6 +101,8 @@ class ModernUI(BaseUI):
         :param station: Name of the station to show info for.
         :return: View data.
         """
+
+        current_location = '/s/' + station + '/'
 
         now = datetime.now()
         class urls:
@@ -98,7 +132,8 @@ class ModernUI(BaseUI):
             data.yesterday_month_s = None
 
         BaseUI.day_cache_control(None, now.year, now.month, now.day)
-        return self.render.station(data=data,station=station, urls=urls)
+        nav_urls = ModernUI.get_nav_urls(station, current_location)
+        return self.render.station(nav=nav_urls,data=data,station=station, urls=urls)
 
     def get_year(self,station, year):
         """
@@ -110,6 +145,7 @@ class ModernUI(BaseUI):
         :type year: integer
         :return: View data
         """
+        current_location = '/s/' + station + '/' + str(year) + '/'
 
         class data:
             """ Data required by the view """
@@ -148,7 +184,8 @@ class ModernUI(BaseUI):
             urls.next_url = '../' + str(data.next_year)
 
         BaseUI.year_cache_control(year)
-        return self.render.year(data=data,urls=urls)
+        nav_urls = ModernUI.get_nav_urls(station, current_location)
+        return self.render.year(nav=nav_urls,data=data,urls=urls)
 
     def get_month(self,station, year, month):
         """
@@ -162,6 +199,8 @@ class ModernUI(BaseUI):
         :type month: integer
         :return: View data
         """
+        current_location = '/s/' + station + '/' + str(year) + '/' + \
+                           month_name[month] + '/'
 
         class data:
             """ Data required by the view """
@@ -233,7 +272,8 @@ class ModernUI(BaseUI):
             daily_records = data_base + 'datatable/daily_records.json'
 
         BaseUI.month_cache_control(year, month)
-        return self.render.month(data=data,dataurls=urls)
+        nav_urls = ModernUI.get_nav_urls(station, current_location)
+        return self.render.month(nav=nav_urls, data=data,dataurls=urls)
 
     def get_indoor_day(self, station, year, month, day):
         """
@@ -250,6 +290,8 @@ class ModernUI(BaseUI):
         :type day: integer
         :return: View data
         """
+        current_location = '/s/' + station + '/' + str(year) + '/' + \
+                           month_name[month] + '/' + str(day) + '/indoor.html'
 
         class data:
             """ Data required by the view """
@@ -274,7 +316,8 @@ class ModernUI(BaseUI):
             samples_7day_30mavg = data_base_url + 'datatable/7day_30m_avg_indoor_samples.json'
 
         BaseUI.day_cache_control(data.current_data_ts, year, month, day)
-        return self.render.indoor_day(data=data,dataurls=urls)
+        nav_urls = ModernUI.get_nav_urls(station, current_location)
+        return self.render.indoor_day(nav=nav_urls,data=data,dataurls=urls)
 
     def get_day(self,station, year, month, day):
         """
@@ -291,6 +334,9 @@ class ModernUI(BaseUI):
         :type day: integer
         :return: View data
         """
+        current_location = '/s/' + station + '/' + str(year) + '/' +\
+                           month_name[month] + '/' + str(day) + '/'
+
         # Figure out if there is current data to show or if this is a history
         # page
         now = datetime.now()
@@ -358,4 +404,5 @@ class ModernUI(BaseUI):
             rainfall_7day = base_url + 'datatable/7day_hourly_rainfall.json'
 
         BaseUI.day_cache_control(data_age, year, month, day)
-        return self.render.day(data=data,dataurls=urls)
+        nav_urls = ModernUI.get_nav_urls(station, current_location)
+        return self.render.day(nav=nav_urls, data=data,dataurls=urls)
