@@ -236,8 +236,17 @@ class BaseUI:
         :raise: web.NotFound() if there is no data for the year.
         """
         params = dict(year=year)
-        yearly_records = db.select('yearly_records',params,
-                                   where='year_stamp=$year')
+        yearly_records = db.query("""SELECT year_stamp, total_rainfall, max_gust_wind_speed, max_gust_wind_speed_ts::timestamp,
+       max_average_wind_speed, max_average_wind_speed_ts::timestamp, min_absolute_pressure,
+       min_absolute_pressure_ts::timestamp, max_absolute_pressure, max_absolute_pressure_ts::timestamp,
+       min_apparent_temperature, min_apparent_temperature_ts::timestamp, max_apparent_temperature,
+       max_apparent_temperature_ts::timestamp, min_wind_chill, min_wind_chill_ts::timestamp,
+       max_wind_chill, max_wind_chill_ts::timestamp, min_dew_point, min_dew_point_ts::timestamp,
+       max_dew_point, max_dew_point_ts::timestamp, min_temperature, min_temperature_ts::timestamp,
+       max_temperature, max_temperature_ts::timestamp, min_humidity, min_humidity_ts::timestamp,
+       max_humidity, max_humidity_ts::timestamp
+  FROM yearly_records
+ WHERE year_stamp = $year""", params)
 
         if not len(yearly_records):
             # Bad url or something.
@@ -258,8 +267,17 @@ class BaseUI:
         """
 
         params = dict(date=date(year,month,01))
-        monthly_records = db.select('monthly_records',params,
-                                    where='date_stamp = $date' )
+        monthly_records = db.query("""SELECT date_stamp, total_rainfall, max_gust_wind_speed, max_gust_wind_speed_ts::timestamp,
+       max_average_wind_speed, max_average_wind_speed_ts::timestamp, min_absolute_pressure,
+       min_absolute_pressure_ts::timestamp, max_absolute_pressure, max_absolute_pressure_ts::timestamp,
+       min_apparent_temperature, min_apparent_temperature_ts::timestamp, max_apparent_temperature,
+       max_apparent_temperature_ts::timestamp, min_wind_chill, min_wind_chill_ts::timestamp,
+       max_wind_chill, max_wind_chill_ts::timestamp, min_dew_point, min_dew_point_ts::timestamp,
+       max_dew_point, max_dew_point_ts::timestamp, min_temperature, min_temperature_ts::timestamp,
+       max_temperature, max_temperature_ts::timestamp, min_humidity, min_humidity_ts::timestamp,
+       max_humidity, max_humidity_ts::timestamp
+  FROM monthly_records
+ WHERE date_stamp = $date""", params)
 
         if not len(monthly_records):
             # Bad url or something.
