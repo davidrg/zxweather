@@ -238,12 +238,12 @@
     <script type="text/javascript">
         // URLs required by day.js
         var live_url = '../../data/{{ station }}/live.json';
-        var samples_url = '{{ urls.samples }}';
-        var rainfall_url = '{{ urls.rainfall }}';
-        var samples_7day_url = '{{ urls.samples_7day_30mavg }}';
-        var rainfall_7day_url = '{{ urls.rainfall_7day }}';
-        var records_url = '{{ urls.records }}';
-        var rainfall_totals_url = '{{ urls.rainfall_totals }}';
+        var samples_url = '{{ data_urls['samples']}}';
+        var rainfall_url = '{{ data_urls['rainfall'] }}';
+        var samples_7day_url = '{{ data_urls['7day_samples'] }}';
+        var rainfall_7day_url = '{{ data_urls['7day_rainfall'] }}';
+        var records_url = '{{ data_urls['records'] }}';
+        var rainfall_totals_url = '{{ data_urls['rainfall_totals'] }}';
     </script>
     <script type="text/javascript" src="../../js/day.js"></script>
 {% endblock %}
