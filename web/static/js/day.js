@@ -69,7 +69,9 @@ function refresh_live_data() {
         $("#cc_stale").hide();
     });
 }
-refresh_live_data();
+if (live_auto_refresh) {
+    refresh_live_data();
+}
 
 function drawAllCharts(data,
                        tdp_element,
@@ -413,7 +415,9 @@ function refresh_records() {
     });
 }
 
-// Refresh live data every 48 seconds.
-window.setInterval(function(){
-    refresh_live_data();
-}, 48000);
+if (live_auto_refresh) {
+    // Refresh live data every 48 seconds.
+    window.setInterval(function(){
+        refresh_live_data();
+    }, 48000);
+}

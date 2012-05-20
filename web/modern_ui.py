@@ -421,4 +421,5 @@ class ModernUI(BaseUI):
         data_urls = ModernUI.get_day_data_urls(station, data.date_stamp, False)
         return self.render.day(nav=nav_urls,
                                data_urls=data_urls,
-                               data=data)
+                               data=data,
+                               station=station)
