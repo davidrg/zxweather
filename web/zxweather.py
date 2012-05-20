@@ -19,6 +19,7 @@ urls = (
     '/data/(\w*)/live.json', 'data.live_data',
     # /data/station/year/month/day/... (month is in number format here)
     '/data/(\w*)/(\d+)/(\d+)/(\d+)/datatable/(\w*).json', 'data.daily.datatable_json',
+    '/data/(\w*)/(\d+)/(\d+)/(\d+)/(\w*).json', 'data.daily.data_json',
     '/data/(\w*)/(\d+)/(\d+)/(\d+)/(?:index\.html)?', 'data.daily.index',
     '/data/(\w*)/(\d+)/(\d+)/datatable/(\w*).json', 'data.monthly.datatable_json',
     '/data/(\w*)/(\d+)/(\d+)/(?:index\.html)?', 'data.monthly.index',

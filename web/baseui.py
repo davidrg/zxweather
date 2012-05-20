@@ -284,31 +284,3 @@ class BaseUI:
             raise web.NotFound()
 
         return monthly_records[0]
-
-    @staticmethod
-    def get_daily_records(date):
-        """
-        Gets the records for the day. If there is no data for the day, None
-        is returned.
-        :param date: Day to get data for.
-        :return: None or record data.
-        """
-        params = dict(date=date)
-        daily_records = db.query("""SELECT date_stamp, total_rainfall, max_gust_wind_speed, max_gust_wind_speed_ts::time,
-       max_average_wind_speed, max_average_wind_speed_ts::time, min_absolute_pressure,
-       min_absolute_pressure_ts::time, max_absolute_pressure, max_absolute_pressure_ts::time,
-       min_apparent_temperature, min_apparent_temperature_ts::time, max_apparent_temperature,
-       max_apparent_temperature_ts::time, min_wind_chill, min_wind_chill_ts::time,
-       max_wind_chill, max_wind_chill_ts::time, min_dew_point, min_dew_point_ts::time,
-       max_dew_point, max_dew_point_ts::time, min_temperature, min_temperature_ts::time,
-       max_temperature, max_temperature_ts::time, min_humidity, min_humidity_ts::time,
-       max_humidity, max_humidity_ts::time
-  FROM daily_records
- WHERE date_stamp = $date""", params)
-
-#        daily_records = db.select('daily_records', params, where="date_stamp = $date")
-
-        if not len(daily_records):
-            return None
-        else:
-            return daily_records[0]

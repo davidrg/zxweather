@@ -5,7 +5,7 @@ Modern HTML5/CSS/Javascript UI.
 from datetime import datetime, date, timedelta
 from baseui import BaseUI
 from data import live_data, get_years
-from data.database import day_exists, month_exists, year_exists, total_rainfall_in_last_7_days
+from data.database import day_exists, month_exists, year_exists, total_rainfall_in_last_7_days, get_daily_records
 from util import relative_url
 
 __author__ = 'David Goodwin'
@@ -116,10 +116,12 @@ class ModernUI(BaseUI):
             samples_7day_30mavg = base_url + 'datatable/7day_30m_avg_samples.json'
             rainfall = base_url + 'datatable/hourly_rainfall.json'
             rainfall_7day = base_url + 'datatable/7day_hourly_rainfall.json'
+            records = base_url + 'records.json'
+            rainfall_totals = base_url + 'rainfall.json'
 
         class data:
             """ Data required by the view """
-            records = BaseUI.get_daily_records(now.date())
+            records = get_daily_records(now.date())
             years = get_years()
             year = now.year
             month_s = month_name[now.month]
@@ -352,7 +354,7 @@ class ModernUI(BaseUI):
             next_url = None
             next_date = None
             this_month = month_name[month]
-            records = BaseUI.get_daily_records(date_stamp)
+            records = get_daily_records(date_stamp)
             rainfall_7days_total = total_rainfall_in_last_7_days(date_stamp)
 
 
@@ -402,6 +404,7 @@ class ModernUI(BaseUI):
             samples_7day_30mavg = base_url + 'datatable/7day_30m_avg_samples.json'
             rainfall = base_url + 'datatable/hourly_rainfall.json'
             rainfall_7day = base_url + 'datatable/7day_hourly_rainfall.json'
+            records = base_url + 'records.json'
 
         BaseUI.day_cache_control(data_age, year, month, day)
         nav_urls = ModernUI.get_nav_urls(station, current_location)

@@ -4,6 +4,7 @@ Used for generating charts in JavaScript, etc.
 """
 
 from datetime import date, datetime, timedelta
+from data.database import get_daily_records, get_daily_rainfall, get_latest_sample_timestamp
 import os
 import web
 from web.contrib.template import render_jinja
@@ -68,6 +69,35 @@ class datatable_json:
             return get_days_hourly_rain_datatable(this_date)
         elif dataset == '7day_hourly_rainfall':
             return get_7day_hourly_rain_datatable(this_date)
+        else:
+            raise web.NotFound()
+
+class data_json:
+    """
+    Gets data for a particular day in Googles DataTable format.
+    """
+    def GET(self, station, year, month, day, dataset):
+        if station != config.default_station_name:
+            raise web.NotFound()
+
+        year = int(year)
+        month = int(month)
+        day = int(day)
+
+        this_date = date(year,month,day)
+
+        # Make sure the day actually exists in the database before we go
+        # any further.
+        params = dict(date=this_date)
+        recs = db.query("select 42 from sample where date(time_stamp) = $date limit 1", params)
+        if recs is None or len(recs) == 0:
+            raise web.NotFound()
+
+
+        if dataset == 'records':
+            return get_day_records(this_date)
+        if dataset == 'rainfall':
+            return get_day_rainfall(this_date)
         else:
             raise web.NotFound()
 
@@ -535,3 +565,79 @@ order by date_trunc('hour',time_stamp) asc""", params)
     web.header('Content-Type','application/json')
     web.header('Content-Length', str(len(json_data)))
     return json_data
+
+def get_day_records(day):
+    """
+    Gets JSON data containing records for the day.
+    :param day: The day to get records for
+    :type day: date
+    :return: The days records in JSON form
+    :rtype: str
+    """
+    records = get_daily_records(day)
+
+    data = {
+        'date_stamp': str(records.date_stamp),
+        'total_rainfall': records.total_rainfall,
+        'max_gust_wind_speed': records.max_gust_wind_speed,
+        'max_gust_wind_speed_ts': str(records.max_gust_wind_speed_ts),
+        'max_average_wind_speed': records.max_average_wind_speed,
+        'max_average_wind_speed_ts': str(records.max_average_wind_speed_ts),
+        'min_absolute_pressure': records.min_absolute_pressure,
+        'min_absolute_pressure_ts': str(records.min_absolute_pressure_ts),
+        'max_absolute_pressure': records.max_absolute_pressure,
+        'max_absolute_pressure_ts': str(records.max_absolute_pressure_ts),
+        'min_apparent_temperature': records.min_apparent_temperature,
+        'min_apparent_temperature_ts': str(records.min_apparent_temperature_ts),
+        'max_apparent_temperature': records.max_apparent_temperature,
+        'max_apparent_temperature_ts': str(records.max_apparent_temperature_ts),
+        'min_wind_chill': records.min_wind_chill,
+        'min_wind_chill_ts': str(records.min_wind_chill_ts),
+        'max_wind_chill': records.max_wind_chill,
+        'max_wind_chill_ts': str(records.max_wind_chill_ts),
+        'min_dew_point': records.min_dew_point,
+        'min_dew_point_ts': str(records.min_dew_point_ts),
+        'max_dew_point': records.max_dew_point,
+        'max_dew_point_ts': str(records.max_dew_point_ts),
+        'min_temperature': records.min_temperature,
+        'min_temperature_ts': str(records.min_temperature_ts),
+        'max_temperature': records.max_temperature,
+        'max_temperature_ts': str(records.max_temperature_ts),
+        'min_humidity': records.min_humidity,
+        'min_humidity_ts': str(records.min_humidity_ts),
+        'max_humidity': records.max_humidity,
+        'max_humidity_ts': str(records.max_humidity_ts),
+        }
+
+    # Find the most recent timestamp (used for Last-Modified header)
+    age = records.max_gust_wind_speed_ts
+    if records.max_average_wind_speed_ts > age: age = records.max_average_wind_speed_ts
+    if records.min_absolute_pressure_ts > age: age = records.min_absolute_pressure_ts
+    if records.max_absolute_pressure_ts > age: age = records.max_absolute_pressure_ts
+    if records.min_apparent_temperature_ts > age: age = records.min_apparent_temperature_ts
+    if records.max_apparent_temperature_ts > age: age = records.max_apparent_temperature_ts
+    if records.min_wind_chill_ts > age: age = records.min_wind_chill_ts
+    if records.max_wind_chill_ts > age: age = records.max_wind_chill_ts
+    if records.min_dew_point_ts > age: age = records.min_dew_point_ts
+    if records.max_dew_point_ts > age: age = records.max_dew_point_ts
+    if records.min_temperature_ts > age: age = records.min_temperature_ts
+    if records.max_temperature_ts > age: age = records.max_temperature_ts
+    if records.min_humidity_ts > age: age = records.min_humidity_ts
+    if records.max_humidity_ts > age: age = records.max_humidity_ts
+
+    age = datetime.combine(day,age)
+
+    daily_cache_control_headers(day.year,day.month,day.day, age)
+    return json.dumps(data)
+
+def get_day_rainfall(day):
+    """
+    Gets JSON data containing total rainfall for the day and the past seven
+    days.
+    :param day:
+    """
+    rainfall = get_daily_rainfall(day)
+
+    age = get_latest_sample_timestamp()
+    daily_cache_control_headers(day.year,day.month,day.day,age)
+    return json.dumps(rainfall)
