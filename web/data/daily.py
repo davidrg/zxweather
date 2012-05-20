@@ -36,6 +36,22 @@ class datatable_json:
     Gets data for a particular day in Googles DataTable format.
     """
     def GET(self, station, year, month, day, dataset):
+        """
+        Handles requests for per-day JSON data sources in Googles datatable
+        format.
+        :param station: Station to get data for
+        :type station: str
+        :param year: Year to get data for
+        :type year: str
+        :param month: month to get data for
+        :type month: str
+        :param day: day to get data for
+        :type day: str
+        :param dataset: The dataset (filename) to retrieve
+        :type dataset: str
+        :return: JSON Data for whatever dataset was requested.
+        :raise: web.NotFound if an invalid request is made.
+        """
         if station != config.default_station_name:
             raise web.NotFound()
 
@@ -77,6 +93,22 @@ class data_json:
     Gets data for a particular day in Googles DataTable format.
     """
     def GET(self, station, year, month, day, dataset):
+        """
+        Gets plain (non-datatable) JSON data sources.
+        :param station: Station to get data for
+        :type station: str
+        :param year: Year to get data for
+        :type year: str
+        :param month: month to get data for
+        :type month: str
+        :param day: day to get data for
+        :type day: str
+        :param dataset: The dataset (filename) to retrieve
+        :type dataset: str
+        :return: the JSON dataset requested
+        :rtype: str
+        :raise: web.NotFound if an invalid request is made.
+        """
         if station != config.default_station_name:
             raise web.NotFound()
 
@@ -208,16 +240,10 @@ def indoor_sample_result_to_datatable(query_data):
     data = {'cols': cols,
             'rows': rows}
 
-    def dthandler(obj):
-        if isinstance(obj, datetime) or isinstance(obj,date):
-            return obj.isoformat()
-        else:
-            raise TypeError
-
     if pretty_print:
-        return json.dumps(data, default=dthandler, sort_keys=True, indent=4), data_age
+        return json.dumps(data, sort_keys=True, indent=4), data_age
     else:
-        return json.dumps(data, default=dthandler), data_age
+        return json.dumps(data), data_age
 
 def get_7day_indoor_samples_datatable(year,month,day):
     """
@@ -330,7 +356,14 @@ where date(s.time_stamp) = $date
 def get_7day_samples_datatable(year,month,day):
     """
     Gets data for a 7-day period in a Google DataTable compatible format.
-    :return:
+    :param year: Year to get data for
+    :type year: int
+    :param month: Month to get data for
+    :type month: int
+    :param day: Day to get data for
+    :type day: int
+    :return: JSON data containing the past seven days of samples
+    :rtype: str
     """
     params = dict(date = date(year,month,day))
     result = db.query("""select s.time_stamp,
@@ -366,7 +399,12 @@ def get_7day_30mavg_samples_datatable(year, month, day):
     """
     Gets data for a 7-day period in a Google DataTable compatible format.
     Data is averaged hourly to reduce the sample count.
-    :return:
+    :param year: Year to get data for
+    :param month: Month to get data for
+    :param day: Day to get data for
+    :return: JSON data containing 30 minute averaged sample data for the past
+             seven days
+    :rtype: str
     """
     params = dict(date = date(year,month,day))
     result = db.query("""select min(iq.time_stamp) as time_stamp,
@@ -446,7 +484,14 @@ order by iq.quadrant asc""", params)
 def get_day_samples_datatable(year,month,day):
     """
     Gets data for a specific day in a Google DataTable compatible format.
-    :return:
+    :param year: Year to get data for
+    :type year: int
+    :param month: Month to get data for
+    :type month: int
+    :param day: Day to get data for
+    :type day: int
+    :return: JSON data containing samples for the day.
+    :rtype: str
     """
     params = dict(date = date(year,month,day))
     result = db.query("""select s.time_stamp::timestamptz,
