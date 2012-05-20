@@ -6,12 +6,19 @@ __author__ = 'David Goodwin'
 
 gnuplot_binary = r'gnuplot'
 
+# TODO: rewrite this garbage to be less garbage-y
+
 def plot_graph(output_filename, title=None, xdata_time=False, ylabel=None,
                lines=None, key=True, width=None, height=None, xlabel=None,
                yrange=None, xdata_is_time=False, timefmt_is_date=False,
                x_format=None, timefmt_is_time=False):
     """
     Plots a graph using gnuplot.
+    :param timefmt_is_time:
+    :param x_format:
+    :param timefmt_is_date:
+    :param xdata_is_time:
+    :param yrange:
     :param output_filename:
     :param title:
     :param xdata_time: Formats the X axis to display time. Turns on
@@ -79,6 +86,7 @@ set datafile missing "?"
     if yrange is not None:
         script += "set yrange [{0}:{1}]\n".format(yrange[0], yrange[1])
 
+    # Override x_format if x data is time and doesn't include the date.
     if xdata_time and not timefmt_is_date:
         script += 'set format x "%H"\n'
 

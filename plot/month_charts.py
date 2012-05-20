@@ -1,3 +1,4 @@
+from datetime import date
 from gnuplot import plot_graph
 
 __author__ = 'David Goodwin'
@@ -12,7 +13,6 @@ def month_charts(cur, dest_dir, month, year):
     :return:
     """
 
-    date = '01-{0}-{1}'.format(month,year)
     cur.execute("""select cur.time_stamp,
        cur.temperature,
        cur.dew_point,
@@ -29,9 +29,9 @@ def month_charts(cur, dest_dir, month, year):
           false
        end as gap
 from sample cur, sample prev
-where date(date_trunc('month',cur.time_stamp)) = %s::date
+where date(date_trunc('month',cur.time_stamp)) = %s
   and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < cur.time_stamp)
-order by cur.time_stamp asc""", (date,))
+order by cur.time_stamp asc""", (date(year,month,1),))
 
     weather_data = cur.fetchall()
 
