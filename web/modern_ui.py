@@ -94,6 +94,45 @@ class ModernUI(BaseUI):
 
         return urls
 
+    @staticmethod
+    def get_day_data_urls(station, day, overview_page=False):
+        """
+        Gets data URLs for a day page or the station overview page.
+        :param station: Station to get URLs for
+        :type station: str, unicode
+        :param day: Day to get URLs for
+        :type day: date
+        :param overview_page: If the URLs should be relative to the overview
+                              page instead of the day page
+        :type overview_page: bool
+        """
+
+        base_url = '/data/{0}/{1}/{2}/{3}/'.format(station,
+                                                   day.year,
+                                                   day.month,
+                                                   day.day)
+        if overview_page:
+            current_url = '/s/{0}/'.format(station)
+        else:
+            current_url = '/s/{0}/{1}/{2}/{3}/'.format(station,
+                                                       day.year,
+                                                       month_name[day.month],
+                                                       day.day)
+        urls = {
+            'samples': relative_url(current_url,
+                                    base_url + 'datatable/samples.json'),
+            '7day_samples': relative_url(current_url,
+                                         base_url + 'datatable/7day_30m_avg_samples.json'),
+            'rainfall': relative_url(current_url,
+                                     base_url + 'datatable/hourly_rainfall.json'),
+            '7day_rainfall': relative_url(current_url,
+                                          base_url + 'datatable/7day_hourly_rainfall.json'),
+            'records': relative_url(current_url, base_url + 'records.json'),
+            'rainfall_totals': relative_url(current_url, base_url + 'rainfall.json'),
+        }
+
+        return urls
+
     def get_station(self,station):
         """
         Index page for the weather station. Should give station records and
@@ -105,19 +144,6 @@ class ModernUI(BaseUI):
         current_location = '/s/' + station + '/'
 
         now = datetime.now()
-        class urls:
-            """
-            Various URLs required by the view.
-            """
-            base_url = '../../data/{0}/{1}/{2}/{3}/'\
-            .format(station, now.year, now.month, now.day)
-            samples = base_url + 'datatable/samples.json'
-            samples_7day = base_url + 'datatable/7day_samples.json'
-            samples_7day_30mavg = base_url + 'datatable/7day_30m_avg_samples.json'
-            rainfall = base_url + 'datatable/hourly_rainfall.json'
-            rainfall_7day = base_url + 'datatable/7day_hourly_rainfall.json'
-            records = base_url + 'records.json'
-            rainfall_totals = base_url + 'rainfall.json'
 
         class data:
             """ Data required by the view """
@@ -135,7 +161,11 @@ class ModernUI(BaseUI):
 
         BaseUI.day_cache_control(None, now.year, now.month, now.day)
         nav_urls = ModernUI.get_nav_urls(station, current_location)
-        return self.render.station(nav=nav_urls,data=data,station=station, urls=urls)
+        data_urls = ModernUI.get_day_data_urls(station, now, True)
+        return self.render.station(nav=nav_urls,
+                                   data_urls=data_urls,
+                                   data=data,
+                                   station=station)
 
     def get_year(self,station, year):
         """
@@ -365,47 +395,30 @@ class ModernUI(BaseUI):
             data_age = datetime.combine(date(year,month,day), data.current_data_ts)
 
         # Figure out the URL for the previous day
-        previous_day = data.date_stamp - timedelta(1)
-        data.prev_date = previous_day
+        data.prev_date = data.date_stamp - timedelta(1)
 
         # Only calculate previous days data if there is any.
-        if day_exists(previous_day):
-            if previous_day.year != year:
-                data.prev_url = '../../../' + str(previous_day.year)\
-                                + '/' + month_name[previous_day.month] + '/'
-            elif previous_day.month != month:
-                data.prev_url = '../../' + month_name[previous_day.month] + '/'
-            else:
-                data.prev_url = '../'
-            data.prev_url += str(previous_day.day) + '/'
+        if day_exists(data.prev_date):
+
+            abs_url = '/s/{0}/{1}/{2}/{3}/'.format(station,
+                                                   data.prev_date.year,
+                                                   month_name[data.prev_date.month],
+                                                   data.prev_date.day)
+            data.prev_url = relative_url(current_location, abs_url)
 
         # Only calculate the URL for tomorrow if there is tomorrow in the database.
-        next_day = data.date_stamp + timedelta(1)
-        data.next_date = next_day
+        data.next_date = data.date_stamp + timedelta(1)
 
-        if day_exists(next_day):
-            if next_day.year != year:
-                data.next_url = '../../../' + str(next_day.year)\
-                                + '/' + month_name[next_day.month] + '/'
-            elif next_day.month != month:
-                data.next_url = '../../' + month_name[next_day.month] + '/'
-            else:
-                data.next_url = '../'
-            data.next_url += str(next_day.day) + '/'
-
-        class urls:
-            """
-            Various URLs required by the view.
-            """
-            base_url = '../../../../../data/{0}/{1}/{2}/{3}/'\
-                       .format(station,year,month,day)
-            samples = base_url + 'datatable/samples.json'
-            samples_7day = base_url + 'datatable/7day_samples.json'
-            samples_7day_30mavg = base_url + 'datatable/7day_30m_avg_samples.json'
-            rainfall = base_url + 'datatable/hourly_rainfall.json'
-            rainfall_7day = base_url + 'datatable/7day_hourly_rainfall.json'
-            records = base_url + 'records.json'
+        if day_exists(data.next_date):
+            abs_url = '/s/{0}/{1}/{2}/{3}/'.format(station,
+                                                   data.next_date.year,
+                                                   month_name[data.next_date.month],
+                                                   data.next_date.day)
+            data.next_url = relative_url(current_location, abs_url)
 
         BaseUI.day_cache_control(data_age, year, month, day)
         nav_urls = ModernUI.get_nav_urls(station, current_location)
-        return self.render.day(nav=nav_urls, data=data,dataurls=urls)
+        data_urls = ModernUI.get_day_data_urls(station, data.date_stamp, False)
+        return self.render.day(nav=nav_urls,
+                               data_urls=data_urls,
+                               data=data)
