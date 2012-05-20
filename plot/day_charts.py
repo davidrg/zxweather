@@ -14,7 +14,6 @@ def charts_1_day(cur, dest_dir, day, month, year):
     :param year: Year to chart for
     """
 
-    date = '{0}-{1}-{2}'.format(day, month, year)
     cur.execute("""select cur.time_stamp::time,
        cur.temperature,
        cur.dew_point,
@@ -31,9 +30,9 @@ def charts_1_day(cur, dest_dir, day, month, year):
           false
        end as gap
 from sample cur, sample prev
-where date(cur.time_stamp) = %s::date
+where date(cur.time_stamp) = %s
   and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < cur.time_stamp)
-order by cur.time_stamp asc""", (date,))
+order by cur.time_stamp asc""", (date(year,month,day),))
     weather_data = cur.fetchall()
 
     # Columns in the query

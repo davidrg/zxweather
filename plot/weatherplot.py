@@ -9,6 +9,7 @@ import psycopg2
 import time
 import signal
 from day_charts import charts_1_day, charts_7_days
+import gnuplot
 from month_charts import month_charts
 
 __author__ = 'David Goodwin'
@@ -161,12 +162,17 @@ def main():
                       help="Plot charts for days on or after the date in the specified file")
     parser.add_option("-r", "--replot-pause", dest="replot_pause",
                       help="Charts will be replotted every x seconds until Ctrl+C is used to terminate the program")
+    parser.add_option("-g", "--gnuplot-binary", dest="gnuplot_bin",
+                      help="Gnuplot binary to use")
 
     (options, args) = parser.parse_args()
 
 
     print("Weather data plotting application v1.0")
     print("\t(C) Copyright David Goodwin, 2012\n\n")
+
+    if options.gnuplot_bin is not None:
+        gnuplot.gnuplot_binary = options.gnuplot_bin
 
     print("Connecting to database...")
     connection_string = "host=" + options.hostname
