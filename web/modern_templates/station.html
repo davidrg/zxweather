@@ -5,213 +5,90 @@
 {% endblock %}
 {% block content %}
     <section id="live">
-    <div class="row">
-        <div class="span6">
-            <h2>Current Conditions</h2>
-            {# This table is populated from day.js -#}
-            <div id="current_conditions">
-            <table class="table table-bordered">
-                <thead>
-                <tr>
-                    <th>Sensor</th>
-                    <th>Value</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr>
-                    <td>Relative Humidity</td>
-                    <td id="live_relative_humidity"></td>
-                </tr>
-                <tr>
-                    <td>Temperature</td>
-                    <td id="live_temperature"></td>
-                </tr>
-                <tr>
-                    <td>Apparent Temperature</td>
-                    <td id="live_apparent_temperature"></td>
-                </tr>
-                <tr>
-                    <td>Wind Chill</td>
-                    <td id="live_wind_chill"></td>
-                </tr>
-                <tr>
-                    <td>Dew Point</td>
-                    <td id="live_dew_point"></td>
-                </tr>
-                <tr>
-                    <td>Absolute Pressure</td>
-                    <td id="live_absolute_pressure"></td>
-                </tr>
-                <tr>
-                    <td>Average Wind Speed</td>
-                    <td id="live_avg_wind_speed"></td>
-                </tr>
-                <tr>
-                    <td>Gust Wind Speed</td>
-                    <td id="live_gust_wind_speed"></td>
-                </tr>
-                <tr>
-                    <td>Wind Direction</td>
-                    <td id="live_wind_direction"></td>
-                </tr>
-                </tbody>
-            </table>
-            <p>Time: <span id="current_time"></span></p>
-            </div>
-            <div id="cc_stale" style="display: none;">
-                <div class="alert alert-error">
-                    <strong>Error:</strong>
-                    No live data available. Live data
-                    has not been refreshed in <span id="cc_data_age"></span> seconds.
-                    The update service has likely stopped.
+        <div class="row">
+            <div class="span6">
+                <h2>Current Conditions</h2>
+                {# This table is populated from day.js -#}
+                <div id="current_conditions">
+                <table class="table table-bordered">
+                    <thead>
+                    <tr>
+                        <th>Sensor</th>
+                        <th>Value</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>Relative Humidity</td>
+                        <td id="live_relative_humidity"></td>
+                    </tr>
+                    <tr>
+                        <td>Temperature</td>
+                        <td id="live_temperature"></td>
+                    </tr>
+                    <tr>
+                        <td>Apparent Temperature</td>
+                        <td id="live_apparent_temperature"></td>
+                    </tr>
+                    <tr>
+                        <td>Wind Chill</td>
+                        <td id="live_wind_chill"></td>
+                    </tr>
+                    <tr>
+                        <td>Dew Point</td>
+                        <td id="live_dew_point"></td>
+                    </tr>
+                    <tr>
+                        <td>Absolute Pressure</td>
+                        <td id="live_absolute_pressure"></td>
+                    </tr>
+                    <tr>
+                        <td>Average Wind Speed</td>
+                        <td id="live_avg_wind_speed"></td>
+                    </tr>
+                    <tr>
+                        <td>Gust Wind Speed</td>
+                        <td id="live_gust_wind_speed"></td>
+                    </tr>
+                    <tr>
+                        <td>Wind Direction</td>
+                        <td id="live_wind_direction"></td>
+                    </tr>
+                    </tbody>
+                </table>
+                <p>Time: <span id="current_time"></span></p>
+                </div>
+                <div id="cc_stale" style="display: none;">
+                    <div class="alert alert-error">
+                        <strong>Error:</strong>
+                        No live data available. Live data
+                        has not been refreshed in <span id="cc_data_age"></span> seconds.
+                        The update service has likely stopped.
+                    </div>
+                </div>
+                <div id="cc_refresh_failed" style="display: none;">
+                    <div class="alert alert-warning">
+                        <strong>Warning!</strong>
+                        Live data refresh failed. The server may be down.
+                    </div>
                 </div>
             </div>
-            <div id="cc_refresh_failed" style="display: none;">
-                <div class="alert alert-warning">
-                    <strong>Warning!</strong>
-                    Live data refresh failed. The server may be down.
-                </div>
-            </div>
-        </div>
 
-        <div class="span6">
-        <h2>Todays Records<button id="btn_records_refresh" class="btn refreshbutton" onclick="refresh_records()" data-loading-text="loading..."><i class="icon-refresh"></i> Refresh</button></h2>
-        {# The records table is only populated initially through the template.
-         # Once the page has loaded the user can hit the refresh button to
-         # reload it AJAXly. -#}
-        <div id="records_table">
-            <table class="table table-bordered">
-                <thead>
-                <tr>
-                    <th>Sensor</th>
-                    <th>Min</th>
-                    <th>Max</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr>
-                    <td>Temperature</td>
-                    <td id="temp_min">{{ data.records.min_temperature|round(1) }}°C at {{ data.records.min_temperature_ts }}</td>
-                    <td id="temp_max">{{ data.records.max_temperature|round(1) }}°C at {{ data.records.max_temperature_ts }}</td>
-                </tr>
-                <tr>
-                    <td>Wind Chill</td>
-                    <td id="wc_min">{{ data.records.min_wind_chill|round(1) }}°C at {{ data.records.min_wind_chill_ts }}</td>
-                    <td id="wc_max">{{ data.records.max_wind_chill|round(1) }}°C at {{ data.records.max_wind_chill_ts }}</td>
-                </tr>
-                <tr>
-                    <td>Apparent Temperature</td>
-                    <td id="at_min">{{ data.records.min_apparent_temperature|round(1) }}°C at {{ data.records.min_apparent_temperature_ts }}</td>
-                    <td id="at_max">{{ data.records.max_apparent_temperature|round(1) }}°C at {{ data.records.max_apparent_temperature_ts }}</td>
-                </tr>
-                <tr>
-                    <td>Dew Point</td>
-                    <td id="dp_min">{{ data.records.min_dew_point|round(1) }}°C at {{ data.records.min_dew_point_ts }}</td>
-                    <td id="dp_max">{{ data.records.max_dew_point|round(1) }}°C at {{ data.records.max_dew_point_ts }}</td>
-                </tr>
-                <tr>
-                    <td>Absolute Pressure</td>
-                    <td id="ap_min">{{ data.records.min_absolute_pressure|round(1) }} hPa at {{ data.records.min_absolute_pressure_ts }}</td>
-                    <td id="ap_max">{{ data.records.max_absolute_pressure|round(1) }} hPa at {{ data.records.max_absolute_pressure_ts }}</td>
-                </tr>
-                <tr>
-                    <td>Relative Humidity</td>
-                    <td id="rh_min">{{ data.records.min_humidity }}% at {{ data.records.min_humidity_ts }}</td>
-                    <td id="rh_max">{{ data.records.max_humidity }}% at {{ data.records.max_humidity_ts }}</td>
-                </tr>
-                <tr>
-                    <td>Gust Wind Speed</td>
-                    <td></td>
-                    <td id="gws">{{ data.records.max_gust_wind_speed|round(1) }} m/s at {{ data.records.max_gust_wind_speed_ts }}</td>
-                </tr>
-                <tr>
-                    <td>Average Wind Speed</td>
-                    <td></td>
-                    <td id="aws">{{ data.records.max_average_wind_speed|round(1) }} m/s at {{ data.records.max_average_wind_speed_ts }}</td>
-                </tr>
-                </tbody>
-            </table>
-            <p>Total rainfall today: <span id="tot_rainfall">{{ data.records.total_rainfall|round(1) }}</span> mm</p>
-        </div>
-        <div id="rec_refresh_failed" style="display: none;">
-            <div class="alert alert-warning">
-                <strong>Warning!</strong>
-                Loading records failed. The server may be down.
+            <div class="span6">
+                <h2>Todays Records<button id="btn_records_refresh" class="btn refreshbutton" onclick="refresh_records()" data-loading-text="loading..."><i class="icon-refresh"></i> Refresh</button></h2>
+                {% include 'day-records-table.html' %}
             </div>
-        </div>
-        </div>
         </div>
     </section>
 
     <section id="today">
         <h2 id="daily-charts">Today<button id="btn_today_refresh" class="btn refreshbutton" onclick="refresh_day_charts()" data-loading-text="loading..."><i class="icon-refresh"></i> Refresh</button></h2>
-        <div id="day_charts_cont">
-            <div class="row">
-                <div class="span6">
-                    <div id="chart_temperature_tdp_div" class="chart">
-                        <img src="/images/loading.gif" alt="loading"/>
-                    </div>
-                </div>
-                <div class="span6">
-                    <div id="chart_temperature_awc_div" class="chart">
-                        <img src="/images/loading.gif" alt="loading"/>
-                    </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="span6">
-                    <div id="chart_humidity_div" class="chart">
-                        <img src="/images/loading.gif" alt="loading"/>
-                    </div>
-                </div>
-                <div class="span6">
-                    <div id="chart_pressure_div" class="chart">
-                        <img src="/images/loading.gif" alt="loading"/>
-                    </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="span6">
-                    <div id="chart_hourly_rainfall_div" class="chart">
-                        <img src="/images/loading.gif" alt="loading"/>
-                    </div>
-                </div>
-                <div class="span6"></div>
-            </div>
-        </div>
-        <div id="lc_refresh_failed" style="display: none;">
-            <div class="alert alert-warning">
-                <strong>Warning!</strong>
-                Failed to load charts. The server may be down.
-            </div>
-        </div>
+        {% include 'day-charts.html' %}
     </section>
 
     <section id="last_7_days">
         <h2>Last 7 days<button id="btn_7day_refresh" class="btn refreshbutton" onclick="refresh_7day_charts()" data-loading-text="loading..."><i class="icon-refresh"></i> Refresh</button></h2>
-        <div id="7day-charts">
-            <div id="chart_7_temperature_tdp_div" class="chart">
-                <img src="/images/loading.gif" alt="loading"/>
-            </div>
-            <div id="chart_7_temperature_awc_div" class="chart">
-                <img src="/images/loading.gif" alt="loading"/>
-            </div>
-            <div id="chart_7_humidity_div" class="chart">
-                <img src="/images/loading.gif" alt="loading"/>
-            </div>
-            <div id="chart_7_pressure_div" class="chart">
-                <img src="/images/loading.gif" alt="loading"/>
-            </div>
-            <div id="chart_7_hourly_rainfall_div" class="chart">
-                <img src="/images/loading.gif" alt="loading"/>
-            </div>
-        </div>
-        <div id="lc7_refresh_failed" style="display: none;">
-            <div class="alert alert-warning">
-                <strong>Warning!</strong>
-                Failed to load charts. The server may be down.
-            </div>
-        </div>
+        {% include 'day-charts-7day.html' %}
     </section>
 
     <section id="history">

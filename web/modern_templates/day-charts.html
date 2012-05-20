@@ -1,0 +1,47 @@
+{# INCLUDE FILE
+ # Used by: station.html, day.html
+ #
+ # This file contains 1-day charts used on both the day and station overview
+ # pages. -#}
+        <div id="day_charts_cont">
+            <div class="row">
+                <div class="span6">
+                    <div id="chart_temperature_tdp_div" class="chart">
+                        <img src="/images/loading.gif" alt="loading"/>
+                    </div>
+                </div>
+                <div class="span6">
+                    <div id="chart_temperature_awc_div" class="chart">
+                        <img src="/images/loading.gif" alt="loading"/>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="span6">
+                    <div id="chart_humidity_div" class="chart">
+                        <img src="/images/loading.gif" alt="loading"/>
+                    </div>
+                </div>
+                <div class="span6">
+                    <div id="chart_pressure_div" class="chart">
+                        <img src="/images/loading.gif" alt="loading"/>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="span6">
+                    <div id="chart_hourly_rainfall_div" class="chart">
+                        <img src="/images/loading.gif" alt="loading"/>
+                    </div>
+                </div>
+                <div class="span6">
+
+                </div>
+            </div>
+        </div>
+        <div id="lc_refresh_failed" style="display: none;">
+            <div class="alert alert-warning">
+                <strong>Warning!</strong>
+                Failed to load charts. The server may be down.
+            </div>
+        </div>

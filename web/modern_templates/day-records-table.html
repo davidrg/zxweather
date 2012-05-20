@@ -1,0 +1,66 @@
+{# INCLUDE FILE
+ # Used by: station.html, day.html
+ #
+ # This is the records table used on the station overview page and the day
+ # pages. The records table can be refreshed AJAXly using a refresh button on
+ # the station overview page and (if the page is for today) the day page. -#}
+                <div id="records_table">
+                    <table class="table table-bordered">
+                        <thead>
+                        <tr>
+                            <th>Sensor</th>
+                            <th>Min</th>
+                            <th>Max</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td>Temperature</td>
+                            <td id="temp_min">{{ data.records.min_temperature|round(1) }}°C at {{ data.records.min_temperature_ts }}</td>
+                            <td id="temp_max">{{ data.records.max_temperature|round(1) }}°C at {{ data.records.max_temperature_ts }}</td>
+                        </tr>
+                        <tr>
+                            <td>Wind Chill</td>
+                            <td id="wc_min">{{ data.records.min_wind_chill|round(1) }}°C at {{ data.records.min_wind_chill_ts }}</td>
+                            <td id="wc_max">{{ data.records.max_wind_chill|round(1) }}°C at {{ data.records.max_wind_chill_ts }}</td>
+                        </tr>
+                        <tr>
+                            <td>Apparent Temperature</td>
+                            <td id="at_min">{{ data.records.min_apparent_temperature|round(1) }}°C at {{ data.records.min_apparent_temperature_ts }}</td>
+                            <td id="at_max">{{ data.records.max_apparent_temperature|round(1) }}°C at {{ data.records.max_apparent_temperature_ts }}</td>
+                        </tr>
+                        <tr>
+                            <td>Dew Point</td>
+                            <td id="dp_min">{{ data.records.min_dew_point|round(1) }}°C at {{ data.records.min_dew_point_ts }}</td>
+                            <td id="dp_max">{{ data.records.max_dew_point|round(1) }}°C at {{ data.records.max_dew_point_ts }}</td>
+                        </tr>
+                        <tr>
+                            <td>Absolute Pressure</td>
+                            <td id="ap_min">{{ data.records.min_absolute_pressure|round(1) }} hPa at {{ data.records.min_absolute_pressure_ts }}</td>
+                            <td id="ap_max">{{ data.records.max_absolute_pressure|round(1) }} hPa at {{ data.records.max_absolute_pressure_ts }}</td>
+                        </tr>
+                        <tr>
+                            <td>Relative Humidity</td>
+                            <td id="rh_min">{{ data.records.min_humidity }}% at {{ data.records.min_humidity_ts }}</td>
+                            <td id="rh_max">{{ data.records.max_humidity }}% at {{ data.records.max_humidity_ts }}</td>
+                        </tr>
+                        <tr>
+                            <td>Gust Wind Speed</td>
+                            <td class="no-value"></td>
+                            <td id="gws">{{ data.records.max_gust_wind_speed|round(1) }} m/s at {{ data.records.max_gust_wind_speed_ts }}</td>
+                        </tr>
+                        <tr>
+                            <td>Average Wind Speed</td>
+                            <td class="no-value"></td>
+                            <td id="aws">{{ data.records.max_average_wind_speed|round(1) }} m/s at {{ data.records.max_average_wind_speed_ts }}</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    <p>Total Rainfall: <span id="tot_rainfall">{{ data.records.total_rainfall|round(1) }}</span>mm</p>
+                </div>
+                <div id="rec_refresh_failed" style="display: none;">
+                    <div class="alert alert-warning">
+                        <strong>Warning!</strong>
+                        Loading records failed. The server may be down.
+                    </div>
+                </div>
