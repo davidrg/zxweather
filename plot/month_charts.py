@@ -89,11 +89,11 @@ order by cur.time_stamp asc""", (date,))
     for large in [True, False]:
         # Create both large and regular versions of each plot.
         if large:
-            width = 2560
-            height = 960
+            width = 2340
+            height = 600
         else:
-            width = 1280
-            height = 480
+            width = 1170
+            height = 300
 
         # Plot Temperature and Dew Point
         output_filename = dest_dir + 'temperature_tdp.png'

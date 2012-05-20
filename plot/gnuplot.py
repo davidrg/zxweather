@@ -4,7 +4,7 @@ import subprocess
 __author__ = 'David Goodwin'
 
 
-gnuplot_binary = r'C:\Program Files (x86)\gnuplot\bin\gnuplot.exe'
+gnuplot_binary = r'gnuplot'
 
 def plot_graph(output_filename, title=None, xdata_time=False, ylabel=None,
                lines=None, key=True, width=None, height=None, xlabel=None,
@@ -39,13 +39,14 @@ set datafile missing "?"
 """.format(output_filename)
 
     if width is not None and height is not None:
-        script += "set terminal png size {0}, {1}\n".format(width,height)
+        script += "set terminal pngcairo size {0}, {1}\n".format(width,height)
     else:
-        script += "set terminal png\n"
+        script += "set terminal pngcairo\n"
 
     if title is not None:
         script += 'set title "{0}"\n'.format(title)
 
+    #script += 'set xtics rotate by -45\n'
 
     if xdata_time:
         xdata_is_time = True
@@ -78,6 +79,9 @@ set datafile missing "?"
     if yrange is not None:
         script += "set yrange [{0}:{1}]\n".format(yrange[0], yrange[1])
 
+    if xdata_time and not timefmt_is_date:
+        script += 'set format x "%H"\n'
+
     script += "plot "
 
     if lines is not None:
@@ -89,6 +93,8 @@ set datafile missing "?"
             # case of missing data.
             script += "'{0}' using {1}:(${2}) title \"{3}\"".format(line['filename'],
                                                                  line['xcol'], line['ycol'], line['title'])
-
+        file = open(output_filename + '.plt', 'w+')
+        file.writelines(script)
+        file.close()
         gnuplot = subprocess.Popen([gnuplot_binary], stdin=subprocess.PIPE)
         gnuplot.communicate(script)
