@@ -1,3 +1,4 @@
+from datetime import date
 from gnuplot import plot_graph
 
 __author__ = 'David Goodwin'
@@ -85,11 +86,11 @@ order by cur.time_stamp asc""", (date,))
     for large in [True, False]:
         # Create both large and regular versions of each plot.
         if large:
-            width = 1280
-            height = 960
+            width = 1140
+            height = 600
         else:
-            width = None    # Default width and height
-            height = None
+            width = 570    # Default width and height
+            height = 300
 
         # Plot Temperature and Dew Point
         output_filename = dest_dir + 'temperature_tdp.png'
@@ -196,7 +197,14 @@ order by cur.time_stamp asc""", (date,))
                            'title': "Temperature"}])
 
 def charts_7_days(cur, dest_dir, day, month, year):
-    date = '{0}-{1}-{2}'.format(day, month, year)
+    """
+    Creates 7-day charts for the specified day
+    :param cur: Database cursor
+    :param dest_dir: Destination directory
+    :param day: day of month
+    :param month: month
+    :param year: year
+    """
     cur.execute("""select s.time_stamp,
        s.temperature,
        s.dew_point,
@@ -213,12 +221,12 @@ def charts_7_days(cur, dest_dir, day, month, year):
           false
        end as gap
 from sample s, sample prev,
-     (select max(time_stamp) as ts from sample where date(time_stamp) = %s::date::date) as max_ts
+     (select max(time_stamp) as ts from sample where time_stamp::date = %s) as max_ts
 where s.time_stamp <= max_ts.ts     -- 604800 seconds in a week.
   and s.time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
   and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp)
 order by s.time_stamp asc
-""", (date,))
+""", (date(year,month,day),))
     temperature_data = cur.fetchall()
 
     # Columns in the query
@@ -273,11 +281,11 @@ order by s.time_stamp asc
     for large in [True, False]:
         # Create both large and regular versions of each plot.
         if large:
-            width = 1280
-            height = 960
+            width = 2340
+            height = 600
         else:
-            width = None    # Default width and height
-            height = None
+            width = 1170    # Default width and height
+            height = 300
 
         # Plot Temperature and Dew Point
         output_filename = dest_dir + '7-day_temperature_tdp.png'
