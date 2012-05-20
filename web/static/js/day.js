@@ -35,11 +35,11 @@ function refresh_live_data() {
             if (previous_live != null) {
                 function get_ico(current, prev) {
                     if (current > prev)
-                        return '<img src="../../images/up.png" alt="increase" title="increase"/>&nbsp;';
+                        return '<img src="/images/up.png" alt="increase" title="increase"/>&nbsp;';
                     else if (current == prev)
-                        return '<img src="../../images/no-change.png" alt="no change" title="no change"/>&nbsp;';
+                        return '<img src="/images/no-change.png" alt="no change" title="no change"/>&nbsp;';
                     else
-                        return '<img src="../../images/down.png" alt="decrease" title="decrease"/>&nbsp;';
+                        return '<img src="/images/down.png" alt="decrease" title="decrease"/>&nbsp;';
                 }
 
                 rh = get_ico(relative_humidity, previous_live['relative_humidity']);
