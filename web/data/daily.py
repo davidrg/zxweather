@@ -68,19 +68,18 @@ class datatable_json:
         if recs is None or len(recs) == 0:
             raise web.NotFound()
 
-
         if dataset == 'samples':
-            return get_day_samples_datatable(year,month,day)
+            return get_day_samples_datatable(this_date)
         elif dataset == '7day_samples':
-            return get_7day_samples_datatable(year,month,day)
+            return get_7day_samples_datatable(this_date)
         elif dataset == '7day_30m_avg_samples':
-            return get_7day_30mavg_samples_datatable(year,month,day)
+            return get_7day_30mavg_samples_datatable(this_date)
         elif dataset == 'indoor_samples':
-            return get_day_indoor_samples_datatable(year,month,day)
+            return get_day_indoor_samples_datatable(this_date)
         elif dataset == '7day_indoor_samples':
-            return get_7day_indoor_samples_datatable(year,month,day)
+            return get_7day_indoor_samples_datatable(this_date)
         elif dataset == '7day_30m_avg_indoor_samples':
-            return get_7day_30mavg_indoor_samples_datatable(year,month,day)
+            return get_7day_30mavg_indoor_samples_datatable(this_date)
         elif dataset == 'hourly_rainfall':
             return get_days_hourly_rain_datatable(this_date)
         elif dataset == '7day_hourly_rainfall':
@@ -164,22 +163,18 @@ class index:
         web.header('Content-Type', 'text/html')
         return render.daily_data_index()
 
-def daily_cache_control_headers(year,month,day,age):
+def daily_cache_control_headers(day,age):
     """
     Sets cache control headers for a daily data files.
-    :param year: Year of the data file
-    :type year: int
-    :param month: Month of the data file
-    :type month: int
     :param day: Day of the data file
-    :type day: int
+    :type day: date
     :param age: Timestamp of the last record in the data file
     :type age: datetime
     """
 
     now = datetime.now()
     # HTTP-1.1 Cache Control
-    if year == now.year and month == now.month and day == now.day:
+    if day.year == now.year and day.month == now.month and day.day == now.day:
         # We should be getting a new sample every sample_interval seconds if
         # the requested day is today.
         web.header('Cache-Control', 'max-age=' + str(config.sample_interval))
@@ -245,16 +240,14 @@ def indoor_sample_result_to_datatable(query_data):
     else:
         return json.dumps(data), data_age
 
-def get_7day_indoor_samples_datatable(year,month,day):
+def get_7day_indoor_samples_datatable(day):
     """
-    Gets data for a 7-day period in a Google DataTable compatible format.
-    :param year: Year to get data for
-    :param month: Month to get data for
     :param day: Day to get data for
+    :type day: date
     :return: JSON data in Googles datatable format containing indoor samples
     for the past seven days.
     """
-    params = dict(date = date(year,month,day))
+    params = dict(date = day)
     result = db.query("""select s.time_stamp,
                s.indoor_temperature,
                s.indoor_relative_humidity,
@@ -274,22 +267,21 @@ def get_7day_indoor_samples_datatable(year,month,day):
 
     data,age = indoor_sample_result_to_datatable(result)
 
-    daily_cache_control_headers(year,month,day,age)
+    daily_cache_control_headers(day,age)
 
     web.header('Content-Type','application/json')
     web.header('Content-Length', str(len(data)))
     return data
 
-def get_7day_30mavg_indoor_samples_datatable(year,month,day):
+def get_7day_30mavg_indoor_samples_datatable(day):
     """
     Gets data for a 7-day period in a Google DataTable compatible format.
-    :param year: Year to get data for
-    :param month: Month to get data for
     :param day: Day to get data for
+    :type day: date
     :return: JSON in Googles Datatable format containing 30 minute averaged
     data for the past seven days of indoor samples.
     """
-    params = dict(date = date(year,month,day))
+    params = dict(date = day)
     result = db.query("""select min(iq.time_stamp) as time_stamp,
        avg(iq.indoor_temperature) as indoor_temperature,
        avg(indoor_relative_humidity)::integer as indoor_relative_humidity,
@@ -317,21 +309,22 @@ order by iq.quadrant asc""", params)
 
     data,age = indoor_sample_result_to_datatable(result)
 
-    daily_cache_control_headers(year,month,day,age)
+    daily_cache_control_headers(day,age)
 
     web.header('Content-Type','application/json')
     web.header('Content-Length', str(len(data)))
     return data
 
-def get_day_indoor_samples_datatable(year,month,day):
+def get_day_indoor_samples_datatable(day):
     """
     Gets indoor data for a specific day in a Google DataTable compatible format.
-    :param year: Year to get data for
-    :param month: Month to get data for
     :param day: Day to get data for
-    :return:
+    :type day: date
+    :return: JSON data (in googles datatable format) containing indoor samples
+             for the day
+    :rtype: str
     """
-    params = dict(date = date(year,month,day))
+    params = dict(date = day)
     result = db.query("""select s.time_stamp::timestamptz,
 s.indoor_temperature,
 s.indoor_relative_humidity,
@@ -347,25 +340,21 @@ where date(s.time_stamp) = $date
 
     data,age = indoor_sample_result_to_datatable(result)
 
-    daily_cache_control_headers(year,month,day,age)
+    daily_cache_control_headers(day,age)
 
     web.header('Content-Type','application/json')
     web.header('Content-Length', str(len(data)))
     return data
 
-def get_7day_samples_datatable(year,month,day):
+def get_7day_samples_datatable(day):
     """
     Gets data for a 7-day period in a Google DataTable compatible format.
-    :param year: Year to get data for
-    :type year: int
-    :param month: Month to get data for
-    :type month: int
     :param day: Day to get data for
-    :type day: int
+    :type day: date
     :return: JSON data containing the past seven days of samples
     :rtype: str
     """
-    params = dict(date = date(year,month,day))
+    params = dict(date = day)
     result = db.query("""select s.time_stamp,
            s.temperature,
            s.dew_point,
@@ -389,24 +378,23 @@ def get_7day_samples_datatable(year,month,day):
 
     data,age = outdoor_sample_result_to_datatable(result)
 
-    daily_cache_control_headers(year,month,day,age)
+    daily_cache_control_headers(day,age)
 
     web.header('Content-Type','application/json')
     web.header('Content-Length', str(len(data)))
     return data
 
-def get_7day_30mavg_samples_datatable(year, month, day):
+def get_7day_30mavg_samples_datatable(day):
     """
     Gets data for a 7-day period in a Google DataTable compatible format.
     Data is averaged hourly to reduce the sample count.
-    :param year: Year to get data for
-    :param month: Month to get data for
     :param day: Day to get data for
+    :type day: date
     :return: JSON data containing 30 minute averaged sample data for the past
              seven days
     :rtype: str
     """
-    params = dict(date = date(year,month,day))
+    params = dict(date = day)
     result = db.query("""select min(iq.time_stamp) as time_stamp,
        avg(iq.temperature) as temperature,
        avg(iq.dew_point) as dew_point,
@@ -440,60 +428,23 @@ from (
 group by iq.quadrant
 order by iq.quadrant asc""", params)
 
-    # 1-hour average query:
-    #    """select iq.time_stamp,
-    #       avg(iq.temperature) as temperature,
-    #       avg(iq.dew_point) as dew_point,
-    #       avg(iq.apparent_temperature) as apparent_temperature,
-    #       avg(wind_chill) as wind_chill,
-    #       avg(relative_humidity)::integer as relative_humidity,
-    #       avg(absolute_pressure) as absolute_pressure,
-    #       min(prev_sample_time) as prev_sample_time,
-    #       bool_or(gap) as gap
-    #from (
-    #        select date_trunc('hour',cur.time_stamp) as time_stamp,
-    #               cur.temperature,
-    #               cur.dew_point,
-    #               cur.apparent_temperature,
-    #               cur.wind_chill,
-    #               cur.relative_humidity,
-    #               cur.absolute_pressure,
-    #               cur.time_stamp - (cur.sample_interval * '1 minute'::interval) as prev_sample_time,
-    #               CASE WHEN (cur.time_stamp - prev.time_stamp) > ((cur.sample_interval * 2) * '1 minute'::interval) THEN
-    #                  true
-    #               else
-    #                  false
-    #               end as gap
-    #        from sample cur, sample prev
-    #        where date(date_trunc('month',cur.time_stamp)) = date(date_trunc('month',$date))
-    #          and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < cur.time_stamp)
-    #        order by cur.time_stamp asc) as iq
-    #where date(iq.time_stamp) >= (date($date) - '7 days'::interval)
-    #group by iq.time_stamp
-    #order by iq.time_stamp asc
-    #    """
-
     data,age = outdoor_sample_result_to_datatable(result)
 
-    daily_cache_control_headers(year,month,day,age)
+    daily_cache_control_headers(day,age)
 
     web.header('Content-Type','application/json')
     web.header('Content-Length', str(len(data)))
     return data
 
-def get_day_samples_datatable(year,month,day):
+def get_day_samples_datatable(day):
     """
     Gets data for a specific day in a Google DataTable compatible format.
-    :param year: Year to get data for
-    :type year: int
-    :param month: Month to get data for
-    :type month: int
     :param day: Day to get data for
-    :type day: int
+    :type day: date
     :return: JSON data containing samples for the day.
     :rtype: str
     """
-    params = dict(date = date(year,month,day))
+    params = dict(date = day)
     result = db.query("""select s.time_stamp::timestamptz,
            s.temperature,
            s.dew_point,
@@ -513,7 +464,7 @@ where date(s.time_stamp) = $date
 
     data,age = outdoor_sample_result_to_datatable(result)
 
-    daily_cache_control_headers(year,month,day,age)
+    daily_cache_control_headers(day,age)
 
     web.header('Content-Type','application/json')
     web.header('Content-Length', str(len(data)))
@@ -574,10 +525,7 @@ order by date_trunc('hour',time_stamp) asc""", params)
 
     json_data, data_age = rainfall_to_datatable(result)
 
-    daily_cache_control_headers(data_date.year,
-                                data_date.month,
-                                data_date.day,
-                                data_age)
+    daily_cache_control_headers(data_date, data_age)
 
     web.header('Content-Type','application/json')
     web.header('Content-Length', str(len(json_data)))
@@ -602,10 +550,7 @@ order by date_trunc('hour',time_stamp) asc""", params)
 
     json_data, data_age = rainfall_to_datatable(result)
 
-    daily_cache_control_headers(data_date.year,
-                                data_date.month,
-                                data_date.day,
-                                data_age)
+    daily_cache_control_headers(data_date, data_age)
 
     web.header('Content-Type','application/json')
     web.header('Content-Length', str(len(json_data)))
@@ -672,7 +617,7 @@ def get_day_records(day):
 
     age = datetime.combine(day,age)
 
-    daily_cache_control_headers(day.year,day.month,day.day, age)
+    daily_cache_control_headers(day, age)
     return json.dumps(data)
 
 def get_day_rainfall(day):
@@ -684,5 +629,5 @@ def get_day_rainfall(day):
     rainfall = get_daily_rainfall(day)
 
     age = get_latest_sample_timestamp()
-    daily_cache_control_headers(day.year,day.month,day.day,age)
+    daily_cache_control_headers(day,age)
     return json.dumps(rainfall)
