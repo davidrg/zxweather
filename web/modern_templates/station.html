@@ -115,12 +115,12 @@
     <script type="text/javascript">
         // URLs required by day_charts.js and day_live.js
         var live_url = '../../data/{{ station }}/live.json';
-        var samples_url = '{{ data_urls['samples']}}';
-        var rainfall_url = '{{ data_urls['rainfall'] }}';
-        var samples_7day_url = '{{ data_urls['7day_samples'] }}';
-        var rainfall_7day_url = '{{ data_urls['7day_rainfall'] }}';
-        var records_url = '{{ data_urls['records'] }}';
-        var rainfall_totals_url = '{{ data_urls['rainfall_totals'] }}';
+        var samples_url = '../../data/{{ station }}/datatable/current_day_samples.json';
+        var rainfall_url = '../../data/{{ staton }}/datatable/current_day_rainfall.json';
+        var samples_7day_url = '../../data/{{ station }}/datatable/current_day_7day_30m_avg_samples.json';
+        var rainfall_7day_url = '../../data/{{ station }}/datatable/current_day_7day_rainfall.json';
+        var records_url = '../../data/{{ station }}/datatable/current_day_records.json';
+        var rainfall_totals_url = '../../data/{{ station }}/current_day_rainfall_totals.json';
         var live_auto_refresh = true;
     </script>
     <script type="text/javascript" src="../../js/day_live.js"></script>
