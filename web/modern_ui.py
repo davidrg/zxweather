@@ -4,8 +4,7 @@ Modern HTML5/CSS/Javascript UI.
 
 from datetime import datetime, date, timedelta
 from baseui import BaseUI
-from data import live_data, get_years
-from data.database import day_exists, month_exists, year_exists, total_rainfall_in_last_7_days, get_daily_records
+from data.database import day_exists, month_exists, year_exists, total_rainfall_in_last_7_days, get_daily_records, get_live_data, get_years
 from util import relative_url
 
 __author__ = 'David Goodwin'
@@ -391,7 +390,7 @@ class ModernUI(BaseUI):
         # Get live data if the page is for today.
         data_age = None
         if today:
-            data.current_data_ts, data.current_data = live_data.get_live_data()
+            data.current_data_ts, data.current_data = get_live_data()
             data_age = datetime.combine(date(year,month,day), data.current_data_ts)
 
         # Figure out the URL for the previous day

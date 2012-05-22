@@ -2,7 +2,7 @@
 Various common functions to get data from the database.
 """
 
-from config import db
+from config import db, live_data_available
 from datetime import datetime, date
 
 __author__ = 'David Goodwin'
@@ -135,7 +135,7 @@ from sample s,
 where s.time_stamp <= max_ts.ts     -- 604800 seconds in a week.
   and s.time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))""", params)
 
-    if len(day_rainfall_record) == 0 or len(sevenday_rainfall_record) == None:
+    if len(day_rainfall_record) == 0 or len(sevenday_rainfall_record) is None:
         return {}
 
     return {
@@ -150,3 +150,53 @@ def get_latest_sample_timestamp():
     """
     record = db.query("select max(time_stamp) as time_stamp from sample")
     return record[0].time_stamp
+
+def get_live_data():
+    """
+    Gets live data from the database. If config.live_data_available is set
+    then the data will come from the live data table and will be at most
+    48 seconds old. If it is not set then the data returned will be the
+    most recent sample from the sample table.
+
+    :return: Timestamp for the data and the actual data.
+    """
+
+    now = datetime.now()
+    params = dict(date=date(now.year, now.month, now.day))
+
+    if live_data_available:
+        # No need to filter or anything - live_data only contains one record.
+        current_data = db.query("""select download_timestamp::time as time_stamp,
+                    invalid_data, relative_humidity, temperature, dew_point,
+                    wind_chill, apparent_temperature, absolute_pressure,
+                    average_wind_speed, gust_wind_speed, wind_direction,
+                    extract('epoch' from (now() - download_timestamp)) as age
+                    from live_data""")[0]
+        current_data_ts = current_data.time_stamp
+    else:
+        # Fetch the latest data for today
+        current_data = db.query("""select time_stamp::time as time_stamp, relative_humidity,
+                    temperature,dew_point, wind_chill, apparent_temperature,
+                    absolute_pressure, average_wind_speed, gust_wind_speed,
+                    wind_direction, invalid_data,
+                    extract('epoch' from (now() - download_timestamp)) as age
+                from sample
+                where date(time_stamp) = $date
+                order by time_stamp desc
+                limit 1""",params)[0]
+        current_data_ts = current_data.time_stamp
+
+    return current_data_ts, current_data
+
+def get_years():
+    """
+    Gets a list of years in the database.
+    :return: A list of years with data in the database
+    :rtype: [integer]
+    """
+    years_result = db.query("select distinct extract(year from time_stamp) as year from sample order by year desc")
+    years = []
+    for record in years_result:
+        years.append(int(record.year))
+
+    return years

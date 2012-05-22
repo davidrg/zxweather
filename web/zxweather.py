@@ -15,10 +15,11 @@ urls = (
                                           # pick which UI to use.
 
     # Data Index
+    # Provides a list of available data sourcesd at the various levels.
     '/data/(\w*)/(\d+)/(\d+)/(\d+)/(?:index\.html)?', 'data.daily.index',
     '/data/(\w*)/(\d+)/(\d+)/(?:index\.html)?', 'data.monthly.index',
     '/data/(\w*)/(\d+)/(?:index\.html)?', 'data.yearly.index',
-    '/data/(\w*)/(?:index\.html)?', 'data.station_index',
+    '/data/(\w*)/(?:index\.html)?', 'data.station.index',
 
     # Data sources (mostly JSON)
     # /data/station/year/month/day/... (month is in number format here)
@@ -26,7 +27,7 @@ urls = (
     '/data/(\w*)/(\d+)/(\d+)/(\d+)/(\w*).json', 'data.daily.data_json',                # Daily
     '/data/(\w*)/(\d+)/(\d+)/datatable/(\w*).json', 'data.monthly.datatable_json',     # Monthly, DT
     '/data/(\w*)/(\d+)/datatable/(\w*).json', 'data.yearly.datatable_json',            # Yearly, DT
-    '/data/(\w*)/live.json', 'data.live_data',                                         # Station
+    '/data/(\w*)/(\w*).json', 'data.station.data_json',                                # Station
     '/data/daynav.json', 'data.day_nav',                                               # Global
 
     # User interface (HTML output)

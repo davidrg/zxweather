@@ -7,8 +7,7 @@ from datetime import datetime, date, timedelta
 import web
 from baseui import BaseUI
 from config import db
-from data import live_data, get_years
-from data.database import year_exists, month_exists, day_exists
+from data.database import year_exists, month_exists, day_exists, get_years, get_live_data
 
 __author__ = 'David Goodwin'
 
@@ -273,7 +272,7 @@ class BasicUI(BaseUI):
         # Get live data if the page is for today.
         data_age = None
         if today:
-            data.current_data_ts, data.current_data = live_data.get_live_data()
+            data.current_data_ts, data.current_data = get_live_data()
             data_age = datetime.combine(date(year,month,day), data.current_data_ts)
 
         # Figure out the URL for the previous day
