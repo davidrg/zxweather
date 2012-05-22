@@ -146,20 +146,26 @@ function load_day_charts() {
 
 function refresh_day_charts() {
     $("#btn_today_refresh").button('loading');
+
     $("#chart_temperature_tdp_div").empty();
-    $("#chart_temperature_tdp_div").html('<img src="/images/loading.gif" alt="loading"/>');
-
     $("#chart_temperature_awc_div").empty();
-    $("#chart_temperature_awc_div").html('<img src="/images/loading.gif" alt="loading"/>');
-
     $("#chart_humidity_div").empty();
-    $("#chart_humidity_div").html('<img src="/images/loading.gif" alt="loading"/>');
-
     $("#chart_pressure_div").empty();
-    $("#chart_pressure_div").html('<img src="/images/loading.gif" alt="loading"/>');
-
     $("#chart_hourly_rainfall_div").empty();
-    $("#chart_hourly_rainfall_div").html('<img src="/images/loading.gif" alt="loading"/>');
+
+    if (is_day_page) {
+        $("#chart_temperature_tdp_div").html('<img src="../../../../../images/loading.gif" alt="loading"/>');
+        $("#chart_temperature_awc_div").html('<img src="../../../../../images/loading.gif" alt="loading"/>');
+        $("#chart_humidity_div").html('<img src="../../../../../images/loading.gif" alt="loading"/>');
+        $("#chart_pressure_div").html('<img src="../../../../../images/loading.gif" alt="loading"/>');
+        $("#chart_hourly_rainfall_div").html('<img src="../../../../../images/loading.gif" alt="loading"/>');
+    } else {
+        $("#chart_temperature_tdp_div").html('<img src="../../images/loading.gif" alt="loading"/>');
+        $("#chart_temperature_awc_div").html('<img src="../../images/loading.gif" alt="loading"/>');
+        $("#chart_humidity_div").html('<img src="../../images/loading.gif" alt="loading"/>');
+        $("#chart_pressure_div").html('<img src="../../images/loading.gif" alt="loading"/>');
+        $("#chart_hourly_rainfall_div").html('<img src="../../images/loading.gif" alt="loading"/>');
+    }
 
     load_day_charts();
     show_hide_rainfall_charts(1); // 1 = 1day chart only
@@ -254,20 +260,26 @@ function load_7day_charts() {
 
 function refresh_7day_charts() {
     $("#btn_7day_refresh").button('loading');
+
     $("#chart_7_temperature_tdp_div").empty();
-    $("#chart_7_temperature_tdp_div").html('<img src="/images/loading.gif" alt="loading"/>');
-
     $("#chart_7_temperature_awc_div").empty();
-    $("#chart_7_temperature_awc_div").html('<img src="/images/loading.gif" alt="loading"/>');
-
     $("#chart_7_humidity_div").empty();
-    $("#chart_7_humidity_div").html('<img src="/images/loading.gif" alt="loading"/>');
-
     $("#chart_7_pressure_div").empty();
-    $("#chart_7_pressure_div").html('<img src="/images/loading.gif" alt="loading"/>');
-
     $("#chart_7_hourly_rainfall_div").empty();
-    $("#chart_7_hourly_rainfall_div").html('<img src="/images/loading.gif" alt="loading"/>');
+
+    if (is_day_page) {
+        $("#chart_7_temperature_tdp_div").html('<img src="../../../../../images/loading.gif" alt="loading"/>');
+        $("#chart_7_temperature_awc_div").html('<img src="../../../../../images/loading.gif" alt="loading"/>');
+        $("#chart_7_humidity_div").html('<img src="../../../../../images/loading.gif" alt="loading"/>');
+        $("#chart_7_pressure_div").html('<img src="../../../../../images/loading.gif" alt="loading"/>');
+        $("#chart_7_hourly_rainfall_div").html('<img src="../../../../../images/loading.gif" alt="loading"/>');
+    } else {
+        $("#chart_7_temperature_tdp_div").html('<img src="../../images/loading.gif" alt="loading"/>');
+        $("#chart_7_temperature_awc_div").html('<img src="../../images/loading.gif" alt="loading"/>');
+        $("#chart_7_humidity_div").html('<img src="../../images/loading.gif" alt="loading"/>');
+        $("#chart_7_pressure_div").html('<img src="../../images/loading.gif" alt="loading"/>');
+        $("#chart_7_hourly_rainfall_div").html('<img src="../../images/loading.gif" alt="loading"/>');
+    }
 
     load_7day_charts();
     show_hide_rainfall_charts(2); // 2 = 7day chart only
