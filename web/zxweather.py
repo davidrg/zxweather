@@ -1,3 +1,7 @@
+"""
+zxweather web frontend. Allows weather data to be viewed in a web browser in
+various ways.
+"""
 __author__ = 'David Goodwin'
 
 import os,sys
@@ -10,10 +14,6 @@ config.load_settings()
 
 # This is the URL structure for the site
 urls = (
-          # This will be a list of available stations.
-        # Index page for a particular station. Lets you
-                                          # pick which UI to use.
-
     # Data Index
     # Provides a list of available data sourcesd at the various levels.
     '/data/(\w*)/(\d+)/(\d+)/(\d+)/(?:index\.html)?', 'data.daily.index',
@@ -54,7 +54,7 @@ if __name__ == "__main__":
     app = web.application(urls, globals())
     app.run()
 else:
-    # No autoreloading for production
+    # No auto-reloading for production
     app = web.application(urls, globals(), autoreload=False)
 
 application = app.wsgifunc()

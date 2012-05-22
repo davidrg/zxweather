@@ -3,15 +3,14 @@ The code in this file receives requests from the URL router, processes them
 slightly, puts on the content-type header where required and then dispatches
 to the appropriate handler function for the specified UI.
 """
-from time import mktime
-from wsgiref.handlers import format_date_time
+
 from web.contrib.template import render_jinja
 
 from basic_ui import BasicUI
 import config
+from data.database import day_exists, month_exists, year_exists
 from modern_ui import ModernUI
 import datetime
-from mimetypes import guess_type
 import web
 import os
 
@@ -46,6 +45,43 @@ month_number = {'january'  : 1,
                 'october'  : 10,
                 'november' : 11,
                 'december' : 12}
+
+def validate_request(ui=None,station=None, year=None, month=None, day=None):
+    """
+    Validates request parameters. All parameters are optional.
+    :param ui: UI that was requested.
+    :param station: Station that was requested
+    :param year: Data year
+    :param month: Data month
+    :param day: Data day
+    :raise: web.NotFound if the request is invalid.
+    """
+
+    if ui is not None and ui not in uis:
+        raise web.NotFound()
+
+    if station is not None and station != config.default_station_name:
+        raise web.NotFound()
+
+    # Check the date.
+    if year is not None and month is not None and day is not None:
+        result = day_exists(datetime.date(year,month,day))
+        if not result:
+            raise web.NotFound()
+    elif year is not None and month is not None:
+        result = month_exists(year,month)
+        if not result:
+            raise web.NotFound()
+    elif year is not None:
+        result = year_exists(year)
+        if not result:
+            raise web.NotFound()
+
+def html_file():
+    """
+    Puts on headers for HTML files.
+    """
+    web.header('Content-Type','text/html')
 
 
 class site_index:
@@ -82,7 +118,7 @@ class site_index:
                                     os.path.join('templates'))
         render = render_jinja(template_dir, encoding='utf-8')
 
-        web.header('Content-Type','text/html')
+        html_file()
         return render.ui_list(uis=ui_list)
 
 class stationlist:
@@ -97,8 +133,7 @@ class stationlist:
         :return: A view.
         """
 
-        if ui not in uis:
-            raise web.NotFound()
+        validate_request(ui)
 
         # Only one station is currently supported so just redirect straight
         # to it rather than giving the user a choice of only one option.
@@ -110,12 +145,8 @@ class index:
     overview data, etc.
     """
     def GET(self, ui, station):
-
-        if station != config.default_station_name or\
-           ui not in uis:
-            raise web.NotFound()
-
-        web.header('Content-Type','text/html')
+        validate_request(ui,station)
+        html_file()
         return uis[ui].get_station(station)
 
 class now:
@@ -124,9 +155,7 @@ class now:
     """
     def GET(self, ui, station):
 
-        if station != config.default_station_name or\
-           ui not in uis:
-            raise web.NotFound()
+        validate_request(ui,station)
 
         now = datetime.datetime.now()
 
@@ -141,11 +170,8 @@ class year:
     """
     def GET(self, ui, station, year):
 
-        if station != config.default_station_name or\
-           ui not in uis:
-            raise web.NotFound()
-
-        web.header('Content-Type','text/html')
+        validate_request(ui,station,year)
+        html_file()
         return uis[ui].get_year(station, int(year))
 
 class month:
@@ -154,12 +180,8 @@ class month:
     """
     def GET(self, ui, station, year, month):
 
-        if station != config.default_station_name or\
-           ui not in uis or\
-           month not in month_number:
-            raise web.NotFound()
-
-        web.header('Content-Type','text/html')
+        validate_request(ui,station,year,month)
+        html_file()
         return uis[ui].get_month(station, int(year), month_number[month])
 
 class indoor_day:
@@ -167,12 +189,9 @@ class indoor_day:
     Gives an overview for a day.
     """
     def GET(self, ui, station, year, month, day):
-        if station != config.default_station_name or\
-           ui not in uis or\
-           month not in month_number:
-            raise web.NotFound()
 
-        web.header('Content-Type','text/html')
+        validate_request(ui,station,year,month,day)
+        html_file()
         return uis[ui].get_indoor_day(station, int(year), month_number[month], int(day))
 
 class day:
@@ -180,118 +199,9 @@ class day:
     Gives an overview for a day.
     """
     def GET(self, ui, station, year, month, day):
-        if station != config.default_station_name or\
-           ui not in uis or\
-           month not in month_number:
-            raise web.NotFound()
 
-        web.header('Content-Type','text/html')
+        validate_request(ui,station,year,month,day)
+        html_file()
         return uis[ui].get_day(station, int(year), month_number[month], int(day))
 
-class dayfile:
 
-    @staticmethod
-    def get_pathname(ui, station, year, month, day, file):
-
-        if ui not in uis:
-            raise web.NotFound()
-        pathname = config.static_data_dir + station + '/' + str(year) + '/' \
-                   + str(month) + '/' + str(day) + '/' + file
-
-        return pathname
-
-    @staticmethod
-    def generated_file_cache_control(year,month,day,filename):
-        """
-        This function adds cache control headers for files generated by the
-        weatherplot program. These are files that end in .png or .dat in the
-        day directory.
-        """
-
-        # HTTP-1.1 Cache Control for weatherplot files:
-        if filename.endswith(".png") or filename.endswith(".dat"):
-            now = datetime.datetime.now()
-            age = datetime.datetime.fromtimestamp(os.path.getmtime(filename))
-
-            year = int(year)
-            month = month_number[month]
-            day = int(day)
-
-            if year == now.year and month == now.month and day == now.day:
-                # We should be getting a new sample every sample_interval seconds if
-                # the requested month is this month.
-                web.header('Cache-Control', 'max-age=' + str(config.plot_interval))
-                expiry_timestamp = age + datetime.timedelta(0, config.plot_interval)
-                web.header('Expires',
-                           format_date_time(mktime(expiry_timestamp.timetuple())))
-            else:
-                # Its old data. Browsers can cache it forever if they want.
-                expiry_timestamp = now + datetime.timedelta(60, 0)
-                web.header('Expires',
-                           format_date_time(mktime(expiry_timestamp.timetuple())))
-
-    def GET(self, ui, station,year,month,day,file):
-
-        filename = dayfile.get_pathname(ui,station,year,month,day,file)
-        dayfile.generated_file_cache_control(year,month,day,filename)
-
-        return get_file(filename)
-
-    def HEAD(self, ui, station, year, month, day, file):
-
-        filename = dayfile.get_pathname(ui,station,year,month,day,file)
-        dayfile.generated_file_cache_control(year,month,day,filename)
-
-        return head_file(filename)
-
-class monthfile:
-
-    @staticmethod
-    def get_pathname(ui, station, year, month, file):
-
-        if ui not in uis:
-            raise web.NotFound()
-
-        pathname = config.static_data_dir + station + '/' + str(year) + '/' \
-                   + str(month) + '/' + file
-
-        return pathname
-
-    @staticmethod
-    def generated_file_cache_control(year,month,filename):
-        """
-        This function adds cache control headers for files generated by the
-        weatherplot program. These are files that end in .png or .dat in the
-        day directory.
-        """
-
-        # HTTP-1.1 Cache Control for weatherplot files:
-        if filename.endswith(".png") or filename.endswith(".dat"):
-            now = datetime.datetime.now()
-            age = datetime.datetime.fromtimestamp(os.path.getmtime(filename))
-
-            year = int(year)
-            month = month_number[month]
-
-            if year == now.year and month == now.month:
-                # We should be getting a new sample every sample_interval seconds if
-                # the requested month is this month.
-                web.header('Cache-Control', 'max-age=' + str(config.plot_interval))
-                expiry_timestamp = age + datetime.timedelta(0, config.plot_interval)
-                web.header('Expires',
-                           format_date_time(mktime(expiry_timestamp.timetuple())))
-            else:
-                # Its old data. Browsers can cache it forever if they want.
-                expiry_timestamp = now + datetime.timedelta(60, 0)
-                web.header('Expires',
-                           format_date_time(mktime(expiry_timestamp.timetuple())))
-
-    def GET(self, ui, station,year,month,file):
-        filename = monthfile.get_pathname(ui,station,year,month,file)
-        monthfile.generated_file_cache_control(year,month,filename)
-        return get_file(filename)
-
-    def HEAD(self, ui, station, year, month, file):
-        filename = monthfile.get_pathname(ui,station,year,month,file)
-        monthfile.generated_file_cache_control(year,month,filename)
-        return head_file(filename)
