@@ -8,7 +8,7 @@
         <div class="row">
             <div class="span6">
                 <h2>Current Conditions</h2>
-                {# This table is populated from day.js -#}
+                {# This table is populated from day_live.js -#}
                 <div id="current_conditions">
                 <table class="table table-bordered">
                     <thead>
@@ -113,7 +113,7 @@
     <script type="text/javascript" src="../../js/jquery.min.js"></script>
     <script type="text/javascript" src="http://www.google.com/jsapi"></script>
     <script type="text/javascript">
-        // URLs required by day.js
+        // URLs required by day_charts.js and day_live.js
         var live_url = '../../data/{{ station }}/live.json';
         var samples_url = '{{ data_urls['samples']}}';
         var rainfall_url = '{{ data_urls['rainfall'] }}';
@@ -123,5 +123,6 @@
         var rainfall_totals_url = '{{ data_urls['rainfall_totals'] }}';
         var live_auto_refresh = true;
     </script>
-    <script type="text/javascript" src="../../js/day.js"></script>
+    <script type="text/javascript" src="../../js/day_live.js"></script>
+    <script type="text/javascript" src="../../js/day_charts.js"></script>
 {% endblock %}
