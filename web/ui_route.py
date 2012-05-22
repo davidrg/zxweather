@@ -339,6 +339,9 @@ class static_overlay:
 
         path_name = static_overlay.check_about_html_file(path_name, file)
 
+        if os.path.isdir(path_name):
+            raise web.NotFound()
+
         return get_file(path_name)
 
     def HEAD(self, file):
@@ -353,6 +356,9 @@ class static_overlay:
         path_name = config.static_data_dir + file
 
         path_name = static_overlay.check_about_html_file(path_name, file)
+
+        if os.path.isdir(path_name):
+            raise web.NotFound()
 
         return head_file(path_name)
 
