@@ -10,32 +10,37 @@ config.load_settings()
 
 # This is the URL structure for the site
 urls = (
-    '/', 'ui_route.site_index',      # This will be a list of available stations.
-    '/(s|b)/', 'ui_route.stationlist',    # Index page for a particular station. Lets you
+          # This will be a list of available stations.
+        # Index page for a particular station. Lets you
                                           # pick which UI to use.
 
-    # Data Access (in JSON format mostly)
-    '/data/daynav.json', 'data.day_nav',
-    '/data/(\w*)/live.json', 'data.live_data',
-    # /data/station/year/month/day/... (month is in number format here)
-    '/data/(\w*)/(\d+)/(\d+)/(\d+)/datatable/(\w*).json', 'data.daily.datatable_json',
-    '/data/(\w*)/(\d+)/(\d+)/(\d+)/(\w*).json', 'data.daily.data_json',
+    # Data Index
     '/data/(\w*)/(\d+)/(\d+)/(\d+)/(?:index\.html)?', 'data.daily.index',
-    '/data/(\w*)/(\d+)/(\d+)/datatable/(\w*).json', 'data.monthly.datatable_json',
     '/data/(\w*)/(\d+)/(\d+)/(?:index\.html)?', 'data.monthly.index',
-    '/data/(\w*)/(\d+)/datatable/(\w*).json', 'data.yearly.datatable_json',
     '/data/(\w*)/(\d+)/(?:index\.html)?', 'data.yearly.index',
     '/data/(\w*)/(?:index\.html)?', 'data.station_index',
 
-    # /ui/station/year/month/day
-    '/(s|b)/(\w*)/(?:index\.html)?', 'ui_route.index',                 # index page
-    '/(s|b)/(\w*)/now', 'ui_route.now',                # Go to todays page
-    '/(s|b)/(\w*)/(\d+)/(?:index\.html)?', 'ui_route.year',            # A particular year
-    '/(s|b)/(\w*)/(\d+)/(\w*)/(?:index\.html)?', 'ui_route.month',     # A particular month
-    '/(s|b)/(\w*)/(\d+)/(\w*)/(\d+)/indoor.html', 'ui_route.indoor_day', # indoor stats for a particular day. Basic UI only.
-    '/(s|b)/(\w*)/(\d+)/(\w*)/(\d+)/(?:index\.html)?', 'ui_route.day', # A particular day
+    # Data sources (mostly JSON)
+    # /data/station/year/month/day/... (month is in number format here)
+    '/data/(\w*)/(\d+)/(\d+)/(\d+)/datatable/(\w*).json', 'data.daily.datatable_json', # Daily, DT
+    '/data/(\w*)/(\d+)/(\d+)/(\d+)/(\w*).json', 'data.daily.data_json',                # Daily
+    '/data/(\w*)/(\d+)/(\d+)/datatable/(\w*).json', 'data.monthly.datatable_json',     # Monthly, DT
+    '/data/(\w*)/(\d+)/datatable/(\w*).json', 'data.yearly.datatable_json',            # Yearly, DT
+    '/data/(\w*)/live.json', 'data.live_data',                                         # Station
+    '/data/daynav.json', 'data.day_nav',                                               # Global
 
-    # Static file overlays
+    # User interface (HTML output)
+    # /ui/station/year/month/day
+    '/(s|b)/(\w*)/(\d+)/(\w*)/(\d+)/(?:index\.html)?', 'ui_route.day', # A particular day
+    '/(s|b)/(\w*)/(\d+)/(\w*)/(\d+)/indoor.html', 'ui_route.indoor_day', # indoor stats for a particular day.
+    '/(s|b)/(\w*)/(\d+)/(\w*)/(?:index\.html)?', 'ui_route.month',     # A particular month
+    '/(s|b)/(\w*)/(\d+)/(?:index\.html)?', 'ui_route.year',            # A particular year
+    '/(s|b)/(\w*)/now', 'ui_route.now',                                # Go to todays page
+    '/(s|b)/(\w*)/(?:index\.html)?', 'ui_route.index',                 # Index page
+    '/(s|b)/(?:index\.html)?', 'ui_route.stationlist',                 # Station redirect
+    '/(?:index\.html)?', 'ui_route.site_index',                        # Site index redirect
+
+    # Static file overlays.
     '/(?:s|b)/(.*)', 'ui_route.static_overlay',
     '/(.*)', 'ui_route.static_overlay',
 )
