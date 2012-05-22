@@ -27,6 +27,7 @@ urls = (
     '/data/(\w*)/(\d+)/(\d+)/(\d+)/(\w*).json', 'data.daily.data_json',                # Daily
     '/data/(\w*)/(\d+)/(\d+)/datatable/(\w*).json', 'data.monthly.datatable_json',     # Monthly, DT
     '/data/(\w*)/(\d+)/datatable/(\w*).json', 'data.yearly.datatable_json',            # Yearly, DT
+    '/data/(\w*)/datatable/(\w*).json', 'data.station.datatable_json',                 # Station, DT
     '/data/(\w*)/(\w*).json', 'data.station.data_json',                                # Station
     '/data/daynav.json', 'data.day_nav',                                               # Global
 
