@@ -10,7 +10,7 @@ import web
 from web.contrib.template import render_jinja
 from config import db
 import config
-from data.util import rfcformat, outdoor_sample_result_to_datatable, datetime_to_js_date, pretty_print
+from data.util import rfcformat, datetime_to_js_date, pretty_print
 
 __author__ = 'David Goodwin'
 
@@ -28,6 +28,14 @@ class datatable_json:
     """
 
     def GET(self, station, year, dataset):
+        """
+        Handles DataTable JSON data sources.
+        :param station: Station to get data for.
+        :param year: Year to get data for.
+        :param dataset: Dataset to get
+        :return: JSON data
+        :raise: web.NotFound if an invalid request is made.
+        """
         if station != config.default_station_name:
             raise web.NotFound()
 
@@ -101,6 +109,11 @@ def yearly_cache_control_headers(year,age):
     web.header('Last-Modified', rfcformat(age))
 
 def get_daily_records(year):
+    """
+    Gets records for each day in the year.
+    :param year: Year to get records for.
+    :return: JSON data containing records for the year.
+    """
     params = dict(date = date(year,01,01))
     query_data = db.query("""select date_trunc('day', time_stamp)::date as time_stamp,
     max(temperature) as max_temp,
