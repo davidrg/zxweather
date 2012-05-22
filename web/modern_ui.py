@@ -160,9 +160,7 @@ class ModernUI(BaseUI):
 
         BaseUI.day_cache_control(None, now.year, now.month, now.day)
         nav_urls = ModernUI.get_nav_urls(station, current_location)
-        data_urls = ModernUI.get_day_data_urls(station, now, True)
         return self.render.station(nav=nav_urls,
-                                   data_urls=data_urls,
                                    data=data,
                                    station=station)
 
