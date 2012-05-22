@@ -43,11 +43,9 @@ urls = (
     '/(?:index\.html)?', 'ui_route.site_index',                        # Site index redirect
 
     # Static file overlays.
-    '/(?:s|b)/(.*)', 'ui_route.static_overlay',
-    '/(.*)', 'ui_route.static_overlay',
+    '/(?:s|b)/(.*)', 'static_overlays.overlay_file',
+    '/(.*)', 'static_overlays.overlay_file',
 )
-
-
 
 
 # This is so we can run it as an application to launch a development web
