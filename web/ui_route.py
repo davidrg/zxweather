@@ -65,15 +65,15 @@ def validate_request(ui=None,station=None, year=None, month=None, day=None):
 
     # Check the date.
     if year is not None and month is not None and day is not None:
-        result = day_exists(datetime.date(year,month,day))
+        result = day_exists(datetime.date(int(year),month_number[month],int(day)))
         if not result:
             raise web.NotFound()
     elif year is not None and month is not None:
-        result = month_exists(year,month)
+        result = month_exists(int(year),month_number[month])
         if not result:
             raise web.NotFound()
     elif year is not None:
-        result = year_exists(year)
+        result = year_exists(int(year))
         if not result:
             raise web.NotFound()
 

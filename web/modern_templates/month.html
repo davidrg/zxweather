@@ -5,8 +5,29 @@
 {% block head %}{% endblock %}
 {% block content %}
 
-    <h1>Weather for {{ data.this_month }}</h1>
-    <hr>
+    <header>
+        <div class="row">
+            <div class="span6">
+                <h1>Weather for {{ data.this_month }}</h1>
+            </div>
+            <div class="span6">
+                <div class="btn-group" style="float:right;">
+                    {% if data.prev_url -%}
+                        <a href="{{ data.prev_url }}" class="btn"><i class="icon-backward"></i> {{ data.prev_month }}</a>
+                    {%- else -%}
+                        <a href="#" class="btn disabled" onclick="return false;"><i class="icon-backward"></i> {{ data.prev_month }}</a>
+                    {%- endif %}
+                    <a href="../" class="btn">{{ data.this_year }}</a>
+                    {% if data.next_url -%}
+                        <a href="{{ data.next_url }}" class="btn">{{ data.next_month }}<i class="icon-forward"></i></a>
+                    {%- else -%}
+                        <a href="#" class="btn disabled" onclick="return false;">{{ data.next_month }} <i class="icon-forward"></i></a>
+                    {%- endif %}
+                </div>
+            </div>
+        </div>
+        <hr>
+    </header>
     <div class="top-navlinks">
         {% if data.current_data %}<a href="#current">Current Conditions</a> |{% endif %}
         <a href="#days">Days for this Month</a> |
@@ -18,9 +39,9 @@
     <section id="days">
         <h2>Days for {{ data.this_month }} {{ data.year_stamp }}</h2>
         <p>
-            {% set i = 0 %}
-            {% for day in data.days %}
-                {% set i = i + 1 %}
+            {% set i = 0 -%}
+            {%- for day in data.days -%}
+                {%- set i = i + 1 -%}
                 <a href="{{ day }}/">{{ day }}</a> {% if i < data.days|length %}|{% endif %}
             {% endfor %}
         </p>
@@ -126,27 +147,6 @@
             </div>
         </div>
     </section>
-
-    <hr>
-    <footer>
-        <div class="footer-navlinks">
-            {% if data.prev_url %}
-                <a href="{{ data.prev_url }}">&lt;&lt; {{ data.prev_month }} {{ data.prev_year }}</a>
-            {% else %}
-                &lt;&lt; {{ data.prev_month }} {{ data.prev_year }}
-            {% endif %}
-            |
-            <a href="../">{{ data.this_year }}</a>
-            |
-            {% if data.next_url %}
-                <a href="{{ data.next_url }}">{{ data.next_month }} {{ data.next_year }} &gt;&gt;</a>
-            {% else %}
-                {{ data.next_month }} {{ data.next_year }} &gt;&gt;
-            {% endif %}
-            <br>
-            <a href="../../now">Today</a>
-        </div>
-    </footer>
 
     <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
     <script type="text/javascript" src="http://www.google.com/jsapi"></script>

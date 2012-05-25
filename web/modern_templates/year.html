@@ -6,14 +6,33 @@
 {% block content %}
 
     <header>
-        <h1>Weather for {{ data.this_year }}</h1>
+        <div class="row">
+            <div class="span6">
+                <h1>Weather for {{ data.this_year }}</h1>
+            </div>
+            <div class="span6">
+                <div class="btn-group" style="float:right;">
+                    {% if urls.prev_url -%}
+                        <a href="{{ urls.prev_url }}" class="btn"><i class="icon-backward"></i> {{ data.prev_year }}</a>
+                    {%- else -%}
+                        <a href="#" class="btn disabled" onclick="return false;"><i class="icon-backward"></i> {{ data.prev_year }}</a>
+                    {%- endif %}
+                    <a href="../" class="btn">Station Overview</a>
+                    {% if urls.next_url -%}
+                        <a href="{{ urls.next_url }}" class="btn">{{ data.next_year }} <i class="icon-forward"></i></a>
+                    {%- else -%}
+                        <a href="#" class="btn disabled" onclick="return false;">{{ data.next_year }} <i class="icon-forward"></i></a>
+                    {%- endif %}
+                </div>
+            </div>
+        </div>
         <hr>
     </header>
 
     <section id="months">
         <h2>Months for {{ data.this_year }}</h2>
         <ul>
-            {% for monthlink in data.months %}
+            {% for monthlink in data.months -%}
                 <li><a href="{{ monthlink }}/">{{ monthlink }}</a></li>
             {% endfor %}
         </ul>
@@ -102,27 +121,6 @@
             </div>
         </div>
     </section>
-
-    <hr>
-    <footer>
-        <div class="footer-navlinks">
-            {% if urls.prev_url %}
-                <a href="{{ urls.prev_url }}">&lt;&lt; {{ data.prev_year }}</a>
-            {% else %}
-                &lt;&lt; {{ data.prev_year }}
-            {% endif %}
-            |
-            <a href="../">Station</a>
-            |
-            {% if urls.next_url %}
-                <a href="{{ urls.next_url }}">{{ data.next_year }} &gt;&gt;</a>
-            {% else %}
-                {{ data.next_year }} &gt;&gt;
-            {% endif %}
-            <br>
-            <a href="../now">Today</a>
-        </div>
-    </footer>
 
     <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
     <script type="text/javascript" src="http://www.google.com/jsapi"></script>
@@ -215,5 +213,4 @@
             });
         }
     </script>
-
 {% endblock %}
