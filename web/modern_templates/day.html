@@ -4,15 +4,36 @@
 {% block title %}Weather for {{ data.date_stamp }}{% endblock %}
 {% block head %}{% endblock %}
 {% block content %}
-    <h1>Weather for {{ data.date_stamp }}</h1>
-    <hr> {#  This is only shown when we are looking at todays weather. #}
+    <header>
+        <div class="row">
+            <div class="span6">
+                <h1>Weather for {{ data.date_stamp }}</h1>
+            </div>
+            <div class="span6">
+                <div class="btn-group" style="float:right;">
+                    {% if data.prev_url -%}
+                        <a href="{{ data.prev_url }}" class="btn"><i class="icon-backward"></i> {{ data.prev_date }}</a>
+                    {%- else -%}
+                        <a href="#" class="btn disabled" onclick="return false;"><i class="icon-backward"></i> {{ data.prev_date }}</a>
+                    {%- endif %}
+                    <a href="../" class="btn">{{ data.this_month }}</a>
+                    {% if data.next_url -%}
+                        <a href="{{ data.next_url }}" class="btn">{{ data.next_date }} <i class="icon-forward"></i></a>
+                    {%- else -%}
+                        <a href="#" class="btn disabled" onclick="return false;">{{ data.next_date }} <i class="icon-forward"></i></a>
+                    {%- endif %}
+                </div>
+            </div>
+        </div>
+        <hr>
+    </header>
+
     <div class="top-navlinks">
         {% if data.current_data %}<a href="#current">Current Conditions</a> |{% endif %}
         <a href="#records">Records</a> | 
         <a href="#1day">1-day charts</a> | 
         <a href="#7day">7-day charts</a>
     </div>
-
 
     <section>
     {%- if data.current_data %}
@@ -110,24 +131,6 @@
         {% include 'day-charts-7day.html' %}
     </section>
 
-    <hr>
-    <div class="footer-navlinks">
-    {% if data.prev_url %}
-        <a href="{{ data.prev_url }}">&lt;&lt; {{ data.prev_date }}</a>
-    {% else %}
-        {{ data.prev_date }}
-    {% endif %}
-    |
-    <a href="../">{{ data.this_month }}</a>
-    |
-    {% if data.next_url %}
-        <a href="{{ data.next_url }}">{{ data.next_date }} &gt;&gt;</a>
-    {% else %}
-        {{ data.next_date }}
-    {% endif %}
-    <br>
-    <a href="../../../now">Today</a>
-    </div>
     <a href="indoor.html">I</a>
 
     <script type="text/javascript" src="../../../../../js/jquery.min.js"></script>

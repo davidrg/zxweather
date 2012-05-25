@@ -186,7 +186,7 @@ class ModernUI(BaseUI):
             prev_year = None
 
             # A list of months in the year that have data
-            months = BaseUI.get_year_months(year)
+            months = [item.capitalize() for item in BaseUI.get_year_months(year)]
 
             # Min/max values for the year.
             records = BaseUI.get_yearly_records(year)
@@ -246,7 +246,7 @@ class ModernUI(BaseUI):
             prev_month = None
             prev_year = None
 
-            this_month = month_name[month]
+            this_month = month_name[month].capitalize()
 
             # List of days in the month that have data
             days = BaseUI.get_month_days(year,month)
@@ -270,8 +270,8 @@ class ModernUI(BaseUI):
             next_month = 1
             next_year += 1
 
-        data.prev_month = month_name[previous_month]
-        data.next_month = month_name[next_month]
+        data.prev_month = month_name[previous_month].capitalize()
+        data.next_month = month_name[next_month].capitalize()
         data.prev_year = previous_year
         data.next_year = next_year
         data.this_year = year
@@ -380,7 +380,7 @@ class ModernUI(BaseUI):
             prev_date = None
             next_url = None
             next_date = None
-            this_month = month_name[month]
+            this_month = month_name[month].capitalize()
             records = get_daily_records(date_stamp)
             rainfall_7days_total = total_rainfall_in_last_7_days(date_stamp)
 
