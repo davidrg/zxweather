@@ -4,11 +4,11 @@ Handles fetching the day pages in all UIs.
 
 from datetime import datetime, timedelta, date
 from web.contrib.template import render_jinja
-from baseui import BaseUI
+from ui.baseui import BaseUI
 
 from cache import day_cache_control
 from data.database import get_live_data, get_daily_records, total_rainfall_in_last_7_days, day_exists
-from modern_ui import ModernUI
+from ui.modern_ui import ModernUI
 import os
 from ui_route import html_file, month_number, validate_request
 from util import relative_url, month_name

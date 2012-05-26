@@ -33,10 +33,10 @@ urls = (
 
     # User interface (HTML output)
     # /ui/station/year/month/day
-    '/(s|b)/(\w*)/(\d+)/(\w*)/(\d+)/(?:index\.html)?', 'day_page.day', # A particular day
-    '/(s|b)/(\w*)/(\d+)/(\w*)/(\d+)/indoor.html', 'day_page.indoor_day', # indoor stats for a particular day.
-    '/(s|b)/(\w*)/(\d+)/(\w*)/(?:index\.html)?', 'month_page.month',   # A particular month
-    '/(s|b)/(\w*)/(\d+)/(?:index\.html)?', 'year_page.year',           # A particular year
+    '/(s|b)/(\w*)/(\d+)/(\w*)/(\d+)/(?:index\.html)?', 'ui.day_page.day', # A particular day
+    '/(s|b)/(\w*)/(\d+)/(\w*)/(\d+)/indoor.html', 'ui.day_page.indoor_day', # indoor stats for a particular day.
+    '/(s|b)/(\w*)/(\d+)/(\w*)/(?:index\.html)?', 'ui.month_page.month',   # A particular month
+    '/(s|b)/(\w*)/(\d+)/(?:index\.html)?', 'ui.year_page.year',           # A particular year
     '/(s|b)/(\w*)/now', 'ui_route.now',                                # Go to todays page
     '/(s|b)/(\w*)/(?:index\.html)?', 'ui_route.index',                 # Index page
     '/(s|b)/(?:index\.html)?', 'ui_route.stationlist',                 # Station redirect
