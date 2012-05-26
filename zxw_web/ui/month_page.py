@@ -9,7 +9,7 @@ from data.database import month_exists
 from ui.modern_ui import ModernUI
 import os
 from ui.ui_route import validate_request, html_file
-from util import relative_url
+from url_util import relative_url
 
 __author__ = 'David Goodwin'
 
