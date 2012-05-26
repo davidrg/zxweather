@@ -23,6 +23,7 @@ urls = (
 
     # Data sources (mostly JSON)
     # /data/station/year/month/day/... (month is in number format here)
+    # All code resides in the data package.
     '/data/(\w*)/(\d+)/(\d+)/(\d+)/datatable/(\w*).json', 'data.daily.datatable_json', # Daily, DT
     '/data/(\w*)/(\d+)/(\d+)/(\d+)/(\w*).json', 'data.daily.data_json',                # Daily
     '/data/(\w*)/(\d+)/(\d+)/datatable/(\w*).json', 'data.monthly.datatable_json',     # Monthly, DT
@@ -31,16 +32,17 @@ urls = (
     '/data/(\w*)/(\w*).json', 'data.station.data_json',                                # Station
     '/data/daynav.json', 'data.day_nav',                                               # Global
 
-    # User interface (HTML output)
+    # User interface (HTML output).
     # /ui/station/year/month/day
+    # All code resides in the ui package.
     '/(s|b)/(\w*)/(\d+)/(\w*)/(\d+)/(?:index\.html)?', 'ui.day_page.day', # A particular day
     '/(s|b)/(\w*)/(\d+)/(\w*)/(\d+)/indoor.html', 'ui.day_page.indoor_day', # indoor stats for a particular day.
     '/(s|b)/(\w*)/(\d+)/(\w*)/(?:index\.html)?', 'ui.month_page.month',   # A particular month
     '/(s|b)/(\w*)/(\d+)/(?:index\.html)?', 'ui.year_page.year',           # A particular year
-    '/(s|b)/(\w*)/now', 'ui_route.now',                                # Go to todays page
-    '/(s|b)/(\w*)/(?:index\.html)?', 'station_page.station',           # Index page
-    '/(s|b)/(?:index\.html)?', 'ui_route.stationlist',                 # Station redirect
-    '/(?:index\.html)?', 'ui_route.site_index',                        # Site index redirect
+    '/(s|b)/(\w*)/now', 'ui_route.now',                                   # Go to todays page
+    '/(s|b)/(\w*)/(?:index\.html)?', 'ui.station_page.station',           # Index page
+    '/(s|b)/(?:index\.html)?', 'ui.ui_route.stationlist',                 # Station redirect
+    '/(?:index\.html)?', 'ui.ui_route.site_index',                        # Site index redirect
 
     # Static file overlays.
     '/(?:s|b)/(.*)', 'static_overlays.overlay_file',
