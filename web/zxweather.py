@@ -33,7 +33,7 @@ urls = (
 
     # User interface (HTML output)
     # /ui/station/year/month/day
-    '/(s|b)/(\w*)/(\d+)/(\w*)/(\d+)/(?:index\.html)?', 'ui_route.day', # A particular day
+    '/(s|b)/(\w*)/(\d+)/(\w*)/(\d+)/(?:index\.html)?', 'day_page.day', # A particular day
     '/(s|b)/(\w*)/(\d+)/(\w*)/(\d+)/indoor.html', 'ui_route.indoor_day', # indoor stats for a particular day.
     '/(s|b)/(\w*)/(\d+)/(\w*)/(?:index\.html)?', 'ui_route.month',     # A particular month
     '/(s|b)/(\w*)/(\d+)/(?:index\.html)?', 'ui_route.year',            # A particular year
