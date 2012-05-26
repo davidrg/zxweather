@@ -70,34 +70,3 @@ class ModernUI(BaseUI):
         return urls
 
 
-    def get_station(self,station):
-        """
-        Index page for the weather station. Should give station records and
-        perhaps some basic yearly overview data.
-        :param station: Name of the station to show info for.
-        :return: View data.
-        """
-
-        current_location = '/s/' + station + '/'
-
-        now = datetime.now()
-
-        class data:
-            """ Data required by the view """
-            records = get_daily_records(now.date())
-            years = get_years()
-            year = now.year
-            month_s = month_name[now.month]
-            yesterday = now - timedelta(1)
-            yesterday_month_s = month_name[yesterday.month]
-            rainfall_7days_total = total_rainfall_in_last_7_days(now.date())
-
-        if not day_exists(data.yesterday):
-            data.yesterday = None
-            data.yesterday_month_s = None
-
-        day_cache_control(None, now.year, now.month, now.day)
-        nav_urls = ModernUI.get_nav_urls(station, current_location)
-        return self.render.station(nav=nav_urls,
-                                   data=data,
-                                   station=station)
