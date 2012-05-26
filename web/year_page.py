@@ -17,8 +17,8 @@ basic_template_dir = os.path.join(os.path.dirname(__file__),
 modern_template_dir = os.path.join(os.path.dirname(__file__),
                                    os.path.join('modern_templates'))
 
-basic = render_jinja(basic_template_dir, encoding='utf-8')
-modern = render_jinja(modern_template_dir, encoding='utf-8')
+basic_templates = render_jinja(basic_template_dir, encoding='utf-8')
+modern_templates = render_jinja(modern_template_dir, encoding='utf-8')
 
 def get_year(ui,station, year):
     """
@@ -73,9 +73,9 @@ def get_year(ui,station, year):
             next_url = data.next_url
 
         nav_urls = ModernUI.get_nav_urls(station, current_location)
-        return modern.year(nav=nav_urls,data=data,urls=urls)
+        return modern_templates.year(nav=nav_urls,data=data,urls=urls)
     else:
-        return basic.year(data=data)
+        return basic_templates.year(data=data)
 
 class year:
     """

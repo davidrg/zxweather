@@ -17,8 +17,8 @@ basic_template_dir = os.path.join(os.path.dirname(__file__),
 modern_template_dir = os.path.join(os.path.dirname(__file__),
                                    os.path.join('modern_templates'))
 
-basic = render_jinja(basic_template_dir, encoding='utf-8')
-modern = render_jinja(modern_template_dir, encoding='utf-8')
+basic_templates = render_jinja(basic_template_dir, encoding='utf-8')
+modern_templates = render_jinja(modern_template_dir, encoding='utf-8')
 
 
 def get_previous_month(year,month):
@@ -167,9 +167,9 @@ def get_month(ui, station, year, month):
             daily_records = data_base + 'datatable/daily_records.json'
 
         nav_urls = ModernUI.get_nav_urls(station, current_location)
-        return modern.month(nav=nav_urls, data=data,dataurls=urls)
+        return modern_templates.month(nav=nav_urls, data=data,dataurls=urls)
     else:
-        return basic.month(data=data)
+        return basic_templates.month(data=data)
 
 
 class month:
