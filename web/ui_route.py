@@ -184,12 +184,3 @@ class month:
         html_file()
         return uis[ui].get_month(station, int(year), month_number[month])
 
-class indoor_day:
-    """
-    Gives an overview for a day.
-    """
-    def GET(self, ui, station, year, month, day):
-
-        validate_request(ui,station,year,month,day)
-        html_file()
-        return uis[ui].get_indoor_day(station, int(year), month_number[month], int(day))
