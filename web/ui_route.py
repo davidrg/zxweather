@@ -154,23 +154,3 @@ class now:
 
         raise web.seeother(todays_url)
 
-class year:
-    """
-    Gives an overview for a year
-    """
-    def GET(self, ui, station, year):
-        """
-        Fetches the year page (index.html) after doing some basic validation.
-        :param ui: UI to fetch the page for
-        :type ui: str
-        :param station: Station to fetch data for
-        :type station: str
-        :param year: Year page to get
-        :type year: str
-        :return: HTML data for the appropriate year, station and ui
-        :rtype: str
-        """
-        validate_request(ui,station,year)
-        html_file()
-        return uis[ui].get_year(station, int(year))
-
