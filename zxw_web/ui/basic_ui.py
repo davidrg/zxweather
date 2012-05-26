@@ -36,12 +36,4 @@ class BasicUI(BaseUI):
         """
         return 'Very basic HTML UI. No JavaScript or CSS.'
 
-    def get_station(self,station):
-        """
-        Index page for the weather station. Should give station records and
-        perhaps some basic yearly overview data.
-        :param station:
-        :return:
-        """
 
-        return self.render.station(years=get_years(),station=station)
