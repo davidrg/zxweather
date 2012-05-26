@@ -4,7 +4,7 @@ Handles pages at the year level.
 from web.contrib.template import render_jinja
 from ui.baseui import BaseUI
 from cache import year_cache_control
-from data.database import year_exists
+from database import year_exists
 from ui.modern_ui import ModernUI
 import os
 from ui.ui_route import validate_request, html_file

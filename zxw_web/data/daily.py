@@ -4,7 +4,7 @@ Used for generating charts in JavaScript, etc.
 """
 
 from datetime import date, datetime, timedelta
-from data.database import get_daily_records, get_daily_rainfall, get_latest_sample_timestamp
+from database import get_daily_records, get_daily_rainfall, get_latest_sample_timestamp
 import os
 import web
 from web.contrib.template import render_jinja

@@ -9,7 +9,7 @@ from months import month_number, month_name
 
 from ui.basic_ui import BasicUI
 import config
-from data.database import day_exists, month_exists, year_exists
+from database import day_exists, month_exists, year_exists
 from ui.modern_ui import ModernUI
 import datetime
 import web
