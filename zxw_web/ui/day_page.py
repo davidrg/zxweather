@@ -156,7 +156,7 @@ def get_day_page(ui, station, day):
 
     data.prev_url, data.next_url = get_day_nav_urls(ui, station, data.date_stamp)
 
-    day_cache_control(data_age, day.year, day.month, day.day)
+    day_cache_control(data_age, day)
 
     if ui == 's':
         nav_urls = get_nav_urls(station, current_location)
@@ -245,7 +245,7 @@ def get_indoor_day(ui, station, day):
         data.current_data = get_live_indoor_data()
         data.current_data_ts = data.current_data.time_stamp
 
-    day_cache_control(data.current_data_ts, day.year, day.month, day.day)
+    day_cache_control(data.current_data_ts, day)
 
     if ui == 's':
         nav_urls = get_nav_urls(station, current_location)
