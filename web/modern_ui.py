@@ -2,9 +2,10 @@
 Modern HTML5/CSS/Javascript UI.
 """
 
-from datetime import datetime, date, timedelta
+from datetime import datetime, timedelta
 from baseui import BaseUI
-from data.database import day_exists, month_exists, year_exists, total_rainfall_in_last_7_days, get_daily_records, get_live_data, get_years
+from cache import month_cache_control, year_cache_control, day_cache_control
+from data.database import day_exists, month_exists, year_exists, total_rainfall_in_last_7_days, get_daily_records, get_years
 from util import relative_url
 
 __author__ = 'David Goodwin'
@@ -93,44 +94,6 @@ class ModernUI(BaseUI):
 
         return urls
 
-    @staticmethod
-    def get_day_data_urls(station, day, overview_page=False):
-        """
-        Gets data URLs for a day page or the station overview page.
-        :param station: Station to get URLs for
-        :type station: str, unicode
-        :param day: Day to get URLs for
-        :type day: date
-        :param overview_page: If the URLs should be relative to the overview
-                              page instead of the day page
-        :type overview_page: bool
-        """
-
-        base_url = '/data/{0}/{1}/{2}/{3}/'.format(station,
-                                                   day.year,
-                                                   day.month,
-                                                   day.day)
-        if overview_page:
-            current_url = '/s/{0}/'.format(station)
-        else:
-            current_url = '/s/{0}/{1}/{2}/{3}/'.format(station,
-                                                       day.year,
-                                                       month_name[day.month],
-                                                       day.day)
-        urls = {
-            'samples': relative_url(current_url,
-                                    base_url + 'datatable/samples.json'),
-            '7day_samples': relative_url(current_url,
-                                         base_url + 'datatable/7day_30m_avg_samples.json'),
-            'rainfall': relative_url(current_url,
-                                     base_url + 'datatable/hourly_rainfall.json'),
-            '7day_rainfall': relative_url(current_url,
-                                          base_url + 'datatable/7day_hourly_rainfall.json'),
-            'records': relative_url(current_url, base_url + 'records.json'),
-            'rainfall_totals': relative_url(current_url, base_url + 'rainfall.json'),
-        }
-
-        return urls
 
     def get_station(self,station):
         """
@@ -158,7 +121,7 @@ class ModernUI(BaseUI):
             data.yesterday = None
             data.yesterday_month_s = None
 
-        BaseUI.day_cache_control(None, now.year, now.month, now.day)
+        day_cache_control(None, now.year, now.month, now.day)
         nav_urls = ModernUI.get_nav_urls(station, current_location)
         return self.render.station(nav=nav_urls,
                                    data=data,
@@ -212,7 +175,7 @@ class ModernUI(BaseUI):
         if year_exists(data.next_year):
             urls.next_url = '../' + str(data.next_year)
 
-        BaseUI.year_cache_control(year)
+        year_cache_control(year)
         nav_urls = ModernUI.get_nav_urls(station, current_location)
         return self.render.year(nav=nav_urls,data=data,urls=urls)
 
@@ -300,6 +263,6 @@ class ModernUI(BaseUI):
             samples_30m_avg = data_base + 'datatable/30m_avg_samples.json'
             daily_records = data_base + 'datatable/daily_records.json'
 
-        BaseUI.month_cache_control(year, month)
+        month_cache_control(year, month)
         nav_urls = ModernUI.get_nav_urls(station, current_location)
         return self.render.month(nav=nav_urls, data=data,dataurls=urls)
