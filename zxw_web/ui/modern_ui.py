@@ -5,7 +5,7 @@ Modern HTML5/CSS/Javascript UI.
 from datetime import datetime, timedelta
 from months import month_name
 from ui.baseui import BaseUI
-from util import relative_url
+from url_util import relative_url
 
 __author__ = 'David Goodwin'
 
