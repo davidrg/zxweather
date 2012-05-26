@@ -3,9 +3,8 @@ A very basic HTML3/4 UI using images for the charts rather than Javascript.
 Should be compatible with just about anything.
 """
 
-from baseui import BaseUI
-from cache import year_cache_control
-from data.database import year_exists, get_years
+from ui.baseui import BaseUI
+from data.database import  get_years
 
 __author__ = 'David Goodwin'
 
