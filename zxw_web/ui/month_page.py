@@ -1,12 +1,14 @@
 """
 Controllers for month pages.
 """
+from datetime import date
+import web
 from web.contrib.template import render_jinja
+from config import db
 from months import month_name, month_number
-from ui.baseui import BaseUI
 from cache import month_cache_control
 from database import month_exists
-from ui.modern_ui import ModernUI
+from ui import get_nav_urls
 import os
 from ui.ui_route import validate_request, html_file
 from url_util import relative_url
@@ -108,6 +110,65 @@ def month_nav_urls(ui,station,year,month, current_location):
 
     return prev_url, next_url
 
+def get_month_days(year, month):
+    """
+    Returns a list of all days in the specified month for which there
+    exists data in the database.
+
+    :param year: Months year
+    :type year: integer
+    :param month: Month
+    :type month: integer
+    :return: A list of days in the month that have data
+    :type: [integer]
+    """
+    month_data = db.query("""select md.day_stamp from (select extract(year from time_stamp) as year_stamp,
+       extract(month from time_stamp) as month_stamp,
+       extract(day from time_stamp) as day_stamp
+from sample
+group by year_stamp, month_stamp, day_stamp) as md where md.year_stamp = $year and md.month_stamp = $month
+order by day_stamp""", dict(year=year, month=month))
+
+    if not len(month_data):
+        return None
+
+    days = []
+    for day in month_data:
+        day = int(day.day_stamp)
+        days.append(day)
+
+    return days
+
+def get_monthly_records(year, month):
+    """
+    Gets the records for the month (data from the monthly_records view).
+    :param year: Year to get records for.
+    :type year: integer
+    :param month:  Month to get records for
+    :type month: integer
+    :return: Records for the year.
+    :raise: web.NotFound() if there is no data for the year/month.
+    """
+
+    params = dict(date=date(year,month,01))
+    monthly_records = db.query("""SELECT date_stamp, total_rainfall, max_gust_wind_speed, max_gust_wind_speed_ts::timestamp,
+   max_average_wind_speed, max_average_wind_speed_ts::timestamp, min_absolute_pressure,
+   min_absolute_pressure_ts::timestamp, max_absolute_pressure, max_absolute_pressure_ts::timestamp,
+   min_apparent_temperature, min_apparent_temperature_ts::timestamp, max_apparent_temperature,
+   max_apparent_temperature_ts::timestamp, min_wind_chill, min_wind_chill_ts::timestamp,
+   max_wind_chill, max_wind_chill_ts::timestamp, min_dew_point, min_dew_point_ts::timestamp,
+   max_dew_point, max_dew_point_ts::timestamp, min_temperature, min_temperature_ts::timestamp,
+   max_temperature, max_temperature_ts::timestamp, min_humidity, min_humidity_ts::timestamp,
+   max_humidity, max_humidity_ts::timestamp
+FROM monthly_records
+WHERE date_stamp = $date""", params)
+
+    if not len(monthly_records):
+        # Bad url or something.
+        raise web.NotFound()
+
+    return monthly_records[0]
+
 def get_month(ui, station, year, month):
     """
     Gives an overview for a month.
@@ -151,10 +212,13 @@ def get_month(ui, station, year, month):
         this_month = month_name[month].capitalize()
 
         # List of days in the month that have data
-        days = BaseUI.get_month_days(year,month)
+        days = get_month_days(year,month)
+        if days is None:
+            # No days in this month? Can't be any month then.
+            raise web.NotFound()
 
         # Min/Max values for the month
-        records = BaseUI.get_monthly_records(year,month)
+        records = get_monthly_records(year,month)
 
     month_cache_control(year, month)
     if ui == 's':
@@ -167,7 +231,7 @@ def get_month(ui, station, year, month):
             samples_30m_avg = data_base + 'datatable/30m_avg_samples.json'
             daily_records = data_base + 'datatable/daily_records.json'
 
-        nav_urls = ModernUI.get_nav_urls(station, current_location)
+        nav_urls = get_nav_urls(station, current_location)
         return modern_templates.month(nav=nav_urls, data=data,dataurls=urls)
     else:
         return basic_templates.month(data=data)

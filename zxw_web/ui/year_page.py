@@ -1,11 +1,13 @@
 """
 Handles pages at the year level.
 """
+import web
 from web.contrib.template import render_jinja
-from ui.baseui import BaseUI
+from config import db
+from months import month_name
 from cache import year_cache_control
 from database import year_exists
-from ui.modern_ui import ModernUI
+from ui import get_nav_urls
 import os
 from ui.ui_route import validate_request, html_file
 
@@ -19,6 +21,60 @@ modern_template_dir = os.path.join(os.path.dirname(__file__),
 
 basic_templates = render_jinja(basic_template_dir, encoding='utf-8')
 modern_templates = render_jinja(modern_template_dir, encoding='utf-8')
+
+def get_year_months(year):
+    """
+    Returns a list of all months in the specified year for which there
+    exists data in the database
+    :param year: The year to get months for
+    :type year: integer
+    :return: A list of months in the year that have data
+    :type: [integer]
+    :raise: web.NotFound() if there is no data for the year.
+    """
+    month_data = db.query("""select md.month_stamp::integer from (select extract(year from time_stamp) as year_stamp,
+           extract(month from time_stamp) as month_stamp
+    from sample
+    group by year_stamp, month_stamp) as md where md.year_stamp = $year""", dict(year=year))
+
+
+    if not len(month_data):
+        # If there are no months in this year then there can't be any data.
+        raise web.NotFound()
+
+    months = []
+    for month in month_data:
+        the_month_name = month_name[month.month_stamp]
+        months.append(the_month_name)
+
+    return months
+
+def get_yearly_records(year):
+    """
+    Gets the records for the year (data from the yearly_records view).
+    :param year: Year to get records for.
+    :type year: integer
+    :return: Records for the year.
+    :raise: web.NotFound() if there is no data for the year.
+    """
+    params = dict(year=year)
+    yearly_records = db.query("""SELECT year_stamp, total_rainfall, max_gust_wind_speed, max_gust_wind_speed_ts::timestamp,
+   max_average_wind_speed, max_average_wind_speed_ts::timestamp, min_absolute_pressure,
+   min_absolute_pressure_ts::timestamp, max_absolute_pressure, max_absolute_pressure_ts::timestamp,
+   min_apparent_temperature, min_apparent_temperature_ts::timestamp, max_apparent_temperature,
+   max_apparent_temperature_ts::timestamp, min_wind_chill, min_wind_chill_ts::timestamp,
+   max_wind_chill, max_wind_chill_ts::timestamp, min_dew_point, min_dew_point_ts::timestamp,
+   max_dew_point, max_dew_point_ts::timestamp, min_temperature, min_temperature_ts::timestamp,
+   max_temperature, max_temperature_ts::timestamp, min_humidity, min_humidity_ts::timestamp,
+   max_humidity, max_humidity_ts::timestamp
+FROM yearly_records
+WHERE year_stamp = $year""", params)
+
+    if not len(yearly_records):
+        # Bad url or something.
+        raise web.NotFound()
+
+    return yearly_records[0]
 
 def get_year(ui,station, year):
     """
@@ -46,10 +102,10 @@ def get_year(ui,station, year):
         prev_year = year - 1
 
         # A list of months in the year that have data
-        months = [(item,item.capitalize()) for item in BaseUI.get_year_months(year)]
+        months = [(item,item.capitalize()) for item in get_year_months(year)]
 
         # Min/max values for the year.
-        records = BaseUI.get_yearly_records(year)
+        records = get_yearly_records(year)
 
     # See if any data exists for the previous and next months (no point
     # showing a navigation link if there is no data)
@@ -72,7 +128,7 @@ def get_year(ui,station, year):
             prev_url = data.prev_url
             next_url = data.next_url
 
-        nav_urls = ModernUI.get_nav_urls(station, current_location)
+        nav_urls = get_nav_urls(station, current_location)
         return modern_templates.year(nav=nav_urls,data=data,urls=urls)
     else:
         return basic_templates.year(data=data)

@@ -6,9 +6,9 @@ from datetime import datetime, timedelta
 from web.contrib.template import render_jinja
 from cache import day_cache_control
 from database import get_daily_records, get_years, total_rainfall_in_last_7_days, day_exists
-from modern_ui import ModernUI
 import os
 from months import month_name
+from ui import get_nav_urls
 from ui.ui_route import validate_request, html_file
 
 __author__ = 'David Goodwin'
@@ -48,7 +48,7 @@ def get_station_standard(station):
         data.yesterday_month_s = None
 
     day_cache_control(None, now.year, now.month, now.day)
-    nav_urls = ModernUI.get_nav_urls(station, current_location)
+    nav_urls = get_nav_urls(station, current_location)
     return modern_templates.station(nav=nav_urls,
                                data=data,
                                station=station)

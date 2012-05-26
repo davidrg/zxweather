@@ -4,6 +4,7 @@ Various common functions to get data from the database.
 
 from config import db, live_data_available
 from datetime import datetime, date
+import config
 
 __author__ = 'David Goodwin'
 
@@ -200,3 +201,33 @@ def get_years():
         years.append(int(record.year))
 
     return years
+
+def get_live_indoor_data():
+    """
+    Gets live indoor data from the database. If config.live_data_available
+    is set then the data will come from the live data table and will be at
+    most 48 seconds old. If it is not set then the data returned will be
+    the most recent sample from the sample table.
+
+    :return: Timestamp for the data and the actual data.
+    """
+    now = datetime.now()
+    params = dict(date=date(now.year, now.month, now.day))
+
+    if config.live_data_available:
+        current_data = db.query("""select download_timestamp::time as time_stamp,
+            indoor_relative_humidity,
+            indoor_temperature
+            from live_data""")[0]
+    else:
+        # Fetch the latest data for today
+        current_data = db.query("""select time_stamp::time as time_stamp,
+            indoor_relative_humidity,
+            indoor_temperature
+        from sample
+        where date(time_stamp) = $date
+        order by time_stamp desc
+        limit 1""",params)[0]
+
+    return current_data
+
