@@ -1,14 +1,14 @@
 """
 Data sources at the station level.
 """
-from datetime import datetime, timedelta
+from datetime import datetime
 import json
 import web
 from web.contrib.template import render_jinja
+from cache import live_data_cache_control
 import config
 from data.daily import get_day_records, get_day_samples_datatable, get_7day_30mavg_samples_datatable, get_days_hourly_rain_datatable, get_7day_hourly_rain_datatable, get_day_rainfall
 from database import get_years, get_live_data
-from data.util import rfcformat
 import os
 
 __author__ = 'David Goodwin'
@@ -109,14 +109,7 @@ def live_data():
               'age': data.age,
               }
 
-    if config.live_data_available:
-        web.header('Cache-Control', 'max-age=' + str(48))
-        web.header('Expires', rfcformat(data_ts + timedelta(0, 48)))
-    else:
-        web.header('Cache-Control', 'max-age=' + str(config.sample_interval))
-        web.header('Expires', rfcformat(data_ts + timedelta(0, config.sample_interval)))
-    web.header('Last-Modified', rfcformat(data_ts))
-
+    live_data_cache_control(data_ts)
     web.header('Content-Type', 'application/json')
     return json.dumps(result)
 

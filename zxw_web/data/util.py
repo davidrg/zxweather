@@ -4,8 +4,7 @@ Utility functions for handling data URLs
 
 from datetime import date, datetime
 import json
-from time import time, mktime
-from wsgiref.handlers import format_date_time
+from time import time
 
 __author__ = 'David Goodwin'
 
@@ -36,15 +35,6 @@ def datetime_to_js_date(timestamp):
     else:
         raise TypeError
 
-def rfcformat(dt):
-    """
-    Formats the date time for inclusion in HTTP headers.
-    :param dt: timestamp to format
-    :type dt: datetime
-    :return: timestamp formatted as a string
-    :rtype: str
-    """
-    return format_date_time(mktime(dt.timetuple()))
 
 def outdoor_sample_result_to_datatable(query_data):
     """

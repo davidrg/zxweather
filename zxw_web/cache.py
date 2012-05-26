@@ -6,9 +6,21 @@ from datetime import date, datetime, time, timedelta
 import web
 from config import db
 import config
-from data.util import rfcformat
+from time import  mktime
+from wsgiref.handlers import format_date_time
 
 __author__ = 'David Goodwin'
+
+
+def rfcformat(dt):
+    """
+    Formats the date time for inclusion in HTTP headers.
+    :param dt: timestamp to format
+    :type dt: datetime
+    :return: timestamp formatted as a string
+    :rtype: str
+    """
+    return format_date_time(mktime(dt.timetuple()))
 
 def cache_control_headers(data_age, year, month=None, day=None):
     """
@@ -36,6 +48,20 @@ def cache_control_headers(data_age, year, month=None, day=None):
         # Old data. Never expires.
         web.header('Expires',rfcformat(now + timedelta(60,0)))
     web.header('Last-Modified', rfcformat(data_age))
+
+def live_data_cache_control(data_ts):
+    """
+    Applies cache-control headers for pages that contain live data when live
+    data is enabled.
+    :param data_ts: Timestamp of live data record.
+    """
+    if config.live_data_available:
+        web.header('Cache-Control', 'max-age=' + str(48))
+        web.header('Expires', rfcformat(data_ts + timedelta(0, 48)))
+    else:
+        web.header('Cache-Control', 'max-age=' + str(config.sample_interval))
+        web.header('Expires', rfcformat(data_ts + timedelta(0, config.sample_interval)))
+    web.header('Last-Modified', rfcformat(data_ts))
 
 def year_cache_control(year):
     """
