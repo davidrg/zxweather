@@ -63,27 +63,21 @@ def month_cache_control(year, month):
     data_age = age_data[0].max_ts
     cache_control_headers(data_age, year, month)
 
-def day_cache_control(data_age, year, month, day):
+def day_cache_control(data_age, day):
     """
     Gets cache control headers for a day page.
     :param data_age: Age of the data if known (if not it will be looked up
                      in the database).
     :type data_age: datetime.datetime or None
-    :param year: Page year
-    :type year: integer
-    :param month: Page month
-    :type month: integer
     :param day: Page day
-    :type day: integer
+    :type day: date
     """
     if data_age is None:
-        params = dict(date = date(year,month,day))
         age_data = db.query("select max(time_stamp) as max_ts from sample where "
-                            "time_stamp::date = $date", params)
+                            "time_stamp::date = $date", dict(date = day))
         data_age = age_data[0].max_ts
     elif isinstance(data_age, time):
         # We already have the _time_ for the page - just need to add the
         # date on.
-        data_age = datetime.combine(date(year,month,day),
-                                    data_age)
-    cache_control_headers(data_age, year, month, day)
+        data_age = datetime.combine(day, data_age)
+    cache_control_headers(data_age, day.year, day.month, day.day)
