@@ -20,8 +20,8 @@ basic_template_dir = os.path.join(os.path.dirname(__file__),
 modern_template_dir = os.path.join(os.path.dirname(__file__),
                                    os.path.join('modern_templates'))
 
-basic = render_jinja(basic_template_dir, encoding='utf-8')
-modern = render_jinja(modern_template_dir, encoding='utf-8')
+basic_templates = render_jinja(basic_template_dir, encoding='utf-8')
+modern_templates = render_jinja(modern_template_dir, encoding='utf-8')
 
 def get_day_nav_urls(ui, station, day):
     """
@@ -161,12 +161,12 @@ def get_day_page(ui, station, day):
     if ui == 's':
         nav_urls = ModernUI.get_nav_urls(station, current_location)
         data_urls = get_day_data_urls(station, data.date_stamp, False)
-        return modern.day(nav=nav_urls,
+        return modern_templates.day(nav=nav_urls,
                              data_urls=data_urls,
                              data=data,
                              station=station)
     else:
-        return basic.day(data=data,
+        return basic_templates.day(data=data,
                             station=station)
 
 class day:
@@ -247,11 +247,11 @@ def get_indoor_day(ui, station, day):
     if ui == 's':
         nav_urls = ModernUI.get_nav_urls(station, current_location)
         data_urls = get_indoor_data_urls(station, data.date_stamp)
-        return modern.indoor_day(data=data,
+        return modern_templates.indoor_day(data=data,
                                  nav=nav_urls,
                                  dataurls=data_urls)
     else:
-        return basic.indoor_day(data=data)
+        return basic_templates.indoor_day(data=data)
 
 class indoor_day:
     """
