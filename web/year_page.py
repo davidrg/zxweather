@@ -46,7 +46,7 @@ def get_year(ui,station, year):
         prev_year = year - 1
 
         # A list of months in the year that have data
-        months = [item.capitalize() for item in BaseUI.get_year_months(year)]
+        months = [(item,item.capitalize()) for item in BaseUI.get_year_months(year)]
 
         # Min/max values for the year.
         records = BaseUI.get_yearly_records(year)
