@@ -193,38 +193,3 @@ class BasicUI(BaseUI):
 
         BaseUI.month_cache_control(year,month)
         return self.render.month(data=data)
-
-    def get_indoor_day(self, station, year, month, day):
-        """
-        Gets a page showing temperature and humidity at the base station.
-        :param station: Station to get the page for. Not currently used.
-        :type station: string
-        :param year: Page year
-        :type year: integer
-        :param month: Page month
-        :type month: integer
-        :param day: Page day
-        :type day: integer
-        :return: View data
-        """
-
-        class data:
-            """ Data required by the view. """
-            date_stamp = date(year, month, day)
-            current_data = None
-            current_data_ts = None
-
-        # Figure out if there is current data to show or if this is a history
-        # page
-        now = datetime.now()
-        today = now.day == day and now.month == month and now.year == year
-
-        if today:
-            data.current_data_ts, data.current_data = BaseUI.get_live_indoor_data()
-
-        BaseUI.day_cache_control(data.current_data_ts,year,month,day)
-        # Standard: Nav URLs
-        # Standard: Data URLs
-        return self.render.indoor_day(data=data)
-
-
