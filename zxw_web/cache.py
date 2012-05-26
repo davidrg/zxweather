@@ -25,13 +25,15 @@ def cache_control_headers(data_age, year, month=None, day=None):
     """
 
     now = datetime.now()
-
+    # HTTP-1.1 Cache Control
     if year == now.year and (month is None or month == now.month)\
     and (day is None or day == now.day):
-        # The page is still getting new data.
+        # We should be getting a new sample every sample_interval seconds if
+        # the requested day is today.
         web.header('Cache-Control', 'max-age=' + str(config.sample_interval))
         web.header('Expires', rfcformat(data_age + timedelta(0, config.sample_interval)))
     else:
+        # Old data. Never expires.
         web.header('Expires',rfcformat(now + timedelta(60,0)))
     web.header('Last-Modified', rfcformat(data_age))
 
