@@ -1,3 +1,4 @@
+# coding=utf-8
 """
 Provides access to zxweather daily data over HTTP in a number of formats.
 Used for generating charts in JavaScript, etc.
@@ -56,11 +57,7 @@ class datatable_json:
         if station != config.default_station_name:
             raise web.NotFound()
 
-        year = int(year)
-        month = int(month)
-        day = int(day)
-
-        this_date = date(year,month,day)
+        this_date = date(int(year),int(month),int(day))
 
         # Make sure the day actually exists in the database before we go
         # any further.
@@ -112,11 +109,7 @@ class data_json:
         if station != config.default_station_name:
             raise web.NotFound()
 
-        year = int(year)
-        month = int(month)
-        day = int(day)
-
-        this_date = date(year,month,day)
+        this_date = date(int(year),int(month),int(day))
 
         # Make sure the day actually exists in the database before we go
         # any further.

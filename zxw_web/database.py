@@ -1,3 +1,4 @@
+# coding=utf-8
 """
 Various common functions to get data from the database.
 """

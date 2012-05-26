@@ -1,3 +1,4 @@
+# coding=utf-8
 """
 Handles fetching the day pages in all UIs.
 """
@@ -160,7 +161,7 @@ def get_day_page(ui, station, day):
 
     if ui == 's':
         nav_urls = get_nav_urls(station, current_location)
-        data_urls = get_day_data_urls(station, data.date_stamp, False)
+        data_urls = get_day_data_urls(station, data.date_stamp)
         return modern_templates.day(nav=nav_urls,
                              data_urls=data_urls,
                              data=data,

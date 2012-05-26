@@ -1,3 +1,4 @@
+# coding=utf-8
 """
 This package contains code for producing the user interface (HTML pages for
 human consumption rather than JSON data for use by other systems)
@@ -137,9 +138,9 @@ class now:
         """
         validate_request(ui,station)
 
-        now = datetime.datetime.now()
+        today = datetime.datetime.now().date()
 
         todays_url = config.site_root + ui + '/' + station + '/' +\
-                     str(now.year) + '/' + month_name[now.month] + '/' + str(now.day) + '/'
+                     str(today.year) + '/' + month_name[today.month] + '/' + str(today.day) + '/'
 
         raise web.seeother(todays_url)

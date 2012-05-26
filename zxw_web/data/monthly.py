@@ -1,3 +1,4 @@
+# coding=utf-8
 """
 Provides access to zxweather monthly data over HTTP in a number of formats.
 Used for generating charts in JavaScript, etc.
@@ -51,8 +52,8 @@ class datatable_json:
         if station != config.default_station_name:
             raise web.NotFound()
 
-        year = int(year)
-        month = int(month)
+        int_year = int(year)
+        int_month = int(month)
 
         # Make sure the month actually exists in the database before we go
         # any further.
@@ -62,11 +63,11 @@ class datatable_json:
             raise web.NotFound()
 
         if dataset == 'samples':
-            return get_month_samples_datatable(year,month)
+            return get_month_samples_datatable(int_year,int_month)
         elif dataset == '30m_avg_samples':
-            return get_30m_avg_month_samples_datatable(year,month)
+            return get_30m_avg_month_samples_datatable(int_year,int_month)
         elif dataset == 'daily_records':
-            return get_daily_records(year,month)
+            return get_daily_records(int_year,int_month)
         else:
             raise web.NotFound()
 
@@ -110,7 +111,9 @@ def get_daily_records(year,month):
     """
     Gets records for each day in the month.
     :param year: Year to get records for
+    :type year: int
     :param month: Month to get records for
+    :type month: int
     :return: JSON data containing the records. Structure is Google DataTable.
     """
     params = dict(date = date(year,month,01))
