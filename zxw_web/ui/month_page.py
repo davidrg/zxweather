@@ -104,7 +104,7 @@ def month_nav_urls(ui,station,year,month, current_location):
                                            station,
                                            next_year,
                                            month_name[next_month])
-        prev_url = relative_url(current_location, abs_url)
+        next_url = relative_url(current_location, abs_url)
 
     return prev_url, next_url
 
