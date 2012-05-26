@@ -8,7 +8,7 @@ from cache import day_cache_control
 from data.database import get_daily_records, get_years, total_rainfall_in_last_7_days, day_exists
 from modern_ui import ModernUI
 import os
-from ui_route import validate_request, html_file
+from ui.ui_route import validate_request, html_file
 from util import month_name
 
 __author__ = 'David Goodwin'
