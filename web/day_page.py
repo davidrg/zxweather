@@ -71,6 +71,44 @@ def get_day_nav_urls(ui, station, day):
 
     return prev_url, next_url
 
+def get_day_data_urls(station, day, overview_page=False):
+    """
+    Gets data URLs for a day page or the station overview page.
+    :param station: Station to get URLs for
+    :type station: str, unicode
+    :param day: Day to get URLs for
+    :type day: date
+    :param overview_page: If the URLs should be relative to the overview
+                          page instead of the day page
+    :type overview_page: bool
+    """
+
+    base_url = '/data/{0}/{1}/{2}/{3}/'.format(station,
+                                               day.year,
+                                               day.month,
+                                               day.day)
+    if overview_page:
+        current_url = '/s/{0}/'.format(station)
+    else:
+        current_url = '/s/{0}/{1}/{2}/{3}/'.format(station,
+                                                   day.year,
+                                                   month_name[day.month],
+                                                   day.day)
+    urls = {
+        'samples': relative_url(current_url,
+                                base_url + 'datatable/samples.json'),
+        '7day_samples': relative_url(current_url,
+                                     base_url + 'datatable/7day_30m_avg_samples.json'),
+        'rainfall': relative_url(current_url,
+                                 base_url + 'datatable/hourly_rainfall.json'),
+        '7day_rainfall': relative_url(current_url,
+                                      base_url + 'datatable/7day_hourly_rainfall.json'),
+        'records': relative_url(current_url, base_url + 'records.json'),
+        'rainfall_totals': relative_url(current_url, base_url + 'rainfall.json'),
+        }
+
+    return urls
+
 def get_day_page(ui, station, day):
     """
     Gives an overview for a day. If the day is today then current weather
@@ -121,7 +159,7 @@ def get_day_page(ui, station, day):
 
     if ui == 's':
         nav_urls = ModernUI.get_nav_urls(station, current_location)
-        data_urls = ModernUI.get_day_data_urls(station, data.date_stamp, False)
+        data_urls = get_day_data_urls(station, data.date_stamp, False)
         return modern.day(nav=nav_urls,
                              data_urls=data_urls,
                              data=data,
