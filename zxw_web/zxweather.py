@@ -38,7 +38,7 @@ urls = (
     '/(s|b)/(\w*)/(\d+)/(\w*)/(?:index\.html)?', 'ui.month_page.month',   # A particular month
     '/(s|b)/(\w*)/(\d+)/(?:index\.html)?', 'ui.year_page.year',           # A particular year
     '/(s|b)/(\w*)/now', 'ui_route.now',                                # Go to todays page
-    '/(s|b)/(\w*)/(?:index\.html)?', 'ui_route.index',                 # Index page
+    '/(s|b)/(\w*)/(?:index\.html)?', 'station_page.station',           # Index page
     '/(s|b)/(?:index\.html)?', 'ui_route.stationlist',                 # Station redirect
     '/(?:index\.html)?', 'ui_route.site_index',                        # Site index redirect
 

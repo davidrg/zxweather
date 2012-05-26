@@ -115,24 +115,6 @@ class stationlist:
         # to it rather than giving the user a choice of only one option.
         raise web.seeother(config.site_root + ui + '/' + config.default_station_name + '/')
 
-class index:
-    """
-    Index page for the station. Should give station records, basic yearly
-    overview data, etc.
-    """
-    def GET(self, ui, station):
-        """
-        Station overview page (on the standard UI) or year list page (basic UI)
-        :param ui: UI to use
-        :type ui: str
-        :param station: Station to get data for
-        :type station: str
-        :return: HTML data.
-        """
-        validate_request(ui,station)
-        html_file()
-        return uis[ui].get_station(station)
-
 class now:
     """
     Redirects to the page for today.
