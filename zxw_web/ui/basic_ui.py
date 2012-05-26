@@ -4,7 +4,6 @@ Should be compatible with just about anything.
 """
 
 from ui.baseui import BaseUI
-from data.database import  get_years
 
 __author__ = 'David Goodwin'
 

@@ -3,10 +3,9 @@ Modern HTML5/CSS/Javascript UI.
 """
 
 from datetime import datetime, timedelta
+from months import month_name
 from ui.baseui import BaseUI
-from cache import  day_cache_control
-from data.database import day_exists, total_rainfall_in_last_7_days, get_daily_records, get_years
-from util import relative_url, month_name
+from util import relative_url
 
 __author__ = 'David Goodwin'
 
