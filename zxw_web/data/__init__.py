@@ -4,8 +4,8 @@ Data sources.
 
 import json
 import web
+from cache import rfcformat
 import config
-from data.util import rfcformat
 from datetime import timedelta, datetime
 from months import month_name
 
