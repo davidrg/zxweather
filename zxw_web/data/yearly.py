@@ -3,14 +3,15 @@ Provides access to zxweather yearly data over HTTP in a number of formats.
 Used for generating charts in JavaScript, etc.
 """
 
-from datetime import date, datetime, timedelta
+from datetime import date
 import json
+from cache import cache_control_headers
 import os
 import web
 from web.contrib.template import render_jinja
 from config import db
 import config
-from data.util import rfcformat, datetime_to_js_date, pretty_print
+from data.util import datetime_to_js_date, pretty_print
 
 __author__ = 'David Goodwin'
 
@@ -84,29 +85,6 @@ class index:
 
         web.header('Content-Type', 'text/html')
         return render.yearly_data_index(months=months)
-
-def yearly_cache_control_headers(year,age):
-    """
-    Sets cache control headers for a daily data files.
-    :param year: Year of the data file
-    :type year: int
-    :param age: Timestamp of the last record in the data file
-    :type age: datetime
-    """
-
-    now = datetime.now()
-    # HTTP-1.1 Cache Control
-    if year == now.year:
-        # We should be getting a new sample every sample_interval seconds if
-        # the requested day is today.
-        web.header('Cache-Control', 'max-age=' + str(config.sample_interval))
-        web.header('Expires',
-                   rfcformat(age + timedelta(0, config.sample_interval)))
-    else:
-        # Old data. Never expires.
-        web.header('Expires',
-                   rfcformat(now + timedelta(60, 0))) # Age + 60 days
-    web.header('Last-Modified', rfcformat(age))
 
 def get_daily_records(year):
     """
@@ -195,7 +173,7 @@ order by time_stamp asc""", params)
     else:
         page = json.dumps(data)
 
-    yearly_cache_control_headers(year,data_age)
+    cache_control_headers(data_age,year)
     web.header('Content-Type', 'application/json')
     web.header('Content-Length', str(len(page)))
 
