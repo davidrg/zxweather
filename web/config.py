@@ -1,3 +1,6 @@
+"""
+Handles loading the configuration file and making configuration data available.
+"""
 __author__ = 'David Goodwin'
 
 import web

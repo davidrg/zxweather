@@ -78,7 +78,7 @@
     <script type="text/javascript">
         /* As this isn't a template we have to ask the server for a few
          * details (links and site name). */
-        $.getJSON('/data/daynav.json', function(data) {
+        $.getJSON('../../data/daynav.json', function(data) {
             $("#nav_brand").html(data['site_name']);
             $("#nav_lnk_yesterday").attr('href',data['yesterday']);
             $("#nav_lnk_this_month").attr('href',data['this_month']);

@@ -24,7 +24,15 @@ month_name = {1 : 'january',
               12: 'december'}
 
 class day_nav:
+    """
+    Controller for /data/daynav.json. No idea why its called daynav.
+    """
     def GET(self):
+        """
+        Gets a JSON file containing URLs for various pages (yesterday, this
+        month, this year, etc). Its used by the about page.
+        :return:
+        """
         now = datetime.now().date()
         yesterday = now - timedelta(1)
 
