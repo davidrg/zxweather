@@ -7,6 +7,7 @@ from web.contrib.template import render_jinja
 from baseui import BaseUI
 
 from basic_ui import month_name
+from cache import day_cache_control
 from data.database import get_live_data, get_daily_records, total_rainfall_in_last_7_days, day_exists
 from modern_ui import ModernUI
 import os
@@ -155,7 +156,7 @@ def get_day_page(ui, station, day):
 
     data.prev_url, data.next_url = get_day_nav_urls(ui, station, data.date_stamp)
 
-    BaseUI.day_cache_control(data_age, day.year, day.month, day.day)
+    day_cache_control(data_age, day.year, day.month, day.day)
 
     if ui == 's':
         nav_urls = ModernUI.get_nav_urls(station, current_location)
@@ -240,7 +241,7 @@ def get_indoor_day(ui, station, day):
     if today:
         data.current_data_ts, data.current_data = BaseUI.get_live_indoor_data()
 
-    BaseUI.day_cache_control(data.current_data_ts, day.year, day.month, day.day)
+    day_cache_control(data.current_data_ts, day.year, day.month, day.day)
 
     if ui == 's':
         nav_urls = ModernUI.get_nav_urls(station, current_location)
