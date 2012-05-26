@@ -33,7 +33,7 @@
         <h2>Months for {{ data.this_year }}</h2>
         <ul>
             {% for monthlink in data.months -%}
-                <li><a href="{{ monthlink }}/">{{ monthlink }}</a></li>
+                <li><a href="{{ monthlink[0] }}/">{{ monthlink[1] }}</a></li>
             {% endfor %}
         </ul>
     </section>
