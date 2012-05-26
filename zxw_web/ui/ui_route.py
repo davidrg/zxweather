@@ -5,6 +5,7 @@ to the appropriate handler function for the specified UI.
 """
 
 from web.contrib.template import render_jinja
+from months import month_number, month_name
 
 from ui.basic_ui import BasicUI
 import config
@@ -13,7 +14,6 @@ from ui.modern_ui import ModernUI
 import datetime
 import web
 import os
-from util import month_number, month_name
 
 __author__ = 'David Goodwin'
 

@@ -7,21 +7,9 @@ import web
 import config
 from data.util import rfcformat
 from datetime import timedelta, datetime
+from months import month_name
 
 __author__ = 'David Goodwin'
-
-month_name = {1 : 'january',
-              2 : 'february',
-              3 : 'march',
-              4 : 'april',
-              5 : 'may',
-              6 : 'june',
-              7 : 'july',
-              8 : 'august',
-              9 : 'september',
-              10: 'october',
-              11: 'november',
-              12: 'december'}
 
 class day_nav:
     """
