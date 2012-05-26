@@ -32,6 +32,21 @@ class datatable_json:
     """
 
     def GET(self, station, year, month, dataset):
+        """
+        Gets DataTable formatted JSON data.
+
+        :param station: Station to get data for
+        :type station: str
+        :param year: Year to get data for
+        :type year: str
+        :param month: Month to get data for. Unlike in other areas of the site
+                      this is not the month name but rather its number.
+        :type month: str
+        :param dataset: Dataset (file) to fetch.
+        :type dataset: str
+        :return: JSON File.
+        :raise: web.notfound if the file doesn't exist.
+        """
         if station != config.default_station_name:
             raise web.NotFound()
 
@@ -116,6 +131,12 @@ def monthly_cache_control_headers(year,month,age):
     web.header('Last-Modified', rfcformat(age))
 
 def get_daily_records(year,month):
+    """
+    Gets records for each day in the month.
+    :param year: Year to get records for
+    :param month: Month to get records for
+    :return: JSON data containing the records. Structure is Google DataTable.
+    """
     params = dict(date = date(year,month,01))
     query_data = db.query("""select date_trunc('day', time_stamp)::date as time_stamp,
     max(temperature) as max_temp,
@@ -205,7 +226,16 @@ order by time_stamp asc""", params)
 
 
 def get_30m_avg_month_samples_datatable(year, month):
-
+    """
+    Gets outdoor samples for the month as 30-minute averages.
+    :param year: Year to get data for
+    :type year: int
+    :param month: Month to get data for
+    :type month: int
+    :return: JSON data containing 30 minute averaged samples for the month.
+    Structure is Googles DataTable format.
+    :rtype: str
+    """
     params = dict(date = date(year,month,01))
     query_data = db.query("""select min(iq.time_stamp) as time_stamp,
        avg(iq.temperature) as temperature,
@@ -248,7 +278,15 @@ order by iq.quadrant asc""", params)
     return data
 
 def get_month_samples_datatable(year,month):
-
+    """
+    Gets samples for the entire month in Googles DataTable format.
+    :param year: Year to get data for
+    :type year: int
+    :param month: Month to get data for
+    :type month: int
+    :return: JSON data using Googles DataTable structure.
+    :rtype: str
+    """
     params = dict(date = date(year,month,01))
     query_data = db.query("""select cur.time_stamp,
        cur.temperature,

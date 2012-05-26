@@ -6,13 +6,12 @@ from datetime import datetime, timedelta, date
 from web.contrib.template import render_jinja
 from baseui import BaseUI
 
-from basic_ui import month_name
 from cache import day_cache_control
 from data.database import get_live_data, get_daily_records, total_rainfall_in_last_7_days, day_exists
 from modern_ui import ModernUI
 import os
 from ui_route import html_file, month_number, validate_request
-from util import relative_url
+from util import relative_url, month_name
 
 __author__ = 'David Goodwin'
 
@@ -132,6 +131,7 @@ def get_day_page(ui, station, day):
     now = datetime.now().date()
     today = now == day
 
+    # TODO: Make this a dict sometime.
     class data:
         """ Data required by the view. """
         date_stamp = day
@@ -227,6 +227,7 @@ def get_indoor_day(ui, station, day):
     current_location = '/s/' + station + '/' + str(day.year) + '/' +\
                        month_name[day.month] + '/' + str(day.day) + '/indoor.html'
 
+    # TODO: Make this a dict sometime.
     class data:
         """ Data required by the view """
         date_stamp = day

@@ -13,7 +13,7 @@ from modern_ui import ModernUI
 import datetime
 import web
 import os
-from util import month_number
+from util import month_number, month_name
 
 __author__ = 'David Goodwin'
 
@@ -121,6 +121,14 @@ class index:
     overview data, etc.
     """
     def GET(self, ui, station):
+        """
+        Station overview page (on the standard UI) or year list page (basic UI)
+        :param ui: UI to use
+        :type ui: str
+        :param station: Station to get data for
+        :type station: str
+        :return: HTML data.
+        """
         validate_request(ui,station)
         html_file()
         return uis[ui].get_station(station)
@@ -130,7 +138,13 @@ class now:
     Redirects to the page for today.
     """
     def GET(self, ui, station):
+        """
+        Raises web.seeother to redirect the client to the current day page.
 
+        :param ui: UI to redirect to
+        :param station: Station to redirect to
+        :raise: web.seeother
+        """
         validate_request(ui,station)
 
         now = datetime.datetime.now()
@@ -145,18 +159,18 @@ class year:
     Gives an overview for a year
     """
     def GET(self, ui, station, year):
-
+        """
+        Fetches the year page (index.html) after doing some basic validation.
+        :param ui: UI to fetch the page for
+        :type ui: str
+        :param station: Station to fetch data for
+        :type station: str
+        :param year: Year page to get
+        :type year: str
+        :return: HTML data for the appropriate year, station and ui
+        :rtype: str
+        """
         validate_request(ui,station,year)
         html_file()
         return uis[ui].get_year(station, int(year))
-
-class month:
-    """
-    Gives an overview for a month
-    """
-    def GET(self, ui, station, year, month):
-
-        validate_request(ui,station,year,month)
-        html_file()
-        return uis[ui].get_month(station, int(year), month_number[month])
 

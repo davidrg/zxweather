@@ -4,9 +4,8 @@ Should be compatible with just about anything.
 """
 
 from baseui import BaseUI
-from cache import year_cache_control, month_cache_control
-from data.database import year_exists, month_exists,  get_years
-from util import month_name
+from cache import year_cache_control
+from data.database import year_exists, get_years
 
 __author__ = 'David Goodwin'
 
@@ -89,79 +88,3 @@ class BasicUI(BaseUI):
         year_cache_control(year)
         return self.render.year(data=data)
 
-    def get_month(self,station, year, month):
-        """
-        Gives an overview for a month.
-        :param station: Station to get data for. Not currently used.
-        :type station: string
-        :param year: Page year
-        :type year: integer
-        :param month: Page month
-        :type month: integer
-        :return: view data.
-        """
-
-        class data:
-            """ Data required by the view. """
-            year_stamp = year
-            month_stamp = month
-            current_data = None
-
-            prev_url = None
-            next_url = None
-
-            next_month = None
-            next_year = None
-
-            prev_month = None
-            prev_year = None
-
-            this_month = month_name[month]
-
-            # List of days in the month that have data
-            days = BaseUI.get_month_days(year,month)
-
-            # Min/Max values for the month
-            records = BaseUI.get_monthly_records(year,month)
-
-
-        # Figure out the previous year and month
-        previous_month = data.month_stamp - 1
-        previous_year = data.year_stamp
-
-        if not previous_month:
-            previous_month = 12
-            previous_year -= 1
-
-        # And the next year and month
-        next_month = data.month_stamp + 1
-        next_year = data.year_stamp
-
-        if next_month > 12:
-            next_month = 1
-            next_year += 1
-
-        data.prev_month = month_name[previous_month]
-        data.next_month = month_name[next_month]
-        data.prev_year = previous_year
-        data.next_year = next_year
-        data.this_year = year
-
-        # See if any data exists for the previous and next months (no point
-        # showing a navigation link if there is no data)
-        if month_exists(previous_year, previous_month):
-            if previous_year != year:
-                data.prev_url = '../../' + str(previous_year) + '/' + \
-                                month_name[previous_month] + '/'
-            else:
-                data.prev_url = '../' + month_name[previous_month] + '/'
-
-        if month_exists(next_year, next_month):
-            if next_year != year:
-                data.next_url = '../../' + str(next_year) + '/' +\
-                                month_name[next_month] + '/'
-            else:
-                data.next_url = '../' + month_name[next_month] + '/'
-
-        month_cache_control(year,month)
-        return self.render.month(data=data)

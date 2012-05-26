@@ -14,7 +14,7 @@ pretty_print = False
 def datetime_to_js_date(timestamp):
     """
     Converts a python datetime.datetime or datetime.date object to a
-    representation compatbile with googles DataTable structure
+    representation compatible with Googles DataTable structure
     :param timestamp: A timestamp
     :return: datatable representation
     """
@@ -37,6 +37,13 @@ def datetime_to_js_date(timestamp):
         raise TypeError
 
 def rfcformat(dt):
+    """
+    Formats the date time for inclusion in HTTP headers.
+    :param dt: timestamp to format
+    :type dt: datetime
+    :return: timestamp formatted as a string
+    :rtype: str
+    """
     return format_date_time(mktime(dt.timetuple()))
 
 def outdoor_sample_result_to_datatable(query_data):
