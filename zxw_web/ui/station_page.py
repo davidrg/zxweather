@@ -9,7 +9,7 @@ from database import get_daily_records, get_years, total_rainfall_in_last_7_days
 import os
 from months import month_name
 from ui import get_nav_urls
-from ui.ui_route import validate_request, html_file
+from ui import validate_request, html_file
 
 __author__ = 'David Goodwin'
 

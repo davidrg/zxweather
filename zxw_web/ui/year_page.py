@@ -9,7 +9,7 @@ from cache import year_cache_control
 from database import year_exists
 from ui import get_nav_urls
 import os
-from ui.ui_route import validate_request, html_file
+from ui import validate_request, html_file
 
 __author__ = 'David Goodwin'
 

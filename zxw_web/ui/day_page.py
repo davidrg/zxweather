@@ -10,7 +10,7 @@ from cache import day_cache_control
 from database import get_live_data, get_daily_records, total_rainfall_in_last_7_days, day_exists, get_live_indoor_data
 from ui import get_nav_urls
 import os
-from ui.ui_route import html_file, month_number, validate_request
+from ui import html_file, month_number, validate_request
 from url_util import relative_url
 
 __author__ = 'David Goodwin'
