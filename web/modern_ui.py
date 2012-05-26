@@ -6,34 +6,9 @@ from datetime import datetime, timedelta
 from baseui import BaseUI
 from cache import month_cache_control, year_cache_control, day_cache_control
 from data.database import day_exists, month_exists, year_exists, total_rainfall_in_last_7_days, get_daily_records, get_years
-from util import relative_url
+from util import relative_url, month_name
 
 __author__ = 'David Goodwin'
-
-month_name = {1 : 'january',
-              2 : 'february',
-              3 : 'march',
-              4 : 'april',
-              5 : 'may',
-              6 : 'june',
-              7 : 'july',
-              8 : 'august',
-              9 : 'september',
-              10: 'october',
-              11: 'november',
-              12: 'december'}
-month_number = {'january'  : 1,
-                'february' : 2,
-                'march'    : 3,
-                'april'    : 4,
-                'may'      : 5,
-                'june'     : 6,
-                'july'     : 7,
-                'august'   : 8,
-                'september': 9,
-                'october'  : 10,
-                'november' : 11,
-                'december' : 12}
 
 class ModernUI(BaseUI):
     """

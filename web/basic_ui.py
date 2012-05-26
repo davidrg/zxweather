@@ -3,40 +3,12 @@ A very basic HTML3/4 UI using images for the charts rather than Javascript.
 Should be compatible with just about anything.
 """
 
-from datetime import datetime, date, timedelta
-import web
 from baseui import BaseUI
-from config import db
-from data.database import year_exists, month_exists, day_exists, get_years, get_live_data, get_daily_records
-from modern_ui import ModernUI
-from util import relative_url
+from cache import year_cache_control, month_cache_control
+from data.database import year_exists, month_exists,  get_years
+from util import month_name
 
 __author__ = 'David Goodwin'
-
-month_name = {1 : 'january',
-              2 : 'february',
-              3 : 'march',
-              4 : 'april',
-              5 : 'may',
-              6 : 'june',
-              7 : 'july',
-              8 : 'august',
-              9 : 'september',
-              10: 'october',
-              11: 'november',
-              12: 'december'}
-month_number = {'january'  : 1,
-                'february' : 2,
-                'march'    : 3,
-                'april'    : 4,
-                'may'      : 5,
-                'june'     : 6,
-                'july'     : 7,
-                'august'   : 8,
-                'september': 9,
-                'october'  : 10,
-                'november' : 11,
-                'december' : 12}
 
 class BasicUI(BaseUI):
     """
@@ -114,7 +86,7 @@ class BasicUI(BaseUI):
         if year_exists(data.next_year):
             data.next_url = '../' + str(data.next_year)
 
-        BaseUI.year_cache_control(year)
+        year_cache_control(year)
         return self.render.year(data=data)
 
     def get_month(self,station, year, month):
@@ -191,5 +163,5 @@ class BasicUI(BaseUI):
             else:
                 data.next_url = '../' + month_name[next_month] + '/'
 
-        BaseUI.month_cache_control(year,month)
+        month_cache_control(year,month)
         return self.render.month(data=data)
