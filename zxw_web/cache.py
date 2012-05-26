@@ -67,7 +67,7 @@ def day_cache_control(data_age, day):
     """
     Gets cache control headers for a day page.
     :param data_age: Age of the data if known (if not it will be looked up
-                     in the database).
+                     in the database as the most recent sample for that day).
     :type data_age: datetime.datetime or None
     :param day: Page day
     :type day: date

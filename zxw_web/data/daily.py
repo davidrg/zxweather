@@ -3,7 +3,8 @@ Provides access to zxweather daily data over HTTP in a number of formats.
 Used for generating charts in JavaScript, etc.
 """
 
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
+from cache import day_cache_control
 from database import get_daily_records, get_daily_rainfall, get_latest_sample_timestamp
 import os
 import web
@@ -11,7 +12,7 @@ from web.contrib.template import render_jinja
 from config import db
 import config
 import json
-from data.util import rfcformat, datetime_to_js_date, outdoor_sample_result_to_datatable, pretty_print
+from data.util import datetime_to_js_date, outdoor_sample_result_to_datatable, pretty_print
 
 __author__ = 'David Goodwin'
 
@@ -163,29 +164,6 @@ class index:
         web.header('Content-Type', 'text/html')
         return render.daily_data_index()
 
-def daily_cache_control_headers(day,age):
-    """
-    Sets cache control headers for a daily data files.
-    :param day: Day of the data file
-    :type day: date
-    :param age: Timestamp of the last record in the data file
-    :type age: datetime
-    """
-
-    now = datetime.now()
-    # HTTP-1.1 Cache Control
-    if day.year == now.year and day.month == now.month and day.day == now.day:
-        # We should be getting a new sample every sample_interval seconds if
-        # the requested day is today.
-        web.header('Cache-Control', 'max-age=' + str(config.sample_interval))
-        web.header('Expires',
-                   rfcformat(age + timedelta(0, config.sample_interval)))
-    else:
-        # Old data. Never expires.
-        web.header('Expires',
-                   rfcformat(now + timedelta(60, 0))) # Age + 60 days
-    web.header('Last-Modified', rfcformat(age))
-
 def indoor_sample_result_to_datatable(query_data):
     """
     Converts a query on the sample table to DataTable-compatible JSON.
@@ -267,7 +245,7 @@ def get_7day_indoor_samples_datatable(day):
 
     data,age = indoor_sample_result_to_datatable(result)
 
-    daily_cache_control_headers(day,age)
+    day_cache_control(age,day)
 
     web.header('Content-Type','application/json')
     web.header('Content-Length', str(len(data)))
@@ -309,7 +287,7 @@ order by iq.quadrant asc""", params)
 
     data,age = indoor_sample_result_to_datatable(result)
 
-    daily_cache_control_headers(day,age)
+    day_cache_control(age,day)
 
     web.header('Content-Type','application/json')
     web.header('Content-Length', str(len(data)))
@@ -340,7 +318,7 @@ where date(s.time_stamp) = $date
 
     data,age = indoor_sample_result_to_datatable(result)
 
-    daily_cache_control_headers(day,age)
+    day_cache_control(age,day)
 
     web.header('Content-Type','application/json')
     web.header('Content-Length', str(len(data)))
@@ -378,7 +356,7 @@ def get_7day_samples_datatable(day):
 
     data,age = outdoor_sample_result_to_datatable(result)
 
-    daily_cache_control_headers(day,age)
+    day_cache_control(age,day)
 
     web.header('Content-Type','application/json')
     web.header('Content-Length', str(len(data)))
@@ -430,7 +408,7 @@ order by iq.quadrant asc""", params)
 
     data,age = outdoor_sample_result_to_datatable(result)
 
-    daily_cache_control_headers(day,age)
+    day_cache_control(age,day)
 
     web.header('Content-Type','application/json')
     web.header('Content-Length', str(len(data)))
@@ -464,7 +442,7 @@ where date(s.time_stamp) = $date
 
     data,age = outdoor_sample_result_to_datatable(result)
 
-    daily_cache_control_headers(day,age)
+    day_cache_control(age,day)
 
     web.header('Content-Type','application/json')
     web.header('Content-Length', str(len(data)))
@@ -507,14 +485,14 @@ def rainfall_to_datatable(query_result):
     else:
         return json.dumps(data), data_age
 
-def get_days_hourly_rain_datatable(data_date):
+def get_days_hourly_rain_datatable(day):
     """
     Gets total rainfall for each hour during the specified day.
-    :param data_date: Date to get data for
-    :type data_date: datetime.date
+    :param day: Date to get data for
+    :type day: datetime.date
     """
 
-    params = dict(date = data_date)
+    params = dict(date = day)
 
     result = db.query("""select date_trunc('hour',time_stamp) as time_stamp,
        sum(rainfall) as rainfall
@@ -523,22 +501,22 @@ where time_stamp::date = $date
 group by date_trunc('hour',time_stamp)
 order by date_trunc('hour',time_stamp) asc""", params)
 
-    json_data, data_age = rainfall_to_datatable(result)
+    json_data, age = rainfall_to_datatable(result)
 
-    daily_cache_control_headers(data_date, data_age)
+    day_cache_control(age,day)
 
     web.header('Content-Type','application/json')
     web.header('Content-Length', str(len(json_data)))
     return json_data
 
-def get_7day_hourly_rain_datatable(data_date):
+def get_7day_hourly_rain_datatable(day):
     """
     Gets total rainfall for each hour during the past 7 days.
-    :param data_date: Date to get data for
-    :type data_date: datetime.date
+    :param day: Date to get data for
+    :type day: datetime.date
     """
 
-    params = dict(date = data_date)
+    params = dict(date = day)
 
     result = db.query("""select date_trunc('hour',time_stamp) as time_stamp,
        sum(rainfall) as rainfall
@@ -548,9 +526,9 @@ where time_stamp <= max_ts.ts
 group by date_trunc('hour',time_stamp)
 order by date_trunc('hour',time_stamp) asc""", params)
 
-    json_data, data_age = rainfall_to_datatable(result)
+    json_data, age = rainfall_to_datatable(result)
 
-    daily_cache_control_headers(data_date, data_age)
+    day_cache_control(age,day)
 
     web.header('Content-Type','application/json')
     web.header('Content-Length', str(len(json_data)))
@@ -617,7 +595,7 @@ def get_day_records(day):
 
     age = datetime.combine(day,age)
 
-    daily_cache_control_headers(day, age)
+    day_cache_control(age,day)
     return json.dumps(data)
 
 def get_day_rainfall(day):
@@ -629,5 +607,5 @@ def get_day_rainfall(day):
     rainfall = get_daily_rainfall(day)
 
     age = get_latest_sample_timestamp()
-    daily_cache_control_headers(day,age)
+    day_cache_control(age,day)
     return json.dumps(rainfall)
