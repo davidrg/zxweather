@@ -1,3 +1,4 @@
+# coding=utf-8
 """
 Handles the station overview page and any other station-level pages.
 """

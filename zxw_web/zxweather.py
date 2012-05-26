@@ -1,3 +1,4 @@
+# coding=utf-8
 """
 zxweather web frontend. Allows weather data to be viewed in a web browser in
 various ways.

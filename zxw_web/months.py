@@ -1,3 +1,4 @@
+# coding=utf-8
 """
 Various dicts for dealing with months
 """

@@ -1,3 +1,4 @@
+# coding=utf-8
 """
 This file handles the static overlay routes. These serve static files up out
 of the /static directory. Any requests that don't match some other route
@@ -39,9 +40,9 @@ class overlay_file:
         # directory.
         if file == config.default_station_name + '/about.html' and\
            not os.path.exists(path_name):
-            old_pathname = path_name
-            path_name = config.static_data_dir + 'about.html'
-            print("WARNING: Station-level about file redirected to site-level. To suppress this warning, copy {0} to {1}".format(path_name,old_pathname))
+            new_path_name = config.static_data_dir + 'about.html'
+            print("WARNING: Station-level about file redirected to site-level. To suppress this warning, copy {0} to {1}".format(new_path_name,path_name))
+            return new_path_name
 
         return path_name
 

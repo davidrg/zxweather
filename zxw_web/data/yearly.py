@@ -1,3 +1,4 @@
+# coding=utf-8
 """
 Provides access to zxweather yearly data over HTTP in a number of formats.
 Used for generating charts in JavaScript, etc.
@@ -40,17 +41,17 @@ class datatable_json:
         if station != config.default_station_name:
             raise web.NotFound()
 
-        year = int(year)
+        int_year = int(year)
 
         # Make sure the year actually exists in the database before we go
         # any further.
-        params = dict(year=year)
+        params = dict(year=int_year)
         recs = db.query("select 42 from sample where extract(year from time_stamp) = $year  limit 1", params)
         if recs is None or len(recs) == 0:
             raise web.NotFound()
 
         if dataset == 'daily_records':
-            return get_daily_records(year)
+            return get_daily_records(int_year)
         else:
             raise web.NotFound()
 
@@ -90,6 +91,7 @@ def get_daily_records(year):
     """
     Gets records for each day in the year.
     :param year: Year to get records for.
+    :type year: int
     :return: JSON data containing records for the year.
     """
     params = dict(date = date(year,01,01))

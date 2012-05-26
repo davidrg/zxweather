@@ -1,3 +1,4 @@
+# coding=utf-8
 """
 Handles pages at the year level.
 """

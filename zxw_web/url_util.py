@@ -1,3 +1,4 @@
+# coding=utf-8
 """
 This module contains various utility functions for doing things such as
 computing relative URLs.

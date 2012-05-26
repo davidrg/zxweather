@@ -1,3 +1,4 @@
+# coding=utf-8
 """
 Handles loading the configuration file and making configuration data available.
 """
