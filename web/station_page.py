@@ -25,8 +25,6 @@ def get_station_standard(station):
     """
     Index page for the weather station. Should give station records and
     perhaps some basic yearly overview data.
-    :param ui: The UI to fetch data for
-    :type ui: str
     :param station: Name of the station to show info for.
     :return: View data.
     """
