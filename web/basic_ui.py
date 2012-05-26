@@ -7,7 +7,9 @@ from datetime import datetime, date, timedelta
 import web
 from baseui import BaseUI
 from config import db
-from data.database import year_exists, month_exists, day_exists, get_years, get_live_data
+from data.database import year_exists, month_exists, day_exists, get_years, get_live_data, get_daily_records
+from modern_ui import ModernUI
+from util import relative_url
 
 __author__ = 'David Goodwin'
 
@@ -223,83 +225,4 @@ class BasicUI(BaseUI):
         BaseUI.day_cache_control(data.current_data_ts,year,month,day)
         return self.render.indoor_day(data=data)
 
-    def get_day(self,station, year, month, day):
-        """
-        Gives an overview for a day. If the day is today then current weather
-        conditions are also shown.
-        :param station: The station to get the page for. Not currently used.
-        :type station: string
-        :param year: The pages year
-        :type year: integer
-        :param month: The pages month
-        :type month: integer
-        :param day: The pages day
-        :type day: integer
-        """
 
-        # Figure out if there is current data to show or if this is a history
-        # page
-        now = datetime.now()
-        today = False
-        if now.day == day and now.month == month and now.year == year:
-            today = True
-
-        class data:
-            """
-            Data to be passed to the view.
-            """
-            date_stamp = date(year, month, day)
-            current_data = None
-
-            prev_url = None
-            prev_date = None
-            next_url = None
-            next_date = None
-            this_month = month_name[month]
-
-
-        params = dict(date=data.date_stamp)
-        daily_records = db.select('daily_records',params, where='date_stamp = $date' )
-        if not len(daily_records):
-            if today:
-                # We just don't have any records yet.
-                return "Sorry! There isn't any data for today yet. Check back in a few minutes."
-            else:
-                # Bad url or something.
-                raise web.NotFound()
-        data.records = daily_records[0]
-
-        # Get live data if the page is for today.
-        data_age = None
-        if today:
-            data.current_data_ts, data.current_data = get_live_data()
-            data_age = datetime.combine(date(year,month,day), data.current_data_ts)
-
-        # Figure out the URL for the previous day
-        data.prev_date = data.date_stamp - timedelta(1)
-        data.next_date = data.date_stamp + timedelta(1)
-
-        # Only calculate previous days data if there is any.
-        if day_exists(data.prev_date):
-            if data.prev_date.year != year:
-                data.prev_url = '../../../' + str(data.prev_date.year) \
-                                + '/' + month_name[data.prev_date.month] + '/'
-            elif data.prev_date.month != month:
-                data.prev_url = '../../' + month_name[data.prev_date.month] + '/'
-            else:
-                data.prev_url = '../'
-            data.prev_url += str(data.prev_date.day) + '/'
-
-        # Only calculate the URL for tomorrow if there is tomorrow in the database.
-        if day_exists(data.next_date):
-            if data.next_date.year != year:
-                data.next_url = '../../../' + str(data.next_date.year)\
-                                + '/' + month_name[data.next_date.month] + '/'
-            elif data.next_date.month != month:
-                data.next_url = '../../' + month_name[data.next_date.month] + '/'
-            else:
-                data.next_url = '../'
-            data.next_url += str(data.next_date.day) + '/'
-
-        BaseUI.day_cache_control(data_age, year, month, day)
-        return self.render.day(data=data)
