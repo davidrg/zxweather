@@ -304,6 +304,30 @@ class ModernUI(BaseUI):
         nav_urls = ModernUI.get_nav_urls(station, current_location)
         return self.render.month(nav=nav_urls, data=data,dataurls=urls)
 
+    @staticmethod
+    def get_indoor_data_urls(station, day):
+        """
+        Gets the Data URLs for the indoor day page.
+        :param station: Station we are looking at
+        :type station: str or unicode
+        :param day: Day to get data for
+        :type day: date
+        :return: URLs dict.
+        :type: dict
+        """
+
+        data_base_url = '../../../../../data/{0}/{1}/{2}/{3}/'\
+                .format(station, day.year, day.month, day.day)
+        samples = data_base_url + 'datatable/indoor_samples.json'
+        samples_7day = data_base_url + 'datatable/7day_indoor_samples.json'
+        samples_7day_30mavg = data_base_url + 'datatable/7day_30m_avg_indoor_samples.json'
+
+        return {
+            'samples': samples,
+            'samples_7day': samples_7day,
+            'samples_7day_30mavg': samples_7day_30mavg
+        }
+
     def get_indoor_day(self, station, year, month, day):
         """
         Gets a page showing temperature and humidity at the base station.
@@ -336,17 +360,12 @@ class ModernUI(BaseUI):
         if today:
             data.current_data_ts, data.current_data = BaseUI.get_live_indoor_data()
 
-        class urls:
-            """Various URLs required by the view"""
-            data_base_url = '../../../../../data/{0}/{1}/{2}/{3}/'\
-            .format(station,year,month,day)
-            samples = data_base_url + 'datatable/indoor_samples.json'
-            samples_7day = data_base_url + 'datatable/7day_indoor_samples.json'
-            samples_7day_30mavg = data_base_url + 'datatable/7day_30m_avg_indoor_samples.json'
-
         BaseUI.day_cache_control(data.current_data_ts, year, month, day)
         nav_urls = ModernUI.get_nav_urls(station, current_location)
-        return self.render.indoor_day(nav=nav_urls,data=data,dataurls=urls)
+        data_urls = ModernUI.get_indoor_data_urls(station, data.date_stamp)
+        return self.render.indoor_day(nav=nav_urls,
+                                      data=data,
+                                      dataurls=data_urls)
 
 
 
