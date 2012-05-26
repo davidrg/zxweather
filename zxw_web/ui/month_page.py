@@ -5,7 +5,7 @@ from web.contrib.template import render_jinja
 from months import month_name, month_number
 from ui.baseui import BaseUI
 from cache import month_cache_control
-from data.database import month_exists
+from database import month_exists
 from ui.modern_ui import ModernUI
 import os
 from ui.ui_route import validate_request, html_file

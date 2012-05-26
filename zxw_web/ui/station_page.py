@@ -5,7 +5,7 @@ Handles the station overview page and any other station-level pages.
 from datetime import datetime, timedelta
 from web.contrib.template import render_jinja
 from cache import day_cache_control
-from data.database import get_daily_records, get_years, total_rainfall_in_last_7_days, day_exists
+from database import get_daily_records, get_years, total_rainfall_in_last_7_days, day_exists
 from modern_ui import ModernUI
 import os
 from months import month_name
