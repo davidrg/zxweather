@@ -3,14 +3,15 @@ Provides access to zxweather monthly data over HTTP in a number of formats.
 Used for generating charts in JavaScript, etc.
 """
 
-from datetime import date, datetime, timedelta
+from datetime import date
 import json
+from cache import cache_control_headers
 import os
 import web
 from web.contrib.template import render_jinja
 from config import db
 import config
-from data.util import rfcformat, outdoor_sample_result_to_datatable, datetime_to_js_date, pretty_print
+from data.util import outdoor_sample_result_to_datatable, datetime_to_js_date, pretty_print
 
 __author__ = 'David Goodwin'
 
@@ -105,31 +106,6 @@ class index:
         web.header('Content-Type', 'text/html')
         return render.monthly_data_index(days=days)
 
-def monthly_cache_control_headers(year,month,age):
-    """
-    Sets cache control headers for a daily data files.
-    :param year: Year of the data file
-    :type year: int
-    :param month: Month of the data file
-    :type month: int
-    :param age: Timestamp of the last record in the data file
-    :type age: datetime
-    """
-
-    now = datetime.now()
-    # HTTP-1.1 Cache Control
-    if year == now.year and month == now.month:
-        # We should be getting a new sample every sample_interval seconds if
-        # the requested day is today.
-        web.header('Cache-Control', 'max-age=' + str(config.sample_interval))
-        web.header('Expires',
-                   rfcformat(age + timedelta(0, config.sample_interval)))
-    else:
-        # Old data. Never expires.
-        web.header('Expires',
-                   rfcformat(now + timedelta(60, 0))) # Age + 60 days
-    web.header('Last-Modified', rfcformat(age))
-
 def get_daily_records(year,month):
     """
     Gets records for each day in the month.
@@ -218,12 +194,11 @@ order by time_stamp asc""", params)
     else:
         page = json.dumps(data)
 
-    monthly_cache_control_headers(year,month,data_age)
+    cache_control_headers(data_age,year,month)
     web.header('Content-Type', 'application/json')
     web.header('Content-Length', str(len(page)))
 
     return page
-
 
 def get_30m_avg_month_samples_datatable(year, month):
     """
@@ -271,7 +246,7 @@ order by iq.quadrant asc""", params)
 
     data, data_age = outdoor_sample_result_to_datatable(query_data)
 
-    monthly_cache_control_headers(year,month,data_age)
+    cache_control_headers(data_age,year,month)
 
     web.header('Content-Type','application/json')
     web.header('Content-Length', str(len(data)))
@@ -308,7 +283,7 @@ order by cur.time_stamp asc""", params)
 
     data, data_age = outdoor_sample_result_to_datatable(query_data)
 
-    monthly_cache_control_headers(year,month,data_age)
+    cache_control_headers(data_age,year,month)
 
     web.header('Content-Type','application/json')
     web.header('Content-Length', str(len(data)))
