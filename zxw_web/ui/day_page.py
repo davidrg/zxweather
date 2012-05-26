@@ -5,11 +5,10 @@ Handles fetching the day pages in all UIs.
 from datetime import datetime, timedelta, date
 from web.contrib.template import render_jinja
 from months import month_name
-from ui.baseui import BaseUI
 
 from cache import day_cache_control
-from database import get_live_data, get_daily_records, total_rainfall_in_last_7_days, day_exists
-from ui.modern_ui import ModernUI
+from database import get_live_data, get_daily_records, total_rainfall_in_last_7_days, day_exists, get_live_indoor_data
+from ui import get_nav_urls
 import os
 from ui.ui_route import html_file, month_number, validate_request
 from url_util import relative_url
@@ -160,7 +159,7 @@ def get_day_page(ui, station, day):
     day_cache_control(data_age, day.year, day.month, day.day)
 
     if ui == 's':
-        nav_urls = ModernUI.get_nav_urls(station, current_location)
+        nav_urls = get_nav_urls(station, current_location)
         data_urls = get_day_data_urls(station, data.date_stamp, False)
         return modern_templates.day(nav=nav_urls,
                              data_urls=data_urls,
@@ -212,6 +211,8 @@ def get_indoor_data_urls(station, day):
         'samples_7day_30mavg': samples_7day_30mavg
     }
 
+
+
 def get_indoor_day(ui, station, day):
     """
     Gets a page showing temperature and humidity at the base station.
@@ -241,12 +242,13 @@ def get_indoor_day(ui, station, day):
     today = now == day
 
     if today:
-        data.current_data_ts, data.current_data = BaseUI.get_live_indoor_data()
+        data.current_data = get_live_indoor_data()
+        data.current_data_ts = data.current_data.time_stamp
 
     day_cache_control(data.current_data_ts, day.year, day.month, day.day)
 
     if ui == 's':
-        nav_urls = ModernUI.get_nav_urls(station, current_location)
+        nav_urls = get_nav_urls(station, current_location)
         data_urls = get_indoor_data_urls(station, data.date_stamp)
         return modern_templates.indoor_day(data=data,
                                  nav=nav_urls,
