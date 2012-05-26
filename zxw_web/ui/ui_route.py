@@ -4,23 +4,17 @@ slightly, puts on the content-type header where required and then dispatches
 to the appropriate handler function for the specified UI.
 """
 
-from web.contrib.template import render_jinja
 from months import month_number, month_name
 
-from ui.basic_ui import BasicUI
 import config
 from database import day_exists, month_exists, year_exists
-from ui.modern_ui import ModernUI
 import datetime
 import web
-import os
 
 __author__ = 'David Goodwin'
 
 # Register available UIs
-uis = {ModernUI.ui_code(): ModernUI(),
-       BasicUI.ui_code(): BasicUI(),
-      }
+uis = ['s','b']
 
 def validate_request(ui=None,station=None, year=None, month=None, day=None):
     """
@@ -66,9 +60,8 @@ class site_index:
     """
     def GET(self):
         """
-        Shows a UI choosing page (or goes straight to the only UI if there
-        is only one) if config.default_ui is None, redirects to
-        the default UI if config.default_ui is not None.
+        Redirects the user to the default UI. If no default is specified the
+        standard UI ('s') is used.
         :return: UI Choosing page if anything.
         :raise: web.seeother() if default is specified or there is only one UI.
         """
@@ -76,26 +69,10 @@ class site_index:
         if config.default_ui is not None:
             raise web.seeother(config.site_root + config.default_ui + '/' +
                                config.default_station_name + '/')
+        else:
+            raise web.seeother(config.site_root + 's/' +
+                               config.default_station_name + '/')
 
-        if len(uis) == 1:
-            # If there is only one UI registered just redirect straight to it.
-            raise web.seeother(config.site_root + uis.items()[0][0] + '/'
-                               + config.default_station_name + '/')
-
-        ui_list = []
-
-        for ui in uis.items():
-            ui_key = ui[1].ui_code() + '/' + config.default_station_name
-            ui_name = ui[1].ui_name()
-            ui_desc = ui[1].ui_description()
-            ui_list.append((ui_key,ui_name,ui_desc))
-
-        template_dir = os.path.join(os.path.dirname(__file__),
-                                    os.path.join('templates'))
-        render = render_jinja(template_dir, encoding='utf-8')
-
-        html_file()
-        return render.ui_list(uis=ui_list)
 
 class stationlist:
     """
