@@ -19,7 +19,7 @@
                     {%- endif %}
                     <a href="../" class="btn">{{ data.this_year }}</a>
                     {% if data.next_url -%}
-                        <a href="{{ data.next_url }}" class="btn">{{ data.next_month }}<i class="icon-forward"></i></a>
+                        <a href="{{ data.next_url }}" class="btn">{{ data.next_month }} <i class="icon-forward"></i></a>
                     {%- else -%}
                         <a href="#" class="btn disabled" onclick="return false;">{{ data.next_month }} <i class="icon-forward"></i></a>
                     {%- endif %}

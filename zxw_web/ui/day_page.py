@@ -140,7 +140,7 @@ def get_day_page(ui, station, day):
 
         prev_url = None
         next_url = None
-        prev_date = date_stamp + timedelta(1)
+        prev_date = date_stamp - timedelta(1)
         next_date = date_stamp + timedelta(1)
         this_month = month_name[day.month].capitalize()
         records = get_daily_records(date_stamp)
