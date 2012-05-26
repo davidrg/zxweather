@@ -223,6 +223,8 @@ class BasicUI(BaseUI):
             data.current_data_ts, data.current_data = BaseUI.get_live_indoor_data()
 
         BaseUI.day_cache_control(data.current_data_ts,year,month,day)
+        # Standard: Nav URLs
+        # Standard: Data URLs
         return self.render.indoor_day(data=data)
 
 
