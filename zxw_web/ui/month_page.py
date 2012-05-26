@@ -10,7 +10,7 @@ from cache import month_cache_control
 from database import month_exists
 from ui import get_nav_urls
 import os
-from ui.ui_route import validate_request, html_file
+from ui import validate_request, html_file
 from url_util import relative_url
 
 __author__ = 'David Goodwin'
