@@ -6,7 +6,7 @@ Used for generating charts in JavaScript, etc.
 
 from datetime import date, datetime
 from cache import day_cache_control
-from database import get_daily_records, get_daily_rainfall, get_latest_sample_timestamp
+from database import get_daily_records, get_daily_rainfall, get_latest_sample_timestamp, day_exists
 import os
 import web
 from web.contrib.template import render_jinja
@@ -32,130 +32,6 @@ __author__ = 'David Goodwin'
 #       All samples for the past 7 days of indoor weather.
 # /data/{year}/{month}/{day}/datatable/7day_30m_avg_indoor_samples.json
 #       30 minute averages for the past 7 days of indoor weather.
-
-class datatable_json:
-    """
-    Gets data for a particular day in Googles DataTable format.
-    """
-    def GET(self, station, year, month, day, dataset):
-        """
-        Handles requests for per-day JSON data sources in Googles datatable
-        format.
-        :param station: Station to get data for
-        :type station: str
-        :param year: Year to get data for
-        :type year: str
-        :param month: month to get data for
-        :type month: str
-        :param day: day to get data for
-        :type day: str
-        :param dataset: The dataset (filename) to retrieve
-        :type dataset: str
-        :return: JSON Data for whatever dataset was requested.
-        :raise: web.NotFound if an invalid request is made.
-        """
-        if station != config.default_station_name:
-            raise web.NotFound()
-
-        this_date = date(int(year),int(month),int(day))
-
-        # Make sure the day actually exists in the database before we go
-        # any further.
-        params = dict(date=this_date)
-        recs = db.query("select 42 from sample where date(time_stamp) = $date limit 1", params)
-        if recs is None or len(recs) == 0:
-            raise web.NotFound()
-
-        if dataset == 'samples':
-            return get_day_samples_datatable(this_date)
-        elif dataset == '7day_samples':
-            return get_7day_samples_datatable(this_date)
-        elif dataset == '7day_30m_avg_samples':
-            return get_7day_30mavg_samples_datatable(this_date)
-        elif dataset == 'indoor_samples':
-            return get_day_indoor_samples_datatable(this_date)
-        elif dataset == '7day_indoor_samples':
-            return get_7day_indoor_samples_datatable(this_date)
-        elif dataset == '7day_30m_avg_indoor_samples':
-            return get_7day_30mavg_indoor_samples_datatable(this_date)
-        elif dataset == 'hourly_rainfall':
-            return get_days_hourly_rain_datatable(this_date)
-        elif dataset == '7day_hourly_rainfall':
-            return get_7day_hourly_rain_datatable(this_date)
-        else:
-            raise web.NotFound()
-
-class data_json:
-    """
-    Gets data for a particular day in Googles DataTable format.
-    """
-    def GET(self, station, year, month, day, dataset):
-        """
-        Gets plain (non-datatable) JSON data sources.
-        :param station: Station to get data for
-        :type station: str
-        :param year: Year to get data for
-        :type year: str
-        :param month: month to get data for
-        :type month: str
-        :param day: day to get data for
-        :type day: str
-        :param dataset: The dataset (filename) to retrieve
-        :type dataset: str
-        :return: the JSON dataset requested
-        :rtype: str
-        :raise: web.NotFound if an invalid request is made.
-        """
-        if station != config.default_station_name:
-            raise web.NotFound()
-
-        this_date = date(int(year),int(month),int(day))
-
-        # Make sure the day actually exists in the database before we go
-        # any further.
-        params = dict(date=this_date)
-        recs = db.query("select 42 from sample where date(time_stamp) = $date limit 1", params)
-        if recs is None or len(recs) == 0:
-            raise web.NotFound()
-
-
-        if dataset == 'records':
-            return get_day_records(this_date)
-        if dataset == 'rainfall':
-            return get_day_rainfall(this_date)
-        else:
-            raise web.NotFound()
-
-class index:
-    """
-    Provides an index of available daily data sources
-    """
-    def GET(self, station, year, month, day):
-        """
-        Returns an index page containing a list of json files available for
-        the day.
-        :param station: Station to get data for
-        :type station: string
-        :param year: Year to get data for
-        :type year: string
-        :param month: Month to get data for
-        :type month: string
-        :param day: Day to get data for.
-        :type day: string
-        """
-        template_dir = os.path.join(os.path.dirname(__file__),
-                                    os.path.join('templates'))
-        render = render_jinja(template_dir, encoding='utf-8')
-
-        # Make sure the day actually exists in the database before we go
-        # any further.
-        params = dict(date=date(int(year),int(month),int(day)))
-        recs = db.query("select 42 from sample where date(time_stamp) = $date limit 1", params)
-        if recs is None or len(recs) == 0:
-            raise web.NotFound()
-
-        web.header('Content-Type', 'text/html')
-        return render.daily_data_index()
 
 def indoor_sample_result_to_datatable(query_data):
     """
@@ -602,3 +478,165 @@ def get_day_rainfall(day):
     age = get_latest_sample_timestamp()
     day_cache_control(age,day)
     return json.dumps(rainfall)
+
+# These are all the available datasources ('files') for the day datatable
+# route.
+datatable_datasources = {
+    'samples': {
+        'desc': 'All outdoor samples for the day. Should be around 288 records.',
+        'func': get_day_samples_datatable
+    },
+    '7day_samples': {
+        'desc': 'Every outdoor sample over the past seven days. Should be around 2016 records.',
+        'func': get_7day_samples_datatable
+    },
+    '7day_30m_avg_samples': {
+        'desc': 'Averaged outdoor samples every 30 minutes for the past 7 days.',
+        'func': get_7day_30mavg_samples_datatable
+    },
+    'indoor_samples': {
+        'desc': 'All indoor samples for the day. Should be around 288 records.',
+        'func': get_day_indoor_samples_datatable
+    },
+    '7day_indoor_samples': {
+        'desc': 'Every indoor sample over the past seven days. Should be around 2016 records.',
+        'func': get_7day_indoor_samples_datatable
+    },
+    '7day_30m_avg_indoor_samples': {
+        'desc': 'Averaged indoor samples every 30 minutes for the past 7 days.',
+        'func': get_7day_30mavg_indoor_samples_datatable
+    },
+    'hourly_rainfall': {
+        'desc': 'Total rainfall for each hour in the day',
+        'func': get_days_hourly_rain_datatable
+    },
+    '7day_hourly_rainfall': {
+        'desc': 'Total rainfall for each hour in the past seven days.',
+        'func': get_7day_hourly_rain_datatable
+    },
+}
+
+# Data sources available at the day level.
+datasources = {
+    'records': {
+        'desc': 'Records for the day.',
+        'func': get_day_records
+    },
+    'rainfall': {
+        'desc': 'Rainfall totals for the day and the past seven days.',
+        'func': get_day_rainfall
+    },
+}
+
+def datasource_dispatch(station, datasource_dict, dataset, day):
+    """
+    Dispatches a request for a data source.
+    :param station: Station to use
+    :type station: str
+    :param datasource_dict: Dict of datasources that are valid at this point.
+    :type datasource_dict: dict
+    :param dataset: dataset that was requested
+    :type dataset: str
+    :param day: Day that data was requested for
+    :type day: date
+    :return: Response data
+    :raise: web.NotFound() if request is invalid
+    """
+    if station != config.default_station_name:
+        raise web.NotFound()
+
+    # Make sure the day actually exists in the database before we go
+    # any further.
+    if not day_exists(day):
+        raise web.NotFound()
+
+    if dataset in datasource_dict:
+        return datasource_dict[dataset](day)
+    else:
+        raise web.NotFound()
+
+class datatable_json:
+    """
+    Gets data for a particular day in Googles DataTable format.
+    """
+    def GET(self, station, year, month, day, dataset):
+        """
+        Handles requests for per-day JSON data sources in Googles datatable
+        format.
+        :param station: Station to get data for
+        :type station: str
+        :param year: Year to get data for
+        :type year: str
+        :param month: month to get data for
+        :type month: str
+        :param day: day to get data for
+        :type day: str
+        :param dataset: The dataset (filename) to retrieve
+        :type dataset: str
+        :return: JSON Data for whatever dataset was requested.
+        :raise: web.NotFound if an invalid request is made.
+        """
+        this_date = date(int(year),int(month),int(day))
+
+        return datasource_dispatch(station,
+                                   datatable_datasources,
+                                   dataset,
+                                   this_date)
+
+class data_json:
+    """
+    Gets data for a particular day in Googles DataTable format.
+    """
+    def GET(self, station, year, month, day, dataset):
+        """
+        Gets plain (non-datatable) JSON data sources.
+        :param station: Station to get data for
+        :type station: str
+        :param year: Year to get data for
+        :type year: str
+        :param month: month to get data for
+        :type month: str
+        :param day: day to get data for
+        :type day: str
+        :param dataset: The dataset (filename) to retrieve
+        :type dataset: str
+        :return: the JSON dataset requested
+        :rtype: str
+        :raise: web.NotFound if an invalid request is made.
+        """
+        this_date = date(int(year),int(month),int(day))
+
+        return datasource_dispatch(station,
+                                   datasources,
+                                   dataset,
+                                   this_date)
+
+class index:
+    """
+    Provides an index of available daily data sources
+    """
+    def GET(self, station, year, month, day):
+        """
+        Returns an index page containing a list of json files available for
+        the day.
+        :param station: Station to get data for
+        :type station: string
+        :param year: Year to get data for
+        :type year: string
+        :param month: Month to get data for
+        :type month: string
+        :param day: Day to get data for.
+        :type day: string
+        """
+        template_dir = os.path.join(os.path.dirname(__file__),
+                                    os.path.join('templates'))
+        render = render_jinja(template_dir, encoding='utf-8')
+
+        # Make sure the day actually exists in the database before we go
+        # any further.
+        if not day_exists(date(int(year),int(month),int(day))):
+            raise web.NotFound()
+
+        web.header('Content-Type', 'text/html')
+        return render.daily_data_index(data_sources=datasources,
+                                       dt_datasources=datatable_datasources)
