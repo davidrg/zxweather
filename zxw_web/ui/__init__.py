@@ -138,7 +138,7 @@ class now:
         """
         validate_request(ui,station)
 
-        today = datetime.datetime.now().date()
+        today = datetime.now().date()
 
         todays_url = config.site_root + ui + '/' + station + '/' +\
                      str(today.year) + '/' + month_name[today.month] + '/' + str(today.day) + '/'
