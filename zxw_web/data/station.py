@@ -56,7 +56,7 @@ class data_json:
         elif dataset == 'current_day_records':
             return current_day_records()
         elif dataset == 'current_day_rainfall_totals':
-            pass
+            return current_day_rainfall()
         else:
             raise web.NotFound()
 

@@ -15,76 +15,24 @@
         <td><b>Link</b></td>
         <td><b>Description</b></td>
     </tr>
+    {% for key in data_sources.keys() %}
     <tr bgcolor="blanchedalmond">
-        <td>JSON</td>
-        <td><a href="records.json">records.json</a></td>
+        <td>{{ data_sources[key]['type'] }}</td>
+        <td><a href="{{ data_sources[key]['dir'] }}{{ key }}.{{ data_sources[key]['ext'] }}">{{ data_sources[key]['dir'] }}{{ key }}.{{ data_sources[key]['ext'] }}</a></td>
         <td>
-            Records for the day.
+            {{ data_sources[key]['desc'] }}
         </td>
     </tr>
-    <tr bgcolor="blanchedalmond">
-        <td>JSON</td>
-        <td><a href="rainfall.json">rainfall.json</a></td>
-        <td>
-            Rainfall totals for the day and the past seven days.
-        </td>
-    </tr>
-    <tr bgcolor="blanchedalmond">
-        <td>Google DataTable JSON</td>
-        <td><a href="datatable/samples.json">datatable/samples.json</a></td>
-        <td>
-            All outdoor samples for the day. Should be around 288 records.
-        </td>
-    </tr>
-    <tr bgcolor="blanchedalmond">
-        <td>Google DataTable JSON</td>
-        <td><a href="datatable/hourly_rainfall.json">datatable/hourly_rainfall.json</a></td>
-        <td>
-            Total rainfall for each hour in the day
-        </td>
-    </tr>
-    <tr bgcolor="blanchedalmond">
-        <td>Google DataTable JSON</td>
-        <td><a href="datatable/7day_hourly_rainfall.json">datatable/7day_hourly_rainfall.json</a></td>
-        <td>
-            Total rainfall for each hour in the past seven days.
-        </td>
-    </tr>
-    <tr bgcolor="blanchedalmond">
-        <td>Google DataTable JSON</td>
-        <td><a href="datatable/7day_samples.json">datatable/7day_samples.json</a></td>
-        <td>
-            Every outdoor sample over the past seven days. Should be around 2016 records.
-        </td>
-    </tr>
-    <tr bgcolor="blanchedalmond">
-        <td>Google DataTable JSON</td>
-        <td><a href="datatable/7day_30m_avg_samples.json">datatable/7day_30m_avg_samples.json</a></td>
-        <td>
-            Averaged outdoor samples every 30 minutes for the past 7 days.
-        </td>
-    </tr>
-    <tr bgcolor="blanchedalmond">
-        <td>Google DataTable JSON</td>
-        <td><a href="datatable/indoor_samples.json">datatable/indoor_samples.json</a></td>
-        <td>
-            All indoor samples for the day. Should be around 288 records.
-        </td>
-    </tr>
-    <tr bgcolor="blanchedalmond">
-        <td>Google DataTable JSON</td>
-        <td><a href="datatable/7day_indoor_samples.json">datatable/7day_indoor_samples.json</a></td>
-        <td>
-            Every indoor sample over the past seven days. Should be around 2016 records.
-        </td>
-    </tr>
-    <tr bgcolor="blanchedalmond">
-        <td>Google DataTable JSON</td>
-        <td><a href="datatable/7day_30m_avg_indoor_samples.json">datatable/7day_30m_avg_indoor_samples.json</a></td>
-        <td>
-            Averaged indoor samples every 30 minutes for the past 7 days.
-        </td>
-    </tr>
+    {% endfor %}
+    {% for key in dt_datasources.keys() %}
+        <tr bgcolor="blanchedalmond">
+            <td>Google DataTable JSON</td>
+            <td><a href="datatable/{{ key }}.json">datatable/{{ key }}.json</a></td>
+            <td>
+                {{ dt_datasources[key]['desc'] }}
+            </td>
+        </tr>
+    {% endfor %}
 </table>
 <hr>
 <center><a href="../">Up to Monthly data sets</a></center>
