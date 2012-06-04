@@ -544,14 +544,14 @@ def datasource_dispatch(station, datasource_dict, dataset, day):
     """
     if station != config.default_station_name:
         raise web.NotFound()
-
+    print dataset
     # Make sure the day actually exists in the database before we go
     # any further.
     if not day_exists(day):
         raise web.NotFound()
 
     if dataset in datasource_dict:
-        return datasource_dict[dataset](day)
+        return datasource_dict[dataset]['func'](day)
     else:
         raise web.NotFound()
 

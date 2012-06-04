@@ -17,8 +17,8 @@
     </tr>
     {% for key in data_sources.keys() %}
     <tr bgcolor="blanchedalmond">
-        <td>{{ data_sources[key]['type'] }}</td>
-        <td><a href="{{ data_sources[key]['dir'] }}{{ key }}.{{ data_sources[key]['ext'] }}">{{ data_sources[key]['dir'] }}{{ key }}.{{ data_sources[key]['ext'] }}</a></td>
+        <td>JSON</td>
+        <td><a href="{{ key }}.json">{{ key }}.json</a></td>
         <td>
             {{ data_sources[key]['desc'] }}
         </td>
