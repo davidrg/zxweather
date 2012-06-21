@@ -145,7 +145,7 @@ def get_day_page(ui, station, day):
         this_month = month_name[day.month].capitalize()
         records = get_daily_records(date_stamp)
 
-        if ui == 's':
+        if ui in ('s','m'):
             rainfall_7days_total = total_rainfall_in_last_7_days(date_stamp)
 
 
@@ -159,13 +159,13 @@ def get_day_page(ui, station, day):
 
     day_cache_control(data_age, day)
 
-    if ui == 's':
+    if ui in ('s','m'):
         nav_urls = get_nav_urls(station, current_location)
         data_urls = get_day_data_urls(station, data.date_stamp)
         return modern_templates.day(nav=nav_urls,
                              data_urls=data_urls,
                              data=data,
-                             station=station)
+                             station=station,ui=ui)
     else:
         return basic_templates.day(data=data,
                             station=station)

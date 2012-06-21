@@ -22,10 +22,12 @@ modern_template_dir = os.path.join(os.path.dirname(__file__),
 basic_templates = render_jinja(basic_template_dir, encoding='utf-8')
 modern_templates = render_jinja(modern_template_dir, encoding='utf-8')
 
-def get_station_standard(station):
+def get_station_standard(ui, station):
     """
     Index page for the weather station. Should give station records and
     perhaps some basic yearly overview data.
+    :param ui: The UI being used
+    :type ui: str
     :param station: Name of the station to show info for.
     :return: View data.
     """
@@ -52,7 +54,8 @@ def get_station_standard(station):
     nav_urls = get_nav_urls(station, current_location)
     return modern_templates.station(nav=nav_urls,
                                     data=data,
-                                    station=station)
+                                    station=station,
+                                    ui=ui)
 
 def get_station_basic(station):
     """
@@ -81,7 +84,7 @@ class station:
         validate_request(ui,station)
         html_file()
 
-        if ui == 's':
-            return get_station_standard(station)
+        if ui in ('s','m'):
+            return get_station_standard(ui, station)
         else:
             return get_station_basic(station)

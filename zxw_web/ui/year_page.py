@@ -118,7 +118,7 @@ def get_year(ui,station, year):
 
     year_cache_control(year)
 
-    if ui == 's':
+    if ui in ('s','m'):
         # Figure out any URLs the page needs to know.
         class urls:
             """Various URLs required by the view"""
