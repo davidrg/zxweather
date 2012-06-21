@@ -127,5 +127,10 @@
         var is_day_page = false;
     </script>
     <script type="text/javascript" src="../../js/day_live.js"></script>
+    {% if ui and ui == 'm' %}
+    <script type="text/javascript" src="../../js/dygraph-combined.js"></script>
+    <script type="text/javascript" src="../../js/day_charts_dygraph.js"></script>
+    {% else %}
     <script type="text/javascript" src="../../js/day_charts.js"></script>
+    {% endif %}
 {% endblock %}

@@ -222,7 +222,7 @@ def get_month(ui, station, year, month):
         records = get_monthly_records(year,month)
 
     month_cache_control(year, month)
-    if ui == 's':
+    if ui in ('s','m'):
         # TODO: Make this a dict.
         class urls:
             """Various URLs required by the view"""

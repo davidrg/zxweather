@@ -46,7 +46,7 @@ def get_nav_urls(station, current_url):
 
 
 # Register available UIs
-uis = ['s','b']
+uis = ['s','b','m']
 
 def validate_request(ui=None,station=None, year=None, month=None, day=None):
     """
