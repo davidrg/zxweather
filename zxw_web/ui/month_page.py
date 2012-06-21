@@ -233,7 +233,7 @@ def get_month(ui, station, year, month):
             daily_records = data_base + 'datatable/daily_records.json'
 
         nav_urls = get_nav_urls(station, current_location)
-        return modern_templates.month(nav=nav_urls, data=data,dataurls=urls)
+        return modern_templates.month(nav=nav_urls, data=data,dataurls=urls,ui=ui)
     else:
         return basic_templates.month(data=data)
 
