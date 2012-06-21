@@ -148,188 +148,19 @@
         </div>
     </section>
 
-    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+    <script type="text/javascript" src="../../../../js/jquery.min.js"></script>
     <script type="text/javascript" src="http://www.google.com/jsapi"></script>
     <script type="text/javascript">
-        //google.load('visualization', '1', {packages:['table']});
-        google.load("visualization", "1", {packages:["corechart"]});
-        google.setOnLoadCallback(drawTable);
-        function drawTable() {
-
-            function drawAllCharts(data,
-                                   tdp_element,
-                                   awc_element,
-                                   humidity_element,
-                                   pressure_element) {
-
-                // Temperature and Dewpoint only
-                var temperature_tdp = new google.visualization.DataView(data);
-                temperature_tdp.hideColumns([3,4,5,6]);
-
-                var temperature_tdp_options = {
-                    title: 'Temperature and Dew Point (°C)',
-                    legend: {position: 'bottom'}
-                };
-                var temperature_tdp_chart = new google.visualization.LineChart(tdp_element);
-                temperature_tdp_chart.draw(temperature_tdp, temperature_tdp_options);
-
-                // Apparent Temperature and Wind Chill only
-                var temperature_awc = new google.visualization.DataView(data);
-                temperature_awc.hideColumns([1,2,5,6]);
-
-                var temperature_awc_options = {
-                    title: 'Apparent Temperature and Wind Chill (°C)',
-                    legend: {position: 'bottom'}
-                };
-                var temperature_awc_chart = new google.visualization.LineChart(awc_element);
-                temperature_awc_chart.draw(temperature_awc, temperature_awc_options);
-
-                // Absolute Pressure only
-                var pressure = new google.visualization.DataView(data);
-                pressure.hideColumns([1,2,3,4,5]);
-
-                var pressure_options = {
-                    title: 'Absolute Pressure (hPa)',
-                    legend: {position: 'none'},
-                    vAxis: {format: '####'}
-                };
-                var pressure_chart = new google.visualization.LineChart(pressure_element);
-                pressure_chart.draw(pressure, pressure_options);
-
-                // Humidity only
-                var humidity = new google.visualization.DataView(data);
-                humidity.hideColumns([1,2,3,4,6]);
-
-                var humidity_options = {
-                    title: 'Humidity (%)',
-                    legend: {position: 'none'}
-                };
-                var humidity_chart = new google.visualization.LineChart(humidity_element);
-                humidity_chart.draw(humidity, humidity_options);
-            }
-
-            /***************************************************************
-             * Fetch the days samples and draw the 1-day charts
-             */
-            $.getJSON('{{ dataurls.samples_30m_avg }}', function(data) {
-                // This contains all samples for the day. Included columns are
-                // 0: timestamp
-                // 1: temperature
-                // 2: dewpoint
-                // 3: apparenttemp
-                // 4: windchill
-                // 5: humidity
-                // 6: abspressure
-                var sampledata = new google.visualization.DataTable(data);
-
-                // Do some formatting
-                var temperatureFormatter = new google.visualization.NumberFormat(
-                        { pattern: '##.# °C'});
-                temperatureFormatter.format(sampledata,1);
-                temperatureFormatter.format(sampledata,2);
-                temperatureFormatter.format(sampledata,3);
-                temperatureFormatter.format(sampledata,4);
-
-                var humidityFormatter = new google.visualization.NumberFormat(
-                        { pattern: '##'});
-                humidityFormatter.format(sampledata,5);
-
-                var pressureFormatter = new google.visualization.NumberFormat(
-                        { pattern: '####.# hPa'});
-                pressureFormatter.format(sampledata,6);
-
-
-                drawAllCharts(sampledata,
-                              document.getElementById('chart_temperature_tdp_div'),
-                              document.getElementById('chart_temperature_awc_div'),
-                              document.getElementById('chart_humidity_div'),
-                              document.getElementById('chart_pressure_div')
-                );
-            });
-
-            $.getJSON('{{ dataurls.daily_records }}', function(data) {
-                var record_data = new google.visualization.DataTable(data);
-
-                // This contains all samples for the day. Included columns are
-                // 0: timestamp
-                // 1: max temp
-                // 2: min temp
-                // 3: max humidity
-                // 4: min humidity
-                // 5: max pressure
-                // 6: min pressure
-                // 7: rainfall
-
-                // Do some formatting
-                var temperatureFormatter = new google.visualization.NumberFormat(
-                        { pattern: '##.# °C'});
-                temperatureFormatter.format(record_data,1);
-                temperatureFormatter.format(record_data,2);
-
-                var humidityFormatter = new google.visualization.NumberFormat(
-                        { pattern: '##'});
-                humidityFormatter.format(record_data,3);
-                humidityFormatter.format(record_data,4);
-
-                var pressureFormatter = new google.visualization.NumberFormat(
-                        { pattern: '####.# hPa'});
-                pressureFormatter.format(record_data,5);
-                pressureFormatter.format(record_data,6);
-
-                var rainFormatter = new google.visualization.NumberFormat(
-                        {pattern: '##.# mm'});
-                rainFormatter.format(record_data,7);
-
-                // Temperature
-                var temperature = new google.visualization.DataView(record_data);
-                temperature.hideColumns([3,4,5,6,7]);
-
-                var temperature_options = {
-                    title: 'Temperature (°C)',
-                    legend: {position: 'bottom'}
-                };
-                var temperature_chart = new google.visualization.LineChart(
-                        document.getElementById('chart_rec_temperature'));
-                temperature_chart.draw(temperature, temperature_options);
-
-                // Humidity
-                var humidity = new google.visualization.DataView(record_data);
-                humidity.hideColumns([1,2,5,6,7]);
-
-                var humidity_options = {
-                    title: 'Humidity (%)',
-                    legend: {position: 'bottom'}
-                };
-                var humidity_chart = new google.visualization.LineChart(
-                        document.getElementById('chart_rec_humidity'));
-                humidity_chart.draw(humidity, humidity_options);
-
-                // Pressure
-                var pressure = new google.visualization.DataView(record_data);
-                pressure.hideColumns([1,2,3,4,7]);
-
-                var pressure_options = {
-                    title: 'Absolute Pressure (hPa)',
-                    legend: {position: 'bottom'}
-                };
-                var pressure_chart = new google.visualization.LineChart(
-                        document.getElementById('chart_rec_pressure'));
-                pressure_chart.draw(pressure, pressure_options);
-
-                // Rainfall
-                var rainfall = new google.visualization.DataView(record_data);
-                rainfall.hideColumns([1,2,3,4,5,6]);
-
-                var rainfall_options = {
-                    title: 'Total Rainfall (mm)',
-                    legend: {position: 'none'},
-                    vAxis: {format: '##.#'}
-                };
-                var rainfall_chart = new google.visualization.LineChart(
-                        document.getElementById('chart_rainfall'));
-                rainfall_chart.draw(rainfall, rainfall_options);
-            });
-        }
+    // URLs required by month_charts.js
+    var samples_url = '{{ dataurls.samples_30m_avg }}';
+    var daily_records_url = '{{ dataurls.daily_records }}';
     </script>
+    {% if ui and ui == 'm' %}
+    <script type="text/javascript" src="../../../../js/dygraph-combined.js"></script>
+        <script type="text/javascript" src="../../../../js/month_charts_dygraph.js"></script>
+    {% else %}
+    <script type="text/javascript" src="../../../../js/month_charts_gviz.js"></script>
+    {% endif %}
+    <script type="text/javascript" src="../../../../js/month_charts.js"></script>
 
 {% endblock %}
