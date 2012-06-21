@@ -42,7 +42,6 @@ ECPG_SOURCES += src/pgout.pgc
 SOURCES += src/deviceconfig.c \
     src/deviceio.c \
     src/history.c \
-    src/unix_daemon.c \
     src/daemon.c
 
 HEADERS += \
@@ -53,6 +52,13 @@ HEADERS += \
     src/version.h \
     src/daemon.h
 HEADERS += src/common.h
+
+win32 {
+    SOURCES += src/win32_svc.c
+}
+!win32 {
+    SOURCES += src/unix_daemon.c
+}
 
 # Windows dosn't have getopt so we bundle a copy of the glibc version.
 win32:SOURCES += src/getopt/getopt.c
