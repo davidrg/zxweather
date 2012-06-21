@@ -1,9 +1,10 @@
-/** Day page line charts implemented using the digraph library for line charts.
+/** Code to draw all line charts using the goolge visualisation API.
  *
  * User: David Goodwin
  * Date: 21/06/12
- * Time: 9:02 PM
+ * Time: 10:24 PM
  */
+
 
 function drawAllLineCharts(data,
                            tdp_element,
@@ -19,12 +20,8 @@ function drawAllLineCharts(data,
         title: 'Temperature and Dew Point (°C)',
         legend: {position: 'bottom'}
     };
-    //var temperature_tdp_chart = new google.visualization.LineChart(tdp_element);
-    //temperature_tdp_chart.draw(temperature_tdp, temperature_tdp_options);
-
-    var temperature_tdp_chart = new Dygraph.GVizChart(tdp_element);
+    var temperature_tdp_chart = new google.visualization.LineChart(tdp_element);
     temperature_tdp_chart.draw(temperature_tdp, temperature_tdp_options);
-
 
     // Apparent Temperature and Wind Chill only
     var temperature_awc = new google.visualization.DataView(data);
@@ -34,7 +31,7 @@ function drawAllLineCharts(data,
         title: 'Apparent Temperature and Wind Chill (°C)',
         legend: {position: 'bottom'}
     };
-    var temperature_awc_chart = new Dygraph.GVizChart(awc_element);
+    var temperature_awc_chart = new google.visualization.LineChart(awc_element);
     temperature_awc_chart.draw(temperature_awc, temperature_awc_options);
 
     // Absolute Pressure only
@@ -46,7 +43,7 @@ function drawAllLineCharts(data,
         legend: {position: 'none'},
         vAxis: {format: '####'}
     };
-    var pressure_chart = new Dygraph.GVizChart(pressure_element);
+    var pressure_chart = new google.visualization.LineChart(pressure_element);
     pressure_chart.draw(pressure, pressure_options);
 
     // Humidity only
@@ -57,8 +54,6 @@ function drawAllLineCharts(data,
         title: 'Humidity (%)',
         legend: {position: 'none'}
     };
-    var humidity_chart = new Dygraph.GVizChart(humidity_element);
+    var humidity_chart = new google.visualization.LineChart(humidity_element);
     humidity_chart.draw(humidity, humidity_options);
 }
-
-
