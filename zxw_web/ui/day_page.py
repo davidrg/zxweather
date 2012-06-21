@@ -248,7 +248,7 @@ def get_indoor_day(ui, station, day):
 
     day_cache_control(data.current_data_ts, day)
 
-    if ui == 's':
+    if ui in ('s','m'):
         nav_urls = get_nav_urls(station, current_location)
         data_urls = get_indoor_data_urls(station, data.date_stamp)
         return modern_templates.indoor_day(data=data,
