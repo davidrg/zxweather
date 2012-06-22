@@ -1,0 +1,127 @@
+/*****************************************************************************
+ *            Created: 23/06/2012
+ *          Copyright: (C) Copyright David Goodwin, 2012
+ *            License: GNU General Public License
+ *****************************************************************************
+ *
+ *   This is free software; you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation; either version 2 of the License, or
+ *   (at your option) any later version.
+ *
+ *   This software is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this software; if not, write to the Free Software
+ *   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ *
+ ****************************************************************************/
+
+/*
+ * QtSQL module doesn't seem to like Postgres (at least not recent versions).
+ * So this is all done with ECPG instead. Yay.
+ */
+
+#include "database.h"
+#include <string.h>
+#include <stdlib.h>
+
+EXEC SQL WHENEVER SQLERROR CALL wdb_print_sqlca();
+
+/* In the event of a SQL error, print the details to stderr, roll back the
+ * transaction, disconnect from the server and exit */
+void wdb_print_sqlca()
+{
+    fprintf(stderr, "==== sqlca ====\n");
+    fprintf(stderr, "sqlcode: %ld\n", sqlca.sqlcode);
+    fprintf(stderr, "sqlerrm.sqlerrml: %d\n", sqlca.sqlerrm.sqlerrml);
+    fprintf(stderr, "sqlerrm.sqlerrmc: %s\n", sqlca.sqlerrm.sqlerrmc);
+    fprintf(stderr, "sqlerrd: %ld %ld %ld %ld %ld %ld\n", sqlca.sqlerrd[0],sqlca.sqlerrd[1],sqlca.sqlerrd[2],
+                                                          sqlca.sqlerrd[3],sqlca.sqlerrd[4],sqlca.sqlerrd[5]);
+    fprintf(stderr, "sqlwarn: %d %d %d %d %d %d %d %d\n", sqlca.sqlwarn[0], sqlca.sqlwarn[1], sqlca.sqlwarn[2],
+                                                          sqlca.sqlwarn[3], sqlca.sqlwarn[4], sqlca.sqlwarn[5],
+                                                          sqlca.sqlwarn[6], sqlca.sqlwarn[7]);
+    fprintf(stderr, "sqlstate: %5s\n", sqlca.sqlstate);
+    fprintf(stderr, "===============\n");
+    exit(EXIT_FAILURE);
+   /* rollback();
+    disconnect();
+    exit(EXIT_FAILURE);*/
+}
+
+void wdb_connect(const char *target, const char *username, const char* password) {
+    EXEC SQL BEGIN DECLARE SECTION;
+    const char * target_l = target;
+    const char * username_l = username;
+    const char * password_l = password;
+    EXEC SQL END DECLARE SECTION;
+
+    EXEC SQL CONNECT TO :target_l USER :username_l USING :password_l;
+
+    EXEC SQL SET AUTOCOMMIT TO OFF;
+}
+
+//    EXEC SQL DECLARE live_data_cur CURSOR FOR
+//            SELECT relative_humidity,
+//                   temperature,
+//                   dew_point,
+//                   wind_chill,
+//                   apparent_temperature,
+//                   absolute_pressure,
+//                   average_wind_speed,
+//                   gust_wind_speed,
+//                   wind_direction
+//            FROM live_data
+
+live_data_record wdb_get_live_data() {
+    EXEC SQL BEGIN DECLARE SECTION;
+//    unsigned int indoor_relative_humidity;
+//    unsigned float indoor_temperature;
+    int relative_humidity;
+    float temperature;
+    float dew_point;
+    float wind_chill;
+    float apparent_temperature;
+    float absolute_pressure;
+    float average_wind_speed;
+    float gust_wind_speed;
+    char wind_direction[4];
+    EXEC SQL END DECLARE SECTION;
+
+    EXEC SQL SELECT relative_humidity,
+                    temperature,
+                    dew_point,
+                    wind_chill,
+                    apparent_temperature,
+                    absolute_pressure,
+                    average_wind_speed,
+                    gust_wind_speed,
+                    wind_direction
+             INTO :relative_humidity,
+                  :temperature,
+                  :dew_point,
+                  :wind_chill,
+                  :apparent_temperature,
+                  :absolute_pressure,
+                  :average_wind_speed,
+                  :gust_wind_speed,
+                  :wind_direction
+             FROM live_data;
+
+    live_data_record rec;
+    rec.relative_humidity = relative_humidity;
+    rec.temperature = temperature;
+    rec.dew_point = dew_point;
+    rec.wind_chill = wind_chill;
+    rec.apparent_temperature = apparent_temperature;
+    rec.absolute_pressure = absolute_pressure;
+    rec.average_wind_speed = average_wind_speed;
+    rec.gust_wind_speed = gust_wind_speed;
+
+    strcpy(rec.wind_direction, wind_direction);
+
+    return rec;
+}
