@@ -66,7 +66,6 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(signalAdapter, SIGNAL(unable_to_establish_connection(QString)), this, SLOT(connection_failed(QString)));
 
     // Other UI signals
-    connect(ui->pbRefresh, SIGNAL(clicked()), this, SLOT(db_refresh()));
     connect(ui->actionSettings, SIGNAL(triggered()), this, SLOT(showSettings()));
     connect(notificationTimer, SIGNAL(timeout()), this, SLOT(notification_pump()));
 
