@@ -50,6 +50,7 @@ public slots:
 
     // Database errors
     void connection_failed(QString);
+    void unknown_db_error(QString);
 protected:
     void changeEvent(QEvent *e);
     
