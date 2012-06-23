@@ -103,7 +103,10 @@ void MainWindow::db_refresh() {
         sysTrayIcon->setIcon(QIcon(":/icons/systray_subzero"));
 
     QString ttt = "Temperature: " + QString::number(rec.temperature) + " °C\n"
-                + "Humidity: " + QString::number(rec.relative_humidity) + " %";
+                + "Humidity: " + QString::number(rec.relative_humidity) + " %\n"
+                + "Indoor Temperature: " + QString::number(rec.indoor_temperature) + " °C\n"
+                + "Indoor Humidity: " + QString::number(rec.indoor_relative_humidity) + " %"
+                ;
 
     sysTrayIcon->setToolTip(ttt);
 
