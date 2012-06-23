@@ -23,6 +23,8 @@
 #ifndef DATABASE_H
 #define DATABASE_H
 
+#include "dbsignaladapter.h"
+
 typedef struct _live_data_record {
     float indoor_temperature;
     int indoor_relative_humidity;
@@ -38,8 +40,12 @@ typedef struct _live_data_record {
     long download_timestamp;
 } live_data_record;
 
+void wdb_set_signal_adapter(DBSignalAdapter *adapter);
+
 /* Connects to the database */
-void wdb_connect(const char *target, const char *username, const char* password);
+bool wdb_connect(const char *target, const char *username, const char* password);
+
+void wdb_disconnect();
 
 /* Gets the current live data */
 live_data_record wdb_get_live_data();

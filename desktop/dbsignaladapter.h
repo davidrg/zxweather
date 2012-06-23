@@ -20,53 +20,38 @@
  *
  ****************************************************************************/
 
-#ifndef MAINWINDOW_H
-#define MAINWINDOW_H
+#ifndef DBSIGNALADAPTER_H
+#define DBSIGNALADAPTER_H
 
-#include <QMainWindow>
-#include <QTimer>
-#include <QSystemTrayIcon>
-#include <QSettings>
+#include <QObject>
 
-#include "dbsignaladapter.h"
-
-namespace Ui {
-class MainWindow;
-}
-
-class MainWindow : public QMainWindow
+/** The DBSignalAdapter class converts database errors and other events
+ * into signals.
+ */
+class DBSignalAdapter : public QObject
 {
     Q_OBJECT
-    
 public:
-    explicit MainWindow(QWidget *parent = 0);
-    ~MainWindow();
+    explicit DBSignalAdapter(QObject *parent = 0);
     
-public slots:
-    void db_connect();
-    void db_refresh();
-    void notification_pump();
-    void showSettings();
+    void raiseDatabaseError(long sqlcode,
+                            int sqlerrml,
+                            QString sqlerrmc,
+                            long sqlerrd[6],
+                            char sqlwarn[8],
+                            char sqlstate[5]);
 
-    // Database errors
-    void connection_failed(QString);
-protected:
-    void changeEvent(QEvent *e);
-    
-private:
-    Ui::MainWindow *ui;
-    QTimer *notificationTimer;
-    QSystemTrayIcon *sysTrayIcon;
-    DBSignalAdapter *signalAdapter;
+signals:
+    void database_error(QString message);
 
-    QSettings* settings;
-
-    uint seconds_since_last_refresh;
-    uint minutes_late;
-
-    bool connected;
-
-    void showWarningPopup(QString message, QString title, QString tooltip="", bool setWarningIcon=false);
+    // Connection Exceptions
+    void connection_exception(QString message);
+    void connection_does_not_exist(QString message);
+    void connection_failure(QString message);
+    void unable_to_establish_connection(QString message);
+    void server_rejected_connection(QString message);
+    void transaction_resolution_unknown(QString message);
+    void protocol_violation(QString message);
 };
 
-#endif // MAINWINDOW_H
+#endif // DBSIGNALADAPTER_H

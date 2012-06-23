@@ -20,53 +20,33 @@
  *
  ****************************************************************************/
 
-#ifndef MAINWINDOW_H
-#define MAINWINDOW_H
+#ifndef SETTINGSDIALOG_H
+#define SETTINGSDIALOG_H
 
-#include <QMainWindow>
-#include <QTimer>
-#include <QSystemTrayIcon>
-#include <QSettings>
-
-#include "dbsignaladapter.h"
+#include <QDialog>
 
 namespace Ui {
-class MainWindow;
+class SettingsDialog;
 }
 
-class MainWindow : public QMainWindow
+class SettingsDialog : public QDialog
 {
     Q_OBJECT
     
 public:
-    explicit MainWindow(QWidget *parent = 0);
-    ~MainWindow();
+    explicit SettingsDialog(QWidget *parent = 0);
+    ~SettingsDialog();
     
-public slots:
-    void db_connect();
-    void db_refresh();
-    void notification_pump();
-    void showSettings();
-
-    // Database errors
-    void connection_failed(QString);
 protected:
     void changeEvent(QEvent *e);
+
+protected slots:
+    void dialogAccepted();
+    void writeSettings();
+    void loadSettings();
     
 private:
-    Ui::MainWindow *ui;
-    QTimer *notificationTimer;
-    QSystemTrayIcon *sysTrayIcon;
-    DBSignalAdapter *signalAdapter;
-
-    QSettings* settings;
-
-    uint seconds_since_last_refresh;
-    uint minutes_late;
-
-    bool connected;
-
-    void showWarningPopup(QString message, QString title, QString tooltip="", bool setWarningIcon=false);
+    Ui::SettingsDialog *ui;
 };
 
-#endif // MAINWINDOW_H
+#endif // SETTINGSDIALOG_H
