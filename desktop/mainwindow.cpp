@@ -28,6 +28,7 @@
 
 #include <QtDebug>
 #include <QDateTime>
+#include <QMessageBox>
 
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -47,6 +48,18 @@ MainWindow::MainWindow(QWidget *parent) :
     sysTrayIcon->setIcon(QIcon(":/icons/systray_icon_warning"));
     sysTrayIcon->setToolTip("No data");
     sysTrayIcon->show();
+    connect(sysTrayIcon, SIGNAL(activated(QSystemTrayIcon::ActivationReason)),
+            this, SLOT(trayIconActivated(QSystemTrayIcon::ActivationReason)));
+
+    trayIconMenu = new QMenu(this);
+    restoreAction = new QAction("&Restore",trayIconMenu);
+    quitAction = new QAction("&Quit",trayIconMenu);
+    trayIconMenu->addAction(restoreAction);
+    trayIconMenu->addSeparator();
+    trayIconMenu->addAction(quitAction);
+    sysTrayIcon->setContextMenu(trayIconMenu);
+    connect(restoreAction, SIGNAL(triggered()), this, SLOT(showNormal()));
+    connect(quitAction, SIGNAL(triggered()), this, SLOT(quit()));
 
     notificationTimer = new QTimer(this);
     notificationTimer->setInterval(1000);
@@ -69,6 +82,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionSettings, SIGNAL(triggered()), this, SLOT(showSettings()));
     connect(notificationTimer, SIGNAL(timeout()), this, SLOT(notification_pump()));
 
+    readSettings();
     db_connect();
 }
 
@@ -86,6 +100,24 @@ void MainWindow::changeEvent(QEvent *e)
     switch (e->type()) {
     case QEvent::LanguageChange:
         ui->retranslateUi(this);
+        break;
+    case QEvent::WindowStateChange:
+        if (windowState().testFlag(Qt::WindowMinimized) &&
+                minimise_to_systray) {
+
+            if (!settings->value("SingleShot/minimise_to_systray_info",false).toBool()) {
+                QMessageBox::information(this, "zxweather",
+                                     "zxweather will minimise to the "
+                                     "system tray. To restore it, click on the "
+                                     "icon. This behaviour can be changed in the "
+                                     "settings dialog.");
+                settings->setValue("SingleShot/minimise_to_systray_info",true);
+            }
+
+            // We can't call hide from the event handler. So we get the
+            // timer to dispatch the hide request for us.
+            QTimer::singleShot(0, this, SLOT(hide()));
+        }
         break;
     default:
         break;
@@ -128,16 +160,22 @@ void MainWindow::db_connect() {
 void MainWindow::db_refresh() {
     live_data_record rec = wdb_get_live_data();
 
-    ui->lblRelativeHumidity->setText(QString::number(rec.relative_humidity) + " %");
-    ui->lblTemperature->setText(QString::number(rec.temperature) + " °C");
-    ui->lblDewPoint->setText(QString::number(rec.dew_point) + " °C");
-    ui->lblWindChill->setText(QString::number(rec.wind_chill) + " °C");
-    ui->lblApparentTemperature->setText(QString::number(rec.apparent_temperature) + " °C");
-    ui->lblAbsolutePressure->setText(QString::number(rec.absolute_pressure) + " hPa");
-    ui->lblAverageWindSpeed->setText(QString::number(rec.average_wind_speed) + " m/s");
-    ui->lblGustWindSpeed->setText(QString::number(rec.gust_wind_speed) + " m/s");
+    ui->lblRelativeHumidity->setText(QString::number(rec.relative_humidity) + "% (" +
+                                     QString::number(rec.indoor_relative_humidity) + "% inside)");
+    ui->lblTemperature->setText(QString::number(rec.temperature,'f',1) + "°C (" +
+                                QString::number(rec.indoor_temperature,'f',1) + "°C inside)");
+    ui->lblDewPoint->setText(QString::number(rec.dew_point,'f',1) + "°C");
+    ui->lblWindChill->setText(QString::number(rec.wind_chill,'f',1) + "°C");
+    ui->lblApparentTemperature->setText(QString::number(rec.apparent_temperature,'f',1) + "°C");
+    ui->lblAbsolutePressure->setText(QString::number(rec.absolute_pressure,'f',1) + " hPa");
+    ui->lblAverageWindSpeed->setText(QString::number(rec.average_wind_speed,'f',1) + " m/s");
+    ui->lblGustWindSpeed->setText(QString::number(rec.gust_wind_speed,'f',1) + " m/s");
     ui->lblWindDirection->setText(QString(rec.wind_direction));
-    QString timestamp = QDateTime::fromTime_t(rec.download_timestamp).toString();
+    QDateTime dl_timestamp = QDateTime::fromTime_t(rec.download_timestamp);
+
+    QString timestamp = dl_timestamp.toString("h:mm AP");
+
+   // QString timestamp = QDateTime::fromTime_t(rec.download_timestamp).toString();
     ui->lblTimestamp->setText(timestamp);
 
     if (rec.temperature > 0)
@@ -145,10 +183,10 @@ void MainWindow::db_refresh() {
     else
         sysTrayIcon->setIcon(QIcon(":/icons/systray_subzero"));
 
-    QString ttt = "Temperature: " + QString::number(rec.temperature) + " °C\n"
-                + "Humidity: " + QString::number(rec.relative_humidity) + " %\n"
-                + "Indoor Temperature: " + QString::number(rec.indoor_temperature) + " °C\n"
-                + "Indoor Humidity: " + QString::number(rec.indoor_relative_humidity) + " %"
+    QString ttt = "Temperature: " + QString::number(rec.temperature,'f',1) + "°C ("
+                + QString::number(rec.indoor_temperature,'f',1) + "°C inside)\n"
+                + "Humidity: " + QString::number(rec.relative_humidity) + "% ("
+                + QString::number(rec.indoor_relative_humidity) + "% inside)\n"
                 ;
 
     sysTrayIcon->setToolTip(ttt);
@@ -183,10 +221,14 @@ void MainWindow::showSettings() {
     SettingsDialog sd;
     int result = sd.exec();
 
-    // Have a go at connecting if required - perhaps the user has fixed what
-    // ever was wrong.
-    if (result == QDialog::Accepted && !connected)
-        db_connect();
+    if (result == QDialog::Accepted) {
+        readSettings();
+
+        // Have a go at connecting if required - perhaps the user has fixed
+        // what ever was wrong.
+        if (!connected)
+            db_connect();
+    }
 }
 
 void MainWindow::connection_failed(QString) {
@@ -208,4 +250,46 @@ void MainWindow::showWarningPopup(QString message, QString title, QString toolti
         sysTrayIcon->setIcon(QIcon(":/icons/systray_icon_warning"));
     if (!message.isEmpty())
         sysTrayIcon->showMessage(title, message, QSystemTrayIcon::Warning);
+}
+
+void MainWindow::readSettings() {
+    minimise_to_systray = settings->value("General/minimise_to_systray", true).toBool();
+    close_to_systray = settings->value("General/close_to_systray", false).toBool();
+}
+
+void MainWindow::trayIconActivated(QSystemTrayIcon::ActivationReason reason) {
+    switch(reason) {
+    case QSystemTrayIcon::Trigger:
+    case QSystemTrayIcon::MiddleClick:
+    case QSystemTrayIcon::DoubleClick:
+        showNormal();
+        activateWindow();
+    default:
+        ;
+    }
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    if (sysTrayIcon->isVisible()) {
+        if (close_to_systray) {
+            if (!settings->value("SingleShot/close_to_systray_info",false).toBool()) {
+                QMessageBox::information(this, "zxweather",
+                                     "zxweather will keep running in the "
+                                        "system tray. To restore it, click on the "
+                                        "icon. To exit, right-click on the system tray "
+                                        "icon and choose <b>Exit</b>. This behaviour "
+                                        "can be changed from the settings dialog.");
+                settings->setValue("SingleShot/close_to_systray_info",true);
+            }
+            hide();
+            event->ignore();
+        } else {
+            QCoreApplication::quit();
+        }
+    }
+}
+
+void MainWindow::quit() {
+    QCoreApplication::quit();
 }

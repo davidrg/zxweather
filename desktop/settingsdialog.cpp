@@ -59,6 +59,10 @@ void SettingsDialog::dialogAccepted() {
 void SettingsDialog::writeSettings() {
     QSettings settings("zxnet","zxweather");
 
+    // General tab
+    settings.setValue("General/minimise_to_systray", ui->chkMinimiseToSystemTray->isChecked());
+    settings.setValue("General/close_to_systray", ui->chkCloseToSystemTray->isChecked());
+
     // Database tab
     settings.setValue("Database/name", ui->databaseLineEdit->text());
     settings.setValue("Database/hostname", ui->hostnameLineEdit->text());
@@ -69,6 +73,10 @@ void SettingsDialog::writeSettings() {
 
 void SettingsDialog::loadSettings() {
     QSettings settings("zxnet","zxweather");
+
+    // General tab
+    ui->chkMinimiseToSystemTray->setChecked(settings.value("General/minimise_to_systray", true).toBool());
+    ui->chkCloseToSystemTray->setChecked(settings.value("General/close_to_systray",false).toBool());
 
     // Database tab
     ui->databaseLineEdit->setText(settings.value("Database/name").toString());

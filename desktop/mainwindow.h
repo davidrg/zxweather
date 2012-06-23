@@ -27,6 +27,7 @@
 #include <QTimer>
 #include <QSystemTrayIcon>
 #include <QSettings>
+#include <QCloseEvent>
 
 #include "dbsignaladapter.h"
 
@@ -51,16 +52,26 @@ public slots:
     // Database errors
     void connection_failed(QString);
     void unknown_db_error(QString);
+
+    // System tray
+    void trayIconActivated(QSystemTrayIcon::ActivationReason reason);
+    void quit();
 protected:
     void changeEvent(QEvent *e);
-    
+    void closeEvent(QCloseEvent *event);
+
 private:
     Ui::MainWindow *ui;
     QTimer *notificationTimer;
     QSystemTrayIcon *sysTrayIcon;
     DBSignalAdapter *signalAdapter;
+    QMenu* trayIconMenu;
+    QAction* restoreAction;
+    QAction* quitAction;
 
     QSettings* settings;
+    bool minimise_to_systray;
+    bool close_to_systray;
 
     uint seconds_since_last_refresh;
     uint minutes_late;
@@ -68,6 +79,7 @@ private:
     bool connected;
 
     void showWarningPopup(QString message, QString title, QString tooltip="", bool setWarningIcon=false);
+    void readSettings();
 };
 
 #endif // MAINWINDOW_H
