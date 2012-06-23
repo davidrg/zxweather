@@ -33,12 +33,15 @@
 
 #define LIVE_DATA_UPDATE_CHANNEL "live_data_updated"
 
+static DBSignalAdapter* signalAdapter = NULL;
+
 EXEC SQL WHENEVER SQLERROR CALL wdb_print_sqlca();
 
 /* In the event of a SQL error, print the details to stderr, roll back the
  * transaction, disconnect from the server and exit */
 void wdb_print_sqlca()
 {
+    fprintf(stderr, "A database error has occurred.\n");
     fprintf(stderr, "==== sqlca ====\n");
     fprintf(stderr, "sqlcode: %ld\n", sqlca.sqlcode);
     fprintf(stderr, "sqlerrm.sqlerrml: %d\n", sqlca.sqlerrm.sqlerrml);
@@ -50,13 +53,23 @@ void wdb_print_sqlca()
                                                           sqlca.sqlwarn[6], sqlca.sqlwarn[7]);
     fprintf(stderr, "sqlstate: %5s\n", sqlca.sqlstate);
     fprintf(stderr, "===============\n");
-    exit(EXIT_FAILURE);
-   /* rollback();
-    disconnect();
-    exit(EXIT_FAILURE);*/
+
+    if (signalAdapter != NULL)
+        signalAdapter->raiseDatabaseError(sqlca.sqlcode,
+                                          sqlca.sqlerrm.sqlerrml,
+                                          sqlca.sqlerrm.sqlerrmc,
+                                          sqlca.sqlerrd,
+                                          sqlca.sqlwarn,
+                                          sqlca.sqlstate);
+    else
+        exit(EXIT_FAILURE);
 }
 
-void wdb_connect(const char *target, const char *username, const char* password) {
+void wdb_set_signal_adapter(DBSignalAdapter *adapter) {
+    signalAdapter = adapter;
+}
+
+bool wdb_connect(const char *target, const char *username, const char* password) {
     EXEC SQL BEGIN DECLARE SECTION;
     const char * target_l = target;
     const char * username_l = username;
@@ -65,15 +78,24 @@ void wdb_connect(const char *target, const char *username, const char* password)
 
     EXEC SQL CONNECT TO :target_l USER :username_l USING :password_l;
 
+    if (sqlca.sqlstate[0] != '0' || sqlca.sqlstate[1] != '0')
+        return false;
+
     EXEC SQL SET AUTOCOMMIT TO OFF;
 
     /* Subscribe to live data notifications */
     PGconn* conn = ECPGget_PGconn(NULL);
+    if (conn == NULL) return false;
     PGresult *res = PQexec(conn, "LISTEN " LIVE_DATA_UPDATE_CHANNEL);
     if (PQresultStatus(res) != PGRES_COMMAND_OK) {
         qDebug() << "LISTEN failed. Live data notifications will not be processed.";
     }
     PQclear(res);
+    return true;
+}
+
+void wdb_disconnect() {
+    EXEC SQL DISCONNECT;
 }
 
 //    EXEC SQL DECLARE live_data_cur CURSOR FOR

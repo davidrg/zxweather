@@ -22,6 +22,7 @@
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "settingsdialog.h"
 
 #include "database.h"
 
@@ -38,6 +39,10 @@ MainWindow::MainWindow(QWidget *parent) :
     seconds_since_last_refresh = 0;
     minutes_late = 0;
 
+    connected = false;
+
+    settings = new QSettings("zxnet","zxweather",this);
+
     sysTrayIcon = new QSystemTrayIcon(this);
     sysTrayIcon->setIcon(QIcon(":/icons/systray_icon_warning"));
     sysTrayIcon->setToolTip("No data");
@@ -46,13 +51,23 @@ MainWindow::MainWindow(QWidget *parent) :
     notificationTimer = new QTimer(this);
     notificationTimer->setInterval(1000);
 
+    signalAdapter = new DBSignalAdapter(this);
+    wdb_set_signal_adapter(signalAdapter);
+    connect(signalAdapter, SIGNAL(unable_to_establish_connection(QString)), this, SLOT(connection_failed(QString)));
+
     connect(ui->pbConnect, SIGNAL(clicked()), this, SLOT(db_connect()));
     connect(ui->pbRefresh, SIGNAL(clicked()), this, SLOT(db_refresh()));
+    connect(ui->actionSettings, SIGNAL(triggered()), this, SLOT(showSettings()));
     connect(notificationTimer, SIGNAL(timeout()), this, SLOT(notification_pump()));
+
+    db_connect();
 }
 
 MainWindow::~MainWindow()
 {
+    notificationTimer->stop();
+    wdb_disconnect();
+    sysTrayIcon->hide();
     delete ui;
 }
 
@@ -69,17 +84,36 @@ void MainWindow::changeEvent(QEvent *e)
 }
 
 void MainWindow::db_connect() {
-    QString target = ui->leServer->text();
-    QString username = ui->leUsername->text();
-    QString password = ui->lePassword->text();
 
-    wdb_connect(target.toAscii().constData(),
-                username.toAscii().constData(),
-                password.toAscii().constData());
+    QString dbName = settings->value("Database/name").toString();
+    QString dbHostname = settings->value("Database/hostname").toString();
+    QString dbPort = settings->value("Database/port").toString();
+    QString username = settings->value("Database/username").toString();
+    QString password = settings->value("Database/password").toString();
+
+    QString target = dbName;
+    if (!dbHostname.isEmpty()) {
+        target += "@" + dbHostname;
+
+        if (!dbPort.isEmpty())
+            target += ":" + dbPort;
+    }
+
+    qDebug() << "Connecting to target" << target << "as user" << username;
+
+    if (!wdb_connect(target.toAscii().constData(),
+                     username.toAscii().constData(),
+                     password.toAscii().constData())) {
+        // Failed to connect.
+        return;
+    }
 
     seconds_since_last_refresh = 0;
 
     notificationTimer->start();
+
+    connected = true;
+    db_refresh();
 }
 
 void MainWindow::db_refresh() {
@@ -116,6 +150,7 @@ void MainWindow::db_refresh() {
 
 void MainWindow::notification_pump() {
     seconds_since_last_refresh++;
+    qDebug() << "Checking for notifications...";
 
     if (wdb_live_data_available()) {
         qDebug() << "Live data available";
@@ -124,13 +159,48 @@ void MainWindow::notification_pump() {
 
     if (seconds_since_last_refresh == 60) {
         minutes_late++;
-        sysTrayIcon->setToolTip("Live data is late");
-        sysTrayIcon->setIcon(QIcon(":/icons/systray_icon_warning"));
-        sysTrayIcon->showMessage("Live data is late",
-                                 "Live data has not been refreshed in over " +
-                                 QString::number(minutes_late) +
-                                 " minutes. Check data update service.",
-                                 QSystemTrayIcon::Warning);
+
+        showWarningPopup("Live data has not been refreshed in over " +
+                         QString::number(minutes_late) +
+                         " minutes. Check data update service.",
+                         "Live data is late",
+                         "Live data is late",
+                         true);
+
+//        sysTrayIcon->setToolTip("Live data is late");
+//        sysTrayIcon->setIcon(QIcon(":/icons/systray_icon_warning"));
+//        sysTrayIcon->showMessage("Live data is late",
+//                                 "Live data has not been refreshed in over " +
+//                                 QString::number(minutes_late) +
+//                                 " minutes. Check data update service.",
+//                                 QSystemTrayIcon::Warning);
         seconds_since_last_refresh = 0;
     }
+}
+
+void MainWindow::showSettings() {
+    SettingsDialog sd;
+    int result = sd.exec();
+
+    // Have a go at connecting if required - perhaps the user has fixed what
+    // ever was wrong.
+    if (result == QDialog::Accepted && !connected)
+        db_connect();
+}
+
+void MainWindow::connection_failed(QString) {
+    showWarningPopup("Failed to connect to the database",
+                     "Error",
+                     "Database connect failed",
+                     true);
+    notificationTimer->stop();
+}
+
+void MainWindow::showWarningPopup(QString message, QString title, QString tooltip, bool setWarningIcon) {
+    if (!tooltip.isEmpty())
+        sysTrayIcon->setToolTip(tooltip);
+    if (setWarningIcon)
+        sysTrayIcon->setIcon(QIcon(":/icons/systray_icon_warning"));
+    if (!message.isEmpty())
+        sysTrayIcon->showMessage(title, message, QSystemTrayIcon::Warning);
 }

@@ -27,12 +27,17 @@ win32:INCLUDEPATH += lib/libecpg-9.1-win32/include
 ECPG_SOURCES += database.pgc
 
 SOURCES += main.cpp\
-        mainwindow.cpp
+        mainwindow.cpp \
+    settingsdialog.cpp \
+    dbsignaladapter.cpp
 
 HEADERS  += mainwindow.h \
-    database.h
+    database.h \
+    settingsdialog.h \
+    dbsignaladapter.h
 
-FORMS    += mainwindow.ui
+FORMS    += mainwindow.ui \
+    settingsdialog.ui
 
 OTHER_FILES += \
     database.pgc
