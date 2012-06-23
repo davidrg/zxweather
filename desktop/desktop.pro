@@ -21,6 +21,7 @@ ecpg.dependency_type = TYPE_CXX
 QMAKE_EXTRA_COMPILERS += ecpg
 
 win32:LIBS += -L../desktop/lib/libecpg-9.1-win32 -lecpg
+win32:LIBS += -L../desktop/lib/libpq-9.1-win32 -lpq
 win32:INCLUDEPATH += lib/libecpg-9.1-win32/include
 
 ECPG_SOURCES += database.pgc
@@ -35,4 +36,7 @@ FORMS    += mainwindow.ui
 
 OTHER_FILES += \
     database.pgc
+
+RESOURCES += \
+    resources.qrc
 

@@ -158,7 +158,7 @@
       </widget>
      </item>
      <item row="9" column="1">
-      <widget class="QLabel" name="label_20">
+      <widget class="QLabel" name="lblTimestamp">
        <property name="text">
         <string>00:01:01 1/1/1979</string>
        </property>

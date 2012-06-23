@@ -33,10 +33,16 @@ typedef struct _live_data_record {
     float average_wind_speed;
     float gust_wind_speed;
     char wind_direction[4];
+    long download_timestamp;
 } live_data_record;
 
+/* Connects to the database */
 void wdb_connect(const char *target, const char *username, const char* password);
 
+/* Gets the current live data */
 live_data_record wdb_get_live_data();
+
+/* Checks to see if there is new live data available */
+bool wdb_live_data_available();
 
 #endif // DATABASE_H

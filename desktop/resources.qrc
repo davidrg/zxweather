@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/icons">
+        <file>resources/thermometer.png</file>
+        <file>resources/thermometer--exclamation.png</file>
+    </qresource>
+</RCC>

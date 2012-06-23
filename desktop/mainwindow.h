@@ -24,6 +24,8 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QTimer>
+#include <QSystemTrayIcon>
 
 namespace Ui {
 class MainWindow;
@@ -40,12 +42,15 @@ public:
 public slots:
     void db_connect();
     void db_refresh();
+    void notification_pump();
 
 protected:
     void changeEvent(QEvent *e);
     
 private:
     Ui::MainWindow *ui;
+    QTimer *notificationTimer;
+    QSystemTrayIcon *sysTrayIcon;
 };
 
 #endif // MAINWINDOW_H

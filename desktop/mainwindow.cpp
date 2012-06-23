@@ -25,13 +25,21 @@
 
 #include "database.h"
 
+#include <QtDebug>
+#include <QDateTime>
+
+
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    notificationTimer = new QTimer(this);
+    notificationTimer->setInterval(1000);
+
     connect(ui->pbConnect, SIGNAL(clicked()), this, SLOT(db_connect()));
     connect(ui->pbRefresh, SIGNAL(clicked()), this, SLOT(db_refresh()));
+    connect(notificationTimer, SIGNAL(timeout()), this, SLOT(notification_pump()));
 }
 
 MainWindow::~MainWindow()
@@ -59,6 +67,7 @@ void MainWindow::db_connect() {
     wdb_connect(target.toAscii().constData(),
                 username.toAscii().constData(),
                 password.toAscii().constData());
+    notificationTimer->start();
 }
 
 void MainWindow::db_refresh() {
@@ -73,4 +82,13 @@ void MainWindow::db_refresh() {
     ui->lblAverageWindSpeed->setText(QString::number(rec.average_wind_speed) + " m/s");
     ui->lblGustWindSpeed->setText(QString::number(rec.gust_wind_speed) + " m/s");
     ui->lblWindDirection->setText(QString(rec.wind_direction));
+    QString timestamp = QDateTime::fromTime_t(rec.download_timestamp).toString();
+    ui->lblTimestamp->setText(timestamp);
+}
+
+void MainWindow::notification_pump() {
+    if (wdb_live_data_available()) {
+        qDebug() << "Live data available";
+        db_refresh();
+    }
 }
