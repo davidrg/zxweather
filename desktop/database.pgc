@@ -114,8 +114,8 @@ bool wdb_live_data_available() {
 
 live_data_record wdb_get_live_data() {
     EXEC SQL BEGIN DECLARE SECTION;
-//    unsigned int indoor_relative_humidity;
-//    unsigned float indoor_temperature;
+    int indoor_relative_humidity;
+    float indoor_temperature;
     int relative_humidity;
     float temperature;
     float dew_point;
@@ -128,8 +128,10 @@ live_data_record wdb_get_live_data() {
     long download_timestamp;
     EXEC SQL END DECLARE SECTION;
 
-    EXEC SQL SELECT relative_humidity,
+    EXEC SQL SELECT indoor_temperature,
+                    indoor_relative_humidity,
                     temperature,
+                    relative_humidity,
                     dew_point,
                     wind_chill,
                     apparent_temperature,
@@ -138,8 +140,10 @@ live_data_record wdb_get_live_data() {
                     gust_wind_speed,
                     wind_direction,
                     extract(epoch from download_timestamp)
-             INTO :relative_humidity,
+             INTO :indoor_temperature,
+                  :indoor_relative_humidity,
                   :temperature,
+                  :relative_humidity,
                   :dew_point,
                   :wind_chill,
                   :apparent_temperature,
@@ -151,8 +155,10 @@ live_data_record wdb_get_live_data() {
              FROM live_data;
 
     live_data_record rec;
-    rec.relative_humidity = relative_humidity;
+    rec.indoor_temperature = indoor_temperature;
+    rec.indoor_relative_humidity = indoor_relative_humidity;
     rec.temperature = temperature;
+    rec.relative_humidity = relative_humidity;
     rec.dew_point = dew_point;
     rec.wind_chill = wind_chill;
     rec.apparent_temperature = apparent_temperature;

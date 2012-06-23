@@ -24,8 +24,10 @@
 #define DATABASE_H
 
 typedef struct _live_data_record {
-    int relative_humidity;
+    float indoor_temperature;
+    int indoor_relative_humidity;
     float temperature;
+    int relative_humidity;
     float dew_point;
     float wind_chill;
     float apparent_temperature;
