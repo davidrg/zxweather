@@ -29,15 +29,18 @@ ECPG_SOURCES += database.pgc
 SOURCES += main.cpp\
         mainwindow.cpp \
     settingsdialog.cpp \
-    dbsignaladapter.cpp
+    dbsignaladapter.cpp \
+    aboutdialog.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
     settingsdialog.h \
-    dbsignaladapter.h
+    dbsignaladapter.h \
+    aboutdialog.h
 
 FORMS    += mainwindow.ui \
-    settingsdialog.ui
+    settingsdialog.ui \
+    aboutdialog.ui
 
 OTHER_FILES += \
     database.pgc

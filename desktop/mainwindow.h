@@ -112,6 +112,11 @@ public slots:
      * @brief quit quits the application.
      */
     void quit();
+
+    /**
+     * @brief showAbout shows the about dialog.
+     */
+    void showAbout();
 protected:
     /**
      * @brief changeEvent handles minimising the window to the system tray if

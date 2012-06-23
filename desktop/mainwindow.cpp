@@ -25,6 +25,7 @@
 #include "settingsdialog.h"
 
 #include "database.h"
+#include "aboutdialog.h"
 
 #include <QtDebug>
 #include <QDateTime>
@@ -81,6 +82,7 @@ MainWindow::MainWindow(QWidget *parent) :
     // Other UI signals
     connect(ui->actionSettings, SIGNAL(triggered()), this, SLOT(showSettings()));
     connect(notificationTimer, SIGNAL(timeout()), this, SLOT(notification_pump()));
+    connect(ui->actionAbout, SIGNAL(triggered()), this, SLOT(showAbout()));
 
     readSettings();
     db_connect();
@@ -292,4 +294,9 @@ void MainWindow::closeEvent(QCloseEvent *event)
 
 void MainWindow::quit() {
     QCoreApplication::quit();
+}
+
+void MainWindow::showAbout() {
+    AboutDialog ad;
+    ad.exec();
 }

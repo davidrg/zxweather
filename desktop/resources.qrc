@@ -4,5 +4,6 @@
         <file alias="systray_icon_warning">resources/thermometer--exclamation.png</file>
         <file alias="systray_subzero">resources/thermometer-low.png</file>
         <file alias="settings">resources/wrench-screwdriver.png</file>
+        <file>resources/information.png</file>
     </qresource>
 </RCC>
