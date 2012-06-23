@@ -28,6 +28,10 @@
 #include "database.h"
 #include <string.h>
 #include <stdlib.h>
+#include <libpq-fe.h>
+#include <QtDebug>
+
+#define LIVE_DATA_UPDATE_CHANNEL "live_data_updated"
 
 EXEC SQL WHENEVER SQLERROR CALL wdb_print_sqlca();
 
@@ -62,6 +66,14 @@ void wdb_connect(const char *target, const char *username, const char* password)
     EXEC SQL CONNECT TO :target_l USER :username_l USING :password_l;
 
     EXEC SQL SET AUTOCOMMIT TO OFF;
+
+    /* Subscribe to live data notifications */
+    PGconn* conn = ECPGget_PGconn(NULL);
+    PGresult *res = PQexec(conn, "LISTEN " LIVE_DATA_UPDATE_CHANNEL);
+    if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+        qDebug() << "LISTEN failed. Live data notifications will not be processed.";
+    }
+    PQclear(res);
 }
 
 //    EXEC SQL DECLARE live_data_cur CURSOR FOR
@@ -76,6 +88,30 @@ void wdb_connect(const char *target, const char *username, const char* password)
 //                   wind_direction
 //            FROM live_data
 
+
+bool wdb_live_data_available() {
+    PGconn* conn = ECPGget_PGconn(NULL);
+
+    bool live_data_available = false;
+
+    PGnotify* notification;
+    PQconsumeInput(conn);
+    while ((notification = PQnotifies(conn)) != NULL) {
+        qDebug() << "Received notification on channel " << notification->relname;
+        qDebug() << "Payload: " << notification->extra;
+
+        if (strcmp(notification->relname, LIVE_DATA_UPDATE_CHANNEL) == 0) {
+            // Live data is available.
+            live_data_available = true;
+        } else {
+            qDebug() << "Ignore: Unknown channel";
+        }
+        PQfreemem(notification);
+    }
+
+    return live_data_available;
+}
+
 live_data_record wdb_get_live_data() {
     EXEC SQL BEGIN DECLARE SECTION;
 //    unsigned int indoor_relative_humidity;
@@ -89,6 +125,7 @@ live_data_record wdb_get_live_data() {
     float average_wind_speed;
     float gust_wind_speed;
     char wind_direction[4];
+    long download_timestamp;
     EXEC SQL END DECLARE SECTION;
 
     EXEC SQL SELECT relative_humidity,
@@ -99,7 +136,8 @@ live_data_record wdb_get_live_data() {
                     absolute_pressure,
                     average_wind_speed,
                     gust_wind_speed,
-                    wind_direction
+                    wind_direction,
+                    extract(epoch from download_timestamp)
              INTO :relative_humidity,
                   :temperature,
                   :dew_point,
@@ -108,7 +146,8 @@ live_data_record wdb_get_live_data() {
                   :absolute_pressure,
                   :average_wind_speed,
                   :gust_wind_speed,
-                  :wind_direction
+                  :wind_direction,
+                  :download_timestamp
              FROM live_data;
 
     live_data_record rec;
@@ -120,6 +159,7 @@ live_data_record wdb_get_live_data() {
     rec.absolute_pressure = absolute_pressure;
     rec.average_wind_speed = average_wind_speed;
     rec.gust_wind_speed = gust_wind_speed;
+    rec.download_timestamp = download_timestamp;
 
     strcpy(rec.wind_direction, wind_direction);
 
