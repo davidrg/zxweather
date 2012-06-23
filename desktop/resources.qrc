@@ -1,6 +1,7 @@
 <RCC>
     <qresource prefix="/icons">
-        <file>resources/thermometer.png</file>
-        <file>resources/thermometer--exclamation.png</file>
+        <file alias="systray_icon">resources/thermometer.png</file>
+        <file alias="systray_icon_warning">resources/thermometer--exclamation.png</file>
+        <file alias="systray_subzero">resources/thermometer-low.png</file>
     </qresource>
 </RCC>
