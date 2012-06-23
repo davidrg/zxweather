@@ -29,20 +29,51 @@ namespace Ui {
 class SettingsDialog;
 }
 
+/**
+ * @brief The SettingsDialog class runs a dialog allowing the user to change
+ * the programs settings.
+ */
 class SettingsDialog : public QDialog
 {
     Q_OBJECT
     
 public:
+    /**
+     * @brief SettingsDialog constructs a new settings dialog, populates it
+     * with the current settings and displays it.
+     * @param parent Parent window.
+     */
     explicit SettingsDialog(QWidget *parent = 0);
+
+    /** Cleans up.
+     */
     ~SettingsDialog();
     
 protected:
+    /**
+     * @brief changeEvent retranslates the user interface if the language has
+     * changed. This functionality is not implemented at this time.
+     * @param e Event details.
+     */
     void changeEvent(QEvent *e);
 
 protected slots:
+
+    /**
+     * @brief dialogAccepted is called when the user accepts any changes to the
+     * settings. It causes them to be written to the settings file.
+     */
     void dialogAccepted();
+
+    /**
+     * @brief writeSettings reads settings from the user interface and writes
+     * them to the configuration file (or registry on windows).
+     */
     void writeSettings();
+
+    /**
+     * @brief loadSettings loads program settings into the user interface.
+     */
     void loadSettings();
     
 private:
