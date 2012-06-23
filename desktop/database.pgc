@@ -76,26 +76,36 @@ bool wdb_connect(const char *target, const char *username, const char* password)
     const char * password_l = password;
     EXEC SQL END DECLARE SECTION;
 
-    EXEC SQL CONNECT TO :target_l USER :username_l USING :password_l;
+    // This is the primary connection and is used for all queries.
+    EXEC SQL CONNECT TO :target_l AS data_connection USER :username_l USING :password_l;
 
     if (sqlca.sqlstate[0] != '0' || sqlca.sqlstate[1] != '0')
         return false;
 
-    EXEC SQL SET AUTOCOMMIT TO OFF;
+    // This connection is used to listen for notifications. This is done on a
+    // seperate connection because performing selects with ECPG seems to
+    // interfere with receiving notifications.
+    EXEC SQL CONNECT TO :target_l AS notification_connection USER :username_l USING :password_l;
 
     /* Subscribe to live data notifications */
-    PGconn* conn = ECPGget_PGconn(NULL);
+    PGconn* conn = ECPGget_PGconn("notification_connection");
     if (conn == NULL) return false;
     PGresult *res = PQexec(conn, "LISTEN " LIVE_DATA_UPDATE_CHANNEL);
     if (PQresultStatus(res) != PGRES_COMMAND_OK) {
         qDebug() << "LISTEN failed. Live data notifications will not be processed.";
     }
     PQclear(res);
+
+    // Switch back to the primary connection and finish off.
+    EXEC SQL SET CONNECTION data_connection;
+    EXEC SQL SET AUTOCOMMIT TO OFF;
+
     return true;
 }
 
 void wdb_disconnect() {
-    EXEC SQL DISCONNECT;
+    EXEC SQL DISCONNECT data_connection;
+    EXEC SQL DISCONNECT notification_connection;
 }
 
 //    EXEC SQL DECLARE live_data_cur CURSOR FOR
@@ -112,15 +122,18 @@ void wdb_disconnect() {
 
 
 bool wdb_live_data_available() {
-    PGconn* conn = ECPGget_PGconn(NULL);
-
+    PGconn* conn = ECPGget_PGconn("notification_connection");
+    if (conn == NULL) {
+        qDebug() << "ERROR: NULL connection";
+        return false;
+    }
     bool live_data_available = false;
 
     PGnotify* notification;
     PQconsumeInput(conn);
     while ((notification = PQnotifies(conn)) != NULL) {
-        qDebug() << "Received notification on channel " << notification->relname;
-        qDebug() << "Payload: " << notification->extra;
+        qDebug() << "Received notification on channel" << notification->relname;
+        qDebug() << "Payload:" << notification->extra;
 
         if (strcmp(notification->relname, LIVE_DATA_UPDATE_CHANNEL) == 0) {
             // Live data is available.
