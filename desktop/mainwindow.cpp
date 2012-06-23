@@ -34,6 +34,15 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+
+    seconds_since_last_refresh = 0;
+    minutes_late = 0;
+
+    sysTrayIcon = new QSystemTrayIcon(this);
+    sysTrayIcon->setIcon(QIcon(":/icons/systray_icon_warning"));
+    sysTrayIcon->setToolTip("No data");
+    sysTrayIcon->show();
+
     notificationTimer = new QTimer(this);
     notificationTimer->setInterval(1000);
 
@@ -67,6 +76,9 @@ void MainWindow::db_connect() {
     wdb_connect(target.toAscii().constData(),
                 username.toAscii().constData(),
                 password.toAscii().constData());
+
+    seconds_since_last_refresh = 0;
+
     notificationTimer->start();
 }
 
@@ -84,11 +96,38 @@ void MainWindow::db_refresh() {
     ui->lblWindDirection->setText(QString(rec.wind_direction));
     QString timestamp = QDateTime::fromTime_t(rec.download_timestamp).toString();
     ui->lblTimestamp->setText(timestamp);
+
+    if (rec.temperature > 0)
+        sysTrayIcon->setIcon(QIcon(":/icons/systray_icon"));
+    else
+        sysTrayIcon->setIcon(QIcon(":/icons/systray_subzero"));
+
+    QString ttt = "Temperature: " + QString::number(rec.temperature) + " °C\n"
+                + "Humidity: " + QString::number(rec.relative_humidity) + " %";
+
+    sysTrayIcon->setToolTip(ttt);
+
+    seconds_since_last_refresh = 0;
+    minutes_late = 0;
 }
 
 void MainWindow::notification_pump() {
+    seconds_since_last_refresh++;
+
     if (wdb_live_data_available()) {
         qDebug() << "Live data available";
         db_refresh();
+    }
+
+    if (seconds_since_last_refresh == 60) {
+        minutes_late++;
+        sysTrayIcon->setToolTip("Live data is late");
+        sysTrayIcon->setIcon(QIcon(":/icons/systray_icon_warning"));
+        sysTrayIcon->showMessage("Live data is late",
+                                 "Live data has not been refreshed in over " +
+                                 QString::number(minutes_late) +
+                                 " minutes. Check data update service.",
+                                 QSystemTrayIcon::Warning);
+        seconds_since_last_refresh = 0;
     }
 }

@@ -51,6 +51,9 @@ private:
     Ui::MainWindow *ui;
     QTimer *notificationTimer;
     QSystemTrayIcon *sysTrayIcon;
+
+    uint seconds_since_last_refresh;
+    uint minutes_late;
 };
 
 #endif // MAINWINDOW_H
