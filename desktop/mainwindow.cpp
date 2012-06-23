@@ -160,7 +160,6 @@ void MainWindow::db_refresh() {
 
 void MainWindow::notification_pump() {
     seconds_since_last_refresh++;
-    qDebug() << "Checking for notifications...";
 
     if (wdb_live_data_available()) {
         qDebug() << "Live data available";
@@ -177,13 +176,6 @@ void MainWindow::notification_pump() {
                          "Live data is late",
                          true);
 
-//        sysTrayIcon->setToolTip("Live data is late");
-//        sysTrayIcon->setIcon(QIcon(":/icons/systray_icon_warning"));
-//        sysTrayIcon->showMessage("Live data is late",
-//                                 "Live data has not been refreshed in over " +
-//                                 QString::number(minutes_late) +
-//                                 " minutes. Check data update service.",
-//                                 QSystemTrayIcon::Warning);
         seconds_since_last_refresh = 0;
     }
 }
