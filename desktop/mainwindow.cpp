@@ -53,9 +53,19 @@ MainWindow::MainWindow(QWidget *parent) :
 
     signalAdapter = new DBSignalAdapter(this);
     wdb_set_signal_adapter(signalAdapter);
+    // Signals we won't handle specially:
+    connect(signalAdapter, SIGNAL(connection_exception(QString)), this, SLOT(unknown_db_error(QString)));
+    connect(signalAdapter, SIGNAL(connection_does_not_exist(QString)), this, SLOT(unknown_db_error(QString)));
+    connect(signalAdapter, SIGNAL(connection_failure(QString)), this, SLOT(unknown_db_error(QString)));
+    connect(signalAdapter, SIGNAL(server_rejected_connection(QString)), this, SLOT(unknown_db_error(QString)));
+    connect(signalAdapter, SIGNAL(transaction_resolution_unknown(QString)), this, SLOT(unknown_db_error(QString)));
+    connect(signalAdapter, SIGNAL(protocol_violation(QString)), this, SLOT(unknown_db_error(QString)));
+    connect(signalAdapter, SIGNAL(database_error(QString)), this, SLOT(unknown_db_error(QString)));
+
+    // Signals that we will handle specially:
     connect(signalAdapter, SIGNAL(unable_to_establish_connection(QString)), this, SLOT(connection_failed(QString)));
 
-    connect(ui->pbConnect, SIGNAL(clicked()), this, SLOT(db_connect()));
+    // Other UI signals
     connect(ui->pbRefresh, SIGNAL(clicked()), this, SLOT(db_refresh()));
     connect(ui->actionSettings, SIGNAL(triggered()), this, SLOT(showSettings()));
     connect(notificationTimer, SIGNAL(timeout()), this, SLOT(notification_pump()));
@@ -194,6 +204,10 @@ void MainWindow::connection_failed(QString) {
                      "Database connect failed",
                      true);
     notificationTimer->stop();
+}
+
+void MainWindow::unknown_db_error(QString message) {
+    showWarningPopup(message, "Database Error");
 }
 
 void MainWindow::showWarningPopup(QString message, QString title, QString tooltip, bool setWarningIcon) {

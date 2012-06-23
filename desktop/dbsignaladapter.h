@@ -42,7 +42,9 @@ public:
                             char sqlstate[5]);
 
 signals:
+    // Emitted for all errors not listed below.
     void database_error(QString message);
+    void database_warning(QString message);
 
     // Connection Exceptions
     void connection_exception(QString message);

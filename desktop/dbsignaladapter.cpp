@@ -57,6 +57,7 @@ void DBSignalAdapter::raiseDatabaseError(long sqlcode,
         // Successful Completion
     } else if (CHK_SQLSTATE("01")) {
         // Warning
+        emit database_warning(sqlerrmc);
     } else if (CHK_SQLSTATE("02")) {
         // No Data
     } else if (CHK_SQLSTATE("03")) {
@@ -85,81 +86,85 @@ void DBSignalAdapter::raiseDatabaseError(long sqlcode,
             // Protocol violation
             emit protocol_violation(sqlerrmc);
         }
-    } else if (CHK_SQLSTATE("09")) {
-        // Triggered Action Exception
-    } else if (CHK_SQLSTATE("0A")) {
-        // Feature not supported
-    } else if (CHK_SQLSTATE("0B")) {
-        // Invalid Transaction Initiation
-    } else if (CHK_SQLSTATE("0F")) {
-        // Locator Exception
-    } else if (CHK_SQLSTATE("0L")) {
-        // Invalid Grantor
-    } else if (CHK_SQLSTATE("0P")) {
-        // Invalid Role Specification
-    } else if (CHK_SQLSTATE("20")) {
-        // Case not found
-    } else if (CHK_SQLSTATE("21")) {
-        // Cardinality violation
-    } else if (CHK_SQLSTATE("22")) {
-        // Data Exception
-    } else if (CHK_SQLSTATE("23")) {
-        // Integrity Constraint Violation
-    } else if (CHK_SQLSTATE("24")) {
-        // Invalid Cursor State
-    } else if (CHK_SQLSTATE("25")) {
-        // Invalid Transaction State
-    } else if (CHK_SQLSTATE("26")) {
-        // Invalid SQL Statement Name
-    } else if (CHK_SQLSTATE("27")) {
-        // Triggered Data Change Violation
-    } else if (CHK_SQLSTATE("28")) {
-        // Invalid Authorization Specification
-    } else if (CHK_SQLSTATE("2B")) {
-        // Dependent Privilege Descriptors Still Exist
-    } else if (CHK_SQLSTATE("0D")) {
-        // Invalid Transaction Termination
-    } else if (CHK_SQLSTATE("2F")) {
-        // SQL Routine Exception
-    } else if (CHK_SQLSTATE("34")) {
-        // Invalid Cursor Name
-    } else if (CHK_SQLSTATE("38")) {
-        // External Routine Exception
-    } else if (CHK_SQLSTATE("39")) {
-        // External Routine Invocation Exception
-    } else if (CHK_SQLSTATE("3B")) {
-        // Savepoint Exception
-    } else if (CHK_SQLSTATE("3D")) {
-        // Invalid Catalog Name
-    } else if (CHK_SQLSTATE("3F")) {
-        // Invalid Schema Name
-    } else if (CHK_SQLSTATE("40")) {
-        // Transaction Rollback
-    } else if (CHK_SQLSTATE("42")) {
-        // Syntax Error or Access Rule Violation
-    } else if (CHK_SQLSTATE("44")) {
-        // With check option violation
-    } else if (CHK_SQLSTATE("53")) {
-        // Insufficient Resources
-    } else if (CHK_SQLSTATE("54")) {
-        // Program Limit Exceeded
-    } else if (CHK_SQLSTATE("55")) {
-        // Object not in prerequisite State
-    } else if (CHK_SQLSTATE("57")) {
-        // Operator intervention
-    } else if (CHK_SQLSTATE("58")) {
-        // System error
-    } else if (CHK_SQLSTATE("F0")) {
-        // Configuration file error
-    } else if (CHK_SQLSTATE("HV")) {
-        // Foreign Data Wrapper Error (SQL/MED)
-    } else if (CHK_SQLSTATE("P0")) {
-        // PL/pgSQL Error
-    } else if (CHK_SQLSTATE("XX")) {
-        // Internal Error
     } else {
-        qDebug() << "Unknown SQL State class";
-    }
+        // These error classes are not handled specially at the moment.
+        emit database_error(sqlerrmc);
 
-    emit database_error(sqlerrmc);
+        if (CHK_SQLSTATE("09")) {
+            // Triggered Action Exception
+        } else if (CHK_SQLSTATE("0A")) {
+            // Feature not supported
+        } else if (CHK_SQLSTATE("0B")) {
+            // Invalid Transaction Initiation
+        } else if (CHK_SQLSTATE("0F")) {
+            // Locator Exception
+        } else if (CHK_SQLSTATE("0L")) {
+            // Invalid Grantor
+        } else if (CHK_SQLSTATE("0P")) {
+            // Invalid Role Specification
+        } else if (CHK_SQLSTATE("20")) {
+            // Case not found
+        } else if (CHK_SQLSTATE("21")) {
+            // Cardinality violation
+        } else if (CHK_SQLSTATE("22")) {
+            // Data Exception
+        } else if (CHK_SQLSTATE("23")) {
+            // Integrity Constraint Violation
+        } else if (CHK_SQLSTATE("24")) {
+            // Invalid Cursor State
+        } else if (CHK_SQLSTATE("25")) {
+            // Invalid Transaction State
+        } else if (CHK_SQLSTATE("26")) {
+            // Invalid SQL Statement Name
+        } else if (CHK_SQLSTATE("27")) {
+            // Triggered Data Change Violation
+        } else if (CHK_SQLSTATE("28")) {
+            // Invalid Authorization Specification
+        } else if (CHK_SQLSTATE("2B")) {
+            // Dependent Privilege Descriptors Still Exist
+        } else if (CHK_SQLSTATE("0D")) {
+            // Invalid Transaction Termination
+        } else if (CHK_SQLSTATE("2F")) {
+            // SQL Routine Exception
+        } else if (CHK_SQLSTATE("34")) {
+            // Invalid Cursor Name
+        } else if (CHK_SQLSTATE("38")) {
+            // External Routine Exception
+        } else if (CHK_SQLSTATE("39")) {
+            // External Routine Invocation Exception
+        } else if (CHK_SQLSTATE("3B")) {
+            // Savepoint Exception
+        } else if (CHK_SQLSTATE("3D")) {
+            // Invalid Catalog Name
+        } else if (CHK_SQLSTATE("3F")) {
+            // Invalid Schema Name
+        } else if (CHK_SQLSTATE("40")) {
+            // Transaction Rollback
+        } else if (CHK_SQLSTATE("42")) {
+            // Syntax Error or Access Rule Violation
+        } else if (CHK_SQLSTATE("44")) {
+            // With check option violation
+        } else if (CHK_SQLSTATE("53")) {
+            // Insufficient Resources
+        } else if (CHK_SQLSTATE("54")) {
+            // Program Limit Exceeded
+        } else if (CHK_SQLSTATE("55")) {
+            // Object not in prerequisite State
+        } else if (CHK_SQLSTATE("57")) {
+            // Operator intervention
+        } else if (CHK_SQLSTATE("58")) {
+            // System error
+        } else if (CHK_SQLSTATE("F0")) {
+            // Configuration file error
+        } else if (CHK_SQLSTATE("HV")) {
+            // Foreign Data Wrapper Error (SQL/MED)
+        } else if (CHK_SQLSTATE("P0")) {
+            // PL/pgSQL Error
+        } else if (CHK_SQLSTATE("XX")) {
+            // Internal Error
+        } else {
+            qDebug() << "Unknown SQL State class";
+
+        }
+    }
 }
