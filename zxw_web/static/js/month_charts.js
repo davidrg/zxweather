@@ -39,6 +39,10 @@ function drawTable() {
             { pattern: '####.# hPa'});
         pressureFormatter.format(sampledata,6);
 
+        var windSpeedFormatter = new google.visualization.NumberFormat(
+            { pattern: '##.# m/s'});
+        windSpeedFormatter.format(sampledata,7);
+        windSpeedFormatter.format(sampledata,8);
 
         drawSampleLineCharts(sampledata,
                              document.getElementById('chart_temperature_tdp_div'),
@@ -61,6 +65,8 @@ function drawTable() {
         // 5: max pressure
         // 6: min pressure
         // 7: rainfall
+        // 8: max average wind speed
+        // 9: max gust wind speed
 
         // Do some formatting
         var temperatureFormatter = new google.visualization.NumberFormat(
@@ -82,9 +88,14 @@ function drawTable() {
             {pattern: '##.# mm'});
         rainFormatter.format(record_data,7);
 
+        var windSpeedFormatter = new google.visualization.NumberFormat(
+            { pattern: '##.# m/s'});
+        windSpeedFormatter.format(record_data,8);
+        windSpeedFormatter.format(record_data,9);
+
         // Temperature
         var temperature = new google.visualization.DataView(record_data);
-        temperature.hideColumns([3,4,5,6,7]);
+        temperature.hideColumns([3,4,5,6,7,8,9]);
 
         var temperature_options = {
             title: 'Temperature (°C)',
@@ -96,7 +107,7 @@ function drawTable() {
 
         // Humidity
         var humidity = new google.visualization.DataView(record_data);
-        humidity.hideColumns([1,2,5,6,7]);
+        humidity.hideColumns([1,2,5,6,7,8,9]);
 
         var humidity_options = {
             title: 'Humidity (%)',
@@ -108,7 +119,7 @@ function drawTable() {
 
         // Pressure
         var pressure = new google.visualization.DataView(record_data);
-        pressure.hideColumns([1,2,3,4,7]);
+        pressure.hideColumns([1,2,3,4,7,8,9]);
 
         var pressure_options = {
             title: 'Absolute Pressure (hPa)',
@@ -120,7 +131,7 @@ function drawTable() {
 
         // Rainfall
         var rainfall = new google.visualization.DataView(record_data);
-        rainfall.hideColumns([1,2,3,4,5,6]);
+        rainfall.hideColumns([1,2,3,4,5,6,8,9]);
 
         var rainfall_options = {
             title: 'Total Rainfall (mm)',
@@ -130,5 +141,17 @@ function drawTable() {
         var rainfall_chart = new google.visualization.LineChart(
             document.getElementById('chart_rainfall'));
         rainfall_chart.draw(rainfall, rainfall_options);
+
+        // Wind speed
+        var wind_speed = new google.visualization.DataView(record_data);
+        wind_speed.hideColumns([1,2,3,4,5,6,7]);
+
+        var wind_speed_options = {
+            title: 'Wind Speed (m/s)',
+            legend: {position: 'bottom'}
+        };
+        var wind_speed_chart = new google.visualization.LineChart(
+            document.getElementById('chart_rec_wind_speed'));
+        wind_speed_chart.draw(wind_speed, wind_speed_options);
     });
 }
