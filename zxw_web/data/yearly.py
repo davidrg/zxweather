@@ -102,7 +102,9 @@ def get_daily_records(year):
     min(relative_humidity) as min_humid,
     max(absolute_pressure) as max_pressure,
     min(absolute_pressure) as min_pressure,
-    sum(rainfall) as total_rainfall
+    sum(rainfall) as total_rainfall,
+    max(average_wind_speed) as max_average_wind_speed,
+    max(gust_wind_speed) as max_gust_wind_speed
 from sample
 where date_trunc('year',time_stamp) = date_trunc('year', $date)
 group by date_trunc('day', time_stamp)
@@ -131,6 +133,12 @@ order by time_stamp asc""", params)
              'type': 'number'},
             {'id': 'total_rainfall',
              'label': 'Total Rainfall',
+             'type': 'number'},
+            {'id': 'max_average_wind_speed',
+             'label': 'Maximum Average Wind Speed',
+             'type': 'number'},
+            {'id': 'max_gust_wind_speed',
+             'label': 'Maximum Gust Wind Speed',
              'type': 'number'},
     ]
 
@@ -162,6 +170,8 @@ order by time_stamp asc""", params)
                 {'v': record.max_pressure},
                 {'v': record.min_pressure},
                 {'v': record.total_rainfall},
+                {'v': record.max_average_wind_speed},
+                {'v': record.max_gust_wind_speed}
         ]
         })
 
