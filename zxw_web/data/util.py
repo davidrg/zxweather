@@ -69,6 +69,12 @@ def outdoor_sample_result_to_datatable(query_data):
             {'id': 'abspressure',
              'label': 'Absolute Pressure',
              'type': 'number'},
+            {'id': 'avgws',
+             'label': 'Average Wind Speed',
+             'type': 'number'},
+            {'id': 'gws',
+             'label': 'Gust Wind Speed',
+             'type': 'number'},
     ]
 
     rows = []
@@ -88,6 +94,8 @@ def outdoor_sample_result_to_datatable(query_data):
                     {'v': None},
                     {'v': None},
                     {'v': None},
+                    {'v': None},
+                    {'v': None},
             ]
             })
 
@@ -98,6 +106,8 @@ def outdoor_sample_result_to_datatable(query_data):
                 {'v': record.wind_chill},
                 {'v': record.relative_humidity},
                 {'v': record.absolute_pressure},
+                {'v': record.average_wind_speed},
+                {'v': record.gust_wind_speed},
         ]
         })
 

@@ -41,11 +41,17 @@ function load_day_charts() {
             { pattern: '####.# hPa'});
         pressureFormatter.format(sampledata,6);
 
+        var windSpeedFormatter = new google.visualization.NumberFormat(
+            { pattern: '##.# m/s'});
+        windSpeedFormatter.format(sampledata,7);
+        windSpeedFormatter.format(sampledata,8);
+
         drawAllLineCharts(sampledata,
                           document.getElementById('chart_temperature_tdp_div'),
                           document.getElementById('chart_temperature_awc_div'),
                           document.getElementById('chart_humidity_div'),
-                          document.getElementById('chart_pressure_div')
+                          document.getElementById('chart_pressure_div'),
+                          document.getElementById('chart_wind_speed_div')
         );
     }).error(function() {
                  $("#day_charts_cont").hide();
@@ -74,7 +80,6 @@ function load_day_charts() {
         var dateFormatter = new google.visualization.DateFormat(
             { pattern: 'HH'});
         dateFormatter.format(rainfall_data,0);
-
 
         var dataView = new google.visualization.DataView(rainfall_data);
         dataView.setColumns([{calc: function(data, row) {
@@ -155,11 +160,17 @@ function load_7day_charts() {
             { pattern: '####.# hPa'});
         pressureFormatter.format(sampledata,6);
 
+        var windSpeedFormatter = new google.visualization.NumberFormat(
+            { pattern: '##.# m/s'});
+        windSpeedFormatter.format(sampledata,7);
+        windSpeedFormatter.format(sampledata,8);
+
         drawAllLineCharts(sampledata,
                           document.getElementById('chart_7_temperature_tdp_div'),
                           document.getElementById('chart_7_temperature_awc_div'),
                           document.getElementById('chart_7_humidity_div'),
-                          document.getElementById('chart_7_pressure_div')
+                          document.getElementById('chart_7_pressure_div'),
+                          document.getElementById('chart_7_wind_speed_div')
         );
     }).error(function() {
                  $("#7day-charts").hide();
@@ -188,7 +199,6 @@ function load_7day_charts() {
         var dateFormatter = new google.visualization.DateFormat(
             { pattern: 'HH:00 dd-MMM-yyyy'});
         dateFormatter.format(rainfall_data,0);
-
 
         var dataView = new google.visualization.DataView(rainfall_data);
         dataView.setColumns([{calc: function(data, row) {

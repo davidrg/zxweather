@@ -44,7 +44,8 @@ function drawTable() {
                              document.getElementById('chart_temperature_tdp_div'),
                              document.getElementById('chart_temperature_awc_div'),
                              document.getElementById('chart_humidity_div'),
-                             document.getElementById('chart_pressure_div')
+                             document.getElementById('chart_pressure_div'),
+                             document.getElementById('chart_wind_speed_div')
         );
     });
 

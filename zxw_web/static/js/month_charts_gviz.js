@@ -10,11 +10,12 @@ function drawSampleLineCharts(data,
                        tdp_element,
                        awc_element,
                        humidity_element,
-                       pressure_element) {
+                       pressure_element,
+                       wind_speed_element) {
 
     // Temperature and Dewpoint only
     var temperature_tdp = new google.visualization.DataView(data);
-    temperature_tdp.hideColumns([3,4,5,6]);
+    temperature_tdp.hideColumns([3,4,5,6,7,8]);
 
     var temperature_tdp_options = {
         title: 'Temperature and Dew Point (°C)',
@@ -25,7 +26,7 @@ function drawSampleLineCharts(data,
 
     // Apparent Temperature and Wind Chill only
     var temperature_awc = new google.visualization.DataView(data);
-    temperature_awc.hideColumns([1,2,5,6]);
+    temperature_awc.hideColumns([1,2,5,6,7,8]);
 
     var temperature_awc_options = {
         title: 'Apparent Temperature and Wind Chill (°C)',
@@ -36,7 +37,7 @@ function drawSampleLineCharts(data,
 
     // Absolute Pressure only
     var pressure = new google.visualization.DataView(data);
-    pressure.hideColumns([1,2,3,4,5]);
+    pressure.hideColumns([1,2,3,4,5,7,8]);
 
     var pressure_options = {
         title: 'Absolute Pressure (hPa)',
@@ -48,7 +49,7 @@ function drawSampleLineCharts(data,
 
     // Humidity only
     var humidity = new google.visualization.DataView(data);
-    humidity.hideColumns([1,2,3,4,6]);
+    humidity.hideColumns([1,2,3,4,6,7,8]);
 
     var humidity_options = {
         title: 'Humidity (%)',
@@ -56,4 +57,17 @@ function drawSampleLineCharts(data,
     };
     var humidity_chart = new google.visualization.LineChart(humidity_element);
     humidity_chart.draw(humidity, humidity_options);
+
+
+    // Wind speed only (columns 7 and 8)
+    var wind_speed = new google.visualization.DataView(data);
+    wind_speed.hideColumns([1,2,3,4,5,6,8]);
+
+    var wind_speed_options = {
+        title: 'Wind Speed (m/s)',
+        legend: {position: 'none'}
+
+    };
+    var wind_speed_chart = new google.visualization.LineChart(wind_speed_element);
+    wind_speed_chart.draw(wind_speed, wind_speed_options);
 }

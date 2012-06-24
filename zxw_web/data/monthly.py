@@ -223,7 +223,9 @@ def get_30m_avg_month_samples_datatable(year, month):
        avg(relative_humidity)::integer as relative_humidity,
        avg(absolute_pressure) as absolute_pressure,
        min(prev_sample_time) as prev_sample_time,
-       bool_or(gap) as gap
+       bool_or(gap) as gap,
+       avg(iq.average_wind_speed) as average_wind_speed,
+       avg(iq.gust_wind_speed) as gust_wind_speed
 from (
         select cur.time_stamp,
                (extract(epoch from cur.time_stamp) / 1800)::integer AS quadrant,
@@ -238,7 +240,9 @@ from (
                   true
                else
                   false
-               end as gap
+               end as gap,
+               cur.average_wind_speed,
+               cur.gust_wind_speed
         from sample cur, sample prev
         where date(date_trunc('month',cur.time_stamp)) = date(date_trunc('month',$date))
           and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < cur.time_stamp)
@@ -278,7 +282,9 @@ def get_month_samples_datatable(year,month):
           true
        else
           false
-       end as gap
+       end as gap,
+       cur.average_wind_speed,
+       cur.gust_wind_speed
 from sample cur, sample prev
 where date(date_trunc('month',cur.time_stamp)) = $date
   and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < cur.time_stamp)
