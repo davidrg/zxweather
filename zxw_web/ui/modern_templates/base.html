@@ -79,6 +79,18 @@
     {%- endif %}
 
     <div class="container">
+        {% if ui and ui == 'm' -%}
+        <div class="alert alert-info">
+            <button type="button" class="close" data-dismiss="alert">×</button>
+            <strong>Note!</strong> This is an experimental user interface that
+            draws charts a bit differently. It is not finished and
+            may malfunction or look odd. If you encounter any unusual behaviour
+            you can go back to the <a id="std_ui_link" href="#">Standard UI</a>.
+        </div>
+        <script type="text/javascript">
+            document.getElementById('std_ui_link').href = window.location.href.replace('/m/','/s/');
+        </script>
+        {%- endif -%}
         {%- block content %}{% endblock %}
     </div>
     <script type="text/javascript" src="/js/bootstrap.min.js"></script>
