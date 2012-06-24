@@ -214,7 +214,9 @@ def get_7day_samples_datatable(day):
               true
            else
               false
-           end as gap
+           end as gap,
+           s.average_wind_speed,
+           s.gust_wind_speed
     from sample s, sample prev,
          (select max(time_stamp) as ts from sample where date(time_stamp) = $date) as max_ts
     where s.time_stamp <= max_ts.ts     -- 604800 seconds in a week.
@@ -250,7 +252,9 @@ def get_7day_30mavg_samples_datatable(day):
        avg(relative_humidity)::integer as relative_humidity,
        avg(absolute_pressure) as absolute_pressure,
        min(prev_sample_time) as prev_sample_time,
-       bool_or(gap) as gap
+       bool_or(gap) as gap,
+       avg(iq.average_wind_speed) as average_wind_speed,
+       avg(iq.gust_wind_speed) as gust_wind_speed
 from (
         select cur.time_stamp,
                (extract(epoch from cur.time_stamp) / 1800)::integer AS quadrant,
@@ -265,7 +269,9 @@ from (
                   true
                else
                   false
-               end as gap
+               end as gap,
+               cur.average_wind_speed,
+               cur.gust_wind_speed
         from sample cur, sample prev,
              (select max(time_stamp) as ts from sample where date(time_stamp) = $date) as max_ts
         where cur.time_stamp <= max_ts.ts     -- 604800 seconds in a week.
@@ -304,7 +310,9 @@ def get_day_samples_datatable(day):
               true
            else
               false
-           end as gap
+           end as gap,
+           s.average_wind_speed,
+           s.gust_wind_speed
 from sample s, sample prev
 where date(s.time_stamp) = $date
   and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp)""", params)
