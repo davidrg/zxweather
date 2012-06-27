@@ -6,6 +6,7 @@ from datetime import date
 import web
 from web.contrib.template import render_jinja
 from config import db
+import config
 from months import month_name, month_number
 from cache import month_cache_control
 from database import month_exists
@@ -233,7 +234,8 @@ def get_month(ui, station, year, month):
             daily_records = data_base + 'datatable/daily_records.json'
 
         nav_urls = get_nav_urls(station, current_location)
-        return modern_templates.month(nav=nav_urls, data=data,dataurls=urls,ui=ui)
+        return modern_templates.month(nav=nav_urls, data=data,dataurls=urls,
+                                      ui=ui, sitename=config.site_name)
     else:
         return basic_templates.month(data=data)
 

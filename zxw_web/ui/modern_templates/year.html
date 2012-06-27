@@ -26,17 +26,16 @@
                 </div>
             </div>
         </div>
+        <p>
+            Browse:
+            {% set i = 0 -%}
+            {%- for monthlink in data.months -%}
+                {%- set i = i + 1 -%}
+                <a href="{{ monthlink[0] }}/">{{ monthlink[1] }}</a> {% if i < data.months|length %}|{% endif %}
+            {% endfor %}
+        </p>
         <hr>
     </header>
-
-    <section id="months">
-        <h2>Months for {{ data.this_year }}</h2>
-        <ul>
-            {% for monthlink in data.months -%}
-                <li><a href="{{ monthlink[0] }}/">{{ monthlink[1] }}</a></li>
-            {% endfor %}
-        </ul>
-    </section>
 
     <section id="records">
         <h2>Records</h2>
@@ -132,7 +131,6 @@
         </div>
     </section>
 
-    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
     <script type="text/javascript" src="http://www.google.com/jsapi"></script>
     <script type="text/javascript">
     var daily_records_url = '{{ urls.daily_records }}';

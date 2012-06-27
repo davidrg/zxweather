@@ -6,6 +6,7 @@ Handles the station overview page and any other station-level pages.
 from datetime import datetime, timedelta
 from web.contrib.template import render_jinja
 from cache import day_cache_control
+import config
 from database import get_daily_records, get_years, total_rainfall_in_last_7_days, day_exists
 import os
 from months import month_name
@@ -55,7 +56,8 @@ def get_station_standard(ui, station):
     return modern_templates.station(nav=nav_urls,
                                     data=data,
                                     station=station,
-                                    ui=ui)
+                                    ui=ui,
+                                    sitename=config.site_name)
 
 def get_station_basic(station):
     """

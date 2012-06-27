@@ -4,11 +4,18 @@
  * Time: 11:34 PM
  */
 
+var samples_loading = true;
+var rainfall_loading = true;
+var samples_7_loading = true;
+var rainfall_7_loading = true;
 
 // Loads all daily charts.
 function load_day_charts() {
     $("#day_charts_cont").show();
     $("#lc_refresh_failed").hide();
+    $("#btn_today_refresh").button('loading');
+    samples_loading = true;
+    rainfall_loading = true;
 
     /***************************************************************
      * Fetch the days samples and draw the 1-day charts
@@ -53,9 +60,16 @@ function load_day_charts() {
                           document.getElementById('chart_pressure_div'),
                           document.getElementById('chart_wind_speed_div')
         );
+
+        samples_loading = false;
+
+        // Turn the refresh button back on if we're finished loading
+        if (!samples_loading && !rainfall_loading)
+            $("#btn_today_refresh").button('reset');
     }).error(function() {
                  $("#day_charts_cont").hide();
                  $("#lc_refresh_failed").show();
+                 $("#btn_today_refresh").button('reset');
              });
 
     /***************************************************************
@@ -94,34 +108,47 @@ function load_day_charts() {
         var rainfall_chart = new google.visualization.ColumnChart(
             document.getElementById('chart_hourly_rainfall_div'));
         rainfall_chart.draw(dataView, options);
+
+
+        rainfall_loading = false;
+
+        // Turn the refresh button back on if we're finished loading
+        if (!samples_loading && !rainfall_loading)
+            $("#btn_today_refresh").button('reset');
+    }).error(function() {
+        $("#day_charts_cont").hide();
+        $("#lc_refresh_failed").show();
+        $("#btn_today_refresh").button('reset');
     });
 }
 
 function refresh_day_charts() {
-    $("#btn_today_refresh").button('loading');
-
     $("#chart_temperature_tdp_div").empty();
     $("#chart_temperature_awc_div").empty();
     $("#chart_humidity_div").empty();
     $("#chart_pressure_div").empty();
+    $("#chart_wind_speed_div").empty();
     $("#chart_hourly_rainfall_div").empty();
 
     $("#chart_temperature_tdp_div").html('<div class="bg_loading"></div>');
     $("#chart_temperature_awc_div").html('<div class="bg_loading"></div>');
     $("#chart_humidity_div").html('<div class="bg_loading"></div>');
     $("#chart_pressure_div").html('<div class="bg_loading"></div>');
+    $("#chart_wind_speed_div").html('<div class="bg_loading"></div>');
     $("#chart_hourly_rainfall_div").html('<div class="bg_loading"></div>');
 
     load_day_charts();
     show_hide_rainfall_charts(1); // 1 = 1day chart only
-
-    $("#btn_today_refresh").button('reset');
 }
 
 // Loads all 7day charts
 function load_7day_charts() {
     $("#7day-charts").show();
     $("#lc7_refresh_failed").hide();
+    samples_7_loading = true;
+    rainfall_7_loading = true;
+    $("#btn_7day_refresh").button('loading');
+
     /***************************************************************
      * Fetch samples for the past 7 days and draw the 7-day charts
      */
@@ -164,6 +191,12 @@ function load_7day_charts() {
                           document.getElementById('chart_7_pressure_div'),
                           document.getElementById('chart_7_wind_speed_div')
         );
+
+        samples_7_loading = false;
+
+        // Turn the refresh button back on if we're finished loading
+        if (!samples_7_loading && !rainfall_7_loading)
+            $("#btn_7day_refresh").button('reset');
     }).error(function() {
                  $("#7day-charts").hide();
                  $("#lc7_refresh_failed").show();
@@ -205,28 +238,32 @@ function load_7day_charts() {
         var rainfall_chart = new google.visualization.ColumnChart(
             document.getElementById('chart_7_hourly_rainfall_div'));
         rainfall_chart.draw(dataView, options);
+
+        rainfall_7_loading = false;
+
+        // Turn the refresh button back on if we're finished loading
+        if (!samples_7_loading && !rainfall_7_loading)
+            $("#btn_7day_refresh").button('reset');
     });
 }
 
 function refresh_7day_charts() {
-    $("#btn_7day_refresh").button('loading');
-
     $("#chart_7_temperature_tdp_div").empty();
     $("#chart_7_temperature_awc_div").empty();
     $("#chart_7_humidity_div").empty();
     $("#chart_7_pressure_div").empty();
+    $("#chart_7_wind_speed_div").empty();
     $("#chart_7_hourly_rainfall_div").empty();
 
     $("#chart_7_temperature_tdp_div").html('<div class="bg_loading"></div>');
     $("#chart_7_temperature_awc_div").html('<div class="bg_loading"></div>');
     $("#chart_7_humidity_div").html('<div class="bg_loading"></div>');
     $("#chart_7_pressure_div").html('<div class="bg_loading"></div>');
+    $("#chart_7_wind_speed_div").html('<div class="bg_loading"></div>');
     $("#chart_7_hourly_rainfall_div").html('<div class="bg_loading"></div>');
 
     load_7day_charts();
     show_hide_rainfall_charts(2); // 2 = 7day chart only
-
-    $("#btn_7day_refresh").button('reset');
 }
 
 // Checks the server to see if there has been any rainfall for either of the
