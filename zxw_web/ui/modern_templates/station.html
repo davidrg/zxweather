@@ -93,6 +93,9 @@
 
     <section id="history">
         <h2>Weather History</h2>
+        <p>
+            There is a page available in the database for each
+        </p>
         <p>Weather data is available for the following years:
             {% set i = 0 -%}
             {%- for year in data.years -%}
@@ -100,21 +103,17 @@
                 <a href="{{ year }}/">{{ year }}</a> {% if i < data.years|length %}|{% endif %}
             {%- endfor %}
         </p>
-        <p>History page for: <a href="now">Today</a>,
-                             {% if data.yesterday -%}
-                                 <a href="{{ data.yesterday.year }}/{{ data.yesterday_month_s }}/{{ data.yesterday.day }}/">Yesterday</a>,
-                             {%- endif %}
-                             <a href="{{ data.year }}/{{ data.month_s }}/">This Month</a>,
-                             <a href="{{ data.year }}/">This Year</a>.
-        </p>
     </section>
     <hr>
     <footer>
         <p>Problems? <a href="../../b/{{ station }}/now">Basic HTML</a></p>
     </footer>
-    <script type="text/javascript" src="../../js/jquery.min.js"></script>
-    <script type="text/javascript" src="http://www.google.com/jsapi"></script>
+{% endblock %}
+{% block scripts %}
     <script type="text/javascript">
+        $("#btn_today_refresh").button('loading');
+        $("#btn_7day_refresh").button('loading');
+
         // URLs required by day_charts.js and day_live.js
         var live_url = '../../data/{{ station }}/live.json';
         var samples_url = '../../data/{{ station }}/datatable/current_day_samples.json';
@@ -126,12 +125,13 @@
         var live_auto_refresh = true;
         var is_day_page = false;
     </script>
+    <script type="text/javascript" src="http://www.google.com/jsapi"></script>
     <script type="text/javascript" src="../../js/day_live.js"></script>
     {% if ui and ui == 'm' -%}
-    <script type="text/javascript" src="../../js/dygraph-combined.js"></script>
-    <script type="text/javascript" src="../../js/day_charts_dygraph.js"></script>
+        <script type="text/javascript" src="../../js/dygraph-combined.js"></script>
+        <script type="text/javascript" src="../../js/day_charts_dygraph.js"></script>
     {% else -%}
-    <script type="text/javascript" src="../../js/day_charts_gviz.js"></script>
+        <script type="text/javascript" src="../../js/day_charts_gviz.js"></script>
     {%- endif -%}
     <script type="text/javascript" src="../../js/day_charts.js"></script>
 {% endblock %}

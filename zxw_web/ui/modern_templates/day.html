@@ -28,13 +28,6 @@
         <hr>
     </header>
 
-    <div class="top-navlinks">
-        {% if data.current_data %}<a href="#current">Current Conditions</a> |{% endif %}
-        <a href="#records">Records</a> | 
-        <a href="#1day">1-day charts</a> | 
-        <a href="#7day">7-day charts</a>
-    </div>
-
     <section>
     {%- if data.current_data %}
         <div class="row">
@@ -133,9 +126,12 @@
 
     <a href="indoor.html">I</a>
 
-    <script type="text/javascript" src="../../../../../js/jquery.min.js"></script>
-    <script type="text/javascript" src="http://www.google.com/jsapi"></script>
+{% endblock %}
+{% block scripts %}
     <script type="text/javascript">
+        $("#btn_today_refresh").button('loading');
+        $("#btn_7day_refresh").button('loading');
+
         // URLs required by day_charts.js and day_live.js
         var live_url = '../../../../../data/{{ station }}/live.json';
         var samples_url = '{{ data_urls['samples']}}';
@@ -152,6 +148,7 @@
         {%- endif %}
         var is_day_page = true;
     </script>
+    <script type="text/javascript" src="http://www.google.com/jsapi"></script>
     <script type="text/javascript" src="../../../../../js/day_live.js"></script>
     {% if ui and ui == 'm' -%}
     <script type="text/javascript" src="../../../../../js/dygraph-combined.js"></script>

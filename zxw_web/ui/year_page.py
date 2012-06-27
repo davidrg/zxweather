@@ -5,6 +5,7 @@ Handles pages at the year level.
 import web
 from web.contrib.template import render_jinja
 from config import db
+import config
 from months import month_name
 from cache import year_cache_control
 from database import year_exists
@@ -130,7 +131,8 @@ def get_year(ui,station, year):
             next_url = data.next_url
 
         nav_urls = get_nav_urls(station, current_location)
-        return modern_templates.year(nav=nav_urls,data=data,urls=urls)
+        return modern_templates.year(nav=nav_urls,data=data,urls=urls,
+                                     sitename=config.site_name)
     else:
         return basic_templates.year(data=data)
 

@@ -5,6 +5,7 @@ Handles fetching the day pages in all UIs.
 
 from datetime import datetime, timedelta, date
 from web.contrib.template import render_jinja
+import config
 from months import month_name
 
 from cache import day_cache_control
@@ -165,7 +166,9 @@ def get_day_page(ui, station, day):
         return modern_templates.day(nav=nav_urls,
                              data_urls=data_urls,
                              data=data,
-                             station=station,ui=ui)
+                             station=station,
+                             ui=ui,
+                             sitename=config.site_name)
     else:
         return basic_templates.day(data=data,
                             station=station)
@@ -253,7 +256,8 @@ def get_indoor_day(ui, station, day):
         data_urls = get_indoor_data_urls(station, data.date_stamp)
         return modern_templates.indoor_day(data=data,
                                  nav=nav_urls,
-                                 dataurls=data_urls)
+                                 dataurls=data_urls,
+                                 sitename=config.site_name)
     else:
         return basic_templates.indoor_day(data=data)
 
