@@ -116,6 +116,10 @@ At this time only weather stations 100\% compatible with the Fine Offset WH1080 
 \section{System Requirements}
 All components of the system are supported under both Linux and Microsoft Windows. Only PostgreSQL 9.0+ is supported as the database engine. Older versions are untested but may work. Other database engines (such as MySQL) are not supported.
 
+The data collection tools are only supported on little-endian CPU architectures at this time. This includes Intel IA32 (x86) and most ARM processors. Bad things will happen if your processor is big-endian.
+
+All software is supported under modern Linux and Windows environments. Linux is the recommended environment if you have the option however.
+
 \subsection{Data logger}
 The data collection tools are written in the C language and are portable to both Linux and Windows.
 
@@ -138,6 +142,7 @@ Additionally, gnuplot must be available on the system running the weatherplot pr
 \end{tabular}
 
 \chapter{Database}
+\label{cha_database}
 % Instructions for how to setup the database. This includes permissions
 % required, etc.
 
@@ -199,6 +204,35 @@ You can create individual accounts for each program or have them all sharing the
 
 \chapter{Logger}
 % Compiling and installing wh1080d or the other program
+
+This chapter covers installing the data logger tool and loading initial data into the database. These tools are covered in more detail by the \emph{WH1080 Utilities Users Guide, version 1.0} (\verb|DAZW-WG01|).
+
+Use of these tools requires that the database has already been setup. If you have not done this yet consult chapter \ref{cha_database}.
+
+\section{Compilation Requirements}
+This section only covers compiling the tools under Linux. If you are using Microsoft Windows it is recommended that you use the pre-compiled executables and skip to the next section.
+
+To compile the tools under Linux the following software must be installed:
+\begin{itemize}
+\item GNU Make
+\item GNU C Compiler
+\item ECPG (a PostgreSQL utility)
+\end{itemize}
+
+The following libraries are also required:
+\begin{itemize}
+\item libpq (PostgreSQL client library)
+\item libecpg (library for ECPG)
+\item libusb-1.0
+\end{itemize}
+
+These libraries and software packages should be available from your operating systems package manager. On Debian 6.0 the packages would be \verb|build-essential libusb-1.0-0-dev libecpg-dev|.
+
+\section{Loading Data}
+
+\section{Update Service Configuration}
+\subsection{Linux}
+\subsection{Windows}
 
 
 \chapter{Web Interface}
