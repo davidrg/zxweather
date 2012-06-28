@@ -115,7 +115,7 @@ COMMENT ON COLUMN live_data.gust_wind_speed IS 'Gust wind speed in m/s.';
 COMMENT ON COLUMN live_data.wind_direction IS 'Wind Direction.';
 
 -- Live data table must always have one and only one record.
-insert into live_data(download_timestamp, wind_direction,invalid_data) values(null, 'INV',true)
+insert into live_data(download_timestamp, wind_direction,invalid_data) values(null, 'INV',true);
 
 ----------------------------------------------------------------------
 -- INDICIES ----------------------------------------------------------
@@ -521,7 +521,7 @@ BEGIN
   return result;
 END; $BODY$
 LANGUAGE plpgsql IMMUTABLE;
-COMMENT ON FUNCTION dew_point(real, integer) IS 'Calculates the approximate dew point given temperature relative humidity. The calculation is based on the August–Roche–Magnus approximation for the saturation vapor pressure of water in air as a function of temperature. It is valid for input temperatures 0 to 60 degC and dew points 0 to 50 deg C.';
+COMMENT ON FUNCTION dew_point(real, integer) IS 'Calculates the approximate dew point given temperature relative humidity. The calculation is based on the August-Roche-Magnus approximation for the saturation vapor pressure of water in air as a function of temperature. It is valid for input temperatures 0 to 60 degC and dew points 0 to 50 deg C.';
 
 -- Function to calculate wind chill
 CREATE OR REPLACE FUNCTION wind_chill(temperature real, wind_speed real)
