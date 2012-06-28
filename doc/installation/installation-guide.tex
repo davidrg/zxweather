@@ -1,0 +1,225 @@
+% ============================================================================
+% !Document: IM01 [zxweather Installation Guide]
+% ----------------------------------------------------------------------------
+% !Revision: 001
+% !IssueDate: July 2012
+% !Status: Unreleased
+%
+% !-Classification
+% !ProjectCode: DAZW [Database Applications, zxweather]
+% !Type: IG [Installation Guide]
+%
+% !Copyright: (C) David Goodwin, 2012
+% !License: FDL [GNU Free Documentation License]
+% !Auhtor: David Goodwin
+% ============================================================================
+
+% Document information. This should match the above
+\newcommand{\doctitle}{zxweather}
+\newcommand{\docsubtitle}{Installation Reference}
+%\newcommand{\projectnum}{DAZW}
+\newcommand{\docnum}{IG01}
+\newcommand{\docrev}{001}
+\newcommand{\docdate}{July 2012}
+\newcommand{\docauthor}{David Goodwin}
+\newcommand{\docabstract}{This document provides installation and configuration guidelines for zxweather.}
+\newcommand{\docupdateinfo}{This is a DRAFT DOCUMENT.}
+\newcommand{\docosver}{Microsoft Windows NT 5.0+; Linux.}
+\newcommand{\docswver}{zxweather 1.0}
+\newcommand{\doccopyright}{\textcircled{c} Copyright David Goodwin, 2012.}
+\newcommand{\doclicense}{Use, reproduction and modification of this document is permitted subject to the terms of the GNU Free Documentation License, Version 1.3 or any later vesion published by the Free Software Foundation. See \url{http://www.gnu.org/copyleft/fdl.html} for full license text.}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                 CONFIGURATION                             %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Book type document, A4 paper, 10pt std font size:
+\documentclass[a4paper,10pt,draft]{book} 
+
+\usepackage[scaled=0.90]{helvet} % Use helvetica as the standard font
+\usepackage{courier}			 % Use courier as the fixed-width font
+\usepackage{hyperref}			 % Links in PDF output
+\usepackage{a4wide}				 % Narrower margins for A4 documents
+\usepackage{ifthen}				 % A few if statements
+\usepackage{multirow}			 % Column spanning in tables
+
+% use zxtechdoc styles if they're there
+\IfFileExists{zxtitle.sty}{\usepackage{zxtitle}}{}
+\IfFileExists{zxtechdoc.sty}{\usepackage{zxtechdoc}}{}
+
+\hypersetup{pdfborder={0 0 0}}	 % Disable borders on PDF links
+
+% Build the partnumber. Format is PROJ-DOCU.REV. If revision is 001 then it 
+% is not displayed. If project is undefined it is not displayed.
+\newcommand{\partnumber}{\ifthenelse{\isundefined{\projectnum}}{}{\projectnum-\docnum	\ifthenelse{\equal{\docrev}{001}}{}{.\docrev}}}
+
+\begin{document}
+
+% Roman Numerals for the front matter
+\pagenumbering{roman}
+
+% Setup the titlepage. We will use the zxtitle format if its there,
+% otherwise the much simpler standard LaTeX one.
+\ifthenelse{\isundefined{\ordernumber}}{
+
+% Standard LaTeX titlepage
+\title{\doctitle{} - \docsubtitle}
+\author{\docauthor}
+}{
+
+% zxtitle titlepage
+\title{\doctitle}
+\subtitle{\docsubtitle}
+\titleabstract{\docabstract}
+\ordernumber{\partnumber}
+\updateinfo{\docupdateinfo}
+\osinfo{\docosver}
+\swversion{\docswver}
+\titlecopyright{\doccopyright}
+\licensestatement{\doclicense}
+}
+\date{\docdate}
+
+\maketitle
+
+\clearpage
+
+\tableofcontents
+\clearpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                 DOCUMENT                                  %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter{Introduction}
+% Back to arabac numerals for the proper content
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+zxweather is software for automatic weather stations. It is licensed under the GNU GPL making it free software. Its main features are:
+\begin{itemize}
+\item A modern HTML5 web interface
+\item Basic HTML fallback for older browsers.
+\item Full weather history
+\end{itemize}
+
+This manual provides instructions to install and configure all components of the system. These are:
+\begin{itemize}
+\item Database
+\item Data logger
+\item Web interface
+\end{itemize}
+
+\section{Supported Hardware}
+At this time only weather stations 100\% compatible with the Fine Offset WH1080 are supported.
+
+\section{System Requirements}
+All components of the system are supported under both Linux and Microsoft Windows. Only PostgreSQL 9.0+ is supported as the database engine. Older versions are untested but may work. Other database engines (such as MySQL) are not supported.
+
+\subsection{Data logger}
+The data collection tools are written in the C language and are portable to both Linux and Windows.
+
+ECPG (a PostgreSQL utility), GCC and GNU Make are required to compile the software. To run it, libecpg and (on linux) libusb-1.0 are required.
+
+\subsection{Web interface}
+The web interface requires Python version 2.7 with the following packages:
+\begin{itemize}
+\item Jinja2
+\item web.py
+\item psycopg2
+\end{itemize}
+
+Additionally, gnuplot must be available on the system running the weatherplot program.
+
+\section{Related Documents}
+\begin{tabular}{l l}
+\verb|DAZW-WG01| & WH1080 Utilities Users Guide, version 1.0 \\
+\verb|DAZW-DB01| & zxweather Database Structure, version 1.0 \\
+\end{tabular}
+
+\chapter{Database}
+% Instructions for how to setup the database. This includes permissions
+% required, etc.
+
+This chapter describes the database setup required by zxweather. The database is required by the core system and is not optional.
+
+\section{Installation}
+The zxweather database has only been tested with versions of PostgreSQL 9.0 and above. This documentation assumes you already have the server and client tools installed on your system.
+
+This section documents creating the zxweather using the command-line PostgreSQL tools. If you are more comfortable with the pgAdmin III GUI tool you may use that instead.
+
+\subsection{Create Database}
+To create the weather database, execute a command such as the following:
+
+\begin{verbatim}
+$ createdb -h dbserver -U username weather "Weather database"
+\end{verbatim}
+
+Where:
+\begin{itemize}
+\item \emph{dbserver} is the hostname (or IP Address) of the machine running PostgreSQL.
+\item \emph{username} is the username to login to the server with. This will often be something like "postgres". The account being used must have the \emph{CREATEDB} permission.
+\item \emph{weather} is the name of the new database.
+\item \emph{"Weather Database"} is a description of the database. This is optional.
+\end{itemize}
+
+More information on the createdb program can be found at \url{http://www.postgresql.org/docs/9.1/static/app-createdb.html}.
+
+\subsection{Create Database Structure}
+The database structure needed by zxweather to store data is created using the \verb|database.sql| located in the \emph{database} directory of the zxweather distribution. Running this SQL script will create the full database structure in one step.
+
+You can run this script with a command such as the following:
+\begin{verbatim}
+$ psql -h dbserver -U username -d weather -f database.sql 
+\end{verbatim}
+This command must be run from inside the database directory. The supplied parameters are:
+\begin{itemize}
+\item \emph{dbserver} - The hostname (or IP Address) of the machine running PostgreSQL
+\item \emph{username} - The user account to login to the server with. Using a superuser account (often called "postgres") will be easiest.
+\item \emph{weather} - The name of the database you created in the previous section.
+\end{itemize}
+
+\section{Permissions}
+Four programs will be accessing the database. They require user accounts with the following permissions on the weather database:
+
+\begin{tabular}{l l}
+\hline
+\textbf{Program} & \textbf{Permissions} \\
+\hline
+wh1080d & CONNECT, SELECT, INSERT, UPDATE \\
+wh1080 & CONNECT, SELECT, INSERT \\
+weatherplot & CONNECT, SELECT \\
+web interface & CONNECT, SELECT \\
+\hline
+\end{tabular}
+
+You can create individual accounts for each program or have them all sharing the same account.
+
+% TODO: Instructions for creating the accounts
+
+\chapter{Logger}
+% Compiling and installing wh1080d or the other program
+
+
+\chapter{Web Interface}
+\section{Chart Plotting}
+% Purpose of this program
+% Command-line arguments
+% How to set it up
+
+\section{Web interface}
+\subsection{Configuration}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                END DOCUMENT                               %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Back page
+\newpage
+\thispagestyle{empty}
+\begin{flushright}
+\null
+\vfill
+\tt \partnumber
+\end{flushright}
+\end{document}
