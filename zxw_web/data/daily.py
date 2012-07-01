@@ -472,8 +472,12 @@ def get_day_records(day):
 
     age = datetime.combine(day,age)
 
+    json_data = json.dumps(data)
+
     day_cache_control(age,day)
-    return json.dumps(data)
+    web.header('Content-Type','application/json')
+    web.header('Content-Length', str(len(json_data)))
+    return json_data
 
 def get_day_rainfall(day):
     """
@@ -484,8 +488,11 @@ def get_day_rainfall(day):
     rainfall = get_daily_rainfall(day)
 
     age = get_latest_sample_timestamp()
+    json_data = json.dumps(rainfall)
     day_cache_control(age,day)
-    return json.dumps(rainfall)
+    web.header('Content-Type','application/json')
+    web.header('Content-Length', str(len(json_data)))
+    return json_data
 
 # These are all the available datasources ('files') for the day datatable
 # route.
