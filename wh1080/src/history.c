@@ -65,6 +65,8 @@ history create_history(unsigned char* buffer) {
     average_nibble = buffer[11] & 0x0F;
     gust_bit = gust_nibble << 8;
     average_bit = average_nibble << 8;
+    /* Note: gust_nibble should be set to & 0xF0  and then shifted left 4
+     * instead of 8. Its a less stupid way to arrive at the same result. */
 
     h.average_wind_speed = buffer[9] + average_bit;
     h.gust_wind_speed = buffer[10] + gust_bit;
