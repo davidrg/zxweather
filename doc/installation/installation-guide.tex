@@ -1,5 +1,5 @@
 % ============================================================================
-% !Document: IM01 [zxweather Installation Guide]
+% !Document: IM01 [zxweather Installation Reference]
 % ----------------------------------------------------------------------------
 % !Revision: 001
 % !IssueDate: July 2012
@@ -47,7 +47,32 @@
 \IfFileExists{zxtitle.sty}{\usepackage{zxtitle}}{}
 \IfFileExists{zxtechdoc.sty}{\usepackage{zxtechdoc}}{}
 
-\hypersetup{pdfborder={0 0 0}}	 % Disable borders on PDF links
+\hypersetup{
+    bookmarks=true,         % show bookmarks bar?
+    unicode=false,          % non-Latin characters in Acrobat’s bookmarks
+    pdftoolbar=true,        % show Acrobat’s toolbar?
+    pdfmenubar=true,        % show Acrobat’s menu?
+    pdffitwindow=false,     % window fit to page when opened
+    pdfstartview={FitH},    % fits the width of the page to the window
+    pdftitle={\doctitle{} - \docsubtitle{}},    % title
+    pdfauthor={\docauthor{}},     % author
+    pdfsubject={\doctitle{}},   % subject of the document
+    %pdfcreator={Creator},   % creator of the document
+    %pdfproducer={Producer}, % producer of the document
+    %pdfkeywords={keyword1} {key2} {key3}, % list of keywords
+    pdfnewwindow=true,      % links in new window
+    colorlinks=false,       % false: boxed links; true: colored links
+    linkcolor=red,          % color of internal links
+    citecolor=green,        % color of links to bibliography
+    filecolor=magenta,      % color of file links
+    urlcolor=cyan           % color of external links
+}
+
+%pdfborder={0 0 0}, % Disable borders on PDF links
+%\hypersetup{
+%	pdftitle={}, % Title
+%	pdfauthor={} % Author
+%}	 
 
 % Build the partnumber. Format is PROJ-DOCU.REV. If revision is 001 then it 
 % is not displayed. If project is undefined it is not displayed.
@@ -91,6 +116,8 @@
 %                                 DOCUMENT                                  %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%TODO : Normalise terminology across documents (use either 'sample' or 'history record').
+
 \chapter{Introduction}
 % Back to arabac numerals for the proper content
 \pagenumbering{arabic}
@@ -110,15 +137,17 @@ This manual provides instructions to install and configure all components of the
 \item Web interface
 \end{itemize}
 
+It is recommended that you read this manual in its entirety. It is the only documentation for installing and configuring all of zxweather.
+
 \section{Supported Hardware}
 At this time only weather stations 100\% compatible with the Fine Offset WH1080 are supported.
 
 \section{System Requirements}
-All components of the system are supported under both Linux and Microsoft Windows. Only PostgreSQL 9.0+ is supported as the database engine. Older versions are untested but may work. Other database engines (such as MySQL) are not supported.
+All components of zxweather are supported under modern versions of both Linux and Windows. It is recommended that Linux be used if possible however.
+
+PostgreSQL v9.0+ is the only supported database engine. Other RDBMS such as MySQL are not supported in any way. Older versions of PostgreSQL may work but have not been tested.
 
 The data collection tools are only supported on little-endian CPU architectures at this time. This includes Intel IA32 (x86) and most ARM processors. Bad things will happen if your processor is big-endian.
-
-All software is supported under modern Linux and Windows environments. Linux is the recommended environment if you have the option however.
 
 \subsection{Data logger}
 The data collection tools are written in the C language and are portable to both Linux and Windows.
@@ -146,10 +175,13 @@ Additionally, gnuplot must be available on the system running the weatherplot pr
 % Instructions for how to setup the database. This includes permissions
 % required, etc.
 
-This chapter describes the database setup required by zxweather. The database is required by the core system and is not optional.
+This chapter describes the database setup required by zxweather. The database is required by the core system and is not optional. It must be setup on a system that all other components have network access to.
 
 \section{Installation}
-The zxweather database has only been tested with versions of PostgreSQL 9.0 and above. This documentation assumes you already have the server and client tools installed on your system.
+
+%TODO Come up with a better database setup system. Write a python program or something.
+
+The zxweather database has only been tested with PostgreSQL version 9.0 and above. This documentation assumes you already have a suitable version of the server and client tools installed on your system.
 
 This section documents creating the zxweather using the command-line PostgreSQL tools. If you are more comfortable with the pgAdmin III GUI tool you may use that instead.
 
@@ -200,18 +232,29 @@ web interface & CONNECT, SELECT \\
 
 You can create individual accounts for each program or have them all sharing the same account.
 
-% TODO: Instructions for creating the accounts
+%TODO Instructions for creating the accounts
 
-\chapter{Logger}
+\chapter{Data Logger}
 % Compiling and installing wh1080d or the other program
 
-This chapter covers installing the data logger tool and loading initial data into the database. These tools are covered in more detail by the \emph{WH1080 Utilities Users Guide, version 1.0} (\verb|DAZW-WG01|).
+Before starting the wh1080d program you must perform a full data load if any of the following conditions are true and your database is not empty. 
+\begin{itemize}
+\item \verb|wh1080| - The WH1080 Update Tool
+\item \verb|wh1080d| - The WH1080 Update Service
+\end{itemize}
+
+The \emph{Update Tool} allows you to inspect configuration and data on the device (including exporting it as CSV or inserting it into the database). It is useful for performing some maintenance tasks and troubleshooting.
+
+The \emph{Update Service} runs continuously feeding both samples and live data into the database for use by other programs. This program runs as service under Windows or a daemon under Linux.
+
+These tools are covered in more detail by the \emph{WH1080 Utilities Users Guide, version 1.0} (\verb|DAZW-WG01|).
 
 Use of these tools requires that the database has already been setup. If you have not done this yet consult chapter \ref{cha_database}.
 
-\section{Compilation Requirements}
+\section{Compiling}
 This section only covers compiling the tools under Linux. If you are using Microsoft Windows it is recommended that you use the pre-compiled executables and skip to the next section.
 
+\subsection{Requirements}
 To compile the tools under Linux the following software must be installed:
 \begin{itemize}
 \item GNU Make
@@ -228,7 +271,44 @@ The following libraries are also required:
 
 These libraries and software packages should be available from your operating systems package manager. On Debian 6.0 the packages would be \verb|build-essential libusb-1.0-0-dev libecpg-dev|.
 
+\subsection{Compiling the WH1080 Tools}
+
+%TODO Switch to the GNU Build System and rewrite this.
+
+To compile the WH1080 tools, cd into the wh1080 subdirectory of the zxweather distribution and run \verb|make|. This should kick off the build process and leave you with a handful of programs.
+
+
 \section{Loading Data}
+
+Before you can start the update service it is important to note that you may have to run a \emph{Full Update}. It is important to do this to do this when necessary to prevent:
+\begin{itemize}
+\item Corrupt data being inserted into the database
+\item New data on the weather station from being lost
+\end{itemize}
+
+However, if the a Full Update is performed when it is \emph{not} necessary it will result in duplicate samples being inserted into your database.
+
+\subsection{When to perform a Full Update}
+There are only three occasions when it is acceptable (and necessary) to perform a full update:
+\begin{itemize}
+\item You have just erased the weather stations memory
+\item You have reset the weather station
+\item The database is more than 4080 samples out of date
+\end{itemize}
+
+The first two deal with the case where the sample the database says needs to be downloaded next no longer exists on the weather station. This prevents invalid data from being inserted into the database.
+
+The third deals with the case where the sample the database says needs to be downloaded next is not correct because \emph{all} samples needed to be downloaded. Failing to perform a full update in this case will likely result in some of the samples being missed
+
+As an example, if your weather station is set to take one sample every five minutes then the database must be more than 340 hours out of date (that is a little over 14 days).
+
+
+\subsection{Performing a Full Update}
+To perform a full update you must use the \emph{Update Tool} as the Update Service can not perform this operation.
+
+The \verb|-l| command-line option causes the Update Tool to perform a Full Update instead of a regular one
+
+
 
 \section{Update Service Configuration}
 \subsection{Linux}
