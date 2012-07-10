@@ -296,25 +296,219 @@ As an example, if your weather station is set to take one sample every five minu
 
 
 \subsection{Performing a Full Update}
-To perform a full update you must use the \emph{Update Tool} as the Update Service can not perform this operation.
+To perform a full update you must use the Update Tool (the wh1080 program) as the Update Service can not perform this operation.
 
-The \verb|-l| command-line option causes the Update Tool to perform a Full Update instead of a regular one
+The \verb|-l| command-line option causes the Update Tool to perform a Full Update instead of a regular one:
 
+\verb|wh1080 -l -d databasename@hostname -u username -p password|
 
+This is covered in more detail in Section 2.2.4 of \emph{WH1080 Utilities Users Guide} (DAZW-WG01).
 
 \section{Update Service Configuration}
 \subsection{Linux}
+
+The update service takes the following arguments:
+
+\begin{tabular}{l l p{10cm}}
+\hline
+\textbf{Argument} & \textbf{Parameter} & \textbf{Description} \\
+\hline
+-d & database & Database connection string \\
+-u & username & Database username \\
+-p & password & Database password \\
+-f & filename & Log file to write messages to \\
+\hline
+\end{tabular}
+
+Under linux the Update Service runs as a daemon. To start it just run something like:
+
+\verb|wh1080d -d database -u username -p password -f logfile|
+
+The log file is truncated when the daemon starts.
+
 \subsection{Windows}
 
 
 \chapter{Web Interface}
+
+The web interface is the primary way for viewing data in the zxweather database. It consists of two components - the web application and the chart plotting program.
+
+Both components are required for correct operation. This chapter describes how to install and configure them.
+
+% Overview of features
+
+
+\section{WSGI Application}
+
+The web interface is written as a Python WSGI application. This section only covers installing the application under Apache httpd. If you are using a different web server then consult the documentation for your servers wsgi module.
+
+\subsection{Installation}
+% Where to put it
+% Apache configuration
+
+At this time zxweather cannot be run in a subdirectory - it must live in the root directory of the website. This generally means giving it its own virtual host.
+
+
+\subsection{Configuration}
+% The configuration file
+% About page
+
 \section{Chart Plotting}
 % Purpose of this program
 % Command-line arguments
 % How to set it up
 
-\section{Web interface}
-\subsection{Configuration}
+The \verb|weatherplot| program is responsible for generating static charts primarily used by the basic HTML web interface. It must be setup as a scheduled task to be run at regular intervals.
+
+The machine it runs on must have \emph{gnuplot} installed and must have access to the database server and directory the zxweather web interface runs from.
+
+\subsection{Usage}
+
+The weatherplot program is written in the Python language and lives in the \verb|plot| subdirectory of the zxweather distribution. It is executed on the command-line with python as: \\ \verb|$ python plot/weatherplot.py [arguments]|.
+
+The charts it generates must be put in the web interfaces \emph{static data} directory in a subdirectory with the same name as your station. For example, if your station is named "foo" and the zxweather distribution was extracted to \verb|/var/zxweather| then you would generate charts into \\ \verb|/var/zxweather/zxw_web/static/foo/|.
+
+By default an executable called \verb|gnuplot| is expected to be in the path which it can use to generate the charts. If your install of gnuplot is not in the path or goes by another name use the \verb|--gnuplot-binary| parameter to specify its name.
+
+\subsubsection{Example}
+This example regenerates \emph{all} charts for all data in the database. It is run from the zxweather directory.
+\begin{verbatim}
+$ python plot/weatherplot.py --directory zxw_web/static/foo/ \
+-t weather -n localhost -u postgres -p password
+\end{verbatim}
+
+If your install of gnuplot is not in the path or is not called \verb|gnuplot| then you would supply the \\ \verb|--gnuplot-binary| argument:
+\begin{verbatim}
+$ python plot/weatherplot.py --directory zxw_web/static/foo/ \
+-t weather -n localhost -u postgres -p password \
+--gnuplot_binary /opt/gnuplot/bin/gnuplot-custom-build
+\end{verbatim}
+
+\subsubsection{Command-line Arguments}
+The weatherplot program accepts the following command-line arguments:
+
+\begin{tabular}{p{3.4cm} l p{8cm}}
+\hline
+\textbf{Argument} & \textbf{Parameter} & \textbf{Description} \\
+\hline
+\verb|-t| \par \verb|--database| & dbname & Name of the database to use. Required. \\
+\verb|-n| \par \verb|--host| & hostname & Database server hostname. Required. \\
+\verb|-u| \par \verb|--user| & username & Username for database server. Required. \\
+\verb|-p| \par \verb|--password| & password & Password for database server. Required. \\
+\verb|-d| \par \verb|--directory| & directory & Output directory. Required. \\
+\verb|-a| \par \verb|--plot-new| & filename & Only plots charts for dates on or after that stored in the specified file. \\
+\verb|-r| \par \verb|--replot-pause| & seconds & Number of seconds to wait before replotting.\\
+\verb|-g| \par \verb|--gnuplot-binary| & filename & Name of the gnuplot executable to use.\\
+\hline
+\end{tabular}
+
+The database, host, user, password and directory parameters are always required.
+
+\subsection{Plotting All Charts}
+
+To regenerate charts for your entire database run the weatherplot program with only the minimum command-line arguments:
+
+\begin{verbatim}
+$ python plot/weatherplot.py --database weather --host localhost \
+--user postgres --password password \
+--directory zxw_web/static/station_name/
+\end{verbatim}
+
+This will create charts for all days and months in your database and store them in the specified directory. Depending on the size of your database this may take some time.
+
+Some software upgrades may require you to do this when new chart types have been added or the style of the charts has been adjusted.
+
+\subsection{Running as a Scheduled Task}
+
+The recommended way to setup the weatherplot program is to run it as a scheduled task from cron or the windows task scheduler. When run in this way it is important that it be set to only plot charts containing new data.
+
+The \verb|--plot-new| command-line argument implements this. The argument takes a single parameter which is the name of a file to store the date of the last plotted day in.
+
+Each time the weatherplot program is executed with this parameter it will replot all charts for all days and months on or after the date in that file and then update the file with todays date. That way only charts that need to be regenerated are regenerated.
+
+\subsubsection{Example}
+
+When run as below weatherplot will only replot charts that have changed since it was last run:
+\begin{verbatim}
+$ python plot/weatherplot.py --database weather --host localhost
+--user postgres --password password --directory static/station_name/
+--plot-new plot_status_file
+\end{verbatim}
+
+To make this run every 30 minutes you would add a line such as the following to /etc/crontab:
+\begin{verbatim}
+0,30 *  * * *   root    cd /var/zxweather && \
+  python plot/weatherplot.py -t weather -n localhost -u postgres \
+  -p password -d zxw_web/static/station_name -a plot_status_file  
+\end{verbatim}
+
+\subsection{Plotting Continuously}
+
+The weatherplot program is capable of running interactively in continuous mode. When run like this it will automatically replot charts at a specific interval until you terminate it with Ctrl+C. This is primarily intended for testing purposes.
+
+It can be run in this mode by supplying the \verb|--replot-pause| parameter
+with a suitable interval in seconds.
+
+\subsubsection{Example}
+
+When run as below the behaviour is the same as setting it up to be run by cron every 30 minutes except it runs continuously attached to the terminal.
+
+\begin{verbatim}
+$ python plot/weatherplot.py --database weather --host localhost \
+--user postgres --password password --directory zxw_web/static/rua \
+--plot-new plot_status_file --replot-pause 1800
+
+Weather data plotting application v1.0
+        (C) Copyright David Goodwin, 2012
+
+
+Connecting to database...
+Server version: PostgreSQL 9.1.2, compiled by Visual C++ build 1500
+Generating temperature plots in zxw_web/static/rua
+Plotting from 2012-05-10
+Plotting graphs for 2012...
+Plotting graphs for 2012 may...
+Plot zxw_web/static/rua/2012/may/temperature_tdp_large.png
+Plot zxw_web/static/rua/2012/may/temperature_awc_large.png
+Plot zxw_web/static/rua/2012/may/humidity_large.png
+Plot zxw_web/static/rua/2012/may/indoor_humidity_large.png
+Plot zxw_web/static/rua/2012/may/pressure_large.png
+Plot zxw_web/static/rua/2012/may/indoor_temperature_large.png
+Plot zxw_web/static/rua/2012/may/temperature_tdp.png
+Plot zxw_web/static/rua/2012/may/temperature_awc.png
+Plot zxw_web/static/rua/2012/may/humidity.png
+Plot zxw_web/static/rua/2012/may/indoor_humidity.png
+Plot zxw_web/static/rua/2012/may/pressure.png
+Plot zxw_web/static/rua/2012/may/indoor_temperature.png
+Plotting graphs for 2012 may 9...Skip
+Plotting graphs for 2012 may 10...
+Plot zxw_web/static/rua/2012/may/10/temperature_tdp_large.png
+Plot zxw_web/static/rua/2012/may/10/temperature_awc_large.png
+Plot zxw_web/static/rua/2012/may/10/humidity_large.png
+Plot zxw_web/static/rua/2012/may/10/indoor_humidity_large.png
+Plot zxw_web/static/rua/2012/may/10/pressure_large.png
+Plot zxw_web/static/rua/2012/may/10/indoor_temperature_large.png
+Plot zxw_web/static/rua/2012/may/10/temperature_tdp.png
+Plot zxw_web/static/rua/2012/may/10/temperature_awc.png
+Plot zxw_web/static/rua/2012/may/10/humidity.png
+Plot zxw_web/static/rua/2012/may/10/indoor_humidity.png
+Plot zxw_web/static/rua/2012/may/10/pressure.png
+Plot zxw_web/static/rua/2012/may/10/indoor_temperature.png
+Plot zxw_web/static/rua/2012/may/10/7-day_temperature_tdp_large.png
+Plot zxw_web/static/rua/2012/may/10/7-day_temperature_awc_large.png
+Plot zxw_web/static/rua/2012/may/10/7-day_humidity_large.png
+Plot zxw_web/static/rua/2012/may/10/7-day_indoor_humidity_large.png
+Plot zxw_web/static/rua/2012/may/10/7-day_pressure_large.png
+Plot zxw_web/static/rua/2012/may/10/7-day_indoor_temperature_large.png
+Plot zxw_web/static/rua/2012/may/10/7-day_temperature_tdp.png
+Plot zxw_web/static/rua/2012/may/10/7-day_temperature_awc.png
+Plot zxw_web/static/rua/2012/may/10/7-day_humidity.png
+Plot zxw_web/static/rua/2012/may/10/7-day_indoor_humidity.png
+Plot zxw_web/static/rua/2012/may/10/7-day_pressure.png
+Plot zxw_web/static/rua/2012/may/10/7-day_indoor_temperature.png
+Plot completed at 2012-05-10 22:31:46.953000
+Waiting for 1800 seconds to plot again. Press Ctrl+C to terminate.
+\end{verbatim}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                END DOCUMENT                               %
