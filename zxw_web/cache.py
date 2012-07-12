@@ -37,6 +37,9 @@ def cache_control_headers(data_age, year, month=None, day=None):
     :type day: integer
     """
 
+    if data_age is None:
+        return
+
     now = datetime.now()
     # HTTP-1.1 Cache Control
     if year == now.year and (month is None or month == now.month)\
