@@ -301,7 +301,7 @@ The PostgreSQL query planner seems to have difficulty with the queries behind th
 \item \verb|max_average_wind_speed|: Maximum average wind speed for the period.
 \item \verb|max_average_wind_speed_ts|: Most recent timestamp for the maximum wind speed record.
 \item \verb|min_absolute_pressure|: Minimum absolute pressure during the period.
-\item \verb|min_absolute_pressure_ts|: Most recent timestamp for the minimum absolute pressure record.
+\item \verb|min_absolute_pressure_ts|: Most recent timestamp for the minimum absolute pressure \\ record.
 \item \verb|max_absolute_pressure|: Maximum absolute pressure during the period.
 \item \verb|max_absolute_pressure_ts|: Most recent timestamp for the maximum absolute pressure record.
 \item \verb|min_apparent_temperature|: Minimum apparent temperature during the period.
@@ -498,10 +498,29 @@ its type is \verb|character varying(3)|
 zxweather uses the PostgreSQL NOTIFY feature to notify components of the system that new data has arrived. This chapter covers the notification channels used by zxweather and their meaning.
 
 \section{live\_data\_updated}
-A message with no payload is broadcast on this channel when data in the live\_data table has been updated. The notification event is sent automatically from the live\_data\_update trigger function.
+A notification with no payload is broadcast on this channel when data in the live\_data table has been updated. The notification event is sent automatically from the live\_data\_update trigger function.
 
 Clients interested in displaying live data should listen on this channel rather than polling the database.
 
+\subsection{Applications}
+The following applications use this channel:
+
+\begin{itemize}
+\item zxweather Database Replicator
+\item zxweather Desktop (GUI) Client
+\end{itemize}
+
+\section{new\_sample}
+A notification with now payload is broadcast on this channel when a new sample has been inserted into the database. This notification is sent automatically from the compute\_sample\_values trigger function.
+
+Clients interested in displaying history samples should listen on this channel rather than polling the database.
+
+\subsection{Applications}
+The following applications use this channel:
+
+\begin{itemize}
+\item zxweather Database Replicator
+\end{itemize}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                END DOCUMENT                               %

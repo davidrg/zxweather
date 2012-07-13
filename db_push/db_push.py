@@ -6,7 +6,9 @@ web interface.
 import json
 from optparse import OptionParser
 import psycopg2
+import psycopg2.extensions
 import requests
+import select
 
 __author__ = 'David Goodwin'
 
@@ -143,9 +145,9 @@ def post_data(site_url, data):
 
     return r.json
 
-def main():
+def parse_args():
     """
-    Program entrypoint.
+    Parses args.
     :return:
     """
 
@@ -161,39 +163,136 @@ def main():
                       help="PostgreSQL Password")
     parser.add_option("-s", "--site", dest="site_url",
                       help="Remote site URL (eg, http://example.com/)")
+    parser.add_option("-c", "--continuous", action="store_true",
+                      dest="continuous", default=False,
+                      help="Stay running sending updates to the remote " \
+                           "database as they appear in the local one.")
 
     (options, args) = parser.parse_args()
 
-    print("zxweather database replicator v1.0")
-    print("\t(C) Copyright David Goodwin, 2012\n\n")
+    return options
+
+def connect_to_db(connection_string):
+    """
+    Connects to the database returning the connection object.
+    :param connection_string: Command-line options
+    :return: Database connection object
+    """
 
     print("Connecting to database...")
-    connection_string = "host=" + options.hostname
-    connection_string += " user=" + options.username
-    connection_string += " password=" + options.password
-    connection_string += " dbname=" + options.dbname
+
 
     con = psycopg2.connect(connection_string)
+
+    # We shouldn't be doing any committing - this is just so notifications
+    # work properly.
+    con.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
 
     cur = con.cursor()
 
     cur.execute("select version()")
     data = cur.fetchone()
     print("Server version: {0}".format(data[0]))
+    cur.close()
 
-    sample_data_ts = get_current_timestamp(options.site_url)
+    return con
 
-    print sample_data_ts
+def update(cur, site_url, update_samples=True):
+    """
+    Performs an update
+    :param cur: Database cursor
+    :param site_url: Website URL
+    :param update_samples: If samples should be updated or not
+    :return:
+    """
+
+    live_data = get_live_data(cur)
+    samples = []
+
+    # Don't update samples if we know there is no new data locally. This
+    # eliminates one round-trip to the remote host.
+    if update_samples:
+        sample_data_ts = get_current_timestamp(site_url)
+        print("Updating from: {0}".format(sample_data_ts['max_ts']))
+        samples = get_samples(cur, sample_data_ts['max_ts'])
 
     payload = {
         'v': 1,
-        'ld_u': get_live_data(cur),
-        's': get_samples(cur, sample_data_ts['max_ts'])
+        'ld_u': live_data,
+        's': samples
     }
 
-    #print payload
+    print("Sending data...")
+    response = post_data(site_url, payload)
 
-    response = post_data(options.site_url, payload)
-    print response
+    print("Response: {0}".format(response['stat']))
+    print("Live Data Updated: {0}".format(response['ld_u']))
+    print("Samples Inserted: {0}".format(response['sa_i']))
+
+def listen_loop(con, cur, site_url):
+    """
+    Listens for update notifications from the database and sends the updates
+    to the remote database.
+    :param con: Database connection
+    :param cur: Database cursor for queries
+    :param site_url: Website URL
+    """
+    print ("Continuous mode")
+    cur.execute("listen live_data_updated;")
+    cur.execute("listen new_sample;")
+
+    while True:
+        if not (select.select([con],[],[],5) == ([],[],[])):
+            update_live = False
+            send_samples = False
+
+            con.poll()
+            while con.notifies:
+                notify = con.notifies.pop()
+                if notify.channel == "live_data_updated":
+                    update_live = True
+                elif notify.channel == "new_sample":
+                    send_samples = True
+
+            # If there is new data then send it.
+            if update_live or send_samples:
+                if not send_samples:
+                    print("Only updating live data")
+                update(cur, site_url, send_samples)
+
+def get_connection_string(options):
+    """
+    Gets the database connection string.
+    :param options: Command-line options
+    :return: Database connection string
+    :rtype: str
+    """
+    connection_string = "host=" + options.hostname
+    connection_string += " user=" + options.username
+    connection_string += " password=" + options.password
+    connection_string += " dbname=" + options.dbname
+
+    return connection_string
+
+
+def main():
+    """
+    Program entrypoint.
+    :return:
+    """
+
+    options = parse_args()
+
+    print("zxweather database replicator v1.0")
+    print("\t(C) Copyright David Goodwin, 2012\n\n")
+
+    con = connect_to_db(get_connection_string(options))
+    cur = con.cursor()
+
+    update(cur, options.site_url)
+
+    if options.continuous:
+        listen_loop(con, cur, options.site_url)
+
 
 if __name__ == "__main__": main()
