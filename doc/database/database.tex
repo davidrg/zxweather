@@ -506,12 +506,11 @@ Clients interested in displaying live data should listen on this channel rather 
 The following applications use this channel:
 
 \begin{itemize}
-\item zxweather Database Replicator
 \item zxweather Desktop (GUI) Client
 \end{itemize}
 
 \section{new\_sample}
-A notification with now payload is broadcast on this channel when a new sample has been inserted into the database. This notification is sent automatically from the compute\_sample\_values trigger function.
+A notification with no payload is broadcast on this channel when a new sample has been inserted into the database. This notification is sent automatically from the compute\_sample\_values trigger function.
 
 Clients interested in displaying history samples should listen on this channel rather than polling the database.
 
@@ -522,6 +521,27 @@ The following applications use this channel:
 \item zxweather Database Replicator
 \end{itemize}
 
+\section{update\_complete}
+A notification with no payload is broadcast on this channel by the zxweather WH1080 Update Daemon when it has finished updating the live\_data table and inserting any new records into the sample table. 
+
+This channel does not specify what has been updated. Listen on the live\_data\_updated and new\_sample channels as well to determine what has been updated.
+
+If there are new history samples then the notification sequence will be:
+\begin{itemize}
+\item live\_data\_updated
+\item new\_sample
+\item update\_complete
+\end{itemize}
+
+If there are no new history samples then there will be no notification on the new\_sample channel.
+
+\subsection{Applications}
+The following applications use this channel:
+
+\begin{itemize}
+\item wh1080d (WH1080 Update Daemon) - issues notifications when it has finished doing work.
+\item zxweather Database Replicator - waits for a notification on this channel before sending data to the remote database. Other notification channels (new\_sample and live\_data\_updated) are used to determine what to send
+\end{itemize}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                END DOCUMENT                               %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

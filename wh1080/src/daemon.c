@@ -151,6 +151,8 @@ void daemon_main(char *server, char *username, char *password, FILE *log_file) {
             free_history_set(hs);
         }
 
+        pgo_updates_complete();
+
         wait_for_next_live();
         fprintf(logfile, "WAKE!\n");
     }
