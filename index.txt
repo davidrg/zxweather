@@ -2,6 +2,7 @@
 INDEX
 ==============================================================================
   database               Database scripts
+  desktop                Desktop client for Windows and Linux
   doc                    Documentation
   plot                   Static chart plotting program for the web interface
   wh1080                 FineOffset WH1080 database update tools
