@@ -29,6 +29,7 @@ web/config.cfg
 plot/updatefile.txt
 *.pro.user.2.5pre1
 wh1080/Debug/*
+doc/installation/installation-guide.dvi
 zxw_web/static/rua/*
 zxw_web/config.cfg
 desktop-build-desktop-4_5_3_Debug/*
