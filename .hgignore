@@ -31,3 +31,5 @@ plot/updatefile.txt
 wh1080/Debug/*
 zxw_web/static/rua/*
 zxw_web/config.cfg
+desktop-build-desktop-4_5_3_Debug/*
+desktop-doc/html/*
