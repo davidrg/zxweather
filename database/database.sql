@@ -600,6 +600,8 @@ $BODY$
                         where time_stamp = (select max(time_stamp)
                                             from sample ins
                                             where ins.time_stamp < NEW.time_stamp);
+
+                        NOTIFY new_sample;
 		END IF;
 
 		RETURN NEW;
