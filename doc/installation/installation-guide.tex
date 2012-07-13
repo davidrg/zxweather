@@ -340,13 +340,49 @@ Both components are required for correct operation. This chapter describes how t
 
 \section{WSGI Application}
 
-The web interface is written as a Python WSGI application. This section only covers installing the application under Apache httpd. If you are using a different web server then consult the documentation for your servers wsgi module.
+The web interface is written as a Python WSGI application. This section only covers installing the application under Apache httpd. If you are not using Apache then consult your web servers documentation for instructions on installing wsgi applications.
 
 \subsection{Installation}
 % Where to put it
 % Apache configuration
 
 At this time zxweather cannot be run in a subdirectory - it must live in the root directory of the website. This generally means giving it its own virtual host.
+
+The system you are installing the web interface on must have the following installed on it:
+\begin{itemize}
+\item Apache httpd
+\item mod\_wsgi
+\item Python 2.7
+\item psycopg2
+\item web.py
+\end{itemize}
+
+Installation and configuration of these packages is outside the scope of this document. If you are setting up on a Linux system the packages are likely all available from your distributions package repositories.
+
+Where examples are provided in this section they are for Debian-based Linux distributions. Installation and configuration on Windows systems is similar but requires more effort.
+
+\subsubsection{Extract Distribution}
+Firstly extract the full zxweather documentation to some location on your disk. In the examples \\ /var/zxweather is used:
+\begin{verbatim}
+$ pwd
+/var/zxweather
+$ ls
+database  doc  index.txt  plot  wh1080  zxw_web
+\end{verbatim}
+
+\subsubsection{WSGI Setup}
+As the zxweather web interface is a Python WSGI application you must have the mod\_wsgi installed and enabled. On Debain-based systems the package is called \verb|libapache2-mod-wsgi| and can be enabled using the \verb|a2enmod| tool:
+
+\begin{verbatim}
+$ a2enmod wsgi
+\end{verbatim}
+
+\subsubsection{Virtual-host Configuration}
+
+Then add something like the following to your Apache configuration:
+\begin{verbatim}
+WSGIScriptAlias / /var/zxweather/zxw_web/zxweather.py
+\end{verbatim}
 
 
 \subsection{Configuration}
