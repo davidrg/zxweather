@@ -45,6 +45,10 @@ urls = (
     '/(s|b|m)/(?:index\.html)?', 'ui.stationlist',                          # Station redirect
     '/(?:index\.html)?', 'ui.site_index',                                 # Site index redirect
 
+    # Web services
+    '/ws/dataload', 'webservice.data_load',     # For loading data into the database
+    '/ws/latest_sample', 'webservice.latest_sample', # For loading data into the database
+
     # Static file overlays.
     '/(?:s|b|m)/(.*)', 'static_overlays.overlay_file',
     '/(.*)', 'static_overlays.overlay_file',
