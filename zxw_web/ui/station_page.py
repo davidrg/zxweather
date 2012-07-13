@@ -4,6 +4,7 @@ Handles the station overview page and any other station-level pages.
 """
 
 from datetime import datetime, timedelta
+import web
 from web.contrib.template import render_jinja
 from cache import day_cache_control
 import config
@@ -50,6 +51,9 @@ def get_station_standard(ui, station):
     if not day_exists(data.yesterday):
         data.yesterday = None
         data.yesterday_month_s = None
+
+    if data.records is None:
+        return web.NotFound(message="No Data")
 
     day_cache_control(None, now)
     nav_urls = get_nav_urls(station, current_location)
