@@ -2,7 +2,7 @@
 % !Document: WG01 [WH1080 Utilities Users Guide]
 % ----------------------------------------------------------------------------
 % !Revision: 001
-% !IssueDate: May 2012
+% !IssueDate: July 2012
 % !Status: Unreleased
 %
 % !-Classification
@@ -20,11 +20,11 @@
 %\newcommand{\projectnum}{DAZW}
 \newcommand{\docnum}{WG01}
 \newcommand{\docrev}{001}
-\newcommand{\docdate}{May 2012}
+\newcommand{\docdate}{July 2012}
 \newcommand{\docauthor}{David Goodwin}
 \newcommand{\docabstract}{This document provides configuration and usage guidelines for the zxweather utilities for WH1080 compatible weather stations.}
 \newcommand{\docupdateinfo}{This is a DRAFT DOCUMENT.}
-\newcommand{\docosver}{Microsoft Windows NT 5.0+; UNIX.}
+\newcommand{\docosver}{Microsoft Windows NT 5.0+; Linux.}
 \newcommand{\docswver}{zxweather 1.0}
 \newcommand{\doccopyright}{\textcircled{c} Copyright David Goodwin, 2012.}
 \newcommand{\doclicense}{Use, reproduction and modification of this document is permitted subject to the terms of the GNU Free Documentation License, Version 1.3 or any later vesion published by the Free Software Foundation. See \url{http://www.gnu.org/copyleft/fdl.html} for full license text.}
@@ -96,7 +96,7 @@
 \pagenumbering{arabic}
 \setcounter{page}{1}
 
-zxweather provides a number of utilities for working with weather stations compatible with the Fine Offset WH-1080. All software is available for both UNIX and Microsoft Windows NT systems.
+zxweather provides a number of utilities for working with weather stations compatible with the Fine Offset WH-1080. All software is available for both Linux and Microsoft Windows systems.
 
 These utilities are:
 \begin{enumerate}
@@ -111,13 +111,13 @@ The following chapters provide detailed information on these programs including 
 
 All software covered by this manual has been tested on the following platforms using the GNU C Compiler:
 \begin{itemize}
-\item Microsoft Windows NT 6.1 (Windows 7 x64, 32bit builds)
+\item Microsoft Windows 7 x64, 32bit builds
 \item Debian GNU/Linux 6.0.4 (squeeze, 32bit)
 \end{itemize}
 
 \section{Related Documents}
 \begin{tabular}{l l}
-\verb|DAZW-IM01| & zxweather Installation Reference, version 1.0 \\
+\verb|DAZW-IG01| & zxweather Installation Reference, version 1.0 \\
 \verb|DAZW-DB01| & zxweather Database Structure, version 1.0 \\
 \end{tabular}
 
@@ -286,15 +286,15 @@ The following is required to compile this program on all supported platforms:
 \item libpgtypes
 \end{itemize}
 
-Additionally, on UNIX systems libusb-1.0 is required.
+Additionally, on Linux systems libusb-1.0 is required.
 
 \section{Runtime Requirements}
-On all systems libecpg and libpgtypes are required. On UNIX libusb-1.0 is required. When distributing window binaries hidapi.dll must be supplied.
+On all systems libecpg and libpgtypes are required. On Linux libusb-1.0 is required. When distributing window binaries hidapi.dll must be supplied.
 
 \chapter{wh1080d and wh1080svc}
 wh1080d is a daemon (service in windows) which continuously feeds weather data into the database. The live\_data table is updated every 48 seconds and new history records are inserted whenever they appear on the device.
 
-wh1080d and wh1080svc both perform the same job and take the same command-line arguments. There are two of them as they are platform-specific; wh1080d is a daemon for UNIX-like systems and wh1080svc is a service for Windows NT systems. 
+wh1080d and wh1080svc both perform the same job and take the same command-line arguments. There are two of them as they are platform-specific; wh1080d is a daemon for Linux systems and wh1080svc is a service for Windows NT systems. 
 
 
 \section{Command-line Arguments}
@@ -320,10 +320,10 @@ The following is required to compile this program on all supported platforms:
 \item libpgtypes
 \end{itemize}
 
-Additionally, on UNIX systems libusb-1.0 is required.
+Additionally, on Linux systems libusb-1.0 is required.
 
 \section{Runtime Requirements}
-On all systems libecpg and libpgtypes are required. On UNIX libusb-1.0 is required. When distributing window binaries hidapi.dll must be supplied.
+On all systems libecpg and libpgtypes are required. On Linux libusb-1.0 is required. When distributing window binaries hidapi.dll must be supplied.
 
 \chapter{wh1080memdump}
 This utility dumps the weather stations memory to a binary file on disk. It takes only a single parameter: The name of the file to dump to. The program takes a few minutes to run.
@@ -342,10 +342,10 @@ Dump complete.
 
 
 \section{Compilation Requirements}
-On all supported platforms the GNU C Compiler is required to compile the program. Additionally on UNIX systems libusb-1.0 is required.
+On all supported platforms the GNU C Compiler is required to compile the program. Additionally on Linux systems libusb-1.0 is required.
 
 \section{Runtime Requirements}
-On UNIX systems libusb-1.0 is required. When distributing windows binaries, hidapi.dll must be supplied.
+On Linux systems libusb-1.0 is required. When distributing windows binaries, hidapi.dll must be supplied.
 
 \chapter{wh1080readdump}
 
