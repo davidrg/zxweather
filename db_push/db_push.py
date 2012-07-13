@@ -12,16 +12,6 @@ import select
 
 __author__ = 'David Goodwin'
 
-
-
-
-
-
-# Structure:
-# {'v': 1,
-#  'ld_u': {... live data ...},
-#  's': [... samples ...}}
-
 def get_live_data(cur):
     """
     Gets live data from the database.
@@ -85,22 +75,22 @@ from sample
 
     for row in result:
         sample = {
-            'si' : row[0],
-            'rn' : row[1],
-            'dts': row[2],
-            'lib': row[3],
-            'id' : row[4],
-            'ts' : row[5],
-            'ih' : row[6],
-            'it' : row[7],
-            'h'  : row[8],
-            't'  : row[9],
-            'p'  : row[10],
-            'wa' : row[11],
-            'wg' : row[12],
-            'wd' : row[13],
-            'rt' : row[14],
-            'ro' : row[15],
+            'si' : row[0],  # sample_interval
+            'rn' : row[1],  # record_number
+            'dts': row[2],  # download_timestamp
+            'lib': row[3],  # last_in_batch
+            'id' : row[4],  # invalid_data
+            'ts' : row[5],  # time_stamp
+            'ih' : row[6],  # indoor_relative_humidity
+            'it' : row[7],  # indoor_temperature
+            'h'  : row[8],  # relative_humidity
+            't'  : row[9],  # temperature
+            'p'  : row[10], # absolute_pressure
+            'wa' : row[11], # average_wind_speed
+            'wg' : row[12], # gust_wind_speed
+            'wd' : row[13], # wind_direction
+            'rt' : row[14], # total_rain
+            'ro' : row[15], # rain_overflow
         }
         samples.append(sample)
 
