@@ -115,7 +115,11 @@ def load_settings():
             raise Exception("ConfigurationError: GnuPG home directory not specified. Consult installation reference manual.")
 
         gnupg_home = config.get(S_DBR, 'gnupg_home')
-        gpg_binary = config.get(S_DBR, 'gpg_binary')
+
+        if not config.has_option(S_DBR, 'gpg_binary'):
+            gpg_binary = None
+        else:
+            gpg_binary = config.get(S_DBR, 'gpg_binary')
 
         if not config.has_option(S_DBR, 'key_fingerprint'):
             print("WARNING: No key fingerprint specified. Any valid signature will be accepted. Consult installation reference manual.")
