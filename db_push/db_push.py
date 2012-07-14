@@ -3,12 +3,17 @@
 An application for pushing database updates to a remote host running the
 web interface.
 """
+from __future__ import print_function
 import json
 from optparse import OptionParser
 import psycopg2
 import psycopg2.extensions
 import requests
 import select
+
+# Required packages:
+#  - requests
+#  - python-gnupg
 
 __author__ = 'David Goodwin'
 
@@ -101,7 +106,7 @@ def get_current_timestamp(site_url):
     Gets the most recent sample timestamp in the remote database.
     :param site_url: URL of remote site
     :return: Timestamp data
-    :rtype: dict
+    :rtype: dict or None
     """
 
     url = site_url
@@ -109,12 +114,14 @@ def get_current_timestamp(site_url):
         url += "/"
     url += "ws/latest_sample"
 
-    print url
-
-    r = requests.get(url)
+    try:
+        r = requests.get(url)
+    except Exception as ex:
+        print("Request failed: {0}".format(ex.message))
+        return None
 
     if r.status_code != 200:
-        raise Exception("Request failed: status code {0}".format(r.status_code))
+        print("Request failed: status code {0}".format(r.status_code))
 
     return r.json
 
@@ -203,6 +210,8 @@ def update(cur, site_url, update_samples=True):
     # eliminates one round-trip to the remote host.
     if update_samples:
         sample_data_ts = get_current_timestamp(site_url)
+        if sample_data_ts is None:
+            return # Failed to get current timestamp.
         print("Updating from: {0}".format(sample_data_ts['max_ts']))
         samples = get_samples(cur, sample_data_ts['max_ts'])
 
@@ -213,11 +222,18 @@ def update(cur, site_url, update_samples=True):
     }
 
     print("Sending data...")
-    response = post_data(site_url, payload)
+    try:
+        response = post_data(site_url, payload)
+    except Exception as ex:
+        print("Failed to post new data: {0}".format(ex.message))
+        return
 
-    print("Response: {0}".format(response['stat']))
-    print("Live Data Updated: {0}".format(response['ld_u']))
-    print("Samples Inserted: {0}".format(response['sa_i']))
+    if response is None:
+        print("ERROR: Bad response.")
+    else:
+        print("Response: {0}".format(response['stat']))
+        print("Live Data Updated: {0}".format(response['ld_u']))
+        print("Samples Inserted: {0}".format(response['sa_i']))
 
 def listen_loop(con, cur, site_url):
     """
@@ -227,28 +243,28 @@ def listen_loop(con, cur, site_url):
     :param cur: Database cursor for queries
     :param site_url: Website URL
     """
-    print ("Continuous mode")
-    cur.execute("listen live_data_updated;")
+    print ("Continuous mode. Waiting for new data...")
     cur.execute("listen new_sample;")
+    cur.execute("listen update_complete;")
+
+    send_samples = False
 
     while True:
+        print('.',end="")
         if not (select.select([con],[],[],5) == ([],[],[])):
-            update_live = False
-            send_samples = False
-
+            print("")
             con.poll()
             while con.notifies:
                 notify = con.notifies.pop()
-                if notify.channel == "live_data_updated":
-                    update_live = True
-                elif notify.channel == "new_sample":
+                if notify.channel == "new_sample":
                     send_samples = True
-
-            # If there is new data then send it.
-            if update_live or send_samples:
-                if not send_samples:
-                    print("Only updating live data")
-                update(cur, site_url, send_samples)
+                elif notify.channel == "update_complete":
+                    # The update service has finished making changes. We can
+                    # send data now.
+                    if not send_samples:
+                        print("Only updating live data")
+                    update(cur, site_url, send_samples)
+                    send_samples = False
 
 def get_connection_string(options):
     """
@@ -267,7 +283,7 @@ def get_connection_string(options):
 
 def main():
     """
-    Program entrypoint.
+    Program entry point.
     :return:
     """
 
