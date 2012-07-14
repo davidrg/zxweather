@@ -5,6 +5,7 @@ Various web services
 import json
 import web
 from config import db
+import gnupg
 
 __author__ = 'David Goodwin'
 
@@ -117,20 +118,118 @@ class data_load():
         return len(samples)
 
     @staticmethod
+    def _create_gpg():
+        """
+        Creates a new GnuPG object.
+        :return: A new GPG object.
+        """
+
+        from config import gpg_binary, gnupg_home
+
+        if gpg_binary is not None:
+            gpg = gnupg.GPG(gnupghome=gnupg_home, gpgbinary=gpg_binary)
+        else:
+            gpg = gnupg.GPG(gnupghome=gnupg_home)
+
+        return gpg
+
+    @staticmethod
+    def _strip_pgp_garbage(data):
+        """
+        Strips the PGP signature garbage returning only the clear-text message.
+
+        It is only intended to work with the output of db_push.py - it
+        may not be generally useful or work with other PGP-signed stuff.
+
+        See RFC-2440 for more details about this.
+
+        :param data: Input data
+        :type data: str
+        :return: Clear-text message
+        :rtype: str
+        """
+
+        lines = data.splitlines()
+
+        output = ''
+#        headers = []
+
+        in_message_block = False
+        in_message = False
+
+        for line in lines:
+            if line.startswith("-----BEGIN PGP SIGNED MESSAGE"):
+                in_message_block = True # We're in the message bit now.
+            elif line.startswith("-----BEGIN PGP SIGNATURE"):
+                # We've hit the end of the message and come across the
+                # signature data.
+                break
+            elif in_message_block:
+                # We're in the message block.
+                if line == '' and not in_message:
+                    in_message = True # We've found the message
+                elif in_message:
+                    # We're in the message body. Start copying.
+                    if line.startswith("- "):
+                        # Its dash-escaped.
+                        line = line[2:]
+
+                    if output != '':
+                        output += '\n'
+                    output += line
+#                else:
+#                    # Its a header
+#                    headers.append(line)
+        #print headers
+        return output
+
+    @staticmethod
     def _fetch_and_verify_data():
         """
         Fetches the POSTed data and verifies its signature.
         :return: error string, json data
         :rtype: string, dict
         """
+        from config import key_fingerprint
 
         post_data = web.data()
 
-        # TODO: Verify signature
+        gpg = data_load._create_gpg()
 
-        data = json.loads(post_data)
+        verified = gpg.verify(str(post_data))
 
-        return None, data
+#        print "Username: " + str(verified.username)
+#        print "Status: " + str(verified.status)
+#        print "Pubkey_Fingerprint: " + str(verified.pubkey_fingerprint)
+#        print "Timestamp: " + str(verified.timestamp)
+#        print "Creation_Date: " + str(verified.creation_date)
+#        print "Expire_Timestamp: " + str(verified.expire_timestamp)
+#        print "Valid: " + str(verified.valid)
+#        print "Fingerprint: " + str(verified.fingerprint)
+#        print "Key_ID: " + str(verified.key_id)
+#        print "Signature_ID: " + str(verified.signature_id)
+#        print "Sig_Timestamp: " + str(verified.sig_timestamp)
+#        print "Data: " + str(verified.data)
+#        print "stderr: \n_______________\n" + str(verified.stderr) + "_______________"
+
+        if not verified:
+            # Bad or missing signature
+            return "ERROR: Verification failed - bad or missing signature. " \
+                   "Status: {0}".format(verified.status), None
+        elif verified.pubkey_fingerprint != key_fingerprint and \
+             key_fingerprint is not None:
+            # Signature was valid but the data was signed with the wrong key.
+            return "ERROR: Invalid key fingerprint.", None
+
+        # Signature checks out. Strip away the PGP stuff and continue to
+        # load the data.
+        post_data = data_load._strip_pgp_garbage(post_data)
+
+        try:
+            data = json.loads(post_data)
+            return None, data
+        except Exception as ex:
+            return "ERROR: {0}".format(ex.message), None
 
 
     @staticmethod
@@ -177,7 +276,8 @@ class data_load():
 
         error, data = self._fetch_and_verify_data()
 
-        if error is None:
+        if error is None and data is not None:
+            # We have data and there was no error message
             error, live_updated, samples_inserted = self._load_data(data)
 
         response = json.dumps({'ld_u': live_updated,

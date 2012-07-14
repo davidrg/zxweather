@@ -10,6 +10,7 @@ import psycopg2
 import psycopg2.extensions
 import requests
 import select
+import gnupg
 
 # Required packages:
 #  - requests
@@ -125,12 +126,14 @@ def get_current_timestamp(site_url):
 
     return r.json
 
-def post_data(site_url, data):
+def post_data(site_url, data, gpg, key_id):
     """
     Posts new data to the remote site
-    :param site_url:
-    :param data:
-    :return:
+    :param site_url: URL to send data to
+    :param data: Data to send
+    :param gpg: GnuPG object to use for signing
+    :param key_id: Key to sign with
+    :return: response JSON data.
     """
 
     url = site_url
@@ -138,7 +141,12 @@ def post_data(site_url, data):
         url += "/"
     url += "ws/dataload"
 
-    r = requests.post(url, data=json.dumps(data))
+    # Sign the data we are sending
+    signed_data = str(gpg.sign(json.dumps(data)))
+
+#    print(signed_data)
+
+    r = requests.post(url, data=signed_data)
 
     return r.json
 
@@ -164,6 +172,12 @@ def parse_args():
                       dest="continuous", default=False,
                       help="Stay running sending updates to the remote " \
                            "database as they appear in the local one.")
+    parser.add_option("-d", "--gpg-home-directory", dest="gpg_home",
+                      help="GnuPG Home Directory for db_push tool")
+    parser.add_option("-b","--gpg-binary",dest="gpg_binary",
+                      help="Name of GnuPG Binary")
+    parser.add_option("-k","--key-id",dest="key_id",
+                      help="Fingerprint of the key to sign with")
 
     (options, args) = parser.parse_args()
 
@@ -194,12 +208,17 @@ def connect_to_db(connection_string):
 
     return con
 
-def update(cur, site_url, update_samples=True):
+def update(cur, site_url, gpg, key_id, update_samples=True):
     """
     Performs an update
     :param cur: Database cursor
     :param site_url: Website URL
+    :type site_url: str or Unicode
+    :param gpg: GnuPG object.
     :param update_samples: If samples should be updated or not
+    :param key_id: Key to sign with
+    :type key_id: str
+    :type update_samples: boolean
     :return:
     """
 
@@ -223,7 +242,7 @@ def update(cur, site_url, update_samples=True):
 
     print("Sending data...")
     try:
-        response = post_data(site_url, payload)
+        response = post_data(site_url, payload, gpg, key_id)
     except Exception as ex:
         print("Failed to post new data: {0}".format(ex.message))
         return
@@ -235,13 +254,17 @@ def update(cur, site_url, update_samples=True):
         print("Live Data Updated: {0}".format(response['ld_u']))
         print("Samples Inserted: {0}".format(response['sa_i']))
 
-def listen_loop(con, cur, site_url):
+def listen_loop(con, cur, site_url, gpg, key_id):
     """
     Listens for update notifications from the database and sends the updates
     to the remote database.
     :param con: Database connection
     :param cur: Database cursor for queries
     :param site_url: Website URL
+    :type site_url: str or Unicode
+    :param gpg: GnuPG object
+    :param key_id: Key to sign with
+    :type key_id: str
     """
     print ("Continuous mode. Waiting for new data...")
     cur.execute("listen new_sample;")
@@ -263,7 +286,7 @@ def listen_loop(con, cur, site_url):
                     # send data now.
                     if not send_samples:
                         print("Only updating live data")
-                    update(cur, site_url, send_samples)
+                    update(cur, site_url, gpg, key_id, send_samples)
                     send_samples = False
 
 def get_connection_string(options):
@@ -295,10 +318,17 @@ def main():
     con = connect_to_db(get_connection_string(options))
     cur = con.cursor()
 
-    update(cur, options.site_url)
+    if options.gpg_binary is not None:
+        gpg = gnupg.GPG(gnupghome=options.gpg_home, gpgbinary=options.gpg_binary)
+    else:
+        gpg = gnupg.GPG(gnupghome=options.gpg_home)
+
+    key_id = options.key_id
+
+    update(cur, options.site_url, gpg, key_id)
 
     if options.continuous:
-        listen_loop(con, cur, options.site_url)
+        listen_loop(con, cur, options.site_url, gpg, key_id)
 
 
 if __name__ == "__main__": main()
