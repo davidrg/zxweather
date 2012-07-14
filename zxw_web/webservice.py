@@ -10,7 +10,12 @@ __author__ = 'David Goodwin'
 
 class data_load():
     """
-    For loading data into the database.
+    For loading data into the database. This is very basic master-slave
+    replication for the sample and live_data tables in the zxweather
+    database. It allows the web interface to be run on a remote system that
+    does not have access to the main weather database. In this case the web
+    interface has its own database with data being pushed into it through
+    these routes.
     """
 
     def GET(self):
@@ -111,10 +116,12 @@ class data_load():
 
         return len(samples)
 
-    def POST(self):
+    @staticmethod
+    def _fetch_and_verify_data():
         """
-        Receives JSON-encoded data and loads it into the database
-        :return: status message in JSON format.
+        Fetches the POSTed data and verifies its signature.
+        :return: error string, json data
+        :rtype: string, dict
         """
 
         post_data = web.data()
@@ -123,6 +130,17 @@ class data_load():
 
         data = json.loads(post_data)
 
+        return None, data
+
+
+    @staticmethod
+    def _load_data(data):
+        """
+        Updates live data and loads samples into the database.
+        :param data:
+        :return: error message, if live data was updated, number of samples inserted
+        :rtype: str, bool, int
+        """
         live_updated = False
         samples_inserted = 0
 
@@ -133,10 +151,10 @@ class data_load():
 
             try :
                 if 'ld_u' in data:
-                    live_updated = self._update_live_data(data['ld_u'])
+                    live_updated = data_load._update_live_data(data['ld_u'])
 
                 if 's' in data:
-                    samples_inserted = self._insert_samples(data['s'])
+                    samples_inserted = data_load._insert_samples(data['s'])
             except Exception as e:
                 t.rollback()
                 error = e.message
@@ -145,6 +163,22 @@ class data_load():
                 error = "OK"
         else:
             error = 'ERROR: Unsupported structure version'
+
+        return error, live_updated, samples_inserted
+
+    def POST(self):
+        """
+        Receives JSON-encoded data and loads it into the database
+        :return: status message in JSON format.
+        """
+
+        live_updated = False
+        samples_inserted = 0
+
+        error, data = self._fetch_and_verify_data()
+
+        if error is None:
+            error, live_updated, samples_inserted = self._load_data(data)
 
         response = json.dumps({'ld_u': live_updated,
                                'sa_i': samples_inserted,
@@ -156,7 +190,7 @@ class data_load():
 
 class latest_sample():
     """
-    Gets the age of the latest sample.
+    Gets the age of the latest sample. Used for data replication.
     """
 
     def GET(self):
