@@ -131,6 +131,14 @@ This manual provides instructions to install and configure all components of the
 
 It is recommended that you read this manual in its entirety. It is the only documentation for installing and configuring all of zxweather.
 
+\section{Related Documents}
+Additional documentation for various zxweather components is available in the following manuals:
+
+\begin{tabular}{l l}
+\verb|DAZW-WG01| & WH1080 Utilities Users Guide, version 1.0 \\
+\verb|DAZW-DB01| & zxweather Database Structure, version 1.0 \\
+\end{tabular}
+
 \section{Supported Hardware}
 At this time only weather stations 100\% compatible with the Fine Offset WH1080 are supported.
 
@@ -141,26 +149,33 @@ PostgreSQL v9.0+ is the only supported database engine. Other RDBMS such as MySQ
 
 The data collection tools are only supported on little-endian CPU architectures at this time. This includes Intel IA32 (x86) and most ARM processors. Bad things will happen if your processor is big-endian.
 
+\subsection{System Structure}
+zxweather consists of three major components:
+\begin{itemize}
+\item Database
+\item Data Logger (wh1080d)
+\item Web Interface
+\end{itemize}
+
+The database sits at the center of the zxweather system. The Data Logger feeds data into the database where the web interface and other clients can access it.
+
+Because of this architecture setting up the web interface on a remote system on another network (such as a VPS) can be difficult. If using a VPN or an SSH tunnel is impractical then the web interface does provide a very basic database replication facility which is described in chapter \ref{cha_db_replication}.
+
 \subsection{Data logger}
 The data collection tools are written in the C language and are portable to both Linux and Windows.
 
 ECPG (a PostgreSQL utility), GCC and GNU Make are required to compile the software. To run it, libecpg and (on linux) libusb-1.0 are required.
 
 \subsection{Web interface}
-The web interface requires Python version 2.7 with the following packages:
+The web interface requires Python version 2.6 or 2.7 with the following packages:
 \begin{itemize}
 \item Jinja2
 \item web.py
 \item psycopg2
+\item python-gnupg
 \end{itemize}
 
-Additionally, gnuplot must be available on the system running the weatherplot program.
-
-\section{Related Documents}
-\begin{tabular}{l l}
-\verb|DAZW-WG01| & WH1080 Utilities Users Guide, version 1.0 \\
-\verb|DAZW-DB01| & zxweather Database Structure, version 1.0 \\
-\end{tabular}
+Additionally, gnuplot must be available on the system running the weatherplot program. If database replication is being used (chapter \ref{cha_db_replication}) then GnuPG must also be available.
 
 \chapter{Database}
 \label{cha_database}
@@ -352,9 +367,10 @@ The system you are installing the web interface on must have the following insta
 \begin{itemize}
 \item Apache httpd
 \item mod\_wsgi
-\item Python 2.7
+\item Python 2.6 or 2.7
 \item psycopg2
 \item web.py
+\item python-gnupg
 \end{itemize}
 
 Installation and configuration of these packages is outside the scope of this document. If you are setting up on a Linux system the packages are likely all available from your distributions package repositories.
@@ -545,6 +561,15 @@ Plot zxw_web/static/rua/2012/may/10/7-day_indoor_temperature.png
 Plot completed at 2012-05-10 22:31:46.953000
 Waiting for 1800 seconds to plot again. Press Ctrl+C to terminate.
 \end{verbatim}
+
+\chapter{Database Replication}
+\label{cha_db_replication}
+% Document the db_push scripts.
+
+\chapter{Troubleshooting}
+This chapter describes common problems and their solutions.
+\section{Database Replication}
+% gnupg home directory must be owned by what ever user zxw_web is running as, otherwise you get no key errors.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                END DOCUMENT                               %
