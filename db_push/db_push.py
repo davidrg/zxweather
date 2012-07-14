@@ -70,9 +70,12 @@ from sample
     """
 
     if remote_max_ts is not None:
-        cur.execute(query + "where time_stamp > %s", (remote_max_ts,))
+        query += "where time_stamp > %s "
+        query += "order by time_stamp asc"
+        cur.execute(query, (remote_max_ts,))
     else:
         print("Remote database is empty. Sending *all* samples.")
+        query += "order by time_stamp asc"
         cur.execute(query)
 
     result = cur.fetchall()
@@ -142,9 +145,11 @@ def post_data(site_url, data, gpg, key_id):
     url += "ws/dataload"
 
     # Sign the data we are sending
-    signed_data = str(gpg.sign(json.dumps(data)))
+    signed_data = str(gpg.sign(json.dumps(data), keyid=key_id))
 
-#    print(signed_data)
+    #print(signed_data)
+    with open("signed-junk.txt",'w') as f:
+        f.write(signed_data)
 
     r = requests.post(url, data=signed_data)
 
@@ -208,6 +213,88 @@ def connect_to_db(connection_string):
 
     return con
 
+def build_payload(live_data, samples):
+    """
+    Builds the JSON data structure to be sent to the remote system.
+    :param live_data: Live data to be sent
+    :type live_data: dict or None
+    :param samples: List of samples to send
+    :type samples: list or None
+    :return: data structure to send
+    :rtype: dict
+    """
+
+    payload = {'v': 1}
+    if live_data is not None:
+        payload['ld_u'] = live_data
+    if samples is not None:
+        payload['s'] = samples
+
+    return payload
+
+def send_data(site_url, payload, gpg, key_id):
+    """
+    Sends data and handles the response.
+    :param site_url: URL to send it to
+    :param payload: Payload to send
+    :param gpg: GPG object for signing
+    :param key_id: Key to sign with
+    :returns: success or failure
+    :rtype: bool
+    """
+
+    print("Sending data...")
+    try:
+        response = post_data(site_url, payload, gpg, key_id)
+    except Exception as ex:
+        print("Failed to post new data: {0}".format(ex.message))
+        return False
+
+    if response is None:
+        print("ERROR: Bad response.")
+        return False
+    else:
+        print("Response: {0}".format(response['stat']))
+        print("Live Data Updated: {0}".format(response['ld_u']))
+        print("Samples Inserted: {0}".format(response['sa_i']))
+
+        if response['stat'] == "OK":
+            return True
+        else:
+            return False
+
+def sample_chunk_update(samples, site_url, gpg, key_id):
+    """
+    Sends samples (and only samples) in chunks of 500.
+    :param samples: List of samples to send
+    :param site_url: Site URL
+    :param gpg: GPG object for signing data
+    :param key_id: Signing key to use.
+    """
+
+    def chunks(lst):
+        """
+        Iterate over a list in chunks of 500
+        :param lst: List to iterate over.
+        """
+        for i in xrange(0, len(lst), 50):
+            yield lst[i:i+50]
+
+    chunk_count = len(samples) / 50
+
+    i = 0
+    for chunk in chunks(samples):
+        print("Chunk {0}/{1}".format(i, chunk_count))
+        i += 1
+        payload = build_payload(None, chunk)
+        result = send_data(site_url, payload, gpg, key_id)
+
+        if not result:
+            # Chunk failed to send.
+            return
+
+
+
 def update(cur, site_url, gpg, key_id, update_samples=True):
     """
     Performs an update
@@ -234,25 +321,19 @@ def update(cur, site_url, gpg, key_id, update_samples=True):
         print("Updating from: {0}".format(sample_data_ts['max_ts']))
         samples = get_samples(cur, sample_data_ts['max_ts'])
 
-    payload = {
-        'v': 1,
-        'ld_u': live_data,
-        's': samples
-    }
+        if len(samples) > 50:
+            print("Performing chunked sample load...")
+            # There is lots of samples (remote database might be empty).
+            # We'll chop these up and send them 500 at a time.
+            sample_chunk_update(samples, site_url, gpg, key_id)
+            # All samples should have been sent to the remote database. We
+            # don't want to send them again.
+            samples = None
 
-    print("Sending data...")
-    try:
-        response = post_data(site_url, payload, gpg, key_id)
-    except Exception as ex:
-        print("Failed to post new data: {0}".format(ex.message))
-        return
 
-    if response is None:
-        print("ERROR: Bad response.")
-    else:
-        print("Response: {0}".format(response['stat']))
-        print("Live Data Updated: {0}".format(response['ld_u']))
-        print("Samples Inserted: {0}".format(response['sa_i']))
+    payload = build_payload(live_data, samples)
+
+    send_data(site_url, payload, gpg, key_id)
 
 def listen_loop(con, cur, site_url, gpg, key_id):
     """
@@ -325,6 +406,7 @@ def main():
 
     key_id = options.key_id
 
+    print("Performing update...")
     update(cur, options.site_url, gpg, key_id)
 
     if options.continuous:
