@@ -115,24 +115,19 @@
 \pagenumbering{arabic}
 \setcounter{page}{1}
 
-zxweather is software for automatic weather stations. It is licensed under the GNU GPL making it free software. Its main features are:
+zxweather a collection of tools to log and display data collected from automatic weather stations compatible with the Fine Offset WH1080. It is licensed under the GNU GPL making it free software.
+
+Its main features are:
 \begin{itemize}
 \item A modern HTML5 web interface
 \item Basic HTML fallback for older browsers.
 \item Full weather history
 \end{itemize}
 
-This manual provides instructions to install and configure all components of the system. These are:
-\begin{itemize}
-\item Database
-\item Data logger
-\item Web interface
-\end{itemize}
+This manual provides installation and maintenance instructions for the entire core system. You should read this manual in its entirety to avoid problems.
 
-It is recommended that you read this manual in its entirety. It is the only documentation for installing and configuring all of zxweather.
-
-\section{Related Documents}
-Additional documentation for various zxweather components is available in the following manuals:
+\section{Related Documentation}
+Other available documentation for the zxweather system includes:
 
 \begin{tabular}{l l}
 \verb|DAZW-WG01| & WH1080 Utilities Users Guide, version 1.0 \\
@@ -140,26 +135,65 @@ Additional documentation for various zxweather components is available in the fo
 \end{tabular}
 
 \section{Supported Hardware}
-At this time only weather stations 100\% compatible with the Fine Offset WH1080 are supported.
+This version of zxweather only supports weather stations 100\% compatible with the FineOffset WH1080. These weather stations are resold by many companies under various names.
 
 \section{System Requirements}
-All components of zxweather are supported under modern versions of both Linux and Windows. It is recommended that Linux be used if possible however.
+Linux is the recommended operating system for running the core components of zxweather. Where this is not practical it is possible to run under Microsoft Windows.
 
-PostgreSQL v9.0+ is the only supported database engine. Other RDBMS such as MySQL are not supported in any way. Older versions of PostgreSQL may work but have not been tested.
+The only supported database engine is PostgreSQL. Any version from 9.0 and up should be suitable. Older versions may work but this is not tested. Other RDBMS (such as MySQL) are not supported in any way.
 
-The data collection tools are only supported on little-endian CPU architectures at this time. This includes Intel IA32 (x86) and most ARM processors. Bad things will happen if your processor is big-endian.
+The WH1080 tools are only supported on little-endian CPU architectures at this time. This includes Intel IA32 (x86) and most ARM processors. Bad things will happen if your processor is big-endian.
+
+\subsection{Software Environment}
+This section covers the software environment required to run two of the core parts of the zxweather system. For PostgreSQL system requirements consult its documentation.
+
+\subsubsection{WH1080 Utilities}
+The WH1080 Utilities require the following libraries to be installed on your system:
+\begin{itemize}
+\item libusb-1.0 (on linux only)
+\item libecpg
+\end{itemize}
+
+Additionally, to compile these you will need:
+\begin{itemize}
+\item GNU C Compiler and GNU Make
+\item ECPG tool (a part of PostgreSQL)
+\item Development packages for libusb-1.0 and libecpg
+\end{itemize}
+
+This software and libraries should be available from your operating systems package manager. On Debian 6.0 the packages would be \verb|build-essential| \verb|libusb-1.0-0-dev| \verb|libecpg-dev|.
+
+\subsubsection{Web Interface}
+The web interface requires the following to be installed on your system:
+\begin{itemize}
+\item Python 2.6 or 2.7
+\item The following python libraries: 
+\begin{itemize}
+\item Psycopg2
+\item web.py
+\item python-gnupg
+\item requests (if database replication is used)
+\end{itemize}
+\item Gnuplot
+\item GnuPG (if database replication is used)
+\item Apache2 with mod\_wsgi (or another web server with WSGI support)
+\end{itemize}
 
 \subsection{System Structure}
 zxweather consists of three major components:
 \begin{itemize}
-\item Database
-\item Data Logger (wh1080d)
+\item Database (run on PostgreSQL)
+\item Data Logger (wh1080d) and other WH1080 utilities
 \item Web Interface
 \end{itemize}
 
 The database sits at the center of the zxweather system. The Data Logger feeds data into the database where the web interface and other clients can access it.
 
-Because of this architecture setting up the web interface on a remote system on another network (such as a VPS) can be difficult. If using a VPN or an SSH tunnel is impractical then the web interface does provide a very basic database replication facility which is described in chapter \ref{cha_db_replication}.
+Because of this architecture all systems must be on the same network as the database server (using either SSH tunnels or VPNs). This can make running the Web Interface on a remote system (such as a VPS) difficult.
+
+To support this sort of configuration the Web Interface as a very basic database replication facility built into it. This allows it to have its own database with weather data being pushed out to it at regular intervals.
+
+This sort of configuration is described in more detail in Chapter \ref{cha_db_replication}.
 
 \subsection{Data logger}
 The data collection tools are written in the C language and are portable to both Linux and Windows.
@@ -184,9 +218,11 @@ Additionally, gnuplot must be available on the system running the weatherplot pr
 
 This chapter describes the database setup required by zxweather. The database is required by the core system and is not optional. It must be setup on a system that all other components have network access to.
 
+Alternatively, if it is impractical for all systems to have direct access to the database it is possible to setup a second replica database on the system running the Web Interface. Chapter \ref{cha_db_replication} covers this setup in more detail.
+
 \section{Installation}
 
-%TODO Come up with a better database setup system. Write a python program or something.
+%TODO Come up with a better database setup system. Write a python program or something. Should be able to handle database upgrades and (when the feature is added) setting up the weather station in the database.
 
 The zxweather database has only been tested with PostgreSQL version 9.0 and above. This documentation assumes you already have a suitable version of the server and client tools installed on your system.
 
