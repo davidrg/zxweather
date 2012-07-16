@@ -41,3 +41,21 @@ site_name: zxweather
 #site_root: http://weather.example.com/
 #static_data_dir: /var/weather/static/
 #station_name: somewhere
+
+# Database Replication
+# This feature allows data to be uploaded to the web interface if the machine
+# the web interface is running on can't make a direct connection to the weather
+# database.
+#
+# enable          - Enable or disable the database replication feature.
+# gnupg_home      - The home directory for GnuPG. This should be specific to
+#                   zxweather and should only contain the the public key for
+#                   verifying the weather data.
+# gpg_binary      - Name of the GnuPG binary to use. If it is not specified
+#                   then it will be looked for in the path.
+# key_fingerprint - Only accept data signed with this key.
+[database_replication]
+enable: False
+#gnupg_home:
+#gpg_binary:
+#key_fingerprint:

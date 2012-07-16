@@ -73,6 +73,8 @@
          * details (links and site name). */
         $.getJSON('../../data/daynav.json', function(data) {
             $("#nav_brand").html(data['site_name']);
+            $(document).attr("title","About - " + data['site_name']);
+            $("#title_brand").html(data['site_name']);
             $("#nav_lnk_yesterday").attr('href',data['yesterday']);
             $("#nav_lnk_this_month").attr('href',data['this_month']);
             $("#nav_lnk_this_year").attr('href',data['this_year']);

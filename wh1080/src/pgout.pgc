@@ -224,6 +224,15 @@ void pgo_update_live(history live_record) {
     EXEC SQL COMMIT;
 }
 
+/* Called to notify other database users that we've finished updating data
+ * for now
+ * WARNING: This commits the current transaction
+ */
+void pgo_updates_complete() {
+    EXEC SQL NOTIFY update_complete;
+    EXEC SQL COMMIT;
+}
+
 /* Commits the transaction that was opened when we connected */
 void pgo_commit() {
     EXEC SQL COMMIT;
