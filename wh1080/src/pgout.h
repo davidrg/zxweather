@@ -40,6 +40,12 @@ void pgo_insert_history_set(history_set hs);
 /* Updates live data in the database. Note that this commits the transaction.*/
 void pgo_update_live(history live_record);
 
+/* Called to notify other database users that we've finished updating data
+ * for now.
+ * WARNING: This commits the current transaction
+ */
+void pgo_updates_complete();
+
 /* Commits the current transaction */
 void pgo_commit();
 

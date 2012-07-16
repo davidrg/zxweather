@@ -3,24 +3,20 @@
 An application for pushing database updates to a remote host running the
 web interface.
 """
+from __future__ import print_function
 import json
 from optparse import OptionParser
 import psycopg2
 import psycopg2.extensions
 import requests
 import select
+import gnupg
+
+# Required packages:
+#  - requests
+#  - python-gnupg
 
 __author__ = 'David Goodwin'
-
-
-
-
-
-
-# Structure:
-# {'v': 1,
-#  'ld_u': {... live data ...},
-#  's': [... samples ...}}
 
 def get_live_data(cur):
     """
@@ -74,9 +70,12 @@ from sample
     """
 
     if remote_max_ts is not None:
-        cur.execute(query + "where time_stamp > %s", (remote_max_ts,))
+        query += "where time_stamp > %s "
+        query += "order by time_stamp asc"
+        cur.execute(query, (remote_max_ts,))
     else:
         print("Remote database is empty. Sending *all* samples.")
+        query += "order by time_stamp asc"
         cur.execute(query)
 
     result = cur.fetchall()
@@ -85,22 +84,22 @@ from sample
 
     for row in result:
         sample = {
-            'si' : row[0],
-            'rn' : row[1],
-            'dts': row[2],
-            'lib': row[3],
-            'id' : row[4],
-            'ts' : row[5],
-            'ih' : row[6],
-            'it' : row[7],
-            'h'  : row[8],
-            't'  : row[9],
-            'p'  : row[10],
-            'wa' : row[11],
-            'wg' : row[12],
-            'wd' : row[13],
-            'rt' : row[14],
-            'ro' : row[15],
+            'si' : row[0],  # sample_interval
+            'rn' : row[1],  # record_number
+            'dts': row[2],  # download_timestamp
+            'lib': row[3],  # last_in_batch
+            'id' : row[4],  # invalid_data
+            'ts' : row[5],  # time_stamp
+            'ih' : row[6],  # indoor_relative_humidity
+            'it' : row[7],  # indoor_temperature
+            'h'  : row[8],  # relative_humidity
+            't'  : row[9],  # temperature
+            'p'  : row[10], # absolute_pressure
+            'wa' : row[11], # average_wind_speed
+            'wg' : row[12], # gust_wind_speed
+            'wd' : row[13], # wind_direction
+            'rt' : row[14], # total_rain
+            'ro' : row[15], # rain_overflow
         }
         samples.append(sample)
 
@@ -111,7 +110,7 @@ def get_current_timestamp(site_url):
     Gets the most recent sample timestamp in the remote database.
     :param site_url: URL of remote site
     :return: Timestamp data
-    :rtype: dict
+    :rtype: dict or None
     """
 
     url = site_url
@@ -119,21 +118,25 @@ def get_current_timestamp(site_url):
         url += "/"
     url += "ws/latest_sample"
 
-    print url
-
-    r = requests.get(url)
+    try:
+        r = requests.get(url)
+    except Exception as ex:
+        print("Request failed: {0}".format(ex.message))
+        return None
 
     if r.status_code != 200:
-        raise Exception("Request failed: status code {0}".format(r.status_code))
+        print("Request failed: status code {0}".format(r.status_code))
 
     return r.json
 
-def post_data(site_url, data):
+def post_data(site_url, data, gpg, key_id):
     """
     Posts new data to the remote site
-    :param site_url:
-    :param data:
-    :return:
+    :param site_url: URL to send data to
+    :param data: Data to send
+    :param gpg: GnuPG object to use for signing
+    :param key_id: Key to sign with
+    :return: response JSON data.
     """
 
     url = site_url
@@ -141,7 +144,14 @@ def post_data(site_url, data):
         url += "/"
     url += "ws/dataload"
 
-    r = requests.post(url, data=json.dumps(data))
+    # Sign the data we are sending
+    signed_data = str(gpg.sign(json.dumps(data), keyid=key_id))
+
+    #print(signed_data)
+    with open("signed-junk.txt",'w') as f:
+        f.write(signed_data)
+
+    r = requests.post(url, data=signed_data)
 
     return r.json
 
@@ -167,6 +177,12 @@ def parse_args():
                       dest="continuous", default=False,
                       help="Stay running sending updates to the remote " \
                            "database as they appear in the local one.")
+    parser.add_option("-d", "--gpg-home-directory", dest="gpg_home",
+                      help="GnuPG Home Directory for db_push tool")
+    parser.add_option("-b","--gpg-binary",dest="gpg_binary",
+                      help="Name of GnuPG Binary")
+    parser.add_option("-k","--key-id",dest="key_id",
+                      help="Fingerprint of the key to sign with")
 
     (options, args) = parser.parse_args()
 
@@ -197,12 +213,99 @@ def connect_to_db(connection_string):
 
     return con
 
-def update(cur, site_url, update_samples=True):
+def build_payload(live_data, samples):
+    """
+    Builds the JSON data structure to be sent to the remote system.
+    :param live_data: Live data to be sent
+    :type live_data: dict or None
+    :param samples: List of samples to send
+    :type samples: list or None
+    :return: data structure to send
+    :rtype: dict
+    """
+
+    payload = {'v': 1}
+    if live_data is not None:
+        payload['ld_u'] = live_data
+    if samples is not None:
+        payload['s'] = samples
+
+    return payload
+
+def send_data(site_url, payload, gpg, key_id):
+    """
+    Sends data and handles the response.
+    :param site_url: URL to send it to
+    :param payload: Payload to send
+    :param gpg: GPG object for signing
+    :param key_id: Key to sign with
+    :returns: success or failure
+    :rtype: bool
+    """
+
+    print("Sending data...")
+    try:
+        response = post_data(site_url, payload, gpg, key_id)
+    except Exception as ex:
+        print("Failed to post new data: {0}".format(ex.message))
+        return False
+
+    if response is None:
+        print("ERROR: Bad response.")
+        return False
+    else:
+        print("Response: {0}".format(response['stat']))
+        print("Live Data Updated: {0}".format(response['ld_u']))
+        print("Samples Inserted: {0}".format(response['sa_i']))
+
+        if response['stat'] == "OK":
+            return True
+        else:
+            return False
+
+def sample_chunk_update(samples, site_url, gpg, key_id):
+    """
+    Sends samples (and only samples) in chunks of 500.
+    :param samples: List of samples to send
+    :param site_url: Site URL
+    :param gpg: GPG object for signing data
+    :param key_id: Signing key to use.
+    """
+
+    def chunks(lst):
+        """
+        Iterate over a list in chunks of 500
+        :param lst: List to iterate over.
+        """
+        for i in xrange(0, len(lst), 50):
+            yield lst[i:i+50]
+
+    chunk_count = len(samples) / 50
+
+    i = 0
+    for chunk in chunks(samples):
+        print("Chunk {0}/{1}".format(i, chunk_count))
+        i += 1
+        payload = build_payload(None, chunk)
+        result = send_data(site_url, payload, gpg, key_id)
+
+        if not result:
+            # Chunk failed to send.
+            return
+
+
+
+def update(cur, site_url, gpg, key_id, update_samples=True):
     """
     Performs an update
     :param cur: Database cursor
     :param site_url: Website URL
+    :type site_url: str or Unicode
+    :param gpg: GnuPG object.
     :param update_samples: If samples should be updated or not
+    :param key_id: Key to sign with
+    :type key_id: str
+    :type update_samples: boolean
     :return:
     """
 
@@ -213,52 +316,59 @@ def update(cur, site_url, update_samples=True):
     # eliminates one round-trip to the remote host.
     if update_samples:
         sample_data_ts = get_current_timestamp(site_url)
+        if sample_data_ts is None:
+            return # Failed to get current timestamp.
         print("Updating from: {0}".format(sample_data_ts['max_ts']))
         samples = get_samples(cur, sample_data_ts['max_ts'])
 
-    payload = {
-        'v': 1,
-        'ld_u': live_data,
-        's': samples
-    }
+        if len(samples) > 50:
+            print("Performing chunked sample load...")
+            # There is lots of samples (remote database might be empty).
+            # We'll chop these up and send them 500 at a time.
+            sample_chunk_update(samples, site_url, gpg, key_id)
+            # All samples should have been sent to the remote database. We
+            # don't want to send them again.
+            samples = None
 
-    print("Sending data...")
-    response = post_data(site_url, payload)
 
-    print("Response: {0}".format(response['stat']))
-    print("Live Data Updated: {0}".format(response['ld_u']))
-    print("Samples Inserted: {0}".format(response['sa_i']))
+    payload = build_payload(live_data, samples)
 
-def listen_loop(con, cur, site_url):
+    send_data(site_url, payload, gpg, key_id)
+
+def listen_loop(con, cur, site_url, gpg, key_id):
     """
     Listens for update notifications from the database and sends the updates
     to the remote database.
     :param con: Database connection
     :param cur: Database cursor for queries
     :param site_url: Website URL
+    :type site_url: str or Unicode
+    :param gpg: GnuPG object
+    :param key_id: Key to sign with
+    :type key_id: str
     """
-    print ("Continuous mode")
-    cur.execute("listen live_data_updated;")
+    print ("Continuous mode. Waiting for new data...")
     cur.execute("listen new_sample;")
+    cur.execute("listen update_complete;")
+
+    send_samples = False
 
     while True:
+        print('.',end="")
         if not (select.select([con],[],[],5) == ([],[],[])):
-            update_live = False
-            send_samples = False
-
+            print("")
             con.poll()
             while con.notifies:
                 notify = con.notifies.pop()
-                if notify.channel == "live_data_updated":
-                    update_live = True
-                elif notify.channel == "new_sample":
+                if notify.channel == "new_sample":
                     send_samples = True
-
-            # If there is new data then send it.
-            if update_live or send_samples:
-                if not send_samples:
-                    print("Only updating live data")
-                update(cur, site_url, send_samples)
+                elif notify.channel == "update_complete":
+                    # The update service has finished making changes. We can
+                    # send data now.
+                    if not send_samples:
+                        print("Only updating live data")
+                    update(cur, site_url, gpg, key_id, send_samples)
+                    send_samples = False
 
 def get_connection_string(options):
     """
@@ -277,7 +387,7 @@ def get_connection_string(options):
 
 def main():
     """
-    Program entrypoint.
+    Program entry point.
     :return:
     """
 
@@ -289,10 +399,18 @@ def main():
     con = connect_to_db(get_connection_string(options))
     cur = con.cursor()
 
-    update(cur, options.site_url)
+    if options.gpg_binary is not None:
+        gpg = gnupg.GPG(gnupghome=options.gpg_home, gpgbinary=options.gpg_binary)
+    else:
+        gpg = gnupg.GPG(gnupghome=options.gpg_home)
+
+    key_id = options.key_id
+
+    print("Performing update...")
+    update(cur, options.site_url, gpg, key_id)
 
     if options.continuous:
-        listen_loop(con, cur, options.site_url)
+        listen_loop(con, cur, options.site_url, gpg, key_id)
 
 
 if __name__ == "__main__": main()
