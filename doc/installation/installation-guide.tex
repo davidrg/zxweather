@@ -151,7 +151,8 @@ This section covers the software environment required to run two of the core par
 The WH1080 Utilities require the following libraries to be installed on your system:
 \begin{itemize}
 \item libusb-1.0 (on linux only)
-\item libecpg
+\item libecpg (A part of ECPG)
+\item libpq (PostgreSQL client library)
 \end{itemize}
 
 Additionally, to compile these you will need:
@@ -248,11 +249,11 @@ More information on the createdb program can be found at \url{http://www.postgre
 \subsection{Create Database Structure}
 The database structure needed by zxweather to store data is created using the \verb|database.sql| located in the \emph{database} directory of the zxweather distribution. Running this SQL script will create the full database structure in one step.
 
-You can run this script with a command such as the following:
+You can run this script with a command such as the following inside the zxweather distribution directory:
 \begin{verbatim}
-$ psql -h dbserver -U username -d weather -f database.sql 
+$ psql -h dbserver -U username -d weather -f database/database.sql 
 \end{verbatim}
-This command must be run from inside the database directory. The supplied parameters are:
+The supplied parameters are:
 \begin{itemize}
 \item \emph{dbserver} - The hostname (or IP Address) of the machine running PostgreSQL
 \item \emph{username} - The user account to login to the server with. Using a superuser account (often called "postgres") will be easiest.
@@ -275,24 +276,17 @@ web interface & CONNECT, SELECT \\
 
 You can create individual accounts for each program or have them all sharing the same account.
 
+If the database replication feature in the Web Interface is being used then its user account will need the INSERT and UPDATE permissions in addition to those described in the table above.
+
+\subsection{Creating Accounts}
 %TODO Instructions for creating the accounts
 
 \chapter{Data Logger}
 % Compiling and installing wh1080d or the other program
 
-Before starting the wh1080d program you must perform a full data load if any of the following conditions are true and your database is not empty. 
-\begin{itemize}
-\item \verb|wh1080| - The WH1080 Update Tool
-\item \verb|wh1080d| - The WH1080 Update Service
-\end{itemize}
+The Data Logger is a daemon which continuously downloads weather data (both live and historical samples) from the weather station and loads it into the database. It is called wh1080d and is one of the WH1080 Utilities. Its full documentation is contained in the \emph{WH1080 Utilities Users Guide, version 1.0} (\verb|DAZW-WG01|).
 
-The \emph{Update Tool} allows you to inspect configuration and data on the device (including exporting it as CSV or inserting it into the database). It is useful for performing some maintenance tasks and troubleshooting.
-
-The \emph{Update Service} runs continuously feeding both samples and live data into the database for use by other programs. This program runs as service under Windows or a daemon under Linux.
-
-These tools are covered in more detail by the \emph{WH1080 Utilities Users Guide, version 1.0} (\verb|DAZW-WG01|).
-
-Use of these tools requires that the database has already been setup. If you have not done this yet consult chapter \ref{cha_database}.
+This chapter covers how to compile and install this tool. Additionally, section \ref{sec_loading_data} includes some important maintenance information that must always be taken into consideration before you start wh1080d.
 
 \section{Compiling}
 This section only covers compiling the tools under Linux. If you are using Microsoft Windows it is recommended that you use the pre-compiled executables and skip to the next section.
@@ -320,10 +314,10 @@ These libraries and software packages should be available from your operating sy
 
 To compile the WH1080 tools, cd into the wh1080 subdirectory of the zxweather distribution and run \verb|make|. This should kick off the build process and leave you with a handful of programs.
 
-
 \section{Loading Data}
+\label{sec_loading_data}
 
-Before you can start the update service it is important to note that you may have to run a \emph{Full Update}. It is important to do this to do this when necessary to prevent:
+Before you can start the wh1080d it is important to note that you may have to run a \emph{Full Update} first. Doing this prevents issues such as:
 \begin{itemize}
 \item Corrupt data being inserted into the database
 \item New data on the weather station from being lost
@@ -341,13 +335,14 @@ There are only three occasions when it is acceptable (and necessary) to perform 
 
 The first two deal with the case where the sample the database says needs to be downloaded next no longer exists on the weather station. This prevents invalid data from being inserted into the database.
 
-The third deals with the case where the sample the database says needs to be downloaded next is not correct because \emph{all} samples needed to be downloaded. Failing to perform a full update in this case will likely result in some of the samples being missed
+The third deals with the case where sample the database says needs to be downloaded next is not correct because \emph{all} samples needed to be downloaded. Failing to perform a full update in this case will likely result in some of the samples on your weather station being missed.
 
 As an example, if your weather station is set to take one sample every five minutes then the database must be more than 340 hours out of date (that is a little over 14 days).
 
+If in any doubt perform a full update on a test database and compare what it download with what is already in your weather database to see if there is any overlap at all.
 
 \subsection{Performing a Full Update}
-To perform a full update you must use the Update Tool (the wh1080 program) as the Update Service can not perform this operation.
+To perform a full update you must use the the wh1080 as wh1080\textbf{d} can not perform this operation. wh1080 is one of the WH1080 Utilities and is a basic tool for inspecting the contents of the weather station and downloading samples into a database.
 
 The \verb|-l| command-line option causes the Update Tool to perform a Full Update instead of a regular one:
 
@@ -355,10 +350,10 @@ The \verb|-l| command-line option causes the Update Tool to perform a Full Updat
 
 This is covered in more detail in Section 2.2.4 of \emph{WH1080 Utilities Users Guide} (DAZW-WG01).
 
-\section{Update Service Configuration}
+\section{wh1080d Configuration}
 \subsection{Linux}
 
-The update service takes the following arguments:
+wh1080d takes the following arguments:
 
 \begin{tabular}{l l p{10cm}}
 \hline
@@ -371,7 +366,7 @@ The update service takes the following arguments:
 \hline
 \end{tabular}
 
-Under linux the Update Service runs as a daemon. To start it just run something like:
+Under linux the Update Service runs as a daemon. To start it just run something like the following from your system startup scripts:
 
 \verb|wh1080d -d database -u username -p password -f logfile|
 
@@ -379,15 +374,15 @@ The log file is truncated when the daemon starts.
 
 \subsection{Windows}
 
+%TODO Add the ability to run wh1080d as a windows service and document it here.
 
 \chapter{Web Interface}
 
-The web interface is the primary way for viewing data in the zxweather database. It consists of two components - the web application and the chart plotting program.
+The Web Interface is the primary way for viewing data in the zxweather database. It consists of two components - the WSGI web application and the chart plotting program.
 
 Both components are required for correct operation. This chapter describes how to install and configure them.
 
 % Overview of features
-
 
 \section{WSGI Application}
 
@@ -403,21 +398,23 @@ The system you are installing the web interface on must have the following insta
 \begin{itemize}
 \item Apache httpd
 \item mod\_wsgi
-\item Python 2.6 or 2.7
+\item Python 2.6 or 2.7 with the following packages:
+\begin{itemize}
 \item psycopg2
 \item web.py
 \item python-gnupg
 \end{itemize}
+\end{itemize}
 
-Installation and configuration of these packages is outside the scope of this document. If you are setting up on a Linux system the packages are likely all available from your distributions package repositories.
+Installation and configuration of these packages is outside the scope of this document. If you are setting up on a Linux system the packages are likely all available from your distributions package repositories. 
 
 Where examples are provided in this section they are for Debian-based Linux distributions. Installation and configuration on Windows systems is similar but requires more effort.
 
 \subsubsection{Extract Distribution}
-Firstly extract the full zxweather documentation to some location on your disk. In the examples \\ /var/zxweather is used:
+Firstly if you haven't already done so extract the full zxweather distribution to some location on your disk. In the examples \\ /opt/zxweather is used:
 \begin{verbatim}
 $ pwd
-/var/zxweather
+/opt/zxweather
 $ ls
 database  doc  index.txt  plot  wh1080  zxw_web
 \end{verbatim}
@@ -431,17 +428,133 @@ $ a2enmod wsgi
 
 \subsubsection{Virtual-host Configuration}
 
-Then add something like the following to your Apache configuration:
+All that is required to make zxweather work from the Apache end is adding the following to your vhost configuration file:
 \begin{verbatim}
-WSGIScriptAlias / /var/zxweather/zxw_web/zxweather.py
+WSGIScriptAlias / /opt/zxweather/zxw_web/zxweather.py
 \end{verbatim}
 
+An example virtual host configuration might look like this:
+
+\begin{verbatim}
+<VirtualHost *:80>
+        ServerAdmin admin@example.com
+        ServerName weather.example.com
+
+        DocumentRoot /var/www
+        ErrorLog ${APACHE_LOG_DIR}/weather-error.log
+        LogLevel warn
+        CustomLog ${APACHE_LOG_DIR}/weather-access.log combined
+
+        WSGIScriptAlias / /opt/zxweather/zxw_web/zxweather.py
+</VirtualHost>
+\end{verbatim}
 
 \subsection{Configuration}
 % The configuration file
+
+The Web Interface attempts to load a configuration file with one of the following names when it starts:
+
+The Web Interface attempts to load configuration files in the following order. Only the first one it finds is loaded.
+\begin{itemize}
+\item \verb|config.cfg| (in the current directory)
+\item \verb|zxw_web/config.cfg|
+\item \verb|/etc/zxweather.cfg|
+\end{itemize}
+
+It is recommended that you install your configuration file in \verb|/etc|. To do this, copy the \\ \verb|zxweather.cfg.sample| file included in the zxweather distributions \verb|zxw_web| subdirectory:
+\begin{verbatim}
+$ cp /opt/zxweather/zxw_web/zxweather.cfg.sample /etc/zxweather.cfg
+\end{verbatim}
+
+This configuration files format is similar to the INI format commonly used on Microsoft Windows. The '\#' character marks a comment, group names are inside square brackets.
+
+\subsubsection{Database}
+The first group is for database configuration. It looks like the following:
+\begin{verbatim}
+[database]
+host: localhost
+port: 5432
+database: weather
+user: weatheruser
+password: password
+\end{verbatim}
+
+Where the settings are:
+\begin{itemize}
+\item host - the hostname or IP address of your database server.
+\item port - The port your database listens on. This is commonly 5432 for PostgreSQL.
+\item database - Name of your database.
+\item user - The user to login to the server as
+\item password - The users password.
+\end{itemize}
+
+
+\subsubsection{Data}
+The Data group stores details about the data available in your database:
+
+\begin{verbatim}
+[data]
+live_data_available: True
+sample_interval: 300
+plot_interval: 1800
+\end{verbatim}
+
+The settings are:
+\begin{itemize}
+\item live\_data\_available - If Live Data is available from the database. If you are using wh1080d to populate your database then this should be left as \verb|True|
+\item sample\_interval - How often new samples appear in the database (in seconds). Only a 5 minute sample interval is supported at the moment so this should be left as 300
+\item plot\_interval - How often the weatherplot program runs (see section \ref{sec_chart_plotting}) in seconds. 
+\end{itemize}
+
+\subsubsection{Site}
+The Site group stores basic web interface configuration:
+\begin{verbatim}
+[site]
+default_ui: s
+site_name: zxweather
+# UNCOMMENT THESE AND SET THEM! The defaults will NOT work.
+#site_root: http://weather.example.com/
+#static_data_dir: /var/weather/static/
+#station_name: abc
+\end{verbatim}
+
+Where the settings are:
+\begin{itemize}
+\item default\_ui - The default UI to use. 's' is the Standard UI, 'b' is the Basic (HTML-only) UI. Unless your only browser is from 2001 you will want to leave this on 's'.
+\item site\_name - The name of your site. This appears on the left of the navigation bar and in the title of every page.
+\item site\_root - The URL for the root of your website. For example, http://weather.example.com/.
+\item static\_data\_dir - Where on your hard disk the static data directory is. If zxweather was extrated to \verb|/opt/zxweather| then this should be set to \verb|/opt/zxweather/zxw_web/static/|.
+\end{itemize}
+
+The final setting in this group is station\_name. This is a very short (a few characters) name for your weather station. It should be kept very short as it will appear in the URL of every page in your site. For example, if you set this value to "foo" your station overview page will be \verb|http://weather.example.com/s/foo/|.
+
+The purpose of this setting is to allow multiple weather datasets to be handled by a single Web Interface instance in a future version of zxweather. Uses for this functionality may be:
+\begin{itemize}
+\item Multiple weather stations.
+\item Separating datasets if you move the weather station to a different location.
+\end{itemize}
+
+Once you have chosen a value for this setting you should never change it as it will change every URL in your site.
+
+\subsubsection{database\_replication}
+This group configures the database replication feature. If you do not plan on using this feature then the default values (which turn the feature off) are acceptable.
+
+If you are going to use this feature then these settings are described in Chapter \ref{cha_db_replication}.
+
+\subsection{About Page}
 % About page
+On the navigation bar of the standard Web Interface is an "About" link which will take you to a generic about page which you will want to customise.
+
+To do this, navigate into the \emph{static data} directory ( \verb|/zxw_web/static/|) and copy the \verb|about.html| file into your weather stations subdirectory. If, for example, your station is called "foo" and zxweather is installed in \verb|/opt/zxweather| you would copy \verb|/opt/zxweather/zxw_web/static/about.html| to \\ \verb|/opt/zxweather/zxw_web/static/foo/about.html|. You can then customise this copy of the file. You should avoid modifying the original copy as it may be overwritten without warning by future versions.
+
+When editing your copy of \verb|about.html| you will find two comments near the bottom of the page; \\
+\verb|<!-- BEGIN_USER_CONTENT -->| and \verb|<!-- END_USER_CONTENT -->|. You can put anything you want between these comments.
+
+It is best to avoid making any changes outside of these comments as future versions may make changes to the file outside these comments as part of the upgrade process.
+
 
 \section{Chart Plotting}
+\label{sec_chart_plotting}
 % Purpose of this program
 % Command-line arguments
 % How to set it up
@@ -454,7 +567,7 @@ The machine it runs on must have \emph{gnuplot} installed and must have access t
 
 The weatherplot program is written in the Python language and lives in the \verb|plot| subdirectory of the zxweather distribution. It is executed on the command-line with python as: \\ \verb|$ python plot/weatherplot.py [arguments]|.
 
-The charts it generates must be put in the web interfaces \emph{static data} directory in a subdirectory with the same name as your station. For example, if your station is named "foo" and the zxweather distribution was extracted to \verb|/var/zxweather| then you would generate charts into \\ \verb|/var/zxweather/zxw_web/static/foo/|.
+The charts it generates must be put in the web interfaces \emph{static data} directory in a subdirectory with the same name as your station. For example, if your station is named "foo" and the zxweather distribution was extracted to \verb|/opt/zxweather| then you would generate charts into \\ \verb|/opt/zxweather/zxw_web/static/foo/|.
 
 By default an executable called \verb|gnuplot| is expected to be in the path which it can use to generate the charts. If your install of gnuplot is not in the path or goes by another name use the \verb|--gnuplot-binary| parameter to specify its name.
 
@@ -530,6 +643,8 @@ To make this run every 30 minutes you would add a line such as the following to 
   -p password -d zxw_web/static/station_name -a plot_status_file  
 \end{verbatim}
 
+If the static charts are not important to you, you may wish to only regenerate them every few hours or once a day.
+
 \subsection{Plotting Continuously}
 
 The weatherplot program is capable of running interactively in continuous mode. When run like this it will automatically replot charts at a specific interval until you terminate it with Ctrl+C. This is primarily intended for testing purposes.
@@ -602,8 +717,30 @@ Waiting for 1800 seconds to plot again. Press Ctrl+C to terminate.
 \label{cha_db_replication}
 % Document the db_push scripts.
 
+\section{Security}
+% Overview of signing, etc.
+
+\section{Web Interface Configuration}
+
+In order to use the database replication feature you must enable it in the Web Interfaces configuration file. This is done in the database\_replication group towards the end of the file:
+\begin{verbatim}
+[database_replication]
+enable: False
+#gnupg_home:
+#gpg_binary:
+#key_fingerprint:
+\end{verbatim}
+
+The settings here are:
+\begin{itemize}
+\item enable - If the feature is enabled or not. Set this to "True".
+\item gnupg\_home - The location where GnuPG stores keys, etc.
+\item gpg\_binary - If GnuPG is installed in an unusual location on your system, specify it here.
+\item key\_fingerprint - The signing keys fingerprint. If specified then only data signed with that key will be accepted. If not specified then any data with a valid signature is accepted.
+\end{itemize}
+
 \chapter{Troubleshooting}
-This chapter describes common problems and their solutions.
+
 \section{Database Replication}
 % gnupg home directory must be owned by what ever user zxw_web is running as, otherwise you get no key errors.
 
