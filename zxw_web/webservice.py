@@ -271,14 +271,19 @@ class data_load():
         :return: status message in JSON format.
         """
 
+        from config import enable_data_loading
+
         live_updated = False
         samples_inserted = 0
 
-        error, data = self._fetch_and_verify_data()
+        if enable_data_loading:
+            error, data = self._fetch_and_verify_data()
 
-        if error is None and data is not None:
-            # We have data and there was no error message
-            error, live_updated, samples_inserted = self._load_data(data)
+            if error is None and data is not None:
+                # We have data and there was no error message
+                error, live_updated, samples_inserted = self._load_data(data)
+        else:
+            error = "ERROR: data loading is disabled"
 
         response = json.dumps({'ld_u': live_updated,
                                'sa_i': samples_inserted,
