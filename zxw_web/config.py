@@ -106,7 +106,7 @@ def load_settings():
     if not config.has_option(S_DBR, 'enable'):
         enable_data_loading = False
     else:
-        enable_data_loading = config.get(S_DBR, 'enable')
+        enable_data_loading = config.getboolean(S_DBR, 'enable')
 
     # Don't bother loading the rest of the configuration data for database
     # replication if its not enabled.
