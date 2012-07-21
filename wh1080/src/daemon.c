@@ -57,7 +57,7 @@ void main_loop(FILE* logfile,
 unsigned short update_live_data(FILE* logfile);
 void calculate_timestamps(time_t clock_sync_time, history_set *hs);
 void wait_for_new_sample(FILE* logfile);
-
+BOOL check_for_station_reset(FILE* logfile);
 /* Main function for daemon functionality.
  *
  * Process for this function is:
@@ -81,14 +81,10 @@ void daemon_main(char *server, char *username, char *password, FILE *log_file) {
 
     /* Make sure the device hasn't been reset since we last ran. wh1080d can't
      * be started on a freshly reset device */
-
-
-    /* TODO: Check that the device has not been reset. If the number of records
-     * on the device is not MAX_RECORDS and it is less than what ever the
-     * database reports is current then report an error and terminate. The user
-     * must run the wh1080 to fix this up.
-     */
-
+    if (check_for_station_reset(log_file)) {
+        fprintf(log_file, "Fatal error detected. Terminating.\n");
+        return;
+    }
 
     /* Make sure there is at least one new record on the device. If there isn't
      * then wait for one. */
@@ -108,6 +104,44 @@ void daemon_main(char *server, char *username, char *password, FILE *log_file) {
     wait_for_next_live(log_file);
 
     main_loop(log_file, current_record_id, clock_sync_current_ts);
+}
+
+/* Checks to see if the station has been reset since we last started. This is
+ * a fatal error for the daemon - it cannot be started on a freshly reset
+ * device.
+ */
+BOOL check_for_station_reset(FILE* logfile) {
+
+    unsigned short history_data_sets;   /* Number of records on the device */
+    unsigned short live_record_id;      /* Live data record ID */
+    unsigned short current_record_id;   /* Latest sample ID */
+    unsigned short db_latest_id;        /* Latest sample ID in the database */
+    time_t db_latest_ts;                /* Timestamp of above */
+
+    fprintf(logfile, "Checking for station reset condition...");
+    pgo_get_last_record_number(&db_latest_id, &db_latest_ts);
+    get_live_record_id(&history_data_sets, NULL, &live_record_id);
+    current_record_id = previous_record(live_record_id);
+
+    if (history_data_sets < MAX_RECORDS) {
+        /* The stations memory is not full so its been reset as recently as
+         * within the last two weeks (could be longer depending on its sample
+         * interval. */
+
+        if (current_record_id < db_latest_id) {
+            /* The device is not full (so there can't have been a wrap-around)
+             * and the stations highest record ID is less that the databases.
+             * This means that the device must have been reset
+             */
+            fprintf(logfile, "\nFatal Error: wh1080d cannot be restarted after "
+                    "a device reset. Consult\ninstallation reference manual "
+                    "for maintenance procedure to clear error\ncondition.\n");
+            return TRUE;
+        }
+    }
+
+    fprintf(logfile, "OK\n");
+    return FALSE;
 }
 
 /* This function checks to see if there is new data on the device. If there is
