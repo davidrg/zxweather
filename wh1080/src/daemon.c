@@ -20,10 +20,21 @@
  *
  ****************************************************************************/
 
+/* Try and figure out what platform we're targeting */
+#if defined _WIN32 || defined __WIN32 || defined __TOS_WIN__ || \
+    defined __WINDOWS__
+/* __WIN32__ is used by Borland compilers,
+ * __TOS_WIN__ is used by IBM xLC
+ * __WINDOWS__ is defined by Watcom compilers
+ * The rest are fairly standard used by MSVC, GCC, etc.
+ */
+#define ZXW_OS_WINDOWS
+#else /* default is unix */
+#define ZXW_OS_UNIX
+#endif
+
 /* For sleep calls */
-#ifdef __WIN32
-#include <windows.h>    /* Sleep() */
-#elif _MSC_VER
+#ifdef ZXW_OS_WINDOWS
 #include <windows.h>    /* Sleep() */
 #else
 #include <unistd.h>     /* sleep() (note the small s) */
@@ -35,12 +46,14 @@
 #include "history.h"
 #include "pgout.h"
 
+/* Number of seconds between live data updates on the device. */
 #define LIVE_UPDATE_INTERVAL 48
 
-FILE *logfile;
-
-void wait_for_next_live();
+void wait_for_next_live(FILE *logfile);
 void setup(char *server, char *username, char *password, FILE *logfile);
+void main_loop(FILE* logfile,
+               unsigned short initial_current_record_id,
+               time_t clock_sync_current_ts);
 
 /* Main function for daemon functionality.
  *
@@ -48,12 +61,53 @@ void setup(char *server, char *username, char *password, FILE *logfile);
  *  1. Connect to the device
  *  2. Connect to the database server
  *  3. Attempt to figure timestamp for current history record
- *  4. Load any new history records into the database
- *  5. Update live data record in the database
- *  6. Sleep for 48 seconds
- *  7. Go to 4
+ *  4. Record current timestamp for future sleep calculations
+ *  5. Start main loop.
  */
 void daemon_main(char *server, char *username, char *password, FILE *log_file) {
+
+    time_t clock_sync_current_ts;     /* Timestamp from clock_syc */
+    unsigned short current_record_id; /* Current record on the device */
+    /* misc */
+    BOOL result;
+
+    fprintf(logfile, "Daemon started.\n");
+
+    setup(server, username, password, logfile); /* Connect to device, db, etc */
+
+    /* This will give us the current record and its timestamp */
+    result = sync_clock(&current_record_id,     /* OUT */
+                        &clock_sync_current_ts  /* OUT */
+                        );
+
+    /* as soon as sync_clock() observes a new live record it will do a few
+     * small calculations and return. So the next live record should be
+     * around 48 seconds after sync_clock() returns. The first time
+     * wait_for_next_live() is called it will add 48 onto the current time
+     * to compute when the next live record is due and then return immediately
+     * instead of actually waiting. */
+    wait_for_next_live(logfile);
+
+    main_loop(log_file, current_record_id, clock_sync_current_ts);
+}
+
+
+/* Main program loop. Handles downloading new data:
+ *
+ *  1. Load any new history records into the database
+ *  2. Update live data record in the database
+ *  3. Sleep for 48 seconds
+ *  4. Go to 1
+ *
+ * Parameters are:
+ *  logfile:  The stream to write messages to
+ *  initial_current_record_id: The current record to start from. This value
+ *            comes from sync_clock().
+ *  clock_sync_current_ts: Current timestamp from the clock_sync() function.
+ */
+void main_loop(FILE* logfile,
+               unsigned short initial_current_record_id,
+               time_t clock_sync_current_ts) {
     /* This is the live record. We will fetch this every 48 seconds */
     unsigned short live_record_id;
     history live_record;
@@ -66,28 +120,10 @@ void daemon_main(char *server, char *username, char *password, FILE *log_file) {
     time_t first_record_ts;           /* Calculated timestamp of the first hs
                                        * record */
     time_t final_record_ts = 0;       /* Final record from previous hs */
-    time_t clock_sync_current_ts;     /* Timestamp from clock_syc */
+
     time_t database_ts;               /* Timestamp from latest DB record */
 
-    /* misc */
-    BOOL result;
-
-    logfile = log_file;
-
-    fprintf(logfile, "Daemon started.\n");
-
-    setup(server, username, password, logfile); /* Connect to device, db, etc */
-
-    /* This will give us the current record and its timestamp */
-    result = sync_clock(&current_record_id, &clock_sync_current_ts);
-
-    /* as soon as sync_clock() observes a new live record it will do a few
-     * small calculations and return. So the next live record should be
-     * around 48 seconds after sync_clock() returns. The first time
-     * wait_for_next_live() is called it will add 48 onto the current time
-     * to compute when the next live record is due and then return immediately
-     * instead of actually waiting. */
-    wait_for_next_live();
+    current_record_id = initial_current_record_id;
 
     /* Loop forever waking up ever 48 seconds to grab live data and any
      * new history records. Any cleanup required will be done when we receive
@@ -125,6 +161,8 @@ void daemon_main(char *server, char *username, char *password, FILE *log_file) {
             hs = read_history_range(range_start_id,
                                     current_record_id);
 
+            /**** Timestamp Calculations ****/
+
             if (clock_sync_current_ts != 0 || final_record_ts == 0) {
                 /* Either the database is empty or we've just started. Either
                  * way we use the current record timestamp we just calculated.*/
@@ -146,6 +184,8 @@ void daemon_main(char *server, char *username, char *password, FILE *log_file) {
             /* We will calculate the next set of history records from this */
             final_record_ts = hs.records[hs.record_count-1].time_stamp;
 
+            /**** END: Timestamp Calculations ****/
+
             pgo_insert_history_set(hs);
             pgo_commit();
             free_history_set(hs);
@@ -153,7 +193,7 @@ void daemon_main(char *server, char *username, char *password, FILE *log_file) {
 
         pgo_updates_complete();
 
-        wait_for_next_live();
+        wait_for_next_live(logfile);
         fprintf(logfile, "WAKE!\n");
     }
 }
@@ -178,7 +218,7 @@ void setup(char *server, char *username, char *password, FILE *logfile) {
 
 /* Sleeps until the next live record is due. The first time this function is
  * called it initialises some static variables and returns immediately */
-void wait_for_next_live() {
+void wait_for_next_live(FILE* logfile) {
     static time_t next_live_due = 0;
     static time_t now;
     static unsigned long sleep_time;
@@ -229,7 +269,7 @@ void wait_for_next_live() {
     fprintf(logfile, "Sleep for %d seconds\n", sleep_time);
 
     /* Sleep for a while */
-#ifdef __WIN32
+#ifdef ZXW_OS_WINDOWS
     /* The Win32 function is in miliseconds (POSIX is in seconds) */
     Sleep(sleep_time * 1000);
 #else
