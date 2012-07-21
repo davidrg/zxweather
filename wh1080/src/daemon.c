@@ -56,6 +56,7 @@ void main_loop(FILE* logfile,
                time_t clock_sync_current_ts);
 unsigned short update_live_data(FILE* logfile);
 void calculate_timestamps(time_t clock_sync_time, history_set *hs);
+void wait_for_new_sample(FILE* logfile);
 
 /* Main function for daemon functionality.
  *
@@ -70,12 +71,28 @@ void daemon_main(char *server, char *username, char *password, FILE *log_file) {
 
     time_t clock_sync_current_ts;     /* Timestamp from clock_syc */
     unsigned short current_record_id; /* Current record on the device */
+
     /* misc */
     BOOL result;
 
     fprintf(log_file, "Daemon started.\n");
 
     setup(server, username, password, log_file); /* Connect to device, db, etc */
+
+    /* Make sure the device hasn't been reset since we last ran. wh1080d can't
+     * be started on a freshly reset device */
+
+
+    /* TODO: Check that the device has not been reset. If the number of records
+     * on the device is not MAX_RECORDS and it is less than what ever the
+     * database reports is current then report an error and terminate. The user
+     * must run the wh1080 to fix this up.
+     */
+
+
+    /* Make sure there is at least one new record on the device. If there isn't
+     * then wait for one. */
+    wait_for_new_sample(log_file);
 
     /* This will give us the current record and its timestamp */
     result = sync_clock(&current_record_id,     /* OUT */
@@ -93,6 +110,52 @@ void daemon_main(char *server, char *username, char *password, FILE *log_file) {
     main_loop(log_file, current_record_id, clock_sync_current_ts);
 }
 
+/* This function checks to see if there is new data on the device. If there is
+ * then it returns immediately. If there is not then it waits for new data to
+ * appear before returning.
+ *
+ * Its purpose is to ensure that the sync_clock function returns an ID for a
+ * new record as the daemon can not start on old data.
+ */
+void wait_for_new_sample(FILE* logfile) {
+    unsigned short history_data_sets; /* Number of records on the device */
+    unsigned short live_record_id;    /* ID of the current live record */
+    time_t db_latest_ts;              /* Timestamp of the latest DB record */
+    unsigned short db_latest_id;      /* ID of latest DB record */
+    unsigned short station_current_id; /* ID of current record on station */
+
+    unsigned int loop_counter = 0;
+
+    fprintf(logfile, "Waiting for new data before attempting clock sync...\n");
+
+    while (TRUE) {
+        pgo_get_last_record_number(&db_latest_id, &db_latest_ts);
+        get_live_record_id(&history_data_sets, NULL, &live_record_id);
+
+        station_current_id = previous_record(live_record_id);
+
+        if (station_current_id != db_latest_id) {
+            /* The device and DB have different opinions of what is the latest
+             * sample. This means there is probably new data to download.
+             */
+            fprintf(logfile, "\n"); /* Keep the log file tidy */
+            return;
+        } else {
+            fprintf(logfile, "%d...", loop_counter);
+            loop_counter = loop_counter + 1;
+        }
+
+
+        /* No new data yet. Wait for 48 seconds or so and check again. */
+#ifdef ZXW_OS_WINDOWS
+        /* The Win32 function is in miliseconds (POSIX is in seconds) */
+        Sleep(LIVE_UPDATE_INTERVAL * 1000);
+#else
+        sleep(LIVE_UPDATE_INTERVAL);
+#endif
+    }
+}
+
 
 /* Main program loop. Handles downloading new data:
  *
@@ -104,7 +167,8 @@ void daemon_main(char *server, char *username, char *password, FILE *log_file) {
  * Parameters are:
  *  logfile:  The stream to write messages to
  *  initial_current_record_id: The current record to start from. This value
- *            comes from sync_clock().
+ *            comes from sync_clock(). It *must* be a record that does not
+ *            exist in the database (that is, it must be a new record).
  *  clock_sync_current_ts: Current timestamp from the clock_sync() function.
  */
 void main_loop(FILE* logfile,
@@ -144,15 +208,26 @@ void main_loop(FILE* logfile,
 
         pgo_get_last_record_number(&latest_record_id, &database_ts);
 
-        /* Download any history records that have appeared. */
-        if (current_record_id > latest_record_id) {
-            /* The current > latest check will fail when a wrap around occurs
-             * but the new records will be picked up next time. */
+        /* Download any history records that have appeared.
+         * current_record_id is the latest non-live record on the device
+         * latest_record_id is the latest record in the database.
+         */
+        if (database_ts == 0 || current_record_id != latest_record_id) {
+            /* if database_ts == 0 then the database is empty and we need to
+             * download everything.
+             *
+             * If current != latest then there could be new data */
 
             if (database_ts == 0 && latest_record_id == 0)
                 range_start_id = 0; /* Database is empty. Get everything. */
-            else /* Otherwise, don't duplicate the latest DB record */
+            else  {
+                /* There is new data. If the device has actually been reset
+                 * then that should have been caught on startup and reported
+                 * as an error. */
+
+                /* Start from one after what ever is most recent in the DB */
                 range_start_id = next_record(latest_record_id);
+            }
 
             /* There are new history records to load into the database */
             fprintf(logfile, "Download history records %d to %d...\n",

@@ -20,13 +20,24 @@
  *
  ****************************************************************************/
 
+/* Try and figure out what platform we're targeting */
+#if defined _WIN32 || defined __WIN32 || defined __TOS_WIN__ || \
+    defined __WINDOWS__
+/* __WIN32__ is used by Borland compilers,
+ * __TOS_WIN__ is used by IBM xLC
+ * __WINDOWS__ is defined by Watcom compilers
+ * The rest are fairly standard used by MSVC, GCC, etc.
+ */
+#define ZXW_OS_WINDOWS
+#else /* default is unix */
+#define ZXW_OS_UNIX
+#endif
+
 /* For sleep calls in sync_clock_r() */
-#ifdef __WIN32
-#include <windows.h>
-#elif _MSC_VER
-#include <windows.h>
+#ifdef ZXW_OS_WINDOWS
+#include <windows.h>    /* Sleep() */
 #else
-#include <unistd.h>
+#include <unistd.h>     /* sleep() (note the small s) */
 #endif
 
 #include "history.h"
@@ -390,7 +401,7 @@ BOOL sync_clock_r(unsigned short *current_record_id,
             return TRUE;
         }
 
-#ifdef __WIN32
+#ifdef ZXW_OS_WINDOWS
         /* The Win32 function is in miliseconds (POSIX is in seconds) */
         Sleep(SYNC_CLOCK_WAIT_TIME * 1000);
 #else
