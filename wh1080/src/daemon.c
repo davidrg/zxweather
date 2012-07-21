@@ -54,6 +54,7 @@ void setup(char *server, char *username, char *password, FILE *logfile);
 void main_loop(FILE* logfile,
                unsigned short initial_current_record_id,
                time_t clock_sync_current_ts);
+unsigned short update_live_data(FILE* logfile);
 
 /* Main function for daemon functionality.
  *
@@ -110,7 +111,6 @@ void main_loop(FILE* logfile,
                time_t clock_sync_current_ts) {
     /* This is the live record. We will fetch this every 48 seconds */
     unsigned short live_record_id;
-    history live_record;
 
     /* For dealing with history records */
     unsigned short range_start_id;    /* First history record to download */
@@ -129,11 +129,8 @@ void main_loop(FILE* logfile,
      * new history records. Any cleanup required will be done when we receive
      * a SIGTERM. */
     while (TRUE) {
-        /* Find and broadcast the live record */
-        get_live_record_id(NULL, NULL, &live_record_id);
-        live_record = read_history_record(live_record_id);
-        pgo_update_live(live_record);
-        fprintf(logfile, "LIVE is #%d\n", live_record_id);
+        /* Update the live data in the database. */
+        live_record_id = update_live_data(logfile);
 
         /* If we have a clock_sync_current_ts then current_record_id is already
          * set and valid thanks to clock_sync(). */
@@ -196,6 +193,20 @@ void main_loop(FILE* logfile,
         wait_for_next_live(logfile);
         fprintf(logfile, "WAKE!\n");
     }
+}
+
+/* Updates the live data in the database and returns the ID of the live
+ * data record. */
+unsigned short update_live_data(FILE* logfile) {
+    unsigned short live_record_id;
+    history live_record;
+
+    get_live_record_id(NULL, NULL, &live_record_id);
+    live_record = read_history_record(live_record_id);
+    pgo_update_live(live_record);
+    fprintf(logfile, "LIVE is #%d\n", live_record_id);
+
+    return live_record_id;
 }
 
 /* Setup the connection, log file, etc */
