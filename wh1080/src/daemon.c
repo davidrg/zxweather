@@ -71,9 +71,9 @@ void daemon_main(char *server, char *username, char *password, FILE *log_file) {
     /* misc */
     BOOL result;
 
-    fprintf(logfile, "Daemon started.\n");
+    fprintf(log_file, "Daemon started.\n");
 
-    setup(server, username, password, logfile); /* Connect to device, db, etc */
+    setup(server, username, password, log_file); /* Connect to device, db, etc */
 
     /* This will give us the current record and its timestamp */
     result = sync_clock(&current_record_id,     /* OUT */
@@ -86,7 +86,7 @@ void daemon_main(char *server, char *username, char *password, FILE *log_file) {
      * wait_for_next_live() is called it will add 48 onto the current time
      * to compute when the next live record is due and then return immediately
      * instead of actually waiting. */
-    wait_for_next_live(logfile);
+    wait_for_next_live(log_file);
 
     main_loop(log_file, current_record_id, clock_sync_current_ts);
 }
