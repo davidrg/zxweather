@@ -55,6 +55,7 @@ void main_loop(FILE* logfile,
                unsigned short initial_current_record_id,
                time_t clock_sync_current_ts);
 unsigned short update_live_data(FILE* logfile);
+void calculate_timestamps(time_t clock_sync_time, history_set *hs);
 
 /* Main function for daemon functionality.
  *
@@ -117,12 +118,13 @@ void main_loop(FILE* logfile,
     unsigned short latest_record_id;  /* Latest record in the DB */
     unsigned short current_record_id; /* Current record on the device */
     history_set hs;                   /* History downloaded from the device */
-    time_t first_record_ts;           /* Calculated timestamp of the first hs
-                                       * record */
-    time_t final_record_ts = 0;       /* Final record from previous hs */
 
     time_t database_ts;               /* Timestamp from latest DB record */
 
+    BOOL first_run = TRUE;            /* If the clock_sync data is still ok */
+
+    /* Use the current record calculated by sync_clock() initially as that has
+     * a known timestamp that we can work from later. */
     current_record_id = initial_current_record_id;
 
     /* Loop forever waking up ever 48 seconds to grab live data and any
@@ -133,8 +135,9 @@ void main_loop(FILE* logfile,
         live_record_id = update_live_data(logfile);
 
         /* If we have a clock_sync_current_ts then current_record_id is already
-         * set and valid thanks to clock_sync(). */
-        if (clock_sync_current_ts == 0)
+         * set and valid thanks to clock_sync(). This is only valid for the
+         * first lot of samples downloaded. */
+        if (!first_run)
             current_record_id = previous_record(live_record_id);
 
         fprintf(logfile, "CURRENT is #%d\n", current_record_id);
@@ -142,9 +145,8 @@ void main_loop(FILE* logfile,
         pgo_get_last_record_number(&latest_record_id, &database_ts);
 
         /* Download any history records that have appeared. */
-        if (final_record_ts == 0 || current_record_id > latest_record_id) {
-            /* final_record_ts == 0  means the database is empty.
-             * The current > latest check will fail when a wrap around occurs
+        if (current_record_id > latest_record_id) {
+            /* The current > latest check will fail when a wrap around occurs
              * but the new records will be picked up next time. */
 
             if (database_ts == 0 && latest_record_id == 0)
@@ -158,34 +160,13 @@ void main_loop(FILE* logfile,
             hs = read_history_range(range_start_id,
                                     current_record_id);
 
-            /**** Timestamp Calculations ****/
-
-            if (clock_sync_current_ts != 0 || final_record_ts == 0) {
-                /* Either the database is empty or we've just started. Either
-                 * way we use the current record timestamp we just calculated.*/
-                update_timestamps(&hs,clock_sync_current_ts);
-
-                /* Then we throw it away. From now on we calculate timestamps
-                 * based on the most recent sample record */
-                clock_sync_current_ts = 0;
-            } else {
-                /* Calculate timestamps. To do this we must figure out the time
-                 * of the first record in the history set. We can do this by adding
-                 * its interval onto the timestamp of the final record from the
-                 * previous history set. Note time_t is in seconds and the
-                 * interval is in minutes. */
-                first_record_ts = final_record_ts + (hs.records[0].sample_time * 60);
-                reverse_update_timestamps(&hs, first_record_ts);
-            }
-
-            /* We will calculate the next set of history records from this */
-            final_record_ts = hs.records[hs.record_count-1].time_stamp;
-
-            /**** END: Timestamp Calculations ****/
+            calculate_timestamps(clock_sync_current_ts, &hs);
 
             pgo_insert_history_set(hs);
             pgo_commit();
             free_history_set(hs);
+
+            first_run = FALSE; /* mark the clock_sync stuff as invalid. */
         }
 
         pgo_updates_complete();
@@ -193,6 +174,39 @@ void main_loop(FILE* logfile,
         wait_for_next_live(logfile);
         fprintf(logfile, "WAKE!\n");
     }
+}
+
+/* Calculates timestamps for the history set using either the sync_clock time
+ * stamp or the timestamp calculated by a previous call.
+ */
+void calculate_timestamps(time_t clock_sync_time, history_set *hs) {
+    /* The timestamp we calculated last time. On first call the clock_sync_time
+     * will be used for calculations instead. */
+    static time_t previous_timestamp = 0;
+
+    /* Calculated timestamp for first record in history set */
+    time_t first_record_ts;
+
+    if (clock_sync_time != 0 && previous_timestamp == 0) {
+        /* This is the first call so we'll calculate the time using the
+         * value produced by sync_clock(). This works on the assumption that
+         * the first record in the history set is the same record that
+         * sync_clock calculated a timestamp for. */
+
+        update_timestamps(hs,clock_sync_time);
+    } else {
+        /* Calculate timestamps. To do this we must figure out the time
+         * of the first record in the history set. We can do this by adding
+         * its interval onto the timestamp of the final record from the
+         * previous history set. Note time_t is in seconds and the
+         * interval is in minutes. */
+
+        first_record_ts = previous_timestamp + (hs->records[0].sample_time * 60);
+        reverse_update_timestamps(hs, first_record_ts);
+    }
+
+    /* We will calculate the next set of history records from this */
+    previous_timestamp = hs->records[hs->record_count-1].time_stamp;
 }
 
 /* Updates the live data in the database and returns the ID of the live
