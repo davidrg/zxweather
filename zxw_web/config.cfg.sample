@@ -39,7 +39,7 @@ default_ui: s
 site_name: zxweather
 # UNCOMMENT THESE AND SET THEM! The defaults will NOT work.
 #site_root: http://weather.example.com/
-#static_data_dir: /var/weather/static/
+#static_data_dir: /opt/zxweather/zxw_web/static/
 #station_name: somewhere
 
 # Database Replication
