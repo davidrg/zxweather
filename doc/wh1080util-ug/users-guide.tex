@@ -23,9 +23,9 @@
 \newcommand{\docdate}{July 2012}
 \newcommand{\docauthor}{David Goodwin}
 \newcommand{\docabstract}{This document provides configuration and usage guidelines for the zxweather utilities for WH1080 compatible weather stations.}
-\newcommand{\docupdateinfo}{This is a DRAFT DOCUMENT.}
-\newcommand{\docosver}{Microsoft Windows NT 5.0+; Linux.}
-\newcommand{\docswver}{zxweather 1.0}
+\newcommand{\docupdateinfo}{This is a new manual}
+\newcommand{\docosver}{Linux; Microsoft Windows NT 5.0+}
+\newcommand{\docswver}{zxweather 0.1}
 \newcommand{\doccopyright}{\textcircled{c} Copyright David Goodwin, 2012.}
 \newcommand{\doclicense}{Use, reproduction and modification of this document is permitted subject to the terms of the GNU Free Documentation License, Version 1.3 or any later vesion published by the Free Software Foundation. See \url{http://www.gnu.org/copyleft/fdl.html} for full license text.}
 
@@ -117,8 +117,8 @@ All software covered by this manual has been tested on the following platforms u
 
 \section{Related Documents}
 \begin{tabular}{l l}
-\verb|DAZW-IG01| & zxweather Installation Reference, version 1.0 \\
-\verb|DAZW-DB01| & zxweather Database Structure, version 1.0 \\
+\verb|DAZW-IG01| & zxweather Installation Reference, version 0.1 \\
+\verb|DAZW-DB01| & zxweather Database Structure, version 0.1 \\
 \end{tabular}
 
 \chapter{wh1080}
@@ -245,7 +245,7 @@ Weather station record 2:
 \end{verbatim}
 
 \subsection{Update Database}
-This operation inserts new records into a compatible PostgreSQL database. The required database structure is described in \emph{zxweather Database Structure, version 1.0} (document DAZW-DB01).
+This operation inserts new records into a compatible PostgreSQL database. The required database structure is described in \emph{zxweather Database Structure} (document DAZW-DB01).
 
 To update the database run with the database, username and password options. The format for the database option is \verb|database@hostname:port|. For example:
 \begin{verbatim}
