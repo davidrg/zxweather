@@ -37,7 +37,8 @@ def get_year_months(year):
     month_data = db.query("""select md.month_stamp::integer from (select extract(year from time_stamp) as year_stamp,
            extract(month from time_stamp) as month_stamp
     from sample
-    group by year_stamp, month_stamp) as md where md.year_stamp = $year""", dict(year=year))
+    group by year_stamp, month_stamp) as md where md.year_stamp = $year
+    order by month_stamp asc""", dict(year=year))
 
 
     if not len(month_data):
