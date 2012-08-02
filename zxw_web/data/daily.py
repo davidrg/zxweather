@@ -7,13 +7,9 @@ Used for generating charts in JavaScript, etc.
 from datetime import date, datetime
 from cache import day_cache_control
 from database import get_daily_records, get_daily_rainfall, get_latest_sample_timestamp, day_exists
-import os
 import web
-from web.contrib.template import render_jinja
-from config import db
 import config
 import json
-from data.util import datetime_to_js_date, outdoor_sample_result_to_datatable, pretty_print
 
 __author__ = 'David Goodwin'
 
@@ -183,33 +179,3 @@ class data_json:
                                    datasources,
                                    dataset,
                                    this_date)
-
-class index:
-    """
-    Provides an index of available daily data sources
-    """
-    def GET(self, station, year, month, day):
-        """
-        Returns an index page containing a list of json files available for
-        the day.
-        :param station: Station to get data for
-        :type station: string
-        :param year: Year to get data for
-        :type year: string
-        :param month: Month to get data for
-        :type month: string
-        :param day: Day to get data for.
-        :type day: string
-        """
-        template_dir = os.path.join(os.path.dirname(__file__),
-                                    os.path.join('templates'))
-        render = render_jinja(template_dir, encoding='utf-8')
-
-        # Make sure the day actually exists in the database before we go
-        # any further.
-        if not day_exists(date(int(year),int(month),int(day))):
-            raise web.NotFound()
-
-        web.header('Content-Type', 'text/html')
-        return render.daily_data_index(data_sources=datasources,
-                                       dt_datasources=datatable_datasources)
