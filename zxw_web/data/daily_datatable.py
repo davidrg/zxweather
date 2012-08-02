@@ -2,8 +2,11 @@
 """
 Google DataTable data sources at the day level.
 """
+from data.daily import datasource_dispatch
+
 __author__ = 'David Goodwin'
 
+from datetime import date
 from cache import day_cache_control
 import web
 from config import db
@@ -425,3 +428,32 @@ datatable_datasources = {
         'func': get_7day_hourly_rain_datatable
     },
 }
+
+
+class dt_json:
+    """
+    Gets data for a particular day in Googles DataTable format.
+    """
+    def GET(self, station, year, month, day, dataset):
+        """
+        Handles requests for per-day JSON data sources in Googles datatable
+        format.
+        :param station: Station to get data for
+        :type station: str
+        :param year: Year to get data for
+        :type year: str
+        :param month: month to get data for
+        :type month: str
+        :param day: day to get data for
+        :type day: str
+        :param dataset: The dataset (filename) to retrieve
+        :type dataset: str
+        :return: JSON Data for whatever dataset was requested.
+        :raise: web.NotFound if an invalid request is made.
+        """
+        this_date = date(int(year),int(month),int(day))
+
+        return datasource_dispatch(station,
+                                   datatable_datasources,
+                                   dataset,
+                                   this_date)
