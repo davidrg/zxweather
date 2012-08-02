@@ -17,7 +17,7 @@ config.load_settings()
 urls = (
     # Data Index
     # Provides a list of available data sourcesd at the various levels.
-    '/data/(\w*)/(\d+)/(\d+)/(\d+)/(?:index\.html)?', 'data.daily.index',
+    '/data/(\w*)/(\d+)/(\d+)/(\d+)/(?:index\.html)?', 'data.daily_index.index',
     '/data/(\w*)/(\d+)/(\d+)/(?:index\.html)?', 'data.monthly.index',
     '/data/(\w*)/(\d+)/(?:index\.html)?', 'data.yearly.index',
     '/data/(\w*)/(?:index\.html)?', 'data.station.index',
@@ -26,6 +26,7 @@ urls = (
     # /data/station/year/month/day/... (month is in number format here)
     # All code resides in the data package.
     '/data/(\w*)/(\d+)/(\d+)/(\d+)/datatable/(\w*).json', 'data.daily_datatable.dt_json', # Daily, DT
+    '/data/(\w*)/(\d+)/(\d+)/(\d+)/dygraphs/(\w*).json', 'data.daily_dygraphs.dg_json', # Daily, DG
     '/data/(\w*)/(\d+)/(\d+)/(\d+)/(\w*).json', 'data.daily.data_json',                # Daily
     '/data/(\w*)/(\d+)/(\d+)/datatable/(\w*).json', 'data.monthly.datatable_json',     # Monthly, DT
     '/data/(\w*)/(\d+)/datatable/(\w*).json', 'data.yearly.datatable_json',            # Yearly, DT
