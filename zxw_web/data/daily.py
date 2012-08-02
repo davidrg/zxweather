@@ -6,7 +6,6 @@ Used for generating charts in JavaScript, etc.
 
 from datetime import date, datetime
 from cache import day_cache_control
-from data.daily_datatable import datatable_datasources
 from database import get_daily_records, get_daily_rainfall, get_latest_sample_timestamp, day_exists
 import os
 import web
@@ -156,33 +155,6 @@ def datasource_dispatch(station, datasource_dict, dataset, day):
     else:
         raise web.NotFound()
 
-class datatable_json:
-    """
-    Gets data for a particular day in Googles DataTable format.
-    """
-    def GET(self, station, year, month, day, dataset):
-        """
-        Handles requests for per-day JSON data sources in Googles datatable
-        format.
-        :param station: Station to get data for
-        :type station: str
-        :param year: Year to get data for
-        :type year: str
-        :param month: month to get data for
-        :type month: str
-        :param day: day to get data for
-        :type day: str
-        :param dataset: The dataset (filename) to retrieve
-        :type dataset: str
-        :return: JSON Data for whatever dataset was requested.
-        :raise: web.NotFound if an invalid request is made.
-        """
-        this_date = date(int(year),int(month),int(day))
-
-        return datasource_dispatch(station,
-                                   datatable_datasources,
-                                   dataset,
-                                   this_date)
 
 class data_json:
     """
