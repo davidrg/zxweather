@@ -133,7 +133,8 @@ def get_year(ui,station, year):
 
         nav_urls = get_nav_urls(station, current_location)
         return modern_templates.year(nav=nav_urls,data=data,urls=urls,
-                                     sitename=config.site_name)
+                                     sitename=config.site_name,
+                                     ui=ui)
     else:
         return basic_templates.year(data=data)
 

@@ -1,4 +1,4 @@
-/** Month charts implemented with the Goolge Visualisation API.
+/** Month charts implemented with the Dygraphs
  *
  * User: David Goodwin
  * Date: 21/06/12
