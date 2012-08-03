@@ -8,7 +8,7 @@ import web
 from web.contrib.template import render_jinja
 from cache import live_data_cache_control
 import config
-from data.daily import get_day_records, get_day_rainfall
+from data.daily import get_day_records, get_day_rainfall, get_day_samples_json, get_7day_30mavg_samples_json
 from data.daily_datatable import get_day_samples_datatable, get_7day_30mavg_samples_datatable, get_days_hourly_rain_datatable, get_7day_hourly_rain_datatable
 from database import get_years, get_live_data
 import os
@@ -58,6 +58,10 @@ class data_json:
             return current_day_records()
         elif dataset == 'current_day_rainfall_totals':
             return current_day_rainfall()
+        elif dataset == 'current_day_samples':
+            return current_samples()
+        elif dataset == 'current_day_7day_30m_avg_samples':
+            return current_7day_30mavg_samples()
         else:
             raise web.NotFound()
 
@@ -129,12 +133,26 @@ def current_samples_datatable():
     """
     return get_day_samples_datatable(datetime.now().date())
 
+def current_samples():
+    """
+    Gets samples for the current day.
+    :return: Samples for the current day.
+    """
+    return get_day_samples_json(datetime.now().date())
+
 def current_7day_30m_avg_samples_datatable():
     """
     Gets 7-day 30minute average samples for the current day.
     :return: 30-minute 7-day samples for the current day.
     """
     return get_7day_30mavg_samples_datatable(datetime.now().date())
+
+def current_7day_30mavg_samples():
+    """
+    Gets 7-day 30minute average samples for the current day.
+    :return: 30-minute 7-day samples for the current day.
+    """
+    return get_7day_30mavg_samples_json(datetime.now().date())
 
 def current_day_hourly_rainfall_datatable():
     """

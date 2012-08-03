@@ -120,3 +120,56 @@ def outdoor_sample_result_to_datatable(query_data):
         return json.dumps(data, sort_keys=True, indent=4), data_age
     else:
         return json.dumps(data), data_age
+
+def outdoor_sample_result_to_json(query_data):
+    """
+    Converts the supplied outdoor sample query data to JSON format.
+    :param query_data: Data to convert.
+    :return: json_data, data_age
+    """
+
+    labels = ["Time",
+              "Temperature",
+              "Dew Point",
+              "Apparent Temperature",
+              "Wind Chill",
+              "Relative Humidity",
+              "Absolute Pressure",
+              "Average Wind Speed",
+              "Gust Wind Speed",
+              ]
+
+    data_age = None
+    data_set = []
+
+    for record in query_data:
+        if record.gap:
+            # Insert a gap
+            data_set.append([])
+
+        data_set.append(
+            [
+                str(record.time_stamp),
+                record.temperature,
+                record.dew_point,
+                record.apparent_temperature,
+                record.wind_chill,
+                record.relative_humidity,
+                record.absolute_pressure,
+                record.average_wind_speed,
+                record.gust_wind_speed
+            ]
+        )
+
+        data_age = record.time_stamp
+
+
+
+    result = {
+        'data': data_set,
+        'labels': labels
+    }
+
+    json_data = json.dumps(result)
+
+    return json_data, data_age

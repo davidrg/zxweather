@@ -5,72 +5,149 @@
  * Time: 9:02 PM
  */
 
-function drawAllLineCharts(data,
+function drawAllLineCharts(jsondata,
                            tdp_element,
                            awc_element,
                            humidity_element,
                            pressure_element,
                            wind_speed_element) {
 
-    // Temperature and Dewpoint only
-    var temperature_tdp = new google.visualization.DataView(data);
-    temperature_tdp.hideColumns([3,4,5,6,7,8]);
 
-    var temperature_tdp_options = {
-        title: 'Temperature and Dew Point (°C)',
-        legend: {position: 'bottom'}
-    };
-    //var temperature_tdp_chart = new google.visualization.LineChart(tdp_element);
-    //temperature_tdp_chart.draw(temperature_tdp, temperature_tdp_options);
+    var labels = jsondata['labels'];
+    var data = jsondata['data'];
 
-    var temperature_tdp_chart = new Dygraph.GVizChart(tdp_element);
-    temperature_tdp_chart.draw(temperature_tdp, temperature_tdp_options);
+    /* Make sure the first column is Date objects, not strings */
+    data = convertToDates(data);
 
+    /* Split out the data:
+     *  0 - Timestamp
+     *  1 - Temperature
+     *  2 - Dew Point
+     *  3 - Apparent Temperature
+     *  4 - Wind Chill
+     *  5 - Humidity
+     *  6 - Absolute Pressure
+     *  7 - Average Wind Speed
+     *  8 - Gust Wind Speed
+     */
+    var tdp_data = selectColumns(data, [0,1,2]);
+    var awc_data = selectColumns(data, [0,3,4]);
+    var humidity_data = selectColumns(data, [0,5]);
+    var pressure_data = selectColumns(data, [0,6]);
+    var wind_speed_data = selectColumns(data, [0,7,8]);
 
-    // Apparent Temperature and Wind Chill only
-    var temperature_awc = new google.visualization.DataView(data);
-    temperature_awc.hideColumns([1,2,5,6,7,8]);
+    /* And the labels */
+    var tdp_labels = [labels[0],labels[1],labels[2]];
+    var awc_labels = [labels[0],labels[3],labels[4]];
+    var humidity_labels = [labels[0],labels[5]];
+    var pressure_labels = [labels[0],labels[6]];
+    var wind_speed_labels = [labels[0],labels[7],labels[8]];
 
-    var temperature_awc_options = {
-        title: 'Apparent Temperature and Wind Chill (°C)',
-        legend: {position: 'bottom'}
-    };
-    var temperature_awc_chart = new Dygraph.GVizChart(awc_element);
-    temperature_awc_chart.draw(temperature_awc, temperature_awc_options);
+    /* Settings */
+    var enable_animated_zooms = true;
+    var strokeWidth = 1.25;
 
-    // Absolute Pressure only
-    var pressure = new google.visualization.DataView(data);
-    pressure.hideColumns([1,2,3,4,5,7,8]);
-
-    var pressure_options = {
-        title: 'Absolute Pressure (hPa)',
-        legend: {position: 'none'},
-        vAxis: {format: '####'}
-    };
-    var pressure_chart = new Dygraph.GVizChart(pressure_element);
-    pressure_chart.draw(pressure, pressure_options);
-
-    // Humidity only
-    var humidity = new google.visualization.DataView(data);
-    humidity.hideColumns([1,2,3,4,6,7,8]);
-
-    var humidity_options = {
-        title: 'Humidity (%)',
-        legend: {position: 'none'}
-    };
-    var humidity_chart = new Dygraph.GVizChart(humidity_element);
-    humidity_chart.draw(humidity, humidity_options);
-
-    // Wind speed only (columns 7 and 8)
-    var wind_speed = new google.visualization.DataView(data);
-    wind_speed.hideColumns([1,2,3,4,5,6]);
-
-    var wind_speed_options = {
-        title: 'Wind Speed (m/s)',
-        legend: {position: 'bottom'}
-    };
-    var wind_speed_chart = new Dygraph.GVizChart(wind_speed_element);
-    wind_speed_chart.draw(wind_speed, wind_speed_options);
+    /* Now chart it all */
+    var tdp_chart = new Dygraph(tdp_element,
+                                tdp_data,
+                                {
+                                    labels: tdp_labels,
+                                    animatedZooms: enable_animated_zooms,
+                                    strokeWidth: strokeWidth
+                                });
+    var awc_chart = new Dygraph(awc_element,
+                                awc_data,
+                                {
+                                    labels: awc_labels,
+                                    animatedZooms: enable_animated_zooms,
+                                    strokeWidth: strokeWidth
+                                });
+    var humidity_chart = new Dygraph(humidity_element,
+                                     humidity_data,
+                                     {
+                                         labels: humidity_labels,
+                                         animatedZooms: enable_animated_zooms,
+                                         strokeWidth: strokeWidth
+                                     });
+    var pressure_chart = new Dygraph(pressure_element,
+                                     pressure_data,
+                                     {
+                                         labels: pressure_labels,
+                                         animatedZooms: enable_animated_zooms,
+                                         strokeWidth: strokeWidth
+                                     });
+    var wind_speed_chart = new Dygraph(wind_speed_element,
+                                       wind_speed_data,
+                                       {
+                                           labels: wind_speed_labels,
+                                           animatedZooms: enable_animated_zooms,
+                                           strokeWidth: strokeWidth
+                                       });
 }
 
+function load_day_charts() {
+    $("#day_charts_cont").show();
+    $("#lc_refresh_failed").hide();
+    $("#btn_today_refresh").button('loading');
+    samples_loading = true;
+    rainfall_loading = true;
 
+    /***************************************************************
+     * Fetch the days samples and draw the 1-day charts
+     */
+    $.getJSON(samples_url, function(data) {
+
+
+        drawAllLineCharts(data,
+                          document.getElementById('chart_temperature_tdp_div'),
+                          document.getElementById('chart_temperature_awc_div'),
+                          document.getElementById('chart_humidity_div'),
+                          document.getElementById('chart_pressure_div'),
+                          document.getElementById('chart_wind_speed_div')
+        );
+
+        samples_loading = false;
+
+        // Turn the refresh button back on if we're finished loading
+        if (!samples_loading && !rainfall_loading)
+            $("#btn_today_refresh").button('reset');
+    }).error(function() {
+                 $("#day_charts_cont").hide();
+                 $("#lc_refresh_failed").show();
+                 $("#btn_today_refresh").button('reset');
+             });
+
+}
+
+function load_7day_charts() {
+    $("#7day-charts").show();
+    $("#lc7_refresh_failed").hide();
+    samples_7_loading = true;
+    rainfall_7_loading = true;
+    $("#btn_7day_refresh").button('loading');
+
+    /***************************************************************
+     * Fetch samples for the past 7 days and draw the 7-day charts
+     */
+    $.getJSON(samples_7day_url, function(data) {
+
+        drawAllLineCharts(data,
+                          document.getElementById('chart_7_temperature_tdp_div'),
+                          document.getElementById('chart_7_temperature_awc_div'),
+                          document.getElementById('chart_7_humidity_div'),
+                          document.getElementById('chart_7_pressure_div'),
+                          document.getElementById('chart_7_wind_speed_div')
+        );
+
+        samples_7_loading = false;
+
+        // Turn the refresh button back on if we're finished loading
+        if (!samples_7_loading && !rainfall_7_loading)
+            $("#btn_7day_refresh").button('reset');
+    }).error(function() {
+                 $("#7day-charts").hide();
+                 $("#lc7_refresh_failed").show();
+             });
+}
+
+drawCharts();

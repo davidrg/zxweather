@@ -2,7 +2,7 @@
 """
 Google DataTable data sources at the day level.
 """
-from data.daily import datasource_dispatch
+from data.daily import datasource_dispatch, get_day_samples_data, get_7day_30mavg_samples_data
 
 __author__ = 'David Goodwin'
 
@@ -224,43 +224,7 @@ def get_7day_30mavg_samples_datatable(day):
              seven days
     :rtype: str
     """
-    params = dict(date = day)
-    result = db.query("""select min(iq.time_stamp) as time_stamp,
-       avg(iq.temperature) as temperature,
-       avg(iq.dew_point) as dew_point,
-       avg(iq.apparent_temperature) as apparent_temperature,
-       avg(wind_chill) as wind_chill,
-       avg(relative_humidity)::integer as relative_humidity,
-       avg(absolute_pressure) as absolute_pressure,
-       min(prev_sample_time) as prev_sample_time,
-       bool_or(gap) as gap,
-       avg(iq.average_wind_speed) as average_wind_speed,
-       avg(iq.gust_wind_speed) as gust_wind_speed
-from (
-        select cur.time_stamp,
-               (extract(epoch from cur.time_stamp) / 1800)::integer AS quadrant,
-               cur.temperature,
-               cur.dew_point,
-               cur.apparent_temperature,
-               cur.wind_chill,
-               cur.relative_humidity,
-               cur.absolute_pressure,
-               cur.time_stamp - (cur.sample_interval * '1 minute'::interval) as prev_sample_time,
-               CASE WHEN (cur.time_stamp - prev.time_stamp) > ((cur.sample_interval * 2) * '1 minute'::interval) THEN
-                  true
-               else
-                  false
-               end as gap,
-               cur.average_wind_speed,
-               cur.gust_wind_speed
-        from sample cur, sample prev,
-             (select max(time_stamp) as ts from sample where date(time_stamp) = $date) as max_ts
-        where cur.time_stamp <= max_ts.ts     -- 604800 seconds in a week.
-          and cur.time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
-          and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < cur.time_stamp)
-        order by cur.time_stamp asc) as iq
-group by iq.quadrant
-order by iq.quadrant asc""", params)
+    result = get_7day_30mavg_samples_data(day)
 
     data,age = outdoor_sample_result_to_datatable(result)
 
@@ -278,27 +242,9 @@ def get_day_samples_datatable(day):
     :return: JSON data containing samples for the day.
     :rtype: str
     """
-    params = dict(date = day)
-    result = db.query("""select s.time_stamp::timestamptz,
-           s.temperature,
-           s.dew_point,
-           s.apparent_temperature,
-           s.wind_chill,
-           s.relative_humidity,
-           s.absolute_pressure,
-           s.time_stamp - (s.sample_interval * '1 minute'::interval) as prev_sample_time,
-           CASE WHEN (s.time_stamp - prev.time_stamp) > ((s.sample_interval * 2) * '1 minute'::interval) THEN
-              true
-           else
-              false
-           end as gap,
-           s.average_wind_speed,
-           s.gust_wind_speed
-from sample s, sample prev
-where date(s.time_stamp) = $date
-  and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp)""", params)
 
-    data,age = outdoor_sample_result_to_datatable(result)
+
+    data,age = outdoor_sample_result_to_datatable(get_day_samples_data(day))
 
     day_cache_control(age,day)
 
