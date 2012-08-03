@@ -148,13 +148,15 @@
         {%- endif %}
         var is_day_page = true;
     </script>
-    <script type="text/javascript" src="http://www.google.com/jsapi"></script>
+
     <script type="text/javascript" src="../../../../../js/day_live.js"></script>
-    {% if ui and ui == 'm' -%}
-    <script type="text/javascript" src="../../../../../js/dygraph-combined.js"></script>
-    <script type="text/javascript" src="../../../../../js/day_charts_dygraph.js"></script>
-    {% else -%}
-    <script type="text/javascript" src="../../../../../js/day_charts_gviz.js"></script>
-    {%- endif -%}
     <script type="text/javascript" src="../../../../../js/day_charts.js"></script>
+    {% if ui and ui == 'm' -%}
+        <script type="text/javascript" src="../../../../../js/dygraph-combined.js"></script>
+        <script type="text/javascript" src="../../../../../js/dygraph-util.js"></script>
+        <script type="text/javascript" src="../../../../../js/day_charts_dygraph.js"></script>
+    {% else -%}
+        <script type="text/javascript" src="http://www.google.com/jsapi"></script>
+        <script type="text/javascript" src="../../../../../js/day_charts_gviz.js"></script>
+    {%- endif -%}
 {% endblock %}
