@@ -2,7 +2,7 @@
 """
 Google DataTable data sources at the day level.
 """
-from data.daily import datasource_dispatch, get_day_samples_data, get_7day_30mavg_samples_data
+from data.daily import datasource_dispatch, get_day_samples_data, get_7day_30mavg_samples_data, get_days_hourly_rainfall_data, get_7day_hourly_rainfall_data
 
 __author__ = 'David Goodwin'
 
@@ -296,14 +296,7 @@ def get_days_hourly_rain_datatable(day):
     :type day: datetime.date
     """
 
-    params = dict(date = day)
-
-    result = db.query("""select date_trunc('hour',time_stamp) as time_stamp,
-       sum(rainfall) as rainfall
-from sample
-where time_stamp::date = $date
-group by date_trunc('hour',time_stamp)
-order by date_trunc('hour',time_stamp) asc""", params)
+    result = get_days_hourly_rainfall_data(day)
 
     json_data, age = rainfall_to_datatable(result)
 
@@ -320,15 +313,7 @@ def get_7day_hourly_rain_datatable(day):
     :type day: datetime.date
     """
 
-    params = dict(date = day)
-
-    result = db.query("""select date_trunc('hour',time_stamp) as time_stamp,
-       sum(rainfall) as rainfall
-from sample, (select max(time_stamp) as ts from sample where time_stamp::date = $date) as max_ts
-where time_stamp <= max_ts.ts
-  and time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
-group by date_trunc('hour',time_stamp)
-order by date_trunc('hour',time_stamp) asc""", params)
+    result = get_7day_hourly_rainfall_data(day)
 
     json_data, age = rainfall_to_datatable(result)
 
