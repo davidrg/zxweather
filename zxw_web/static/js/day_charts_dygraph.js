@@ -47,41 +47,85 @@ function drawAllLineCharts(jsondata,
     var enable_animated_zooms = true;
     var strokeWidth = 1.25;
 
+    /* Formatting functions */
+    var temperatureFormatter = function(y) {
+        return y.toFixed(1) + '°C';
+    };
+    var humidityFormatter = function(y) {
+        return y + '%';
+    };
+    var pressureFormatter = function(y) {
+        return y.toFixed(1) + ' hPa';
+    };
+    var windSpeedFormatter = function(y) {
+        return y.toFixed(1) + ' m/s';
+    };
+
     /* Now chart it all */
     var tdp_chart = new Dygraph(tdp_element,
                                 tdp_data,
                                 {
                                     labels: tdp_labels,
                                     animatedZooms: enable_animated_zooms,
-                                    strokeWidth: strokeWidth
+                                    strokeWidth: strokeWidth,
+                                    title: 'Temperature and Dew Point (°C)',
+                                    axes: {
+                                        y: {
+                                            valueFormatter: temperatureFormatter
+                                        }
+                                    }
                                 });
     var awc_chart = new Dygraph(awc_element,
                                 awc_data,
                                 {
                                     labels: awc_labels,
                                     animatedZooms: enable_animated_zooms,
-                                    strokeWidth: strokeWidth
+                                    strokeWidth: strokeWidth,
+                                    title: 'Apparent Temperature and Wind Chill (°C)',
+                                    axes: {
+                                        y: {
+                                            valueFormatter: temperatureFormatter
+                                        }
+                                    }
                                 });
     var humidity_chart = new Dygraph(humidity_element,
                                      humidity_data,
                                      {
                                          labels: humidity_labels,
                                          animatedZooms: enable_animated_zooms,
-                                         strokeWidth: strokeWidth
+                                         strokeWidth: strokeWidth,
+                                         title: 'Humidity (%)',
+                                         axes: {
+                                             y: {
+                                                 valueFormatter: humidityFormatter
+                                             }
+                                         }
                                      });
     var pressure_chart = new Dygraph(pressure_element,
                                      pressure_data,
                                      {
                                          labels: pressure_labels,
                                          animatedZooms: enable_animated_zooms,
-                                         strokeWidth: strokeWidth
+                                         strokeWidth: strokeWidth,
+                                         title: 'Absolute Pressure (hPa)',
+                                         axes: {
+                                             y: {
+                                                 valueFormatter: pressureFormatter
+                                             }
+                                         }
                                      });
     var wind_speed_chart = new Dygraph(wind_speed_element,
                                        wind_speed_data,
                                        {
                                            labels: wind_speed_labels,
                                            animatedZooms: enable_animated_zooms,
-                                           strokeWidth: strokeWidth
+                                           strokeWidth: strokeWidth,
+                                           title: 'Wind Speed (m/s)',
+                                           axes: {
+                                               y: {
+                                                   valueFormatter: windSpeedFormatter
+                                               }
+                                           }
                                        });
 }
 
