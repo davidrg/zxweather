@@ -10,26 +10,13 @@ from database import get_daily_records, get_daily_rainfall, get_latest_sample_ti
 import web
 import config
 import json
-from data.util import    outdoor_sample_result_to_json
+from data.util import    outdoor_sample_result_to_json, rainfall_sample_result_to_json
 
 
 __author__ = 'David Goodwin'
 
 ### Data URLs:
 # This file provides URLs to access raw data in json format.
-#
-# /data/{year}/{month}/{day}/datatable/samples.json
-#       All samples for the day.
-# /data/{year}/{month}/{day}/datatable/7day_samples.json
-#       All samples for the past 7 days.
-# /data/{year}/{month}/{day}/datatable/7day_30m_avg_samples.json
-#       30 minute averages for the past 7 days.
-# /data/{year}/{month}/{day}/datatable/indoor_samples.json
-#       All indoor samples.
-# /data/{year}/{month}/{day}/datatable/7day_indoor_samples.json
-#       All samples for the past 7 days of indoor weather.
-# /data/{year}/{month}/{day}/datatable/7day_30m_avg_indoor_samples.json
-#       30 minute averages for the past 7 days of indoor weather.
 
 def get_day_samples_data(day):
     """
@@ -106,6 +93,42 @@ group by iq.quadrant
 order by iq.quadrant asc""", params)
     return result
 
+def get_days_hourly_rainfall_data(day):
+    """
+    Gets the days hourly rainfall data.
+    :param day: Day to get rainfall data for.
+    :return: Rainfall data query result
+    """
+
+    params = dict(date = day)
+
+    result = config.db.query("""select date_trunc('hour',time_stamp) as time_stamp,
+           sum(rainfall) as rainfall
+    from sample
+    where time_stamp::date = $date
+    group by date_trunc('hour',time_stamp)
+    order by date_trunc('hour',time_stamp) asc""", params)
+
+    return result
+
+def get_7day_hourly_rainfall_data(day):
+    """
+    Gets hourly rainfall data for the 7 day period ending at the specified date.
+    :param day: End of the 7 day period
+    :return: Rainfall data query result.
+    """
+
+    params = dict(date = day)
+
+    result = config.db.query("""select date_trunc('hour',time_stamp) as time_stamp,
+           sum(rainfall) as rainfall
+    from sample, (select max(time_stamp) as ts from sample where time_stamp::date = $date) as max_ts
+    where time_stamp <= max_ts.ts
+      and time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
+    group by date_trunc('hour',time_stamp)
+    order by date_trunc('hour',time_stamp) asc""", params)
+
+    return result
 
 def get_day_records(day):
     """
@@ -222,6 +245,40 @@ def get_7day_30mavg_samples_json(day):
     web.header('Content-Length', str(len(json_data)))
     return json_data
 
+def get_days_hourly_rainfall_json(day):
+    """
+    Gets hourly rainfall data for the day in JSON format.
+    :param day: Day to get rainfall for.
+    :return: Rainfall JSON data.
+    """
+
+    result = get_days_hourly_rainfall_data(day)
+
+    json_data, age = rainfall_sample_result_to_json(result)
+
+    day_cache_control(age,day)
+
+    web.header('Content-Type','application/json')
+    web.header('Content-Length', str(len(json_data)))
+    return json_data
+
+def get_7day_hourly_rainfall_json(day):
+    """
+    Gets total rainfall for each hour during the past 7 days.
+    :param day: Date to get data for
+    :type day: datetime.date
+    """
+
+    result = get_7day_hourly_rainfall_data(day)
+
+    json_data, age = rainfall_sample_result_to_json(result)
+
+    day_cache_control(age,day)
+
+    web.header('Content-Type','application/json')
+    web.header('Content-Length', str(len(json_data)))
+    return json_data
+
 # Data sources available at the day level.
 datasources = {
     'samples': {
@@ -240,6 +297,14 @@ datasources = {
         'desc': 'Rainfall totals for the day and the past seven days.',
         'func': get_day_rainfall
     },
+    'hourly_rainfall': {
+        'desc': 'Total rainfall for each hour in the day',
+        'func': get_days_hourly_rainfall_json
+    },
+    '7day_hourly_rainfall': {
+        'desc': 'Total rainfall for each hour in the past seven days.',
+        'func': get_7day_hourly_rainfall_json
+    }
 }
 
 def datasource_dispatch(station, datasource_dict, dataset, day):

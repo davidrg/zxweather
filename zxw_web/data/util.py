@@ -173,3 +173,40 @@ def outdoor_sample_result_to_json(query_data):
     json_data = json.dumps(result)
 
     return json_data, data_age
+
+def rainfall_sample_result_to_json(query_data):
+    """
+    Converts the supplied rainfall sample query data to JSON format.
+    :param query_data: Data to convert.
+    :return: json_data, data_age
+    """
+
+    labels = ["Time",
+              "Rainfall",
+              ]
+
+    data_age = None
+    data_set = []
+
+    for record in query_data:
+#        if record.gap:
+#            # Insert a gap
+#            data_set.append([])
+
+        data_set.append(
+            [
+                str(record.time_stamp),
+                record.rainfall,
+            ]
+        )
+
+        data_age = record.time_stamp
+
+    result = {
+        'data': data_set,
+        'labels': labels
+    }
+
+    json_data = json.dumps(result)
+
+    return json_data, data_age
