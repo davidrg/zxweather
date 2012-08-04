@@ -26,8 +26,9 @@ urls = (
     # /data/station/year/month/day/... (month is in number format here)
     # All code resides in the data package.
     '/data/(\w*)/(\d+)/(\d+)/(\d+)/datatable/(\w*).json', 'data.daily_datatable.dt_json', # Daily, DT
-        '/data/(\w*)/(\d+)/(\d+)/(\d+)/(\w*).json', 'data.daily.data_json',                # Daily
+        '/data/(\w*)/(\d+)/(\d+)/(\d+)/(\w*).json', 'data.daily.data_json',            # Daily
     '/data/(\w*)/(\d+)/(\d+)/datatable/(\w*).json', 'data.monthly.datatable_json',     # Monthly, DT
+    '/data/(\w*)/(\d+)/(\d+)/(\w*).json', 'data.monthly.data_json',                    # Monthly,
     '/data/(\w*)/(\d+)/datatable/(\w*).json', 'data.yearly.datatable_json',            # Yearly, DT
     '/data/(\w*)/datatable/(\w*).json', 'data.station.datatable_json',                 # Station, DT
     '/data/(\w*)/(\w*).json', 'data.station.data_json',                                # Station

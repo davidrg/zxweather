@@ -3,16 +3,6 @@
 {% extends "base.html" %}
 {% block title %}Weather for {{ data.date_stamp }}{% endblock %}
 {% block head %}
-    {% if ui and ui == 'm' -%}
-        <style type="text/css">
-            .dygraph-title {
-                font-size: 10pt;
-            }
-            .dygraph-label {
-                font-size: 10pt;
-            }
-        </style>
-    {%- endif %}
 {% endblock %}
 {% block content %}
     <header>

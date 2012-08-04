@@ -12,7 +12,7 @@ import web
 from web.contrib.template import render_jinja
 from config import db
 import config
-from data.util import outdoor_sample_result_to_datatable, datetime_to_js_date, pretty_print
+from data.util import outdoor_sample_result_to_datatable, datetime_to_js_date, pretty_print, outdoor_sample_result_to_json
 
 __author__ = 'David Goodwin'
 
@@ -67,7 +67,50 @@ class datatable_json:
         elif dataset == '30m_avg_samples':
             return get_30m_avg_month_samples_datatable(int_year,int_month)
         elif dataset == 'daily_records':
-            return get_daily_records(int_year,int_month)
+            return get_daily_records_datatable(int_year,int_month)
+        else:
+            raise web.NotFound()
+
+class data_json:
+    """
+    Gets data for a particular month in Googles DataTable format.
+    """
+
+    def GET(self, station, year, month, dataset):
+        """
+        Gets DataTable formatted JSON data.
+
+        :param station: Station to get data for
+        :type station: str
+        :param year: Year to get data for
+        :type year: str
+        :param month: Month to get data for. Unlike in other areas of the site
+                      this is not the month name but rather its number.
+        :type month: str
+        :param dataset: Dataset (file) to fetch.
+        :type dataset: str
+        :return: JSON File.
+        :raise: web.notfound if the file doesn't exist.
+        """
+        if station != config.default_station_name:
+            raise web.NotFound()
+
+        int_year = int(year)
+        int_month = int(month)
+
+        # Make sure the month actually exists in the database before we go
+        # any further.
+        params = dict(date=date(int(year),int(month),1))
+        recs = db.query("select 42 from sample where date(date_trunc('month',time_stamp)) = $date  limit 1", params)
+        if recs is None or len(recs) == 0:
+            raise web.NotFound()
+
+        if dataset == 'samples':
+            return get_month_samples_json(int_year,int_month)
+        elif dataset == '30m_avg_samples':
+            return get_30m_avg_month_samples_json(int_year,int_month)
+        elif dataset == 'daily_records':
+            return get_daily_records_json(int_year,int_month)
         else:
             raise web.NotFound()
 
@@ -107,7 +150,36 @@ class index:
         web.header('Content-Type', 'text/html')
         return render.monthly_data_index(days=days)
 
-def get_daily_records(year,month):
+#
+# Daily records
+#
+
+def get_daily_records_data(year,month):
+    """
+    Gets daily records data.
+    :param year: Year to get records for
+    :param month: Month to get records for
+    :return: Query data
+    """
+    params = dict(date = date(year,month,01))
+    query_data = db.query("""select date_trunc('day', time_stamp)::date as time_stamp,
+        max(temperature) as max_temp,
+        min(temperature) as min_temp,
+        max(relative_humidity) as max_humid,
+        min(relative_humidity) as min_humid,
+        max(absolute_pressure) as max_pressure,
+        min(absolute_pressure) as min_pressure,
+        sum(rainfall) as total_rainfall,
+        max(average_wind_speed) as max_average_wind_speed,
+        max(gust_wind_speed) as max_gust_wind_speed
+    from sample
+    where date_trunc('month', time_stamp) = date_trunc('month', $date)
+    group by date_trunc('day', time_stamp)
+    order by time_stamp asc""", params)
+
+    return query_data
+
+def get_daily_records_datatable(year,month):
     """
     Gets records for each day in the month.
     :param year: Year to get records for
@@ -116,21 +188,8 @@ def get_daily_records(year,month):
     :type month: int
     :return: JSON data containing the records. Structure is Google DataTable.
     """
-    params = dict(date = date(year,month,01))
-    query_data = db.query("""select date_trunc('day', time_stamp)::date as time_stamp,
-    max(temperature) as max_temp,
-    min(temperature) as min_temp,
-    max(relative_humidity) as max_humid,
-    min(relative_humidity) as min_humid,
-    max(absolute_pressure) as max_pressure,
-    min(absolute_pressure) as min_pressure,
-    sum(rainfall) as total_rainfall,
-    max(average_wind_speed) as max_average_wind_speed,
-    max(gust_wind_speed) as max_gust_wind_speed
-from sample
-where date_trunc('month', time_stamp) = date_trunc('month', $date)
-group by date_trunc('day', time_stamp)
-order by time_stamp asc""", params)
+
+    query_data = get_daily_records_data(year,month)
 
     cols = [{'id': 'timestamp',
              'label': 'Time Stamp',
@@ -213,16 +272,72 @@ order by time_stamp asc""", params)
 
     return page
 
-def get_30m_avg_month_samples_datatable(year, month):
+def get_daily_records_json(year,month):
     """
-    Gets outdoor samples for the month as 30-minute averages.
-    :param year: Year to get data for
-    :type year: int
-    :param month: Month to get data for
-    :type month: int
-    :return: JSON data containing 30 minute averaged samples for the month.
-    Structure is Googles DataTable format.
-    :rtype: str
+    Gets daily records for the entire month in a generic JSON format.
+    :param year: Year to get records for.
+    :param month: Month to get records for.
+    :return:
+    """
+
+    labels = [
+        "Date",
+        "Maximum Temperature",
+        "Minimum Temperature",
+        "Maximum Humidity",
+        "Minimum Humidity",
+        "Maximum Pressure",
+        "Minimum Pressure",
+        "Rainfall",
+        "Maximum Average Wind Speed",
+        "Maximum Gust Wind Speed"
+    ]
+
+    data_age = None
+    data_set = []
+
+    query_data = get_daily_records_data(year,month)
+
+    for record in query_data:
+        data_set.append(
+            [
+                str(record.time_stamp),
+                record.max_temp,
+                record.min_temp,
+                record.max_humid,
+                record.min_humid,
+                record.max_pressure,
+                record.min_pressure,
+                record.total_rainfall,
+                record.max_average_wind_speed,
+                record.max_gust_wind_speed
+            ]
+        )
+
+        data_age = record.time_stamp
+
+    result = {
+        'data': data_set,
+        'labels': labels
+    }
+
+    json_data = json.dumps(result)
+
+    cache_control_headers(data_age,year,month)
+    web.header('Content-Type', 'application/json')
+    web.header('Content-Length', str(len(json_data)))
+    return json_data
+
+#
+# 30-minute averaged monthly samples
+#
+
+def get_30m_avg_month_samples_data(year,month):
+    """
+    Gets query data for 30-minute averaged data sets (month level).
+    :param year: Data set year
+    :param month: Data set month
+    :return: Query data
     """
     params = dict(date = date(year,month,01))
     query_data = db.query("""select min(iq.time_stamp) as time_stamp,
@@ -261,7 +376,22 @@ where date_trunc('month',iq.time_stamp) = date_trunc('month', $date)
 group by iq.quadrant
 order by iq.quadrant asc""", params)
 
-    data, data_age = outdoor_sample_result_to_datatable(query_data)
+    return query_data
+
+def get_30m_avg_month_samples_dataset(year,month,output_function):
+    """
+    Gets a 30-minute averaged monthly samples data set. The data is
+    transformed to JSON using the supplied output function.
+
+    :param year: Data set year
+    :param month: Data set month
+    :param output_function: Function to use to generate JSON output.
+    :return: JSON output.
+    """
+
+    query_data = get_30m_avg_month_samples_data(year,month)
+
+    data, data_age = output_function(query_data)
 
     cache_control_headers(data_age,year,month)
 
@@ -269,13 +399,49 @@ order by iq.quadrant asc""", params)
     web.header('Content-Length', str(len(data)))
     return data
 
-def get_month_samples_datatable(year,month):
+def get_30m_avg_month_samples_datatable(year, month):
+    """
+    Gets outdoor samples for the month as 30-minute averages. Output format
+    is Google Visualisation API DataTable JSON.
+    :param year: Year to get data for
+    :type year: int
+    :param month: Month to get data for
+    :type month: int
+    :return: JSON data containing 30 minute averaged samples for the month.
+    Structure is Googles DataTable format.
+    :rtype: str
+    """
+
+    return get_30m_avg_month_samples_dataset(year,
+                                             month,
+                                             outdoor_sample_result_to_datatable)
+
+def get_30m_avg_month_samples_json(year,month):
+    """
+    Gets outdoor samples for the month as 30-minute averages.
+    :param year: Year to get data for
+    :type year: int
+    :param month: Month to get data for
+    :type month: int
+    :return: Generic JSON data containing 30 minute averaged samples for the month.
+    :rtype: str
+    """
+    return get_30m_avg_month_samples_dataset(year,
+                                             month,
+                                             outdoor_sample_result_to_json)
+
+#
+# Monthly samples (full data set)
+#
+
+def get_month_samples_dataset(year,month,output_function):
     """
     Gets samples for the entire month in Googles DataTable format.
     :param year: Year to get data for
     :type year: int
     :param month: Month to get data for
     :type month: int
+    :param output_function: Function to produce JSON output
     :return: JSON data using Googles DataTable structure.
     :rtype: str
     """
@@ -300,10 +466,34 @@ where date(date_trunc('month',cur.time_stamp)) = $date
   and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < cur.time_stamp)
 order by cur.time_stamp asc""", params)
 
-    data, data_age = outdoor_sample_result_to_datatable(query_data)
+    data, data_age = output_function(query_data)
 
     cache_control_headers(data_age,year,month)
 
     web.header('Content-Type','application/json')
     web.header('Content-Length', str(len(data)))
     return data
+
+def get_month_samples_datatable(year,month):
+    """
+    Gets samples for the entire month in Googles DataTable format.
+    :param year: Year to get data for
+    :type year: int
+    :param month: Month to get data for
+    :type month: int
+    :return: JSON data using Googles DataTable structure.
+    :rtype: str
+    """
+    return get_month_samples_dataset(year,month,outdoor_sample_result_to_datatable)
+
+def get_month_samples_json(year,month):
+    """
+    Gets samples for the entire month in a generic JSON format.
+    :param year: Year to get data for
+    :type year: int
+    :param month: Month to get data for
+    :type month: int
+    :return: JSON data.
+    :rtype: str
+    """
+    return get_month_samples_dataset(year,month,outdoor_sample_result_to_json)
