@@ -12,7 +12,7 @@ import web
 from web.contrib.template import render_jinja
 from config import db
 import config
-from data.util import datetime_to_js_date, pretty_print
+from data.util import datetime_to_js_date, pretty_print, daily_records_result_to_datatable, daily_records_result_to_json
 
 __author__ = 'David Goodwin'
 
@@ -51,7 +51,38 @@ class datatable_json:
             raise web.NotFound()
 
         if dataset == 'daily_records':
-            return get_daily_records(int_year)
+            return get_daily_records_datatable(int_year)
+        else:
+            raise web.NotFound()
+
+class data_json:
+    """
+    Gets data for a particular month in a generic JSON format..
+    """
+
+    def GET(self, station, year, dataset):
+        """
+        Handles JSON data sources.
+        :param station: Station to get data for.
+        :param year: Year to get data for.
+        :param dataset: Dataset to get
+        :return: JSON data
+        :raise: web.NotFound if an invalid request is made.
+        """
+        if station != config.default_station_name:
+            raise web.NotFound()
+
+        int_year = int(year)
+
+        # Make sure the year actually exists in the database before we go
+        # any further.
+        params = dict(year=int_year)
+        recs = db.query("select 42 from sample where extract(year from time_stamp) = $year  limit 1", params)
+        if recs is None or len(recs) == 0:
+            raise web.NotFound()
+
+        if dataset == 'daily_records':
+            return get_daily_records_json(int_year)
         else:
             raise web.NotFound()
 
@@ -88,106 +119,69 @@ class index:
         web.header('Content-Type', 'text/html')
         return render.yearly_data_index(months=months)
 
-def get_daily_records(year):
+#
+# Daily records (year-level)
+#
+
+def get_daily_records_data(year):
     """
-    Gets records for each day in the year.
+    Gets daily records for the entire year.
+    :param year: Year to get records for
+    :return: daily records query data
+    """
+    params = dict(date = date(year,01,01))
+    query_data = db.query("""select date_trunc('day', time_stamp)::date as time_stamp,
+        max(temperature) as max_temp,
+        min(temperature) as min_temp,
+        max(relative_humidity) as max_humid,
+        min(relative_humidity) as min_humid,
+        max(absolute_pressure) as max_pressure,
+        min(absolute_pressure) as min_pressure,
+        sum(rainfall) as total_rainfall,
+        max(average_wind_speed) as max_average_wind_speed,
+        max(gust_wind_speed) as max_gust_wind_speed
+    from sample
+    where date_trunc('year',time_stamp) = date_trunc('year', $date)
+    group by date_trunc('day', time_stamp)
+    order by time_stamp asc""", params)
+    return query_data
+
+def get_daily_records_dataset(year,output_function):
+    """
+    Gets the daily records data set at the year level. It is converted to
+    JSON format using the supplied output function.
+    :param year: Year to get the data set for
+    :param output_function: Output function to produce JSON data with.
+    :return: JSON data.
+    """
+
+    query_data = get_daily_records_data(year)
+
+    json_data, data_age = output_function(query_data)
+
+    cache_control_headers(data_age,year)
+    web.header('Content-Type', 'application/json')
+    web.header('Content-Length', str(len(json_data)))
+    return json_data
+
+def get_daily_records_datatable(year):
+    """
+    Gets records for each day in the year. Output is in DataTable JSON for
+    the Google Visualisation API.
     :param year: Year to get records for.
     :type year: int
     :return: JSON data containing records for the year.
     """
-    params = dict(date = date(year,01,01))
-    query_data = db.query("""select date_trunc('day', time_stamp)::date as time_stamp,
-    max(temperature) as max_temp,
-    min(temperature) as min_temp,
-    max(relative_humidity) as max_humid,
-    min(relative_humidity) as min_humid,
-    max(absolute_pressure) as max_pressure,
-    min(absolute_pressure) as min_pressure,
-    sum(rainfall) as total_rainfall,
-    max(average_wind_speed) as max_average_wind_speed,
-    max(gust_wind_speed) as max_gust_wind_speed
-from sample
-where date_trunc('year',time_stamp) = date_trunc('year', $date)
-group by date_trunc('day', time_stamp)
-order by time_stamp asc""", params)
 
-    cols = [{'id': 'timestamp',
-             'label': 'Time Stamp',
-             'type': 'date'},
-            {'id': 'max_temp',
-             'label': 'Maximum Temperature',
-             'type': 'number'},
-            {'id': 'min_temp',
-             'label': 'Minimum Temperature',
-             'type': 'number'},
-            {'id': 'max_humid',
-             'label': 'Maximum Relative Humidity',
-             'type': 'number'},
-            {'id': 'min_humid',
-             'label': 'Minimum Relative Humidity',
-             'type': 'number'},
-            {'id': 'max_pressure',
-             'label': 'Maximum Absolute Pressure',
-             'type': 'number'},
-            {'id': 'min_pressure',
-             'label': 'Minimum Absolute Pressure',
-             'type': 'number'},
-            {'id': 'total_rainfall',
-             'label': 'Total Rainfall',
-             'type': 'number'},
-            {'id': 'max_average_wind_speed',
-             'label': 'Maximum Average Wind Speed',
-             'type': 'number'},
-            {'id': 'max_gust_wind_speed',
-             'label': 'Maximum Gust Wind Speed',
-             'type': 'number'},
-    ]
+    return get_daily_records_dataset(year, daily_records_result_to_datatable)
 
-    rows = []
+def get_daily_records_json(year):
+    """
+    Gets records for each day in the year. Output is a generic JSON format.
+    :param year: Year to get records for.
+    :type year: int
+    :return: JSON data containing records for the year.
+    """
 
-    # At the end of the following loop, this will contain the timestamp for
-    # the most recent record in this data set.
-    data_age = None
-
-    for record in query_data:
-
-    #        # Handle gaps in the dataset
-    #        if record.gap:
-    #            rows.append({'c': [{'v': datetime_to_js_date(record.prev_sample_time)},
-    #                    {'v': None},
-    #                    {'v': None},
-    #                    {'v': None},
-    #                    {'v': None},
-    #                    {'v': None},
-    #                    {'v': None},
-    #            ]
-    #            })
-
-        rows.append({'c': [{'v': datetime_to_js_date(record.time_stamp)},
-                {'v': record.max_temp},
-                {'v': record.min_temp},
-                {'v': record.max_humid},
-                {'v': record.min_humid},
-                {'v': record.max_pressure},
-                {'v': record.min_pressure},
-                {'v': record.total_rainfall},
-                {'v': record.max_average_wind_speed},
-                {'v': record.max_gust_wind_speed}
-        ]
-        })
-
-        data_age = record.time_stamp
-
-    data = {'cols': cols,
-            'rows': rows}
-
-    if pretty_print:
-        page = json.dumps(data, sort_keys=True, indent=4)
-    else:
-        page = json.dumps(data)
-
-    cache_control_headers(data_age,year)
-    web.header('Content-Type', 'application/json')
-    web.header('Content-Length', str(len(page)))
-
-    return page
+    return get_daily_records_dataset(year,
+                                     daily_records_result_to_json)

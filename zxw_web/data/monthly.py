@@ -12,7 +12,7 @@ import web
 from web.contrib.template import render_jinja
 from config import db
 import config
-from data.util import outdoor_sample_result_to_datatable, datetime_to_js_date, pretty_print, outdoor_sample_result_to_json
+from data.util import outdoor_sample_result_to_datatable, datetime_to_js_date, pretty_print, outdoor_sample_result_to_json, daily_records_result_to_datatable, daily_records_result_to_json
 
 __author__ = 'David Goodwin'
 
@@ -73,12 +73,12 @@ class datatable_json:
 
 class data_json:
     """
-    Gets data for a particular month in Googles DataTable format.
+    Gets data for a particular month in a generic JSON format..
     """
 
     def GET(self, station, year, month, dataset):
         """
-        Gets DataTable formatted JSON data.
+        Gets JSON-formatted data.
 
         :param station: Station to get data for
         :type station: str
@@ -179,6 +179,26 @@ def get_daily_records_data(year,month):
 
     return query_data
 
+def get_daily_records_dataset(year,month,output_function):
+    """
+    Gets a daily records dataset at the month level. It is converted to
+    JSON format using the supplied output function.
+
+    :param year: Data set year
+    :param month: Data set month
+    :param output_function: Function to produce JSON output
+    :return:
+    """
+
+    query_data = get_daily_records_data(year,month)
+
+    json_data, data_age = output_function(query_data)
+
+    cache_control_headers(data_age,year,month)
+    web.header('Content-Type', 'application/json')
+    web.header('Content-Length', str(len(json_data)))
+    return json_data
+
 def get_daily_records_datatable(year,month):
     """
     Gets records for each day in the month.
@@ -189,88 +209,9 @@ def get_daily_records_datatable(year,month):
     :return: JSON data containing the records. Structure is Google DataTable.
     """
 
-    query_data = get_daily_records_data(year,month)
-
-    cols = [{'id': 'timestamp',
-             'label': 'Time Stamp',
-             'type': 'date'},
-            {'id': 'max_temp',
-             'label': 'Maximum Temperature',
-             'type': 'number'},
-            {'id': 'min_temp',
-             'label': 'Minimum Temperature',
-             'type': 'number'},
-            {'id': 'max_humid',
-             'label': 'Maximum Relative Humidity',
-             'type': 'number'},
-            {'id': 'min_humid',
-             'label': 'Minimum Relative Humidity',
-             'type': 'number'},
-            {'id': 'max_pressure',
-             'label': 'Maximum Absolute Pressure',
-             'type': 'number'},
-            {'id': 'min_pressure',
-             'label': 'Minimum Absolute Pressure',
-             'type': 'number'},
-            {'id': 'total_rainfall',
-             'label': 'Total Rainfall',
-             'type': 'number'},
-            {'id': 'max_average_wind_speed',
-             'label': 'Maximum Average Wind Speed',
-             'type': 'number'},
-            {'id': 'max_gust_wind_speed',
-             'label': 'Maximum Gust Wind Speed',
-             'type': 'number'},
-    ]
-
-    rows = []
-
-    # At the end of the following loop, this will contain the timestamp for
-    # the most recent record in this data set.
-    data_age = None
-
-    for record in query_data:
-
-#        # Handle gaps in the dataset
-#        if record.gap:
-#            rows.append({'c': [{'v': datetime_to_js_date(record.prev_sample_time)},
-#                    {'v': None},
-#                    {'v': None},
-#                    {'v': None},
-#                    {'v': None},
-#                    {'v': None},
-#                    {'v': None},
-#            ]
-#            })
-
-        rows.append({'c': [{'v': datetime_to_js_date(record.time_stamp)},
-                {'v': record.max_temp},
-                {'v': record.min_temp},
-                {'v': record.max_humid},
-                {'v': record.min_humid},
-                {'v': record.max_pressure},
-                {'v': record.min_pressure},
-                {'v': record.total_rainfall},
-                {'v': record.max_average_wind_speed},
-                {'v': record.max_gust_wind_speed}
-        ]
-        })
-
-        data_age = record.time_stamp
-
-    data = {'cols': cols,
-            'rows': rows}
-
-    if pretty_print:
-        page = json.dumps(data, sort_keys=True, indent=4)
-    else:
-        page = json.dumps(data)
-
-    cache_control_headers(data_age,year,month)
-    web.header('Content-Type', 'application/json')
-    web.header('Content-Length', str(len(page)))
-
-    return page
+    return get_daily_records_dataset(year,
+                                     month,
+                                     daily_records_result_to_datatable)
 
 def get_daily_records_json(year,month):
     """
@@ -280,53 +221,9 @@ def get_daily_records_json(year,month):
     :return:
     """
 
-    labels = [
-        "Date",
-        "Maximum Temperature",
-        "Minimum Temperature",
-        "Maximum Humidity",
-        "Minimum Humidity",
-        "Maximum Pressure",
-        "Minimum Pressure",
-        "Rainfall",
-        "Maximum Average Wind Speed",
-        "Maximum Gust Wind Speed"
-    ]
-
-    data_age = None
-    data_set = []
-
-    query_data = get_daily_records_data(year,month)
-
-    for record in query_data:
-        data_set.append(
-            [
-                str(record.time_stamp),
-                record.max_temp,
-                record.min_temp,
-                record.max_humid,
-                record.min_humid,
-                record.max_pressure,
-                record.min_pressure,
-                record.total_rainfall,
-                record.max_average_wind_speed,
-                record.max_gust_wind_speed
-            ]
-        )
-
-        data_age = record.time_stamp
-
-    result = {
-        'data': data_set,
-        'labels': labels
-    }
-
-    json_data = json.dumps(result)
-
-    cache_control_headers(data_age,year,month)
-    web.header('Content-Type', 'application/json')
-    web.header('Content-Length', str(len(json_data)))
-    return json_data
+    return get_daily_records_dataset(year,
+                                     month,
+                                     daily_records_result_to_json)
 
 #
 # 30-minute averaged monthly samples

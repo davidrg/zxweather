@@ -130,16 +130,18 @@
             </div>
         </div>
     </section>
+{% endblock %}
+{% block scripts %}
 
-    <script type="text/javascript" src="http://www.google.com/jsapi"></script>
     <script type="text/javascript">
     var daily_records_url = '{{ urls.daily_records }}';
     </script>
     {% if ui and ui == 'm' -%}
     <script type="text/javascript" src="../../../js/dygraph-combined.js"></script>
+    <script type="text/javascript" src="../../../js/dygraph-util.js"></script>
     <script type="text/javascript" src="../../../js/year_charts_dygraph.js"></script>
     {% else -%}
+    <script type="text/javascript" src="http://www.google.com/jsapi"></script>
     <script type="text/javascript" src="../../../js/year_charts_gviz.js"></script>
     {% endif -%}
-    <script type="text/javascript" src="../../../js/year_charts.js"></script>
 {% endblock %}
