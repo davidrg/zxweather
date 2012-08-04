@@ -200,7 +200,7 @@ class day:
         html_file()
         return get_day_page(ui, station, date(int(year), month_number[month], int(day)))
 
-def get_indoor_data_urls(station, day):
+def get_indoor_data_urls(station, day, ui):
     """
     Gets the Data URLs for the indoor day page.
     :param station: Station we are looking at
@@ -211,11 +211,16 @@ def get_indoor_data_urls(station, day):
     :type: dict
     """
 
+    if ui == 'm':
+        sub_dir = ''
+    else:
+        sub_dir = 'datatable/'
+
     data_base_url = '../../../../../data/{0}/{1}/{2}/{3}/'\
     .format(station, day.year, day.month, day.day)
-    samples = data_base_url + 'datatable/indoor_samples.json'
-    samples_7day = data_base_url + 'datatable/7day_indoor_samples.json'
-    samples_7day_30mavg = data_base_url + 'datatable/7day_30m_avg_indoor_samples.json'
+    samples = data_base_url + sub_dir + 'indoor_samples.json'
+    samples_7day = data_base_url + sub_dir + '7day_indoor_samples.json'
+    samples_7day_30mavg = data_base_url + sub_dir + '7day_30m_avg_indoor_samples.json'
 
     return {
         'samples': samples,
@@ -261,11 +266,12 @@ def get_indoor_day(ui, station, day):
 
     if ui in ('s','m'):
         nav_urls = get_nav_urls(station, current_location)
-        data_urls = get_indoor_data_urls(station, data.date_stamp)
+        data_urls = get_indoor_data_urls(station, data.date_stamp, ui)
         return modern_templates.indoor_day(data=data,
                                  nav=nav_urls,
                                  dataurls=data_urls,
-                                 sitename=config.site_name)
+                                 sitename=config.site_name,
+                                 ui=ui)
     else:
         return basic_templates.indoor_day(data=data)
 

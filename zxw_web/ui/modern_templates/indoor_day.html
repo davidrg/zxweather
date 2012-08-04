@@ -68,93 +68,18 @@
     <div class="footer-navlinks">
     <a href="index.html">Back to outdoor weather</a>
     </div>
-
-    <script type="text/javascript" src="http://www.google.com/jsapi"></script>
+{% endblock %}
+{% block scripts %}
     <script type="text/javascript">
-        //google.load('visualization', '1', {packages:['table']});
-        google.load("visualization", "1", {packages:["corechart"]});
-        google.setOnLoadCallback(drawTable);
-        function drawTable() {
-
-            function drawAllTables(data,
-                                   temperature_element,
-                                   humidity_element) {
-
-                // Temperature and Dewpoint only
-                var temperature = new google.visualization.DataView(data);
-                temperature.hideColumns([2]);
-
-                var temperature_options = {
-                    title: 'Indoor Temperature (°C)',
-                    legend: {position: 'none'}
-                };
-                var temperature_chart = new google.visualization.LineChart(temperature_element);
-                temperature_chart.draw(temperature, temperature_options);
-
-
-                // Humidity only
-                var humidity = new google.visualization.DataView(data);
-                humidity.hideColumns([1]);
-
-                var humidity_options = {
-                    title: 'Indoor Humidity (%)',
-                    legend: {position: 'none'}
-                };
-                var humidity_chart = new google.visualization.LineChart(humidity_element);
-                humidity_chart.draw(humidity, humidity_options);
-            }
-
-            /***************************************************************
-             * Fetch the days samples and draw the 1-day charts
-             */
-            $.getJSON('{{ dataurls['samples'] }}', function(data) {
-                // This contains all samples for the day. Included columns are
-                // 0: timestamp
-                // 1: temperature
-                // 2: humidity
-                var sampledata = new google.visualization.DataTable(data);
-
-                // Do some formatting
-                var temperatureFormatter = new google.visualization.NumberFormat(
-                        { pattern: '##.# °C'});
-                temperatureFormatter.format(sampledata,1);
-
-                var humidityFormatter = new google.visualization.NumberFormat(
-                        { pattern: '##'});
-                humidityFormatter.format(sampledata,2);
-
-                drawAllTables(sampledata,
-                              document.getElementById('chart_temperature_div'),
-                              document.getElementById('chart_humidity_div')
-                );
-            });
-
-            /***************************************************************
-             * Fetch samples for the past 7 days and draw the 7-day charts
-             */
-            $.getJSON('{{ dataurls['samples_7day_30mavg'] }}', function(data) {
-                // This contains all samples for the day. Included columns are
-                // 0: timestamp
-                // 1: temperature
-                // 2: humidity
-                var sampledata = new google.visualization.DataTable(data);
-
-                // Do some formatting
-                var temperatureFormatter = new google.visualization.NumberFormat(
-                        { pattern: '##.# °C'});
-                temperatureFormatter.format(sampledata,1);
-
-                var humidityFormatter = new google.visualization.NumberFormat(
-                        { pattern: '##'});
-                humidityFormatter.format(sampledata,2);
-
-
-                drawAllTables(sampledata,
-                              document.getElementById('chart_7_temperature_div'),
-                              document.getElementById('chart_7_humidity_div')
-                );
-            });
-        }
+    var samples_url = "{{ dataurls['samples'] }}";
+    var samples_7day_url = "{{ dataurls['samples_7day_30mavg'] }}";
     </script>
-
+    {% if ui and ui == 'm' -%}
+    <script type="text/javascript" src="../../../../../js/dygraph-combined.js"></script>
+    <script type="text/javascript" src="../../../../../js/dygraph-charts.js"></script>
+    <script type="text/javascript" src="../../../../../js/day_charts_indoor_dygraph.js"></script>
+    {% else -%}
+    <script type="text/javascript" src="http://www.google.com/jsapi"></script>
+    <script type="text/javascript" src="../../../../../js/day_charts_indoor_gviz.js"></script>
+    {% endif -%}
 {% endblock %}

@@ -279,6 +279,208 @@ def get_7day_hourly_rainfall_json(day):
     web.header('Content-Length', str(len(json_data)))
     return json_data
 
+
+def indoor_sample_result_to_json(query_data):
+    """
+    Converts the supplied indoor sample query data to JSON format.
+    :param query_data: Data to convert.
+    :return: json_data, data_age
+    """
+
+    labels = ["Time",
+              "Temperature",
+              "Relative Humidity",
+              ]
+
+    data_age = None
+    data_set = []
+
+    for record in query_data:
+        if record.gap:
+            # Insert a gap
+            data_set.append([])
+
+        data_set.append(
+            [
+                str(record.time_stamp),
+                record.indoor_temperature,
+                record.indoor_relative_humidity,
+                ]
+        )
+
+        data_age = record.time_stamp
+
+    result = {
+        'data': data_set,
+        'labels': labels
+    }
+
+    json_data = json.dumps(result)
+
+    return json_data, data_age
+
+#
+# Indoor 1-day samples
+#
+
+def get_day_indoor_samples_data(day):
+    """
+    Gets indoor query data for the specific day.
+    :param day: Day to get data for
+    :return: Query data
+    """
+
+    params = dict(date = day)
+    result = config.db.query("""select s.time_stamp::timestamptz,
+s.indoor_temperature,
+s.indoor_relative_humidity,
+           s.time_stamp - (s.sample_interval * '1 minute'::interval) as prev_sample_time,
+           CASE WHEN (s.time_stamp - prev.time_stamp) > ((s.sample_interval * 2) * '1 minute'::interval) THEN
+              true
+           else
+              false
+           end as gap
+from sample s, sample prev
+where date(s.time_stamp) = $date
+  and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp)""", params)
+
+    return result
+
+def get_day_indoor_samples_json(day):
+    """
+    Gets indoor sample data for one day. Output is a generic JSON format.
+    :param day: Day to get samples for.
+    :return: JSON data.
+    """
+    result = get_day_indoor_samples_data(day)
+
+    data,age = indoor_sample_result_to_json(result)
+
+    day_cache_control(age,day)
+
+    web.header('Content-Type','application/json')
+    web.header('Content-Length', str(len(data)))
+    return data
+
+#
+# 7-DAY INDOOR DATA
+#
+
+def get_7day_indoor_samples_dataset(day, data_functon, output_function):
+    """
+    Gets a 7-day indoor samples data set using the supplied data and output
+    functions.
+    :param day: Day to get data for.
+    :param data_functon: Function to supply data.
+    :param output_function: Function to generate output.
+    :return: JSON data.
+    """
+
+    result = data_functon(day)
+
+    data,age = output_function(result)
+
+    day_cache_control(age,day)
+
+    web.header('Content-Type','application/json')
+    web.header('Content-Length', str(len(data)))
+    return data
+
+##
+## Indoor 7-day samples
+##
+
+def get_7day_indoor_samples_data(day):
+    """
+    Gets query data for the 7-day indoor samples data set
+    :param day:
+    :return:
+    """
+
+    params = dict(date = day)
+    result = config.db.query("""select s.time_stamp,
+                   s.indoor_temperature,
+                   s.indoor_relative_humidity,
+                   s.time_stamp - (s.sample_interval * '1 minute'::interval) as prev_sample_time,
+                   CASE WHEN (s.time_stamp - prev.time_stamp) > ((s.sample_interval * 2) * '1 minute'::interval) THEN
+                      true
+                   else
+                      false
+                   end as gap
+            from sample s, sample prev,
+                 (select max(time_stamp) as ts from sample where date(time_stamp) = $date) as max_ts
+            where s.time_stamp <= max_ts.ts     -- 604800 seconds in a week.
+              and s.time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
+              and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp)
+            order by s.time_stamp asc
+            """, params)
+
+    return result
+
+def get_7day_indoor_samples_json(day):
+    """
+    Gets indoor sample data for the 7-day period ending on the specified date.
+    Output is a generic JSON format.
+    :param day: End date for the 7-day period.
+    :return: JSON data.
+    """
+
+    return get_7day_indoor_samples_dataset(day,
+                                           get_7day_indoor_samples_data,
+                                           indoor_sample_result_to_json)
+
+##
+## Indoor 7-day samples (30-minute average)
+##
+
+def get_7day_30mavg_indoor_samples_data(day):
+    """
+    Gets 30-minute averaged data for the 7-day period ending on the specified
+    date.
+    :param day: End date for 7-day period
+    :return: Query data
+    """
+
+    params = dict(date = day)
+    result = config.db.query("""select min(iq.time_stamp) as time_stamp,
+       avg(iq.indoor_temperature) as indoor_temperature,
+       avg(indoor_relative_humidity)::integer as indoor_relative_humidity,
+       min(prev_sample_time) as prev_sample_time,
+       bool_or(gap) as gap
+from (
+        select cur.time_stamp,
+               (extract(epoch from cur.time_stamp) / 1800)::integer AS quadrant,
+               cur.indoor_temperature,
+               cur.indoor_relative_humidity,
+               cur.time_stamp - (cur.sample_interval * '1 minute'::interval) as prev_sample_time,
+               CASE WHEN (cur.time_stamp - prev.time_stamp) > ((cur.sample_interval * 2) * '1 minute'::interval) THEN
+                  true
+               else
+                  false
+               end as gap
+        from sample cur, sample prev,
+             (select max(time_stamp) as ts from sample where date(time_stamp) = $date) as max_ts
+        where cur.time_stamp <= max_ts.ts     -- 604800 seconds in a week.
+          and cur.time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
+          and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < cur.time_stamp)
+        order by cur.time_stamp asc) as iq
+group by iq.quadrant
+order by iq.quadrant asc""", params)
+
+    return result
+
+def get_7day_30mavg_indoor_samples_json(day):
+    """
+    Gets indoor sample data for the 7-day period ending on the specified date.
+    Output is a generic JSON format.
+    :param day: End date for the 7-day period.
+    :return: JSON data.
+    """
+
+    return get_7day_indoor_samples_dataset(day,
+                                           get_7day_30mavg_indoor_samples_data,
+                                           indoor_sample_result_to_json)
+
 # Data sources available at the day level.
 datasources = {
     'samples': {
@@ -304,7 +506,19 @@ datasources = {
     '7day_hourly_rainfall': {
         'desc': 'Total rainfall for each hour in the past seven days.',
         'func': get_7day_hourly_rainfall_json
-    }
+    },
+    'indoor_samples': {
+        'desc': 'All indoor samples for the day. Should be around 288 records.',
+        'func': get_day_indoor_samples_json
+    },
+    '7day_indoor_samples': {
+        'desc': 'Every indoor sample over the past seven days. Should be around 2016 records.',
+        'func': get_7day_indoor_samples_json
+    },
+    '7day_30m_avg_indoor_samples': {
+        'desc': 'Averaged indoor samples every 30 minutes for the past 7 days.',
+        'func': get_7day_30mavg_indoor_samples_json
+    },
 }
 
 def datasource_dispatch(station, datasource_dict, dataset, day):
