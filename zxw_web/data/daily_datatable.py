@@ -2,7 +2,7 @@
 """
 Google DataTable data sources at the day level.
 """
-from data.daily import datasource_dispatch, get_day_samples_data, get_7day_30mavg_samples_data, get_days_hourly_rainfall_data, get_7day_hourly_rainfall_data
+from data.daily import datasource_dispatch, get_day_samples_data, get_7day_30mavg_samples_data, get_days_hourly_rainfall_data, get_7day_hourly_rainfall_data, get_day_indoor_samples_data, get_7day_indoor_samples_data, get_7day_30mavg_indoor_samples_data
 
 __author__ = 'David Goodwin'
 
@@ -75,23 +75,7 @@ def get_7day_indoor_samples_datatable(day):
     :return: JSON data in Googles datatable format containing indoor samples
     for the past seven days.
     """
-    params = dict(date = day)
-    result = db.query("""select s.time_stamp,
-               s.indoor_temperature,
-               s.indoor_relative_humidity,
-               s.time_stamp - (s.sample_interval * '1 minute'::interval) as prev_sample_time,
-               CASE WHEN (s.time_stamp - prev.time_stamp) > ((s.sample_interval * 2) * '1 minute'::interval) THEN
-                  true
-               else
-                  false
-               end as gap
-        from sample s, sample prev,
-             (select max(time_stamp) as ts from sample where date(time_stamp) = $date) as max_ts
-        where s.time_stamp <= max_ts.ts     -- 604800 seconds in a week.
-          and s.time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
-          and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp)
-        order by s.time_stamp asc
-        """, params)
+    result = get_7day_indoor_samples_data(day)
 
     data,age = indoor_sample_result_to_datatable(result)
 
@@ -109,31 +93,8 @@ def get_7day_30mavg_indoor_samples_datatable(day):
     :return: JSON in Googles Datatable format containing 30 minute averaged
     data for the past seven days of indoor samples.
     """
-    params = dict(date = day)
-    result = db.query("""select min(iq.time_stamp) as time_stamp,
-       avg(iq.indoor_temperature) as indoor_temperature,
-       avg(indoor_relative_humidity)::integer as indoor_relative_humidity,
-       min(prev_sample_time) as prev_sample_time,
-       bool_or(gap) as gap
-from (
-        select cur.time_stamp,
-               (extract(epoch from cur.time_stamp) / 1800)::integer AS quadrant,
-               cur.indoor_temperature,
-               cur.indoor_relative_humidity,
-               cur.time_stamp - (cur.sample_interval * '1 minute'::interval) as prev_sample_time,
-               CASE WHEN (cur.time_stamp - prev.time_stamp) > ((cur.sample_interval * 2) * '1 minute'::interval) THEN
-                  true
-               else
-                  false
-               end as gap
-        from sample cur, sample prev,
-             (select max(time_stamp) as ts from sample where date(time_stamp) = $date) as max_ts
-        where cur.time_stamp <= max_ts.ts     -- 604800 seconds in a week.
-          and cur.time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
-          and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < cur.time_stamp)
-        order by cur.time_stamp asc) as iq
-group by iq.quadrant
-order by iq.quadrant asc""", params)
+
+    result = get_7day_30mavg_indoor_samples_data(day)
 
     data,age = indoor_sample_result_to_datatable(result)
 
@@ -152,19 +113,8 @@ def get_day_indoor_samples_datatable(day):
              for the day
     :rtype: str
     """
-    params = dict(date = day)
-    result = db.query("""select s.time_stamp::timestamptz,
-s.indoor_temperature,
-s.indoor_relative_humidity,
-           s.time_stamp - (s.sample_interval * '1 minute'::interval) as prev_sample_time,
-           CASE WHEN (s.time_stamp - prev.time_stamp) > ((s.sample_interval * 2) * '1 minute'::interval) THEN
-              true
-           else
-              false
-           end as gap
-from sample s, sample prev
-where date(s.time_stamp) = $date
-  and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp)""", params)
+
+    result = get_day_indoor_samples_data(day)
 
     data,age = indoor_sample_result_to_datatable(result)
 
