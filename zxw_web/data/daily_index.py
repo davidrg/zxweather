@@ -6,8 +6,7 @@ from datetime import date
 import os
 import web
 from web.contrib.template import render_jinja
-from data.daily import datasources
-from data.daily_datatable import datatable_datasources
+from data.daily import datasources, datatable_datasources
 from database import day_exists
 
 __author__ = 'David Goodwin'

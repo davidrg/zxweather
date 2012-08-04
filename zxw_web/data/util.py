@@ -36,7 +36,6 @@ def datetime_to_js_date(timestamp):
     else:
         raise TypeError
 
-
 def outdoor_sample_result_to_datatable(query_data):
     """
     Converts a query on the sample table to DataTable-compatible JSON.
@@ -345,3 +344,133 @@ def daily_records_result_to_json(query_data):
     json_data = json.dumps(result)
 
     return json_data, data_age
+
+def indoor_sample_result_to_json(query_data):
+    """
+    Converts the supplied indoor sample query data to JSON format.
+    :param query_data: Data to convert.
+    :return: json_data, data_age
+    """
+
+    labels = ["Time",
+              "Temperature",
+              "Relative Humidity",
+              ]
+
+    data_age = None
+    data_set = []
+
+    for record in query_data:
+        if record.gap:
+            # Insert a gap
+            data_set.append([])
+
+        data_set.append(
+            [
+                str(record.time_stamp),
+                record.indoor_temperature,
+                record.indoor_relative_humidity,
+                ]
+        )
+
+        data_age = record.time_stamp
+
+    result = {
+        'data': data_set,
+        'labels': labels
+    }
+
+    json_data = json.dumps(result)
+
+    return json_data, data_age
+
+def indoor_sample_result_to_datatable(query_data):
+    """
+    Converts a query on the sample table to DataTable-compatible JSON.
+
+    Expected columns are time_stamp, indoor_temperature,
+    indoor_relative_humidity, prev_sample_time, gap.
+
+    :param query_data: Result from the query
+    :return: Query data in JSON format.
+    """
+    cols = [{'id': 'timestamp',
+             'label': 'Time Stamp',
+             'type': 'datetime'},
+            {'id': 'temperature',
+             'label': 'Indoor Temperature',
+             'type': 'number'},
+            {'id': 'humidity',
+             'label': 'Indoor Humidity',
+             'type': 'number'},
+    ]
+
+    rows = []
+
+    # At the end of the following loop, this will contain the timestamp for
+    # the most recent record in this data set.
+    data_age = None
+
+    for record in query_data:
+
+
+        # Handle gaps in the dataset
+        if record.gap:
+            rows.append({'c': [{'v': datetime_to_js_date(record.prev_sample_time)},
+                    {'v': None},
+                    {'v': None},
+            ]
+            })
+
+        rows.append({'c': [{'v': datetime_to_js_date(record.time_stamp)},
+                {'v': record.indoor_temperature},
+                {'v': record.indoor_relative_humidity},
+        ]
+        })
+
+        data_age = record.time_stamp
+
+    data = {'cols': cols,
+            'rows': rows}
+
+    if pretty_print:
+        return json.dumps(data, sort_keys=True, indent=4), data_age
+    else:
+        return json.dumps(data), data_age
+
+def rainfall_to_datatable(query_result):
+    """
+    Converts a rainfall data query result into Googles DataTable JSON format.
+    :param query_result: Result of the rainfall query.
+    :return: JSON data.
+    """
+    cols = [{'id': 'timestamp',
+             'label': 'Time Stamp',
+             'type': 'datetime'},
+            {'id': 'rainfall',
+             'label': 'Rainfall',
+             'type': 'number'},
+    ]
+
+    rows = []
+
+    # At the end of the following loop, this will contain the timestamp for
+    # the most recent record in this data set.
+    data_age = None
+
+    for record in query_result:
+
+        rows.append({'c': [{'v': datetime_to_js_date(record.time_stamp)},
+                {'v': record.rainfall},
+        ]
+        })
+
+        data_age = record.time_stamp
+
+    data = {'cols': cols,
+            'rows': rows}
+
+    if pretty_print:
+        return json.dumps(data, sort_keys=True, indent=4), data_age
+    else:
+        return json.dumps(data), data_age

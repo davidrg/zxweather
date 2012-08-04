@@ -8,8 +8,7 @@ import web
 from web.contrib.template import render_jinja
 from cache import live_data_cache_control
 import config
-from data.daily import get_day_records, get_day_rainfall, get_day_samples_json, get_7day_30mavg_samples_json, get_days_hourly_rainfall_json, get_7day_hourly_rainfall_json
-from data.daily_datatable import get_day_samples_datatable, get_7day_30mavg_samples_datatable, get_days_hourly_rain_datatable, get_7day_hourly_rain_datatable
+from data.daily import get_day_records, get_day_rainfall, get_day_samples_json, get_7day_30mavg_samples_json, get_days_hourly_rainfall_json, get_7day_hourly_rainfall_json, get_7day_30mavg_samples_datatable, get_day_samples_datatable, get_days_hourly_rainfall_datatable, get_7day_hourly_rainfall_datatable
 from database import get_years, get_live_data
 import os
 
@@ -163,7 +162,7 @@ def current_day_hourly_rainfall_datatable():
     Gets hourly rainfall for the current day.
     :return: Hourly rainfall for the current day.
     """
-    return get_days_hourly_rain_datatable(datetime.now().date())
+    return get_days_hourly_rainfall_datatable(datetime.now().date())
 
 def current_day_hourly_rainfall_json():
     """
@@ -177,7 +176,7 @@ def current_day_7day_rainfall_datatable():
     Gets hourly rainfall for the seven days prior to today.
     :return: Hourly rainfall data for the past seven days.
     """
-    return get_7day_hourly_rain_datatable(datetime.now().date())
+    return get_7day_hourly_rainfall_datatable(datetime.now().date())
 
 def current_day_7day_rainfall_json():
     """
