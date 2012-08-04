@@ -121,13 +121,20 @@ def get_year(ui,station, year):
     year_cache_control(year)
 
     if ui in ('s','m'):
+
+        if ui == 'm':
+            sub_dir = ''
+        else:
+            sub_dir = "datatable/"
+
+        # TODO: Convert this into a dict
         # Figure out any URLs the page needs to know.
         class urls:
             """Various URLs required by the view"""
             root = '../../../'
             ui_root = '../../'
             data_base = root + 'data/{0}/{1}/'.format(station,year)
-            daily_records = data_base + 'datatable/daily_records.json'
+            daily_records = data_base + sub_dir + 'daily_records.json'
             prev_url = data.prev_url
             next_url = data.next_url
 
