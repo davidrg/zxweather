@@ -6,7 +6,7 @@
  * Time: 9:46 PM
  */
 
-/** Converts date strings to date objects.
+/** Converts date strings to date/time objects.
  *
  * @param data Data to process.
  */
@@ -53,6 +53,9 @@ var windSpeedFormatter = function(y) {
 };
 var rainfallFormatter = function(y) {
     return y.toFixed(1) + 'mm';
+};
+var dateFormatter = function(y) {
+    return new Date(y).strftime('%Y/%m/%d');
 };
 
 /** Draws all sample line charts on the day and month-level pages including
