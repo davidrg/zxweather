@@ -224,14 +224,19 @@ def get_month(ui, station, year, month):
 
     month_cache_control(year, month)
     if ui in ('s','m'):
+        if ui == 'm':
+            sub_dir = ""
+        else:
+            sub_dir = "datatable/"
+
         # TODO: Make this a dict.
         class urls:
             """Various URLs required by the view"""
             root = '../../../../'
             data_base = root + 'data/{0}/{1}/{2}/'.format(station,year,month)
-            samples = data_base + 'datatable/samples.json'
-            samples_30m_avg = data_base + 'datatable/30m_avg_samples.json'
-            daily_records = data_base + 'datatable/daily_records.json'
+            samples = data_base + sub_dir + 'samples.json'
+            samples_30m_avg = data_base + sub_dir + '30m_avg_samples.json'
+            daily_records = data_base + sub_dir + 'daily_records.json'
 
         nav_urls = get_nav_urls(station, current_location)
         return modern_templates.month(nav=nav_urls, data=data,dataurls=urls,

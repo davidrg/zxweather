@@ -1,135 +1,168 @@
-/** Month charts implemented with the Dygraphs
+/** Month charts implemented with Dygraphs
  *
  * User: David Goodwin
  * Date: 21/06/12
  * Time: 10:06 PM
  */
 
-function drawSampleLineCharts(data,
-                       tdp_element,
-                       awc_element,
-                       humidity_element,
-                       pressure_element,
-                       wind_speed_element) {
-
-    // Temperature and Dewpoint only
-    var temperature_tdp = new google.visualization.DataView(data);
-    temperature_tdp.hideColumns([3,4,5,6,7,8]);
-
-    var temperature_tdp_options = {
-        title: 'Temperature and Dew Point (°C)',
-        legend: {position: 'bottom'}
-    };
-    var temperature_tdp_chart = new Dygraph.GVizChart(tdp_element);
-    temperature_tdp_chart.draw(temperature_tdp, temperature_tdp_options);
-
-    // Apparent Temperature and Wind Chill only
-    var temperature_awc = new google.visualization.DataView(data);
-    temperature_awc.hideColumns([1,2,5,6,7,8]);
-
-    var temperature_awc_options = {
-        title: 'Apparent Temperature and Wind Chill (°C)',
-        legend: {position: 'bottom'}
-    };
-    var temperature_awc_chart = new Dygraph.GVizChart(awc_element);
-    temperature_awc_chart.draw(temperature_awc, temperature_awc_options);
-
-    // Absolute Pressure only
-    var pressure = new google.visualization.DataView(data);
-    pressure.hideColumns([1,2,3,4,5,7,8]);
-
-    var pressure_options = {
-        title: 'Absolute Pressure (hPa)',
-        legend: {position: 'none'},
-        vAxis: {format: '####'}
-    };
-    var pressure_chart = new Dygraph.GVizChart(pressure_element);
-    pressure_chart.draw(pressure, pressure_options);
-
-    // Humidity only
-    var humidity = new google.visualization.DataView(data);
-    humidity.hideColumns([1,2,3,4,6,7,8]);
-
-    var humidity_options = {
-        title: 'Humidity (%)',
-        legend: {position: 'none'}
-    };
-    var humidity_chart = new Dygraph.GVizChart(humidity_element);
-    humidity_chart.draw(humidity, humidity_options);
-
-    // Wind speed only (columns 7 and 8)
-    var wind_speed = new google.visualization.DataView(data);
-    wind_speed.hideColumns([1,2,3,4,5,6]);
-
-    var wind_speed_options = {
-        title: 'Wind Speed (m/s)',
-        legend: {position: 'bottom'}
-
-    };
-    var wind_speed_chart = new Dygraph.GVizChart(wind_speed_element);
-    wind_speed_chart.draw(wind_speed, wind_speed_options);
-}
-
-function drawRecordsLineCharts(record_data,
+function drawRecordsLineCharts(jsondata,
                                temperature_element,
                                pressure_element,
                                humidity_element,
                                rainfall_element,
                                wind_speed_element) {
-    // Temperature
-    var temperature = new google.visualization.DataView(record_data);
-    temperature.hideColumns([3,4,5,6,7,8,9]);
 
-    var temperature_options = {
-        title: 'Temperature (°C)',
-        legend: {position: 'bottom'}
+    var labels = jsondata['labels'];
+    var data = jsondata['data'];
+
+    /* Make sure the first column is Date objects, not strings */
+    data = convertToDates(data);
+
+    /* Split out the data
+     * 0 - Timestamp
+     * 1 - Max Temp
+     * 2 - Min Temp
+     * 3 - Max Humidity
+     * 4 - Min Humidity
+     * 5 - Max Pressure
+     * 6 - Min Pressure
+     * 7 - Rainfall
+     * 8 - Max average wind speed
+     * 9 - Min average wind speed
+     */
+    var temp_data = selectColumns(data, [0,1,2]);
+    var humidity_data = selectColumns(data, [0,3,4]);
+    var pressure_data = selectColumns(data, [0,5,6]);
+    var rainfall_data = selectColumns(data, [0,7]);
+    var wind_speed_data = selectColumns(data, [0,8,9]);
+
+    /* And the labels */
+    var temp_labels = [labels[0],labels[1],labels[2]];
+    var humidity_labels = [labels[0],labels[3],labels[4]];
+    var pressure_labels = [labels[0],labels[5],labels[6]];
+    var rainfall_labels = [labels[0],labels[7]];
+    var wind_speed_labels = [labels[0],labels[8],labels[9]];
+
+    /* Some settings */
+    var labelStyles = {
+        'text-align': 'right',
+        'background': 'none'
     };
-    var temperature_chart = new Dygraph.GVizChart(temperature_element);
-    temperature_chart.draw(temperature, temperature_options);
 
-    // Humidity
-    var humidity = new google.visualization.DataView(record_data);
-    humidity.hideColumns([1,2,5,6,7,8,9]);
+    /* Now chart everything */
+    var temp_chart = new Dygraph(
+        temperature_element,
+        temp_data,
+        {
+            labels: temp_labels,
+            animatedZooms: enable_animated_zooms,
+            strokeWidth: strokeWidth,
+            title: "Temperature (°C)",
+            axes: {
+                y: {
+                    valueFormatter: temperatureFormatter
+                }
+            },
+            legend: 'always',
+            labelsDivStyles: labelStyles
+        });
 
-    var humidity_options = {
-        title: 'Humidity (%)',
-        legend: {position: 'bottom'}
-    };
-    var humidity_chart = new Dygraph.GVizChart(humidity_element);
-    humidity_chart.draw(humidity, humidity_options);
+    var humidity_chart = new Dygraph(
+        humidity_element,
+        humidity_data,
+        {
+            labels: humidity_labels,
+            animatedZooms: enable_animated_zooms,
+            strokeWidth: strokeWidth,
+            title: "Humidity (%)",
+            axes: {
+                y: {
+                    valueFormatter: humidityFormatter
+                }
+            },
+            legend: 'always',
+            labelsDivStyles: labelStyles
+        });
 
-    // Pressure
-    var pressure = new google.visualization.DataView(record_data);
-    pressure.hideColumns([1,2,3,4,7,8,9]);
+    var pressure_chart = new Dygraph(
+        pressure_element,
+        pressure_data,
+        {
+            labels: pressure_labels,
+            animatedZooms: enable_animated_zooms,
+            strokeWidth: strokeWidth,
+            title: "Absolute Pressure (hPa)",
+            axes: {
+                y: {
+                    valueFormatter: pressureFormatter
+                }
+            },
+            legend: 'always',
+            labelsDivStyles: labelStyles
+        });
 
-    var pressure_options = {
-        title: 'Absolute Pressure (hPa)',
-        legend: {position: 'bottom'}
-    };
-    var pressure_chart = new Dygraph.GVizChart(pressure_element);
-    pressure_chart.draw(pressure, pressure_options);
+    var rainfall_chart = new Dygraph(
+        rainfall_element,
+        rainfall_data,
+        {
+            labels: rainfall_labels,
+            animatedZooms: enable_animated_zooms,
+            strokeWidth: strokeWidth,
+            title: "Total Rainfall (mm)",
+            axes: {
+                y: {
+                    valueFormatter: rainfallFormatter
+                }
+            },
+            legend: 'always',
+            labelsDivStyles: labelStyles
+        });
 
-    // Rainfall
-    var rainfall = new google.visualization.DataView(record_data);
-    rainfall.hideColumns([1,2,3,4,5,6,8,9]);
-
-    var rainfall_options = {
-        title: 'Total Rainfall (mm)',
-        legend: {position: 'none'},
-        vAxis: {format: '##.#'}
-    };
-    var rainfall_chart = new Dygraph.GVizChart(
-        rainfall_element);
-    rainfall_chart.draw(rainfall, rainfall_options);
-
-    // Wind speed
-    var wind_speed = new google.visualization.DataView(record_data);
-    wind_speed.hideColumns([1,2,3,4,5,6,7]);
-
-    var wind_speed_options = {
-        title: 'Wind Speed (m/s)',
-        legend: {position: 'bottom'}
-    };
-    var wind_speed_chart = new Dygraph.GVizChart(wind_speed_element);
-    wind_speed_chart.draw(wind_speed, wind_speed_options);
+    var wind_speed_chart = new Dygraph(
+        wind_speed_element,
+        wind_speed_data,
+        {
+            labels: wind_speed_labels,
+            animatedZooms: enable_animated_zooms,
+            strokeWidth: strokeWidth,
+            title: "Wind Speed (m/s)",
+            axes: {
+                y: {
+                    valueFormatter: windSpeedFormatter
+                }
+            },
+            legend: 'always',
+            labelsDivStyles: labelStyles
+        });
 }
+
+function drawCharts() {
+    /***************************************************************
+     * Fetch the days samples and draw the 1-day charts
+     */
+    $.getJSON(samples_url, function(data) {
+
+        drawSampleLineCharts(
+            data,
+            document.getElementById('chart_temperature_tdp_div'),
+            document.getElementById('chart_temperature_awc_div'),
+            document.getElementById('chart_humidity_div'),
+            document.getElementById('chart_pressure_div'),
+            document.getElementById('chart_wind_speed_div')
+        );
+    });
+
+    $.getJSON(daily_records_url, function(data) {
+
+        drawRecordsLineCharts(
+            data,
+            document.getElementById('chart_rec_temperature'),
+            document.getElementById('chart_rec_pressure'),
+            document.getElementById('chart_rec_humidity'),
+            document.getElementById('chart_rainfall'),
+            document.getElementById('chart_rec_wind_speed')
+        );
+    });
+}
+
+drawCharts();
