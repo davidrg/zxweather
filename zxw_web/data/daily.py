@@ -10,213 +10,10 @@ from database import get_daily_records, get_daily_rainfall, get_latest_sample_ti
 import web
 import config
 import json
-from data.util import    outdoor_sample_result_to_json, rainfall_sample_result_to_json, indoor_sample_result_to_datatable, indoor_sample_result_to_json, outdoor_sample_result_to_datatable, rainfall_to_datatable
-
+from data.util import outdoor_sample_result_to_json, rainfall_sample_result_to_json, indoor_sample_result_to_datatable, indoor_sample_result_to_json, outdoor_sample_result_to_datatable, rainfall_to_datatable
 
 __author__ = 'David Goodwin'
 
-#
-# Samples
-#
-
-def get_day_samples_data(day):
-    """
-    Gets the full days samples.
-    :param day:
-    :return:
-    """
-    params = dict(date = day)
-    result = config.db.query("""select s.time_stamp::timestamptz,
-               s.temperature,
-               s.dew_point,
-               s.apparent_temperature,
-               s.wind_chill,
-               s.relative_humidity,
-               s.absolute_pressure,
-               s.time_stamp - (s.sample_interval * '1 minute'::interval) as prev_sample_time,
-               CASE WHEN (s.time_stamp - prev.time_stamp) > ((s.sample_interval * 2) * '1 minute'::interval) THEN
-                  true
-               else
-                  false
-               end as gap,
-               s.average_wind_speed,
-               s.gust_wind_speed
-    from sample s, sample prev
-    where date(s.time_stamp) = $date
-      and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp)"""
-                      , params)
-
-    return result
-
-def get_day_dataset(day, data_function, output_function):
-    """
-    Gets day-level JSON data using the supplied data function and then
-    converts it to JSON using the supplied output function.
-
-    :param day: Day to get data for.
-    :param data_function: Function to supply data.
-    :param output_function: Function to format JSON output.
-    :return: JSON data.
-    """
-
-    result = data_function(day)
-
-    data,age = output_function(result)
-
-    day_cache_control(age,day)
-
-    web.header('Content-Type','application/json')
-    web.header('Content-Length', str(len(data)))
-    return data
-
-get_day_samples_datatable = lambda day: get_day_dataset(day, get_day_samples_data, outdoor_sample_result_to_datatable)
-get_day_samples_json = lambda day: get_day_dataset(day, get_day_samples_data, outdoor_sample_result_to_json)
-
-#
-# 7-day samples
-#
-
-def get_7day_samples_data(day):
-    """
-    Gets samples for the 7-day period ending on the specified date.
-    :param day: End date for the 7-day period
-    :return: Query data
-    """
-    params = dict(date = day)
-    result = config.db.query("""select s.time_stamp,
-           s.temperature,
-           s.dew_point,
-           s.apparent_temperature,
-           s.wind_chill,
-           s.relative_humidity,
-           s.absolute_pressure,
-           s.time_stamp - (s.sample_interval * '1 minute'::interval) as prev_sample_time,
-           CASE WHEN (s.time_stamp - prev.time_stamp) > ((s.sample_interval * 2) * '1 minute'::interval) THEN
-              true
-           else
-              false
-           end as gap,
-           s.average_wind_speed,
-           s.gust_wind_speed
-    from sample s, sample prev,
-         (select max(time_stamp) as ts from sample where date(time_stamp) = $date) as max_ts
-    where s.time_stamp <= max_ts.ts     -- 604800 seconds in a week.
-      and s.time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
-      and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp)
-    order by s.time_stamp asc
-    """, params)
-    return result
-
-get_7day_samples_datatable = lambda day: get_day_dataset(day,get_7day_samples_data,outdoor_sample_result_to_datatable)
-get_7day_samples_json = lambda day: get_day_dataset(day,get_7day_samples_data,outdoor_sample_result_to_json)
-
-#
-# 7-day 30-minute average samples
-#
-
-def get_7day_30mavg_samples_data(day):
-    """
-    Gets 30-minute averaged sample data over the 7-day period ending on the
-    specified day.
-    :param day: end date.
-    :return: Data.
-    """
-    params = dict(date = day)
-    result = config.db.query("""select min(iq.time_stamp) as time_stamp,
-       avg(iq.temperature) as temperature,
-       avg(iq.dew_point) as dew_point,
-       avg(iq.apparent_temperature) as apparent_temperature,
-       avg(wind_chill) as wind_chill,
-       avg(relative_humidity)::integer as relative_humidity,
-       avg(absolute_pressure) as absolute_pressure,
-       min(prev_sample_time) as prev_sample_time,
-       bool_or(gap) as gap,
-       avg(iq.average_wind_speed) as average_wind_speed,
-       avg(iq.gust_wind_speed) as gust_wind_speed
-from (
-        select cur.time_stamp,
-               (extract(epoch from cur.time_stamp) / 1800)::integer AS quadrant,
-               cur.temperature,
-               cur.dew_point,
-               cur.apparent_temperature,
-               cur.wind_chill,
-               cur.relative_humidity,
-               cur.absolute_pressure,
-               cur.time_stamp - (cur.sample_interval * '1 minute'::interval) as prev_sample_time,
-               CASE WHEN (cur.time_stamp - prev.time_stamp) > ((cur.sample_interval * 2) * '1 minute'::interval) THEN
-                  true
-               else
-                  false
-               end as gap,
-               cur.average_wind_speed,
-               cur.gust_wind_speed
-        from sample cur, sample prev,
-             (select max(time_stamp) as ts from sample where date(time_stamp) = $date) as max_ts
-        where cur.time_stamp <= max_ts.ts     -- 604800 seconds in a week.
-          and cur.time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
-          and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < cur.time_stamp)
-        order by cur.time_stamp asc) as iq
-group by iq.quadrant
-order by iq.quadrant asc""", params)
-    return result
-
-get_7day_30mavg_samples_datatable = lambda day: get_day_dataset(day,get_7day_30mavg_samples_data,outdoor_sample_result_to_datatable)
-get_7day_30mavg_samples_json = lambda day: get_day_dataset(day,get_7day_30mavg_samples_data,outdoor_sample_result_to_json)
-
-#
-# 1-day rainfall data
-#
-
-def get_days_hourly_rainfall_data(day):
-    """
-    Gets the days hourly rainfall data.
-    :param day: Day to get rainfall data for.
-    :return: Rainfall data query result
-    """
-
-    params = dict(date = day)
-
-    result = config.db.query("""select date_trunc('hour',time_stamp) as time_stamp,
-           sum(rainfall) as rainfall
-    from sample
-    where time_stamp::date = $date
-    group by date_trunc('hour',time_stamp)
-    order by date_trunc('hour',time_stamp) asc""", params)
-
-    return result
-
-get_days_hourly_rainfall_datatable = lambda day: get_day_dataset(day,get_days_hourly_rainfall_data,rainfall_to_datatable)
-get_days_hourly_rainfall_json = lambda day: get_day_dataset(day,get_days_hourly_rainfall_data,rainfall_sample_result_to_json)
-
-#
-# 7-day rainfall data
-#
-
-def get_7day_hourly_rainfall_data(day):
-    """
-    Gets hourly rainfall data for the 7 day period ending at the specified date.
-    :param day: End of the 7 day period
-    :return: Rainfall data query result.
-    """
-
-    params = dict(date = day)
-
-    result = config.db.query("""select date_trunc('hour',time_stamp) as time_stamp,
-           sum(rainfall) as rainfall
-    from sample, (select max(time_stamp) as ts from sample where time_stamp::date = $date) as max_ts
-    where time_stamp <= max_ts.ts
-      and time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
-    group by date_trunc('hour',time_stamp)
-    order by date_trunc('hour',time_stamp) asc""", params)
-
-    return result
-
-get_7day_hourly_rainfall_datatable = lambda day: get_day_dataset(day,get_7day_hourly_rainfall_data,rainfall_to_datatable)
-get_7day_hourly_rainfall_json = lambda day: get_day_dataset(day,get_7day_hourly_rainfall_data,rainfall_sample_result_to_json)
-
-#
-# Misc
-#
 
 def get_day_records(day):
     """
@@ -301,9 +98,169 @@ def get_day_rainfall(day):
     web.header('Content-Length', str(len(json_data)))
     return json_data
 
-#
-# Indoor 1-day samples
-#
+def get_day_dataset(day, data_function, output_function):
+    """
+    Gets day-level JSON data using the supplied data function and then
+    converts it to JSON using the supplied output function.
+
+    :param day: Day to get data for.
+    :param data_function: Function to supply data.
+    :param output_function: Function to format JSON output.
+    :return: JSON data.
+    """
+
+    result = data_function(day)
+
+    data,age = output_function(result)
+
+    day_cache_control(age,day)
+
+    web.header('Content-Type','application/json')
+    web.header('Content-Length', str(len(data)))
+    return data
+
+def get_day_samples_data(day):
+    """
+    Gets the full days samples.
+    :param day:
+    :return:
+    """
+    params = dict(date = day)
+    result = config.db.query("""select s.time_stamp::timestamptz,
+               s.temperature,
+               s.dew_point,
+               s.apparent_temperature,
+               s.wind_chill,
+               s.relative_humidity,
+               s.absolute_pressure,
+               s.time_stamp - (s.sample_interval * '1 minute'::interval) as prev_sample_time,
+               CASE WHEN (s.time_stamp - prev.time_stamp) > ((s.sample_interval * 2) * '1 minute'::interval) THEN
+                  true
+               else
+                  false
+               end as gap,
+               s.average_wind_speed,
+               s.gust_wind_speed
+    from sample s, sample prev
+    where date(s.time_stamp) = $date
+      and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp)"""
+                             , params)
+
+    return result
+
+def get_7day_samples_data(day):
+    """
+    Gets samples for the 7-day period ending on the specified date.
+    :param day: End date for the 7-day period
+    :return: Query data
+    """
+    params = dict(date = day)
+    result = config.db.query("""select s.time_stamp,
+           s.temperature,
+           s.dew_point,
+           s.apparent_temperature,
+           s.wind_chill,
+           s.relative_humidity,
+           s.absolute_pressure,
+           s.time_stamp - (s.sample_interval * '1 minute'::interval) as prev_sample_time,
+           CASE WHEN (s.time_stamp - prev.time_stamp) > ((s.sample_interval * 2) * '1 minute'::interval) THEN
+              true
+           else
+              false
+           end as gap,
+           s.average_wind_speed,
+           s.gust_wind_speed
+    from sample s, sample prev,
+         (select max(time_stamp) as ts from sample where date(time_stamp) = $date) as max_ts
+    where s.time_stamp <= max_ts.ts     -- 604800 seconds in a week.
+      and s.time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
+      and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp)
+    order by s.time_stamp asc
+    """, params)
+    return result
+
+def get_7day_30mavg_samples_data(day):
+    """
+    Gets 30-minute averaged sample data over the 7-day period ending on the
+    specified day.
+    :param day: end date.
+    :return: Data.
+    """
+    params = dict(date = day)
+    result = config.db.query("""select min(iq.time_stamp) as time_stamp,
+       avg(iq.temperature) as temperature,
+       avg(iq.dew_point) as dew_point,
+       avg(iq.apparent_temperature) as apparent_temperature,
+       avg(wind_chill) as wind_chill,
+       avg(relative_humidity)::integer as relative_humidity,
+       avg(absolute_pressure) as absolute_pressure,
+       min(prev_sample_time) as prev_sample_time,
+       bool_or(gap) as gap,
+       avg(iq.average_wind_speed) as average_wind_speed,
+       avg(iq.gust_wind_speed) as gust_wind_speed
+from (
+        select cur.time_stamp,
+               (extract(epoch from cur.time_stamp) / 1800)::integer AS quadrant,
+               cur.temperature,
+               cur.dew_point,
+               cur.apparent_temperature,
+               cur.wind_chill,
+               cur.relative_humidity,
+               cur.absolute_pressure,
+               cur.time_stamp - (cur.sample_interval * '1 minute'::interval) as prev_sample_time,
+               CASE WHEN (cur.time_stamp - prev.time_stamp) > ((cur.sample_interval * 2) * '1 minute'::interval) THEN
+                  true
+               else
+                  false
+               end as gap,
+               cur.average_wind_speed,
+               cur.gust_wind_speed
+        from sample cur, sample prev,
+             (select max(time_stamp) as ts from sample where date(time_stamp) = $date) as max_ts
+        where cur.time_stamp <= max_ts.ts     -- 604800 seconds in a week.
+          and cur.time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
+          and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < cur.time_stamp)
+        order by cur.time_stamp asc) as iq
+group by iq.quadrant
+order by iq.quadrant asc""", params)
+    return result
+
+def get_days_hourly_rainfall_data(day):
+    """
+    Gets the days hourly rainfall data.
+    :param day: Day to get rainfall data for.
+    :return: Rainfall data query result
+    """
+
+    params = dict(date = day)
+
+    result = config.db.query("""select date_trunc('hour',time_stamp) as time_stamp,
+           sum(rainfall) as rainfall
+    from sample
+    where time_stamp::date = $date
+    group by date_trunc('hour',time_stamp)
+    order by date_trunc('hour',time_stamp) asc""", params)
+
+    return result
+
+def get_7day_hourly_rainfall_data(day):
+    """
+    Gets hourly rainfall data for the 7 day period ending at the specified date.
+    :param day: End of the 7 day period
+    :return: Rainfall data query result.
+    """
+
+    params = dict(date = day)
+
+    result = config.db.query("""select date_trunc('hour',time_stamp) as time_stamp,
+           sum(rainfall) as rainfall
+    from sample, (select max(time_stamp) as ts from sample where time_stamp::date = $date) as max_ts
+    where time_stamp <= max_ts.ts
+      and time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
+    group by date_trunc('hour',time_stamp)
+    order by date_trunc('hour',time_stamp) asc""", params)
+
+    return result
 
 def get_day_indoor_samples_data(day):
     """
@@ -327,13 +284,6 @@ where date(s.time_stamp) = $date
   and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp)""", params)
 
     return result
-
-get_day_indoor_samples_datatable = lambda day: get_day_dataset(day,get_day_indoor_samples_data,indoor_sample_result_to_datatable)
-get_day_indoor_samples_json = lambda day: get_day_dataset(day,get_day_indoor_samples_data,indoor_sample_result_to_json)
-
-#
-# Indoor 7-day samples
-#
 
 def get_7day_indoor_samples_data(day):
     """
@@ -361,13 +311,6 @@ def get_7day_indoor_samples_data(day):
             """, params)
 
     return result
-
-get_7day_indoor_samples_datatable = lambda day: get_day_dataset(day,get_7day_indoor_samples_data,indoor_sample_result_to_datatable)
-get_7day_indoor_samples_json = lambda day: get_day_dataset(day,get_7day_indoor_samples_data,indoor_sample_result_to_json)
-
-#
-# Indoor 7-day samples (30-minute average)
-#
 
 def get_7day_30mavg_indoor_samples_data(day):
     """
@@ -405,22 +348,19 @@ order by iq.quadrant asc""", params)
 
     return result
 
-get_7day_30mavg_indoor_samples_datatable = lambda day: get_day_dataset(day,get_7day_30mavg_indoor_samples_data,indoor_sample_result_to_datatable)
-get_7day_30mavg_indoor_samples_json = lambda day: get_day_dataset(day,get_7day_30mavg_indoor_samples_data,indoor_sample_result_to_json)
-
 # Data sources available at the day level.
 datasources = {
     'samples': {
         'desc': 'All outdoor samples for the day. Should be around 288 records.',
-        'func': get_day_samples_json
+        'func': lambda day: get_day_dataset(day, get_day_samples_data, outdoor_sample_result_to_json)
     },
     '7day_samples':{
         'desc': 'Averaged outdoor samples every 30 minutes for the past 7 days.',
-        'func': get_7day_samples_json
+        'func': lambda day: get_day_dataset(day,get_7day_samples_data,outdoor_sample_result_to_json)
     },
     '7day_30m_avg_samples':{
         'desc': 'Averaged outdoor samples every 30 minutes for the past 7 days.',
-        'func': get_7day_30mavg_samples_json
+        'func': lambda day: get_day_dataset(day,get_7day_30mavg_samples_data,outdoor_sample_result_to_json)
     },
     'records': {
         'desc': 'Records for the day.',
@@ -432,23 +372,23 @@ datasources = {
     },
     'hourly_rainfall': {
         'desc': 'Total rainfall for each hour in the day',
-        'func': get_days_hourly_rainfall_json
+        'func': lambda day: get_day_dataset(day,get_days_hourly_rainfall_data,rainfall_sample_result_to_json)
     },
     '7day_hourly_rainfall': {
         'desc': 'Total rainfall for each hour in the past seven days.',
-        'func': get_7day_hourly_rainfall_json
+        'func': lambda day: get_day_dataset(day,get_7day_hourly_rainfall_data,rainfall_sample_result_to_json)
     },
     'indoor_samples': {
         'desc': 'All indoor samples for the day. Should be around 288 records.',
-        'func': get_day_indoor_samples_json
+        'func': lambda day: get_day_dataset(day,get_day_indoor_samples_data,indoor_sample_result_to_json)
     },
     '7day_indoor_samples': {
         'desc': 'Every indoor sample over the past seven days. Should be around 2016 records.',
-        'func': get_7day_indoor_samples_json
+        'func': lambda day: get_day_dataset(day,get_7day_indoor_samples_data,indoor_sample_result_to_json)
     },
     '7day_30m_avg_indoor_samples': {
         'desc': 'Averaged indoor samples every 30 minutes for the past 7 days.',
-        'func': get_7day_30mavg_indoor_samples_json
+        'func': lambda day: get_day_dataset(day,get_7day_30mavg_indoor_samples_data,indoor_sample_result_to_json)
     },
 }
 
@@ -457,37 +397,37 @@ datasources = {
 datatable_datasources = {
     'samples': {
         'desc': 'All outdoor samples for the day. Should be around 288 records.',
-        'func': get_day_samples_datatable
+        'func': lambda day: get_day_dataset(day, get_day_samples_data, outdoor_sample_result_to_datatable)
     },
     '7day_samples': {
         'desc': 'Every outdoor sample over the past seven days. Should be around 2016 records.',
-        'func': get_7day_samples_datatable
+        'func': lambda day: get_day_dataset(day,get_7day_samples_data,outdoor_sample_result_to_datatable)
     },
     '7day_30m_avg_samples': {
         'desc': 'Averaged outdoor samples every 30 minutes for the past 7 days.',
-        'func': get_7day_30mavg_samples_datatable
+        'func': lambda day: get_day_dataset(day,get_7day_30mavg_samples_data,outdoor_sample_result_to_datatable)
     },
     'indoor_samples': {
         'desc': 'All indoor samples for the day. Should be around 288 records.',
-        'func': get_day_indoor_samples_datatable
+        'func': lambda day: get_day_dataset(day,get_day_indoor_samples_data,indoor_sample_result_to_datatable)
     },
     '7day_indoor_samples': {
         'desc': 'Every indoor sample over the past seven days. Should be around 2016 records.',
-        'func': get_7day_indoor_samples_datatable
+        'func': lambda day: get_day_dataset(day,get_7day_indoor_samples_data,indoor_sample_result_to_datatable)
     },
     '7day_30m_avg_indoor_samples': {
         'desc': 'Averaged indoor samples every 30 minutes for the past 7 days.',
-        'func': get_7day_30mavg_indoor_samples_datatable
+        'func': lambda day: get_day_dataset(day,get_7day_30mavg_indoor_samples_data,indoor_sample_result_to_datatable)
     },
     'hourly_rainfall': {
         'desc': 'Total rainfall for each hour in the day',
-        'func': get_days_hourly_rainfall_datatable
+        'func': lambda day: get_day_dataset(day,get_days_hourly_rainfall_data,rainfall_to_datatable)
     },
     '7day_hourly_rainfall': {
         'desc': 'Total rainfall for each hour in the past seven days.',
-        'func': get_7day_hourly_rainfall_datatable
+        'func': lambda day: get_day_dataset(day,get_7day_hourly_rainfall_data,rainfall_to_datatable)
     },
-    }
+}
 
 def datasource_dispatch(station, datasource_dict, dataset, day):
     """
