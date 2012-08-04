@@ -61,6 +61,9 @@ function drawRecordsLineCharts(jsondata,
             axes: {
                 y: {
                     valueFormatter: temperatureFormatter
+                },
+                x: {
+                    valueFormatter: dateFormatter
                 }
             },
             legend: 'always',
@@ -78,6 +81,9 @@ function drawRecordsLineCharts(jsondata,
             axes: {
                 y: {
                     valueFormatter: humidityFormatter
+                },
+                x: {
+                    valueFormatter: dateFormatter
                 }
             },
             legend: 'always',
@@ -95,6 +101,9 @@ function drawRecordsLineCharts(jsondata,
             axes: {
                 y: {
                     valueFormatter: pressureFormatter
+                },
+                x: {
+                    valueFormatter: dateFormatter
                 }
             },
             legend: 'always',
@@ -112,6 +121,9 @@ function drawRecordsLineCharts(jsondata,
             axes: {
                 y: {
                     valueFormatter: rainfallFormatter
+                },
+                x: {
+                    valueFormatter: dateFormatter
                 }
             },
             legend: 'always',
@@ -129,6 +141,9 @@ function drawRecordsLineCharts(jsondata,
             axes: {
                 y: {
                     valueFormatter: windSpeedFormatter
+                },
+                x: {
+                    valueFormatter: dateFormatter
                 }
             },
             legend: 'always',
