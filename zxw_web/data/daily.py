@@ -15,10 +15,6 @@ from data.util import    outdoor_sample_result_to_json, rainfall_sample_result_t
 
 __author__ = 'David Goodwin'
 
-### Data URLs:
-# This file provides URLs to access raw data in json format.
-
-
 #
 # Samples
 #
@@ -73,29 +69,8 @@ def get_day_dataset(day, data_function, output_function):
     web.header('Content-Length', str(len(data)))
     return data
 
-def get_day_samples_datatable(day):
-    """
-    Gets data for a specific day in a Google DataTable compatible format.
-    :param day: Day to get data for
-    :type day: date
-    :return: JSON data containing samples for the day.
-    :rtype: str
-    """
-
-    return get_day_dataset(day,
-                           get_day_samples_data,
-                           outdoor_sample_result_to_datatable)
-
-def get_day_samples_json(day):
-    """
-    Gets the days samples in Dygraphs native format
-    :param day: Day to get data for
-    :return: JSON-encoded data for that day.
-    """
-
-    return get_day_dataset(day,
-                           get_day_samples_data,
-                           outdoor_sample_result_to_json)
+get_day_samples_datatable = lambda day: get_day_dataset(day, get_day_samples_data, outdoor_sample_result_to_datatable)
+get_day_samples_json = lambda day: get_day_dataset(day, get_day_samples_data, outdoor_sample_result_to_json)
 
 #
 # 7-day samples
@@ -132,31 +107,8 @@ def get_7day_samples_data(day):
     """, params)
     return result
 
-def get_7day_samples_datatable(day):
-    """
-    Gets data for a 7-day period in a Google DataTable compatible format.
-    :param day: Day to get data for
-    :type day: date
-    :return: JSON data containing the past seven days of samples
-    :rtype: str
-    """
-
-    return get_day_dataset(day,
-                           get_7day_samples_data,
-                           outdoor_sample_result_to_datatable)
-
-def get_7day_samples_json(day):
-    """
-    Gets data for a 7-day period in a Google DataTable compatible format.
-    :param day: Day to get data for
-    :type day: date
-    :return: JSON data containing the past seven days of samples
-    :rtype: str
-    """
-
-    return get_day_dataset(day,
-                           get_7day_samples_data,
-                           outdoor_sample_result_to_json)
+get_7day_samples_datatable = lambda day: get_day_dataset(day,get_7day_samples_data,outdoor_sample_result_to_datatable)
+get_7day_samples_json = lambda day: get_day_dataset(day,get_7day_samples_data,outdoor_sample_result_to_json)
 
 #
 # 7-day 30-minute average samples
@@ -208,32 +160,8 @@ group by iq.quadrant
 order by iq.quadrant asc""", params)
     return result
 
-def get_7day_30mavg_samples_datatable(day):
-    """
-    Gets data for a 7-day period in a Google DataTable compatible format.
-    Data is averaged hourly to reduce the sample count.
-    :param day: Day to get data for
-    :type day: date
-    :return: JSON data containing 30 minute averaged sample data for the past
-             seven days
-    :rtype: str
-    """
-
-    return get_day_dataset(day,
-                           get_7day_30mavg_samples_data,
-                           outdoor_sample_result_to_datatable)
-
-def get_7day_30mavg_samples_json(day):
-    """
-    Gets 30-minute averaged sample data over the past 7 days for the
-    Dygraphs charts.
-    :param day: End date for the 7-day period
-    :return: JSON-encoded data for the 7-day period.
-    """
-
-    return get_day_dataset(day,
-                           get_7day_30mavg_samples_data,
-                           outdoor_sample_result_to_json)
+get_7day_30mavg_samples_datatable = lambda day: get_day_dataset(day,get_7day_30mavg_samples_data,outdoor_sample_result_to_datatable)
+get_7day_30mavg_samples_json = lambda day: get_day_dataset(day,get_7day_30mavg_samples_data,outdoor_sample_result_to_json)
 
 #
 # 1-day rainfall data
@@ -257,27 +185,8 @@ def get_days_hourly_rainfall_data(day):
 
     return result
 
-def get_days_hourly_rainfall_datatable(day):
-    """
-    Gets total rainfall for each hour during the specified day.
-    :param day: Date to get data for
-    :type day: datetime.date
-    """
-
-    return get_day_dataset(day,
-                           get_days_hourly_rainfall_data,
-                           rainfall_to_datatable)
-
-def get_days_hourly_rainfall_json(day):
-    """
-    Gets hourly rainfall data for the day in JSON format.
-    :param day: Day to get rainfall for.
-    :return: Rainfall JSON data.
-    """
-
-    return get_day_dataset(day,
-                           get_days_hourly_rainfall_data,
-                           rainfall_sample_result_to_json)
+get_days_hourly_rainfall_datatable = lambda day: get_day_dataset(day,get_days_hourly_rainfall_data,rainfall_to_datatable)
+get_days_hourly_rainfall_json = lambda day: get_day_dataset(day,get_days_hourly_rainfall_data,rainfall_sample_result_to_json)
 
 #
 # 7-day rainfall data
@@ -302,27 +211,8 @@ def get_7day_hourly_rainfall_data(day):
 
     return result
 
-def get_7day_hourly_rainfall_datatable(day):
-    """
-    Gets total rainfall for each hour during the past 7 days.
-    :param day: Date to get data for
-    :type day: datetime.date
-    """
-
-    return get_day_dataset(day,
-                           get_7day_hourly_rainfall_data,
-                           rainfall_to_datatable)
-
-def get_7day_hourly_rainfall_json(day):
-    """
-    Gets total rainfall for each hour during the past 7 days.
-    :param day: Date to get data for
-    :type day: datetime.date
-    """
-
-    return get_day_dataset(day,
-                           get_7day_hourly_rainfall_data,
-                           rainfall_sample_result_to_json)
+get_7day_hourly_rainfall_datatable = lambda day: get_day_dataset(day,get_7day_hourly_rainfall_data,rainfall_to_datatable)
+get_7day_hourly_rainfall_json = lambda day: get_day_dataset(day,get_7day_hourly_rainfall_data,rainfall_sample_result_to_json)
 
 #
 # Misc
@@ -438,30 +328,8 @@ where date(s.time_stamp) = $date
 
     return result
 
-def get_day_indoor_samples_datatable(day):
-    """
-    Gets indoor data for a specific day in a Google DataTable compatible format.
-    :param day: Day to get data for
-    :type day: date
-    :return: JSON data (in googles datatable format) containing indoor samples
-             for the day
-    :rtype: str
-    """
-
-    return get_day_dataset(day,
-                           get_day_indoor_samples_data,
-                           indoor_sample_result_to_datatable)
-
-def get_day_indoor_samples_json(day):
-    """
-    Gets indoor sample data for one day. Output is a generic JSON format.
-    :param day: Day to get samples for.
-    :return: JSON data.
-    """
-
-    return get_day_dataset(day,
-                           get_day_indoor_samples_data,
-                           indoor_sample_result_to_json)
+get_day_indoor_samples_datatable = lambda day: get_day_dataset(day,get_day_indoor_samples_data,indoor_sample_result_to_datatable)
+get_day_indoor_samples_json = lambda day: get_day_dataset(day,get_day_indoor_samples_data,indoor_sample_result_to_json)
 
 #
 # Indoor 7-day samples
@@ -494,29 +362,8 @@ def get_7day_indoor_samples_data(day):
 
     return result
 
-def get_7day_indoor_samples_datatable(day):
-    """
-    :param day: Day to get data for
-    :type day: date
-    :return: JSON data in Googles datatable format containing indoor samples
-    for the past seven days.
-    """
-
-    return get_day_dataset(day,
-                           get_7day_indoor_samples_data,
-                           indoor_sample_result_to_datatable)
-
-def get_7day_indoor_samples_json(day):
-    """
-    Gets indoor sample data for the 7-day period ending on the specified date.
-    Output is a generic JSON format.
-    :param day: End date for the 7-day period.
-    :return: JSON data.
-    """
-
-    return get_day_dataset(day,
-                           get_7day_indoor_samples_data,
-                           indoor_sample_result_to_json)
+get_7day_indoor_samples_datatable = lambda day: get_day_dataset(day,get_7day_indoor_samples_data,indoor_sample_result_to_datatable)
+get_7day_indoor_samples_json = lambda day: get_day_dataset(day,get_7day_indoor_samples_data,indoor_sample_result_to_json)
 
 #
 # Indoor 7-day samples (30-minute average)
@@ -558,30 +405,8 @@ order by iq.quadrant asc""", params)
 
     return result
 
-def get_7day_30mavg_indoor_samples_datatable(day):
-    """
-    Gets data for a 7-day period in a Google DataTable compatible format.
-    :param day: Day to get data for
-    :type day: date
-    :return: JSON in Googles Datatable format containing 30 minute averaged
-    data for the past seven days of indoor samples.
-    """
-
-    return get_day_dataset(day,
-                           get_7day_30mavg_indoor_samples_data,
-                           indoor_sample_result_to_datatable)
-
-def get_7day_30mavg_indoor_samples_json(day):
-    """
-    Gets indoor sample data for the 7-day period ending on the specified date.
-    Output is a generic JSON format.
-    :param day: End date for the 7-day period.
-    :return: JSON data.
-    """
-
-    return get_day_dataset(day,
-                           get_7day_30mavg_indoor_samples_data,
-                           indoor_sample_result_to_json)
+get_7day_30mavg_indoor_samples_datatable = lambda day: get_day_dataset(day,get_7day_30mavg_indoor_samples_data,indoor_sample_result_to_datatable)
+get_7day_30mavg_indoor_samples_json = lambda day: get_day_dataset(day,get_7day_30mavg_indoor_samples_data,indoor_sample_result_to_json)
 
 # Data sources available at the day level.
 datasources = {
@@ -627,64 +452,6 @@ datasources = {
     },
 }
 
-def datasource_dispatch(station, datasource_dict, dataset, day):
-    """
-    Dispatches a request for a data source.
-    :param station: Station to use
-    :type station: str
-    :param datasource_dict: Dict of datasources that are valid at this point.
-    :type datasource_dict: dict
-    :param dataset: dataset that was requested
-    :type dataset: str
-    :param day: Day that data was requested for
-    :type day: date
-    :return: Response data
-    :raise: web.NotFound() if request is invalid
-    """
-    if station != config.default_station_name:
-        raise web.NotFound()
-    print dataset
-    # Make sure the day actually exists in the database before we go
-    # any further.
-    if not day_exists(day):
-        raise web.NotFound()
-
-    if dataset in datasource_dict:
-        if datasource_dict[dataset]['func'] is None:
-            raise web.NotFound()
-        return datasource_dict[dataset]['func'](day)
-    else:
-        raise web.NotFound()
-
-
-class data_json:
-    """
-    Gets data for a particular day in Googles DataTable format.
-    """
-    def GET(self, station, year, month, day, dataset):
-        """
-        Gets plain (non-datatable) JSON data sources.
-        :param station: Station to get data for
-        :type station: str
-        :param year: Year to get data for
-        :type year: str
-        :param month: month to get data for
-        :type month: str
-        :param day: day to get data for
-        :type day: str
-        :param dataset: The dataset (filename) to retrieve
-        :type dataset: str
-        :return: the JSON dataset requested
-        :rtype: str
-        :raise: web.NotFound if an invalid request is made.
-        """
-        this_date = date(int(year),int(month),int(day))
-
-        return datasource_dispatch(station,
-                                   datasources,
-                                   dataset,
-                                   this_date)
-
 # These are all the available datasources ('files') for the day datatable
 # route.
 datatable_datasources = {
@@ -722,6 +489,85 @@ datatable_datasources = {
     },
     }
 
+def datasource_dispatch(station, datasource_dict, dataset, day):
+    """
+    Dispatches a request for a data source.
+    :param station: Station to use
+    :type station: str
+    :param datasource_dict: Dict of datasources that are valid at this point.
+    :type datasource_dict: dict
+    :param dataset: dataset that was requested
+    :type dataset: str
+    :param day: Day that data was requested for
+    :type day: date
+    :return: Response data
+    :raise: web.NotFound() if request is invalid
+    """
+    if station != config.default_station_name:
+        raise web.NotFound()
+    print dataset
+    # Make sure the day actually exists in the database before we go
+    # any further.
+    if not day_exists(day):
+        raise web.NotFound()
+
+    if dataset in datasource_dict:
+        if datasource_dict[dataset]['func'] is None:
+            raise web.NotFound()
+        return datasource_dict[dataset]['func'](day)
+    else:
+        raise web.NotFound()
+
+def json_dispatch(station, dataset, day):
+    """
+    Dispatches a request for generic JSON data.
+    :param station: Station to get data for.
+    :param dataset: Data set to get.
+    :param day: Day to get data for.
+    :return: JSON data.
+    """
+
+    return datasource_dispatch(station,
+                               datasources,
+                               dataset,
+                               day)
+
+class data_json:
+    """
+    Gets data for a particular day in Googles DataTable format.
+    """
+    def GET(self, station, year, month, day, dataset):
+        """
+        Gets plain (non-datatable) JSON data sources.
+        :param station: Station to get data for
+        :type station: str
+        :param year: Year to get data for
+        :type year: str
+        :param month: month to get data for
+        :type month: str
+        :param day: day to get data for
+        :type day: str
+        :param dataset: The dataset (filename) to retrieve
+        :type dataset: str
+        :return: the JSON dataset requested
+        :rtype: str
+        :raise: web.NotFound if an invalid request is made.
+        """
+        this_date = date(int(year),int(month),int(day))
+        return json_dispatch(station, dataset,this_date)
+
+def dt_json_dispatch(station, dataset, date):
+    """
+    Dispatches a Day-level DataTable format JSON data set request.
+    :param station: Station to get data for.
+    :param dataset: Data set to get
+    :param date: Date to get data for.
+    :return: JSON data.
+    """
+    return datasource_dispatch(station,
+                               datatable_datasources,
+                               dataset,
+                               date)
 
 class dt_json:
     """
@@ -745,8 +591,4 @@ class dt_json:
         :raise: web.NotFound if an invalid request is made.
         """
         this_date = date(int(year),int(month),int(day))
-
-        return datasource_dispatch(station,
-                                   datatable_datasources,
-                                   dataset,
-                                   this_date)
+        return dt_json_dispatch(station, dataset, this_date)
