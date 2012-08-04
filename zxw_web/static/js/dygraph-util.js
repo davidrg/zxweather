@@ -107,94 +107,99 @@ function drawSampleLineCharts(jsondata,
     var wind_speed_labels = [labels[0],labels[7],labels[8]];
 
     /* Now chart it all */
-    var tdp_chart = new Dygraph(tdp_element,
-                                tdp_data,
-                                {
-                                    labels: tdp_labels,
-                                    animatedZooms: enable_animated_zooms,
-                                    strokeWidth: strokeWidth,
-                                    title: 'Temperature and Dew Point (°C)',
-                                    axes: {
-                                        y: {
-                                            valueFormatter: temperatureFormatter
-                                        }
-                                    },
-                                    legend: 'always',
-                                    labelsDivStyles: {
-                                        'text-align': 'right',
-                                        'background': 'none'
-                                    }
-                                });
-    var awc_chart = new Dygraph(awc_element,
-                                awc_data,
-                                {
-                                    labels: awc_labels,
-                                    animatedZooms: enable_animated_zooms,
-                                    strokeWidth: strokeWidth,
-                                    title: 'Apparent Temperature and Wind Chill (°C)',
-                                    axes: {
-                                        y: {
-                                            valueFormatter: temperatureFormatter
-                                        }
-                                    },
-                                    legend: 'always',
-                                    labelsDivStyles: {
-                                        'text-align': 'right',
-                                        'background': 'none'
-                                    }
-                                });
-    var humidity_chart = new Dygraph(humidity_element,
-                                     humidity_data,
-                                     {
-                                         labels: humidity_labels,
-                                         animatedZooms: enable_animated_zooms,
-                                         strokeWidth: strokeWidth,
-                                         title: 'Humidity (%)',
-                                         axes: {
-                                             y: {
-                                                 valueFormatter: humidityFormatter
-                                             }
-                                         },
-                                         legend: 'always',
-                                         labelsDivStyles: {
-                                             'text-align': 'right',
-                                             'background': 'none'
-                                         }
-                                     });
-    var pressure_chart = new Dygraph(pressure_element,
-                                     pressure_data,
-                                     {
-                                         labels: pressure_labels,
-                                         animatedZooms: enable_animated_zooms,
-                                         strokeWidth: strokeWidth,
-                                         title: 'Absolute Pressure (hPa)',
-                                         axes: {
-                                             y: {
-                                                 valueFormatter: pressureFormatter
-                                             }
-                                         },
-                                         legend: 'always',
-                                         labelsDivStyles: {
-                                             'text-align': 'right',
-                                             'background': 'none'
-                                         }
-                                     });
-    var wind_speed_chart = new Dygraph(wind_speed_element,
-                                       wind_speed_data,
-                                       {
-                                           labels: wind_speed_labels,
-                                           animatedZooms: enable_animated_zooms,
-                                           strokeWidth: strokeWidth,
-                                           title: 'Wind Speed (m/s)',
-                                           axes: {
-                                               y: {
-                                                   valueFormatter: windSpeedFormatter
-                                               }
-                                           },
-                                           legend: 'always',
-                                           labelsDivStyles: {
-                                               'text-align': 'right',
-                                               'background': 'none'
-                                           }
-                                       });
+    var tdp_chart = new Dygraph(
+        tdp_element,
+        tdp_data,
+        {
+            labels: tdp_labels,
+            animatedZooms: enable_animated_zooms,
+            strokeWidth: strokeWidth,
+            title: 'Temperature and Dew Point (°C)',
+            axes: {
+                y: {
+                    valueFormatter: temperatureFormatter
+                }
+            },
+            legend: 'always',
+            labelsDivStyles: {
+                'text-align': 'right',
+                'background': 'none'
+            }
+        });
+    var awc_chart = new Dygraph(
+        awc_element,
+        awc_data,
+        {
+            labels: awc_labels,
+            animatedZooms: enable_animated_zooms,
+            strokeWidth: strokeWidth,
+            title: 'Apparent Temperature and Wind Chill (°C)',
+            axes: {
+                y: {
+                    valueFormatter: temperatureFormatter
+                }
+            },
+            legend: 'always',
+            labelsDivStyles: {
+                'text-align': 'right',
+                'background': 'none'
+            }
+        });
+    var humidity_chart = new Dygraph(
+        humidity_element,
+        humidity_data,
+        {
+            labels: humidity_labels,
+            animatedZooms: enable_animated_zooms,
+            strokeWidth: strokeWidth,
+            title: 'Humidity (%)',
+            axes: {
+                y: {
+                    valueFormatter: humidityFormatter
+                }
+            },
+            legend: 'always',
+            labelsDivStyles: {
+                'text-align': 'right',
+                'background': 'none'
+            }
+        });
+    var pressure_chart = new Dygraph(
+        pressure_element,
+        pressure_data,
+        {
+            labels: pressure_labels,
+            animatedZooms: enable_animated_zooms,
+            strokeWidth: strokeWidth,
+            title: 'Absolute Pressure (hPa)',
+            axes: {
+                y: {
+                    valueFormatter: pressureFormatter
+                }
+            },
+            legend: 'always',
+            labelsDivStyles: {
+                'text-align': 'right',
+                'background': 'none'
+            }
+        });
+    var wind_speed_chart = new Dygraph(
+        wind_speed_element,
+        wind_speed_data,
+        {
+            labels: wind_speed_labels,
+            animatedZooms: enable_animated_zooms,
+            strokeWidth: strokeWidth,
+            title: 'Wind Speed (m/s)',
+            axes: {
+                y: {
+                   valueFormatter: windSpeedFormatter
+                }
+            },
+            legend: 'always',
+            labelsDivStyles: {
+                'text-align': 'right',
+                'background': 'none'
+            }
+        });
 }
