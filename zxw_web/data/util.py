@@ -148,7 +148,7 @@ def outdoor_sample_result_to_json(query_data):
 
         data_set.append(
             [
-                str(record.time_stamp),
+                record.time_stamp.isoformat(),
                 record.temperature,
                 record.dew_point,
                 record.apparent_temperature,
@@ -194,7 +194,7 @@ def rainfall_sample_result_to_json(query_data):
 
         data_set.append(
             [
-                str(record.time_stamp),
+                record.time_stamp.isoformat(),
                 record.rainfall,
             ]
         )
@@ -321,7 +321,7 @@ def daily_records_result_to_json(query_data):
     for record in query_data:
         data_set.append(
             [
-                str(record.time_stamp),
+                record.time_stamp.isoformat(),
                 record.max_temp,
                 record.min_temp,
                 record.max_humid,
@@ -367,7 +367,7 @@ def indoor_sample_result_to_json(query_data):
 
         data_set.append(
             [
-                str(record.time_stamp),
+                record.time_stamp.isoformat(),
                 record.indoor_temperature,
                 record.indoor_relative_humidity,
                 ]
