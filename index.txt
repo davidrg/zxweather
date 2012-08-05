@@ -2,6 +2,7 @@
 INDEX
 ==============================================================================
   database               Database scripts
+  db_push                Tool for pushing db changes to remote web interface
   desktop                Desktop client for Windows and Linux
   doc                    Documentation
   plot                   Static chart plotting program for the web interface
