@@ -1,0 +1,61 @@
+-------------------------------------------------------------------------------
+zxweather v0.1 (alpha) Release Notes                                05-AUG-2012
+===============================================================================
+
+  zxweather is a system for collecting and displaying data from automatic
+  weather stations 100% compatible with the FineOffset WH1080. It includes:
+
+    * A Modern HTML5 web interface with a fallback for older browsers.
+    * A desktop client for Windows and Linux to display current conditions.
+
+  Note that this is an alpha release. While it is functional it does have known
+  minor defects and is not feature complete. If you encounter any bugs first
+  check to see if there is a new release available. If you are running the
+  latest release then please report the bug to bugs@zx.net.nz
+
+  Available Documentation:
+    DAZW-IG01     zxweather Installation Reference
+    DAZW-WG01     WH1080 Utilities Users Guide
+    DAZW-DB01     zxweather Database Structure
+
+  Supported Platforms:
+    All components of zxweather are supported under both Linux and Windows.
+    Linux is the recommended system for running the server components. The
+    data collection tool requires a little-endian CPU such as Intel x86 and
+    most ARM processors.
+
+  Software Environment Requirements:
+    * PostgreSQL 9.x
+    * Python 2.7
+    * gnuplot
+    * For compiling WH1080 Utilities: GNU C, GNU Make, ECPG, libecpg,
+      libpgtypes, libpq, libusb-1.0 (linux only)
+
+  License:
+    See the COPYING file which you should have received with this distribution.
+    This software is licensed under the GNU General Public License, Version 2
+    or (at your option) any later version.
+
+    Documentation is licensed under the GNU Free Documentation License, Version
+    1.3 or any later version published by the Free Software Foundation.
+
+  Known Issues:
+    * It is important to consult section 3.2 of the Installation Reference
+      Manual (DAZW-IG01) before restarting the WH1080 Update Service after
+      extended down time, a weather station reset or erasing the weather
+      stations memory. Failure carry out the procedure described when required
+      may result in data loss.
+    * The FineOffset WH1080 is known to crash from time to time. When this
+      happens the WH1080 Update Service will become unresponsive. If this
+      happens it must be terminated manually before resetting the weather
+      station.
+    * If the WH1080 Update Service looses its database connection it will exit.
+
+  New in v0.1:
+    * First release, no changes.
+
+  Changelog:
+    See the CHANGES file which you should have received with this distribution.
+
+===============================================================================
+                                                              DN: DAZW-
