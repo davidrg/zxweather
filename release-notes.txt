@@ -1,5 +1,5 @@
 -------------------------------------------------------------------------------
-zxweather v0.1 (alpha) Release Notes                                05-AUG-2012
+zxweather v0.2 (alpha) Release Notes                                      -2012
 ===============================================================================
 
   zxweather is a system for collecting and displaying data from automatic
@@ -51,8 +51,8 @@ zxweather v0.1 (alpha) Release Notes                                05-AUG-2012
       station.
     * If the WH1080 Update Service looses its database connection it will exit.
 
-  New in v0.1:
-    * First release, no changes.
+  New in v0.2:
+    * 
 
   Changelog:
     See the CHANGES file which you should have received with this distribution.

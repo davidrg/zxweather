@@ -1,12 +1,12 @@
 ------------------------------------------------------------------------------
-zxweather README                                                   05-AUG-2012
+zxweather README                                                     -   -2012
 ==============================================================================
 
   This is a collection of weather software used on weather.zx.net.nz for use 
   with the Fine Offset WH1080 weather station (and anything compatible with
   it).
 
-  Version: 0.1 (alpha)
+  Version: 0.2 (alpha)
 
   For documentation and information on current releases, see:
      http://ftp2.zx.net.nz/pub/DGS/zxweather/readme.html
