@@ -67,3 +67,5 @@ OTHER_FILES += \
     Makefile \
     ../database/database.sql \
     src/pgout.pgc
+
+RC_FILE = src/rc/wh1080.rc
