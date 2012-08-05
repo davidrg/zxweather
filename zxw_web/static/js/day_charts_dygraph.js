@@ -5,72 +5,164 @@
  * Time: 9:02 PM
  */
 
-function drawAllLineCharts(data,
-                           tdp_element,
-                           awc_element,
-                           humidity_element,
-                           pressure_element,
-                           wind_speed_element) {
+/* This function is stolen from the dygraphs blog:
+ * http://blog.dygraphs.com/2012/08/introducing-custom-plotters.html
+ */
+function barChartPlotter(e) {
+    var ctx = e.drawingContext;
+    var points = e.points;
+    var y_bottom = e.dygraph.toDomYCoord(0);  // see http://dygraphs.com/jsdoc/symbols/Dygraph.html#toDomYCoord
 
-    // Temperature and Dewpoint only
-    var temperature_tdp = new google.visualization.DataView(data);
-    temperature_tdp.hideColumns([3,4,5,6,7,8]);
+    // This should really be based on the minimum gap
+    var bar_width = 2/3 * (points[1].canvasx - points[0].canvasx);
+    ctx.fillStyle = e.color;
 
-    var temperature_tdp_options = {
-        title: 'Temperature and Dew Point (°C)',
-        legend: {position: 'bottom'}
-    };
-    //var temperature_tdp_chart = new google.visualization.LineChart(tdp_element);
-    //temperature_tdp_chart.draw(temperature_tdp, temperature_tdp_options);
+    // Do the actual plotting.
+    for (var i = 0; i < points.length; i++) {
+        var p = points[i];
+        var center_x = p.canvasx;  // center of the bar
 
-    var temperature_tdp_chart = new Dygraph.GVizChart(tdp_element);
-    temperature_tdp_chart.draw(temperature_tdp, temperature_tdp_options);
-
-
-    // Apparent Temperature and Wind Chill only
-    var temperature_awc = new google.visualization.DataView(data);
-    temperature_awc.hideColumns([1,2,5,6,7,8]);
-
-    var temperature_awc_options = {
-        title: 'Apparent Temperature and Wind Chill (°C)',
-        legend: {position: 'bottom'}
-    };
-    var temperature_awc_chart = new Dygraph.GVizChart(awc_element);
-    temperature_awc_chart.draw(temperature_awc, temperature_awc_options);
-
-    // Absolute Pressure only
-    var pressure = new google.visualization.DataView(data);
-    pressure.hideColumns([1,2,3,4,5,7,8]);
-
-    var pressure_options = {
-        title: 'Absolute Pressure (hPa)',
-        legend: {position: 'none'},
-        vAxis: {format: '####'}
-    };
-    var pressure_chart = new Dygraph.GVizChart(pressure_element);
-    pressure_chart.draw(pressure, pressure_options);
-
-    // Humidity only
-    var humidity = new google.visualization.DataView(data);
-    humidity.hideColumns([1,2,3,4,6,7,8]);
-
-    var humidity_options = {
-        title: 'Humidity (%)',
-        legend: {position: 'none'}
-    };
-    var humidity_chart = new Dygraph.GVizChart(humidity_element);
-    humidity_chart.draw(humidity, humidity_options);
-
-    // Wind speed only (columns 7 and 8)
-    var wind_speed = new google.visualization.DataView(data);
-    wind_speed.hideColumns([1,2,3,4,5,6]);
-
-    var wind_speed_options = {
-        title: 'Wind Speed (m/s)',
-        legend: {position: 'bottom'}
-    };
-    var wind_speed_chart = new Dygraph.GVizChart(wind_speed_element);
-    wind_speed_chart.draw(wind_speed, wind_speed_options);
+        ctx.fillRect(center_x - bar_width / 2, p.canvasy,
+                     bar_width, y_bottom - p.canvasy);
+        ctx.strokeRect(center_x - bar_width / 2, p.canvasy,
+                       bar_width, y_bottom - p.canvasy);
+    }
 }
 
+/** Draws a rainfall chart.
+ *
+ * @param jsondata Data to plot.
+ * @param element Element to plot in.
+ */
+function drawRainfallChart(jsondata,
+                      element) {
 
+    var labels = jsondata['labels'];
+    var data = jsondata['data'];
+
+    /* Make sure the first column is Date objects, not strings */
+    data = convertToDates(data);
+
+    var chart = new Dygraph(element,
+                            data,
+                            {
+                                plotter: barChartPlotter,
+                                labels: labels,
+                                title: 'Rainfall (mm)',
+                                legend: 'always',
+                                axes: {
+                                    y: {
+                                        valueFormatter: rainfallFormatter
+                                    }
+                                },
+                                labelsDivStyles: {
+                                    'text-align': 'right',
+                                    'background': 'none'
+                                },
+                                animatedZooms: true
+                            })
+}
+
+function load_day_charts() {
+    $("#day_charts_cont").show();
+    $("#lc_refresh_failed").hide();
+    $("#btn_today_refresh").button('loading');
+    samples_loading = true;
+    rainfall_loading = true;
+
+    /***************************************************************
+     * Fetch the days samples and draw the 1-day charts
+     */
+    $.getJSON(samples_url, function(data) {
+
+
+        drawSampleLineCharts(data,
+                          document.getElementById('chart_temperature_tdp_div'),
+                          document.getElementById('chart_temperature_awc_div'),
+                          document.getElementById('chart_humidity_div'),
+                          document.getElementById('chart_pressure_div'),
+                          document.getElementById('chart_wind_speed_div')
+        );
+
+        samples_loading = false;
+
+        // Turn the refresh button back on if we're finished loading
+        if (!samples_loading && !rainfall_loading)
+            $("#btn_today_refresh").button('reset');
+    }).error(function() {
+                 $("#day_charts_cont").hide();
+                 $("#lc_refresh_failed").show();
+                 $("#btn_today_refresh").button('reset');
+             });
+
+
+    /***************************************************************
+     * Fetch the days hourly rainfall and chart it
+     */
+    $.getJSON(rainfall_url, function(data) {
+
+        drawRainfallChart(data, document.getElementById('chart_hourly_rainfall_div'));
+
+        rainfall_loading = false;
+
+        // Turn the refresh button back on if we're finished loading
+        if (!samples_loading && !rainfall_loading)
+            $("#btn_today_refresh").button('reset');
+    }).error(function() {
+                 $("#day_charts_cont").hide();
+                 $("#lc_refresh_failed").show();
+                 $("#btn_today_refresh").button('reset');
+             });
+}
+
+function load_7day_charts() {
+    $("#7day-charts").show();
+    $("#lc7_refresh_failed").hide();
+    samples_7_loading = true;
+    rainfall_7_loading = true;
+    $("#btn_7day_refresh").button('loading');
+
+    /***************************************************************
+     * Fetch samples for the past 7 days and draw the 7-day charts
+     */
+    $.getJSON(samples_7day_url, function(data) {
+
+        drawSampleLineCharts(data,
+                          document.getElementById('chart_7_temperature_tdp_div'),
+                          document.getElementById('chart_7_temperature_awc_div'),
+                          document.getElementById('chart_7_humidity_div'),
+                          document.getElementById('chart_7_pressure_div'),
+                          document.getElementById('chart_7_wind_speed_div')
+        );
+
+        samples_7_loading = false;
+
+        // Turn the refresh button back on if we're finished loading
+        if (!samples_7_loading && !rainfall_7_loading)
+            $("#btn_7day_refresh").button('reset');
+    }).error(function() {
+                 $("#7day-charts").hide();
+                 $("#lc7_refresh_failed").show();
+                 $("#btn_7day_refresh").button('reset');
+             });
+
+    /***************************************************************
+     * Fetch the 7 day hourly rainfall and chart it
+     */
+    $.getJSON(rainfall_7day_url, function(data) {
+
+        drawRainfallChart(data, document.getElementById('chart_7_hourly_rainfall_div'));
+
+        rainfall_7_loading = false;
+
+        // Turn the refresh button back on if we're finished loading
+        if (!samples_7_loading && !rainfall_7_loading)
+            $("#btn_7day_refresh").button('reset');
+    }).error(function() {
+        $("#7day-charts").hide();
+        $("#lc7_refresh_failed").show();
+        $("#btn_7day_refresh").button('reset');
+    });
+}
+
+drawCharts();

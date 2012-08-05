@@ -8,7 +8,7 @@ import web
 from web.contrib.template import render_jinja
 from cache import live_data_cache_control
 import config
-from data.daily import get_day_records, get_day_samples_datatable, get_7day_30mavg_samples_datatable, get_days_hourly_rain_datatable, get_7day_hourly_rain_datatable, get_day_rainfall
+from data import daily
 from database import get_years, get_live_data
 import os
 
@@ -51,12 +51,19 @@ class data_json:
         if station != config.default_station_name:
             raise web.NotFound()
 
-        if dataset == 'live':
+        pass_through_data_sets = {
+            'current_day_records':'records',
+            'current_day_rainfall_totals':'rainfall',
+            'current_day_samples':'samples',
+            'current_day_7day_30m_avg_samples':'7day_30m_avg_samples',
+            'current_day_rainfall':'hourly_rainfall',
+            'current_day_7day_rainfall':'7day_hourly_rainfall',
+        }
+
+        if dataset in pass_through_data_sets.keys():
+            return daily.json_dispatch(station, pass_through_data_sets[dataset], datetime.now().date())
+        elif dataset == 'live':
             return live_data()
-        elif dataset == 'current_day_records':
-            return current_day_records()
-        elif dataset == 'current_day_rainfall_totals':
-            return current_day_rainfall()
         else:
             raise web.NotFound()
 
@@ -75,14 +82,15 @@ class datatable_json:
         if station != config.default_station_name:
             raise web.NotFound()
 
-        if dataset == 'current_day_samples':
-            return current_samples_datatable()
-        elif dataset == 'current_day_7day_30m_avg_samples':
-            return current_7day_30m_avg_samples_datatable()
-        elif dataset == 'current_day_rainfall':
-            return current_day_hourly_rainfall_datatable()
-        elif dataset == 'current_day_7day_rainfall':
-            return current_day_7day_rainfall_datatable()
+        pass_through_data_sets = {
+            'current_day_samples':'samples',
+            'current_day_7day_30m_avg_samples':'7day_30m_avg_samples',
+            'current_day_rainfall':'hourly_rainfall',
+            'current_day_7day_rainfall':'7day_hourly_rainfall',
+        }
+
+        if dataset in pass_through_data_sets.keys():
+            return daily.dt_json_dispatch(station, pass_through_data_sets[dataset], datetime.now().date())
         else:
             raise web.NotFound()
 
@@ -113,45 +121,3 @@ def live_data():
     live_data_cache_control(data_ts)
     web.header('Content-Type', 'application/json')
     return json.dumps(result)
-
-def current_day_records():
-    """
-    Gets records for the current day.
-    :return: Records for the current day.
-    """
-    return get_day_records(datetime.now().date())
-
-def current_samples_datatable():
-    """
-    Gets samples for the current day.
-    :return: Samples for the current day.
-    """
-    return get_day_samples_datatable(datetime.now().date())
-
-def current_7day_30m_avg_samples_datatable():
-    """
-    Gets 7-day 30minute average samples for the current day.
-    :return: 30-minute 7-day samples for the current day.
-    """
-    return get_7day_30mavg_samples_datatable(datetime.now().date())
-
-def current_day_hourly_rainfall_datatable():
-    """
-    Gets hourly rainfall for the current day.
-    :return: Hourly rainfall for the current day.
-    """
-    return get_days_hourly_rain_datatable(datetime.now().date())
-
-def current_day_7day_rainfall_datatable():
-    """
-    Gets hourly rainfall for the seven days prior to today.
-    :return: Hourly rainfall data for the past seven days.
-    """
-    return get_7day_hourly_rain_datatable(datetime.now().date())
-
-def current_day_rainfall():
-    """
-    Gets rainfall totals for the current day and the past seven days.
-    :return: Rainfall totals for today and the past seven days.
-    """
-    return get_day_rainfall(datetime.now().date())

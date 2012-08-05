@@ -2,6 +2,22 @@
 
 {% block title %}Station Overview{% endblock %}
 {% block head %}
+    {% if ui and ui == 'm' -%}
+    <style type="text/css">
+        .dygraph-title {
+            font-size: 10pt;
+        }
+        .dygraph-label {
+            font-size: 10pt;
+        }
+        .dygraph-legend {
+            background-color: red;
+        }
+        .chart {
+
+        }
+    </style>
+    {%- endif %}
 {% endblock %}
 {% block content %}
     <section id="live">
@@ -115,22 +131,25 @@
 
         // URLs required by day_charts.js and day_live.js
         var live_url = '../../data/{{ station }}/live.json';
-        var samples_url = '../../data/{{ station }}/datatable/current_day_samples.json';
-        var rainfall_url = '../../data/{{ station }}/datatable/current_day_rainfall.json';
-        var samples_7day_url = '../../data/{{ station }}/datatable/current_day_7day_30m_avg_samples.json';
-        var rainfall_7day_url = '../../data/{{ station }}/datatable/current_day_7day_rainfall.json';
+        var samples_url = '../../data/{{ station }}/{{ subdir }}current_day_samples.json';
+        var rainfall_url = '../../data/{{ station }}/{{ subdir }}current_day_rainfall.json';
+        var samples_7day_url = '../../data/{{ station }}/{{ subdir }}current_day_7day_30m_avg_samples.json';
+        var rainfall_7day_url = '../../data/{{ station }}/{{ subdir }}current_day_7day_rainfall.json';
         var records_url = '../../data/{{ station }}/current_day_records.json';
         var rainfall_totals_url = '../../data/{{ station }}/current_day_rainfall_totals.json';
         var live_auto_refresh = true;
         var is_day_page = false;
     </script>
-    <script type="text/javascript" src="http://www.google.com/jsapi"></script>
+
     <script type="text/javascript" src="../../js/day_live.js"></script>
+    <script type="text/javascript" src="../../js/day_charts.js"></script>
     {% if ui and ui == 'm' -%}
         <script type="text/javascript" src="../../js/dygraph-combined.js"></script>
+        <script type="text/javascript" src="../../js/dygraph-charts.js"></script>
         <script type="text/javascript" src="../../js/day_charts_dygraph.js"></script>
     {% else -%}
+        <script type="text/javascript" src="http://www.google.com/jsapi"></script>
         <script type="text/javascript" src="../../js/day_charts_gviz.js"></script>
     {%- endif -%}
-    <script type="text/javascript" src="../../js/day_charts.js"></script>
+
 {% endblock %}
