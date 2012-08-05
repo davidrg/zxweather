@@ -73,7 +73,7 @@ def get_day_nav_urls(ui, station, day):
 
     return prev_url, next_url
 
-def get_day_data_urls(station, day, overview_page=False):
+def get_day_data_urls(station, day, ui, overview_page=False):
     """
     Gets data URLs for a day page or the station overview page.
     :param station: Station to get URLs for
@@ -83,6 +83,8 @@ def get_day_data_urls(station, day, overview_page=False):
     :param overview_page: If the URLs should be relative to the overview
                           page instead of the day page
     :type overview_page: bool
+    :param ui: The UI to get data URLs for
+    :type ui: str
     """
 
     base_url = '/data/{0}/{1}/{2}/{3}/'.format(station,
@@ -96,15 +98,21 @@ def get_day_data_urls(station, day, overview_page=False):
                                                    day.year,
                                                    month_name[day.month],
                                                    day.day)
+
+    if ui == 'm':
+        sub_dir = ''
+    else:
+        sub_dir = 'datatable/'
+
     urls = {
         'samples': relative_url(current_url,
-                                base_url + 'datatable/samples.json'),
+                                base_url + sub_dir + 'samples.json'),
         '7day_samples': relative_url(current_url,
-                                     base_url + 'datatable/7day_30m_avg_samples.json'),
+                                     base_url + sub_dir + '7day_30m_avg_samples.json'),
         'rainfall': relative_url(current_url,
-                                 base_url + 'datatable/hourly_rainfall.json'),
+                                 base_url + sub_dir + 'hourly_rainfall.json'),
         '7day_rainfall': relative_url(current_url,
-                                      base_url + 'datatable/7day_hourly_rainfall.json'),
+                                      base_url + sub_dir + '7day_hourly_rainfall.json'),
         'records': relative_url(current_url, base_url + 'records.json'),
         'rainfall_totals': relative_url(current_url, base_url + 'rainfall.json'),
         }
@@ -162,7 +170,7 @@ def get_day_page(ui, station, day):
 
     if ui in ('s','m'):
         nav_urls = get_nav_urls(station, current_location)
-        data_urls = get_day_data_urls(station, data.date_stamp)
+        data_urls = get_day_data_urls(station, data.date_stamp, ui)
         return modern_templates.day(nav=nav_urls,
                              data_urls=data_urls,
                              data=data,
@@ -192,7 +200,7 @@ class day:
         html_file()
         return get_day_page(ui, station, date(int(year), month_number[month], int(day)))
 
-def get_indoor_data_urls(station, day):
+def get_indoor_data_urls(station, day, ui):
     """
     Gets the Data URLs for the indoor day page.
     :param station: Station we are looking at
@@ -203,11 +211,16 @@ def get_indoor_data_urls(station, day):
     :type: dict
     """
 
+    if ui == 'm':
+        sub_dir = ''
+    else:
+        sub_dir = 'datatable/'
+
     data_base_url = '../../../../../data/{0}/{1}/{2}/{3}/'\
     .format(station, day.year, day.month, day.day)
-    samples = data_base_url + 'datatable/indoor_samples.json'
-    samples_7day = data_base_url + 'datatable/7day_indoor_samples.json'
-    samples_7day_30mavg = data_base_url + 'datatable/7day_30m_avg_indoor_samples.json'
+    samples = data_base_url + sub_dir + 'indoor_samples.json'
+    samples_7day = data_base_url + sub_dir + '7day_indoor_samples.json'
+    samples_7day_30mavg = data_base_url + sub_dir + '7day_30m_avg_indoor_samples.json'
 
     return {
         'samples': samples,
@@ -253,11 +266,12 @@ def get_indoor_day(ui, station, day):
 
     if ui in ('s','m'):
         nav_urls = get_nav_urls(station, current_location)
-        data_urls = get_indoor_data_urls(station, data.date_stamp)
+        data_urls = get_indoor_data_urls(station, data.date_stamp, ui)
         return modern_templates.indoor_day(data=data,
                                  nav=nav_urls,
                                  dataurls=data_urls,
-                                 sitename=config.site_name)
+                                 sitename=config.site_name,
+                                 ui=ui)
     else:
         return basic_templates.indoor_day(data=data)
 

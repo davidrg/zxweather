@@ -37,7 +37,8 @@ def get_year_months(year):
     month_data = db.query("""select md.month_stamp::integer from (select extract(year from time_stamp) as year_stamp,
            extract(month from time_stamp) as month_stamp
     from sample
-    group by year_stamp, month_stamp) as md where md.year_stamp = $year""", dict(year=year))
+    group by year_stamp, month_stamp) as md where md.year_stamp = $year
+    order by month_stamp asc""", dict(year=year))
 
 
     if not len(month_data):
@@ -120,19 +121,27 @@ def get_year(ui,station, year):
     year_cache_control(year)
 
     if ui in ('s','m'):
+
+        if ui == 'm':
+            sub_dir = ''
+        else:
+            sub_dir = "datatable/"
+
+        # TODO: Convert this into a dict
         # Figure out any URLs the page needs to know.
         class urls:
             """Various URLs required by the view"""
             root = '../../../'
             ui_root = '../../'
             data_base = root + 'data/{0}/{1}/'.format(station,year)
-            daily_records = data_base + 'datatable/daily_records.json'
+            daily_records = data_base + sub_dir + 'daily_records.json'
             prev_url = data.prev_url
             next_url = data.next_url
 
         nav_urls = get_nav_urls(station, current_location)
         return modern_templates.year(nav=nav_urls,data=data,urls=urls,
-                                     sitename=config.site_name)
+                                     sitename=config.site_name,
+                                     ui=ui)
     else:
         return basic_templates.year(data=data)
 

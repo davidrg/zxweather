@@ -55,13 +55,19 @@ def get_station_standard(ui, station):
     if data.records is None:
         return web.NotFound(message="No Data")
 
+    if ui == 'm':
+        sub_dir = ''
+    else:
+        sub_dir = 'datatable/'
+
     day_cache_control(None, now)
     nav_urls = get_nav_urls(station, current_location)
     return modern_templates.station(nav=nav_urls,
                                     data=data,
                                     station=station,
                                     ui=ui,
-                                    sitename=config.site_name)
+                                    sitename=config.site_name,
+                                    subdir=sub_dir)
 
 def get_station_basic(station):
     """

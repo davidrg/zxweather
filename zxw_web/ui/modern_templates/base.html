@@ -26,6 +26,16 @@
         }
     </style>
     <link rel="stylesheet" href="/css/bootstrap-responsive.css" type="text.css" />
+    {% if ui and ui == 'm' -%}
+        <style type="text/css">
+            .dygraph-title {
+                font-size: 10pt;
+            }
+            .dygraph-label {
+                font-size: 10pt;
+            }
+        </style>
+    {%- endif %}
     {% block head %} {% endblock %}
 </head>
 <body>
