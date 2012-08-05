@@ -19,3 +19,5 @@ HEADERS += \
     src/conout.h \
     src/deviceio.h
 HEADERS += src/common.h
+
+RC_FILE = src/rc/wh1080readdump.rc
