@@ -1,3 +1,5 @@
+BEGIN;
+
 ----------------------------------------------------------------------
 -- DOMAINS -----------------------------------------------------------
 ----------------------------------------------------------------------
@@ -25,14 +27,45 @@ COMMENT ON DOMAIN wind_direction
 ----------------------------------------------------------------------
 -- TABLES ------------------------------------------------------------
 ----------------------------------------------------------------------
+
+CREATE TABLE station_type
+(
+  station_type_id serial NOT NULL,
+  code varchar(8) not null,
+  title character varying,
+  CONSTRAINT pk_station_type PRIMARY KEY (station_type_id)
+);
+
+COMMENT ON TABLE station_type IS 'A station hardware type (eg, Fine Offset WH1080-compatible).';
+COMMENT ON COLUMN station_type.code IS 'A short code for the station type';
+COMMENT ON COLUMN station_type.title IS 'A user-readable title for the station type';
+
+-- Only one station type supported at the moment.
+INSERT INTO station_type(code, title) VALUES('FOWH1080', 'Fine Offset WH1080-compatible');
+
+-- Information on stations in this database.
+CREATE TABLE station
+(
+  station_id serial NOT NULL,
+  code varchar(5) NOT NULL UNIQUE,
+  title character varying NOT NULL,
+  description character varying,
+  station_type_id INTEGER NOT NULL REFERENCES station_type(station_type_id),
+  CONSTRAINT pk_station PRIMARY KEY (station_id)
+);
+
+COMMENT ON TABLE station is 'Information about a weather station in this database';
+COMMENT ON COLUMN station.code is 'A short code for the station. Used, for example, in the web interfaces URLs';
+COMMENT ON COLUMN station.title is 'A user-readable title for the station';
+COMMENT ON COLUMN station.description is 'A user-readable description for the station';
+COMMENT ON COLUMN station.station_type_id is 'The type of hardware this station uses.';
+
+-- Generic sample data. Anything that is specific to a particular station type
+-- is in that station-specific table.
 CREATE TABLE sample
 (
   sample_id serial NOT NULL,
-  sample_interval integer, -- Number of minutes since the previous sample
-  record_number integer NOT NULL, -- The history slot in the weather stations circular buffer this record came from. Used for calculating the timestamp.
   download_timestamp timestamp with time zone, -- When this record was downloaded from the weather station
-  last_in_batch boolean, -- If this was the last record in a batch of records downloaded from the weather station.
-  invalid_data boolean NOT NULL, -- If the record from the weather stations "no sensor data received" flag is set.
   time_stamp timestamp with time zone, -- The calculated date and time when this record was likely recorded by the weather station. How far out it could possibly be depends on the size of the sample interval, etc.
   indoor_relative_humidity rh_percentage, -- Relative Humidity at the base station
   indoor_temperature real, -- Temperature at the base station
@@ -47,19 +80,13 @@ CREATE TABLE sample
   gust_wind_speed real, -- Gust wind speed.
   wind_direction wind_direction, -- Wind Direction.
   rainfall real, -- Calculated rainfall. Calculation is based on total_rainfall and rain_overflow columns compared to the previous sample.
-  total_rain real, -- Total rain recorded by the sensor so far. Subtract the previous samples total rainfall from this one to calculate the amount of rain for this sample.
-  rain_overflow boolean, -- If an overflow in the total_rain counter has occurred
+  station_id integer not null references station(station_id),
   CONSTRAINT pk_sample PRIMARY KEY (sample_id )
 );
 ALTER TABLE sample
   OWNER TO postgres;
-COMMENT ON TABLE sample
-  IS 'Samples from the weather station.';
-COMMENT ON COLUMN sample.sample_interval IS 'Number of minutes since the previous sample';
-COMMENT ON COLUMN sample.record_number IS 'The history slot in the weather stations circular buffer this record came from. Used for calculating the timestamp.';
+COMMENT ON TABLE sample IS 'Samples from the weather station.';
 COMMENT ON COLUMN sample.download_timestamp IS 'When this record was downloaded from the weather station';
-COMMENT ON COLUMN sample.last_in_batch IS 'If this was the last record in a batch of records downloaded from the weather station.';
-COMMENT ON COLUMN sample.invalid_data IS 'If the record from the weather stations "no sensor data received" flag is set.';
 COMMENT ON COLUMN sample.time_stamp IS 'The calculated date and time when this record was likely recorded by the weather station. How far out it could possibly be depends on the size of the sample interval, etc.';
 COMMENT ON COLUMN sample.indoor_relative_humidity IS 'Relative Humidity at the base station. 0-99%';
 COMMENT ON COLUMN sample.indoor_temperature IS 'Temperature at the base station in degrees Celsius';
@@ -74,14 +101,32 @@ COMMENT ON COLUMN sample.average_wind_speed IS 'Average Wind Speed in m/s.';
 COMMENT ON COLUMN sample.gust_wind_speed IS 'Gust wind speed in m/s.';
 COMMENT ON COLUMN sample.wind_direction IS 'Wind Direction.';
 COMMENT ON COLUMN sample.rainfall IS 'Calculated rainfall in mm. Smallest recordable amount is 0.3mm. Calculation is based on total_rainfall and rain_overflow columns compared to the previous sample.';
-COMMENT ON COLUMN sample.total_rain IS 'Total rain recorded by the sensor so far. Smallest possible increment is 0.3mm. Subtract the previous samples total rainfall from this one to calculate the amount of rain for this sample.';
-COMMENT ON COLUMN sample.rain_overflow IS 'If an overflow in the total_rain counter has occurred';
+COMMENT ON COLUMN sample.station_id IS 'The weather station this sample is for';
+
+-- A table for data specific to WH1080-compatible hardware.
+CREATE TABLE wh1080_sample
+(
+  sample_id integer not null primary key references sample(sample_id),
+  sample_interval integer, -- Number of minutes since the previous sample
+  record_number integer NOT NULL, -- The history slot in the weather stations circular buffer this record came from. Used for calculating the timestamp.
+  last_in_batch boolean, -- If this was the last record in a batch of records downloaded from the weather station.
+  invalid_data boolean NOT NULL, -- If the record from the weather stations "no sensor data received" flag is set.
+  total_rain real, -- Total rain recorded by the sensor so far. Subtract the previous samples total rainfall from this one to calculate the amount of rain for this sample.
+  rain_overflow boolean -- If an overflow in the total_rain counter has occurred
+);
+
+COMMENT ON TABLE wh1080_sample IS 'Data for samples taken from WH1080-compatible hardware';
+COMMENT ON COLUMN wh1080_sample.sample_interval IS 'Number of minutes since the previous sample';
+COMMENT ON COLUMN wh1080_sample.record_number IS 'The history slot in the weather stations circular buffer this record came from. Used for calculating the timestamp.';
+COMMENT ON COLUMN wh1080_sample.last_in_batch IS 'If this was the last record in a batch of records downloaded from the weather station.';
+COMMENT ON COLUMN wh1080_sample.invalid_data IS 'If the record from the weather stations "no sensor data received" flag is set.';
+COMMENT ON COLUMN wh1080_sample.total_rain IS 'Total rain recorded by the sensor so far. Smallest possible increment is 0.3mm. Subtract the previous samples total rainfall from this one to calculate the amount of rain for this sample.';
+COMMENT ON COLUMN wh1080_sample.rain_overflow IS 'If an overflow in the total_rain counter has occurred';
 
 ----------------------
 CREATE TABLE live_data
 (
   download_timestamp timestamp with time zone, -- When this record was downloaded from the weather station
-  invalid_data boolean not null, -- If the record from the weather stations "no sensor data received" flag is set.
   indoor_relative_humidity integer, -- Relative Humidity at the base station
   indoor_temperature real, -- Temperature at the base station
   relative_humidity integer, -- Relative Humidity
@@ -93,14 +138,14 @@ CREATE TABLE live_data
   relative_pressure real, -- Calculated relative pressure.
   average_wind_speed real, -- Average Wind Speed.
   gust_wind_speed real, -- Gust wind speed.
-  wind_direction wind_direction -- Wind Direction.
+  wind_direction wind_direction, -- Wind Direction.
+  station_id integer not null references station(station_id)
 );
 ALTER TABLE live_data
   OWNER TO postgres;
 COMMENT ON TABLE live_data
   IS 'Live data from the weather station. Contains only a single record.';
 COMMENT ON COLUMN live_data.download_timestamp IS 'When this record was downloaded from the weather station';
-COMMENT ON COLUMN live_data.invalid_data IS 'If the record from the weather stations "no sensor data received" flag is set.';
 COMMENT ON COLUMN live_data.indoor_relative_humidity IS 'Relative Humidity at the base station. 0-99%';
 COMMENT ON COLUMN live_data.indoor_temperature IS 'Temperature at the base station in degrees Celsius';
 COMMENT ON COLUMN live_data.relative_humidity IS 'Relative Humidity. 0-99%';
@@ -115,7 +160,23 @@ COMMENT ON COLUMN live_data.gust_wind_speed IS 'Gust wind speed in m/s.';
 COMMENT ON COLUMN live_data.wind_direction IS 'Wind Direction.';
 
 -- Live data table must always have one and only one record.
-insert into live_data(download_timestamp, wind_direction,invalid_data) values(null, 'INV',true);
+--insert into live_data(download_timestamp, wind_direction) values(null, 'INV');
+
+
+-- A table to store some basic information about the database (such as schema
+-- version).
+CREATE TABLE db_info
+(
+  k varchar(10) primary key not null,
+  v character varying
+);
+
+COMMENT ON TABLE db_info IS 'Basic database info (key/value data)';
+COMMENT ON COLUMN db_info.k is 'Data key';
+COMMENT ON COLUMN db_info.v is 'Data value';
+
+-- This is schema revision 2
+insert into db_info(k,v) VALUES('DB_VERSION','2');
 
 ----------------------------------------------------------------------
 -- INDICIES ----------------------------------------------------------
@@ -137,16 +198,18 @@ COMMENT ON INDEX idx_time_stamp
 -- VIEWS -------------------------------------------------------------
 ----------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW latest_record_number AS
- SELECT record_number, time_stamp 
- from sample
- order by time_stamp desc, record_number desc
+CREATE OR REPLACE VIEW wh1080_latest_record_number AS
+ SELECT ws.record_number, s.time_stamp, s.station_id, st.code
+ from sample s
+ inner join wh1080_sample ws on ws.sample_id = s.sample_id
+ inner join station st on st.station_id = s.station_id
+ order by s.time_stamp desc, ws.record_number desc
  limit 1;
 
-ALTER TABLE latest_record_number
+ALTER TABLE wh1080_latest_record_number
   OWNER TO postgres;
-COMMENT ON VIEW latest_record_number
-  IS 'Gets the number of the most recent record. This is used by cweather to figure out what it needs to load into the database and what is already there.';
+COMMENT ON VIEW wh1080_latest_record_number
+  IS 'Gets the number of the most recent record for WH1080-type stations. This is used by wh1080d and associated utilities to figure out what it needs to load into the database and what is already there.';
 
 CREATE OR REPLACE VIEW daily_records AS
 select data.date_stamp,
@@ -230,7 +293,6 @@ select date(time_stamp) as date_stamp,
        min(s.relative_humidity) as "min_humidity",
        max(s.relative_humidity) as "max_humidity"
 from sample s
-where invalid_data = false
 group by date_stamp) as dr
 on date(s.time_stamp) = dr.date_stamp
 
@@ -348,7 +410,6 @@ select date(date_trunc('month', s.time_stamp)) as date_stamp,
        min(s.relative_humidity) as "min_humidity",
        max(s.relative_humidity) as "max_humidity"
 from sample s
-where invalid_data = false
 group by date_stamp) as dr
 on date(date_trunc('month', s.time_stamp)) = dr.date_stamp
 
@@ -466,7 +527,6 @@ select extract(year from s.time_stamp) as year_stamp,
        min(s.relative_humidity) as "min_humidity",
        max(s.relative_humidity) as "max_humidity"
 from sample s
-where invalid_data = false
 group by year_stamp) as dr
 on extract(year from s.time_stamp) = dr.year_stamp
 
@@ -610,6 +670,48 @@ $BODY$
   LANGUAGE plpgsql VOLATILE;
 COMMENT ON FUNCTION compute_sample_values() IS 'Calculates values for all calculated fields (wind chill, dew point, rainfall, etc).';
 
+-- Computes any computed fields when a new wh1080 sample is inserted (dew point, wind chill, aparent temperature, etc)
+CREATE OR REPLACE FUNCTION compute_wh1080_sample_values()
+  RETURNS trigger AS
+        $BODY$
+    DECLARE
+      new_rainfall real;
+      current_station_id integer;
+	BEGIN
+                -- If its an insert, calculate any fields that need calculating. We will ignore updates here.
+		IF(TG_OP = 'INSERT') THEN
+
+		                -- Figure out station ID
+		                select station_id into current_station_id
+		                from sample where sample_id = NEW.sample_id;
+
+                        -- Calculate actual rainfall for this record from the total rainfall
+                        -- accumulator of this record and the previous record.
+                        -- 19660.8 is the maximum rainfall accumulator value (65536 * 0.3mm).
+                         select into new_rainfall
+                                    CASE WHEN NEW.total_rain - prev.total_rain >= 0 THEN
+                                        NEW.total_rain - prev.total_rain
+                                    ELSE
+                                        NEW.total_rain + (19660.8 - prev.total_rain)
+                                    END as rainfall
+                        from wh1080_sample prev
+                        inner join sample sa on sa.sample_id = prev.sample_id
+                        -- find the previous sample:
+                        where sa.time_stamp = (select max(time_stamp)
+                                            from sample ins
+                                            where ins.time_stamp < NEW.time_stamp)
+                        and sa.station_id = current_station_id;
+
+                        update sample set rainfall = new_rainfall
+                        where sample_id = NEW.sample_id;
+		END IF;
+
+		RETURN NEW;
+	END;
+$BODY$
+LANGUAGE plpgsql VOLATILE;
+COMMENT ON FUNCTION compute_sample_values() IS 'Calculates values for all calculated fields (wind chill, dew point, rainfall, etc).';
+
 -- Prevents anything but updates happening to rows and calculates dewpoint, wind chill, apparent temperature, etc.
 CREATE OR REPLACE FUNCTION live_data_update() RETURNS trigger AS
 $BODY$BEGIN
@@ -641,9 +743,15 @@ CREATE TRIGGER calculate_fields BEFORE INSERT
    EXECUTE PROCEDURE public.compute_sample_values();
 COMMENT ON TRIGGER calculate_fields ON sample IS 'Calculate any calculated fields.';
 
+CREATE TRIGGER calculate_wh1080_fields BEFORE INSERT
+ON sample FOR EACH ROW
+EXECUTE PROCEDURE public.compute_wh1080_sample_values();
+COMMENT ON TRIGGER calculate_wh1080_fields ON sample IS 'Calculate fields that need WH1080-specific data.';
+
 CREATE TRIGGER live_data_update BEFORE INSERT OR DELETE OR UPDATE
    ON live_data FOR EACH ROW
    EXECUTE PROCEDURE public.live_data_update();
 COMMENT ON TRIGGER live_data_update ON live_data IS 'Calculates calculated fields for updates, ignores everything else.';
 
 
+COMMIT;
