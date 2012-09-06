@@ -91,10 +91,11 @@ int main( int argc, char *argv[] ) {
     char* username = NULL;
     char* password = NULL;
     char* filename = NULL;
+    char* station = NULL;
     int c;
     extern char *optarg;
 
-    while ((c = getopt(argc, argv, "d:u:p:f:")) != -1) {
+    while ((c = getopt(argc, argv, "d:u:p:f:s:")) != -1) {
         switch(c) {
         case 'd':
             server = optarg;
@@ -108,6 +109,9 @@ int main( int argc, char *argv[] ) {
         case 'f':
             filename = optarg;
             break;
+        case 's':
+            station = optarg;
+            break;
         }
     }
 
@@ -119,7 +123,10 @@ int main( int argc, char *argv[] ) {
         fprintf(stderr, "Supply password (-p option)\n");
     if (filename == NULL)
         fprintf(stderr, "Supply log filename (-f option)\n");
-    if (server == NULL || username == NULL || password == NULL || filename == NULL)
+    if (station == NULL)
+        fprintf(stderr, "Supply station code (-s option)\n");
+    if (server == NULL || username == NULL || password == NULL ||
+            filename == NULL || station == NULL)
         exit(EXIT_FAILURE);
 
     logfile = fopen(filename,"w");
@@ -134,7 +141,7 @@ int main( int argc, char *argv[] ) {
 
     signal(SIGTERM,Signal_Handler);
 
-    daemon_main(server, username, password, logfile);
+    daemon_main(server, username, password, station, logfile);
 
     /* If we get this far then something went wrong. */
     l_cleanup();

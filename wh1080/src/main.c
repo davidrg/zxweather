@@ -42,14 +42,16 @@
 
 /* Determine latest record in database */
 BOOL find_range_start(unsigned short *range_start,
-                      const unsigned short current_ws_record_id) {
+                      const unsigned short current_ws_record_id,
+                      long station_id) {
     /* Latest history record available from the database */
     unsigned short current_db_record_id;
     time_t current_db_record_timestamp;
     /*history current_db_record_from_ws;*/
 
     pgo_get_last_record_number(&current_db_record_id,
-                               &current_db_record_timestamp);
+                               &current_db_record_timestamp,
+                               station_id);
     if (current_db_record_timestamp != 0) {
 
         /* Figure out if that record exists in the weather station and if so,
@@ -71,7 +73,8 @@ BOOL find_range_start(unsigned short *range_start,
 
 void insert_history_range(const unsigned short start,
                           const unsigned short end,
-                          const time_t end_timestamp) {
+                          const time_t end_timestamp,
+                          const long station_id) {
     history_set new_data;   /* Data to load into database */
 
     /* Fetch the records from the weather station & compute timestamps */
@@ -81,18 +84,20 @@ void insert_history_range(const unsigned short start,
 
     /* Insert history data into database */
     printf("Inserting records into database...\n");
-    pgo_insert_history_set(new_data);
+    pgo_insert_history_set(new_data, station_id);
     free_history_set(new_data);
 }
 
 int db_update(char* server,
               char* username,
               char* password,
+              char* station,
               const BOOL full_load) {
     unsigned short load_start; /* First record the DB doesn't have */
     BOOL result;
     BOOL new_data_available;/* If there is new data on the weather station */
     char sbuf[50];      /* timestamp string */
+    long station_id;        /* ID of the station we are working with */
 
     /* Latest history record available from the weather station */
     unsigned short current_ws_record_id;
@@ -104,6 +109,7 @@ int db_update(char* server,
 
     printf("Connect to Database...\n");
     pgo_connect(server, username, password);
+    station_id = pgo_get_station_id(station);
 
     /* Determine WS Latest/current record & sync clocks */
     result = sync_clock(&current_ws_record_id, &current_ws_record_timestamp);
@@ -119,13 +125,15 @@ int db_update(char* server,
         } else {
             /* Only download new records */
             new_data_available = find_range_start(&load_start,
-                                                  current_ws_record_id);
+                                                  current_ws_record_id,
+                                                  station_id);
         }
         if (new_data_available) {
             /* Load and insert a range of history records */
             insert_history_range(load_start,
                                  current_ws_record_id,
-                                 current_ws_record_timestamp);
+                                 current_ws_record_timestamp,
+                                 station_id);
 
             /* Commit transaction */
             printf("Commit transaction...\n");
@@ -270,6 +278,7 @@ int main(int argc, char *argv[])
     char* database = NULL;
     char* username = NULL;
     char* password = NULL;
+    char* station = NULL;
 
     /* arguments
      * -d database      database connection string (database@host:port)
@@ -284,7 +293,7 @@ int main(int argc, char *argv[])
      */
 
     /* Note: This uses the GNU extension for optional arguments (::) */
-    while ((c = getopt(argc, argv, "d:u:p:lcf:r::")) != -1) {
+    while ((c = getopt(argc, argv, "s:d:u:p:lcf:r::")) != -1) {
         switch (c) {
         case 'd':
             if (print_dc || dump_to_csv || show_record)
@@ -308,6 +317,14 @@ int main(int argc, char *argv[])
             else {
                 update_database = TRUE;
                 password = optarg;
+            }
+            break;
+        case 's':
+            if (print_dc || dump_to_csv || show_record)
+                arg_error = TRUE;
+            else {
+                update_database = TRUE;
+                station = optarg;
             }
             break;
         case 'l':
@@ -379,7 +396,7 @@ int main(int argc, char *argv[])
     } else if (show_record) {
         show_record_id(record_id);
     } else if (update_database) {
-        return db_update(database, username, password, full_load);
+        return db_update(database, username, password, station, full_load);
     } else {
         usage(argv[0]);
         exit(EXIT_FAILURE);

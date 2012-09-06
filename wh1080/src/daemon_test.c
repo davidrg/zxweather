@@ -41,6 +41,7 @@ int main( int argc, char *argv[] ) {
     char* server = NULL;
     char* username = NULL;
     char* password = NULL;
+    char* station = NULL;
     int c;
     extern char *optarg;
 
@@ -48,7 +49,7 @@ int main( int argc, char *argv[] ) {
 
     printf("WH1080 Daemon console test app\n");
 
-    while ((c = getopt(argc, argv, "d:u:p:")) != -1) {
+    while ((c = getopt(argc, argv, "d:u:p:s:")) != -1) {
         printf("%c",c);
         switch(c) {
         case 'd':
@@ -60,6 +61,8 @@ int main( int argc, char *argv[] ) {
         case 'p':
             password = optarg;
             break;
+        case 's':
+            station = optarg;
         }
     }
 
@@ -69,12 +72,14 @@ int main( int argc, char *argv[] ) {
         fprintf(stderr, "Supply username (-u option)\n");
     if (password == NULL)
         fprintf(stderr, "Supply password (-p option)\n");
-    if (server == NULL || username == NULL || password == NULL)
+    if (station == NULL)
+        fprintf(stderr, "Supply station code (-s option)\n");
+    if (server == NULL || username == NULL || password == NULL || station == NULL)
         exit(EXIT_FAILURE);
 
     printf("Go!\n");
     fprintf(logfile, "Launch...\n");
-    daemon_main(server, username, password, logfile);
+    daemon_main(server, username, password, station, logfile);
 
     /* If we get this far then something went wrong. */
     cleanup();
