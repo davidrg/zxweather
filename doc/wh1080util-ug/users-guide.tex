@@ -1,8 +1,8 @@
 % ============================================================================
-% !Document: WG01 [WH1080 Utilities Users Guide]
+% !Document: WG02 [WH1080 Utilities Users Guide]
 % ----------------------------------------------------------------------------
 % !Revision: 001
-% !IssueDate: July 2012
+% !IssueDate: October 2012
 % !Status: Unreleased
 %
 % !-Classification
@@ -18,14 +18,14 @@
 \newcommand{\doctitle}{WH1080 Utilities}
 \newcommand{\docsubtitle}{Users Guide}
 %\newcommand{\projectnum}{DAZW}
-\newcommand{\docnum}{WG01}
+\newcommand{\docnum}{WG02}
 \newcommand{\docrev}{001}
-\newcommand{\docdate}{July 2012}
+\newcommand{\docdate}{October 2012}
 \newcommand{\docauthor}{David Goodwin}
 \newcommand{\docabstract}{This document provides configuration and usage guidelines for the zxweather utilities for WH1080 compatible weather stations.}
 \newcommand{\docupdateinfo}{This is a new manual}
 \newcommand{\docosver}{Linux; Microsoft Windows NT 5.0+}
-\newcommand{\docswver}{zxweather 0.1}
+\newcommand{\docswver}{zxweather 0.2}
 \newcommand{\doccopyright}{\textcircled{c} Copyright David Goodwin, 2012.}
 \newcommand{\doclicense}{Use, reproduction and modification of this document is permitted subject to the terms of the GNU Free Documentation License, Version 1.3 or any later vesion published by the Free Software Foundation. See \url{http://www.gnu.org/copyleft/fdl.html} for full license text.}
 
@@ -117,8 +117,8 @@ All software covered by this manual has been tested on the following platforms u
 
 \section{Related Documents}
 \begin{tabular}{l l}
-\verb|DAZW-IG01| & zxweather Installation Reference, version 0.1 \\
-\verb|DAZW-DB01| & zxweather Database Structure, version 0.1 \\
+\verb|DAZW-IG01| & zxweather Installation Reference, version 0.2 \\
+\verb|DAZW-DB02| & zxweather Database Structure, version 0.2 \\
 \end{tabular}
 
 \chapter{wh1080}
@@ -140,6 +140,7 @@ These operations are mutually exclusive - you can only do one at a time.
 -d & database & Database connection string \\
 -u & username & Database username \\
 -p & password & Database password \\
+-s & station  & Code for the weather station to work against \\
 -l &  & Force full database load \\
 -c &  & Show device configuration \\
 -f & filename & Dump all history records to a CSV file \\
@@ -245,11 +246,11 @@ Weather station record 2:
 \end{verbatim}
 
 \subsection{Update Database}
-This operation inserts new records into a compatible PostgreSQL database. The required database structure is described in \emph{zxweather Database Structure} (document DAZW-DB01).
+This operation inserts new records into a compatible PostgreSQL database. The required database structure is described in \emph{zxweather Database Structure} (document DAZW-DB02).
 
-To update the database run with the database, username and password options. The format for the database option is \verb|database@hostname:port|. For example:
+To update the database run with the database, username, password and station code options. The format for the database option is \verb|database@hostname:port|. For example:
 \begin{verbatim}
-$ wh1080 -d weatherdb@localhost:5432 -u postgres -p password
+$ wh1080 -d weatherdb@localhost:5432 -u postgres -p password -s rua
 Open Device...
 Connect to Database...
 Connecting to database weatherdb@localhost:5432
@@ -305,6 +306,7 @@ wh1080d and wh1080svc both perform the same job and take the same command-line a
 -d & database & Database connection string \\
 -u & username & Database username \\
 -p & password & Database password \\
+-s & station  & Code for weather station to work against \\
 -f & filename & Log file to write messages to \\
 \hline
 \end{tabular}
