@@ -54,6 +54,8 @@ CREATE TABLE station
   title character varying NOT NULL,
   description character varying,
   station_type_id INTEGER NOT NULL REFERENCES station_type(station_type_id),
+  sample_interval integer not null,
+  live_data_available boolean not null default true,
   CONSTRAINT pk_station PRIMARY KEY (station_id)
 );
 
@@ -707,11 +709,12 @@ BEGIN
   FROM station_type WHERE code = 'FOWH1080';
 
   -- Create a new entry for the weather station
-  INSERT INTO station(code, description, title, station_type_id)
+  INSERT INTO station(code, description, title, station_type_id, sample_interval)
                VALUES('UNKN',
                       'Unknown WH1080-compatible weather station migrated from zxweather v0.1',
                       'Unknown WH1080-compatible Weather Station',
-                      wh1080_id)
+                      wh1080_id,
+                      300)
   RETURNING station_id INTO new_station_id;
 
   -- Create live data record

@@ -51,6 +51,8 @@ CREATE TABLE station
   title character varying NOT NULL,
   description character varying,
   station_type_id INTEGER NOT NULL REFERENCES station_type(station_type_id),
+  sample_interval integer not null,
+  live_data_available boolean not null default true,
   CONSTRAINT pk_station PRIMARY KEY (station_id)
 );
 

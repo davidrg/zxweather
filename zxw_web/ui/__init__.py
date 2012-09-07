@@ -8,7 +8,7 @@ from datetime import timedelta, datetime, date
 from months import month_name, month_number
 from url_util import relative_url
 import config
-from database import day_exists, month_exists, year_exists
+from database import day_exists, month_exists, year_exists, get_station_id
 import web
 
 __author__ = 'David Goodwin'
@@ -62,20 +62,22 @@ def validate_request(ui=None,station=None, year=None, month=None, day=None):
     if ui is not None and ui not in uis:
         raise web.NotFound()
 
-    if station is not None and station != config.default_station_name:
+    station_id = get_station_id(station)
+
+    if station_id is None:
         raise web.NotFound()
 
     # Check the date.
     if year is not None and month is not None and day is not None:
-        result = day_exists(date(int(year),month_number[month],int(day)))
+        result = day_exists(date(int(year),month_number[month],int(day)), station_id)
         if not result:
             raise web.NotFound()
     elif year is not None and month is not None:
-        result = month_exists(int(year),month_number[month])
+        result = month_exists(int(year),month_number[month], station_id)
         if not result:
             raise web.NotFound()
     elif year is not None:
-        result = year_exists(int(year))
+        result = year_exists(int(year), station_id)
         if not result:
             raise web.NotFound()
 

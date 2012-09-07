@@ -8,7 +8,7 @@ from config import db
 import config
 from months import month_name
 from cache import year_cache_control
-from database import year_exists
+from database import year_exists, get_station_id
 from ui import get_nav_urls
 import os
 from ui import validate_request, html_file
@@ -24,12 +24,14 @@ modern_template_dir = os.path.join(os.path.dirname(__file__),
 basic_templates = render_jinja(basic_template_dir, encoding='utf-8')
 modern_templates = render_jinja(modern_template_dir, encoding='utf-8')
 
-def get_year_months(year):
+def get_year_months(year, station_id):
     """
     Returns a list of all months in the specified year for which there
     exists data in the database
     :param year: The year to get months for
     :type year: integer
+    :param station_id: The ID of the weather station to work with
+    :type station_id: int
     :return: A list of months in the year that have data
     :type: [integer]
     :raise: web.NotFound() if there is no data for the year.
@@ -37,8 +39,9 @@ def get_year_months(year):
     month_data = db.query("""select md.month_stamp::integer from (select extract(year from time_stamp) as year_stamp,
            extract(month from time_stamp) as month_stamp
     from sample
+    where station_id = $station
     group by year_stamp, month_stamp) as md where md.year_stamp = $year
-    order by month_stamp asc""", dict(year=year))
+    order by month_stamp asc""", dict(year=year, station=station_id))
 
 
     if not len(month_data):
@@ -52,15 +55,17 @@ def get_year_months(year):
 
     return months
 
-def get_yearly_records(year):
+def get_yearly_records(year, station_id):
     """
     Gets the records for the year (data from the yearly_records view).
     :param year: Year to get records for.
     :type year: integer
+    :param station_id: The ID of the weather station to work with
+    :type station_id: int
     :return: Records for the year.
     :raise: web.NotFound() if there is no data for the year.
     """
-    params = dict(year=year)
+    params = dict(year=year, station=station_id)
     yearly_records = db.query("""SELECT year_stamp, total_rainfall, max_gust_wind_speed, max_gust_wind_speed_ts::timestamp,
    max_average_wind_speed, max_average_wind_speed_ts::timestamp, min_absolute_pressure,
    min_absolute_pressure_ts::timestamp, max_absolute_pressure, max_absolute_pressure_ts::timestamp,
@@ -71,7 +76,8 @@ def get_yearly_records(year):
    max_temperature, max_temperature_ts::timestamp, min_humidity, min_humidity_ts::timestamp,
    max_humidity, max_humidity_ts::timestamp
 FROM yearly_records
-WHERE year_stamp = $year""", params)
+WHERE year_stamp = $year
+and station_id = $station""", params)
 
     if not len(yearly_records):
         # Bad url or something.
@@ -93,6 +99,8 @@ def get_year(ui,station, year):
     """
     current_location = '/s/' + station + '/' + str(year) + '/'
 
+    station_id = get_station_id(station)
+
     class data:
         """ Data required by the view """
         this_year = year
@@ -105,20 +113,20 @@ def get_year(ui,station, year):
         prev_year = year - 1
 
         # A list of months in the year that have data
-        months = [(item,item.capitalize()) for item in get_year_months(year)]
+        months = [(item,item.capitalize()) for item in get_year_months(year, station_id)]
 
         # Min/max values for the year.
-        records = get_yearly_records(year)
+        records = get_yearly_records(year, station_id)
 
     # See if any data exists for the previous and next months (no point
     # showing a navigation link if there is no data)
-    if year_exists(data.prev_year):
+    if year_exists(data.prev_year, station_id):
         data.prev_url = '../' + str(data.prev_year)
 
-    if year_exists(data.next_year):
+    if year_exists(data.next_year, station_id):
         data.next_url = '../' + str(data.next_year)
 
-    year_cache_control(year)
+    year_cache_control(year, station_id)
 
     if ui in ('s','m'):
 

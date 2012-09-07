@@ -9,7 +9,7 @@ import config
 from months import month_name
 
 from cache import day_cache_control
-from database import get_live_data, get_daily_records, total_rainfall_in_last_7_days, day_exists, get_live_indoor_data
+from database import get_live_data, get_daily_records, total_rainfall_in_last_7_days, day_exists, get_live_indoor_data, get_station_id
 from ui import get_nav_urls
 import os
 from ui import html_file, month_number, validate_request
@@ -39,6 +39,8 @@ def get_day_nav_urls(ui, station, day):
     :rtype: str,str
     """
 
+    station_id = get_station_id(station)
+
     # Figure out the URL for the previous day
     prev_date = day - timedelta(1)
 
@@ -51,7 +53,7 @@ def get_day_nav_urls(ui, station, day):
     next_url = ""
 
     # Only calculate previous days data if there is any.
-    if day_exists(prev_date):
+    if day_exists(prev_date, station_id):
 
         abs_url = url_format_string.format(ui,
                                            station,
@@ -63,7 +65,7 @@ def get_day_nav_urls(ui, station, day):
     # Only calculate the URL for tomorrow if there is tomorrow in the database.
     next_date = day + timedelta(1)
 
-    if day_exists(next_date):
+    if day_exists(next_date, station_id):
         abs_url = url_format_string.format(ui,
                                            station,
                                            next_date.year,
@@ -136,6 +138,8 @@ def get_day_page(ui, station, day):
     current_location = '/s/' + station + '/' + str(day.year) + '/' +\
                        month_name[day.month] + '/' + str(day.day) + '/'
 
+    station_id = get_station_id(station)
+
     # Figure out if there is current data to show or if this is a history
     # page
     now = datetime.now().date()
@@ -152,21 +156,22 @@ def get_day_page(ui, station, day):
         prev_date = date_stamp - timedelta(1)
         next_date = date_stamp + timedelta(1)
         this_month = month_name[day.month].capitalize()
-        records = get_daily_records(date_stamp)
+        records = get_daily_records(date_stamp, station_id)
 
         if ui in ('s','m'):
-            rainfall_7days_total = total_rainfall_in_last_7_days(date_stamp)
+            rainfall_7days_total = total_rainfall_in_last_7_days(date_stamp,
+                                                                 station_id)
 
 
     # Get live data if the page is for today.
     data_age = None
     if today:
-        data.current_data_ts, data.current_data = get_live_data()
+        data.current_data_ts, data.current_data = get_live_data(station_id)
         data_age = datetime.combine(day, data.current_data_ts)
 
     data.prev_url, data.next_url = get_day_nav_urls(ui, station, data.date_stamp)
 
-    day_cache_control(data_age, day)
+    day_cache_control(data_age, day, station_id)
 
     if ui in ('s','m'):
         nav_urls = get_nav_urls(station, current_location)
@@ -207,6 +212,8 @@ def get_indoor_data_urls(station, day, ui):
     :type station: str or unicode
     :param day: Day to get data for
     :type day: date
+    :param ui: The user interface to use
+    :type ui: str or unicode
     :return: URLs dict.
     :type: dict
     """
@@ -246,6 +253,8 @@ def get_indoor_day(ui, station, day):
     current_location = '/s/' + station + '/' + str(day.year) + '/' +\
                        month_name[day.month] + '/' + str(day.day) + '/indoor.html'
 
+    station_id = get_station_id(station)
+
     # TODO: Make this a dict sometime.
     class data:
         """ Data required by the view """
@@ -259,10 +268,10 @@ def get_indoor_day(ui, station, day):
     today = now == day
 
     if today:
-        data.current_data = get_live_indoor_data()
+        data.current_data = get_live_indoor_data(station_id)
         data.current_data_ts = data.current_data.time_stamp
 
-    day_cache_control(data.current_data_ts, day)
+    day_cache_control(data.current_data_ts, day, station_id)
 
     if ui in ('s','m'):
         nav_urls = get_nav_urls(station, current_location)
