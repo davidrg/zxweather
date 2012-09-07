@@ -3,12 +3,13 @@
 zxweather web frontend. Allows weather data to be viewed in a web browser in
 various ways.
 """
+
 __author__ = 'David Goodwin'
 
 import os,sys
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
-import web
 import config
+from web.application import application as web_application
 
 # Load settings.
 config.load_settings()
@@ -60,10 +61,10 @@ urls = (
 # This is so we can run it as an application to launch a development web
 # server.
 if __name__ == "__main__":
-    app = web.application(urls, globals())
+    app = web_application(urls, globals())
     app.run()
 else:
     # No auto-reloading for production
-    app = web.application(urls, globals(), autoreload=False)
+    app = web_application(urls, globals(), autoreload=False)
 
 application = app.wsgifunc()

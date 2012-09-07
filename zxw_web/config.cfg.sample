@@ -12,17 +12,6 @@ database: weather
 user: weatheruser
 password: password
 
-# Data configuration
-# live_data_available - Boolean: If live data is available through the 
-#                       database. This requires wh1080d to be running 
-#                       somewhere.
-# sample_interval     - Seconds: How often new samples appear in the database.
-# plot_interval       - Seconds: How often PNG charts are re-plotted. 
-[data]
-live_data_available: True
-sample_interval: 300
-plot_interval: 1800
-
 # Site configuration
 # default_ui      - The default user interface to use if someone requests the
 #                   root directory (that is, / instead of /s/station/)
@@ -31,9 +20,10 @@ plot_interval: 1800
 # static_data_dir - Location on disk where static data (images, css, PNG 
 #                   charts, etc) is stored. Everything in here is made
 #                   publicly available.
-# station_name    - The name of your weather station. This appears in all
-#                   URLs so choose something short and don't change it. See
-#                   the installation documentation for more information.
+# station_name    - The code for the weather station you want to be the
+#                   one users see by default. Consult the Installation
+#                   Reference Manual for more details.
+
 [site]
 default_ui: s
 site_name: zxweather

@@ -535,23 +535,6 @@ Where the settings are:
 \end{itemize}
 
 
-\subsubsection{Data}
-The Data group stores details about the data available in your database:
-
-\begin{verbatim}
-[data]
-live_data_available: True
-sample_interval: 300
-plot_interval: 1800
-\end{verbatim}
-
-The settings are:
-\begin{itemize}
-\item live\_data\_available - If Live Data is available from the database. If you are using wh1080d to populate your database then this should be left as \verb|True|.
-\item sample\_interval - How often new samples appear in the database (in seconds). Only a 5 minute sample interval is supported at the moment so this should be left as 300.
-\item plot\_interval - How often the weatherplot program runs (see section \ref{sec_chart_plotting}) in seconds. 
-\end{itemize}
-
 \subsubsection{Site}
 The Site group stores basic web interface configuration:
 \begin{verbatim}

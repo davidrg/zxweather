@@ -9,7 +9,7 @@ from web.contrib.template import render_jinja
 from cache import live_data_cache_control
 import config
 from data import daily
-from database import get_years, get_live_data
+from database import get_years, get_live_data, get_station_id
 import os
 
 __author__ = 'David Goodwin'
@@ -28,10 +28,12 @@ class index:
                                     os.path.join('templates'))
         render = render_jinja(template_dir, encoding='utf-8')
 
-        if station != config.default_station_name:
+        station_id = get_station_id(station)
+
+        if station_id is None:
             raise web.NotFound()
 
-        years = get_years()
+        years = get_years(station_id)
 
         web.header('Content-Type', 'text/html')
         return render.station_data_index(years=years)
@@ -48,7 +50,10 @@ class data_json:
         :return: JSON data
         :raise: web.NotFound if an invalid request is made.
         """
-        if station != config.default_station_name:
+
+        station_id = get_station_id(station)
+
+        if station_id is None:
             raise web.NotFound()
 
         pass_through_data_sets = {
@@ -63,7 +68,7 @@ class data_json:
         if dataset in pass_through_data_sets.keys():
             return daily.json_dispatch(station, pass_through_data_sets[dataset], datetime.now().date())
         elif dataset == 'live':
-            return live_data()
+            return live_data(station_id)
         else:
             raise web.NotFound()
 
@@ -95,12 +100,14 @@ class datatable_json:
             raise web.NotFound()
 
 
-def live_data():
+def live_data(station_id):
     """
     Gets a JSON file containing live data.
+    :param station_id: The ID of the weather station to work with
+    :type station_id: int
     :return: JSON data.
     """
-    data_ts, data = get_live_data()
+    data_ts, data = get_live_data(station_id)
 
     now = datetime.now()
     data_ts = datetime.combine(now.date(), data_ts)
@@ -118,6 +125,6 @@ def live_data():
               'age': data.age,
               }
 
-    live_data_cache_control(data_ts)
+    live_data_cache_control(data_ts, station_id)
     web.header('Content-Type', 'application/json')
     return json.dumps(result)

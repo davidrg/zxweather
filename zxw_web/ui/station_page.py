@@ -8,7 +8,7 @@ import web
 from web.contrib.template import render_jinja
 from cache import day_cache_control
 import config
-from database import get_daily_records, get_years, total_rainfall_in_last_7_days, day_exists
+from database import get_daily_records, get_years, total_rainfall_in_last_7_days, day_exists, get_station_id
 import os
 from months import month_name
 from ui import get_nav_urls
@@ -36,19 +36,21 @@ def get_station_standard(ui, station):
 
     current_location = '/s/' + station + '/'
 
+    station_id = get_station_id(station)
+
     now = datetime.now().date()
 
     class data:
         """ Data required by the view """
-        records = get_daily_records(now)
-        years = get_years()
+        records = get_daily_records(now, station_id)
+        years = get_years(station_id)
         year = now.year
         month_s = month_name[now.month]
         yesterday = now - timedelta(1)
         yesterday_month_s = month_name[yesterday.month]
-        rainfall_7days_total = total_rainfall_in_last_7_days(now)
+        rainfall_7days_total = total_rainfall_in_last_7_days(now, station_id)
 
-    if not day_exists(data.yesterday):
+    if not day_exists(data.yesterday, station_id):
         data.yesterday = None
         data.yesterday_month_s = None
 
@@ -60,7 +62,7 @@ def get_station_standard(ui, station):
     else:
         sub_dir = 'datatable/'
 
-    day_cache_control(None, now)
+    day_cache_control(None, now, station_id)
     nav_urls = get_nav_urls(station, current_location)
     return modern_templates.station(nav=nav_urls,
                                     data=data,
@@ -76,8 +78,8 @@ def get_station_basic(station):
     :param station:
     :return:
     """
-
-    return basic_templates.station(years=get_years(),station=station)
+    station_id = get_station_id(station)
+    return basic_templates.station(years=get_years(station_id),station=station)
 
 class station:
     """

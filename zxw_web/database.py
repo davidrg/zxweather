@@ -3,17 +3,76 @@
 Various common functions to get data from the database.
 """
 
-from config import db, live_data_available
+from config import db
 from datetime import datetime, date
-import config
 
 __author__ = 'David Goodwin'
 
-def day_exists(day):
+def get_station_id(station):
+    """
+    Gets the ID for the specified station code.
+    :param station: Station code
+    :type station: str or unicode
+    :return: The ID for the given station code
+    :rtype: int
+    """
+
+    # TODO: Cache me
+
+    result = db.query("select station_id from station where code = $code",
+                      dict(code=station))
+    if len(result):
+        return result[0].station_id
+    else:
+        return None
+
+def get_sample_interval(station_id):
+    """
+    Gets the sample interval for the specified station.
+    :param station_id: ID of the station to get the sample interval for
+    :type station_id: int
+    :return: Sample interval
+    :rtype: int
+    """
+
+    # TODO: Cache me. This can be done by get_station_id()
+
+    result = db.query("select sample_interval "
+                      "from station "
+                      "where station_id = $station",
+                      dict(station=station_id))
+    if len(result):
+        return result[0].sample_interval
+    else:
+        return None
+
+def get_live_data_available(station_id):
+    """
+    Checks to see if live data is available for the specified station.
+    :param station_id: The station to check the status of
+    :type station_id: integer
+    :return: If live data should be available for the station or not
+    :rtype boolean:
+    """
+
+    # TODO: Cache me. This can be done by get_station_id()
+
+    result = db.query("select live_data_available "
+                      "from station "
+                      "where station_id = $station",
+                      dict(station=station_id))
+    if len(result):
+        return result[0].live_data_available
+    else:
+        return None
+
+def day_exists(day, station_id):
     """
     Checks to see if a specific day exists in the database.
     :param day: Day to check for
     :type day: date or datetime
+    :param station_id: The ID of the weather station to work with
+    :type station_id: int
     :return: True if the day exists.
     """
 
@@ -25,19 +84,22 @@ def day_exists(day):
         return False
 
     result = db.query("""select 42 from sample
-    where date(time_stamp) = $date limit 1""", dict(date=day))
+    where date(time_stamp) = $date
+    and station_id = $station limit 1""", dict(date=day, station=station_id))
     if len(result):
         return True
     else:
         return False
 
-def month_exists(year, month):
+def month_exists(year, month, station_id):
     """
     Checks to see if a specific month exists in the database.
     :param year: Year to check for
     :type year: integer
     :param month: Month to check for
     :type month: integer
+    :param station_id: The weather station to work with
+    :type station_id: int
     :return: True if the day exists.
     """
 
@@ -50,17 +112,20 @@ def month_exists(year, month):
         return False
 
     result = db.query("""select 42 from sample
-    where date_trunc('month',date(time_stamp)) = $date limit 1""", dict(date=month))
+    where date_trunc('month',date(time_stamp)) = $date
+    and station_id = $station limit 1""", dict(date=month, station=station_id))
     if len(result):
         return True
     else:
         return False
 
-def year_exists(year):
+def year_exists(year, station_id):
     """
     Checks to see if a specific year exists in the database.
     :param year: Year to check for
     :type year: integer
+    :param station_id: The ID of the weather station to work with
+    :type station_id: int
     :return: True if the day exists.
     """
 
@@ -73,35 +138,45 @@ def year_exists(year):
         return False
 
     result = db.query("""select 42 from sample
-    where date_trunc('year',date(time_stamp)) = $date limit 1""", dict(date=d))
+    where date_trunc('year',date(time_stamp)) = $date
+    and station_id = $station limit 1""", dict(date=d, station=station_id))
     if len(result):
         return True
     else:
         return False
 
-def total_rainfall_in_last_7_days(end_date):
+def total_rainfall_in_last_7_days(end_date, station_id):
     """
     Gets the total rainfall for the 7 day period ending at the specified date.
     :param end_date: Final day in the 7 day period
+    :param station_id: The ID of the weather station to work with
+    :type station_id: int
     :return: Total rainfall for the 7 day period.
     """
-    params = dict(date=end_date)
+    params = dict(date=end_date, station=station_id)
     result = db.query("""
     select sum(rainfall) as total_rainfall
-from sample, (select max(time_stamp) as ts from sample where time_stamp::date = $date) as max_ts
+from sample, (
+    select max(time_stamp) as ts from sample
+    where time_stamp::date = $date
+    and station_id = $station
+) as max_ts
 where time_stamp <= max_ts.ts
-  and time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))""", params)
+  and time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
+  and station_id = $station""", params)
 
     return result[0].total_rainfall
 
-def get_daily_records(date):
+def get_daily_records(date, station_id):
     """
     Gets the records for the day. If there is no data for the day, None
     is returned.
     :param date: Day to get data for.
+    :param station_id: The ID of the weather station to work with
+    :type station_id: int
     :return: None or record data.
     """
-    params = dict(date=date)
+    params = dict(date=date, station=station_id)
     daily_records = db.query("""SELECT date_stamp, total_rainfall, max_gust_wind_speed, max_gust_wind_speed_ts::time,
    max_average_wind_speed, max_average_wind_speed_ts::time, min_absolute_pressure,
    min_absolute_pressure_ts::time, max_absolute_pressure, max_absolute_pressure_ts::time,
@@ -112,30 +187,40 @@ def get_daily_records(date):
    max_temperature, max_temperature_ts::time, min_humidity, min_humidity_ts::time,
    max_humidity, max_humidity_ts::time
 FROM daily_records
-WHERE date_stamp = $date""", params)
+WHERE date_stamp = $date
+and station_id = $station""", params)
 
     if not len(daily_records):
         return None
     else:
         return daily_records[0]
 
-def get_daily_rainfall(date):
+def get_daily_rainfall(date, station_id):
     """
     Gets rainfall for the specified day and the past seven days
     :param date: Date to get rainfall for
     :type date: date
+    :param station_id: The ID of the weather station to work with
+    :type station_id: int
     :return: dictionary containing rainfall and 7day rainfall
     :rtype: dict
     """
-    params = dict(date=date)
+    params = dict(date=date, station=station_id)
     day_rainfall_record = db.query("""select sum(rainfall) as day_rainfall
 from sample
-where time_stamp::date = $date""", params)
+where time_stamp::date = $date
+and station_id = $station""", params)
+
     sevenday_rainfall_record = db.query("""select sum(rainfall) as sevenday_rainfall
 from sample s,
-     (select max(time_stamp) as ts from sample where date(time_stamp) = $date) as max_ts
+  (
+     select max(time_stamp) as ts from sample
+     where date(time_stamp) = $date
+     and station_id = $station
+  ) as max_ts
 where s.time_stamp <= max_ts.ts     -- 604800 seconds in a week.
-  and s.time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))""", params)
+  and s.time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
+  and s.station_id = $station""", params)
 
     if len(day_rainfall_record) == 0 or len(sevenday_rainfall_record) is None:
         return {}
@@ -145,81 +230,95 @@ where s.time_stamp <= max_ts.ts     -- 604800 seconds in a week.
         '7day_rainfall': sevenday_rainfall_record[0].sevenday_rainfall,
     }
 
-def get_latest_sample_timestamp():
+def get_latest_sample_timestamp(station_id):
     """
     Gets the timestamp of the most recent sample in the database
+    :param station_id: The ID of the weather station to work with
+    :type station_id: int
     :return: datetime
     """
-    record = db.query("select max(time_stamp) as time_stamp from sample")
+    record = db.query("""select max(time_stamp) as time_stamp
+    from sample where station_id = $station""", dict(station=station_id))
     return record[0].time_stamp
 
-def get_live_data():
+def get_live_data(station_id):
     """
     Gets live data from the database. If config.live_data_available is set
     then the data will come from the live data table and will be at most
     48 seconds old. If it is not set then the data returned will be the
     most recent sample from the sample table.
-
+    :param station_id: The ID of the weather station to work with
+    :type station_id: int
     :return: Timestamp for the data and the actual data.
     """
 
     now = datetime.now()
-    params = dict(date=date(now.year, now.month, now.day))
+    params = dict(date=date(now.year, now.month, now.day), station=station_id)
 
-    if live_data_available:
+    if get_live_data_available(station_id):
         # No need to filter or anything - live_data only contains one record.
         current_data = db.query("""select download_timestamp::time as time_stamp,
-                    invalid_data, relative_humidity, temperature, dew_point,
+                    relative_humidity, temperature, dew_point,
                     wind_chill, apparent_temperature, absolute_pressure,
                     average_wind_speed, gust_wind_speed, wind_direction,
                     extract('epoch' from (now() - download_timestamp)) as age
-                    from live_data""")[0]
+                    from live_data where station_id = $station""",
+                    dict(station=station_id))[0]
         current_data_ts = current_data.time_stamp
     else:
         # Fetch the latest data for today
         current_data = db.query("""select time_stamp::time as time_stamp, relative_humidity,
                     temperature,dew_point, wind_chill, apparent_temperature,
                     absolute_pressure, average_wind_speed, gust_wind_speed,
-                    wind_direction, invalid_data,
+                    wind_direction,
                     extract('epoch' from (now() - download_timestamp)) as age
                 from sample
                 where date(time_stamp) = $date
+                and station_id = $station
                 order by time_stamp desc
                 limit 1""",params)[0]
         current_data_ts = current_data.time_stamp
 
     return current_data_ts, current_data
 
-def get_years():
+def get_years(station_id):
     """
     Gets a list of years in the database.
+    :param station_id: The ID of the weather station to work with
+    :type station_id: int
     :return: A list of years with data in the database
     :rtype: [integer]
     """
-    years_result = db.query("select distinct extract(year from time_stamp) as year from sample order by year desc")
+    years_result = db.query(
+        """select distinct extract(year from time_stamp) as year
+        from sample
+        where station_id = $station
+        order by year desc""", dict(station=station_id))
     years = []
     for record in years_result:
         years.append(int(record.year))
 
     return years
 
-def get_live_indoor_data():
+def get_live_indoor_data(station_id):
     """
     Gets live indoor data from the database. If config.live_data_available
     is set then the data will come from the live data table and will be at
     most 48 seconds old. If it is not set then the data returned will be
     the most recent sample from the sample table.
-
+    :param station_id: The ID of the weather station to work with
+    :type station_id: int
     :return: Timestamp for the data and the actual data.
     """
     now = datetime.now()
-    params = dict(date=date(now.year, now.month, now.day))
+    params = dict(date=date(now.year, now.month, now.day), station=station_id)
 
-    if config.live_data_available:
+    if get_live_data_available(station_id):
         current_data = db.query("""select download_timestamp::time as time_stamp,
             indoor_relative_humidity,
             indoor_temperature
-            from live_data""")[0]
+            from live_data
+            where station_id = $station""", dict(station=station_id))[0]
     else:
         # Fetch the latest data for today
         current_data = db.query("""select time_stamp::time as time_stamp,
@@ -227,6 +326,7 @@ def get_live_indoor_data():
             indoor_temperature
         from sample
         where date(time_stamp) = $date
+        and station_id = $station
         order by time_stamp desc
         limit 1""",params)[0]
 

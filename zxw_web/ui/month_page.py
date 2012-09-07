@@ -9,7 +9,7 @@ from config import db
 import config
 from months import month_name, month_number
 from cache import month_cache_control
-from database import month_exists
+from database import month_exists, get_station_id
 from ui import get_nav_urls
 import os
 from ui import validate_request, html_file
@@ -88,6 +88,8 @@ def month_nav_urls(ui,station,year,month, current_location):
     :rtype: str,str
     """
 
+    station_id = get_station_id(station)
+
     previous_year, previous_month = get_previous_month(year,month)
     next_year, next_month = get_next_month(year,month)
 
@@ -96,14 +98,14 @@ def month_nav_urls(ui,station,year,month, current_location):
 
     url_format_string = '/{0}/{1}/{2}/{3}/'
 
-    if month_exists(previous_year, previous_month):
+    if month_exists(previous_year, previous_month, station_id):
         abs_url = url_format_string.format(ui,
                                            station,
                                            previous_year,
                                            month_name[previous_month])
         prev_url = relative_url(current_location, abs_url)
 
-    if month_exists(next_year, next_month):
+    if month_exists(next_year, next_month, station_id):
         abs_url = url_format_string.format(ui,
                                            station,
                                            next_year,
@@ -112,7 +114,7 @@ def month_nav_urls(ui,station,year,month, current_location):
 
     return prev_url, next_url
 
-def get_month_days(year, month):
+def get_month_days(year, month, station_id):
     """
     Returns a list of all days in the specified month for which there
     exists data in the database.
@@ -121,6 +123,8 @@ def get_month_days(year, month):
     :type year: integer
     :param month: Month
     :type month: integer
+    :param station_id: The ID of the weather station to work with
+    :type station_id: int
     :return: A list of days in the month that have data
     :type: [integer]
     """
@@ -128,8 +132,9 @@ def get_month_days(year, month):
        extract(month from time_stamp) as month_stamp,
        extract(day from time_stamp) as day_stamp
 from sample
+where station_id = $station
 group by year_stamp, month_stamp, day_stamp) as md where md.year_stamp = $year and md.month_stamp = $month
-order by day_stamp""", dict(year=year, month=month))
+order by day_stamp""", dict(year=year, month=month, station=station_id))
 
     if not len(month_data):
         return None
@@ -141,18 +146,20 @@ order by day_stamp""", dict(year=year, month=month))
 
     return days
 
-def get_monthly_records(year, month):
+def get_monthly_records(year, month, station_id):
     """
     Gets the records for the month (data from the monthly_records view).
     :param year: Year to get records for.
     :type year: integer
     :param month:  Month to get records for
     :type month: integer
+    :param station_id: The ID of the weather station to work with
+    :type station_id: int
     :return: Records for the year.
     :raise: web.NotFound() if there is no data for the year/month.
     """
 
-    params = dict(date=date(year,month,01))
+    params = dict(date=date(year,month,01), station=station_id)
     monthly_records = db.query("""SELECT date_stamp, total_rainfall, max_gust_wind_speed, max_gust_wind_speed_ts::timestamp,
    max_average_wind_speed, max_average_wind_speed_ts::timestamp, min_absolute_pressure,
    min_absolute_pressure_ts::timestamp, max_absolute_pressure, max_absolute_pressure_ts::timestamp,
@@ -163,7 +170,8 @@ def get_monthly_records(year, month):
    max_temperature, max_temperature_ts::timestamp, min_humidity, min_humidity_ts::timestamp,
    max_humidity, max_humidity_ts::timestamp
 FROM monthly_records
-WHERE date_stamp = $date""", params)
+WHERE date_stamp = $date
+and station_id = $station""", params)
 
     if not len(monthly_records):
         # Bad url or something.
@@ -187,6 +195,8 @@ def get_month(ui, station, year, month):
     """
     current_location = '/s/' + station + '/' + str(year) + '/' +\
                        month_name[month] + '/'
+
+    station_id = get_station_id(station)
 
     previous_year, previous_month = get_previous_month(year,month)
     the_next_year, the_next_month = get_next_month(year,month)
@@ -214,15 +224,15 @@ def get_month(ui, station, year, month):
         this_month = month_name[month].capitalize()
 
         # List of days in the month that have data
-        days = get_month_days(year,month)
+        days = get_month_days(year,month, station_id)
         if days is None:
             # No days in this month? Can't be any month then.
             raise web.NotFound()
 
         # Min/Max values for the month
-        records = get_monthly_records(year,month)
+        records = get_monthly_records(year,month, station_id)
 
-    month_cache_control(year, month)
+    month_cache_control(year, month, station_id)
     if ui in ('s','m'):
         if ui == 'm':
             sub_dir = ""
