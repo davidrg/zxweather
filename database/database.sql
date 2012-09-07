@@ -42,6 +42,7 @@ COMMENT ON COLUMN station_type.title IS 'A user-readable title for the station t
 
 -- Only one station type supported at the moment.
 INSERT INTO station_type(code, title) VALUES('FOWH1080', 'Fine Offset WH1080-compatible');
+INSERT INTO station_type(code, title) VALUES('GENERIC', 'Unknown/Generic weather station');
 
 -- Information on stations in this database.
 CREATE TABLE station
