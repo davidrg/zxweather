@@ -46,6 +46,46 @@ def get_sample_interval(station_id):
     else:
         return None
 
+def get_station_type_code(station_id):
+    """
+    Gets the hardware type code for the specified station.
+    :param station_id: Station to look up the hardware type code for.
+    :type station_id: int
+    :return:
+    """
+
+    # TODO: Cache me. This can be done by get_station_id()
+
+    query = """select st.code
+        from station s
+        inner join station_type st on st.station_type_id = s.station_type_id
+        where s.station_id = $station"""
+
+    result = db.query(query, dict(station=station_id))
+    if len(result):
+        return result[0].code
+    else:
+        return None
+
+def get_station_type_id(station_type_code):
+    """
+    Gets the ID for the supplied station type code. Used by the data load
+    facility (webservice.py) to support pushing station configuration data.
+    :param station_type_code: Station type code to look up the ID for
+    :param station_type_code: str or unicode
+    :return: ID for the station type code
+    :rtype: int or None
+    """
+
+    result = db.query("select station_type_id "
+                      "from station_type "
+                      "where code = $code",
+                      dict(code=station_type_code))
+    if len(result):
+        return result[0].station_type_id
+    else:
+        return None
+
 def get_live_data_available(station_id):
     """
     Checks to see if live data is available for the specified station.
