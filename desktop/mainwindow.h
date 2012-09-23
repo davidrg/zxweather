@@ -29,7 +29,7 @@
 #include <QSettings>
 #include <QCloseEvent>
 
-#include "dbsignaladapter.h"
+#include "datasource.h"
 
 namespace Ui {
 class MainWindow;
@@ -58,20 +58,10 @@ public:
     
 public slots:
     /**
-     * @brief Connects to the database, performs an initial refresh
-     * and then starts the event handling timer.
-     */
-    void db_connect();
-
-    /**
      * @brief Refreshes live data from the database.
      */
-    void db_refresh();
+    //void db_refresh();
 
-    /**
-     * @brief Polls for notification messages from the database layer.
-     */
-    void notification_pump();
 
     /**
      * @brief showSettings Shows the settings dialog.
@@ -82,7 +72,19 @@ public slots:
      */
     void showSettings();
 
-    // Database errors
+
+    /** Called when new live data is available.
+     *
+     * @param data The new live data.
+     */
+    void liveDataRefreshed();
+
+    /** For monitoring live data. This (and the associated time ldTimer) is
+     * what pops up warnings when live data is late.
+     */
+    void ld_timeout();
+
+    // Database errors (for use with the database data source)
 
     /**
      * @brief Called when connecting to the database fails.
@@ -132,14 +134,15 @@ protected:
      */
     void closeEvent(QCloseEvent *event);
 
+    void createDatabaseDataSource();
+
 private:
     Ui::MainWindow *ui;
-    QTimer *notificationTimer;
     QSystemTrayIcon *sysTrayIcon;
-    DBSignalAdapter *signalAdapter;
     QMenu* trayIconMenu;
     QAction* restoreAction;
     QAction* quitAction;
+    QTimer *ldTimer;
 
     QSettings* settings;
     bool minimise_to_systray;
@@ -148,10 +151,10 @@ private:
     uint seconds_since_last_refresh;
     uint minutes_late;
 
-    bool connected;
-
     void showWarningPopup(QString message, QString title, QString tooltip="", bool setWarningIcon=false);
     void readSettings();
+
+    AbstractDataSource *dataSource;
 };
 
 #endif // MAINWINDOW_H

@@ -30,13 +30,20 @@ SOURCES += main.cpp\
         mainwindow.cpp \
     settingsdialog.cpp \
     dbsignaladapter.cpp \
-    aboutdialog.cpp
+    aboutdialog.cpp \
+    json/json.cpp \
+    datasource.cpp \
+    databasedatasource.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
     settingsdialog.h \
     dbsignaladapter.h \
-    aboutdialog.h
+    aboutdialog.h \
+    json/json.h \
+    datasource.h \
+    databasedatasource.h \
+    databaselivedata.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \

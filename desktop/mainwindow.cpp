@@ -24,7 +24,8 @@
 #include "ui_mainwindow.h"
 #include "settingsdialog.h"
 
-#include "database.h"
+#include "databasedatasource.h"
+
 #include "aboutdialog.h"
 
 #include <QtDebug>
@@ -36,12 +37,11 @@ MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
+    qDebug() << "MainWindow::MainWindow...";
     ui->setupUi(this);
 
     seconds_since_last_refresh = 0;
     minutes_late = 0;
-
-    connected = false;
 
     settings = new QSettings("zxnet","zxweather",this);
 
@@ -62,36 +62,23 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(restoreAction, SIGNAL(triggered()), this, SLOT(showNormal()));
     connect(quitAction, SIGNAL(triggered()), this, SLOT(quit()));
 
-    notificationTimer = new QTimer(this);
-    notificationTimer->setInterval(1000);
-
-    signalAdapter = new DBSignalAdapter(this);
-    wdb_set_signal_adapter(signalAdapter);
-    // Signals we won't handle specially:
-    connect(signalAdapter, SIGNAL(connection_exception(QString)), this, SLOT(unknown_db_error(QString)));
-    connect(signalAdapter, SIGNAL(connection_does_not_exist(QString)), this, SLOT(unknown_db_error(QString)));
-    connect(signalAdapter, SIGNAL(connection_failure(QString)), this, SLOT(unknown_db_error(QString)));
-    connect(signalAdapter, SIGNAL(server_rejected_connection(QString)), this, SLOT(unknown_db_error(QString)));
-    connect(signalAdapter, SIGNAL(transaction_resolution_unknown(QString)), this, SLOT(unknown_db_error(QString)));
-    connect(signalAdapter, SIGNAL(protocol_violation(QString)), this, SLOT(unknown_db_error(QString)));
-    connect(signalAdapter, SIGNAL(database_error(QString)), this, SLOT(unknown_db_error(QString)));
-
-    // Signals that we will handle specially:
-    connect(signalAdapter, SIGNAL(unable_to_establish_connection(QString)), this, SLOT(connection_failed(QString)));
-
     // Other UI signals
     connect(ui->actionSettings, SIGNAL(triggered()), this, SLOT(showSettings()));
-    connect(notificationTimer, SIGNAL(timeout()), this, SLOT(notification_pump()));
     connect(ui->actionAbout, SIGNAL(triggered()), this, SLOT(showAbout()));
 
+    dataSource = NULL;
+
+    ldTimer = new QTimer();
+    ldTimer->setInterval(1000);
+    connect(ldTimer, SIGNAL(timeout()), this, SLOT(ld_timeout()));
+
+    qDebug() << "Read settings and connect...";
     readSettings();
-    db_connect();
+    createDatabaseDataSource();
 }
 
 MainWindow::~MainWindow()
 {
-    notificationTimer->stop();
-    wdb_disconnect();
     sysTrayIcon->hide();
     delete ui;
 }
@@ -126,84 +113,48 @@ void MainWindow::changeEvent(QEvent *e)
     }
 }
 
-void MainWindow::db_connect() {
-
+void MainWindow::createDatabaseDataSource() {
     QString dbName = settings->value("Database/name").toString();
-    QString dbHostname = settings->value("Database/hostname").toString();
-    QString dbPort = settings->value("Database/port").toString();
+    QString hostname = settings->value("Database/hostname").toString();
+    int port = settings->value("Database/port").toInt();
     QString username = settings->value("Database/username").toString();
     QString password = settings->value("Database/password").toString();
 
-    QString target = dbName;
-    if (!dbHostname.isEmpty()) {
-        target += "@" + dbHostname;
-
-        if (!dbPort.isEmpty())
-            target += ":" + dbPort;
+    if (dataSource != NULL) {
+        delete dataSource;
+        dataSource = NULL;
     }
 
-    qDebug() << "Connecting to target" << target << "as user" << username;
+    DatabaseDataSource *dds;
 
-    if (!wdb_connect(target.toAscii().constData(),
-                     username.toAscii().constData(),
-                     password.toAscii().constData())) {
-        // Failed to connect.
+    dds = new DatabaseDataSource(dbName,
+                                 hostname,
+                                 port,
+                                 username,
+                                 password,
+                                 this);
+
+    if (!dds->isConnected()) {
+        delete dds;
         return;
     }
 
-    seconds_since_last_refresh = 0;
+    connect(dds, SIGNAL(connection_failed(QString)),
+            this, SLOT(connection_failed(QString)));
+    connect(dds, SIGNAL(database_error(QString)),
+            this, SLOT(unknown_db_error(QString)));
+    connect(dds, SIGNAL(liveDataRefreshed()),
+            this, SLOT(liveDataRefreshed()));
 
-    notificationTimer->start();
+    dataSource = dds;
+    ldTimer->start();
 
-    connected = true;
-    db_refresh();
+    // Do an initial refresh so we're not waiting forever with nothing to show
+    liveDataRefreshed();
 }
 
-void MainWindow::db_refresh() {
-    live_data_record rec = wdb_get_live_data();
-
-    ui->lblRelativeHumidity->setText(QString::number(rec.relative_humidity) + "% (" +
-                                     QString::number(rec.indoor_relative_humidity) + "% inside)");
-    ui->lblTemperature->setText(QString::number(rec.temperature,'f',1) + "°C (" +
-                                QString::number(rec.indoor_temperature,'f',1) + "°C inside)");
-    ui->lblDewPoint->setText(QString::number(rec.dew_point,'f',1) + "°C");
-    ui->lblWindChill->setText(QString::number(rec.wind_chill,'f',1) + "°C");
-    ui->lblApparentTemperature->setText(QString::number(rec.apparent_temperature,'f',1) + "°C");
-    ui->lblAbsolutePressure->setText(QString::number(rec.absolute_pressure,'f',1) + " hPa");
-    ui->lblAverageWindSpeed->setText(QString::number(rec.average_wind_speed,'f',1) + " m/s");
-    ui->lblGustWindSpeed->setText(QString::number(rec.gust_wind_speed,'f',1) + " m/s");
-    ui->lblWindDirection->setText(QString(rec.wind_direction));
-    QDateTime dl_timestamp = QDateTime::fromTime_t(rec.download_timestamp);
-
-    QString timestamp = dl_timestamp.toString("h:mm AP");
-
-   // QString timestamp = QDateTime::fromTime_t(rec.download_timestamp).toString();
-    ui->lblTimestamp->setText(timestamp);
-
-    if (rec.temperature > 0)
-        sysTrayIcon->setIcon(QIcon(":/icons/systray_icon"));
-    else
-        sysTrayIcon->setIcon(QIcon(":/icons/systray_subzero"));
-
-    QString ttt = "Temperature: " + QString::number(rec.temperature,'f',1) + "°C ("
-                + QString::number(rec.indoor_temperature,'f',1) + "°C inside)\n"
-                + "Humidity: " + QString::number(rec.relative_humidity) + "% ("
-                + QString::number(rec.indoor_relative_humidity) + "% inside)\n"
-                ;
-
-    sysTrayIcon->setToolTip(ttt);
-
-    seconds_since_last_refresh = 0;
-    minutes_late = 0;
-}
-
-void MainWindow::notification_pump() {
-    seconds_since_last_refresh++;
-
-    if (wdb_live_data_available()) {
-        qDebug() << "Live data available";
-        db_refresh();
-    }
+void MainWindow::ld_timeout() {
+    seconds_since_last_refresh++; // this is reset when ever live data arrives.
 
     if (seconds_since_last_refresh == 60) {
         minutes_late++;
@@ -219,6 +170,57 @@ void MainWindow::notification_pump() {
     }
 }
 
+void MainWindow::liveDataRefreshed() {
+    QScopedPointer<AbstractLiveData> data(dataSource->getLiveData());
+
+    QString formatString;
+    QString temp;
+
+    // Relative Humidity
+    formatString = "%1% (%2% inside)";
+    temp = formatString
+            .arg(QString::number(data->getRelativeHumidity()))
+            .arg(QString::number(data->getIndoorRelativeHumidity()));
+    ui->lblRelativeHumidity->setText(temp);
+
+    // Temperature
+    formatString = "%1°C (%2°C inside)";
+    temp = formatString
+            .arg(QString::number(data->getTemperature(),'f',1))
+            .arg(QString::number(data->getIndoorTemperature(), 'f', 1));
+    ui->lblTemperature->setText(temp);
+
+    ui->lblDewPoint->setText(QString::number(data->getDewPoint(), 'f', 1) + "°C");
+    ui->lblWindChill->setText(QString::number(data->getWindChill(), 'f', 1) + "°C");
+    ui->lblApparentTemperature->setText(
+                QString::number(data->getApparentTemperature(), 'f', 1) + "°C");
+    ui->lblAbsolutePressure->setText(
+                QString::number(data->getAbsolutePressure(), 'f', 1) + " hPa");
+    ui->lblAverageWindSpeed->setText(
+                QString::number(data->getAverageWindSpeed(), 'f', 1) + " m/s");
+    ui->lblGustWindSpeed->setText(
+                QString::number(data->getGustWindSpeed(), 'f', 1) + " m/s");
+    ui->lblWindDirection->setText(data->getWindDirection());
+    ui->lblTimestamp->setText(data->getTimestamp().toString("h:mm AP"));
+
+    if (data->getTemperature() > 0)
+        sysTrayIcon->setIcon(QIcon(":/icons/systray_icon"));
+    else
+        sysTrayIcon->setIcon(QIcon(":/icons/systray_subzero"));
+
+    // Tool Tip Text
+    formatString = "Temperature: %1°C (%2°C inside)\nHumidity: %3% (%4% inside)";
+    temp = formatString
+            .arg(QString::number(data->getTemperature(), 'f', 1),
+                 QString::number(data->getIndoorTemperature(), 'f', 1),
+                 QString::number(data->getRelativeHumidity(), 'f', 1),
+                 QString::number(data->getIndoorRelativeHumidity(), 'f', 1));
+    sysTrayIcon->setToolTip(temp);
+
+    seconds_since_last_refresh = 0;
+    minutes_late = 0;
+}
+
 void MainWindow::showSettings() {
     SettingsDialog sd;
     int result = sd.exec();
@@ -228,8 +230,8 @@ void MainWindow::showSettings() {
 
         // Have a go at connecting if required - perhaps the user has fixed
         // what ever was wrong.
-        if (!connected)
-            db_connect();
+        if (dataSource == NULL || !dataSource->isConnected())
+            createDatabaseDataSource();
     }
 }
 
@@ -238,7 +240,7 @@ void MainWindow::connection_failed(QString) {
                      "Error",
                      "Database connect failed",
                      true);
-    notificationTimer->stop();
+    ldTimer->stop();
 }
 
 void MainWindow::unknown_db_error(QString message) {
