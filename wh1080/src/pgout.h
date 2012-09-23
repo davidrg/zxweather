@@ -28,17 +28,21 @@
 /* Connect to the target server as the specified user */
 void pgo_connect(const char* target, const char* username, const char *password);
 
+/* Gets the ID for the specified station code */
+long pgo_get_station_id(const char* station_code);
+
 /* Gets the record number and time stamp of the most recent sample in the
  * database. Used to determine which samples from the weather station need
  * to be imported into the database. */
 void pgo_get_last_record_number(unsigned short *record_number,
-                                time_t* time_stamp);
+                                time_t* time_stamp,
+                                long station_id);
 
 /* Inserts an entire history_set, in order, into the database. */
-void pgo_insert_history_set(history_set hs);
+void pgo_insert_history_set(history_set hs, long station_id);
 
 /* Updates live data in the database. Note that this commits the transaction.*/
-void pgo_update_live(history live_record);
+void pgo_update_live(history live_record, long station_id);
 
 /* Called to notify other database users that we've finished updating data
  * for now.

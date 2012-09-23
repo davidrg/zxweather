@@ -6,7 +6,7 @@ Used for generating charts in JavaScript, etc.
 
 from datetime import date, datetime
 from cache import day_cache_control
-from database import get_daily_records, get_daily_rainfall, get_latest_sample_timestamp, day_exists
+from database import get_daily_records, get_daily_rainfall, get_latest_sample_timestamp, day_exists, get_station_id
 import web
 import config
 import json
@@ -15,15 +15,17 @@ from data.util import outdoor_sample_result_to_json, rainfall_sample_result_to_j
 __author__ = 'David Goodwin'
 
 
-def get_day_records(day):
+def get_day_records(day, station_id):
     """
     Gets JSON data containing records for the day.
     :param day: The day to get records for
     :type day: date
+    :param station_id: The ID of the weather station to work with
+    :type station_id: int
     :return: The days records in JSON form
     :rtype: str
     """
-    records = get_daily_records(day)
+    records = get_daily_records(day, station_id)
 
     data = {
         'date_stamp': str(records.date_stamp),
@@ -78,27 +80,29 @@ def get_day_records(day):
 
     json_data = json.dumps(data)
 
-    day_cache_control(age,day)
+    day_cache_control(age,day, station_id)
     web.header('Content-Type','application/json')
     web.header('Content-Length', str(len(json_data)))
     return json_data
 
-def get_day_rainfall(day):
+def get_day_rainfall(day, station_id):
     """
     Gets JSON data containing total rainfall for the day and the past seven
     days.
     :param day:
+    :param station_id: The ID of the weather station to work with
+    :type station_id: int
     """
-    rainfall = get_daily_rainfall(day)
+    rainfall = get_daily_rainfall(day, station_id)
 
-    age = get_latest_sample_timestamp()
+    age = get_latest_sample_timestamp(station_id)
     json_data = json.dumps(rainfall)
-    day_cache_control(age,day)
+    day_cache_control(age,day, station_id)
     web.header('Content-Type','application/json')
     web.header('Content-Length', str(len(json_data)))
     return json_data
 
-def get_day_dataset(day, data_function, output_function):
+def get_day_dataset(day, data_function, output_function, station_id):
     """
     Gets day-level JSON data using the supplied data function and then
     converts it to JSON using the supplied output function.
@@ -106,26 +110,30 @@ def get_day_dataset(day, data_function, output_function):
     :param day: Day to get data for.
     :param data_function: Function to supply data.
     :param output_function: Function to format JSON output.
+    :param station_id: The ID of the weather station to work with
+    :type station_id: int
     :return: JSON data.
     """
 
-    result = data_function(day)
+    result = data_function(day, station_id)
 
     data,age = output_function(result)
 
-    day_cache_control(age,day)
+    day_cache_control(age,day, station_id)
 
     web.header('Content-Type','application/json')
     web.header('Content-Length', str(len(data)))
     return data
 
-def get_day_samples_data(day):
+def get_day_samples_data(day, station_id):
     """
     Gets the full days samples.
-    :param day:
+    :param day: Day to get samples for.
+    :param station_id: The ID of the weather station to work with
+    :type station_id: int
     :return:
     """
-    params = dict(date = day)
+    params = dict(date = day, station=station_id)
     result = config.db.query("""select s.time_stamp::timestamptz,
                s.temperature,
                s.dew_point,
@@ -133,8 +141,8 @@ def get_day_samples_data(day):
                s.wind_chill,
                s.relative_humidity,
                s.absolute_pressure,
-               s.time_stamp - (s.sample_interval * '1 minute'::interval) as prev_sample_time,
-               CASE WHEN (s.time_stamp - prev.time_stamp) > ((s.sample_interval * 2) * '1 minute'::interval) THEN
+               s.time_stamp - (st.sample_interval * '1 second'::interval) as prev_sample_time,
+               CASE WHEN (s.time_stamp - prev.time_stamp) > ((st.sample_interval * 2) * '1 second'::interval) THEN
                   true
                else
                   false
@@ -142,19 +150,24 @@ def get_day_samples_data(day):
                s.average_wind_speed,
                s.gust_wind_speed
     from sample s, sample prev
+    inner join station st on st.station_id = prev.station_id
     where date(s.time_stamp) = $date
-      and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp)"""
+      and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp and station_id = $station)
+      and s.station_id = $station
+      and prev.station_id = $station"""
                              , params)
 
     return result
 
-def get_7day_samples_data(day):
+def get_7day_samples_data(day, station_id):
     """
     Gets samples for the 7-day period ending on the specified date.
     :param day: End date for the 7-day period
+    :param station_id: The ID of the weather station to work with
+    :type station_id: int
     :return: Query data
     """
-    params = dict(date = day)
+    params = dict(date = day, station = station_id)
     result = config.db.query("""select s.time_stamp,
            s.temperature,
            s.dew_point,
@@ -162,31 +175,36 @@ def get_7day_samples_data(day):
            s.wind_chill,
            s.relative_humidity,
            s.absolute_pressure,
-           s.time_stamp - (s.sample_interval * '1 minute'::interval) as prev_sample_time,
-           CASE WHEN (s.time_stamp - prev.time_stamp) > ((s.sample_interval * 2) * '1 minute'::interval) THEN
+           s.time_stamp - (st.sample_interval * '1 second'::interval) as prev_sample_time,
+           CASE WHEN (s.time_stamp - prev.time_stamp) > ((st.sample_interval * 2) * '1 second'::interval) THEN
               true
            else
               false
            end as gap,
            s.average_wind_speed,
            s.gust_wind_speed
-    from sample s, sample prev,
-         (select max(time_stamp) as ts from sample where date(time_stamp) = $date) as max_ts
+    from sample s, sample prev, station st,
+         (select max(time_stamp) as ts from sample where date(time_stamp) = $date and station_id = $station) as max_ts
     where s.time_stamp <= max_ts.ts     -- 604800 seconds in a week.
       and s.time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
       and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp)
+      and s.station_id = $station
+      and prev.station_id = $station
+      and st.station_id = prev.station_id
     order by s.time_stamp asc
     """, params)
     return result
 
-def get_7day_30mavg_samples_data(day):
+def get_7day_30mavg_samples_data(day, station_id):
     """
     Gets 30-minute averaged sample data over the 7-day period ending on the
     specified day.
     :param day: end date.
+    :param station_id: The ID of the weather station to work with
+    :type station_id: int
     :return: Data.
     """
-    params = dict(date = day)
+    params = dict(date = day, station = station_id)
     result = config.db.query("""select min(iq.time_stamp) as time_stamp,
        avg(iq.temperature) as temperature,
        avg(iq.dew_point) as dew_point,
@@ -207,120 +225,145 @@ from (
                cur.wind_chill,
                cur.relative_humidity,
                cur.absolute_pressure,
-               cur.time_stamp - (cur.sample_interval * '1 minute'::interval) as prev_sample_time,
-               CASE WHEN (cur.time_stamp - prev.time_stamp) > ((cur.sample_interval * 2) * '1 minute'::interval) THEN
+               cur.time_stamp - (st.sample_interval * '1 second'::interval) as prev_sample_time,
+               CASE WHEN (cur.time_stamp - prev.time_stamp) > ((st.sample_interval * 2) * '1 second'::interval) THEN
                   true
                else
                   false
                end as gap,
                cur.average_wind_speed,
                cur.gust_wind_speed
-        from sample cur, sample prev,
-             (select max(time_stamp) as ts from sample where date(time_stamp) = $date) as max_ts
+        from sample cur, sample prev, station st,
+             (select max(time_stamp) as ts from sample where date(time_stamp) = $date and station_id = $station) as max_ts
         where cur.time_stamp <= max_ts.ts     -- 604800 seconds in a week.
           and cur.time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
           and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < cur.time_stamp)
+          and cur.station_id = $station
+          and prev.station_id = $station
+          and st.station_id = cur.station_id
         order by cur.time_stamp asc) as iq
 group by iq.quadrant
 order by iq.quadrant asc""", params)
     return result
 
-def get_days_hourly_rainfall_data(day):
+def get_days_hourly_rainfall_data(day, station_id):
     """
     Gets the days hourly rainfall data.
     :param day: Day to get rainfall data for.
+    :param station_id: The ID of the weather station to work with
+    :type station_id: int
     :return: Rainfall data query result
     """
 
-    params = dict(date = day)
+    params = dict(date = day, station = station_id)
 
     result = config.db.query("""select date_trunc('hour',time_stamp) as time_stamp,
            sum(rainfall) as rainfall
     from sample
     where time_stamp::date = $date
+    and station_id = $station
     group by date_trunc('hour',time_stamp)
     order by date_trunc('hour',time_stamp) asc""", params)
 
     return result
 
-def get_7day_hourly_rainfall_data(day):
+def get_7day_hourly_rainfall_data(day, station_id):
     """
     Gets hourly rainfall data for the 7 day period ending at the specified date.
     :param day: End of the 7 day period
+    :param station_id: The ID of the weather station to work with
+    :type station_id: int
     :return: Rainfall data query result.
     """
 
-    params = dict(date = day)
+    params = dict(date = day, station = station_id)
 
     result = config.db.query("""select date_trunc('hour',time_stamp) as time_stamp,
            sum(rainfall) as rainfall
-    from sample, (select max(time_stamp) as ts from sample where time_stamp::date = $date) as max_ts
+    from sample, (
+        select max(time_stamp) as ts
+        from sample
+        where time_stamp::date = $date
+        and station_id = $station) as max_ts
     where time_stamp <= max_ts.ts
       and time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
+      and station_id = $station
     group by date_trunc('hour',time_stamp)
     order by date_trunc('hour',time_stamp) asc""", params)
 
     return result
 
-def get_day_indoor_samples_data(day):
+def get_day_indoor_samples_data(day, station_id):
     """
     Gets indoor query data for the specific day.
     :param day: Day to get data for
+    :param station_id: The ID of the weather station to work with
+    :type station_id: int
     :return: Query data
     """
 
-    params = dict(date = day)
+    params = dict(date = day, station=station_id)
     result = config.db.query("""select s.time_stamp::timestamptz,
 s.indoor_temperature,
 s.indoor_relative_humidity,
-           s.time_stamp - (s.sample_interval * '1 minute'::interval) as prev_sample_time,
-           CASE WHEN (s.time_stamp - prev.time_stamp) > ((s.sample_interval * 2) * '1 minute'::interval) THEN
+           s.time_stamp - (st.sample_interval * '1 second'::interval) as prev_sample_time,
+           CASE WHEN (s.time_stamp - prev.time_stamp) > ((st.sample_interval * 2) * '1 second'::interval) THEN
               true
            else
               false
            end as gap
 from sample s, sample prev
+inner join station st on st.station_id = prev.station_id
 where date(s.time_stamp) = $date
-  and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp)""", params)
+  and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp and station_id = $station)
+  and s.station_id = $station
+  and prev.station_id = $station""", params)
 
     return result
 
-def get_7day_indoor_samples_data(day):
+def get_7day_indoor_samples_data(day, station_id):
     """
     Gets query data for the 7-day indoor samples data set
-    :param day:
+    :param day: The day to get samples for
+    :param station_id: The ID of the weather station to work with
+    :type station_id: int
     :return:
     """
 
-    params = dict(date = day)
+    params = dict(date = day, station = station_id)
     result = config.db.query("""select s.time_stamp,
                    s.indoor_temperature,
                    s.indoor_relative_humidity,
-                   s.time_stamp - (s.sample_interval * '1 minute'::interval) as prev_sample_time,
-                   CASE WHEN (s.time_stamp - prev.time_stamp) > ((s.sample_interval * 2) * '1 minute'::interval) THEN
+                   s.time_stamp - (st.sample_interval * '1 second'::interval) as prev_sample_time,
+                   CASE WHEN (s.time_stamp - prev.time_stamp) > ((st.sample_interval * 2) * '1 second'::interval) THEN
                       true
                    else
                       false
                    end as gap
-            from sample s, sample prev,
-                 (select max(time_stamp) as ts from sample where date(time_stamp) = $date) as max_ts
+            from sample s, sample prev, station st,
+                 (select max(time_stamp) as ts from sample where date(time_stamp) = $date and station_id = $station) as max_ts
             where s.time_stamp <= max_ts.ts     -- 604800 seconds in a week.
               and s.time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
               and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp)
+              and s.station_id = $station
+              and prev.station_id = $station
+              and st.station_id = prev.station_id
             order by s.time_stamp asc
             """, params)
 
     return result
 
-def get_7day_30mavg_indoor_samples_data(day):
+def get_7day_30mavg_indoor_samples_data(day, station_id):
     """
     Gets 30-minute averaged data for the 7-day period ending on the specified
     date.
     :param day: End date for 7-day period
+    :param station_id: The ID of the weather station to work with
+    :type station_id: int
     :return: Query data
     """
 
-    params = dict(date = day)
+    params = dict(date = day, station=station_id)
     result = config.db.query("""select min(iq.time_stamp) as time_stamp,
        avg(iq.indoor_temperature) as indoor_temperature,
        avg(indoor_relative_humidity)::integer as indoor_relative_humidity,
@@ -331,17 +374,20 @@ from (
                (extract(epoch from cur.time_stamp) / 1800)::integer AS quadrant,
                cur.indoor_temperature,
                cur.indoor_relative_humidity,
-               cur.time_stamp - (cur.sample_interval * '1 minute'::interval) as prev_sample_time,
-               CASE WHEN (cur.time_stamp - prev.time_stamp) > ((cur.sample_interval * 2) * '1 minute'::interval) THEN
+               cur.time_stamp - (st.sample_interval * '1 second'::interval) as prev_sample_time,
+               CASE WHEN (cur.time_stamp - prev.time_stamp) > ((st.sample_interval * 2) * '1 second'::interval) THEN
                   true
                else
                   false
                end as gap
-        from sample cur, sample prev,
-             (select max(time_stamp) as ts from sample where date(time_stamp) = $date) as max_ts
+        from sample cur, sample prev, station st,
+             (select max(time_stamp) as ts from sample where date(time_stamp) = $date and station_id = $station) as max_ts
         where cur.time_stamp <= max_ts.ts     -- 604800 seconds in a week.
           and cur.time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
-          and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < cur.time_stamp)
+          and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < cur.time_stamp and station_id = $station)
+          and cur.station_id = $station
+          and prev.station_id = $station
+          and st.station_id = cur.station_id
         order by cur.time_stamp asc) as iq
 group by iq.quadrant
 order by iq.quadrant asc""", params)
@@ -352,15 +398,15 @@ order by iq.quadrant asc""", params)
 datasources = {
     'samples': {
         'desc': 'All outdoor samples for the day. Should be around 288 records.',
-        'func': lambda day: get_day_dataset(day, get_day_samples_data, outdoor_sample_result_to_json)
+        'func': lambda day, station_id: get_day_dataset(day, get_day_samples_data, outdoor_sample_result_to_json, station_id)
     },
     '7day_samples':{
         'desc': 'Averaged outdoor samples every 30 minutes for the past 7 days.',
-        'func': lambda day: get_day_dataset(day,get_7day_samples_data,outdoor_sample_result_to_json)
+        'func': lambda day, station_id: get_day_dataset(day,get_7day_samples_data,outdoor_sample_result_to_json, station_id)
     },
     '7day_30m_avg_samples':{
         'desc': 'Averaged outdoor samples every 30 minutes for the past 7 days.',
-        'func': lambda day: get_day_dataset(day,get_7day_30mavg_samples_data,outdoor_sample_result_to_json)
+        'func': lambda day, station_id: get_day_dataset(day,get_7day_30mavg_samples_data,outdoor_sample_result_to_json, station_id)
     },
     'records': {
         'desc': 'Records for the day.',
@@ -372,23 +418,23 @@ datasources = {
     },
     'hourly_rainfall': {
         'desc': 'Total rainfall for each hour in the day',
-        'func': lambda day: get_day_dataset(day,get_days_hourly_rainfall_data,rainfall_sample_result_to_json)
+        'func': lambda day, station_id: get_day_dataset(day,get_days_hourly_rainfall_data,rainfall_sample_result_to_json, station_id)
     },
     '7day_hourly_rainfall': {
         'desc': 'Total rainfall for each hour in the past seven days.',
-        'func': lambda day: get_day_dataset(day,get_7day_hourly_rainfall_data,rainfall_sample_result_to_json)
+        'func': lambda day, station_id: get_day_dataset(day,get_7day_hourly_rainfall_data,rainfall_sample_result_to_json, station_id)
     },
     'indoor_samples': {
         'desc': 'All indoor samples for the day. Should be around 288 records.',
-        'func': lambda day: get_day_dataset(day,get_day_indoor_samples_data,indoor_sample_result_to_json)
+        'func': lambda day, station_id: get_day_dataset(day,get_day_indoor_samples_data,indoor_sample_result_to_json, station_id)
     },
     '7day_indoor_samples': {
         'desc': 'Every indoor sample over the past seven days. Should be around 2016 records.',
-        'func': lambda day: get_day_dataset(day,get_7day_indoor_samples_data,indoor_sample_result_to_json)
+        'func': lambda day, station_id: get_day_dataset(day,get_7day_indoor_samples_data,indoor_sample_result_to_json, station_id)
     },
     '7day_30m_avg_indoor_samples': {
         'desc': 'Averaged indoor samples every 30 minutes for the past 7 days.',
-        'func': lambda day: get_day_dataset(day,get_7day_30mavg_indoor_samples_data,indoor_sample_result_to_json)
+        'func': lambda day, station_id: get_day_dataset(day,get_7day_30mavg_indoor_samples_data,indoor_sample_result_to_json, station_id)
     },
 }
 
@@ -397,35 +443,35 @@ datasources = {
 datatable_datasources = {
     'samples': {
         'desc': 'All outdoor samples for the day. Should be around 288 records.',
-        'func': lambda day: get_day_dataset(day, get_day_samples_data, outdoor_sample_result_to_datatable)
+        'func': lambda day, station_id: get_day_dataset(day, get_day_samples_data, outdoor_sample_result_to_datatable, station_id)
     },
     '7day_samples': {
         'desc': 'Every outdoor sample over the past seven days. Should be around 2016 records.',
-        'func': lambda day: get_day_dataset(day,get_7day_samples_data,outdoor_sample_result_to_datatable)
+        'func': lambda day, station_id: get_day_dataset(day,get_7day_samples_data,outdoor_sample_result_to_datatable, station_id)
     },
     '7day_30m_avg_samples': {
         'desc': 'Averaged outdoor samples every 30 minutes for the past 7 days.',
-        'func': lambda day: get_day_dataset(day,get_7day_30mavg_samples_data,outdoor_sample_result_to_datatable)
+        'func': lambda day, station_id: get_day_dataset(day,get_7day_30mavg_samples_data,outdoor_sample_result_to_datatable, station_id)
     },
     'indoor_samples': {
         'desc': 'All indoor samples for the day. Should be around 288 records.',
-        'func': lambda day: get_day_dataset(day,get_day_indoor_samples_data,indoor_sample_result_to_datatable)
+        'func': lambda day, station_id: get_day_dataset(day,get_day_indoor_samples_data,indoor_sample_result_to_datatable, station_id)
     },
     '7day_indoor_samples': {
         'desc': 'Every indoor sample over the past seven days. Should be around 2016 records.',
-        'func': lambda day: get_day_dataset(day,get_7day_indoor_samples_data,indoor_sample_result_to_datatable)
+        'func': lambda day, station_id: get_day_dataset(day,get_7day_indoor_samples_data,indoor_sample_result_to_datatable, station_id)
     },
     '7day_30m_avg_indoor_samples': {
         'desc': 'Averaged indoor samples every 30 minutes for the past 7 days.',
-        'func': lambda day: get_day_dataset(day,get_7day_30mavg_indoor_samples_data,indoor_sample_result_to_datatable)
+        'func': lambda day, station_id: get_day_dataset(day,get_7day_30mavg_indoor_samples_data,indoor_sample_result_to_datatable, station_id)
     },
     'hourly_rainfall': {
         'desc': 'Total rainfall for each hour in the day',
-        'func': lambda day: get_day_dataset(day,get_days_hourly_rainfall_data,rainfall_to_datatable)
+        'func': lambda day, station_id: get_day_dataset(day,get_days_hourly_rainfall_data,rainfall_to_datatable, station_id)
     },
     '7day_hourly_rainfall': {
         'desc': 'Total rainfall for each hour in the past seven days.',
-        'func': lambda day: get_day_dataset(day,get_7day_hourly_rainfall_data,rainfall_to_datatable)
+        'func': lambda day, station_id: get_day_dataset(day,get_7day_hourly_rainfall_data,rainfall_to_datatable, station_id)
     },
 }
 
@@ -443,18 +489,20 @@ def datasource_dispatch(station, datasource_dict, dataset, day):
     :return: Response data
     :raise: web.NotFound() if request is invalid
     """
-    if station != config.default_station_name:
+
+    station_id = get_station_id(station)
+    if station_id is None:
         raise web.NotFound()
-    print dataset
+
     # Make sure the day actually exists in the database before we go
     # any further.
-    if not day_exists(day):
+    if not day_exists(day, station_id):
         raise web.NotFound()
 
     if dataset in datasource_dict:
         if datasource_dict[dataset]['func'] is None:
             raise web.NotFound()
-        return datasource_dict[dataset]['func'](day)
+        return datasource_dict[dataset]['func'](day, station_id)
     else:
         raise web.NotFound()
 

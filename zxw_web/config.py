@@ -13,16 +13,6 @@ db = None
 # this will live in the database instead.
 default_station_name = None
 
-# Set this to True if you are running wh1080d to feed samples and live data
-# into the database.
-live_data_available = True
-
-# How often new samples appear from the weather station, in seconds.
-sample_interval = 300 # 5 minutes
-
-# How often charts are re-plotted, in seconds
-plot_interval = 1800
-
 # Where static data lives
 static_data_dir = None
 
@@ -52,8 +42,8 @@ def load_settings():
     Loads settings from the configuration file.
     """
 
-    global db, default_station_name, live_data_available, sample_interval
-    global plot_interval, static_data_dir, site_root, default_ui, site_name
+    global db, default_station_name
+    global static_data_dir, site_root, default_ui, site_name
     global enable_data_loading, gnupg_home, gpg_binary, key_fingerprint
 
     import ConfigParser
@@ -87,17 +77,15 @@ def load_settings():
                       host=hostname,
                       port=port)
 
-    # Data
-    live_data_available = config.getboolean(S_D,'live_data_available')
-    sample_interval = config.getint(S_D,'sample_interval')
-    plot_interval = config.getint(S_D,'plot_interval')
-
     # Site
     default_station_name = config.get(S_S, 'station_name')
     site_root = config.get(S_S, 'site_root')
     default_ui = config.get(S_S, 'default_ui')
     site_name = config.get(S_S, 'site_name')
     static_data_dir = config.get(S_S, 'static_data_dir')
+
+    if len(default_station_name) > 5:
+        raise Exception('ConfigurationError: Default station name can not be longer than five characters. Consult installation reference manual.')
 
     if not static_data_dir.endswith("/"):
         static_data_dir += "/"

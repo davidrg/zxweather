@@ -3,9 +3,9 @@
 Utility functions for handling data URLs
 """
 
-from datetime import date, datetime
+from datetime import date, datetime, time
 import json
-from time import time
+
 
 __author__ = 'David Goodwin'
 

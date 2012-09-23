@@ -13,9 +13,6 @@
     </center>
 
     {% if data.current_data %}
-    {% if data.current_data.invalid_data %}
-        <p>Live data is invalid.</p>
-    {% else %}
     <a name="current">
     <h2>Conditions as of {{ data.current_data_ts }}</h2>
     <table border=2>
@@ -64,7 +61,6 @@
             <td>{{ data.current_data.rainfall|round(1) }} mm</td>
         </tr> #}
     </table>
-    {% endif %}
     {% endif %}
     <a name="records">
     <h2>Records</h2>
