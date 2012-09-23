@@ -25,8 +25,8 @@
 #include "settingsdialog.h"
 
 #include "databasedatasource.h"
-
 #include "aboutdialog.h"
+#include "settings.h"
 
 #include <QtDebug>
 #include <QDateTime>
@@ -42,8 +42,6 @@ MainWindow::MainWindow(QWidget *parent) :
 
     seconds_since_last_refresh = 0;
     minutes_late = 0;
-
-    settings = new QSettings("zxnet","zxweather",this);
 
     sysTrayIcon = new QSystemTrayIcon(this);
     sysTrayIcon->setIcon(QIcon(":/icons/systray_icon_warning"));
@@ -72,6 +70,12 @@ MainWindow::MainWindow(QWidget *parent) :
     ldTimer->setInterval(1000);
     connect(ldTimer, SIGNAL(timeout()), this, SLOT(ld_timeout()));
 
+    // Show the settings dialog on the first run.
+    if (!Settings::getInstance().singleShotFirstRun()) {
+        showSettings();
+        Settings::getInstance().setSingleShotFirstRun();
+    }
+
     qDebug() << "Read settings and connect...";
     readSettings();
     createDatabaseDataSource();
@@ -94,13 +98,13 @@ void MainWindow::changeEvent(QEvent *e)
         if (windowState().testFlag(Qt::WindowMinimized) &&
                 minimise_to_systray) {
 
-            if (!settings->value("SingleShot/minimise_to_systray_info",false).toBool()) {
+            if (!Settings::getInstance().singleShotMinimiseToSysTray()) {
                 QMessageBox::information(this, "zxweather",
                                      "zxweather will minimise to the "
                                      "system tray. To restore it, click on the "
                                      "icon. This behaviour can be changed in the "
                                      "settings dialog.");
-                settings->setValue("SingleShot/minimise_to_systray_info",true);
+                Settings::getInstance().singleShotMinimiseToSysTray();
             }
 
             // We can't call hide from the event handler. So we get the
@@ -114,11 +118,12 @@ void MainWindow::changeEvent(QEvent *e)
 }
 
 void MainWindow::createDatabaseDataSource() {
-    QString dbName = settings->value("Database/name").toString();
-    QString hostname = settings->value("Database/hostname").toString();
-    int port = settings->value("Database/port").toInt();
-    QString username = settings->value("Database/username").toString();
-    QString password = settings->value("Database/password").toString();
+    Settings& settings = Settings::getInstance();
+    QString dbName = settings.databaseName();
+    QString hostname = settings.databaseHostName();
+    int port = settings.databasePort();
+    QString username = settings.databaseUsername();
+    QString password = settings.databasePassword();
 
     if (dataSource != NULL) {
         delete dataSource;
@@ -257,8 +262,9 @@ void MainWindow::showWarningPopup(QString message, QString title, QString toolti
 }
 
 void MainWindow::readSettings() {
-    minimise_to_systray = settings->value("General/minimise_to_systray", true).toBool();
-    close_to_systray = settings->value("General/close_to_systray", false).toBool();
+    Settings& settings = Settings::getInstance();
+    minimise_to_systray = settings.miniseToSysTray();
+    close_to_systray = settings.closeToSysTray();
 }
 
 void MainWindow::trayIconActivated(QSystemTrayIcon::ActivationReason reason) {
@@ -277,14 +283,14 @@ void MainWindow::closeEvent(QCloseEvent *event)
 {
     if (sysTrayIcon->isVisible()) {
         if (close_to_systray) {
-            if (!settings->value("SingleShot/close_to_systray_info",false).toBool()) {
+            if (!Settings::getInstance().singleShotCloseToSysTray()) {
                 QMessageBox::information(this, "zxweather",
                                      "zxweather will keep running in the "
                                         "system tray. To restore it, click on the "
                                         "icon. To exit, right-click on the system tray "
                                         "icon and choose <b>Exit</b>. This behaviour "
                                         "can be changed from the settings dialog.");
-                settings->setValue("SingleShot/close_to_systray_info",true);
+                Settings::getInstance().setSingleShotCloseToSysTray();
             }
             hide();
             event->ignore();

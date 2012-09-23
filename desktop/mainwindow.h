@@ -144,7 +144,6 @@ private:
     QAction* quitAction;
     QTimer *ldTimer;
 
-    QSettings* settings;
     bool minimise_to_systray;
     bool close_to_systray;
 

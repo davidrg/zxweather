@@ -33,7 +33,8 @@ SOURCES += main.cpp\
     aboutdialog.cpp \
     json/json.cpp \
     datasource.cpp \
-    databasedatasource.cpp
+    databasedatasource.cpp \
+    settings.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
@@ -43,7 +44,8 @@ HEADERS  += mainwindow.h \
     json/json.h \
     datasource.h \
     databasedatasource.h \
-    databaselivedata.h
+    databaselivedata.h \
+    settings.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \

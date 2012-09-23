@@ -26,6 +26,11 @@
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
+
+    QCoreApplication::setOrganizationName("zxnet");
+    QCoreApplication::setOrganizationDomain("zx.net.nz");
+    QCoreApplication::setApplicationName("zxweather-desktop");
+
     MainWindow w;
     w.show();
     
