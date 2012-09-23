@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>385</width>
-    <height>286</height>
+    <width>380</width>
+    <height>290</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,8 +17,8 @@
    <iconset resource="resources.qrc">
     <normaloff>:/icons/settings</normaloff>:/icons/settings</iconset>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout">
-   <item>
+  <layout class="QGridLayout" name="gridLayout_4">
+   <item row="0" column="0">
     <widget class="QTabWidget" name="tabWidget">
      <property name="currentIndex">
       <number>0</number>
@@ -71,66 +71,167 @@
      </widget>
      <widget class="QWidget" name="dbTab">
       <attribute name="title">
-       <string>Database</string>
+       <string>Data source</string>
       </attribute>
-      <layout class="QVBoxLayout" name="verticalLayout_2">
-       <item>
-        <layout class="QFormLayout" name="dbForm">
-         <item row="0" column="0">
-          <widget class="QLabel" name="databaseLabel">
-           <property name="text">
-            <string>Database</string>
+      <layout class="QGridLayout" name="gridLayout_3">
+       <item row="0" column="0">
+        <layout class="QGridLayout" name="gridLayout_2">
+         <item row="5" column="2">
+          <widget class="QLineEdit" name="passwordLineEdit">
+           <property name="toolTip">
+            <string>Password for the database user account</string>
+           </property>
+           <property name="whatsThis">
+            <string>Password for the database user account</string>
+           </property>
+           <property name="echoMode">
+            <enum>QLineEdit::PasswordEchoOnEdit</enum>
            </property>
           </widget>
          </item>
-         <item row="0" column="1">
-          <widget class="QLineEdit" name="databaseLineEdit"/>
-         </item>
-         <item row="1" column="0">
-          <widget class="QLabel" name="hostnameLabel">
-           <property name="text">
-            <string>Hostname</string>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="1">
-          <widget class="QLineEdit" name="hostnameLineEdit"/>
-         </item>
-         <item row="2" column="0">
-          <widget class="QLabel" name="portLabel">
-           <property name="text">
-            <string>Port</string>
-           </property>
-          </widget>
-         </item>
-         <item row="3" column="0">
-          <widget class="QLabel" name="usernameLabel">
-           <property name="text">
-            <string>Username</string>
-           </property>
-          </widget>
-         </item>
-         <item row="3" column="1">
-          <widget class="QLineEdit" name="usernameLineEdit"/>
-         </item>
-         <item row="4" column="0">
+         <item row="5" column="1">
           <widget class="QLabel" name="passwordLabel">
            <property name="text">
             <string>Password</string>
            </property>
           </widget>
          </item>
+         <item row="0" column="0" colspan="3">
+          <widget class="QRadioButton" name="rbDatabase">
+           <property name="toolTip">
+            <string>Retrieve data directly from the database.</string>
+           </property>
+           <property name="whatsThis">
+            <string>Retrieve data directly from the database. Requires a direct connection to the database server. Allows data to be refreshed as it arrives rather than having to poll for it ever minute as is done for the web interface.</string>
+           </property>
+           <property name="text">
+            <string>Database</string>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="2">
+          <widget class="QLineEdit" name="hostnameLineEdit">
+           <property name="toolTip">
+            <string>IP Address or DNS name of the database server.</string>
+           </property>
+           <property name="whatsThis">
+            <string>IP Address or DNS name of the database server.</string>
+           </property>
+           <property name="placeholderText">
+            <string>localhost</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="2">
+          <widget class="QLineEdit" name="databaseLineEdit">
+           <property name="toolTip">
+            <string>Name of the database containing weather data</string>
+           </property>
+           <property name="whatsThis">
+            <string>Name of the database containing weather data</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QLabel" name="databaseLabel">
+           <property name="text">
+            <string>Database</string>
+           </property>
+          </widget>
+         </item>
          <item row="4" column="1">
-          <widget class="QLineEdit" name="passwordLineEdit">
-           <property name="echoMode">
-            <enum>QLineEdit::PasswordEchoOnEdit</enum>
+          <widget class="QLabel" name="usernameLabel">
+           <property name="text">
+            <string>Username</string>
            </property>
           </widget>
          </item>
          <item row="2" column="1">
+          <widget class="QLabel" name="hostnameLabel">
+           <property name="text">
+            <string>Hostname</string>
+           </property>
+          </widget>
+         </item>
+         <item row="6" column="0" colspan="3">
+          <widget class="QRadioButton" name="rbWebInterface">
+           <property name="whatsThis">
+            <string>Retrieve data from the web interface. Suitable for when direct access to the database server is not possible. Data is refreshed once a minute.</string>
+           </property>
+           <property name="text">
+            <string>Web Interface</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="2">
           <widget class="QSpinBox" name="portSpinBox">
+           <property name="toolTip">
+            <string>Port the database server is listening on. This is normally 5432.</string>
+           </property>
+           <property name="whatsThis">
+            <string>Port the database server is listening on. This is normally 5432.</string>
+           </property>
            <property name="maximum">
             <number>65535</number>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1">
+          <widget class="QLabel" name="portLabel">
+           <property name="text">
+            <string>Port</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <spacer name="horizontalSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeType">
+            <enum>QSizePolicy::Maximum</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item row="4" column="2">
+          <widget class="QLineEdit" name="usernameLineEdit">
+           <property name="toolTip">
+            <string>User to login to the database server as</string>
+           </property>
+           <property name="whatsThis">
+            <string>User to login to the database server as</string>
+           </property>
+          </widget>
+         </item>
+         <item row="7" column="1">
+          <widget class="QLabel" name="UrlLabel">
+           <property name="text">
+            <string>URL</string>
+           </property>
+          </widget>
+         </item>
+         <item row="7" column="2">
+          <widget class="QLineEdit" name="UrlLineEdit">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="toolTip">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; text-decoration: underline;&quot;&gt;Web interface URL:&lt;/span&gt;&lt;/p&gt;&lt;p&gt;This is the full URL for the data section of the web interface. This will be something like:&lt;br/&gt;http://weather.example.com/data/&amp;lt;your-station-name&amp;gt;/&lt;/p&gt;&lt;p&gt;If you normally access your station data at:&lt;br/&gt;http://weather.example.com/s/foo/&lt;br/&gt;then the appropriate data URL will be:&lt;br/&gt;http://weather.example.com/data/foo/&lt;/p&gt;&lt;p&gt;You can enter the data URL into your web browser to confirm it is correct. You should get a &amp;quot;Station Data&amp;quot; page with links to various station-level datasets.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+           <property name="whatsThis">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; text-decoration: underline;&quot;&gt;Web interface URL:&lt;/span&gt;&lt;/p&gt;&lt;p&gt;This is the full URL for the data section of the web interface. This will be something like:&lt;br/&gt;    http://weather.example.com/data/&amp;lt;your-station-name&amp;gt;/&lt;/p&gt;&lt;p&gt;If you normally access your station data at:&lt;br/&gt;    http://weather.example.com/s/foo/&lt;br/&gt;then the appropriate data URL will be:&lt;br/&gt;    http://weather.example.com/data/foo/&lt;/p&gt;&lt;p&gt;You can enter the data URL into your web browser to confirm it is correct. You should get a &amp;quot;Station Data&amp;quot; page with links to various station-level datasets.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+           <property name="placeholderText">
+            <string>http://weather.example.com/data/station_name/</string>
            </property>
           </widget>
          </item>
@@ -140,7 +241,7 @@
      </widget>
     </widget>
    </item>
-   <item>
+   <item row="1" column="0">
     <widget class="QDialogButtonBox" name="buttonBox">
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
@@ -152,6 +253,20 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>tabWidget</tabstop>
+  <tabstop>chkMinimiseToSystemTray</tabstop>
+  <tabstop>chkCloseToSystemTray</tabstop>
+  <tabstop>rbDatabase</tabstop>
+  <tabstop>databaseLineEdit</tabstop>
+  <tabstop>hostnameLineEdit</tabstop>
+  <tabstop>portSpinBox</tabstop>
+  <tabstop>usernameLineEdit</tabstop>
+  <tabstop>passwordLineEdit</tabstop>
+  <tabstop>rbWebInterface</tabstop>
+  <tabstop>UrlLineEdit</tabstop>
+  <tabstop>buttonBox</tabstop>
+ </tabstops>
  <resources>
   <include location="resources.qrc"/>
  </resources>
@@ -169,6 +284,102 @@
     <hint type="destinationlabel">
      <x>286</x>
      <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>rbDatabase</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>databaseLineEdit</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>536</x>
+     <y>84</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>576</x>
+     <y>112</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>rbDatabase</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>hostnameLineEdit</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>536</x>
+     <y>84</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>576</x>
+     <y>142</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>rbDatabase</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>portSpinBox</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>536</x>
+     <y>84</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>576</x>
+     <y>172</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>rbDatabase</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>usernameLineEdit</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>536</x>
+     <y>84</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>576</x>
+     <y>202</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>rbDatabase</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>passwordLineEdit</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>536</x>
+     <y>84</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>576</x>
+     <y>232</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>rbWebInterface</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>UrlLineEdit</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>536</x>
+     <y>261</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>576</x>
+     <y>289</y>
     </hint>
    </hints>
   </connection>

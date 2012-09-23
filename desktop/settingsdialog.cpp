@@ -22,8 +22,7 @@
 
 #include "settingsdialog.h"
 #include "ui_settingsdialog.h"
-
-#include <QSettings>
+#include "settings.h"
 
 SettingsDialog::SettingsDialog(QWidget *parent) :
     QDialog(parent),
@@ -57,31 +56,48 @@ void SettingsDialog::dialogAccepted() {
 }
 
 void SettingsDialog::writeSettings() {
-    QSettings settings("zxnet","zxweather");
+
+    Settings& settings = Settings::getInstance();
 
     // General tab
-    settings.setValue("General/minimise_to_systray", ui->chkMinimiseToSystemTray->isChecked());
-    settings.setValue("General/close_to_systray", ui->chkCloseToSystemTray->isChecked());
+    settings.setMinimiseToSysTray(ui->chkMinimiseToSystemTray->isChecked());
+    settings.setCloseToSysTray(ui->chkCloseToSystemTray->isChecked());
 
-    // Database tab
-    settings.setValue("Database/name", ui->databaseLineEdit->text());
-    settings.setValue("Database/hostname", ui->hostnameLineEdit->text());
-    settings.setValue("Database/port", ui->portSpinBox->value());
-    settings.setValue("Database/username", ui->usernameLineEdit->text());
-    settings.setValue("Database/password", ui->passwordLineEdit->text());
+    // Data source tab
+    settings.setDatabaseName(ui->databaseLineEdit->text());
+    settings.setDatabaseHostname(ui->hostnameLineEdit->text());
+    settings.setDatabasePort(ui->portSpinBox->value());
+    settings.setDatabaseUsername(ui->usernameLineEdit->text());
+    settings.setDatabasePassword(ui->passwordLineEdit->text());
+    settings.setUrl(ui->UrlLineEdit->text());
+
+    if (ui->rbDatabase->isChecked())
+        settings.setDataSourceType(Settings::DS_TYPE_DATABASE);
+    else
+        settings.setDataSourceType(Settings::DS_TYPE_WEB_INTERFACE);
 }
 
 void SettingsDialog::loadSettings() {
-    QSettings settings("zxnet","zxweather");
+    Settings& settings = Settings::getInstance();
 
     // General tab
-    ui->chkMinimiseToSystemTray->setChecked(settings.value("General/minimise_to_systray", true).toBool());
-    ui->chkCloseToSystemTray->setChecked(settings.value("General/close_to_systray",false).toBool());
+    ui->chkMinimiseToSystemTray->setChecked(settings.miniseToSysTray());
+    ui->chkCloseToSystemTray->setChecked(settings.closeToSysTray());
 
-    // Database tab
-    ui->databaseLineEdit->setText(settings.value("Database/name").toString());
-    ui->hostnameLineEdit->setText(settings.value("Database/hostname").toString());
-    ui->portSpinBox->setValue(settings.value("Database/port",5432).toInt());
-    ui->usernameLineEdit->setText(settings.value("Database/username").toString());
-    ui->passwordLineEdit->setText(settings.value("Database/password").toString());
+    // Data source tab
+    ui->databaseLineEdit->setText(settings.databaseName());
+    ui->hostnameLineEdit->setText(settings.databaseHostName());
+    ui->portSpinBox->setValue(settings.databasePort());
+    ui->usernameLineEdit->setText(settings.databaseUsername());
+    ui->passwordLineEdit->setText(settings.databasePassword());
+
+    ui->UrlLineEdit->setText(settings.url());
+
+    if (settings.dataSourceType() == Settings::DS_TYPE_DATABASE) {
+        ui->rbDatabase->setChecked(true);
+        ui->rbWebInterface->setChecked(false);
+    } else {
+        ui->rbDatabase->setChecked(false);
+        ui->rbWebInterface->setChecked(true);
+    }
 }
