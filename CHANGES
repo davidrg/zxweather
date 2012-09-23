@@ -4,7 +4,11 @@ CHANGES                                             zxweather alpha release 0.2
 
   Version 0.2 (alpha)
     New Features:
-      -
+      - Desktop client:
+        - Settings will be loaded from zxweather-desktop.ini if the file exists
+        - Settings dialog is shown on first run
+        - Now supports retrieving data from the web interface for when a direct
+          connection to the database is impractical.
     Bug Fixes:
       -
     Other Changes:
