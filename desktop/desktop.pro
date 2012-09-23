@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui
+QT       += core gui network
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -34,7 +34,8 @@ SOURCES += main.cpp\
     json/json.cpp \
     datasource.cpp \
     databasedatasource.cpp \
-    settings.cpp
+    settings.cpp \
+    jsondatasource.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
@@ -45,7 +46,8 @@ HEADERS  += mainwindow.h \
     datasource.h \
     databasedatasource.h \
     databaselivedata.h \
-    settings.h
+    settings.h \
+    jsondatasource.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \

@@ -25,6 +25,7 @@
 #include "settingsdialog.h"
 
 #include "databasedatasource.h"
+#include "jsondatasource.h"
 #include "aboutdialog.h"
 #include "settings.h"
 
@@ -78,7 +79,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     qDebug() << "Read settings and connect...";
     readSettings();
-    createDatabaseDataSource();
+    createDataSource();
 }
 
 MainWindow::~MainWindow()
@@ -115,6 +116,30 @@ void MainWindow::changeEvent(QEvent *e)
     default:
         break;
     }
+}
+
+void MainWindow::createDataSource() {
+    if (Settings::getInstance().dataSourceType() == Settings::DS_TYPE_DATABASE)
+        createDatabaseDataSource();
+    else
+        createJsonDataSource();
+}
+
+void MainWindow::createJsonDataSource() {
+    QString url = Settings::getInstance().url();
+    if (dataSource != NULL) {
+        delete dataSource;
+        dataSource = NULL;
+    }
+
+    JsonDataSource *jds = new JsonDataSource(url, this);
+    connect(jds, SIGNAL(networkError(QString)),
+            this, SLOT(networkError(QString)));
+    connect(jds, SIGNAL(liveDataRefreshed()),
+            this, SLOT(liveDataRefreshed()));
+
+    dataSource = jds;
+    ldTimer->start();
 }
 
 void MainWindow::createDatabaseDataSource() {
@@ -158,6 +183,8 @@ void MainWindow::createDatabaseDataSource() {
     liveDataRefreshed();
 }
 
+
+
 void MainWindow::ld_timeout() {
     seconds_since_last_refresh++; // this is reset when ever live data arrives.
 
@@ -182,17 +209,29 @@ void MainWindow::liveDataRefreshed() {
     QString temp;
 
     // Relative Humidity
-    formatString = "%1% (%2% inside)";
-    temp = formatString
-            .arg(QString::number(data->getRelativeHumidity()))
-            .arg(QString::number(data->getIndoorRelativeHumidity()));
+    if (data->indoorDataAvailable()) {
+        formatString = "%1% (%2% inside)";
+        temp = formatString
+                .arg(QString::number(data->getRelativeHumidity()))
+                .arg(QString::number(data->getIndoorRelativeHumidity()));
+    } else {
+        formatString = "%1%";
+        temp = formatString
+                .arg(QString::number(data->getRelativeHumidity()));
+    }
     ui->lblRelativeHumidity->setText(temp);
 
     // Temperature
-    formatString = "%1°C (%2°C inside)";
-    temp = formatString
-            .arg(QString::number(data->getTemperature(),'f',1))
-            .arg(QString::number(data->getIndoorTemperature(), 'f', 1));
+    if (data->indoorDataAvailable()) {
+        formatString = "%1°C (%2°C inside)";
+        temp = formatString
+                .arg(QString::number(data->getTemperature(),'f',1))
+                .arg(QString::number(data->getIndoorTemperature(), 'f', 1));
+    } else {
+        formatString = "%1°C";
+        temp = formatString
+                .arg(QString::number(data->getTemperature(),'f',1));
+    }
     ui->lblTemperature->setText(temp);
 
     ui->lblDewPoint->setText(QString::number(data->getDewPoint(), 'f', 1) + "°C");
@@ -214,12 +253,19 @@ void MainWindow::liveDataRefreshed() {
         sysTrayIcon->setIcon(QIcon(":/icons/systray_subzero"));
 
     // Tool Tip Text
-    formatString = "Temperature: %1°C (%2°C inside)\nHumidity: %3% (%4% inside)";
-    temp = formatString
-            .arg(QString::number(data->getTemperature(), 'f', 1),
-                 QString::number(data->getIndoorTemperature(), 'f', 1),
-                 QString::number(data->getRelativeHumidity(), 'f', 1),
-                 QString::number(data->getIndoorRelativeHumidity(), 'f', 1));
+    if (data->indoorDataAvailable()) {
+        formatString = "Temperature: %1°C (%2°C inside)\nHumidity: %3% (%4% inside)";
+        temp = formatString
+                .arg(QString::number(data->getTemperature(), 'f', 1),
+                     QString::number(data->getIndoorTemperature(), 'f', 1),
+                     QString::number(data->getRelativeHumidity(), 'f', 1),
+                     QString::number(data->getIndoorRelativeHumidity(), 'f', 1));
+    } else {
+        formatString = "Temperature: %1°C\nHumidity: %3%";
+        temp = formatString
+                .arg(QString::number(data->getTemperature(), 'f', 1),
+                     QString::number(data->getRelativeHumidity(), 'f', 1));
+    }
     sysTrayIcon->setToolTip(temp);
 
     seconds_since_last_refresh = 0;
@@ -233,10 +279,8 @@ void MainWindow::showSettings() {
     if (result == QDialog::Accepted) {
         readSettings();
 
-        // Have a go at connecting if required - perhaps the user has fixed
-        // what ever was wrong.
-        if (dataSource == NULL || !dataSource->isConnected())
-            createDatabaseDataSource();
+        // Reconenct (incase the user has changed connection details)
+        createDataSource();
     }
 }
 
@@ -246,6 +290,10 @@ void MainWindow::connection_failed(QString) {
                      "Database connect failed",
                      true);
     ldTimer->stop();
+}
+
+void MainWindow::networkError(QString message) {
+    showWarningPopup(message, "Error", "Network Error", true);
 }
 
 void MainWindow::unknown_db_error(QString message) {

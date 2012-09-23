@@ -53,6 +53,7 @@ public:
     float getGustWindSpeed() const { return record.gust_wind_speed; }
     QString getWindDirection() const { return QString(record.wind_direction); }
     QDateTime getTimestamp() const { return QDateTime::fromTime_t(record.download_timestamp); }
+    bool indoorDataAvailable() const {return true; }
 
 private:
     live_data_record record;

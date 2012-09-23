@@ -102,6 +102,12 @@ public slots:
      */
     void unknown_db_error(QString message);
 
+    /** An error from the Json Data Source.
+     *
+     * @param message The error message.
+     */
+    void networkError(QString message);
+
     // System tray
     /**
      * @brief trayIconActivated is called when the user clicks on the system
@@ -134,7 +140,9 @@ protected:
      */
     void closeEvent(QCloseEvent *event);
 
+    void createDataSource();
     void createDatabaseDataSource();
+    void createJsonDataSource();
 
 private:
     Ui::MainWindow *ui;

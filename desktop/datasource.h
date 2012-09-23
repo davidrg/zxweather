@@ -46,6 +46,7 @@ public:
     virtual float getGustWindSpeed() const = 0;
     virtual QString getWindDirection() const = 0;
     virtual QDateTime getTimestamp() const = 0;
+    virtual bool indoorDataAvailable() const = 0;
 };
 
 /** An implementation of AbstractLiveData that stores the data internally.
@@ -67,6 +68,7 @@ public:
     float getGustWindSpeed() const { return gustWindSpeed; }
     QString getWindDirection() const { return windDirection; }
     QDateTime getTimestamp() const { return timestamp; }
+    bool indoorDataAvailable() const {return _indoorDataAvailable; }
 
     /* Write methods */
     void setIndoorTemperature(float value) { indoorTemperature = value; }
@@ -81,6 +83,7 @@ public:
     void setGustWindSpeed(float value) { gustWindSpeed = value; }
     void setWindDirection(QString value) { windDirection = value; }
     void setTimestamp(QDateTime value) { timestamp = value; }
+    void setIndoorDataAvailable(bool available) { _indoorDataAvailable = available;}
 
 private:
     float indoorTemperature;
@@ -95,6 +98,7 @@ private:
     float gustWindSpeed;
     QString windDirection;
     QDateTime timestamp;
+    bool _indoorDataAvailable;
 };
 
 /** Provides access to data from the zxweather system.

@@ -159,7 +159,7 @@
          <item row="6" column="0" colspan="3">
           <widget class="QRadioButton" name="rbWebInterface">
            <property name="whatsThis">
-            <string>Retrieve data from the web interface. Suitable for when direct access to the database server is not possible. Data is refreshed once a minute.</string>
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Retrieve data from the web interface. Suitable for when direct access to the database server is not possible. Data is refreshed every 48 seconds, indoor temperature and humidity readings are not available.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
            </property>
            <property name="text">
             <string>Web Interface</string>

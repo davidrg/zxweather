@@ -52,7 +52,8 @@ zxweather v0.2 (alpha) Release Notes                                      -2012
     * If the WH1080 Update Service looses its database connection it will exit.
 
   New in v0.2:
-    * 
+    * The desktop client can now retrieve data from the web interface as well
+      as directly from the database.
 
   Changelog:
     See the CHANGES file which you should have received with this distribution.
