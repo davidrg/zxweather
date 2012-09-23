@@ -26,6 +26,9 @@
 #include <QObject>
 #include <QDateTime>
 
+/** An abstract class for providing access to live data. The LiveData class
+ * is a subclass that stores the data internally.
+ */
 class AbstractLiveData : public QObject {
     Q_OBJECT
 public:
