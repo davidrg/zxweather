@@ -1,0 +1,7 @@
+This is qt-json from https://github.com/ereilin/qt-json/ which provides an
+implementation of JSON for Qt 4 applications (Qt 5 includes JSON support).
+
+The version of the code in this directory comes from changeset
+64d9ef66e497047547eb9f6e0c29287cdb3b4b9a (01-MAY-2012).
+
+
