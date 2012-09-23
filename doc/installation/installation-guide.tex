@@ -1,8 +1,8 @@
 % ============================================================================
-% !Document: IG01 [zxweather Installation Reference]
+% !Document: IG02 [zxweather Installation Reference]
 % ----------------------------------------------------------------------------
 % !Revision: 001
-% !IssueDate: July 2012
+% !IssueDate: October 2012
 % !Status: Unreleased
 %
 % !-Classification
@@ -18,14 +18,14 @@
 \newcommand{\doctitle}{zxweather}
 \newcommand{\docsubtitle}{Installation Reference}
 %\newcommand{\projectnum}{DAZW}
-\newcommand{\docnum}{IG01}
+\newcommand{\docnum}{IG02}
 \newcommand{\docrev}{001}
 \newcommand{\docdate}{July 2012}
 \newcommand{\docauthor}{David Goodwin}
 \newcommand{\docabstract}{This manual provides installation and configuration guidelines for zxweather.}
 \newcommand{\docupdateinfo}{This is a new manual}
 \newcommand{\docosver}{Linux; Microsoft Windows NT 5.0+}
-\newcommand{\docswver}{zxweather 0.1}
+\newcommand{\docswver}{zxweather 0.2}
 \newcommand{\doccopyright}{\textcircled{c} Copyright David Goodwin, 2012.}
 \newcommand{\doclicense}{Use, reproduction and modification of this document is permitted subject to the terms of the GNU Free Documentation License, Version 1.3 or any later vesion published by the Free Software Foundation. See \url{http://www.gnu.org/copyleft/fdl.html} for full license text.}
 
@@ -142,8 +142,8 @@ This manual provides installation and maintenance instructions for the entire co
 Other available documentation for the zxweather system includes:
 
 \begin{tabular}{l l}
-\verb|DAZW-WG01| & WH1080 Utilities Users Guide, version 0.1 \\
-\verb|DAZW-DB01| & zxweather Database Structure, version 0.1 \\
+\verb|DAZW-WG02| & WH1080 Utilities Users Guide, version 0.2 \\
+\verb|DAZW-DB02| & zxweather Database Structure, version 0.2 \\
 \end{tabular}
 
 \section{System Structure}
@@ -399,13 +399,14 @@ wh1080d (the Data Logger) takes the following arguments:
 -d & database & Database connection string \\
 -u & username & Database username \\
 -p & password & Database password \\
+-s & station  & Code for weather station to work against \\
 -f & filename & Log file to write messages to \\
 \hline
 \end{tabular}
 
 Under linux the Update Service runs as a daemon. To start it just run something like the following from your system startup scripts:
 
-\verb|wh1080d -d database -u username -p password -f logfile|
+\verb|wh1080d -d database -u username -p password -s rua -f logfile|
 
 The log file is truncated when the daemon starts.
 
@@ -422,6 +423,7 @@ Currently wh1080d is not capable of running as a service on windows. Instead you
 -d & database & Database connection string \\
 -u & username & Database username \\
 -p & password & Database password \\
+-s & station  & Code for weather station to work against \\
 \hline
 \end{tabular}
 
@@ -533,23 +535,6 @@ Where the settings are:
 \end{itemize}
 
 
-\subsubsection{Data}
-The Data group stores details about the data available in your database:
-
-\begin{verbatim}
-[data]
-live_data_available: True
-sample_interval: 300
-plot_interval: 1800
-\end{verbatim}
-
-The settings are:
-\begin{itemize}
-\item live\_data\_available - If Live Data is available from the database. If you are using wh1080d to populate your database then this should be left as \verb|True|.
-\item sample\_interval - How often new samples appear in the database (in seconds). Only a 5 minute sample interval is supported at the moment so this should be left as 300.
-\item plot\_interval - How often the weatherplot program runs (see section \ref{sec_chart_plotting}) in seconds. 
-\end{itemize}
-
 \subsubsection{Site}
 The Site group stores basic web interface configuration:
 \begin{verbatim}
@@ -570,20 +555,12 @@ Where the settings are:
 \item static\_data\_dir - Where on your hard disk the static data directory is. If zxweather was extrated to \verb|/opt/zxweather| then this should be set to \verb|/opt/zxweather/zxw_web/static/|.
 \end{itemize}
 
-The final setting in this group is station\_name. This is a very short (a few characters) name for your weather station. It should be kept very short as it will appear in the URL of every page in your site. For example, if you set this value to "foo" your station overview page will be \verb|http://weather.example.com/s/foo/|.
+The final setting in this group is station\_name. This is the default weather station to show data for when a user first arrives at your site. It should match the station code you chose when creating your database.
 
-You must also create a directory of the same name inside the static data directory:
+You must also create a directory of the same name inside the static data directory. If your weather station code is "foo" then you would:
 \begin{verbatim}
 $ mkdir /opt/zxweather/zxw_web/static/foo
 \end{verbatim}
-
-The purpose of this setting is to allow multiple weather datasets to be handled by a single Web Interface instance in a future version of zxweather. Uses for this functionality will be:
-\begin{itemize}
-\item Multiple weather stations
-\item Separating datasets if you move the weather station to a different location
-\end{itemize}
-
-Once you have chosen a value for this setting you should never change it as it will change every URL in your site.
 
 \subsubsection{database\_replication}
 This group configures the database replication feature. If you do not plan on using this feature then the default values (which turn the feature off) are acceptable.

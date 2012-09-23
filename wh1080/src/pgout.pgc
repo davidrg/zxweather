@@ -32,6 +32,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include "pgout.h"
 #include "common.h"
 
@@ -82,19 +83,41 @@ void pgo_connect(const char *target, const char *username, const char *password)
     EXEC SQL SET AUTOCOMMIT TO OFF;
 }
 
+/* Looks up the ID for the specified station code */
+long pgo_get_station_id(const char* station_code) {
+    EXEC SQL BEGIN DECLARE SECTION;
+    long ret_val;
+    char* station_code_param;
+    EXEC SQL END DECLARE SECTION;
+
+                                        /* Plus one to leave sparce for \0 */
+    station_code_param = (char*)malloc(strlen(station_code)+1);
+    strcpy(station_code_param, station_code);
+
+    EXEC SQL SELECT station_id
+             INTO :ret_val
+             FROM station
+             WHERE code = :station_code_param;
+
+    return ret_val;
+}
+
 /* Get the record number and time stamp for the most recent sample in the
  * database */
 void pgo_get_last_record_number(unsigned short *record_number,
-                                time_t *time_stamp) {
+                                time_t *time_stamp,
+                                long station_id) {
     EXEC SQL BEGIN DECLARE SECTION;
     long int ts = 0;
     int rn = 0;
+    long station_id_param = station_id;
     EXEC SQL END DECLARE SECTION;
 
     EXEC SQL SELECT extract(epoch from time_stamp)::bigint,
                     record_number
              INTO :ts, :rn
-             FROM public.latest_record_number;
+             FROM public.wh1080_latest_record_number
+             WHERE station_id = :station_id_param;
 
     *record_number = rn;
     *time_stamp = (time_t)ts;
@@ -102,10 +125,9 @@ void pgo_get_last_record_number(unsigned short *record_number,
 
 /* Insert a history set into the database. All records in the history set will
  * be inserted in order */
-void pgo_insert_history_set(history_set hs) {
+void pgo_insert_history_set(history_set hs, long station_id) {
     unsigned int i = 0;
     history h;
-    /*int wind_direction_index = 0;*/
 
     EXEC SQL BEGIN DECLARE SECTION;
     unsigned short sample_time;
@@ -124,6 +146,8 @@ void pgo_insert_history_set(history_set hs) {
     long download_time;
     long time_stamp;
     int last_in_set;
+    long station_id_param = station_id;
+    long new_sample_id;
     EXEC SQL END DECLARE SECTION;
 
     for (i = 0; i < hs.record_count; i += 1) {
@@ -145,12 +169,9 @@ void pgo_insert_history_set(history_set hs) {
         time_stamp = h.time_stamp;
         last_in_set = h.last_in_set;
 
-        EXEC SQL INSERT INTO sample(sample_interval,
-                                    record_number,
-                                    download_timestamp,
+
+        EXEC SQL INSERT INTO sample(download_timestamp,
                                     time_stamp,
-                                    last_in_batch,
-                                    invalid_data,
                                     indoor_relative_humidity,
                                     indoor_temperature,
                                     relative_humidity,
@@ -159,17 +180,13 @@ void pgo_insert_history_set(history_set hs) {
                                     average_wind_speed,
                                     gust_wind_speed,
                                     wind_direction,
-                                    total_rain,
-                                    rain_overflow)
-                VALUES(:sample_time,
-                       :record_number,
-                       /* :download_time and :time_stamp are in UNIX time
+                                    station_id
+                                    )
+                VALUES(/* :download_time and :time_stamp are in UNIX time
                         * (seconds since the epoch, 1970-01-01 00:00:00 GMT).
                         * So we must convert them. */
                        (('epoch'::timestamp) + :download_time * '1 second'::interval) AT TIME ZONE 'GMT',
                        (('epoch'::timestamp) + :time_stamp * '1 second'::interval) AT TIME ZONE 'GMT',
-                       :last_in_set,
-                       :invalid_data,
                        :indoor_relative_humidity,
                        :indoor_temperature,
                        :relative_humidity,
@@ -178,12 +195,25 @@ void pgo_insert_history_set(history_set hs) {
                        :average_wind_speed,
                        :gust_wind_speed,
                        :wind_direction_str,
+                       :station_id_param)
+                RETURNING sample_id INTO :new_sample_id;
+
+        EXEC SQL INSERT INTO wh1080_sample(sample_interval,
+                                           record_number,
+                                           last_in_batch,
+                                           invalid_data,
+                                           total_rain,
+                                           rain_overflow)
+                VALUES(:sample_time,
+                       :record_number,
+                       :last_in_set,
+                       :invalid_data,
                        :total_rain,
                        :rain_overflow);
     }
 }
 
-void pgo_update_live(history live_record) {
+void pgo_update_live(history live_record, long station_id) {
 
     EXEC SQL BEGIN DECLARE SECTION;
     unsigned short indoor_relative_humidity;
@@ -196,6 +226,7 @@ void pgo_update_live(history live_record) {
     char* wind_direction_str;
     int invalid_data;
     long download_time;
+    long station_id_param = station_id;
     EXEC SQL END DECLARE SECTION;
 
     indoor_relative_humidity = live_record.indoor_relative_humidity;
@@ -220,7 +251,8 @@ void pgo_update_live(history live_record) {
                  absolute_pressure = :absolute_pressure,
                  average_wind_speed = :average_wind_speed,
                  gust_wind_speed = :gust_wind_speed,
-                 wind_direction = :wind_direction_str;
+                 wind_direction = :wind_direction_str
+             WHERE station_id = :station_id_param;
     EXEC SQL COMMIT;
 }
 

@@ -7,7 +7,7 @@ import os
 import web
 from web.contrib.template import render_jinja
 from data.daily import datasources, datatable_datasources
-from database import day_exists
+from database import day_exists, get_station_id
 
 __author__ = 'David Goodwin'
 
@@ -33,9 +33,13 @@ class index:
                                     os.path.join('templates'))
         render = render_jinja(template_dir, encoding='utf-8')
 
+        station_id = get_station_id(station)
+        if station_id is None:
+            raise web.NotFound()
+
         # Make sure the day actually exists in the database before we go
         # any further.
-        if not day_exists(date(int(year),int(month),int(day))):
+        if not day_exists(date(int(year),int(month),int(day)), station_id):
             raise web.NotFound()
 
         web.header('Content-Type', 'text/html')

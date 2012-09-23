@@ -25,30 +25,88 @@ def get_live_data(cur):
     :return: Dict containing live data.
     """
 
-    query = """select download_timestamp::varchar, invalid_Data,
-    indoor_relative_humidity, indoor_temperature, relative_humidity,
-    temperature, absolute_pressure, average_wind_speed, gust_wind_speed,
-    wind_direction
-from live_data"""
+    query = """select ld.download_timestamp::varchar,
+       ld.indoor_relative_humidity,
+       ld.indoor_temperature,
+       ld.relative_humidity,
+       ld.temperature,
+       ld.absolute_pressure,
+       ld.average_wind_speed,
+       ld.gust_wind_speed,
+       ld.wind_direction,
+       s.code
+from live_data ld
+inner join station s on s.station_id = ld.station_id"""
 
     cur.execute(query)
+    result = cur.fetchall()
 
-    result = cur.fetchone()
+    live_data = []
 
-    live_data = {
-        'ts': result[0], # download_timestamp
-        'id': result[1], # invalid_data
-        'ih': result[2], # indoor_relative_humidity
-        'it': result[3], # indoor_temperature
-        'h' : result[4], # relative_humidity
-        't' : result[5], # temperature
-        'p' : result[6], # absolute_pressure
-        'wa': result[7], # average_wind_speed
-        'wg': result[8], # gust_wind_speed
-        'wd': result[9], # wind_direction
-    }
+    for row in result:
+        ld = {
+            'ts': row[0], # download_timestamp
+            'ih': row[1], # indoor_relative_humidity
+            'it': row[2], # indoor_temperature
+            'h' : row[3], # relative_humidity
+            't' : row[4], # temperature
+            'p' : row[5], # absolute_pressure
+            'wa': row[6], # average_wind_speed
+            'wg': row[7], # gust_wind_speed
+            'wd': row[8], # wind_direction
+            'sc': row[9], # station code
+        }
+
+        live_data.append(ld)
 
     return live_data
+
+def get_station_id(cur, station_code):
+    """
+    Gets the ID for the specified station code
+    :param cur: Database cursor
+    :param station_code: Station code to look up
+    :type station_code: str or unicode
+    :return: Station ID
+    :rtype: int or None
+    """
+
+    cur.execute("select station_id from station where code = %s",
+                (station_code,))
+
+    result = cur.fetchall()
+
+    if len(result) > 0:
+        return result[0][0]
+    else:
+        return None
+
+def get_station_type(cur, station_id):
+    """
+    Gets the type code for the specified station
+    :param cur: Database cursor
+    :param station_id: Station
+    :type station_id: int or None
+    :return: Station hardware type code
+    :rtype: str, unicode or None
+    """
+
+    if station_id is None:
+        return None
+
+    cur.execute("""select st.code
+from station s
+inner join station_type st on st.station_type_id = s.station_type_id
+where s.station_id = %s""",
+                (station_id,))
+
+    result = cur.fetchall()
+
+    if len(result) > 0:
+        return result[0][0]
+    else:
+        return None
+
 
 def get_samples(cur, remote_max_ts):
     """
@@ -60,48 +118,91 @@ def get_samples(cur, remote_max_ts):
     :rtype: list
     """
 
-    query = """select sample_interval, record_number,
-    download_timestamp::varchar, last_in_batch, invalid_data,
-    time_stamp::varchar, indoor_relative_humidity,
-    indoor_temperature, relative_humidity, temperature, absolute_pressure,
-    average_wind_speed, gust_wind_speed, wind_direction, total_rain,
-    rain_overflow
-from sample
+    base_query = """
+select s.download_timestamp::varchar,
+       s.time_stamp::varchar,
+       s.indoor_relative_humidity,
+       s.indoor_temperature,
+       s.relative_humidity,
+       s.temperature,
+       s.absolute_pressure,
+       s.average_wind_speed,
+       s.gust_wind_speed,
+       s.wind_direction,
+       s.rainfall,
+
+       wh1080.sample_interval,
+       wh1080.record_number,
+       wh1080.last_in_batch,
+       wh1080.invalid_data,
+       wh1080.total_rain,
+       wh1080.rain_overflow
+
+from sample s
+left outer join wh1080_sample wh1080 on wh1080.sample_id = s.sample_id
+where station_id = %s
     """
-
-    if remote_max_ts is not None:
-        query += "where time_stamp > %s "
-        query += "order by time_stamp asc"
-        cur.execute(query, (remote_max_ts,))
-    else:
-        print("Remote database is empty. Sending *all* samples.")
-        query += "order by time_stamp asc"
-        cur.execute(query)
-
-    result = cur.fetchall()
 
     samples = []
 
-    for row in result:
-        sample = {
-            'si' : row[0],  # sample_interval
-            'rn' : row[1],  # record_number
-            'dts': row[2],  # download_timestamp
-            'lib': row[3],  # last_in_batch
-            'id' : row[4],  # invalid_data
-            'ts' : row[5],  # time_stamp
-            'ih' : row[6],  # indoor_relative_humidity
-            'it' : row[7],  # indoor_temperature
-            'h'  : row[8],  # relative_humidity
-            't'  : row[9],  # temperature
-            'p'  : row[10], # absolute_pressure
-            'wa' : row[11], # average_wind_speed
-            'wg' : row[12], # gust_wind_speed
-            'wd' : row[13], # wind_direction
-            'rt' : row[14], # total_rain
-            'ro' : row[15], # rain_overflow
-        }
-        samples.append(sample)
+    if len(remote_max_ts) == 0:
+        print("Unable to send samples: no stations configured on remote system.")
+        return
+
+    for rmt in remote_max_ts:
+        max_ts = rmt['max_ts']
+        station_code = rmt['sc']
+        station_id = get_station_id(cur,station_code)
+        if station_id is None:
+            print("WARNING: Remote weather station {0} not found in local "
+                  "database. Ignoring.".format(station_code))
+            continue
+
+        hardware_type = get_station_type(cur, station_id)
+
+        if max_ts is not None:
+            print("Updating from {0} for station {1}".format(max_ts, station_code))
+
+            query = base_query + "and time_stamp > %s "
+            query += "order by time_stamp asc"
+            cur.execute(query, (station_id, max_ts,))
+        else:
+            print("Remote database is empty for station {1}. Sending *all* "
+                  "samples.".format(station_code))
+            query = base_query + "order by time_stamp asc"
+            cur.execute(query, (station_id,))
+
+        result = cur.fetchall()
+
+        for row in result:
+            # Standard sample data:
+            sample = {
+                'dts': row[0],  # download_timestamp
+                'ts' : row[1],  # time_stamp
+                'ih' : row[2],  # indoor_relative_humidity
+                'it' : row[3],  # indoor_temperature
+                'h'  : row[4],  # relative_humidity
+                't'  : row[5],  # temperature
+                'p'  : row[6],  # absolute_pressure
+                'wa' : row[7],  # average_wind_speed
+                'wg' : row[8],  # gust_wind_speed
+                'wd' : row[9],  # wind_direction
+                'r'  : row[10], # Rainfall
+                'sc' : station_code,    # Station Code
+            }
+
+            if hardware_type == 'FOWH1080':
+                # Handle data specific to hardware compatible with the
+                # Fine Offset WH1080.
+
+                sample['si'] = row[11]  # sample_interval (wh1080)
+                sample['rn'] = row[12]  # record_number (wh1080)
+                sample['lib']= row[13]  # last_in_batch (wh1080)
+                sample['id'] = row[14]  # invalid_data (wh1080)
+                sample['rt'] = row[15]  # total_rain (wh1080)
+                sample['ro'] = row[16]  # rain_overflow (wh1080)
+
+            samples.append(sample)
 
     return samples
 
@@ -148,8 +249,8 @@ def post_data(site_url, data, gpg, key_id):
     signed_data = str(gpg.sign(json.dumps(data), keyid=key_id))
 
     #print(signed_data)
-    with open("signed-junk.txt",'w') as f:
-        f.write(signed_data)
+#    with open("signed-junk.txt",'w') as f:
+#        f.write(signed_data)
 
     r = requests.post(url, data=signed_data)
 
@@ -183,6 +284,10 @@ def parse_args():
                       help="Name of GnuPG Binary")
     parser.add_option("-k","--key-id",dest="key_id",
                       help="Fingerprint of the key to sign with")
+    parser.add_option("-r","--reconfigure-stations", action="store_true",
+                        dest="send_stations", default=False,
+                        help="Add station data to remote database on first "
+                             "update.")
 
     (options, args) = parser.parse_args()
 
@@ -213,22 +318,26 @@ def connect_to_db(connection_string):
 
     return con
 
-def build_payload(live_data, samples):
+def build_payload(live_data, samples, station_info=None):
     """
     Builds the JSON data structure to be sent to the remote system.
     :param live_data: Live data to be sent
-    :type live_data: dict or None
+    :type live_data: list or None
     :param samples: List of samples to send
     :type samples: list or None
+    :param station_info: Station data to send to remote system
+    :type station_info: list or None
     :return: data structure to send
     :rtype: dict
     """
 
-    payload = {'v': 1}
+    payload = {'v': 2}
     if live_data is not None:
         payload['ld_u'] = live_data
     if samples is not None:
         payload['s'] = samples
+    if station_info is not None:
+        payload['si'] = station_info
 
     return payload
 
@@ -263,13 +372,15 @@ def send_data(site_url, payload, gpg, key_id):
         else:
             return False
 
-def sample_chunk_update(samples, site_url, gpg, key_id):
+def sample_chunk_update(samples, site_url, gpg, key_id, station_info):
     """
     Sends samples (and only samples) in chunks of 500.
     :param samples: List of samples to send
     :param site_url: Site URL
     :param gpg: GPG object for signing data
     :param key_id: Signing key to use.
+    :param station_info: Any station info to send in the first chunk
+    :type station_info: list or None
     """
 
     def chunks(lst):
@@ -286,16 +397,50 @@ def sample_chunk_update(samples, site_url, gpg, key_id):
     for chunk in chunks(samples):
         print("Chunk {0}/{1}".format(i, chunk_count))
         i += 1
-        payload = build_payload(None, chunk)
+        payload = build_payload(None, chunk, station_info)
         result = send_data(site_url, payload, gpg, key_id)
+
+        station_info = None
 
         if not result:
             # Chunk failed to send.
             return
 
+def get_station_info(cur):
+    """
+    Gets data for all stations in the database.
+    :param cur: Database cursor
+    :return: A list of all stations in the database
+    :rtype: list
+    """
+
+    query = """select s.code,
+       s.title,
+       s.description,
+       st.code as "station_type_code",
+       s.sample_interval
+from station s
+inner join station_type st on st.station_type_id = s.station_type_id"""
 
 
-def update(cur, site_url, gpg, key_id, update_samples=True):
+    cur.execute(query)
+    rows = cur.fetchall()
+
+    stations = []
+
+    for row in rows:
+        station = {
+            'sc': row[0],
+            'ti': row[1],
+            'de': row[2],
+            'tc': row[3],
+            'si': row[4]
+        }
+        stations.append(station)
+
+    return stations
+
+def update(cur, site_url, gpg, key_id, update_samples=True, send_station_info=False):
     """
     Performs an update
     :param cur: Database cursor
@@ -303,14 +448,20 @@ def update(cur, site_url, gpg, key_id, update_samples=True):
     :type site_url: str or Unicode
     :param gpg: GnuPG object.
     :param update_samples: If samples should be updated or not
+    :type update_samples: boolean
     :param key_id: Key to sign with
     :type key_id: str
-    :type update_samples: boolean
-    :return:
+    :param send_station_info: If station information should be sent.
+    :type send_station_info: boolean
     """
 
     live_data = get_live_data(cur)
     samples = []
+    station_info = None
+
+    if send_station_info:
+        print("Sending station data in this update.")
+        station_info = get_station_info(cur)
 
     # Don't update samples if we know there is no new data locally. This
     # eliminates one round-trip to the remote host.
@@ -318,21 +469,19 @@ def update(cur, site_url, gpg, key_id, update_samples=True):
         sample_data_ts = get_current_timestamp(site_url)
         if sample_data_ts is None:
             return # Failed to get current timestamp.
-        print("Updating from: {0}".format(sample_data_ts['max_ts']))
-        samples = get_samples(cur, sample_data_ts['max_ts'])
+
+        samples = get_samples(cur, sample_data_ts['mts'])
 
         if len(samples) > 50:
             print("Performing chunked sample load...")
             # There is lots of samples (remote database might be empty).
             # We'll chop these up and send them 500 at a time.
-            sample_chunk_update(samples, site_url, gpg, key_id)
+            sample_chunk_update(samples, site_url, gpg, key_id, station_info)
             # All samples should have been sent to the remote database. We
             # don't want to send them again.
             samples = None
 
-
-    payload = build_payload(live_data, samples)
-
+    payload = build_payload(live_data, samples, station_info)
     send_data(site_url, payload, gpg, key_id)
 
 def listen_loop(con, cur, site_url, gpg, key_id):
@@ -393,7 +542,7 @@ def main():
 
     options = parse_args()
 
-    print("zxweather database replicator v1.0")
+    print("zxweather database replicator v2.0")
     print("\t(C) Copyright David Goodwin, 2012\n\n")
 
     con = connect_to_db(get_connection_string(options))
@@ -407,7 +556,8 @@ def main():
     key_id = options.key_id
 
     print("Performing update...")
-    update(cur, options.site_url, gpg, key_id)
+    update(cur, options.site_url, gpg, key_id,
+           send_station_info=options.send_stations)
 
     if options.continuous:
         listen_loop(con, cur, options.site_url, gpg, key_id)

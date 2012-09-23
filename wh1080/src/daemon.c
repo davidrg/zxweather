@@ -53,11 +53,14 @@ void wait_for_next_live(FILE *logfile);
 void setup(char *server, char *username, char *password, FILE *logfile);
 void main_loop(FILE* logfile,
                unsigned short initial_current_record_id,
-               time_t clock_sync_current_ts);
-unsigned short update_live_data(FILE* logfile);
+               time_t clock_sync_current_ts,
+               long station_id);
+unsigned short update_live_data(FILE* logfile, long station_id);
 void calculate_timestamps(time_t clock_sync_time, history_set *hs);
-void wait_for_new_sample(FILE* logfile);
-BOOL check_for_station_reset(FILE* logfile);
+void wait_for_new_sample(FILE* logfile, long station_id);
+BOOL check_for_station_reset(FILE* logfile, long station_id);
+
+
 /* Main function for daemon functionality.
  *
  * Process for this function is:
@@ -67,10 +70,15 @@ BOOL check_for_station_reset(FILE* logfile);
  *  4. Record current timestamp for future sleep calculations
  *  5. Start main loop.
  */
-void daemon_main(char *server, char *username, char *password, FILE *log_file) {
+void daemon_main(char *server,
+                 char *username,
+                 char *password,
+                 char* station,
+                 FILE *log_file) {
 
     time_t clock_sync_current_ts;     /* Timestamp from clock_syc */
     unsigned short current_record_id; /* Current record on the device */
+    long station_id;
 
     /* misc */
     BOOL result;
@@ -79,16 +87,18 @@ void daemon_main(char *server, char *username, char *password, FILE *log_file) {
 
     setup(server, username, password, log_file); /* Connect to device, db, etc */
 
+    station_id = pgo_get_station_id(station); /* Get station ID */
+
     /* Make sure the device hasn't been reset since we last ran. wh1080d can't
      * be started on a freshly reset device */
-    if (check_for_station_reset(log_file)) {
+    if (check_for_station_reset(log_file, station_id)) {
         fprintf(log_file, "Fatal error detected. Terminating.\n");
         return;
     }
 
     /* Make sure there is at least one new record on the device. If there isn't
      * then wait for one. */
-    wait_for_new_sample(log_file);
+    wait_for_new_sample(log_file, station_id);
 
     /* This will give us the current record and its timestamp */
     result = sync_clock(&current_record_id,     /* OUT */
@@ -103,14 +113,14 @@ void daemon_main(char *server, char *username, char *password, FILE *log_file) {
      * instead of actually waiting. */
     wait_for_next_live(log_file);
 
-    main_loop(log_file, current_record_id, clock_sync_current_ts);
+    main_loop(log_file, current_record_id, clock_sync_current_ts, station_id);
 }
 
 /* Checks to see if the station has been reset since we last started. This is
  * a fatal error for the daemon - it cannot be started on a freshly reset
  * device.
  */
-BOOL check_for_station_reset(FILE* logfile) {
+BOOL check_for_station_reset(FILE* logfile, long station_id) {
 
     unsigned short history_data_sets;   /* Number of records on the device */
     unsigned short live_record_id;      /* Live data record ID */
@@ -119,7 +129,7 @@ BOOL check_for_station_reset(FILE* logfile) {
     time_t db_latest_ts;                /* Timestamp of above */
 
     fprintf(logfile, "Checking for station reset condition...");
-    pgo_get_last_record_number(&db_latest_id, &db_latest_ts);
+    pgo_get_last_record_number(&db_latest_id, &db_latest_ts, station_id);
     get_live_record_id(&history_data_sets, NULL, &live_record_id);
     current_record_id = previous_record(live_record_id);
 
@@ -151,7 +161,7 @@ BOOL check_for_station_reset(FILE* logfile) {
  * Its purpose is to ensure that the sync_clock function returns an ID for a
  * new record as the daemon can not start on old data.
  */
-void wait_for_new_sample(FILE* logfile) {
+void wait_for_new_sample(FILE* logfile, long station_id) {
     unsigned short history_data_sets; /* Number of records on the device */
     unsigned short live_record_id;    /* ID of the current live record */
     time_t db_latest_ts;              /* Timestamp of the latest DB record */
@@ -163,7 +173,7 @@ void wait_for_new_sample(FILE* logfile) {
     fprintf(logfile, "Waiting for new data before attempting clock sync...\n");
 
     while (TRUE) {
-        pgo_get_last_record_number(&db_latest_id, &db_latest_ts);
+        pgo_get_last_record_number(&db_latest_id, &db_latest_ts, station_id);
         get_live_record_id(&history_data_sets, NULL, &live_record_id);
 
         station_current_id = previous_record(live_record_id);
@@ -207,7 +217,9 @@ void wait_for_new_sample(FILE* logfile) {
  */
 void main_loop(FILE* logfile,
                unsigned short initial_current_record_id,
-               time_t clock_sync_current_ts) {
+               time_t clock_sync_current_ts,
+               long station_id) {
+
     /* This is the live record. We will fetch this every 48 seconds */
     unsigned short live_record_id;
 
@@ -230,7 +242,7 @@ void main_loop(FILE* logfile,
      * a SIGTERM. */
     while (TRUE) {
         /* Update the live data in the database. */
-        live_record_id = update_live_data(logfile);
+        live_record_id = update_live_data(logfile, station_id);
 
         /* If we have a clock_sync_current_ts then current_record_id is already
          * set and valid thanks to clock_sync(). This is only valid for the
@@ -240,7 +252,7 @@ void main_loop(FILE* logfile,
 
         fprintf(logfile, "CURRENT is #%d\n", current_record_id);
 
-        pgo_get_last_record_number(&latest_record_id, &database_ts);
+        pgo_get_last_record_number(&latest_record_id, &database_ts, station_id);
 
         /* Download any history records that have appeared.
          * current_record_id is the latest non-live record on the device
@@ -271,7 +283,7 @@ void main_loop(FILE* logfile,
 
             calculate_timestamps(clock_sync_current_ts, &hs);
 
-            pgo_insert_history_set(hs);
+            pgo_insert_history_set(hs, station_id);
             pgo_commit();
             free_history_set(hs);
 
@@ -320,13 +332,13 @@ void calculate_timestamps(time_t clock_sync_time, history_set *hs) {
 
 /* Updates the live data in the database and returns the ID of the live
  * data record. */
-unsigned short update_live_data(FILE* logfile) {
+unsigned short update_live_data(FILE* logfile, long station_id) {
     unsigned short live_record_id;
     history live_record;
 
     get_live_record_id(NULL, NULL, &live_record_id);
     live_record = read_history_record(live_record_id);
-    pgo_update_live(live_record);
+    pgo_update_live(live_record, station_id);
     fprintf(logfile, "LIVE is #%d\n", live_record_id);
 
     return live_record_id;

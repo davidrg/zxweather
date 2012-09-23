@@ -38,7 +38,7 @@
  *
  * This function does not return.
  */
-void daemon_main(char* server, char* username, char* password, FILE* logfile);
+void daemon_main(char* server, char* username, char* password, char* station, FILE* logfile);
 
 /* Closes files, disconencts from servers, etc */
 void cleanup();

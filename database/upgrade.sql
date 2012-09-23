@@ -1,28 +1,31 @@
+----------------------------------------------------------------------------
+-- This script is to upgrade from the v0.1 schema.                        --
+----------------------------------------------------------------------------
+
 BEGIN;
 
 ----------------------------------------------------------------------
--- DOMAINS -----------------------------------------------------------
+-- REMOVE OLD STRUCTURE ----------------------------------------------
 ----------------------------------------------------------------------
--- A percentage.
-CREATE DOMAIN rh_percentage
-  AS integer
-  NOT NULL
-   CONSTRAINT rh_percentage_check CHECK (((VALUE > 0) AND (VALUE < 100)));
-ALTER DOMAIN rh_percentage
-  OWNER TO postgres;
-COMMENT ON DOMAIN rh_percentage
-  IS 'Relative Humidity percentage (0-99%)';
 
--- Valid wind directions
-CREATE DOMAIN wind_direction
-  AS character varying(3)
-  COLLATE pg_catalog."default"
-  NOT NULL
-   CONSTRAINT wind_direction_check CHECK (((VALUE)::text = ANY ((ARRAY['N'::character varying, 'NNE'::character varying, 'NE'::character varying, 'ENE'::character varying, 'E'::character varying, 'ESE'::character varying, 'SE'::character varying, 'SSE'::character varying, 'S'::character varying, 'SSW'::character varying, 'SW'::character varying, 'WSW'::character varying, 'W'::character varying, 'WNW'::character varying, 'NW'::character varying, 'NNW'::character varying, 'INV'::character varying])::text[])));
-ALTER DOMAIN wind_direction
-  OWNER TO postgres;
-COMMENT ON DOMAIN wind_direction
-  IS 'Valid wind directions.';
+-- Firstly, move the sample table so we can create the new one.
+ALTER TABLE sample RENAME TO samples_v1;
+alter sequence sample_sample_id_seq rename to sample_v1_sample_id_seq;
+alter index pk_sample rename to pk_sample_v1;
+
+-- The column spec for these views changes (to include the station id) so
+-- we can't just replace them.
+drop view latest_record_number; -- This also gets renamed.
+drop view daily_records;
+drop view monthly_records;
+drop view yearly_records;
+
+-- Easier to just drop and recreate this as it doesn't contain anything
+-- important.
+drop table live_data;
+
+-- More stuff we can just recreate
+drop index idx_time_stamp;
 
 ----------------------------------------------------------------------
 -- TABLES ------------------------------------------------------------
@@ -78,7 +81,7 @@ CREATE TABLE sample
   wind_chill real, -- Calculated wind chill
   apparent_temperature real, -- Calculated apparent temperature.
   absolute_pressure real, -- Absolute pressure
-    average_wind_speed real, -- Average Wind Speed.
+  average_wind_speed real, -- Average Wind Speed.
   gust_wind_speed real, -- Gust wind speed.
   wind_direction wind_direction, -- Wind Direction.
   rainfall real, -- Calculated rainfall. Calculation is based on total_rainfall and rain_overflow columns compared to the previous sample.
@@ -136,7 +139,7 @@ CREATE TABLE live_data
   wind_chill real, -- Calculated wind chill
   apparent_temperature real, -- Calculated apparent temperature.
   absolute_pressure real, -- Absolute pressure
-  average_wind_speed real, -- Average Wind Speed.
+    average_wind_speed real, -- Average Wind Speed.
   gust_wind_speed real, -- Gust wind speed.
   wind_direction wind_direction, -- Wind Direction.
   station_id integer not null references station(station_id)
@@ -144,7 +147,7 @@ CREATE TABLE live_data
 ALTER TABLE live_data
   OWNER TO postgres;
 COMMENT ON TABLE live_data
-  IS 'Live data from the weather station. Contains only a single record.';
+IS 'Live data from the weather stations. Contains only a single record for each weather station.';
 COMMENT ON COLUMN live_data.download_timestamp IS 'When this record was downloaded from the weather station';
 COMMENT ON COLUMN live_data.indoor_relative_humidity IS 'Relative Humidity at the base station. 0-99%';
 COMMENT ON COLUMN live_data.indoor_temperature IS 'Temperature at the base station in degrees Celsius';
@@ -183,32 +186,26 @@ insert into db_info(k,v) VALUES('DB_VERSION','2');
 
 -- Cuts recalculating rainfall for 3000 records from 4200ms to 110ms.
 CREATE INDEX idx_time_stamp
-   ON sample (time_stamp ASC NULLS LAST);
+ON sample (time_stamp ASC NULLS LAST);
 COMMENT ON INDEX idx_time_stamp
-  IS 'To make operations such as recalculating rainfall a little quicker.';
-
--- For the latest_record_number view.
---CREATE INDEX idx_latest_record
---   ON sample (time_stamp DESC NULLS FIRST, record_number DESC NULLS FIRST);
---COMMENT ON INDEX idx_latest_record
---  IS 'Index for the latest_record_number view';
+IS 'To make operations such as recalculating rainfall a little quicker.';
 
 ----------------------------------------------------------------------
 -- VIEWS -------------------------------------------------------------
 ----------------------------------------------------------------------
 
 CREATE OR REPLACE VIEW wh1080_latest_record_number AS
- SELECT ws.record_number, s.time_stamp, s.station_id, st.code
- from sample s
- inner join wh1080_sample ws on ws.sample_id = s.sample_id
- inner join station st on st.station_id = s.station_id
- order by s.time_stamp desc, ws.record_number desc
- limit 1;
+          SELECT ws.record_number, s.time_stamp, s.station_id, st.code
+  from sample s
+          inner join wh1080_sample ws on ws.sample_id = s.sample_id
+          inner join station st on st.station_id = s.station_id
+  order by s.time_stamp desc, ws.record_number desc
+  limit 1;
 
 ALTER TABLE wh1080_latest_record_number
   OWNER TO postgres;
 COMMENT ON VIEW wh1080_latest_record_number
-  IS 'Gets the number of the most recent record for WH1080-type stations. This is used by wh1080d and associated utilities to figure out what it needs to load into the database and what is already there.';
+IS 'Gets the number of the most recent record for WH1080-type stations. This is used by wh1080d and associated utilities to figure out what it needs to load into the database and what is already there.';
 
 
 CREATE OR REPLACE VIEW daily_records AS
@@ -244,57 +241,57 @@ CREATE OR REPLACE VIEW daily_records AS
                   data.max_humidity,
                   max(data.max_humidity_ts) as max_humidity_ts
   from (
-            select dr.date_stamp,
-                    dr.station_id,
-                    dr.max_gust_wind_speed,
-                    case when s.gust_wind_speed = dr.max_gust_wind_speed then s.time_stamp else NULL end as max_gust_wind_speed_ts,
-                    dr.max_average_wind_speed,
-                    case when s.average_wind_speed = dr.max_average_wind_speed then s.time_stamp else NULL end as max_average_wind_speed_ts,
-                    dr.max_absolute_pressure,
-                    case when s.absolute_pressure = dr.max_absolute_pressure then s.time_stamp else NULL end as max_absolute_pressure_ts,
-                    dr.min_absolute_pressure,
-                    case when s.absolute_pressure = dr.min_absolute_pressure then s.time_stamp else NULL end as min_absolute_pressure_ts,
-                    dr.max_apparent_temperature,
-                    case when s.apparent_temperature = dr.max_apparent_temperature then s.time_stamp else NULL end as max_apparent_temperature_ts,
-                    dr.min_apparent_temperature,
-                    case when s.apparent_temperature = dr.min_apparent_temperature then s.time_stamp else NULL end as min_apparent_temperature_ts,
-                    dr.max_wind_chill,
-                    case when s.wind_chill = dr.max_wind_chill then s.time_stamp else NULL end as max_wind_chill_ts,
-                    dr.min_wind_chill,
-                    case when s.wind_chill = dr.min_wind_chill then s.time_stamp else NULL end as min_wind_chill_ts,
-                    dr.max_dew_point,
-                    case when s.dew_point = dr.max_dew_point then s.time_stamp else NULL end as max_dew_point_ts,
-                    dr.min_dew_point,
-                    case when s.dew_point = dr.min_dew_point then s.time_stamp else NULL end as min_dew_point_ts,
-                    dr.max_temperature,
-                    case when s.temperature = dr.max_temperature then s.time_stamp else NULL end as max_temperature_ts,
-                    dr.min_temperature,
-                    case when s.temperature = dr.min_temperature then s.time_stamp else NULL end as min_temperature_ts,
-                    dr.max_humidity,
-                    case when s.relative_humidity = dr.max_humidity then s.time_stamp else NULL end as max_humidity_ts,
-                    dr.min_humidity,
-                    case when s.relative_humidity = dr.min_humidity then s.time_stamp else NULL end as min_humidity_ts,
-                    dr.total_rainfall
+    select dr.date_stamp,
+           dr.station_id,
+            dr.max_gust_wind_speed,
+            case when s.gust_wind_speed = dr.max_gust_wind_speed then s.time_stamp else NULL end as max_gust_wind_speed_ts,
+            dr.max_average_wind_speed,
+            case when s.average_wind_speed = dr.max_average_wind_speed then s.time_stamp else NULL end as max_average_wind_speed_ts,
+            dr.max_absolute_pressure,
+            case when s.absolute_pressure = dr.max_absolute_pressure then s.time_stamp else NULL end as max_absolute_pressure_ts,
+            dr.min_absolute_pressure,
+            case when s.absolute_pressure = dr.min_absolute_pressure then s.time_stamp else NULL end as min_absolute_pressure_ts,
+            dr.max_apparent_temperature,
+            case when s.apparent_temperature = dr.max_apparent_temperature then s.time_stamp else NULL end as max_apparent_temperature_ts,
+            dr.min_apparent_temperature,
+            case when s.apparent_temperature = dr.min_apparent_temperature then s.time_stamp else NULL end as min_apparent_temperature_ts,
+            dr.max_wind_chill,
+            case when s.wind_chill = dr.max_wind_chill then s.time_stamp else NULL end as max_wind_chill_ts,
+            dr.min_wind_chill,
+            case when s.wind_chill = dr.min_wind_chill then s.time_stamp else NULL end as min_wind_chill_ts,
+            dr.max_dew_point,
+            case when s.dew_point = dr.max_dew_point then s.time_stamp else NULL end as max_dew_point_ts,
+            dr.min_dew_point,
+            case when s.dew_point = dr.min_dew_point then s.time_stamp else NULL end as min_dew_point_ts,
+            dr.max_temperature,
+            case when s.temperature = dr.max_temperature then s.time_stamp else NULL end as max_temperature_ts,
+            dr.min_temperature,
+            case when s.temperature = dr.min_temperature then s.time_stamp else NULL end as min_temperature_ts,
+            dr.max_humidity,
+            case when s.relative_humidity = dr.max_humidity then s.time_stamp else NULL end as max_humidity_ts,
+            dr.min_humidity,
+            case when s.relative_humidity = dr.min_humidity then s.time_stamp else NULL end as min_humidity_ts,
+            dr.total_rainfall
     from sample s
             inner join
             (
-                      select date(time_stamp) as date_stamp,
-                              s.station_id,
-                              sum(coalesce(s.rainfall,0)) as "total_rainfall",
-                              max(s.gust_wind_speed) as "max_gust_wind_speed",
-                              max(s.average_wind_speed) as "max_average_wind_speed",
-                              min(s.absolute_pressure) as "min_absolute_pressure",
-                              max(s.absolute_pressure) as "max_absolute_pressure",
-                              min(s.apparent_temperature) as "min_apparent_temperature",
-                              max(s.apparent_temperature) as "max_apparent_temperature",
-                              min(s.wind_chill) as "min_wind_chill",
-                              max(s.wind_chill) as "max_wind_chill",
-                              min(s.dew_point) as "min_dew_point",
-                              max(s.dew_point) as "max_dew_point",
-                              min(s.temperature) as "min_temperature",
-                              max(s.temperature) as "max_temperature",
-                              min(s.relative_humidity) as "min_humidity",
-                              max(s.relative_humidity) as "max_humidity"
+              select date(time_stamp) as date_stamp,
+                      s.station_id,
+                      sum(coalesce(s.rainfall,0)) as "total_rainfall",
+                      max(s.gust_wind_speed) as "max_gust_wind_speed",
+                      max(s.average_wind_speed) as "max_average_wind_speed",
+                      min(s.absolute_pressure) as "min_absolute_pressure",
+                      max(s.absolute_pressure) as "max_absolute_pressure",
+                      min(s.apparent_temperature) as "min_apparent_temperature",
+                      max(s.apparent_temperature) as "max_apparent_temperature",
+                      min(s.wind_chill) as "min_wind_chill",
+                      max(s.wind_chill) as "max_wind_chill",
+                      min(s.dew_point) as "min_dew_point",
+                      max(s.dew_point) as "max_dew_point",
+                      min(s.temperature) as "min_temperature",
+                      max(s.temperature) as "max_temperature",
+                      min(s.relative_humidity) as "min_humidity",
+                      max(s.relative_humidity) as "max_humidity"
               from sample s
               group by date_stamp, s.station_id) as dr
       on date(s.time_stamp) = dr.date_stamp
@@ -575,73 +572,13 @@ COMMENT ON VIEW yearly_records
 IS 'Minimum and maximum records for each year.';
 
 
+
+
 ----------------------------------------------------------------------
 -- FUNCTIONS ---------------------------------------------------------
 ----------------------------------------------------------------------
 
--- Function to calculate dew point
-CREATE OR REPLACE FUNCTION dew_point(temperature real, relative_humidity integer)
-RETURNS real AS
-$BODY$
-DECLARE
-  a real := 17.271;
-  b real := 237.7; -- in degrees C
-  gamma real;
-  result real;
-BEGIN
-  gamma = ((a * temperature) / (b + temperature)) + ln(relative_humidity::real / 100.0);
-  result = (b * gamma) / (a - gamma);
-  return result;
-END; $BODY$
-LANGUAGE plpgsql IMMUTABLE;
-COMMENT ON FUNCTION dew_point(real, integer) IS 'Calculates the approximate dew point given temperature relative humidity. The calculation is based on the August-Roche-Magnus approximation for the saturation vapor pressure of water in air as a function of temperature. It is valid for input temperatures 0 to 60 degC and dew points 0 to 50 deg C.';
-
--- Function to calculate wind chill
-CREATE OR REPLACE FUNCTION wind_chill(temperature real, wind_speed real)
-RETURNS real AS
-$BODY$
-DECLARE
-  wind_kph real;
-  result real;
-BEGIN
-  -- wind_speed is in m/s. Multiply by 3.6 to get km/h
-  wind_kph := wind_speed * 3.6;
-
-  -- This calculation is undefined for temperatures above 10degC or wind speeds below 4.8km/h
-  if wind_kph <= 4.8 or temperature > 10.0 then
-        return temperature;
-  end if;
-
-  result := 13.12 + (temperature * 0.6215) + (((0.3965 * temperature) - 11.37) * pow(wind_kph, 0.16));
-
-  -- Wind chill is always lower than the temperature.
-  if result > temperature then
-        return temperature;
-  end if;
-
-  return result;
-END; $BODY$
-LANGUAGE plpgsql IMMUTABLE;
-COMMENT ON FUNCTION wind_chill(real, real) IS 'Calculates the north american wind chill index. Formula from http://en.wikipedia.org/wiki/Wind_chill.';
-
--- Calculates the apparent temperature
-CREATE OR REPLACE FUNCTION apparent_temperature(temperature real, wind_speed real, relative_humidity real)
-RETURNS real AS
-$BODY$
-DECLARE
-  wvp real;
-  result real;
-BEGIN
-
-  -- Water Vapour Pressure in hPa
-  wvp := (relative_humidity / 100.0) * 6.105 * pow(2.718281828, ((17.27 * temperature) / (237.7 + temperature)));
-
-  result := temperature + (0.33 * wvp) - (0.7 * wind_speed) - 4.00;
-
-  return result;
-END; $BODY$
-LANGUAGE plpgsql IMMUTABLE;
-COMMENT ON FUNCTION apparent_temperature(real, real, real) IS 'Calculates the Apparent Temperature using the formula used for the Australian Bureau of Meteorology - http://www.bom.gov.au/info/thermal_stress/';
+-- These are unchanged.
 
 ----------------------------------------------------------------------
 -- TRIGGER FUNCTIONS -------------------------------------------------
@@ -650,37 +587,25 @@ COMMENT ON FUNCTION apparent_temperature(real, real, real) IS 'Calculates the Ap
 -- Computes any computed fields when a new sample is inserted (dew point, wind chill, aparent temperature, etc)
 CREATE OR REPLACE FUNCTION compute_sample_values()
   RETURNS trigger AS
+        $BODY$
+    BEGIN
+      -- If its an insert, calculate any fields that need calculating. We will ignore updates here.
+      IF(TG_OP = 'INSERT') THEN
+        -- Various calculated temperatures
+        NEW.dew_point = dew_point(NEW.temperature, NEW.relative_humidity);
+        NEW.wind_chill = wind_chill(NEW.temperature, NEW.average_wind_speed);
+        NEW.apparent_temperature = apparent_temperature(NEW.temperature, NEW.average_wind_speed, NEW.relative_humidity);
+
+        -- Rainfall calculations (if required) are performed on trigger
+        -- functions attached to the hardware-specific tables now.
+
+        NOTIFY new_sample;
+      END IF;
+
+      RETURN NEW;
+    END;
 $BODY$
-	BEGIN
-                -- If its an insert, calculate any fields that need calculating. We will ignore updates here.
-		IF(TG_OP = 'INSERT') THEN
-                        -- Various calculated temperatures
-                        NEW.dew_point = dew_point(NEW.temperature, NEW.relative_humidity);
-                        NEW.wind_chill = wind_chill(NEW.temperature, NEW.average_wind_speed);
-                        NEW.apparent_temperature = apparent_temperature(NEW.temperature, NEW.average_wind_speed, NEW.relative_humidity);
-
-                        -- Calculate actual rainfall for this record from the total rainfall
-                        -- accumulator of this record and the previous record.
-                        -- 19660.8 is the maximum rainfall accumulator value (65536 * 0.3mm).
-                        select into NEW.rainfall
-                                    CASE WHEN NEW.total_rain - prev.total_rain >= 0 THEN
-                                        NEW.total_rain - prev.total_rain
-                                    ELSE
-                                        NEW.total_rain + (19660.8 - prev.total_rain)
-                                    END as rainfall
-                        from sample prev
-                        -- find the previous sample:
-                        where time_stamp = (select max(time_stamp)
-                                            from sample ins
-                                            where ins.time_stamp < NEW.time_stamp);
-
-                        NOTIFY new_sample;
-		END IF;
-
-		RETURN NEW;
-	END;
-$BODY$
-  LANGUAGE plpgsql VOLATILE;
+LANGUAGE plpgsql VOLATILE;
 COMMENT ON FUNCTION compute_sample_values() IS 'Calculates values for all calculated fields (wind chill, dew point, rainfall, etc).';
 
 -- Computes any computed fields when a new wh1080 sample is inserted (dew point, wind chill, aparent temperature, etc)
@@ -690,44 +615,44 @@ CREATE OR REPLACE FUNCTION compute_wh1080_sample_values()
     DECLARE
       new_rainfall real;
       current_station_id integer;
+      new_timestamp timestamptz;
 	BEGIN
-                -- If its an insert, calculate any fields that need calculating. We will ignore updates here.
-		IF(TG_OP = 'INSERT') THEN
+      -- If its an insert, calculate any fields that need calculating. We will ignore updates here.
+      IF(TG_OP = 'INSERT') THEN
+        -- Figure out station ID
+        select station_id, time_stamp into current_station_id, new_timestamp
+        from sample where sample_id = NEW.sample_id;
 
-		                -- Figure out station ID
-		                select station_id into current_station_id
-		                from sample where sample_id = NEW.sample_id;
+        -- Calculate actual rainfall for this record from the total rainfall
+        -- accumulator of this record and the previous record.
+        -- 19660.8 is the maximum rainfall accumulator value (65536 * 0.3mm).
+         select into new_rainfall
+                    CASE WHEN NEW.total_rain - prev.total_rain >= 0 THEN
+                        NEW.total_rain - prev.total_rain
+                    ELSE
+                        NEW.total_rain + (19660.8 - prev.total_rain)
+                    END as rainfall
+        from wh1080_sample prev
+        inner join sample sa on sa.sample_id = prev.sample_id
+        -- find the previous sample:
+        where sa.time_stamp = (select max(time_stamp)
+                            from sample ins
+                            where ins.time_stamp < new_timestamp)
+        and sa.station_id = current_station_id;
 
-                        -- Calculate actual rainfall for this record from the total rainfall
-                        -- accumulator of this record and the previous record.
-                        -- 19660.8 is the maximum rainfall accumulator value (65536 * 0.3mm).
-                         select into new_rainfall
-                                    CASE WHEN NEW.total_rain - prev.total_rain >= 0 THEN
-                                        NEW.total_rain - prev.total_rain
-                                    ELSE
-                                        NEW.total_rain + (19660.8 - prev.total_rain)
-                                    END as rainfall
-                        from wh1080_sample prev
-                        inner join sample sa on sa.sample_id = prev.sample_id
-                        -- find the previous sample:
-                        where sa.time_stamp = (select max(time_stamp)
-                                            from sample ins
-                                            where ins.time_stamp < NEW.time_stamp)
-                        and sa.station_id = current_station_id;
+        update sample set rainfall = new_rainfall
+        where sample_id = NEW.sample_id;
+      END IF;
 
-                        update sample set rainfall = new_rainfall
-                        where sample_id = NEW.sample_id;
-		END IF;
-
-		RETURN NEW;
+      RETURN NEW;
 	END;
 $BODY$
 LANGUAGE plpgsql VOLATILE;
-COMMENT ON FUNCTION compute_sample_values() IS 'Calculates values for all calculated fields (wind chill, dew point, rainfall, etc).';
+COMMENT ON FUNCTION compute_wh1080_sample_values() IS 'Calculates values for all calculated fields (wind chill, dew point, rainfall, etc).';
 
--- Prevents anything but updates happening to rows and calculates dewpoint, wind chill, apparent temperature, etc.
+-- Calculates dewpoint, wind chill, apparent temperature, etc.
 CREATE OR REPLACE FUNCTION live_data_update() RETURNS trigger AS
-$BODY$BEGIN
+        $BODY$BEGIN
     IF(TG_OP = 'UPDATE') THEN
         -- Various calculated temperatures
         NEW.dew_point = dew_point(NEW.temperature, NEW.relative_humidity);
@@ -735,16 +660,12 @@ $BODY$BEGIN
         NEW.apparent_temperature = apparent_temperature(NEW.temperature, NEW.average_wind_speed, NEW.relative_humidity);
 
         NOTIFY live_data_updated;
-
-        -- Allow UPDATE
-        RETURN NEW;
     END IF;
 
-    -- Ignore INSERT, DELETE
-    RETURN NULL;
+    RETURN NEW;
 END;$BODY$
 LANGUAGE plpgsql VOLATILE;
-COMMENT ON FUNCTION live_data_update() IS 'Calculates values for all calculated fields. Blocks inserts and deletes.';
+COMMENT ON FUNCTION live_data_update() IS 'Calculates values for all calculated fields.';
 
 
 ----------------------------------------------------------------------
@@ -752,19 +673,208 @@ COMMENT ON FUNCTION live_data_update() IS 'Calculates values for all calculated 
 ----------------------------------------------------------------------
 
 CREATE TRIGGER calculate_fields BEFORE INSERT
-   ON sample FOR EACH ROW
-   EXECUTE PROCEDURE public.compute_sample_values();
+ON sample FOR EACH ROW
+EXECUTE PROCEDURE public.compute_sample_values();
 COMMENT ON TRIGGER calculate_fields ON sample IS 'Calculate any calculated fields.';
 
 CREATE TRIGGER calculate_wh1080_fields BEFORE INSERT
-ON sample FOR EACH ROW
+ON wh1080_sample FOR EACH ROW
 EXECUTE PROCEDURE public.compute_wh1080_sample_values();
-COMMENT ON TRIGGER calculate_wh1080_fields ON sample IS 'Calculate fields that need WH1080-specific data.';
+COMMENT ON TRIGGER calculate_wh1080_fields ON wh1080_sample IS 'Calculate fields that need WH1080-specific data.';
 
 CREATE TRIGGER live_data_update BEFORE INSERT OR DELETE OR UPDATE
-   ON live_data FOR EACH ROW
-   EXECUTE PROCEDURE public.live_data_update();
+ON live_data FOR EACH ROW
+EXECUTE PROCEDURE public.live_data_update();
 COMMENT ON TRIGGER live_data_update ON live_data IS 'Calculates calculated fields for updates, ignores everything else.';
 
+----------------------------------------------------------------------
+-- MIGRATE DATA ------------------------------------------------------
+----------------------------------------------------------------------
 
-COMMIT;
+
+-- This will create a new weather station and migrate all data across from
+-- the old v1 table to the new database structure.
+DO LANGUAGE plpgsql
+$$
+DECLARE
+  wh1080_id integer;
+  new_station_id integer;
+  temp_sample_id integer;
+  rec record;
+BEGIN
+
+  RAISE NOTICE 'Performing data migration...';
+
+  -- Get the ID for the WH1080 station type.
+  SELECT station_type_id INTO wh1080_id
+  FROM station_type WHERE code = 'FOWH1080';
+
+  -- Create a new entry for the weather station
+  INSERT INTO station(code, description, title, station_type_id, sample_interval)
+               VALUES('UNKN',
+                      'Unknown WH1080-compatible weather station migrated from zxweather v0.1',
+                      'Unknown WH1080-compatible Weather Station',
+                      wh1080_id,
+                      300)
+  RETURNING station_id INTO new_station_id;
+
+  -- Create live data record
+  INSERT INTO live_data(wind_direction,station_id) VALUES('INV', new_station_id);
+
+  -- Migrate sample data
+  FOR rec IN SELECT sample_interval, record_number, download_timestamp,
+                       last_in_batch, invalid_Data, time_stamp,
+                       indoor_relative_humidity, indoor_temperature,
+                       relative_humidity, temperature, absolute_pressure,
+                       average_wind_speed, gust_wind_speed, wind_direction,
+                       total_rain, rain_overflow
+                FROM samples_v1
+                ORDER BY time_stamp asc
+  LOOP
+    INSERT INTO sample(download_timestamp,
+                       time_stamp,
+                       indoor_relative_humidity,
+                       indoor_temperature,
+                       relative_humidity,
+                       temperature,
+                       absolute_pressure,
+                       average_wind_speed,
+                       gust_wind_speed,
+                       wind_direction,
+                       station_id)
+    VALUES(rec.download_timestamp,
+           rec.time_stamp,
+           rec.indoor_relative_humidity,
+           rec.indoor_temperature,
+           rec.relative_humidity,
+           rec.temperature,
+           rec.absolute_pressure,
+           rec.average_wind_speed,
+           rec.gust_wind_speed,
+           rec.wind_direction,
+           new_station_id
+    ) RETURNING sample_id INTO temp_sample_id;
+
+    INSERT INTO wh1080_sample(sample_id,
+                              sample_interval,
+                              record_number,
+                              last_in_batch,
+                              invalid_data,
+                              total_rain,
+                              rain_overflow)
+    VALUES(temp_sample_id,
+           rec.sample_interval,
+           rec.record_number,
+           rec.last_in_batch,
+           rec.invalid_data,
+           rec.total_rain,
+           rec.rain_overflow);
+  END LOOP;
+
+END;
+$$;
+
+----------------------------------------------------------------------
+-- VALIDATION --------------------------------------------------------
+----------------------------------------------------------------------
+
+do language plpgsql
+$$
+DECLARE
+  old_sample_count integer;
+  new_sample_count integer;
+  wh_sample_count integer;
+  bad_samples integer;
+BEGIN
+
+  RAISE NOTICE 'Performing validation pass...';
+
+  select count(*) into old_sample_count from samples_v1;
+  select count(*) into new_sample_count from sample;
+  select count(*) into wh_sample_count from wh1080_sample;
+
+  select count(*) into bad_samples
+  from sample s
+  inner join wh1080_sample ws on ws.sample_id = s.sample_id
+  inner join samples_v1 old   on old.time_stamp = s.time_stamp
+  where (
+       old.sample_interval <> ws.sample_interval
+    OR (old.sample_interval is null and ws.sample_interval is not null)
+    OR (old.sample_interval is not null and ws.sample_interval is null)
+    OR old.record_number <> ws.record_number -- not null
+    OR old.download_timestamp <> s.download_timestamp
+    OR (old.download_timestamp is null and s.download_timestamp is not null)
+    OR (old.download_timestamp is not null and s.download_timestamp is null)
+    OR old.last_in_batch <> ws.last_in_batch
+    OR (old.last_in_batch is null and ws.last_in_batch is not null)
+    OR (old.last_in_batch is not null and ws.last_in_batch is null)
+    OR old.invalid_data <> ws.invalid_data -- not null
+    OR old.indoor_relative_humidity <> s.indoor_relative_humidity
+    OR (old.indoor_relative_humidity is null and s.indoor_relative_humidity is not null)
+    OR (old.indoor_relative_humidity is not null and s.indoor_relative_humidity is null)
+    OR old.indoor_temperature <> s.indoor_temperature
+    OR (old.indoor_temperature is null and s.indoor_temperature is not null)
+    OR (old.indoor_temperature is not null and s.indoor_temperature is null)
+    OR old.relative_humidity <> s.relative_humidity
+    OR (old.relative_humidity is null and s.relative_humidity is not null)
+    OR (old.relative_humidity is not null and s.relative_humidity is null)
+    OR old.temperature <> s.temperature
+    OR (old.temperature is null and s.temperature is not null)
+    OR (old.temperature is not null and s.temperature is null)
+    OR old.dew_point <> s.dew_point
+    OR (old.dew_point is null and s.dew_point is not null)
+    OR (old.dew_point is not null and s.dew_point is null)
+    OR old.wind_chill <> s.wind_chill
+    OR (old.wind_chill is null and s.wind_chill is not null)
+    OR (old.wind_chill is not null and s.wind_chill is null)
+    OR old.apparent_temperature <> s.apparent_temperature
+    OR (old.apparent_temperature is null and s.apparent_temperature is not null)
+    OR (old.apparent_temperature is not null and s.apparent_temperature is null)
+    OR old.absolute_pressure <> s.absolute_pressure
+    OR (old.absolute_pressure is null and s.absolute_pressure is not null)
+    OR (old.absolute_pressure is not null and s.absolute_pressure is null)
+    OR old.average_wind_speed <> s.average_wind_speed
+    OR (old.average_wind_speed is null and s.average_wind_speed is not null)
+    OR (old.average_wind_speed is not null and s.average_wind_speed is null)
+    OR old.gust_wind_speed <> s.gust_wind_speed
+    OR (old.gust_wind_speed is null and s.gust_wind_speed is not null)
+    OR (old.gust_wind_speed is not null and s.gust_wind_speed is null)
+    OR old.wind_direction <> s.wind_direction
+    OR (old.wind_direction is null and s.wind_direction is not null)
+    OR (old.wind_direction is not null and s.wind_direction is null)
+    OR old.rainfall <> s.rainfall
+    OR (old.rainfall is null and s.rainfall is not null)
+    OR (old.rainfall is not null and s.rainfall is null)
+    OR old.total_rain <> ws.total_rain
+    OR (old.total_rain is null and ws.total_rain is not null)
+    OR (old.total_rain is not null and ws.total_rain is null)
+    OR old.rain_overflow <> ws.rain_overflow
+    OR (old.rain_overflow is null and ws.rain_overflow is not null)
+    OR (old.rain_overflow is not null and ws.rain_overflow is null)
+  );
+
+  -- Make sure *all* records were copied over
+  if ((new_sample_count <> old_sample_count) or
+      (wh_sample_count <> old_sample_count)) then
+    RAISE EXCEPTION 'Validation failed: not all samples were migrated';
+  end if;
+
+  -- Make sure all records that were copied over were copied over exactly
+  if (bad_samples > 0) then
+    RAISE EXCEPTION 'Validation failed: samples were modified in migration';
+  end if;
+END;
+$$;
+
+----------------------------------------------------------------------
+-- CLEAN UP ----------------------------------------------------------
+----------------------------------------------------------------------
+
+-- We've finished with this now. Get rid of it.
+drop table samples_v1 cascade;
+
+----------------------------------------------------------------------
+-- END ---------------------------------------------------------------
+----------------------------------------------------------------------
+
+commit;
