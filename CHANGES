@@ -4,15 +4,18 @@ CHANGES                                             zxweather alpha release 0.2
 
   Version 0.2 (alpha)
     New Features:
+      - Support for multiple weather stations in the same database
       - Desktop client:
         - Settings will be loaded from zxweather-desktop.ini if the file exists
         - Settings dialog is shown on first run
         - Now supports retrieving data from the web interface for when a direct
           connection to the database is impractical.
     Bug Fixes:
-      -
+      - Fixed bug where certain live data download timestamps could cause error
+        messages in the zxweather desktop client.
     Other Changes:
-      -
+      - Database refactored to make supporting different types of weather
+        station hardware easier.
 
   Version 0.1 (alpha)
     - Initial release
