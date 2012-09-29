@@ -3,13 +3,15 @@ from gnuplot import plot_graph
 
 __author__ = 'David Goodwin'
 
-def month_charts(cur, dest_dir, month, year):
+def month_charts(cur, dest_dir, month, year, station_code):
     """
     Charts detailing weather for a single month.
     :param cur: Database cursor
     :param dest_dir: Directory to write images to
     :param month: Month to chart for
     :param year: Year to chart for
+    :param station_code: The code for the station to plot data for
+    :type station_code: str
     :return:
     """
 
@@ -22,16 +24,19 @@ def month_charts(cur, dest_dir, month, year):
        cur.absolute_pressure,
        cur.indoor_temperature,
        cur.indoor_relative_humidity,
-       cur.time_stamp::time - (cur.sample_interval * '1 minute'::interval) as prev_sample_time,
-       CASE WHEN (cur.time_stamp - prev.time_stamp) > ((cur.sample_interval * 2) * '1 minute'::interval) THEN
+       cur.time_stamp::time - (s.sample_interval * '1 minute'::interval) as prev_sample_time,
+       CASE WHEN (cur.time_stamp - prev.time_stamp) > ((s.sample_interval * 2) * '1 minute'::interval) THEN
           true
        else
           false
        end as gap
-from sample cur, sample prev
+from sample cur, sample prev, station s
 where date(date_trunc('month',cur.time_stamp)) = %s
   and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < cur.time_stamp)
-order by cur.time_stamp asc""", (date(year,month,1),))
+  and cur.station_id = s.station_id
+  and prev.station_id = s.station_id
+  and s.code = %s
+order by cur.time_stamp asc""", (date(year,month,1), station_code))
 
     weather_data = cur.fetchall()
 
