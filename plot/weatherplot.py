@@ -41,7 +41,18 @@ def handler(signum, frame):
     exit()
 signal.signal(signal.SIGINT, handler)
 
-def plot_day(dest_dir, cur, year, month, day):
+def plot_day(dest_dir, cur, year, month, day, station_code):
+    """
+
+    :param dest_dir:
+    :param cur:
+    :param year:
+    :param month:
+    :param day:
+    :param station_code: The code for the station to plot data for
+    :type station_code: str
+    :return:
+    """
     global start_date, final_date
 
     print("Plotting graphs for {0} {1} {2}...".format(year, month_name[month], day),end='')
@@ -60,13 +71,23 @@ def plot_day(dest_dir, cur, year, month, day):
         pass
 
     # Plot the 1-day charts
-    charts_1_day(cur, dest_dir, day, month, year)
-    charts_7_days(cur, dest_dir, day, month, year)
+    charts_1_day(cur, dest_dir, day, month, year, station_code)
+    charts_7_days(cur, dest_dir, day, month, year, station_code)
 
     final_date = date(year,month, day)
     pass
 
-def plot_month(dest_dir, cur, year, month):
+def plot_month(dest_dir, cur, year, month, station_code):
+    """
+    Plots charts for a particular month
+    :param dest_dir:
+    :param cur: Database cursor
+    :param year: Year to plot charts for
+    :param month: Month to plot charts for
+    :param station_code: The code for the station to plot data for
+    :type station_code: str
+    :return:
+    """
     global start_date
 
     print("Plotting graphs for {0} {1}...".format(year, month_name[month]),end="")
@@ -86,21 +107,23 @@ def plot_month(dest_dir, cur, year, month):
         pass
 
     # Generate graphs for the entire month
-    month_charts(cur,dest_dir, month, year)
+    month_charts(cur,dest_dir, month, year, station_code)
 
     # Then deal with each day
-    cur.execute("""select distinct extract(day from time_stamp)
-        from sample
-        where extract(year from time_stamp) = %s
-          and extract(month from time_stamp) = %s
-        order by extract(day from time_stamp)""", (year,month,))
+    cur.execute("""select distinct extract(day from s.time_stamp)
+        from sample s
+        inner join station st on st.station_id = s.station_id
+        where extract(year from s.time_stamp) = %s
+          and extract(month from s.time_stamp) = %s
+          and st.code = %s
+        order by extract(day from s.time_stamp)""", (year,month, station_code,))
     days = cur.fetchall()
 
     for day in days:
-        plot_day(dest_dir, cur, year, month, int(day[0]))
+        plot_day(dest_dir, cur, year, month, int(day[0]), station_code)
 
 
-def plot_year(dest_dir, cur, year):
+def plot_year(dest_dir, cur, year, station_code):
     """
     Plots summary graphs for the specified year. It will then call
     plot_month() for each month in the database for this year.
@@ -110,6 +133,8 @@ def plot_year(dest_dir, cur, year):
     :type cur: cursor
     :param year: The year to plot charts for
     :type year: int
+    :param station_code: The code for the station to plot data for
+    :type station_code: str
     :return:
     :rtype:
     """
@@ -128,12 +153,15 @@ def plot_year(dest_dir, cur, year):
     # Generate graphs for the entire year
 
     # Then deal with each month
-    cur.execute("""select distinct extract(month from time_stamp)
-        from sample where extract(year from time_stamp) = %s
-        order by extract(month from time_stamp)""", (year,))
+    cur.execute("""select distinct extract(month from s.time_stamp)
+        from sample s
+        inner join station st on st.station_id = s.station_id
+        where extract(year from s.time_stamp) = %s
+          and st.code = %s
+        order by extract(month from s.time_stamp)""", (year, station_code,))
     months = cur.fetchall()
     for month in months:
-        plot_month(dest_dir, cur, year, int(month[0]))
+        plot_month(dest_dir, cur, year, int(month[0]), station_code)
 
 
 def main():
@@ -164,12 +192,39 @@ def main():
                       help="Charts will be replotted every x seconds until Ctrl+C is used to terminate the program")
     parser.add_option("-g", "--gnuplot-binary", dest="gnuplot_bin",
                       help="Gnuplot binary to use")
+    parser.add_option("-s", "--station", dest="station_code",
+                      help="The station to plot charts for")
 
     (options, args) = parser.parse_args()
 
 
     print("Weather data plotting application v1.0")
     print("\t(C) Copyright David Goodwin, 2012\n\n")
+
+    error = False
+    if options.station_code is None:
+        print("ERROR: station code not specified")
+        error = True
+    if options.hostname is None:
+        print("ERROR: hostname not specified")
+        error = True
+    if options.username is None:
+        print("ERROR: username not specified")
+        error = True
+    if options.password is None:
+        print("ERROR: password not specified")
+        error = True
+    if options.dbname is None:
+        print("ERROR: database name not specified")
+        error = True
+    if options.directory is None:
+        print("ERROR: output directory not specified")
+        error = True
+
+    if error:
+        print("Required parameters were not supplied. Re-run with --help for options.")
+        return
+
 
     if options.gnuplot_bin is not None:
         gnuplot.gnuplot_binary = options.gnuplot_bin
@@ -188,7 +243,8 @@ def main():
     data = cur.fetchone()
     print("Server version: {0}".format(data[0]))
 
-    print("Generating temperature plots in {0}".format(options.directory))
+    print("Generating temperature plots in {0} for station {1}".format(
+        options.directory, options.station_code))
 
     dest_dir = options.directory
     if not dest_dir.endswith('/'):
@@ -205,11 +261,15 @@ def main():
 
     while True:
         # First up, figure out what years we have
-        cur.execute("select distinct extract(year from time_stamp) from sample")
+        cur.execute("""select distinct extract(year from s.time_stamp)
+                       from sample s
+                       inner join station st on st.station_id = s.station_id
+                       where st.code = %s
+                       """, (options.station_code,))
         years = cur.fetchall()
 
         for year in years:
-            plot_year(dest_dir, cur, int(year[0]))
+            plot_year(dest_dir, cur, int(year[0]), options.station_code)
 
         # Update stored date for next time
         if options.plot_new is not None:

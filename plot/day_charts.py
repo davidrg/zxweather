@@ -4,7 +4,7 @@ from gnuplot import plot_graph
 __author__ = 'David Goodwin'
 
 
-def charts_1_day(cur, dest_dir, day, month, year):
+def charts_1_day(cur, dest_dir, day, month, year, station_code):
     """
     Charts detailing weather for a single day (24 hours max)
     :param cur: Database cursor
@@ -12,6 +12,8 @@ def charts_1_day(cur, dest_dir, day, month, year):
     :param day: Day to chart for
     :param month: Month to chart for
     :param year: Year to chart for
+    :param station_code: The code for the station to plot data for
+    :type station_code: str
     """
 
     cur.execute("""select cur.time_stamp::time,
@@ -23,16 +25,19 @@ def charts_1_day(cur, dest_dir, day, month, year):
        cur.absolute_pressure,
        cur.indoor_temperature,
        cur.indoor_relative_humidity,
-       cur.time_stamp::time - (cur.sample_interval * '1 minute'::interval) as prev_sample_time,
-       CASE WHEN (cur.time_stamp - prev.time_stamp) > ((cur.sample_interval * 2) * '1 minute'::interval) THEN
+       cur.time_stamp::time - (s.sample_interval * '1 minute'::interval) as prev_sample_time,
+       CASE WHEN (cur.time_stamp - prev.time_stamp) > ((s.sample_interval * 2) * '1 minute'::interval) THEN
           true
        else
           false
        end as gap
-from sample cur, sample prev
+from sample cur, sample prev, station s
 where date(cur.time_stamp) = %s
   and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < cur.time_stamp)
-order by cur.time_stamp asc""", (date(year,month,day),))
+  and cur.station_id = s.station_id
+  and prev.station_id = s.station_id
+  and s.code = %s
+order by cur.time_stamp asc""", (date(year,month,day), station_code,))
     weather_data = cur.fetchall()
 
     # Columns in the query
@@ -195,7 +200,7 @@ order by cur.time_stamp asc""", (date(year,month,day),))
                            'ycol': FIELD_INDOOR_TEMP, # Indoor Temperature
                            'title': "Temperature"}])
 
-def charts_7_days(cur, dest_dir, day, month, year):
+def charts_7_days(cur, dest_dir, day, month, year, station_code):
     """
     Creates 7-day charts for the specified day
     :param cur: Database cursor
@@ -203,6 +208,8 @@ def charts_7_days(cur, dest_dir, day, month, year):
     :param day: day of month
     :param month: month
     :param year: year
+    :param station_code: The code for the station to plot data for
+    :type station_code: str
     """
     cur.execute("""select s.time_stamp,
        s.temperature,
@@ -213,19 +220,22 @@ def charts_7_days(cur, dest_dir, day, month, year):
        s.absolute_pressure,
        s.indoor_temperature,
        s.indoor_relative_humidity,
-       s.time_stamp::time - (s.sample_interval * '1 minute'::interval) as prev_sample_time,
-       CASE WHEN (s.time_stamp - prev.time_stamp) > ((s.sample_interval * 2) * '1 minute'::interval) THEN
+       s.time_stamp::time - (st.sample_interval * '1 minute'::interval) as prev_sample_time,
+       CASE WHEN (s.time_stamp - prev.time_stamp) > ((st.sample_interval * 2) * '1 minute'::interval) THEN
           true
        else
           false
        end as gap
-from sample s, sample prev,
-     (select max(time_stamp) as ts from sample where time_stamp::date = %s) as max_ts
+from sample s, sample prev, station st,
+     (select max(time_stamp) as ts, station_id from sample where time_stamp::date = %s group by station_id) as max_ts
 where s.time_stamp <= max_ts.ts     -- 604800 seconds in a week.
   and s.time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
   and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp)
+  and s.station_id = st.station_id
+  and prev.station_id = st.station_id
+  and st.code = %s
 order by s.time_stamp asc
-""", (date(year,month,day),))
+""", (date(year,month,day), station_code,))
     temperature_data = cur.fetchall()
 
     # Columns in the query
