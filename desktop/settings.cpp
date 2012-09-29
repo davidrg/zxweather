@@ -46,6 +46,7 @@ namespace SettingsKey {
             const QString PORT = "DataSource/Database/port";
             const QString USERNAME = "DataSource/Database/username";
             const QString PASSWORD = "DataSource/Database/password";
+            const QString STATION_NAME = "DataSource/Database/station";
         }
     }
 
@@ -223,6 +224,14 @@ QString Settings::databasePassword() {
         val = settings->value(SettingsKey::V1_0_Database::PASSWORD, "");
 
     return val.toString();
+}
+
+void Settings::setStationName(QString name) {
+    settings->setValue(SettingsKey::DataSource::Database::STATION_NAME, name);
+}
+
+QString Settings::stationName() {
+    return settings->value(SettingsKey::DataSource::Database::STATION_NAME,"").toString();
 }
 
 void Settings::setSingleShotMinimiseToSysTray() {

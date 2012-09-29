@@ -38,6 +38,7 @@ public:
             int port,
             QString username,
             QString password,
+            QString station,
             QObject *parent = 0);
 
     ~DatabaseDataSource();
@@ -76,7 +77,7 @@ private:
                  QString hostname,
                  int port,
                  QString username,
-                 QString password);
+                 QString password, QString station);
 
     bool connected;
     DBSignalAdapter *signalAdapter;

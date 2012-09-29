@@ -59,9 +59,13 @@ void wdb_set_signal_adapter(DBSignalAdapter *adapter);
  *               hostname is specified then localhost is assumed.
  * @param username User to connect as.
  * @param password Password for the user account.
+ * @param station The weather station to monitor.
  * @return True if the connection was successful.
  */
-bool wdb_connect(const char *target, const char *username, const char* password);
+bool wdb_connect(const char *target,
+                 const char *username,
+                 const char* password,
+                 const char* station);
 
 /**
  * @brief wdb_disconnect closes all database connections.
