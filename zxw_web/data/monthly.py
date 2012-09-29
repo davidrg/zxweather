@@ -278,7 +278,7 @@ def get_30m_avg_month_samples_data(year,month, station_id):
        min(prev_sample_time) as prev_sample_time,
        bool_or(gap) as gap,
        avg(iq.average_wind_speed) as average_wind_speed,
-       avg(iq.gust_wind_speed) as gust_wind_speed
+       max(iq.gust_wind_speed) as gust_wind_speed
 from (
         select cur.time_stamp,
                (extract(epoch from cur.time_stamp) / 1800)::integer AS quadrant,
