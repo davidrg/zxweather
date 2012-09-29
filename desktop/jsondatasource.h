@@ -24,10 +24,10 @@
 #define JSONDATASOURCE_H
 
 #include "datasource.h"
+#include <QScopedPointer>
+#include <QTimer>
+#include <QNetworkAccessManager>
 
-
-class QTimer;
-class QNetworkAccessManager;
 class QNetworkReply;
 
 class JsonDataSource : public AbstractDataSource
@@ -55,10 +55,10 @@ private:
      */
     bool CheckDataAge();
 
-    QTimer *notificationTimer;
+    QScopedPointer<QTimer> notificationTimer;
     QString url;
     QString json_data;
-    QNetworkAccessManager *netAccessManager;
+    QScopedPointer<QNetworkAccessManager> netAccessManager;
 };
 
 #endif // JSONDATASOURCE_H

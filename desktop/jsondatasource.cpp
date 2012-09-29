@@ -37,13 +37,13 @@ JsonDataSource::JsonDataSource(QString url, QObject *parent) :
         url += "/";
     this->url = url + "live.json";
 
-    notificationTimer = new QTimer();
+    notificationTimer.reset(new QTimer());
     notificationTimer->setInterval(48000);
-    connect(notificationTimer, SIGNAL(timeout()),
+    connect(notificationTimer.data(), SIGNAL(timeout()),
             this, SLOT(liveDataPoll()));
 
-    netAccessManager = new QNetworkAccessManager(this);
-    connect(netAccessManager, SIGNAL(finished(QNetworkReply*)),
+    netAccessManager.reset(new QNetworkAccessManager(this));
+    connect(netAccessManager.data(), SIGNAL(finished(QNetworkReply*)),
             this, SLOT(dataReady(QNetworkReply*)));
 
     // Get some initial data
