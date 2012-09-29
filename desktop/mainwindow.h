@@ -28,6 +28,7 @@
 #include <QSystemTrayIcon>
 #include <QSettings>
 #include <QCloseEvent>
+#include <QScopedPointer>
 
 #include "datasource.h"
 
@@ -146,11 +147,11 @@ protected:
 
 private:
     Ui::MainWindow *ui;
-    QSystemTrayIcon *sysTrayIcon;
-    QMenu* trayIconMenu;
-    QAction* restoreAction;
-    QAction* quitAction;
-    QTimer *ldTimer;
+    QScopedPointer<QSystemTrayIcon> sysTrayIcon;
+    QScopedPointer<QMenu> trayIconMenu;
+    QScopedPointer<QAction> restoreAction;
+    QScopedPointer<QAction> quitAction;
+    QScopedPointer<QTimer> ldTimer;
 
     bool minimise_to_systray;
     bool close_to_systray;
@@ -161,7 +162,7 @@ private:
     void showWarningPopup(QString message, QString title, QString tooltip="", bool setWarningIcon=false);
     void readSettings();
 
-    AbstractDataSource *dataSource;
+    QScopedPointer<AbstractDataSource> dataSource;
 };
 
 #endif // MAINWINDOW_H

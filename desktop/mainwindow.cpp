@@ -41,42 +41,43 @@ MainWindow::MainWindow(QWidget *parent) :
     qDebug() << "MainWindow::MainWindow...";
     ui->setupUi(this);
 
+    // If we don't do this then there is a heap of empty space at the bottom
+    // of the window.
+    resize(width(), minimumHeight());
+
     seconds_since_last_refresh = 0;
     minutes_late = 0;
 
-    sysTrayIcon = new QSystemTrayIcon(this);
+    sysTrayIcon.reset(new QSystemTrayIcon(this));
     sysTrayIcon->setIcon(QIcon(":/icons/systray_icon_warning"));
     sysTrayIcon->setToolTip("No data");
     sysTrayIcon->show();
-    connect(sysTrayIcon, SIGNAL(activated(QSystemTrayIcon::ActivationReason)),
+    connect(sysTrayIcon.data(), SIGNAL(activated(QSystemTrayIcon::ActivationReason)),
             this, SLOT(trayIconActivated(QSystemTrayIcon::ActivationReason)));
 
-    trayIconMenu = new QMenu(this);
-    restoreAction = new QAction("&Restore",trayIconMenu);
-    quitAction = new QAction("&Quit",trayIconMenu);
-    trayIconMenu->addAction(restoreAction);
+    trayIconMenu.reset(new QMenu(this));
+    restoreAction.reset(new QAction("&Restore",trayIconMenu.data()));
+    quitAction.reset(new QAction("&Quit",trayIconMenu.data()));
+    trayIconMenu->addAction(restoreAction.data());
     trayIconMenu->addSeparator();
-    trayIconMenu->addAction(quitAction);
-    sysTrayIcon->setContextMenu(trayIconMenu);
-    connect(restoreAction, SIGNAL(triggered()), this, SLOT(showNormal()));
-    connect(quitAction, SIGNAL(triggered()), this, SLOT(quit()));
+    trayIconMenu->addAction(quitAction.data());
+    sysTrayIcon->setContextMenu(trayIconMenu.data());
+    connect(restoreAction.data(), SIGNAL(triggered()), this, SLOT(showNormal()));
+    connect(quitAction.data(), SIGNAL(triggered()), this, SLOT(quit()));
 
     // Other UI signals
     connect(ui->actionSettings, SIGNAL(triggered()), this, SLOT(showSettings()));
     connect(ui->actionAbout, SIGNAL(triggered()), this, SLOT(showAbout()));
 
-    dataSource = NULL;
-
-    ldTimer = new QTimer();
+    ldTimer.reset(new QTimer());
     ldTimer->setInterval(1000);
-    connect(ldTimer, SIGNAL(timeout()), this, SLOT(ld_timeout()));
+    connect(ldTimer.data(), SIGNAL(timeout()), this, SLOT(ld_timeout()));
 
     // Show the settings dialog on the first run.
     if (!Settings::getInstance().singleShotFirstRun()) {
         showSettings();
         Settings::getInstance().setSingleShotFirstRun();
     }
-
     qDebug() << "Read settings and connect...";
     readSettings();
     createDataSource();
@@ -127,10 +128,6 @@ void MainWindow::createDataSource() {
 
 void MainWindow::createJsonDataSource() {
     QString url = Settings::getInstance().url();
-    if (dataSource != NULL) {
-        delete dataSource;
-        dataSource = NULL;
-    }
 
     JsonDataSource *jds = new JsonDataSource(url, this);
     connect(jds, SIGNAL(networkError(QString)),
@@ -138,7 +135,7 @@ void MainWindow::createJsonDataSource() {
     connect(jds, SIGNAL(liveDataRefreshed()),
             this, SLOT(liveDataRefreshed()));
 
-    dataSource = jds;
+    dataSource.reset(jds);
     ldTimer->start();
 }
 
@@ -158,34 +155,28 @@ void MainWindow::createDatabaseDataSource() {
         return;
     }
 
-    if (dataSource != NULL) {
-        delete dataSource;
-        dataSource = NULL;
-    }
+    QScopedPointer<DatabaseDataSource> dds;
 
-    DatabaseDataSource *dds;
-
-    dds = new DatabaseDataSource(dbName,
+    dds.reset(new DatabaseDataSource(dbName,
                                  hostname,
                                  port,
                                  username,
                                  password,
                                  station,
-                                 this);
+                                 this));
 
     if (!dds->isConnected()) {
-        delete dds;
         return;
     }
 
-    connect(dds, SIGNAL(connection_failed(QString)),
+    connect(dds.data(), SIGNAL(connection_failed(QString)),
             this, SLOT(connection_failed(QString)));
-    connect(dds, SIGNAL(database_error(QString)),
+    connect(dds.data(), SIGNAL(database_error(QString)),
             this, SLOT(unknown_db_error(QString)));
-    connect(dds, SIGNAL(liveDataRefreshed()),
+    connect(dds.data(), SIGNAL(liveDataRefreshed()),
             this, SLOT(liveDataRefreshed()));
 
-    dataSource = dds;
+    dataSource.reset(dds.take());
     ldTimer->start();
 
     setWindowTitle("zxweather - " + station);
