@@ -149,6 +149,14 @@ void MainWindow::createDatabaseDataSource() {
     int port = settings.databasePort();
     QString username = settings.databaseUsername();
     QString password = settings.databasePassword();
+    QString station = settings.stationName();
+
+    if (station.isEmpty()) {
+        // We're probably migrating settings from v0.1.
+        QMessageBox::information(this, "Bad configuration", "The station name has not been configured. You will now be shown the settings dialog.");
+        showSettings();
+        return;
+    }
 
     if (dataSource != NULL) {
         delete dataSource;
@@ -162,6 +170,7 @@ void MainWindow::createDatabaseDataSource() {
                                  port,
                                  username,
                                  password,
+                                 station,
                                  this);
 
     if (!dds->isConnected()) {
@@ -178,6 +187,8 @@ void MainWindow::createDatabaseDataSource() {
 
     dataSource = dds;
     ldTimer->start();
+
+    setWindowTitle("zxweather - " + station);
 
     // Do an initial refresh so we're not waiting forever with nothing to show
     liveDataRefreshed();

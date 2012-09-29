@@ -23,6 +23,9 @@
 /*
  * QtSQL module doesn't seem to like Postgres (at least not recent versions).
  * So this is all done with ECPG instead. Yay.
+ *
+ * Remember: Keep it ANSI_C. Mostly. ECPG doesn't understand C++ but a little
+ * bit of it (like the DBSignalAdapter stuff) shouldn't bother it too much.
  */
 
 #include "database.h"
@@ -33,8 +36,14 @@
 
 #define LIVE_DATA_UPDATE_CHANNEL "live_data_updated"
 
+/* Globals */
 static DBSignalAdapter* signalAdapter = NULL;
+static int station_id = 0;
 
+/* Forward Declarations */
+int wdb_get_station_id(const char*);
+
+/* Setup error handling */
 EXEC SQL WHENEVER SQLERROR CALL wdb_print_sqlca();
 
 /* In the event of a SQL error, print the details to stderr, roll back the
@@ -69,7 +78,8 @@ void wdb_set_signal_adapter(DBSignalAdapter *adapter) {
     signalAdapter = adapter;
 }
 
-bool wdb_connect(const char *target, const char *username, const char* password) {
+bool wdb_connect(const char *target, const char *username, const char* password,
+                 const char *station) {
     EXEC SQL BEGIN DECLARE SECTION;
     const char * target_l = target;
     const char * username_l = username;
@@ -92,7 +102,7 @@ bool wdb_connect(const char *target, const char *username, const char* password)
     if (conn == NULL) return false;
     PGresult *res = PQexec(conn, "LISTEN " LIVE_DATA_UPDATE_CHANNEL);
     if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-        qDebug() << "LISTEN failed. Live data notifications will not be processed.";
+        qDebug() << "LISTEN failed. Live data notifications will not be processed.\n";
     }
     PQclear(res);
 
@@ -100,26 +110,31 @@ bool wdb_connect(const char *target, const char *username, const char* password)
     EXEC SQL SET CONNECTION data_connection;
     EXEC SQL SET AUTOCOMMIT TO OFF;
 
+    station_id = wdb_get_station_id(station);
+
     return true;
+}
+
+/* Gets the ID for the specified station code */
+int wdb_get_station_id(const char* station) {
+    EXEC SQL BEGIN DECLARE SECTION;
+    const char * station_code = station;
+    int station_id_param = 0;
+    EXEC SQL END DECLARE SECTION;
+
+
+    EXEC SQL SELECT station_id
+             INTO :station_id_param
+             FROM station
+             WHERE code = :station_code;
+
+    return station_id_param;
 }
 
 void wdb_disconnect() {
     EXEC SQL DISCONNECT data_connection;
     EXEC SQL DISCONNECT notification_connection;
 }
-
-//    EXEC SQL DECLARE live_data_cur CURSOR FOR
-//            SELECT relative_humidity,
-//                   temperature,
-//                   dew_point,
-//                   wind_chill,
-//                   apparent_temperature,
-//                   absolute_pressure,
-//                   average_wind_speed,
-//                   gust_wind_speed,
-//                   wind_direction
-//            FROM live_data
-
 
 bool wdb_live_data_available() {
     PGconn* conn = ECPGget_PGconn("notification_connection");
@@ -149,32 +164,33 @@ bool wdb_live_data_available() {
 
 live_data_record wdb_get_live_data() {
     EXEC SQL BEGIN DECLARE SECTION;
-    int indoor_relative_humidity;
-    float indoor_temperature;
-    int relative_humidity;
-    float temperature;
-    float dew_point;
-    float wind_chill;
-    float apparent_temperature;
-    float absolute_pressure;
-    float average_wind_speed;
-    float gust_wind_speed;
+    int indoor_relative_humidity = 0;
+    float indoor_temperature = 0.0;
+    int relative_humidity = 0;
+    float temperature = 0.0;
+    float dew_point = 0.0;
+    float wind_chill = 0.0;
+    float apparent_temperature = 0.0;
+    float absolute_pressure = 0.0;
+    float average_wind_speed = 0.0;
+    float gust_wind_speed = 0.0;
     char wind_direction[4];
-    long download_timestamp;
+    long download_timestamp = 0;
+    int station_id_param = station_id;
     EXEC SQL END DECLARE SECTION;
 
-    EXEC SQL SELECT indoor_temperature,
-                    indoor_relative_humidity,
-                    temperature,
-                    relative_humidity,
-                    dew_point,
-                    wind_chill,
-                    apparent_temperature,
-                    absolute_pressure,
-                    average_wind_speed,
-                    gust_wind_speed,
-                    wind_direction,
-                    extract(epoch from download_timestamp)
+    EXEC SQL SELECT ld.indoor_temperature,
+                    ld.indoor_relative_humidity,
+                    ld.temperature,
+                    ld.relative_humidity,
+                    ld.dew_point,
+                    ld.wind_chill,
+                    ld.apparent_temperature,
+                    ld.absolute_pressure,
+                    ld.average_wind_speed,
+                    ld.gust_wind_speed,
+                    ld.wind_direction,
+                    extract(epoch from ld.download_timestamp)::integer
              INTO :indoor_temperature,
                   :indoor_relative_humidity,
                   :temperature,
@@ -187,7 +203,9 @@ live_data_record wdb_get_live_data() {
                   :gust_wind_speed,
                   :wind_direction,
                   :download_timestamp
-             FROM live_data;
+             FROM live_data ld
+             WHERE ld.station_id = :station_id_param
+             LIMIT 1;
 
     live_data_record rec;
     rec.indoor_temperature = indoor_temperature;

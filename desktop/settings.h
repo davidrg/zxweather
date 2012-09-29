@@ -70,6 +70,9 @@ public:
     void setDatabasePassword(QString password);
     QString databasePassword();
 
+    void setStationName(QString name);
+    QString stationName();
+
     /* Single shot stuff */
     void setSingleShotMinimiseToSysTray();
     bool singleShotMinimiseToSysTray();

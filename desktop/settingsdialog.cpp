@@ -70,6 +70,7 @@ void SettingsDialog::writeSettings() {
     settings.setDatabaseUsername(ui->usernameLineEdit->text());
     settings.setDatabasePassword(ui->passwordLineEdit->text());
     settings.setUrl(ui->UrlLineEdit->text());
+    settings.setStationName(ui->stationNameLineEdit->text());
 
     if (ui->rbDatabase->isChecked())
         settings.setDataSourceType(Settings::DS_TYPE_DATABASE);
@@ -90,6 +91,7 @@ void SettingsDialog::loadSettings() {
     ui->portSpinBox->setValue(settings.databasePort());
     ui->usernameLineEdit->setText(settings.databaseUsername());
     ui->passwordLineEdit->setText(settings.databasePassword());
+    ui->stationNameLineEdit->setText(settings.stationName());
 
     ui->UrlLineEdit->setText(settings.url());
 

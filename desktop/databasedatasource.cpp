@@ -27,12 +27,12 @@
 #include <QTimer>
 #include <QDebug>
 
-DatabaseDataSource::DatabaseDataSource(
-        QString databaseName,
+DatabaseDataSource::DatabaseDataSource(QString databaseName,
         QString hostname,
         int port,
         QString username,
         QString password,
+        QString station,
         QObject *parent) :
     AbstractDataSource(parent)
 {
@@ -69,7 +69,7 @@ DatabaseDataSource::DatabaseDataSource(
     connect(notificationTimer, SIGNAL(timeout()),
             this, SLOT(notification_pump()));
 
-    connected = db_connect(databaseName, hostname, port, username, password);
+    connected = db_connect(databaseName, hostname, port, username, password, station);
 }
 
 DatabaseDataSource::~DatabaseDataSource() {
@@ -92,7 +92,8 @@ bool DatabaseDataSource::db_connect(
         QString dbHostname,
         int port,
         QString username,
-        QString password) {
+        QString password,
+        QString station) {
 
     QString dbPort = QString::number(port);
 
@@ -108,7 +109,8 @@ bool DatabaseDataSource::db_connect(
 
     if (!wdb_connect(target.toAscii().constData(),
                      username.toAscii().constData(),
-                     password.toAscii().constData())) {
+                     password.toAscii().constData(),
+                     station.toAscii().constData())) {
         // Failed to connect.
         return false;
     }
