@@ -157,6 +157,7 @@ COMMENT ON COLUMN live_data.absolute_pressure IS 'Absolute pressure in hPa';
 COMMENT ON COLUMN live_data.average_wind_speed IS 'Average Wind Speed in m/s.';
 COMMENT ON COLUMN live_data.gust_wind_speed IS 'Gust wind speed in m/s.';
 COMMENT ON COLUMN live_data.wind_direction IS 'Wind Direction.';
+COMMENT ON COLUMN live_data.station_id is 'The station this live data is for.';
 
 -- Live data table must always have one and only one record.
 --insert into live_data(download_timestamp, wind_direction) values(null, 'INV');
