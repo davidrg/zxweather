@@ -79,12 +79,46 @@ void wdb_set_signal_adapter(DBSignalAdapter *adapter) {
     signalAdapter = adapter;
 }
 
+/* Checks that the main connection is still OK and if it isn't attempts to
+ * reset it */
+void check_data_connection() {
+    PGconn* conn = ECPGget_PGconn("data_connection");
+    if (conn == NULL) {
+        qDebug() << "ERROR: NULL connection (primary)";
+    }
+
+    /* PQstatus doesn't seem to notice a lost database connection until we do
+     * something else that interacts with the connection (like run a query).
+     *
+     * This may be a result of interference from ECPG as a similar check
+     * on the notification connection (which doesn't use ECPG for anything
+     * beyond setting up the connection) doesn't have this problem.
+     *
+     * Similar interference may be the reason why notifications have to be
+     * processed on a separate connection too (if we listen on data_connection
+     * we never receive them).
+     */
+    PQconsumeInput(conn);
+
+    if (PQstatus(conn) == CONNECTION_BAD) {
+        qDebug() << "Primary database connection seems to have gone bad. Attempting reset.";
+        PQreset(conn);
+        if (PQstatus(conn) == CONNECTION_BAD) {
+            qDebug() << "ERROR: Failed to reestablish primary database connection.";
+        } else {
+            qDebug() << "Primary reconnect succeeded.";
+        }
+    }
+}
+
 /* Tries to figure out which version the database is. */
 int get_db_version() {
     EXEC SQL BEGIN DECLARE SECTION;
     bool db_info_table_exists;
     int version;
     EXEC SQL END DECLARE SECTION;
+
+    check_data_connection();
 
     EXEC SQL SELECT COUNT(*) = 1 INTO :db_info_table_exists
              FROM information_schema.tables WHERE table_name = 'db_info';
@@ -99,6 +133,14 @@ int get_db_version() {
     }
 
     return version;
+}
+
+void subscribe_to_notifications(PGconn* conn) {
+    PGresult *res = PQexec(conn, "LISTEN " LIVE_DATA_UPDATE_CHANNEL);
+    if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+        qDebug() << "LISTEN failed. Live data notifications will not be processed.\n";
+    }
+    PQclear(res);
 }
 
 bool wdb_connect(const char *target, const char *username, const char* password,
@@ -129,11 +171,7 @@ bool wdb_connect(const char *target, const char *username, const char* password,
     /* Subscribe to live data notifications */
     PGconn* conn = ECPGget_PGconn("notification_connection");
     if (conn == NULL) return false;
-    PGresult *res = PQexec(conn, "LISTEN " LIVE_DATA_UPDATE_CHANNEL);
-    if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-        qDebug() << "LISTEN failed. Live data notifications will not be processed.\n";
-    }
-    PQclear(res);
+    subscribe_to_notifications(conn);
 
     // Switch back to the primary connection and finish off.
     EXEC SQL SET CONNECTION data_connection;
@@ -151,6 +189,8 @@ int wdb_get_station_id(const char* station) {
     const char * station_code = station;
     int station_id_param = 0;
     EXEC SQL END DECLARE SECTION;
+
+    check_data_connection();
 
     if (db_version > 2) {
         EXEC SQL SELECT station_id
@@ -172,9 +212,21 @@ void wdb_disconnect() {
 bool wdb_live_data_available() {
     PGconn* conn = ECPGget_PGconn("notification_connection");
     if (conn == NULL) {
-        qDebug() << "ERROR: NULL connection";
+        qDebug() << "ERROR: NULL connection (secondary)";
         return false;
     }
+
+    if (PQstatus(conn) == CONNECTION_BAD) {
+        qDebug() << "Secondary database connection seems to have gone bad. Attempting reset.";
+        PQreset(conn);
+        if (PQstatus(conn) == CONNECTION_BAD) {
+            qDebug() << "ERROR: Failed to reestablish secondary database connection.";
+        } else {
+            qDebug() << "Secondary reconnect succeeded.";
+            subscribe_to_notifications(conn);
+        }
+    }
+
     bool live_data_available = false;
 
     PGnotify* notification;
@@ -211,6 +263,10 @@ live_data_record get_live_data_v1() {
     char wind_direction[4];
     long download_timestamp = 0;
     EXEC SQL END DECLARE SECTION;
+
+    memset(wind_direction, '\0', sizeof(char) * 4);
+
+    check_data_connection();
 
     EXEC SQL SELECT ld.indoor_temperature,
                     ld.indoor_relative_humidity,
@@ -274,6 +330,10 @@ live_data_record get_live_data_v2() {
     long download_timestamp = 0;
     int station_id_param = station_id;
     EXEC SQL END DECLARE SECTION;
+
+    memset(wind_direction, '\0', sizeof(char) * 4);
+
+    check_data_connection();
 
     EXEC SQL SELECT ld.indoor_temperature,
                     ld.indoor_relative_humidity,
