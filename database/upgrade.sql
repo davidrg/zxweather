@@ -587,7 +587,9 @@ IS 'Minimum and maximum records for each year.';
 -- Computes any computed fields when a new sample is inserted (dew point, wind chill, aparent temperature, etc)
 CREATE OR REPLACE FUNCTION compute_sample_values()
   RETURNS trigger AS
-        $BODY$
+$BODY$
+    DECLARE
+      station_code character varying;
     BEGIN
       -- If its an insert, calculate any fields that need calculating. We will ignore updates here.
       IF(TG_OP = 'INSERT') THEN
@@ -599,13 +601,17 @@ CREATE OR REPLACE FUNCTION compute_sample_values()
         -- Rainfall calculations (if required) are performed on trigger
         -- functions attached to the hardware-specific tables now.
 
-        NOTIFY new_sample;
+        -- Grab the station code and send out a notification.
+        select s.code into station_code
+        from station s where s.station_id = NEW.station_id;
+
+        perform pg_notify('new_sample', station_code);
       END IF;
 
       RETURN NEW;
     END;
 $BODY$
-LANGUAGE plpgsql VOLATILE;
+  LANGUAGE plpgsql VOLATILE;
 COMMENT ON FUNCTION compute_sample_values() IS 'Calculates values for all calculated fields (wind chill, dew point, rainfall, etc).';
 
 -- Computes any computed fields when a new wh1080 sample is inserted (dew point, wind chill, aparent temperature, etc)
@@ -652,14 +658,22 @@ COMMENT ON FUNCTION compute_wh1080_sample_values() IS 'Calculates values for all
 
 -- Calculates dewpoint, wind chill, apparent temperature, etc.
 CREATE OR REPLACE FUNCTION live_data_update() RETURNS trigger AS
-        $BODY$BEGIN
+        $BODY$
+DECLARE
+  station_code character varying;
+BEGIN
     IF(TG_OP = 'UPDATE') THEN
         -- Various calculated temperatures
         NEW.dew_point = dew_point(NEW.temperature, NEW.relative_humidity);
         NEW.wind_chill = wind_chill(NEW.temperature, NEW.average_wind_speed);
         NEW.apparent_temperature = apparent_temperature(NEW.temperature, NEW.average_wind_speed, NEW.relative_humidity);
 
-        NOTIFY live_data_updated;
+        -- Grab the station code and send out a notification.
+        select s.code into station_code
+        from station s where s.station_id = NEW.station_id;
+
+        perform pg_notify('live_data_updated', live_data_updated);
+
     END IF;
 
     RETURN NEW;
