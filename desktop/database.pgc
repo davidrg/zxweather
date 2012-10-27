@@ -39,6 +39,7 @@
 /* Globals */
 static DBSignalAdapter* signalAdapter = NULL;
 static int station_id = 0;
+static int db_version = 1;
 
 /* Forward Declarations */
 int wdb_get_station_id(const char*);
@@ -78,6 +79,28 @@ void wdb_set_signal_adapter(DBSignalAdapter *adapter) {
     signalAdapter = adapter;
 }
 
+/* Tries to figure out which version the database is. */
+int get_db_version() {
+    EXEC SQL BEGIN DECLARE SECTION;
+    bool db_info_table_exists;
+    int version;
+    EXEC SQL END DECLARE SECTION;
+
+    EXEC SQL SELECT COUNT(*) = 1 INTO :db_info_table_exists
+             FROM information_schema.tables WHERE table_name = 'db_info';
+
+    /* v0.1 doesn't have the db_info table. Everything else should. */
+    if (!db_info_table_exists)
+        version = 1;
+    else {
+        /* For v0.2+ we can just ask the database what version it is */
+        EXEC SQL SELECT CAST(v AS integer) INTO :version
+                 FROM db_info WHERE k = 'DB_VERSION';
+    }
+
+    return version;
+}
+
 bool wdb_connect(const char *target, const char *username, const char* password,
                  const char *station) {
     EXEC SQL BEGIN DECLARE SECTION;
@@ -86,12 +109,18 @@ bool wdb_connect(const char *target, const char *username, const char* password,
     const char * password_l = password;
     EXEC SQL END DECLARE SECTION;
 
+    qDebug() << "Connecting to database...";
+
     // This is the primary connection and is used for all queries.
     EXEC SQL CONNECT TO :target_l AS data_connection USER :username_l USING :password_l;
 
     if (sqlca.sqlstate[0] != '0' || sqlca.sqlstate[1] != '0')
         return false;
 
+    db_version = get_db_version();
+    qDebug() << "Database version: " << db_version;
+
+    qDebug() << "Setting up notification connection...";
     // This connection is used to listen for notifications. This is done on a
     // seperate connection because performing selects with ECPG seems to
     // interfere with receiving notifications.
@@ -110,7 +139,8 @@ bool wdb_connect(const char *target, const char *username, const char* password,
     EXEC SQL SET CONNECTION data_connection;
     EXEC SQL SET AUTOCOMMIT TO OFF;
 
-    station_id = wdb_get_station_id(station);
+    if (db_version > 1)
+        station_id = wdb_get_station_id(station);
 
     return true;
 }
@@ -122,11 +152,14 @@ int wdb_get_station_id(const char* station) {
     int station_id_param = 0;
     EXEC SQL END DECLARE SECTION;
 
-
-    EXEC SQL SELECT station_id
-             INTO :station_id_param
-             FROM station
-             WHERE code = :station_code;
+    if (db_version > 2) {
+        EXEC SQL SELECT station_id
+                 INTO :station_id_param
+                 FROM station
+                 WHERE code = :station_code;
+    } else {
+        station_id_param = 0;
+    }
 
     return station_id_param;
 }
@@ -162,7 +195,70 @@ bool wdb_live_data_available() {
     return live_data_available;
 }
 
-live_data_record wdb_get_live_data() {
+/* For zxweather v0.1 databases */
+live_data_record get_live_data_v1() {
+    EXEC SQL BEGIN DECLARE SECTION;
+    int indoor_relative_humidity = 0;
+    float indoor_temperature = 0.0;
+    int relative_humidity = 0;
+    float temperature = 0.0;
+    float dew_point = 0.0;
+    float wind_chill = 0.0;
+    float apparent_temperature = 0.0;
+    float absolute_pressure = 0.0;
+    float average_wind_speed = 0.0;
+    float gust_wind_speed = 0.0;
+    char wind_direction[4];
+    long download_timestamp = 0;
+    EXEC SQL END DECLARE SECTION;
+
+    EXEC SQL SELECT ld.indoor_temperature,
+                    ld.indoor_relative_humidity,
+                    ld.temperature,
+                    ld.relative_humidity,
+                    ld.dew_point,
+                    ld.wind_chill,
+                    ld.apparent_temperature,
+                    ld.absolute_pressure,
+                    ld.average_wind_speed,
+                    ld.gust_wind_speed,
+                    ld.wind_direction,
+                    extract(epoch from ld.download_timestamp)::integer
+             INTO :indoor_temperature,
+                  :indoor_relative_humidity,
+                  :temperature,
+                  :relative_humidity,
+                  :dew_point,
+                  :wind_chill,
+                  :apparent_temperature,
+                  :absolute_pressure,
+                  :average_wind_speed,
+                  :gust_wind_speed,
+                  :wind_direction,
+                  :download_timestamp
+             FROM live_data ld
+             LIMIT 1;
+
+    live_data_record rec;
+    rec.indoor_temperature = indoor_temperature;
+    rec.indoor_relative_humidity = indoor_relative_humidity;
+    rec.temperature = temperature;
+    rec.relative_humidity = relative_humidity;
+    rec.dew_point = dew_point;
+    rec.wind_chill = wind_chill;
+    rec.apparent_temperature = apparent_temperature;
+    rec.absolute_pressure = absolute_pressure;
+    rec.average_wind_speed = average_wind_speed;
+    rec.gust_wind_speed = gust_wind_speed;
+    rec.download_timestamp = download_timestamp;
+
+    strcpy(rec.wind_direction, wind_direction);
+
+    return rec;
+}
+
+/* For v0.2+ */
+live_data_record get_live_data_v2() {
     EXEC SQL BEGIN DECLARE SECTION;
     int indoor_relative_humidity = 0;
     float indoor_temperature = 0.0;
@@ -223,4 +319,11 @@ live_data_record wdb_get_live_data() {
     strcpy(rec.wind_direction, wind_direction);
 
     return rec;
+}
+
+live_data_record wdb_get_live_data() {
+    if (db_version == 1)
+        return get_live_data_v1();
+    else
+        return get_live_data_v2();
 }
