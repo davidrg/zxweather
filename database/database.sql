@@ -650,37 +650,31 @@ COMMENT ON FUNCTION apparent_temperature(real, real, real) IS 'Calculates the Ap
 -- Computes any computed fields when a new sample is inserted (dew point, wind chill, aparent temperature, etc)
 CREATE OR REPLACE FUNCTION compute_sample_values()
   RETURNS trigger AS
+        $BODY$
+    DECLARE
+      station_code character varying;
+    BEGIN
+      -- If its an insert, calculate any fields that need calculating. We will ignore updates here.
+      IF(TG_OP = 'INSERT') THEN
+        -- Various calculated temperatures
+        NEW.dew_point = dew_point(NEW.temperature, NEW.relative_humidity);
+        NEW.wind_chill = wind_chill(NEW.temperature, NEW.average_wind_speed);
+        NEW.apparent_temperature = apparent_temperature(NEW.temperature, NEW.average_wind_speed, NEW.relative_humidity);
+
+        -- Rainfall calculations (if required) are performed on trigger
+        -- functions attached to the hardware-specific tables now.
+
+        -- Grab the station code and send out a notification.
+        select s.code into station_code
+        from station s where s.station_id = NEW.station_id;
+
+        perform pg_notify('new_sample', station_code);
+      END IF;
+
+      RETURN NEW;
+    END;
 $BODY$
-	BEGIN
-                -- If its an insert, calculate any fields that need calculating. We will ignore updates here.
-		IF(TG_OP = 'INSERT') THEN
-                        -- Various calculated temperatures
-                        NEW.dew_point = dew_point(NEW.temperature, NEW.relative_humidity);
-                        NEW.wind_chill = wind_chill(NEW.temperature, NEW.average_wind_speed);
-                        NEW.apparent_temperature = apparent_temperature(NEW.temperature, NEW.average_wind_speed, NEW.relative_humidity);
-
-                        -- Calculate actual rainfall for this record from the total rainfall
-                        -- accumulator of this record and the previous record.
-                        -- 19660.8 is the maximum rainfall accumulator value (65536 * 0.3mm).
-                        select into NEW.rainfall
-                                    CASE WHEN NEW.total_rain - prev.total_rain >= 0 THEN
-                                        NEW.total_rain - prev.total_rain
-                                    ELSE
-                                        NEW.total_rain + (19660.8 - prev.total_rain)
-                                    END as rainfall
-                        from sample prev
-                        -- find the previous sample:
-                        where time_stamp = (select max(time_stamp)
-                                            from sample ins
-                                            where ins.time_stamp < NEW.time_stamp);
-
-                        NOTIFY new_sample;
-		END IF;
-
-		RETURN NEW;
-	END;
-$BODY$
-  LANGUAGE plpgsql VOLATILE;
+LANGUAGE plpgsql VOLATILE;
 COMMENT ON FUNCTION compute_sample_values() IS 'Calculates values for all calculated fields (wind chill, dew point, rainfall, etc).';
 
 -- Computes any computed fields when a new wh1080 sample is inserted (dew point, wind chill, aparent temperature, etc)
@@ -690,61 +684,65 @@ CREATE OR REPLACE FUNCTION compute_wh1080_sample_values()
     DECLARE
       new_rainfall real;
       current_station_id integer;
+      new_timestamp timestamptz;
 	BEGIN
-                -- If its an insert, calculate any fields that need calculating. We will ignore updates here.
-		IF(TG_OP = 'INSERT') THEN
+      -- If its an insert, calculate any fields that need calculating. We will ignore updates here.
+      IF(TG_OP = 'INSERT') THEN
+        -- Figure out station ID
+        select station_id, time_stamp into current_station_id, new_timestamp
+        from sample where sample_id = NEW.sample_id;
 
-		                -- Figure out station ID
-		                select station_id into current_station_id
-		                from sample where sample_id = NEW.sample_id;
+        -- Calculate actual rainfall for this record from the total rainfall
+        -- accumulator of this record and the previous record.
+        -- 19660.8 is the maximum rainfall accumulator value (65536 * 0.3mm).
+         select into new_rainfall
+                    CASE WHEN NEW.total_rain - prev.total_rain >= 0 THEN
+                        NEW.total_rain - prev.total_rain
+                    ELSE
+                        NEW.total_rain + (19660.8 - prev.total_rain)
+                    END as rainfall
+        from wh1080_sample prev
+        inner join sample sa on sa.sample_id = prev.sample_id
+        -- find the previous sample:
+        where sa.time_stamp = (select max(time_stamp)
+                            from sample ins
+                            where ins.time_stamp < new_timestamp)
+        and sa.station_id = current_station_id;
 
-                        -- Calculate actual rainfall for this record from the total rainfall
-                        -- accumulator of this record and the previous record.
-                        -- 19660.8 is the maximum rainfall accumulator value (65536 * 0.3mm).
-                         select into new_rainfall
-                                    CASE WHEN NEW.total_rain - prev.total_rain >= 0 THEN
-                                        NEW.total_rain - prev.total_rain
-                                    ELSE
-                                        NEW.total_rain + (19660.8 - prev.total_rain)
-                                    END as rainfall
-                        from wh1080_sample prev
-                        inner join sample sa on sa.sample_id = prev.sample_id
-                        -- find the previous sample:
-                        where sa.time_stamp = (select max(time_stamp)
-                                            from sample ins
-                                            where ins.time_stamp < NEW.time_stamp)
-                        and sa.station_id = current_station_id;
+        update sample set rainfall = new_rainfall
+        where sample_id = NEW.sample_id;
+      END IF;
 
-                        update sample set rainfall = new_rainfall
-                        where sample_id = NEW.sample_id;
-		END IF;
-
-		RETURN NEW;
+      RETURN NEW;
 	END;
 $BODY$
 LANGUAGE plpgsql VOLATILE;
-COMMENT ON FUNCTION compute_sample_values() IS 'Calculates values for all calculated fields (wind chill, dew point, rainfall, etc).';
+COMMENT ON FUNCTION compute_wh1080_sample_values() IS 'Calculates values for all calculated fields (wind chill, dew point, rainfall, etc).';
 
--- Prevents anything but updates happening to rows and calculates dewpoint, wind chill, apparent temperature, etc.
+-- Calculates dewpoint, wind chill, apparent temperature, etc.
 CREATE OR REPLACE FUNCTION live_data_update() RETURNS trigger AS
-$BODY$BEGIN
+        $BODY$
+DECLARE
+  station_code character varying;
+BEGIN
     IF(TG_OP = 'UPDATE') THEN
         -- Various calculated temperatures
         NEW.dew_point = dew_point(NEW.temperature, NEW.relative_humidity);
         NEW.wind_chill = wind_chill(NEW.temperature, NEW.average_wind_speed);
         NEW.apparent_temperature = apparent_temperature(NEW.temperature, NEW.average_wind_speed, NEW.relative_humidity);
 
-        NOTIFY live_data_updated;
+        -- Grab the station code and send out a notification.
+        select s.code into station_code
+        from station s where s.station_id = NEW.station_id;
 
-        -- Allow UPDATE
-        RETURN NEW;
+        perform pg_notify('live_data_updated', live_data_updated);
+
     END IF;
 
-    -- Ignore INSERT, DELETE
-    RETURN NULL;
+    RETURN NEW;
 END;$BODY$
 LANGUAGE plpgsql VOLATILE;
-COMMENT ON FUNCTION live_data_update() IS 'Calculates values for all calculated fields. Blocks inserts and deletes.';
+COMMENT ON FUNCTION live_data_update() IS 'Calculates values for all calculated fields.';
 
 
 ----------------------------------------------------------------------
@@ -752,18 +750,18 @@ COMMENT ON FUNCTION live_data_update() IS 'Calculates values for all calculated 
 ----------------------------------------------------------------------
 
 CREATE TRIGGER calculate_fields BEFORE INSERT
-   ON sample FOR EACH ROW
-   EXECUTE PROCEDURE public.compute_sample_values();
+ON sample FOR EACH ROW
+EXECUTE PROCEDURE public.compute_sample_values();
 COMMENT ON TRIGGER calculate_fields ON sample IS 'Calculate any calculated fields.';
 
 CREATE TRIGGER calculate_wh1080_fields BEFORE INSERT
-ON sample FOR EACH ROW
+ON wh1080_sample FOR EACH ROW
 EXECUTE PROCEDURE public.compute_wh1080_sample_values();
-COMMENT ON TRIGGER calculate_wh1080_fields ON sample IS 'Calculate fields that need WH1080-specific data.';
+COMMENT ON TRIGGER calculate_wh1080_fields ON wh1080_sample IS 'Calculate fields that need WH1080-specific data.';
 
 CREATE TRIGGER live_data_update BEFORE INSERT OR DELETE OR UPDATE
-   ON live_data FOR EACH ROW
-   EXECUTE PROCEDURE public.live_data_update();
+ON live_data FOR EACH ROW
+EXECUTE PROCEDURE public.live_data_update();
 COMMENT ON TRIGGER live_data_update ON live_data IS 'Calculates calculated fields for updates, ignores everything else.';
 
 
