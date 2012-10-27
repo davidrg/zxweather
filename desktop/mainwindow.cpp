@@ -155,6 +155,11 @@ void MainWindow::createDatabaseDataSource() {
         return;
     }
 
+    // Kill the old datasource. The DatabaseDataSource uses named connections
+    // so we can't have two overlaping.
+    if (!dataSource.isNull())
+        delete dataSource.take();
+
     QScopedPointer<DatabaseDataSource> dds;
 
     dds.reset(new DatabaseDataSource(dbName,
