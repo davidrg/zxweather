@@ -39,7 +39,10 @@
 /* Globals */
 static DBSignalAdapter* signalAdapter = NULL;
 static int station_id = 0;
+static char* station_code = 0;
+static int station_code_len = 0;
 static int db_version = 1;
+static bool connected = false;
 
 /* Forward Declarations */
 int wdb_get_station_id(const char*);
@@ -151,6 +154,7 @@ bool wdb_connect(const char *target, const char *username, const char* password,
     const char * password_l = password;
     EXEC SQL END DECLARE SECTION;
 
+
     qDebug() << "Connecting to database...";
 
     // This is the primary connection and is used for all queries.
@@ -180,7 +184,13 @@ bool wdb_connect(const char *target, const char *username, const char* password,
     if (db_version > 1)
         station_id = wdb_get_station_id(station);
 
-    return true;
+    station_code_len = strlen(station) + 1; /* +1 for null termination */
+    station_code = (char*)malloc(station_code_len);
+    memcpy(station_code, station, station_code_len);
+
+    connected = true;
+
+    return connected;
 }
 
 /* Gets the ID for the specified station code */
@@ -189,6 +199,8 @@ int wdb_get_station_id(const char* station) {
     const char * station_code = station;
     int station_id_param = 0;
     EXEC SQL END DECLARE SECTION;
+
+    if (!connected) return 0;
 
     check_data_connection();
 
@@ -207,9 +219,13 @@ int wdb_get_station_id(const char* station) {
 void wdb_disconnect() {
     EXEC SQL DISCONNECT data_connection;
     EXEC SQL DISCONNECT notification_connection;
+    free(station_code);
 }
 
 bool wdb_live_data_available() {
+
+    if (!connected) return false;
+
     PGconn* conn = ECPGget_PGconn("notification_connection");
     if (conn == NULL) {
         qDebug() << "ERROR: NULL connection (secondary)";
@@ -236,8 +252,16 @@ bool wdb_live_data_available() {
         qDebug() << "Payload:" << notification->extra;
 
         if (strcmp(notification->relname, LIVE_DATA_UPDATE_CHANNEL) == 0) {
-            // Live data is available.
-            live_data_available = true;
+            /* For v2+ schema we need to check the payload to ensure this is
+             * for the station we're interested in */
+            if ((db_version > 1) &&
+                strncmp(station_code, notification->extra, station_code_len)) {
+                // Live data is available for the station we are subscribed to.
+                live_data_available = true;
+            } else {
+                /* the v1 schema doesn't use the payload to indicate station */
+                live_data_available = true;
+            }
         } else {
             qDebug() << "Ignore: Unknown channel";
         }
@@ -382,6 +406,12 @@ live_data_record get_live_data_v2() {
 }
 
 live_data_record wdb_get_live_data() {
+
+    if (!connected) {
+        live_data_record rec;
+        return rec;
+    }
+
     if (db_version == 1)
         return get_live_data_v1();
     else
