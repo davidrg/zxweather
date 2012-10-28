@@ -143,7 +143,8 @@ def get_day_samples_data(day):
                s.gust_wind_speed
     from sample s, sample prev
     where date(s.time_stamp) = $date
-      and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp)"""
+      and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp)
+    order by s.time_stamp asc"""
                              , params)
 
     return result
@@ -281,7 +282,8 @@ s.indoor_relative_humidity,
            end as gap
 from sample s, sample prev
 where date(s.time_stamp) = $date
-  and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp)""", params)
+  and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp)
+order by s.time_stamp asc""", params)
 
     return result
 
