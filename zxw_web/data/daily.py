@@ -154,7 +154,8 @@ def get_day_samples_data(day, station_id):
     where date(s.time_stamp) = $date
       and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp and station_id = $station)
       and s.station_id = $station
-      and prev.station_id = $station"""
+      and prev.station_id = $station
+    order by s.time_stamp asc"""
                              , params)
 
     return result
@@ -317,7 +318,8 @@ inner join station st on st.station_id = prev.station_id
 where date(s.time_stamp) = $date
   and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp and station_id = $station)
   and s.station_id = $station
-  and prev.station_id = $station""", params)
+  and prev.station_id = $station
+order by s.time_stamp asc""", params)
 
     return result
 
