@@ -62,6 +62,8 @@ COMMENT ON COLUMN station.code is 'A short code for the station. Used, for examp
 COMMENT ON COLUMN station.title is 'A user-readable title for the station';
 COMMENT ON COLUMN station.description is 'A user-readable description for the station';
 COMMENT ON COLUMN station.station_type_id is 'The type of hardware this station uses.';
+COMMENT ON COLUMN station.sample_interval is 'How often (in seconds) new samples are logged.';
+COMMENT ON COLUMN station.live_data_available is 'If live data is available from the live_data table for this station.';
 
 -- Generic sample data. Anything that is specific to a particular station type
 -- is in that station-specific table.
@@ -127,6 +129,7 @@ COMMENT ON COLUMN wh1080_sample.rain_overflow IS 'If an overflow in the total_ra
 ----------------------
 CREATE TABLE live_data
 (
+  station_id integer not null primary key references station(station_id),
   download_timestamp timestamp with time zone, -- When this record was downloaded from the weather station
   indoor_relative_humidity integer, -- Relative Humidity at the base station
   indoor_temperature real, -- Temperature at the base station
@@ -138,8 +141,7 @@ CREATE TABLE live_data
   absolute_pressure real, -- Absolute pressure
   average_wind_speed real, -- Average Wind Speed.
   gust_wind_speed real, -- Gust wind speed.
-  wind_direction wind_direction, -- Wind Direction.
-  station_id integer not null references station(station_id)
+  wind_direction wind_direction -- Wind Direction.
 );
 ALTER TABLE live_data
   OWNER TO postgres;
