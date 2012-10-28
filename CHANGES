@@ -1,6 +1,11 @@
 -------------------------------------------------------------------------------
-CHANGES                                             zxweather alpha release 0.1
+CHANGES                                           zxweather alpha release 0.1.1
 ===============================================================================
+
+  Version 0.1.1 (alpha)
+    Bug fixes:
+      - Fix sorting issue with day-level data sources (both indoor and outdoor)
+      - Fix issue with gust wind speed: take max rather than average
 
   Version 0.1 (alpha)
     - Initial release

@@ -1,5 +1,5 @@
 -------------------------------------------------------------------------------
-zxweather v0.1 (alpha) Release Notes                                05-AUG-2012
+zxweather v0.1.1 (alpha) Release Notes                              28-OCT-2012
 ===============================================================================
 
   zxweather is a system for collecting and displaying data from automatic
@@ -50,6 +50,10 @@ zxweather v0.1 (alpha) Release Notes                                05-AUG-2012
       happens it must be terminated manually before resetting the weather
       station.
     * If the WH1080 Update Service looses its database connection it will exit.
+
+  Bug fixes in v0.1.1:
+    * Fix issue with gust wind speed: take max rather than average
+    * Fix sorting issue with day level data sources (both indoor and outdoor)
 
   New in v0.1:
     * First release, no changes.
