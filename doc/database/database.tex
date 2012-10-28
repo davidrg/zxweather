@@ -1,8 +1,8 @@
 % ============================================================================
-% !Document: DB01 [zxweather Database Structure]
+% !Document: DB02 [zxweather Database Structure]
 % ----------------------------------------------------------------------------
 % !Revision: 001
-% !IssueDate: April 2012
+% !IssueDate: November 2012
 % !Status: Unreleased
 %
 % !-Classification
@@ -18,14 +18,14 @@
 \newcommand{\doctitle}{zxweather}
 \newcommand{\docsubtitle}{Database Structure}
 %\newcommand{\projectnum}{DAZW}
-\newcommand{\docnum}{DB01}
+\newcommand{\docnum}{DB02}
 \newcommand{\docrev}{001}
-\newcommand{\docdate}{July 2012}
+\newcommand{\docdate}{November 2012}
 \newcommand{\docauthor}{David Goodwin}
 \newcommand{\docabstract}{This document provides an overview of the database structure used by zxweather.}
 \newcommand{\docupdateinfo}{This is a new manual.}
 \newcommand{\docosver}{Any}
-\newcommand{\docswver}{zxweather 0.1}
+\newcommand{\docswver}{zxweather 0.2}
 \newcommand{\doccopyright}{\textcircled{c} Copyright David Goodwin, 2012.}
 \newcommand{\doclicense}{Use, reproduction and modification of this document is permitted subject to the terms of the GNU Free Documentation License, Version 1.3 or any later vesion published by the Free Software Foundation. See \url{http://www.gnu.org/copyleft/fdl.html} for full license text.}
 
@@ -53,6 +53,18 @@
 % Build the partnumber. Format is PROJ-DOCU.REV. If revision is 001 then it 
 % is not displayed. If project is undefined it is not displayed.
 \newcommand{\partnumber}{\ifthenelse{\isundefined{\projectnum}}{}{\projectnum-\docnum	\ifthenelse{\equal{\docrev}{001}}{}{.\docrev}}}
+
+\newcommand*{\cleartoleftpage}{%
+  \clearpage
+    \if@twoside
+    \ifodd\c@page
+      \hbox{}\newpage
+      \if@twocolumn
+        \hbox{}\newpage
+      \fi
+    \fi
+  \fi
+}
 
 \begin{document}
 
@@ -99,7 +111,7 @@
 
 zxweather uses a PostgreSQL database to store weather data and for some communication between components. No other RDMBS is supported.
 
-This document is divided up into five chapters which define the various parts of the database:
+This manual describes the schema used by zxweather version 0.2. It is divided up into five chapters which define the various parts of the database:
 \begin{itemize}
 \item Chapter \ref{cha_tables}: Tables
 \item Chapter \ref{cha_views}: Views
@@ -108,55 +120,135 @@ This document is divided up into five chapters which define the various parts of
 \item Chapter \ref{cha_notify}: Notification Channels
 \end{itemize}
 
+For documentation on the database schema used by zxweather version 0.1, see document \verb|DAZW-DB01|.
+
+\section{Changes from v0.1}
+zxweather version 0.2 introduced significant database changes to allow multiple different weather stations of different hardware types to all log to the same database. This resulted in a number of new tables and changes to all existing tables and views.
+
+\subsection{New Tables}
+These tables are new in the v0.2 schema:
+\begin{itemize}
+\item \verb|station_type| (section \ref{tbl_station_type})
+\item \verb|station| (section \ref{tbl_station})
+\item \verb|wh1080_sample| (section \ref{tbl_wh1080_sample})
+\item \verb|db_info| (section \ref{tbl_db_info})
+\end{itemize}
+
+\subsection{Changes to Views}
+All views now have a \verb|station_id| column which indicates which station the particular row belongs to. The \verb|latest_record_number| view now includes multiple rows - one for each station.
+
+\subsection{Changes to Notification Channels}
+Notifications about data updates are now sent with a payload containing a station code. This station code is the code for the station that caused the notification to be generated.
+
 \section{Related Documents}
+The following documents describe the rest of zxweather.
+
 \begin{tabular}{l l}
 \verb|DAZW-IG01| & zxweather Installation Reference, version 0.1 \\
 \verb|DAZW-WG01| & zxweather WH1080 Utilities Users Guide, version 0.1 \\
 \end{tabular}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \chapter{Tables}
 \label{cha_tables}
 
 This chapter documents the database tables used by zxweather.
 
-\section{sample}
-This table contains weather samples from the weather station. Most columns come direct from the weather station without any processing but some (such as the rainfall column) are calculated by a trigger on insert.
+%%%%%%%%%%%%%%%%%%%%%%
+\section{station\_type}
+\label{tbl_station_type}
+This table stores information about different station hardware types. It typically contains only two rows:
+\begin{enumerate}
+\item \emph{FOWH1080} - Fine Offset WH1080-compatible hardware. Any samples logged against a station of this type must have an associated record in the \verb|wh1080_sample| table.
+\item \emph{GENERIC} - Generic hardware. It is assumed that there are no hardware-specific tables that need to be replicated by the db\_push tool.
+\end{enumerate}
 
 \subsection{Applications}
 The following applications use this table:
 \begin{itemize}
-\item wh1080 (database update utility)
-\item wh1080d/wh1080svc (database update daemon/service)
+\item db\_push
+\item wh1080 update tools
+\end{itemize}
+
+\subsection{Columns}
+
+\subsubsection{station\_type\_id}
+The primary key.
+
+\subsubsection{code}
+An 8-character code used to uniquely identify the station type.
+
+\subsubsection{title}
+A descriptive name for the station type.
+ 
+ 
+%%%%%%%%%%%%%%%%%%%%%%
+\section{station}
+\label{tbl_station}
+This table contains information about a specific weather station in the database. This includes some configuration data such as its sample interval and if live data is available for it.
+
+\subsection{Applications}
+The following applications use this table:
+\begin{itemize}
+\item Web Interface
+\item Desktop Client
+\item db\_push
+\item wh1080 update tools
+\end{itemize}
+ 
+\subsection{Columns}
+
+\subsubsection{station\_id}
+The primary key.
+
+\subsubsection{code}
+A five character unique identifier for the station. This is used as a payload for station-specific notification messages in the database. It also forms part of the URL for the station in the zxweather web interface.
+
+Its value should never be changed once set as doing so will break any existing links to pages within the zxweather web interface.
+
+\subsubsection{title}
+A name for the weather station that can be displayed to users.
+
+\subsubsection{description}
+A full description for the weather station that can be displayed to users.
+
+\subsubsection{station\_type\_id}
+The type of hardware that this weather station runs on.
+
+This is a foreign key to the \verb|station_type| table.
+
+\subsubsection{sample\_interval}
+How often new samples are logged to the database (in seconds).
+
+This is used in the web interface for calculating maximum cache ages and for finding gaps in the data.
+
+\subsubsection{live\_data\_available}
+If this weather station makes live data available in the \verb|live_data| table. If this is set to true then there must be a record in that table for this station. That record should be updated when ever new data is available.
+
+If it is set to false then clients should use the most recent sample record for the station as a substitute for live data.
+
+%%%%%%%%%%%%%%%%%%%%%%
+\section{sample}
+This is core weather history table. It contains only weather data with any hardware-specific data living in other tables. Some columns are computed automatically by a trigger on insert.
+
+\subsection{Applications}
+The following applications use this table:
+\begin{itemize}
+\item data collection tools (such as wh1080d)
 \item web interface
+\item db\_push
+\item Desktop Client
 \end{itemize}
 
 \subsection{Columns}
 \subsubsection{sample\_id}
 This is the primary key.
 
-\subsubsection{sample\_interval}
-This is the number of minutes since the previous sample on the weather station. It is used for calculating timestamps. It is not used directly for anything else.
-
-\subsubsection{record\_number}
-The history slot on the weather station this record was downloaded from. Its range is 0-4079. It is only used to track which records have already been downloaded from the weather station when performing updates and for calculating timestamps.
-
 \subsubsection{download\_timestamp}
 When the record was downloaded from the weather station. It is not used directly for anything.
 
-\subsubsection{last\_in\_batch}
-If this record was the final record in a batch of records downloaded from the weather station. This records timestamp is the one used to calculate all other records downloaded in the batch.
-
-\subsubsection{invalid\_data}
-If the record on the weather station had the invalid data status flag set. The WH1080 documentation refers to this as both "rain counter value is not valid" and "no sensor data received"
-
 \subsubsection{time\_stamp}
-The approximate time this sample was taken by the weather station. 
-
-If the \verb|last_in_batch| column is \verb|true| then the timestamp value was determined by waiting for the live data record on the weather station to change. The live data records \verb|sample_time| field is then used to compute the timestamp for this record.
-
-If the \verb|last_in_batch| column is \verb|false| then the records timestamp value was calculated based on the its \verb|record_number|, the \verb|sample_interval| of the previous record and the \verb|time_stamp| of the previous record.
-
-The value in this column may be out by as much as a minute.
+The time this sample was taken by the weather station. 
 
 \subsubsection{indoor\_relative\_humidity}
 The relative humidity at the base station. Its type is the \verb|rh_percentage| domain type (see section \ref{rh_percentage}). Values are 0-99\%.
@@ -171,13 +263,13 @@ The relative humidity at the outdoor unit. Its type is the \verb|rh_percentage| 
 The temperature at the outdoor unit in degrees Celsius.
 
 \subsubsection{dew\_point}
-Dew point. This columns value is calculated on insert by a trigger using the dew\_point function (Section \ref{dew_point}). It is calculated from the \verb|temperature| column.
+Dew point. This columns value is calculated on insert by a trigger using the dew\_point function (Section \ref{dew_point}). It is calculated from the \verb|temperature| and \verb|relative_humidity| columns.
 
 \subsubsection{wind\_chill}
-Wind chill. This columns value is calculated on insert by a trigger using the wind\_chill function (Section \ref{wind_chill}). It is calculated from the \verb|temperature| column.
+Wind chill. This columns value is calculated on insert by a trigger using the wind\_chill function (Section \ref{wind_chill}). It is calculated from the \verb|temperature| and \verb|average_wind_speed| columns.
 
 \subsubsection{apparent\_temperature}
-Apparent temperature. This columns value is calculated on insert from the \verb|temperature| column by a trigger using the apparent\_temperature function (Section \ref{apparent_temperature}).
+Apparent temperature. This columns value is calculated on insert from the \verb|temperature|, \verb|relative_humidity| and \verb|average_wind_speed| columns by a trigger using the apparent\_temperature function (Section \ref{apparent_temperature}).
 
 \subsubsection{absolute\_pressure}
 The absolute pressure in hectopascals (hPa, same as the millibar).
@@ -194,16 +286,15 @@ Average wind speed in metres per second.
 Gust wind speed in metres per second.
 
 \subsubsection{wind\_direction}
-Wind direction. Its type is the \verb|wind_direction| domain type (see section \ref{wind_direction} for valid values).
+Wind direction. Its type is the \verb|wind_direction| domain type. See section \ref{wind_direction} for valid values.
 
 \subsubsection{rainfall}
-The rainfall for this record. Its value is calculated based on the \verb|total_rain| and \verb|rain_overflow| values. Rain is measured in millimetres. Rainfall is in multiples of 0.3mm.
+The rainfall for this record in millimetres.
 
-\subsubsection{total\_rain}
-Total rainfall since it last overflowed. This is used only for calculating the values in the \verb|rainfall| column. Values are a multiple of 0.3. Unit is the millimetre. 
+For WH1080-compatile hardware it is value is calculated based on the \verb|total_rain| and \verb|rain_overflow| values in multiples of 0.3mm.
 
-\subsubsection{rain\_overflow}
-If an overflow in the \verb|total_rain| counter has occurred. Used for calculating values in the \verb|rainfall| column.
+\subsubsection{station\_id}
+This is the ID of the station the sample came from. It is a foreign key to the \verb|station| table.
 
 \subsection{Indices}
 This table has the following indices:
@@ -214,28 +305,77 @@ This table has the following indices:
 \subsection{Triggers}
 The \verb|compute_sample_values| trigger function is executed for each row inserted. This trigger calculates values for columns such as \verb|dew_point|. See section \ref{compute_sample_values} for more details on this trigger function.
 
+\subsection{WH1080 Implementation Notes}
+All data specific to WH1080-compatible hardware is stored in the \verb|wh1080_sample| table. Each sample that comes from WH1080-compatible hardware should have a matching record in that table to enable values such as rainfall to be calculated.
+
+\subsubsection{time\_stamp column}
+For WH1080 hardware, the \verb|time_stamp| column is calculated from the computers clock by the wh1080 update tool. As such the time stamp is only approximate and may be out by a minute or two.
+
+If the \verb|last_in_batch| column in the \verb|wh1080_sample| table is \verb|true| then the timestamp value in the associated \verb|sample| record was determined by waiting for the live data record on the weather station to change. The live data records \verb|sample_time| field is then used to compute the timestamp for this record.
+
+If the \verb|last_in_batch| column is \verb|false| then the records timestamp value was calculated based on the its \verb|record_number|, the \verb|sample_interval| of the previous record and the \verb|time_stamp| of the previous record.
+
+
+\section{wh1080\_sample}
+\label{tbl_wh1080_sample}
+This table contains data specific to WH1080-compatible hardware. Each row in this table is associated with a row in the \verb|sample| table. It is not used by the web interface or desktop client but its contents is replicated by the db\_push tool.
+
+\subsection{Applications}
+The following applications use this table
+\begin{itemize}
+\item wh1080 update tools
+\item db\_push
+\end{itemize}
+
+\subsection{Columns}
+\subsubsection{sample\_id}
+The primary key.
+
+This column is a foreign key to the \verb|sample| table.
+
+\subsubsection{sample\_interval}
+This is the number of minutes since the previous sample on the weather station. It is used for calculating timestamps. It is not used directly for anything else.
+
+\subsubsection{record\_number}
+The history slot on the weather station this record was downloaded from. Its range is 0-4079. It is only used to track which records have already been downloaded from the weather station when performing updates and for calculating timestamps.
+
+\subsubsection{last\_in\_batch}
+If this record was the final record in a batch of records downloaded from the weather station. This records timestamp is the one used to calculate all other records downloaded in the batch.
+
+\subsubsection{invalid\_data}
+If the record on the weather station had the invalid data status flag set. The WH1080 documentation refers to this as both "rain counter value is not valid" and "no sensor data received"
+
+\subsubsection{total\_rain}
+Total rainfall since it last overflowed. This is used only for calculating the values in the sample tables \verb|rainfall| column. Values are a multiple of 0.3. Unit is the millimetre. 
+
+\subsubsection{rain\_overflow}
+If an overflow in the \verb|total_rain| counter has occurred. Used for calculating values in the sample tables \verb|rainfall| column.
+
+\subsection{Triggers}
+The \verb|compute_wh1080_sample_values| trigger function is executed for each row inserted. This trigger calculates a number of values in the associated sample record. See section \ref{compute_wh1080_sample_values} for more details on this trigger function.
+
 \section{live\_data}
-This table stores live data from the weather station. It only ever contains a single record and as such has no primary key. It is updated by the \verb|wh1080d| program whenever there is new live data. Its set of fields is a subset of those in the sample table.
+This table stores live data from all weather stations. It only ever contains one record for each weather station. It is updated by data collection tools such as the \verb|wh1080d| program when ever there is new live data. Its set of fields is a subset of those in the sample table.
 
-It has a single trigger on INSERT, DELETE and UPDATE. Inserts and Deletes are blocked, Updates cause a number of fields to be recalculated.
-
-This table does not provide access to live rainfall data. Calculating this would be difficult as it requires access to the previous samples rainfall. The wh1080d application updates live data before downloading and inserting any new history records so the previous samples rainfall data is not available from the live\_data update trigger or within the wh1080d application.
+This table does not provide access to live rainfall data. Calculating this for WH1080 hardware would be difficult as it requires access to the previous samples rainfall. The wh1080d application updates live data before downloading and inserting any new history records so the previous samples rainfall data is not available from the live\_data update trigger or within the wh1080d application.
 
 \subsection{Applications}
 The following applications use this table:
 \begin{itemize}
-\item wh1080d/wh1080svc (database update daemon/service)
+\item wh1080d (database update daemon)
 \item web interface
+\item desktop client
+\item db\_push
 \end{itemize}
 
 \subsection{Columns}
-This table has no primary key. All columns except wind direction and invalid data allow nulls.
+All columns except wind direction and invalid data allow nulls.
+
+\subsubsection{station\_id}
+The station this live data record is for. This column doubles as the tables primary key restricting the table to one record for each station.
 
 \subsubsection{download\_timestamp}
 When this data was downloaded from the weather station.
-
-\subsubsection{invalid\_data}
-If the record on the weather station had the invalid data status flag set. The WH1080 documentation refers to this as both "rain counter is not valid" and "no sensor data received". This column must not be null.
 
 \subsubsection{indoor\_relative\_humidity}
 The relative humidity at the base station. Values are 0-99\%. 
@@ -250,13 +390,13 @@ The relative humidity at the outdoor unit. Values are 0-99\%.
 The temperature at the outdoor unit in degrees Celsius.
 
 \subsubsection{dew\_point}
-Dew point. This columns value is calculated on update by a trigger using the dew\_point function (Section \ref{dew_point}). It is calculated from the \verb|temperature| column.
+Dew point. This columns value is calculated on update by a trigger using the dew\_point function (Section \ref{dew_point}). It is calculated from the \verb|temperature| and \verb|relative_humidity| columns.
 
 \subsubsection{wind\_chill}
-Wind chill. This columns value is calculated on update by a trigger using the wind\_chill function (Section \ref{wind_chill}). It is calculated from the \verb|temperature| column.
+Wind chill. This columns value is calculated on update by a trigger using the wind\_chill function (Section \ref{wind_chill}). It is calculated from the \verb|temperature| and \verb|average_wind_speed| columns.
 
 \subsubsection{apparent\_temperature}
-Apparent temperature. This columns value is calculated on update from the \verb|temperature| column by a trigger using the apparent\_temperature function (Section \ref{apparent_temperature}).
+Apparent temperature. This columns value is calculated on update from the \verb|temperature|, \verb|relative_humidity| and \verb|average_wind_speed| columns by a trigger using the apparent\_temperature function (Section \ref{apparent_temperature}).
 
 \subsubsection{absolute\_pressure}
 The absolute pressure in hectopascals (hPa, same as the millibar).
@@ -275,6 +415,30 @@ Gust wind speed in metres per second.
 \subsubsection{wind\_direction}
 Wind direction. Its type is the \verb|wind_direction| domain type (see section \ref{wind_direction} for valid values).
 
+\section{db\_info}
+\label{tbl_db_info}
+This table stores basic information about the database in a key/value format. It was introduced in the v0.2 schema to allow identification of the database version.
+
+\subsection{Columns}
+\subsubsection{k}
+This is a 10-character unique key.
+
+\subsubsection{v}
+Data. Field type is character varying (no limit)
+
+\subsection{Defined values}
+The following keys are defined in zxweather v0.2.
+
+\begin{tabular}{l l}
+\hline
+\textbf{Key} & \textbf{Description} \\
+\hline
+\verb|DB_VERSION| & The database version. The schema described by this manual is version 2. \\
+\hline
+\end{tabular}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \chapter{Views}
 \label{cha_views}
 
@@ -295,6 +459,7 @@ The PostgreSQL query planner seems to have difficulty with the queries behind th
 \begin{itemize}
 \item \verb|date_stamp|: The date the record is for (daily\_records and monthly\_records only).
 \item \verb|year_stamp|: The year the record is for. Present only in the yearly\_records view.
+\item \verb|station_id|: The station this data is for.
 \item \verb|total_rainfall|: Total rainfall during this day, month or year.
 \item \verb|max_gust_wind_speed|: Maximum gust wind speed for the period.
 \item \verb|max_gust_wind_speed_ts|: Most recent timestamp for the maximum gust wind speed record.
@@ -326,6 +491,8 @@ The PostgreSQL query planner seems to have difficulty with the queries behind th
 \item \verb|max_humidity_t|: Most recent timestamp for the maximum outdoor relative humidity record.
 \end{itemize}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \chapter{Functions and Trigger Functions}
 \label{cha_functions}
 
@@ -343,11 +510,11 @@ $$T_d = \frac {b\ \gamma(T,RH)} {a - \gamma(T,RH)}$$
 where
 $$\gamma(T,RH) = \frac {a\ T} {b+T} + \ln (RH/100)$$
 
-where the temperatures are in degrees Celsius The constants are $a$ = 17.271 and $b$ = 237.7 $^{\circ}$C
-
-This function is \emph{immutable}.
+where the temperatures are in degrees Celsius. The constants are $a$ = 17.271 and $b$ = 237.7 $^{\circ}$C
 
 See the article on Wikipedia for more details: \url{http://en.wikipedia.org/wiki/Dewpoint}
+
+This function is \emph{immutable}.
 
 \subsubsection{Parameters}
 \begin{itemize}
@@ -363,10 +530,10 @@ where $T_{wc}$ is the wind chill index in degrees Celsius, $T_a$ is the air temp
 
 The Wind chill temperature is only defined for air temperatures below 10 $^{\circ}$C and wind speeds above 4.8 km/h.
 
-This function is \emph{immutable}.
-
 See the article on Wikipedia for more details:
 \url{http://en.wikipedia.org/wiki/Wind_chill}
+
+This function is \emph{immutable}.
 
 \subsubsection{Parameters}
 \begin{itemize}
@@ -389,9 +556,9 @@ The vapour pressure is calculated from the temperature and relative humidity usi
 $$  e = rh / 100 * 6.105 * 2.718281828 ^ { 17.27Ta / (237.7 + Ta ) }$$
 where $Ta$ is the dry bulb temperature ($^{\circ}$C), rh is the relative humidity (\%).
 
-This function is \emph{immutable}.
-
 See the Australian Bureau of Meteorology website for more details: \\ \url{http://www.bom.gov.au/info/thermal_stress/}
+
+This function is \emph{immutable}.
 
 \subsubsection{Parameters}
 \begin{itemize}
@@ -406,14 +573,18 @@ See the Australian Bureau of Meteorology website for more details: \\ \url{http:
 \label{compute_sample_values}
 Computes values for the following fields when a new record is inserted:
 \begin{itemize}
-\item dew\_point
-\item wind\_chill
-\item apparent\_temperature
-\item rainfall
+\item dew\_point (see dew\_point function, section \ref{dew_point})
+\item wind\_chill (see wind\_chill function, section \ref{wind_chill})
+\item apparent\_temperature (see apparent\_temperature function, section \ref{apparent_temperature})
 \end{itemize}
 
+\subsection{compute\_wh1080\_sample\_values}
+\label{compute_wh1080_sample_values}
+
+Calculates any values that need calculating for WH1080-compatible hardware. Its calculations are based off the data stored in the hardware-specific \verb|wh1080_sample| table. This is currently limited to rainfall data.
+
 \subsubsection{Rainfall calculation}
-The rainfall value is calculated using the following query:
+The rainfall value in the \verb|sample| table is calculated using the following query:
 
 % Setup listings package
 \lstset{
@@ -440,10 +611,8 @@ where time_stamp = (select max(time_stamp)
 
 The value $19660.8$ is the maximum rainfall accumulator value (65536 * 0.3mm). Rainfall values are calculated based on the total rainfall value of the new record and the previous record in the database.
 
-
 \subsection{live\_data\_update}
-Computes values for the live\_data table updates. If the operation is an
-insert or delete it is blocked.
+Computes values for live\_data table updates.
 
 It computes values for the following fields:
 \begin{itemize}
@@ -456,6 +625,7 @@ It also generates a notification on channel live\_data\_updated,
 
 It is only used on the live\_data table.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \chapter{Domains}
 \label{cha_domains}
 
@@ -492,13 +662,14 @@ Used for columns containing wind directions. Valid values are:
 its type is \verb|character varying(3)|
 
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \chapter{Notification Channels}
 \label{cha_notify}
 
 zxweather uses the PostgreSQL NOTIFY feature to notify components of the system that new data has arrived. This chapter covers the notification channels used by zxweather and their meaning.
 
 \section{live\_data\_updated}
-A notification with no payload is broadcast on this channel when data in the live\_data table has been updated. The notification event is sent automatically from the live\_data\_update trigger function.
+A notification is broadcast on this channel when data in the live\_data table has been updated. The notification is sent automatically from the live\_data\_update trigger function. The payload is the station code for the station that just received updated live data.
 
 Clients interested in displaying live data should listen on this channel rather than polling the database.
 
@@ -510,7 +681,7 @@ The following applications use this channel:
 \end{itemize}
 
 \section{new\_sample}
-A notification with no payload is broadcast on this channel when a new sample has been inserted into the database. This notification is sent automatically from the compute\_sample\_values trigger function.
+A notification is broadcast on this channel when a new sample has been inserted into the database. This notification is sent automatically from the compute\_sample\_values trigger function. The payload is the station code for the station that received the new sample
 
 Clients interested in displaying history samples should listen on this channel rather than polling the database.
 
@@ -522,7 +693,7 @@ The following applications use this channel:
 \end{itemize}
 
 \section{update\_complete}
-A notification with no payload is broadcast on this channel by the zxweather WH1080 Update Daemon when it has finished updating the live\_data table and inserting any new records into the sample table. 
+A notification with no payload is broadcast on this channel by the zxweather WH1080 Update Daemon when it has finished updating the live\_data table and inserting any new records into the sample table. The payload is the station code for the station that the WH1080 Update Daemon is running for.
 
 This channel does not specify what has been updated. Listen on the live\_data\_updated and new\_sample channels as well to determine what has been updated.
 
@@ -540,14 +711,14 @@ The following applications use this channel:
 
 \begin{itemize}
 \item wh1080d (WH1080 Update Daemon) - issues notifications when it has finished doing work.
-\item zxweather Database Replicator - waits for a notification on this channel before sending data to the remote database. Other notification channels (new\_sample and live\_data\_updated) are used to determine what to send
+\item zxweather Database Replicator - waits for a notification on this channel before sending data to the remote database. A notification on the new\_sample channel instructs it to send new samples in addition to sending live data.
 \end{itemize}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                END DOCUMENT                               %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Back page
-\newpage
+\cleartoleftpage
 \thispagestyle{empty}
 \begin{flushright}
 \null
