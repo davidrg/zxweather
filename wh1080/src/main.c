@@ -138,6 +138,7 @@ int db_update(char* server,
             /* Commit transaction */
             printf("Commit transaction...\n");
             pgo_commit();
+            pgo_updates_complete(station);
         } else {
             printf("Nothing to do: new data on weather station.\n");
         }
