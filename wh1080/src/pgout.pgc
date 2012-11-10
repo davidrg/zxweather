@@ -87,12 +87,8 @@ void pgo_connect(const char *target, const char *username, const char *password)
 long pgo_get_station_id(const char* station_code) {
     EXEC SQL BEGIN DECLARE SECTION;
     long ret_val;
-    char* station_code_param;
+    const char* station_code_param = station_code;
     EXEC SQL END DECLARE SECTION;
-
-                                        /* Plus one to leave sparce for \0 */
-    station_code_param = (char*)malloc(strlen(station_code)+1);
-    strcpy(station_code_param, station_code);
 
     EXEC SQL SELECT station_id
              INTO :ret_val
@@ -169,34 +165,59 @@ void pgo_insert_history_set(history_set hs, long station_id) {
         time_stamp = h.time_stamp;
         last_in_set = h.last_in_set;
 
-
-        EXEC SQL INSERT INTO sample(download_timestamp,
-                                    time_stamp,
-                                    indoor_relative_humidity,
-                                    indoor_temperature,
-                                    relative_humidity,
-                                    temperature,
-                                    absolute_pressure,
-                                    average_wind_speed,
-                                    gust_wind_speed,
-                                    wind_direction,
-                                    station_id
-                                    )
-                VALUES(/* :download_time and :time_stamp are in UNIX time
-                        * (seconds since the epoch, 1970-01-01 00:00:00 GMT).
-                        * So we must convert them. */
-                       (('epoch'::timestamp) + :download_time * '1 second'::interval) AT TIME ZONE 'GMT',
-                       (('epoch'::timestamp) + :time_stamp * '1 second'::interval) AT TIME ZONE 'GMT',
-                       :indoor_relative_humidity,
-                       :indoor_temperature,
-                       :relative_humidity,
-                       :temperature,
-                       :absolute_pressure,
-                       :average_wind_speed,
-                       :gust_wind_speed,
-                       :wind_direction_str,
-                       :station_id_param)
-                RETURNING sample_id INTO :new_sample_id;
+        if (invalid_data) {
+            /* Only insert the readings taken by the console as the readings
+               from the outdoor sensor unit are missing and any data we pulled
+               off the console that is normally collected by the outdoor sensors
+               will be garbage. */
+            EXEC SQL INSERT INTO sample(download_timestamp,
+                                        time_stamp,
+                                        indoor_relative_humidity,
+                                        indoor_temperature,
+                                        absolute_pressure,
+                                        wind_direction,
+                                        station_id
+                                        )
+                    VALUES(/* :download_time and :time_stamp are in UNIX time
+                            * (seconds since the epoch, 1970-01-01 00:00:00 GMT).
+                            * So we must convert them. */
+                           (('epoch'::timestamp) + :download_time * '1 second'::interval) AT TIME ZONE 'GMT',
+                           (('epoch'::timestamp) + :time_stamp * '1 second'::interval) AT TIME ZONE 'GMT',
+                           :indoor_relative_humidity,
+                           :indoor_temperature,
+                           :absolute_pressure,
+                           :wind_direction_str,
+                           :station_id_param)
+                    RETURNING sample_id INTO :new_sample_id;
+        } else {
+            EXEC SQL INSERT INTO sample(download_timestamp,
+                                        time_stamp,
+                                        indoor_relative_humidity,
+                                        indoor_temperature,
+                                        relative_humidity,
+                                        temperature,
+                                        absolute_pressure,
+                                        average_wind_speed,
+                                        gust_wind_speed,
+                                        wind_direction,
+                                        station_id
+                                        )
+                    VALUES(/* :download_time and :time_stamp are in UNIX time
+                            * (seconds since the epoch, 1970-01-01 00:00:00 GMT).
+                            * So we must convert them. */
+                           (('epoch'::timestamp) + :download_time * '1 second'::interval) AT TIME ZONE 'GMT',
+                           (('epoch'::timestamp) + :time_stamp * '1 second'::interval) AT TIME ZONE 'GMT',
+                           :indoor_relative_humidity,
+                           :indoor_temperature,
+                           :relative_humidity,
+                           :temperature,
+                           :absolute_pressure,
+                           :average_wind_speed,
+                           :gust_wind_speed,
+                           :wind_direction_str,
+                           :station_id_param)
+                    RETURNING sample_id INTO :new_sample_id;
+        }
 
         EXEC SQL INSERT INTO wh1080_sample(sample_interval,
                                            record_number,
@@ -240,8 +261,20 @@ void pgo_update_live(history live_record, long station_id) {
     invalid_data = CHECK_BIT_FLAG(live_record.status, H_SF_INVALID_DATA);
     download_time = live_record.download_time;
 
-    /* There is only ever one record in live_data */
-    EXEC SQL UPDATE live_data
+    if (invalid_data) {
+        /* When the record is marked as invalid it means all fields collected
+           by the outdoor sensor unit will contain garbage except the wind
+           direction (which will be "INV") */
+        EXEC SQL UPDATE live_data
+             SET download_timestamp = (('epoch'::timestamp) + :download_time * '1 second'::interval) AT TIME ZONE 'GMT',
+                 invalid_data = :invalid_data,
+                 indoor_relative_humidity = :indoor_relative_humidity,
+                 indoor_temperature = :indoor_temperature,
+                 absolute_pressure = :absolute_pressure,
+                 wind_direction = :wind_direction_str
+             WHERE station_id = :station_id_param;
+    } else {
+        EXEC SQL UPDATE live_data
              SET download_timestamp = (('epoch'::timestamp) + :download_time * '1 second'::interval) AT TIME ZONE 'GMT',
                  invalid_data = :invalid_data,
                  indoor_relative_humidity = :indoor_relative_humidity,
@@ -253,6 +286,7 @@ void pgo_update_live(history live_record, long station_id) {
                  gust_wind_speed = :gust_wind_speed,
                  wind_direction = :wind_direction_str
              WHERE station_id = :station_id_param;
+    }
     EXEC SQL COMMIT;
 }
 
@@ -260,8 +294,13 @@ void pgo_update_live(history live_record, long station_id) {
  * for now
  * WARNING: This commits the current transaction
  */
-void pgo_updates_complete() {
-    EXEC SQL NOTIFY update_complete;
+void pgo_updates_complete(char *station_code) {
+    EXEC SQL BEGIN DECLARE SECTION;
+    char* station_code_param = station_code;
+    EXEC SQL END DECLARE SECTION;
+
+    EXEC SQL SELECT pg_notify('update_complete',:station_code_param);
+
     EXEC SQL COMMIT;
 }
 
