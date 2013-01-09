@@ -2,7 +2,10 @@
 -- This script is to upgrade from the v0.1 schema.                        --
 ----------------------------------------------------------------------------
 
-BEGIN;
+-- If you are running this script manually you should uncomment the following
+-- BEGIN statement and the matching COMMIT statement at the end of the file.
+
+--BEGIN;
 
 ----------------------------------------------------------------------
 -- REMOVE OLD STRUCTURE ----------------------------------------------
@@ -172,7 +175,7 @@ COMMENT ON COLUMN live_data.station_id is 'The station this live data is for.';
 -- version).
 CREATE TABLE db_info
 (
-  k varchar(10) primary key not null,
+  k varchar(20) primary key not null,
   v character varying
 );
 
@@ -182,6 +185,11 @@ COMMENT ON COLUMN db_info.v is 'Data value';
 
 -- This is schema revision 2
 insert into db_info(k,v) VALUES('DB_VERSION','2');
+
+-- And it its not compatible with anything older than zxweather 0.2.0
+insert into db_info(k,v) VALUES('MIN_VER_MAJ', '0');
+insert into db_info(k,v) VALUES('MIN_VER_MIN', '2');
+insert into db_info(k,v) VALUES('MIN_VER_REV', '0');
 
 ----------------------------------------------------------------------
 -- INDICIES ----------------------------------------------------------
@@ -591,11 +599,12 @@ IS 'Minimum and maximum records for each year.';
 CREATE OR REPLACE FUNCTION compute_sample_values()
   RETURNS trigger AS
 $BODY$
-    DECLARE
-      station_code character varying;
-    BEGIN
-      -- If its an insert, calculate any fields that need calculating. We will ignore updates here.
-      IF(TG_OP = 'INSERT') THEN
+DECLARE
+    station_code character varying;
+BEGIN
+    -- If its an insert, calculate any fields that need calculating. We will ignore updates here.
+    IF(TG_OP = 'INSERT') THEN
+
         -- Various calculated temperatures
         NEW.dew_point = dew_point(NEW.temperature, NEW.relative_humidity);
         NEW.wind_chill = wind_chill(NEW.temperature, NEW.average_wind_speed);
@@ -609,52 +618,72 @@ $BODY$
         from station s where s.station_id = NEW.station_id;
 
         perform pg_notify('new_sample', station_code);
-      END IF;
+    END IF;
 
-      RETURN NEW;
-    END;
+    RETURN NEW;
+END;
 $BODY$
-  LANGUAGE plpgsql VOLATILE;
+LANGUAGE plpgsql VOLATILE;
 COMMENT ON FUNCTION compute_sample_values() IS 'Calculates values for all calculated fields (wind chill, dew point, rainfall, etc).';
 
 -- Computes any computed fields when a new wh1080 sample is inserted (dew point, wind chill, aparent temperature, etc)
 CREATE OR REPLACE FUNCTION compute_wh1080_sample_values()
   RETURNS trigger AS
-        $BODY$
-    DECLARE
-      new_rainfall real;
-      current_station_id integer;
-      new_timestamp timestamptz;
-	BEGIN
-      -- If its an insert, calculate any fields that need calculating. We will ignore updates here.
-      IF(TG_OP = 'INSERT') THEN
-        -- Figure out station ID
-        select station_id, time_stamp into current_station_id, new_timestamp
-        from sample where sample_id = NEW.sample_id;
+$BODY$
+DECLARE
+    new_rainfall real;
+    current_station_id integer;
+    new_timestamp timestamptz;
+BEGIN
+    -- If its an insert, calculate any fields that need calculating. We will ignore updates here.
+    IF(TG_OP = 'INSERT') THEN
 
-        -- Calculate actual rainfall for this record from the total rainfall
-        -- accumulator of this record and the previous record.
-        -- 19660.8 is the maximum rainfall accumulator value (65536 * 0.3mm).
-         select into new_rainfall
-                    CASE WHEN NEW.total_rain - prev.total_rain >= 0 THEN
-                        NEW.total_rain - prev.total_rain
-                    ELSE
-                        NEW.total_rain + (19660.8 - prev.total_rain)
-                    END as rainfall
-        from wh1080_sample prev
-        inner join sample sa on sa.sample_id = prev.sample_id
-        -- find the previous sample:
-        where sa.time_stamp = (select max(time_stamp)
-                            from sample ins
-                            where ins.time_stamp < new_timestamp)
-        and sa.station_id = current_station_id;
+        IF(NEW.invalid_data) THEN
+            -- The outdoor sample data in this record is garbage. Discard
+            -- it to prevent crazy data.
 
-        update sample set rainfall = new_rainfall
-        where sample_id = NEW.sample_id;
-      END IF;
+            update sample
+            set relative_humidity = null,
+                temperature = null,
+                dew_point = null,
+                wind_chill = null,
+                apparent_temperature = null,
+                average_wind_speed = null,
+                gust_wind_speed = null,
+                rainfall = null
+            where sample_id = NEW.sample_id;
+            -- Wind direction should be fine (it'll be 'INV').
+            -- The rest of the fields are captured by the base station
+            -- and so should be fine.
 
-      RETURN NEW;
-	END;
+        ELSE
+            -- Figure out station ID
+            select station_id, time_stamp into current_station_id, new_timestamp
+            from sample where sample_id = NEW.sample_id;
+
+            -- Calculate actual rainfall for this record from the total rainfall
+            -- accumulator of this record and the previous record.
+            -- 19660.8 is the maximum rainfall accumulator value (65536 * 0.3mm).
+             select into new_rainfall
+                        CASE WHEN NEW.total_rain - prev.total_rain >= 0 THEN
+                            NEW.total_rain - prev.total_rain
+                        ELSE
+                            NEW.total_rain + (19660.8 - prev.total_rain)
+                        END as rainfall
+            from wh1080_sample prev
+            inner join sample sa on sa.sample_id = prev.sample_id
+            -- find the previous sample:
+            where sa.time_stamp = (select max(time_stamp)
+                                from sample ins
+                                where ins.time_stamp < new_timestamp)
+            and sa.station_id = current_station_id;
+
+            update sample set rainfall = new_rainfall
+            where sample_id = NEW.sample_id;
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
 $BODY$
 LANGUAGE plpgsql VOLATILE;
 COMMENT ON FUNCTION compute_wh1080_sample_values() IS 'Calculates values for all calculated fields (wind chill, dew point, rainfall, etc).';
@@ -829,40 +858,40 @@ BEGIN
     OR old.indoor_relative_humidity <> s.indoor_relative_humidity
     OR (old.indoor_relative_humidity is null and s.indoor_relative_humidity is not null)
     OR (old.indoor_relative_humidity is not null and s.indoor_relative_humidity is null)
-    OR old.indoor_temperature <> s.indoor_temperature
+    OR round(old.indoor_temperature::numeric,2) <> round(s.indoor_temperature::numeric,2)
     OR (old.indoor_temperature is null and s.indoor_temperature is not null)
     OR (old.indoor_temperature is not null and s.indoor_temperature is null)
     OR old.relative_humidity <> s.relative_humidity
     OR (old.relative_humidity is null and s.relative_humidity is not null)
     OR (old.relative_humidity is not null and s.relative_humidity is null)
-    OR old.temperature <> s.temperature
+    OR round(old.temperature::numeric,2) <> round(s.temperature::numeric,2)
     OR (old.temperature is null and s.temperature is not null)
     OR (old.temperature is not null and s.temperature is null)
-    OR old.dew_point <> s.dew_point
+    OR round(old.dew_point::numeric,2) <> round(s.dew_point::numeric, 2)
     OR (old.dew_point is null and s.dew_point is not null)
     OR (old.dew_point is not null and s.dew_point is null)
-    OR old.wind_chill <> s.wind_chill
+    OR round(old.wind_chill::numeric, 2) <> round(s.wind_chill::numeric, 2)
     OR (old.wind_chill is null and s.wind_chill is not null)
     OR (old.wind_chill is not null and s.wind_chill is null)
-    OR old.apparent_temperature <> s.apparent_temperature
+    OR round(old.apparent_temperature::numeric, 2) <> round(s.apparent_temperature::numeric, 2)
     OR (old.apparent_temperature is null and s.apparent_temperature is not null)
     OR (old.apparent_temperature is not null and s.apparent_temperature is null)
-    OR old.absolute_pressure <> s.absolute_pressure
+    OR round(old.absolute_pressure::numeric, 2) <> round(s.absolute_pressure::numeric, 2)
     OR (old.absolute_pressure is null and s.absolute_pressure is not null)
     OR (old.absolute_pressure is not null and s.absolute_pressure is null)
-    OR old.average_wind_speed <> s.average_wind_speed
+    OR round(old.average_wind_speed::numeric, 2) <> round(s.average_wind_speed::numeric, 2)
     OR (old.average_wind_speed is null and s.average_wind_speed is not null)
     OR (old.average_wind_speed is not null and s.average_wind_speed is null)
-    OR old.gust_wind_speed <> s.gust_wind_speed
+    OR round(old.gust_wind_speed::numeric, 2) <> round(s.gust_wind_speed::numeric, 2)
     OR (old.gust_wind_speed is null and s.gust_wind_speed is not null)
     OR (old.gust_wind_speed is not null and s.gust_wind_speed is null)
     OR old.wind_direction <> s.wind_direction
     OR (old.wind_direction is null and s.wind_direction is not null)
     OR (old.wind_direction is not null and s.wind_direction is null)
-    OR old.rainfall <> s.rainfall
+    OR round(old.rainfall::numeric, 2) <> round(s.rainfall::numeric, 2)
     OR (old.rainfall is null and s.rainfall is not null)
     OR (old.rainfall is not null and s.rainfall is null)
-    OR old.total_rain <> ws.total_rain
+    OR round(old.total_rain::numeric, 2) <> round(ws.total_rain::numeric, 2)
     OR (old.total_rain is null and ws.total_rain is not null)
     OR (old.total_rain is not null and ws.total_rain is null)
     OR old.rain_overflow <> ws.rain_overflow
@@ -894,4 +923,6 @@ drop table samples_v1 cascade;
 -- END ---------------------------------------------------------------
 ----------------------------------------------------------------------
 
-commit;
+-- Uncomment this COMMIT statement when running the script manually.
+
+--COMMIT;
