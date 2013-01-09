@@ -3,6 +3,7 @@
 zxweather admin tool.
 """
 from database_mgr import  create_db, connect_to_db, db_info
+from station_mgr import  manage_stations
 from ui import menu
 
 __author__ = 'David Goodwin'
@@ -16,8 +17,7 @@ def read_db_config():
     """
     import ConfigParser
     config = ConfigParser.ConfigParser()
-    # '../zxw_web/config.cfg', 'zxw_web/config.cfg', '/etc/zxweather.cfg'
-    config.read(['config.cfg'])
+    config.read(['config.cfg','../zxw_web/config.cfg', 'zxw_web/config.cfg', '/etc/zxweather.cfg'])
 
     S_DB = 'database'   # Database configuration
 
@@ -54,14 +54,13 @@ def db_menu():
         {
             "key": "0",
             "name": "Exit",
-            "type": "return"
+            "type": "func",
+            "func": exit
         }
     ]
     result = menu(choices)
     print result
-    if result == "0":
-        exit()
-    elif result == "1":
+    if result == "1":
         return create_db()
     elif result == "2":
         return db_info.prompt_db_config()
@@ -102,5 +101,23 @@ def main():
 
     db = get_db_connection()
 
+    choices = [
+        {
+            "key": "1",
+            "name": "Manage stations",
+            "type": "return"
+        },
+        {
+            "key": "0",
+            "name": "Exit",
+            "type": "func",
+            "func": exit
+        }
+    ]
+
+    while True:
+        result = menu(choices)
+        if result == "1":
+            manage_stations(db)
 
 if __name__ == "__main__": main()
