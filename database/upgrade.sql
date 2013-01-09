@@ -31,6 +31,18 @@ drop table live_data;
 drop index idx_time_stamp;
 
 ----------------------------------------------------------------------
+-- DOMAINS -----------------------------------------------------------
+----------------------------------------------------------------------
+
+-- Fix up the rh_percentage domain. This may have previously been done
+-- by the v0.1.2 hotfix. The check constraint being deleted is now
+-- on the sample table.
+ALTER DOMAIN rh_percentage
+DROP NOT NULL;
+
+alter domain rh_percentage drop constraint if exists rh_percentage_check;
+
+----------------------------------------------------------------------
 -- TABLES ------------------------------------------------------------
 ----------------------------------------------------------------------
 
@@ -91,7 +103,9 @@ CREATE TABLE sample
   wind_direction wind_direction, -- Wind Direction.
   rainfall real, -- Calculated rainfall. Calculation is based on total_rainfall and rain_overflow columns compared to the previous sample.
   station_id integer not null references station(station_id),
-  CONSTRAINT pk_sample PRIMARY KEY (sample_id )
+  CONSTRAINT pk_sample PRIMARY KEY (sample_id),
+  CONSTRAINT chk_indoor_relative_humidity CHECK (indoor_relative_humidity::integer > 0 AND indoor_relative_humidity::integer < 100), -- Ensure the indoor relative humidity is in the range 0-100
+  CONSTRAINT chk_outdoor_relative_humidity CHECK (relative_humidity::integer > 0 AND relative_humidity::integer < 100) -- Ensure the outdoor relative humidity is in the range 0-100
 );
 ALTER TABLE sample
   OWNER TO postgres;
@@ -111,6 +125,9 @@ COMMENT ON COLUMN sample.gust_wind_speed IS 'Gust wind speed in m/s.';
 COMMENT ON COLUMN sample.wind_direction IS 'Wind Direction.';
 COMMENT ON COLUMN sample.rainfall IS 'Calculated rainfall in mm. Smallest recordable amount is 0.3mm. Calculation is based on total_rainfall and rain_overflow columns compared to the previous sample.';
 COMMENT ON COLUMN sample.station_id IS 'The weather station this sample is for';
+
+COMMENT ON CONSTRAINT chk_indoor_relative_humidity ON sample IS 'Ensure the indoor relative humidity is in the range 0-100';
+COMMENT ON CONSTRAINT chk_outdoor_relative_humidity ON sample IS 'Ensure the outdoor relative humidity is in the range 0-100';
 
 -- A table for data specific to WH1080-compatible hardware.
 CREATE TABLE wh1080_sample

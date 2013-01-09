@@ -155,7 +155,7 @@ CREATE TABLE live_data
 ALTER TABLE live_data
   OWNER TO postgres;
 COMMENT ON TABLE live_data
-  IS 'Live data from the weather station. Contains only a single record.';
+  IS 'Live data from the weather stations. Contains only a single record.';
 COMMENT ON COLUMN live_data.download_timestamp IS 'When this record was downloaded from the weather station';
 COMMENT ON COLUMN live_data.indoor_relative_humidity IS 'Relative Humidity at the base station. 0-99%';
 COMMENT ON COLUMN live_data.indoor_temperature IS 'Temperature at the base station in degrees Celsius';
