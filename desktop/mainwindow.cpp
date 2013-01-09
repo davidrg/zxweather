@@ -182,6 +182,7 @@ void MainWindow::createDatabaseDataSource() {
             this, SLOT(liveDataRefreshed()));
 
     dataSource.reset(dds.take());
+    seconds_since_last_refresh = 0;
     ldTimer->start();
 
     setWindowTitle("zxweather - " + station);
@@ -363,3 +364,4 @@ void MainWindow::showAbout() {
     AboutDialog ad;
     ad.exec();
 }
+

@@ -54,7 +54,8 @@ void setup(char *server, char *username, char *password, FILE *logfile);
 void main_loop(FILE* logfile,
                unsigned short initial_current_record_id,
                time_t clock_sync_current_ts,
-               long station_id);
+               long station_id,
+               char *station_code);
 unsigned short update_live_data(FILE* logfile, long station_id);
 void calculate_timestamps(time_t clock_sync_time, history_set *hs);
 void wait_for_new_sample(FILE* logfile, long station_id);
@@ -113,7 +114,8 @@ void daemon_main(char *server,
      * instead of actually waiting. */
     wait_for_next_live(log_file);
 
-    main_loop(log_file, current_record_id, clock_sync_current_ts, station_id);
+    main_loop(log_file, current_record_id, clock_sync_current_ts, station_id,
+              station);
 }
 
 /* Checks to see if the station has been reset since we last started. This is
@@ -218,7 +220,8 @@ void wait_for_new_sample(FILE* logfile, long station_id) {
 void main_loop(FILE* logfile,
                unsigned short initial_current_record_id,
                time_t clock_sync_current_ts,
-               long station_id) {
+               long station_id,
+               char* station_code) {
 
     /* This is the live record. We will fetch this every 48 seconds */
     unsigned short live_record_id;
@@ -290,7 +293,7 @@ void main_loop(FILE* logfile,
             first_run = FALSE; /* mark the clock_sync stuff as invalid. */
         }
 
-        pgo_updates_complete();
+        pgo_updates_complete(station_code);
 
         wait_for_next_live(logfile);
         fprintf(logfile, "WAKE!\n");

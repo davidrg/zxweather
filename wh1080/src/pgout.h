@@ -48,7 +48,7 @@ void pgo_update_live(history live_record, long station_id);
  * for now.
  * WARNING: This commits the current transaction
  */
-void pgo_updates_complete();
+void pgo_updates_complete(char* station_code);
 
 /* Commits the current transaction */
 void pgo_commit();

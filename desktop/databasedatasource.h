@@ -73,7 +73,7 @@ private slots:
     void notification_pump();
 
 private:
-    bool db_connect(QString databaseName,
+    void db_connect(QString databaseName,
                  QString hostname,
                  int port,
                  QString username,
