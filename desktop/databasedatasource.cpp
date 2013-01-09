@@ -69,7 +69,7 @@ DatabaseDataSource::DatabaseDataSource(QString databaseName,
     connect(notificationTimer, SIGNAL(timeout()),
             this, SLOT(notification_pump()));
 
-    connected = db_connect(databaseName, hostname, port, username, password, station);
+    db_connect(databaseName, hostname, port, username, password, station);
 }
 
 DatabaseDataSource::~DatabaseDataSource() {
@@ -83,11 +83,10 @@ void DatabaseDataSource::unknown_db_error(QString message) {
 
 void DatabaseDataSource::db_connection_failed(QString message) {
     notificationTimer->stop();
-    connected = false;
     emit connection_failed(message);
 }
 
-bool DatabaseDataSource::db_connect(
+void DatabaseDataSource::db_connect(
         QString dbName,
         QString dbHostname,
         int port,
@@ -112,20 +111,17 @@ bool DatabaseDataSource::db_connect(
                      password.toAscii().constData(),
                      station.toAscii().constData())) {
         // Failed to connect.
-        return false;
+        connected = false;
+    } else {
+        notificationTimer->start();
+        connected = true;
     }
-
-    notificationTimer->start();
-
-    return true;
 }
 
 AbstractLiveData* DatabaseDataSource::getLiveData() {
     live_data_record rec;
 
-    if (connected) {
-        rec = wdb_get_live_data();
-    }
+    rec = wdb_get_live_data();
 
     DatabaseLiveData* dld = new DatabaseLiveData(rec);
 

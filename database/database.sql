@@ -5,9 +5,7 @@ BEGIN;
 ----------------------------------------------------------------------
 -- A percentage.
 CREATE DOMAIN rh_percentage
-  AS integer
-  NOT NULL
-   CONSTRAINT rh_percentage_check CHECK (((VALUE > 0) AND (VALUE < 100)));
+  AS integer;
 ALTER DOMAIN rh_percentage
   OWNER TO postgres;
 COMMENT ON DOMAIN rh_percentage
@@ -16,7 +14,6 @@ COMMENT ON DOMAIN rh_percentage
 -- Valid wind directions
 CREATE DOMAIN wind_direction
   AS character varying(3)
-  COLLATE pg_catalog."default"
   NOT NULL
    CONSTRAINT wind_direction_check CHECK (((VALUE)::text = ANY ((ARRAY['N'::character varying, 'NNE'::character varying, 'NE'::character varying, 'ENE'::character varying, 'E'::character varying, 'ESE'::character varying, 'SE'::character varying, 'SSE'::character varying, 'S'::character varying, 'SSW'::character varying, 'SW'::character varying, 'WSW'::character varying, 'W'::character varying, 'WNW'::character varying, 'NW'::character varying, 'NNW'::character varying, 'INV'::character varying])::text[])));
 ALTER DOMAIN wind_direction
@@ -80,7 +77,7 @@ CREATE TABLE sample
   wind_chill real, -- Calculated wind chill
   apparent_temperature real, -- Calculated apparent temperature.
   absolute_pressure real, -- Absolute pressure
-    average_wind_speed real, -- Average Wind Speed.
+  average_wind_speed real, -- Average Wind Speed.
   gust_wind_speed real, -- Gust wind speed.
   wind_direction wind_direction, -- Wind Direction.
   rainfall real, -- Calculated rainfall. Calculation is based on total_rainfall and rain_overflow columns compared to the previous sample.
@@ -105,6 +102,18 @@ COMMENT ON COLUMN sample.gust_wind_speed IS 'Gust wind speed in m/s.';
 COMMENT ON COLUMN sample.wind_direction IS 'Wind Direction.';
 COMMENT ON COLUMN sample.rainfall IS 'Calculated rainfall in mm. Smallest recordable amount is 0.3mm. Calculation is based on total_rainfall and rain_overflow columns compared to the previous sample.';
 COMMENT ON COLUMN sample.station_id IS 'The weather station this sample is for';
+
+ALTER TABLE sample
+ADD CONSTRAINT chk_outdoor_relative_humidity
+CHECK (relative_humidity > 0 and relative_humidity < 100);
+COMMENT ON CONSTRAINT chk_outdoor_relative_humidity ON sample
+IS 'Ensure the outdoor relative humidity is in the range 0-100';
+
+ALTER TABLE sample
+ADD CONSTRAINT chk_indoor_relative_humidity
+CHECK (indoor_relative_humidity > 0 and indoor_relative_humidity < 100);
+COMMENT ON CONSTRAINT chk_indoor_relative_humidity ON sample
+IS 'Ensure the indoor relative humidity is in the range 0-100';
 
 -- A table for data specific to WH1080-compatible hardware.
 CREATE TABLE wh1080_sample
@@ -169,7 +178,7 @@ COMMENT ON COLUMN live_data.station_id is 'The station this live data is for.';
 -- version).
 CREATE TABLE db_info
 (
-  k varchar(10) primary key not null,
+  k varchar(20) primary key not null,
   v character varying
 );
 
@@ -179,6 +188,11 @@ COMMENT ON COLUMN db_info.v is 'Data value';
 
 -- This is schema revision 2
 insert into db_info(k,v) VALUES('DB_VERSION','2');
+
+-- And it its not compatible with anything older than zxweather 0.2.0
+insert into db_info(k,v) VALUES('MIN_VER_MAJ', '0');
+insert into db_info(k,v) VALUES('MIN_VER_MIN', '2');
+insert into db_info(k,v) VALUES('MIN_VER_REV', '0');
 
 ----------------------------------------------------------------------
 -- INDICIES ----------------------------------------------------------
@@ -653,12 +667,13 @@ COMMENT ON FUNCTION apparent_temperature(real, real, real) IS 'Calculates the Ap
 -- Computes any computed fields when a new sample is inserted (dew point, wind chill, aparent temperature, etc)
 CREATE OR REPLACE FUNCTION compute_sample_values()
   RETURNS trigger AS
-        $BODY$
-    DECLARE
-      station_code character varying;
-    BEGIN
-      -- If its an insert, calculate any fields that need calculating. We will ignore updates here.
-      IF(TG_OP = 'INSERT') THEN
+$BODY$
+DECLARE
+    station_code character varying;
+BEGIN
+    -- If its an insert, calculate any fields that need calculating. We will ignore updates here.
+    IF(TG_OP = 'INSERT') THEN
+
         -- Various calculated temperatures
         NEW.dew_point = dew_point(NEW.temperature, NEW.relative_humidity);
         NEW.wind_chill = wind_chill(NEW.temperature, NEW.average_wind_speed);
@@ -672,10 +687,10 @@ CREATE OR REPLACE FUNCTION compute_sample_values()
         from station s where s.station_id = NEW.station_id;
 
         perform pg_notify('new_sample', station_code);
-      END IF;
+    END IF;
 
-      RETURN NEW;
-    END;
+    RETURN NEW;
+END;
 $BODY$
 LANGUAGE plpgsql VOLATILE;
 COMMENT ON FUNCTION compute_sample_values() IS 'Calculates values for all calculated fields (wind chill, dew point, rainfall, etc).';
@@ -683,41 +698,61 @@ COMMENT ON FUNCTION compute_sample_values() IS 'Calculates values for all calcul
 -- Computes any computed fields when a new wh1080 sample is inserted (dew point, wind chill, aparent temperature, etc)
 CREATE OR REPLACE FUNCTION compute_wh1080_sample_values()
   RETURNS trigger AS
-        $BODY$
-    DECLARE
-      new_rainfall real;
-      current_station_id integer;
-      new_timestamp timestamptz;
-	BEGIN
-      -- If its an insert, calculate any fields that need calculating. We will ignore updates here.
-      IF(TG_OP = 'INSERT') THEN
-        -- Figure out station ID
-        select station_id, time_stamp into current_station_id, new_timestamp
-        from sample where sample_id = NEW.sample_id;
+$BODY$
+DECLARE
+    new_rainfall real;
+    current_station_id integer;
+    new_timestamp timestamptz;
+BEGIN
+    -- If its an insert, calculate any fields that need calculating. We will ignore updates here.
+    IF(TG_OP = 'INSERT') THEN
 
-        -- Calculate actual rainfall for this record from the total rainfall
-        -- accumulator of this record and the previous record.
-        -- 19660.8 is the maximum rainfall accumulator value (65536 * 0.3mm).
-         select into new_rainfall
-                    CASE WHEN NEW.total_rain - prev.total_rain >= 0 THEN
-                        NEW.total_rain - prev.total_rain
-                    ELSE
-                        NEW.total_rain + (19660.8 - prev.total_rain)
-                    END as rainfall
-        from wh1080_sample prev
-        inner join sample sa on sa.sample_id = prev.sample_id
-        -- find the previous sample:
-        where sa.time_stamp = (select max(time_stamp)
-                            from sample ins
-                            where ins.time_stamp < new_timestamp)
-        and sa.station_id = current_station_id;
+        IF(NEW.invalid_data) THEN
+            -- The outdoor sample data in this record is garbage. Discard
+            -- it to prevent crazy data.
 
-        update sample set rainfall = new_rainfall
-        where sample_id = NEW.sample_id;
-      END IF;
+            update sample
+            set relative_humidity = null,
+                temperature = null,
+                dew_point = null,
+                wind_chill = null,
+                apparent_temperature = null,
+                average_wind_speed = null,
+                gust_wind_speed = null,
+                rainfall = null
+            where sample_id = NEW.sample_id;
+            -- Wind direction should be fine (it'll be 'INV').
+            -- The rest of the fields are captured by the base station
+            -- and so should be fine.
 
-      RETURN NEW;
-	END;
+        ELSE
+            -- Figure out station ID
+            select station_id, time_stamp into current_station_id, new_timestamp
+            from sample where sample_id = NEW.sample_id;
+
+            -- Calculate actual rainfall for this record from the total rainfall
+            -- accumulator of this record and the previous record.
+            -- 19660.8 is the maximum rainfall accumulator value (65536 * 0.3mm).
+             select into new_rainfall
+                        CASE WHEN NEW.total_rain - prev.total_rain >= 0 THEN
+                            NEW.total_rain - prev.total_rain
+                        ELSE
+                            NEW.total_rain + (19660.8 - prev.total_rain)
+                        END as rainfall
+            from wh1080_sample prev
+            inner join sample sa on sa.sample_id = prev.sample_id
+            -- find the previous sample:
+            where sa.time_stamp = (select max(time_stamp)
+                                from sample ins
+                                where ins.time_stamp < new_timestamp)
+            and sa.station_id = current_station_id;
+
+            update sample set rainfall = new_rainfall
+            where sample_id = NEW.sample_id;
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
 $BODY$
 LANGUAGE plpgsql VOLATILE;
 COMMENT ON FUNCTION compute_wh1080_sample_values() IS 'Calculates values for all calculated fields (wind chill, dew point, rainfall, etc).';

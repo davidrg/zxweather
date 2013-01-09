@@ -223,7 +223,7 @@ void wdb_disconnect() {
 }
 
 bool wdb_live_data_available() {
-
+    qDebug() << "Checking for live data";
     if (!connected) return false;
 
     PGconn* conn = ECPGget_PGconn("notification_connection");
@@ -409,6 +409,23 @@ live_data_record wdb_get_live_data() {
 
     if (!connected) {
         live_data_record rec;
+
+        rec.indoor_temperature = 0;
+        rec.indoor_relative_humidity = 0;
+        rec.temperature = 0;
+        rec.relative_humidity = 0;
+        rec.dew_point = 0;
+        rec.wind_chill = 0;
+        rec.apparent_temperature = 0;
+        rec.absolute_pressure = 0;
+        rec.average_wind_speed = 0;
+        rec.gust_wind_speed = 0;
+        rec.wind_direction[0] = ' ';
+        rec.wind_direction[1] = ' ';
+        rec.wind_direction[2] = ' ';
+        rec.wind_direction[3] = '\0';
+        rec.download_timestamp = 0;
+
         return rec;
     }
 
