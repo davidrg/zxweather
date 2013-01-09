@@ -13,6 +13,7 @@ version_minor = 2
 version_revision = 0
 
 v2_upgrade_script = "database/upgrade.sql"
+create_script = "database/database.sql"
 
 class db_info(object):
     """
@@ -58,7 +59,7 @@ class db_info(object):
         return conn_str
 
     @staticmethod
-    def prompt_db_config():
+    def prompt_db_config(new_db=False):
         """
         Asks the user for details for the details of an existing weather database.
         :return: Database connection details
@@ -67,7 +68,17 @@ class db_info(object):
         print("You will now be prompted for database configuration details.")
         hostname = get_string("Hostname", "localhost")
         port = get_number("Port", 5432)
-        name = get_string("Database name", "weather")
+        if new_db:
+            print("The database name must start with a letter and may only "
+                  "contain letters,\ndigits or the underscore character ('_'). "
+                  "Valid database names include\nweather, weather42, "
+                  "my_weather_database, weather_42_database. If your\ndatabase"
+                  " name does not meet these restrictions you'll get an error "
+                  "later on.")
+            name = get_string("New database name", "weather")
+
+        else:
+            name = get_string("Database name", "weather")
         user = get_string("Username", "postgres")
         password = get_string("Password", required=True)
 
@@ -91,10 +102,11 @@ def upgrade_v0_2(con):
 zxweather v0.2 database upgrade procedure
 -----------------------------------------
 
-This procedure will upgrade your zxweather database to v0.2. In the event of
-failure all database changes should be rolled back automatically making this a
-fairly safe operation. You should still ensure you have a current good backup
-of your database however.""")
+This procedure will upgrade your standard zxweather v0.1.x database to v0.2. In
+the event of failure all database changes should be rolled back automatically
+making this a fairly safe operation. You should still ensure you have a current
+good backup of your database however. If you have customised the security on
+your database you will likely need to reapply these customisations.""")
 
     # Make sure the user has proper backups.
     backups = get_boolean("Are you satisfied with the state of your backups? (y/n)",
@@ -150,9 +162,6 @@ You may now enter an optional short description for your weather station.""")
         cur.execute("UPDATE station SET code = %s, title = %s, description = %s;",
             (station_code, station_name, station_description))
         con.commit()
-
-
-
 
         cur.close()
     except psycopg2.InternalError as inst:
@@ -259,6 +268,10 @@ def connect_to_db(dbc):
             print("This database is for zxweather v0.1. It must be upgraded "
                   "to v0.2 to be\ncompatible with this tool.")
 
+            print("If you have added new tables or columns to your database "
+                  "you can not upgrade\nit with this tool and should not "
+                  "proceed.")
+
             if not get_boolean("Do you wish to upgrade this database?", False):
                 print("Upgrade canceled.")
                 return None  # We can't proceed with a v0.1 database.
@@ -291,6 +304,73 @@ def create_db():
     :rtype: bool
     """
 
-    print("ERROR: Not implemented")
+    global create_script
 
-    return None
+    con = None
+    new_db_name = None
+    dbc = None
+
+    while con is None:
+        print("Enter the details for the database you wish to create")
+        dbc = db_info.prompt_db_config(True)
+
+        new_db_name = dbc.database
+        dbc.database = "postgres"
+        conn_str = dbc.to_connection_string()
+
+        try:
+            con = psycopg2.connect(conn_str)
+            cur = con.cursor()
+
+            cur.execute("select version()")
+            data = cur.fetchone()
+            print("Connect succeeded. Server version: {0}".format(data[0]))
+
+        # Connect failed for some reason.
+        except psycopg2.OperationalError as oe:
+            print("Failed to connect to database: {0}".format(oe.message))
+
+            if not get_boolean("Do you wish to try to connect to another database server?", False):
+                # User canceled
+                return None
+            else:
+                con = None
+
+    print("Loading create script...")
+    f = open(create_script, 'r')
+    script = f.read()
+    f.close()
+
+    cur = con.cursor()
+    print("Creating new database...")
+    con.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+    cur.execute("CREATE DATABASE {0};".format(new_db_name))
+    con.commit()
+    cur.close()
+    con.close()
+
+    try:
+        dbc.database = new_db_name
+        conn_str = dbc.to_connection_string()
+
+        con = psycopg2.connect(conn_str)
+
+        cur = con.cursor()
+        cur.execute("select version()")
+        data = cur.fetchone()
+        print("Reconnect succeeded. Server version: {0}".format(data[0]))
+
+        print("Creating database structure. This may take a little while...")
+        cur.execute(script)
+        con.commit()
+        cur.close()
+        con.close()
+
+        print("New database created successfully.")
+
+        return dbc
+
+    except psycopg2.OperationalError as oe:
+        print("Failed to connect to new database: {0}".format(oe.message))
+        return None
+
