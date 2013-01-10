@@ -7,14 +7,13 @@ from ui import pause, get_string_with_length_indicator, get_string, get_code, \
 
 __author__ = 'david'
 
-def list_stations(cur):
+def print_station_list(cur):
     """
-    Displays a list of all weather stations in the database.
+    Prints out a list of all weather stations
     :param cur: Database cursor
+    :returns: A list of valid station codes
+    :rtype: list
     """
-    print("\nList stations\n-------------\nThe following weather stations are "
-          "registered in the database.\n")
-
     cur.execute("""
 select s.code, st.code as type_code, s.title
 from station s
@@ -27,13 +26,28 @@ inner join station_type st on st.station_type_id = s.station_type_id
     print("----- -------- -----------------------------------------------"
           "---------------")
 
+    station_codes = []
+
     for result in results:
+        station_codes.append(result[0])
         print("{0:<5} {1:<8} {2}".format(result[0],result[1],result[2]))
 
     print("----- -------- -----------------------------------------------"
           "---------------")
-    pause()
 
+    return station_codes
+
+def list_stations(cur):
+    """
+    Displays a list of all weather stations in the database.
+    :param cur: Database cursor
+    """
+    print("\nList stations\n-------------\nThe following weather stations are "
+          "registered in the database.\n")
+
+    print_station_list(cur)
+
+    pause()
 
 def get_new_station_info(cur, defaults):
     """
@@ -205,6 +219,84 @@ values(%s,%s,%s,%s,%s,%s)""", (
 
     return
 
+def get_updated_station_info(defaults):
+    """
+    Gets the details for a new weather station
+    :param defaults: Default values
+    :type defaults: dict
+    :return:
+    """
+
+    station_name = get_string("Name", defaults["name"])
+    station_description = get_string("Description", defaults["description"])
+    sample_interval = get_number("Sample interval", defaults["interval"])
+    live_data = get_boolean("Is live data available for this station", defaults["live"])
+
+    return {
+        "id": defaults["id"],
+        "code": defaults["code"],
+        "name": station_name,
+        "description": station_description,
+        "interval": sample_interval,
+        "live": live_data
+    }
+
+def edit_station(con):
+    """
+    Allows the user to edit an existing station
+    :param con:
+    """
+    print("\n\nEdit station")
+    print("------------\n\nThe following stations are available:")
+    cur = con.cursor()
+    codes = print_station_list(cur)
+
+    selected_station_code = get_code("Station to edit", codes, required=True)
+
+    cur.execute("""
+select station_id, title, description, sample_interval, live_data_available
+from station where code = %s
+    """, (selected_station_code,))
+    result = cur.fetchone()
+
+    station_info = {
+        "id": result[0],
+        "code": selected_station_code,
+        "name": result[1],
+        "description": result[2],
+        "interval": result[3],
+        "live": result[4]
+    }
+    while True:
+        station_info = get_updated_station_info(station_info)
+        print("""
+You entered the following details:
+----------------------------------
+Name: {name}
+Sample interval: {interval}
+Live data available: {live}
+Description:
+{description}
+----------------------------------
+""".format(**station_info))
+
+        if get_boolean("Is the information entered correct? (y/n)", required=True):
+            print("Updating station...")
+
+            cur.execute("""
+        update station set title=%s, description=%s, sample_interval=%s,
+                           live_data_available=%s
+        where station_id = %s""", (
+                station_info["name"],
+                station_info["description"], station_info["interval"],
+                station_info["live"], station_info["id"]))
+            con.commit()
+            cur.close()
+            print("Station updated.")
+            return
+        elif not get_boolean("Do you wish to correct it?", True):
+            return
+
 
 def manage_stations(con):
     """
@@ -241,6 +333,3 @@ def manage_stations(con):
     menu(choices, prompt="\n\nManage Stations\n---------------\n\nSelect option")
 
 
-def edit_station(con):
-    print("Edit station")
-    pass
