@@ -73,15 +73,17 @@ def get_db_connection():
     obtained from a zxweather configuration file the user will be prompted for
     them.
     """
-    dbc = read_db_config()
+
     db = None
 
-    if dbc is not None:
-        db = connect_to_db(dbc)
-    else:
-        print("Failed to read database configuration from zxweather "
-              "configuration file.\n")
-
+    # Disabled as the database config in the main configuration file probably
+    # won't have enough rights to perform database upgrades, etc.
+#    dbc = read_db_config()
+#    if dbc is not None:
+#        db = connect_to_db(dbc)
+#    else:
+#        print("Failed to read database configuration from zxweather "
+#              "configuration file.\n")
 
     while db is None:
         dbc = db_menu()
