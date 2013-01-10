@@ -270,6 +270,8 @@ def __get_code_required(prompt, valid_codes):
 
         if val.upper() in valid_codes:
             return val.upper()
+        elif val in valid_codes:
+            return val
         else:
             print("Please enter a valid code.")
 
