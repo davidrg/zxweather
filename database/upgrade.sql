@@ -721,7 +721,7 @@ BEGIN
         select s.code into station_code
         from station s where s.station_id = NEW.station_id;
 
-        perform pg_notify('live_data_updated', live_data_updated);
+        perform pg_notify('live_data_updated', station_code);
 
     END IF;
 
