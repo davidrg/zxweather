@@ -121,10 +121,10 @@ def get_year(ui,station, year):
     # See if any data exists for the previous and next months (no point
     # showing a navigation link if there is no data)
     if year_exists(data.prev_year, station_id):
-        data.prev_url = '../' + str(data.prev_year)
+        data.prev_url = '../' + str(data.prev_year) + '/'
 
     if year_exists(data.next_year, station_id):
-        data.next_url = '../' + str(data.next_year)
+        data.next_url = '../' + str(data.next_year) + '/'
 
     year_cache_control(year, station_id)
 
