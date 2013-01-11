@@ -305,10 +305,10 @@ def parse_args():
                       help="Name of GnuPG Binary")
     parser.add_option("-k","--key-id",dest="key_id",
                       help="Fingerprint of the key to sign with")
-    parser.add_option("-r","--reconfigure-stations", action="store_true",
-                        dest="send_stations", default=False,
-                        help="Add station data to remote database on first "
-                             "update.")
+#    parser.add_option("-r","--reconfigure-stations", action="store_true",
+#                        dest="send_stations", default=False,
+#                        help="Add station data to remote database on first "
+#                             "update.")
 
     (options, args) = parser.parse_args()
 
@@ -577,8 +577,13 @@ def main():
     key_id = options.key_id
 
     print("Performing update...")
-    update(cur, options.site_url, gpg, key_id,
-           send_station_info=options.send_stations)
+    update(cur, options.site_url, gpg, key_id)
+
+    # Not going to allow sending station config. This tool is about to go away
+    # so there isn't much point putting the time required into testing that
+    # this functionality works properly.
+    #,
+#           send_station_info=options.send_stations)
 
     if options.continuous:
         listen_loop(con, cur, options.site_url, gpg, key_id)
