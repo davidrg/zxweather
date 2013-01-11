@@ -20,6 +20,19 @@
     {%- endif %}
 {% endblock %}
 {% block content %}
+{% if page_data["no_content"] %}
+    <h1>{{ page_data["station_name"] }}</h1>
+    <p>
+        There is no recent data available from this weather station at this
+        time. Historical data remains available for the following
+        years:
+        {% set i = 0 -%}
+        {%- for year in data.years -%}
+            {%- set i = i + 1 -%}
+            <a href="{{ year }}/">{{ year }}</a>{% if i < data.years|length %}, {% endif %}
+        {%- endfor %}
+    </p>
+{% else %}
     <section id="live">
         <div class="row">
             <div class="span6">
@@ -82,6 +95,13 @@
                         The update service has likely stopped.
                     </div>
                 </div>
+                <div id="cc_bad" style="display: none;">
+                    <div class="alert alert-error">
+                        <strong>Error:</strong>
+                        No live data available. This is likely due to
+                        misconfiguration.
+                    </div>
+                </div>
                 <div id="cc_refresh_failed" style="display: none;">
                     <div class="alert alert-warning">
                         <strong>Warning!</strong>
@@ -115,7 +135,7 @@
             {% set i = 0 -%}
             {%- for year in data.years -%}
                 {%- set i = i + 1 -%}
-                <a href="{{ year }}/">{{ year }}</a> {% if i < data.years|length %}|{% endif %}
+                <a href="{{ year }}/">{{ year }}</a>{% if i < data.years|length %}, {% endif %}
             {%- endfor %}
         </p>
     </section>
@@ -123,8 +143,10 @@
     <footer>
         <p>Problems? <a href="../../b/{{ station }}/now">Basic HTML</a></p>
     </footer>
+{% endif %}
 {% endblock %}
 {% block scripts %}
+{% if not page_data["no_content"] %}
     <script type="text/javascript">
         $("#btn_today_refresh").button('loading');
         $("#btn_7day_refresh").button('loading');
@@ -151,5 +173,5 @@
         <script type="text/javascript" src="http://www.google.com/jsapi"></script>
         <script type="text/javascript" src="../../js/day_charts_gviz.js"></script>
     {%- endif -%}
-
+{% endif %}
 {% endblock %}
