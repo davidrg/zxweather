@@ -10,14 +10,23 @@ function refresh_live_data() {
     $.getJSON(live_url, function (data) {
         $("#cc_refresh_failed").hide();
 
+        var cc_bad = $("#cc_bad");
+        var cc_stale = $("#cc_stale");
+        var current_conditions = $("#current_conditions");
+
+        cc_bad.hide();
+        if (data['s'] == "bad") {
+            current_conditions.hide();
+            cc_bad.show();
+        }
         // If the live data is over 5 minutes old show a warning instead.
-        if (data['age'] > 300) {
+        else if (data['age'] > 300) {
             $("#cc_data_age").html(data['age']);
-            $("#current_conditions").hide();
-            $("#cc_stale").show();
+            current_conditions.hide();
+            cc_stale.show();
         } else {
-            $("#current_conditions").show();
-            $("#cc_stale").hide();
+            current_conditions.show();
+            cc_stale.hide();
 
             // Current conditions
             var relative_humidity = data['relative_humidity'];
