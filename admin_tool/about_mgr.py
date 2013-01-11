@@ -1,4 +1,14 @@
-<!DOCTYPE html>
+# coding=utf-8
+"""
+Manages upgrading about.html files.
+"""
+from ui import get_string
+from station_mgr import get_station_codes
+import os
+
+__author__ = 'david'
+
+template_start = """<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
@@ -37,35 +47,9 @@
 
     <div class="container">
     <!-- BEGIN_USER_CONTENT -->
+"""
 
-        <!-- ------------------------------------------------------------- --
-          -- Make your changes here. You can delete anything between this
-          -- comment and the other comment below (including the comments)
-          -- and replace it with your own content. You can also edit the
-          -- text between the <title> </title> tags near the top of the page.
-          -- Don't remove the BEGIN_USER_CONTENT and END_USER_CONTENT
-          -- comments.
-          -- ------------------------------------------------------------- -->
-        <h1>About</h1>
-
-        <p>This site is powered by
-            <a href="http://www.sw.zx.net.nz/zxweather/">zxweather</a>.
-        </p>
-        <p>You can change this page to display information about your weather
-            station by copying /static/about.html into
-            /static/{station-name}/about.html and modifying it. Consult the
-            installation reference manual for more details.</p>
-        <footer>
-            <p><a href="http://www.python.org"><img src="/images/python-powered-w-100x40.png" alt="python-powered"/></a>
-                <a href="http://www.postgresql.org"><img src="/images/postgresql_88x31_2.gif" alt="postgresql-powered"></a>
-            </p>
-        </footer>
-
-        <!-- ------------------------------------------------------------- --
-          -- Don't make any changes below this point.
-          -- ------------------------------------------------------------- -->
-
-    <!-- END_USER_CONTENT -->
+template_end = """    <!-- END_USER_CONTENT -->
     </div>
     <script type="text/javascript" src="/js/jquery.min.js"></script>
     <script type="text/javascript">
@@ -89,4 +73,77 @@
 
     </script>
 </body>
-</html>
+</html>"""
+
+def upgrade_file(filename):
+    """
+    Upgrades the specified about.html file
+    :param filename: Name of the file to upgrade
+    """
+
+    f = open(filename, "r")
+
+    user_data = ""
+
+    in_user_area = False
+
+    for line in f:
+        if line.strip() == "<!-- BEGIN_USER_CONTENT -->":
+            in_user_area = True
+
+        elif line.strip() == "<!-- END_USER_CONTENT -->":
+            break
+        elif in_user_area:
+            user_data += line
+
+    f.close()
+
+    new_file = template_start + user_data + template_end
+
+    f = open(filename, "w")
+    f.write(new_file)
+    f.close()
+
+def upgrade_about(cur):
+    """
+    Attempts to upgrade about pages automatically.
+    :param cur: A database cursor
+    """
+
+    static_dir = None
+
+
+    import ConfigParser
+    config = ConfigParser.ConfigParser()
+    config.read(['config.cfg','../zxw_web/config.cfg', 'zxw_web/config.cfg', '/etc/zxweather.cfg'])
+
+    try:
+        static_dir = config.get("site", "static_data_dir")
+    except ConfigParser.NoSectionError:
+        pass
+
+    print("""
+Upgrade about.html
+------------------
+
+This procedure will attempt to upgrade any customised about.html files for
+the web interface.
+
+To proceed you must enter the full path for the web interfaces static data
+directory.
+    """)
+
+    if static_dir is None:
+        static_dir = get_string("Static data directory", required=True)
+    else:
+        static_dir = get_string("Static data directory", static_dir)
+
+    print("Searching for station directories...")
+
+    for code in get_station_codes(cur):
+        about_file = os.path.join(static_dir, code, "about.html")
+        if os.path.exists(about_file):
+            print("Found about.html for {code}".format(code=code))
+            upgrade_file(about_file)
+
+    print("done.")
