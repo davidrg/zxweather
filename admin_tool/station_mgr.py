@@ -37,6 +37,23 @@ inner join station_type st on st.station_type_id = s.station_type_id
 
     return station_codes
 
+def get_station_codes(cur):
+    """
+    Returns a list of station codes.
+    :param cur: Database cursor
+    :return: List of station codes
+    :rtype: list
+    """
+
+    cur.execute("""
+select s.code
+from station s
+    """)
+
+    results = cur.fetchall()
+
+    return [result[0] for result in results]
+
 def list_stations(cur):
     """
     Displays a list of all weather stations in the database.

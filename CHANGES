@@ -5,6 +5,13 @@ CHANGES                                             zxweather alpha release 0.2
   Version 0.2 (alpha)
     New Features:
       - Support for multiple weather stations in the same database
+      - Database is no longer specific to FineOffset WH1080 hardware. Other
+        hardware types can now be supported by writing programs to import their
+        data into the database. See the zxweather Database Structure manual
+        (DAZW-DB02) for more details.
+      - New administration tool to manage creating and upgrading the database
+        as well as managing station configuration data now stored in the
+        database.
       - Desktop client:
         - Settings will be loaded from zxweather-desktop.ini if the file exists
         - Settings dialog is shown on first run

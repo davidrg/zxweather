@@ -45,6 +45,7 @@ urls = (
     '/(s|b|m)/(\w*)/(\d+)/(?:index\.html)?', 'ui.year_page.year',           # A particular year
     '/(s|b|m)/(\w*)/now', 'ui.now',                                         # Go to todays page
     '/(s|b|m)/(\w*)/(?:index\.html)?', 'ui.station_page.station',           # Index page
+    '/(?:s|m)/(\w*)/about.json', 'data.about_nav',                          #
     '/(s|b|m)/(?:index\.html)?', 'ui.stationlist',                          # Station redirect
     '/(?:index\.html)?', 'ui.site_index',                                 # Site index redirect
 

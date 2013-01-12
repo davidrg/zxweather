@@ -218,7 +218,7 @@ class data_load():
         """
 
         sample_insert_query = """
-        insert into sample(sample_id, sample_interval, record_number,
+        insert into wh1080_sample(sample_id, sample_interval, record_number,
             last_in_batch, invalid_data, total_rain, rain_overflow)
         values($sample_id, $sample_interval, $record_number,
                $last_in_batch, $invalid_data, $total_rain, $rain_overflow)"""

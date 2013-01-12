@@ -109,22 +109,29 @@ def live_data(station_id):
     """
     data_ts, data = get_live_data(station_id)
 
-    now = datetime.now()
-    data_ts = datetime.combine(now.date(), data_ts)
 
-    result = {'relative_humidity': data.relative_humidity,
-              'temperature': data.temperature,
-              'dew_point': data.dew_point,
-              'wind_chill': data.wind_chill,
-              'apparent_temperature': data.apparent_temperature,
-              'absolute_pressure': data.absolute_pressure,
-              'average_wind_speed': data.average_wind_speed,
-              'gust_wind_speed': data.gust_wind_speed,
-              'wind_direction': data.wind_direction,
-              'time_stamp': str(data.time_stamp),
-              'age': data.age,
-              }
 
-    live_data_cache_control(data_ts, station_id)
+    if data is not None:
+        result = {'relative_humidity': data.relative_humidity,
+                  'temperature': data.temperature,
+                  'dew_point': data.dew_point,
+                  'wind_chill': data.wind_chill,
+                  'apparent_temperature': data.apparent_temperature,
+                  'absolute_pressure': data.absolute_pressure,
+                  'average_wind_speed': data.average_wind_speed,
+                  'gust_wind_speed': data.gust_wind_speed,
+                  'wind_direction': data.wind_direction,
+                  'time_stamp': str(data.time_stamp),
+                  'age': data.age,
+                  's': 'ok'
+                  }
+    else:
+        result = {'s': 'bad'}
+
+    if data_ts is not None:
+        now = datetime.now()
+        data_ts = datetime.combine(now.date(), data_ts)
+        live_data_cache_control(data_ts, station_id)
+
     web.header('Content-Type', 'application/json')
     return json.dumps(result)

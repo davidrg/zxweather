@@ -1,5 +1,5 @@
 -------------------------------------------------------------------------------
-zxweather v0.2 (alpha) Release Notes                                      -2012
+zxweather v0.2 (alpha) Release Notes                                      -2013
 ===============================================================================
 
   zxweather is a system for collecting and displaying data from automatic
@@ -14,9 +14,9 @@ zxweather v0.2 (alpha) Release Notes                                      -2012
   latest release then please report the bug to bugs@zx.net.nz
 
   Available Documentation:
-    DAZW-IG01     zxweather Installation Reference
-    DAZW-WG01     WH1080 Utilities Users Guide
-    DAZW-DB01     zxweather Database Structure
+    DAZW-IG02     zxweather Installation Reference
+    DAZW-WG02     WH1080 Utilities Users Guide
+    DAZW-DB02     zxweather Database Structure
 
   Supported Platforms:
     All components of zxweather are supported under both Linux and Windows.
@@ -29,7 +29,8 @@ zxweather v0.2 (alpha) Release Notes                                      -2012
     * Python 2.7
     * gnuplot
     * For compiling WH1080 Utilities: GNU C, GNU Make, ECPG, libecpg,
-      libpgtypes, libpq, libusb-1.0 (linux only)
+      libpgtypes, libpq, libusb-1.0 (linux only, binaries are available for 
+      windows systems)
 
   License:
     See the COPYING file which you should have received with this distribution.
@@ -48,12 +49,22 @@ zxweather v0.2 (alpha) Release Notes                                      -2012
     * The FineOffset WH1080 is known to crash from time to time. When this
       happens the WH1080 Update Service will become unresponsive. If this
       happens it must be terminated manually before resetting the weather
-      station.
+      station. This is a problem with the hardware and there is no known fix
+      or workaround.
     * If the WH1080 Update Service looses its database connection it will exit.
 
   New in v0.2:
     * The desktop client can now retrieve data from the web interface as well
       as directly from the database.
+    * Support for multiple weather stations logging to the same database
+    * Limited support for viewing data from multiple weather stations in the
+      web interface and desktop clients
+    * Other weather station hardware types besides the FineOffset WH1080 are
+      now supported provided the data can be loaded into the database. Loading
+      the data requires writing or obtaining a third-party application (no
+      software is supplied as part of zxweather to interface with other
+      weather station hardware). See the zxweather Database Structure manual
+      (DAZW-DB02) for details on doing this.
 
   Changelog:
     See the CHANGES file which you should have received with this distribution.

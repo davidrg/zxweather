@@ -2,6 +2,7 @@
 """
 zxweather admin tool.
 """
+from about_mgr import upgrade_about
 from database_mgr import  create_db, connect_to_db, db_info
 from station_mgr import  manage_stations
 from ui import menu
@@ -109,6 +110,11 @@ def main():
             "type": "return"
         },
         {
+            "key": "2",
+            "name": "Upgrade about.html",
+            "type": "return"
+        },
+        {
             "key": "0",
             "name": "Exit",
             "type": "func",
@@ -120,5 +126,7 @@ def main():
         result = menu(choices)
         if result == "1":
             manage_stations(db)
+        elif result == "2":
+            upgrade_about(db.cursor())
 
 if __name__ == "__main__": main()
