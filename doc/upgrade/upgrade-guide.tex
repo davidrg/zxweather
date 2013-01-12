@@ -1,0 +1,452 @@
+% ============================================================================
+% !Document: UR02 [zxweather Upgrade Guide]
+% ----------------------------------------------------------------------------
+% !Revision: 001
+% !IssueDate: January 2013
+% !Status: Unreleased
+%
+% !-Classification
+% !ProjectCode: DAZW [Database Applications, zxweather]
+% !Type: UG [Upgrade Guide]
+%
+% !Copyright: (C) David Goodwin, 2013
+% !License: FDL [GNU Free Documentation License]
+% !Auhtor: David Goodwin
+% ============================================================================
+
+% Document information. This should match the above
+\newcommand{\doctitle}{zxweather}
+\newcommand{\docsubtitle}{Upgrade Guide}
+%\newcommand{\projectnum}{DAZW}
+\newcommand{\docnum}{UG02}
+\newcommand{\docrev}{001}
+\newcommand{\docdate}{January 2013}
+\newcommand{\docauthor}{David Goodwin}
+\newcommand{\docabstract}{This manual provides installation and configuration guidelines for zxweather.}
+\newcommand{\docupdateinfo}{This is a new manual}
+\newcommand{\docosver}{Linux; Microsoft Windows NT 5.0+}
+\newcommand{\docswver}{zxweather 0.2}
+\newcommand{\doccopyright}{\textcircled{c} Copyright David Goodwin, 2013.}
+\newcommand{\doclicense}{Use, reproduction and modification of this document is permitted subject to the terms of the GNU Free Documentation License, Version 1.3 or any later vesion published by the Free Software Foundation. See \url{http://www.gnu.org/copyleft/fdl.html} for full license text.}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                 CONFIGURATION                             %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Book type document, A4 paper, 10pt std font size:
+\documentclass[a4paper,10pt,draft]{book} 
+
+\usepackage[scaled=0.90]{helvet} % Use helvetica as the standard font
+\usepackage{courier}			 % Use courier as the fixed-width font
+\usepackage{hyperref}			 % Links in PDF output
+\usepackage{a4wide}				 % Narrower margins for A4 documents
+\usepackage{ifthen}				 % A few if statements
+\usepackage{multirow}			 % Column spanning in tables
+\usepackage{graphicx}			 % For pictures
+\usepackage{tabularx}			 % For customising table column types
+
+
+% use zxtechdoc styles if they're there
+\IfFileExists{zxtitle.sty}{\usepackage{zxtitle}}{}
+\IfFileExists{zxtechdoc.sty}{\usepackage{zxtechdoc}}{}
+
+\hypersetup{
+    unicode=false,          % non-Latin characters in Acrobat’s bookmarks
+    pdftoolbar=true,        % show Acrobat’s toolbar?
+    pdfmenubar=true,        % show Acrobat’s menu?
+    pdffitwindow=false,     % window fit to page when opened
+    pdfstartview={FitH},    % fits the width of the page to the window
+    pdftitle={\doctitle{} - \docsubtitle},    % title
+    pdfauthor={\docauthor},    % author
+    pdfsubject={\doctitle},   % subject of the document
+    pdfkeywords={\doctitle} {\docsubtitle}, % list of keywords
+    pdfnewwindow=true,      % links in new window
+    colorlinks=true,        % false: boxed links; true: colored links
+    linkcolor=black,        % color of internal links
+    citecolor=green,        % color of links to bibliography
+    filecolor=magenta,      % color of file links
+    urlcolor=black          % color of external links
+}
+
+% Build the partnumber. Format is PROJ-DOCU.REV. If revision is 001 then it 
+% is not displayed. If project is undefined it is not displayed.
+\newcommand{\partnumber}{\ifthenelse{\isundefined{\projectnum}}{}{\projectnum-\docnum	\ifthenelse{\equal{\docrev}{001}}{}{.\docrev}}}
+
+% ragged-right paragraphs for tabular environments. Use 'P' instead of 'p'.
+\newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+\newcommand*\cleartoleftpage{%
+  \clearpage
+  \ifodd\value{page}\hbox{}\newpage\fi
+}
+
+\begin{document}
+
+% Roman Numerals for the front matter
+\pagenumbering{roman}
+
+% Setup the titlepage. We will use the zxtitle format if its there,
+% otherwise the much simpler standard LaTeX one.
+\ifthenelse{\isundefined{\ordernumber}}{
+
+% Standard LaTeX titlepage
+\title{\doctitle{} - \docsubtitle}
+\author{\docauthor}
+}{
+
+% zxtitle titlepage
+\title{\doctitle}
+\subtitle{\docsubtitle}
+\titleabstract{\docabstract}
+\ordernumber{\partnumber}
+\updateinfo{\docupdateinfo}
+\osinfo{\docosver}
+\swversion{\docswver}
+\titlecopyright{\doccopyright}
+\licensestatement{\doclicense}
+}
+\date{\docdate}
+
+\maketitle
+
+\clearpage
+
+\tableofcontents
+\clearpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                 DOCUMENT                                  %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter{Introduction}
+% Back to arabac numerals for the proper content
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+This manual covers upgrading a zxweather v0.1.x installation to zxweather version 0.2. If you do not already have zxweather installed on your system you should use \emph{zxweather Installation Reference, version 0.2} (DAZW-IG02) instead.
+
+%TODO: Note about performing a fresh install against an old database - perform chapter x of this document instead of chapter 5 of DAZW-IG02.
+
+The upgrade procedure consists of:
+\begin{itemize}
+\item Shutting down the current zxweather installation
+\item Moving the new files into place
+\item Upgrading the database
+\item Adjusting configuration
+\item Starting the new zxweather installation
+\end{itemize}
+
+\section{Related Documentation}
+Other available documentation for the zxweather system includes:
+
+\begin{tabular}{l l}
+\verb|DAZW-IG02| & zxweather Installation Reference, version 0.2\\
+\verb|DAZW-WG02| & WH1080 Utilities Users Guide, version 0.2 \\
+\verb|DAZW-DB02| & zxweather Database Structure, version 0.2 \\
+\end{tabular}
+
+\section{System Requirements and Supported Hardware}
+The system requirements for zxweather v0.2 are unchanged from zxweather v0.1.x. If you wish to review the system requirements and supported hardware consult sections 1.4 and 1.3 respectively of the \emph{zxweather Installation Reference, version 0.2} (DAZW-IG02) manual.
+
+\section{Changes in v0.2}
+zxweather v0.2 includes a number of fixes along with significant database changes which are working towards supporting multiple weather stations of different types in the same database.
+
+As part of these changes some station-level configuration (code, sample interval, live data availability) has been moved into the database. All components working with station data (except the database replication program db\_push) now require the station code to be specified.
+
+Because of the significant changes made to the database your database must be upgraded to be compatible with v0.2. The format of the user-customisable about.html files has also been adjusted requiring them to be upgraded as well.
+
+\section{Distribution Contents}
+The standard distribution archive, when extracted, contains the following:
+
+\begin{verbatim}
+$ pwd
+/opt/zxweather
+$ ls
+admin_tool  database  db_push  desktop  doc  plot  wh1080  zxw_web
+\end{verbatim}
+
+The subdirectories are:
+
+\begin{itemize}
+\item \emph{admin\_tool} - Tool for creating and upgrading databases (\textbf{new})
+\item \emph{database} - Scripts to create the database
+\item \emph{db\_push} - Database replication tools
+\item \emph{desktop}  - Desktop interface
+\item \emph{doc} - Documentation
+\item \emph{plot} - Tools for plotting static charts
+\item \emph{wh1080} - The Data Logger and other WH1080 utilities
+\item \emph{zxw\_web} - The web interface
+\end{itemize}
+
+The wh1080 and desktop directories contain C/C++ source code. If you are running Microsoft Windows pre-compiled versions of these programs are available. See \url{http://ftp2.zx.net.nz/pub/DGS/zxweather/readme.html} for download links.
+
+The doc directory contains \LaTeX{} source code for producing the zxweather documentation as well as the compiled versions in Adobe PDF format. This documentation is available in other formats from the URL above.
+
+\chapter{Preparing to Upgrade}
+Before upgrading your current version of zxweather you should ensure you have a full known good backup of your database. You should also make backups of your configuration files and the directory where your current version of zxweather is installed.
+
+Once you are satisfied that you have appropriate backups you can begin by shutting down your current zxweather installation. You must make sure that the following are no longer running or scheduled to run:
+\begin{itemize}
+\item Data Logger (wh1080d)
+\item weather plot (normally run from cron)
+\item db\_push (database replication tool)
+\item Apache or some other web server running the Web Interface
+\end{itemize}
+
+If you are using the data replication facility (db\_push) you will have to run through the upgrade procedure a second time on the remote system as well. No changes have been made to the data replication tool itself but the remote database, web interface, etc, will need upgrading.
+
+\section{Unpacking the Distribution}
+The standard zxweather distribution should be extracted to somewhere on your disk such as \\ \verb|/opt/zxweather|. To keep your new zxweather v0.2 installation clean you should not unpack it over the top of your existing v0.1.x installation:
+
+\begin{verbatim}
+$ pwd
+/opt
+$ ls
+zxweather zx
+$ mv zxweather zxweather-old
+$ tar -zxf zxweather-v0.2.0.tar.gz
+$ ls
+zxweather-old   zxweather
+\end{verbatim}
+
+You should then move your weather stations directory over from the static data directory in your old install. If your weather stations code was 'rua' then you'd do something like the following:
+\begin{verbatim}
+$ cd zxweather/zxw_web/static/
+$ pwd
+/opt/zxweather/zxw_web/static/
+$ mv /opt/zxweather-old/zxw_web/static/rua ./
+$ ls
+css   images   img   js   rua   about.html
+\end{verbatim}
+
+\section{Compiling the Data Logger}
+The requirements or process for building the zxweather WH1080 utilities have not changed in version 0.2 so if you were able to build them last time it is exactly the same this time.
+
+To compile the WH1080 tools, cd into the wh1080 subdirectory of the zxweather distributino and run \verb|make|. This should kick off the build process and leave you with a handful of programs inside the wh1080 utility.
+
+\section{Next Steps}
+The following chapters will describe how to:
+\begin{itemize}
+\item Upgrade your database
+\item Upgrading your configuration
+\item Re-starting your new zxweather v0.2 setup
+\end{itemize}
+
+\chapter{Database Upgrade}
+This chapter describes how to upgrade a zxweather v0.1.x database to zxweather v0.2. It assumes you already have the zxweather distribution unpacked somewhere. The examples in this directory will show the distribution archive as being unpacked to /opt/zxweather:
+\begin{verbatim}
+$ pwd
+/opt/zxweather
+$ ls
+admin_tool  database  db_push  desktop  doc  plot  wh1080  zxw_web
+\end{verbatim}
+
+zxweather v0.2 includes significant database changes and will not work at all against the old v0.1.x database structure. The admin tool is used to upgrade your existing database to the new format. It lives in the admin\_tool directory and is launched by running \verb|python admin_tool/admin_tool.py| in the distribution directory:
+
+\begin{verbatim}
+$ pwd
+/opt/zxweather
+$ python admin_tool/admin_tool.py
+\end{verbatim}
+
+When you start it you will be given a list of options for connecting to a database:
+\begin{verbatim}
+ZXWeather v0.2 admin tool
+        (C) Copyright David Goodwin, 2013
+
+Select option:
+        1. Create a new weather database
+        2. Connect to an existing weather database
+        0. Exit
+Choice>
+\end{verbatim}
+
+You should choose option 2 for performing an upgrade. Enter the 2 and hit return.
+
+\section{Connecting}
+The first series of questions you will be asked by the admin tool are connection details for your existing database. This is:
+\begin{verbatim}
+\item hostname or IP address
+\item port
+\item database name
+\item username
+\item password
+\end{verbatim}
+
+The first question is for your database servers hostname:
+\begin{verbatim}
+Hostname [localhost]:
+\end{verbatim}
+For some questions the admin tool gives you a default value shown in square brackets. If you are running the admin tool on the same computer as the database server you would just hit enter for this question without typing anything to accept the default value (localhost).
+
+The next question is for the port number:
+\begin{verbatim}
+Port [5432]
+\end{verbatim}
+If you or someone else has changed PostgreSQL to run on a port other than the normal 5432 you would enter that now. Otherwise you can just hit enter to accept the default value.
+
+The remaining three questions are just the name of the database you are upgrading and the username and password for a PostgreSQL account that has sufficient rights to rebuild the database. This will probably be the standard administrative account "postgres":
+\begin{verbatim}
+Database name [weather]: 
+Username [postgres]:
+Password: 
+\end{verbatim}
+
+\section{Upgrading}
+Once you have successfully connected to the database server you'll be given output like the following:
+\begin{verbatim}
+Connect succeeded. Server version: PostgreSQL 9.2.0, 64-bit
+This database is for zxweather v0.1. It must be upgraded to v0.2 to be
+compatible with this tool.
+If you have added new tables or columns to your database you can not 
+upgrade it with this tool and should not proceed.
+Do you wish to upgrade this database? (yes/no) [no]:
+\end{verbatim}
+
+To proceed with the database upgrade type in "yes" or "y" and hit enter. You will then be asked to confirm you have good backups. Don't proceed without them:
+\begin{verbatim}
+ -- text about importance of backups --
+Are you satisfied with the state of your backups? (y/n):
+\end{verbatim}
+
+Enter "y" or "yes" to proceed.
+
+\subsection{Station Details}
+The following series of details are about your weather station:
+\begin{itemize}
+\item Station Code
+\item Station Name
+\item Station Description
+\end{itemize}
+
+\subsubsection{Station Code}
+The station code is a short (maximum of five characters) code to identify your station. It must be unique and it can not be changed.
+
+The value you enter here should be the same as the value in your web interfaces configuration file (if it isn't then all of your URLs will change). In web interfaces configuration file it appears under the "site" section and is called \verb|station\_name|. This should be your station code (the setting in the configuration file was badly named):
+\begin{verbatim}
+[site]
+# other settings
+station_name: rua
+\end{verbatim}
+
+The prompt for your station code includes a bar above it showing you how long the station code is allowed to be:
+\begin{verbatim}
+              |---|
+Station Code:
+\end{verbatim}
+
+\subsubsection{Station Name and Description}
+The station name is a short name for your weather station. The description field allows you to enter a longer description of your weather station. Both of these can be changed later by selecting the "Edit station" option from the "Manage Stations" menu.
+
+\begin{verbatim}
+Station Name is a longer name for your station that will be displayed 
+to users.
+Name: Test station
+
+You may now enter an optional short description for your weather
+station.
+Description []:
+\end{verbatim}
+
+The description is optional so you can just hit return if you don't want to enter one.
+
+\subsubsection{Upgrading}
+Your database should now be upgrading. This could take several minutes depending on how much data you have. Once it has finished you should see the following output if it was successful:
+\begin{verbatim}
+Performing upgrade. This may take some time...
+Upgrade completed successfully.
+Select option:
+        1. Manage stations
+        2. Upgrade about.html
+        0. Exit
+Choice>
+\end{verbatim}
+
+You can select option 0 to exit now. Alternatively you can leave it open for now as you'll need it in the next chapter.
+
+\section{Next Steps}
+The next chapter describes how to:
+\begin{itemize}
+\item Upgrade your configuration (including what option '2' in the admin tool menu does to about.html)
+\item Restarting your new zxweather v0.2 setup
+\end{itemize}
+
+\chapter{Reconfiguration and Startup}
+This chapter covers configuration changes made in zxweather v0.2. Most of these involve adding an additional station code parameter when starting up the various systems.
+
+\section{Configuration}
+This section covers configuration changes.
+
+\subsection{Data Logger}
+The data logger now has an additional required parameter \verb|-s| which is used to specify the station code it should be logging data for.
+
+If you previously started the data logger with
+\begin{verbatim}
+wh1080d -d database -u username -p password -f logfile
+\end{verbatim}
+
+you would now start it with:
+\begin{verbatim}
+wh1080d -d database -u username -p password -s code -f logfile
+\end{verbatim}
+where \verb|code| is your station code.
+
+You must also supply your station code to the \verb|wh1080| utility if and when you need to use it.
+
+\subsection{Web Interface}
+No configuration changes are required for the web interface unless you entered something different for the station code than what you had for the \verb|station_name| setting under the "site" group. If that is the case then you will need to update that setting to be your new station code.
+
+\subsection{Chart Plotting}
+The chart plotting program that is a part of the web interface has a new station code parameter. The short form is \verb|-s| or you can use the longer \verb|--station| form:
+
+If your previous cron job looked like this:
+\begin{verbatim}
+0,30 *  * * *   root    cd /opt/zxweather && \
+  python plot/weatherplot.py -t weather -n localhost -u postgres \
+  -p password -d zxw_web/static/station_name -a plot_status_file
+\end{verbatim}
+
+You would add the station code parameter:
+\begin{verbatim}
+0,30 *  * * *   root    cd /opt/zxweather && \
+  python plot/weatherplot.py -t weather -n localhost -u postgres \
+  -p password -d zxw_web/static/station_name -a plot_status_file \
+  -s station_code
+\end{verbatim}
+
+\subsubsection{Plot status file}
+If you store your plot status file inside the zxweather distribution directory make sure you copied it from your old zxweather directory into the new one. If you don't then all charts for every day and month in your database will be replotted.
+
+\subsubsection{Testing}
+To test that your changes work, run something like:
+\begin{verbatim}
+$ cd /opt/zxweather
+$ python plot/weatherplot.py -t weather -n localhost -u postgres \
+  -p password -d zxw_web/static/station_name -a plot_status_file \
+  -s station_code
+\end{verbatim}
+which matches what would be run by cron.
+
+\subsection{Database Replication}
+No changes are required as the station code to push data for is retrieved from the remote web interface.
+
+Make sure you copied your gpg home directory from your old zxweather directory to your new one if that is where it was located.
+
+If you are using the database replication facility make sure the remote database and web interface have been upgraded already.
+
+\section{Starting zxweather}
+You may now re-start web interface and data logger. Only re-start db\_push once you've finished upgrading the remote database and web interface.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                END DOCUMENT                               %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Back page
+\cleartoleftpage
+\thispagestyle{empty}
+\begin{flushright}
+\null
+\vfill
+\tt \partnumber
+\end{flushright}
+\end{document}
