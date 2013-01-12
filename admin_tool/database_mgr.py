@@ -201,39 +201,14 @@ def is_version_compatible(cur):
     """
     global version_major, version_minor, version_revision
 
-    cur.execute("select v from db_info where k = 'MIN_VER_MAJ'")
-    major = int(cur.fetchone()[0])
-
-    cur.execute("select v from db_info where k = 'MIN_VER_MIN'")
-    minor = int(cur.fetchone()[0])
-
-    cur.execute("select v from db_info where k = 'MIN_VER_REV'")
-    revision = int(cur.fetchone()[0])
-
-    compatible = False
-
-    if major < version_major:
-        # Its for an older major version (eg, it needs v1.0.0 and we're v2.0.0)
-        #  so we're OK.
-        compatible = True
-    elif major == version_major:
-        # Major version match. Its possible that the minor or revision numbers
-        # exclude us.
-        if minor < version_minor:
-            # Its for an older minor version (eg, it needs v1.1.0 and we're
-            # v1.2.0) so we're OK.
-            compatible = True
-        elif minor == version_minor:
-            # Major and Minor versions match. Need to check revision before we
-            # can be sure that we're compatible.
-            if revision <= version_revision:
-                # Its for an older or the same revision (eg, it needs v1.1.1
-                # and we're v1.1.1 or v1.1.2)
-                compatible = True
+    cur.execute("select version_check('admin_tool',%s,%s,%s)",
+                 (version_major, version_minor, version_revision))
+    compatible = cur.fetchone()[0]
 
     if not compatible:
         # This version of zxweather is too old for the database.
-        version_string = "{0}.{1}.{2}".format(major,minor,revision)
+        cur.execute("select minimum_version_string('admin_tool')")
+        version_string = cur.fetchone()[0]
 
         print("ERROR: This database is of a newer format and requires at least"
               "\nzxweather v{0}. You can not use this tool to manage the "
