@@ -2,14 +2,14 @@
 % !Document: DB02 [zxweather Database Structure]
 % ----------------------------------------------------------------------------
 % !Revision: 001
-% !IssueDate: November 2012
+% !IssueDate: January 2013
 % !Status: Unreleased
 %
 % !-Classification
 % !ProjectCode: DAZW [zxweather]
 % !Type: DB [Database Structure]
 %
-% !Copyright: (C) David Goodwin, 2012
+% !Copyright: (C) David Goodwin, 2012, 2013
 % !License: FDL [GNU Free Documentation License]
 % !Auhtor: David Goodwin
 % ============================================================================
@@ -20,13 +20,13 @@
 %\newcommand{\projectnum}{DAZW}
 \newcommand{\docnum}{DB02}
 \newcommand{\docrev}{001}
-\newcommand{\docdate}{November 2012}
+\newcommand{\docdate}{January 2013}
 \newcommand{\docauthor}{David Goodwin}
 \newcommand{\docabstract}{This document provides an overview of the database structure used by zxweather.}
 \newcommand{\docupdateinfo}{This is a new manual.}
 \newcommand{\docosver}{Any}
 \newcommand{\docswver}{zxweather 0.2}
-\newcommand{\doccopyright}{\textcircled{c} Copyright David Goodwin, 2012.}
+\newcommand{\doccopyright}{\textcircled{c} Copyright David Goodwin, 2012, 2013.}
 \newcommand{\doclicense}{Use, reproduction and modification of this document is permitted subject to the terms of the GNU Free Documentation License, Version 1.3 or any later vesion published by the Free Software Foundation. See \url{http://www.gnu.org/copyleft/fdl.html} for full license text.}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -54,16 +54,9 @@
 % is not displayed. If project is undefined it is not displayed.
 \newcommand{\partnumber}{\ifthenelse{\isundefined{\projectnum}}{}{\projectnum-\docnum	\ifthenelse{\equal{\docrev}{001}}{}{.\docrev}}}
 
-\newcommand*{\cleartoleftpage}{%
+\newcommand*\cleartoleftpage{%
   \clearpage
-    \if@twoside
-    \ifodd\c@page
-      \hbox{}\newpage
-      \if@twocolumn
-        \hbox{}\newpage
-      \fi
-    \fi
-  \fi
+  \ifodd\value{page}\hbox{}\newpage\fi
 }
 
 \begin{document}
@@ -109,7 +102,7 @@
 \pagenumbering{arabic}
 \setcounter{page}{1}
 
-zxweather uses a PostgreSQL database to store weather data and for some communication between components. No other RDMBS is supported.
+zxweather uses a PostgreSQL database to store weather data and for some communication between components. No other RDMBS is supported in any way.
 
 This manual describes the schema used by zxweather version 0.2. It is divided up into five chapters which define the various parts of the database:
 \begin{itemize}
@@ -123,19 +116,33 @@ This manual describes the schema used by zxweather version 0.2. It is divided up
 For documentation on the database schema used by zxweather version 0.1, see document \verb|DAZW-DB01|.
 
 \section{Changes from v0.1}
-zxweather version 0.2 introduced significant database changes to allow multiple different weather stations of different hardware types to all log to the same database. This resulted in a number of new tables and changes to all existing tables and views.
+zxweather version 0.2 introduced significant database changes to allow multiple different weather stations of different hardware types to all log to the same database. This resulted in a number of new tables and changes to all existing tables and views. It also introduces schema versioning minimum application versions to be specified allowing applications to determine if they are compatible with the database or not.
 
 \subsection{New Tables}
 These tables are new in the v0.2 schema:
 \begin{itemize}
-\item \verb|station_type| (section \ref{tbl_station_type})
-\item \verb|station| (section \ref{tbl_station})
-\item \verb|wh1080_sample| (section \ref{tbl_wh1080_sample})
 \item \verb|db_info| (section \ref{tbl_db_info})
+\item \verb|station| (section \ref{tbl_station})
+\item \verb|station_type| (section \ref{tbl_station_type})
+\item \verb|wh1080_sample| (section \ref{tbl_wh1080_sample})
 \end{itemize}
 
 \subsection{Changes to Views}
 All views now have a \verb|station_id| column which indicates which station the particular row belongs to. The \verb|latest_record_number| view now includes multiple rows - one for each station.
+
+\subsection{New functions}
+These functions are new in the v0.2 schema:
+\begin{itemize}
+\item \verb|minimum_version_string(character varying)| (section \ref{func_minimum_version_string})
+\item \verb|version_check(varchar, integer, integer, integer)| (section \ref{func_version_check})
+\item \verb|wind_direction_to_degrees(character varying)| (section \ref{func_wind_direction_to_degrees})
+\end{itemize}
+
+\subsection{New trigger functions}
+These trigger functions are new in the v0.2 schema:
+\begin{itemize}
+\item \verb|compute_wh1080_sample| (section \ref{compute_wh1080_sample_values})
+\end{itemize}
 
 \subsection{Changes to Notification Channels}
 Notifications about data updates are now sent with a payload containing a station code. This station code is the code for the station that caused the notification to be generated.
@@ -269,15 +276,15 @@ Dew point. This columns value is calculated on insert by a trigger using the dew
 Wind chill. This columns value is calculated on insert by a trigger using the wind\_chill function (Section \ref{wind_chill}). It is calculated from the \verb|temperature| and \verb|average_wind_speed| columns.
 
 \subsubsection{apparent\_temperature}
-Apparent temperature. This columns value is calculated on insert from the \verb|temperature|, \verb|relative_humidity| and \verb|average_wind_speed| columns by a trigger using the apparent\_temperature function (Section \ref{apparent_temperature}).
+Apparent temperature. This columns value is calculated on insert from the following columns by a trigger using the \verb|apparent_temperature| function (section \ref{apparent_temperature}):
+\begin{itemize}
+\item \verb|temperature|
+\item \verb|relative_humidity|
+\item \verb|average_wind_speed|
+\end{itemize}
 
 \subsubsection{absolute\_pressure}
 The absolute pressure in hectopascals (hPa, same as the millibar).
-
-\subsubsection{relative\_pressure}
-Calculated relative pressure in hectopascals (hPa, same as the millibar).
-
-This column is for future use. Its value is not currently calculated.
 
 \subsubsection{average\_wind\_speed}
 Average wind speed in metres per second.
@@ -286,12 +293,12 @@ Average wind speed in metres per second.
 Gust wind speed in metres per second.
 
 \subsubsection{wind\_direction}
-Wind direction. Its type is the \verb|wind_direction| domain type. See section \ref{wind_direction} for valid values.
+Wind direction in degrees. Zero is North.
 
 \subsubsection{rainfall}
 The rainfall for this record in millimetres.
 
-For WH1080-compatile hardware it is value is calculated based on the \verb|total_rain| and \verb|rain_overflow| values in multiples of 0.3mm.
+WH1080-compatible hardware does not directly provide rainfall values in its samples. It is calculated as the difference from the \verb|total_rain| from the previous sample. If the \verb|rain_overflow| column is set then the actual value is used instead. Values are multiples of 0.3mm.
 
 \subsubsection{station\_id}
 This is the ID of the station the sample came from. It is a foreign key to the \verb|station| table.
@@ -345,6 +352,9 @@ If this record was the final record in a batch of records downloaded from the we
 \subsubsection{invalid\_data}
 If the record on the weather station had the invalid data status flag set. The WH1080 documentation refers to this as both "rain counter value is not valid" and "no sensor data received"
 
+\subsubsection{wind\_direction}
+Wind direction. Its type is the \verb|wind_direction| domain type. See section \ref{wind_direction} for valid values.
+
 \subsubsection{total\_rain}
 Total rainfall since it last overflowed. This is used only for calculating the values in the sample tables \verb|rainfall| column. Values are a multiple of 0.3. Unit is the millimetre. 
 
@@ -396,7 +406,12 @@ Dew point. This columns value is calculated on update by a trigger using the dew
 Wind chill. This columns value is calculated on update by a trigger using the wind\_chill function (Section \ref{wind_chill}). It is calculated from the \verb|temperature| and \verb|average_wind_speed| columns.
 
 \subsubsection{apparent\_temperature}
-Apparent temperature. This columns value is calculated on update from the \verb|temperature|, \verb|relative_humidity| and \verb|average_wind_speed| columns by a trigger using the apparent\_temperature function (Section \ref{apparent_temperature}).
+Apparent temperature. This columns value is calculated on update from the following functions by a trigger using the \verb|apparent_temperature| function (Section \ref{apparent_temperature}):
+\begin{itemize}
+\item \verb|temperature|
+\item \verb|relative_humidity|
+\item \verb|average_wind_speed|
+\end{itemize}
 
 \subsubsection{absolute\_pressure}
 The absolute pressure in hectopascals (hPa, same as the millibar).
@@ -413,7 +428,7 @@ Average wind speed in metres per second.
 Gust wind speed in metres per second.
 
 \subsubsection{wind\_direction}
-Wind direction. Its type is the \verb|wind_direction| domain type (see section \ref{wind_direction} for valid values).
+Wind direction in degrees. Zero is North.
 
 \section{db\_info}
 \label{tbl_db_info}
@@ -434,8 +449,16 @@ The following keys are defined in zxweather v0.2.
 \textbf{Key} & \textbf{Description} \\
 \hline
 \verb|DB_VERSION| & The database version. The schema described by this manual is version 2. \\
+\verb|MIN_VER_MAJ| & The minimum zxweather major version number.\\
+\verb|MIN_VER_MIN| & The minimum zxweather minor version number.\\
+\verb|MIN_VER_REV| & The minimum zxweather revision number.\\
+\verb|*_MIN_VER_MAJ| & Application-specific minimum major version number.\\
+\verb|*_MIN_VER_MIN| & Application-specific minimum minor version number.\\
+\verb|*_MIN_VER_REV| & Application-specific minimum revision version number.\\
 \hline
 \end{tabular}
+
+All of these keys are used by applications to determine if they are compatible with a particular zxweather database. See chapter \ref{cha_version} for more details on how this works.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -500,46 +523,6 @@ The database contains a number of stored procedures for computing values that do
 
 \section{Functions}
 \label{functions}
-\subsection{dew\_point}
-\label{dew_point}
-
-Calculates the approximate dew point given temperature and relative humidity. The calculation is based on the August-Roche-Magnus approximation for the saturation vapour pressure of water in air as a function of temperature. It is valid for input temperatures 0 to 60 $^{\circ}$C and dew points 0 to 50 $^{\circ}$C
-
-The formula is:
-$$T_d = \frac {b\ \gamma(T,RH)} {a - \gamma(T,RH)}$$
-where
-$$\gamma(T,RH) = \frac {a\ T} {b+T} + \ln (RH/100)$$
-
-where the temperatures are in degrees Celsius. The constants are $a$ = 17.271 and $b$ = 237.7 $^{\circ}$C
-
-See the article on Wikipedia for more details: \url{http://en.wikipedia.org/wiki/Dewpoint}
-
-This function is \emph{immutable}.
-
-\subsubsection{Parameters}
-\begin{itemize}
-\item temperature, real
-\item relative\_humidity, integer
-\end{itemize}
-
-\subsection{wind\_chill}
-\label{wind_chill}
-Calculates the North American wind chill using the following formula:
-$$T_{wc}=13.12 + 0.6215 T_a-11.37 V^{+0.16} + 0.3965 T_a V^{+0.16}\,\!$$
-where $T_{wc}$ is the wind chill index in degrees Celsius, $T_a$ is the air temperature in degrees Celsius and $V$ is the wind speed at 10 metres in kilometres per hour.
-
-The Wind chill temperature is only defined for air temperatures below 10 $^{\circ}$C and wind speeds above 4.8 km/h.
-
-See the article on Wikipedia for more details:
-\url{http://en.wikipedia.org/wiki/Wind_chill}
-
-This function is \emph{immutable}.
-
-\subsubsection{Parameters}
-\begin{itemize}
-\item temperature, real
-\item wind\_speed, real
-\end{itemize}
 
 \subsection{apparent\_temperature}
 \label{apparent_temperature}
@@ -567,6 +550,111 @@ This function is \emph{immutable}.
 \item relative\_humidity, real
 \end{itemize}
 
+\subsection{dew\_point}
+\label{dew_point}
+
+Calculates the approximate dew point given temperature and relative humidity. The calculation is based on the August-Roche-Magnus approximation for the saturation vapour pressure of water in air as a function of temperature. It is valid for input temperatures 0 to 60 $^{\circ}$C and dew points 0 to 50 $^{\circ}$C
+
+The formula is:
+$$T_d = \frac {b\ \gamma(T,RH)} {a - \gamma(T,RH)}$$
+where
+$$\gamma(T,RH) = \frac {a\ T} {b+T} + \ln (RH/100)$$
+
+where the temperatures are in degrees Celsius. The constants are $a$ = 17.271 and $b$ = 237.7 $^{\circ}$C
+
+See the article on Wikipedia for more details: \url{http://en.wikipedia.org/wiki/Dewpoint}
+
+This function is \emph{immutable}.
+
+\subsubsection{Parameters}
+\begin{itemize}
+\item temperature, real
+\item relative\_humidity, integer
+\end{itemize}
+
+\subsection{minimum\_version\_string}
+\label{func_minimum_version_string}
+
+Returns the oldest version of the specified application that is compatible with this database. Its value is derived from the \verb|db_info| table (section \ref{tbl_db_info}). If the application does not have a minimum version number entry in there then the minimum zxweather version is returned instead.
+
+See chapter \ref{cha_version} (Versioning) for more details on how database and application versioning works.
+
+\subsubsection{Parameters}
+\begin{itemize}
+\item application, character varying
+\end{itemize}
+
+\subsection{version\_check}
+\label{func_version_check}
+
+This function checks if the specified application version is compatible with the database. This is done by looking up the application-specific minimum version in the \verb|db_info| table (section \ref{tbl_db_info}) and comparing it to the supplied version number. 
+
+If the application does not have a minimum version number in the \verb|db_info| table then the minimum zxweather version is used instead.
+
+See chapter \ref{cha_version} (Versioning) for more details on how database and application versioning works.
+
+\subsubsection{Parameters}
+\begin{itemize}
+\item application, character varying
+\item major, integer
+\item minor, integer
+\item revision, integer
+\end{itemize}
+
+\subsection{wind\_chill}
+\label{wind_chill}
+Calculates the North American wind chill using the following formula:
+$$T_{wc}=13.12 + 0.6215 T_a-11.37 V^{+0.16} + 0.3965 T_a V^{+0.16}\,\!$$
+where $T_{wc}$ is the wind chill index in degrees Celsius, $T_a$ is the air temperature in degrees Celsius and $V$ is the wind speed at 10 metres in kilometres per hour.
+
+The Wind chill temperature is only defined for air temperatures below 10 $^{\circ}$C and wind speeds above 4.8 km/h.
+
+See the article on Wikipedia for more details:
+\url{http://en.wikipedia.org/wiki/Wind_chill}
+
+This function is \emph{immutable}.
+
+\subsubsection{Parameters}
+\begin{itemize}
+\item temperature, real
+\item wind\_speed, real
+\end{itemize}
+
+\subsection{wind\_direction\_to\_degrees}
+\label{func_wind_direction_to_degrees}
+Converts the supplied wind direction string to a value in degrees. This is used primarily by WH1080-related code as that station records wind direction as a string.
+
+\subsubsection{Conversion table}
+\begin{tabular}{l l}
+\hline
+\textbf{Value} & \textbf{In degrees} \\
+\hline
+N & 0\\
+NNE & 22.5\\
+NE & 45\\
+ENE & 67.5\\
+E & 90\\
+ESE & 112.5\\
+SE & 135\\
+SSE & 157.5\\
+S & 180\\
+SSW & 202.5\\
+SW & 225\\
+WSW & 247.5\\
+W & 270\\
+WNW & 292.5\\
+NW & 315\\
+NNW & 337.5\\
+\hline
+\end{tabular}
+
+All other values are converted to \verb|null|.
+
+\subsubsection{Parameters}
+\begin{itemize}
+\item wind\_direction character varying
+\end{itemize}
+
 \section{Trigger Functions}
 \label{trig_funcs}
 \subsection{compute\_sample\_values}
@@ -581,7 +669,7 @@ Computes values for the following fields when a new record is inserted:
 \subsection{compute\_wh1080\_sample\_values}
 \label{compute_wh1080_sample_values}
 
-Calculates any values that need calculating for WH1080-compatible hardware. Its calculations are based off the data stored in the hardware-specific \verb|wh1080_sample| table. This is currently limited to rainfall data.
+Calculates any values that need calculating for WH1080-compatible hardware. Its calculations are based off the data stored in the hardware-specific \verb|wh1080_sample| table. This is currently limited wind direction (calculated with \verb|wind_direction_to_degrees|, section \ref{func_wind_direction_to_degrees}) and rainfall which is discussed below.
 
 \subsubsection{Rainfall calculation}
 The rainfall value in the \verb|sample| table is calculated using the following query:
@@ -633,7 +721,9 @@ Domains are used on a number of columns to simplify constraints, etc. This chapt
 
 \section{rh\_percentage}
 \label{rh_percentage}
-Used for columns containing relative humidity percentages. Valid values are 1 to 99 (inclusive). It is an \verb|integer| field and does not allow nulls.
+Used for columns containing relative humidity percentages. It is an \verb|integer| field.
+
+This domain used to enforce a not null constraint and values between 0 and 99. This was removed in zxweather v0.1.2 to allow for invalid data logged by WH1080-type hardware. The check constraint is now directly on the sample table so that it is executed after trigger functions are executed to tidy up the data.
 
 \section{wind\_direction}
 \label{wind_direction}
@@ -713,6 +803,50 @@ The following applications use this channel:
 \item wh1080d (WH1080 Update Daemon) - issues notifications when it has finished doing work.
 \item zxweather Database Replicator - waits for a notification on this channel before sending data to the remote database. A notification on the new\_sample channel instructs it to send new samples in addition to sending live data.
 \end{itemize}
+
+\chapter{Versioning}
+\label{cha_version}
+The database stores data to allow applications to determine if they are forwards or backwards compatible.
+
+The data is:
+\begin{itemize}
+\item A schema version number for controlling backwards-compatibility
+\item Minimum application versions for forwards-compatibility.
+\end{itemize}
+
+\section{Backwards compatibility}
+When ever changes are made to the database schema its version number is incremented. This is stored in the \verb|db_info| table (section \ref{tbl_db_info}) as \verb|DB_VERSION|.
+
+This allows applications to determine if a given database supports the features the application requires. 
+
+As an example, all zxweather v0.2 applications require the database schema version number to be 2 or greater.
+
+\section{Forwards compatibility}
+Forwards compatibility is controlled through minimum application version numbers stored in the \verb|db_info| table. The minimum zxweather version number is broken up into its three components and stored under the following keys:
+\begin{itemize}
+\item \verb|MIN_VER_MAJ| - minimum major version
+\item \verb|MIN_VER_MIN| - minimum minor version
+\item \verb|MIN_VER_REV| - minimum revision number
+\end{itemize}
+
+Other applications may store their minimum version using the following scheme:
+\begin{itemize}
+\item \verb|APPNAME_MIN_VER_MAJ|
+\item \verb|APPNAME_MIN_VER_MIN|
+\item \verb|APPNAME_MIN_VER_REV|
+\end{itemize}
+where APPNAME is a short unique name for the application in uppercase. If these keys are not found in the table then the zxweather version numbers are used instead.
+
+This all allows older versions of the various individual zxweather components to be blacklisted by future databases by increasing the minimum zxweather version number and introducing lower application-specific version numbers for those older components which are still compatible.
+
+\subsection{Checking compatibility}
+Minimum version numbers can be retrieved in string form using the \verb|minimum_version_string| function (section \ref{func_minimum_version_string}).
+
+Application version compatibility checks can be performed by passing the application name and version components to the \verb|version_check| function (section \ref{func_version_check}). This function will return true if the passed in version number meets or exceeds the minimum version stored in the database.
+
+\section{Handling v0.1.x databases}
+Version 1 of the database schema (used by zxweather 0.1.x) did not carry the \verb|db_info| table. Checking for these old versions can be achieved by querying \verb|INFORMATION_SCHEMA.TABLES| for the presence of the \verb|db_info| table.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                END DOCUMENT                               %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
