@@ -22,7 +22,7 @@
 \newcommand{\docrev}{001}
 \newcommand{\docdate}{January 2013}
 \newcommand{\docauthor}{David Goodwin}
-\newcommand{\docabstract}{This manual provides installation and configuration guidelines for zxweather.}
+\newcommand{\docabstract}{This manual provides instructions for upgrading from zxweather v0.1.x to v0.2.0.}
 \newcommand{\docupdateinfo}{This is a new manual}
 \newcommand{\docosver}{Linux; Microsoft Windows NT 5.0+}
 \newcommand{\docswver}{zxweather 0.2}
@@ -394,7 +394,73 @@ where \verb|code| is your station code.
 You must also supply your station code to the \verb|wh1080| utility if and when you need to use it.
 
 \subsection{Web Interface}
-No configuration changes are required for the web interface unless you entered something different for the station code than what you had for the \verb|station_name| setting under the "site" group. If that is the case then you will need to update that setting to be your new station code.
+No configuration changes are required for the web interface unless you entered something different for the station code than what you had for the \verb|station_name| setting under the "site" group. If that is the case then you will need to update that setting to be your new station code. You would also need to rename the station directory inside the static data directory to match the new station code.
+
+You can now optionally delete the entire \verb|[data]| group in the web interfaces configuration file. All of this information lives in the database now so this group is now ignored
+
+\subsubsection{Upgrading about.html}
+The about.html template has been upgraded in v0.2. The admin tool should be able to upgrade your customised about.html file automatically.
+
+Start the admin tool the same way you did when upgrading your database if you didn't already:
+\begin{verbatim}
+$ pwd
+/opt/zxweather
+$ python admin_tool/admin_tool.py
+ZXWeather v0.2 admin tool
+        (C) Copyright David Goodwin, 2013
+
+Select option:
+        1. Create a new weather database
+        2. Connect to an existing weather database
+        0. Exit
+Choice> 2
+Hostname [localhost]:
+Port [5432]
+Database name [weather]: 
+Username [postgres]:
+Password: password
+Connect succeeded. Server version: PostgreSQL 9.2.0, 64-bit
+Select option:
+        1. Manage stations
+        2. Upgrade about.html
+        0. Exit
+Choice>
+\end{verbatim}
+
+This time select option 2 from the menu:
+\begin{verbatim}
+Upgrade about.html
+------------------
+
+This procedure will attempt to upgrade any customised about.html files 
+for the web interface.
+
+To proceed you must enter the full path for the web interfaces static 
+data directory.
+
+Static data directory [/opt/zxweather/zxw_web/static/]:
+\end{verbatim}
+
+The admin tool will attempt to read the location of your static data directory out of the web interfaces configuration file. If this fails or the value it comes up with is incorrect then enter the correct static data directory location.
+
+If successful you should see the following output:
+\begin{verbatim}
+Searching for station directories...
+Found about.html for rua
+done.
+Select option:
+        1. Manage stations
+        2. Upgrade about.html
+        0. Exit
+Choice>
+\end{verbatim}
+
+If it fails you'll see output like this before the menu appears:
+\begin{verbatim}
+Searching for station directories...
+done.
+\end{verbatim}
+This indicates that no customised about.html files could be found in the specified static data directory. In this case check that your static data directory is correct and that you have an about.html file in your stations directory.
 
 \subsection{Chart Plotting}
 The chart plotting program that is a part of the web interface has a new station code parameter. The short form is \verb|-s| or you can use the longer \verb|--station| form:
