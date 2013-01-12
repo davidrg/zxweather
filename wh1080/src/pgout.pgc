@@ -35,6 +35,7 @@
 #include <string.h>
 #include "pgout.h"
 #include "common.h"
+#include "version.h"
 
 FILE* database_log_file = NULL;
 
@@ -81,6 +82,73 @@ void pgo_connect(const char *target, const char *username, const char *password)
     EXEC SQL CONNECT TO :target_l USER :username_l USING :password_l;
 
     EXEC SQL SET AUTOCOMMIT TO OFF;
+
+}
+
+/* Checks that that the specified station type is a fine offset WH1080 */
+int pgo_check_station_type(char* station_code) {
+    EXEC SQL BEGIN DECLARE SECTION;
+    int ret_val;
+    const char* station_code_param = station_code;
+    EXEC SQL END DECLARE SECTION;
+
+    EXEC SQL select st.code = 'FOWH1080'
+                    into :ret_val
+             from station s
+             inner join station_type st on st.station_type_id = s.station_type_id
+             where s.code = :station_code_param;
+
+    return ret_val;
+}
+
+/* Gets the database schema version */
+int pgo_get_db_version() {
+    EXEC SQL BEGIN DECLARE SECTION;
+    int db_version;
+    int is_v1_schema;
+    EXEC SQL END DECLARE SECTION;
+
+    /* Only the v1 schema lacks the db_info table */
+    EXEC SQL select v1_check.v1_schema
+                    into :is_v1_schema
+             from (
+                select true as v1_schema
+                where exists (select *
+                              from information_schema.tables
+                              where table_schema = 'public' and table_name = 'db_info')
+                union
+                select false as v1_schema
+                where not exists (select *
+                                  from information_schema.tables
+                                  where table_schema = 'public' and table_name = 'db_info')
+             ) v1_check;
+
+    if (is_v1_schema)
+        return 1;
+
+    /* If we got this far then db_info exists and we can check it to see what
+     * the DB version is. */
+    EXEC SQL select v::integer
+             into :db_version
+             from DB_INFO
+             where k = 'DB_VERSION';
+
+    return db_version;
+}
+
+/* Checks that the application isn't tool old for the database. */
+int pgo_check_min_version() {
+    EXEC SQL BEGIN DECLARE SECTION;
+    int compatible;
+    int major = VERSION_MAJOR;
+    int minor = VERSION_MINOR;
+    int revision = VERSION_REV;
+    EXEC SQL END DECLARE SECTION;
+
+    EXEC SQL select version_check('wh1080',:major, :minor, :revision)
+             into :compatible;
+
+    return compatible;
 }
 
 /* Looks up the ID for the specified station code */
