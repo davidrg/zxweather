@@ -15,6 +15,7 @@ zxweather v0.2 (alpha) Release Notes                                      -2013
 
   Available Documentation:
     DAZW-IG02     zxweather Installation Reference
+    DAZW-UG02     zxweather Upgrade Installation Guide
     DAZW-WG02     WH1080 Utilities Users Guide
     DAZW-DB02     zxweather Database Structure
 
