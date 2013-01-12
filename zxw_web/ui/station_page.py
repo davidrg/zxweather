@@ -4,11 +4,10 @@ Handles the station overview page and any other station-level pages.
 """
 
 from datetime import datetime, timedelta
-import web
 from web.contrib.template import render_jinja
 from cache import day_cache_control
 import config
-from database import get_daily_records, get_years, total_rainfall_in_last_7_days, day_exists, get_station_id
+from database import get_daily_records, get_years, total_rainfall_in_last_7_days, day_exists, get_station_id, get_station_name, in_archive_mode
 import os
 from months import month_name
 from ui import get_nav_urls
@@ -50,12 +49,17 @@ def get_station_standard(ui, station):
         yesterday_month_s = month_name[yesterday.month]
         rainfall_7days_total = total_rainfall_in_last_7_days(now, station_id)
 
+    page_data = {}
+
     if not day_exists(data.yesterday, station_id):
         data.yesterday = None
         data.yesterday_month_s = None
 
     if data.records is None:
-        return web.NotFound(message="No Data")
+        page_data["no_content"] = True
+        page_data["station_name"] = get_station_name(station_id)
+    else:
+        page_data["no_content"] = False
 
     if ui == 'm':
         sub_dir = ''
@@ -69,7 +73,9 @@ def get_station_standard(ui, station):
                                     station=station,
                                     ui=ui,
                                     sitename=config.site_name,
-                                    subdir=sub_dir)
+                                    subdir=sub_dir,
+                                    page_data=page_data,
+                                    archive_mode=in_archive_mode(station_id))
 
 def get_station_basic(station):
     """
@@ -81,7 +87,7 @@ def get_station_basic(station):
     station_id = get_station_id(station)
     return basic_templates.station(years=get_years(station_id),station=station)
 
-class station:
+class station(object):
     """
     Index page for the station. Should give station records, basic yearly
     overview data, etc.

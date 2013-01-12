@@ -81,10 +81,14 @@
                 <a class="brand" href="#">{{ sitename }}</a>
                 <div class="nav-collapse">
                     <ul class="nav">
+                        {% if archive_mode %}
+                        {{ navli('home', 'Home') }}
+                        {% else %}
                         {{ navli('home','Now') }}
                         {{ navli('yesterday','Yesterday') }}
                         {{ navli('this_month','This Month') }}
                         {{ navli('this_year','This Year') }}
+                        {% endif %}
                         {{ navli('about','About') }}
                     </ul>
                 </div><!--/.nav-collapse -->

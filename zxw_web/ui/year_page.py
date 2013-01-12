@@ -8,7 +8,7 @@ from config import db
 import config
 from months import month_name
 from cache import year_cache_control
-from database import year_exists, get_station_id
+from database import year_exists, get_station_id, in_archive_mode
 from ui import get_nav_urls
 import os
 from ui import validate_request, html_file
@@ -121,10 +121,10 @@ def get_year(ui,station, year):
     # See if any data exists for the previous and next months (no point
     # showing a navigation link if there is no data)
     if year_exists(data.prev_year, station_id):
-        data.prev_url = '../' + str(data.prev_year)
+        data.prev_url = '../' + str(data.prev_year) + '/'
 
     if year_exists(data.next_year, station_id):
-        data.next_url = '../' + str(data.next_year)
+        data.next_url = '../' + str(data.next_year) + '/'
 
     year_cache_control(year, station_id)
 
@@ -149,7 +149,8 @@ def get_year(ui,station, year):
         nav_urls = get_nav_urls(station, current_location)
         return modern_templates.year(nav=nav_urls,data=data,urls=urls,
                                      sitename=config.site_name,
-                                     ui=ui)
+                                     ui=ui,
+                                     archive_mode=in_archive_mode(station_id))
     else:
         return basic_templates.year(data=data)
 

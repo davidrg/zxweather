@@ -129,7 +129,12 @@ select s.download_timestamp::varchar,
        s.average_wind_speed,
        s.gust_wind_speed,
        s.wind_direction,
-       s.rainfall,
+       s.rainfall{hw_columns}
+from sample s
+where station_id = %s
+    """
+
+    wh1080_cols = """,
 
        wh1080.sample_interval,
        wh1080.record_number,
@@ -137,11 +142,8 @@ select s.download_timestamp::varchar,
        wh1080.invalid_data,
        wh1080.total_rain,
        wh1080.rain_overflow
-
-from sample s
-left outer join wh1080_sample wh1080 on wh1080.sample_id = s.sample_id
-where station_id = %s
     """
+    wh1080_tables = "left outer join wh1080_sample wh1080 on wh1080.sample_id = s.sample_id"
 
     samples = []
 
@@ -160,10 +162,29 @@ where station_id = %s
 
         hardware_type = get_station_type(cur, station_id)
 
+        if hardware_type == "FOWH1080":
+            hardware_columns = wh1080_cols
+            hardware_tables = wh1080_tables
+        elif hardware_type == "GENERIC":
+            # 'GENERIC' type has no special tables.
+            hardware_columns = ""
+            hardware_tables = ""
+        else:
+            # Its not any station type we know about so we'll just sync the
+            # standard set of sample data and issue a warning.
+            print("WARNING: Unrecognised station hardware type. Syncing basic "
+                  "sample data only.")
+            hardware_columns = ""
+            hardware_tables = ""
+
+        query = base_query.format(hw_columns=hardware_columns,
+                                  hw_tables=hardware_tables)
+
+
         if max_ts is not None:
             print("Updating from {0} for station {1}".format(max_ts, station_code))
 
-            query = base_query + "and time_stamp > %s "
+            query += "and time_stamp > %s "
             query += "order by time_stamp asc"
             cur.execute(query, (station_id, max_ts,))
         else:
@@ -284,10 +305,10 @@ def parse_args():
                       help="Name of GnuPG Binary")
     parser.add_option("-k","--key-id",dest="key_id",
                       help="Fingerprint of the key to sign with")
-    parser.add_option("-r","--reconfigure-stations", action="store_true",
-                        dest="send_stations", default=False,
-                        help="Add station data to remote database on first "
-                             "update.")
+#    parser.add_option("-r","--reconfigure-stations", action="store_true",
+#                        dest="send_stations", default=False,
+#                        help="Add station data to remote database on first "
+#                             "update.")
 
     (options, args) = parser.parse_args()
 
@@ -556,8 +577,13 @@ def main():
     key_id = options.key_id
 
     print("Performing update...")
-    update(cur, options.site_url, gpg, key_id,
-           send_station_info=options.send_stations)
+    update(cur, options.site_url, gpg, key_id)
+
+    # Not going to allow sending station config. This tool is about to go away
+    # so there isn't much point putting the time required into testing that
+    # this functionality works properly.
+    #,
+#           send_station_info=options.send_stations)
 
     if options.continuous:
         listen_loop(con, cur, options.site_url, gpg, key_id)

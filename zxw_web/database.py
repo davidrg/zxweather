@@ -115,7 +115,7 @@ def day_exists(day, station_id):
     :type station_id: int
     :return: True if the day exists.
     """
-
+    # TODO: Cache me. This is called alot.
     if isinstance(day, datetime):
         day = day.date()
 
@@ -127,6 +127,24 @@ def day_exists(day, station_id):
     where date(time_stamp) = $date
     and station_id = $station limit 1""", dict(date=day, station=station_id))
     if len(result):
+        return True
+    else:
+        return False
+
+def in_archive_mode(station_id):
+    """
+    Checks to see if the station is in archive mode (no current data).
+    :param station_id: ID of the station to check
+    :return: True if the station is in archive mode (no current data)
+    :rtype: bool
+    """
+    # TODO: Cache me. This is called a lot.
+
+    result = db.query("""select 42 from sample
+    where date(time_stamp) = date(NOW()) or date(time_stamp) = date(NOW()) - '1 day'::interval
+    and station_id = $station limit 1""", dict(station=station_id))
+
+    if not len(result):
         return True
     else:
         return False
@@ -297,14 +315,18 @@ def get_live_data(station_id):
 
     if get_live_data_available(station_id):
         # No need to filter or anything - live_data only contains one record.
-        current_data = db.query("""select download_timestamp::time as time_stamp,
+        result = db.query("""select download_timestamp::time as time_stamp,
                     relative_humidity, temperature, dew_point,
                     wind_chill, apparent_temperature, absolute_pressure,
                     average_wind_speed, gust_wind_speed, wind_direction,
                     extract('epoch' from (now() - download_timestamp)) as age
                     from live_data where station_id = $station""",
-                    dict(station=station_id))[0]
-        current_data_ts = current_data.time_stamp
+                    dict(station=station_id))
+        if len(result):
+            current_data = result[0]
+            current_data_ts = current_data.time_stamp
+        else:
+            return None,None
     else:
         # Fetch the latest data for today
         current_data = db.query("""select time_stamp::time as time_stamp, relative_humidity,
@@ -372,3 +394,20 @@ def get_live_indoor_data(station_id):
 
     return current_data
 
+def get_station_name(station_id):
+    """
+    Gets the name of the station
+    :param station_id: The ID of the station to get data for
+    :type station_id: int
+    :return: Station name
+    :rtype: str
+    """
+
+    result = db.query("select title "
+                      "from station "
+                      "where station_id = $station",
+        dict(station=station_id))
+    if len(result):
+        return result[0].title
+    else:
+        return None

@@ -192,7 +192,7 @@ COMMENT ON COLUMN live_data.station_id is 'The station this live data is for.';
 -- version).
 CREATE TABLE db_info
 (
-  k varchar(20) primary key not null,
+  k varchar primary key not null,
   v character varying
 );
 
@@ -606,7 +606,114 @@ IS 'Minimum and maximum records for each year.';
 -- FUNCTIONS ---------------------------------------------------------
 ----------------------------------------------------------------------
 
--- These are unchanged.
+-- Checks to see if the application is too old for this database
+CREATE OR REPLACE FUNCTION version_check(application character varying, major integer, minor integer, revision integer)
+RETURNS boolean AS $BODY$
+DECLARE
+  app_key_maj character varying;
+  app_key_min character varying;
+  app_key_rev character varying;
+  key_count integer;
+
+  v_maj integer;
+  v_min integer;
+  v_rev integer;
+
+  compatible boolean := FALSE;
+BEGIN
+  -- We'll check for application-specific minimum versions first.
+  app_key_maj := upper(application) || '_MIN_VER_MAJ';
+  app_key_min := upper(application) || '_MIN_VER_MIN';
+  app_key_rev := upper(application) || '_MIN_VER_REV';
+
+  select count(*) into key_count
+  from db_info
+  where k = app_key_maj or k = app_key_min or k = app_key_rev;
+
+  IF (key_count = 3) THEN
+    -- Looks like all three app keys are there. We'll use its versions
+    select v::integer into v_maj from db_info where k = app_key_maj;
+    select v::integer into v_min from db_info where k = app_key_min;
+    select v::integer into v_rev from db_info where k = app_key_rev;
+  ELSE
+    -- No valid application-specific minimum version. Use the global minimum
+    -- instead.
+    select v::integer into v_maj from db_info where k = 'MIN_VER_MAJ';
+    select v::integer into v_min from db_info where k = 'MIN_VER_MIN';
+    select v::integer into v_rev from db_info where k = 'MIN_VER_REV';
+  END IF;
+
+  -- We've got the minimum versions. Now lets see if the supplied version
+  -- number is newer.
+
+  IF (v_maj < major) THEN
+    -- Minimum version is an older major release. We're OK.
+    compatible := TRUE;
+  ELSEIF (v_maj = major) THEN
+    -- Major versions match. Need to check the minor version.
+    IF (v_min < minor) THEN
+      -- Minimum version is an older release. We're OK.
+      compatible := TRUE;
+    ELSEIF (v_min = minor) THEN
+      -- Major and minor versions match. The revision number will decide if
+      -- we're compatible.
+      if (v_rev <= revision) THEN
+        compatible := TRUE;
+      END IF;
+    END IF;
+  END IF;
+
+  return compatible;
+END;
+$BODY$
+LANGUAGE plpgsql;
+COMMENT ON FUNCTION version_check(character varying, integer, integer, integer)
+IS 'Checks to see if a particular version of an application is too old for this database.';
+
+-- Gets the minimum version of the application needed for this database
+CREATE OR REPLACE FUNCTION minimum_version_string(application character varying)
+  RETURNS varchar AS $BODY$
+DECLARE
+  key_maj character varying;
+  key_min character varying;
+  key_rev character varying;
+  key_count integer;
+
+  version_string character varying;
+BEGIN
+  -- We'll check for application-specific minimum versions first.
+  key_maj := upper(application) || '_MIN_VER_MAJ';
+  key_min := upper(application) || '_MIN_VER_MIN';
+  key_rev := upper(application) || '_MIN_VER_REV';
+
+  select count(*) into key_count
+  from db_info
+  where k = key_maj or k = key_min or k = key_rev;
+
+  IF (key_count <> 3) THEN
+    key_maj := 'MIN_VER_MAJ';
+    key_min := 'MIN_VER_MIN';
+    key_rev := 'MIN_VER_REV';
+  END IF;
+
+  select max(version.major) || '.' || max(version.minor) || '.' || max(version.revision) as version_string
+         into version_string
+  from (
+  select 42 as grp,
+         case when k = key_maj then v else NULL end as major,
+         case when k = key_min then v else NULL end as minor,
+         case when K = key_rev then v else NULL end as revision
+  from db_info
+  where k = key_maj or k = key_min or k = key_rev
+  ) version
+  group by version.grp;
+
+  return version_string;
+END;
+$BODY$
+LANGUAGE plpgsql;
+COMMENT ON FUNCTION minimum_version_string(character varying)
+IS 'Gets minimum version of the application needed by this database.';
 
 ----------------------------------------------------------------------
 -- TRIGGER FUNCTIONS -------------------------------------------------
@@ -721,7 +828,7 @@ BEGIN
         select s.code into station_code
         from station s where s.station_id = NEW.station_id;
 
-        perform pg_notify('live_data_updated', live_data_updated);
+        perform pg_notify('live_data_updated', station_code);
 
     END IF;
 
