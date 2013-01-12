@@ -263,7 +263,7 @@ This chapter describes the database setup required by zxweather. The database is
 
 Alternatively, if it is impractical for all systems to have direct access to the database it is possible to setup a second replica database on the system running the Web Interface. Chapter \ref{cha_db_replication} covers this setup in more detail.
 
-If you already have a database from a previous installation of zxweather v0.2 that you wish to re-use you can skip this chapter. If you already have a database but it is from a previous installation of zxweather v0.1.x then the database will need upgrading. This is covered by the \emph{zxweather Upgrade Guide, version 0.2} (DAZW-UR02).
+If you already have a database from a previous installation of zxweather v0.2 that you wish to re-use you can skip this chapter. If you already have a database but it is from a previous installation of zxweather v0.1.x then the database will need upgrading. This is covered by chapter 3 of the \emph{zxweather Upgrade Guide, version 0.2} (DAZW-UR02).
 
 \section{Installation}
 The zxweather database has only been tested with PostgreSQL version 9.0 and above. This documentation assumes you already have a suitable version of the server and client tools installed on your system.
@@ -488,7 +488,7 @@ If the database replication feature in the Web Interface is being used then its 
 \label{cha_data_logger}
 % Compiling and installing wh1080d or the other program
 
-The Data Logger is a daemon which continuously downloads weather data (both live and historical samples) from the weather station and loads it into the database. It is called \emph{wh1080d} and is one of the WH1080 Utilities. Its full documentation is contained in the \emph{WH1080 Utilities Users Guide, version 0.1} (DAZW-WG02).
+The Data Logger is a daemon which continuously downloads weather data (both live and historical samples) from the weather station and loads it into the database. It is called \emph{wh1080d} and is one of the WH1080 Utilities. Its full documentation is contained in the \emph{WH1080 Utilities Users Guide, version 0.2} (DAZW-WG02).
 
 This chapter covers how to compile and install this tool. Additionally, section \ref{sec_loading_data} includes some important maintenance information that must always be taken into consideration before you start wh1080d.
 
@@ -825,7 +825,7 @@ $ python plot/weatherplot.py --database weather --host localhost
 
 To make this run every 30 minutes you would add a line such as the following to /etc/crontab:
 \begin{verbatim}
-0,30 *  * * *   root    cd /var/zxweather && \
+0,30 *  * * *   root    cd /opt/zxweather && \
   python plot/weatherplot.py -t weather -n localhost -u postgres \
   -p password -d zxw_web/static/station_name -a plot_status_file \
   -s station_code
