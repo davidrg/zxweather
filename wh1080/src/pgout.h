@@ -28,6 +28,15 @@
 /* Connect to the target server as the specified user */
 void pgo_connect(const char* target, const char* username, const char *password);
 
+/* Gets the database schema version */
+int pgo_get_db_version();
+
+/* Checks that the application isn't tool old for the database. */
+int pgo_check_min_version();
+
+/* Checks that that the specified station type is a fine offset WH1080 */
+int pgo_check_station_type(char* station_code);
+
 /* Gets the ID for the specified station code */
 long pgo_get_station_id(const char* station_code);
 

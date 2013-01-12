@@ -88,6 +88,24 @@ void daemon_main(char *server,
 
     setup(server, username, password, log_file); /* Connect to device, db, etc */
 
+    /* Check that the database is valid */
+    if (pgo_get_db_version() < 2) {
+        fprintf(log_file, "Fatal Error: database needs upgrading");
+        return;
+    }
+
+    if (!pgo_check_min_version()) {
+        fprintf(log_file, "Fatal Error: This application is not compatible "
+                "with the database. Please obtain a newer version.");
+        return;
+    }
+
+    /* Check the station is valid */
+    if (!pgo_check_station_type(station)) {
+        fprintf(log_file, "Fatal error: incompatible station hardware type\n");
+        return;
+    }
+
     station_id = pgo_get_station_id(station); /* Get station ID */
 
     /* Make sure the device hasn't been reset since we last ran. wh1080d can't

@@ -109,6 +109,25 @@ int db_update(char* server,
 
     printf("Connect to Database...\n");
     pgo_connect(server, username, password);
+
+    /* Check that the database is valid */
+    if (pgo_get_db_version() < 2) {
+        fprintf(stderr, "Fatal Error: database needs upgrading");
+        return;
+    }
+
+    if (!pgo_check_min_version()) {
+        fprintf(stderr, "Fatal Error: This application is not compatible "
+                "with the database. Please obtain a newer version.");
+        return;
+    }
+
+    /* Check the station is valid */
+    if (!pgo_check_station_type(station)) {
+        fprintf(stderr, "Fatal error: incompatible station hardware type\n");
+        return FALSE;
+    }
+
     station_id = pgo_get_station_id(station);
 
     /* Determine WS Latest/current record & sync clocks */
@@ -384,7 +403,7 @@ int main(int argc, char *argv[])
     printf("arg_error: %s\n", arg_error ? "TRUE" : "FALSE");
 **/
 
-    printf("WH1080 Update Tool v1.0\n");
+    printf("WH1080 Update Tool v2.0\n");
     printf("\t(C) Copyright David Goodwin, 2012\n\n");
 
     if (arg_error) {
