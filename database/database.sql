@@ -78,7 +78,8 @@ CREATE TABLE sample
   wind_direction integer, -- Wind Direction in degrees
   rainfall real, -- Calculated rainfall. Calculation is based on total_rainfall and rain_overflow columns compared to the previous sample.
   station_id integer not null references station(station_id),
-  CONSTRAINT pk_sample PRIMARY KEY (sample_id )
+  CONSTRAINT pk_sample PRIMARY KEY (sample_id ),
+  CONSTRAINT chk_wind_degrees CHECK (wind_direction >= 0 AND wind_direction < 360) -- Ensure wind direction is valid
 );
 COMMENT ON TABLE sample IS 'Samples from the weather station.';
 COMMENT ON COLUMN sample.download_timestamp IS 'When this record was downloaded from the weather station';
