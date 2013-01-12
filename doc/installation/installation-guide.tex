@@ -2,7 +2,7 @@
 % !Document: IG02 [zxweather Installation Reference]
 % ----------------------------------------------------------------------------
 % !Revision: 001
-% !IssueDate: October 2012
+% !IssueDate: January 2013
 % !Status: Unreleased
 %
 % !-Classification
@@ -20,13 +20,13 @@
 %\newcommand{\projectnum}{DAZW}
 \newcommand{\docnum}{IG02}
 \newcommand{\docrev}{001}
-\newcommand{\docdate}{July 2012}
+\newcommand{\docdate}{January 2013}
 \newcommand{\docauthor}{David Goodwin}
 \newcommand{\docabstract}{This manual provides installation and configuration guidelines for zxweather.}
 \newcommand{\docupdateinfo}{This is a new manual}
 \newcommand{\docosver}{Linux; Microsoft Windows NT 5.0+}
 \newcommand{\docswver}{zxweather 0.2}
-\newcommand{\doccopyright}{\textcircled{c} Copyright David Goodwin, 2012.}
+\newcommand{\doccopyright}{\textcircled{c} Copyright David Goodwin, 2012, 2013.}
 \newcommand{\doclicense}{Use, reproduction and modification of this document is permitted subject to the terms of the GNU Free Documentation License, Version 1.3 or any later vesion published by the Free Software Foundation. See \url{http://www.gnu.org/copyleft/fdl.html} for full license text.}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -74,6 +74,11 @@
 
 % ragged-right paragraphs for tabular environments. Use 'P' instead of 'p'.
 \newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+\newcommand*\cleartoleftpage{%
+  \clearpage
+  \ifodd\value{page}\hbox{}\newpage\fi
+}
 
 \begin{document}
 
@@ -131,6 +136,8 @@ Its main features are:
 
 This manual provides installation and maintenance instructions for the entire core system. You should read this manual in its entirety to avoid problems. You may skip chapter \ref{cha_db_replication} if you do not plan to use the feature it describes.
 
+This manual does \emph{not} cover an upgrade installation of zxweather v0.2. If you need to upgrade from a previous version consult the \emph{zxweather Upgrade Installation Guide, version 0.2} (\verb|DAZW-UR02|).
+
 \begin {figure}[!ht]
  \centering
  \includegraphics[scale=0.574]{images/stat_overview}
@@ -142,6 +149,7 @@ This manual provides installation and maintenance instructions for the entire co
 Other available documentation for the zxweather system includes:
 
 \begin{tabular}{l l}
+\verb|DAZW-UR02| & zxweather Upgrade Installation Guide, version 0.2\\
 \verb|DAZW-WG02| & WH1080 Utilities Users Guide, version 0.2 \\
 \verb|DAZW-DB02| & zxweather Database Structure, version 0.2 \\
 \end{tabular}
@@ -149,7 +157,7 @@ Other available documentation for the zxweather system includes:
 \section{System Structure}
 zxweather consists of three major components:
 \begin{itemize}
-\item Database (run on PostgreSQL)
+\item A PostgreSQL Database
 \item Data Logger (wh1080d) and other WH1080 utilities
 \item Web Interface
 \end{itemize}
@@ -170,7 +178,9 @@ The weather stations sample interval should be set to five minutes. If you have 
 Intervals larger than five minutes should work but there may be minor issues in the web interface.
 
 \section{System Requirements}
-Linux is the recommended operating system for running the core components of zxweather. Where this is not practical it is possible to run under Microsoft Windows with some limitations.
+Linux is strongly recommended as the operating system for running the core components of zxweather. 
+
+While this manual does not cover installation or operation on systems running Microsoft Windows it is possible to do with some limitations if running under linux is not practical or possible.
 
 The only supported database engine is PostgreSQL. Any version from 9.0 and up should be suitable. Older versions may work but this is not tested. Other RDBMS (such as MySQL) are not supported in any way.
 
@@ -202,7 +212,7 @@ This software and libraries should be available from your operating systems pack
 \subsubsection{Web Interface}
 The web interface requires the following to be installed on your system:
 \begin{itemize}
-\item Python 2.6 or 2.7
+\item Python 2.7
 \item The following python libraries: 
 \begin{itemize}
 \item Psycopg2
@@ -223,12 +233,13 @@ The standard zxweather distribution should be extracted to somewhere on your dis
 $ pwd
 /opt/zxweather
 $ ls
-database  db_push  desktop  doc  plot  wh1080  zxw_web
+admin_tool  database  db_push  desktop  doc  plot  wh1080  zxw_web
 \end{verbatim}
 
 The subdirectories are:
 
 \begin{itemize}
+\item \emph{admin\_tool} - Tool for creating and upgrading databases
 \item \emph{database} - Scripts to create the database (chapter \ref{cha_database})
 \item \emph{db\_push} - Database replication tools (chapter \ref{cha_db_replication})
 \item \emph{desktop}  - Desktop interface
@@ -252,46 +263,207 @@ This chapter describes the database setup required by zxweather. The database is
 Alternatively, if it is impractical for all systems to have direct access to the database it is possible to setup a second replica database on the system running the Web Interface. Chapter \ref{cha_db_replication} covers this setup in more detail.
 
 \section{Installation}
-
-%TODO Come up with a better database setup system. Write a python program or something. Should be able to handle database upgrades and (when the feature is added) setting up the weather station in the database.
-
 The zxweather database has only been tested with PostgreSQL version 9.0 and above. This documentation assumes you already have a suitable version of the server and client tools installed on your system.
 
-This section documents creating the zxweather using the command-line PostgreSQL tools. If you are more comfortable with the pgAdmin III GUI tool you may use that instead.
+This section documents creating the zxweather database using the command-line admin tool. If you would rather create the database yourself the create script is called \verb|database.sql| and can be found inside the database subdirectory of the zxweather distribution. 
+
 
 \subsection{Create Database}
-To create the weather database, execute a command such as the following:
+To start the admin tool execute \verb|python admin_tool/admin_tool.py| in the zxweather distribution directory:
 
 \begin{verbatim}
-$ createdb -h dbserver -U username weather "Weather database"
+$ pwd
+/opt/zxweather
+$ ls
+admin_tool  database  db_push  desktop  doc  plot  wh1080  zxw_web
+$ python admin_tool/admin_tool.py
 \end{verbatim}
 
-Where:
-\begin{itemize}
-\item \emph{dbserver} is the hostname (or IP Address) of the machine running PostgreSQL.
-\item \emph{username} is the username to login to the server with. This will often be something like "postgres". The account being used must have the \emph{CREATEDB} permission. You will be prompted for the password if required.
-\item \emph{weather} is the name of the new database.
-\item \emph{"Weather Database"} is a description of the database. This is optional.
-\end{itemize}
-
-More information on the createdb program can be found at \url{http://www.postgresql.org/docs/9.1/static/app-createdb.html}.
-
-\subsection{Create Database Structure}
-The database structure needed by zxweather to store data is created using the \verb|database.sql| SQL Script located in the \emph{database} subdirectory of the zxweather distribution. Running this SQL script will create the full database structure in one step.
-
-You can run this script with a command such as the following inside the zxweather distribution directory:
+When you start it you will be given a list of options for connecting to a database:
 \begin{verbatim}
-$ psql -h dbserver -U username -d weather -f database/database.sql 
+ZXWeather v0.2 admin tool
+        (C) Copyright David Goodwin, 2013
+
+Select option:
+        1. Create a new weather database
+        2. Connect to an existing weather database
+        0. Exit
+Choice>
 \end{verbatim}
-The supplied parameters are:
+
+To create a new database enter 1 and hit return. You will then be asked for details about your database server. You will need:
 \begin{itemize}
-\item \emph{dbserver} - The hostname (or IP Address) of the machine running PostgreSQL
-\item \emph{username} - The user account to login to the server with. Using a superuser account (often called "postgres") will be easiest. You will be prompted for a password if required.
-\item \emph{weather} - The name of the database you created in the previous section.
+\item hostname or IP address
+\item port (this is normally 5432)
+\item username
+\item password
 \end{itemize}
+You should login as a user with database creation permissions such as the postgres user.
+
+\subsubsection{Hostname}
+The first question you will be asked is for the hostname of the database server:
+\begin{verbatim}
+Enter the details for the database you wish to create
+You will now be prompted for database configuration details.
+Hostname [localhost]:
+\end{verbatim}
+
+If the database server is running on the same machine you are running the admin tool on you can simply hit return to accept the default value shown in square brackets (localhost).
+
+\subsubsection{Port}
+The second question is the database servers port number:
+\begin{verbatim}
+Port [5432]:
+\end{verbatim}
+You should be able to just hit return here unless you or someone else has changed PostgreSQL to run on a port other than the default of 5432.
+
+\subsubsection{Database name}
+Next you will be asked for the name of the new database. This must be a valid PostgreSQL identifier. It must start with a letter and can contain only letters, digits or the underscore character as described below:
+
+\begin{verbatim}
+The database name must start with a letter and may only contain 
+letters, digits or the underscore character ('_'). Valid database
+names include weather, weather42, my_weather_database, 
+weather_42_database. If your database name does not meet these 
+restrictions you'll get an error later on.
+New database name [weather]:
+\end{verbatim}
+
+Again, if you are happy with your database being called "weather" you can just hit return.
+
+\subsubsection{Username and password}
+Lastly you will be asked for the username and password of a user who has enough rights to create new databases. The new database will be owned by this user. It is recommended you use the standard PostgreSQL administrator account "postgres":
+\begin{verbatim}
+Username [postgres]:
+Password:
+\end{verbatim}
+
+Once you have entered a username and password your new database will be created. The output of this process should look something like the following if your database was successfully created:
+\begin{verbatim}
+Connect succeeded. Server version: PostgreSQL 9.2.0, 64-bit
+Loading create script...
+Creating new database...
+Reconnect succeeded. Server version: PostgreSQL 9.2.0, 64-bit
+Creating database structure. This may take a little while...
+New database created successfully.
+Connect succeeded. Server version: PostgreSQL 9.2.0, 64-bit
+\end{verbatim}
+
+\subsubsection{Creating a station}
+
+You should now at the normal administration menu shown below:
+\begin{verbatim}
+Select option:
+        1. Manage stations
+        2. Upgrade about.html
+        0. Exit
+Choice>
+\end{verbatim}
+
+You must now create a new weather station in the database by selecting option 1 from the menu (enter 1 and hit enter). This will take you to the Manage Stations menu:
+
+\begin{verbatim}
+Manage Stations
+---------------
+
+Select option:
+        1. List stations
+        2. Create station
+        3. Edit station
+        0. Return
+Choice>
+\end{verbatim}
+
+Select option 2 from the list to create a new station. You will be asked for the following details about your station:
+\begin{itemize}
+\item Station Code
+\item Station Name
+\item Description
+\item Hardware Type
+\item Sample Interval
+\item If live data is available from the station
+\end{itemize}
+
+\subsubsection{Station Code}
+The station code is a short (maximum of 5 characters) unique code to identify your weather station. It can not be changed later.
+
+\begin{verbatim}
+              |---|
+Station Code:
+\end{verbatim}
+
+The prompt includes a bar above it to show you how long the station code is allowed to be.
+
+\subsubsection{Station Name and Description}
+The station name is a short name for your weather station. The description field allows you to enter a longer description of your weather station. Both of these can be changed later by selecting the "Edit station" option from the "Manage Stations" menu.
+
+\begin{verbatim}
+Station Name is a longer name for your station that will be displayed 
+to users.
+Name: Test station
+
+You may now enter an optional short description for your weather
+station.
+Description []:
+\end{verbatim}
+
+The description is optional so you can just hit return if you don't want to enter one.
+
+\subsubsection{Hardware Type}
+Next you must specify what sort of weather station hardware you will be using. As shown below this version of zxweather only supports one type of weather station - the Fine Offset WH1080. As such \verb|FOWH1080| is your only option so enter that exact code in response to the question.
+
+\begin{verbatim}
+Code     Title
+-------- ----------------------------------------------------------
+FOWH1080 Fine Offset WH1080-compatible
+-------- ----------------------------------------------------------
+Hardware type code:
+\end{verbatim}
+
+\subsubsection{Sample Interval and Live Data}
+
+The final two questions are asking you about what sort of data is available from your weather station.
+
+The sample interval is how often your weather station records new samples. Five minutes (300 seconds) is the recommended number. Values less than this are not supported and will not work. If you have previously used wview with your weather station you may find it is set to 60 seconds. Resetting your weather station console should fix this. Alternatively you can use the EasyWeather software that came with your weather station to manage the sample interval.
+
+You should answer yes to the following question about live data. Should you decide not to use wh1080d as your data logger you can come back to the station management menu later to turn this option off.
+
+\begin{verbatim}
+The stations sample interval is how often new samples are loaded 
+into the database. Samples are used to plot charts and are also 
+used for the current conditions when live data is not available. 
+The sample interval is in seconds where 300 is 5 minutes.
+Sample interval [300]:
+Is live data available for this station (yes/no) [yes]:
+\end{verbatim}
+
+\subsubsection{Finishing Up}
+You have now finished entering all data required for your weather station. You will finally be asked to confirm the details you have entered. This is your opportunity to correct any typos, etc.
+
+\begin{verbatim}
+You entered the following details:
+----------------------------------
+Code: rua
+Name: Ruakura Station
+Sample interval: 300
+Live data available: True
+Hardware type: FOWH1080
+Description:
+
+----------------------------------
+
+If you no longer wish to create this station answer no to the 
+following two questions.
+
+Is the information entered correct? (y/n):
+\end{verbatim}
+
+Answering 'y' here will create the station. Remember that stations can not be removed so if you do not wish to create the station you should answer 'n' here.
+
+Answering 'n' will give you the option to either cancel or adjust your answers.
 
 \section{Permissions}
-Four programs will be accessing the database. They require user accounts with the following permissions on the weather database:
+If you wish to create separate user accounts for zxweather then the various programs need the following permissions listed below. Creating new PostgreSQL user accounts is not covered by this manual.
 
 \begin{tabular}{l l}
 \hline
@@ -304,8 +476,6 @@ web interface & CONNECT, SELECT \\
 \hline
 \end{tabular}
 
-You can create individual accounts for each program or have them all sharing the same account.
-
 If the database replication feature in the Web Interface is being used then its user account will need the INSERT and UPDATE permissions in addition to those described in the table above. This is covered in more detail in chapter \ref{cha_db_replication}.
 
 %\subsection{Creating Accounts}
@@ -315,7 +485,7 @@ If the database replication feature in the Web Interface is being used then its 
 \label{cha_data_logger}
 % Compiling and installing wh1080d or the other program
 
-The Data Logger is a daemon which continuously downloads weather data (both live and historical samples) from the weather station and loads it into the database. It is called \emph{wh1080d} and is one of the WH1080 Utilities. Its full documentation is contained in the \emph{WH1080 Utilities Users Guide, version 0.1} (\verb|DAZW-WG01|).
+The Data Logger is a daemon which continuously downloads weather data (both live and historical samples) from the weather station and loads it into the database. It is called \emph{wh1080d} and is one of the WH1080 Utilities. Its full documentation is contained in the \emph{WH1080 Utilities Users Guide, version 0.1} (\verb|DAZW-WG02|).
 
 This chapter covers how to compile and install this tool. Additionally, section \ref{sec_loading_data} includes some important maintenance information that must always be taken into consideration before you start wh1080d.
 
@@ -383,9 +553,9 @@ To perform a full update you must use the the wh1080 tool as the data logger (wh
 
 The \verb|-l| command-line option causes the wh1080 tool to perform a Full Update instead of a regular one:
 
-\verb|wh1080 -l -d databasename@hostname -u username -p password|
+\verb|wh1080 -l -d databasename@hostname -u username -p password -s code|
 
-This is covered in more detail in Section 2.2.4 of \emph{WH1080 Utilities Users Guide} (DAZW-WG01).
+This is covered in more detail in Section 2.2.4 of \emph{WH1080 Utilities Users Guide} (DAZW-WG02).
 
 \section{wh1080d Configuration}
 \subsection{Linux}
@@ -399,7 +569,7 @@ wh1080d (the Data Logger) takes the following arguments:
 -d & database & Database connection string \\
 -u & username & Database username \\
 -p & password & Database password \\
--s & station  & Code for weather station to work against \\
+-s & station  & Station Code for weather station to work against \\
 -f & filename & Log file to write messages to \\
 \hline
 \end{tabular}
@@ -423,11 +593,11 @@ Currently wh1080d is not capable of running as a service on windows. Instead you
 -d & database & Database connection string \\
 -u & username & Database username \\
 -p & password & Database password \\
--s & station  & Code for weather station to work against \\
+-s & station  & Station Code for weather station to work against \\
 \hline
 \end{tabular}
 
-This will change in a future release.
+This may change in a future release.
 
 \chapter{Web Interface}
 \label{cha_web_interface}
@@ -612,10 +782,11 @@ The weatherplot program accepts the following command-line arguments:
 \verb|-a| \par \verb|--plot-new| & filename & Only plots charts for dates on or after that stored in the specified file. \\
 \verb|-r| \par \verb|--replot-pause| & seconds & Number of seconds to wait before replotting.\\
 \verb|-g| \par \verb|--gnuplot-binary| & filename & Name of the gnuplot executable to use if it is something other than "gnuplot".\\
+\verb|-s| \par \verb|--station| & code & The station code of the weather station to plot charts for.\\
 \hline
 \end{tabular}
 
-The database, host, user, password and directory parameters are always required.
+The database, host, user, password, directory and station parameters are always required.
 
 \subsection{Plotting All Charts}
 
@@ -625,6 +796,7 @@ To regenerate charts for your entire database run the weatherplot program with o
 $ python plot/weatherplot.py --database weather --host localhost \
 --user postgres --password password \
 --directory zxw_web/static/station_name/
+--station station_code
 \end{verbatim}
 
 This will create charts for all days and months in your database and store them in the specified directory. Depending on the size of your database this may take some time.
@@ -645,14 +817,15 @@ When run as below weatherplot will only replot charts that have changed since it
 \begin{verbatim}
 $ python plot/weatherplot.py --database weather --host localhost
 --user postgres --password password --directory static/station_name/
---plot-new plot_status_file
+--plot-new plot_status_file --station station_code
 \end{verbatim}
 
 To make this run every 30 minutes you would add a line such as the following to /etc/crontab:
 \begin{verbatim}
 0,30 *  * * *   root    cd /var/zxweather && \
   python plot/weatherplot.py -t weather -n localhost -u postgres \
-  -p password -d zxw_web/static/station_name -a plot_status_file  
+  -p password -d zxw_web/static/station_name -a plot_status_file \
+  -s station_code
 \end{verbatim}
 
 If the static charts are not important to you, you may wish to only regenerate them every few hours or once a day.
@@ -671,14 +844,14 @@ When run as below the behaviour is the same as setting it up to be run by cron e
 \begin{verbatim}
 $ python plot/weatherplot.py --database weather --host localhost \
 --user postgres --password password --directory zxw_web/static/rua \
---plot-new plot_status_file --replot-pause 1800
+--plot-new plot_status_file --replot-pause 1800 --station rua
 
-Weather data plotting application v1.0
-        (C) Copyright David Goodwin, 2012
+Weather data plotting application v1.1
+        (C) Copyright David Goodwin, 2012, 2013
 
 
 Connecting to database...
-Server version: PostgreSQL 9.1.2, compiled by Visual C++ build 1500
+Server version: PostgreSQL 9.2
 Generating temperature plots in zxw_web/static/rua
 Plotting from 2012-05-10
 Plotting graphs for 2012...
@@ -763,13 +936,13 @@ Usernames and passwords are unnecessary as the web interface will reject anythin
 
 \section{Remote Server Installation}
 
-The remote server requires the following components installed on it:
+The remote server requires the following components to be installed on it:
 \begin{itemize}
 \item Database
 \item Web Interface
 \end{itemize}
 
-Setting up the remote database is exactly the same as setting up your local database. Follow the instructions in chapter \ref{cha_database} except on your remote server rather than the local one.
+Setting up the remote database must be done exactly the same as setting up your local database. This means that the station code, name, etc, must match too. Follow the instructions in chapter \ref{cha_database} a second time except on your remote server rather than the local one.
 
 The procedure for setting up the web interface is much the same as for local except for a few details:
 \begin{itemize}
@@ -843,6 +1016,7 @@ The full list of arguments accepted by the generate\_key program is:
 \hline
 \end{tabular}
 
+Unlike all of the other zxweather components db\_push does not take a station code argument. It retrieves the station code to replicate data for from the web interface.
 
 \subsection{Running db\_push}
 
@@ -1075,7 +1249,7 @@ Samples Inserted: 0
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Back page
-\newpage
+\cleartoleftpage
 \thispagestyle{empty}
 \begin{flushright}
 \null
