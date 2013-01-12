@@ -100,15 +100,14 @@ CREATE TABLE sample
   absolute_pressure real, -- Absolute pressure
   average_wind_speed real, -- Average Wind Speed.
   gust_wind_speed real, -- Gust wind speed.
-  wind_direction wind_direction, -- Wind Direction.
+  wind_direction integer, -- Wind direction in degrees
   rainfall real, -- Calculated rainfall. Calculation is based on total_rainfall and rain_overflow columns compared to the previous sample.
   station_id integer not null references station(station_id),
   CONSTRAINT pk_sample PRIMARY KEY (sample_id),
   CONSTRAINT chk_indoor_relative_humidity CHECK (indoor_relative_humidity::integer > 0 AND indoor_relative_humidity::integer < 100), -- Ensure the indoor relative humidity is in the range 0-100
-  CONSTRAINT chk_outdoor_relative_humidity CHECK (relative_humidity::integer > 0 AND relative_humidity::integer < 100) -- Ensure the outdoor relative humidity is in the range 0-100
+  CONSTRAINT chk_outdoor_relative_humidity CHECK (relative_humidity::integer > 0 AND relative_humidity::integer < 100), -- Ensure the outdoor relative humidity is in the range 0-100
+  CONSTRAINT chk_wind_degrees CHECK (wind_direction >= 0 AND wind_direction <= 360) -- Ensure wind direction is valid
 );
-ALTER TABLE sample
-  OWNER TO postgres;
 COMMENT ON TABLE sample IS 'Samples from the weather station.';
 COMMENT ON COLUMN sample.download_timestamp IS 'When this record was downloaded from the weather station';
 COMMENT ON COLUMN sample.time_stamp IS 'The calculated date and time when this record was likely recorded by the weather station. How far out it could possibly be depends on the size of the sample interval, etc.';
@@ -122,7 +121,7 @@ COMMENT ON COLUMN sample.apparent_temperature IS 'Calculated apparent temperatur
 COMMENT ON COLUMN sample.absolute_pressure IS 'Absolute pressure in hPa';
 COMMENT ON COLUMN sample.average_wind_speed IS 'Average Wind Speed in m/s.';
 COMMENT ON COLUMN sample.gust_wind_speed IS 'Gust wind speed in m/s.';
-COMMENT ON COLUMN sample.wind_direction IS 'Wind Direction.';
+COMMENT ON COLUMN sample.wind_direction IS 'Wind direction in degrees.';
 COMMENT ON COLUMN sample.rainfall IS 'Calculated rainfall in mm. Smallest recordable amount is 0.3mm. Calculation is based on total_rainfall and rain_overflow columns compared to the previous sample.';
 COMMENT ON COLUMN sample.station_id IS 'The weather station this sample is for';
 
@@ -137,6 +136,7 @@ CREATE TABLE wh1080_sample
   record_number integer NOT NULL, -- The history slot in the weather stations circular buffer this record came from. Used for calculating the timestamp.
   last_in_batch boolean, -- If this was the last record in a batch of records downloaded from the weather station.
   invalid_data boolean NOT NULL, -- If the record from the weather stations "no sensor data received" flag is set.
+  wind_direction wind_direction, -- Wind direction in text format
   total_rain real, -- Total rain recorded by the sensor so far. Subtract the previous samples total rainfall from this one to calculate the amount of rain for this sample.
   rain_overflow boolean -- If an overflow in the total_rain counter has occurred
 );
@@ -148,6 +148,7 @@ COMMENT ON COLUMN wh1080_sample.last_in_batch IS 'If this was the last record in
 COMMENT ON COLUMN wh1080_sample.invalid_data IS 'If the record from the weather stations "no sensor data received" flag is set.';
 COMMENT ON COLUMN wh1080_sample.total_rain IS 'Total rain recorded by the sensor so far. Smallest possible increment is 0.3mm. Subtract the previous samples total rainfall from this one to calculate the amount of rain for this sample.';
 COMMENT ON COLUMN wh1080_sample.rain_overflow IS 'If an overflow in the total_rain counter has occurred';
+COMMENT ON COLUMN wh1080_sample.wind_direction IS 'Wind direction in text format';
 
 ----------------------
 CREATE TABLE live_data
@@ -164,10 +165,8 @@ CREATE TABLE live_data
   absolute_pressure real, -- Absolute pressure
     average_wind_speed real, -- Average Wind Speed.
   gust_wind_speed real, -- Gust wind speed.
-  wind_direction wind_direction -- Wind Direction.
+  wind_direction integer -- Wind Direction.
 );
-ALTER TABLE live_data
-  OWNER TO postgres;
 COMMENT ON TABLE live_data
 IS 'Live data from the weather stations. Contains only a single record for each weather station.';
 COMMENT ON COLUMN live_data.download_timestamp IS 'When this record was downloaded from the weather station';
@@ -183,10 +182,6 @@ COMMENT ON COLUMN live_data.average_wind_speed IS 'Average Wind Speed in m/s.';
 COMMENT ON COLUMN live_data.gust_wind_speed IS 'Gust wind speed in m/s.';
 COMMENT ON COLUMN live_data.wind_direction IS 'Wind Direction.';
 COMMENT ON COLUMN live_data.station_id is 'The station this live data is for.';
-
--- Live data table must always have one and only one record.
---insert into live_data(download_timestamp, wind_direction) values(null, 'INV');
-
 
 -- A table to store some basic information about the database (such as schema
 -- version).
@@ -230,8 +225,6 @@ CREATE OR REPLACE VIEW wh1080_latest_record_number AS
   order by s.time_stamp desc, ws.record_number desc
   limit 1;
 
-ALTER TABLE wh1080_latest_record_number
-  OWNER TO postgres;
 COMMENT ON VIEW wh1080_latest_record_number
 IS 'Gets the number of the most recent record for WH1080-type stations. This is used by wh1080d and associated utilities to figure out what it needs to load into the database and what is already there.';
 
@@ -715,6 +708,39 @@ LANGUAGE plpgsql;
 COMMENT ON FUNCTION minimum_version_string(character varying)
 IS 'Gets minimum version of the application needed by this database.';
 
+-- Takes a compass point (N, NNE, etc) and returns the direction in degrees.
+CREATE OR REPLACE FUNCTION wind_direction_to_degrees(wind_direction character varying)
+  RETURNS numeric(4,1) AS $BODY$
+DECLARE
+    degrees numeric(4,1);
+BEGIN
+    select case
+               when wind_direction = 'N' then 0
+               when wind_direction = 'NNE' then 22.5
+               when wind_direction = 'NE' then 45
+               when wind_direction = 'ENE' then 67.5
+               when wind_direction = 'E' then 90
+               when wind_direction = 'ESE' then 112.5
+               when wind_direction = 'SE' then 135
+               when wind_direction = 'SSE' then 157.5
+               when wind_direction = 'S' then 180
+               when wind_direction = 'SSW' then 202.5
+               when wind_direction = 'SW' then 225
+               when wind_direction = 'WSW' then 247.5
+               when wind_direction = 'W' then 270
+               when wind_direction = 'WNW' then 292.5
+               when wind_direction = 'NW' then 315
+               when wind_direction = 'NNW' then 337.5
+            end as direction
+           into degrees;
+
+    return degrees;
+END;
+$BODY$
+LANGUAGE plpgsql IMMUTABLE;
+COMMENT ON FUNCTION wind_direction_to_degrees(character varying) IS
+'Returns the supplied compass point in degrees';
+
 ----------------------------------------------------------------------
 -- TRIGGER FUNCTIONS -------------------------------------------------
 ----------------------------------------------------------------------
@@ -776,7 +802,7 @@ BEGIN
                 gust_wind_speed = null,
                 rainfall = null
             where sample_id = NEW.sample_id;
-            -- Wind direction should be fine (it'll be 'INV').
+            -- Wind direction should be fine (it'll be null).
             -- The rest of the fields are captured by the base station
             -- and so should be fine.
 
@@ -802,7 +828,9 @@ BEGIN
                                 where ins.time_stamp < new_timestamp)
             and sa.station_id = current_station_id;
 
-            update sample set rainfall = new_rainfall
+            update sample
+               set rainfall = new_rainfall,
+                   wind_direction = wind_direction_to_degrees(NEW.wind_direction)
             where sample_id = NEW.sample_id;
         END IF;
     END IF;
@@ -889,7 +917,7 @@ BEGIN
   RETURNING station_id INTO new_station_id;
 
   -- Create live data record
-  INSERT INTO live_data(wind_direction,station_id) VALUES('INV', new_station_id);
+  INSERT INTO live_data(station_id) VALUES( new_station_id);
 
   -- Migrate sample data
   FOR rec IN SELECT sample_interval, record_number, download_timestamp,
@@ -910,7 +938,6 @@ BEGIN
                        absolute_pressure,
                        average_wind_speed,
                        gust_wind_speed,
-                       wind_direction,
                        station_id)
     VALUES(rec.download_timestamp,
            rec.time_stamp,
@@ -921,7 +948,6 @@ BEGIN
            rec.absolute_pressure,
            rec.average_wind_speed,
            rec.gust_wind_speed,
-           rec.wind_direction,
            new_station_id
     ) RETURNING sample_id INTO temp_sample_id;
 
@@ -931,14 +957,16 @@ BEGIN
                               last_in_batch,
                               invalid_data,
                               total_rain,
-                              rain_overflow)
+                              rain_overflow,
+                              wind_direction)
     VALUES(temp_sample_id,
            rec.sample_interval,
            rec.record_number,
            rec.last_in_batch,
            rec.invalid_data,
            rec.total_rain,
-           rec.rain_overflow);
+           rec.rain_overflow,
+           rec.wind_direction);
   END LOOP;
 
 END;
@@ -1009,9 +1037,9 @@ BEGIN
     OR round(old.gust_wind_speed::numeric, 2) <> round(s.gust_wind_speed::numeric, 2)
     OR (old.gust_wind_speed is null and s.gust_wind_speed is not null)
     OR (old.gust_wind_speed is not null and s.gust_wind_speed is null)
-    OR old.wind_direction <> s.wind_direction
-    OR (old.wind_direction is null and s.wind_direction is not null)
-    OR (old.wind_direction is not null and s.wind_direction is null)
+    OR old.wind_direction <> ws.wind_direction
+    OR (old.wind_direction is null and ws.wind_direction is not null)
+    OR (old.wind_direction is not null and ws.wind_direction is null)
     OR round(old.rainfall::numeric, 2) <> round(s.rainfall::numeric, 2)
     OR (old.rainfall is null and s.rainfall is not null)
     OR (old.rainfall is not null and s.rainfall is null)

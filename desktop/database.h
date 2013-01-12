@@ -38,8 +38,10 @@ typedef struct _live_data_record {
     float absolute_pressure; /*!< Absolute pressure (hPa). */
     float average_wind_speed; /*!< Average wind speed. */
     float gust_wind_speed; /*!< Gust wind speed. */
-    char wind_direction[4]; /*!< Wind direction (N, NE, NNE, etc). */
+    int wind_direction; /*!< Wind direction in degrees. */
+    char wind_direction_str[4]; /*!< Wind direction (N, NE, NNE, etc). */
     long download_timestamp; /*!< Time when the live data was last refreshed. UNIX time (time_t). */
+    bool v1; /*!< v1 data source. If true use wind_direction_str. */
 } live_data_record;
 
 /**
