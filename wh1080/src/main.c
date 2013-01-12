@@ -404,7 +404,7 @@ int main(int argc, char *argv[])
 **/
 
     printf("WH1080 Update Tool v2.0\n");
-    printf("\t(C) Copyright David Goodwin, 2012\n\n");
+    printf("\t(C) Copyright David Goodwin, 2012, 2013\n\n");
 
     if (arg_error) {
         usage(argv[0]);
