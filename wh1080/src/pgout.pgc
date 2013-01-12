@@ -243,7 +243,6 @@ void pgo_insert_history_set(history_set hs, long station_id) {
                                         indoor_relative_humidity,
                                         indoor_temperature,
                                         absolute_pressure,
-                                        wind_direction,
                                         station_id
                                         )
                     VALUES(/* :download_time and :time_stamp are in UNIX time
@@ -254,7 +253,6 @@ void pgo_insert_history_set(history_set hs, long station_id) {
                            :indoor_relative_humidity,
                            :indoor_temperature,
                            :absolute_pressure,
-                           :wind_direction_str,
                            :station_id_param)
                     RETURNING sample_id INTO :new_sample_id;
         } else {
@@ -267,7 +265,6 @@ void pgo_insert_history_set(history_set hs, long station_id) {
                                         absolute_pressure,
                                         average_wind_speed,
                                         gust_wind_speed,
-                                        wind_direction,
                                         station_id
                                         )
                     VALUES(/* :download_time and :time_stamp are in UNIX time
@@ -282,7 +279,6 @@ void pgo_insert_history_set(history_set hs, long station_id) {
                            :absolute_pressure,
                            :average_wind_speed,
                            :gust_wind_speed,
-                           :wind_direction_str,
                            :station_id_param)
                     RETURNING sample_id INTO :new_sample_id;
         }
@@ -292,13 +288,15 @@ void pgo_insert_history_set(history_set hs, long station_id) {
                                            last_in_batch,
                                            invalid_data,
                                            total_rain,
-                                           rain_overflow)
+                                           rain_overflow,
+                                           wind_direction)
                 VALUES(:sample_time,
                        :record_number,
                        :last_in_set,
                        :invalid_data,
                        :total_rain,
-                       :rain_overflow);
+                       :rain_overflow,
+                       :wind_direction_str);
     }
 }
 
@@ -338,8 +336,7 @@ void pgo_update_live(history live_record, long station_id) {
                  invalid_data = :invalid_data,
                  indoor_relative_humidity = :indoor_relative_humidity,
                  indoor_temperature = :indoor_temperature,
-                 absolute_pressure = :absolute_pressure,
-                 wind_direction = :wind_direction_str
+                 absolute_pressure = :absolute_pressure
              WHERE station_id = :station_id_param;
     } else {
         EXEC SQL UPDATE live_data
@@ -352,7 +349,7 @@ void pgo_update_live(history live_record, long station_id) {
                  absolute_pressure = :absolute_pressure,
                  average_wind_speed = :average_wind_speed,
                  gust_wind_speed = :gust_wind_speed,
-                 wind_direction = :wind_direction_str
+                 wind_direction = wind_direction_to_degrees(:wind_direction_str)
              WHERE station_id = :station_id_param;
     }
     EXEC SQL COMMIT;

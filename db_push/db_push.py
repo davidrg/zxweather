@@ -141,7 +141,8 @@ where station_id = %s
        wh1080.last_in_batch,
        wh1080.invalid_data,
        wh1080.total_rain,
-       wh1080.rain_overflow
+       wh1080.rain_overflow,
+       wh1080.wind_direction
     """
     wh1080_tables = "left outer join wh1080_sample wh1080 on wh1080.sample_id = s.sample_id"
 
@@ -222,6 +223,7 @@ where station_id = %s
                 sample['id'] = row[14]  # invalid_data (wh1080)
                 sample['rt'] = row[15]  # total_rain (wh1080)
                 sample['ro'] = row[16]  # rain_overflow (wh1080)
+                sample['wd'] = row[17]  # wind direction (wh1080)
 
             samples.append(sample)
 

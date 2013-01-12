@@ -219,9 +219,11 @@ class data_load():
 
         sample_insert_query = """
         insert into wh1080_sample(sample_id, sample_interval, record_number,
-            last_in_batch, invalid_data, total_rain, rain_overflow)
+            last_in_batch, invalid_data, total_rain, rain_overflow,
+            wind_direction)
         values($sample_id, $sample_interval, $record_number,
-               $last_in_batch, $invalid_data, $total_rain, $rain_overflow)"""
+               $last_in_batch, $invalid_data, $total_rain, $rain_overflow,
+               $wind_direction)"""
 
         params = dict(
             sample_id = sample_id,
@@ -230,7 +232,8 @@ class data_load():
             last_in_batch = wh1080_sample_data['lib'],
             invalid_data = wh1080_sample_data['id'],
             total_rain = wh1080_sample_data['rt'],
-            rain_overflow = wh1080_sample_data['ro']
+            rain_overflow = wh1080_sample_data['ro'],
+            wind_direction = wh1080_sample_data['wd']
         )
 
         db.query(sample_insert_query, params)

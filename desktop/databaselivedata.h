@@ -51,7 +51,12 @@ public:
     float getAbsolutePressure() const { return record.absolute_pressure; }
     float getAverageWindSpeed() const { return record.average_wind_speed; }
     float getGustWindSpeed() const { return record.gust_wind_speed; }
-    QString getWindDirection() const { return QString(record.wind_direction); }
+    QString getWindDirection() const {
+        if (record.v1)
+            return QString(record.wind_direction_str);
+        else
+            return QString::number(record.wind_direction);
+    }
     QDateTime getTimestamp() const { return QDateTime::fromTime_t(record.download_timestamp); }
     bool indoorDataAvailable() const {return true; }
 
