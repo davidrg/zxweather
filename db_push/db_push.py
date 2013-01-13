@@ -566,7 +566,7 @@ def main():
     options = parse_args()
 
     print("zxweather database replicator v2.0")
-    print("\t(C) Copyright David Goodwin, 2012\n\n")
+    print("\t(C) Copyright David Goodwin, 2012, 2013\n\n")
 
     con = connect_to_db(get_connection_string(options))
     cur = con.cursor()
