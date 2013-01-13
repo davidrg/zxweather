@@ -126,7 +126,6 @@ class data_load():
 
         params = dict(
             download_timestamp = live_data['ts'],
-            invalid_data = live_data['id'],
             indoor_rh = live_data['ih'],
             indoor_temp = live_data['it'],
             rh = live_data['h'],
@@ -233,7 +232,7 @@ class data_load():
             invalid_data = wh1080_sample_data['id'],
             total_rain = wh1080_sample_data['rt'],
             rain_overflow = wh1080_sample_data['ro'],
-            wind_direction = wh1080_sample_data['wd']
+            wind_direction = wh1080_sample_data['wds']
         )
 
         db.query(sample_insert_query, params)
