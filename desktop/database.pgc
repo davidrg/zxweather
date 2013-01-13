@@ -200,16 +200,16 @@ int wdb_get_station_id(const char* station) {
     int station_id_param = 0;
     EXEC SQL END DECLARE SECTION;
 
-    if (!connected) return 0;
+    qDebug() << "Getting station id...";
 
-    check_data_connection();
-
-    if (db_version > 2) {
+    if (db_version >= 2) {
+        qDebug() << "V2+ DB: station " << station;
         EXEC SQL SELECT station_id
                  INTO :station_id_param
                  FROM station
                  WHERE code = :station_code;
     } else {
+        qDebug() << "V1 DB: skip";
         station_id_param = 0;
     }
 
@@ -288,6 +288,8 @@ live_data_record get_live_data_v1() {
     long download_timestamp = 0;
     EXEC SQL END DECLARE SECTION;
 
+    qDebug() << "V1 data load";
+
     memset(wind_direction, '\0', sizeof(char) * 4);
 
     check_data_connection();
@@ -354,6 +356,8 @@ live_data_record get_live_data_v2() {
     long download_timestamp = 0;
     int station_id_param = station_id;
     EXEC SQL END DECLARE SECTION;
+
+    qDebug() << "V2 data load for station id " << station_id_param;
 
     check_data_connection();
 
@@ -425,7 +429,7 @@ live_data_record wdb_get_live_data() {
         rec.wind_direction = 0;
         rec.download_timestamp = 0;
         rec.v1 = true;
-
+        qDebug() << "Not connected - using empty data";
         return rec;
     }
 
