@@ -92,7 +92,9 @@ int pgo_check_station_type(char* station_code) {
     const char* station_code_param = station_code;
     EXEC SQL END DECLARE SECTION;
 
-    EXEC SQL select st.code = 'FOWH1080'
+    EXEC SQL select case when st.code = 'FOWH1080' then 1
+                         else 0
+                    end as hc
                     into :ret_val
              from station s
              inner join station_type st on st.station_type_id = s.station_type_id
@@ -112,12 +114,12 @@ int pgo_get_db_version() {
     EXEC SQL select v1_check.v1_schema
                     into :is_v1_schema
              from (
-                select true as v1_schema
+                select 0 as v1_schema
                 where exists (select *
                               from information_schema.tables
                               where table_schema = 'public' and table_name = 'db_info')
                 union
-                select false as v1_schema
+                select 1 as v1_schema
                 where not exists (select *
                                   from information_schema.tables
                                   where table_schema = 'public' and table_name = 'db_info')
@@ -145,8 +147,12 @@ int pgo_check_min_version() {
     int revision = VERSION_REV;
     EXEC SQL END DECLARE SECTION;
 
-    EXEC SQL select version_check('wh1080',:major, :minor, :revision)
-             into :compatible;
+    EXEC SQL select case when version_check = true then 1
+            when version_check = false then 0
+            end as vc
+            into :compatible
+            from version_check('',0,2,0);
+
 
     return compatible;
 }
@@ -289,14 +295,16 @@ void pgo_insert_history_set(history_set hs, long station_id) {
                                            invalid_data,
                                            total_rain,
                                            rain_overflow,
-                                           wind_direction)
+                                           wind_direction,
+                                           sample_id)
                 VALUES(:sample_time,
                        :record_number,
                        :last_in_set,
                        :invalid_data,
                        :total_rain,
                        :rain_overflow,
-                       :wind_direction_str);
+                       :wind_direction_str,
+                       :new_sample_id);
     }
 }
 
@@ -311,10 +319,10 @@ void pgo_update_live(history live_record, long station_id) {
     float average_wind_speed;
     float gust_wind_speed;
     char* wind_direction_str;
-    int invalid_data;
     long download_time;
     long station_id_param = station_id;
     EXEC SQL END DECLARE SECTION;
+    int invalid_data;
 
     indoor_relative_humidity = live_record.indoor_relative_humidity;
     indoor_temperature = SFP(live_record.indoor_temperature);
@@ -333,7 +341,6 @@ void pgo_update_live(history live_record, long station_id) {
            direction (which will be "INV") */
         EXEC SQL UPDATE live_data
              SET download_timestamp = (('epoch'::timestamp) + :download_time * '1 second'::interval) AT TIME ZONE 'GMT',
-                 invalid_data = :invalid_data,
                  indoor_relative_humidity = :indoor_relative_humidity,
                  indoor_temperature = :indoor_temperature,
                  absolute_pressure = :absolute_pressure
@@ -341,7 +348,6 @@ void pgo_update_live(history live_record, long station_id) {
     } else {
         EXEC SQL UPDATE live_data
              SET download_timestamp = (('epoch'::timestamp) + :download_time * '1 second'::interval) AT TIME ZONE 'GMT',
-                 invalid_data = :invalid_data,
                  indoor_relative_humidity = :indoor_relative_humidity,
                  indoor_temperature = :indoor_temperature,
                  relative_humidity = :relative_humidity,
@@ -362,9 +368,13 @@ void pgo_update_live(history live_record, long station_id) {
 void pgo_updates_complete(char *station_code) {
     EXEC SQL BEGIN DECLARE SECTION;
     char* station_code_param = station_code;
+    int foo;
     EXEC SQL END DECLARE SECTION;
 
-    EXEC SQL SELECT pg_notify('update_complete',:station_code_param);
+    /* Stupid hack. If we don't select INTO something ECPG complains about
+       too few arguments. */
+    EXEC SQL SELECT 42 INTO :foo
+             FROM pg_notify('update_complete',:station_code_param);
 
     EXEC SQL COMMIT;
 }
