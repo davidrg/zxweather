@@ -131,6 +131,7 @@ select s.download_timestamp::varchar,
        s.wind_direction,
        s.rainfall{hw_columns}
 from sample s
+{hw_tables}
 where station_id = %s
     """
 
@@ -223,7 +224,7 @@ where station_id = %s
                 sample['id'] = row[14]  # invalid_data (wh1080)
                 sample['rt'] = row[15]  # total_rain (wh1080)
                 sample['ro'] = row[16]  # rain_overflow (wh1080)
-                sample['wd'] = row[17]  # wind direction (wh1080)
+                sample['wds'] = row[17]  # wind direction (wh1080)
 
             samples.append(sample)
 
