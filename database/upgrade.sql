@@ -106,7 +106,7 @@ CREATE TABLE sample
   CONSTRAINT pk_sample PRIMARY KEY (sample_id),
   CONSTRAINT chk_indoor_relative_humidity CHECK (indoor_relative_humidity::integer > 0 AND indoor_relative_humidity::integer < 100), -- Ensure the indoor relative humidity is in the range 0-100
   CONSTRAINT chk_outdoor_relative_humidity CHECK (relative_humidity::integer > 0 AND relative_humidity::integer < 100), -- Ensure the outdoor relative humidity is in the range 0-100
-  CONSTRAINT chk_wind_degrees CHECK (wind_direction >= 0 AND wind_direction <= 360) -- Ensure wind direction is valid
+  CONSTRAINT chk_wind_degrees CHECK (wind_direction >= 0 AND wind_direction < 360) -- Ensure wind direction is valid
 );
 COMMENT ON TABLE sample IS 'Samples from the weather station.';
 COMMENT ON COLUMN sample.download_timestamp IS 'When this record was downloaded from the weather station';

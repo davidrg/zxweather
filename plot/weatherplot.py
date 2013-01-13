@@ -198,8 +198,8 @@ def main():
     (options, args) = parser.parse_args()
 
 
-    print("Weather data plotting application v1.0")
-    print("\t(C) Copyright David Goodwin, 2012\n\n")
+    print("Weather data plotting application v1.1")
+    print("\t(C) Copyright David Goodwin, 2012, 2013\n\n")
 
     error = False
     if options.station_code is None:

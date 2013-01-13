@@ -4,7 +4,7 @@ CHANGES                                             zxweather alpha release 0.2
 
   Version 0.2 (alpha)
     New Features:
-      - Support for multiple weather stations in the same database
+      - Initial support for multiple weather stations in the same database
       - Database is no longer specific to FineOffset WH1080 hardware. Other
         hardware types can now be supported by writing programs to import their
         data into the database. See the zxweather Database Structure manual
@@ -17,12 +17,20 @@ CHANGES                                             zxweather alpha release 0.2
         - Settings dialog is shown on first run
         - Now supports retrieving data from the web interface for when a direct
           connection to the database is impractical.
+      - When there has been no data for the past two days the web interface
+        will enter archive mode where the station overview page just displays
+        a message and links to each year in the database. The top navigation
+        menu items are cut down to just 'Home' and 'About' in this mode.
     Bug Fixes:
       - Fixed bug where certain live data download timestamps could cause error
         messages in the zxweather desktop client.
+      - Fixed problems with invalid data from the weather station
+      - Fixed bug navigating between years
     Other Changes:
       - Database refactored to make supporting different types of weather
         station hardware easier.
+      - Most applications will check the version of the database before running
+        to prevent malfunctioning on databases that are too old or new.
 
   Version 0.1 (alpha)
     - Initial release
