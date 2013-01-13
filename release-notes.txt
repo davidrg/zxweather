@@ -1,5 +1,5 @@
 -------------------------------------------------------------------------------
-zxweather v0.2 (alpha) Release Notes                                      -2013
+zxweather v0.2 (alpha) Release Notes                                13-JAN-2013
 ===============================================================================
 
   zxweather is a system for collecting and displaying data from automatic
