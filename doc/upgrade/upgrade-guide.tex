@@ -137,7 +137,7 @@ The upgrade procedure consists of:
 \end{itemize}
 
 \section{Related Documentation}
-Other available documentation for the zxweather system includes:
+Other available documentation for the zxweather system include:
 
 \begin{tabular}{l l}
 \verb|DAZW-IG02| & zxweather Installation Reference, version 0.2\\
@@ -196,17 +196,21 @@ Once you are satisfied that you have appropriate backups you can begin by shutti
 If you are using the data replication facility (db\_push) you will have to run through the upgrade procedure a second time on the remote system as well. No changes have been made to the data replication tool itself but the remote database, web interface, etc, will need upgrading.
 
 \section{Unpacking the Distribution}
-The standard zxweather distribution should be extracted to somewhere on your disk such as \\ \verb|/opt/zxweather|. To keep your new zxweather v0.2 installation clean you should not unpack it over the top of your existing v0.1.x installation:
+\label{sec_unpack}
+The standard zxweather distribution should be extracted to somewhere on your disk such as \verb|/opt/zxweather|. To keep your new zxweather v0.2 installation clean you should not unpack it over the top of your existing v0.1.x installation:
 
 \begin{verbatim}
 $ pwd
 /opt
 $ ls
-zxweather zx
+zxweather
 $ mv zxweather zxweather-old
-$ tar -zxf zxweather-v0.2.0.tar.gz
+$ tar -zxf /root/zxweather-v0.2.0.tar.gz
 $ ls
-zxweather-old   zxweather
+zxweather-old   zxweather-v0.2.0
+$ mv zxweather-v0.2.0 zxweather
+$ ls
+zxweather-old zxweather
 \end{verbatim}
 
 You should then move your weather stations directory over from the static data directory in your old install. If your weather stations code was 'rua' then you'd do something like the following:
@@ -220,9 +224,9 @@ css   images   img   js   rua   about.html
 \end{verbatim}
 
 \section{Compiling the Data Logger}
-The requirements or process for building the zxweather WH1080 utilities have not changed in version 0.2 so if you were able to build them last time it is exactly the same this time.
+The requirements or process for building the zxweather WH1080 utilities have not changed in version 0.2 so if you were able to build them last time it is exactly the same for the new version.
 
-To compile the WH1080 tools, cd into the wh1080 subdirectory of the zxweather distributino and run \verb|make|. This should kick off the build process and leave you with a handful of programs inside the wh1080 utility.
+To compile the WH1080 tools, cd into the wh1080 subdirectory of the zxweather distribution and run \verb|make|. This should kick off the build process and leave you with a handful of programs inside the wh1080 utility.
 
 \section{Next Steps}
 The following chapters will describe how to:
@@ -233,7 +237,8 @@ The following chapters will describe how to:
 \end{itemize}
 
 \chapter{Database Upgrade}
-This chapter describes how to upgrade a zxweather v0.1.x database to zxweather v0.2. It assumes you already have the zxweather distribution unpacked somewhere. The examples in this directory will show the distribution archive as being unpacked to /opt/zxweather:
+\label{cha_database}
+This chapter describes how to upgrade a zxweather v0.1.x database to zxweather v0.2. It assumes you already have the zxweather distribution unpacked somewhere. The examples in this chapter will show the distribution archive as being unpacked to /opt/zxweather:
 \begin{verbatim}
 $ pwd
 /opt/zxweather
@@ -265,13 +270,13 @@ You should choose option 2 for performing an upgrade. Enter the 2 and hit return
 
 \section{Connecting}
 The first series of questions you will be asked by the admin tool are connection details for your existing database. This is:
-\begin{verbatim}
+\begin{itemize}
 \item hostname or IP address
 \item port
 \item database name
 \item username
 \item password
-\end{verbatim}
+\end{itemize}
 
 The first question is for your database servers hostname:
 \begin{verbatim}
@@ -312,7 +317,7 @@ Are you satisfied with the state of your backups? (y/n):
 Enter "y" or "yes" to proceed.
 
 \subsection{Station Details}
-The following series of details are about your weather station:
+The following series of questions are about your weather station:
 \begin{itemize}
 \item Station Code
 \item Station Name
@@ -394,14 +399,19 @@ where \verb|code| is your station code.
 You must also supply your station code to the \verb|wh1080| utility if and when you need to use it.
 
 \subsection{Web Interface}
-No configuration changes are required for the web interface unless you entered something different for the station code than what you had for the \verb|station_name| setting under the "site" group. If that is the case then you will need to update that setting to be your new station code. You would also need to rename the station directory inside the static data directory to match the new station code.
+No configuration changes are required for the web interface. You can remove the \verb|[data]| group in the configuration file if you wish however. These configuration options are stored in the database so the values in the configuration file are now ignored.
 
-You can now optionally delete the entire \verb|[data]| group in the web interfaces configuration file. All of this information lives in the database now so this group is now ignored
+\subsubsection{If You Changed Your Station Code}
+If you entered something different for your station code than what you had for the \verb|station_name| setting under the \verb|[site]| group then you will need to:
+\begin{itemize}
+\item Change your web interfaces configuration to use the new station code for the \verb|station_name| configuration option. This option now controls your \emph{default} station.
+\item Rename your stations static data directory. This directory is where static charts are plotted to and where your customised about.html file lives. You should have moved it to your new zxweather directory in section \ref{sec_unpack}.
+\end{itemize}
 
 \subsubsection{Upgrading about.html}
 The about.html template has been upgraded in v0.2. The admin tool should be able to upgrade your customised about.html file automatically.
 
-Start the admin tool the same way you did when upgrading your database if you didn't already:
+Start the admin tool the same way you did when upgrading your database if you closed it at the end of chapter \ref{cha_database}:
 \begin{verbatim}
 $ pwd
 /opt/zxweather
@@ -460,10 +470,10 @@ If it fails you'll see output like this before the menu appears:
 Searching for station directories...
 done.
 \end{verbatim}
-This indicates that no customised about.html files could be found in the specified static data directory. In this case check that your static data directory is correct and that you have an about.html file in your stations directory.
+This indicates that no customised about.html files could be found in the specified static data directory. In this case check that your static data directory is correct and that you have an about.html file in your stations subdirectory.
 
 \subsection{Chart Plotting}
-The chart plotting program that is a part of the web interface has a new station code parameter. The short form is \verb|-s| or you can use the longer \verb|--station| form:
+The chart plotting program that is a part of the web interface has a new station code parameter. The short form is \verb|-s| or you can use the longer \verb|--station| form.
 
 If your previous cron job looked like this:
 \begin{verbatim}
