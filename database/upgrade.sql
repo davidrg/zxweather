@@ -40,7 +40,7 @@ drop index idx_time_stamp;
 ALTER DOMAIN rh_percentage
 DROP NOT NULL;
 
-alter domain rh_percentage drop constraint if exists rh_percentage_check;
+alter domain rh_percentage drop constraint rh_percentage_check;
 
 ----------------------------------------------------------------------
 -- TABLES ------------------------------------------------------------
