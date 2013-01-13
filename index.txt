@@ -1,6 +1,7 @@
 ------------------------------------------------------------------------------
 INDEX
 ==============================================================================
+  admin_tool             Tool for upgrading and managing the database
   database               Database scripts
   db_push                Tool for pushing db changes to remote web interface
   desktop                Desktop client for Windows and Linux
