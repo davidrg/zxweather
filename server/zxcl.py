@@ -244,14 +244,29 @@ class Parser(object):
         Lexer.DATE,
         ]
 
+    # TODO: Consider dumping these once the command processor is working.
+    # They can be rebuilt from the combined list if necessary anyway.
     verb = None
     keyword = None
     qualifiers = []
     parameters = []
 
+    # This is what the command processor will look at as ordering is important
+    # for handling syntax changes
+    combined = []
+    # It is a list of tuples between 2 and 3 items long.
+    # Item 0: either v - verb
+    #             or p - parameter
+    #             or q - qualifier
+    # Item 1: if [0]=="v": verb name
+    #         if [0]=="p": parameter value
+    #         if [0]=="q": qualifier name
+    # Item 3: Only present if [0]=="q". In which case its the qualifiers value.
+    #         None means the qualifier had no value.
+
     @staticmethod
     def _tokenise(string):
-
+        # TODO: Maybe move this to Lexer
         tokens = []
 
         lex = Lexer(string)
@@ -333,8 +348,9 @@ class Parser(object):
             if self._look_ahead.type == Lexer.FORWARD_SLASH:
                 self._qualifier()
             elif self._look_ahead.type in self._parameter_types:
-
-                self.parameters.append(self._parameter())
+                param = self._parameter()
+                self.parameters.append(param)
+                self.combined.append(("p",param))
             else:
                 raise Exception("Expected qualifier or parameter at position {0}".format(self._look_ahead.position))
 
@@ -354,6 +370,7 @@ class Parser(object):
             ))
 
         self.verb = val
+        self.combined.append(("v",val))
 
     def _qualifier(self):
         self._match(Lexer.FORWARD_SLASH)
@@ -371,6 +388,7 @@ class Parser(object):
             qualifier_value = self._parameter()
 
         self.qualifiers.append((qualifier_name,qualifier_value))
+        self.combined.append(("q",qualifier_name, qualifier_value))
 
     def _parameter(self):
         if self._look_ahead.type in self._parameter_types:
@@ -405,6 +423,8 @@ print parser.verb
 print parser.keyword
 print parser.qualifiers
 print parser.parameters
+print "---"
+print parser.combined
 
 while True:
     value = raw_input(">")
@@ -417,3 +437,4 @@ while True:
         print parser.parameters
     except Exception as e:
         print("Error: " + e.message)
+
