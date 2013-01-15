@@ -49,6 +49,12 @@ class Token(object):
             value=self.value,
             type_name=Lexer.token_names[self.type])
 
+class LexerError(Exception):
+    """
+    problems in the lexer.
+    """
+    pass
+
 class Lexer(object):
     """
     Tokeniser for ZXCL
@@ -107,7 +113,7 @@ class Lexer(object):
         if self._current_character == character:
             self._consume()
         else:
-            raise Exception("Expected character {expected} but found {found} "
+            raise LexerError("Expected character {expected} but found {found} "
                             "at position {position}"
                 .format(expected=character,
                         found=self._current_character,
@@ -130,8 +136,6 @@ class Lexer(object):
         """
         Gets the next token in the input string.
         """
-
-
 
         while self._current_character is not None:
             char = self._current_character
@@ -180,7 +184,7 @@ class Lexer(object):
                         self._consume_count(match.end())
                         return Token(self.DATE, date_value, pos)
                     except ValueError:
-                        # bad date
+                        # bad date. No match.
                         pass
 
                 # Try the float first.
@@ -217,15 +221,24 @@ class Lexer(object):
                     self._consume_count(match.end())
                     return Token(self.STRING, string_value, pos)
 
-                print("Unexpected character {char} at position {pos}".format(char=char,pos=self._pointer))
-                return None
+                raise LexerError("Unexpected character {char} "
+                                 "at position {pos}".format(
+                    char=char,pos=self._pointer))
             else:
-                print("Unexpected character {char} at position {pos}".format(char=char,pos=self._pointer))
-                return None
+                raise LexerError("Unexpected character {char} "
+                                 "at position {pos}".format(
+                    char=char,pos=self._pointer))
 
 
 
         return Token(self.EOF, "<EOF>", self._pointer)
+
+class ParserError(Exception):
+    """
+    Problems in the parser.
+    """
+    pass
+
 
 class Parser(object):
     """
@@ -274,11 +287,6 @@ class Parser(object):
         while True:
             tok = lex.next_token()
 
-            # The lexer died
-            if tok is None:
-                print("Lex error")
-                return None
-
             # Store the token
             tokens.append(tok)
 
@@ -316,9 +324,6 @@ class Parser(object):
         self._look_ahead = None
 
         self._tokens = Parser._tokenise(string)
-        if self._tokens is None:
-            print("Parse error")
-            return
 
         self._position = -1
         self._consume()
@@ -352,7 +357,7 @@ class Parser(object):
                 self.parameters.append(param)
                 self.combined.append(("p",param))
             else:
-                raise Exception("Expected qualifier or parameter at position {0}".format(self._look_ahead.position))
+                raise ParserError("Expected qualifier or parameter at position {0}".format(self._look_ahead.position))
 
 
     def _consume(self):
@@ -364,7 +369,7 @@ class Parser(object):
         val = self._match(Lexer.IDENTIFIER)
 
         if val is None:
-            raise Exception("Verb expected at position {0}, got {1}".format(
+            raise ParserError("Verb expected at position {0}, got {1}".format(
                 self._look_ahead.position,
                 self._look_ahead.name()
             ))
@@ -379,7 +384,7 @@ class Parser(object):
         qualifier_value = None
 
         if qualifier_name is None:
-            raise Exception("Qualifier name expected at position {0}".format(
+            raise ParserError("Qualifier name expected at position {0}".format(
                 self._look_ahead.position))
 
         if self._look_ahead.type == Lexer.EQUAL:
@@ -396,45 +401,46 @@ class Parser(object):
             self._consume()
             return val
         else:
-            raise Exception("Expected keyword, integer, float, string "
+            raise ParserError("Expected keyword, integer, float, string "
                             "or date at position {0}".format(
                 self._look_ahead.position))
 
+class CommandProcessor(object):
+    """
+    Processes ZXCL commands
+    """
+
+    def __init__(self, verb_table, syntax_table, keyword_table):
+        """
+        Initialises the command processor with the supplied command table.
+        :param verb_table: A table of verbs
+        :type verb_table: dict
+        :param syntax_table: A table of command syntaxes
+        :type syntax_table: dict
+        :param keyword_table: A table of keyword types
+        :type keyword_table: dict
+        """
+
+        self.verbs_table = verb_table
+        self.syntax_table = syntax_table
+        self.keyword_table = keyword_table
+
+        self.parser = Parser()
 
 
-test_string = r"""
-TEST COMMAND/QUAL /QUAL2=123 /QUAL3=this_is_a_keyword
-/QUAL4=14-JUN-2012 /QUAL5=12.2 /QUAL6="String value\" ok"
-123 another_keyword 12-OCT-2013 12.2 "Another\"String\""
-"""
-#
-#lex = Lexer(test_string)
-#
-#while True:
-#    tok = lex.next_token()
-#    print(tok)
-#    if tok.type == Lexer.EOF:
-#        break
+    def process_command(self, command_string, prompt_callback):
+        """
+        Processes a command.
+        :param command_string: The command to process.
+        :param prompt_callback: Function to call if required parameters or
+        qualifiers need to be prompted for.
+        :type prompt_callback: callable or None
+        :return: A callable which should be called to execute the command
+        :rtype: callable.
+        """
 
-parser = Parser()
-
-parser.parse(test_string)
-print parser.verb
-print parser.keyword
-print parser.qualifiers
-print parser.parameters
-print "---"
-print parser.combined
-
-while True:
-    value = raw_input(">")
-    try:
-        parser.parse(value)
-
-        print parser.verb
-        print parser.keyword
-        print parser.qualifiers
-        print parser.parameters
-    except Exception as e:
-        print("Error: " + e.message)
+        try:
+            parser.parse(command_string)
+        except LexerError as le:
+            pass
 
