@@ -101,8 +101,6 @@ class Lexer(object):
         self._pointer = 0
         self._current_character = self._input[self._pointer]
 
-
-
     def _consume(self):
         self._pointer += 1
         if self._pointer >= len(self._input):
@@ -230,3 +228,26 @@ class Lexer(object):
 
 
         return Token(self.EOF, "<EOF>", self._pointer)
+
+    @staticmethod
+    def tokenise(string):
+        """
+        Tokenises the entire string and returns it as a list of tokens
+        :param string: String to tokenise
+        :type string: str or unicode
+        :returns: A list of tokens
+        :rtype: list
+        """
+        tokens = []
+
+        lex = Lexer(string)
+
+        while True:
+            tok = lex.next_token()
+
+            # Store the token
+            tokens.append(tok)
+
+            # If we're finished...
+            if tok.type == Lexer.EOF:
+                return tokens
