@@ -31,15 +31,9 @@ class Parser(object):
         Lexer.DATE,
         ]
 
-    # TODO: Consider dumping these once the command processor is working.
-    # They can be rebuilt from the combined list if necessary anyway.
-    verb = None
-    qualifiers = []
-    parameters = []
-
     # This is what the command processor will look at as ordering is important
     # for handling syntax changes
-    combined = []
+    _combined = []
     # It is a list of 4-item tuples.
     # Item 0: type - either v - verb
     #                    or p - parameter
@@ -109,16 +103,16 @@ class Parser(object):
 
         self._position = -1
         self._consume()
-        self.verb = None
-        self.qualifiers = []
-        self.parameters = []
+        self._combined = []
 
         # String was entirely whitespace or comments.
         if self._look_ahead.type == Lexer.EOF:
-            return
+            return None
 
         # Parse a command
         self._command()
+
+        return self._combined
 
     def _store_component(self, type, position, name, value=None):
         """
@@ -129,7 +123,7 @@ class Parser(object):
         :param position: Components position in the command.
         """
 
-        self.combined.append((type,position,name,value))
+        self._combined.append((type,position,name,value))
 
     def _command(self):
 
@@ -145,8 +139,6 @@ class Parser(object):
             elif self._look_ahead.type in self._parameter_types:
                 pos = self._look_ahead.position
                 param,type = self._parameter()
-
-                self.parameters.append(param)
 
                 self._store_component(Parser.COMP_TYPE_PARAMETER, pos, parameter_number, (param,type))
 
@@ -170,8 +162,6 @@ class Parser(object):
                 self._look_ahead.name()
             ))
 
-        self.verb = val
-
         self._store_component(Parser.COMP_TYPE_VERB, pos, val)
 
     def _qualifier(self):
@@ -191,8 +181,6 @@ class Parser(object):
             qualifier_value, qualifier_type = self._parameter()
 
             qual_val = (qualifier_value,qualifier_type)
-
-        self.qualifiers.append((qualifier_name,qual_val))
 
         self._store_component(
             Parser.COMP_TYPE_QUALIFIER,

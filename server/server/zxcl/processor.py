@@ -200,9 +200,7 @@ class CommandProcessor(object):
         """
 
         # This may throw an exception. It is the callers job to handle it.
-        self.parser.parse(command_string)
-
-        command_bits = self.parser.combined
+        command_bits = self.parser.parse(command_string)
 
         # Nothing to do if there is nothing to do.
         if len(command_bits) == 0:
