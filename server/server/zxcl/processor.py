@@ -102,6 +102,9 @@ class Syntax(object):
         :return: Qualifier
         :rtype: dict
         """
+
+        name = name.upper()
+
         if name not in self._qualifiers:
             raise Exception("Unexpected qualifier '{name}',"
                             " position {pos}".format(name=name,pos=position))
@@ -121,7 +124,9 @@ class Syntax(object):
 
 class CommandProcessor(object):
     """
-    Processes ZXCL commands
+    Processes ZXCL commands. If this command language resembles a certain
+    three letter command language then...yeah. Its not 100% compatible but it
+    mostly follows the same rules.
     """
 
     def __init__(self, verb_table, syntax_table, keyword_table):
@@ -153,7 +158,16 @@ class CommandProcessor(object):
 
         # TODO: Handle unique prefixes
 
-        verb = self._verb_table[verb_name]
+        verb_name = verb_name.upper()
+
+        try:
+            verb = self._verb_table[verb_name]
+        except Exception:
+            # It will have been a Key Error because the verb name is wrong.
+            # Rethrow it with something more user friendly. The verb is always
+            # at position 0.
+            raise Exception("Unrecognised verb '{0}', position 0".format(verb_name))
+
 
         if "syntax" in verb and verb["syntax"] is not None:
             return verb["syntax"]
@@ -163,7 +177,6 @@ class CommandProcessor(object):
             return self.get_verb_syntax(verb["verb"])
         else:
             raise Exception("Invalid verb {name}".format(name=verb_name))
-
 
     def _get_keyword(self, keyword_set, keyword_name):
         """
@@ -177,6 +190,8 @@ class CommandProcessor(object):
 
         # TODO: Handle unique prefixes
 
+        keyword_name = keyword_name.upper()
+
         keywords = self._keyword_table[keyword_set]
         keyword = None
         for kw in keywords:
@@ -188,7 +203,7 @@ class CommandProcessor(object):
 
         return keyword
 
-    def process_command(self, command_string, prompt_callback):
+    def process_command(self, command_string, prompt_callback, warning_callback=None):
         """
         Processes a command.
         :param command_string: The command to process.
@@ -278,12 +293,6 @@ class CommandProcessor(object):
                 parameters[name] = value
 
             elif type == Parser.COMP_TYPE_QUALIFIER:
-
-                # TODO: If parameters list is empty prompt for required
-                # parameters followed by all optional parameters. There is
-                # probably some special syntax switching crap to consider
-                # first. See page CDU-25.
-
                 # Ensure the syntax has and allows qualifiers
                 # TODO: Move this check into get_qualifier() ?
                 if not self._syntax.qualifiers_allowed():
@@ -332,10 +341,14 @@ class CommandProcessor(object):
 
                         self._syntax.switch_syntax(qualifier["syntax"])
 
-                        if len(qualifiers) > 0:
-                            # TODO Issue a warning here to say we're ignoring
-                            # all your carefully entered qualifiers.
-                            pass
+                        if len(qualifiers) > 0 and warning_callback is not None:
+                            ignored = ""
+                            for key in qualifiers:
+                                ignored += ", " + key
+
+                            warning_callback("The following qualifiers will "
+                                             "be ignored: {0}".format(
+                                ignored[2:]))
 
                         # Wipe out any previously entered qualifiers. They're
                         # not relevant anymore as we're on a different syntax.
@@ -363,6 +376,8 @@ class CommandProcessor(object):
         # parameters += syntax.get_parameter_defaults(from=last_param+1)
 
         # TODO: Add on all default qualifiers
+
+        # TODO: Process disallows here. This is done with the final syntax in effect.
 
         handler = self._syntax.get_handler()
 
