@@ -65,7 +65,7 @@ class Syntax(object):
         # Parameters are allowed
         return True
 
-    def get_parameter(self, parameter_number, position):
+    def get_parameter(self, parameter_number, position, value):
         """
         Returns the specified parameter number
         :param position: Where in the command line the parameter appeared (for
@@ -75,6 +75,13 @@ class Syntax(object):
         :returns: The parameter dict
         :rtype: dict
         """
+
+        if not self.parameters_allowed():
+            raise Exception("Parameter '{val}' not allowed here, "
+                            "position {pos}".format(
+                val=value,
+                pos=position
+            ))
 
         if parameter_number not in self._parameters:
             raise Exception("Unexpected parameter,"
@@ -105,6 +112,12 @@ class Syntax(object):
 
         name = name.upper()
 
+        if not self.qualifiers_allowed():
+            raise Exception("Qualifier '{name}' not allowed, "
+                            "position {pos}".format(
+                name=name,
+                pos=position))
+
         if name not in self._qualifiers:
             raise Exception("Unexpected qualifier '{name}',"
                             " position {pos}".format(name=name,pos=position))
@@ -122,6 +135,17 @@ class Syntax(object):
         else:
             return None
 
+    def get_required_parameter_count(self):
+        """
+        Returns the number of required parameters in the syntax
+        """
+        required = 0
+        for param in self._parameters:
+            if self._parameters[param]["required"]:
+                required += 1
+        return required
+
+
 class CommandProcessor(object):
     """
     Processes ZXCL commands. If this command language resembles a certain
@@ -129,7 +153,7 @@ class CommandProcessor(object):
     mostly follows the same rules.
     """
 
-    def __init__(self, verb_table, syntax_table, keyword_table):
+    def __init__(self, verb_table, syntax_table, keyword_table, prompt_callback, warning_callback):
         """
         Initialises the command processor with the supplied command table.
         :param verb_table: A table of verbs
@@ -138,6 +162,10 @@ class CommandProcessor(object):
         :type syntax_table: dict
         :param keyword_table: A table of keyword types
         :type keyword_table: dict
+        :param prompt_callback: A function to call when required parameters are needed
+        :type prompt_callback: callable
+        :param warning_callback: A function to handle warning messages
+        :type warning_callback: callable
         """
 
         self._verb_table = verb_table
@@ -145,6 +173,9 @@ class CommandProcessor(object):
         self._keyword_table = keyword_table
 
         self.parser = Parser()
+
+        self._prompt_callback = prompt_callback
+        self._warning_callback = warning_callback
 
     def get_verb_syntax(self, verb_name):
         """
@@ -203,7 +234,106 @@ class CommandProcessor(object):
 
         return keyword
 
-    def process_command(self, command_string, prompt_callback, warning_callback=None):
+    def _process_parameter(self, name, position, value, value_type):
+        # Ensure the parameter actually exists in the syntax. This will
+        # also check that the parameter is actually allowed, etc.
+        parameter = self._syntax.get_parameter(name, position, value)
+
+        syntax_switched = False
+
+        # Check the parameters type
+        if value_type != parameter["type"]:
+            raise Exception("Parameter type is {type} but got a "
+                            "{got}".format(
+                type=parameter["type"],
+                got=value_type))
+        if value_type == "keyword":
+            # This will throw an exception if its an invalid keyword
+            # which is our validation.
+            keyword = self._get_keyword(parameter["keywords"], value)
+
+            # Handle syntax switching
+            if keyword[1] is not None:
+                # An alternate syntax!
+                self._syntax.switch_syntax(keyword[1])
+                syntax_switched = True
+
+                # Unlike qualifiers, parameters are not wiped out.
+                # Any parameters that overlap between syntaxes should
+                # be identical
+                # TODO: Enforce the above somewhere.
+
+        return syntax_switched
+
+    def _process_qualifier(self, name, position, qualifiers, value):
+        # This will also ensure the syntax has and allows qualifiers
+        qualifier = self._syntax.get_qualifier(name, position)
+
+        syntax_switched = False
+
+        # A value of some type was supplied. Is it the right type?
+        # lets see...
+        if value is not None:
+            # Remove the value type
+            value_type = value[1]
+            value = value[0]
+
+            qual_type = qualifier["type"]
+
+            # Check to see if the qualifier actually has a value
+            if qual_type is None:
+                raise Exception("Value not allowed - remove value "
+                                "specification from qualifier {name}, "
+                                "possition {pos}".format(
+                    name=name,
+                    pos=position))
+
+            # Check that the supplied value matches the qualifiers.
+            if qual_type != value_type:
+                raise Exception("Qualifier {name} value type is {type} "
+                                "but got a {got}".format(
+                    name=name,
+                    type=qual_type,
+                    got=value_type))
+
+            if value_type == "keyword":
+                # This will throw an exception if its an invalid keyword
+                # which is our validation. We don't care what it
+                # actually is.
+                self._get_keyword(qualifier["keywords"], value)
+
+            # Handle syntax switching
+            if "syntax" in qualifier and qualifier["syntax"] is not None:
+                # The qualifier wants us to switch syntaxes.
+
+                self._syntax.switch_syntax(qualifier["syntax"])
+
+                if len(qualifiers) > 0 and self._warning_callback is not None:
+                    ignored = ""
+                    for key in qualifiers:
+                        ignored += ", " + key
+
+                    self._warning_callback("The following qualifiers will "
+                                     "be ignored: {0}".format(
+                        ignored[2:]))
+
+                # Wipe out any previously entered qualifiers. They're
+                # not relevant anymore as we're on a different syntax.
+                syntax_switched = True
+
+        # No value was supplied. Should there have been?
+        elif "value_required" in qualifier and qualifier["value_required"]:
+            raise Exception("Value required for qualifier "
+                            "{name}".format(name=name))
+
+        # No qualifier was supplied and its not required. Perhaps there
+        # is a default?
+        elif "default_value" in qualifier:
+            value = qualifier["default_value"]
+
+        return value, syntax_switched
+
+    def process_command(self, command_string):
         """
         Processes a command.
         :param command_string: The command to process.
@@ -240,6 +370,10 @@ class CommandProcessor(object):
         qualifiers = {}
         parameters = {}
 
+        # Process any missing required parameters
+        parameters += self._process_required_parameters(
+            CommandProcessor._parameters_in_command(command_bits))
+
         while len(command_bits) > 0:
             # Loop over all the command bits.
 
@@ -254,121 +388,29 @@ class CommandProcessor(object):
                 value_type = value[1]
                 value = value[0]
 
-
-                # Ensure the syntax has and allows parameters
-                # TODO: Move this check into get_parameter() ?
-                if not self._syntax.parameters_allowed():
-                    raise Exception("Parameter '{val}' not allowed here, "
-                                    "position {pos}".format(
-                        val=value,
-                        pos=position
-                    ))
-
-                # Ensure the parameter actually exists in the syntax
-                parameter = self._syntax.get_parameter(name, position)
-
-                # Check the parameters type
-                if value_type != parameter["type"]:
-                    raise Exception("Parameter type is {type} but got a "
-                                    "{got}".format(
-                        type=parameter["type"],
-                        got=value_type))
-
-                if value_type == "keyword":
-                    # This will throw an exception if its an invalid keyword
-                    # which is our validation.
-                    keyword = self._get_keyword(parameter["keywords"], value)
-
-                    # Handle syntax switching
-                    if keyword[1] is not None:
-                        # An alternate syntax!
-                        self._syntax.switch_syntax(keyword[1])
-
-                        # Unlike qualifiers, parameters are not wiped out.
-                        # Any parameters that overlap between syntaxes should
-                        # be identical
-                        # TODO: Enforce the above somewhere.
+                # Check that its valid, handle syntax switches, etc.
+                syntax_switched = self._process_parameter(name, position, value, value_type)
 
                 # Store the parameter
                 parameters[name] = value
 
             elif type == Parser.COMP_TYPE_QUALIFIER:
-                # Ensure the syntax has and allows qualifiers
-                # TODO: Move this check into get_qualifier() ?
-                if not self._syntax.qualifiers_allowed():
-                    raise Exception("Qualifier '{name}' not allowed, "
-                                    "position {pos}".format(
-                        name=name,
-                        pos=position))
+                value, syntax_switched = self._process_qualifier(
+                    name, position, qualifiers, value)
 
-                qualifier = self._syntax.get_qualifier(name, position)
-
-                # A value of some type was supplied. Is it the right type?
-                # lets see...
-                if value is not None:
-                    # Remove the value type
-                    value_type = value[1]
-                    value = value[0]
-
-
-                    qual_type = qualifier["type"]
-
-                    # Check to see if the qualifier actually has a value
-                    if qual_type is None:
-                        raise Exception("Value not allowed - remove value "
-                                        "specification from qualifier {name}, "
-                                        "possition {pos}".format(
-                            name=name,
-                            pos=position))
-
-                    # Check that the supplied value matches the qualifiers.
-                    if qual_type != value_type:
-                        raise Exception("Qualifier {name} value type is {type} "
-                                        "but got a {got}".format(
-                            name=name,
-                            type=qual_type,
-                            got=value_type))
-
-                    if value_type == "keyword":
-                        # This will throw an exception if its an invalid keyword
-                        # which is our validation. We don't care what it
-                        # actually is.
-                        self._get_keyword(qualifier["keywords"], value)
-
-                    # Handle syntax switching
-                    if "syntax" in qualifier and qualifier["syntax"] is not None:
-                        # The qualifier wants us to switch syntaxes.
-
-                        self._syntax.switch_syntax(qualifier["syntax"])
-
-                        if len(qualifiers) > 0 and warning_callback is not None:
-                            ignored = ""
-                            for key in qualifiers:
-                                ignored += ", " + key
-
-                            warning_callback("The following qualifiers will "
-                                             "be ignored: {0}".format(
-                                ignored[2:]))
-
-                        # Wipe out any previously entered qualifiers. They're
-                        # not relevant anymore as we're on a different syntax.
-                        qualifiers = {}
-
-                # No value was supplied. Should there have been?
-                elif "value_required" in qualifier and qualifier["value_required"]:
-                    raise Exception("Value required for qualifier "
-                                    "{name}".format(name=name))
-
-                # No qualifier was supplied and its not required. Perhaps there
-                # is a default?
-                elif "default_value" in qualifier:
-                    value = qualifier["default_value"]
+                # A syntax switch may mean qualifiers need to be wiped out
+                if syntax_switched:
+                    qualifiers = {}
 
                 # Store the qualifier
                 qualifiers[name] = value
             else:
                 raise Exception("Unrecognised command component "
                                 "type {0}".format(type))
+
+            if syntax_switched:
+                # Check for any missing required parameters
+                parameters += self._process_required_parameters(len(parameters))
 
 
         # TODO: Process optional parameters that have defaults
@@ -382,3 +424,69 @@ class CommandProcessor(object):
         handler = self._syntax.get_handler()
 
         return handler, parameters, qualifiers
+
+    @staticmethod
+    def _parameters_in_command(command_bits):
+        """
+        Counts how many parameters are in the supplied command string
+        :param command_bits: The parsed command string
+        :type command_bits: list
+        :return: The number of parameters it contains
+        :rtype: int
+        """
+        parameters = 0
+        for bit in command_bits:
+            type = bit[0]
+            if type == Parser.COMP_TYPE_PARAMETER:
+                parameters += 1
+        return parameters
+
+    def _process_required_parameters(self, parameter_count):
+        """
+        Prompts the user (or whoever) for any required parameters that haven't
+        been specified.
+        :param parameter_count: Number of parameters already entered
+        :return: A dict containing parameter values
+        """
+
+        parameters = parameter_count
+
+        # Figure out how many are required
+        required = self._syntax.get_required_parameter_count()
+
+        entered_parameters = {}
+
+        # Check if we have any missing and can't prompt for them
+        if required - parameters > 0 and self._prompt_callback:
+            raise Exception("Parameter x missing")
+
+        while parameters < required:
+            param_number = parameters-1
+            param = self._syntax.get_parameter(param_number,0,None)
+
+            if "prompt" not in param or param["prompt"] is None:
+                raise Exception("Required parameter {0} missing".format(
+                    param_number))
+
+            result = self._prompt_callback(param["prompt"])
+
+            if result is None:
+                return None
+            else:
+                # Parse up the value to get its type.
+                value_type = Parser.get_value_type(result)
+
+                # And validate it
+                syntax_switched = self._process_parameter(
+                    param_number, 0, result, value_type)
+
+                # All OK
+                entered_parameters[param_number] = result
+
+                if syntax_switched:
+                    # We might have new required parameters
+                    required = self._syntax.get_required_parameter_count()
+
+            parameters += 1
+
+        return entered_parameters

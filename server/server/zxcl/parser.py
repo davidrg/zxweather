@@ -213,3 +213,17 @@ class Parser(object):
 
         return val,type
 
+    @staticmethod
+    def get_value_type(value):
+        """
+        Gets the type of the supplied value
+        :param value: The value to get the type for
+        :type value: str or unicode
+        :return: The values type
+        :rtype: str
+        :raise: Exception if an invalid value is supplied
+        """
+        try:
+            return Parser._value_types[Lexer.get_value_token_type(value)]
+        except Exception:
+            raise ParserError("Expected keyword, integer, float, string or date")
