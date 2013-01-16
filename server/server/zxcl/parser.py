@@ -49,26 +49,13 @@ class Parser(object):
     COMP_TYPE_PARAMETER="p"
     COMP_TYPE_QUALIFIER="q"
 
-    @staticmethod
-    def _tokenise(string):
-        # TODO: Maybe move this to Lexer
-        tokens = []
-
-        lex = Lexer(string)
-
-        while True:
-            try:
-                tok = lex.next_token()
-            except UnexpectedCharacterError as e:
-                # translate the lexer error into a parser error.
-                raise ParserError(e.message)
-
-            # Store the token
-            tokens.append(tok)
-
-            # If we're finished...
-            if tok.type == Lexer.EOF:
-                return tokens
+    _value_types = {
+        Lexer.INTEGER: "int",
+        Lexer.IDENTIFIER: "keyword",
+        Lexer.FLOAT: "float",
+        Lexer.STRING: "string",
+        Lexer.DATE: "date"
+    }
 
     def _match(self, token):
 
@@ -79,27 +66,22 @@ class Parser(object):
         else:
             return None
 
-    def _whitespace(self):
-        """
-        Sometimes whitespace is required (eg, to separate parameters). This
-        enforces whitespace where as _match just skips over it.
-        :returns: True if whitespace was found, false otherwise
-        :rtype: bool
-        """
-        if self._look_ahead.type == Lexer.WS:
-            self._consume()
-            return True
-        else:
-            return False
-
     def parse(self, string):
         """
         Parses a ZXCL command
+        :param string: The command string to parse
+        :type string: str or unicode
+        :returns: The parsed command as a list of command components
+        :rtype: list
         """
 
         self._look_ahead = None
 
-        self._tokens = Parser._tokenise(string)
+        try:
+            self._tokens = Lexer.tokenise(string)
+        except UnexpectedCharacterError as e:
+            # translate the lexer error into a parser error.
+            raise ParserError(e.message)
 
         self._position = -1
         self._consume()
@@ -126,6 +108,11 @@ class Parser(object):
         self._combined.append((type,position,name,value))
 
     def _command(self):
+        """
+        Recognises a command.
+        :raise: A ParserError if something is encountered that isn't a
+        qualifier or parameter
+        """
 
         # A command starts with a verb
         self._verb()
@@ -137,22 +124,36 @@ class Parser(object):
             if self._look_ahead.type == Lexer.FORWARD_SLASH:
                 self._qualifier()
             elif self._look_ahead.type in self._parameter_types:
-                pos = self._look_ahead.position
-                param,type = self._parameter()
-
-                self._store_component(Parser.COMP_TYPE_PARAMETER, pos, parameter_number, (param,type))
-
+                self._parameter(parameter_number)
                 parameter_number += 1
             else:
                 raise ParserError("Expected qualifier or parameter at position {0}".format(self._look_ahead.position))
 
+    def _parameter(self, parameter_number):
+        """
+        Recognises one parameter.
+        :param parameter_number: The parameter number that should be here.
+        """
+        pos = self._look_ahead.position
+        param, type = self._value()
+
+        # Store the parameter
+        self._store_component(Parser.COMP_TYPE_PARAMETER, pos, parameter_number,
+            (param, type))
+
 
     def _consume(self):
+        """
+        Consumes one token.
+        """
         self._position += 1
         self._look_ahead = self._tokens[self._position]
 
     def _verb(self):
-
+        """
+        Recognises a verb. The verb is added to the command components list.
+        :return:
+        """
         pos = self._look_ahead.position
         val = self._match(Lexer.IDENTIFIER)
 
@@ -165,6 +166,9 @@ class Parser(object):
         self._store_component(Parser.COMP_TYPE_VERB, pos, val)
 
     def _qualifier(self):
+        """
+        Recognises one qualifier.
+        """
         pos = self._look_ahead.position
         self._match(Lexer.FORWARD_SLASH)
 
@@ -178,7 +182,7 @@ class Parser(object):
         if self._look_ahead.type == Lexer.EQUAL:
             # We have a parameter!
             self._match(Lexer.EQUAL)
-            qualifier_value, qualifier_type = self._parameter()
+            qualifier_value, qualifier_type = self._value()
 
             qual_val = (qualifier_value,qualifier_type)
 
@@ -189,24 +193,19 @@ class Parser(object):
             qual_val
         )
 
-    def _parameter(self):
+    def _value(self):
+        """
+        Recognises a value. This could be part of either a parameter or a
+        qualifier.
+        :return:
+        """
 
-        # TODO: dict this?
-        if self._look_ahead.type == Lexer.INTEGER:
-            type = "int"
-        elif self._look_ahead.type == Lexer.IDENTIFIER:
-            type = "keyword"
-        elif self._look_ahead.type == Lexer.FLOAT:
-            type = "float"
-        elif self._look_ahead.type == Lexer.STRING:
-            type = "string"
-        elif self._look_ahead.type == Lexer.DATE:
-            type = "date"
-        else:
+        try:
+            type = self._value_types[self._look_ahead.type]
+        except Exception:
             raise ParserError("Expected keyword, integer, float, string "
                               "or date at position {0}".format(
                 self._look_ahead.position))
-
 
         val = self._look_ahead.value
 
