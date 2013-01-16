@@ -2,7 +2,7 @@
 """
 Unit tests for zxcl
 """
-from server.zxcl import Lexer, LexerError
+from server.zxcl import lexer, LexerError
 
 __author__ = 'david'
 
@@ -14,23 +14,23 @@ class IdentifierToken(unittest.TestCase):
     """
 
     def check(self, value):
-        lexer = Lexer(value)
+        lexer = lexer(value)
 
         result = lexer.next_token()
 
-        self.assertEquals(result.type, Lexer.IDENTIFIER)
+        self.assertEquals(result.type, lexer.IDENTIFIER)
         self.assertEquals(result.value, value)
 
     def check_not_equals(self, value):
-        lexer = Lexer(value)
+        lexer = lexer(value)
 
         result = lexer.next_token()
 
-        self.assertNotEquals(result.type, Lexer.IDENTIFIER)
+        self.assertNotEquals(result.type, lexer.IDENTIFIER)
 
 
     def check_exception(self, value):
-        lexer = Lexer(value)
+        lexer = lexer(value)
         self.assertRaises(LexerError, lexer.next_token)
 
     def test_alpha_lower(self):
