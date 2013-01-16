@@ -251,3 +251,48 @@ class Lexer(object):
             # If we're finished...
             if tok.type == Lexer.EOF:
                 return tokens
+
+    @staticmethod
+    def get_value_token_type(value):
+        """
+        Gets the token type for the supplied value string. This should be
+        either a date, float, integer, identifier or a string.
+        :param value: Value
+        :type value: str or unicode
+        :return: Token type
+        :rtype: int
+        """
+        match = date_regex.match(value)
+        if match is not None:
+            # It looks like a date...
+            value = match.group(0)
+            try:
+                datetime.strptime(value, '%d-%b-%Y').date()
+                return Lexer.DATE
+            except ValueError:
+                # bad date. No match.
+                pass
+
+            # Try the float first.
+        match = float_regex.match(value)
+        if match is not None:
+            # Its a float.
+            return Lexer.FLOAT
+
+        match = int_regex.match(value)
+        if match is not None:
+            # Its an int
+            return Lexer.INTEGER
+
+        match = identifier_regex.match(value)
+        if match is not None:
+            # Its an identifier
+            return Lexer.IDENTIFIER
+
+        match = string_regex.match(value)
+        if match is not None:
+            # Its a string
+            return Lexer.STRING
+
+        # Unknown value type
+        return None
