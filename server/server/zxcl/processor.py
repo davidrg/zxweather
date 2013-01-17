@@ -52,7 +52,6 @@ class Syntax(object):
         elif "no_qualifiers" in self._syntax and self._syntax["no_qualifiers"]:
             self._qualifiers = {}
 
-
     def parameters_allowed(self):
         """
         :returns: True if parameters are allowed by the syntax, false otherwise.
@@ -68,15 +67,19 @@ class Syntax(object):
     def get_parameter(self, parameter_number, position, value):
         """
         Returns the specified parameter number
+        :param parameter_number:  The parameter to fetch
         :param position: Where in the command line the parameter appeared (for
         error reporting)
-        :type position: int
-        :param parameter_number:  The parameter to fetch
+        :type position: int or None
+        :param value: The value encountered in the command string (if any) for
+        the parameter
         :returns: The parameter dict
         :rtype: dict
         """
 
         if not self.parameters_allowed():
+            if position is None:
+                return None
             raise Exception("Parameter '{val}' not allowed here, "
                             "position {pos}".format(
                 val=value,
@@ -84,6 +87,8 @@ class Syntax(object):
             ))
 
         if parameter_number not in self._parameters:
+            if position is None:
+                return None
             raise Exception("Unexpected parameter,"
                             " position {pos}".format(pos=position))
 
@@ -145,6 +150,48 @@ class Syntax(object):
                 required += 1
         return required
 
+    def get_parameter_defaults(self, first_parameter):
+        """
+        Gets The defaults for all parameters starting at the specified
+        parameter number.
+        :param first_parameter: The first parameter to get defaults for
+        :type first_parameter: int
+        :returns: A dict containing all optional parameters after the first
+        parameter and their values.
+        :rtype: dict
+        """
+        param = first_parameter
+        param_count = len(self._parameters)
+
+        parameters = {}
+
+        while param < param_count:
+            p = self.get_parameter(param, None, None)
+
+            if p is not None and "default" in p and p["default"] is not None:
+                # We have a parameter and it has a default
+                parameters[param] = p["default"]
+            else:
+                # All parameters will always be present. If the user doesn't
+                # supply it and it doesn't have a default it will just be set
+                # to None.
+                parameters[param] = None
+
+        return parameters
+
+    def get_default_qualifiers(self):
+        """
+        Gets a list of all qualifiers that should be on by default if the user
+        doesn't specify them
+        """
+
+        defaults = []
+
+        for qualifier in self._qualifiers:
+            if "default" in qualifier and qualifier["default"] is True:
+                defaults.append(qualifier)
+
+        return defaults
 
 class CommandProcessor(object):
     """
@@ -271,6 +318,25 @@ class CommandProcessor(object):
 
         syntax_switched = False
 
+        # Handle syntax switching
+        if "syntax" in qualifier and qualifier["syntax"] is not None:
+            # The qualifier wants us to switch syntaxes.
+
+            self._syntax.switch_syntax(qualifier["syntax"])
+
+            if len(qualifiers) > 0 and self._warning_callback is not None:
+                ignored = ""
+                for key in qualifiers:
+                    ignored += ", " + key
+
+                self._warning_callback("The following qualifiers will "
+                                       "be ignored: {0}".format(
+                    ignored[2:]))
+
+            # Wipe out any previously entered qualifiers. They're
+            # not relevant anymore as we're on a different syntax.
+            syntax_switched = True
+
         # A value of some type was supplied. Is it the right type?
         # lets see...
         if value is not None:
@@ -302,34 +368,15 @@ class CommandProcessor(object):
                 # actually is.
                 self._get_keyword(qualifier["keywords"], value)
 
-            # Handle syntax switching
-            if "syntax" in qualifier and qualifier["syntax"] is not None:
-                # The qualifier wants us to switch syntaxes.
-
-                self._syntax.switch_syntax(qualifier["syntax"])
-
-                if len(qualifiers) > 0 and self._warning_callback is not None:
-                    ignored = ""
-                    for key in qualifiers:
-                        ignored += ", " + key
-
-                    self._warning_callback("The following qualifiers will "
-                                     "be ignored: {0}".format(
-                        ignored[2:]))
-
-                # Wipe out any previously entered qualifiers. They're
-                # not relevant anymore as we're on a different syntax.
-                syntax_switched = True
+        # No qualifier was supplied and its not required. Perhaps there
+        # is a default?
+        elif "default_value" in qualifier:
+            value = qualifier["default_value"]
 
         # No value was supplied. Should there have been?
         elif "value_required" in qualifier and qualifier["value_required"]:
             raise Exception("Value required for qualifier "
                             "{name}".format(name=name))
-
-        # No qualifier was supplied and its not required. Perhaps there
-        # is a default?
-        elif "default_value" in qualifier:
-            value = qualifier["default_value"]
 
         return value, syntax_switched
 
@@ -337,9 +384,7 @@ class CommandProcessor(object):
         """
         Processes a command.
         :param command_string: The command to process.
-        :param prompt_callback: Function to call if required parameters or
-        qualifiers need to be prompted for.
-        :type prompt_callback: callable or None
+        :type command_string: str or unicode
         :return: processed command
         :rtype: dict
         """
@@ -371,8 +416,13 @@ class CommandProcessor(object):
         parameters = {}
 
         # Process any missing required parameters
-        parameters += self._process_required_parameters(
-            CommandProcessor._parameters_in_command(command_bits))
+        parameters.update(self._process_required_parameters(
+            CommandProcessor._parameters_in_command(command_bits)))
+
+        # TODO: handle negatable qualifiers & keywords somehow.
+        # This is only really useful for:
+        #  - Switching off qualifiers that are on by default
+        #  - Switching off keyword-type optional parameters with a default value
 
         while len(command_bits) > 0:
             # Loop over all the command bits.
@@ -410,14 +460,19 @@ class CommandProcessor(object):
 
             if syntax_switched:
                 # Check for any missing required parameters
-                parameters += self._process_required_parameters(len(parameters))
+                parameters.update(self._process_required_parameters(len(parameters)))
 
 
-        # TODO: Process optional parameters that have defaults
-        # Something like:
-        # parameters += syntax.get_parameter_defaults(from=last_param+1)
+        # Fill in any missing optional parameters (with their default values if
+        # they have one, None otherwise).
+        # We use len(parameters) as the next parameter number as they're
+        # numbered from 0 so len(parameters)-1 is the final parameter we
+        # processed.
+        parameters.update(self._syntax.get_parameter_defaults(len(parameters)))
+        # Parameters defaulted like this aren't validated.
 
-        # TODO: Add on all default qualifiers
+        # Turn on default qualifiers that the user hasn't turned on already
+        qualifiers.update(self._process_default_qualifiers(qualifiers))
 
         # TODO: Process disallows here. This is done with the final syntax in effect.
 
@@ -490,3 +545,32 @@ class CommandProcessor(object):
             parameters += 1
 
         return entered_parameters
+
+    def _process_default_qualifiers(self, qualifiers):
+        """
+        Turns on any default qualifiers that the user hasn't explicitly turned
+        on.
+        :param qualifiers: The list of qualifiers that are already turned on
+        :type qualifiers: dict
+        :returns: A dictionary returning new qualifiers that need to be turned
+        on by default
+        :rtype: dict
+        """
+
+        defaults = self._syntax.get_default_qualifiers()
+
+        new_qualifiers = {}
+
+        for qualifier in defaults:
+            if qualifier not in qualifiers:
+                # Qualifier should be on by default. The user hasn't turned it
+                # on so we will.
+                value, syntax_switched = self._process_qualifier(
+                    qualifier, None, qualifiers, None)
+
+                # Syntax switching is ignored for defaulted parameters.
+
+                new_qualifiers[qualifier] = value
+
+
+        return new_qualifiers
