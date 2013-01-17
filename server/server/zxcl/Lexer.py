@@ -15,6 +15,15 @@ identifier_regex = re.compile("([a-z]|[A-Z]|_)([a-z]|[A-Z]|[0-9]|_)*")
 date_regex = re.compile("(\d\d?\-(([A-Z]|[a-z]){3})\-\d\d\d\d)")
 string_regex = re.compile(r'"((\\"|[^")])*)"')
 
+# These regexes are used for determining raw value types entered at user
+# prompts. These only differ from the lexing regexes above in that they match
+# the end of the string (they all end in '$')
+float_regex_v = re.compile("(\+|\-)?((\d+\.\d*((e|E)(\+|\-)?\d+)?)|(\.\d+((e|E)(\+|\-)?\d+)?)|(\d+(e|E)(\+|\-)?\d+))$")
+int_regex_v = re.compile("(\+|\-)?\d+$")
+identifier_regex_v = re.compile("([a-z]|[A-Z]|_)([a-z]|[A-Z]|[0-9]|_)*$")
+date_regex_v = re.compile("(\d\d?\-(([A-Z]|[a-z]){3})\-\d\d\d\d)$")
+string_regex_v = re.compile(r'"((\\"|[^")])*)"$')
+
 # The float regex is looking for:
 #    FLOAT
 #    |   ('+'|'-')? ('0'..'9')+ '.' ('0'..'9')* (('e'|'E') ('+'|'-')? ('0'..'9')+)?
@@ -253,16 +262,19 @@ class Lexer(object):
                 return tokens
 
     @staticmethod
-    def get_value_token_type(value):
+    def get_value_token_type(value, string_default):
         """
         Gets the token type for the supplied value string. This should be
         either a date, float, integer, identifier or a string.
         :param value: Value
         :type value: str or unicode
+        :param string_default: If the value should be treated as a string when
+        nothing else matches
+        :type string_default: bool
         :return: Token type
         :rtype: int
         """
-        match = date_regex.match(value)
+        match = date_regex_v.match(value)
         if match is not None:
             # It looks like a date...
             value = match.group(0)
@@ -274,25 +286,27 @@ class Lexer(object):
                 pass
 
             # Try the float first.
-        match = float_regex.match(value)
+        match = float_regex_v.match(value)
         if match is not None:
             # Its a float.
             return Lexer.FLOAT
 
-        match = int_regex.match(value)
+        match = int_regex_v.match(value)
         if match is not None:
             # Its an int
             return Lexer.INTEGER
 
-        match = identifier_regex.match(value)
+        match = identifier_regex_v.match(value)
         if match is not None:
             # Its an identifier
             return Lexer.IDENTIFIER
 
-        match = string_regex.match(value)
+        match = string_regex_v.match(value)
         if match is not None:
             # Its a string
             return Lexer.STRING
 
         # Unknown value type
+        if string_default:
+            return Lexer.STRING
         return None

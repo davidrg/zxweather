@@ -368,15 +368,16 @@ class CommandProcessor(object):
                 # actually is.
                 self._get_keyword(qualifier["keywords"], value)
 
+        # No value was supplied. Should there have been?
+        elif qualifier["type"] is not None and "value_required" in qualifier \
+        and qualifier["value_required"]:
+            raise Exception("Value required for qualifier "
+                            "{name}".format(name=name))
+
         # No qualifier was supplied and its not required. Perhaps there
         # is a default?
         elif "default_value" in qualifier:
             value = qualifier["default_value"]
-
-        # No value was supplied. Should there have been?
-        elif "value_required" in qualifier and qualifier["value_required"]:
-            raise Exception("Value required for qualifier "
-                            "{name}".format(name=name))
 
         return value, syntax_switched
 
@@ -460,11 +461,17 @@ class CommandProcessor(object):
 
             if syntax_switched:
                 # Check for any missing required parameters
-                parameters.update(self._process_required_parameters(len(parameters)))
+                # We move parameters from command_bits to parameters as we've
+                # processed them. So we need to add together both to get the
+                # full parameter count.
+                parameters.update(self._process_required_parameters(
+                    self._parameters_in_command(command_bits) +
+                    len(parameters)))
 
 
         # Fill in any missing optional parameters (with their default values if
         # they have one, None otherwise).
+
         # We use len(parameters) as the next parameter number as they're
         # numbered from 0 so len(parameters)-1 is the final parameter we
         # processed.
@@ -512,11 +519,11 @@ class CommandProcessor(object):
         entered_parameters = {}
 
         # Check if we have any missing and can't prompt for them
-        if required - parameters > 0 and self._prompt_callback:
+        if required - parameters > 0 and self._prompt_callback is None:
             raise Exception("Parameter x missing")
 
         while parameters < required:
-            param_number = parameters-1
+            param_number = parameters
             param = self._syntax.get_parameter(param_number,0,None)
 
             if "prompt" not in param or param["prompt"] is None:
@@ -529,7 +536,7 @@ class CommandProcessor(object):
                 return None
             else:
                 # Parse up the value to get its type.
-                value_type = Parser.get_value_type(result)
+                value_type = Parser.get_value_type(result, True)
 
                 # And validate it
                 syntax_switched = self._process_parameter(
