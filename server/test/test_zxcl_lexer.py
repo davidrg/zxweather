@@ -2,7 +2,8 @@
 """
 Unit tests for zxcl
 """
-from server.zxcl import lexer, LexerError
+
+from server.zxcl.lexer import Lexer, UnexpectedCharacterError
 
 __author__ = 'david'
 
@@ -14,7 +15,7 @@ class IdentifierToken(unittest.TestCase):
     """
 
     def check(self, value):
-        lexer = lexer(value)
+        lexer = Lexer(value)
 
         result = lexer.next_token()
 
@@ -22,7 +23,7 @@ class IdentifierToken(unittest.TestCase):
         self.assertEquals(result.value, value)
 
     def check_not_equals(self, value):
-        lexer = lexer(value)
+        lexer = Lexer(value)
 
         result = lexer.next_token()
 
@@ -30,8 +31,8 @@ class IdentifierToken(unittest.TestCase):
 
 
     def check_exception(self, value):
-        lexer = lexer(value)
-        self.assertRaises(LexerError, lexer.next_token)
+        lexer = Lexer(value)
+        self.assertRaises(UnexpectedCharacterError, lexer.next_token)
 
     def test_alpha_lower(self):
         value = "abacus"
