@@ -4,6 +4,36 @@ Functions for building command tables
 """
 __author__ = 'david'
 
+# Constants for the various command table keys
+K_VERB_NAME = "name"
+K_VERB_SYNTAX = "syntax"
+K_VERB_VERB = "verb"
+
+K_SYNTAX_NAME = "name"
+K_SYNTAX_HANDLER = "handler"
+K_SYNTAX_NO_PARAMETERS = "no_parameters"
+K_SYNTAX_NO_QUALIFIERS = "no_qualifiers"
+K_SYNTAX_PARAMETERS = "parameters"
+K_SYNTAX_QUALIFIERS = "qualifiers"
+
+K_PARAMETER_POSITION = "position"
+K_PARAMETER_TYPE = "type"
+K_PARAMETER_PROMPT = "prompt"
+K_PARAMETER_REQUIRED = "required"
+K_PARAMETER_DEFAULT = "default"
+K_PARAMETER_KEYWORDS = "keywords"
+
+K_QUALIFIER_NAME = "name"
+K_QUALIFIER_TYPE = "type"
+K_QUALIFIER_DEFAULT_VALUE = "default_value"
+K_QUALIFIER_VALUE_REQUIRED = "value_required"
+K_QUALIFIER_DEFAULT = "default"
+K_QUALIFIER_SYNTAX = "syntax"
+K_QUALIFIER_KEYWORDS = "keywords"
+
+K_KEYWORD_SET_NAME = "name"
+K_KEYWORD_SET_KEYWORDS = "keywords"
+
 def verb(name,syntax):
     """
     Defines a new verb.
@@ -16,8 +46,8 @@ def verb(name,syntax):
     """
 
     return {
-        "name": name.upper(),
-        "syntax": syntax
+        K_VERB_NAME: name.upper(),
+        K_VERB_SYNTAX: syntax
     }
 
 def synonym(name, verb):
@@ -30,8 +60,8 @@ def synonym(name, verb):
     :rtype: dict
     """
     return {
-        "name": name.upper(),
-        "verb": verb.upper()
+        K_VERB_NAME: name.upper(),
+        K_VERB_VERB: verb.upper()
     }
 
 def syntax(name, handler = "", deny_parameters=False, deny_qualifiers=False,
@@ -66,19 +96,19 @@ def syntax(name, handler = "", deny_parameters=False, deny_qualifiers=False,
 
     if qualifiers is not None:
         for qualifier in qualifiers:
-            qual[qualifier["name"]] = qualifier
+            qual[qualifier[K_QUALIFIER_NAME]] = qualifier
 
     if parameters is not None:
         for parameter in parameters:
-            param[parameter["position"]] = parameter
+            param[parameter[K_PARAMETER_POSITION]] = parameter
 
     return {
-        "name": name,
-        "handler": handler,
-        "no_parameters": deny_parameters,
-        "no_qualifiers": deny_qualifiers,
-        "parameters": param,
-        "qualifiers": qual
+        K_SYNTAX_NAME: name,
+        K_SYNTAX_HANDLER: handler,
+        K_SYNTAX_NO_PARAMETERS: deny_parameters,
+        K_SYNTAX_NO_QUALIFIERS: deny_qualifiers,
+        K_SYNTAX_PARAMETERS: param,
+        K_SYNTAX_QUALIFIERS: qual
     }
 
 def parameter(position, type, required=False, prompt=None, default=None,
@@ -110,12 +140,12 @@ def parameter(position, type, required=False, prompt=None, default=None,
         raise Exception("Invalid type {0}".format(type))
 
     return {
-        "position": position,
-        "type": type,
-        "prompt": prompt,
-        "required": required,
-        "default": default,
-        "keywords": keywords
+        K_PARAMETER_POSITION: position,
+        K_PARAMETER_TYPE: type,
+        K_PARAMETER_PROMPT: prompt,
+        K_PARAMETER_REQUIRED: required,
+        K_PARAMETER_DEFAULT: default,
+        K_PARAMETER_KEYWORDS: keywords
     }
 
 def qualifier(name, type=None, default_value=None, value_required=True,
@@ -152,13 +182,13 @@ def qualifier(name, type=None, default_value=None, value_required=True,
     # Ignored features: label, negatable, placement, value!list (CDU-26)
 
     return {
-        "name": name.upper(),
-        "type": type,
-        "default_value": default_value,
-        "value_required": value_required,
-        "default": default,
-        "syntax": syntax,
-        "keywords": keywords
+        K_QUALIFIER_NAME: name.upper(),
+        K_QUALIFIER_TYPE: type,
+        K_QUALIFIER_DEFAULT_VALUE: default_value,
+        K_QUALIFIER_VALUE_REQUIRED: value_required,
+        K_QUALIFIER_DEFAULT: default,
+        K_QUALIFIER_SYNTAX: syntax,
+        K_QUALIFIER_KEYWORDS: keywords
     }
 
 def keyword(value, syntax=None):
@@ -186,7 +216,7 @@ def syntax_table(syntaxes):
     stx_table = {}
 
     for syntax in syntaxes:
-        stx_table[syntax["name"]] = syntax
+        stx_table[syntax[K_SYNTAX_NAME]] = syntax
 
     return stx_table
 
@@ -201,8 +231,8 @@ def keyword_set(name, keywords):
     :rtype: dict
     """
     return {
-        "name": name,
-        "keywords": keywords
+        K_KEYWORD_SET_NAME: name,
+        K_KEYWORD_SET_KEYWORDS: keywords
     }
 
 def keyword_table(keyword_sets):
@@ -217,7 +247,8 @@ def keyword_table(keyword_sets):
     table = {}
 
     for keyword_set in keyword_sets:
-        table[keyword_set["name"]] = keyword_set["keywords"]
+        table[keyword_set[K_KEYWORD_SET_NAME]] = \
+            keyword_set[K_KEYWORD_SET_KEYWORDS]
 
     return table
 
@@ -233,6 +264,6 @@ def verb_table(verbs):
     table = {}
 
     for verb in verbs:
-        table[verb["name"]] = verb
+        table[verb[K_VERB_NAME]] = verb
 
     return table

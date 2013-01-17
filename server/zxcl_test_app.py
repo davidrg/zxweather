@@ -144,14 +144,14 @@ def run_command(command):
     print("Parameters: {0}".format(params))
     print("Qualifiers: {0}".format(qualifiers))
 
-def test_command(command):
+def test_command(command, dont_print_command=False):
 
-    print("\nCommand: {0}".format(command.strip()))
+    if not dont_print_command:
+        print("\nCommand: {0}".format(command.strip()))
     try:
         run_command(command)
     except Exception as e:
         print("Error: {0}".format(e.message))
-
 
 test_command('set client "test app"/version="1.0.0"')
 test_command('set interface/coded')
@@ -161,6 +161,9 @@ test_command('login/username="foo"/password="bar"')
 test_command('stream/up')
 test_command('logout')
 test_command('quit')
+
+while True:
+    test_command(raw_input("$ "), True)
 
 # ANY2
 # NEG

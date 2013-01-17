@@ -4,7 +4,14 @@ The ZXCL Command Processor and basic shell
 """
 from parser import Parser
 
-# TODO: convert all keys to uppercase
+# These are the command table key constants.
+from server.zxcl.command_table import K_PARAMETER_PROMPT, \
+    K_QUALIFIER_DEFAULT_VALUE, K_QUALIFIER_TYPE, K_QUALIFIER_VALUE_REQUIRED, \
+    K_QUALIFIER_KEYWORDS, K_QUALIFIER_SYNTAX, K_PARAMETER_KEYWORDS, \
+    K_PARAMETER_TYPE, K_VERB_VERB, K_VERB_SYNTAX, K_QUALIFIER_DEFAULT, \
+    K_PARAMETER_DEFAULT, K_PARAMETER_REQUIRED, K_SYNTAX_HANDLER, \
+    K_SYNTAX_PARAMETERS, K_SYNTAX_NO_PARAMETERS, K_SYNTAX_QUALIFIERS, \
+    K_SYNTAX_NO_QUALIFIERS
 
 __author__ = 'david'
 
@@ -38,18 +45,20 @@ class Syntax(object):
 
         self._syntax = self._syntax_table[self._syntax_name]
 
-        if "parameters" in self._syntax:
-            self._parameters = self._syntax["parameters"]
+        if K_SYNTAX_PARAMETERS in self._syntax:
+            self._parameters = self._syntax[K_SYNTAX_PARAMETERS]
 
         # Parameters are disallowed by this syntax. Wipe out existing ones.
-        elif "no_parameters" in self._syntax and self._syntax["no_parameters"]:
+        elif K_SYNTAX_NO_PARAMETERS in self._syntax and \
+             self._syntax[K_SYNTAX_NO_PARAMETERS]:
             self._parameters = {}
 
-        if "qualifiers" in self._syntax:
-            self._qualifiers = self._syntax["qualifiers"]
+        if K_SYNTAX_QUALIFIERS in self._syntax:
+            self._qualifiers = self._syntax[K_SYNTAX_QUALIFIERS]
 
         # Parameters are disallowed by this syntax. Wipe out existing ones.
-        elif "no_qualifiers" in self._syntax and self._syntax["no_qualifiers"]:
+        elif K_SYNTAX_NO_QUALIFIERS in self._syntax and \
+             self._syntax[K_SYNTAX_NO_QUALIFIERS]:
             self._qualifiers = {}
 
     def parameters_allowed(self):
@@ -135,8 +144,8 @@ class Syntax(object):
         :return: Handler name
         :rtype: str
         """
-        if "handler" in self._syntax:
-            return self._syntax["handler"]
+        if K_SYNTAX_HANDLER in self._syntax:
+            return self._syntax[K_SYNTAX_HANDLER]
         else:
             return None
 
@@ -146,7 +155,7 @@ class Syntax(object):
         """
         required = 0
         for param in self._parameters:
-            if self._parameters[param]["required"]:
+            if self._parameters[param][K_PARAMETER_REQUIRED]:
                 required += 1
         return required
 
@@ -168,9 +177,10 @@ class Syntax(object):
         while param < param_count:
             p = self.get_parameter(param, None, None)
 
-            if p is not None and "default" in p and p["default"] is not None:
+            if p is not None and K_PARAMETER_DEFAULT in p and \
+               p[K_PARAMETER_DEFAULT] is not None:
                 # We have a parameter and it has a default
-                parameters[param] = p["default"]
+                parameters[param] = p[K_PARAMETER_DEFAULT]
             else:
                 # All parameters will always be present. If the user doesn't
                 # supply it and it doesn't have a default it will just be set
@@ -188,7 +198,8 @@ class Syntax(object):
         defaults = []
 
         for qualifier in self._qualifiers:
-            if "default" in qualifier and qualifier["default"] is True:
+            if K_QUALIFIER_DEFAULT in qualifier and \
+               qualifier[K_QUALIFIER_DEFAULT] is True:
                 defaults.append(qualifier)
 
         return defaults
@@ -247,12 +258,12 @@ class CommandProcessor(object):
             raise Exception("Unrecognised verb '{0}', position 0".format(verb_name))
 
 
-        if "syntax" in verb and verb["syntax"] is not None:
-            return verb["syntax"]
+        if K_VERB_SYNTAX in verb and verb[K_VERB_SYNTAX] is not None:
+            return verb[K_VERB_SYNTAX]
 
         # Handle synonyms
-        elif "verb" in verb and verb["verb"] is not None:
-            return self.get_verb_syntax(verb["verb"])
+        elif K_VERB_VERB in verb and verb[K_VERB_VERB] is not None:
+            return self.get_verb_syntax(verb[K_VERB_VERB])
         else:
             raise Exception("Invalid verb {name}".format(name=verb_name))
 
@@ -289,15 +300,15 @@ class CommandProcessor(object):
         syntax_switched = False
 
         # Check the parameters type
-        if value_type != parameter["type"]:
+        if value_type != parameter[K_PARAMETER_TYPE]:
             raise Exception("Parameter type is {type} but got a "
                             "{got}".format(
-                type=parameter["type"],
+                type=parameter[K_PARAMETER_TYPE],
                 got=value_type))
         if value_type == "keyword":
             # This will throw an exception if its an invalid keyword
             # which is our validation.
-            keyword = self._get_keyword(parameter["keywords"], value)
+            keyword = self._get_keyword(parameter[K_PARAMETER_KEYWORDS], value)
 
             # Handle syntax switching
             if keyword[1] is not None:
@@ -319,10 +330,11 @@ class CommandProcessor(object):
         syntax_switched = False
 
         # Handle syntax switching
-        if "syntax" in qualifier and qualifier["syntax"] is not None:
+        if K_QUALIFIER_SYNTAX in qualifier and \
+           qualifier[K_QUALIFIER_SYNTAX] is not None:
             # The qualifier wants us to switch syntaxes.
 
-            self._syntax.switch_syntax(qualifier["syntax"])
+            self._syntax.switch_syntax(qualifier[K_QUALIFIER_SYNTAX])
 
             if len(qualifiers) > 0 and self._warning_callback is not None:
                 ignored = ""
@@ -344,7 +356,7 @@ class CommandProcessor(object):
             value_type = value[1]
             value = value[0]
 
-            qual_type = qualifier["type"]
+            qual_type = qualifier[K_QUALIFIER_TYPE]
 
             # Check to see if the qualifier actually has a value
             if qual_type is None:
@@ -366,18 +378,19 @@ class CommandProcessor(object):
                 # This will throw an exception if its an invalid keyword
                 # which is our validation. We don't care what it
                 # actually is.
-                self._get_keyword(qualifier["keywords"], value)
+                self._get_keyword(qualifier[K_QUALIFIER_KEYWORDS], value)
 
         # No value was supplied. Should there have been?
-        elif qualifier["type"] is not None and "value_required" in qualifier \
-        and qualifier["value_required"]:
+        elif qualifier[K_QUALIFIER_TYPE] is not None and \
+             K_QUALIFIER_VALUE_REQUIRED in qualifier and \
+             qualifier[K_QUALIFIER_VALUE_REQUIRED]:
             raise Exception("Value required for qualifier "
                             "{name}".format(name=name))
 
         # No qualifier was supplied and its not required. Perhaps there
         # is a default?
-        elif "default_value" in qualifier:
-            value = qualifier["default_value"]
+        elif K_QUALIFIER_DEFAULT_VALUE in qualifier:
+            value = qualifier[K_QUALIFIER_DEFAULT_VALUE]
 
         return value, syntax_switched
 
@@ -440,7 +453,8 @@ class CommandProcessor(object):
                 value = value[0]
 
                 # Check that its valid, handle syntax switches, etc.
-                syntax_switched = self._process_parameter(name, position, value, value_type)
+                syntax_switched = self._process_parameter(
+                    name, position, value, value_type)
 
                 # Store the parameter
                 parameters[name] = value
@@ -526,11 +540,12 @@ class CommandProcessor(object):
             param_number = parameters
             param = self._syntax.get_parameter(param_number,0,None)
 
-            if "prompt" not in param or param["prompt"] is None:
+            if K_PARAMETER_PROMPT not in param or \
+               param[K_PARAMETER_PROMPT] is None:
                 raise Exception("Required parameter {0} missing".format(
                     param_number))
 
-            result = self._prompt_callback(param["prompt"])
+            result = self._prompt_callback(param[K_PARAMETER_PROMPT])
 
             if result is None:
                 return None
