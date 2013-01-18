@@ -158,6 +158,10 @@ class BaseSyntaxTests(unittest.TestCase):
 
         self.assertEquals(stx.get_handler(), "syntax_1_handler")
 
+class GetRequiredParameterCount(unittest.TestCase):
+    """
+    Tests Syntax.get_required_parameter_count()
+    """
     def test_required_parameter_count_is_zero_for_no_parameters(self):
         """
         Tests that get_required_parameter_count() functions correctly when
@@ -223,6 +227,10 @@ class BaseSyntaxTests(unittest.TestCase):
 
         self.assertEquals(stx.get_required_parameter_count(), 2)
 
+class GetDefaultQualifiers(unittest.TestCase):
+    """
+    Tests Syntax.get_default_qualifiers()
+    """
     def test_no_default_qualifiers_when_no_qualifiers_defined(self):
         """
         Checks that there are no default qualifiers when there are no
@@ -288,7 +296,11 @@ class BaseSyntaxTests(unittest.TestCase):
         self.assertListEqual(stx.get_default_qualifiers(), [default_qual_1,
                                                             default_qual_2])
 
-    def test_get_qualifier_throws_exception_when_qualifiers_not_allowed(self):
+class GetQualifier(unittest.TestCase):
+    """
+    Tests Syntax.get_qualifier()
+    """
+    def test_throws_exception_when_qualifiers_not_allowed(self):
         """
         If we request a qualifier when they're not allowed we should get an
         exception.
@@ -304,7 +316,7 @@ class BaseSyntaxTests(unittest.TestCase):
         with self.assertRaises(Exception):
             stx.get_qualifier("abacus", 0)
 
-    def test_get_qualifier_throws_exception_for_nonexistant_qualifier(self):
+    def test_throws_exception_for_nonexistant_qualifier(self):
         """
         If we request a qualifier that doesn't exist we should get an
         exception.
@@ -321,7 +333,7 @@ class BaseSyntaxTests(unittest.TestCase):
         with self.assertRaises(Exception):
             stx.get_qualifier("abacus", 0)
 
-    def test_get_qualifier_returns_requested_qualifier(self):
+    def test_returns_requested_qualifier(self):
         """
         If we request a qualifier that does exist then it should be returned
         """
@@ -336,7 +348,6 @@ class BaseSyntaxTests(unittest.TestCase):
         stx.switch_syntax("syntax_1")
 
         self.assertDictEqual(stx.get_qualifier("foo",0), qual)
-
 
 class SyntaxGetParameterTests(unittest.TestCase):
     """
