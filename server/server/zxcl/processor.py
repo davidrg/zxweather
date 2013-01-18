@@ -84,7 +84,7 @@ class Syntax(object):
         the parameter
         :returns: The parameter dict
         :rtype: dict
-        """
+        """ 
 
         if not self.parameters_allowed():
             if position is None:
@@ -170,6 +170,9 @@ class Syntax(object):
         :rtype: dict
         """
         param = first_parameter
+
+        if param < 0: param = 0
+
         param_count = len(self._parameters)
 
         parameters = {}
@@ -187,6 +190,8 @@ class Syntax(object):
                 # to None.
                 parameters[param] = None
 
+            param += 1
+
         return parameters
 
     def get_default_qualifiers(self):
@@ -197,7 +202,8 @@ class Syntax(object):
 
         defaults = []
 
-        for qualifier in self._qualifiers:
+        for qualifier_name in self._qualifiers:
+            qualifier = self._qualifiers[qualifier_name]
             if K_QUALIFIER_DEFAULT in qualifier and \
                qualifier[K_QUALIFIER_DEFAULT] is True:
                 defaults.append(qualifier)
@@ -481,6 +487,9 @@ class CommandProcessor(object):
                 parameters.update(self._process_required_parameters(
                     self._parameters_in_command(command_bits) +
                     len(parameters)))
+
+        # TODO: Grab a list of all explicitly defined parameters and qualifiers
+        # This will be used later for processing disallows
 
 
         # Fill in any missing optional parameters (with their default values if
