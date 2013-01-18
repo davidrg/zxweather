@@ -11,7 +11,7 @@ from server.zxcl.command_table import K_PARAMETER_PROMPT, \
     K_PARAMETER_TYPE, K_VERB_VERB, K_VERB_SYNTAX, K_QUALIFIER_DEFAULT, \
     K_PARAMETER_DEFAULT, K_PARAMETER_REQUIRED, K_SYNTAX_HANDLER, \
     K_SYNTAX_PARAMETERS, K_SYNTAX_NO_PARAMETERS, K_SYNTAX_QUALIFIERS, \
-    K_SYNTAX_NO_QUALIFIERS
+    K_SYNTAX_NO_QUALIFIERS, K_PARAMETER_LABEL, K_QUALIFIER_NAME
 
 __author__ = 'david'
 
@@ -243,7 +243,7 @@ class CommandProcessor(object):
         self._prompt_callback = prompt_callback
         self._warning_callback = warning_callback
 
-    def get_verb_syntax(self, verb_name):
+    def _get_verb_syntax(self, verb_name):
         """
         Gets the name of the verbs default syntax. It will handle resolving
         verb synonyms until the real verb is found.
@@ -271,7 +271,7 @@ class CommandProcessor(object):
 
         # Handle synonyms
         elif K_VERB_VERB in verb and verb[K_VERB_VERB] is not None:
-            return self.get_verb_syntax(verb[K_VERB_VERB])
+            return self._get_verb_syntax(verb[K_VERB_VERB])
         else:
             raise Exception("Invalid verb {name}".format(name=verb_name))
 
@@ -347,7 +347,10 @@ class CommandProcessor(object):
             if len(qualifiers) > 0 and self._warning_callback is not None:
                 ignored = ""
                 for key in qualifiers:
-                    ignored += ", " + key
+                    # Qualifier names stored for output from the command
+                    # processor are stored in lowercase. Convert to uppercase
+                    # for display.
+                    ignored += ", " + key.upper()
 
                 self._warning_callback("The following qualifiers will "
                                        "be ignored: {0}".format(
@@ -415,8 +418,8 @@ class CommandProcessor(object):
         command_bits = self.parser.parse(command_string)
 
         # Nothing to do if there is nothing to do.
-        if len(command_bits) == 0:
-            return
+        if command_bits is None:
+            return None,{},{}
 
         # It is a list of 4-item tuples.
         # Item 0: type - either v - verb
@@ -432,7 +435,7 @@ class CommandProcessor(object):
 
         # Item 0 should always be a verb.
         verb = command_bits.pop(0)[2]
-        self._syntax.switch_syntax(self.get_verb_syntax(verb))
+        self._syntax.switch_syntax(self._get_verb_syntax(verb))
 
         qualifiers = {}
         parameters = {}
@@ -467,7 +470,8 @@ class CommandProcessor(object):
                 # Store the parameter
                 parameters[name] = value
 
-            elif type == Parser.COMP_TYPE_QUALIFIER:
+            else:
+                # It must be a qualifier
                 value, syntax_switched = self._process_qualifier(
                     name, position, qualifiers, value)
 
@@ -475,11 +479,10 @@ class CommandProcessor(object):
                 if syntax_switched:
                     qualifiers = {}
 
-                # Store the qualifier
-                qualifiers[name] = value
-            else:
-                raise Exception("Unrecognised command component "
-                                "type {0}".format(type))
+                # Store the qualifier. Qualifier names for output are stored
+                # in lowercase.
+                qualifiers[name.lower()] = value
+
 
             if syntax_switched:
                 # Check for any missing required parameters
@@ -543,23 +546,24 @@ class CommandProcessor(object):
 
         entered_parameters = {}
 
-        # Check if we have any missing and can't prompt for them
-        if required - parameters > 0 and self._prompt_callback is None:
-            raise Exception("Parameter x missing")
-
         while parameters < required:
             param_number = parameters
             param = self._syntax.get_parameter(param_number,0,None)
 
+            param_label = 'P' + str(param_number)
+            if param[K_PARAMETER_LABEL] is not None:
+                param_label = param[K_PARAMETER_LABEL]
+
             if K_PARAMETER_PROMPT not in param or \
                param[K_PARAMETER_PROMPT] is None:
                 raise Exception("Required parameter {0} missing".format(
-                    param_number))
+                    param_label))
 
             result = self._prompt_callback(param[K_PARAMETER_PROMPT])
 
             if result is None:
-                return None
+                raise Exception("Parameter '{param}' is required".format(
+                    param=param_label))
             else:
                 # Parse up the value to get its type.
                 value_type = Parser.get_value_type(result, True)
@@ -595,15 +599,17 @@ class CommandProcessor(object):
         new_qualifiers = {}
 
         for qualifier in defaults:
-            if qualifier not in qualifiers:
+            # Qualifier names for output are stored in lowercase.
+            qualifier_name = qualifier[K_QUALIFIER_NAME].lower()
+            if qualifier_name not in qualifiers:
                 # Qualifier should be on by default. The user hasn't turned it
                 # on so we will.
                 value, syntax_switched = self._process_qualifier(
-                    qualifier, None, qualifiers, None)
+                    qualifier_name, None, qualifiers, None)
 
                 # Syntax switching is ignored for defaulted parameters.
 
-                new_qualifiers[qualifier] = value
+                new_qualifiers[qualifier_name] = value
 
 
         return new_qualifiers

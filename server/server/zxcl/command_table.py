@@ -22,6 +22,7 @@ K_PARAMETER_PROMPT = "prompt"
 K_PARAMETER_REQUIRED = "required"
 K_PARAMETER_DEFAULT = "default"
 K_PARAMETER_KEYWORDS = "keywords"
+K_PARAMETER_LABEL = "label"
 
 K_QUALIFIER_NAME = "name"
 K_QUALIFIER_TYPE = "type"
@@ -115,7 +116,7 @@ def syntax(name, handler = None, deny_parameters=False, deny_qualifiers=False,
     return result
 
 def parameter(position, type, required=False, prompt=None, default=None,
-              keywords=None):
+              keywords=None, label=None):
     """
     Defines a new parameter
     :param position: The parameter number
@@ -135,6 +136,9 @@ def parameter(position, type, required=False, prompt=None, default=None,
     :param keywords: The name of the keywords set. Only used when the type is
     keywords.
     :type keywords: str
+    :param label: The user-visible name for the parameter. If this is not
+    specified then the label will be 'P' followed by the parameters position.
+    :type label: str
     :return: A new parameter
     :rtype: dict
     """
@@ -148,7 +152,8 @@ def parameter(position, type, required=False, prompt=None, default=None,
         K_PARAMETER_PROMPT: prompt,
         K_PARAMETER_REQUIRED: required,
         K_PARAMETER_DEFAULT: default,
-        K_PARAMETER_KEYWORDS: keywords
+        K_PARAMETER_KEYWORDS: keywords,
+        K_PARAMETER_LABEL: label,
     }
 
 def qualifier(name, type=None, default_value=None, value_required=True,
