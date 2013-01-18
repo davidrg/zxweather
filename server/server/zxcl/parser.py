@@ -77,11 +77,7 @@ class Parser(object):
 
         self._look_ahead = None
 
-        try:
-            self._tokens = Lexer.tokenise(string)
-        except UnexpectedCharacterError as e:
-            # translate the lexer error into a parser error.
-            raise ParserError(e.message)
+        self._tokens = Lexer.tokenise(string)
 
         self._position = -1
         self._consume()
@@ -226,7 +222,4 @@ class Parser(object):
         :rtype: str
         :raise: Exception if an invalid value is supplied
         """
-        try:
-            return Parser._value_types[Lexer.get_value_token_type(value, string_default)]
-        except Exception:
-            raise ParserError("Expected keyword, integer, float, string or date")
+        return Parser._value_types[Lexer.get_value_token_type(value, string_default)]
