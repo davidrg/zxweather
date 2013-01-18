@@ -78,7 +78,9 @@ class Syntax(object):
         Returns the specified parameter number
         :param parameter_number:  The parameter to fetch
         :param position: Where in the command line the parameter appeared (for
-        error reporting)
+        error reporting). If None then no exceptions will be thrown and None
+        will be returned in the case of errors instead. Use this only when
+        calling to deal with defaulted parameters, etc.
         :type position: int or None
         :param value: The value encountered in the command string (if any) for
         the parameter

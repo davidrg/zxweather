@@ -16,8 +16,6 @@ class SecondSyntaxSwitchTests(unittest.TestCase):
     overriden the initial details put in place by the initial syntax switch.
     """
 
-
-
 class BaseSyntaxTests(unittest.TestCase):
     """
     Checks the most basic syntax functionality - mostly the various get methods
@@ -289,6 +287,143 @@ class BaseSyntaxTests(unittest.TestCase):
 
         self.assertListEqual(stx.get_default_qualifiers(), [default_qual_1,
                                                             default_qual_2])
+
+    def test_get_qualifier_throws_exception_when_qualifiers_not_allowed(self):
+        """
+        If we request a qualifier when they're not allowed we should get an
+        exception.
+        """
+
+        stx = Syntax(syntax_table([
+            CreateSyntax(
+                name="syntax_1",
+            )
+        ]))
+        stx.switch_syntax("syntax_1")
+
+        with self.assertRaises(Exception):
+            stx.get_qualifier("abacus", 0)
+
+    def test_get_qualifier_throws_exception_for_nonexistant_qualifier(self):
+        """
+        If we request a qualifier that doesn't exist we should get an
+        exception.
+        """
+
+        stx = Syntax(syntax_table([
+            CreateSyntax(
+                name="syntax_1",
+                qualifiers=[qualifier(name="foo",default=True), qualifier(name="bar",default=True)]
+            )
+        ]))
+        stx.switch_syntax("syntax_1")
+
+        with self.assertRaises(Exception):
+            stx.get_qualifier("abacus", 0)
+
+    def test_get_qualifier_returns_requested_qualifier(self):
+        """
+        If we request a qualifier that does exist then it should be returned
+        """
+        qual = qualifier(name="foo",default=True)
+
+        stx = Syntax(syntax_table([
+            CreateSyntax(
+                name="syntax_1",
+                qualifiers=[qual, qualifier(name="bar",default=True)]
+            )
+        ]))
+        stx.switch_syntax("syntax_1")
+
+        self.assertDictEqual(stx.get_qualifier("foo",0), qual)
+
+
+class SyntaxGetParameterTests(unittest.TestCase):
+    """
+    Handles testing Syntax.get_parameter()
+    """
+    def test_throws_exception_when_parameters_not_allowed(self):
+        """
+        If we request a parameter when they're not allowed we should get an
+        exception.
+        """
+
+        stx = Syntax(syntax_table([
+            CreateSyntax(
+                name="syntax_1",
+            )
+        ]))
+        stx.switch_syntax("syntax_1")
+
+        with self.assertRaises(Exception):
+            stx.get_parameter(0, 0,"")
+
+    def test_returns_None_when_parameters_not_allowed_if_position_is_None(self):
+        """
+        If we request a parameter without supplying a position then None should
+        be returned instead of having an exception thrown.
+        """
+
+        stx = Syntax(syntax_table([
+            CreateSyntax(
+                name="syntax_1",
+            )
+        ]))
+        stx.switch_syntax("syntax_1")
+
+        self.assertIsNone(stx.get_parameter(0, None,""))
+
+    def test_throws_exception_for_nonexistant_parameter(self):
+        """
+        If we request a parameter that doesn't exist we should get an
+        exception.
+        """
+
+        stx = Syntax(syntax_table([
+            CreateSyntax(
+                name="syntax_1",
+                parameters=[parameter(0,"int"),parameter(1,"string"),
+                            parameter(2,"float")]
+            )
+        ]))
+        stx.switch_syntax("syntax_1")
+
+        with self.assertRaises(Exception):
+            stx.get_parameter(3, 0, "")
+
+    def test_returns_None_for_nonexistant_parameter_if_position_is_None(self):
+        """
+        If we request a parameter that doesn't exist and we supply None for
+        the command-line position we should get None returned instead of an
+        exception.
+        """
+
+        stx = Syntax(syntax_table([
+            CreateSyntax(
+                name="syntax_1",
+                parameters=[parameter(0,"int"),parameter(1,"string"),
+                            parameter(2,"float")]
+            )
+        ]))
+        stx.switch_syntax("syntax_1")
+
+        self.assertIsNone(stx.get_parameter(3, None, ""))
+
+    def test_returns_requested_qualifier(self):
+        """
+        If we request a parameter we should get it.
+        """
+        param_0 = parameter(position=0,type="int")
+        param_1 = parameter(position=1,type="string")
+        stx = Syntax(syntax_table([
+            CreateSyntax(
+                name="syntax_1",
+                parameters=[param_0, param_1]
+            )
+        ]))
+        stx.switch_syntax("syntax_1")
+
+        self.assertDictEqual(stx.get_parameter(0,0,""), param_0)
 
 class SyntaxGetParameterDefaults(unittest.TestCase):
     """

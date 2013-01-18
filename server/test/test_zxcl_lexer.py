@@ -29,11 +29,6 @@ class IdentifierToken(unittest.TestCase):
 
         self.assertNotEquals(result.type, lexer.IDENTIFIER)
 
-
-    def check_exception(self, value):
-        lexer = Lexer(value)
-        self.assertRaises(UnexpectedCharacterError, lexer.next_token)
-
     def test_alpha_lower(self):
         value = "abacus"
         self.check(value)
@@ -55,6 +50,3 @@ class IdentifierToken(unittest.TestCase):
         value = "9"
         self.check_not_equals(value)
 
-
-if __name__ == '__main__':
-    unittest.main()
