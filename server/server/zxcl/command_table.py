@@ -64,7 +64,7 @@ def synonym(name, verb):
         K_VERB_VERB: verb.upper()
     }
 
-def syntax(name, handler = "", deny_parameters=False, deny_qualifiers=False,
+def syntax(name, handler = None, deny_parameters=False, deny_qualifiers=False,
            parameters = None, qualifiers = None):
     """
     Defines a new command syntax
@@ -102,14 +102,17 @@ def syntax(name, handler = "", deny_parameters=False, deny_qualifiers=False,
         for parameter in parameters:
             param[parameter[K_PARAMETER_POSITION]] = parameter
 
-    return {
+    result = {
         K_SYNTAX_NAME: name,
-        K_SYNTAX_HANDLER: handler,
         K_SYNTAX_NO_PARAMETERS: deny_parameters,
         K_SYNTAX_NO_QUALIFIERS: deny_qualifiers,
         K_SYNTAX_PARAMETERS: param,
         K_SYNTAX_QUALIFIERS: qual
     }
+
+    if handler is not None:
+        result[K_SYNTAX_HANDLER]= handler
+    return result
 
 def parameter(position, type, required=False, prompt=None, default=None,
               keywords=None):
@@ -128,7 +131,7 @@ def parameter(position, type, required=False, prompt=None, default=None,
     :param default: The parameters default value. Only used for optional
     parameters when the user does not supply a value. Use of the default value
     will not cause syntaxes to be switched.
-    :type default: str
+    :type default: str or int or float or datetime.datetime
     :param keywords: The name of the keywords set. Only used when the type is
     keywords.
     :type keywords: str
@@ -160,7 +163,7 @@ def qualifier(name, type=None, default_value=None, value_required=True,
     :param default_value: The qualifiers default value. Used if the user
     supplies the qualifier without a value or if the user does not supply the
     qualifier at all. Ignored if the value is required.
-    :type default_value: str
+    :type default_value: str or int or float or datetime.datetime
     :param value_required: If the value must be specified. This prevents the
     default value from being used
     :type value_required: bool
