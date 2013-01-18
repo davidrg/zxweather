@@ -94,21 +94,21 @@ def syntax(name, handler = None, deny_parameters=False, deny_qualifiers=False,
     # TODO: determine minimum unique prefix length and transform qualifier
     # names to use that
 
-    if qualifiers is not None:
-        for qualifier in qualifiers:
-            qual[qualifier[K_QUALIFIER_NAME]] = qualifier
-
-    if parameters is not None:
-        for parameter in parameters:
-            param[parameter[K_PARAMETER_POSITION]] = parameter
-
     result = {
         K_SYNTAX_NAME: name,
         K_SYNTAX_NO_PARAMETERS: deny_parameters,
         K_SYNTAX_NO_QUALIFIERS: deny_qualifiers,
-        K_SYNTAX_PARAMETERS: param,
-        K_SYNTAX_QUALIFIERS: qual
-    }
+        }
+
+    if qualifiers is not None:
+        for qualifier in qualifiers:
+            qual[qualifier[K_QUALIFIER_NAME]] = qualifier
+        result[K_SYNTAX_QUALIFIERS] = qual
+
+    if parameters is not None:
+        for parameter in parameters:
+            param[parameter[K_PARAMETER_POSITION]] = parameter
+        result[K_SYNTAX_PARAMETERS] = param
 
     if handler is not None:
         result[K_SYNTAX_HANDLER]= handler

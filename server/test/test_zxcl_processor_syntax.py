@@ -2,7 +2,7 @@
 """
 Unit tests for the ZXCL Command Processors Syntax class
 """
-from server.zxcl.command_table import syntax_table, syntax as CreateSyntax, qualifier, parameter
+from server.zxcl.command_table import syntax_table, syntax as CreateSyntax, qualifier, parameter, K_SYNTAX_PARAMETERS, K_SYNTAX_QUALIFIERS
 from server.zxcl.processor import Syntax
 
 __author__ = 'david'
@@ -16,11 +16,233 @@ class SecondSyntaxSwitchTests(unittest.TestCase):
     overriden the initial details put in place by the initial syntax switch.
     """
 
+    def test_replaces_syntax_name(self):
+        """
+        Checks that the syntax switch replaces the previous syntaxes name
+        """
+        stx = Syntax(syntax_table([
+            CreateSyntax(
+                name="foo",
+                handler="foo_handler",
+                parameters=[parameter(1,type="int")],
+                qualifiers=[qualifier(name="qual1")]
+            ),
+            CreateSyntax(
+                name="bar",
+                handler="bar_handler",
+                parameters=[parameter(1,type="int"), parameter(2,"string")],
+                qualifiers=[qualifier(name="qual2")]
+            )
+        ]))
+        stx.switch_syntax("foo")
+        stx.switch_syntax("bar")
+
+        self.assertEquals(stx._syntax_name, "bar")
+
+    def test_replaces_handler(self):
+        """
+        The new syntax should override the previous syntaxes handler
+        """
+        stx = Syntax(syntax_table([
+            CreateSyntax(
+                name="foo",
+                handler="foo_handler",
+                parameters=[parameter(1,type="int")],
+                qualifiers=[qualifier(name="qual1")]
+            ),
+            CreateSyntax(
+                name="bar",
+                handler="bar_handler",
+                parameters=[parameter(1,type="int"), parameter(2,"string")],
+                qualifiers=[qualifier(name="qual2")]
+            )
+        ]))
+        stx.switch_syntax("foo")
+        stx.switch_syntax("bar")
+
+        self.assertEquals(stx.get_handler(), "bar_handler")
+
+    def test_replaces_qualifiers_if_second_has_qualifiers(self):
+        """
+        If the new syntax has qualifiers its qualifier list should completely
+        replace that of the previous syntax
+        """
+
+        stx_table = syntax_table([
+            CreateSyntax(
+                name="foo",
+                handler="foo_handler",
+                parameters=[parameter(1,type="int")],
+                qualifiers=[qualifier(name="qual1")]
+            ),
+            CreateSyntax(
+                name="bar",
+                handler="bar_handler",
+                parameters=[parameter(1,type="int"), parameter(2,"string")],
+                qualifiers=[qualifier(name="qual2")]
+            )
+        ])
+        second_qual_list = stx_table["bar"][K_SYNTAX_QUALIFIERS]
+
+        stx = Syntax(stx_table)
+        stx.switch_syntax("foo")
+        stx.switch_syntax("bar")
+
+        self.assertDictEqual(stx._qualifiers, second_qual_list)
+
+    def test_replaces_parameters_if_second_has_parameters(self):
+        """
+        If the new syntax has parameters its parameter list should completely
+        replace that of the previous syntax.
+        """
+        stx_table = syntax_table([
+            CreateSyntax(
+                name="foo",
+                handler="foo_handler",
+                parameters=[parameter(1,type="int")],
+                qualifiers=[qualifier(name="qual1")]
+            ),
+            CreateSyntax(
+                name="bar",
+                handler="bar_handler",
+                parameters=[parameter(1,type="int"), parameter(2,"string")],
+                qualifiers=[qualifier(name="qual1")]
+            )
+        ])
+        stx = Syntax(stx_table)
+
+        second_param_list = stx_table["bar"][K_SYNTAX_PARAMETERS]
+
+        stx.switch_syntax("foo")
+        stx.switch_syntax("bar")
+
+        self.assertDictEqual(stx._parameters, second_param_list)
+
+    def test_retains_qualifiers_if_second_has_no_qualifiers(self):
+        """
+        If the second syntax does not define any qualifiers it should leave
+        the previous syntaxes qualifiers in effect
+        """
+
+        stx_table = syntax_table([
+            CreateSyntax(
+                name="foo",
+                handler="foo_handler",
+                parameters=[parameter(1,type="int")],
+                qualifiers=[qualifier(name="qual1")]
+            ),
+            CreateSyntax(
+                name="bar",
+                handler="bar_handler",
+                parameters=[parameter(1,type="int"), parameter(2,"string")]
+            )
+        ])
+        first_qual_list = stx_table["foo"][K_SYNTAX_QUALIFIERS]
+
+        stx = Syntax(stx_table)
+        stx.switch_syntax("foo")
+        stx.switch_syntax("bar")
+
+        self.assertDictEqual(stx._qualifiers, first_qual_list)
+
+    def test_retains_parameter_list_if_second_has_no_parameters(self):
+        """
+        If the second syntax does not define any parameters then it should
+        leave the previous syntaxes parameters in effect.
+        """
+
+        stx_table = syntax_table([
+            CreateSyntax(
+                name="foo",
+                handler="foo_handler",
+                parameters=[parameter(1,type="int")],
+                qualifiers=[qualifier(name="qual1")]
+            ),
+            CreateSyntax(
+                name="bar",
+                handler="bar_handler",
+                qualifiers=[qualifier(name="qual2")]
+            )
+        ])
+        first_param_list = stx_table["foo"][K_SYNTAX_PARAMETERS]
+
+        stx = Syntax(stx_table)
+        stx.switch_syntax("foo")
+        stx.switch_syntax("bar")
+
+        self.assertDictEqual(stx._parameters, first_param_list)
+
+    def test_clears_qualifiers_if_second_disallows_qualifiers(self):
+        """
+        If the second syntax disallows qualifiers than the first syntaxes
+        qualifiers should be wiped out (leaving no qualifiers in effect)
+        """
+        stx = Syntax(syntax_table([
+            CreateSyntax(
+                name="foo",
+                handler="foo_handler",
+                parameters=[parameter(1,type="int")],
+                qualifiers=[qualifier(name="qual1")]
+            ),
+            CreateSyntax(
+                name="bar",
+                handler="bar_handler",
+                parameters=[parameter(1,type="int"), parameter(2,"string")],
+                deny_qualifiers=True
+            )
+        ]))
+        stx.switch_syntax("foo")
+        stx.switch_syntax("bar")
+
+        self.assertDictEqual(stx._qualifiers, {})
+
+    def test_clears_parameter_list_if_second_disallows_parameters(self):
+        """
+        If the second syntax disallows parameters then the first syntaxes
+        parameters should be wiped out (leaving no parameters in effect)
+        """
+        stx = Syntax(syntax_table([
+            CreateSyntax(
+                name="foo",
+                handler="foo_handler",
+                parameters=[parameter(1,type="int")],
+                qualifiers=[qualifier(name="qual1")]
+            ),
+            CreateSyntax(
+                name="bar",
+                handler="bar_handler",
+                deny_parameters=True,
+                qualifiers=[qualifier(name="qual2")]
+            )
+        ]))
+        stx.switch_syntax("foo")
+        stx.switch_syntax("bar")
+
+        self.assertDictEqual(stx._parameters, {})
+
+
 class BaseSyntaxTests(unittest.TestCase):
     """
     Checks the most basic syntax functionality - mostly the various get methods
     when only one initial syntax switch has been performed.
     """
+
+    def test_throws_an_exception_for_bad_syntax_name(self):
+        """
+        Tests switch_syntax throws an exception if a bad syntax name is
+        supplied.
+        """
+        stx = Syntax(syntax_table([
+            CreateSyntax(
+                name="syntax_1",
+                handler="syntax_1_handler",
+                parameters=[parameter(1,type="int")],
+                qualifiers=[qualifier(name="qual1")]
+            )
+        ]))
+
+        with self.assertRaises(Exception):
+            stx.switch_syntax("foo")
 
     def test_new_syntax_object_has_no_name_until_syntax_switch(self):
         """
