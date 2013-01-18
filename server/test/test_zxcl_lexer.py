@@ -194,14 +194,20 @@ class StringToken(unittest.TestCase):
     def test_string(self):
         self.check('"test"', 'test')
 
-    def test_string_with_quote(self):
+    def test_string_with_double_quote(self):
         self.check(r'"\""', '"')
+
+    def test_string_with_single_quote(self):
+        self.check(r'"\'"', "'")
 
     def test_string_with_newline(self):
         self.check(r'"Hello\nWorld!"', 'Hello\nWorld!')
 
     def test_string_with_backslash(self):
         self.check(r'"Hello\\World!"', 'Hello\\World!')
+
+    def test_string_with_bell(self):
+        self.check(r'"Hello\aWorld!"', 'Hello\aWorld!')
 
     def test_string_with_backspace(self):
         self.check(r'"Hello\bWorld!"', 'Hello\bWorld!')

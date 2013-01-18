@@ -221,7 +221,9 @@ class Lexer(object):
                     # group 0 has quote marks, group 1 does not.
                     string_value = match.group(1)
 
-                    #TODO: handle escape sequences
+                    # Handle escape sequences
+                    string_value = string_value.decode('string_escape')
+
                     pos = self._pointer
                     self._consume_count(match.end())
                     return Token(self.STRING, string_value, pos)
