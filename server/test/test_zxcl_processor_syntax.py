@@ -4,10 +4,9 @@ Unit tests for the ZXCL Command Processors Syntax class
 """
 from server.zxcl.command_table import syntax_table, syntax as CreateSyntax, qualifier, parameter, K_SYNTAX_PARAMETERS, K_SYNTAX_QUALIFIERS
 from server.zxcl.processor import Syntax
+import unittest
 
 __author__ = 'david'
-
-import unittest
 
 class SecondSyntaxSwitchTests(unittest.TestCase):
     """
@@ -37,7 +36,7 @@ class SecondSyntaxSwitchTests(unittest.TestCase):
         stx.switch_syntax("foo")
         stx.switch_syntax("bar")
 
-        self.assertEquals(stx._syntax_name, "bar")
+        self.assertEqual(stx._syntax_name, "bar")
 
     def test_replaces_handler(self):
         """
@@ -60,7 +59,7 @@ class SecondSyntaxSwitchTests(unittest.TestCase):
         stx.switch_syntax("foo")
         stx.switch_syntax("bar")
 
-        self.assertEquals(stx.get_handler(), "bar_handler")
+        self.assertEqual(stx.get_handler(), "bar_handler")
 
     def test_replaces_qualifiers_if_second_has_qualifiers(self):
         """
@@ -378,7 +377,7 @@ class BaseSyntaxTests(unittest.TestCase):
         ]))
         stx.switch_syntax("syntax_1")
 
-        self.assertEquals(stx.get_handler(), "syntax_1_handler")
+        self.assertEqual(stx.get_handler(), "syntax_1_handler")
 
 class GetRequiredParameterCount(unittest.TestCase):
     """
@@ -397,7 +396,7 @@ class GetRequiredParameterCount(unittest.TestCase):
         ]))
         stx.switch_syntax("syntax_1")
 
-        self.assertEquals(stx.get_required_parameter_count(), 0)
+        self.assertEqual(stx.get_required_parameter_count(), 0)
 
     def test_required_parameter_count_is_zero_for_no_required_parameters(self):
         """
@@ -414,7 +413,7 @@ class GetRequiredParameterCount(unittest.TestCase):
         ]))
         stx.switch_syntax("syntax_1")
 
-        self.assertEquals(stx.get_required_parameter_count(), 0)
+        self.assertEqual(stx.get_required_parameter_count(), 0)
 
     def test_required_parameter_count_is_one_for_one_required_parameters(self):
         """
@@ -430,7 +429,7 @@ class GetRequiredParameterCount(unittest.TestCase):
         ]))
         stx.switch_syntax("syntax_1")
 
-        self.assertEquals(stx.get_required_parameter_count(), 1)
+        self.assertEqual(stx.get_required_parameter_count(), 1)
 
     def test_required_parameter_count_is_two_for_two_required_parameters(self):
         """
@@ -447,7 +446,7 @@ class GetRequiredParameterCount(unittest.TestCase):
         ]))
         stx.switch_syntax("syntax_1")
 
-        self.assertEquals(stx.get_required_parameter_count(), 2)
+        self.assertEqual(stx.get_required_parameter_count(), 2)
 
 class GetDefaultQualifiers(unittest.TestCase):
     """
