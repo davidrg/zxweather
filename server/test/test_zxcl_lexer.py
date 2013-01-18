@@ -20,8 +20,8 @@ class IdentifierToken(unittest.TestCase):
 
         result = lexer.next_token()
 
-        self.assertEquals(result.type, lexer.IDENTIFIER)
-        self.assertEquals(result.value, value)
+        self.assertEqual(result.type, lexer.IDENTIFIER)
+        self.assertEqual(result.value, value)
 
     def check_not_equals(self, value):
         lexer = Lexer(value)
@@ -61,8 +61,8 @@ class FloatToken(unittest.TestCase):
 
         result = lexer.next_token()
 
-        self.assertEquals(result.type, lexer.FLOAT)
-        self.assertEquals(result.value, float(value))
+        self.assertEqual(result.type, lexer.FLOAT)
+        self.assertEqual(result.value, float(value))
 
     def test_1(self):
         value = "12.0"
@@ -106,8 +106,8 @@ class IntegerToken(unittest.TestCase):
 
         result = lexer.next_token()
 
-        self.assertEquals(result.type, lexer.INTEGER)
-        self.assertEquals(result.value, int(value))
+        self.assertEqual(result.type, lexer.INTEGER)
+        self.assertEqual(result.value, int(value))
 
     def check_not_equals(self, value):
         lexer = Lexer(value)
@@ -144,8 +144,8 @@ class DateToken(unittest.TestCase):
 
         result = lexer.next_token()
 
-        self.assertEquals(result.type, lexer.DATE)
-        self.assertEquals(result.value, datetime.strptime(value, '%d-%b-%Y').date())
+        self.assertEqual(result.type, lexer.DATE)
+        self.assertEqual(result.value, datetime.strptime(value, '%d-%b-%Y').date())
 
     def check_not_equals(self, value):
         lexer = Lexer(value)
@@ -188,8 +188,8 @@ class StringToken(unittest.TestCase):
 
         result = lexer.next_token()
 
-        self.assertEquals(result.type, lexer.STRING)
-        self.assertEquals(result.value, parsed_value)
+        self.assertEqual(result.type, lexer.STRING)
+        self.assertEqual(result.value, parsed_value)
 
     def test_string(self):
         self.check('"test"', 'test')
@@ -270,7 +270,7 @@ class LexerTests(unittest.TestCase):
 
         tok = lex.next_token()
 
-        self.assertEquals(tok.type, Lexer.EOF)
+        self.assertEqual(tok.type, Lexer.EOF)
 
     def test_comment_at_end_of_statement(self):
         """
@@ -280,16 +280,16 @@ class LexerTests(unittest.TestCase):
 
         tok = lex.next_token()
 
-        self.assertEquals(tok.type, Lexer.IDENTIFIER)
+        self.assertEqual(tok.type, Lexer.IDENTIFIER)
 
         tok = lex.next_token()
 
-        self.assertEquals(tok.type, Lexer.EOF)
+        self.assertEqual(tok.type, Lexer.EOF)
 
     def assertTokenType(self, command_string, token_type, value=None):
         lex = Lexer(command_string)
         tok = lex.next_token()
-        self.assertEquals(tok.type, token_type)
+        self.assertEqual(tok.type, token_type)
 
         if value is not None:
             self.assertEqual(tok.value, value)
@@ -311,19 +311,19 @@ class LexerTests(unittest.TestCase):
         tok = lex.next_token()
         self.assertEqual(tok.type, Lexer.EQUAL)
         tok = lex.next_token()
-        self.assertEquals(tok.type, Lexer.INTEGER)
+        self.assertEqual(tok.type, Lexer.INTEGER)
 
     def test_value_can_be_after_slash(self):
         lex = Lexer("/42")
         tok = lex.next_token()
         self.assertEqual(tok.type, Lexer.FORWARD_SLASH)
         tok = lex.next_token()
-        self.assertEquals(tok.type, Lexer.INTEGER)
+        self.assertEqual(tok.type, Lexer.INTEGER)
 
     def test_value_can_be_after_white_space(self):
         lex = Lexer(" \t\n\r   \t \n \r42")
         tok = lex.next_token()
-        self.assertEquals(tok.type, Lexer.INTEGER)
+        self.assertEqual(tok.type, Lexer.INTEGER)
 
     def test_bad_value_throws_exception(self):
         lex = Lexer("..42")
@@ -335,11 +335,11 @@ class LexerTests(unittest.TestCase):
         command_string = "tokenise this string 42"
         tokens = Lexer.tokenise(command_string)
 
-        self.assertEquals(tokens[0].type, Lexer.IDENTIFIER)
-        self.assertEquals(tokens[1].type, Lexer.IDENTIFIER)
-        self.assertEquals(tokens[2].type, Lexer.IDENTIFIER)
-        self.assertEquals(tokens[3].type, Lexer.INTEGER)
-        self.assertEquals(tokens[4].type, Lexer.EOF)
+        self.assertEqual(tokens[0].type, Lexer.IDENTIFIER)
+        self.assertEqual(tokens[1].type, Lexer.IDENTIFIER)
+        self.assertEqual(tokens[2].type, Lexer.IDENTIFIER)
+        self.assertEqual(tokens[3].type, Lexer.INTEGER)
+        self.assertEqual(tokens[4].type, Lexer.EOF)
 
     def test_get_value_type_string_default_option(self):
         """
@@ -347,7 +347,7 @@ class LexerTests(unittest.TestCase):
         method should just say its a string if it doesn't appear to be anything
         else.
         """
-        self.assertEquals(Lexer.get_value_token_type("test string", True),
+        self.assertEqual(Lexer.get_value_token_type("test string", True),
             Lexer.STRING)
 
     def test_empty_input_string_is_treated_as_a_comment(self):
@@ -370,25 +370,25 @@ class LexerValueSeparationTests(unittest.TestCase):
         tok = lex.next_token()
         self.assertEqual(tok.type, Lexer.IDENTIFIER)
         tok = lex.next_token()
-        self.assertEquals(tok.type, Lexer.INTEGER)
+        self.assertEqual(tok.type, Lexer.INTEGER)
 
     def test_values_can_be_separated_by_equal(self):
         lex = Lexer("abc=42")
         tok = lex.next_token()
         self.assertEqual(tok.type, Lexer.IDENTIFIER)
         tok = lex.next_token()
-        self.assertEquals(tok.type, Lexer.EQUAL)
+        self.assertEqual(tok.type, Lexer.EQUAL)
         tok = lex.next_token()
-        self.assertEquals(tok.type, Lexer.INTEGER)
+        self.assertEqual(tok.type, Lexer.INTEGER)
 
     def test_values_can_be_separated_by_slash(self):
         lex = Lexer("abc/42")
         tok = lex.next_token()
         self.assertEqual(tok.type, Lexer.IDENTIFIER)
         tok = lex.next_token()
-        self.assertEquals(tok.type, Lexer.FORWARD_SLASH)
+        self.assertEqual(tok.type, Lexer.FORWARD_SLASH)
         tok = lex.next_token()
-        self.assertEquals(tok.type, Lexer.INTEGER)
+        self.assertEqual(tok.type, Lexer.INTEGER)
 
     def test_unseparated_bad_value_throws_exception(self):
         lex = Lexer("42..42")
@@ -439,7 +439,7 @@ class IdentifierValueType(unittest.TestCase):
 
     def check(self, value):
 
-        self.assertEquals(Lexer.get_value_token_type(value,False), Lexer.IDENTIFIER)
+        self.assertEqual(Lexer.get_value_token_type(value,False), Lexer.IDENTIFIER)
 
     def check_not_equals(self, value):
         self.assertNotEquals(Lexer.get_value_token_type(value,False), Lexer.IDENTIFIER)
@@ -471,7 +471,7 @@ class FloatValueType(unittest.TestCase):
     """
 
     def check(self, value):
-        self.assertEquals(Lexer.get_value_token_type(value,False), Lexer.FLOAT)
+        self.assertEqual(Lexer.get_value_token_type(value,False), Lexer.FLOAT)
 
     def test_1(self):
         value = "12.0"
@@ -511,7 +511,7 @@ class IntegerValueType(unittest.TestCase):
     """
 
     def check(self, value):
-        self.assertEquals(Lexer.get_value_token_type(value,False), Lexer.INTEGER)
+        self.assertEqual(Lexer.get_value_token_type(value,False), Lexer.INTEGER)
 
     def check_not_equals(self, value):
         self.assertNotEquals(Lexer.get_value_token_type(value,False), Lexer.INTEGER)
@@ -540,7 +540,7 @@ class DateValueType(unittest.TestCase):
     """
 
     def check(self, value):
-        self.assertEquals(Lexer.get_value_token_type(value,False), Lexer.DATE)
+        self.assertEqual(Lexer.get_value_token_type(value,False), Lexer.DATE)
 
     def check_not_equals(self, value):
         self.assertNotEquals(Lexer.get_value_token_type(value,False), Lexer.DATE)
@@ -575,7 +575,7 @@ class StringValueType(unittest.TestCase):
     """
 
     def check(self, value):
-        self.assertEquals(Lexer.get_value_token_type(value,False), Lexer.STRING)
+        self.assertEqual(Lexer.get_value_token_type(value,False), Lexer.STRING)
 
     def test_string(self):
         self.check('"test"')
