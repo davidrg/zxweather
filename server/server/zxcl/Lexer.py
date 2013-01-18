@@ -124,12 +124,6 @@ class Lexer(object):
         else:
             self._current_character = self._input[self._pointer]
 
-    def _look_ahead(self, count):
-        if self._pointer + count > len(self._input):
-            return None
-        else:
-            return self._input[self._pointer + count]
-
     def _white_space(self):
         while self._current_character in [' ', '\t', '\n', '\r']:
             self._consume()
