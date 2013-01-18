@@ -4,7 +4,7 @@ Unit tests for zxcl
 """
 from datetime import datetime
 
-from server.zxcl.lexer import Lexer
+from server.zxcl.lexer import Lexer, Token
 
 __author__ = 'david'
 
@@ -230,3 +230,77 @@ class StringToken(unittest.TestCase):
     def test_string_with_oct_ascii(self):
         self.check(r'"Hello\134World!"', 'Hello\134World!')
 
+class TokenTests(unittest.TestCase):
+    """
+    Tests the Token class
+    """
+
+    def test_constructor(self):
+        token = Token(1,"value",12)
+
+        self.assertEqual(token.type, 1)
+        self.assertEqual(token.value, "value")
+        self.assertEqual(token.position, 12)
+
+    def test_name(self):
+        token = Token(1, "value", 12)
+
+        self.assertEqual(token.name(), Lexer.token_names[1].title())
+
+    def test_str(self):
+        token = Token(1, "value", 12)
+
+        self.assertEqual(str(token), "<{val},{typ}>".format(
+            val="value", typ=Lexer.token_names[1]))
+
+
+class LexerTests(unittest.TestCase):
+    """
+    Tests for the Lexer class. Only the basic tokens (= and /) as well as
+    whitespace and comments are tested here. Value-type tokens (strings,
+    integers, etc) are tested elsewhere.
+
+    Spacing around value-type tokens is however tested here.
+    """
+
+    def test_comment_character_only(self):
+        """
+        The comment character should be treated as white space. If it appears
+        at the start of the command then the only token should be EOF
+        """
+        lex = Lexer("! foo")
+
+        tok = lex.next_token()
+
+        self.assertEquals(tok.type, Lexer.EOF)
+
+    def test_comment_at_end_of_statement(self):
+        """
+        Only two tokens (IDENTIFIER, EOF) should come out
+        """
+        lex = Lexer("test ! foo")
+
+        tok = lex.next_token()
+
+        self.assertEquals(tok.type, Lexer.IDENTIFIER)
+
+        tok = lex.next_token()
+
+        self.assertEquals(tok.type, Lexer.EOF)
+
+    def test_whitespace(self):
+        lex = Lexer(" \t\n\r   \t \n \r")
+
+        tok = lex.next_token()
+
+        self.assertEquals(tok.type, Lexer.EOF)
+
+    def test_equals(self):
+        lex = Lexer("=")
+        tok = lex.next_token()
+        self.assertEquals(tok.type, Lexer.EQUAL)
+
+    def test_slash(self):
+        lex = Lexer("/")
+        tok = lex.next_token()
+        self.assertEquals(tok.type, Lexer.FORWARD_SLASH)
