@@ -12,6 +12,9 @@ from zope.interface import implements
 from twisted.internet import reactor
 from server.shell import Dispatcher, TABLE_SET_AUTHENTICATED, TABLE_SET_SHELL_INIT
 
+INPUT_SHELL = 0
+INPUT_COMMAND = 1
+
 class ZxweatherShellProtocol(recvline.HistoricRecvLine):
     """
     The zxweather shell.
@@ -22,21 +25,27 @@ class ZxweatherShellProtocol(recvline.HistoricRecvLine):
 
     def __init__(self,user):
         self.dispatcher = Dispatcher(
-            lambda prompt: self.prompter(prompt),
-            lambda warning: self.cmd_proc_warning(warning),
-            TABLE_SET_SHELL_INIT,
-            lambda text: self.process_output(text),
-            lambda : self.process_input()
+            lambda prompt: self.commandProcessorPrompter(prompt),
+            lambda warning: self.commandProcessorWarning(warning),
+            TABLE_SET_AUTHENTICATED
         )
-        self.dispatcher.execute_command('set_env "username" "{0}"'.format(
-            user.username.replace('"',r'\"')))
+        self.dispatcher.environment["username"] = user.username
 
-        self.dispatcher.switch_table_set(TABLE_SET_AUTHENTICATED)
+        self.input_mode = INPUT_SHELL
+        self.current_command = None
 
     def connectionMade(self):
+        """
+        Called when a new connection is made by a client.
+        """
         recvline.HistoricRecvLine.connectionMade(self)
 
     def handle_RETURN(self):
+        """
+        Overrides the function in all parent classes to provide an
+        implementation that allows commands to be split over multiple lines
+        using the - character when in INPUT_SHELL mode.
+        """
         # From HistoricRecvLine
         if self.lineBuffer:
             self.historyLines.append(''.join(self.lineBuffer))
@@ -48,8 +57,8 @@ class ZxweatherShellProtocol(recvline.HistoricRecvLine):
         self.lineBufferIndex = 0
         self.terminal.nextLine()
 
-        # Handle the continuation \ character
-        if line.endswith("\\"):
+        # Handle the continuation - character if we're in SHELL mode.
+        if line.endswith("-") and self.input_mode == INPUT_SHELL:
             self.line_partial += line[:-1]
             if not self.line_partial.endswith(" "):
                 self.line_partial += " "
@@ -67,31 +76,94 @@ class ZxweatherShellProtocol(recvline.HistoricRecvLine):
         """
         self.terminal.write(self.ps[self.pn])
 
+    def executeCommand(self, command):
+        """
+        Executes the specified command.
+        :param command: Command string to execute.
+        """
+
+        # Evaluate the command string
+        partial_cmd = self.dispatcher.get_command(command)
+
+        # If nothing to execute, do nothing.
+        if partial_cmd is None:
+            self.processFinished()
+            return
+
+        # Supply the command with functions to control its status, input, etc.
+        self.current_command = partial_cmd(
+            output_callback=lambda text: self.processOutput(text),
+            finished_callback=lambda: self.processFinished(),
+            halt_input_callback=lambda: self.haltInput(),
+            resume_input_callback=lambda: self.resumeInput()
+        )
+
+        # Switch input over to the command
+        self.input_mode = INPUT_COMMAND
+
+        # and set it running.
+        self.current_command.execute()
+
     def lineReceived(self, line):
-        self.dispatcher.execute_command(line)
-        #self.terminal.write("\r\nCommand: " + line + "\r\n")
-        self.showPrompt()
+        """
+        Called when ever a line of data is received. This function then routes
+        that line off to where ever it should go based on the input mode.
+        :param line:
+        :return:
+        """
+        if self.input_mode == INPUT_SHELL:
+            self.executeCommand(line)
+        elif self.input_mode == INPUT_COMMAND:
+            if self.current_command is not None:
+                self.current_command.lineReceived(line)
 
-    def prompter(self, prompt_string):
-        #TODO: Implement me
-        return "foo"
+    def commandProcessorPrompter(self, prompt_string):
+        """
+        Prompts the user for further input when required parameters are missing.
+        :param prompt_string: The string to display to the user for the prompt.
+        :return: The users input.
+        """
+        # TODO: Create a new line
+        # TODO: Write out prompt string
+        # TODO: Get input somehow with a deferred.
+        return None
 
-    def cmd_proc_warning(self, warning):
+    def commandProcessorWarning(self, warning):
+        """
+        Called by the command processor and dispatcher when an error or
+        warning has occurred.
+        :param warning: The warning or error text.
+        """
         self.terminal.write(warning)
         self.terminal.nextLine()
 
-    def process_input(self):
-        """
-        Called when a process wants input.
-        """
-        return ""
-
-    def process_output(self, text):
+    def processOutput(self, text):
         """
         Called when a process wants to output text.
         :param text: Text to output.
         """
         self.terminal.write(text)
+
+    def processFinished(self):
+        """
+        Called when the process has finished executing.
+        """
+        self.input_mode = INPUT_SHELL
+        self.showPrompt()
+
+    def haltInput(self):
+        """
+        Called to halt all user input.
+        """
+        # TODO: switch off everything in keystrokeReceived except listening for ^Z
+        pass
+
+    def resumeInput(self):
+        """
+        Called to resume user input.
+        """
+        # TODO: undo whatever haltInput did.
+        pass
 
 class ZxwAvatar(avatar.ConchUser):
     implements(conch_interfaces.ISession)

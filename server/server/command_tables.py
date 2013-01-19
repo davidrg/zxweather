@@ -2,8 +2,8 @@
 """
 Defines the command tables for zxweatherd.
 """
-from server.commands import setenv, show_user, set_client, show_client
-from server.zxcl.command_table import verb_table, verb, synonym, parameter, \
+from server.commands import ShowUserCommand, ShowClientCommand, SetClientCommand
+from server.zxcl.command_table import verb_table, verb, parameter, \
     syntax_table, syntax, qualifier, keyword_table, keyword_set, keyword
 
 __author__ = 'david'
@@ -100,25 +100,9 @@ base_syntaxes = [
 ]
 
 base_dispatch = {
-    "show_user": show_user,
-    "show_client": show_client,
-    "set_client": set_client,
-}
-
-# These commands are used by shells to setup the dispatcher as required.
-shell_init_verb_table = verb_table([verb("set_env","set_env")])
-shell_init_syntax_table = syntax_table([
-    syntax(
-        name="set_env",
-        handler="shinit_set_env",
-        parameters=[
-            parameter(position=0,type="string",required=True),
-            parameter(position=1,type="string",required=True)
-        ])
-])
-shell_init_keyword_table = {}
-shell_init_dispatch_table = {
-    "shinit_set_env": setenv
+    "show_user": ShowUserCommand,
+    "show_client": ShowClientCommand,
+    "set_client": SetClientCommand,
 }
 
 # Commands for authenticated users
