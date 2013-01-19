@@ -2,47 +2,54 @@
 """
 Some basic commands
 """
-from twisted.internet import defer
+from server.command import Command
 
 __author__ = 'david'
 
-def setenv(writer, reader, environment, parameters, qualifiers):
+class ShowUserCommand(Command):
     """
-    Sets an environment variable
-    :param environment:
-    :param parameters:
-    :param qualifiers:
+    Shows the currently logged in user. Operated through the SHOW USER
+    verb+keyword combination.
     """
-    key = parameters[0]
-    value = parameters[1]
-    environment[key] = value
-
-def show_user(writer, reader,environment, parameters, qualifiers):
-    writer(environment["username"] + "\r\n")
-
-def set_client(writer, reader, environment, parameters, qualifiers):
-    client_name = parameters[1]
-    if "version" in qualifiers:
-        client_version = qualifiers["version"]
-    else:
-        client_version = "Not specified"
-
-    version_info = {
-        "name": client_name,
-        "version": client_version
-    }
-
-    environment["client"] = version_info
-
-def show_client(writer, reader, environment, parameters, qualifiers):
-    if "client" not in environment:
-        writer("Unknown client.\r\n")
-        return
-
-    client_info = environment["client"]
-
-    info_str = "Client: {0}\r\nVersion: {1}\r\n".format(
-        client_info["name"], client_info["version"])
-    writer(info_str)
+    def main(self):
+        """ Executes the command """
+        self.write(self.environment["username"] + "\r\n")
 
 
+class SetClientCommand(Command):
+    """
+    Sets the currently connected clients name and, optionally, verison.
+    Operated through the SET CLIENT verb+keyword combination.
+    """
+    def main(self):
+        """ Executes the command """
+        client_name = self.parameters[1]
+        if "version" in self.qualifiers:
+            client_version = self.qualifiers["version"]
+        else:
+            client_version = "Not specified"
+
+        version_info = {
+            "name": client_name,
+            "version": client_version
+        }
+
+        self.environment["client"] = version_info
+
+
+class ShowClientCommand(Command):
+    """
+    Shows information previously set using SET CLIENT. Operated through the
+    SHOW CLIENT verb+keyword combination.
+    """
+    def main(self):
+        """ Executes the command """
+        if "client" not in self.environment:
+            self.write("Unknown client.\r\n")
+            return
+
+        client_info = self.environment["client"]
+
+        info_str = "Client: {0}\r\nVersion: {1}\r\n".format(
+            client_info["name"], client_info["version"])
+        self.write(info_str)
