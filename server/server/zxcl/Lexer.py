@@ -222,13 +222,9 @@ class Lexer(object):
                     self._consume_count(match.end())
                     return Token(self.STRING, string_value, pos)
 
-                raise UnexpectedCharacterError("Unexpected character {char} "
-                                 "at position {pos}".format(
-                    char=char,pos=self._pointer), self._pointer)
+                raise UnexpectedCharacterError(char, self._pointer)
             else:
-                raise UnexpectedCharacterError("Unexpected character {char} "
-                                 "at position {pos}".format(
-                    char=char,pos=self._pointer), self._pointer)
+                raise UnexpectedCharacterError(char, self._pointer)
 
 
 
