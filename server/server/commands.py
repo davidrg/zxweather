@@ -53,3 +53,19 @@ class ShowClientCommand(Command):
         info_str = "Client: {0}\r\nVersion: {1}\r\n".format(
             client_info["name"], client_info["version"])
         self.write(info_str)
+
+class LogoutCommand(Command):
+    """
+    A command that attempts to log the user out using a function stored in
+    the environment.
+    """
+    def execute(self):
+        """ Overridden as we don't want to ever return control to the shell. """
+        self.main()
+
+    def main(self):
+        """ Logs the user out """
+        if "f_logout" not in self.environment:
+            self.write("Error: unable to logout")
+            return
+        self.environment["f_logout"]()
