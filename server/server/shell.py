@@ -38,7 +38,6 @@ class Dispatcher(object):
          can be changed later using switch_table_set().
         """
         self.environment = {}
-        print("Init dispatcher: " + str(self) + " (env = " + str(id(self.environment)) + ")")
         self.prompter = prompter
         self.warning_handler = warning_handler
         self.switch_table_set(initial_table_set)
@@ -104,7 +103,6 @@ class ZxweatherShellProtocol(recvline.HistoricRecvLine):
     """
 
     ps = ("$ ", "_ ")
-    line_partial = ""
 
     def __init__(self,user):
         self.dispatcher = Dispatcher(
@@ -112,9 +110,17 @@ class ZxweatherShellProtocol(recvline.HistoricRecvLine):
             lambda warning: self.commandProcessorWarning(warning),
             TABLE_SET_AUTHENTICATED
         )
+        self.prompt = ["$ ", "_ "]
+        self.prompt_number = 0
+        self.input_mode = INPUT_SHELL
+        self.current_command = None
+        self.line_partial = ""
+
         self.dispatcher.environment["f_logout"] = lambda: self.logout()
+        self.dispatcher.environment["prompt"] = self.prompt
         self.sid = str(uuid.uuid1())
         self.dispatcher.environment["sessionid"] = self.sid
+
         register_session(
             self.dispatcher.environment["sessionid"],
             {
@@ -123,9 +129,6 @@ class ZxweatherShellProtocol(recvline.HistoricRecvLine):
                 "connected": datetime.datetime.now()
             }
         )
-
-        self.input_mode = INPUT_SHELL
-        self.current_command = None
 
     def connectionMade(self):
         """
@@ -164,19 +167,19 @@ class ZxweatherShellProtocol(recvline.HistoricRecvLine):
             self.line_partial += line[:-1]
             if not self.line_partial.endswith(" "):
                 self.line_partial += " "
-            self.pn = 1
+            self.prompt_number = 1
             self.showPrompt()
         else:
             line = self.line_partial + line
             self.line_partial = ""
-            self.pn = 0
+            self.prompt_number = 0
             self.lineReceived(line)
 
     def showPrompt(self):
         """
         Shows the command prompt.
         """
-        self.terminal.write(self.ps[self.pn])
+        self.terminal.write(self.prompt[self.prompt_number])
 
     def executeCommand(self, command):
         """
