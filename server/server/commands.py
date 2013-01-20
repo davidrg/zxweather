@@ -3,6 +3,7 @@
 Some basic commands
 """
 from server.command import Command
+from server.session import get_session_value, update_session
 
 __author__ = 'david'
 
@@ -13,7 +14,10 @@ class ShowUserCommand(Command):
     """
     def main(self):
         """ Executes the command """
-        self.write(self.environment["username"] + "\r\n")
+
+        username = get_session_value(self.environment["sessionid"], "username")
+
+        self.write(username + "\r\n")
 
 
 class SetClientCommand(Command):
@@ -34,7 +38,11 @@ class SetClientCommand(Command):
             "version": client_version
         }
 
-        self.environment["client"] = version_info
+        update_session(
+            self.environment["sessionid"],
+            "client",
+            version_info
+        )
 
 
 class ShowClientCommand(Command):
@@ -44,11 +52,15 @@ class ShowClientCommand(Command):
     """
     def main(self):
         """ Executes the command """
-        if "client" not in self.environment:
+
+        client_info = get_session_value(
+            self.environment["sessionid"],
+            "client"
+        )
+
+        if client_info is None:
             self.write("Unknown client.\r\n")
             return
-
-        client_info = self.environment["client"]
 
         info_str = "Client: {0}\r\nVersion: {1}\r\n".format(
             client_info["name"], client_info["version"])

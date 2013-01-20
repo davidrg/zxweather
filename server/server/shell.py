@@ -3,9 +3,11 @@
 Executes commands sent by remote systems.
 """
 from functools import partial
+import uuid
 from server.command_tables import authenticated_verb_table, \
     authenticated_syntax_table, authenticated_keyword_table, \
     authenticated_dispatch_table
+from server.session import register_session
 from server.zxcl.processor import CommandProcessor
 from twisted.conch import   recvline
 
@@ -109,8 +111,14 @@ class ZxweatherShellProtocol(recvline.HistoricRecvLine):
             lambda warning: self.commandProcessorWarning(warning),
             TABLE_SET_AUTHENTICATED
         )
-        self.dispatcher.environment["username"] = user.username
         self.dispatcher.environment["f_logout"] = lambda: self.logout()
+        self.dispatcher.environment["sessionid"] = uuid.uuid1()
+        register_session(
+            self.dispatcher.environment["sessionid"],
+            {
+                "username": user.username
+            }
+        )
 
         self.input_mode = INPUT_SHELL
         self.current_command = None
