@@ -45,6 +45,16 @@ class SetClientCommand(Command):
             version_info
         )
 
+class SetPromptCommand(Command):
+    """
+    Allows the user to change the prompt.
+    """
+    def main(self):
+        """ Executes the command """
+        prompt = self.parameters[1]
+
+        self.environment["prompt"][0] = prompt
+
 
 class ShowClientCommand(Command):
     """
