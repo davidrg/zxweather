@@ -273,7 +273,7 @@ class BaseSyntaxTests(unittest.TestCase):
             )
         ]))
 
-        self.assertListEqual(stx._parameters, [])
+        self.assertDictEqual(stx._parameters, {})
 
     def test_new_syntax_object_has_no_qualifiers_until_syntax_switch(self):
         """
@@ -289,7 +289,7 @@ class BaseSyntaxTests(unittest.TestCase):
             )
         ]))
 
-        self.assertListEqual(stx._qualifiers, [])
+        self.assertDictEqual(stx._qualifiers, {})
 
     def test_no_parameters_allowed_without_parameters(self):
         """
@@ -378,6 +378,25 @@ class BaseSyntaxTests(unittest.TestCase):
         stx.switch_syntax("syntax_1")
 
         self.assertEqual(stx.get_handler(), "syntax_1_handler")
+
+    def test_reset_resets_syntax(self):
+        """
+        Tests that the reset method clears the syntax name, parameters, etc.
+        """
+        stx = Syntax(syntax_table([
+            CreateSyntax(
+                name="syntax_1",
+                handler="syntax_1_handler",
+                parameters=[parameter(1,type="int")],
+                qualifiers=[qualifier(name="qual1")]
+            )
+        ]))
+        stx.switch_syntax("syntax_1")
+        stx.reset()
+
+        self.assertDictEqual(stx._qualifiers, {})
+        self.assertDictEqual(stx._parameters, {})
+        self.assertIsNone(stx._syntax_name)
 
 class GetRequiredParameterCount(unittest.TestCase):
     """

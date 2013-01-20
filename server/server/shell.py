@@ -21,8 +21,6 @@ class Dispatcher(object):
     and returns it ready for execution by the proper shell.
     """
 
-    environment = {}
-
     def __init__(self, prompter, warning_handler, initial_table_set):
         """
         Constructs a new dispatcher.
@@ -36,6 +34,8 @@ class Dispatcher(object):
         :param initial_table_set: Initial set of command tables to use. This
          can be changed later using switch_table_set().
         """
+        self.environment = {}
+        print("Init dispatcher: " + str(self) + " (env = " + str(id(self.environment)) + ")")
         self.prompter = prompter
         self.warning_handler = warning_handler
         self.switch_table_set(initial_table_set)

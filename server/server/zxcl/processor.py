@@ -27,9 +27,15 @@ class Syntax(object):
         :type syntax_table: dict
         """
         self._syntax_table = syntax_table
+        self.reset()
+
+    def reset(self):
+        """
+        Resets the syntax class
+        """
         self._syntax_name = None
-        self._qualifiers = []
-        self._parameters = []
+        self._qualifiers = {}
+        self._parameters = {}
 
     def switch_syntax(self, syntax_name):
         """
@@ -55,6 +61,7 @@ class Syntax(object):
 
         if K_SYNTAX_QUALIFIERS in self._syntax:
             self._qualifiers = self._syntax[K_SYNTAX_QUALIFIERS]
+
 
         # Parameters are disallowed by this syntax. Wipe out existing ones.
         elif K_SYNTAX_NO_QUALIFIERS in self._syntax and \
@@ -413,6 +420,8 @@ class CommandProcessor(object):
         :return: processed command
         :rtype: dict
         """
+
+        self._syntax.reset()
 
         # This may throw an exception. It is the callers job to handle it.
         command_bits = self.parser.parse(command_string)

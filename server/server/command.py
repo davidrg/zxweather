@@ -44,6 +44,7 @@ class Command(object):
         self.lineBuffer = []
         self.readLineDeferred = None
         self.terminated = False
+        self.auto_exit = True
 
     def execute(self):
         """
@@ -52,7 +53,8 @@ class Command(object):
         """
         self.haltInput()
         self.main()
-        self.finished()
+        if self.auto_exit:
+            self.finished()
 
     def lineReceived(self, line):
         """
@@ -64,7 +66,7 @@ class Command(object):
         :param line:
         :return:
         """
-        self.lineBuffer += line
+        self.lineBuffer.append(line)
 
         if self.readLineDeferred is not None:
             # The app is waiting for a line of input. Send it off.
