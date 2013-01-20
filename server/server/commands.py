@@ -3,7 +3,7 @@
 Some basic commands
 """
 import datetime
-from server.command import Command
+from server.command import Command, TYP_INFO, TYP_ERROR
 from server.session import get_session_value, update_session, get_session_counts, get_session_id_list, session_exists
 
 __author__ = 'david'
@@ -18,7 +18,7 @@ class ShowUserCommand(Command):
 
         username = get_session_value(self.environment["sessionid"], "username")
 
-        self.write(username + "\r\n")
+        self.codedWriteLine(TYP_INFO, 01, username)
 
 
 class SetClientCommand(Command):
@@ -55,6 +55,31 @@ class SetPromptCommand(Command):
 
         self.environment["prompt"][0] = prompt
 
+class SetTerminalCommand(Command):
+    """
+    Allows the type of the terminal to be switched between CRT or BASIC.
+    """
+
+    def main(self):
+        """ Executes the command """
+        if "video" in self.qualifiers:
+            self.environment["term_mode"] = 0 # TERM_CRT
+        elif "basic" in self.qualifiers:
+            self.environment["term_mode"] = 1 # TERM_BASIC
+
+class SetInterfaceCommand(Command):
+    """
+    Allows the type of the terminal to be switched between CRT or BASIC.
+    """
+
+    def main(self):
+        """ Executes the command """
+        if "coded" in self.qualifiers:
+            if self.qualifiers["coded"] == "true":
+                self.environment["ui_coded"] = True
+            else:
+                self.environment["ui_coded"] = False
+
 
 class ShowClientCommand(Command):
     """
@@ -70,12 +95,12 @@ class ShowClientCommand(Command):
         )
 
         if client_info is None:
-            self.write("Unknown client.\r\n")
+            self.codedWriteLine(TYP_INFO, 1, "Unknown client")
             return
 
-        info_str = "Client: {0}\r\nVersion: {1}\r\n".format(
-            client_info["name"], client_info["version"])
-        self.write(info_str)
+        self.codedWriteLine(TYP_INFO, 2, "Client: {0}".format(client_info["name"]))
+        self.codedWriteLine(TYP_INFO, 3, "Version: {0}".format(client_info["version"]))
+
 
 class LogoutCommand(Command):
     """
@@ -104,15 +129,15 @@ class ShowSessionCommand(Command):
         sessions = get_session_id_list()
 
         for sid in sessions:
-            self.write("{0}\r\n".format(sid))
+            self.codedWriteLine(TYP_INFO, 1, sid)
 
     def show_session_statistics(self):
         """
         Shows various statistics about all sessions.
         """
         current,total = get_session_counts()
-        self.write("Current sessions: {0}\r\n".format(current))
-        self.write("Total sessions: {0}\r\n".format(total))
+        self.codedWriteLine(TYP_INFO, 2, "Current sessions: {0}".format(current))
+        self.codedWriteLine(TYP_INFO, 3, "Total sessions: {0}".format(total))
 
 
     def show_session(self, sid):
@@ -122,7 +147,7 @@ class ShowSessionCommand(Command):
         """
 
         if not session_exists(sid):
-            self.write("Invalid session id\r\n")
+            self.codedWriteLine(TYP_ERROR, 1,"Invalid session id")
             return
 
         username = get_session_value(sid, "username")
@@ -131,18 +156,19 @@ class ShowSessionCommand(Command):
         connect_time = get_session_value(sid, "connected")
         length = datetime.datetime.now() - connect_time
 
-        self.write("Username: {0}\r\n".format(username))
-        self.write("Connected: {0} ({1} ago)\r\n".format(connect_time,length))
+        self.codedWriteLine(TYP_INFO, 5, "Username: {0}".format(username))
+        self.codedWriteLine(TYP_INFO, 6, "Connected: {0} ({1} ago)".format(connect_time,length))
 
         if client_info is not None:
             name = client_info["name"]
             version = client_info["version"]
-            self.write("Client: {0}\r\n".format(name))
-            self.write("Version: {0}\r\n".format(version))
+            self.codedWriteLine(TYP_INFO, 7,"Client: {0}".format(name))
+            self.codedWriteLine(TYP_INFO, 8,"Version: {0}".format(version))
         else:
-            self.write("Unknown client (interactive?)\r\n")
+            self.codedWriteLine(TYP_INFO, 9,"Unknown client (interactive?)")
 
-        self.write("Current Command:\r\n{0}\r\n".format(command))
+        self.codedWriteLine(TYP_INFO, 10,"Current Command:")
+        self.codedWriteLine(TYP_INFO, 11,command)
 
     def main(self):
         if "list" in self.qualifiers:
@@ -167,14 +193,23 @@ class TestCommand(Command):
         self.lines.append(line)
         self.write("> ")
         if len(self.lines) < 5:
-            self.readLine().addCallback(self.add_line)
+            self.get_line()
         else:
             self.print_lines()
+
+    def get_line(self):
+        self.readLine().addCallback(self.add_line)
+
+    def exit(self):
+        """
+        Exits the app thing.
+        """
+        self.finished()
 
     def main(self):
         self.lines = []
         self.auto_exit = False
         self.write("Enter 5 lines of text:\r\n> ")
 
-        self.readLine().addCallback(self.add_line)
+        self.get_line()
 
