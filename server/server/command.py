@@ -6,6 +6,9 @@ from twisted.internet import defer
 
 __author__ = 'david'
 
+TYP_INFO = 1
+TYP_WARN = 2
+TYP_ERROR = 3
 
 class Command(object):
     """
@@ -79,6 +82,7 @@ class Command(object):
         Gets a line of input from the input buffer and returns it as a Deferred.
         If the input buffer is empty then the deferred will not execute until
         the lineReceived method is called with a new line of input.
+
         :return: One line of input
         :rtype: Deferred
         """
@@ -90,7 +94,8 @@ class Command(object):
         if len(self.lineBuffer) > 0:
             return defer.succeed(self.lineBuffer.pop(0))
         else:
-            self.readLineDeferred = defer.Deferred()
+            self.readLineDeferred = defer.Deferred(
+                canceller=lambda inst: self.inputCanceled(inst))
             return self.readLineDeferred
 
     def terminate(self):
@@ -101,6 +106,44 @@ class Command(object):
         :return:
         """
         self.terminated = True
+
+        # If the command is waiting on input then cancel it (the input will
+        # never arrive).
+        if self.readLineDeferred is not None:
+            self.readLineDeferred.cancel()
+
+    def inputCanceled(self, deferred_instance):
+        """
+        Called when user input is canceled. When this happens it most likely
+        means the remote system has requested the command be terminated.
+        :param deferred_instance: The deferred instance that was canceled.
+        :type deferred_instance: Deferred
+        """
+        self.finished()
+
+    def codedWriteLine(self, type, code, message):
+        """
+        Writes out a coded message.
+        :param type: Message type (info, warning, error)
+        :type type: int
+        :param code: Message code. This is command-specific
+        :type code: int < 99
+        :param message: The message to output
+        :type message: str
+        """
+
+        if not self.environment["ui_coded"]:
+            self.write(message + "\r\n")
+        else:
+            msg = "{0}{1:02d} {2}\r\n".format(type,code,message)
+            self.write(msg)
+
+    def cleanUp(self):
+        """
+        Called to clean up any resources allocated once the command has
+        finished executing.
+        """
+        pass
 
     def main(self):
         """

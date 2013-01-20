@@ -2,7 +2,7 @@
 """
 Defines the command tables for zxweatherd.
 """
-from server.commands import ShowUserCommand, ShowClientCommand, SetClientCommand, LogoutCommand, TestCommand, ShowSessionCommand, SetPromptCommand
+from server.commands import ShowUserCommand, ShowClientCommand, SetClientCommand, LogoutCommand, TestCommand, ShowSessionCommand, SetPromptCommand, SetTerminalCommand, SetInterfaceCommand
 from server.zxcl.command_table import verb_table, verb, parameter, \
     syntax_table, syntax, qualifier, keyword_table, keyword_set, keyword, synonym
 
@@ -46,7 +46,16 @@ base_keywords = [
         "set_keywords",
         [
             keyword(value="client", syntax="set_client"),
-            keyword(value="prompt", syntax="set_prompt")
+            keyword(value="prompt", syntax="set_prompt"),
+            keyword(value="terminal", syntax="set_terminal"),
+            keyword(value="interface", syntax="set_interface"),
+        ]
+    ),
+    keyword_set(
+        "boolean",
+        [
+            keyword(value="true"),
+            keyword(value="false")
         ]
     )
 ]
@@ -130,6 +139,29 @@ base_syntaxes = [
             )
         ]
     ),
+    syntax(
+        name="set_terminal",
+        handler="set_terminal",
+        parameters=[set_param_0],
+        qualifiers=[
+            qualifier(name="video"),
+            qualifier(name="basic"),
+        ]
+    ),
+    syntax(
+        name="set_interface",
+        handler="set_interface",
+        parameters=[set_param_0],
+        qualifiers=[
+            qualifier(
+                name="coded",
+                type="keyword",
+                default_value="true",
+                value_required=False,
+                keywords="boolean"
+            )
+        ]
+    ),
 
     ##### LOGOUT #####
     syntax(
@@ -151,6 +183,8 @@ base_dispatch = {
 
     "set_client": SetClientCommand,
     "set_prompt": SetPromptCommand,
+    "set_terminal": SetTerminalCommand,
+    "set_interface": SetInterfaceCommand,
 
     "logout": LogoutCommand,
     "test_handler": TestCommand,

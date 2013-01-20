@@ -5,6 +5,7 @@ Executes commands sent by remote systems.
 from functools import partial
 import uuid
 import datetime
+from twisted.conch.insults.insults import REVERSE_VIDEO, NORMAL
 from server.command_tables import authenticated_verb_table, \
     authenticated_syntax_table, authenticated_keyword_table, \
     authenticated_dispatch_table
@@ -17,6 +18,8 @@ __author__ = 'david'
 TABLE_SET_SHELL_INIT = 0
 TABLE_SET_AUTHENTICATED = 2
 
+TERM_CRT = 0
+TERM_BASIC = 1
 
 class Dispatcher(object):
     """
@@ -41,6 +44,9 @@ class Dispatcher(object):
         self.prompter = prompter
         self.warning_handler = warning_handler
         self.switch_table_set(initial_table_set)
+
+        self.environment["term_type"] = TERM_BASIC
+        self.environment["ui_coded"] = False
 
     def switch_table_set(self, table_set):
         """
@@ -75,8 +81,11 @@ class Dispatcher(object):
         try:
             handler, params, qualifiers = self.processor.process_command(command)
         except Exception as e:
-            self.warning_handler("Error: " + e.message)
-            return None
+            if e.message is not None:
+                self.warning_handler("Error: " + e.message)
+                return None
+            else:
+                raise e
 
         if handler is None:
             # nothing to do.
@@ -96,6 +105,7 @@ class Dispatcher(object):
 
 INPUT_SHELL = 0
 INPUT_COMMAND = 1
+
 
 class ZxweatherShellProtocol(recvline.HistoricRecvLine):
     """
@@ -120,6 +130,7 @@ class ZxweatherShellProtocol(recvline.HistoricRecvLine):
         self.dispatcher.environment["prompt"] = self.prompt
         self.sid = str(uuid.uuid1())
         self.dispatcher.environment["sessionid"] = self.sid
+        self.dispatcher.environment["term_mode"] = TERM_CRT
 
         register_session(
             self.dispatcher.environment["sessionid"],
@@ -130,6 +141,7 @@ class ZxweatherShellProtocol(recvline.HistoricRecvLine):
             }
         )
 
+
     def connectionMade(self):
         """
         Called when a new connection is made by a client.
@@ -138,12 +150,24 @@ class ZxweatherShellProtocol(recvline.HistoricRecvLine):
         self.dispatcher.environment["terminal"] = self.terminal
         self.dispatcher.environment["term"] = "crt"
 
+        # Install key handler to take care of ^C
+        self.keyHandlers['\x03'] = self.handle_CTRL_C
+
     def connectionLost(self, reason):
         """
         The session has ended. Clean everything up.
         :param reason:
         """
         end_session(self.sid)
+
+    def handle_CTRL_C(self):
+        """
+        Tries to kill any running process.
+        """
+        if self.input_mode != INPUT_SHELL:
+            if self.dispatcher.environment["term_mode"] == TERM_CRT:
+                self.terminal.write("\033[7m EXIT \033[m\r\n")
+            self.terminateProcess()
 
     def handle_RETURN(self):
         """
@@ -232,6 +256,7 @@ class ZxweatherShellProtocol(recvline.HistoricRecvLine):
         # TODO: Create a new line
         # TODO: Write out prompt string
         # TODO: Get input somehow with a deferred.
+        # TODO: Remember to handle ^C which should cause this to return None.
         return None
 
     def commandProcessorWarning(self, warning):
@@ -254,9 +279,20 @@ class ZxweatherShellProtocol(recvline.HistoricRecvLine):
         """
         Called when the process has finished executing.
         """
+        if self.current_command is not None:
+            self.current_command.cleanUp()
+            self.current_command = None
+
         self.input_mode = INPUT_SHELL
         update_session(self.sid, "command", "[shell]")
         self.showPrompt()
+
+    def terminateProcess(self):
+        """
+        Attempts to terminate the process.
+        """
+        if self.current_command is not None:
+            self.current_command.terminate()
 
     def haltInput(self):
         """
