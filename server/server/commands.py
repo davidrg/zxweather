@@ -3,7 +3,7 @@
 Some basic commands
 """
 from server.command import Command
-from server.session import get_session_value, update_session
+from server.session import get_session_value, update_session, get_session_counts, get_session_id_list, session_exists
 
 __author__ = 'david'
 
@@ -81,6 +81,62 @@ class LogoutCommand(Command):
             return
         self.environment["f_logout"]()
 
+class ShowSessionCommand(Command):
+    """
+    Shows various information about sessions
+    """
+
+    def show_session_list(self):
+        """
+        Shows a list of all active sessions
+        """
+        sessions = get_session_id_list()
+
+        for sid in sessions:
+            self.write("{0}\r\n".format(sid))
+
+    def show_session_statistics(self):
+        """
+        Shows various statistics about all sessions.
+        """
+        current,total = get_session_counts()
+        self.write("Current sessions: {0}\r\n".format(current))
+        self.write("Total sessions: {0}\r\n".format(total))
+
+
+    def show_session(self, sid):
+        """
+        shows information about a specific session.
+        :param sid: The session ID.
+        """
+
+        if not session_exists(sid):
+            self.write("Invalid session id\r\n")
+            return
+
+        username = get_session_value(sid, "username")
+        client_info = get_session_value(sid, "client")
+        command = get_session_value(sid, "command")
+
+        self.write("Username: {0}\r\n".format(username))
+
+        if client_info is not None:
+            name = client_info["name"]
+            version = client_info["version"]
+            self.write("Client: {0}\r\n".format(name))
+            self.write("Version: {0}\r\n".format(version))
+        else:
+            self.write("Unknown client (interactive?)\r\n")
+
+        self.write("Current Command:\r\n{0}\r\n".format(command))
+
+    def main(self):
+        if "list" in self.qualifiers:
+            self.show_session_list()
+        elif "id" in self.qualifiers:
+            self.show_session(self.qualifiers["id"])
+        else:
+            self.show_session_statistics()
 
 class TestCommand(Command):
 
@@ -107,5 +163,4 @@ class TestCommand(Command):
         self.write("Enter 5 lines of text:\r\n> ")
 
         self.readLine().addCallback(self.add_line)
-
 

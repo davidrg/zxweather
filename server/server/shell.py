@@ -7,7 +7,7 @@ import uuid
 from server.command_tables import authenticated_verb_table, \
     authenticated_syntax_table, authenticated_keyword_table, \
     authenticated_dispatch_table
-from server.session import register_session
+from server.session import register_session, end_session, update_session
 from server.zxcl.processor import CommandProcessor
 from twisted.conch import   recvline
 
@@ -112,11 +112,13 @@ class ZxweatherShellProtocol(recvline.HistoricRecvLine):
             TABLE_SET_AUTHENTICATED
         )
         self.dispatcher.environment["f_logout"] = lambda: self.logout()
-        self.dispatcher.environment["sessionid"] = uuid.uuid1()
+        self.sid = str(uuid.uuid1())
+        self.dispatcher.environment["sessionid"] = self.sid
         register_session(
             self.dispatcher.environment["sessionid"],
             {
-                "username": user.username
+                "username": user.username,
+                "command": "[shell]",
             }
         )
 
@@ -132,7 +134,11 @@ class ZxweatherShellProtocol(recvline.HistoricRecvLine):
         self.dispatcher.environment["term"] = "crt"
 
     def connectionLost(self, reason):
-        pass
+        """
+        The session has ended. Clean everything up.
+        :param reason:
+        """
+        end_session(self.sid)
 
     def handle_RETURN(self):
         """
@@ -196,6 +202,7 @@ class ZxweatherShellProtocol(recvline.HistoricRecvLine):
         self.input_mode = INPUT_COMMAND
 
         # and set it running.
+        update_session(self.sid, "command", command)
         self.current_command.execute()
 
     def lineReceived(self, line):
@@ -243,6 +250,7 @@ class ZxweatherShellProtocol(recvline.HistoricRecvLine):
         Called when the process has finished executing.
         """
         self.input_mode = INPUT_SHELL
+        update_session(self.sid, "command", "[shell]")
         self.showPrompt()
 
     def haltInput(self):

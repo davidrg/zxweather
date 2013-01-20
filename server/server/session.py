@@ -50,3 +50,31 @@ def end_session(sid):
     """
     global _session_tracking_sessions
     _session_tracking_sessions.pop(sid)
+
+def get_session_counts():
+    """
+    Gets session counts
+    :return: Current sessions, Total sessions
+    :rtype: int,int
+    """
+    global _session_tracking_total_sessions, _session_tracking_sessions
+
+    return len(_session_tracking_sessions), _session_tracking_total_sessions
+
+def get_session_id_list():
+    """
+    Returns a list of all active sessions
+    :return: Active session list
+    :rtype: list
+    """
+    global _session_tracking_sessions
+    return _session_tracking_sessions.keys()
+
+def session_exists(sid):
+    """
+    Checks to see if the specified session exists.
+    :param sid: Session ID
+    :return: True if it exists, False if it doesn't
+    """
+    global _session_tracking_sessions
+    return sid in _session_tracking_sessions

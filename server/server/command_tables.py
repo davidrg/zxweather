@@ -2,7 +2,7 @@
 """
 Defines the command tables for zxweatherd.
 """
-from server.commands import ShowUserCommand, ShowClientCommand, SetClientCommand, LogoutCommand, TestCommand
+from server.commands import ShowUserCommand, ShowClientCommand, SetClientCommand, LogoutCommand, TestCommand, ShowSessionCommand
 from server.zxcl.command_table import verb_table, verb, parameter, \
     syntax_table, syntax, qualifier, keyword_table, keyword_set, keyword, synonym
 
@@ -39,6 +39,7 @@ base_keywords = [
         [
             keyword(value="user", syntax="show_user"),
             keyword(value="client", syntax="show_client"),
+            keyword(value="session", syntax="show_session"),
         ]
     ),
     keyword_set(
@@ -69,6 +70,20 @@ base_syntaxes = [
         handler="show_client",
         parameters=[
             show_param_0
+        ]
+    ),
+    syntax(
+        name="show_session",
+        handler="show_session",
+        qualifiers=[
+            qualifier(
+                name="list"
+            ),
+            qualifier(
+                name="id",
+                value_required=True,
+                type="string"
+            )
         ]
     ),
 
@@ -120,7 +135,8 @@ base_dispatch = {
     "show_client": ShowClientCommand,
     "set_client": SetClientCommand,
     "logout": LogoutCommand,
-    "test_handler": TestCommand
+    "test_handler": TestCommand,
+    "show_session": ShowSessionCommand,
 }
 
 # Commands for authenticated users
