@@ -4,6 +4,7 @@ Executes commands sent by remote systems.
 """
 from functools import partial
 import uuid
+import datetime
 from server.command_tables import authenticated_verb_table, \
     authenticated_syntax_table, authenticated_keyword_table, \
     authenticated_dispatch_table
@@ -119,6 +120,7 @@ class ZxweatherShellProtocol(recvline.HistoricRecvLine):
             {
                 "username": user.username,
                 "command": "[shell]",
+                "connected": datetime.datetime.now()
             }
         )
 
