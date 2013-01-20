@@ -59,13 +59,41 @@ class LogoutCommand(Command):
     A command that attempts to log the user out using a function stored in
     the environment.
     """
-    def execute(self):
-        """ Overridden as we don't want to ever return control to the shell. """
-        self.main()
 
     def main(self):
         """ Logs the user out """
+        self.auto_exit = False
+
         if "f_logout" not in self.environment:
             self.write("Error: unable to logout")
             return
         self.environment["f_logout"]()
+
+
+class TestCommand(Command):
+
+    def print_lines(self):
+        self.write("You entered:\r\n")
+        i = 0
+        for line in self.lines:
+            self.write("{0}: {1}\r\n".format(i,line))
+            i += 1
+
+        self.finished()
+
+    def add_line(self, line):
+        self.lines.append(line)
+        self.write("> ")
+        if len(self.lines) < 5:
+            self.readLine().addCallback(self.add_line)
+        else:
+            self.print_lines()
+
+    def main(self):
+        self.lines = []
+        self.auto_exit = False
+        self.write("Enter 5 lines of text:\r\n> ")
+
+        self.readLine().addCallback(self.add_line)
+
+

@@ -36,10 +36,6 @@ class Token(object):
     A token
     """
 
-    type = None
-    value = None
-    position = None
-
     def __init__(self, type, value, position):
         self.type = type
         self.value = value
@@ -92,11 +88,6 @@ class Lexer(object):
 
     token_names = ["EOF","IDENTIFIER","INTEGER","FLOAT","WS","STRING","DATE",
                    "!","/","="]
-
-    _input = None
-    _pointer = 0
-    _current_character = None
-
 
     def __init__(self, input_string):
         """

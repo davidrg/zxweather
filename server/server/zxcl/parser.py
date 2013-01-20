@@ -19,10 +19,6 @@ class Parser(object):
     Parses ZXCL stuff
     """
 
-    _tokens = None
-    _position = None
-    _look_ahead = None
-
     _parameter_types = [
         Lexer.IDENTIFIER,
         Lexer.INTEGER,
@@ -31,20 +27,6 @@ class Parser(object):
         Lexer.DATE,
         ]
 
-    # This is what the command processor will look at as ordering is important
-    # for handling syntax changes
-    _combined = []
-    # It is a list of 4-item tuples.
-    # Item 0: type - either v - verb
-    #                    or p - parameter
-    #                    or q - qualifier
-    # Item 1: position in the command
-    # Item 2: if [0]=="v": verb name
-    #         if [0]=="p": parameter number
-    #         if [0]=="q": qualifier name
-    # Item 2: if [0]=="p": parameter value, parameter type
-    #         if [0]=="q": qualifier value, qualifier type. None,None = no parameter
-    #         if [0]=="v": None
     COMP_TYPE_VERB="v"
     COMP_TYPE_PARAMETER="p"
     COMP_TYPE_QUALIFIER="q"
@@ -56,6 +38,26 @@ class Parser(object):
         Lexer.STRING: "string",
         Lexer.DATE: "date"
     }
+
+    def __init__(self):
+        self._tokens = None
+        self._position = None
+        self._look_ahead = None
+
+        # This is what the command processor will look at as ordering is important
+        # for handling syntax changes
+        self._combined = []
+        # It is a list of 4-item tuples.
+        # Item 0: type - either v - verb
+        #                    or p - parameter
+        #                    or q - qualifier
+        # Item 1: position in the command
+        # Item 2: if [0]=="v": verb name
+        #         if [0]=="p": parameter number
+        #         if [0]=="q": qualifier name
+        # Item 2: if [0]=="p": parameter value, parameter type
+        #         if [0]=="q": qualifier value, qualifier type. None,None = no parameter
+        #         if [0]=="v": None
 
     def _match(self, token):
 
