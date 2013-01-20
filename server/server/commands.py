@@ -2,6 +2,7 @@
 """
 Some basic commands
 """
+import datetime
 from server.command import Command
 from server.session import get_session_value, update_session, get_session_counts, get_session_id_list, session_exists
 
@@ -117,8 +118,11 @@ class ShowSessionCommand(Command):
         username = get_session_value(sid, "username")
         client_info = get_session_value(sid, "client")
         command = get_session_value(sid, "command")
+        connect_time = get_session_value(sid, "connected")
+        length = datetime.datetime.now() - connect_time
 
         self.write("Username: {0}\r\n".format(username))
+        self.write("Connected: {0} ({1} ago)\r\n".format(connect_time,length))
 
         if client_info is not None:
             name = client_info["name"]
