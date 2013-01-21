@@ -2,7 +2,7 @@
 """
 Defines the command tables for zxweatherd.
 """
-from server.commands import ShowUserCommand, ShowClientCommand, SetClientCommand, LogoutCommand, TestCommand, ShowSessionCommand, SetPromptCommand, SetTerminalCommand, SetInterfaceCommand, StreamCommand, ListSessionsCommand, ListStationsCommand
+from server.commands import ShowUserCommand, ShowClientCommand, SetClientCommand, LogoutCommand, TestCommand, ShowSessionCommand, SetPromptCommand, SetTerminalCommand, SetInterfaceCommand, StreamCommand, ListSessionsCommand, ListStationsCommand, ShowStationCommand
 from server.zxcl.command_table import verb_table, verb, parameter, \
     syntax_table, syntax, qualifier, keyword_table, keyword_set, keyword, synonym
 
@@ -51,6 +51,7 @@ base_keywords = [
             keyword(value="user", syntax="show_user"),
             keyword(value="client", syntax="show_client"),
             keyword(value="session", syntax="show_session"),
+            keyword(value="station", syntax="show_station"),
         ]
     ),
     keyword_set(
@@ -113,6 +114,21 @@ base_syntaxes = [
                 type="string"
             )
         ]
+    ),
+    syntax(
+        name="show_station",
+        handler="show_station",
+        parameters=[
+            show_param_0,
+            parameter(
+                position=1,
+                type="string",
+                required=True,
+                prompt="Station Code:",
+                label="Station Code"
+            )
+        ],
+
     ),
 
     ##### SET #####
@@ -235,6 +251,7 @@ base_dispatch = {
     "show_user": ShowUserCommand,
     "show_client": ShowClientCommand,
     "show_session": ShowSessionCommand,
+    "show_station": ShowStationCommand,
 
     "set_client": SetClientCommand,
     "set_prompt": SetPromptCommand,
