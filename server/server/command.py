@@ -49,6 +49,8 @@ class Command(object):
         self.terminated = False
         self.auto_exit = True
 
+        self.force_close = True
+
     def execute(self):
         """
         Executes the command. The finished callback will be called when it has
@@ -112,6 +114,9 @@ class Command(object):
         if self.readLineDeferred is not None:
             self.readLineDeferred.cancel()
 
+        if self.force_close:
+            self.finished()
+
     def inputCanceled(self, deferred_instance):
         """
         Called when user input is canceled. When this happens it most likely
@@ -120,6 +125,13 @@ class Command(object):
         :type deferred_instance: Deferred
         """
         self.finished()
+
+    def writeLine(self, text):
+        """
+        Writes a line of text to the console
+        :param text: Text to write out.
+        """
+        self.write("{0}\r\n".format(text))
 
     def codedWriteLine(self, type, code, message):
         """

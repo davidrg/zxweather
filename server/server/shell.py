@@ -232,7 +232,12 @@ class ZxweatherShellProtocol(recvline.HistoricRecvLine):
 
         # and set it running.
         update_session(self.sid, "command", command)
-        self.current_command.execute()
+        try:
+            self.current_command.execute()
+        except Exception as e:
+            print(e.message)
+            self.terminal.write("Command failed\r\n")
+            self.processFinished()
 
     def lineReceived(self, line):
         """

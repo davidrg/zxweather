@@ -2,7 +2,7 @@
 """
 Defines the command tables for zxweatherd.
 """
-from server.commands import ShowUserCommand, ShowClientCommand, SetClientCommand, LogoutCommand, TestCommand, ShowSessionCommand, SetPromptCommand, SetTerminalCommand, SetInterfaceCommand
+from server.commands import ShowUserCommand, ShowClientCommand, SetClientCommand, LogoutCommand, TestCommand, ShowSessionCommand, SetPromptCommand, SetTerminalCommand, SetInterfaceCommand, StreamCommand
 from server.zxcl.command_table import verb_table, verb, parameter, \
     syntax_table, syntax, qualifier, keyword_table, keyword_set, keyword, synonym
 
@@ -14,6 +14,8 @@ base_verbs = [
     verb(name="show", syntax="show_syntax"),
     verb(name="logout", syntax="logout_syntax"),
     synonym(name="quit", verb="logout"),
+    verb(name="stream", syntax="stream_syntax"),
+    synonym(name="subscribe", verb="stream"),
     verb(name="test", syntax="test_syntax")
 ]
 
@@ -163,6 +165,26 @@ base_syntaxes = [
         ]
     ),
 
+    ##### STREAM/SUBSCRIBE #####
+    syntax(
+        name="stream_syntax",
+        handler="stream",
+        parameters=[
+            parameter(
+                position=0,
+                type="string",
+                required=True,
+                prompt="Station: ",
+                label="Station Code"
+            )
+        ],
+        qualifiers=[
+            qualifier(name="live"),
+            qualifier(name="samples"),
+            qualifier(name="from_timestamp", type="string"),
+        ]
+    ),
+
     ##### LOGOUT #####
     syntax(
         name="logout_syntax",
@@ -180,6 +202,7 @@ base_syntaxes = [
 base_dispatch = {
     "show_user": ShowUserCommand,
     "show_client": ShowClientCommand,
+    "show_session": ShowSessionCommand,
 
     "set_client": SetClientCommand,
     "set_prompt": SetPromptCommand,
@@ -187,8 +210,10 @@ base_dispatch = {
     "set_interface": SetInterfaceCommand,
 
     "logout": LogoutCommand,
+
+    "stream": StreamCommand,
+
     "test_handler": TestCommand,
-    "show_session": ShowSessionCommand,
 }
 
 # Commands for authenticated users
