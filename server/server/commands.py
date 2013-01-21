@@ -6,6 +6,7 @@ import pytz
 from datetime import datetime, timedelta
 from server import subscriptions
 from server.command import Command, TYP_INFO, TYP_ERROR
+from server.database import get_station_list, get_station_info
 from server.session import get_session_value, update_session, get_session_counts, get_session_id_list, session_exists
 import dateutil.parser
 
@@ -104,7 +105,6 @@ class ShowClientCommand(Command):
 
         self.codedWriteLine(TYP_INFO, 2, "Client: {0}".format(client_info["name"]))
         self.codedWriteLine(TYP_INFO, 3, "Version: {0}".format(client_info["version"]))
-
 
 class LogoutCommand(Command):
     """
@@ -358,10 +358,42 @@ class StreamCommand(Command):
         self.unsubscribe()
         self.writeLine("# Finished")
 
+class ShowStationCommand(Command):
+    """
+    Shows information about a station
+    """
+
+    def _output_station_info(self, station_info):
+        self.writeLine("Code: " + self.code)
+        self.writeLine("Name: " + station_info.title)
+        self.writeLine("Description: " + station_info.description)
+        self.writeLine("Sample Interval: {0}".format(
+            station_info.sample_interval))
+        self.writeLine("Live Data Available: {0}".format(
+            station_info.live_data_available))
+        self.writeLine("Hardware Type: {0} ({1}) ".format(
+            station_info.station_type_code, station_info.station_type_title))
+
+        self.finished()
+
+    def main(self):
+        self.auto_exit = False
+        self.code = self.parameters[1]
+        get_station_info(self.code).addCallback(self._output_station_info)
+
 class ListStationsCommand(Command):
     """
     Lists all stations in the database.
     """
 
+    def _output_station_list(self, station_list):
+        self.writeLine("Code: Name:")
+        self.writeLine("----- -----------------------------------------------"
+                       "--------------------------")
+        for station in station_list:
+            self.writeLine("{0:<5} {1}".format(station[0], station[1]))
+        self.finished()
+
     def main(self):
-        pass
+        self.auto_exit = False
+        get_station_list().addCallback(self._output_station_list)
