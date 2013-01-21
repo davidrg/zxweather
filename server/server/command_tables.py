@@ -2,7 +2,7 @@
 """
 Defines the command tables for zxweatherd.
 """
-from server.commands import ShowUserCommand, ShowClientCommand, SetClientCommand, LogoutCommand, TestCommand, ShowSessionCommand, SetPromptCommand, SetTerminalCommand, SetInterfaceCommand, StreamCommand
+from server.commands import ShowUserCommand, ShowClientCommand, SetClientCommand, LogoutCommand, TestCommand, ShowSessionCommand, SetPromptCommand, SetTerminalCommand, SetInterfaceCommand, StreamCommand, ListSessionsCommand, ListStationsCommand
 from server.zxcl.command_table import verb_table, verb, parameter, \
     syntax_table, syntax, qualifier, keyword_table, keyword_set, keyword, synonym
 
@@ -16,7 +16,8 @@ base_verbs = [
     synonym(name="quit", verb="logout"),
     verb(name="stream", syntax="stream_syntax"),
     synonym(name="subscribe", verb="stream"),
-    verb(name="test", syntax="test_syntax")
+    verb(name="test", syntax="test_syntax"),
+    verb(name="list", syntax="list_syntax"),
 ]
 
 show_param_0 = parameter(
@@ -35,6 +36,14 @@ set_param_0 = parameter(
     keywords="set_keywords"
 )
 
+list_param_0 = parameter(
+    position=0,
+    type="keyword",
+    prompt="What?",
+    required=True,
+    keywords="list_keywords"
+)
+
 base_keywords = [
     keyword_set(
         "show_keywords",
@@ -51,6 +60,13 @@ base_keywords = [
             keyword(value="prompt", syntax="set_prompt"),
             keyword(value="terminal", syntax="set_terminal"),
             keyword(value="interface", syntax="set_interface"),
+        ]
+    ),
+    keyword_set(
+        "list_keywords",
+        [
+            keyword(value="stations", syntax="list_stations"),
+            keyword(value="sessions", syntax="list_sessions"),
         ]
     ),
     keyword_set(
@@ -87,10 +103,10 @@ base_syntaxes = [
     syntax(
         name="show_session",
         handler="show_session",
+        parameters=[
+            show_param_0
+        ],
         qualifiers=[
-            qualifier(
-                name="list"
-            ),
             qualifier(
                 name="id",
                 value_required=True,
@@ -165,6 +181,22 @@ base_syntaxes = [
         ]
     ),
 
+    ##### LIST #####
+    syntax(
+        name="list_syntax",
+        parameters=[list_param_0]
+    ),
+    syntax(
+        name="list_stations",
+        handler="list_stations",
+        parameters=[list_param_0]
+    ),
+    syntax(
+        name="list_sessions",
+        handler="list_sessions",
+        parameters=[list_param_0]
+    ),
+
     ##### STREAM/SUBSCRIBE #####
     syntax(
         name="stream_syntax",
@@ -208,6 +240,9 @@ base_dispatch = {
     "set_prompt": SetPromptCommand,
     "set_terminal": SetTerminalCommand,
     "set_interface": SetInterfaceCommand,
+
+    "list_sessions": ListSessionsCommand,
+    "list_stations": ListStationsCommand,
 
     "logout": LogoutCommand,
 

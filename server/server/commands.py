@@ -121,19 +121,21 @@ class LogoutCommand(Command):
             return
         self.environment["f_logout"]()
 
-class ShowSessionCommand(Command):
+class ListSessionsCommand(Command):
     """
-    Shows various information about sessions
+    Lists all active sessions on the system
     """
 
-    def show_session_list(self):
-        """
-        Shows a list of all active sessions
-        """
+    def main(self):
         sessions = get_session_id_list()
 
         for sid in sessions:
             self.codedWriteLine(TYP_INFO, 1, sid)
+
+class ShowSessionCommand(Command):
+    """
+    Shows various information about sessions
+    """
 
     def show_session_statistics(self):
         """
@@ -175,9 +177,7 @@ class ShowSessionCommand(Command):
         self.codedWriteLine(TYP_INFO, 11,command)
 
     def main(self):
-        if "list" in self.qualifiers:
-            self.show_session_list()
-        elif "id" in self.qualifiers:
+        if "id" in self.qualifiers:
             self.show_session(self.qualifiers["id"])
         else:
             self.show_session_statistics()
@@ -323,7 +323,7 @@ class StreamCommand(Command):
         if from_timestamp is not None:
             catchup = " catching up from {0}".format(from_timestamp)
 
-        self.writeLine("# Streaming {0} data for station '{1}'{2}.".format(subset,
+        self.writeLine("# Streaming {0} data for station '{1}'{2}. Send ^C to stop.".format(subset,
             station_code, catchup))
 
 
@@ -357,3 +357,11 @@ class StreamCommand(Command):
         """
         self.unsubscribe()
         self.writeLine("# Finished")
+
+class ListStationsCommand(Command):
+    """
+    Lists all stations in the database.
+    """
+
+    def main(self):
+        pass
