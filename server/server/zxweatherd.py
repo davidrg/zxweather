@@ -10,6 +10,8 @@ from twisted.conch.insults import insults
 from twisted.cred.checkers import FilePasswordDB
 from zope.interface import implements
 from twisted.internet import reactor
+from server.database import database_connect
+from server.dbupdates import listener_connect
 from server.shell import ZxweatherShellProtocol
 
 
@@ -76,6 +78,9 @@ sshFactory.publicKeys = {'ssh-rsa': publicKey}
 sshFactory.portal = cred_portal.Portal(ZxwRealm())
 sshFactory.portal.registerChecker(FilePasswordDB("ssh-passwords"))
 
+conn_str = "host=localhost port=5432 user=zxweather password=password dbname=weather"
+database_connect(conn_str)
+listener_connect(conn_str)
 
 reactor.listenTCP(22, sshFactory)
 reactor.run( )
