@@ -85,13 +85,7 @@ def _station_live_updated_callback(data, code):
 
     row = data[0]
 
-    hw_type = get_station_hw_type(code)
-
-    # Todo: Find some way of telling the client the record type (hardware)
-    # that doesn't involve sending it in *every* record. The client only needs
-    # to know once.
-
-    dat = "l,{0},{1},{2}".format(code, hw_type, row[0])
+    dat = "l,{0},{2}".format(code, row[0])
     deliver_live_data(code, dat)
 
 def station_live_updated(station_code):
