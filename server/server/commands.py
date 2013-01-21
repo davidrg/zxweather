@@ -2,9 +2,13 @@
 """
 Some basic commands
 """
-import datetime
+import pytz
+from datetime import datetime, timedelta
+from server import subscriptions
 from server.command import Command, TYP_INFO, TYP_ERROR
 from server.session import get_session_value, update_session, get_session_counts, get_session_id_list, session_exists
+import dateutil.parser
+
 
 __author__ = 'david'
 
@@ -154,7 +158,7 @@ class ShowSessionCommand(Command):
         client_info = get_session_value(sid, "client")
         command = get_session_value(sid, "command")
         connect_time = get_session_value(sid, "connected")
-        length = datetime.datetime.now() - connect_time
+        length = datetime.now() - connect_time
 
         self.codedWriteLine(TYP_INFO, 5, "Username: {0}".format(username))
         self.codedWriteLine(TYP_INFO, 6, "Connected: {0} ({1} ago)".format(connect_time,length))
@@ -213,3 +217,143 @@ class TestCommand(Command):
 
         self.get_line()
 
+class StreamCommand(Command):
+    """
+    This command streams live data and new samples back to the client as they
+    arrive either in the database or from other clients.
+    """
+
+    def perform_catchup(self, station, start_timestamp, end_timestamp):
+        """
+        Fetches all data from the specified timestamp and returns it.
+        :param start_timestamp:
+        :return:
+        """
+        pass
+
+    def subscribe(self, station, live, samples):
+        """
+        Subscribes to a data feed for the specified station
+        :param station:
+        :param live:
+        :param samples:
+        :return:
+        """
+        self.subscribed_station = station
+        self.subscribe_live = live
+        self.subscribe_samples = samples
+
+        subscriptions.subscribe(self, station, live, samples)
+
+        return datetime.utcnow().replace(tzinfo = pytz.utc)
+
+    def unsubscribe(self):
+        """
+        Unsubscribes from any current subscriptions.
+        """
+        subscriptions.unsubscribe(self, self.subscribed_station)
+
+
+    def live_data(self, data):
+        """
+        Called by the subscription stuff when ever new live data is available
+        :param data: The new data
+        :type data: str
+        """
+        if self.buffer_data:
+            self.current_live = data
+        else:
+            self.writeLine(data)
+
+    def sample_data(self, data):
+        """
+        Called by the subscription stuff when ever new samples are available.
+        :param data: The new data
+        :type data: str
+        """
+        if not self.buffer_data:
+            while len(self.sample_buffer) > 0:
+                if self.terminated:
+                    self.finished()
+                    return
+                self.writeLine(self.sample_buffer.pop(0))
+
+            self.writeLine(data)
+        else:
+            self.sample_buffer.append(data)
+
+
+
+    def main(self):
+        """
+        Sets up subscriptions.
+        """
+        self.current_live = None
+        self.sample_buffer = []
+        self.haltInput() # This doesn't take any user input.
+
+        station_code = self.parameters[0]
+        stream_live = "live" in self.qualifiers
+        stream_samples = "samples" in self.qualifiers
+        from_timestamp = None
+        if stream_live is False and stream_samples is False:
+            self.writeLine("Nothing to stream.")
+            return
+
+        if "from_timestamp" in self.qualifiers:
+
+            try:
+                from_timestamp = dateutil.parser.parse(self.qualifiers["from_timestamp"])
+            except Exception as e:
+                self.writeLine("Error: {0}".format(e.message))
+                return
+
+            now = datetime.utcnow().replace(tzinfo = pytz.utc)
+            if from_timestamp < now - timedelta(days=1):
+                self.writeLine("Error: Catchup only allows a maximum of "
+                               "24 hours of data.")
+                return
+
+        subset = "live and sample"
+        catchup = ""
+        if stream_live is True and stream_samples is False:
+            subset = "live"
+        elif stream_live is False and stream_samples is True:
+            subset = "sample"
+        if from_timestamp is not None:
+            catchup = " catching up from {0}".format(from_timestamp)
+
+        self.writeLine("# Streaming {0} data for station '{1}'{2}.".format(subset,
+            station_code, catchup))
+
+
+        # Turn on data buffering (in case we need to catchup first) and
+        # subscribe to the data feed. This will return the time when our
+        # subscription started.
+        self.buffer_data = True
+        subscription_start = self.subscribe(station_code, stream_live,
+            stream_samples)
+
+        # If we're supposed to catchup then grab all data for the station
+        # from the catchup time through to when we started our subscription.
+        # Anything that falls after our subscription will be delivered as soon
+        # as the catchup has finished and data buffering gets disabled again.
+        if from_timestamp is not None:
+            self.perform_catchup(station_code, from_timestamp,
+                subscription_start)
+        else:
+            # We're not doing a catchup. No need to buffer data.
+            self.buffer_data = False
+
+
+        # Turn it off here so that early returns above will terminate the
+        # command automatically. If we get this far then everything is OK and
+        # we don't want to autoterminate.
+        self.auto_exit = False
+
+    def cleanUp(self):
+        """
+        Clean up
+        """
+        self.unsubscribe()
+        self.writeLine("# Finished")
