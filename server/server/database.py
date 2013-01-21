@@ -133,6 +133,18 @@ where station_id = %s
 
     return database_pool.runQuery(query, (station_code_id[station_code],))
 
+def get_sample_csv(station_code, start_time):
+    """
+    Gets live data for the specified station in CSV format.
+    :param station_code: The station code
+    :type station_code: str
+    :param start_time: Obtain all records after this timestamp. If None then
+    fetch the latest sample only
+    :type start_time: datetime or None.
+    :returns: A deferred which will supply the data
+    :rtype: Deferred
+    """
+
 def get_station_hw_type(code):
     """
     Gets the hardware type for the specified station
