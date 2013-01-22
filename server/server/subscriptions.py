@@ -9,7 +9,7 @@ from server.database import get_live_csv, get_sample_csv
 __author__ = 'david'
 
 subscriptions = {}
-_last_sample_ts = None
+_last_sample_ts = {}
 
 def subscribe(subscriber, station, include_live, include_samples):
     """
@@ -105,7 +105,7 @@ def _station_samples_updated_callback(data, code):
     global _last_sample_ts
 
     for row in data:
-        _last_sample_ts = row[0]
+        _last_sample_ts[code] = row[0]
         # We use ISO 8601 date formatting for output.
         csv_data = 's,"{0}",{1}'.format(
             row[0].strftime("%Y-%m-%d %H:%M:%S"), row[1])
@@ -122,18 +122,20 @@ def new_station_samples(station_code):
     """
     global _last_sample_ts
 
+    if station_code not in _last_sample_ts:
+        _last_sample_ts[station_code] = None
 
-    if _last_sample_ts is not None:
+    if _last_sample_ts[station_code] is not None:
         now = datetime.utcnow().replace(tzinfo = pytz.utc)
 
         # If we've not broadcast anything for the last few hours we don't want
         # to suddenly spam all clients with a hundred records because someone
         # took the data logger back online. If our last broadcast was a few
         # hours ago then reset it to 20 minutes ago
-        if _last_sample_ts < now - timedelta(hours=4):
-            _last_sample_ts = now - timedelta(minutes=20)
+        if _last_sample_ts[station_code] < now - timedelta(hours=4):
+            _last_sample_ts[station_code] = now - timedelta(minutes=20)
 
-    get_sample_csv(station_code, _last_sample_ts).addCallback(
+    get_sample_csv(station_code, _last_sample_ts[station_code]).addCallback(
         _station_samples_updated_callback, station_code)
 
 
