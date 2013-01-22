@@ -2,11 +2,14 @@
 """
 Handles streaming samples around
 """
-from server.database import get_live_csv, get_station_hw_type
+from datetime import datetime, timedelta
+import pytz
+from server.database import get_live_csv, get_sample_csv
 
 __author__ = 'david'
 
 subscriptions = {}
+_last_sample_ts = None
 
 def subscribe(subscriber, station, include_live, include_samples):
     """
@@ -68,7 +71,7 @@ def deliver_sample_data(station, data):
     :param station: The station this data is for
     :type station: str
     :param data: Sample data
-    :type data: list
+    :type data: str
     """
     global subscriptions
 
@@ -78,14 +81,13 @@ def deliver_sample_data(station, data):
     subscribers = subscriptions[station]["s"]
 
     for subscriber in subscribers:
-        for record in data:
-            subscriber.sample_data(record)
+        subscriber.sample_data(data)
 
 def _station_live_updated_callback(data, code):
 
     row = data[0]
 
-    dat = "l,{0},{2}".format(code, row[0])
+    dat = "l,{0}".format(row[0])
     deliver_live_data(code, dat)
 
 def station_live_updated(station_code):
@@ -99,6 +101,17 @@ def station_live_updated(station_code):
 
     get_live_csv(station_code).addCallback(_station_live_updated_callback, station_code)
 
+def _station_samples_updated_callback(data, code):
+    global _last_sample_ts
+
+    for row in data:
+        _last_sample_ts = row[0]
+        # We use ISO 8601 date formatting for output.
+        csv_data = 's,"{0}",{1}'.format(
+            row[0].strftime("%Y-%m-%d %H:%M:%S"), row[1])
+        deliver_sample_data(code, csv_data)
+
+
 def new_station_samples(station_code):
     """
     Called when new samples are available for the specified station. This will
@@ -107,7 +120,22 @@ def new_station_samples(station_code):
     :param station_code:
     :return:
     """
+    global _last_sample_ts
 
-    print("New sample for " + station_code)
-    deliver_sample_data(station_code, ["sample ping!"])
+    now = datetime.utcnow().replace(tzinfo = pytz.utc)
+    if _last_sample_ts is None:
+        # Take two minutes off so we're sure to grab what ever sample just
+        # triggered this function.
+        _last_sample_ts = now - timedelta(minutes=2)
+
+    # If we've not broadcast anything for the last few hours we don't want to
+    # suddenly spam all clients with a hundred records because someone
+    # took the data logger back online. If our last broadcast was a few hours
+    # ago then reset it to 20 minutes ago
+    if _last_sample_ts < now - timedelta(hours=4):
+        _last_sample_ts = now - timedelta(minutes=20)
+
+    get_sample_csv(station_code, _last_sample_ts).addCallback(
+        _station_samples_updated_callback, station_code)
+
 

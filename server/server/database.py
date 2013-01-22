@@ -115,6 +115,10 @@ def get_live_csv(station_code):
     :returns: A deferred which will supply the data
     :rtype: Deferred
     """
+
+    # TODO: Handle Nulls somehow. At the moment they just result in an empty CSV row
+    # TODO: convert to fixed-point data types (no point returning 2.33333333)
+
     query = """
 select temperature || ',' ||
        dew_point || ',' ||
@@ -144,6 +148,42 @@ def get_sample_csv(station_code, start_time):
     :returns: A deferred which will supply the data
     :rtype: Deferred
     """
+
+    # TODO: Handle Nulls somehow. At the moment they just result in an empty CSV row
+    # TODO: convert to fixed-point data types (no point returning 2.33333333)
+
+    query_cols = """
+select time_stamp,
+       temperature || ',' ||
+       dew_point || ',' ||
+       apparent_temperature || ',' ||
+       wind_chill || ',' ||
+       relative_humidity || ',' ||
+       indoor_temperature || ',' ||
+       indoor_relative_humidity || ',' ||
+       absolute_pressure || ',' ||
+       average_wind_speed || ',' ||
+       gust_wind_speed || ',' ||
+       wind_direction || ',' ||
+       rainfall
+from sample
+where station_id = %s
+        """
+    query_date = """
+and time_stamp > %s
+order by time_stamp desc
+        """
+    query_top = """
+order by time_stamp desc
+fetch first 1 rows only
+    """
+
+    if start_time is not None:
+        return database_pool.runQuery(query_cols + query_date,
+            (station_code_id[station_code], start_time))
+    else:
+        return database_pool.runQuery(query_cols + query_top,
+            (station_code_id[station_code], ))
 
 def get_station_hw_type(code):
     """
