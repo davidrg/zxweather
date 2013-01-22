@@ -122,18 +122,16 @@ def new_station_samples(station_code):
     """
     global _last_sample_ts
 
-    now = datetime.utcnow().replace(tzinfo = pytz.utc)
-    if _last_sample_ts is None:
-        # Take two minutes off so we're sure to grab what ever sample just
-        # triggered this function.
-        _last_sample_ts = now - timedelta(minutes=2)
 
-    # If we've not broadcast anything for the last few hours we don't want to
-    # suddenly spam all clients with a hundred records because someone
-    # took the data logger back online. If our last broadcast was a few hours
-    # ago then reset it to 20 minutes ago
-    if _last_sample_ts < now - timedelta(hours=4):
-        _last_sample_ts = now - timedelta(minutes=20)
+    if _last_sample_ts is not None:
+        now = datetime.utcnow().replace(tzinfo = pytz.utc)
+
+        # If we've not broadcast anything for the last few hours we don't want
+        # to suddenly spam all clients with a hundred records because someone
+        # took the data logger back online. If our last broadcast was a few
+        # hours ago then reset it to 20 minutes ago
+        if _last_sample_ts < now - timedelta(hours=4):
+            _last_sample_ts = now - timedelta(minutes=20)
 
     get_sample_csv(station_code, _last_sample_ts).addCallback(
         _station_samples_updated_callback, station_code)
