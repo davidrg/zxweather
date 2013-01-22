@@ -78,7 +78,8 @@ sshFactory.publicKeys = {'ssh-rsa': publicKey}
 sshFactory.portal = cred_portal.Portal(ZxwRealm())
 sshFactory.portal.registerChecker(FilePasswordDB("ssh-passwords"))
 
-conn_str = "host=localhost port=5432 user=zxweather password=password dbname=weather"
+#conn_str = "host=localhost port=5432 user=zxweather password=password dbname=weather"
+conn_str = "host=titan.rua.zx.net.nz port=5432 user=zxweather password=password dbname=weather"
 database_connect(conn_str)
 listener_connect(conn_str)
 

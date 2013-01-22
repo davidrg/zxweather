@@ -1,6 +1,7 @@
 # coding=utf-8
 """
-Listens for updates from the database
+Listens for updates from the database and broadcasts them out to all
+subscribers.
 """
 from txpostgres import txpostgres
 from server.subscriptions import station_live_updated, new_station_samples
@@ -23,7 +24,7 @@ def listener_connect(connection_string):
     :param connection_string: Database connection string
     :type connection_string: str
     """
-    global _listen_conn, _listen_conn_d
+    global _listen_conn, _listen_conn_d, _last_sample_ts
 
     # connect to the database
     _listen_conn = txpostgres.Connection()
