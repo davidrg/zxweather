@@ -57,6 +57,10 @@ StationInfoRecord = namedtuple(
      'station_type_code','station_type_title'))
 
 def _get_station_info_dict(result):
+
+    if result is None or len(result) == 0:
+        return None
+
     first = result[0]
 
     result = StationInfoRecord(
