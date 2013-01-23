@@ -6,7 +6,7 @@ import pytz
 from datetime import datetime, timedelta
 from server import subscriptions
 from server.command import Command, TYP_INFO, TYP_ERROR
-from server.database import get_station_list, get_station_info
+from server.database import get_station_list, get_station_info, get_sample_csv
 from server.session import get_session_value, update_session, get_session_counts, get_session_id_list, session_exists
 import dateutil.parser
 
@@ -223,13 +223,31 @@ class StreamCommand(Command):
     arrive either in the database or from other clients.
     """
 
+    def _send_catchup(self, data):
+        for row in data:
+            # We use ISO 8601 date formatting for output.
+            csv_data = 's,"{0}",{1}'.format(
+                row[0].strftime("%Y-%m-%d %H:%M:%S"), row[1])
+            self.writeLine(csv_data)
+
+        # Turn data buffering back off so streaming will resume.
+        self.buffer_data = False
+
     def perform_catchup(self, station, start_timestamp, end_timestamp):
         """
         Fetches all data from the specified timestamp and returns it.
-        :param start_timestamp:
-        :return:
+        :param station: The station to do the catchup for
+        :type station: str
+        :param start_timestamp: The timestamp for the first sample
+        :type start_timestamp: datetime
+        :param end_timestamp: The timestamp after the last sample (samples with
+        this timestamp will not be included).
+        :type end_timestamp: datetime
         """
-        pass
+
+        get_sample_csv(station, start_timestamp, end_timestamp).addCallback(
+            self._send_catchup)
+
 
     def subscribe(self, station, live, samples):
         """
@@ -251,7 +269,8 @@ class StreamCommand(Command):
         """
         Unsubscribes from any current subscriptions.
         """
-        subscriptions.unsubscribe(self, self.subscribed_station)
+        if self.subscribed_station is not None:
+            subscriptions.unsubscribe(self, self.subscribed_station)
 
 
     def live_data(self, data):
@@ -282,12 +301,11 @@ class StreamCommand(Command):
         else:
             self.sample_buffer.append(data)
 
-
-
     def main(self):
         """
         Sets up subscriptions.
         """
+        self.subscribed_station = None
         self.current_live = None
         self.sample_buffer = []
         self.haltInput() # This doesn't take any user input.
@@ -309,7 +327,7 @@ class StreamCommand(Command):
                 return
 
             now = datetime.utcnow().replace(tzinfo = pytz.utc)
-            if from_timestamp < now - timedelta(days=1):
+            if from_timestamp < now - timedelta(hours=2):
                 self.writeLine("Error: Catchup only allows a maximum of "
                                "24 hours of data.")
                 return
@@ -357,6 +375,9 @@ class StreamCommand(Command):
         """
         self.unsubscribe()
         self.writeLine("# Finished")
+
+class UploadCommand(Command):
+    pass
 
 class ShowStationCommand(Command):
     """

@@ -137,7 +137,7 @@ where station_id = %s
 
     return database_pool.runQuery(query, (station_code_id[station_code],))
 
-def get_sample_csv(station_code, start_time):
+def get_sample_csv(station_code, start_time, end_time=None):
     """
     Gets live data for the specified station in CSV format.
     :param station_code: The station code
@@ -145,6 +145,9 @@ def get_sample_csv(station_code, start_time):
     :param start_time: Obtain all records after this timestamp. If None then
     fetch the latest sample only
     :type start_time: datetime or None.
+    :param end_time: Don't get any samples from this point onwards. If None
+    then this parameter is ignored.
+    :type end_time: datetime or None
     :returns: A deferred which will supply the data
     :rtype: Deferred
     """
@@ -171,7 +174,8 @@ where station_id = %s
         """
     query_date = """
 and time_stamp > %s
-order by time_stamp desc
+and (%s is null OR time_stamp < %s)
+order by time_stamp asc
         """
     query_top = """
 order by time_stamp desc
@@ -180,7 +184,7 @@ fetch first 1 rows only
 
     if start_time is not None:
         return database_pool.runQuery(query_cols + query_date,
-            (station_code_id[station_code], start_time))
+            (station_code_id[station_code], start_time, end_time, end_time))
     else:
         return database_pool.runQuery(query_cols + query_top,
             (station_code_id[station_code], ))

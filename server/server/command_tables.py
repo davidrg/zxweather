@@ -2,7 +2,7 @@
 """
 Defines the command tables for zxweatherd.
 """
-from server.commands import ShowUserCommand, ShowClientCommand, SetClientCommand, LogoutCommand, TestCommand, ShowSessionCommand, SetPromptCommand, SetTerminalCommand, SetInterfaceCommand, StreamCommand, ListSessionsCommand, ListStationsCommand, ShowStationCommand
+from server.commands import ShowUserCommand, ShowClientCommand, SetClientCommand, LogoutCommand, TestCommand, ShowSessionCommand, SetPromptCommand, SetTerminalCommand, SetInterfaceCommand, StreamCommand, ListSessionsCommand, ListStationsCommand, ShowStationCommand, UploadCommand
 from server.zxcl.command_table import verb_table, verb, parameter, \
     syntax_table, syntax, qualifier, keyword_table, keyword_set, keyword, synonym
 
@@ -18,6 +18,7 @@ base_verbs = [
     synonym(name="subscribe", verb="stream"),
     verb(name="test", syntax="test_syntax"),
     verb(name="list", syntax="list_syntax"),
+    verb(name="upload", syntax="upload_syntax"),
 ]
 
 show_param_0 = parameter(
@@ -233,6 +234,14 @@ base_syntaxes = [
         ]
     ),
 
+    ##### UPLOAD #####
+    syntax(
+        name="upload_syntax",
+        deny_qualifiers=True,
+        deny_parameters=True,
+        handler="upload"
+    ),
+
     ##### LOGOUT #####
     syntax(
         name="logout_syntax",
@@ -264,6 +273,8 @@ base_dispatch = {
     "logout": LogoutCommand,
 
     "stream": StreamCommand,
+
+    "upload": UploadCommand,
 
     "test_handler": TestCommand,
 }
