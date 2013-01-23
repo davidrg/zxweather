@@ -4,6 +4,7 @@ Some basic commands
 """
 import pytz
 from datetime import datetime, timedelta
+from twisted.conch.insults import insults
 from server import subscriptions
 from server.command import Command, TYP_INFO, TYP_ERROR
 from server.database import get_station_list, get_station_info, get_sample_csv
@@ -375,6 +376,127 @@ class StreamCommand(Command):
         """
         self.unsubscribe()
         self.writeLine("# Finished")
+
+class ShowLiveCommand(Command):
+    pass
+
+    def unsubscribe(self):
+        """
+        Unsubscribes from any current subscriptions.
+        """
+        if self.subscribed_station is not None:
+            subscriptions.unsubscribe(self, self.subscribed_station)
+
+    def cleanUp(self):
+        """ Clean Up """
+        self.unsubscribe()
+        self.terminal.setModes([insults.modes.IRM])
+        self.terminal.cursorPosition(80,25)
+        self.terminal.write("\r\n")
+
+
+    def live_data(self, data):
+        """
+        Called when live data is ready
+        :param data: The data in CSV format
+        :type data: str
+        """
+
+        if not self.ready:
+            return
+
+        bits = data.split(',')
+        bits.pop(0) #first one is 'l'
+        temperature = bits.pop(0) + " C"
+        dew_point = bits.pop(0) + " C"
+        apparent_temperature = bits.pop(0) + " C"
+        wind_chill = bits.pop(0) + " C"
+        humidity = bits.pop(0) + "%"
+        indoor_temp = bits.pop(0) + " C"
+        indoor_humidity = bits.pop(0) + "%"
+        pressure = bits.pop(0) + " hPa"
+        avg_wind = bits.pop(0) + " m/s"
+        gust_wind = bits.pop(0) + "m/s"
+        wind_direction = bits.pop(0) + " degrees"
+
+        values = [
+            temperature, apparent_temperature, wind_chill, dew_point, humidity,
+            indoor_temp, indoor_humidity, pressure, gust_wind, avg_wind,
+            wind_direction, str(datetime.now())
+        ]
+
+        pos = 2
+
+        for value in values:
+            self.terminal.cursorPosition(24,pos)
+            self.terminal.write("{0:<40}".format(value))
+            pos += 1
+
+        self.terminal.cursorPosition(80,25)
+
+
+    def _setup(self, station_info):
+
+        if station_info is None:
+            self.writeLine("Invalid station code")
+            self.finished()
+            return
+
+        self.terminal.eraseDisplay()
+        self.terminal.resetModes([insults.modes.IRM])
+
+        # Top line
+        self.terminal.cursorPosition(0,0)
+        self.write("\033[7m {0:<72} {1:>5} \033[m".format(station_info.title, self.subscribed_station))
+
+        format_str = "{0:>22}:\r\n"
+        self.terminal.cursorPosition(0,2)
+        self.terminal.write(format_str.format("Temperature"))
+        self.terminal.write(format_str.format("Apparent Temperature"))
+        self.terminal.write(format_str.format("Wind Chill"))
+        self.terminal.write(format_str.format("Dew Point"))
+        self.terminal.write(format_str.format("Humidity"))
+        self.terminal.write(format_str.format("Indoor Temperature"))
+        self.terminal.write(format_str.format("Indoor Humidity"))
+        self.terminal.write(format_str.format("Pressure"))
+        self.terminal.write(format_str.format("Gust Wind Speed"))
+        self.terminal.write(format_str.format("Average Wind Speed"))
+        self.terminal.write(format_str.format("Wind Direction"))
+        self.terminal.write(format_str.format("Time Stamp"))
+
+        # Bottom line
+        self.terminal.cursorPosition(0,25)
+        self.write("\033[7m {0:<39}{1:>39} \033[m".format(
+            "Live Data - Ctrl+C to exit", "zxweather"))
+
+        #
+        self.ready = True
+
+
+    def main(self):
+        """
+        Sets up subscriptions.
+        """
+        self.subscribed_station = self.parameters[1]
+        self.haltInput() # This doesn't take any user input.
+        self.terminal = self.environment["terminal"]
+
+        if self.environment["term"] != "crt":
+            self.writeLine(
+                "Error: This command is only available for VT-style terminals.")
+            self.writeLine("Use SET TERMINAL /VIDEO to change terminal type.")
+            return
+
+
+        self.ready = False
+        subscriptions.subscribe(self, self.subscribed_station, True, False)
+
+        get_station_info(self.subscribed_station).addCallback(self._setup)
+
+        # Turn it off here so that early returns above will terminate the
+        # command automatically. If we get this far then everything is OK and
+        # we don't want to autoterminate.
+        self.auto_exit = False
 
 class UploadCommand(Command):
     pass
