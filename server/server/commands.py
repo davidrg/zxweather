@@ -378,7 +378,9 @@ class StreamCommand(Command):
         self.writeLine("# Finished")
 
 class ShowLiveCommand(Command):
-    pass
+    """
+    A command that shows live data on a VT100-type terminal.
+    """
 
     def unsubscribe(self):
         """
