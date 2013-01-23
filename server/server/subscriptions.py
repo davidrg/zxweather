@@ -107,7 +107,7 @@ def _station_samples_updated_callback(data, code):
     for row in data:
         _last_sample_ts[code] = row[0]
         # We use ISO 8601 date formatting for output.
-        csv_data = 's,"{0}",{1}'.format(
+        csv_data = 's,{0},{1}'.format(
             row[0].strftime("%Y-%m-%d %H:%M:%S"), row[1])
         deliver_sample_data(code, csv_data)
 
