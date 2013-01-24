@@ -4,8 +4,45 @@ Functions for querying the database.
 """
 from collections import namedtuple
 from twisted.enterprise import adbapi
+from twisted.internet import defer
 
 __author__ = 'david'
+
+# For uploading only - missing sample_id, station_id, dew_point, wind_chill
+# and apparent_temperature.
+BaseSampleRecord = namedtuple(
+    'BaseSampleRecord',
+    (
+        'station_code', 'temperature', 'humidity', 'indoor_temperature',
+        'indoor_humidity', 'pressure', 'average_wind_speed', 'gust_wind_speed',
+        'wind_direction', 'rainfall', 'download_timestamp', 'time_stamp'
+    )
+)
+
+# For uploading only - missing sample_id
+WH1080SampleRecord = namedtuple(
+    'WH1080SampleRecord',
+    (
+        'sample_interval', 'record_number', 'last_in_batch', 'invalid_data',
+        'wind_direction', 'total_rain', 'rain_overflow'
+    )
+)
+
+
+# For uploading only - missing sample_id
+BaseLiveRecord = namedtuple(
+    'BaseLiveRecord',
+    (
+        'station_code', 'download_timestamp', 'indoor_humidity',
+        'indoor_temperature', 'temperature', 'humidity', 'pressure',
+        'average_wind_speed', 'gust_wind_speed', 'wind_direction'
+    )
+)
+
+StationInfoRecord = namedtuple(
+    'StationInfoRecord',
+    ('title','description','sample_interval','live_data_available',
+     'station_type_code','station_type_title'))
 
 def database_connect(conn_str):
     """
@@ -49,12 +86,6 @@ def _prepare_caches():
     query = "select s.code, st.code as hw_code from station s inner join " \
             "station_type st on st.station_type_id = s.station_type_id "
     database_pool.runQuery(query).addCallback(_init_hw_cache)
-
-
-StationInfoRecord = namedtuple(
-    'StationInfoRecord',
-    ('title','description','sample_interval','live_data_available',
-     'station_type_code','station_type_title'))
 
 def _get_station_info_dict(result):
 
@@ -120,21 +151,20 @@ def get_live_csv(station_code):
     :rtype: Deferred
     """
 
-    # TODO: Handle Nulls somehow. At the moment they just result in an empty CSV row
     # TODO: convert to fixed-point data types (no point returning 2.33333333)
 
     query = """
-select temperature || ',' ||
-       dew_point || ',' ||
-       apparent_temperature || ',' ||
-       wind_chill || ',' ||
-       relative_humidity || ',' ||
-       indoor_temperature || ',' ||
-       indoor_relative_humidity || ',' ||
-       absolute_pressure || ',' ||
-       average_wind_speed || ',' ||
-       gust_wind_speed || ',' ||
-       wind_direction
+select coalesce(temperature::varchar, 'None') || ',' ||
+       coalesce(dew_point::varchar, 'None') || ',' ||
+       coalesce(apparent_temperature::varchar, 'None') || ',' ||
+       coalesce(wind_chill::varchar, 'None') || ',' ||
+       coalesce(relative_humidity::varchar, 'None') || ',' ||
+       coalesce(indoor_temperature::varchar, 'None') || ',' ||
+       coalesce(indoor_relative_humidity::varchar, 'None') || ',' ||
+       coalesce(absolute_pressure::varchar, 'None') || ',' ||
+       coalesce(average_wind_speed::varchar, 'None') || ',' ||
+       coalesce(gust_wind_speed::varchar, 'None') || ',' ||
+       coalesce(wind_direction::varchar, 'None')
 from live_data
 where station_id = %s
     """
@@ -156,23 +186,22 @@ def get_sample_csv(station_code, start_time, end_time=None):
     :rtype: Deferred
     """
 
-    # TODO: Handle Nulls somehow. At the moment they just result in an empty CSV row
     # TODO: convert to fixed-point data types (no point returning 2.33333333)
 
     query_cols = """
 select time_stamp,
-       temperature || ',' ||
-       dew_point || ',' ||
-       apparent_temperature || ',' ||
-       wind_chill || ',' ||
-       relative_humidity || ',' ||
-       indoor_temperature || ',' ||
-       indoor_relative_humidity || ',' ||
-       absolute_pressure || ',' ||
-       average_wind_speed || ',' ||
-       gust_wind_speed || ',' ||
-       wind_direction || ',' ||
-       rainfall
+       coalesce(temperature::varchar, 'None') || ',' ||
+       coalesce(dew_point::varchar, 'None') || ',' ||
+       coalesce(apparent_temperature::varchar, 'None') || ',' ||
+       coalesce(wind_chill::varchar, 'None') || ',' ||
+       coalesce(relative_humidity::varchar, 'None') || ',' ||
+       coalesce(indoor_temperature::varchar, 'None') || ',' ||
+       coalesce(indoor_relative_humidity::varchar, 'None') || ',' ||
+       coalesce(absolute_pressure::varchar, 'None') || ',' ||
+       coalesce(average_wind_speed::varchar, 'None') || ',' ||
+       coalesce(gust_wind_speed::varchar, 'None') || ',' ||
+       coalesce(wind_direction::varchar, 'None') || ',' ||
+       coalesce(rainfall::varchar, 'None')
 from sample
 where station_id = %s
         """
@@ -203,3 +232,131 @@ def get_station_hw_type(code):
     """
     global station_code_hardware_type
     return station_code_hardware_type[code]
+
+def _insert_wh1080_sample_int(txn, base, wh1080, station_id):
+    """
+    Inserts a new sample for WH1080-type stations. This includes a record in
+    the sample table and a record in the wh1080_sample table.
+
+    This must be run as a database interaction as we have to insert two
+    records in a single transaction.
+
+    :param txn: Database transaction cursor thing
+    :param base: Data for the Sample table.
+    :type base: BaseSampleRecord
+    :param wh1080: Data for the wh1080_sample table
+    :type wh1080: WH1080SampleRecord
+    :param station_id: The ID of the station we are inserting the record for
+    :type station_id: int
+    """
+
+    # Insert the base sample record.
+    query = """
+        insert into sample(download_timestamp, time_stamp,
+            indoor_relative_humidity, indoor_temperature, relative_humidity,
+            temperature, absolute_pressure, average_wind_speed,
+            gust_wind_speed, wind_direction, station_id)
+        values(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        returning sample_id
+        """
+    txn.execute(
+        query,
+        (
+            base.download_timestamp,
+            base.time_stamp,
+            base.indoor_humidity,
+            base.indoor_temperature,
+            base.humidity,
+            base.temperature,
+            base.pressure,
+            base.average_wind_speed,
+            base.gust_wind_speed,
+            base.wind_direction,
+            station_id,
+        )
+    )
+
+    sample_id = txn.fetchone()[0]
+
+    # Now insert the WH1080 record
+    query = """
+        insert into wh1080_sample(sample_id, sample_interval, record_number,
+            last_in_batch, invalid_data, total_rain, rain_overflow,
+            wind_direction)
+        values(%s, %s, %s, %s, %s, %s, %s, %s)"""
+
+    txn.execute(query,
+    (
+        sample_id,
+        wh1080.sample_interval,
+        wh1080.record_number,
+        wh1080.last_in_batch,
+        wh1080.invalid_data,
+        wh1080.total_rain,
+        wh1080.rain_overflow,
+        wh1080.wind_direction,
+    ))
+
+    # Done!
+    return None
+
+
+def insert_wh1080_sample(base_data, wh1080_data):
+    """
+    Inserts a new sample for WH1080-type stations. This includes a record in
+    the sample table and a record in the wh1080_sample table.
+
+    :param base_data: Data for the Sample table.
+    :type base_data: BaseSampleRecord
+    :param wh1080_data: Data for the wh1080_sample table
+    :type wh1080_data: WH1080SampleRecord
+    """
+    return database_pool.runInteraction(
+        _insert_wh1080_sample_int, base_data, wh1080_data,
+        station_code_id[base_data.station_code])
+
+
+def insert_base_live(base_data):
+    """
+    Inserts a new basic live data record using the supplied values.
+    :param base_data: Live data
+    :type base_data: BaseLiveRecord
+    """
+
+    def _live_data_err(failure):
+        failure.trap(Exception)
+        return "# ERR-006: " + failure.getErrorMessage()
+
+    query = """update live_data
+                set download_timestamp = %s,
+                    indoor_relative_humidity = %s,
+                    indoor_temperature = %s,
+                    relative_humidity = %s,
+                    temperature = %s,
+                    absolute_pressure = %s,
+                    average_wind_speed = %s,
+                    gust_wind_speed = %s,
+                    wind_direction = %s
+                where station_id = %s
+                """
+
+    station_id = station_code_id[base_data.station_code]
+
+    try:
+        return database_pool.runOperation(
+            query,
+            (
+                base_data.download_timestamp,
+                base_data.indoor_humidity,
+                base_data.indoor_temperature,
+                base_data.humidity,
+                base_data.temperature,
+                base_data.pressure,
+                base_data.average_wind_speed,
+                base_data.gust_wind_speed,
+                base_data.wind_direction,
+                station_id
+            )
+        ).addCallback(lambda _: None).addErrback(_live_data_err)
+    except Exception as e:
+        return defer.succeed("# ERR-006: " + e.message)

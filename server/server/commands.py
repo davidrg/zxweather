@@ -500,8 +500,8 @@ class ShowLiveCommand(Command):
         # we don't want to autoterminate.
         self.auto_exit = False
 
-class UploadCommand(Command):
-    pass
+
+
 
 class ShowStationCommand(Command):
     """

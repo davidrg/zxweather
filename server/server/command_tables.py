@@ -2,7 +2,12 @@
 """
 Defines the command tables for zxweatherd.
 """
-from server.commands import ShowUserCommand, ShowClientCommand, SetClientCommand, LogoutCommand, TestCommand, ShowSessionCommand, SetPromptCommand, SetTerminalCommand, SetInterfaceCommand, StreamCommand, ListSessionsCommand, ListStationsCommand, ShowStationCommand, UploadCommand, ShowLiveCommand
+from server.commands import ShowUserCommand, ShowClientCommand, \
+    SetClientCommand, LogoutCommand, TestCommand, ShowSessionCommand,\
+    SetPromptCommand, SetTerminalCommand, SetInterfaceCommand, StreamCommand, \
+    ListSessionsCommand, ListStationsCommand, ShowStationCommand, \
+    ShowLiveCommand
+from server.data_upload import UploadCommand
 from server.zxcl.command_table import verb_table, verb, parameter, \
     syntax_table, syntax, qualifier, keyword_table, keyword_set, keyword, synonym
 
