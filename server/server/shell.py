@@ -47,6 +47,7 @@ class Dispatcher(object):
 
         self.environment["term_type"] = TERM_BASIC
         self.environment["ui_coded"] = False
+        self.environment["json_mode"] = False
 
     def switch_table_set(self, table_set):
         """
@@ -267,7 +268,7 @@ class ZxweatherShellProtocol(recvline.HistoricRecvLine):
             self.executeCommand(line)
         elif self.input_mode == INPUT_COMMAND:
             if self.current_command is not None:
-                self.current_command.lineReceived(line)
+                self.current_command._lineReceived(line)
 
     def commandProcessorPrompter(self, prompt_string):
         """

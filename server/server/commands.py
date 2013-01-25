@@ -2,12 +2,13 @@
 """
 Some basic commands
 """
+import json
 import pytz
 from datetime import datetime, timedelta
 from twisted.conch.insults import insults
 from server import subscriptions
 from server.command import Command, TYP_INFO, TYP_ERROR
-from server.database import get_station_list, get_station_info, get_sample_csv
+from server.database import get_station_list, get_station_info, get_sample_csv, station_exists, get_latest_sample_info
 from server.session import get_session_value, update_session, get_session_counts, get_session_id_list, session_exists
 import dateutil.parser
 
@@ -508,6 +509,42 @@ class ShowLiveCommand(Command):
         self.auto_exit = False
 
 
+class ShowLatestCommand(Command):
+    """
+    Shows the timestamp for the latest sample in the database for the specified
+    station.
+    """
+
+    def _handle_result(self, result):
+        if self._json_mode:
+            self.writeLine(json.dumps(result))
+        else:
+            self.writeLine("Timestamp: {0}".format(result["timestamp"]))
+            if "record_number" in result:
+                self.writeLine(
+                    "WH1080 Record Number: {0}".format(result["record_number"]))
+
+        self.finished()
+
+    def main(self):
+
+        if "json" in self.qualifiers:
+            self._json_mode = True
+        else:
+            self._json_mode = self.environment["json_mode"]
+
+        station_code = self.parameters[1]
+        if not station_exists(station_code):
+            msg = "Invalid station code"
+            if self._json_mode:
+                self.writeLine(json.dumps({'err': msg}))
+            else:
+                self.writeLine(msg)
+            return
+
+        self.auto_exit = False
+
+        get_latest_sample_info(station_code).addCallback(self._handle_result)
 
 
 class ShowStationCommand(Command):
@@ -531,6 +568,12 @@ class ShowStationCommand(Command):
     def main(self):
         self.auto_exit = False
         self.code = self.parameters[1]
+
+        if not station_exists(self.code):
+            self.writeLine("Invalid station code")
+            self.finished()
+            return
+
         get_station_info(self.code).addCallback(self._output_station_info)
 
 class ListStationsCommand(Command):
