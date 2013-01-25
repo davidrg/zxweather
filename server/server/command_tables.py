@@ -202,6 +202,13 @@ base_syntaxes = [
         qualifiers=[
             qualifier(name="video"),
             qualifier(name="basic"),
+            qualifier(
+                name="echo",
+                type="keyword",
+                default_value="true",
+                value_required=False,
+                keywords="boolean",
+            )
         ]
     ),
     syntax(

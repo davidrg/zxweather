@@ -131,6 +131,7 @@ class ZxweatherShellProtocol(recvline.HistoricRecvLine):
         self.sid = str(uuid.uuid1())
         self.dispatcher.environment["sessionid"] = self.sid
         self.dispatcher.environment["term_mode"] = TERM_CRT
+        self.dispatcher.environment["term_echo"] = True
 
         register_session(
             self.dispatcher.environment["sessionid"],
@@ -159,6 +160,22 @@ class ZxweatherShellProtocol(recvline.HistoricRecvLine):
         :param reason:
         """
         end_session(self.sid)
+
+    def characterReceived(self, ch, moreCharactersComing):
+        """
+        Overridden to allow echo to be turned off.
+        :param ch: Character received
+        :param moreCharactersComing: ?
+        """
+        if self.mode == 'insert':
+            self.lineBuffer.insert(self.lineBufferIndex, ch)
+        else:
+            self.lineBuffer[self.lineBufferIndex:self.lineBufferIndex+1] = [ch]
+        self.lineBufferIndex += 1
+
+        if self.dispatcher.environment["term_echo"]:
+            self.terminal.write(ch)
+
 
     def handle_CTRL_C(self):
         """
