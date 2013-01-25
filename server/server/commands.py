@@ -73,6 +73,13 @@ class SetTerminalCommand(Command):
         elif "basic" in self.qualifiers:
             self.environment["term_mode"] = 1 # TERM_BASIC
 
+        if "echo" in self.qualifiers:
+            if self.qualifiers["echo"] == "true":
+                self.environment["term_echo"] = True
+            else:
+                self.environment["term_echo"] = False
+
+
 class SetInterfaceCommand(Command):
     """
     Allows the type of the terminal to be switched between CRT or BASIC.
