@@ -360,3 +360,70 @@ def insert_base_live(base_data):
         ).addCallback(lambda _: None).addErrback(_live_data_err)
     except Exception as e:
         return defer.succeed("# ERR-006: " + e.message)
+
+def station_exists(station_code):
+    """
+    Returns true if the supplied station code is valid (if it exists in the
+    database)
+    :param station_code: Station code to validate
+    :type station_code: str
+    :return: True if the station code is present in the database
+    :rtype: bool
+    """
+
+    global station_code_id
+    return station_code in station_code_id
+
+def get_latest_sample_info(station_code):
+    """
+    Gets important information about the latest sample required for uploading
+    data. What this is depends on what exactly the stations hardware is.
+    :param station_code: Station code to get data for
+    :returns: Information about the most recent sample wrapped in a Deferred
+    :rtype: Deferred
+    """
+
+    global station_code_id
+
+    def convert_to_dict(data, hw_type):
+        """ Converts the query result to a dict and returns it"""
+        row = data[0]
+        result = {'timestamp': row[0]}
+
+        if hw_type == 'FOWH1080':
+            result['record_number'] = row[1]
+
+        return result
+
+    hw_type = get_station_hw_type(station_code)
+    station_id = station_code_id[station_code]
+
+    base_query = """
+    select s.time_stamp::varchar{additional_columns}
+    from sample s{joins}
+    where s.station_id = %s
+    order by s.time_stamp desc
+    fetch first 1 rows only
+    """
+
+    if hw_type == 'FOWH1080':
+        # Software working with FineOffset WH1080-style hardware will need the
+        # record number in addition to the time stamp.
+        additional_columns = """,
+    w.record_number
+        """
+        joins = """
+    inner join wh1080_sample w on w.sample_id = s.sample_id
+    """
+        query = base_query.format(
+            additional_columns=additional_columns,
+            joins=joins)
+    else:
+        query = base_query.format(
+            additional_columns="",
+            joins=""
+        )
+
+    deferred = database_pool.runQuery(query, (station_id,))
+    deferred.addCallback(convert_to_dict, hw_type)
+    return deferred

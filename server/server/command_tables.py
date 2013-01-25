@@ -6,7 +6,7 @@ from server.commands import ShowUserCommand, ShowClientCommand, \
     SetClientCommand, LogoutCommand, TestCommand, ShowSessionCommand,\
     SetPromptCommand, SetTerminalCommand, SetInterfaceCommand, StreamCommand, \
     ListSessionsCommand, ListStationsCommand, ShowStationCommand, \
-    ShowLiveCommand
+    ShowLiveCommand, ShowLatestCommand
 from server.data_upload import UploadCommand
 from server.zxcl.command_table import verb_table, verb, parameter, \
     syntax_table, syntax, qualifier, keyword_table, keyword_set, keyword, synonym
@@ -59,6 +59,7 @@ base_keywords = [
             keyword(value="session", syntax="show_session"),
             keyword(value="station", syntax="show_station"),
             keyword(value="live", syntax="show_live"),
+            keyword(value="latest", syntax="show_latest")
         ]
     ),
     keyword_set(
@@ -151,6 +152,23 @@ base_syntaxes = [
             )
         ],
         deny_qualifiers=True
+    ),
+    syntax(
+        name="show_latest",
+        handler="show_latest",
+        parameters=[
+            show_param_0,
+            parameter(
+                position=1,
+                type="string",
+                required=True,
+                prompt="Station Code:",
+                label="Station Code"
+            )
+        ],
+        qualifiers=[
+            qualifier(name="json")
+        ]
     ),
 
     ##### SET #####
@@ -290,6 +308,7 @@ base_dispatch = {
     "show_session": ShowSessionCommand,
     "show_station": ShowStationCommand,
     "show_live": ShowLiveCommand,
+    "show_latest": ShowLatestCommand,
 
     "set_client": SetClientCommand,
     "set_prompt": SetPromptCommand,

@@ -221,7 +221,7 @@ class UploadCommand(Command):
         elif values[0] == 'l':
             self._processLive(values)
         else:
-            self.writeLine("ERR-000: Unrecognised record type '{0}'".format(
+            self.writeLine("# ERR-000: Unrecognised record type '{0}'".format(
                 values[0]))
 
         self._getLine()
