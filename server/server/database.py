@@ -374,56 +374,51 @@ def station_exists(station_code):
     global station_code_id
     return station_code in station_code_id
 
-def get_latest_sample_info(station_code):
+def get_latest_sample_info():
     """
     Gets important information about the latest sample required for uploading
     data. What this is depends on what exactly the stations hardware is.
-    :param station_code: Station code to get data for
     :returns: Information about the most recent sample wrapped in a Deferred
     :rtype: Deferred
     """
 
-    global station_code_id
+    def convert_to_dict(data):
+        """ Converts the query result to a list of dicts and returns it"""
 
-    def convert_to_dict(data, hw_type):
-        """ Converts the query result to a dict and returns it"""
-        row = data[0]
-        result = {'timestamp': row[0]}
+        result = []
 
-        if hw_type == 'FOWH1080':
-            result['record_number'] = row[1]
+        for row in data:
+            station = row[0]
+            timestamp = row[1]
+            wh1080_record_number = row[2]
+
+            value = {
+                'station': station,
+                'timestamp': timestamp
+            }
+            if wh1080_record_number is not None:
+                value['wh1080_record_number'] = wh1080_record_number
+
+            result.append(value)
 
         return result
 
-    hw_type = get_station_hw_type(station_code)
-    station_id = station_code_id[station_code]
-
-    base_query = """
-    select s.time_stamp::varchar{additional_columns}
-    from sample s{joins}
-    where s.station_id = %s
-    order by s.time_stamp desc
-    fetch first 1 rows only
+    query = """
+select st.code,
+       s.time_stamp::varchar,
+       w.record_number
+from sample s
+inner join station st on st.station_id = s.station_id
+inner join (
+	-- This will get the timestamp of the most recent record for each station.
+	select station_id, max(time_stamp) as max_ts
+	from sample
+	group by station_id
+) as latest on latest.station_id = s.station_id and latest.max_ts = s.time_stamp
+left outer join wh1080_sample w on w.sample_id = s.sample_id
+order by s.time_stamp desc
     """
 
-    if hw_type == 'FOWH1080':
-        # Software working with FineOffset WH1080-style hardware will need the
-        # record number in addition to the time stamp.
-        additional_columns = """,
-    w.record_number
-        """
-        joins = """
-    inner join wh1080_sample w on w.sample_id = s.sample_id
-    """
-        query = base_query.format(
-            additional_columns=additional_columns,
-            joins=joins)
-    else:
-        query = base_query.format(
-            additional_columns="",
-            joins=""
-        )
-
-    deferred = database_pool.runQuery(query, (station_id,))
-    deferred.addCallback(convert_to_dict, hw_type)
+    deferred = database_pool.runQuery(query)
+    deferred.addCallback(convert_to_dict)
     return deferred
