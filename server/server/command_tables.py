@@ -157,14 +157,7 @@ base_syntaxes = [
         name="show_latest",
         handler="show_latest",
         parameters=[
-            show_param_0,
-            parameter(
-                position=1,
-                type="string",
-                required=True,
-                prompt="Station Code:",
-                label="Station Code"
-            )
+            show_param_0
         ],
         qualifiers=[
             qualifier(name="json")

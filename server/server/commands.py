@@ -519,32 +519,27 @@ class ShowLatestCommand(Command):
         if self._json_mode:
             self.writeLine(json.dumps(result))
         else:
-            self.writeLine("Timestamp: {0}".format(result["timestamp"]))
-            if "record_number" in result:
-                self.writeLine(
-                    "WH1080 Record Number: {0}".format(result["record_number"]))
-
+            first = True
+            for station in result:
+                if not first: self.writeLine("")
+                first = False
+                self.writeLine("Station: {0}".format(station["station"]))
+                self.writeLine("Timestamp: {0}".format(station["timestamp"]))
+                if "wh1080_record_number" in station:
+                    self.writeLine(
+                        "WH1080 Record Number: {0}".format(
+                            station["wh1080_record_number"]))
         self.finished()
 
     def main(self):
-
+        self.auto_exit = False
         if "json" in self.qualifiers:
             self._json_mode = True
         else:
             self._json_mode = self.environment["json_mode"]
 
-        station_code = self.parameters[1]
-        if not station_exists(station_code):
-            msg = "Invalid station code"
-            if self._json_mode:
-                self.writeLine(json.dumps({'err': msg}))
-            else:
-                self.writeLine(msg)
-            return
 
-        self.auto_exit = False
-
-        get_latest_sample_info(station_code).addCallback(self._handle_result)
+        get_latest_sample_info().addCallback(self._handle_result)
 
 
 class ShowStationCommand(Command):
