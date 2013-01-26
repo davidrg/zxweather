@@ -315,6 +315,38 @@ def insert_wh1080_sample(base_data, wh1080_data):
         _insert_wh1080_sample_int, base_data, wh1080_data,
         station_code_id[base_data.station_code])
 
+def insert_generic_sample(data):
+    """
+    Inserts a sample for GENERIC hardware (no hardware-specific tables).
+    :param data: Sample data
+    """
+    query = """
+        insert into sample(download_timestamp, time_stamp,
+            indoor_relative_humidity, indoor_temperature, relative_humidity,
+            temperature, absolute_pressure, average_wind_speed,
+            gust_wind_speed, wind_direction, station_id)
+        values(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """
+
+    station_id = station_code_id[data.station_code]
+
+    database_pool.runOperation(
+        query,
+        (
+            data.download_timestamp,
+            data.time_stamp,
+            data.indoor_humidity,
+            data.indoor_temperature,
+            data.humidity,
+            data.temperature,
+            data.pressure,
+            data.average_wind_speed,
+            data.gust_wind_speed,
+            data.wind_direction,
+            station_id,
+            )
+    )
+
 
 def insert_base_live(base_data):
     """
