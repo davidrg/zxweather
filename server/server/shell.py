@@ -268,7 +268,7 @@ class ZxweatherShellProtocol(recvline.HistoricRecvLine):
             self.executeCommand(line)
         elif self.input_mode == INPUT_COMMAND:
             if self.current_command is not None:
-                self.current_command._lineReceived(line)
+                self.current_command.lineReceived(line)
 
     def commandProcessorPrompter(self, prompt_string):
         """
