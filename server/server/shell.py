@@ -160,6 +160,7 @@ class ZxweatherShellProtocol(recvline.HistoricRecvLine):
         The session has ended. Clean everything up.
         :param reason:
         """
+        self.terminateProcess()
         end_session(self.sid)
 
     def characterReceived(self, ch, moreCharactersComing):
