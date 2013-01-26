@@ -22,6 +22,7 @@ class ZxwAvatar(avatar.ConchUser):
         avatar.ConchUser.__init__(self)
         self.username = username
         self.channelLookup.update({'session':session.SSHSession})
+        self._server_protocol = None
 
     def openShell(self, protocol):
         """
@@ -31,6 +32,7 @@ class ZxwAvatar(avatar.ConchUser):
         serverProtocol = insults.ServerProtocol(ZxweatherShellProtocol, self)
         serverProtocol.makeConnection(protocol)
         protocol.makeConnection(session.wrapProtocol(serverProtocol))
+        self._server_protocol = serverProtocol
 
     def getPty(self, terminal, windowSize, attrs):
         """
@@ -51,9 +53,8 @@ class ZxwAvatar(avatar.ConchUser):
         raise NotImplementedError
 
     def closed(self):
-        """ Not implemented. """
-        pass
-
+        """ Lets the shell know the session is dead. """
+        self._server_protocol.connectionLost(None)
 
 class ZxwRealm(object):
     implements(cred_portal.IRealm)
