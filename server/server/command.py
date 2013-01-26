@@ -131,7 +131,7 @@ class Command(object):
         Writes a line of text to the console
         :param text: Text to write out.
         """
-        self.write("{0}\r\n".format(text))
+        self.write("{0}\n".format(text))
 
     def codedWriteLine(self, type, code, message):
         """
