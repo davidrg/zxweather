@@ -5,7 +5,7 @@ the incoming CSV records.
 """
 from twisted.internet import defer
 from server.command import Command
-from server.database import get_station_hw_type, BaseSampleRecord, WH1080SampleRecord, insert_wh1080_sample, BaseLiveRecord, insert_base_live
+from server.database import get_station_hw_type, BaseSampleRecord, WH1080SampleRecord, insert_wh1080_sample, BaseLiveRecord, insert_base_live, insert_generic_sample
 
 __author__ = 'david'
 
@@ -104,7 +104,15 @@ def insert_csv_sample(values):
         wh1080 = _get_wh1080_sample_record(values)
 
         return insert_wh1080_sample(base, wh1080)
+    elif hw_type == 'GENERIC':
+        if len(values) != 13:
+            msg = "# ERR-003: Invalid GENERIC sample record - "\
+                  "column count not 13. Rejecting."
+            # Yeah, this is stupid - succeeding with a value is failure,
+            # succeeding with nothing is success.
+            return defer.succeed(msg)
 
+        return insert_generic_sample(base)
     else:
         msg = "# ERR-004: Unsupported hardware type {0}. Record " \
               "rejected.".format(hw_type)
@@ -144,7 +152,8 @@ def insert_csv_live(values):
     base = _get_base_live_record(values)
     hw_type = get_station_hw_type(base.station_code)
 
-    if hw_type == 'FOWH1080':
+    # there is only one format for the live data at the moment.
+    if hw_type in ['FOWH1080','GENERIC']:
         if len(values) != 11:
             msg = "# ERR-005: Invalid FOWH1080 live record - column count not" \
                   " 11. Rejecting."
