@@ -2,6 +2,7 @@
 """
 zxweather shell daemon
 """
+from twisted.application import internet
 from twisted.conch.ssh.keys import Key
 from twisted.cred import portal as cred_portal
 from twisted.conch import  avatar, interfaces as conch_interfaces
@@ -65,23 +66,32 @@ class ZxwRealm(object):
         else:
             raise Exception("Invalid interface requested in ZxwRealm")
 
-with open('../id_rsa') as privateBlobFile:
-    privateBlob = privateBlobFile.read()
-    privateKey = Key.fromString(data=str(privateBlob))
+def getSSHFactory():
+    with open('../id_rsa') as privateBlobFile:
+        privateBlob = privateBlobFile.read()
+        privateKey = Key.fromString(data=str(privateBlob))
 
-with open('../id_rsa.pub') as publicBlobFile:
-    publicBlob = publicBlobFile.read()
-    publicKey = Key.fromString(data=str(publicBlob))
+    with open('../id_rsa.pub') as publicBlobFile:
+        publicBlob = publicBlobFile.read()
+        publicKey = Key.fromString(data=str(publicBlob))
 
-sshFactory = factory.SSHFactory()
-sshFactory.privateKeys = {'ssh-rsa': privateKey}
-sshFactory.publicKeys = {'ssh-rsa': publicKey}
-sshFactory.portal = cred_portal.Portal(ZxwRealm())
-sshFactory.portal.registerChecker(FilePasswordDB("ssh-passwords"))
+    sshFactory = factory.SSHFactory()
+    sshFactory.privateKeys = {'ssh-rsa': privateKey}
+    sshFactory.publicKeys = {'ssh-rsa': publicKey}
+    sshFactory.portal = cred_portal.Portal(ZxwRealm())
+    sshFactory.portal.registerChecker(FilePasswordDB("ssh-passwords"))
 
-conn_str = "host=localhost port=5432 user=zxweather password=password dbname=weather"
-database_connect(conn_str)
-listener_connect(conn_str)
+    conn_str = "host=localhost port=5432 user=zxweather password=password dbname=weather"
+    database_connect(conn_str)
+    listener_connect(conn_str)
 
-reactor.listenTCP(22, sshFactory)
-reactor.run( )
+    return sshFactory
+
+def getServerService():
+    ssh_factory = getSSHFactory()
+    return internet.TCPServer(22, ssh_factory)
+
+if __name__ == '__main__':
+    ssh_factory = getSSHFactory()
+    reactor.listenTCP(22, ssh_factory)
+    reactor.run( )
