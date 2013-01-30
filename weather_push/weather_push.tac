@@ -37,6 +37,11 @@ password = ""
 # remote hosts key will not be validated.
 host_key = None
 
+# This is the connection string for the database containing data you wish
+# to push out to the remote server. An example might be:
+# dsn = "host=localhost port=5432 user=zxweather password=password dbname=weather"
+dsn = ""
+
 ##############################################################################
 ##############################################################################
 ##############################################################################
@@ -56,5 +61,6 @@ service = getPushService(
     port,
     username,
     password,
-    host_key)
+    host_key,
+    dsn)
 service.setServiceParent(application)

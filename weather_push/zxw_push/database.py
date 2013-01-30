@@ -184,6 +184,7 @@ where st.code = %s
         :param connection_string: Database connection string
         :type connection_string: str
         """
+
         log.msg('Connect: {0}'.format(connection_string))
         # connect to the database
         self._conn = DictConnection()
@@ -197,4 +198,5 @@ where st.code = %s
             lambda _: self._conn.runOperation("listen live_data_updated"))
         self._conn_d.addCallback(
             lambda _: self._conn.runOperation("listen new_sample"))
-        log.msg('Connected to database. Now waiting for data.')
+        self._conn_d.addCallback(
+            lambda _: log.msg('Connected to database. Now waiting for data.'))

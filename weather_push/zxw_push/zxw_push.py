@@ -13,14 +13,15 @@ from database import WeatherDatabase
 __author__ = 'david'
 
 
-def client_ready():
+def client_ready(dsn):
     """
     Called when the UploadClient is ready to receive data. This is where we
     connect to the database, etc.
+    :param dsn: Data source name
+    :type dsn: str
     """
     print('Client ready.')
-    database.connect(
-        "host=titan.rua.zx.net.nz port=5432 user=zxweather password=password dbname=weather")
+    database.connect(dsn)
 
 def client_finished():
     """
@@ -31,7 +32,7 @@ def client_finished():
     reactor.stop()
 
 
-def getPushService(hostname, port, username, password, host_key_fingerprint):
+def getPushService(hostname, port, username, password, host_key_fingerprint, dsn):
     """
     Connects to the remote server.
     :param hostname: Remote host to connect to
@@ -45,6 +46,8 @@ def getPushService(hostname, port, username, password, host_key_fingerprint):
     :param host_key_fingerprint: The expected host key for the server. If this
     is None then the servers key will not be verified.
     :type host_key_fingerprint: str or None
+    :param dsn: Database connection string
+    :type dsn: str
     """
     global database
     log.msg('Connecting...')
@@ -52,7 +55,7 @@ def getPushService(hostname, port, username, password, host_key_fingerprint):
     log.startLogging(DailyLogFile.fromFullPath("log-file"), setStdout=False)
 
     _upload_client = UploadClient(
-        client_finished, client_ready, "weather-push")
+        client_finished, lambda : client_ready(dsn), "weather-push")
 
     database = WeatherDatabase(_upload_client)
 
@@ -60,18 +63,3 @@ def getPushService(hostname, port, username, password, host_key_fingerprint):
         _upload_client)
 
     return internet.TCPClient(hostname, port, factory)
-
-#
-#if __name__ == '__main__':
-#
-#    factory = getPushService("admin","",
-#        '03:ab:56:b4:92:66:01:3d:0d:53:3f:fe:0a:80:5e:35', _upload_client)
-#
-#    reactor.connectTCP('localhost', 22, factory)
-#
-#    # If anything goes wrong in the client connection the reactor will be
-#    # stopped automatically. Or at least that's how its supposed to work.
-#    connect("localhost", 22, "admin","",
-#        '03:ab:56:b4:92:66:01:3d:0d:53:3f:fe:0a:80:5e:35', _upload_client)
-#
-#    reactor.run()
