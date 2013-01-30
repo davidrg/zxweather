@@ -10,14 +10,22 @@ class CallTracker(object):
     and then check the called member to see if it was called. Parameters will
     be passed on and the return value will be returned.
 
-    >>> def foo(param):
+    >>> def foo(param, test):
     ...     print("Hello, " + param)
+    ...     print(test)
     ...     return 42
     ...
     >>> bar = CallTracker(foo)
-    >>> result = bar("World!")
+    >>> result = bar("World!", test=12)
     Hello, World!
+    12
     >>> result
+    42
+    >>> bar.args
+    ('World!',)
+    >>> bar.keyword_args
+    {'test': 12}
+    >>> bar.returned
     42
     """
 
@@ -27,7 +35,10 @@ class CallTracker(object):
 
     def __call__(self, *args, **kwargs):
         self.called = True
-        return self._real_function(*args, **kwargs)
+        self.args = args
+        self.keyword_args = kwargs
+        self.returned = self._real_function(*args, **kwargs)
+        return self.returned
 
 
 
