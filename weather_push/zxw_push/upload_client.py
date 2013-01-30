@@ -107,8 +107,6 @@ class UploadClient(object):
         :param data:
         :return:
         """
-        print("line: {0}\n".format(repr(data)))
-
         if data == '': return
 
         if self._mode == MODE_INIT:
@@ -143,6 +141,7 @@ class UploadClient(object):
                 # The upload command has sent a message saying its ready.
                 # Let what ever is managing this object know so it can start
                 # giving us data to send.
+                log.msg('Server message: ' + data[1:])
                 self._client_ready()
 
         elif self._mode == MODE_DONE:
@@ -202,6 +201,9 @@ class UploadClient(object):
         log.msg('Upload canceled to prevent remote database corruption. '
                 'Weather-push will now stop. Check remote database for gaps '
                 ' before restarting.')
+
+        # We don't want to just throw an exception here as it won't bring the
+        # reactor to a stop, etc. We want to cleanly logout and then exit.
 
         # This will cause the reactor to be stopped once the logout has
         # completed.
