@@ -1,0 +1,84 @@
+# A 'struct' format string for the LOOP packet.
+#
+#        The string 'LOO' - magic number
+#        |Bar Trend OR 'P' if rev. A packet.
+#        |.Packet Type
+#        |.|Next Record
+#        |.|.Barometric Pressure
+#        |.|.|Indoor Temperature
+#        |.|.|.Indoor Humidity
+#        |.|.|.|Outdoor Temperature
+#        |.|.|.|.Wind Speed
+#        |.|.|.|.|10 Minute average wind speed
+#        |.|.|.|.|.Wind Direction
+#        |.|.|.|.|.| 7 extra temperature readings (from add-on sensors)
+#        |.|.|.|.|.| . 4 soil temperature readings (from add-on sensors)
+#        |.|.|.|.|.| . | 4 leaf temperature readings (from add-on sensors)
+#        |.|.|.|.|.| . | .Outdoor Humidity
+#        |.|.|.|.|.| . | .| 7 extra humidity readings (from add-on sensors)
+#        |.|.|.|.|.| . | .| .Rain rate
+#        |.|.|.|.|.| . | .| .|UV
+#        |.|.|.|.|.| . | .| .|.Solar Radiation
+#        |.|.|.|.|.| . | .| .|.|Storm Rain
+#        |.|.|.|.|.| . | .| .|.|.Start date of current storm
+#        |.|.|.|.|.| . | .| .|.|.|Day rain
+#        |.|.|.|.|.| . | .| .|.|.|.Month rain
+#        |.|.|.|.|.| . | .| .|.|.|.|Year rain
+#        |.|.|.|.|.| . | .| .|.|.|.|.Day ET
+#        |.|.|.|.|.| . | .| .|.|.|.|.|Month ET
+#        |.|.|.|.|.| . | .| .|.|.|.|.|.Year ET
+#        |.|.|.|.|.| . | .| .|.|.|.|.|.| four Soil Moisture readings (from add-on sensors)
+#        |.|.|.|.|.| . | .| .|.|.|.|.|.| . four leaf wetness readings (from add-on sensors)
+#        |.|.|.|.|.| . | .| .|.|.|.|.|.| . |Inside Alarms
+#        |.|.|.|.|.| . | .| .|.|.|.|.|.| . |.Rain Alarms
+#        |.|.|.|.|.| . | .| .|.|.|.|.|.| . |.| Outside Alarms
+#        |.|.|.|.|.| . | .| .|.|.|.|.|.| . |.| . Extra temperature/humidity alarms
+#        |.|.|.|.|.| . | .| .|.|.|.|.|.| . |.| . | Soil and leaf alarms
+#        |.|.|.|.|.| . | .| .|.|.|.|.|.| . |.| . | .Transmitter battery status
+#        |.|.|.|.|.| . | .| .|.|.|.|.|.| . |.| . | .|Console battery voltage
+#        |.|.|.|.|.| . | .| .|.|.|.|.|.| . |.| . | .|.Forecast Icons
+#        |.|.|.|.|.| . | .| .|.|.|.|.|.| . |.| . | .|.|Forecast rule number
+# Little |.|.|.|.|.| . | .| .|.|.|.|.|.| . |.| . | .|.|.Time of sunrise
+# Endian |.|.|.|.|.| . | .| .|.|.|.|.|.| . |.| . | .|.|.|Time of sunset
+#     \  |.|.|.|.|.| . | .| .|.|.|.|.|.| . |.| . | .|.|.|. Termination string
+#      \ |.|.|.|.|.| . | .| .|.|.|.|.|.| . |.| . | .|.|.|. | CRC (big-endian)
+#      | |.|.|.|.|.| . | .| .|.|.|.|.|.| . |.| . | .|.|.|. | .
+FMT = '<3sbBhhhBhBBh7B4B4BB7BhBhhhhhhhhh4B4BBB2B8B4BBhBBHH2s>H'
+# (There has *got* to be a more human readable way of expressing this)
+
+
+
+# A 'struct' format string for the individual records within the DMP and DMPAFT
+# packets.
+#
+#       Date Stamp
+#       |Time Stamp
+#       |.Outside Temperature
+#       |.|High outside temperature
+#       |.|.Low outside temperature
+#       |.|.|Rainfall
+#       |.|.|.High rain rate
+#       |.|.|.|Barometer
+#       |.|.|.|.Solar radiation (Vantage Pro2 Plus)
+#       |.|.|.|.|Number of wind samples
+#       |.|.|.|.|.Inside temperature
+#       |.|.|.|.|.|Inside humidity
+#       |.|.|.|.|.|.Outside humidity
+#       |.|.|.|.|.|.|Average wind speed
+#       |.|.|.|.|.|.|.High wind speed (gust)
+#       |.|.|.|.|.|.|.|Direction of high wind speed
+#       |.|.|.|.|.|.|.|.Prevailing wind direction
+#       |.|.|.|.|.|.|.|.|Average UV Index (Vantage Pro2 Plus)
+#       |.|.|.|.|.|.|.|.|.Evapotranspiration (Vantage Pro2 Plus)
+#       |.|.|.|.|.|.|.|.|.|High solar radiation (Vantage Pro2 Plus)
+#       |.|.|.|.|.|.|.|.|.|.High UV index (Vantage Pro2 Plus)
+#       |.|.|.|.|.|.|.|.|.|.|Forecast rule
+#       |.|.|.|.|.|.|.|.|.|.|. Leaf temperatures *2 (add-on sensors)
+#       |.|.|.|.|.|.|.|.|.|.|. | Leaf wetness *2 (add-on sensors)
+#       |.|.|.|.|.|.|.|.|.|.|. | . Soil temperature *4 (add-on sensors)
+#       |.|.|.|.|.|.|.|.|.|.|. | . |Record type
+#       |.|.|.|.|.|.|.|.|.|.|. | . |. Extra humidity *2 (add-on sensors)
+#       |.|.|.|.|.|.|.|.|.|.|. | . |. | Extra temperature *2 (add-on sensors)
+#       |.|.|.|.|.|.|.|.|.|.|. | . |. | . Soil moisture *4 (add-on sensors)
+#       |.|.|.|.|.|.|.|.|.|.|. | . |. | . |
+DMP = '<HHhhhHHHHHhBBBBBBBBHBB2B2B4BB2B2B4B'
