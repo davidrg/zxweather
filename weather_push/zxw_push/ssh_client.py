@@ -11,7 +11,7 @@ __author__ = 'david'
 
 from twisted.internet.error import ConnectionLost
 from twisted.python import log
-from twisted.conch.ssh import transport, connection, userauth, channel, common
+from twisted.conch.ssh import transport, connection, userauth, channel
 from twisted.internet import defer, protocol, reactor
 
 
@@ -124,6 +124,7 @@ class ShellClientFactory(protocol.ClientFactory):
         or kill the connection completely if the failure reason is quite
         serious.
         """
+
         if reason.check(KeyValidationError):
             # The server responded with a key we were not expecting. This is
             # quite serious (or would be if we were doing anything sensitive)
@@ -135,6 +136,11 @@ class ShellClientFactory(protocol.ClientFactory):
             reactor.stop()
         elif reason.check(ConnectionLost):
             # We lost the connection for some reason. Reconnect.
+
+            if not reactor.running:
+                log.msg('Connection lost due to server shutdown.')
+                return
+
             log.msg('Reconnect...')
             connector.connect()
         else:

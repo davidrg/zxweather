@@ -17,7 +17,8 @@ class Options(usage.Options):
         ["port", "p", 22, "The port the remote SSH service is listening on.", int],
         ["username", "u", None, "The username to authenticate with"],
         ["password", "a", "", "The password to authenticate with"],
-        ["key_fingerprint", "k", None, "Remote host SSH key fingerprint"]
+        ["key_fingerprint", "k", None, "Remote host SSH key fingerprint"],
+        ["dsn", "d", None, "Database connection string"]
     ]
 
 
@@ -43,6 +44,8 @@ class ZXWPushServiceMaker(object):
             raise Exception('Hostname is required')
         elif options["username"] is None:
             raise Exception('Username required')
+        elif options["dsn"] is None:
+            raise Exception('Database connection string required')
 
         # All OK. Go get the service.
         return getPushService(
@@ -50,7 +53,8 @@ class ZXWPushServiceMaker(object):
             int(options["port"]),
             options["username"],
             options["password"],
-            options["key_fingerprint"]
+            options["key_fingerprint"],
+            options["dsn"]
         )
 
 serviceMaker = ZXWPushServiceMaker()
