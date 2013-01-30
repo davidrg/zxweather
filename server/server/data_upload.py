@@ -172,15 +172,51 @@ class UploadCommand(Command):
     """
 
     def _result_handler(self, message):
-        if message is None: return
+        if message is None:
+            # No errors. Lets insert another sample (if there is one)...
+            self._sample_lock = False
+            self._processSamples()
+            return
+
         self.writeLine(message)
+
+    def _setErrorCondition(self):
+        # Something went wrong inserting a new sample. We will now throw away
+        # any existing samples and stop processing new ones.
+        # This is to prevent gaps from forming in the database because one
+        # insert failed but subsequent ones did not. Such gaps can only be
+        # filled manually by the user editing the database directly.
+        self._error = True
+        self._samples = []
 
     def _error_handler(self, failure):
         # Something went wrong - probably a database error related to bad
         # data being pushed. Send it back to the client so they know what
         # went wrong. Might give some idea of how to gix it.
         failure.trap(Exception)
+
+        self._setErrorCondition()
+
         return "# ERR-006: " + failure.getErrorMessage()
+
+    def _processSamples(self):
+        if len(self._samples) == 0: return
+        if self._sample_lock:
+            # The last sample hasn't been successfully inserted yet.
+            return
+
+        try:
+            # We won't insert a sample until the previous insert has
+            # completed successfully. This is an alternative to adding a bunch
+            # of extra logic to batch up samples and submit them in a
+            # transaction.
+            self._sample_lock = True
+
+            insert_csv_sample(self._samples.pop(0)).addErrback(
+                self._error_handler).addCallback(self._result_handler)
+        except Exception as e:
+            self.writeLine("# ERR-006: " + e.message)
+            self._setErrorCondition()
 
     def _processSample(self, values):
         """
@@ -188,16 +224,19 @@ class UploadCommand(Command):
         :param values: The sample values.
         :type values: list
         """
+
+        if self._error:
+            self.writeLine("# ERR-007: Sample ignored due to previous error.")
+            return
+
         if len(values) < 14:
             self.writeLine("# ERR-001: Invalid sample record - column count "
                            "less than 14. Record rejected.")
+            self._setErrorCondition()
             return
 
-        try:
-            insert_csv_sample(values).addErrback(
-                self._error_handler).addCallback(self._result_handler)
-        except Exception as e:
-            self.writeLine("# ERR-006: " + e.message)
+        self._samples.append(values)
+        self._processSamples()
 
     def _processLive(self, values):
         """
@@ -206,6 +245,8 @@ class UploadCommand(Command):
         :type values: list
         :return:
         """
+
+
         if len(values) < 11:
             self.writeLine("# ERR-002: Invalid live record - column count "
                            "less than 11. Record rejected.")
@@ -245,5 +286,8 @@ class UploadCommand(Command):
     def main(self):
         """Entry """
         self.auto_exit = False
+        self._sample_lock = False
+        self._error = False
+        self._samples = []
         self.writeLine("# Waiting for data. Send ^C when finished.")
         self._getLine()
