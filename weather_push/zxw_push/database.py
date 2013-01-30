@@ -197,3 +197,4 @@ where st.code = %s
             lambda _: self._conn.runOperation("listen live_data_updated"))
         self._conn_d.addCallback(
             lambda _: self._conn.runOperation("listen new_sample"))
+        log.msg('Connected to database. Now waiting for data.')
