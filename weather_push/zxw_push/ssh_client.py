@@ -141,23 +141,4 @@ class ShellClientFactory(protocol.ClientFactory):
             log.msg('An unexpected error caused client disconnect.')
             reactor.stop()
 
-def connect(server, port, username, password, host_key_fingerprint, client):
-    """
-    Connects to the remote server.
-    :param server: Server hostname or internet address
-    :type server: str or unicode
-    :param port: Port the remote server is listening on
-    :type port: int
-    :param username: Username to authenticate with.
-    :type username: str
-    :param password: Password to authenticate with.
-    :type password: str
-    :param host_key_fingerprint: The expected host key for the server. If this
-    is None then the servers key will not be verified.
-    :type host_key_fingerprint: str or None
-    :param client: The client object which will deal will all data received
-    """
-    log.msg('Connecting...')
-    factory = ShellClientFactory(username, password, host_key_fingerprint,
-        client)
-    reactor.connectTCP(server, port, factory)
+
