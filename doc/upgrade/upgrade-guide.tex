@@ -151,7 +151,7 @@ The system requirements for zxweather v0.2 are unchanged from zxweather v0.1.x. 
 \section{Changes in v0.2}
 zxweather v0.2 includes a number of fixes along with significant database changes which are working towards supporting multiple weather stations of different types in the same database.
 
-As part of these changes some station-level configuration (code, sample interval, live data availability) has been moved into the database. All components working with station data (except the database replication program db\_push) now require the station code to be specified.
+As part of these changes some station-level configuration (code, sample interval, live data availability) has been moved into the database. All components working with station data now require the station code to be specified.
 
 Because of the significant changes made to the database your database must be upgraded to be compatible with v0.2. The format of the user-customisable about.html files has also been adjusted requiring them to be upgraded as well.
 
@@ -162,7 +162,7 @@ The standard distribution archive, when extracted, contains the following:
 $ pwd
 /opt/zxweather
 $ ls
-admin_tool  database  db_push  desktop  doc  plot  wh1080  zxw_web
+admin_tool  database  desktop  doc  plot  wh1080  zxw_web
 \end{verbatim}
 
 The subdirectories are:
@@ -170,7 +170,6 @@ The subdirectories are:
 \begin{itemize}
 \item \emph{admin\_tool} - Tool for creating and upgrading databases (\textbf{new})
 \item \emph{database} - Scripts to create the database
-\item \emph{db\_push} - Database replication tools
 \item \emph{desktop}  - Desktop interface
 \item \emph{doc} - Documentation
 \item \emph{plot} - Tools for plotting static charts
@@ -189,11 +188,8 @@ Once you are satisfied that you have appropriate backups you can begin by shutti
 \begin{itemize}
 \item Data Logger (wh1080d)
 \item weather plot (normally run from cron)
-\item db\_push (database replication tool)
 \item Apache or some other web server running the Web Interface
 \end{itemize}
-
-If you are using the data replication facility (db\_push) you will have to run through the upgrade procedure a second time on the remote system as well. No changes have been made to the data replication tool itself but the remote database, web interface, etc, will need upgrading.
 
 \section{Unpacking the Distribution}
 \label{sec_unpack}
@@ -243,7 +239,7 @@ This chapter describes how to upgrade a zxweather v0.1.x database to zxweather v
 $ pwd
 /opt/zxweather
 $ ls
-admin_tool  database  db_push  desktop  doc  plot  wh1080  zxw_web
+admin_tool  database  desktop  doc  plot  wh1080  zxw_web
 \end{verbatim}
 
 zxweather v0.2 includes significant database changes and will not work at all against the old v0.1.x database structure. The admin tool is used to upgrade your existing database to the new format. It lives in the admin\_tool directory and is launched by running \verb|python admin_tool/admin_tool.py| in the distribution directory:
@@ -504,11 +500,10 @@ $ python plot/weatherplot.py -t weather -n localhost -u postgres \
 which matches what would be run by cron.
 
 \subsection{Database Replication}
-No changes are required as the station code to push data for is retrieved from the remote web interface.
 
-Make sure you copied your gpg home directory from your old zxweather directory to your new one if that is where it was located.
+% TODO: db_push is gone now. Use zxweatherd + weather_push instead.
 
-If you are using the database replication facility make sure the remote database and web interface have been upgraded already.
+
 
 \section{Starting zxweather}
 You may now re-start web interface and data logger. Only re-start db\_push once you've finished upgrading the remote database and web interface.
