@@ -134,7 +134,7 @@ Its main features are:
 \item Full weather history
 \end{itemize}
 
-This manual provides installation and maintenance instructions for the entire core system. You should read this manual in its entirety to avoid problems. You may skip chapter \ref{cha_db_replication} if you do not plan to use the feature it describes.
+This manual provides installation and maintenance instructions for the entire core system. You should read this manual in its entirety to avoid problems.
 
 This manual does \emph{not} cover an upgrade installation of zxweather v0.2. If you need to upgrade from a previous version consult the \emph{zxweather Upgrade Installation Guide, version 0.2} (\verb|DAZW-UR02|).
 
@@ -166,9 +166,7 @@ The database sits at the center of the zxweather system. The Data Logger feeds d
 
 Because of this architecture all systems must be on the same network as the database server (using either SSH tunnels or VPNs). This can make running the Web Interface on a remote system (such as a VPS) difficult.
 
-To support this sort of configuration the Web Interface has a very basic database replication facility built into it. This allows it to have its own database with weather data being pushed out to it at regular intervals.
-
-This sort of configuration is described in more detail in Chapter \ref{cha_db_replication}.
+% TODO: Make a note about weather_push
 
 \section{Supported Hardware}
 This version of zxweather only supports weather stations 100\% compatible with the FineOffset WH1080. These weather stations are resold by many companies under various names.
@@ -219,10 +217,8 @@ The web interface requires the following to be installed on your system:
 \item web.py
 \item Jinja2
 \item python-gnupg
-\item requests (if database replication is used)
 \end{itemize}
 \item Gnuplot
-\item GnuPG (if database replication is used)
 \item Apache2 with mod\_wsgi (or another web server with WSGI support)
 \end{itemize}
 
@@ -233,7 +229,7 @@ The standard zxweather distribution should be extracted to somewhere on your dis
 $ pwd
 /opt/zxweather
 $ ls
-admin_tool  database  db_push  desktop  doc  plot  wh1080  zxw_web
+admin_tool  database  desktop  doc  plot  wh1080  zxw_web
 \end{verbatim}
 
 The subdirectories are:
@@ -241,7 +237,6 @@ The subdirectories are:
 \begin{itemize}
 \item \emph{admin\_tool} - Tool for creating and upgrading databases
 \item \emph{database} - Scripts to create the database (chapter \ref{cha_database})
-\item \emph{db\_push} - Database replication tools (chapter \ref{cha_db_replication})
 \item \emph{desktop}  - Desktop interface
 \item \emph{doc} - Documentation
 \item \emph{plot} - Tools for plotting static charts (chapter \ref{cha_web_interface})
@@ -261,7 +256,7 @@ The doc directory contains \LaTeX{} source code for producing the zxweather docu
 This chapter describes the database setup required by zxweather. The database is required by the core system and is not optional. It must be setup on a system that all other components have network access to.
 
 
-Alternatively, if it is impractical for all systems to have direct access to the database it is possible to setup a second replica database on the system running the Web Interface. Chapter \ref{cha_db_replication} covers this setup in more detail.
+%Alternatively, if it is impractical for all systems to have direct access to the database it is possible to setup a second replica database on the system running the Web Interface. Chapter \ref{cha_db_replication} covers this setup in more detail.
 
 If you already have a database from a previous installation of zxweather v0.2 that you wish to re-use you can skip this chapter. If you already have a database but it is from a previous installation of zxweather v0.1.x then the database will need upgrading. This is covered by chapter 3 of the \emph{zxweather Upgrade Guide, version 0.2} (DAZW-UR02).
 
@@ -278,7 +273,7 @@ To start the admin tool execute \verb|python admin_tool/admin_tool.py| in the zx
 $ pwd
 /opt/zxweather
 $ ls
-admin_tool  database  db_push  desktop  doc  plot  wh1080  zxw_web
+admin_tool  database  desktop  doc  plot  wh1080  zxw_web
 $ python admin_tool/admin_tool.py
 \end{verbatim}
 
@@ -478,8 +473,6 @@ weatherplot & CONNECT, SELECT \\
 web interface & CONNECT, SELECT \\
 \hline
 \end{tabular}
-
-If the database replication feature in the Web Interface is being used then its user account will need the INSERT and UPDATE permissions in addition to those described in the table above. This is covered in more detail in chapter \ref{cha_db_replication}.
 
 %\subsection{Creating Accounts}
 %TODO Instructions for creating the accounts
@@ -735,11 +728,6 @@ You must also create a directory of the same name inside the static data directo
 $ mkdir /opt/zxweather/zxw_web/static/foo
 \end{verbatim}
 
-\subsubsection{database\_replication}
-This group configures the database replication feature. If you do not plan on using this feature then the default values (which turn the feature off) are acceptable.
-
-If you are going to use this feature then these settings are described in Chapter \ref{cha_db_replication}.
-
 \subsection{About Page}
 % About page
 On the navigation bar of the standard Web Interface is an "About" link which will take you to a generic about page which you will want to customise.
@@ -901,299 +889,6 @@ Plot completed at 2012-05-10 22:31:46.953000
 Waiting for 1800 seconds to plot again. Press Ctrl+C to terminate.
 \end{verbatim}
 
-\chapter{Database Replication}
-\label{cha_db_replication}
-% Document the db_push scripts.
-
-zxweather includes a very basic database replication feature allowing data to be pushed to a remote server running the web interface with its own copy of the database. 
-
-This is intended for situations where the web interface needs to run on a remote network that doesn't have access to your weather database (such as on a VPS).
-
-Before using this feature you should investigate whether SSH tunnels, VPNs or any of the standard PostgreSQL database replication solutions are practical.
-
-If you decide to use this feature you should have a fully working local setup installed first.
-
-\section{Overview}
-The built-in replication feature consists of the \emph{db\_push} program (in the \verb|db_push| subdirectory of the zxweather distribution) running locally pushing digitally signed data updates out to the remote web interface which then uses the data to update its own private database.
-
-The db\_push program runs continuously and sends an HTTP POST to the web interface every time live data is updated or new samples are inserted into the main weather database.
-
-When run in this configuration you will have two database servers with identical database structures:
-\begin{itemize}
-\item Your main weather database running on your local server (the local database)
-\item The replica database running on the remote server (the remote database)
-\end{itemize}
-
-You will also need to have the full web interface running on the remote server (in addition to it running on your local server if desired). It is recommended that you have the web interface setup somewhere locally too for testing purposes and to familiarise yourself with the setup procedure before trying to get it running on a remote system.
-
-\subsection{Security}
-\label{sec_dbr_security}
-% Overview of signing, etc.
-
-The web interface will only accept data posted to it with a valid PGP signature. If a key fingerprint is specified in the web interface configuration file then it will only accept data signed with that particular key.
-
-The data posted to the web interface is not encrypted in any way as it contains no sensitive information. The data posted to the web interface consists of nothing more than a subset of what is displayed by the web interface.
-
-Usernames and passwords are unnecessary as the web interface will reject anything that doesn't have a valid signature created using your private key if setup correctly.
-
-
-\section{Remote Server Installation}
-
-The remote server requires the following components to be installed on it:
-\begin{itemize}
-\item Database
-\item Web Interface
-\end{itemize}
-
-Setting up the remote database must be done exactly the same as setting up your local database. This means that the station code, name, etc, must match too. Follow the instructions in chapter \ref{cha_database} a second time except on your remote server rather than the local one.
-
-The procedure for setting up the web interface is much the same as for local except for a few details:
-\begin{itemize}
-\item The database configuration must be for the remote database (which, for added confusion, is local to the web interface).
-\item Database Replication must be enabled in the configuration file.
-\item GnuPG must also be installed on the remote server the web interface is running on in addition to all the standard requirements.
-\end{itemize}
-
-To install the web interface follow the instructions in chapter \ref{cha_web_interface}.
-
-\section{db\_push Setup}
-The db\_push program runs on your local server. It is responsible for sending data updates to the remote web interface. 
-
-This section covers generating signing keys and the configuration necessary for your local server to run this program.
-
-You must also complete the setup covered by section \ref{sec_dbr_web_setup} before you will be able to execute this program and begin pushing data updates to the web interface.
-
-This program is not currently capable of being run as a daemon - it must be run interactively or detached from the terminal. It can be run under both windows and linux and requires a direct connection to the database server.
-
-\subsection{Software Requirements}
-The db\_push program requires the following software to be installed and configured on your local server:
-\begin{itemize}
-\item Python 2.6 or 2.7
-\item The following python packages:
-\begin{itemize}
-\item requests
-\item python-gnupg
-\end{itemize}
-\end{itemize}
-
-\subsection{Creating Signing Keys}
-\label{subsec_dbr_create_keys}
-
-It is recommended that GnuPG uses a home directory specific to zxweather so that only the keys used for sending data to the remote database are present. All you need to do is create a blank directory and GnuPG will do the rest:
-
-\begin{verbatim}
-$ mkdir /opt/zxweather/gnupg_home
-\end{verbatim}
-
-You can then create new signing keys using either GnuPG or the \emph{generate\_key} tool included in the \\ \verb|db_push| subdirectory of the zxweather distribution:
-
-\begin{verbatim}
-$ python db_push/generate_key.py -d /opt/zxweather/gnupg_home \
--f public_key.asc
-\end{verbatim}
-
-The \verb|-d| argument specifies the GnuPG home directory to store the new key in. This should be your zxweather-specific GnuPG home directory. The \verb|-f| argument specifies the name of the file to export the newly generated public key to. This public key file must be later uploaded to your web server.
-
-When run the program will produce output like the following:
-\begin{verbatim}
-This tool generates signing keys for zxweather database replication.
-GnuPG Home: /opt/zxweather/gnupg_home
-Public Key Filename: public_key.asc
-Creating a new signing key. This may take a while.
-Key Fingerprint: C7EC0D7AA1BD69BC0671CCA401787FE106493116
-Public key (for web server) written to public_key.asc
-\end{verbatim}
-
-The full list of arguments accepted by the generate\_key program is:
-
-\begin{tabular}{p{4.2cm} l p{7.9cm}}
-\hline
-\textbf{Argument} & \textbf{Parameter} & \textbf{Description} \\
-\hline
-
-\verb|-d| \par \verb|--gpg-home-directory| & directory & GnuPG Home Directory \\
-
-\verb|-b| \par \verb|--gpg-binary| & gpg binary & The GnuPG binary to use \\
-
-\verb|-f| \par \verb|--pubkey-filename| & filename & File to export the new public key to. \\
-\hline
-\end{tabular}
-
-Unlike all of the other zxweather components db\_push does not take a station code argument. It retrieves the station code to replicate data for from the web interface.
-
-\subsection{Running db\_push}
-
-The db\_push program can either be run continuously (pushing database changes as they appear) or it can be run for a single update. It can not be run as a daemon at this time.
-
-Continuous mode is enabled using the \verb|-c| argument. This is the mode you should always run in except perhaps when testing or bulk loading data into the remote database.
-
-Only one instance of db\_push should be run at a time to prevent possible corruption of the remote database.
-
-In order for the program to successfully load data into the remote database it must be enabled in the remote web interfaces configuration file. This is covered in section \ref{sec_dbr_web_setup}.
-
-\subsubsection{Example}
-
-\begin{verbatim}
-$ python db_push/db_push.py -c -t weather -n localhost \
--u weather_user -p password -s http://weather.example.com/ \
--d /opt/zxweather/gnupg_home \
--k C7EC0D7AA1BD69BC0671CCA401787FE106493116
-\end{verbatim}
-
-The arguments used here are:
-\begin{itemize}
-\item \verb|-c| to enter continuous mode
-\item \verb|-t weather| to specify the name of the weather database
-\item \verb|-n localhost| to set the database server hostname
-\item \verb|-u weather_user| to set the database username
-\item \verb|-p password| to set the database password
-\item \verb|-s http://weather.example.com/| is the URL for the web interface we are pushing data to
-\item \verb|-d /opt/zxweather/gnupg_home| is the GnuPG home directory for zxweather
-\item \verb|-k ...| specifies the signing key to use. If your GnuPG home directory only contains one key (as it should if its specific to zxweather) then you can leave this off.
-\end{itemize}
-
-When run you will see something like the following:
-\begin{verbatim}
-zxweather database replicator v1.0
-	(C) Copyright David Goodwin, 2012
-
-
-Connecting to database...
-Server version: PostgreSQL 9.1.2, 64-bit
-Performing update...
-Updating from: 2012-07-15 16:33:15+12
-Performing chunked sample load...
-Chunk 0/2
-Sending data...
-Response: OK
-Live Data Updated: False
-Samples Inserted: 50
-Chunk 1/2
-Sending data...
-Response: OK
-Live Data Updated: False
-Samples Inserted: 50
-Chunk 2/2
-Sending data...
-Response: OK
-Live Data Updated: False
-Samples Inserted: 50
-Sending data...
-Response: OK
-Live Data Updated: True
-Samples Inserted: 0
-Continuous mode. Waiting for new data...
-..
-Only updating live data
-Sending data...
-Response: OK
-Live Data Updated: True
-Samples Inserted: 0
-..........
-.
-Updating from: 2012-07-16 7:21:15+12
-Sending data...
-Response: OK
-Live Data Updated: True
-Samples Inserted: 1
-...
-\end{verbatim}
-
-Here the program first sends data out 50 records at a time until the entire local database has been copied to the remote server. In this case the local database only contains 150 records (sent in three chunks).
-
-It then enters continuous mode where it wakes up when ever something changes in the database. The first time it wakes up was caused by something updating the live data so it sends live data only to the remote server. The second time a new sample has been inserted as well as the live data being updated so both of these are sent.
-
-\subsubsection{Command-line Arguments}
-The full list of arguments accepted by db\_push is:
-
-\begin{tabular}{p{4.2cm} l p{7.9cm}}
-\hline
-\textbf{Argument} & \textbf{Parameter} & \textbf{Description} \\
-\hline
-\verb|-t| \par \verb|--database| & dbname & Name of the database to use. Required. \\
-\verb|-n| \par \verb|--host| & hostname & Database server hostname. Required. \\
-\verb|-u| \par \verb|--user| & username & Username for database server. Required. \\
-\verb|-p| \par \verb|--password| & password & Password for database server. Required. \\
-
-\verb|-s| \par \verb|--site| & url & Base URL for the web interface. \\
-
-\verb|-c| \par \verb|--continuous| & & Keep running after sending the initial update. \\
-
-\verb|-d| \par \verb|--gpg-home-directory| & directory & GnuPG Home Directory \\
-
-\verb|-b| \par \verb|--gpg-binary| & gpg binary & The GnuPG binary to use \\
-
-\verb|-k| \par \verb|--key-id| & key id & The key to sign data with \\
-\hline
-\end{tabular}
-
-
-
-\section{Web Interface Setup}
-
-When database replication is used the web interface is responsible for inserting data into the database. Because of this its database user account must have \verb|UPDATE| permissions on the \verb|live_data| table and \verb|INSERT| permissions on the \verb|sample| table.
-
-When run in this configuration the web interface requires GnuPG to be installed on the system in addition to all the software required normally.
-
-\subsection{Installing Keys}
-\label{sec_dbr_installing_keys}
-As described in section \ref{sec_dbr_security} the zxweather database replication feature uses digital signatures to prevent unauthorised people from pushing data into the remote database.
-
-In section \ref{subsec_dbr_create_keys} you will have created new keys for signing. A public key will have been generated as part of this process and written to a file (\verb|public_key.asc| in the examples). You must now upload that public key to your web server and load it into the web interfaces GnuPG home directory.
-
-This procedure is similar to what you went through for setting up db\_push. First you need to create a new GnuPG home directory on the web server:
-\begin{verbatim}
-$ mkdir /opt/zxweather/gnupg_home
-\end{verbatim}
-
-This directory must be owned by the user the web interface runs as. On debian this is the \verb|www-data| user.
-
-You can then use the \emph{install\_key} utility in the \verb|db_push| subdirectory of the zxweather distribution to install your public key:
-
-\begin{verbatim}
-$ python db_push/install_key.py -d /opt/zxweather/gnupg_home \
--f public_key.asc
-\end{verbatim}
-
-This program will print out a message such as the one below:
-\begin{verbatim}
-Key Fingerprint: C7EC0D7AA1BD69BC0671CCA401787FE106493116
-Add the fingerprint above to the web interface configuration file
-\end{verbatim}
-
-Make a note of the key fingerprint as this will be required when you configure the web interface.
-
-\label{sec_dbr_web_setup}
-\subsection{Web Interface Configuration}
-
-In order to use the database replication feature you must enable it in the Web Interfaces configuration file. This is done in the database\_replication group towards the end of the file which will look something like the following:
-\begin{verbatim}
-[database_replication]
-enable: False
-#gnupg_home:
-#gpg_binary:
-#key_fingerprint: 
-\end{verbatim}
-
-The settings here are:
-\begin{itemize}
-\item enable - If the feature is enabled or not. Set this to "True".
-\item gnupg\_home - The location where GnuPG stores keys, etc. Uncomment this and et it to the path of the gnupg home directory you created (eg, \verb|/opt/zxweather/gnupg_home|)
-\item gpg\_binary - If GnuPG is installed in an unusual location on your system, specify it here.
-\item key\_fingerprint - The signing keys fingerprint. If specified then only data signed with that key will be accepted. If not specified then any data with a valid signature is accepted. You should uncomment this setting and insert the key fingerprint given to you when you installed the public key.
-\end{itemize}
-
-Once this is done the section will look something like:
-\begin{verbatim}
-[database_replication]
-enable: True
-gnupg_home: /opt/zxweather/gnupg_home
-#gpg_binary:
-key_fingerprint: C7EC0D7AA1BD69BC0671CCA401787FE106493116
-\end{verbatim}
-
-You should now be able to restart Apache and run the db\_push tool to start pushing data into the web interfaces database.
-
 \chapter{Troubleshooting}
 
 \section{Data Logger}
@@ -1219,31 +914,6 @@ This section covers errors you may encounter when viewing pages in the web inter
 The station overview page gives a "404 Not Found" error & The database is empty & Wait for data to appear in the database \\
 \hline
 \end{tabular}
-
-\section{Database Replication}
-% gnupg home directory must be owned by what ever user zxw_web is running as, otherwise you get no key errors.
-
-This section covers issues you may encounter with database replication. Database replication itself is covered by chapter \ref{cha_db_replication}.
-
-\subsection{Error Responses}
-When the remote web interface reports an error it appears in the output from db\_push like in the example below:
-\begin{verbatim}
-Sending data...
-Response: ERROR: error message
-Live Data Updated: False
-Samples Inserted: 0
-\end{verbatim}
-
-\begin{tabular}{P{4.5cm} P{4.5cm} P{4.5cm}}
-\hline
-\textbf{Message} & \textbf{Cause} & \textbf{Solution} \\
-\hline
-\multirow{6}{*}{\parbox{4.5cm}{Verification failed - bad or missing signature. Status: no public key}} & Key not installed & Install public key (Section \ref{sec_dbr_installing_keys}) \\[0.2cm]
- & GnuPG Home Directory Ownership Incorrect & Change owner of web interfaces GnuPG Home directory to the user the web interface runs as \\[0.2cm]
- & Configured GnuPG home directory does not exist & Section \ref{sec_dbr_installing_keys} covers creating it. Section \ref{sec_dbr_web_setup} covers configuring the web interface. \\
-\hline
-\end{tabular}
-
 
 % 
 
