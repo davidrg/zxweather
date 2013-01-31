@@ -13,7 +13,7 @@
 #
 # Alternatively, you can launch the weather service by executing a command
 # such as the following supplying all settings on the command-line:
-#   twistd weather_push -h hostname -p 22 -u admin -a password
+#   twistd weather_push -h hostname -p 22 -u admin -a password -d dsn
 #
 #
 ##############################################################################
