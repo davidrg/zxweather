@@ -10,7 +10,6 @@ from twisted.conch.ssh import factory, session
 from twisted.conch.insults import insults
 from twisted.cred.checkers import FilePasswordDB
 from zope.interface import implements
-from twisted.internet import reactor
 from server.database import database_connect
 from server.dbupdates import listener_connect
 from server.shell import ZxweatherShellProtocol
@@ -66,12 +65,25 @@ class ZxwRealm(object):
         else:
             raise Exception("Invalid interface requested in ZxwRealm")
 
-def getSSHFactory():
-    with open('../id_rsa') as privateBlobFile:
+def getServerSSHService(port, private_key_file, public_key_file, passwords_file, dsn):
+    """
+    Gets the zxweatherd SSH Service.
+    :param port: Port to listen on
+    :type port: int
+    :param private_key_file: Private key filename
+    :type private_key_file: str
+    :param public_key_file: Public key filename
+    :type public_key_file: str
+    :param passwords_file: passwords filename
+    :type passwords_file: str
+    :param dsn: Database connection string
+    :type dsn: str
+    """
+    with open(private_key_file) as privateBlobFile:
         privateBlob = privateBlobFile.read()
         privateKey = Key.fromString(data=str(privateBlob))
 
-    with open('../id_rsa.pub') as publicBlobFile:
+    with open(public_key_file) as publicBlobFile:
         publicBlob = publicBlobFile.read()
         publicKey = Key.fromString(data=str(publicBlob))
 
@@ -79,19 +91,9 @@ def getSSHFactory():
     sshFactory.privateKeys = {'ssh-rsa': privateKey}
     sshFactory.publicKeys = {'ssh-rsa': publicKey}
     sshFactory.portal = cred_portal.Portal(ZxwRealm())
-    sshFactory.portal.registerChecker(FilePasswordDB("ssh-passwords"))
+    sshFactory.portal.registerChecker(FilePasswordDB(passwords_file))
 
-    conn_str = "host=localhost port=5432 user=zxweather password=password dbname=weather"
-    database_connect(conn_str)
-    listener_connect(conn_str)
+    database_connect(dsn)
+    listener_connect(dsn)
 
-    return sshFactory
-
-def getServerService():
-    ssh_factory = getSSHFactory()
-    return internet.TCPServer(22, ssh_factory)
-
-if __name__ == '__main__':
-    ssh_factory = getSSHFactory()
-    reactor.listenTCP(22, ssh_factory)
-    reactor.run( )
+    return internet.TCPServer(port, sshFactory)
