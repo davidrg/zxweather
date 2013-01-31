@@ -49,7 +49,7 @@ class ZXWPushServiceMaker(object):
 
         # All OK. Go get the service.
         return getPushService(
-            options["hostname"],
+            options["host"],
             int(options["port"]),
             options["username"],
             options["password"],
