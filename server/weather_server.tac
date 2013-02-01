@@ -23,6 +23,10 @@ dsn = ""
 ##############################################################################
 ### SSH Protocol Configuration ###############################################
 ##############################################################################
+# This protocol allows authenticated interactive read-write access to the
+# server. It allows access to some administrative commands to list sessions,etc
+# and also allows weather data to be uploaded. This protocol must be enabled
+# for the weather-push service.
 
 # If you want SSH Support, turn it on here:
 enable_ssh = True
@@ -40,12 +44,27 @@ ssh_passwords_file = 'ssh-passwords'
 ##############################################################################
 ### Telnet Protocol Configuration ############################################
 ##############################################################################
+# This protocol allows interactive read-only access to the server to display
+# current conditions and information about the weather station in a terminal
+# window.
 
 # If you want Telnet Support, turn it on here:
 enable_telnet = True
 
 # The port the Telnet service listens on
 telnet_port = 4223
+
+##############################################################################
+### Standard Protocol Configuration ##########################################
+##############################################################################
+# This protocol is used by the desktop client and anything else wanting access
+# to weather data. In most cases it should be enabled.
+
+# If this protocol should be enabled
+enable_raw = True
+
+# The port to listen on
+raw_port = 4224
 
 ##############################################################################
 ##############################################################################
@@ -59,6 +78,7 @@ IProcess(application).processName = "zxweatherd"
 
 ssh_config = None
 telnet_config = None
+raw_config = None
 
 if enable_ssh:
     ssh_config = {
@@ -71,5 +91,8 @@ if enable_ssh:
 if enable_telnet:
     telnet_config = {'port': telnet_port}
 
-service = getServerService(dsn, ssh_config, telnet_config)
+if enable_raw:
+    raw_config = {'port': raw_port}
+
+service = getServerService(dsn, ssh_config, telnet_config, raw_config)
 service.setServiceParent(application)

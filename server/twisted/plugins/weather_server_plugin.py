@@ -17,7 +17,8 @@ class Options(usage.Options):
         ["public-key-file", "u" , None, "SSH Public key file"],
         ["passwords-file", "f", None, "Name of the file containing usernames and passwords"],
         ["dsn", "d", None, "Database connection string"],
-        ["telnet-port", "t", 4223, "The port the Telnet service should listen on", int]
+        ["telnet-port", "t", 4223, "The port the Telnet service should listen on", int],
+        ["standard-port", "r", 4224, "The port the standard weather service should listen on", int]
     ]
 
 
@@ -58,8 +59,11 @@ class ZXWServerServiceMaker(object):
 
         telnet_config = {'port': options['telnet-port']}
 
+        raw_config = {'port': options['standard-port']}
+
         # All OK. Go get the service.
-        return getServerService(options['dsn'], ssh_config, telnet_config)
+        return getServerService(
+            options['dsn'], ssh_config, telnet_config, raw_config)
 
 
 serviceMaker = ZXWServerServiceMaker()

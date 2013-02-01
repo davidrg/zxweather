@@ -12,8 +12,10 @@ from server.database import get_station_list, get_station_info, get_sample_csv, 
 from server.session import get_session_value, update_session, get_session_counts, get_session_id_list, session_exists
 import dateutil.parser
 
-
 __author__ = 'david'
+
+TERM_CRT = 0
+TERM_BASIC = 1
 
 class ShowUserCommand(Command):
     """
@@ -70,9 +72,9 @@ class SetTerminalCommand(Command):
     def main(self):
         """ Executes the command """
         if "video" in self.qualifiers:
-            self.environment["term_mode"] = 0 # TERM_CRT
+            self.environment["term_mode"] = TERM_CRT
         elif "basic" in self.qualifiers:
-            self.environment["term_mode"] = 1 # TERM_BASIC
+            self.environment["term_mode"] = TERM_BASIC
 
         if "echo" in self.qualifiers:
             if self.qualifiers["echo"] == "true":
@@ -407,10 +409,14 @@ class ShowLiveCommand(Command):
 
     def cleanUp(self):
         """ Clean Up """
-        self.unsubscribe()
-        self.terminal.setModes([insults.modes.IRM])
-        self.terminal.cursorPosition(80,25)
-        self.terminal.write("\r\n")
+
+        if self.subscribed_station is not None:
+            self.unsubscribe()
+
+        if self.environment["term_mode"] == TERM_CRT:
+            self.terminal.setModes([insults.modes.IRM])
+            self.terminal.cursorPosition(80,25)
+            self.terminal.write("\r\n")
 
 
     def live_data(self, data):
@@ -495,15 +501,16 @@ class ShowLiveCommand(Command):
         """
         Sets up subscriptions.
         """
-        self.subscribed_station = self.parameters[1]
-        self.haltInput() # This doesn't take any user input.
-        self.terminal = self.environment["terminal"]
-
-        if self.environment["term"] != "crt":
+        if self.environment["term_mode"] != TERM_CRT:
             self.writeLine(
                 "Error: This command is only available for VT-style terminals.")
             self.writeLine("Use SET TERMINAL /VIDEO to change terminal type.")
+            self.subscribed_station = None
             return
+
+        self.subscribed_station = self.parameters[1]
+        self.haltInput() # This doesn't take any user input.
+        self.terminal = self.environment["terminal"]
 
 
         self.ready = False

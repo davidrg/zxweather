@@ -6,6 +6,7 @@ from twisted.application.service import MultiService
 from server.database import database_connect
 from server.dbupdates import listener_connect
 from server.ssh import getSSHService
+from server.tcp import getTCPService
 from server.telnet import getTelnetService
 
 def setupDatabase(dsn):
@@ -19,7 +20,7 @@ def setupDatabase(dsn):
     listener_connect(dsn)
 
 
-def getServerService(dsn, ssh_config, telnet_config):
+def getServerService(dsn, ssh_config, telnet_config, tcp_config):
     """
     Gets the zxweatherd server service.
     :param dsn: Database connection string
@@ -28,6 +29,8 @@ def getServerService(dsn, ssh_config, telnet_config):
     :type ssh_config: dict
     :param telnet_config: Telnet protocol configuration
     :type telnet_config: dict
+    :param tcp_config: TCP protocol configuration
+    :type tcp_config: dict
     :return: Server service.
     """
 
@@ -45,5 +48,9 @@ def getServerService(dsn, ssh_config, telnet_config):
     if telnet_config is not None:
         telnetService = getTelnetService(**telnet_config)
         telnetService.setServiceParent(service)
+
+    if tcp_config is not None:
+        tcpService = getTCPService(**tcp_config)
+        tcpService.setServiceParent(service)
 
     return service
