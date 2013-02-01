@@ -136,6 +136,8 @@ class ListSessionsCommand(Command):
     """
 
     def main(self):
+        if not self.authenticated(): return
+
         sessions = get_session_id_list()
 
         for sid in sessions:
@@ -169,10 +171,12 @@ class ShowSessionCommand(Command):
         client_info = get_session_value(sid, "client")
         command = get_session_value(sid, "command")
         connect_time = get_session_value(sid, "connected")
+        protocol = get_session_value(sid, "protocol")
         length = datetime.now() - connect_time
 
         self.codedWriteLine(TYP_INFO, 5, "Username: {0}".format(username))
         self.codedWriteLine(TYP_INFO, 6, "Connected: {0} ({1} ago)".format(connect_time,length))
+        self.codedWriteLine(TYP_INFO, 12, "Protocol: {0}".format(protocol))
 
         if client_info is not None:
             name = client_info["name"]
@@ -186,6 +190,8 @@ class ShowSessionCommand(Command):
         self.codedWriteLine(TYP_INFO, 11,command)
 
     def main(self):
+        if not self.authenticated(): return
+
         if "id" in self.qualifiers:
             self.show_session(self.qualifiers["id"])
         else:
@@ -220,6 +226,8 @@ class TestCommand(Command):
         self.finished()
 
     def main(self):
+        if not self.authenticated(): return
+
         self.lines = []
         self.auto_exit = False
         self.write("Enter 5 lines of text:\r\n> ")
