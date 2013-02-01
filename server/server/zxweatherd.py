@@ -2,98 +2,48 @@
 """
 zxweather shell daemon
 """
-from twisted.application import internet
-from twisted.conch.ssh.keys import Key
-from twisted.cred import portal as cred_portal
-from twisted.conch import  avatar, interfaces as conch_interfaces
-from twisted.conch.ssh import factory, session
-from twisted.conch.insults import insults
-from twisted.cred.checkers import FilePasswordDB
-from zope.interface import implements
+from twisted.application.service import MultiService
 from server.database import database_connect
 from server.dbupdates import listener_connect
-from server.shell import ZxweatherShellProtocol
+from server.ssh import getSSHService
+from server.telnet import getTelnetService
 
-
-class ZxwAvatar(avatar.ConchUser):
-    implements(conch_interfaces.ISession)
-
-    def __init__(self, username):
-        avatar.ConchUser.__init__(self)
-        self.username = username
-        self.channelLookup.update({'session':session.SSHSession})
-        self._server_protocol = None
-
-    def openShell(self, protocol):
-        """
-        Starts the zxweather shell.
-        :param protocol: The transport to use.
-        """
-        serverProtocol = insults.ServerProtocol(ZxweatherShellProtocol, self)
-        serverProtocol.makeConnection(protocol)
-        protocol.makeConnection(session.wrapProtocol(serverProtocol))
-        self._server_protocol = serverProtocol
-
-    def getPty(self, terminal, windowSize, attrs):
-        """
-        Not used but we have to stub it out otherwise the client will likely
-        throw errors.
-        :param terminal:
-        :param windowSize:
-        :param attrs:
-        """
-        return None
-
-    def execCommand(self, protocol, cmd):
-        """ Not implemented.
-        :param protocol:
-        :param cmd:
-        :return:
-        """
-        raise NotImplementedError
-
-    def closed(self):
-        """ Lets the shell know the session is dead. """
-        self._server_protocol.connectionLost(None)
-
-class ZxwRealm(object):
-    implements(cred_portal.IRealm)
-
-    def requestAvatar(self, avatarId, mind, *interfaces):
-        if conch_interfaces.IConchUser in interfaces:
-            return interfaces[0], ZxwAvatar(avatarId), lambda: None
-        else:
-            raise Exception("Invalid interface requested in ZxwRealm")
-
-def getServerSSHService(port, private_key_file, public_key_file, passwords_file, dsn):
+def setupDatabase(dsn):
     """
-    Gets the zxweatherd SSH Service.
-    :param port: Port to listen on
-    :type port: int
-    :param private_key_file: Private key filename
-    :type private_key_file: str
-    :param public_key_file: Public key filename
-    :type public_key_file: str
-    :param passwords_file: passwords filename
-    :type passwords_file: str
+    Sets up database connections
     :param dsn: Database connection string
     :type dsn: str
     """
-    with open(private_key_file) as privateBlobFile:
-        privateBlob = privateBlobFile.read()
-        privateKey = Key.fromString(data=str(privateBlob))
-
-    with open(public_key_file) as publicBlobFile:
-        publicBlob = publicBlobFile.read()
-        publicKey = Key.fromString(data=str(publicBlob))
-
-    sshFactory = factory.SSHFactory()
-    sshFactory.privateKeys = {'ssh-rsa': privateKey}
-    sshFactory.publicKeys = {'ssh-rsa': publicKey}
-    sshFactory.portal = cred_portal.Portal(ZxwRealm())
-    sshFactory.portal.registerChecker(FilePasswordDB(passwords_file))
 
     database_connect(dsn)
     listener_connect(dsn)
 
-    return internet.TCPServer(port, sshFactory)
+
+def getServerService(dsn, ssh_config, telnet_config):
+    """
+    Gets the zxweatherd server service.
+    :param dsn: Database connection string
+    :type dsn: str
+    :param ssh_config: SSH protocol configuration
+    :type ssh_config: dict
+    :param telnet_config: Telnet protocol configuration
+    :type telnet_config: dict
+    :return: Server service.
+    """
+
+    if ssh_config is None and telnet_config is None:
+        raise Exception('No protocols enabled')
+
+    setupDatabase(dsn)
+
+    service = MultiService()
+
+    if ssh_config is not None:
+        sshService = getSSHService(**ssh_config)
+        sshService.setServiceParent(service)
+
+    if telnet_config is not None:
+        telnetService = getTelnetService(**telnet_config)
+        telnetService.setServiceParent(service)
+
+    return service

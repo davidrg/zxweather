@@ -117,6 +117,25 @@ class Command(object):
         if self.force_close:
             self.finished()
 
+    def authenticated(self):
+        """
+        Call when authentication is required. If the user is not authenticated
+        then an error will be printed, auto_exit will be turned on and
+        finished() will be called and False will be returned.
+
+        if the user is authenticated then the function will return true.
+        :return If the user is authenticated or not
+        :rtype: bool
+        """
+
+        if "authenticated" not in self.environment or \
+        self.environment["authenticated"] is False:
+            self.writeLine("Permission denied")
+            self.auto_exit = True
+            return False
+        else:
+            return True
+
     def inputCanceled(self, deferred_instance):
         """
         Called when user input is canceled. When this happens it most likely

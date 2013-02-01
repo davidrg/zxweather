@@ -11,10 +11,21 @@
 # You should not make any changes to this file outside of the Configuration
 # sections below.
 #
+#
 ##############################################################################
-### Application Configuration ################################################
+### Database Configuration ###################################################
 ##############################################################################
 
+# This is the database connection string. An example one might be:
+# dsn = "host=localhost port=5432 user=zxweather password=password dbname=weather"
+dsn = ""
+
+##############################################################################
+### SSH Protocol Configuration ###############################################
+##############################################################################
+
+# If you want SSH Support, turn it on here:
+enable_ssh = True
 
 # The port number the SSH service listens on
 ssh_port = 4222
@@ -26,27 +37,39 @@ ssh_public_key_file = 'id_rsa.pub'
 # The name of the file storing username:password pairs.
 ssh_passwords_file = 'ssh-passwords'
 
-# This is the database connection string. An example one might be:
-# dsn = "host=localhost port=5432 user=zxweather password=password dbname=weather"
-dsn = ""
+##############################################################################
+### Telnet Protocol Configuration ############################################
+##############################################################################
+
+# If you want Telnet Support, turn it on here:
+enable_telnet = True
+
+# The port the Telnet service listens on
+telnet_port = 4223
 
 ##############################################################################
 ##############################################################################
 ##############################################################################
 # Don't change anything below this point.
-from server.zxweatherd import getServerSSHService
+from server.zxweatherd import getServerService
 from twisted.application.service import Application, IProcess
-
 
 application = Application("zxweatherd")
 IProcess(application).processName = "zxweatherd"
 
-# attach the service to its parent application
-service = getServerSSHService(
-    ssh_port,
-    ssh_private_key_file,
-    ssh_public_key_file,
-    ssh_passwords_file,
-    dsn
-)
+ssh_config = None
+telnet_config = None
+
+if enable_ssh:
+    ssh_config = {
+        'port': ssh_port,
+        'private_key_file': ssh_private_key_file,
+        'public_key_file': ssh_public_key_file,
+        'passwords_file': ssh_passwords_file
+    }
+
+if enable_telnet:
+    telnet_config = {'port': telnet_port}
+
+service = getServerService(dsn, ssh_config, telnet_config)
 service.setServiceParent(application)
