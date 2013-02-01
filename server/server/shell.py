@@ -120,8 +120,19 @@ class ZxweatherShellProtocol(recvline.HistoricRecvLine):
         self.dispatcher.environment["prompt"] = self.prompt
         self.sid = str(uuid.uuid1())
         self.dispatcher.environment["sessionid"] = self.sid
-        self.dispatcher.environment["term_mode"] = TERM_CRT
-        self.dispatcher.environment["term_echo"] = True
+
+        if protocol in ["ssh", "telnet"]:
+            self.dispatcher.environment["term_mode"] = TERM_CRT
+            self.dispatcher.environment["term_echo"] = True
+        else:
+            # If we're not connecting via telnet or ssh the thing at the
+            # other end probably isn't a terminal emulator. Turn everything
+            # off.
+            self.dispatcher.environment["term_mode"] = TERM_BASIC
+            self.dispatcher.environment["term_echo"] = False
+            self.dispatcher.environment["prompt"][0] = "_ok\r\n"
+
+        self.dispatcher.environment["protocol"] = protocol
 
         if user is None:
             username = "anonymous"
@@ -147,7 +158,6 @@ class ZxweatherShellProtocol(recvline.HistoricRecvLine):
         """
         recvline.HistoricRecvLine.connectionMade(self)
         self.dispatcher.environment["terminal"] = self.terminal
-        self.dispatcher.environment["term"] = "crt"
 
         # Install key handler to take care of ^C
         self.keyHandlers['\x03'] = self.handle_CTRL_C
