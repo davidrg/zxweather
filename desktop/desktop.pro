@@ -33,9 +33,9 @@ SOURCES += main.cpp\
     aboutdialog.cpp \
     json/json.cpp \
     settings.cpp \
-    jsonlivedatasource.cpp \
-    databaselivedatasource.cpp \
-    livedatasource.cpp
+    livedata/jsonlivedatasource.cpp \
+    livedata/databaselivedatasource.cpp \
+    livedata/livedatasource.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
@@ -43,11 +43,11 @@ HEADERS  += mainwindow.h \
     dbsignaladapter.h \
     aboutdialog.h \
     json/json.h \
-    databaselivedata.h \
+    livedata/databaselivedata.h \
     settings.h \
-    livedatasource.h \
-    databaselivedatasource.h \
-    jsonlivedatasource.h
+    livedata/livedatasource.h \
+    livedata/databaselivedatasource.h \
+    livedata/jsonlivedatasource.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \

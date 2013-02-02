@@ -24,8 +24,8 @@
 #include "ui_mainwindow.h"
 #include "settingsdialog.h"
 
-#include "databaselivedatasource.h"
-#include "jsonlivedatasource.h"
+#include "livedata/databaselivedatasource.h"
+#include "livedata/jsonlivedatasource.h"
 #include "aboutdialog.h"
 #include "settings.h"
 
