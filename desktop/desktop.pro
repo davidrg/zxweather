@@ -32,10 +32,10 @@ SOURCES += main.cpp\
     dbsignaladapter.cpp \
     aboutdialog.cpp \
     json/json.cpp \
-    datasource.cpp \
-    databasedatasource.cpp \
     settings.cpp \
-    jsondatasource.cpp
+    jsonlivedatasource.cpp \
+    databaselivedatasource.cpp \
+    livedatasource.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
