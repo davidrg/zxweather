@@ -23,18 +23,18 @@
 #ifndef JSONDATASOURCE_H
 #define JSONDATASOURCE_H
 
-#include "datasource.h"
+#include "livedatasource.h"
 #include <QScopedPointer>
 #include <QTimer>
 #include <QNetworkAccessManager>
 
 class QNetworkReply;
 
-class JsonDataSource : public AbstractDataSource
+class JsonLiveDataSource : public AbstractLiveDataSource
 {
     Q_OBJECT
 public:
-    explicit JsonDataSource(QString url, QObject *parent = 0);
+    explicit JsonLiveDataSource(QString url, QObject *parent = 0);
     
     AbstractLiveData* getLiveData();
 

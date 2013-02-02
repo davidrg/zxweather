@@ -30,8 +30,8 @@
 
 #include "json/json.h"
 
-JsonDataSource::JsonDataSource(QString url, QObject *parent) :
-    AbstractDataSource(parent)
+JsonLiveDataSource::JsonLiveDataSource(QString url, QObject *parent) :
+    AbstractLiveDataSource(parent)
 {
     if (!url.endsWith("/"))
         url += "/";
@@ -53,7 +53,7 @@ JsonDataSource::JsonDataSource(QString url, QObject *parent) :
     notificationTimer->start();
 }
 
-AbstractLiveData* JsonDataSource::getLiveData() {
+AbstractLiveData* JsonLiveDataSource::getLiveData() {
     using namespace QtJson;
     bool ok;
 
@@ -84,7 +84,7 @@ AbstractLiveData* JsonDataSource::getLiveData() {
     return ld;
 }
 
-void JsonDataSource::liveDataPoll() {
+void JsonLiveDataSource::liveDataPoll() {
     QNetworkRequest request;
     request.setUrl(QUrl(url));
     request.setRawHeader("User-Agent", "zxweather-desktop v0.2");
@@ -92,7 +92,7 @@ void JsonDataSource::liveDataPoll() {
     netAccessManager->get(request);
 }
 
-bool JsonDataSource::CheckDataAge() {
+bool JsonLiveDataSource::CheckDataAge() {
     using namespace QtJson;
     bool ok;
     QVariantMap result = Json::parse(json_data, ok).toMap();
@@ -104,7 +104,7 @@ bool JsonDataSource::CheckDataAge() {
     return true;
 }
 
-void JsonDataSource::dataReady(QNetworkReply* reply) {
+void JsonLiveDataSource::dataReady(QNetworkReply* reply) {
 
     if (reply->error() != QNetworkReply::NoError) {
         // There was an error.

@@ -43,11 +43,11 @@ HEADERS  += mainwindow.h \
     dbsignaladapter.h \
     aboutdialog.h \
     json/json.h \
-    datasource.h \
-    databasedatasource.h \
     databaselivedata.h \
     settings.h \
-    jsondatasource.h
+    jsondatasource.h \
+    livedatasource.h \
+    databaselivedatasource.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \

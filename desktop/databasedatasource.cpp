@@ -27,14 +27,14 @@
 #include <QTimer>
 #include <QDebug>
 
-DatabaseDataSource::DatabaseDataSource(QString databaseName,
+DatabaseLiveDataSource::DatabaseLiveDataSource(QString databaseName,
         QString hostname,
         int port,
         QString username,
         QString password,
         QString station,
         QObject *parent) :
-    AbstractDataSource(parent)
+    AbstractLiveDataSource(parent)
 {
     // No wild pointers allowed
     notificationTimer = NULL;
@@ -72,21 +72,21 @@ DatabaseDataSource::DatabaseDataSource(QString databaseName,
     db_connect(databaseName, hostname, port, username, password, station);
 }
 
-DatabaseDataSource::~DatabaseDataSource() {
+DatabaseLiveDataSource::~DatabaseLiveDataSource() {
     notificationTimer->stop();
     wdb_disconnect();
 }
 
-void DatabaseDataSource::unknown_db_error(QString message) {
+void DatabaseLiveDataSource::unknown_db_error(QString message) {
     emit database_error(message);
 }
 
-void DatabaseDataSource::db_connection_failed(QString message) {
+void DatabaseLiveDataSource::db_connection_failed(QString message) {
     notificationTimer->stop();
     emit connection_failed(message);
 }
 
-void DatabaseDataSource::db_connect(
+void DatabaseLiveDataSource::db_connect(
         QString dbName,
         QString dbHostname,
         int port,
@@ -118,7 +118,7 @@ void DatabaseDataSource::db_connect(
     }
 }
 
-AbstractLiveData* DatabaseDataSource::getLiveData() {
+AbstractLiveData* DatabaseLiveDataSource::getLiveData() {
     live_data_record rec;
 
     rec = wdb_get_live_data();
@@ -128,7 +128,7 @@ AbstractLiveData* DatabaseDataSource::getLiveData() {
     return dld;
 }
 
-void DatabaseDataSource::notification_pump() {
+void DatabaseLiveDataSource::notification_pump() {
     if (wdb_live_data_available()) {
         qDebug() << "Live data available";
         emit liveDataRefreshed();

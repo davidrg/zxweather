@@ -22,7 +22,7 @@
 
 #include "datasource.h"
 
-AbstractDataSource::AbstractDataSource(QObject *parent) :
+AbstractLiveDataSource::AbstractLiveDataSource(QObject *parent) :
     QObject(parent)
 {
 }
