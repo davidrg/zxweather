@@ -20,7 +20,7 @@
  *
  ****************************************************************************/
 
-#include "datasource.h"
+#include "livedatasource.h"
 
 AbstractLiveDataSource::AbstractLiveDataSource(QObject *parent) :
     QObject(parent)

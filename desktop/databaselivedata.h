@@ -23,7 +23,7 @@
 #ifndef DATABASELIVEDATA_H
 #define DATABASELIVEDATA_H
 
-#include "datasource.h"
+#include "livedatasource.h"
 #include "database.h"
 
 /** An implementation of AbstractLiveData that stores the live data in a
