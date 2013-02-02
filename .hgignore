@@ -36,3 +36,5 @@ desktop-build-desktop-4_5_3_Debug/*
 desktop-doc/html/*
 gpg-home/*
 testout/*
+desktop-build-Desktop_4_8_0_MinGW-Debug/*
+desktop-build-Desktop_Qt_5_0_1_MinGW_32bit-Debug/*
