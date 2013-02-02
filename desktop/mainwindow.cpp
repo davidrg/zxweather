@@ -24,8 +24,8 @@
 #include "ui_mainwindow.h"
 #include "settingsdialog.h"
 
-#include "databasedatasource.h"
-#include "jsondatasource.h"
+#include "databaselivedatasource.h"
+#include "jsonlivedatasource.h"
 #include "aboutdialog.h"
 #include "settings.h"
 
@@ -129,7 +129,7 @@ void MainWindow::createDataSource() {
 void MainWindow::createJsonDataSource() {
     QString url = Settings::getInstance().url();
 
-    JsonDataSource *jds = new JsonDataSource(url, this);
+    JsonLiveDataSource *jds = new JsonLiveDataSource(url, this);
     connect(jds, SIGNAL(networkError(QString)),
             this, SLOT(networkError(QString)));
     connect(jds, SIGNAL(liveDataRefreshed()),
@@ -160,9 +160,9 @@ void MainWindow::createDatabaseDataSource() {
     if (!dataSource.isNull())
         delete dataSource.take();
 
-    QScopedPointer<DatabaseDataSource> dds;
+    QScopedPointer<DatabaseLiveDataSource> dds;
 
-    dds.reset(new DatabaseDataSource(dbName,
+    dds.reset(new DatabaseLiveDataSource(dbName,
                                  hostname,
                                  port,
                                  username,

@@ -45,9 +45,9 @@ HEADERS  += mainwindow.h \
     json/json.h \
     databaselivedata.h \
     settings.h \
-    jsondatasource.h \
     livedatasource.h \
-    databaselivedatasource.h
+    databaselivedatasource.h \
+    jsonlivedatasource.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \

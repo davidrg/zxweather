@@ -23,7 +23,7 @@
 #ifndef DATABASEDATASOURCE_H
 #define DATABASEDATASOURCE_H
 
-#include "datasource.h"
+#include "livedatasource.h"
 #include "dbsignaladapter.h"
 
 class QTimer;

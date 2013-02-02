@@ -20,7 +20,7 @@
  *
  ****************************************************************************/
 
-#include "jsondatasource.h"
+#include "jsonlivedatasource.h"
 
 #include <QTimer>
 #include <QNetworkAccessManager>
