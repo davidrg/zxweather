@@ -104,11 +104,11 @@ private:
 /** Provides access to data from the zxweather system.
  *
  */
-class AbstractDataSource : public QObject
+class AbstractLiveDataSource : public QObject
 {
     Q_OBJECT
 public:
-    explicit AbstractDataSource(QObject *parent = 0);
+    explicit AbstractLiveDataSource(QObject *parent = 0);
     
     /** Provides access to live data.
      * @return A new live data object.

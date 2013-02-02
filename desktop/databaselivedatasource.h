@@ -28,11 +28,11 @@
 
 class QTimer;
 
-class DatabaseDataSource : public AbstractDataSource
+class DatabaseLiveDataSource : public AbstractLiveDataSource
 {
     Q_OBJECT
 public:
-    explicit DatabaseDataSource(
+    explicit DatabaseLiveDataSource(
             QString databaseName,
             QString hostname,
             int port,
@@ -41,7 +41,7 @@ public:
             QString station,
             QObject *parent = 0);
 
-    ~DatabaseDataSource();
+    ~DatabaseLiveDataSource();
 
     AbstractLiveData* getLiveData();
 

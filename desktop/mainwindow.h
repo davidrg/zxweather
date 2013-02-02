@@ -162,7 +162,7 @@ private:
     void showWarningPopup(QString message, QString title, QString tooltip="", bool setWarningIcon=false);
     void readSettings();
 
-    QScopedPointer<AbstractDataSource> dataSource;
+    QScopedPointer<AbstractLiveDataSource> dataSource;
 };
 
 #endif // MAINWINDOW_H
