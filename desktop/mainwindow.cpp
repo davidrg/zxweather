@@ -216,44 +216,7 @@ void MainWindow::liveDataRefreshed() {
     QString formatString;
     QString temp;
 
-    // Relative Humidity
-    if (data->indoorDataAvailable()) {
-        formatString = "%1% (%2% inside)";
-        temp = formatString
-                .arg(QString::number(data->getRelativeHumidity()))
-                .arg(QString::number(data->getIndoorRelativeHumidity()));
-    } else {
-        formatString = "%1%";
-        temp = formatString
-                .arg(QString::number(data->getRelativeHumidity()));
-    }
-    ui->lblRelativeHumidity->setText(temp);
-
-    // Temperature
-    if (data->indoorDataAvailable()) {
-        formatString = "%1°C (%2°C inside)";
-        temp = formatString
-                .arg(QString::number(data->getTemperature(),'f',1))
-                .arg(QString::number(data->getIndoorTemperature(), 'f', 1));
-    } else {
-        formatString = "%1°C";
-        temp = formatString
-                .arg(QString::number(data->getTemperature(),'f',1));
-    }
-    ui->lblTemperature->setText(temp);
-
-    ui->lblDewPoint->setText(QString::number(data->getDewPoint(), 'f', 1) + "°C");
-    ui->lblWindChill->setText(QString::number(data->getWindChill(), 'f', 1) + "°C");
-    ui->lblApparentTemperature->setText(
-                QString::number(data->getApparentTemperature(), 'f', 1) + "°C");
-    ui->lblAbsolutePressure->setText(
-                QString::number(data->getAbsolutePressure(), 'f', 1) + " hPa");
-    ui->lblAverageWindSpeed->setText(
-                QString::number(data->getAverageWindSpeed(), 'f', 1) + " m/s");
-    ui->lblGustWindSpeed->setText(
-                QString::number(data->getGustWindSpeed(), 'f', 1) + " m/s");
-    ui->lblWindDirection->setText(data->getWindDirection());
-    ui->lblTimestamp->setText(data->getTimestamp().toString("h:mm AP"));
+    ui->liveData->refresh(data.data());
 
     if (data->getTemperature() > 0)
         sysTrayIcon->setIcon(QIcon(":/icons/systray_icon"));
