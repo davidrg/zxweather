@@ -19,7 +19,10 @@ class Options(usage.Options):
         ["dsn", "d", None, "Database connection string"],
         ["telnet-port", "t", 4223, "The port the Telnet service should listen on", int],
         ["standard-port", "r", 4224, "The port the standard weather service should listen on", int],
-        ["websocket-port", "w", 81, "The port to listen for WebSocket connections on", int]
+        ["websocket-port", "w", 81, "The port to listen for WebSocket connections on", int],
+        ["websocket-tls-port", "s", None, "The port to listen on for WebSocket SSL connections on", int],
+        ["websocket-tls-key-file", "k", None, "The WebSocket Secure private key filename"],
+        ["websocket-tls-certificate-file", "c", None, "The WebSocket Secure certificate filename"]
     ]
 
 
@@ -64,10 +67,24 @@ class ZXWServerServiceMaker(object):
 
         websocket_config = {'port': options['websocket-port']}
 
+        wss_config = None
+        if options["websocket-tls-port"] is not None:
+            if options["websocket-tls-key-file"] is None:
+                raise Exception("SSL Private key file required for wss support")
+            elif options["websocket-tls-certificate-file"] is None:
+                raise Exception("SSL Certificate file required for wss support")
+
+            wss_config = {
+                'port': int(options["websocket-tls-port"]),
+                'key': options["websocket-tls-key-file"],
+                'certificate': options["websocket-tls-certificate-file"]
+            }
+
+
         # All OK. Go get the service.
         return getServerService(
             options['dsn'], ssh_config, telnet_config, raw_config,
-            websocket_config)
+            websocket_config, wss_config)
 
 
 serviceMaker = ZXWServerServiceMaker()

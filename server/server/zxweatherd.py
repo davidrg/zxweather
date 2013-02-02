@@ -7,7 +7,7 @@ from server.database import database_connect
 from server.dbupdates import listener_connect
 from server.ssh import getSSHService
 from server.tcp import getTCPService
-from server.websocket import getWebSocketService
+from server.websocket import getWebSocketService, getWebSocketSecureService
 from server.telnet import getTelnetService
 
 def setupDatabase(dsn):
@@ -21,7 +21,7 @@ def setupDatabase(dsn):
     listener_connect(dsn)
 
 
-def getServerService(dsn, ssh_config, telnet_config, tcp_config, ws_config):
+def getServerService(dsn, ssh_config, telnet_config, tcp_config, ws_config, wss_config):
     """
     Gets the zxweatherd server service.
     :param dsn: Database connection string
@@ -34,6 +34,8 @@ def getServerService(dsn, ssh_config, telnet_config, tcp_config, ws_config):
     :type tcp_config: dict
     :param ws_config: WebSocket protocol configuration
     :type ws_config: dict
+    :param wss_config: WebSocket Secure protocol configuration (TLS)
+    :type wss_config: dict
     :return: Server service.
     """
 
@@ -59,5 +61,9 @@ def getServerService(dsn, ssh_config, telnet_config, tcp_config, ws_config):
     if ws_config is not None:
         wsService = getWebSocketService(**ws_config)
         wsService.setServiceParent(service)
+
+    if wss_config is not None:
+        wssService = getWebSocketSecureService(**wss_config)
+        wssService.setServiceParent(service)
 
     return service

@@ -78,6 +78,24 @@ enable_web_socket = True
 web_socket_port = 81
 
 ##############################################################################
+### WebSocket TLS Protocol Configuration #####################################
+##############################################################################
+# This a secure websocket endpoint using TLS. It is used as a fallback by the
+# web interface to get around badly configured proxy servers.
+
+# If this protocol should be enabled
+enable_web_socket_tls = True
+
+# The port to listen on
+web_socket_tls_port = 443
+
+# SSL Private Key
+web_socket_tls_private_key_file = 'server.key'
+
+# SSL Certificate
+web_socket_tls_certificate_file = 'server.crt'
+
+##############################################################################
 ##############################################################################
 ##############################################################################
 # Don't change anything below this point.
@@ -91,6 +109,7 @@ ssh_config = None
 telnet_config = None
 raw_config = None
 ws_config = None
+wss_config = None
 
 if enable_ssh:
     ssh_config = {
@@ -109,6 +128,13 @@ if enable_raw:
 if enable_web_socket:
     ws_config = {'port': web_socket_port}
 
+if enable_web_socket_tls:
+    wss_config = {
+        'port': web_socket_tls_port,
+        'key': web_socket_tls_private_key_file,
+        'certificate': web_socket_tls_certificate_file
+    }
+
 service = getServerService(
-    dsn, ssh_config, telnet_config, raw_config, ws_config)
+    dsn, ssh_config, telnet_config, raw_config, ws_config, wss_config)
 service.setServiceParent(application)
