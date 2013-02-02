@@ -191,8 +191,6 @@ void MainWindow::createDatabaseDataSource() {
     liveDataRefreshed();
 }
 
-
-
 void MainWindow::ld_timeout() {
     seconds_since_last_refresh++; // this is reset when ever live data arrives.
 
