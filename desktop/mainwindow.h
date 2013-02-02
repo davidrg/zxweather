@@ -59,12 +59,6 @@ public:
     
 public slots:
     /**
-     * @brief Refreshes live data from the database.
-     */
-    //void db_refresh();
-
-
-    /**
      * @brief showSettings Shows the settings dialog.
      *
      * If the user accepts the settings dialog (hits OK) then settings are
@@ -72,42 +66,6 @@ public slots:
      * connected to the database.
      */
     void showSettings();
-
-
-    /** Called when new live data is available.
-     *
-     * @param data The new live data.
-     */
-    void liveDataRefreshed();
-
-    /** For monitoring live data. This (and the associated time ldTimer) is
-     * what pops up warnings when live data is late.
-     */
-    void ld_timeout();
-
-    // Database errors (for use with the database data source)
-
-    /**
-     * @brief Called when connecting to the database fails.
-     *
-     * It displays a popup message from the system tray icon containing details
-     * of the problem.
-     */
-    void connection_failed(QString);
-
-    /**
-     * @brief Called whenever a database error occurs that is not a connection
-     * failure.
-     *
-     * @param message The error message from the database layer.
-     */
-    void unknown_db_error(QString message);
-
-    /** An error from the Json Data Source.
-     *
-     * @param message The error message.
-     */
-    void networkError(QString message);
 
     // System tray
     /**
@@ -126,6 +84,11 @@ public slots:
      * @brief showAbout shows the about dialog.
      */
     void showAbout();
+
+    void showWarningPopup(QString message, QString title, QString tooltip="", bool setWarningIcon=false);
+
+    void updateSysTrayText(QString text);
+    void updateSysTrayIcon(QIcon icon);
 protected:
     /**
      * @brief changeEvent handles minimising the window to the system tray if
@@ -141,28 +104,17 @@ protected:
      */
     void closeEvent(QCloseEvent *event);
 
-    void createDataSource();
-    void createDatabaseDataSource();
-    void createJsonDataSource();
-
 private:
     Ui::MainWindow *ui;
     QScopedPointer<QSystemTrayIcon> sysTrayIcon;
     QScopedPointer<QMenu> trayIconMenu;
     QScopedPointer<QAction> restoreAction;
     QScopedPointer<QAction> quitAction;
-    QScopedPointer<QTimer> ldTimer;
 
     bool minimise_to_systray;
     bool close_to_systray;
 
-    uint seconds_since_last_refresh;
-    uint minutes_late;
-
-    void showWarningPopup(QString message, QString title, QString tooltip="", bool setWarningIcon=false);
     void readSettings();
-
-    QScopedPointer<AbstractLiveDataSource> dataSource;
 };
 
 #endif // MAINWINDOW_H

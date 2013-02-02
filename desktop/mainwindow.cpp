@@ -24,8 +24,7 @@
 #include "ui_mainwindow.h"
 #include "settingsdialog.h"
 
-#include "livedata/databaselivedatasource.h"
-#include "livedata/jsonlivedatasource.h"
+
 #include "aboutdialog.h"
 #include "settings.h"
 
@@ -44,9 +43,6 @@ MainWindow::MainWindow(QWidget *parent) :
     // If we don't do this then there is a heap of empty space at the bottom
     // of the window.
     resize(width(), minimumHeight());
-
-    seconds_since_last_refresh = 0;
-    minutes_late = 0;
 
     sysTrayIcon.reset(new QSystemTrayIcon(this));
     sysTrayIcon->setIcon(QIcon(":/icons/systray_icon_warning"));
@@ -69,9 +65,12 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionSettings, SIGNAL(triggered()), this, SLOT(showSettings()));
     connect(ui->actionAbout, SIGNAL(triggered()), this, SLOT(showAbout()));
 
-    ldTimer.reset(new QTimer());
-    ldTimer->setInterval(1000);
-    connect(ldTimer.data(), SIGNAL(timeout()), this, SLOT(ld_timeout()));
+    connect(ui->liveData, SIGNAL(warning(QString,QString,QString,bool)),
+            this, SLOT(showWarningPopup(QString,QString,QString,bool)));
+    connect(ui->liveData, SIGNAL(sysTrayIconChanged(QIcon)),
+            this, SLOT(updateSysTrayIcon(QIcon)));
+    connect(ui->liveData, SIGNAL(sysTrayTextChanged(QString)),
+            this, SLOT(updateSysTrayText(QString)));
 
     // Show the settings dialog on the first run.
     if (!Settings::getInstance().singleShotFirstRun()) {
@@ -80,7 +79,15 @@ MainWindow::MainWindow(QWidget *parent) :
     }
     qDebug() << "Read settings and connect...";
     readSettings();
-    createDataSource();
+
+    if (Settings::getInstance().stationName().isEmpty()) {
+        // We're probably migrating settings from v0.1.
+        QMessageBox::information(this, "Bad configuration", "The station name has not been configured. You will now be shown the settings dialog.");
+        showSettings();
+    }
+    else {
+        ui->liveData->reconfigureDataSource();
+    }
 }
 
 MainWindow::~MainWindow()
@@ -119,128 +126,6 @@ void MainWindow::changeEvent(QEvent *e)
     }
 }
 
-void MainWindow::createDataSource() {
-    if (Settings::getInstance().dataSourceType() == Settings::DS_TYPE_DATABASE)
-        createDatabaseDataSource();
-    else
-        createJsonDataSource();
-}
-
-void MainWindow::createJsonDataSource() {
-    QString url = Settings::getInstance().url();
-
-    JsonLiveDataSource *jds = new JsonLiveDataSource(url, this);
-    connect(jds, SIGNAL(networkError(QString)),
-            this, SLOT(networkError(QString)));
-    connect(jds, SIGNAL(liveDataRefreshed()),
-            this, SLOT(liveDataRefreshed()));
-
-    dataSource.reset(jds);
-    ldTimer->start();
-}
-
-void MainWindow::createDatabaseDataSource() {
-    Settings& settings = Settings::getInstance();
-    QString dbName = settings.databaseName();
-    QString hostname = settings.databaseHostName();
-    int port = settings.databasePort();
-    QString username = settings.databaseUsername();
-    QString password = settings.databasePassword();
-    QString station = settings.stationName();
-
-    if (station.isEmpty()) {
-        // We're probably migrating settings from v0.1.
-        QMessageBox::information(this, "Bad configuration", "The station name has not been configured. You will now be shown the settings dialog.");
-        showSettings();
-        return;
-    }
-
-    // Kill the old datasource. The DatabaseDataSource uses named connections
-    // so we can't have two overlaping.
-    if (!dataSource.isNull())
-        delete dataSource.take();
-
-    QScopedPointer<DatabaseLiveDataSource> dds;
-
-    dds.reset(new DatabaseLiveDataSource(dbName,
-                                 hostname,
-                                 port,
-                                 username,
-                                 password,
-                                 station,
-                                 this));
-
-    if (!dds->isConnected()) {
-        return;
-    }
-
-    connect(dds.data(), SIGNAL(connection_failed(QString)),
-            this, SLOT(connection_failed(QString)));
-    connect(dds.data(), SIGNAL(database_error(QString)),
-            this, SLOT(unknown_db_error(QString)));
-    connect(dds.data(), SIGNAL(liveDataRefreshed()),
-            this, SLOT(liveDataRefreshed()));
-
-    dataSource.reset(dds.take());
-    seconds_since_last_refresh = 0;
-    ldTimer->start();
-
-    setWindowTitle("zxweather - " + station);
-
-    // Do an initial refresh so we're not waiting forever with nothing to show
-    liveDataRefreshed();
-}
-
-void MainWindow::ld_timeout() {
-    seconds_since_last_refresh++; // this is reset when ever live data arrives.
-
-    if (seconds_since_last_refresh == 60) {
-        minutes_late++;
-
-        showWarningPopup("Live data has not been refreshed in over " +
-                         QString::number(minutes_late) +
-                         " minutes. Check data update service.",
-                         "Live data is late",
-                         "Live data is late",
-                         true);
-
-        seconds_since_last_refresh = 0;
-    }
-}
-
-void MainWindow::liveDataRefreshed() {
-    QScopedPointer<AbstractLiveData> data(dataSource->getLiveData());
-
-    QString formatString;
-    QString temp;
-
-    ui->liveData->refresh(data.data());
-
-    if (data->getTemperature() > 0)
-        sysTrayIcon->setIcon(QIcon(":/icons/systray_icon"));
-    else
-        sysTrayIcon->setIcon(QIcon(":/icons/systray_subzero"));
-
-    // Tool Tip Text
-    if (data->indoorDataAvailable()) {
-        formatString = "Temperature: %1°C (%2°C inside)\nHumidity: %3% (%4% inside)";
-        temp = formatString
-                .arg(QString::number(data->getTemperature(), 'f', 1),
-                     QString::number(data->getIndoorTemperature(), 'f', 1),
-                     QString::number(data->getRelativeHumidity(), 'f', 1),
-                     QString::number(data->getIndoorRelativeHumidity(), 'f', 1));
-    } else {
-        formatString = "Temperature: %1°C\nHumidity: %3%";
-        temp = formatString
-                .arg(QString::number(data->getTemperature(), 'f', 1),
-                     QString::number(data->getRelativeHumidity(), 'f', 1));
-    }
-    sysTrayIcon->setToolTip(temp);
-
-    seconds_since_last_refresh = 0;
-    minutes_late = 0;
-}
-
 void MainWindow::showSettings() {
     SettingsDialog sd;
     int result = sd.exec();
@@ -248,25 +133,8 @@ void MainWindow::showSettings() {
     if (result == QDialog::Accepted) {
         readSettings();
 
-        // Reconenct (incase the user has changed connection details)
-        createDataSource();
+        ui->liveData->reconfigureDataSource();
     }
-}
-
-void MainWindow::connection_failed(QString) {
-    showWarningPopup("Failed to connect to the database",
-                     "Error",
-                     "Database connect failed",
-                     true);
-    ldTimer->stop();
-}
-
-void MainWindow::networkError(QString message) {
-    showWarningPopup(message, "Error", "Network Error", true);
-}
-
-void MainWindow::unknown_db_error(QString message) {
-    showWarningPopup(message, "Database Error");
 }
 
 void MainWindow::showWarningPopup(QString message, QString title, QString tooltip, bool setWarningIcon) {
@@ -326,3 +194,10 @@ void MainWindow::showAbout() {
     ad.exec();
 }
 
+void MainWindow::updateSysTrayText(QString text) {
+    sysTrayIcon->setToolTip(text);
+}
+
+void MainWindow::updateSysTrayIcon(QIcon icon) {
+    sysTrayIcon->setIcon(icon);
+}
