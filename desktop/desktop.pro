@@ -35,7 +35,8 @@ SOURCES += main.cpp\
     settings.cpp \
     livedata/jsonlivedatasource.cpp \
     livedata/databaselivedatasource.cpp \
-    livedata/livedatasource.cpp
+    livedata/livedatasource.cpp \
+    livedata/livedatawidget.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
@@ -47,7 +48,8 @@ HEADERS  += mainwindow.h \
     settings.h \
     livedata/livedatasource.h \
     livedata/databaselivedatasource.h \
-    livedata/jsonlivedatasource.h
+    livedata/jsonlivedatasource.h \
+    livedata/livedatawidget.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \
