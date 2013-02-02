@@ -2,8 +2,9 @@
 """
 WebSocket support for zxweatherd.
 """
-from autobahn.websocket import WebSocketServerProtocol, WebSocketServerFactory
+from autobahn.websocket import WebSocketServerProtocol, WebSocketServerFactory, listenWS
 from twisted.application import internet
+from twisted.internet import ssl
 from server.session import end_session
 from server.shell import BaseShell
 
@@ -20,6 +21,30 @@ def getWebSocketService(port):
     factory.protocol = WebSocketShellProtocol
 
     return internet.TCPServer(port, factory)
+
+def getWebSocketSecureService(port, key, certificate):
+    """
+    Gets a SSL WebSocket service listening on the specified port
+    :param port: Port to listen on
+    :type port: int
+    :param key: Server private key filename
+    :type key: str
+    :param certificate: Server certificate filename
+    :type certificate: str
+    """
+
+    # To make self-signed keys:
+    # openssl genrsa -out server.key 2048
+    # openssl req -new -key server.key -out server.csr
+    # openssl x509 -req -days 3650 -in server.csr -signkey server.key -out server.crt
+    # openssl x509 -in server.crt -out server.pem
+
+    contextFactory = ssl.DefaultOpenSSLContextFactory(key, certificate)
+    factory = WebSocketServerFactory("ws://localhost:{0}".format(port))
+    factory.protocol = WebSocketShellProtocol
+
+    return internet.SSLServer(port, factory, contextFactory)
+
 
 class WebSocketShellProtocol(WebSocketServerProtocol, BaseShell):
     """
