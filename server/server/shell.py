@@ -97,14 +97,7 @@ class Dispatcher(object):
 INPUT_SHELL = 0
 INPUT_COMMAND = 1
 
-
-class ZxweatherShellProtocol(recvline.HistoricRecvLine):
-    """
-    The zxweather shell.
-    """
-
-    ps = ("$ ", "_ ")
-
+class BaseShell(object):
     def __init__(self, user, protocol):
         self.dispatcher = Dispatcher(
             lambda prompt: self.commandProcessorPrompter(prompt),
@@ -118,9 +111,15 @@ class ZxweatherShellProtocol(recvline.HistoricRecvLine):
 
         self.dispatcher.environment["f_logout"] = lambda: self.logout()
         self.dispatcher.environment["prompt"] = self.prompt
+
         self.sid = str(uuid.uuid1())
         self.dispatcher.environment["sessionid"] = self.sid
 
+        # Base shell has no terminal.
+        self.dispatcher.environment["terminal"] = None
+
+        # Configure the environment for interactive or non-interactive use
+        # depending on the protocol name
         if protocol in ["ssh", "telnet"]:
             self.dispatcher.environment["term_mode"] = TERM_CRT
             self.dispatcher.environment["term_echo"] = True
@@ -151,6 +150,105 @@ class ZxweatherShellProtocol(recvline.HistoricRecvLine):
             }
         )
 
+    def commandProcessorPrompter(self, prompt):
+        return None
+
+    def commandProcessorWarning(self, warning):
+        pass
+
+    def processFinished(self):
+        """
+        Called when the process has finished executing.
+        """
+        if self.current_command is not None:
+            self.current_command.cleanUp()
+            self.current_command = None
+
+        self.input_mode = INPUT_SHELL
+        update_session(self.sid, "command", "[shell]")
+        self.showPrompt()
+
+    def executeCommand(self, command):
+        """
+        Executes the specified command.
+        :param command: Command string to execute.
+        """
+
+        # Evaluate the command string
+        partial_cmd = self.dispatcher.get_command(command)
+
+        # If nothing to execute, do nothing.
+        if partial_cmd is None:
+            self.processFinished()
+            return
+
+        # Supply the command with functions to control its status, input, etc.
+        self.current_command = partial_cmd(
+            output_callback=lambda text: self.processOutput(text),
+            finished_callback=lambda: self.processFinished(),
+            halt_input_callback=lambda: self.haltInput(),
+            resume_input_callback=lambda: self.resumeInput()
+        )
+
+        # Switch input over to the command
+        self.input_mode = INPUT_COMMAND
+
+        # and set it running.
+        update_session(self.sid, "command", command)
+        try:
+            self.current_command.execute()
+        except Exception as e:
+            print(e.message)
+            self.processOutput("Command failed\n")
+            self.processFinished()
+
+    def logout(self):
+        pass
+
+    def terminateProcess(self):
+        """
+        Attempts to terminate the process.
+        """
+        if self.current_command is not None:
+            self.current_command.terminate()
+
+
+    def processLine(self, line):
+        if self.input_mode == INPUT_SHELL:
+            self.executeCommand(line)
+        elif self.input_mode == INPUT_COMMAND:
+            if self.current_command is not None:
+                self.current_command.lineReceived(line)
+
+    def processOutput(self, value):
+        pass
+
+    def haltInput(self):
+        """
+        Called to halt all user input.
+        """
+        # TODO: switch off everything in keystrokeReceived except listening for ^C
+        pass
+
+    def resumeInput(self):
+        """
+        Called to resume user input.
+        """
+        # TODO: undo whatever haltInput did.
+        pass
+
+    def showPrompt(self):
+        pass
+
+class ZxweatherShellProtocol(BaseShell, recvline.HistoricRecvLine):
+    """
+    The zxweather shell.
+    """
+
+    ps = ("$ ", "_ ")
+
+    def __init__(self, user, protocol):
+        super(ZxweatherShellProtocol, self).__init__(user, protocol)
 
     def connectionMade(self):
         """
@@ -184,7 +282,6 @@ class ZxweatherShellProtocol(recvline.HistoricRecvLine):
 
         if self.dispatcher.environment["term_echo"]:
             self.terminal.write(ch)
-
 
     def handle_CTRL_C(self):
         """
@@ -231,40 +328,6 @@ class ZxweatherShellProtocol(recvline.HistoricRecvLine):
         """
         self.terminal.write(self.prompt[self.prompt_number])
 
-    def executeCommand(self, command):
-        """
-        Executes the specified command.
-        :param command: Command string to execute.
-        """
-
-        # Evaluate the command string
-        partial_cmd = self.dispatcher.get_command(command)
-
-        # If nothing to execute, do nothing.
-        if partial_cmd is None:
-            self.processFinished()
-            return
-
-        # Supply the command with functions to control its status, input, etc.
-        self.current_command = partial_cmd(
-            output_callback=lambda text: self.processOutput(text),
-            finished_callback=lambda: self.processFinished(),
-            halt_input_callback=lambda: self.haltInput(),
-            resume_input_callback=lambda: self.resumeInput()
-        )
-
-        # Switch input over to the command
-        self.input_mode = INPUT_COMMAND
-
-        # and set it running.
-        update_session(self.sid, "command", command)
-        try:
-            self.current_command.execute()
-        except Exception as e:
-            print(e.message)
-            self.terminal.write("Command failed\r\n")
-            self.processFinished()
-
     def lineReceived(self, line):
         """
         Called when ever a line of data is received. This function then routes
@@ -272,11 +335,7 @@ class ZxweatherShellProtocol(recvline.HistoricRecvLine):
         :param line:
         :return:
         """
-        if self.input_mode == INPUT_SHELL:
-            self.executeCommand(line)
-        elif self.input_mode == INPUT_COMMAND:
-            if self.current_command is not None:
-                self.current_command.lineReceived(line)
+        self.processLine(line)
 
     def commandProcessorPrompter(self, prompt_string):
         """
@@ -305,39 +364,6 @@ class ZxweatherShellProtocol(recvline.HistoricRecvLine):
         :param text: Text to output.
         """
         self.terminal.write(text)
-
-    def processFinished(self):
-        """
-        Called when the process has finished executing.
-        """
-        if self.current_command is not None:
-            self.current_command.cleanUp()
-            self.current_command = None
-
-        self.input_mode = INPUT_SHELL
-        update_session(self.sid, "command", "[shell]")
-        self.showPrompt()
-
-    def terminateProcess(self):
-        """
-        Attempts to terminate the process.
-        """
-        if self.current_command is not None:
-            self.current_command.terminate()
-
-    def haltInput(self):
-        """
-        Called to halt all user input.
-        """
-        # TODO: switch off everything in keystrokeReceived except listening for ^Z
-        pass
-
-    def resumeInput(self):
-        """
-        Called to resume user input.
-        """
-        # TODO: undo whatever haltInput did.
-        pass
 
     def logout(self):
         """

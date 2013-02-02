@@ -72,6 +72,12 @@ class SetTerminalCommand(Command):
     def main(self):
         """ Executes the command """
         if "video" in self.qualifiers:
+
+            # Only allow the VIDEO terminal type if we have a terminal object.
+            if self.environment["terminal"] is None:
+                self.writeLine("Error: VIDEO terminal type not supported by this protocol")
+                return
+
             self.environment["term_mode"] = TERM_CRT
         elif "basic" in self.qualifiers:
             self.environment["term_mode"] = TERM_BASIC
@@ -348,7 +354,7 @@ class StreamCommand(Command):
             now = datetime.utcnow().replace(tzinfo = pytz.utc)
             if from_timestamp < now - timedelta(hours=2):
                 self.writeLine("Error: Catchup only allows a maximum of "
-                               "24 hours of data.")
+                               "2 hours of data.")
                 return
 
         subset = "live and sample"

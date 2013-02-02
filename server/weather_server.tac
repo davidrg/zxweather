@@ -67,6 +67,17 @@ enable_raw = True
 raw_port = 4224
 
 ##############################################################################
+### WebSocket Protocol Configuration #########################################
+##############################################################################
+# This protocol is used by the web interface to access weather data.
+
+# If this protocol should be enabled
+enable_web_socket = True
+
+# The port to listen on
+web_socket_port = 81
+
+##############################################################################
 ##############################################################################
 ##############################################################################
 # Don't change anything below this point.
@@ -79,6 +90,7 @@ IProcess(application).processName = "zxweatherd"
 ssh_config = None
 telnet_config = None
 raw_config = None
+ws_config = None
 
 if enable_ssh:
     ssh_config = {
@@ -94,5 +106,9 @@ if enable_telnet:
 if enable_raw:
     raw_config = {'port': raw_port}
 
-service = getServerService(dsn, ssh_config, telnet_config, raw_config)
+if enable_web_socket:
+    ws_config = {'port': web_socket_port}
+
+service = getServerService(
+    dsn, ssh_config, telnet_config, raw_config, ws_config)
 service.setServiceParent(application)
