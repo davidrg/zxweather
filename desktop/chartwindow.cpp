@@ -27,6 +27,8 @@ ChartWindow::ChartWindow(QWidget *parent) :
     ui->chart->setRangeDrag(Qt::Horizontal|Qt::Vertical);
     ui->chart->setRangeZoom(Qt::Horizontal|Qt::Vertical);
     ui->chart->setupFullAxesBox();
+    ui->chart->xAxis->setLabel("Time");
+    ui->chart->xAxis->setTickLabelType(QCPAxis::ltDateTime);
 
     // Chart events
     connect(ui->chart, SIGNAL(mousePress(QMouseEvent*)),
@@ -43,6 +45,19 @@ ChartWindow::ChartWindow(QWidget *parent) :
             ui->chart->xAxis2, SLOT(setRange(QCPRange)));
     connect(ui->chart->yAxis, SIGNAL(rangeChanged(QCPRange)),
             ui->chart->yAxis2, SLOT(setRange(QCPRange)));
+
+    // Setup chart type.
+    ChartOptionsDialog options;
+    int result = options.exec();
+    if (result != QDialog::Accepted) {
+        this->close();
+    } else {
+        columns = options.getColumns();
+        ui->startTime->setDateTime(options.getStartTime());
+        ui->endTime->setDateTime(options.getEndTime());
+        chartType = options.getChartType();
+        refresh();
+    }
 }
 
 ChartWindow::~ChartWindow()
@@ -59,15 +74,49 @@ void ChartWindow::samplesReady(SampleSet samples) {
 
     qDebug() << "Samples: " << samples.sampleCount;
 
-    ui->chart->removeGraph(0);
+    ui->chart->clearGraphs();
 
-    ui->chart->addGraph();
-    ui->chart->graph(0)->setData(samples.timestamp, samples.temperature);
-    ui->chart->xAxis->setLabel("Time");
-    ui->chart->xAxis->setTickLabelType(QCPAxis::ltDateTime);
-    //ui->chart->xAxis->setRange(samples.minTimeStamp, samples.maxTimeStamp);
-    ui->chart->yAxis->setLabel("Temperature (\xB0""C)");
-    //ui->chart->yAxis->setRange(samples.minTemperature, samples.maxTemperature);
+    if (chartType == ChartOptionsDialog::Temperature)
+        ui->chart->yAxis->setLabel("Temperature (\xB0""C)");
+    else if (chartType == ChartOptionsDialog::Humidity)
+        ui->chart->yAxis->setLabel("Humidity (%)");
+    else
+        ui->chart->yAxis->setLabel("Pressure (hPa)");
+
+    foreach (int column, columns) {
+        QCPGraph * graph = ui->chart->addGraph();
+        if (column == COL_TEMPERATURE) {
+            graph->setData(samples.timestamp, samples.temperature);
+            graph->setName("Temperature");
+        } else if (column == COL_TEMPERATURE_INDOORS) {
+            graph->setData(samples.timestamp, samples.indoorTemperature);
+            graph->setName("Indoor Temperature");
+        } else if (column == COL_APPARENT_TEMPERATURE) {
+            graph->setData(samples.timestamp, samples.apparentTemperature);
+            graph->setName("Apparent Temperature");
+        } else if (column == COL_WIND_CHILL) {
+            graph->setData(samples.timestamp, samples.windChill);
+            graph->setName("Wind Chill");
+        } else if (column == COL_DEW_POINT) {
+            graph->setData(samples.timestamp, samples.dewPoint);
+            graph->setName("Dew Point");
+        } else if (column == COL_HUMIDITY) {
+            graph->setData(samples.timestamp, samples.humidity);
+            graph->setName("Humidity");
+        } else if (column == COL_HUMIDITY_INDOORS) {
+            graph->setData(samples.timestamp, samples.indoorHumidity);
+            graph->setName("Indoor Humidity");
+        } else if (column == COL_PRESSURE) {
+            graph->setData(samples.timestamp, samples.pressure);
+            graph->setName("Pressure");
+        }
+    }
+
+    if (columns.count() > 1)
+        ui->chart->legend->setVisible(true);
+    else
+        ui->chart->legend->setVisible(false);
+
     ui->chart->rescaleAxes();
     ui->chart->replot();
 }
