@@ -73,6 +73,9 @@ public:
     void setStationName(QString name);
     QString stationName();
 
+    /* Web data source cache */
+    QString dataSetCacheDir() { return "cache/"; }
+
     /* Single shot stuff */
     void setSingleShotMinimiseToSysTray();
     bool singleShotMinimiseToSysTray();

@@ -223,7 +223,7 @@ void wdb_disconnect() {
 }
 
 bool wdb_live_data_available() {
-    qDebug() << "Checking for live data";
+    //qDebug() << "Checking for live data";
     if (!connected) return false;
 
     PGconn* conn = ECPGget_PGconn("notification_connection");
