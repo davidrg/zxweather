@@ -4,6 +4,13 @@
         <file alias="systray_icon_warning">resources/thermometer--exclamation.png</file>
         <file alias="systray_subzero">resources/thermometer-low.png</file>
         <file alias="settings">resources/wrench-screwdriver.png</file>
-        <file>resources/information.png</file>
+        <file alias="about">resources/information.png</file>
+        <file alias="chart">resources/chart.png</file>
+        <file alias="refresh">resources/arrow-circle-double.png</file>
+    </qresource>
+    <qresource prefix="/icons/export-chart">
+        <file alias="postscript">resources/document-attribute-p.png</file>
+        <file alias="png">resources/document-image.png</file>
+        <file alias="pdf">resources/document-pdf.png</file>
     </qresource>
 </RCC>
