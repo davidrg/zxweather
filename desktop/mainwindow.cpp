@@ -198,8 +198,10 @@ void MainWindow::showAbout() {
 }
 
 void MainWindow::showChartWindow() {
-    ChartWindow cw;
-    cw.exec();
+    ChartWindow *cw = new ChartWindow(this);
+    cw->setAttribute(Qt::WA_DeleteOnClose);
+    cw->setWindowFlags(cw->windowFlags() | Qt::WindowMaximizeButtonHint);
+    cw->show();
 }
 
 void MainWindow::updateSysTrayText(QString text) {

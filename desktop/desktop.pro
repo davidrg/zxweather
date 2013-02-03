@@ -40,7 +40,8 @@ SOURCES += main.cpp\
     qcp/qcustomplot.cpp \
     chartwindow.cpp \
     datasource/abstractdatasource.cpp \
-    datasource/webdatasource.cpp
+    datasource/webdatasource.cpp \
+    chartoptionsdialog.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
@@ -58,12 +59,14 @@ HEADERS  += mainwindow.h \
     chartwindow.h \
     datasource/abstractdatasource.h \
     datasource/webdatasource.h \
-    constants.h
+    constants.h \
+    chartoptionsdialog.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \
     aboutdialog.ui \
-    chartwindow.ui
+    chartwindow.ui \
+    chartoptionsdialog.ui
 
 OTHER_FILES += \
     database.pgc \
