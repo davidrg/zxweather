@@ -27,6 +27,7 @@
 
 #include "aboutdialog.h"
 #include "settings.h"
+#include "chartwindow.h"
 
 #include <QtDebug>
 #include <QDateTime>
@@ -61,10 +62,12 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(restoreAction.data(), SIGNAL(triggered()), this, SLOT(showNormal()));
     connect(quitAction.data(), SIGNAL(triggered()), this, SLOT(quit()));
 
-    // Other UI signals
+    // Toolbar
+    connect(ui->actionCharts, SIGNAL(triggered()), this, SLOT(showChartWindow()));
     connect(ui->actionSettings, SIGNAL(triggered()), this, SLOT(showSettings()));
     connect(ui->actionAbout, SIGNAL(triggered()), this, SLOT(showAbout()));
 
+    // Live Data Widget
     connect(ui->liveData, SIGNAL(warning(QString,QString,QString,bool)),
             this, SLOT(showWarningPopup(QString,QString,QString,bool)));
     connect(ui->liveData, SIGNAL(sysTrayIconChanged(QIcon)),
@@ -192,6 +195,11 @@ void MainWindow::quit() {
 void MainWindow::showAbout() {
     AboutDialog ad;
     ad.exec();
+}
+
+void MainWindow::showChartWindow() {
+    ChartWindow cw;
+    cw.exec();
 }
 
 void MainWindow::updateSysTrayText(QString text) {

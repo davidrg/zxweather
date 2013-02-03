@@ -67,6 +67,11 @@ public slots:
      */
     void showSettings();
 
+    /**
+     * @brief showChartWindow shows the chart selection window.
+     */
+    void showChartWindow();
+
     // System tray
     /**
      * @brief trayIconActivated is called when the user clicks on the system
