@@ -9,6 +9,8 @@
 #include <QtDebug>
 #include <float.h>
 
+// TODO: make the progress dialog cancel button work.
+
 
 #define SET_MIN(field) if (temp < field) field = temp;
 #define SET_MAX(field) if (temp > field) field = temp;
@@ -139,6 +141,8 @@ void WebDataSource::processData() {
         SET_MAX(samples.maxIndoorHumidity);
     }
 
+    progressDialog->setValue(progressDialog->value() + 1);
+    progressDialog->setLabelText("Draw...");
     emit samplesReady(samples);
     progressDialog->reset();
 }
@@ -222,6 +226,9 @@ QStringList getURLList(
     int endMonth = endDate.month();
 
     QStringList urlsToFetch;
+
+    //TODO: consider trying to make use of day-level data sources if it makes
+    // sense.
 
     for(int year = startYear; year <= endYear; year++) {
         qDebug() << "Year:" << year;
