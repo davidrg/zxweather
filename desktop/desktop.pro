@@ -38,7 +38,9 @@ SOURCES += main.cpp\
     livedata/livedatasource.cpp \
     livedata/livedatawidget.cpp \
     qcp/qcustomplot.cpp \
-    chartwindow.cpp
+    chartwindow.cpp \
+    datasource/abstractdatasource.cpp \
+    datasource/webdatasource.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
@@ -53,7 +55,10 @@ HEADERS  += mainwindow.h \
     livedata/jsonlivedatasource.h \
     livedata/livedatawidget.h \
     qcp/qcustomplot.h \
-    chartwindow.h
+    chartwindow.h \
+    datasource/abstractdatasource.h \
+    datasource/webdatasource.h \
+    constants.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \
@@ -61,7 +66,8 @@ FORMS    += mainwindow.ui \
     chartwindow.ui
 
 OTHER_FILES += \
-    database.pgc
+    database.pgc \
+    desktop.rc
 
 RESOURCES += \
     resources.qrc

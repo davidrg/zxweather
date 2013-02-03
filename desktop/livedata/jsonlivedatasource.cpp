@@ -29,6 +29,7 @@
 #include <QVariantMap>
 
 #include "json/json.h"
+#include "constants.h"
 
 JsonLiveDataSource::JsonLiveDataSource(QString url, QObject *parent) :
     AbstractLiveDataSource(parent)
@@ -87,7 +88,7 @@ AbstractLiveData* JsonLiveDataSource::getLiveData() {
 void JsonLiveDataSource::liveDataPoll() {
     QNetworkRequest request;
     request.setUrl(QUrl(url));
-    request.setRawHeader("User-Agent", "zxweather-desktop v0.2");
+    request.setRawHeader("User-Agent", Constants::USER_AGENT);
 
     netAccessManager->get(request);
 }

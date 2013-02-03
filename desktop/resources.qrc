@@ -7,10 +7,6 @@
         <file alias="about">resources/information.png</file>
         <file alias="chart">resources/chart.png</file>
         <file alias="refresh">resources/arrow-circle-double.png</file>
-    </qresource>
-    <qresource prefix="/icons/export-chart">
-        <file alias="postscript">resources/document-attribute-p.png</file>
-        <file alias="png">resources/document-image.png</file>
-        <file alias="pdf">resources/document-pdf.png</file>
+        <file alias="save">resources/disk-black.png</file>
     </qresource>
 </RCC>
