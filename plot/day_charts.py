@@ -67,7 +67,7 @@ order by cur.time_stamp asc""", (date(year,month,day), station_code,))
     file_data = [
         '# timestamp  temperature  dew point  apparent temperature  wind chill  relative humidity  absolute pressure  indoor temperature  indoor relative humidity\n']
 
-    FORMAT_STRING = '{0}        {1}        {2}        {3}        {4}        {5}        {6}        {7}        {8}\n'
+    FORMAT_STRING = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\n'
     for record in weather_data:
         # Handle missing data.
         if record[COL_PREV_SAMPLE_MISSING]:
