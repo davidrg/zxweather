@@ -3,7 +3,9 @@
 
 #include <QDialog>
 #include <QScopedPointer>
+#include <QList>
 
+#include "chartoptionsdialog.h"
 #include "datasource/webdatasource.h"
 
 namespace Ui {
@@ -33,6 +35,8 @@ private slots:
 private:
     Ui::ChartWindow *ui;
     QScopedPointer<WebDataSource> dataSource;
+    QList<int> columns;
+    enum ChartOptionsDialog::ChartType chartType;
 };
 
 #endif // CHARTWINDOW_H

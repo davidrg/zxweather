@@ -45,16 +45,6 @@
          <day>1</day>
         </datetime>
        </property>
-       <property name="minimumDateTime">
-        <datetime>
-         <hour>0</hour>
-         <minute>0</minute>
-         <second>0</second>
-         <year>2012</year>
-         <month>1</month>
-         <day>3</day>
-        </datetime>
-       </property>
        <property name="displayFormat">
         <string>d/M/yyyy h:mm:ss AP</string>
        </property>
@@ -88,16 +78,6 @@
          <minute>59</minute>
          <second>59</second>
         </time>
-       </property>
-       <property name="minimumDateTime">
-        <datetime>
-         <hour>0</hour>
-         <minute>0</minute>
-         <second>0</second>
-         <year>2012</year>
-         <month>1</month>
-         <day>3</day>
-        </datetime>
        </property>
        <property name="displayFormat">
         <string>d/M/yyyy h:mm:ss AP</string>

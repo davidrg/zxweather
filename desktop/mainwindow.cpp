@@ -200,7 +200,9 @@ void MainWindow::showAbout() {
 void MainWindow::showChartWindow() {
     ChartWindow *cw = new ChartWindow(this);
     cw->setAttribute(Qt::WA_DeleteOnClose);
-    cw->setWindowFlags(cw->windowFlags() | Qt::WindowMaximizeButtonHint);
+    cw->setWindowFlags(cw->windowFlags() |
+                       Qt::WindowMaximizeButtonHint |
+                       Qt::WindowMinimizeButtonHint);
     cw->show();
 }
 
