@@ -151,14 +151,17 @@ void LiveDataWidget::refreshUi(AbstractLiveData* data) {
 }
 
 void LiveDataWidget::reconfigureDataSource() {
-    if (Settings::getInstance().dataSourceType() == Settings::DS_TYPE_DATABASE)
+    if (Settings::getInstance().liveDataSourceType() == Settings::DS_TYPE_DATABASE)
         createDatabaseDataSource();
     else
         createJsonDataSource();
 }
 
 void LiveDataWidget::createJsonDataSource() {
-    QString url = Settings::getInstance().url();
+
+    Settings& settings = Settings::getInstance();
+
+    QString url = settings.webInterfaceUrl() + "data/" + settings.stationCode() + "/";
 
     JsonLiveDataSource *jds = new JsonLiveDataSource(url, this);
     connect(jds, SIGNAL(networkError(QString)),
@@ -177,7 +180,7 @@ void LiveDataWidget::createDatabaseDataSource() {
     int port = settings.databasePort();
     QString username = settings.databaseUsername();
     QString password = settings.databasePassword();
-    QString station = settings.stationName();
+    QString station = settings.stationCode();
 
     // Kill the old datasource. The DatabaseDataSource uses named connections
     // so we can't have two overlaping.

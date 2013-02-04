@@ -30,6 +30,11 @@ SettingsDialog::SettingsDialog(QWidget *parent) :
 {
     ui->setupUi(this);
     connect(ui->buttonBox, SIGNAL(accepted()), this, SLOT(dialogAccepted()));
+    connect(ui->rbLiveDatabase, SIGNAL(clicked()), this, SLOT(dataSourceChanged()));
+    connect(ui->rbLiveServer, SIGNAL(clicked()), this, SLOT(dataSourceChanged()));
+    connect(ui->rbLiveWeb, SIGNAL(clicked()), this, SLOT(dataSourceChanged()));
+    connect(ui->rbSampleDatabase, SIGNAL(clicked()), this, SLOT(dataSourceChanged()));
+    connect(ui->rbSampleWeb, SIGNAL(clicked()), this, SLOT(dataSourceChanged()));
     loadSettings();
 }
 
@@ -55,6 +60,19 @@ void SettingsDialog::dialogAccepted() {
     accept();
 }
 
+void SettingsDialog::dataSourceChanged() {
+    ui->gbDatabase->setEnabled(false);
+    ui->gbWeb->setEnabled(false);
+    ui->gbServer->setEnabled(false);
+
+    if (ui->rbLiveDatabase->isChecked() || ui->rbSampleDatabase->isChecked())
+        ui->gbDatabase->setEnabled(true);
+    if (ui->rbLiveWeb->isChecked() || ui->rbSampleWeb->isChecked())
+        ui->gbWeb->setEnabled(true);
+    if (ui->rbLiveServer->isChecked())
+        ui->gbServer->setEnabled(true);
+}
+
 void SettingsDialog::writeSettings() {
 
     Settings& settings = Settings::getInstance();
@@ -69,13 +87,22 @@ void SettingsDialog::writeSettings() {
     settings.setDatabasePort(ui->portSpinBox->value());
     settings.setDatabaseUsername(ui->usernameLineEdit->text());
     settings.setDatabasePassword(ui->passwordLineEdit->text());
-    settings.setUrl(ui->UrlLineEdit->text());
-    settings.setStationName(ui->stationNameLineEdit->text());
+    settings.setWebInterfaceUrl(ui->UrlLineEdit->text());
+    settings.setStationCode(ui->stationNameLineEdit->text());
+    settings.setServerHostname(ui->serverHostnameLineEdit->text());
+    settings.setServerPort(ui->serverPortSpinBox->value());
 
-    if (ui->rbDatabase->isChecked())
-        settings.setDataSourceType(Settings::DS_TYPE_DATABASE);
+    if (ui->rbLiveDatabase->isChecked())
+        settings.setLiveDataSourceType(Settings::DS_TYPE_DATABASE);
+    else if (ui->rbLiveWeb->isChecked())
+        settings.setLiveDataSourceType(Settings::DS_TYPE_WEB_INTERFACE);
+    else if (ui->rbLiveServer->isChecked())
+        settings.setLiveDataSourceType(Settings::DS_TYPE_SERVER);
+
+    if (ui->rbSampleDatabase->isChecked())
+        settings.setSampleDataSourceType(Settings::DS_TYPE_DATABASE);
     else
-        settings.setDataSourceType(Settings::DS_TYPE_WEB_INTERFACE);
+        settings.setSampleDataSourceType(Settings::DS_TYPE_WEB_INTERFACE);
 }
 
 void SettingsDialog::loadSettings() {
@@ -91,15 +118,27 @@ void SettingsDialog::loadSettings() {
     ui->portSpinBox->setValue(settings.databasePort());
     ui->usernameLineEdit->setText(settings.databaseUsername());
     ui->passwordLineEdit->setText(settings.databasePassword());
-    ui->stationNameLineEdit->setText(settings.stationName());
+    ui->stationNameLineEdit->setText(settings.stationCode());
+    ui->serverPortSpinBox->setValue(settings.serverPort());
+    ui->serverHostnameLineEdit->setText(settings.serverHostname());
 
-    ui->UrlLineEdit->setText(settings.url());
+    ui->UrlLineEdit->setText(settings.webInterfaceUrl());
 
-    if (settings.dataSourceType() == Settings::DS_TYPE_DATABASE) {
-        ui->rbDatabase->setChecked(true);
-        ui->rbWebInterface->setChecked(false);
+    if (settings.liveDataSourceType() == Settings::DS_TYPE_DATABASE) {
+        ui->rbLiveDatabase->setChecked(true);
+    } else if (settings.liveDataSourceType() == Settings::DS_TYPE_WEB_INTERFACE) {
+        ui->rbLiveWeb->setChecked(true);
     } else {
-        ui->rbDatabase->setChecked(false);
-        ui->rbWebInterface->setChecked(true);
+        ui->rbLiveServer->setChecked(true);
     }
+
+    if (settings.sampleDataSourceType() == Settings::DS_TYPE_DATABASE) {
+        ui->rbSampleDatabase->setChecked(true);
+    } else {
+        ui->rbSampleWeb->setChecked(true);
+    }
+
+    dataSourceChanged();
+
+
 }

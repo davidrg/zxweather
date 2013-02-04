@@ -1,5 +1,6 @@
 #include "chartwindow.h"
 #include "ui_chartwindow.h"
+#include "settings.h"
 
 #include "datasource/webdatasource.h"
 
@@ -12,7 +13,8 @@ ChartWindow::ChartWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    dataSource.reset(new WebDataSource("http://localhost:8080/", "rua", this, this));
+    Settings& settings = Settings::getInstance();
+    dataSource.reset(new WebDataSource(settings.webInterfaceUrl(), settings.stationCode(), this, this));
 
     connect(ui->pbRefresh, SIGNAL(clicked()), this, SLOT(refresh()));
     connect(ui->saveButton, SIGNAL(clicked()), this, SLOT(save()));

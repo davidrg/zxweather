@@ -39,7 +39,7 @@ public:
         return instance;
     }
 
-    enum data_source_type_t {DS_TYPE_DATABASE, DS_TYPE_WEB_INTERFACE};
+    enum data_source_type_t {DS_TYPE_DATABASE, DS_TYPE_WEB_INTERFACE, DS_TYPE_SERVER};
     
     /* General Settings */
     void setMinimiseToSysTray(bool enabled);
@@ -49,11 +49,14 @@ public:
     bool closeToSysTray();
 
     /* Data Source */
-    void setDataSourceType(Settings::data_source_type_t type);
-    Settings::data_source_type_t dataSourceType();
+    void setLiveDataSourceType(Settings::data_source_type_t type);
+    Settings::data_source_type_t liveDataSourceType();
 
-    void setUrl(QString url);
-    QString url();
+    void setSampleDataSourceType(Settings::data_source_type_t type);
+    Settings::data_source_type_t sampleDataSourceType();
+
+    void setWebInterfaceUrl(QString webInterfaceUrl);
+    QString webInterfaceUrl();
 
     void setDatabaseName(QString dbName);
     QString databaseName();
@@ -70,8 +73,14 @@ public:
     void setDatabasePassword(QString password);
     QString databasePassword();
 
-    void setStationName(QString name);
-    QString stationName();
+    void setServerHostname(QString hostname);
+    QString serverHostname();
+
+    void setServerPort(int port);
+    int serverPort();
+
+    void setStationCode(QString name);
+    QString stationCode();
 
     /* Web data source cache */
     QString dataSetCacheDir() { return "cache/"; }
