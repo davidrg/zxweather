@@ -106,10 +106,10 @@
      <normaloff>:/icons/chart</normaloff>:/icons/chart</iconset>
    </property>
    <property name="text">
-    <string>Chart...</string>
+    <string>Create Chart...</string>
    </property>
    <property name="iconText">
-    <string>Chart...</string>
+    <string>Create Chart...</string>
    </property>
    <property name="toolTip">
     <string>Opens the chart window</string>
