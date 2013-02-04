@@ -1,7 +1,7 @@
 #ifndef CHARTWINDOW_H
 #define CHARTWINDOW_H
 
-#include <QDialog>
+#include <QWidget>
 #include <QScopedPointer>
 #include <QList>
 
@@ -12,7 +12,7 @@ namespace Ui {
 class ChartWindow;
 }
 
-class ChartWindow : public QDialog
+class ChartWindow : public QWidget
 {
     Q_OBJECT
     

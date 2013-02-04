@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>ChartWindow</class>
- <widget class="QDialog" name="ChartWindow">
+ <widget class="QWidget" name="ChartWindow">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -16,9 +16,6 @@
   <property name="windowIcon">
    <iconset resource="resources.qrc">
     <normaloff>:/icons/chart</normaloff>:/icons/chart</iconset>
-  </property>
-  <property name="sizeGripEnabled">
-   <bool>true</bool>
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <item row="0" column="0">

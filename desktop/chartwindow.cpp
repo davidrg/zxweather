@@ -7,7 +7,7 @@
 #include <QtDebug>
 
 ChartWindow::ChartWindow(QWidget *parent) :
-    QDialog(parent),
+    QWidget(parent),
     ui(new Ui::ChartWindow)
 {
     ui->setupUi(this);
