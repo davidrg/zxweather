@@ -94,10 +94,10 @@ void ChartOptionsDialog::checkAndAccept() {
 void ChartOptionsDialog::dateChanged() {
     if (ui->rbTCustom->isChecked()) {
         ui->startTime->setEnabled(true);
-        ui->startTime->setEnabled(true);
+        ui->endTime->setEnabled(true);
     } else {
         ui->startTime->setEnabled(false);
-        ui->startTime->setEnabled(false);
+        ui->endTime->setEnabled(false);
     }
 }
 
@@ -146,8 +146,8 @@ QDateTime ChartOptionsDialog::getEndTime() {
         return time;
     } else if (ui->rbTThisMonth->isChecked()) {
         QDate date(year,month,1);
-        date.addMonths(1);
-        date.addDays(-1);
+        date = date.addMonths(1);
+        date = date.addDays(-1);
         time.setDate(date);
         return time;
     } else if (ui->rbTThisYear->isChecked()) {
