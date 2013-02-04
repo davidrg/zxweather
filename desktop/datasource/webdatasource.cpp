@@ -1,11 +1,13 @@
 #include "webdatasource.h"
 #include "constants.h"
 #include "settings.h"
+#include "json/json.h"
 
 #include <QMessageBox>
 #include <QStringList>
 #include <QNetworkRequest>
 #include <QNetworkDiskCache>
+#include <QVariantMap>
 #include <QtDebug>
 #include <float.h>
 
@@ -15,11 +17,19 @@
 #define SET_MIN(field) if (temp < field) field = temp;
 #define SET_MAX(field) if (temp > field) field = temp;
 
-WebDataSource::WebDataSource(QString baseURL, QWidget *parentWidget, QObject *parent) :
+
+QStringList getURLList(
+        QString baseURL, QDateTime startTime, QDateTime endTime,
+        QStringList* dataSetQueue);
+
+WebDataSource::WebDataSource(QString baseURL, QString stationCode, QWidget *parentWidget, QObject *parent) :
     AbstractDataSource(parent)
 {
     this->baseURL = baseURL;
+    this->stationCode = stationCode;
     this->parentWidget = parentWidget;
+
+    rangeRequest = false;
 
     netAccessManager.reset(new QNetworkAccessManager(this));
     connect(netAccessManager.data(), SIGNAL(finished(QNetworkReply*)),
@@ -143,6 +153,14 @@ void WebDataSource::processData() {
 
     progressDialog->setValue(progressDialog->value() + 1);
     progressDialog->setLabelText("Draw...");
+
+
+    if (!failedDataSets.isEmpty())
+        QMessageBox::warning(0,
+            "Data sets failed to download",
+            "The following data sets failed to download:\n" + failedDataSets.join("\n"));
+
+
     emit samplesReady(samples);
     progressDialog->reset();
 }
@@ -163,35 +181,73 @@ void WebDataSource::downloadNextDataSet() {
     netAccessManager->get(request);
 }
 
+void WebDataSource::rangeRequestResult(QString data) {
+    rangeRequest = false;
+    using namespace QtJson;
+
+    bool ok;
+
+    QVariantMap result = Json::parse(data, ok).toMap();
+
+    if (!ok) {
+        QMessageBox::warning(0, "Error","JSON parsing failed for timestamp range request");
+        return;
+    }
+
+    minTimestamp = QDateTime::fromString(result["oldest"].toString(), Qt::ISODate);
+    maxTimestamp = QDateTime::fromString(result["latest"].toString(), Qt::ISODate);
+
+    // Clip request range if it falls outside the valid range.
+    if (start < minTimestamp) start = minTimestamp;
+    if (end > maxTimestamp) end = maxTimestamp;
+
+    urlQueue = getURLList(baseURL + "b/" + stationCode + "/", start, end, &dataSetQueue);
+    progressDialog->setValue(0);
+    progressDialog->setRange(0, urlQueue.count() +1);
+
+    downloadNextDataSet();
+}
 
 void WebDataSource::dataReady(QNetworkReply* reply) {
     qDebug() << "Data ready";
 
     if (reply->error() != QNetworkReply::NoError) {
-        QMessageBox::warning(NULL, "Download failed", reply->errorString());
-        progressDialog->reset();
-        dataSetQueue.clear();
-        urlQueue.clear();
+
+        if (reply->error() != QNetworkReply::ContentNotFoundError || rangeRequest) {
+            QMessageBox::warning(NULL, "Download failed", reply->errorString());
+            progressDialog->reset();
+            dataSetQueue.clear();
+            urlQueue.clear();
+            return;
+        } else {
+            failedDataSets.append(reply->request().url().toString());
+        }
     } else if (progressDialog->wasCanceled()) {
         progressDialog->reset();
         dataSetQueue.clear();
         urlQueue.clear();
+        return;
+    } else if (rangeRequest){
+        // Range request response succeeded. Process it.
+        rangeRequestResult(reply->readAll());
+        return;
     } else {
-
+        // Data response succeeded. Process the data.
         while(!reply->atEnd()) {
             QString line = reply->readLine();
             if (!line.startsWith("#"))
                 allData.append(line.trimmed());
         }
+    }
 
-        progressDialog->setValue(progressDialog->value() + 1);
-        if(urlQueue.isEmpty()) {
-            // Finished downloading everything.
-            processData();
-        } else {
-            // Still more to download.
-            downloadNextDataSet();
-        }
+    // Request more data if there is any to request
+    progressDialog->setValue(progressDialog->value() + 1);
+    if(urlQueue.isEmpty()) {
+        // Finished downloading everything.
+        processData();
+    } else {
+        // Still more to download.
+        downloadNextDataSet();
     }
 }
 
@@ -258,11 +314,12 @@ void WebDataSource::fetchSamples(QDateTime startTime, QDateTime endTime) {
 
     progressDialog.reset(new QProgressDialog(parentWidget));
     progressDialog->setWindowTitle("Downloading data sets...");
-
-    urlQueue = getURLList(baseURL, startTime, endTime, &dataSetQueue);
-    progressDialog->setValue(0);
-    progressDialog->setRange(0, urlQueue.count() +1);
     progressDialog->show();
 
-    downloadNextDataSet();
+    QNetworkRequest request;
+    request.setUrl(QUrl(baseURL + "data/" + stationCode + "/samplerange.json"));
+    request.setRawHeader("User-Agent", Constants::USER_AGENT);
+
+    rangeRequest = true;
+    netAccessManager->get(request);
 }

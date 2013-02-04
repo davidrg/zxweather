@@ -15,7 +15,7 @@ class WebDataSource : public AbstractDataSource
     Q_OBJECT
 public:
     explicit WebDataSource(
-            QString baseURL, QWidget* parentWidget = 0, QObject *parent = 0);
+            QString baseURL, QString stationCode, QWidget* parentWidget = 0, QObject *parent = 0);
     
     void fetchSamples(
             QDateTime startTime,
@@ -26,6 +26,7 @@ private slots:
 
 private:
     QString baseURL;
+    QString stationCode;
 
     QStringList urlQueue;
     QStringList dataSetQueue;
@@ -34,12 +35,20 @@ private:
     QDateTime start;
     QDateTime end;
 
+    QDateTime minTimestamp;
+    QDateTime maxTimestamp;
+
     QWidget* parentWidget;
     QScopedPointer<QProgressDialog> progressDialog;
     QScopedPointer<QNetworkAccessManager> netAccessManager;
 
+    QStringList failedDataSets;
+
     void downloadNextDataSet();
     void processData();
+    void rangeRequestResult(QString data);
+
+    bool rangeRequest;
 };
 
 #endif // WEBDATASOURCE_H

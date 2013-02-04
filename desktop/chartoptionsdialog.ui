@@ -197,6 +197,9 @@
         <property name="enabled">
          <bool>false</bool>
         </property>
+        <property name="displayFormat">
+         <string>d/M/yyyy h:mm:ss AP</string>
+        </property>
        </widget>
       </item>
       <item row="5" column="2">
@@ -219,6 +222,9 @@
        <widget class="QDateTimeEdit" name="endTime">
         <property name="enabled">
          <bool>false</bool>
+        </property>
+        <property name="displayFormat">
+         <string>d/M/yyyy h:mm:ss AP</string>
         </property>
        </widget>
       </item>
