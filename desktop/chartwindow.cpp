@@ -12,7 +12,7 @@ ChartWindow::ChartWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    dataSource.reset(new WebDataSource("http://localhost:8080/b/rua/", this, this));
+    dataSource.reset(new WebDataSource("http://localhost:8080/", "rua", this, this));
 
     connect(ui->pbRefresh, SIGNAL(clicked()), this, SLOT(refresh()));
     connect(ui->saveButton, SIGNAL(clicked()), this, SLOT(save()));
