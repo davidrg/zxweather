@@ -76,6 +76,11 @@ protected slots:
      */
     void loadSettings();
     
+    /** Called when one of the data source radio buttons is clicked.
+     * It updates the data sources which are enabled.
+     */
+    void dataSourceChanged();
+
 private:
     Ui::SettingsDialog *ui;
 };

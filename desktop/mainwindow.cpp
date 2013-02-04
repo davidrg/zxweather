@@ -83,7 +83,7 @@ MainWindow::MainWindow(QWidget *parent) :
     qDebug() << "Read settings and connect...";
     readSettings();
 
-    if (Settings::getInstance().stationName().isEmpty()) {
+    if (Settings::getInstance().stationCode().isEmpty()) {
         // We're probably migrating settings from v0.1.
         QMessageBox::information(this, "Bad configuration", "The station name has not been configured. You will now be shown the settings dialog.");
         showSettings();

@@ -38,15 +38,27 @@ namespace SettingsKey {
     /** Settings about where to get data from.
      */
     namespace DataSource {
-        const QString TYPE = "DataSource/type";
+        const QString LIVE_TYPE = "DataSource/type";
+        const QString SAMPLE_TYPE = "DataSource/sample_type";
         const QString URL = "DataSource/url";
+        const QString STATION_NAME = "DataSource/station_code";
         namespace Database {
             const QString NAME = "DataSource/Database/name";
             const QString HOST_NAME = "DataSource/Database/hostname";
             const QString PORT = "DataSource/Database/port";
             const QString USERNAME = "DataSource/Database/username";
             const QString PASSWORD = "DataSource/Database/password";
-            const QString STATION_NAME = "DataSource/Database/station";
+
+            /* This is where v0.2 stored it. As it is used for the web
+             * interface and server data source types as well it was moved
+             * directly under DataSource in zxweather v1.0.
+             */
+            const QString STATION_NAME_LEGACY = "DataSource/Database/station";
+        }
+
+        namespace Server {
+            const QString HOST_NAME = "DataSource/Server/hostname";
+            const QString PORT = "DataSource/Server/port";
         }
     }
 
@@ -60,7 +72,7 @@ namespace SettingsKey {
         const QString FIRST_RUN = "SingleShot/first_run";
     }
 
-    /** Where zxweather desktop v1.0 stored database settings. Versions 1.1
+    /** Where zxweather desktop v0.1 stored database settings. Versions 0.2
      * and up delete the key in here and replace it with one of the new
      * /DataSource/Database/ ones when ever that setting is written.
      */
@@ -113,7 +125,43 @@ bool Settings::closeToSysTray() {
 }
 
 /* Data Source */
-void Settings::setDataSourceType(Settings::data_source_type_t type) {
+void Settings::setLiveDataSourceType(Settings::data_source_type_t type) {
+    int val = 0;
+
+    switch(type) {
+    case DS_TYPE_SERVER:
+        val = 2;
+        break;
+    case DS_TYPE_WEB_INTERFACE:
+        val = 1;
+        break;
+    case DS_TYPE_DATABASE:
+    default:
+        val = 0;
+    }
+
+    settings->setValue(SettingsKey::DataSource::LIVE_TYPE, val);
+}
+
+Settings::data_source_type_t Settings::liveDataSourceType() {
+
+    int val = settings->value(SettingsKey::DataSource::LIVE_TYPE,
+                              Settings::DS_TYPE_DATABASE).toInt();
+
+    switch (val) {
+    case 2:
+        return Settings::DS_TYPE_SERVER;
+        break;
+    case 1:
+        return Settings::DS_TYPE_WEB_INTERFACE;
+        break;
+    case 0:
+    default:
+        return Settings::DS_TYPE_DATABASE;
+    }
+}
+
+void Settings::setSampleDataSourceType(Settings::data_source_type_t type) {
     int val = 0;
 
     switch(type) {
@@ -125,12 +173,12 @@ void Settings::setDataSourceType(Settings::data_source_type_t type) {
         val = 0;
     }
 
-    settings->setValue(SettingsKey::DataSource::TYPE, val);
+    settings->setValue(SettingsKey::DataSource::SAMPLE_TYPE, val);
 }
 
-Settings::data_source_type_t Settings::dataSourceType() {
+Settings::data_source_type_t Settings::sampleDataSourceType() {
 
-    int val = settings->value(SettingsKey::DataSource::TYPE,
+    int val = settings->value(SettingsKey::DataSource::SAMPLE_TYPE,
                               Settings::DS_TYPE_DATABASE).toInt();
 
     switch (val) {
@@ -143,12 +191,18 @@ Settings::data_source_type_t Settings::dataSourceType() {
     }
 }
 
-void Settings::setUrl(QString url) {
+
+
+
+void Settings::setWebInterfaceUrl(QString url) {
     settings->setValue(SettingsKey::DataSource::URL, url);
 }
 
-QString Settings::url() {
-    return settings->value(SettingsKey::DataSource::URL).toString();
+QString Settings::webInterfaceUrl() {
+    QString result = settings->value(SettingsKey::DataSource::URL).toString();
+    if (!result.endsWith("/"))
+        result.append("/");
+    return result;
 }
 
 void Settings::setDatabaseName(QString dbName) {
@@ -226,12 +280,45 @@ QString Settings::databasePassword() {
     return val.toString();
 }
 
-void Settings::setStationName(QString name) {
-    settings->setValue(SettingsKey::DataSource::Database::STATION_NAME, name);
+void Settings::setServerHostname(QString hostname) {
+    settings->setValue(SettingsKey::DataSource::Server::HOST_NAME, hostname);
 }
 
-QString Settings::stationName() {
-    return settings->value(SettingsKey::DataSource::Database::STATION_NAME,"").toString();
+QString Settings::serverHostname() {
+    return settings->value(SettingsKey::DataSource::Server::HOST_NAME, "").toString();
+}
+
+void Settings::setServerPort(int port) {
+    settings->setValue(SettingsKey::DataSource::Server::PORT, port);
+}
+
+int Settings::serverPort() {
+    return settings->value(SettingsKey::DataSource::Server::PORT, 0).toInt();
+}
+
+
+void Settings::setStationCode(QString name) {
+    settings->setValue(SettingsKey::DataSource::STATION_NAME, name);
+}
+
+QString Settings::stationCode() {
+    QString result = settings->value(
+                SettingsKey::DataSource::STATION_NAME,"").toString();
+
+    // If it can't be found in the normal place try the old v0.2 location
+    if (result.isEmpty()) {
+        result = settings->value(
+                    SettingsKey::DataSource::Database::STATION_NAME_LEGACY,
+                    "").toString();
+
+        if (!result.isEmpty()) {
+            // Move it to the new location
+            setStationCode(result);
+            settings->remove(SettingsKey::DataSource::Database::STATION_NAME_LEGACY);
+        }
+    }
+
+    return result;
 }
 
 void Settings::setSingleShotMinimiseToSysTray() {
