@@ -58,6 +58,14 @@ ChartWindow::ChartWindow(QWidget *parent) :
         ui->startTime->setDateTime(options.getStartTime());
         ui->endTime->setDateTime(options.getEndTime());
         chartType = options.getChartType();
+
+        if (chartType == ChartOptionsDialog::Temperature)
+            setWindowTitle("Temperature Chart");
+        else if (chartType == ChartOptionsDialog::Humidity)
+            setWindowTitle("Humidity Chart");
+        else if (chartType == ChartOptionsDialog::Pressure)
+            setWindowTitle("Pressure Chart");
+
         refresh();
     }
 }
