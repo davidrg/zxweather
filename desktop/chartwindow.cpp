@@ -6,6 +6,7 @@
 
 #include <QFileDialog>
 #include <QtDebug>
+#include <QPen>
 
 ChartWindow::ChartWindow(QWidget *parent) :
     QWidget(parent),
@@ -82,6 +83,8 @@ void ChartWindow::refresh() {
 
 void ChartWindow::samplesReady(SampleSet samples) {
 
+    ChartColours colours = Settings::getInstance().getChartColours();
+
     qDebug() << "Samples: " << samples.sampleCount;
 
     ui->chart->clearGraphs();
@@ -98,27 +101,35 @@ void ChartWindow::samplesReady(SampleSet samples) {
         if (column == COL_TEMPERATURE) {
             graph->setData(samples.timestamp, samples.temperature);
             graph->setName("Temperature");
+            graph->setPen(QPen(colours.temperature));
         } else if (column == COL_TEMPERATURE_INDOORS) {
             graph->setData(samples.timestamp, samples.indoorTemperature);
             graph->setName("Indoor Temperature");
+            graph->setPen(QPen(colours.indoorTemperature));
         } else if (column == COL_APPARENT_TEMPERATURE) {
             graph->setData(samples.timestamp, samples.apparentTemperature);
             graph->setName("Apparent Temperature");
+            graph->setPen(QPen(colours.apparentTemperature));
         } else if (column == COL_WIND_CHILL) {
             graph->setData(samples.timestamp, samples.windChill);
             graph->setName("Wind Chill");
+            graph->setPen(QPen(colours.windChill));
         } else if (column == COL_DEW_POINT) {
             graph->setData(samples.timestamp, samples.dewPoint);
             graph->setName("Dew Point");
+            graph->setPen(QPen(colours.dewPoint));
         } else if (column == COL_HUMIDITY) {
             graph->setData(samples.timestamp, samples.humidity);
             graph->setName("Humidity");
+            graph->setPen(QPen(colours.humidity));
         } else if (column == COL_HUMIDITY_INDOORS) {
             graph->setData(samples.timestamp, samples.indoorHumidity);
             graph->setName("Indoor Humidity");
+            graph->setPen(QPen(colours.indoorHumidity));
         } else if (column == COL_PRESSURE) {
             graph->setData(samples.timestamp, samples.pressure);
             graph->setName("Pressure");
+            graph->setPen(QPen(colours.pressure));
         }
     }
 

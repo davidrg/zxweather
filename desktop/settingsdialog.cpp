@@ -103,6 +103,18 @@ void SettingsDialog::writeSettings() {
         settings.setSampleDataSourceType(Settings::DS_TYPE_DATABASE);
     else
         settings.setSampleDataSourceType(Settings::DS_TYPE_WEB_INTERFACE);
+
+    // Charts tab
+    ChartColours colours;
+    colours.apparentTemperature = ui->qcpApparentTemperature->color();
+    colours.dewPoint = ui->qcpDewPoint->color();
+    colours.humidity = ui->qcpHumidity->color();
+    colours.indoorHumidity = ui->qcpIndoorHumidity->color();
+    colours.indoorTemperature = ui->qcpIndoorTemperature->color();
+    colours.pressure = ui->qcpPressure->color();
+    colours.temperature = ui->qcpTemperature->color();
+    colours.windChill = ui->qcpWindChill->color();
+    settings.setChartColours(colours);
 }
 
 void SettingsDialog::loadSettings() {
@@ -137,6 +149,17 @@ void SettingsDialog::loadSettings() {
     } else {
         ui->rbSampleWeb->setChecked(true);
     }
+
+    // Charts tab
+    ChartColours colours = settings.getChartColours();
+    ui->qcpApparentTemperature->setColor(colours.apparentTemperature);
+    ui->qcpDewPoint->setColor(colours.dewPoint);
+    ui->qcpHumidity->setColor(colours.humidity);
+    ui->qcpIndoorHumidity->setColor(colours.indoorHumidity);
+    ui->qcpIndoorTemperature->setColor(colours.indoorTemperature);
+    ui->qcpPressure->setColor(colours.pressure);
+    ui->qcpTemperature->setColor(colours.temperature);
+    ui->qcpWindChill->setColor(colours.windChill);
 
     dataSourceChanged();
 
