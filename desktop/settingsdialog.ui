@@ -14,7 +14,7 @@
    <string>zxweather Settings</string>
   </property>
   <property name="windowIcon">
-   <iconset resource="resources.qrc">
+   <iconset>
     <normaloff>:/icons/settings</normaloff>:/icons/settings</iconset>
   </property>
   <layout class="QGridLayout" name="gridLayout_4">
@@ -428,10 +428,245 @@
        </item>
       </layout>
      </widget>
+     <widget class="QWidget" name="tab_2">
+      <attribute name="title">
+       <string>Charts</string>
+      </attribute>
+      <widget class="QGroupBox" name="groupBox">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>10</y>
+         <width>201</width>
+         <height>291</height>
+        </rect>
+       </property>
+       <property name="title">
+        <string>Colours</string>
+       </property>
+       <layout class="QFormLayout" name="formLayout_4">
+        <item row="0" column="0">
+         <widget class="QLabel" name="label">
+          <property name="text">
+           <string>Temperature</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QtColorButton" name="qcpTemperature">
+          <property name="minimumSize">
+           <size>
+            <width>64</width>
+            <height>23</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>64</width>
+            <height>23</height>
+           </size>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QLabel" name="label_2">
+          <property name="text">
+           <string>Temperature (Indoor)</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QtColorButton" name="qcpIndoorTemperature">
+          <property name="minimumSize">
+           <size>
+            <width>64</width>
+            <height>23</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>64</width>
+            <height>23</height>
+           </size>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="0">
+         <widget class="QLabel" name="label_8">
+          <property name="text">
+           <string>Apparent Temperature</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="1">
+         <widget class="QtColorButton" name="qcpApparentTemperature">
+          <property name="minimumSize">
+           <size>
+            <width>64</width>
+            <height>23</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>64</width>
+            <height>23</height>
+           </size>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="0">
+         <widget class="QLabel" name="label_9">
+          <property name="text">
+           <string>Wind Chill</string>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="1">
+         <widget class="QtColorButton" name="qcpWindChill">
+          <property name="minimumSize">
+           <size>
+            <width>64</width>
+            <height>23</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>64</width>
+            <height>23</height>
+           </size>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
+        <item row="4" column="0">
+         <widget class="QLabel" name="label_10">
+          <property name="text">
+           <string>Dew Point</string>
+          </property>
+         </widget>
+        </item>
+        <item row="4" column="1">
+         <widget class="QtColorButton" name="qcpDewPoint">
+          <property name="minimumSize">
+           <size>
+            <width>64</width>
+            <height>23</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>64</width>
+            <height>23</height>
+           </size>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
+        <item row="5" column="0">
+         <widget class="QLabel" name="label_11">
+          <property name="text">
+           <string>Humidity</string>
+          </property>
+         </widget>
+        </item>
+        <item row="5" column="1">
+         <widget class="QtColorButton" name="qcpHumidity">
+          <property name="minimumSize">
+           <size>
+            <width>64</width>
+            <height>23</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>64</width>
+            <height>23</height>
+           </size>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
+        <item row="6" column="0">
+         <widget class="QLabel" name="label_12">
+          <property name="text">
+           <string>Humidity (Indoor)</string>
+          </property>
+         </widget>
+        </item>
+        <item row="6" column="1">
+         <widget class="QtColorButton" name="qcpIndoorHumidity">
+          <property name="minimumSize">
+           <size>
+            <width>64</width>
+            <height>23</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>64</width>
+            <height>23</height>
+           </size>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
+        <item row="7" column="0">
+         <widget class="QLabel" name="label_13">
+          <property name="text">
+           <string>Pressure</string>
+          </property>
+         </widget>
+        </item>
+        <item row="7" column="1">
+         <widget class="QtColorButton" name="qcpPressure">
+          <property name="minimumSize">
+           <size>
+            <width>64</width>
+            <height>23</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>64</width>
+            <height>23</height>
+           </size>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </widget>
     </widget>
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QtColorButton</class>
+   <extends>QToolButton</extends>
+   <header>qtcolorbutton/qtcolorbutton.h</header>
+  </customwidget>
+ </customwidgets>
  <tabstops>
   <tabstop>databaseLineEdit</tabstop>
   <tabstop>hostnameLineEdit</tabstop>
@@ -443,9 +678,7 @@
   <tabstop>chkMinimiseToSystemTray</tabstop>
   <tabstop>chkCloseToSystemTray</tabstop>
  </tabstops>
- <resources>
-  <include location="resources.qrc"/>
- </resources>
+ <resources/>
  <connections>
   <connection>
    <sender>buttonBox</sender>

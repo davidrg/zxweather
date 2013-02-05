@@ -24,8 +24,22 @@
 #define SETTINGS_H
 
 #include <QObject>
+#include <QColor>
 
 class QSettings;
+
+typedef struct _chart_colours {
+    QColor temperature;
+    QColor indoorTemperature;
+    QColor apparentTemperature;
+    QColor windChill;
+    QColor dewPoint;
+
+    QColor humidity;
+    QColor indoorHumidity;
+
+    QColor pressure;
+} ChartColours;
 
 /** Provides access to application settings. This is a singleton. Call
  * getInstance() to get a reference to the single instance.
@@ -81,6 +95,9 @@ public:
 
     void setStationCode(QString name);
     QString stationCode();
+
+    void setChartColours(ChartColours colours);
+    ChartColours getChartColours();
 
     /* Web data source cache */
     QString dataSetCacheDir() { return "cache/"; }

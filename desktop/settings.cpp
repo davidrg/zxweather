@@ -62,6 +62,19 @@ namespace SettingsKey {
         }
     }
 
+    namespace Colours {
+        namespace Charts {
+            const QString TEMPERATURE = "Colours/Charts/temperature";
+            const QString INDOOR_TEMPERATURE = "Colours/Charts/indoor_temperature";
+            const QString APPARENT_TEMPERATURE = "Colours/Charts/apparent_temperature";
+            const QString WIND_CHILL = "Colours/Charts/wind_chill";
+            const QString DEW_POINT = "Colours/Charts/dew_point";
+            const QString HUMIDITY = "Colours/Charts/humidity";
+            const QString INDOOR_HUMIDITY = "Colours/Charts/indoor_humidity";
+            const QString PRESSURE = "Colours/Charts/pressure";
+        }
+    }
+
     /** For tracking what single-shot events have happened (for example,
      * showing a message to the user the first time the program minimises
      * to the system tray.
@@ -299,6 +312,54 @@ int Settings::serverPort() {
 
 void Settings::setStationCode(QString name) {
     settings->setValue(SettingsKey::DataSource::STATION_NAME, name);
+}
+
+void Settings::setChartColours(ChartColours colours) {
+    settings->setValue(SettingsKey::Colours::Charts::APPARENT_TEMPERATURE,
+                       colours.apparentTemperature);
+    settings->setValue(SettingsKey::Colours::Charts::DEW_POINT,
+                       colours.dewPoint);
+    settings->setValue(SettingsKey::Colours::Charts::HUMIDITY,
+                       colours.humidity);
+    settings->setValue(SettingsKey::Colours::Charts::INDOOR_HUMIDITY,
+                       colours.indoorHumidity);
+    settings->setValue(SettingsKey::Colours::Charts::INDOOR_TEMPERATURE,
+                       colours.indoorTemperature);
+    settings->setValue(SettingsKey::Colours::Charts::PRESSURE,
+                       colours.pressure);
+    settings->setValue(SettingsKey::Colours::Charts::TEMPERATURE,
+                       colours.temperature);
+    settings->setValue(SettingsKey::Colours::Charts::WIND_CHILL,
+                       colours.windChill);
+}
+
+ChartColours Settings::getChartColours() {
+    ChartColours colours;
+    colours.apparentTemperature = settings->value(
+                SettingsKey::Colours::Charts::APPARENT_TEMPERATURE,
+                Qt::darkRed).value<QColor>();
+    colours.dewPoint = settings->value(
+                SettingsKey::Colours::Charts::DEW_POINT,
+                Qt::darkCyan).value<QColor>();
+    colours.humidity = settings->value(
+                SettingsKey::Colours::Charts::HUMIDITY,
+                Qt::darkMagenta).value<QColor>();
+    colours.indoorHumidity = settings->value(
+                SettingsKey::Colours::Charts::INDOOR_HUMIDITY,
+                Qt::darkYellow).value<QColor>();
+    colours.indoorTemperature = settings->value(
+                SettingsKey::Colours::Charts::INDOOR_TEMPERATURE,
+                Qt::darkGreen).value<QColor>();
+    colours.pressure = settings->value(
+                SettingsKey::Colours::Charts::PRESSURE,
+                Qt::black).value<QColor>();
+    colours.temperature = settings->value(
+                SettingsKey::Colours::Charts::TEMPERATURE,
+                Qt::darkBlue).value<QColor>();
+    colours.windChill = settings->value(
+                SettingsKey::Colours::Charts::WIND_CHILL,
+                Qt::darkGray).value<QColor>();
+    return colours;
 }
 
 QString Settings::stationCode() {
