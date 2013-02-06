@@ -4,6 +4,8 @@
 #include <QObject>
 #include <QVector>
 #include <QDateTime>
+#include <QProgressDialog>
+#include <QWidget>
 
 typedef struct _SampleSet {
     unsigned long sampleCount;
@@ -48,7 +50,7 @@ class AbstractDataSource : public QObject
 {
     Q_OBJECT
 public:
-    explicit AbstractDataSource(QObject *parent = 0);
+    explicit AbstractDataSource(QWidget* parentWidget = 0, QObject *parent = 0);
     
     /** Gets all samples for the supplied time range. When the samples have
      * finished downloading the samplesReady signal will be emitted with the
@@ -64,6 +66,9 @@ public:
 
 signals:
     void samplesReady(SampleSet samples);
+
+protected:
+    QScopedPointer<QProgressDialog> progressDialog;
 };
 
 #endif // ABSTRACTDATASOURCE_H

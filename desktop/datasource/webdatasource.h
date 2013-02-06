@@ -38,8 +38,6 @@ private:
     QDateTime minTimestamp;
     QDateTime maxTimestamp;
 
-    QWidget* parentWidget;
-    QScopedPointer<QProgressDialog> progressDialog;
     QScopedPointer<QNetworkAccessManager> netAccessManager;
 
     QStringList failedDataSets;

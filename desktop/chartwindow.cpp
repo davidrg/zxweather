@@ -3,6 +3,7 @@
 #include "settings.h"
 
 #include "datasource/webdatasource.h"
+#include "datasource/databasedatasource.h"
 
 #include <QFileDialog>
 #include <QtDebug>
@@ -16,7 +17,11 @@ ChartWindow::ChartWindow(QWidget *parent) :
     ui->setupUi(this);
 
     Settings& settings = Settings::getInstance();
-    dataSource.reset(new WebDataSource(settings.webInterfaceUrl(), settings.stationCode(), this, this));
+
+    if (settings.sampleDataSourceType() == Settings::DS_TYPE_DATABASE)
+        dataSource.reset(new DatabaseDataSource(this, this));
+    else
+        dataSource.reset(new WebDataSource(settings.webInterfaceUrl(), settings.stationCode(), this, this));
 
     connect(ui->pbRefresh, SIGNAL(clicked()), this, SLOT(refresh()));
     connect(ui->saveButton, SIGNAL(clicked()), this, SLOT(save()));

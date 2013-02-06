@@ -33,6 +33,9 @@
 #include <QDateTime>
 #include <QMessageBox>
 
+#include <QSqlDatabase>
+#include <QSqlError>
+#include <QSqlQuery>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -90,8 +93,127 @@ MainWindow::MainWindow(QWidget *parent) :
     }
     else {
         ui->liveData->reconfigureDataSource();
+        reconnectDatabase();
     }
 }
+
+int MainWindow::getDatabaseVersion() {
+    QSqlQuery query("select * "
+                    "from information_schema.tables "
+                    "where table_schema = 'public' "
+                    "  and table_name = 'db_info'");
+    if (!query.isActive()) {
+        return -1;
+    } else if (query.size() == 1){
+        // It is at least a v2 (zxweather 0.2) schema.
+        query.exec("select v::integer "
+                   "from DB_INFO "
+                   "where k = 'DB_VERSION'");
+        if (!query.isActive() || query.size() != 1) {
+            return -1;
+        } else {
+            query.first();
+            return query.value(0).toInt();
+        }
+    }
+
+    return 1;
+}
+
+void MainWindow::databaseCompatibilityChecks() {
+    int version = getDatabaseVersion();
+    qDebug() << "Schema version:" << version;
+    if (version == -1) {
+        qDebug() << "Bad schema version.";
+        QMessageBox::warning(this, "Database Error",
+                             "Unable to determine database version. "
+                             "Charting functions will not be available.");
+        ui->actionCharts->setEnabled(false);
+        QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
+    } else if (version > 1) {
+        qDebug() << "V2+ database.";
+
+        // Check that this version of the desktop client hasn't been
+        // blacklisted by the database.
+        QSqlQuery query("select version_check('desktop',1,0,0)");
+        if (!query.isActive()) {
+            QMessageBox::warning(this, "Warning",
+                                 "Unable to determine database compatibility."
+                                 " This application may not function "
+                                 "correctly with the configured database.");
+        } else {
+            query.first();
+            if (!query.value(0).toBool()) {
+
+                QString version = "";
+                query.exec("select minimum_version_string('desktop')");
+                if (query.isActive()) {
+                    query.first();
+                    version = " Please upgrade to at least version " +
+                            query.value(0).toString() + ".";
+                }
+
+                QMessageBox::warning(this, "Database Incompatible",
+                                     "The configured database is incompatible "
+                                     "with this version of the zxweather "
+                                     "desktop client." + version + " Database"
+                                     " functionality will be disabled.");
+                QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
+                ui->actionCharts->setEnabled(false);
+            }
+        }
+    }
+}
+
+void MainWindow::reconnectDatabase() {
+    Settings& settings = Settings::getInstance();
+
+    // Just in case the database connection failed (causing it to be disabled)
+    // and then the user switched to the web data source:
+    ui->actionCharts->setEnabled(true);
+
+    // Now check if we actually need to connect to a database.
+    if (settings.sampleDataSourceType() != Settings::DS_TYPE_DATABASE) {
+        qDebug() << "Database disabled.";
+
+        // Disconnect from the database if it was connected.
+        QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
+
+        return;
+    }
+
+    qDebug() << "Primary database connect...";
+
+    if (QSqlDatabase::drivers().contains("QPSQL")) {
+        QSqlDatabase db = QSqlDatabase::addDatabase("QPSQL");
+        db.setHostName(settings.databaseHostName());
+        db.setPort(settings.databasePort());
+        db.setDatabaseName(settings.databaseName());
+        db.setUserName(settings.databaseUsername());
+        db.setPassword(settings.databasePassword());
+
+        bool ok = db.open();
+        if (!ok) {
+            qDebug() << "Connect failed: " + db.lastError().driverText();
+            QMessageBox::warning(this, "Connect error",
+                                 "Failed to connect to the database. Charting "
+                                 "functions will not be available. The error "
+                                 "was: " + db.lastError().driverText());
+            ui->actionCharts->setEnabled(false);
+        } else {
+            qDebug() << "Connect succeeded. Checking compatibility...";
+            databaseCompatibilityChecks();
+        }
+    } else {
+        qDebug() << QSqlDatabase::drivers();
+        QMessageBox::warning(this, "Driver not found",
+                             "The Qt PostgreSQL database driver was not found."
+                             " Unable to connect to database. Charting "
+                             " functions will not be available.");
+        ui->actionCharts->setEnabled(false);
+    }
+}
+
 
 MainWindow::~MainWindow()
 {
@@ -137,6 +259,7 @@ void MainWindow::showSettings() {
         readSettings();
 
         ui->liveData->reconfigureDataSource();
+        reconnectDatabase();
     }
 }
 
