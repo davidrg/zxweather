@@ -18,14 +18,14 @@ def charts_1_day(cur, dest_dir, day, month, year, station_code):
 
     cur.execute("""select cur.time_stamp::time,
        cur.temperature,
-       cur.dew_point,
-       cur.apparent_temperature,
+       round(cur.dew_point::numeric, 1),
+       round(cur.apparent_temperature::numeric, 1),
        cur.wind_chill,
        cur.relative_humidity,
        cur.absolute_pressure,
        cur.indoor_temperature,
        cur.indoor_relative_humidity,
-       cur.rainfall,
+       round(cur.rainfall::numeric, 1),
        cur.time_stamp::time - (s.sample_interval * '1 minute'::interval) as prev_sample_time,
        CASE WHEN (cur.time_stamp - prev.time_stamp) > ((s.sample_interval * 2) * '1 minute'::interval) THEN
           true
@@ -220,14 +220,14 @@ def charts_7_days(cur, dest_dir, day, month, year, station_code):
     """
     cur.execute("""select s.time_stamp,
        s.temperature,
-       s.dew_point,
-       s.apparent_temperature,
+       round(s.dew_point::numeric, 1),
+       round(s.apparent_temperature::numeric, 1),
        s.wind_chill,
        s.relative_humidity,
        s.absolute_pressure,
        s.indoor_temperature,
        s.indoor_relative_humidity,
-       s.rainfall,
+       round(s.rainfall::numeric, 1),
        s.time_stamp::time - (st.sample_interval * '1 minute'::interval) as prev_sample_time,
        CASE WHEN (s.time_stamp - prev.time_stamp) > ((st.sample_interval * 2) * '1 minute'::interval) THEN
           true

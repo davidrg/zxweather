@@ -17,14 +17,14 @@ def month_charts(cur, dest_dir, month, year, station_code):
 
     cur.execute("""select cur.time_stamp,
        cur.temperature,
-       cur.dew_point,
-       cur.apparent_temperature,
+       round(cur.dew_point::numeric, 1),
+       round(cur.apparent_temperature::numeric, 1),
        cur.wind_chill,
        cur.relative_humidity,
        cur.absolute_pressure,
        cur.indoor_temperature,
        cur.indoor_relative_humidity,
-       cur.rainfall,
+       round(cur.rainfall::numeric, 1),
        cur.time_stamp::time - (s.sample_interval * '1 minute'::interval) as prev_sample_time,
        CASE WHEN (cur.time_stamp - prev.time_stamp) > ((s.sample_interval * 2) * '1 minute'::interval) THEN
           true
