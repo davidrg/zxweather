@@ -22,7 +22,7 @@ public:
     void enableLiveData();
 
 private slots:
-    void notificationPump();
+    void notificationPump(bool force = false);
     void dbError(QString message);
 
 private:
