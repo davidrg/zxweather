@@ -54,7 +54,7 @@ void WebDataSource::processData() {
         QString line = allData.takeFirst();
         QStringList parts = line.split(QRegExp("\\s+"));
 
-        if (parts.count() < 10) continue; // invalid record.
+        if (parts.count() < 11) continue; // invalid record.
 
         // Build timestamp
         QString tsString = parts.takeFirst();
@@ -79,6 +79,7 @@ void WebDataSource::processData() {
     samples.humidity.reserve(size);
     samples.indoorHumidity.reserve(size);
     samples.pressure.reserve(size);
+    samples.rainfall.reserve(size);
 
     samples.minTimeStamp = DBL_MAX;
     samples.maxTimeStamp = DBL_MIN;
@@ -98,7 +99,8 @@ void WebDataSource::processData() {
     samples.maxIndoorHumidity = DBL_MIN;
     samples.minPressure = DBL_MAX;
     samples.maxPressure = DBL_MIN;
-
+    samples.minRainfall = DBL_MAX;
+    samples.maxRainfall = DBL_MIN;
 
     while (!timeStamps.isEmpty()) {
         double temp;
@@ -149,6 +151,11 @@ void WebDataSource::processData() {
         samples.indoorHumidity.append(temp);
         SET_MIN(samples.minIndoorHumidity);
         SET_MAX(samples.maxIndoorHumidity);
+
+        temp = values.takeFirst().toDouble();
+        samples.rainfall.append(temp);
+        SET_MIN(samples.minRainfall);
+        SET_MAX(samples.maxRainfall)
     }
 
     progressDialog->setValue(progressDialog->value() + 1);

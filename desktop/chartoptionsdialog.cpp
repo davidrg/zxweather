@@ -14,6 +14,7 @@ ChartOptionsDialog::ChartOptionsDialog(QWidget *parent) :
     connect(ui->rbCtTemperature, SIGNAL(clicked()), this, SLOT(typeChanged()));
     connect(ui->rbCtHumidity, SIGNAL(clicked()), this, SLOT(typeChanged()));
     connect(ui->rbCtPressure, SIGNAL(clicked()), this, SLOT(typeChanged()));
+    connect(ui->rbCtRainfall, SIGNAL(clicked()), this, SLOT(typeChanged()));
 
     // Time ranges
     connect(ui->rbTCustom, SIGNAL(clicked()), this, SLOT(dateChanged()));
@@ -40,7 +41,10 @@ void ChartOptionsDialog::typeChanged() {
     ui->cbIndoorTemperature->setEnabled(false);
     ui->cbTemperature->setEnabled(false);
     ui->cbWindChill->setEnabled(false);
+
     ui->cbPressure->setChecked(false);
+    ui->cbRainfall->setChecked(false);
+
 
     if (ui->rbCtTemperature->isChecked()) {
         ui->cbApparentTemperature->setEnabled(true);
@@ -55,6 +59,9 @@ void ChartOptionsDialog::typeChanged() {
         // Don't bother enabling pressure - it always has to be checked if
         // we're plotting pressure.
         ui->cbPressure->setChecked(true);
+    } else if (ui->rbCtRainfall->isChecked()) {
+        // Don't bother enabling rainfall for the same reasons as pressure.
+        ui->cbRainfall->setChecked(true);
     }
 
 }
@@ -80,6 +87,8 @@ void ChartOptionsDialog::checkAndAccept() {
             columns.append(COL_HUMIDITY_INDOORS);
     } else if (ui->rbCtPressure->isChecked()) {
         columns.append(COL_PRESSURE);
+    } else if (ui->rbCtRainfall->isChecked()) {
+        columns.append(COL_RAINFALL);
     }
 
     if (columns.isEmpty()) {
@@ -166,6 +175,8 @@ enum ChartOptionsDialog::ChartType ChartOptionsDialog::getChartType() {
         return ChartOptionsDialog::Temperature;
     } else if (ui->rbCtHumidity->isChecked()) {
         return ChartOptionsDialog::Humidity;
+    } else if (ui->rbCtRainfall->isChecked()) {
+        return ChartOptionsDialog::Rainfall;
     }
 
     return ChartOptionsDialog::Pressure;

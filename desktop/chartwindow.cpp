@@ -7,6 +7,7 @@
 #include <QFileDialog>
 #include <QtDebug>
 #include <QPen>
+#include <QBrush>
 
 ChartWindow::ChartWindow(QWidget *parent) :
     QWidget(parent),
@@ -66,7 +67,8 @@ ChartWindow::ChartWindow(QWidget *parent) :
             setWindowTitle("Humidity Chart");
         else if (chartType == ChartOptionsDialog::Pressure)
             setWindowTitle("Pressure Chart");
-
+        else if (chartType == ChartOptionsDialog::Rainfall)
+            setWindowTitle("Rainfall Chart");
         refresh();
     }
 }
@@ -88,6 +90,7 @@ void ChartWindow::samplesReady(SampleSet samples) {
     qDebug() << "Samples: " << samples.sampleCount;
 
     ui->chart->clearGraphs();
+    ui->chart->clearPlottables();
 
     if (chartType == ChartOptionsDialog::Temperature)
         ui->chart->yAxis->setLabel("Temperature (\xB0""C)");
@@ -97,7 +100,10 @@ void ChartWindow::samplesReady(SampleSet samples) {
         ui->chart->yAxis->setLabel("Pressure (hPa)");
 
     foreach (int column, columns) {
-        QCPGraph * graph = ui->chart->addGraph();
+        QCPGraph * graph = NULL;
+//        if (column != COL_RAINFALL)
+            graph = ui->chart->addGraph();
+
         if (column == COL_TEMPERATURE) {
             graph->setData(samples.timestamp, samples.temperature);
             graph->setName("Temperature");
@@ -130,6 +136,22 @@ void ChartWindow::samplesReady(SampleSet samples) {
             graph->setData(samples.timestamp, samples.pressure);
             graph->setName("Pressure");
             graph->setPen(QPen(colours.pressure));
+        } else if (column == COL_RAINFALL) {
+            // How do you plot rainfall data so it doesn't look stupid?
+            // I don't know. Needs to be lower resolution I guess.
+            graph->setData(samples.timestamp, samples.rainfall);
+            graph->setName("Rainfall");
+            graph->setPen(QPen(colours.rainfall));
+            //graph->setLineStyle(QCPGraph::lsNone);
+            //graph->setScatterStyle(QCP::ssCross);
+//            QCPBars *bars = new QCPBars(ui->chart->xAxis, ui->chart->yAxis);
+//            ui->chart->addPlottable(bars);
+//            bars->setData(samples.timestamp, samples.rainfall);
+//            bars->setName("Rainfall");
+//            bars->setPen(QPen(Qt::darkBlue));
+//            bars->setBrush(QBrush(Qt::green));
+//            bars->setWidth(1000);
+            // set pen
         }
     }
 
