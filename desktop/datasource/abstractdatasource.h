@@ -39,6 +39,9 @@ typedef struct _SampleSet {
     QVector<double> pressure;
     double minPressure, maxPressure;
 
+    QVector<double> rainfall;
+    double minRainfall, maxRainfall;
+
 } SampleSet;
 
 class AbstractDataSource : public QObject

@@ -14,7 +14,7 @@
    <string>zxweather Settings</string>
   </property>
   <property name="windowIcon">
-   <iconset>
+   <iconset resource="resources.qrc">
     <normaloff>:/icons/settings</normaloff>:/icons/settings</iconset>
   </property>
   <layout class="QGridLayout" name="gridLayout_4">
@@ -31,7 +31,7 @@
    <item row="0" column="0">
     <widget class="QTabWidget" name="tabWidget">
      <property name="currentIndex">
-      <number>0</number>
+      <number>2</number>
      </property>
      <widget class="QWidget" name="tab">
       <attribute name="title">
@@ -653,6 +653,32 @@
           </property>
          </widget>
         </item>
+        <item row="8" column="0">
+         <widget class="QLabel" name="label_14">
+          <property name="text">
+           <string>Rainfall</string>
+          </property>
+         </widget>
+        </item>
+        <item row="8" column="1">
+         <widget class="QtColorButton" name="qcpRainfall">
+          <property name="minimumSize">
+           <size>
+            <width>64</width>
+            <height>23</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>64</width>
+            <height>23</height>
+           </size>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
        </layout>
       </widget>
      </widget>
@@ -678,7 +704,9 @@
   <tabstop>chkMinimiseToSystemTray</tabstop>
   <tabstop>chkCloseToSystemTray</tabstop>
  </tabstops>
- <resources/>
+ <resources>
+  <include location="resources.qrc"/>
+ </resources>
  <connections>
   <connection>
    <sender>buttonBox</sender>

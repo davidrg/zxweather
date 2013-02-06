@@ -13,6 +13,7 @@
 #define COL_HUMIDITY 6
 #define COL_HUMIDITY_INDOORS 7
 #define COL_PRESSURE 8
+#define COL_RAINFALL 9
 
 namespace Ui {
 class ChartOptionsDialog;
@@ -23,7 +24,7 @@ class ChartOptionsDialog : public QDialog
     Q_OBJECT
     
 public:
-    enum ChartType {Temperature, Humidity, Pressure};
+    enum ChartType {Temperature, Humidity, Pressure, Rainfall};
 
     explicit ChartOptionsDialog(QWidget *parent = 0);
     ~ChartOptionsDialog();

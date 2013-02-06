@@ -39,6 +39,8 @@ typedef struct _chart_colours {
     QColor indoorHumidity;
 
     QColor pressure;
+
+    QColor rainfall;
 } ChartColours;
 
 /** Provides access to application settings. This is a singleton. Call

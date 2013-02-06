@@ -72,6 +72,7 @@ namespace SettingsKey {
             const QString HUMIDITY = "Colours/Charts/humidity";
             const QString INDOOR_HUMIDITY = "Colours/Charts/indoor_humidity";
             const QString PRESSURE = "Colours/Charts/pressure";
+            const QString RAINFALL = "Colors/Charts/rainfall";
         }
     }
 
@@ -331,6 +332,8 @@ void Settings::setChartColours(ChartColours colours) {
                        colours.temperature);
     settings->setValue(SettingsKey::Colours::Charts::WIND_CHILL,
                        colours.windChill);
+    settings->setValue(SettingsKey::Colours::Charts::RAINFALL,
+                       colours.rainfall);
 }
 
 ChartColours Settings::getChartColours() {
@@ -359,6 +362,9 @@ ChartColours Settings::getChartColours() {
     colours.windChill = settings->value(
                 SettingsKey::Colours::Charts::WIND_CHILL,
                 Qt::darkGray).value<QColor>();
+    colours.rainfall = settings->value(
+                SettingsKey::Colours::Charts::RAINFALL,
+                Qt::blue).value<QColor>();
     return colours;
 }
 

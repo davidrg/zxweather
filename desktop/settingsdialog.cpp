@@ -114,6 +114,7 @@ void SettingsDialog::writeSettings() {
     colours.pressure = ui->qcpPressure->color();
     colours.temperature = ui->qcpTemperature->color();
     colours.windChill = ui->qcpWindChill->color();
+    colours.rainfall = ui->qcpRainfall->color();
     settings.setChartColours(colours);
 }
 
@@ -160,8 +161,7 @@ void SettingsDialog::loadSettings() {
     ui->qcpPressure->setColor(colours.pressure);
     ui->qcpTemperature->setColor(colours.temperature);
     ui->qcpWindChill->setColor(colours.windChill);
+    ui->qcpRainfall->setColor(colours.rainfall);
 
     dataSourceChanged();
-
-
 }
