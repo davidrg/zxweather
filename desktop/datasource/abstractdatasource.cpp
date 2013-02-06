@@ -1,6 +1,7 @@
 #include "abstractdatasource.h"
 
-AbstractDataSource::AbstractDataSource(QObject *parent) :
+AbstractDataSource::AbstractDataSource(QWidget *parentWidget, QObject *parent) :
     QObject(parent)
 {
+    progressDialog.reset(new QProgressDialog(parentWidget));
 }

@@ -34,7 +34,7 @@ private slots:
 
 private:
     Ui::ChartWindow *ui;
-    QScopedPointer<WebDataSource> dataSource;
+    QScopedPointer<AbstractDataSource> dataSource;
     QList<int> columns;
     enum ChartOptionsDialog::ChartType chartType;
 };

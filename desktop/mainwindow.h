@@ -120,6 +120,10 @@ private:
     bool close_to_systray;
 
     void readSettings();
+
+    int getDatabaseVersion();
+    void databaseCompatibilityChecks();
+    void reconnectDatabase();
 };
 
 #endif // MAINWINDOW_H

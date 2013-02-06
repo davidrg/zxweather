@@ -144,7 +144,6 @@ QDateTime ChartOptionsDialog::getEndTime() {
     int month = time.date().month();
 
     if (ui->rbTToday->isChecked()) {
-        qDebug() << time;
         return time;
     } else if (ui->rbTYesterday->isChecked()) {
         time.setDate(time.date().addDays(-1));

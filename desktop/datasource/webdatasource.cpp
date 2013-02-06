@@ -23,11 +23,10 @@ QStringList getURLList(
         QStringList* dataSetQueue);
 
 WebDataSource::WebDataSource(QString baseURL, QString stationCode, QWidget *parentWidget, QObject *parent) :
-    AbstractDataSource(parent)
+    AbstractDataSource(parentWidget, parent)
 {
     this->baseURL = baseURL;
     this->stationCode = stationCode;
-    this->parentWidget = parentWidget;
 
     rangeRequest = false;
 
@@ -319,7 +318,6 @@ void WebDataSource::fetchSamples(QDateTime startTime, QDateTime endTime) {
     start = startTime;
     end = endTime;
 
-    progressDialog.reset(new QProgressDialog(parentWidget));
     progressDialog->setWindowTitle("Downloading data sets...");
     progressDialog->show();
 
