@@ -213,6 +213,7 @@ void DatabaseDataSource::connectToDB() {
                      password.toAscii().constData(),
                      station.toAscii().constData())) {
         notificationTimer->start();
+        notificationPump();
     }
 }
 
@@ -265,5 +266,6 @@ void DatabaseDataSource::notificationPump() {
 }
 
 void DatabaseDataSource::enableLiveData() {
+    connectToDB();
     notificationTimer->start();
 }
