@@ -13,11 +13,6 @@
 
 // TODO: make the progress dialog cancel button work.
 
-
-#define SET_MIN(field) if (temp < field) field = temp;
-#define SET_MAX(field) if (temp > field) field = temp;
-
-
 QStringList getURLList(
         QString baseURL, QDateTime startTime, QDateTime endTime,
         QStringList* dataSetQueue);
@@ -80,81 +75,20 @@ void WebDataSource::processData() {
     samples.pressure.reserve(size);
     samples.rainfall.reserve(size);
 
-    samples.minTimeStamp = DBL_MAX;
-    samples.maxTimeStamp = DBL_MIN;
-    samples.minTemperature = DBL_MAX;
-    samples.maxTemperature = DBL_MIN;
-    samples.minDewPoint = DBL_MAX;
-    samples.maxDewPoint = DBL_MIN;
-    samples.minApparentTemperature = DBL_MAX;
-    samples.maxApparentTemperature = DBL_MIN;
-    samples.minWindChill = DBL_MAX;
-    samples.maxWindChill = DBL_MIN;
-    samples.minIndoorTemperature = DBL_MAX;
-    samples.maxIndoorTemperature = DBL_MIN;
-    samples.minHumidity = DBL_MAX;
-    samples.maxHumiditiy = DBL_MIN;
-    samples.minIndoorHumidity = DBL_MAX;
-    samples.maxIndoorHumidity = DBL_MIN;
-    samples.minPressure = DBL_MAX;
-    samples.maxPressure = DBL_MIN;
-    samples.minRainfall = DBL_MAX;
-    samples.maxRainfall = DBL_MIN;
-
     while (!timeStamps.isEmpty()) {
-        double temp;
-
-        temp = timeStamps.takeFirst().toTime_t();
-        samples.timestamp.append(temp);
-        SET_MIN(samples.minTimeStamp);
-        SET_MAX(samples.maxTimeStamp);
+        samples.timestamp.append(timeStamps.takeFirst().toTime_t());
 
         QStringList values = sampleParts.takeFirst();
 
-        temp = values.takeFirst().toDouble();
-        samples.temperature.append(temp);
-        SET_MIN(samples.minTemperature);
-        SET_MAX(samples.maxTemperature);
-
-        temp = values.takeFirst().toDouble();
-        samples.dewPoint.append(temp);
-        SET_MIN(samples.minDewPoint);
-        SET_MAX(samples.maxDewPoint);
-
-        temp = values.takeFirst().toDouble();
-        samples.apparentTemperature.append(temp);
-        SET_MIN(samples.minApparentTemperature);
-        SET_MAX(samples.maxApparentTemperature);
-
-        temp = values.takeFirst().toDouble();
-        samples.windChill.append(temp);
-        SET_MIN(samples.minWindChill);
-        SET_MAX(samples.maxWindChill);
-
-        temp = values.takeFirst().toDouble();
-        samples.humidity.append(temp);
-        SET_MIN(samples.minHumidity);
-        SET_MAX(samples.maxHumiditiy);
-
-        temp = values.takeFirst().toDouble();
-        samples.pressure.append(temp);
-        SET_MIN(samples.minPressure);
-        SET_MAX(samples.maxPressure);
-
-        temp = values.takeFirst().toDouble();
-        samples.indoorTemperature.append(temp);
-        SET_MIN(samples.minIndoorTemperature);
-        SET_MAX(samples.maxIndoorTemperature);
-
-        temp = values.takeFirst().toDouble();
-        samples.indoorHumidity.append(temp);
-        SET_MIN(samples.minIndoorHumidity);
-        SET_MAX(samples.maxIndoorHumidity);
-
-        temp = values.takeFirst().toDouble();
-        samples.rainfall.append(temp);
-        SET_MIN(samples.minRainfall);
-        SET_MAX(samples.maxRainfall)
+        samples.temperature.append(values.takeFirst().toDouble());
+        samples.dewPoint.append(values.takeFirst().toDouble());
+        samples.apparentTemperature.append(values.takeFirst().toDouble());
+        samples.windChill.append(values.takeFirst().toDouble());
+        samples.humidity.append(values.takeFirst().toDouble());
+        samples.pressure.append(values.takeFirst().toDouble());
+        samples.indoorTemperature.append(values.takeFirst().toDouble());
+        samples.indoorHumidity.append(values.takeFirst().toDouble());
+        samples.rainfall.append(values.takeFirst().toDouble());
     }
 
     progressDialog->setValue(progressDialog->value() + 1);

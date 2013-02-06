@@ -12,38 +12,21 @@ typedef struct _SampleSet {
 
     // Timestamp for each sample
     QVector<double> timestamp;
-    double minTimeStamp, maxTimeStamp;
 
     // Temperature
     QVector<double> temperature;
-    double minTemperature, maxTemperature;
-
     QVector<double> dewPoint;
-    double minDewPoint, maxDewPoint;
-
     QVector<double> apparentTemperature;
-    double minApparentTemperature, maxApparentTemperature;
-
     QVector<double> windChill;
-    double minWindChill, maxWindChill;
-
     QVector<double> indoorTemperature;
-    double minIndoorTemperature, maxIndoorTemperature;
 
     // Humidity
     QVector<double> humidity;
-    double minHumidity, maxHumiditiy;
-
     QVector<double> indoorHumidity;
-    double minIndoorHumidity, maxIndoorHumidity;
 
     // Pressure
     QVector<double> pressure;
-    double minPressure, maxPressure;
-
     QVector<double> rainfall;
-    double minRainfall, maxRainfall;
-
 } SampleSet;
 
 class AbstractDataSource : public QObject
