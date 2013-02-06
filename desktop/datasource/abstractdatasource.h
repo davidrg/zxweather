@@ -7,6 +7,8 @@
 #include <QProgressDialog>
 #include <QWidget>
 
+#include "abstractlivedatasource.h"
+
 typedef struct _SampleSet {
     unsigned long sampleCount;
 
@@ -29,7 +31,7 @@ typedef struct _SampleSet {
     QVector<double> rainfall;
 } SampleSet;
 
-class AbstractDataSource : public QObject
+class AbstractDataSource : public AbstractLiveDataSource2
 {
     Q_OBJECT
 public:

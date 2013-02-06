@@ -21,7 +21,7 @@ ChartWindow::ChartWindow(QWidget *parent) :
     if (settings.sampleDataSourceType() == Settings::DS_TYPE_DATABASE)
         dataSource.reset(new DatabaseDataSource(this, this));
     else
-        dataSource.reset(new WebDataSource(settings.webInterfaceUrl(), settings.stationCode(), this, this));
+        dataSource.reset(new WebDataSource(this, this));
 
     connect(ui->pbRefresh, SIGNAL(clicked()), this, SLOT(refresh()));
     connect(ui->saveButton, SIGNAL(clicked()), this, SLOT(save()));

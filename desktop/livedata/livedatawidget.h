@@ -3,7 +3,7 @@
 
 #include <QWidget>
 #include <QIcon>
-#include "livedatasource.h"
+#include "../datasource/abstractlivedatasource.h"
 
 class QLabel;
 class QGridLayout;
@@ -35,7 +35,7 @@ private slots:
      *
      * @param data The new live data.
      */
-    void liveDataRefreshed();
+    void liveDataRefreshed(LiveDataSet lds);
 
     /** For monitoring live data. This (and the associated time ldTimer) is
      * what pops up warnings when live data is late.
@@ -45,34 +45,17 @@ private slots:
     // Database errors (for use with the database data source)
 
     /**
-     * @brief Called when connecting to the database fails.
-     *
-     * It displays a popup message from the system tray icon containing details
-     * of the problem.
+     * @brief Called when something goes wrong.
      */
-    void connection_failed(QString);
-
-    /**
-     * @brief Called whenever a database error occurs that is not a connection
-     * failure.
-     *
-     * @param message The error message from the database layer.
-     */
-    void unknown_db_error(QString message);
-
-    /** An error from the Json Data Source.
-     *
-     * @param message The error message.
-     */
-    void networkError(QString message);
+    void error(QString);
 
 private:
     void createDatabaseDataSource();
     void createJsonDataSource();
 
-    void refreshUi(AbstractLiveData* data);
-    void refreshSysTrayText(AbstractLiveData *data);
-    void refreshSysTrayIcon(AbstractLiveData *data);
+    void refreshUi(LiveDataSet lds);
+    void refreshSysTrayText(LiveDataSet lds);
+    void refreshSysTrayIcon(LiveDataSet lds);
 
     QLabel* lblRelativeHumidity;
     QLabel* lblTemperature;
@@ -103,7 +86,7 @@ private:
     QString previousSysTrayText;
     QString previousSysTrayIcon;
 
-    QScopedPointer<AbstractLiveDataSource> dataSource;
+    QScopedPointer<AbstractLiveDataSource2> dataSource;
 
     uint seconds_since_last_refresh;
     uint minutes_late;

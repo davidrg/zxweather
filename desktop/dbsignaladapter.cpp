@@ -64,6 +64,9 @@ void DBSignalAdapter::raiseDatabaseError(long sqlcode,
         // Statement Not Yet Complete
     } else if (CHK_SQLSTATE("08")) {
         // Connection Exception
+
+        emit error(sqlerrmc);
+
         if (CHK_CODE("000")) {
             // Connection Exception
             emit connection_exception(sqlerrmc);
@@ -88,6 +91,7 @@ void DBSignalAdapter::raiseDatabaseError(long sqlcode,
         }
     } else {
         // These error classes are not handled specially at the moment.
+        emit error(sqlerrmc);
         emit database_error(sqlerrmc);
 
         if (CHK_SQLSTATE("09")) {

@@ -7,8 +7,8 @@
 #include <QTimer>
 
 #include "settings.h"
-#include "databaselivedatasource.h"
-#include "jsonlivedatasource.h"
+#include "../datasource/webdatasource.h"
+#include "../datasource/databasedatasource.h"
 
 // Turns out I'm lazy.
 #define GRID_ROW(left, right, name) \
@@ -58,33 +58,31 @@ LiveDataWidget::LiveDataWidget(QWidget *parent) :
     connect(ldTimer, SIGNAL(timeout()), this, SLOT(liveTimeout()));
 }
 
-void LiveDataWidget::liveDataRefreshed() {
-    QScopedPointer<AbstractLiveData> data(dataSource->getLiveData());
-
-    refreshUi(data.data());
-    refreshSysTrayText(data.data());
-    refreshSysTrayIcon(data.data());
+void LiveDataWidget::liveDataRefreshed(LiveDataSet lds) {
+    refreshUi(lds);
+    refreshSysTrayText(lds);
+    refreshSysTrayIcon(lds);
 
     seconds_since_last_refresh = 0;
     minutes_late = 0;
 }
 
-void LiveDataWidget::refreshSysTrayText(AbstractLiveData *data) {
+void LiveDataWidget::refreshSysTrayText(LiveDataSet lds) {
     QString iconText, formatString;
 
     // Tool Tip Text
-    if (data->indoorDataAvailable()) {
+    if (lds.indoorDataAvailable) {
         formatString = "Temperature: %1\xB0" "C (%2\xB0" "C inside)\nHumidity: %3% (%4% inside)";
         iconText = formatString
-                .arg(QString::number(data->getTemperature(), 'f', 1),
-                     QString::number(data->getIndoorTemperature(), 'f', 1),
-                     QString::number(data->getRelativeHumidity(), 'f', 1),
-                     QString::number(data->getIndoorRelativeHumidity(), 'f', 1));
+                .arg(QString::number(lds.temperature, 'f', 1),
+                     QString::number(lds.indoorTemperature, 'f', 1),
+                     QString::number(lds.humidity, 'f', 1),
+                     QString::number(lds.indoorHumidity, 'f', 1));
     } else {
         formatString = "Temperature: %1\xB0" "C\nHumidity: %3%";
         iconText = formatString
-                .arg(QString::number(data->getTemperature(), 'f', 1),
-                     QString::number(data->getRelativeHumidity(), 'f', 1));
+                .arg(QString::number(lds.temperature, 'f', 1),
+                     QString::number(lds.humidity, 'f', 1));
     }
 
     if (iconText != previousSysTrayText) {
@@ -93,9 +91,9 @@ void LiveDataWidget::refreshSysTrayText(AbstractLiveData *data) {
     }
 }
 
-void LiveDataWidget::refreshSysTrayIcon(AbstractLiveData *data) {
+void LiveDataWidget::refreshSysTrayIcon(LiveDataSet lds) {
     QString newIcon;
-    if (data->getTemperature() > 0)
+    if (lds.temperature > 0)
         newIcon = ":/icons/systray_icon";
     else
         newIcon = ":/icons/systray_subzero";
@@ -106,116 +104,63 @@ void LiveDataWidget::refreshSysTrayIcon(AbstractLiveData *data) {
     }
 }
 
-void LiveDataWidget::refreshUi(AbstractLiveData* data) {
+void LiveDataWidget::refreshUi(LiveDataSet lds) {
 
     QString formatString, temp;
 
     // Relative Humidity
-    if (data->indoorDataAvailable()) {
+    if (lds.indoorDataAvailable) {
         formatString = "%1% (%2% inside)";
         temp = formatString
-                .arg(QString::number(data->getRelativeHumidity()))
-                .arg(QString::number(data->getIndoorRelativeHumidity()));
+                .arg(QString::number(lds.humidity))
+                .arg(QString::number(lds.indoorHumidity));
     } else {
         formatString = "%1%";
         temp = formatString
-                .arg(QString::number(data->getRelativeHumidity()));
+                .arg(QString::number(lds.humidity));
     }
     lblRelativeHumidity->setText(temp);
 
     // Temperature
-    if (data->indoorDataAvailable()) {
+    if (lds.indoorDataAvailable) {
         formatString = "%1\xB0" "C (%2\xB0" "C inside)";
         temp = formatString
-                .arg(QString::number(data->getTemperature(),'f',1))
-                .arg(QString::number(data->getIndoorTemperature(), 'f', 1));
+                .arg(QString::number(lds.temperature,'f',1))
+                .arg(QString::number(lds.indoorTemperature, 'f', 1));
     } else {
         formatString = "%1\xB0" "C";
         temp = formatString
-                .arg(QString::number(data->getTemperature(),'f',1));
+                .arg(QString::number(lds.temperature,'f',1));
     }
     lblTemperature->setText(temp);
 
-    lblDewPoint->setText(QString::number(data->getDewPoint(), 'f', 1) + "\xB0" "C");
-    lblWindChill->setText(QString::number(data->getWindChill(), 'f', 1) + "\xB0" "C");
+    lblDewPoint->setText(QString::number(lds.dewPoint, 'f', 1) + "\xB0" "C");
+    lblWindChill->setText(QString::number(lds.windChill, 'f', 1) + "\xB0" "C");
     lblApparentTemperature->setText(
-                QString::number(data->getApparentTemperature(), 'f', 1) + "\xB0" "C");
+                QString::number(lds.apparentTemperature, 'f', 1) + "\xB0" "C");
     lblAbsolutePressure->setText(
-                QString::number(data->getAbsolutePressure(), 'f', 1) + " hPa");
+                QString::number(lds.pressure, 'f', 1) + " hPa");
     lblAverageWindSpeed->setText(
-                QString::number(data->getAverageWindSpeed(), 'f', 1) + " m/s");
+                QString::number(lds.windSpeed, 'f', 1) + " m/s");
     lblGustWindSpeed->setText(
-                QString::number(data->getGustWindSpeed(), 'f', 1) + " m/s");
-    lblWindDirection->setText(data->getWindDirection());
-    lblTimestamp->setText(data->getTimestamp().toString("h:mm AP"));
+                QString::number(lds.gustWindSpeed, 'f', 1) + " m/s");
+    lblWindDirection->setText(QString::number(lds.windDirection));
+    lblTimestamp->setText(lds.timestamp.toString("h:mm AP"));
 }
 
 void LiveDataWidget::reconfigureDataSource() {
-    if (Settings::getInstance().liveDataSourceType() == Settings::DS_TYPE_DATABASE)
-        createDatabaseDataSource();
-    else
-        createJsonDataSource();
-}
-
-void LiveDataWidget::createJsonDataSource() {
-
-    Settings& settings = Settings::getInstance();
-
-    QString url = settings.webInterfaceUrl() + "data/" + settings.stationCode() + "/";
-
-    JsonLiveDataSource *jds = new JsonLiveDataSource(url, this);
-    connect(jds, SIGNAL(networkError(QString)),
-            this, SLOT(networkError(QString)));
-    connect(jds, SIGNAL(liveDataRefreshed()),
-            this, SLOT(liveDataRefreshed()));
-
-    dataSource.reset(jds);
-    ldTimer->start();
-}
-
-void LiveDataWidget::createDatabaseDataSource() {
-    Settings& settings = Settings::getInstance();
-    QString dbName = settings.databaseName();
-    QString hostname = settings.databaseHostName();
-    int port = settings.databasePort();
-    QString username = settings.databaseUsername();
-    QString password = settings.databasePassword();
-    QString station = settings.stationCode();
-
-    // Kill the old datasource. The DatabaseDataSource uses named connections
-    // so we can't have two overlaping.
-    if (!dataSource.isNull())
-        delete dataSource.take();
-
-    QScopedPointer<DatabaseLiveDataSource> dds;
-
-    dds.reset(new DatabaseLiveDataSource(dbName,
-                                 hostname,
-                                 port,
-                                 username,
-                                 password,
-                                 station,
-                                 this));
-
-    if (!dds->isConnected()) {
-        return;
+    if (Settings::getInstance().liveDataSourceType() == Settings::DS_TYPE_DATABASE) {
+        dataSource.reset(new DatabaseDataSource(this,this));
+    } else {
+        dataSource.reset(new WebDataSource(this,this));
     }
-
-    connect(dds.data(), SIGNAL(connection_failed(QString)),
-            this, SLOT(connection_failed(QString)));
-    connect(dds.data(), SIGNAL(database_error(QString)),
-            this, SLOT(unknown_db_error(QString)));
-    connect(dds.data(), SIGNAL(liveDataRefreshed()),
-            this, SLOT(liveDataRefreshed()));
-
-    dataSource.reset(dds.take());
+    connect(dataSource.data(), SIGNAL(liveData(LiveDataSet)),
+            this, SLOT(liveDataRefreshed(LiveDataSet)));
+    connect(dataSource.data(), SIGNAL(error(QString)),
+            this, SLOT(error(QString)));
+    dataSource->enableLiveData();
     seconds_since_last_refresh = 0;
     ldTimer->start();
-
-    setWindowTitle("zxweather - " + station);
-
-    // Do an initial refresh so we're not waiting forever with nothing to show
-    liveDataRefreshed();
 }
 
 void LiveDataWidget::liveTimeout() {
@@ -235,18 +180,6 @@ void LiveDataWidget::liveTimeout() {
     }
 }
 
-void LiveDataWidget::connection_failed(QString) {
-    emit warning("Failed to connect to the database",
-                     "Error",
-                     "Database connect failed",
-                     true);
-    ldTimer->stop();
-}
-
-void LiveDataWidget::networkError(QString message) {
-    emit warning(message, "Error", "Network Error", true);
-}
-
-void LiveDataWidget::unknown_db_error(QString message) {
-    emit warning(message, "Database Error", "", false);
+void LiveDataWidget::error(QString message) {
+    emit warning(message, "Error", "", false);
 }
