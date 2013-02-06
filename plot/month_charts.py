@@ -17,13 +17,14 @@ def month_charts(cur, dest_dir, month, year, station_code):
 
     cur.execute("""select cur.time_stamp,
        cur.temperature,
-       cur.dew_point,
-       cur.apparent_temperature,
+       round(cur.dew_point::numeric, 1),
+       round(cur.apparent_temperature::numeric, 1),
        cur.wind_chill,
        cur.relative_humidity,
        cur.absolute_pressure,
        cur.indoor_temperature,
        cur.indoor_relative_humidity,
+       round(cur.rainfall::numeric, 1),
        cur.time_stamp::time - (s.sample_interval * '1 minute'::interval) as prev_sample_time,
        CASE WHEN (cur.time_stamp - prev.time_stamp) > ((s.sample_interval * 2) * '1 minute'::interval) THEN
           true
@@ -50,8 +51,9 @@ order by cur.time_stamp asc""", (date(year,month,1), station_code))
     COL_ABS_PRESSURE = 6
     COL_INDOOR_TEMP = 7
     COL_INDOOR_REL_HUMIDITY = 8
-    COL_PREV_TIMESTAMP = 9
-    COL_PREV_SAMPLE_MISSING = 10
+    COL_RAINFALL = 9
+    COL_PREV_TIMESTAMP = 10
+    COL_PREV_SAMPLE_MISSING = 11
 
     # Fields in the data file for gnuplot. Field numbers start at 1.
     FIELD_TIMESTAMP = COL_TIMESTAMP + 1
@@ -66,12 +68,15 @@ order by cur.time_stamp asc""", (date(year,month,1), station_code))
     FIELD_ABS_PRESSURE = COL_ABS_PRESSURE + 2
     FIELD_INDOOR_TEMP = COL_INDOOR_TEMP + 2
     FIELD_INDOOR_REL_HUMIDITY = COL_INDOOR_REL_HUMIDITY + 2
+    FIELD_RAINFALL = COL_RAINFALL + 2
 
     # Write the data file for gnuplot
     file_data = [
-        '# timestamp  temperature  dew point  apparent temperature  wind chill  relative humidity  absolute pressure  indoor temperature  indoor relative humidity\n']
+        '# timestamp\ttemperature\tdew point\tapparent temperature\twind chill'
+        '\trelative humidity\tabsolute pressure\tindoor temperature'
+        '\tindoor relative humidity\trainfall\n']
 
-    FORMAT_STRING = '{0}        {1}        {2}        {3}        {4}        {5}        {6}        {7}        {8}\n'
+    FORMAT_STRING = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\n'
     for record in weather_data:
         # Handle missing data.
         if record[COL_PREV_SAMPLE_MISSING]:
@@ -86,7 +91,9 @@ order by cur.time_stamp asc""", (date(year,month,1), station_code))
                                               str(record[COL_REL_HUMIDITY]),
                                               str(record[COL_ABS_PRESSURE]),
                                               str(record[COL_INDOOR_TEMP]),
-                                              str(record[COL_INDOOR_REL_HUMIDITY])))
+                                              str(record[COL_INDOOR_REL_HUMIDITY]),
+                                              str(record[COL_RAINFALL])
+        ))
     data_filename = dest_dir + 'gnuplot_data.dat'
     file = open(data_filename, 'w+')
     file.writelines(file_data)

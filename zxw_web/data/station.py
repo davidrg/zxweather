@@ -9,7 +9,7 @@ from web.contrib.template import render_jinja
 from cache import live_data_cache_control
 import config
 from data import daily
-from database import get_years, get_live_data, get_station_id
+from database import get_years, get_live_data, get_station_id, get_latest_sample_timestamp, get_oldest_sample_timestamp
 import os
 
 __author__ = 'David Goodwin'
@@ -69,6 +69,8 @@ class data_json:
             return daily.json_dispatch(station, pass_through_data_sets[dataset], datetime.now().date())
         elif dataset == 'live':
             return live_data(station_id)
+        elif dataset == 'samplerange':
+            return sample_range(station_id)
         else:
             raise web.NotFound()
 
@@ -133,5 +135,20 @@ def live_data(station_id):
         data_ts = datetime.combine(now.date(), data_ts)
         live_data_cache_control(data_ts, station_id)
 
+    web.header('Content-Type', 'application/json')
+    return json.dumps(result)
+
+def sample_range(station_id):
+    """
+    Returns the minimum and maximum sample dates available for the station.
+    :param station_id: Weather station ID
+    :type station_id: int
+    :return: JSON data.
+    """
+
+    latest = str(get_latest_sample_timestamp(station_id))
+    oldest = str(get_oldest_sample_timestamp(station_id))
+
+    result = {"latest": latest, "oldest": oldest}
     web.header('Content-Type', 'application/json')
     return json.dumps(result)

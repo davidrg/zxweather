@@ -280,6 +280,17 @@ def get_latest_sample_timestamp(station_id):
     from sample where station_id = $station""", dict(station=station_id))
     return record[0].time_stamp
 
+def get_oldest_sample_timestamp(station_id):
+    """
+    Gets the timestamp of the least recent sample in the database
+    :param station_id: The ID of the weather station to work with
+    :type station_id: int
+    :return: datetime
+    """
+    record = db.query("""select min(time_stamp) as time_stamp
+        from sample where station_id = $station""", dict(station=station_id))
+    return record[0].time_stamp
+
 def get_live_data(station_id):
     """
     Gets live data from the database. If config.live_data_available is set

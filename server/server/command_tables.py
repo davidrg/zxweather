@@ -298,7 +298,7 @@ base_syntaxes = [
 base_dispatch = {
     "show_user": ShowUserCommand,
     "show_client": ShowClientCommand,
-    "show_session": ShowSessionCommand,
+    "show_session": ShowSessionCommand, # auth
     "show_station": ShowStationCommand,
     "show_live": ShowLiveCommand,
     "show_latest": ShowLatestCommand,
@@ -308,20 +308,21 @@ base_dispatch = {
     "set_terminal": SetTerminalCommand,
     "set_interface": SetInterfaceCommand,
 
-    "list_sessions": ListSessionsCommand,
+    "list_sessions": ListSessionsCommand, # auth
     "list_stations": ListStationsCommand,
 
     "logout": LogoutCommand,
 
     "stream": StreamCommand,
 
-    "upload": UploadCommand,
+    "upload": UploadCommand, # auth
 
-    "test_handler": TestCommand,
+    "test_handler": TestCommand, #auth
 }
 
 # Commands for authenticated users
-authenticated_verb_table = verb_table(base_verbs)
-authenticated_syntax_table = syntax_table(base_syntaxes)
-authenticated_keyword_table = keyword_table(base_keywords)
-authenticated_dispatch_table = base_dispatch
+std_verb_table = verb_table(base_verbs)
+std_syntax_table = syntax_table(base_syntaxes)
+std_keyword_table = keyword_table(base_keywords)
+std_dispatch_table = base_dispatch
+

@@ -281,10 +281,16 @@ class UploadCommand(Command):
 
     def cleanUp(self):
         """  Clean up """
-        self.writeLine("# Finished")
+        if self.exit_message is not None:
+            self.writeLine(self.exit_message)
 
     def main(self):
         """Entry """
+        self.exit_message = "# Finished"
+        if not self.authenticated():
+            self.exit_message = None
+            return
+
         self.auto_exit = False
         self._sample_lock = False
         self._error = False

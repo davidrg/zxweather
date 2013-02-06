@@ -5,17 +5,15 @@ Executes commands sent by remote systems.
 from functools import partial
 import uuid
 import datetime
-from twisted.conch.insults.insults import REVERSE_VIDEO, NORMAL
-from server.command_tables import authenticated_verb_table, \
-    authenticated_syntax_table, authenticated_keyword_table, \
-    authenticated_dispatch_table
+from server.command_tables import  std_verb_table, std_syntax_table, \
+    std_keyword_table, std_dispatch_table
 from server.session import register_session, end_session, update_session
 from server.zxcl.processor import CommandProcessor
 from twisted.conch import   recvline
 
 __author__ = 'david'
 
-TABLE_SET_SHELL_INIT = 0
+TABLE_SET_UNAUTHENTICATED = 1
 TABLE_SET_AUTHENTICATED = 2
 
 TERM_CRT = 0
@@ -27,7 +25,7 @@ class Dispatcher(object):
     and returns it ready for execution by the proper shell.
     """
 
-    def __init__(self, prompter, warning_handler, initial_table_set):
+    def __init__(self, prompter, warning_handler):
         """
         Constructs a new dispatcher.
         :param prompter: Function to prompt for more information with. Takes
@@ -37,31 +35,23 @@ class Dispatcher(object):
         the command processor with. Takes a single parameter: the warning
         message.
         :type warning_handler: callable
-        :param initial_table_set: Initial set of command tables to use. This
-         can be changed later using switch_table_set().
         """
         self.environment = {}
         self.prompter = prompter
         self.warning_handler = warning_handler
-        self.switch_table_set(initial_table_set)
 
         self.environment["term_type"] = TERM_BASIC
         self.environment["ui_coded"] = False
         self.environment["json_mode"] = False
 
-    def switch_table_set(self, table_set):
-        """
-        Switches to an alternate set of command tables.
-        :param table_set: New command set table.
-        """
-        if table_set == TABLE_SET_AUTHENTICATED:
-            self.processor = CommandProcessor(
-                authenticated_verb_table,
-                authenticated_syntax_table,
-                authenticated_keyword_table,
-                self.prompter,
-                self.warning_handler)
-            self.dispatch_table = authenticated_dispatch_table.copy()
+        self.processor = CommandProcessor(
+            std_verb_table,
+            std_syntax_table,
+            std_keyword_table,
+            self.prompter,
+            self.warning_handler)
+        self.dispatch_table = std_dispatch_table.copy()
+
 
 
     def get_command(self, command):
@@ -107,19 +97,11 @@ class Dispatcher(object):
 INPUT_SHELL = 0
 INPUT_COMMAND = 1
 
-
-class ZxweatherShellProtocol(recvline.HistoricRecvLine):
-    """
-    The zxweather shell.
-    """
-
-    ps = ("$ ", "_ ")
-
-    def __init__(self,user):
+class BaseShell(object):
+    def __init__(self, user, protocol):
         self.dispatcher = Dispatcher(
             lambda prompt: self.commandProcessorPrompter(prompt),
-            lambda warning: self.commandProcessorWarning(warning),
-            TABLE_SET_AUTHENTICATED
+            lambda warning: self.commandProcessorWarning(warning)
         )
         self.prompt = ["$ ", "_ "]
         self.prompt_number = 0
@@ -129,20 +111,144 @@ class ZxweatherShellProtocol(recvline.HistoricRecvLine):
 
         self.dispatcher.environment["f_logout"] = lambda: self.logout()
         self.dispatcher.environment["prompt"] = self.prompt
+
         self.sid = str(uuid.uuid1())
         self.dispatcher.environment["sessionid"] = self.sid
-        self.dispatcher.environment["term_mode"] = TERM_CRT
-        self.dispatcher.environment["term_echo"] = True
+
+        # Base shell has no terminal.
+        self.dispatcher.environment["terminal"] = None
+
+        # Configure the environment for interactive or non-interactive use
+        # depending on the protocol name
+        if protocol in ["ssh", "telnet"]:
+            self.dispatcher.environment["term_mode"] = TERM_CRT
+            self.dispatcher.environment["term_echo"] = True
+        else:
+            # If we're not connecting via telnet or ssh the thing at the
+            # other end probably isn't a terminal emulator. Turn everything
+            # off.
+            self.dispatcher.environment["term_mode"] = TERM_BASIC
+            self.dispatcher.environment["term_echo"] = False
+            self.dispatcher.environment["prompt"][0] = "_ok\r\n"
+
+        self.dispatcher.environment["protocol"] = protocol
+
+        if user is None:
+            username = "anonymous"
+            self.dispatcher.environment["authenticated"] = False
+        else:
+            username = user.username
+            self.dispatcher.environment["authenticated"] = True
 
         register_session(
             self.dispatcher.environment["sessionid"],
             {
-                "username": user.username,
+                "username": username,
                 "command": "[shell]",
-                "connected": datetime.datetime.now()
+                "connected": datetime.datetime.now(),
+                "protocol": protocol
             }
         )
 
+    def commandProcessorPrompter(self, prompt):
+        return None
+
+    def commandProcessorWarning(self, warning):
+        pass
+
+    def processFinished(self):
+        """
+        Called when the process has finished executing.
+        """
+        if self.current_command is not None:
+            self.current_command.cleanUp()
+            self.current_command = None
+
+        self.input_mode = INPUT_SHELL
+        update_session(self.sid, "command", "[shell]")
+        self.showPrompt()
+
+    def executeCommand(self, command):
+        """
+        Executes the specified command.
+        :param command: Command string to execute.
+        """
+
+        # Evaluate the command string
+        partial_cmd = self.dispatcher.get_command(command)
+
+        # If nothing to execute, do nothing.
+        if partial_cmd is None:
+            self.processFinished()
+            return
+
+        # Supply the command with functions to control its status, input, etc.
+        self.current_command = partial_cmd(
+            output_callback=lambda text: self.processOutput(text),
+            finished_callback=lambda: self.processFinished(),
+            halt_input_callback=lambda: self.haltInput(),
+            resume_input_callback=lambda: self.resumeInput()
+        )
+
+        # Switch input over to the command
+        self.input_mode = INPUT_COMMAND
+
+        # and set it running.
+        update_session(self.sid, "command", command)
+        try:
+            self.current_command.execute()
+        except Exception as e:
+            print(e.message)
+            self.processOutput("Command failed\n")
+            self.processFinished()
+
+    def logout(self):
+        pass
+
+    def terminateProcess(self):
+        """
+        Attempts to terminate the process.
+        """
+        if self.current_command is not None:
+            self.current_command.terminate()
+
+
+    def processLine(self, line):
+        if self.input_mode == INPUT_SHELL:
+            self.executeCommand(line)
+        elif self.input_mode == INPUT_COMMAND:
+            if self.current_command is not None:
+                self.current_command.lineReceived(line)
+
+    def processOutput(self, value):
+        pass
+
+    def haltInput(self):
+        """
+        Called to halt all user input.
+        """
+        # TODO: switch off everything in keystrokeReceived except listening for ^C
+        pass
+
+    def resumeInput(self):
+        """
+        Called to resume user input.
+        """
+        # TODO: undo whatever haltInput did.
+        pass
+
+    def showPrompt(self):
+        pass
+
+class ZxweatherShellProtocol(BaseShell, recvline.HistoricRecvLine):
+    """
+    The zxweather shell.
+    """
+
+    ps = ("$ ", "_ ")
+
+    def __init__(self, user, protocol):
+        super(ZxweatherShellProtocol, self).__init__(user, protocol)
 
     def connectionMade(self):
         """
@@ -150,7 +256,6 @@ class ZxweatherShellProtocol(recvline.HistoricRecvLine):
         """
         recvline.HistoricRecvLine.connectionMade(self)
         self.dispatcher.environment["terminal"] = self.terminal
-        self.dispatcher.environment["term"] = "crt"
 
         # Install key handler to take care of ^C
         self.keyHandlers['\x03'] = self.handle_CTRL_C
@@ -177,7 +282,6 @@ class ZxweatherShellProtocol(recvline.HistoricRecvLine):
 
         if self.dispatcher.environment["term_echo"]:
             self.terminal.write(ch)
-
 
     def handle_CTRL_C(self):
         """
@@ -224,40 +328,6 @@ class ZxweatherShellProtocol(recvline.HistoricRecvLine):
         """
         self.terminal.write(self.prompt[self.prompt_number])
 
-    def executeCommand(self, command):
-        """
-        Executes the specified command.
-        :param command: Command string to execute.
-        """
-
-        # Evaluate the command string
-        partial_cmd = self.dispatcher.get_command(command)
-
-        # If nothing to execute, do nothing.
-        if partial_cmd is None:
-            self.processFinished()
-            return
-
-        # Supply the command with functions to control its status, input, etc.
-        self.current_command = partial_cmd(
-            output_callback=lambda text: self.processOutput(text),
-            finished_callback=lambda: self.processFinished(),
-            halt_input_callback=lambda: self.haltInput(),
-            resume_input_callback=lambda: self.resumeInput()
-        )
-
-        # Switch input over to the command
-        self.input_mode = INPUT_COMMAND
-
-        # and set it running.
-        update_session(self.sid, "command", command)
-        try:
-            self.current_command.execute()
-        except Exception as e:
-            print(e.message)
-            self.terminal.write("Command failed\r\n")
-            self.processFinished()
-
     def lineReceived(self, line):
         """
         Called when ever a line of data is received. This function then routes
@@ -265,11 +335,7 @@ class ZxweatherShellProtocol(recvline.HistoricRecvLine):
         :param line:
         :return:
         """
-        if self.input_mode == INPUT_SHELL:
-            self.executeCommand(line)
-        elif self.input_mode == INPUT_COMMAND:
-            if self.current_command is not None:
-                self.current_command.lineReceived(line)
+        self.processLine(line)
 
     def commandProcessorPrompter(self, prompt_string):
         """
@@ -298,39 +364,6 @@ class ZxweatherShellProtocol(recvline.HistoricRecvLine):
         :param text: Text to output.
         """
         self.terminal.write(text)
-
-    def processFinished(self):
-        """
-        Called when the process has finished executing.
-        """
-        if self.current_command is not None:
-            self.current_command.cleanUp()
-            self.current_command = None
-
-        self.input_mode = INPUT_SHELL
-        update_session(self.sid, "command", "[shell]")
-        self.showPrompt()
-
-    def terminateProcess(self):
-        """
-        Attempts to terminate the process.
-        """
-        if self.current_command is not None:
-            self.current_command.terminate()
-
-    def haltInput(self):
-        """
-        Called to halt all user input.
-        """
-        # TODO: switch off everything in keystrokeReceived except listening for ^Z
-        pass
-
-    def resumeInput(self):
-        """
-        Called to resume user input.
-        """
-        # TODO: undo whatever haltInput did.
-        pass
 
     def logout(self):
         """

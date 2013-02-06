@@ -1,5 +1,5 @@
 # coding=utf-8
-from server.zxweatherd import getServerSSHService
+from server.zxweatherd import getServerService
 
 __author__ = 'david'
 
@@ -12,11 +12,17 @@ from twisted.application.service import IServiceMaker
 
 class Options(usage.Options):
     optParameters = [
-        ["ssh-port", "s", 4222, "The port the remote SSH service is listening on.", int],
-        ["private-key-file", "p", None, "The username to authenticate with"],
-        ["public-key-file", "u" , None, "The password to authenticate with"],
-        ["passwords-file", "f", None, "Remote host SSH key fingerprint"],
-        ["dsn", "d", None, "Database connection string"]
+        ["ssh-port", "s", 4222, "The port the SSH service should listening on.", int],
+        ["private-key-file", "p", None, "SSH Private key file"],
+        ["public-key-file", "u" , None, "SSH Public key file"],
+        ["passwords-file", "f", None, "Name of the file containing usernames and passwords"],
+        ["dsn", "d", None, "Database connection string"],
+        ["telnet-port", "t", 4223, "The port the Telnet service should listen on", int],
+        ["standard-port", "r", 4224, "The port the standard weather service should listen on", int],
+        ["websocket-port", "w", 81, "The port to listen for WebSocket connections on", int],
+        ["websocket-tls-port", "s", None, "The port to listen on for WebSocket SSL connections on", int],
+        ["websocket-tls-key-file", "k", None, "The WebSocket Secure private key filename"],
+        ["websocket-tls-certificate-file", "c", None, "The WebSocket Secure certificate filename"]
     ]
 
 
@@ -47,14 +53,38 @@ class ZXWServerServiceMaker(object):
         elif options["dsn"] is None:
             raise Exception('Database connection string required')
 
+
+        ssh_config = {
+            'port': int(options['ssh-port']),
+            'private_key_file': options['private-key-file'],
+            'public_key_file': options['public-key-file'],
+            'passwords_file': options['passwords-file']
+        }
+
+        telnet_config = {'port': options['telnet-port']}
+
+        raw_config = {'port': options['standard-port']}
+
+        websocket_config = {'port': options['websocket-port']}
+
+        wss_config = None
+        if options["websocket-tls-port"] is not None:
+            if options["websocket-tls-key-file"] is None:
+                raise Exception("SSL Private key file required for wss support")
+            elif options["websocket-tls-certificate-file"] is None:
+                raise Exception("SSL Certificate file required for wss support")
+
+            wss_config = {
+                'port': int(options["websocket-tls-port"]),
+                'key': options["websocket-tls-key-file"],
+                'certificate': options["websocket-tls-certificate-file"]
+            }
+
+
         # All OK. Go get the service.
-        return getServerSSHService(
-            int(options['ssh-port']),
-            options['private-key-file'],
-            options['public-key-file'],
-            options['passwords-file'],
-            options['dsn']
-        )
+        return getServerService(
+            options['dsn'], ssh_config, telnet_config, raw_config,
+            websocket_config, wss_config)
 
 
 serviceMaker = ZXWServerServiceMaker()
