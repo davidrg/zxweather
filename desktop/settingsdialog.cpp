@@ -24,6 +24,8 @@
 #include "ui_settingsdialog.h"
 #include "settings.h"
 
+#include <QSqlDatabase>
+
 SettingsDialog::SettingsDialog(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::SettingsDialog)
@@ -35,6 +37,13 @@ SettingsDialog::SettingsDialog(QWidget *parent) :
     connect(ui->rbLiveWeb, SIGNAL(clicked()), this, SLOT(dataSourceChanged()));
     connect(ui->rbSampleDatabase, SIGNAL(clicked()), this, SLOT(dataSourceChanged()));
     connect(ui->rbSampleWeb, SIGNAL(clicked()), this, SLOT(dataSourceChanged()));
+
+    // Disable the samples database option if the Postgres driver isn't present.
+    if (!QSqlDatabase::drivers().contains("QPSQL")) {
+        ui->rbSampleDatabase->setEnabled(false);
+        ui->rbSampleDatabase->setText("Database (driver not found)");
+    }
+
     loadSettings();
 }
 
