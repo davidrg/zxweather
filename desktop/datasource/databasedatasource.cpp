@@ -213,7 +213,7 @@ void DatabaseDataSource::connectToDB() {
                      password.toAscii().constData(),
                      station.toAscii().constData())) {
         notificationTimer->start();
-        notificationPump();
+        notificationPump(true);
     }
 }
 
@@ -221,8 +221,8 @@ void DatabaseDataSource::dbError(QString message) {
     emit error(message);
 }
 
-void DatabaseDataSource::notificationPump() {
-    if (wdb_live_data_available()) {
+void DatabaseDataSource::notificationPump(bool force) {
+    if (wdb_live_data_available() || force) {
         live_data_record rec = wdb_get_live_data();
 
         LiveDataSet lds;
