@@ -33,9 +33,6 @@ SOURCES += main.cpp\
     aboutdialog.cpp \
     json/json.cpp \
     settings.cpp \
-    livedata/jsonlivedatasource.cpp \
-    livedata/databaselivedatasource.cpp \
-    livedata/livedatasource.cpp \
     livedata/livedatawidget.cpp \
     qcp/qcustomplot.cpp \
     chartwindow.cpp \
@@ -51,11 +48,7 @@ HEADERS  += mainwindow.h \
     dbsignaladapter.h \
     aboutdialog.h \
     json/json.h \
-    livedata/databaselivedata.h \
     settings.h \
-    livedata/livedatasource.h \
-    livedata/databaselivedatasource.h \
-    livedata/jsonlivedatasource.h \
     livedata/livedatawidget.h \
     qcp/qcustomplot.h \
     chartwindow.h \
@@ -65,7 +58,8 @@ HEADERS  += mainwindow.h \
     chartoptionsdialog.h \
     qtcolorbutton/qtcolorbutton.h \
     qtcolorbutton/qtcolorbutton_p.h \
-    datasource/databasedatasource.h
+    datasource/databasedatasource.h \
+    datasource/abstractlivedatasource.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \

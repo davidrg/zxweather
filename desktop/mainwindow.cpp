@@ -92,8 +92,8 @@ MainWindow::MainWindow(QWidget *parent) :
         showSettings();
     }
     else {
-        ui->liveData->reconfigureDataSource();
         reconnectDatabase();
+        ui->liveData->reconfigureDataSource();
     }
 }
 

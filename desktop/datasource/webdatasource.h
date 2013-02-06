@@ -9,20 +9,25 @@
 #include <QNetworkReply>
 #include <QStringList>
 #include <QDateTime>
+#include <QUrl>
+#include <QTimer>
 
 class WebDataSource : public AbstractDataSource
 {
     Q_OBJECT
 public:
-    explicit WebDataSource(
-            QString baseURL, QString stationCode, QWidget* parentWidget = 0, QObject *parent = 0);
+    explicit WebDataSource(QWidget* parentWidget = 0, QObject *parent = 0);
     
     void fetchSamples(
             QDateTime startTime,
             QDateTime endTime=QDateTime::currentDateTime());
 
+    void enableLiveData();
+
 private slots:
     void dataReady(QNetworkReply* reply);
+    void liveDataReady(QNetworkReply* reply);
+    void liveDataPoll();
 
 private:
     QString baseURL;
@@ -47,6 +52,11 @@ private:
     void rangeRequestResult(QString data);
 
     bool rangeRequest;
+
+    // for live data stuff
+    QScopedPointer<QNetworkAccessManager> liveNetAccessManager;
+    QUrl liveDataUrl;
+    QTimer livePollTimer;
 };
 
 #endif // WEBDATASOURCE_H

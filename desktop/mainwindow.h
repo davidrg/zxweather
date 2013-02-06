@@ -30,8 +30,6 @@
 #include <QCloseEvent>
 #include <QScopedPointer>
 
-#include "livedata/livedatasource.h"
-
 namespace Ui {
 class MainWindow;
 }

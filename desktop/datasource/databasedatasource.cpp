@@ -1,15 +1,34 @@
 #include "databasedatasource.h"
 #include "settings.h"
+#include "database.h"
 
 #include <QMessageBox>
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QVariant>
 #include <QProgressDialog>
+#include <QtDebug>
 
 DatabaseDataSource::DatabaseDataSource(QWidget* parentWidget, QObject *parent) :
     AbstractDataSource(parentWidget, parent)
 {
+    signalAdapter.reset(new DBSignalAdapter(this));
+    wdb_set_signal_adapter(signalAdapter.data());
+    connect(signalAdapter.data(), SIGNAL(error(QString)),
+            this, SLOT(dbError(QString)));
+
+    notificationTimer.reset(new QTimer(this));
+    notificationTimer->setInterval(1000);
+    connect(notificationTimer.data(), SIGNAL(timeout()),
+            this, SLOT(notificationPump()));
+}
+
+DatabaseDataSource::~DatabaseDataSource() {
+    // Disconnect from the DB if required.
+    if (notificationTimer->isActive()) {
+        notificationTimer->stop();
+        wdb_disconnect();
+    }
 }
 
 int DatabaseDataSource::getStationId() {
@@ -69,23 +88,6 @@ QString DatabaseDataSource::getStationHwType() {
 }
 
 void DatabaseDataSource::fetchSamples(QDateTime startTime, QDateTime endTime) {
-    /*
-     * Required columns:
-     *  - timestamp
-     *  - temperature
-     *  - dewpoint
-     *  - apparent temperature
-     *  - wind chill
-     *  - indoor temperature
-     *  - humidity
-     *  - indoor humidity
-     *  - pressure
-     *  - rainfall
-     *
-     * We also need to get a sample count too.
-     *
-     */
-
     progressDialog->setWindowTitle("Loading...");
     progressDialog->setLabelText("Initialise...");
     progressDialog->setRange(0,5);
@@ -184,4 +186,84 @@ void DatabaseDataSource::fetchSamples(QDateTime startTime, QDateTime endTime) {
 
     emit samplesReady(samples);
     progressDialog->setValue(5);
+}
+
+
+void DatabaseDataSource::connectToDB() {
+    Settings& settings = Settings::getInstance();
+
+    QString dbHostname = settings.databaseHostName();
+    QString dbPort = QString::number(settings.databasePort());
+    QString username = settings.databaseUsername();
+    QString password = settings.databasePassword();
+    QString station = settings.stationCode();
+
+    QString target = settings.databaseName();
+    if (!dbHostname.isEmpty()) {
+        target += "@" + dbHostname;
+
+        if (!dbPort.isEmpty())
+            target += ":" + dbPort;
+    }
+
+    qDebug() << "Connecting to target" << target << "as user" << username;
+
+    if (wdb_connect(target.toAscii().constData(),
+                     username.toAscii().constData(),
+                     password.toAscii().constData(),
+                     station.toAscii().constData())) {
+        notificationTimer->start();
+    }
+}
+
+void DatabaseDataSource::dbError(QString message) {
+    emit error(message);
+}
+
+void DatabaseDataSource::notificationPump() {
+    if (wdb_live_data_available()) {
+        live_data_record rec = wdb_get_live_data();
+
+        LiveDataSet lds;
+        lds.indoorTemperature = rec.indoor_temperature;
+        lds.indoorHumidity = rec.indoor_relative_humidity;
+        lds.temperature = rec.temperature;
+        lds.humidity = rec.relative_humidity;
+        lds.dewPoint = rec.dew_point;
+        lds.windChill = rec.wind_chill;
+        lds.apparentTemperature = rec.apparent_temperature;
+        lds.pressure = rec.absolute_pressure;
+        lds.windSpeed = rec.average_wind_speed;
+        lds.gustWindSpeed = rec.gust_wind_speed;
+        lds.windDirection = rec.wind_direction;
+        lds.timestamp = QDateTime::fromTime_t(rec.download_timestamp);
+        lds.indoorDataAvailable = true;
+
+        if (rec.v1) {
+            // The V1 schema stores wind direction as a string :(
+            QString strd(rec.wind_direction_str);
+            if (strd == "N") lds.windDirection = 0;
+            else if (strd == "NNE") lds.windDirection = 22.5;
+            else if (strd == "NE") lds.windDirection = 45;
+            else if (strd == "ENE") lds.windDirection = 67.5;
+            else if (strd == "E") lds.windDirection = 90;
+            else if (strd == "ESE") lds.windDirection = 112.5;
+            else if (strd == "SE") lds.windDirection = 135;
+            else if (strd == "SSE") lds.windDirection = 157.5;
+            else if (strd == "S") lds.windDirection = 180;
+            else if (strd == "SSW") lds.windDirection = 202.5;
+            else if (strd == "SW") lds.windDirection = 225;
+            else if (strd == "WSW") lds.windDirection = 247.5;
+            else if (strd == "W") lds.windDirection = 270;
+            else if (strd == "WNW") lds.windDirection = 292.5;
+            else if (strd == "NW") lds.windDirection = 315;
+            else if (strd == "NNW") lds.windDirection = 337.5;
+        }
+
+        emit liveData(lds);
+    }
+}
+
+void DatabaseDataSource::enableLiveData() {
+    notificationTimer->start();
 }

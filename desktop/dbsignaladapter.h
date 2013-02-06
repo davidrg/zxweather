@@ -60,6 +60,13 @@ public:
                             char sqlstate[5]);
 
 signals:
+
+    /**
+     * @brief _error is emitted for all errors.
+     * @param message Error message from the database layer.
+     */
+    void error(QString message);
+
     /**
      * @brief database_error is emitted when ever a database error is occurred
      * that doesn't cause one of the other signals to be raised.

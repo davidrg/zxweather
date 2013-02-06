@@ -17,11 +17,13 @@ QStringList getURLList(
         QString baseURL, QDateTime startTime, QDateTime endTime,
         QStringList* dataSetQueue);
 
-WebDataSource::WebDataSource(QString baseURL, QString stationCode, QWidget *parentWidget, QObject *parent) :
+WebDataSource::WebDataSource(QWidget *parentWidget, QObject *parent) :
     AbstractDataSource(parentWidget, parent)
 {
-    this->baseURL = baseURL;
-    this->stationCode = stationCode;
+    Settings& settings = Settings::getInstance();
+    baseURL = settings.webInterfaceUrl();
+    stationCode = settings.stationCode();
+    liveDataUrl = QUrl(baseURL + "data/" + stationCode + "/live.json");
 
     rangeRequest = false;
 
@@ -33,6 +35,14 @@ WebDataSource::WebDataSource(QString baseURL, QString stationCode, QWidget *pare
     QNetworkDiskCache* cache = new QNetworkDiskCache(this);
     cache->setCacheDirectory(Settings::getInstance().dataSetCacheDir());
     netAccessManager->setCache(cache);
+
+
+    // Setup live data functionality
+    liveNetAccessManager.reset(new QNetworkAccessManager(this));
+    connect(liveNetAccessManager.data(), SIGNAL(finished(QNetworkReply*)),
+            this, SLOT(liveDataReady(QNetworkReply*)));
+    livePollTimer.setInterval(30000);
+    connect(&livePollTimer, SIGNAL(timeout()), this, SLOT(liveDataPoll()));
 }
 
 void WebDataSource::processData() {
@@ -261,4 +271,54 @@ void WebDataSource::fetchSamples(QDateTime startTime, QDateTime endTime) {
 
     rangeRequest = true;
     netAccessManager->get(request);
+}
+
+//--------------------------------------------------------------------------
+
+void WebDataSource::liveDataReady(QNetworkReply *reply) {
+    using namespace QtJson;
+
+    if (reply->error() != QNetworkReply::NoError) {
+        emit error(reply->errorString());
+    } else {
+        LiveDataSet lds;
+        bool ok;
+
+        QVariantMap result = Json::parse(reply->readAll(), ok).toMap();
+
+        if (!ok) {
+            emit error("JSON parsing failed");
+            return;
+        }
+
+        lds.windDirection = result["wind_direction"].toFloat();
+        lds.windSpeed = result["average_wind_speed"].toFloat();
+        lds.temperature = result["temperature"].toFloat();
+        lds.dewPoint = result["dew_point"].toFloat();
+        lds.windChill = result["wind_chill"].toFloat();
+        lds.gustWindSpeed = result["gust_wind_speed"].toFloat();
+        lds.humidity = result["relative_humidity"].toInt();
+        lds.timestamp = QDateTime::fromString(
+                             result["time_stamp"].toString(), "HH:mm:ss");
+        lds.apparentTemperature = result["apparent_temperature"].toFloat();
+        lds.pressure = result["absolute_pressure"].toFloat();
+
+        // Indoor data is not currently available from the website data feed.
+        lds.indoorDataAvailable = false;
+
+        emit liveData(lds);
+    }
+}
+
+void WebDataSource::liveDataPoll() {
+    QNetworkRequest request;
+    request.setUrl(liveDataUrl);
+    request.setRawHeader("User-Agent", Constants::USER_AGENT);
+
+    liveNetAccessManager->get(request);
+}
+
+void WebDataSource::enableLiveData() {
+    liveDataPoll();
+    livePollTimer.start();
 }
