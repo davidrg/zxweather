@@ -12,8 +12,10 @@ from server.database import get_station_list, get_station_info, get_sample_csv, 
 from server.session import get_session_value, update_session, get_session_counts, get_session_id_list, session_exists
 import dateutil.parser
 
-
 __author__ = 'david'
+
+TERM_CRT = 0
+TERM_BASIC = 1
 
 class ShowUserCommand(Command):
     """
@@ -70,9 +72,15 @@ class SetTerminalCommand(Command):
     def main(self):
         """ Executes the command """
         if "video" in self.qualifiers:
-            self.environment["term_mode"] = 0 # TERM_CRT
+
+            # Only allow the VIDEO terminal type if we have a terminal object.
+            if self.environment["terminal"] is None:
+                self.writeLine("Error: VIDEO terminal type not supported by this protocol")
+                return
+
+            self.environment["term_mode"] = TERM_CRT
         elif "basic" in self.qualifiers:
-            self.environment["term_mode"] = 1 # TERM_BASIC
+            self.environment["term_mode"] = TERM_BASIC
 
         if "echo" in self.qualifiers:
             if self.qualifiers["echo"] == "true":
@@ -136,6 +144,8 @@ class ListSessionsCommand(Command):
     """
 
     def main(self):
+        if not self.authenticated(): return
+
         sessions = get_session_id_list()
 
         for sid in sessions:
@@ -169,10 +179,12 @@ class ShowSessionCommand(Command):
         client_info = get_session_value(sid, "client")
         command = get_session_value(sid, "command")
         connect_time = get_session_value(sid, "connected")
+        protocol = get_session_value(sid, "protocol")
         length = datetime.now() - connect_time
 
         self.codedWriteLine(TYP_INFO, 5, "Username: {0}".format(username))
         self.codedWriteLine(TYP_INFO, 6, "Connected: {0} ({1} ago)".format(connect_time,length))
+        self.codedWriteLine(TYP_INFO, 12, "Protocol: {0}".format(protocol))
 
         if client_info is not None:
             name = client_info["name"]
@@ -186,6 +198,8 @@ class ShowSessionCommand(Command):
         self.codedWriteLine(TYP_INFO, 11,command)
 
     def main(self):
+        if not self.authenticated(): return
+
         if "id" in self.qualifiers:
             self.show_session(self.qualifiers["id"])
         else:
@@ -220,6 +234,8 @@ class TestCommand(Command):
         self.finished()
 
     def main(self):
+        if not self.authenticated(): return
+
         self.lines = []
         self.auto_exit = False
         self.write("Enter 5 lines of text:\r\n> ")
@@ -338,7 +354,7 @@ class StreamCommand(Command):
             now = datetime.utcnow().replace(tzinfo = pytz.utc)
             if from_timestamp < now - timedelta(hours=2):
                 self.writeLine("Error: Catchup only allows a maximum of "
-                               "24 hours of data.")
+                               "2 hours of data.")
                 return
 
         subset = "live and sample"
@@ -399,10 +415,14 @@ class ShowLiveCommand(Command):
 
     def cleanUp(self):
         """ Clean Up """
-        self.unsubscribe()
-        self.terminal.setModes([insults.modes.IRM])
-        self.terminal.cursorPosition(80,25)
-        self.terminal.write("\r\n")
+
+        if self.subscribed_station is not None:
+            self.unsubscribe()
+
+        if self.environment["term_mode"] == TERM_CRT:
+            self.terminal.setModes([insults.modes.IRM])
+            self.terminal.cursorPosition(80,25)
+            self.terminal.write("\r\n")
 
 
     def live_data(self, data):
@@ -487,15 +507,16 @@ class ShowLiveCommand(Command):
         """
         Sets up subscriptions.
         """
-        self.subscribed_station = self.parameters[1]
-        self.haltInput() # This doesn't take any user input.
-        self.terminal = self.environment["terminal"]
-
-        if self.environment["term"] != "crt":
+        if self.environment["term_mode"] != TERM_CRT:
             self.writeLine(
                 "Error: This command is only available for VT-style terminals.")
             self.writeLine("Use SET TERMINAL /VIDEO to change terminal type.")
+            self.subscribed_station = None
             return
+
+        self.subscribed_station = self.parameters[1]
+        self.haltInput() # This doesn't take any user input.
+        self.terminal = self.environment["terminal"]
 
 
         self.ready = False

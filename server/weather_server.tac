@@ -11,10 +11,25 @@
 # You should not make any changes to this file outside of the Configuration
 # sections below.
 #
+#
 ##############################################################################
-### Application Configuration ################################################
+### Database Configuration ###################################################
 ##############################################################################
 
+# This is the database connection string. An example one might be:
+# dsn = "host=localhost port=5432 user=zxweather password=password dbname=weather"
+dsn = ""
+
+##############################################################################
+### SSH Protocol Configuration ###############################################
+##############################################################################
+# This protocol allows authenticated interactive read-write access to the
+# server. It allows access to some administrative commands to list sessions,etc
+# and also allows weather data to be uploaded. This protocol must be enabled
+# for the weather-push service.
+
+# If you want SSH Support, turn it on here:
+enable_ssh = True
 
 # The port number the SSH service listens on
 ssh_port = 4222
@@ -26,27 +41,100 @@ ssh_public_key_file = 'id_rsa.pub'
 # The name of the file storing username:password pairs.
 ssh_passwords_file = 'ssh-passwords'
 
-# This is the database connection string. An example one might be:
-# dsn = "host=localhost port=5432 user=zxweather password=password dbname=weather"
-dsn = ""
+##############################################################################
+### Telnet Protocol Configuration ############################################
+##############################################################################
+# This protocol allows interactive read-only access to the server to display
+# current conditions and information about the weather station in a terminal
+# window.
+
+# If you want Telnet Support, turn it on here:
+enable_telnet = True
+
+# The port the Telnet service listens on
+telnet_port = 4223
+
+##############################################################################
+### Standard Protocol Configuration ##########################################
+##############################################################################
+# This protocol is used by the desktop client and anything else wanting access
+# to weather data. In most cases it should be enabled.
+
+# If this protocol should be enabled
+enable_raw = True
+
+# The port to listen on
+raw_port = 4224
+
+##############################################################################
+### WebSocket Protocol Configuration #########################################
+##############################################################################
+# This protocol is used by the web interface to access weather data.
+
+# If this protocol should be enabled
+enable_web_socket = True
+
+# The port to listen on
+web_socket_port = 81
+
+##############################################################################
+### WebSocket TLS Protocol Configuration #####################################
+##############################################################################
+# This a secure websocket endpoint using TLS. It is used as a fallback by the
+# web interface to get around badly configured proxy servers.
+
+# If this protocol should be enabled
+enable_web_socket_tls = True
+
+# The port to listen on
+web_socket_tls_port = 443
+
+# SSL Private Key
+web_socket_tls_private_key_file = 'server.key'
+
+# SSL Certificate
+web_socket_tls_certificate_file = 'server.crt'
 
 ##############################################################################
 ##############################################################################
 ##############################################################################
 # Don't change anything below this point.
-from server.zxweatherd import getServerSSHService
+from server.zxweatherd import getServerService
 from twisted.application.service import Application, IProcess
-
 
 application = Application("zxweatherd")
 IProcess(application).processName = "zxweatherd"
 
-# attach the service to its parent application
-service = getServerSSHService(
-    ssh_port,
-    ssh_private_key_file,
-    ssh_public_key_file,
-    ssh_passwords_file,
-    dsn
-)
+ssh_config = None
+telnet_config = None
+raw_config = None
+ws_config = None
+wss_config = None
+
+if enable_ssh:
+    ssh_config = {
+        'port': ssh_port,
+        'private_key_file': ssh_private_key_file,
+        'public_key_file': ssh_public_key_file,
+        'passwords_file': ssh_passwords_file
+    }
+
+if enable_telnet:
+    telnet_config = {'port': telnet_port}
+
+if enable_raw:
+    raw_config = {'port': raw_port}
+
+if enable_web_socket:
+    ws_config = {'port': web_socket_port}
+
+if enable_web_socket_tls:
+    wss_config = {
+        'port': web_socket_tls_port,
+        'key': web_socket_tls_private_key_file,
+        'certificate': web_socket_tls_certificate_file
+    }
+
+service = getServerService(
+    dsn, ssh_config, telnet_config, raw_config, ws_config, wss_config)
 service.setServiceParent(application)
