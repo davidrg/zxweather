@@ -66,48 +66,6 @@ signals:
      * @param message Error message from the database layer.
      */
     void error(QString message);
-
-    /**
-     * @brief database_error is emitted when ever a database error is occurred
-     * that doesn't cause one of the other signals to be raised.
-     * @param message Error message from the database layer.
-     */
-    void database_error(QString message);
-
-    /**
-     * @brief database_warning is emitted when ever a warning occurs in the
-     * database layer.
-     * @param message Warning message from the database layer.
-     */
-    void database_warning(QString message);
-
-    // Connection Exceptions
-
-    void connection_exception(QString message);
-
-    /**
-     * @brief connection_does_not_exist is emitted when a query or some other
-     * database operation is performed with no open connection.
-     * @param message Message from lower down.
-     */
-    void connection_does_not_exist(QString message);
-    void connection_failure(QString message);
-
-    /**
-     * @brief unable_to_establish_connection is emitted when connecting to the
-     * server failed for some reason.
-     * @param message Error message from lower down.
-     */
-    void unable_to_establish_connection(QString message);
-
-    /**
-     * @brief server_rejected_connection is emitted if the server rejected the
-     * connection for some reason. The message probably contains more details.
-     * @param message Message from lower down.
-     */
-    void server_rejected_connection(QString message);
-    void transaction_resolution_unknown(QString message);
-    void protocol_violation(QString message);
 };
 
 #endif // DBSIGNALADAPTER_H
