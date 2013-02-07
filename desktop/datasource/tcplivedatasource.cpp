@@ -15,14 +15,27 @@ TcpLiveDataSource::TcpLiveDataSource(QObject *parent) :
     connect(socket.data(), SIGNAL(error(QAbstractSocket::SocketError)),
             this, SLOT(error(QAbstractSocket::SocketError)));
     connect(socket.data(), SIGNAL(readyRead()), this, SLOT(readyRead()));
+
+    reconnectTimer.setInterval(5000);
+    connect(&reconnectTimer, SIGNAL(timeout()), this, SLOT(reconnect()));
+
     state = STATE_INIT;
 }
 
 void TcpLiveDataSource::enableLiveData() {
     Settings& settings = Settings::getInstance();
     qDebug() << "Connect....";
-    socket->connectToHost(settings.serverHostname(), settings.serverPort());
+
     stationCode = settings.stationCode();
+    hostName = settings.serverHostname();
+    port = settings.serverPort();
+
+    socket->connectToHost(hostName, port);
+}
+
+void TcpLiveDataSource::reconnect() {
+    reconnectTimer.stop();
+    socket->connectToHost(hostName, port);
 }
 
 void TcpLiveDataSource::connected() {
@@ -30,11 +43,16 @@ void TcpLiveDataSource::connected() {
 }
 
 void TcpLiveDataSource::disconnected() {
-    qDebug() << "Disconnected";
+    qDebug() << "Disconnected. Reconnecting in 5.";
+    reconnectTimer.start();
+    state = STATE_INIT;
 }
 
 void TcpLiveDataSource::error(QAbstractSocket::SocketError socketError) {
     qDebug() << "Error:" << socketError;
+    qDebug() << "Reconnect attempt in 5";
+    reconnectTimer.start();
+    state = STATE_INIT;
 }
 
 void TcpLiveDataSource::sendNextCommand() {

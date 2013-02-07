@@ -5,13 +5,15 @@
 
 #include <QTcpSocket>
 #include <QScopedPointer>
+#include <QTimer>
 
 class TcpLiveDataSource : public AbstractLiveDataSource
 {
     Q_OBJECT
 public:
     explicit TcpLiveDataSource(QObject *parent = 0);
-    
+    ~TcpLiveDataSource();
+
     void enableLiveData();
 
 signals:
@@ -21,11 +23,15 @@ private slots:
     void disconnected();
     void error(QAbstractSocket::SocketError socketError);
     void readyRead();
+    void reconnect();
     
 private:
     QScopedPointer<QTcpSocket> socket;
     int state;
     QString stationCode;
+    QString hostName;
+    int port;
+    QTimer reconnectTimer;
 
     void sendNextCommand();
     void processStreamLine(QString line);
