@@ -86,7 +86,7 @@ private:
     QString previousSysTrayText;
     QString previousSysTrayIcon;
 
-    QScopedPointer<AbstractLiveDataSource2> dataSource;
+    QScopedPointer<AbstractLiveDataSource> dataSource;
 
     uint seconds_since_last_refresh;
     uint minutes_late;

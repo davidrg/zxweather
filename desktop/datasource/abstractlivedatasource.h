@@ -25,12 +25,12 @@ typedef struct _liveData {
     bool indoorDataAvailable;
 } LiveDataSet;
 
-class AbstractLiveDataSource2 : public QObject
+class AbstractLiveDataSource : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit AbstractLiveDataSource2(QObject* parent=0): QObject(parent) {}
+    explicit AbstractLiveDataSource(QObject* parent=0): QObject(parent) {}
 
     virtual void enableLiveData() = 0;
 signals:

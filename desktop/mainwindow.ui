@@ -121,7 +121,7 @@
   <customwidget>
    <class>LiveDataWidget</class>
    <extends>QWidget</extends>
-   <header>livedata/livedatawidget.h</header>
+   <header>livedatawidget.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
