@@ -7,8 +7,8 @@
 #include <QTimer>
 
 #include "settings.h"
-#include "../datasource/webdatasource.h"
-#include "../datasource/databasedatasource.h"
+#include "datasource/webdatasource.h"
+#include "datasource/databasedatasource.h"
 
 // Turns out I'm lazy.
 #define GRID_ROW(left, right, name) \

@@ -3,7 +3,7 @@
 
 #include <QWidget>
 #include <QIcon>
-#include "../datasource/abstractlivedatasource.h"
+#include "datasource/abstractlivedatasource.h"
 
 class QLabel;
 class QGridLayout;
