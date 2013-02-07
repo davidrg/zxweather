@@ -31,7 +31,7 @@ typedef struct _SampleSet {
     QVector<double> rainfall;
 } SampleSet;
 
-class AbstractDataSource : public AbstractLiveDataSource2
+class AbstractDataSource : public AbstractLiveDataSource
 {
     Q_OBJECT
 public:
