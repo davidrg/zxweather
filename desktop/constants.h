@@ -6,6 +6,7 @@
 namespace Constants {
 
     const QByteArray USER_AGENT = "zxweather-desktop v1.0";
+    const QByteArray VERSION_STR = "1.0.0";
 
 }
 #endif // CONSTANTS_H

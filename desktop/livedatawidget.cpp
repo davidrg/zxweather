@@ -9,6 +9,7 @@
 #include "settings.h"
 #include "datasource/webdatasource.h"
 #include "datasource/databasedatasource.h"
+#include "datasource/tcplivedatasource.h"
 
 // Turns out I'm lazy.
 #define GRID_ROW(left, right, name) \
@@ -149,10 +150,14 @@ void LiveDataWidget::refreshUi(LiveDataSet lds) {
 }
 
 void LiveDataWidget::reconfigureDataSource() {
-    if (Settings::getInstance().liveDataSourceType() == Settings::DS_TYPE_DATABASE) {
+    Settings& settings = Settings::getInstance();
+
+    if (settings.liveDataSourceType() == Settings::DS_TYPE_DATABASE) {
         dataSource.reset(new DatabaseDataSource(this,this));
-    } else {
+    } else if (settings.liveDataSourceType() == Settings::DS_TYPE_WEB_INTERFACE){
         dataSource.reset(new WebDataSource(this,this));
+    } else {
+        dataSource.reset(new TcpLiveDataSource(this));
     }
     connect(dataSource.data(), SIGNAL(liveData(LiveDataSet)),
             this, SLOT(liveDataRefreshed(LiveDataSet)));

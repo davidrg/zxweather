@@ -40,7 +40,8 @@ SOURCES += main.cpp\
     datasource/webdatasource.cpp \
     chartoptionsdialog.cpp \
     qtcolorbutton/qtcolorbutton.cpp \
-    datasource/databasedatasource.cpp
+    datasource/databasedatasource.cpp \
+    datasource/tcplivedatasource.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
@@ -59,7 +60,8 @@ HEADERS  += mainwindow.h \
     qtcolorbutton/qtcolorbutton.h \
     qtcolorbutton/qtcolorbutton_p.h \
     datasource/databasedatasource.h \
-    datasource/abstractlivedatasource.h
+    datasource/abstractlivedatasource.h \
+    datasource/tcplivedatasource.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \
