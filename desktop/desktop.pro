@@ -33,7 +33,7 @@ SOURCES += main.cpp\
     aboutdialog.cpp \
     json/json.cpp \
     settings.cpp \
-    livedata/livedatawidget.cpp \
+    livedatawidget.cpp \
     qcp/qcustomplot.cpp \
     chartwindow.cpp \
     datasource/abstractdatasource.cpp \
@@ -49,7 +49,7 @@ HEADERS  += mainwindow.h \
     aboutdialog.h \
     json/json.h \
     settings.h \
-    livedata/livedatawidget.h \
+    livedatawidget.h \
     qcp/qcustomplot.h \
     chartwindow.h \
     datasource/abstractdatasource.h \
