@@ -31,6 +31,7 @@ STATE_DMPAFT_INIT_1 = 3
 # Second stage of executing DMPAFT: timestamp sent, waiting for ACK, etc
 STATE_DMPAFT_INIT_2 = 4
 
+
 class DavisWeatherStation(object):
     """
     A class for interfacing with a davis weather station.
@@ -50,6 +51,7 @@ class DavisWeatherStation(object):
     # check. Sending this back will make the console resend its last message.
     _CANCEL = '\x18'
 
+    # Used to cancel the download of further DMP packets.
     _ESC = '\x1B'
 
     # Used to signal that the command was recognised. Like ACK I guess.
@@ -96,7 +98,6 @@ class DavisWeatherStation(object):
         # Hand the data off to the function for the current state.
         self._state_data_handlers[self._state](data)
 
-
     def getLoopPackets(self, packet_count):
         """
         Gets the specified number of LOOP packets one every 2.5 seconds. This
@@ -109,7 +110,7 @@ class DavisWeatherStation(object):
         :type packet_count: int
         """
 
-        # TODO: Ensure station is awake.
+        self._wakeUp()
 
         self._lps_packets_remaining = packet_count
         self._state = STATE_LPS
@@ -124,7 +125,7 @@ class DavisWeatherStation(object):
         :type timestamp: datetime.datetime
         """
 
-        # TODO: Ensure station is awake
+        self._wakeUp()
 
         self._state = STATE_DMPAFT_INIT_1
         self._dmp_timestamp = timestamp
@@ -143,7 +144,6 @@ class DavisWeatherStation(object):
 #        if self._wake_attempts > 3:
 #            raise Exception('Failed to wake station after three attempts')
 
-
     def _sleepingStateDataReceived(self, data):
         """Handles data while in the sleeping state."""
 
@@ -156,16 +156,14 @@ class DavisWeatherStation(object):
         """ Handles data while in the LPS state (receiving LOOP packets)
         """
 
-        if data[0] == self._ACK:
+        if not self._lps_acknowledged and data[0] == self._ACK:
             self._lps_acknowledged = True
             data.pop(0)
 
         # The LPS command hasn't been acknowledged yet so we're not *really*
         # in LPS mode just yet. Who knows what data we received to end up
         # here but this is probably bad.
-        if not self._lps_acknowledged:
-            log.msg('Warning: Expected LPS acknowledgement')
-            return
+        assert self._lps_acknowledged
 
         if len(data) > 0:
             self._lps_buffer += data
@@ -174,7 +172,7 @@ class DavisWeatherStation(object):
             # We have at least one full LOOP packet
             packet = self._lps_buffer[0:99]
             if len(self._lps_buffer) > 99:
-                self._lps_buffer = self._lps_buffer[100:]
+                self._lps_buffer = self._lps_buffer[99:]
 
             packet_data = packet[0:97]
             packet_crc = packet[98:]
@@ -184,7 +182,8 @@ class DavisWeatherStation(object):
             crc = CRC.calculate_crc(packet_data)
 
             if crc != packet_crc:
-                log.msg('Warning: CRC validation failed for LOOP packet. Discarding.')
+                log.msg('Warning: CRC validation failed for LOOP packet. '
+                        'Discarding.')
             else:
                 # CRC checks out. Data should be good
                 loop = deserialise_loop(packet_data)
@@ -194,7 +193,6 @@ class DavisWeatherStation(object):
             if self._lps_packets_remaining == 0:
                 self._state = STATE_AWAKE
                 self.loopFinished.fire()
-
 
     def _dmpaftInit1DataReceived(self, data):
         if data != self._ACK:
