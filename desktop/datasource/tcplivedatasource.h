@@ -12,7 +12,6 @@ class TcpLiveDataSource : public AbstractLiveDataSource
     Q_OBJECT
 public:
     explicit TcpLiveDataSource(QObject *parent = 0);
-    ~TcpLiveDataSource();
 
     void enableLiveData();
 
