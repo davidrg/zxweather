@@ -4,7 +4,6 @@ Tests the functions that deal with the loop packet type.
 """
 import unittest
 from davis_logger.record_types.loop import serialise_loop, deserialise_loop
-from davis_logger.record_types.util import c_to_f
 
 __author__ = 'david'
 

@@ -78,7 +78,7 @@ FMT = '<3sbBhhhBhBBh7B4B4BB7BhBhhhhhhhhh4B4BBB2B8B4BBhBBHH2s>H'
 #       |.|.|.|.|.|.|.|.|.|.|. | . Soil temperature *4 (add-on sensors)
 #       |.|.|.|.|.|.|.|.|.|.|. | . |Record type
 #       |.|.|.|.|.|.|.|.|.|.|. | . |. Extra humidity *2 (add-on sensors)
-#       |.|.|.|.|.|.|.|.|.|.|. | . |. | Extra temperature *2 (add-on sensors)
+#       |.|.|.|.|.|.|.|.|.|.|. | . |. | Extra temperature *3 (add-on sensors)
 #       |.|.|.|.|.|.|.|.|.|.|. | . |. | . Soil moisture *4 (add-on sensors)
 #       |.|.|.|.|.|.|.|.|.|.|. | . |. | . |
-DMP = '<HHhhhHHHHHhBBBBBBBBHBB2B2B4BB2B2B4B'
+DMP = '<HHhhhHHHHHhBBBBBBBBHBB2B2B4BB2B3B4B'

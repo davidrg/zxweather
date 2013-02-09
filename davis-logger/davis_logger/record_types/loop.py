@@ -82,11 +82,6 @@ def decode_current_storm_date(binary_val):
     year = 2000 + (
         binary_val & year_mask)  # TODO: check that this can't be negative
 
-    print month
-    print day
-    print year
-    print binary_val
-
     return datetime.date(year=year, month=month, day=day)
 
 
