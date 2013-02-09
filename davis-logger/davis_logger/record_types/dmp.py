@@ -333,6 +333,11 @@ def deserialise_dmp(dmp_string):
     if forecastRule == 193:
         forecastRule = None
 
+    if averageUVIndex == 255:
+        averageUVIndex = None
+    else:
+        averageUVIndex *= 10
+
     ET = inch_to_mm(ET * 1000)
 
     unpacked = Dmp(
@@ -356,7 +361,7 @@ def deserialise_dmp(dmp_string):
             highWindSpeedDirection),
         prevailingWindDirection=_deserialise_wind_direction_code(
             prevailingWindDirection),
-        averageUVIndex=_undash_8bit(averageUVIndex),
+        averageUVIndex=averageUVIndex,
         ET=ET,
         highSolarRadiation=highSolarRadiation,
         highUVIndex=highUVIndex,
@@ -422,7 +427,10 @@ def serialise_dmp(dmp):
     else:
         forecastRule = dmp.forecastRule
 
-    ET = mm_to_inch(dmp.ET) / 1000
+    if dmp.averageUVIndex is None:
+        averageUVIndex = 255
+    else:
+        averageUVIndex = dmp.averageUVIndex / 10
 
     packed = struct.pack(
         dmp_format,
@@ -437,15 +445,14 @@ def serialise_dmp(dmp):
         solarRadiation,
         dmp.numberOfWindSamples,
         _serialise_16bit_temp(dmp.insideTemperature),
-
         _dash_8bit(dmp.insideHumidity),
         _dash_8bit(dmp.outsideHumidity),
         averageWindSpeed,
         ms_to_mph(dmp.highWindSpeed),
         _serialise_wind_direction_code(dmp.highWindSpeedDirection),
         _serialise_wind_direction_code(dmp.prevailingWindDirection),
-        _dash_8bit(dmp.averageUVIndex),
-        ET,
+        averageUVIndex,
+        mm_to_inch(dmp.ET),
         dmp.highSolarRadiation,
         dmp.highUVIndex,
         forecastRule,
