@@ -50,6 +50,8 @@ class DavisWeatherStation(object):
     # check. Sending this back will make the console resend its last message.
     _CANCEL = '\x18'
 
+    _ESC = '\x1B'
+
     # Used to signal that the command was recognised. Like ACK I guess.
     _OK = '\n\rOK\n\r'
 
