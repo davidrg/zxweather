@@ -51,8 +51,9 @@ Loop = namedtuple(
         'forecastRuleNumber',
         'timeOfSunrise',
         'timeOfSunset',
-        )
+    )
 )
+
 
 def decode_current_storm_date(binary_val):
     """
@@ -67,16 +68,21 @@ def decode_current_storm_date(binary_val):
     # +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
     #    15  14  13  11  12  11  10   9   8   7   6   5   4   3   2   1   0
 
-
     month_mask = 0xF800
-    day_mask   = 0x07C0
-    year_mask  = 0x007F
+    day_mask = 0x07C0
+    year_mask = 0x007F
 
     month = (binary_val & month_mask) >> 12
     day = (binary_val & day_mask) >> 7
-    year = 2000 + (binary_val & year_mask) # TODO: check that this can't be negative
+    year = 2000 + (
+        binary_val & year_mask)  # TODO: check that this can't be negative
 
-    return datetime.date(year=year,month=month,day=day)
+    print month
+    print day
+    print year
+
+    return datetime.date(year=year, month=month, day=day)
+
 
 def encode_current_storm_date(storm_date):
     """
@@ -96,6 +102,7 @@ def encode_current_storm_date(storm_date):
     value = (month << 12) + (day << 7) + year
 
     return value
+
 
 def decode_time(int_time):
     """
@@ -118,6 +125,7 @@ def decode_time(int_time):
 
     return datetime.time(hour=int(hour), minute=int(minute))
 
+
 def encode_time(timestamp):
     """
     Encodes the supplied timestamp as a single 16bit integer.
@@ -130,7 +138,8 @@ def encode_time(timestamp):
     hour = int(timestamp.hour)
     minute = int(timestamp.minute)
 
-    return hour*100+minute
+    return hour * 100 + minute
+
 
 def deserialise_loop(loop_string):
     """
@@ -140,7 +149,6 @@ def deserialise_loop(loop_string):
     :return: loop packet
     :rtype: Loop
     """
-
 
     format = '<3sbBhhhBhBBh7B4B4BB7BhBhhhhhhhhh4B4BBB2B8B4BBhBBHH2s'
 
@@ -156,28 +164,28 @@ def deserialise_loop(loop_string):
     storm_rain, current_storm_start_date, day_rain, month_rain, year_rain, \
     day_ET, month_ET, year_ET, soil_moisture_1, soil_moisture_2, \
     soil_moisture_3, soil_moisture_4, leaf_wetness_1, leaf_wetness_2, \
-    leaf_wetness_3, leaf_wetness_4, inside_alarms,rain_alarms, \
+    leaf_wetness_3, leaf_wetness_4, inside_alarms, rain_alarms, \
     outside_alarms_A, outside_alarms_B, ext_th_alarms_1, ext_th_alarms_2, \
     ext_th_alarms_3, ext_th_alarms_4, ext_th_alarms_5, ext_th_alarms_6, \
     ext_th_alarms_7, ext_th_alarms_8, soil_leaf_alarm_1, soil_leaf_alarm_2, \
     soil_leaf_alarm_3, soil_leaf_alarm_4, tx_battery_status, \
     console_battery_voltage, forecast_icons, forecast_rule_number, \
-    time_of_sunrise, time_of_sunset,\
+    time_of_sunrise, time_of_sunset, \
     term_chars = struct.unpack(format, loop_string)
 
     # Now pack all those variables into something a little more workable.
     # We'll to unit conversions, etc, at the same time.
     loop = Loop(
-        barTrend = bar_trend,
-        nextRecord = next_record,
-        barometer = barometer / 1000,
-        insideTemperature = f_to_c(inside_temperature / 10),
-        insideHumidity = inside_humidity,
-        outsideTemperature = f_to_c(outside_temperature / 10),
-        windSpeed = mph_to_ms(wind_speed),
-        averageWindSpeed10min = mph_to_ms(average_wind_speed_10m),
-        windDirection = wind_direction,
-        extraTemperatures = [
+        barTrend=bar_trend,
+        nextRecord=next_record,
+        barometer=barometer / 1000,
+        insideTemperature=f_to_c(inside_temperature / 10),
+        insideHumidity=inside_humidity,
+        outsideTemperature=f_to_c(outside_temperature / 10),
+        windSpeed=mph_to_ms(wind_speed),
+        averageWindSpeed10min=mph_to_ms(average_wind_speed_10m),
+        windDirection=wind_direction,
+        extraTemperatures=[
             f_to_c(ext_temp_1 - 90),
             f_to_c(ext_temp_2 - 90),
             f_to_c(ext_temp_3 - 90),
@@ -185,18 +193,18 @@ def deserialise_loop(loop_string):
             f_to_c(ext_temp_5 - 90),
             f_to_c(ext_temp_6 - 90),
             f_to_c(ext_temp_7 - 90)],
-        soilTemperatures = [
+        soilTemperatures=[
             f_to_c(soil_temp_1 - 90),
             f_to_c(soil_temp_2 - 90),
             f_to_c(soil_temp_3 - 90),
             f_to_c(soil_temp_4 - 90)],
-        leafTemperatures = [
+        leafTemperatures=[
             f_to_c(leaf_temp_1 - 90),
             f_to_c(leaf_temp_2 - 90),
             f_to_c(leaf_temp_3 - 90),
             f_to_c(leaf_temp_4 - 90)],
-        outsideHumidity = outside_humidity,
-        extraHumidities = [
+        outsideHumidity=outside_humidity,
+        extraHumidities=[
             ext_humid_1,
             ext_humid_2,
             ext_humid_3,
@@ -204,33 +212,34 @@ def deserialise_loop(loop_string):
             ext_humid_5,
             ext_humid_6,
             ext_humid_7],
-        rainRate = rain_rate,
-        UV = uv,
-        solarRadiation = solar_radiation,
-        stormRain = inch_to_mm(storm_rain / 100),
-        startDateOfCurrentStorm = decode_current_storm_date(current_storm_start_date),
-        dayRain = day_rain,         # Station config
-        monthRain = month_rain,     # affects these
-        yearRain = year_rain,       # values
-        dayET = inch_to_mm(day_ET * 1000),
-        monthET = inch_to_mm(month_ET * 100),
-        yearET = inch_to_mm(year_ET * 100),
-        soilMoistures = [
+        rainRate=rain_rate,
+        UV=uv,
+        solarRadiation=solar_radiation,
+        stormRain=inch_to_mm(storm_rain / 100),
+        startDateOfCurrentStorm=decode_current_storm_date(
+            current_storm_start_date),
+        dayRain=day_rain, # Station config
+        monthRain=month_rain, # affects these
+        yearRain=year_rain, # values
+        dayET=inch_to_mm(day_ET * 1000),
+        monthET=inch_to_mm(month_ET * 100),
+        yearET=inch_to_mm(year_ET * 100),
+        soilMoistures=[
             soil_moisture_1,
             soil_moisture_2,
             soil_moisture_3,
             soil_moisture_4],
-        leafWetness = [
+        leafWetness=[
             leaf_wetness_1,
             leaf_wetness_2,
             leaf_wetness_3,
             leaf_wetness_4],
-        insideAlarms = inside_alarms,
-        rainAlarms = rain_alarms,
-        outsideAlarms = [
+        insideAlarms=inside_alarms,
+        rainAlarms=rain_alarms,
+        outsideAlarms=[
             outside_alarms_A,
             outside_alarms_B],
-        extraTempHumAlarms = [
+        extraTempHumAlarms=[
             ext_th_alarms_1,
             ext_th_alarms_2,
             ext_th_alarms_3,
@@ -239,19 +248,20 @@ def deserialise_loop(loop_string):
             ext_th_alarms_6,
             ext_th_alarms_7,
             ext_th_alarms_8],
-        soilAndLeafAlarms = [
+        soilAndLeafAlarms=[
             soil_leaf_alarm_1,
             soil_leaf_alarm_2,
             soil_leaf_alarm_3,
             soil_leaf_alarm_4],
-        transmitterBatteryStatus = tx_battery_status,
-        consoleBatteryVoltage = ((console_battery_voltage * 300)/512)/100.0,
-        forecastIcons = forecast_icons,
-        forecastRuleNumber = forecast_rule_number,
-        timeOfSunrise = decode_time(time_of_sunrise),
-        timeOfSunset = decode_time(time_of_sunset)
+        transmitterBatteryStatus=tx_battery_status,
+        consoleBatteryVoltage=((console_battery_voltage * 300) / 512) / 100.0,
+        forecastIcons=forecast_icons,
+        forecastRuleNumber=forecast_rule_number,
+        timeOfSunrise=decode_time(time_of_sunrise),
+        timeOfSunset=decode_time(time_of_sunset)
     )
     return loop
+
 
 def serialise_loop(loop):
     """
@@ -277,21 +287,21 @@ def serialise_loop(loop):
         ms_to_mph(loop.windSpeed),
         ms_to_mph(loop.averageWindSpeed10min),
         loop.windDirection,
-        c_to_f(loop.extraTemperatures[0])+90,
-        c_to_f(loop.extraTemperatures[1])+90,
-        c_to_f(loop.extraTemperatures[2])+90,
-        c_to_f(loop.extraTemperatures[3])+90,
-        c_to_f(loop.extraTemperatures[4])+90,
-        c_to_f(loop.extraTemperatures[5])+90,
-        c_to_f(loop.extraTemperatures[6])+90,
-        c_to_f(loop.soilTemperatures[0])+90,
-        c_to_f(loop.soilTemperatures[1])+90,
-        c_to_f(loop.soilTemperatures[2])+90,
-        c_to_f(loop.soilTemperatures[3])+90,
-        c_to_f(loop.leafTemperatures[0])+90,
-        c_to_f(loop.leafTemperatures[1])+90,
-        c_to_f(loop.leafTemperatures[2])+90,
-        c_to_f(loop.leafTemperatures[3])+90,
+        c_to_f(loop.extraTemperatures[0]) + 90,
+        c_to_f(loop.extraTemperatures[1]) + 90,
+        c_to_f(loop.extraTemperatures[2]) + 90,
+        c_to_f(loop.extraTemperatures[3]) + 90,
+        c_to_f(loop.extraTemperatures[4]) + 90,
+        c_to_f(loop.extraTemperatures[5]) + 90,
+        c_to_f(loop.extraTemperatures[6]) + 90,
+        c_to_f(loop.soilTemperatures[0]) + 90,
+        c_to_f(loop.soilTemperatures[1]) + 90,
+        c_to_f(loop.soilTemperatures[2]) + 90,
+        c_to_f(loop.soilTemperatures[3]) + 90,
+        c_to_f(loop.leafTemperatures[0]) + 90,
+        c_to_f(loop.leafTemperatures[1]) + 90,
+        c_to_f(loop.leafTemperatures[2]) + 90,
+        c_to_f(loop.leafTemperatures[3]) + 90,
         loop.outsideHumidity,
         loop.extraHumidities[0],
         loop.extraHumidities[1],
@@ -305,9 +315,9 @@ def serialise_loop(loop):
         loop.solarRadiation,
         mm_to_inch(loop.stormRain) * 100,
         encode_current_storm_date(loop.startDateOfCurrentStorm),
-        loop.dayRain,   # This depends
+        loop.dayRain, # This depends
         loop.monthRain, #    on the
-        loop.yearRain,  #       station config
+        loop.yearRain, #       station config
         mm_to_inch(loop.dayET) * 1000,
         mm_to_inch(loop.monthET) * 100,
         mm_to_inch(loop.yearET) * 100,
@@ -336,7 +346,7 @@ def serialise_loop(loop):
         loop.soilAndLeafAlarms[2],
         loop.soilAndLeafAlarms[3],
         loop.transmitterBatteryStatus,
-        int(((loop.consoleBatteryVoltage / 300)*512)*100),
+        int(((loop.consoleBatteryVoltage / 300) * 512) * 100),
         loop.forecastIcons,
         loop.forecastRuleNumber,
         encode_time(loop.timeOfSunrise),
