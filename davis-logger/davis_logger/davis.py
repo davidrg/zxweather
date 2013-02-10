@@ -167,7 +167,8 @@ class DavisWeatherStation(object):
         # This is so we can tell if the function which will be called later can
         # tell if the wake was successful.
         if self._wakeRetries == 0:
-            self.state = STATE_SLEEPING
+            self._state = STATE_SLEEPING
+            self._wakeRetries = 0
 
         if callback is not None:
             self._wakeCallback = callback
@@ -285,10 +286,14 @@ class DavisWeatherStation(object):
         if len(self._dmp_buffer) < 7:
             return
 
-        payload = self._dmp_buffer[0:5]
+        # Consume the ACK
+        assert self._dmp_buffer[0] == self._ACK
+        self._dmp_buffer = self._dmp_buffer[1:]
 
-        crc = struct.unpack(CRC.FORMAT, self._dmp_buffer[-2:])
-        calculated_crc = CRC.calculate_crc(payload)
+        payload = self._dmp_buffer[0:4]
+
+        crc = struct.unpack(CRC.FORMAT, self._dmp_buffer[4:])[0]
+        calculated_crc = CRC.calculate_crc(payload)  # Skip over the ACK
 
         if crc != calculated_crc:
             log.msg('CRC mismatch for DMPAFT page count')
@@ -297,12 +302,10 @@ class DavisWeatherStation(object):
             self.getSamples(self._dmp_timestamp)
             return
 
-        ack, page_count, first_record_location = struct.unpack(
-            '<BHH', payload)
+        page_count, first_record_location = struct.unpack(
+            '<HH', payload)
 
-        assert ack == self._ACK
-
-        self.state = STATE_DMPAFT_RECV
+        self._state = STATE_DMPAFT_RECV
         self._dmp_page_count = page_count
         self._dmp_remaining_pages = page_count
         self._dmp_first_record = first_record_location
@@ -360,11 +363,15 @@ class DavisWeatherStation(object):
                     self._dmp_records += records
                 self._dmp_remaining_pages -= 1
 
+                # Ask for the next page.
+                self._write(self._ACK)
+
                 # If there are no more pages coming then its time to process
                 # it all and reset our state.
                 if self._dmp_remaining_pages == 0:
                     self._state = STATE_AWAKE
                     self._process_dmp_records()
             else:
+                log.msg('CRC Failed')
                 # CRC failed. Ask for the page to be sent again.
                 self._write(self._NAK)
