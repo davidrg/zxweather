@@ -2,8 +2,11 @@
 """
 Data logger for Davis Vantage Vue weather stations.
 """
+from datetime import datetime
 import sys
+from twisted.enterprise import adbapi
 from twisted.internet import reactor
+from twisted.internet.defer import Deferred
 from twisted.internet.protocol import Protocol
 from twisted.internet.serialport import SerialPort
 from twisted.python import log
@@ -49,10 +52,11 @@ class DavisLoggerProtocol(Protocol):
 
     def connectionMade(self):
         """ Called to start logging data. """
-        self.station.getLoopPackets(50)
+        self.station.getLoopPackets(5)
 
     def _loopPacketReceived(self, loop):
         log.msg('LOOP: ' + repr(loop))
+        self._store_live(loop)
 
     def _loopFinished(self):
         log.msg('LOOP finished')
@@ -60,7 +64,90 @@ class DavisLoggerProtocol(Protocol):
     def _samplesArrived(self, sampleList):
         log.msg('DMP finished: ' + repr(sampleList))
 
+    def _store_live(self, loop):
+        """
+        :param loop:
+        :type loop: davis_logger.record_types.loop.Loop
+        :return:
+        """
+        global database_pool, station_id
+
+        query = """update live_data
+                set download_timestamp = %s,
+                    indoor_relative_humidity = %s,
+                    indoor_temperature = %s,
+                    relative_humidity = %s,
+                    temperature = %s,
+                    absolute_pressure = %s,
+                    average_wind_speed = %s,
+                    gust_wind_speed = %s,
+                    wind_direction = %s
+                where station_id = %s
+                """
+
+        database_pool.runOperation(
+            query,
+            (
+                datetime.now(),  # Download TS
+                loop.insideHumidity,
+                loop.insideTemperature,
+                loop.outsideHumidity,
+                loop.outsideTemperature,
+                loop.barometer,
+                loop.windSpeed,
+                None,  # Gust wind speed isn't supported for live data
+                loop.windDirection,
+                station_id
+            )
+        )
+
+        query = """
+                update davis_live_data
+                set bar_trend = %s,
+                    rain_rate = %s,
+                    storm_rain = %s,
+                    current_storm_start_date = %s,
+                    transmitter_battery = %s,
+                    console_battery_voltage = %s,
+                    forecast_icon = %s,
+                    forecast_rule_id = %s
+                where station_id = %s
+                """
+
+        database_pool.runOperation(
+            query,
+            (
+                loop.barTrend,
+                loop.rainRate,
+                loop.stormRain,
+                loop.startDateOfCurrentStorm,
+                loop.transmitterBatteryStatus,
+                loop.consoleBatteryVoltage,
+                loop.forecastIcons,
+                loop.forecastRuleNumber,
+                station_id
+            )
+        )
+
+
+def _store_station_id(result):
+    global station_id
+    station_id = result[0][0]
+    log.msg('Station ID: {0}'.format(station_id))
+
+
+def _database_connect(conn_str, station_code):
+    global database_pool
+    database_pool = adbapi.ConnectionPool("psycopg2", conn_str)
+    deferred = database_pool.runQuery(
+        "select station_id from station where code = %s", (station_code,))
+    deferred.addCallback(_store_station_id)
+
+
 log.startLogging(sys.stdout)
+
+_database_connect("host=localhost port=5432 user=zxweather password=password "
+                  "dbname=davis_test", "rua2")
 
 SerialPort(DavisLoggerProtocol(), 'COM1', reactor, baudrate=19200)
 
