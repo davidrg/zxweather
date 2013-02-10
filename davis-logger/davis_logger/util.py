@@ -51,3 +51,19 @@ class Event(object):
 
         for handler in to_remove:
             self.__isub__(handler)
+
+def toHexString(string):
+    """
+    Converts the supplied string to hex.
+    :param string: Input string
+    :return:
+    """
+    result = ""
+    for char in string:
+
+        hex_encoded = hex(ord(char))[2:]
+        if len(hex_encoded) == 1:
+            hex_encoded = '0' + hex_encoded
+
+        result += r'\x{0}'.format(hex_encoded)
+    return result

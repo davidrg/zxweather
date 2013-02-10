@@ -7,11 +7,11 @@ with).
 import struct
 import datetime
 from twisted.python import log
-from davis_logger.record_types.dmp import encode_date, encode_time, split_page, \
-    deserialise_dmp
+from davis_logger.record_types.dmp import encode_date, encode_time, \
+    split_page, deserialise_dmp
 from davis_logger.record_types.loop import deserialise_loop
 from davis_logger.record_types.util import CRC
-from davis_logger.util import Event
+from davis_logger.util import Event, toHexString
 
 __author__ = 'david'
 
@@ -83,6 +83,7 @@ class DavisWeatherStation(object):
             STATE_LPS: self._lpsStateDataReceived,
             STATE_DMPAFT_INIT_1: self._dmpaftInit1DataReceived,
             STATE_DMPAFT_INIT_2: self._dmpaftInit2DataReceived,
+            STATE_DMPAFT_RECV: self._dmpaftRecvDataReceived
         }
 
         # Initialise other fields.
@@ -97,6 +98,9 @@ class DavisWeatherStation(object):
         self._dmp_timestamp = None
         self._dmp_buffer = ""
 
+        # Misc
+        self._wakeRetries = 0
+
     def dataReceived(self, data):
         """
         Call this with any data the weather station hardware supplies.
@@ -104,6 +108,11 @@ class DavisWeatherStation(object):
         """
 
         # Hand the data off to the function for the current state.
+        if self._state not in self._state_data_handlers:
+            log.msg('WARNING: Data discarded for state {0}: {1}'.format(
+                self._state, toHexString(data)))
+            return
+
         self._state_data_handlers[self._state](data)
 
     def getLoopPackets(self, packet_count):
@@ -117,13 +126,14 @@ class DavisWeatherStation(object):
         :param packet_count: The number of loop packets to to receive
         :type packet_count: int
         """
-
-        self._wakeUp()
-
         self._lps_packets_remaining = packet_count
+
+        self._wakeUp(self._getLoopPacketsCallback)
+
+    def _getLoopPacketsCallback(self):
         self._state = STATE_LPS
         self._lps_acknowledged = False
-        self._write('LPS 1 ' + str(packet_count) + '\n')
+        self._write('LPS 1 ' + str(self._lps_packets_remaining) + '\n')
 
     def getSamples(self, timestamp):
         """
@@ -132,11 +142,12 @@ class DavisWeatherStation(object):
         :param timestamp: Timestamp to get all samples after
         :type timestamp: datetime.datetime or tuple
         """
-
-        self._wakeUp()
-
-        self._state = STATE_DMPAFT_INIT_1
         self._dmp_timestamp = timestamp
+
+        self._wakeUp(self._getSamplesCallback)
+
+    def _getSamplesCallback(self):
+        self._state = STATE_DMPAFT_INIT_1
 
         # Reset everything else used by the various dump processing states.
         self._dmp_buffer = ''
@@ -152,21 +163,46 @@ class DavisWeatherStation(object):
         # sleep.
         self.sendData.fire(data)
 
-    def _wakeUp(self):
+    def _wakeUp(self, callback=None):
+        # This is so we can tell if the function which will be called later can
+        # tell if the wake was successful.
+        if self._wakeRetries == 0:
+            self.state = STATE_SLEEPING
+
+        if callback is not None:
+            self._wakeCallback = callback
+
+        # Only retry three times.
+        self._wakeRetries += 1
+        if self._wakeRetries > 3:
+            self._wakeRetries = 0
+            raise Exception('Console failed to wake')
+
+        log.msg('Wake attempt {0}'.format(self._wakeRetries))
+
         self._write('\n')
 
-        # TODO: Implement retry code. Make one attempt every 1.2 seconds
-        # Don't bother making more than three attempts.
-#        if self._wake_attempts > 3:
-#            raise Exception('Failed to wake station after three attempts')
+        from twisted.internet import reactor
+        reactor.callLater(2, self._wakeCheck)
 
     def _sleepingStateDataReceived(self, data):
         """Handles data while in the sleeping state."""
 
         # After a wake request the console will respond with \r\n when it is
         # ready to go.
-        if data == '\r\n':
+        if data == '\n\r':
             self._state = STATE_AWAKE
+            self._wakeRetries = 0
+            if self._wakeCallback is not None:
+                self._wakeCallback()
+
+    def _wakeCheck(self):
+        """
+        Checks to see if the wake-up was successful. If it is not then it will
+        trigger a retry.
+        """
+        if self._state == STATE_SLEEPING:
+            self._wakeUp()
 
     def _lpsStateDataReceived(self, data):
         """ Handles data while in the LPS state (receiving LOOP packets)
@@ -174,7 +210,7 @@ class DavisWeatherStation(object):
 
         if not self._lps_acknowledged and data[0] == self._ACK:
             self._lps_acknowledged = True
-            data.pop(0)
+            data = data[1:]
 
         # The LPS command hasn't been acknowledged yet so we're not *really*
         # in LPS mode just yet. Who knows what data we received to end up
@@ -184,19 +220,22 @@ class DavisWeatherStation(object):
         if len(data) > 0:
             self._lps_buffer += data
 
-        if self._lps_buffer > 98:
+        if len(self._lps_buffer) > 98:
+            # log.msg('LOOP_DEC. BufferLen={0}, Pkt={1}, Buffer={2}'.format(
+            #     len(self._lps_buffer), self._lps_packets_remaining,
+            #     toHexString(self._lps_buffer)
+            # ))
+
             # We have at least one full LOOP packet
             packet = self._lps_buffer[0:99]
-            if len(self._lps_buffer) > 99:
-                self._lps_buffer = self._lps_buffer[99:]
-
-            packet_data = packet[0:97]
-            packet_crc = packet[98:]
+            self._lps_buffer = self._lps_buffer[99:]
 
             self._lps_packets_remaining -= 1
 
-            crc = CRC.calculate_crc(packet_data)
+            packet_data = packet[0:97]
+            packet_crc = struct.unpack(CRC.FORMAT, packet[97:])[0]
 
+            crc = CRC.calculate_crc(packet_data)
             if crc != packet_crc:
                 log.msg('Warning: CRC validation failed for LOOP packet. '
                         'Discarding.')
