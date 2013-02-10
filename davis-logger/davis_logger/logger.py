@@ -3,6 +3,7 @@
 Data logger for Davis Vantage Vue weather stations.
 """
 from datetime import datetime
+import struct
 import sys
 from twisted.enterprise import adbapi
 from twisted.internet import reactor
@@ -15,7 +16,7 @@ from davis_logger.util import toHexString
 
 __author__ = 'david'
 
-# 8 pm 10-feb-2012: \x4a\x1a\xd0\x07
+# 8 pm 10-feb-2012:
 
 class DavisLoggerProtocol(Protocol):
     """
@@ -52,7 +53,12 @@ class DavisLoggerProtocol(Protocol):
 
     def connectionMade(self):
         """ Called to start logging data. """
-        self.station.getLoopPackets(5)
+
+        ts = struct.unpack('<HH', '\x4a\x1a\xd0\x07')
+
+        self.station.getSamples(ts)
+
+        #self.station.getLoopPackets(5)
 
     def _loopPacketReceived(self, loop):
         log.msg('LOOP: ' + repr(loop))
@@ -62,7 +68,9 @@ class DavisLoggerProtocol(Protocol):
         log.msg('LOOP finished')
 
     def _samplesArrived(self, sampleList):
-        log.msg('DMP finished: ' + repr(sampleList))
+        log.msg('DMP finished: ')
+        for sample in sampleList:
+            log.msg(repr(sample))
 
     def _store_live(self, loop):
         """

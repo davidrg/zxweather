@@ -5,6 +5,7 @@ The format used by the DMP and DMPAFT commands.
 from collections import namedtuple
 import struct
 import datetime
+from twisted.python import log
 from davis_logger.record_types.util import inhg_to_mb, mph_to_ms, \
     inch_to_mm, mb_to_inhg, ms_to_mph, mm_to_inch, CRC, deserialise_8bit_temp, \
     serialise_8bit_temp, undash_8bit, dash_8bit, deserialise_16bit_temp, \
@@ -63,7 +64,7 @@ def split_page(page_string):
     recordD = page_string[157:209]
     recordE = page_string[209:261]
     #reserved = page_string[261:265]
-    crc = page_string[265:267]
+    crc = struct.unpack(CRC.FORMAT,page_string[265:267])[0]
 
     return page_number, [recordA, recordB, recordC, recordD, recordE], crc
 
@@ -107,6 +108,9 @@ def decode_date(binary_val):
     # +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
     #    15  14  13  12  11  10   9   8   7   6   5   4   3   2   1   0
 
+    if binary_val == 0xFFFF:
+        return None
+
     year_mask = 0xFE00
     month_mask = 0x01E0
     day_mask = 0x001F
@@ -127,6 +131,9 @@ def encode_date(record_date):
     :rtype: int
     """
 
+    if record_date is None:
+        return 0xFFFF
+
     year = record_date.year
     year -= 2000
     month = record_date.month
@@ -145,6 +152,10 @@ def decode_time(binary_val):
     :return: Decoded time
     :rtype: datetime.time
     """
+
+    if binary_val == 0xFFFF:
+        return None
+
     hour = binary_val / 100
     minute = binary_val - (hour * 100)
 
@@ -159,6 +170,9 @@ def encode_time(record_time):
     :return: Encoded time
     :rtype: int
     """
+
+    if record_time is None:
+        return 0xFFFF
 
     return record_time.hour * 100 + record_time.minute
 
