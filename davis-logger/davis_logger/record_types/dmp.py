@@ -330,9 +330,6 @@ def deserialise_dmp(dmp_string):
     else:
         averageWindSpeed = mph_to_ms(averageWindSpeed)
 
-    if forecastRule == 193:
-        forecastRule = None
-
     if averageUVIndex == 255:
         averageUVIndex = None
     else:
@@ -422,11 +419,6 @@ def serialise_dmp(dmp):
     else:
         averageWindSpeed = ms_to_mph(dmp.averageWindSpeed)
 
-    if dmp.forecastRule is None:
-        forecastRule = 193
-    else:
-        forecastRule = dmp.forecastRule
-
     if dmp.averageUVIndex is None:
         averageUVIndex = 255
     else:
@@ -455,7 +447,7 @@ def serialise_dmp(dmp):
         mm_to_inch(dmp.ET),
         dmp.highSolarRadiation,
         dmp.highUVIndex,
-        forecastRule,
+        dmp.forecastRule,
         _serialise_8bit_temp(dmp.leafTemperature[0]),
         _serialise_8bit_temp(dmp.leafTemperature[1]),
         _dash_8bit(dmp.leafWetness[0]),
