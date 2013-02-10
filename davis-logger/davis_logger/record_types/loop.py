@@ -6,8 +6,10 @@ Functions for encoding and decoding LOOP packets.
 from collections import namedtuple
 import datetime
 import struct
-from davis_logger.record_types.util import CRC, c_to_f, ms_to_mph, mm_to_inch, \
-    inch_to_mm, f_to_c, mph_to_ms, inhg_to_mb, mb_to_inhg
+from davis_logger.record_types.util import CRC, ms_to_mph, mm_to_inch, \
+    inch_to_mm, mph_to_ms, inhg_to_mb, mb_to_inhg, deserialise_8bit_temp, \
+    serialise_8bit_temp, undash_8bit, dash_8bit, deserialise_16bit_temp, \
+    serialise_16bit_temp
 
 __author__ = 'david'
 
@@ -179,47 +181,50 @@ def deserialise_loop(loop_string):
         time_of_sunrise, time_of_sunset, \
         term_chars = struct.unpack(loop_format, loop_string)
 
+    if solar_radiation == 32767:
+        solar_radiation = None
+
     # Now pack all those variables into something a little more workable.
     # We'll to unit conversions, etc, at the same time.
     loop = Loop(
         barTrend=bar_trend,
         nextRecord=next_record,
         barometer=inhg_to_mb(barometer / 1000.0),
-        insideTemperature=f_to_c(inside_temperature / 10.0),
-        insideHumidity=inside_humidity,
-        outsideTemperature=f_to_c(outside_temperature / 10.0),
+        insideTemperature=deserialise_16bit_temp(inside_temperature),
+        insideHumidity=undash_8bit(inside_humidity),
+        outsideTemperature=deserialise_16bit_temp(outside_temperature),
         windSpeed=mph_to_ms(wind_speed),
         averageWindSpeed10min=mph_to_ms(average_wind_speed_10m),
         windDirection=wind_direction,
         extraTemperatures=[
-            f_to_c(ext_temp_1 - 90),
-            f_to_c(ext_temp_2 - 90),
-            f_to_c(ext_temp_3 - 90),
-            f_to_c(ext_temp_4 - 90),
-            f_to_c(ext_temp_5 - 90),
-            f_to_c(ext_temp_6 - 90),
-            f_to_c(ext_temp_7 - 90)],
+            deserialise_8bit_temp(ext_temp_1),
+            deserialise_8bit_temp(ext_temp_2),
+            deserialise_8bit_temp(ext_temp_3),
+            deserialise_8bit_temp(ext_temp_4),
+            deserialise_8bit_temp(ext_temp_5),
+            deserialise_8bit_temp(ext_temp_6),
+            deserialise_8bit_temp(ext_temp_7)],
         soilTemperatures=[
-            f_to_c(soil_temp_1 - 90),
-            f_to_c(soil_temp_2 - 90),
-            f_to_c(soil_temp_3 - 90),
-            f_to_c(soil_temp_4 - 90)],
+            deserialise_8bit_temp(soil_temp_1),
+            deserialise_8bit_temp(soil_temp_2),
+            deserialise_8bit_temp(soil_temp_3),
+            deserialise_8bit_temp(soil_temp_4)],
         leafTemperatures=[
-            f_to_c(leaf_temp_1 - 90),
-            f_to_c(leaf_temp_2 - 90),
-            f_to_c(leaf_temp_3 - 90),
-            f_to_c(leaf_temp_4 - 90)],
-        outsideHumidity=outside_humidity,
+            deserialise_8bit_temp(leaf_temp_1),
+            deserialise_8bit_temp(leaf_temp_2),
+            deserialise_8bit_temp(leaf_temp_3),
+            deserialise_8bit_temp(leaf_temp_4)],
+        outsideHumidity=undash_8bit(outside_humidity),
         extraHumidities=[
-            ext_humid_1,
-            ext_humid_2,
-            ext_humid_3,
-            ext_humid_4,
-            ext_humid_5,
-            ext_humid_6,
-            ext_humid_7],
+            undash_8bit(ext_humid_1),
+            undash_8bit(ext_humid_2),
+            undash_8bit(ext_humid_3),
+            undash_8bit(ext_humid_4),
+            undash_8bit(ext_humid_5),
+            undash_8bit(ext_humid_6),
+            undash_8bit(ext_humid_7)],
         rainRate=rain_rate,
-        UV=uv,
+        UV=undash_8bit(uv),
         solarRadiation=solar_radiation,
         stormRain=inch_to_mm(storm_rain / 100),
         startDateOfCurrentStorm=decode_current_storm_date(
@@ -231,15 +236,15 @@ def deserialise_loop(loop_string):
         monthET=inch_to_mm(month_ET * 100),
         yearET=inch_to_mm(year_ET * 100),
         soilMoistures=[
-            soil_moisture_1,
-            soil_moisture_2,
-            soil_moisture_3,
-            soil_moisture_4],
+            undash_8bit(soil_moisture_1),
+            undash_8bit(soil_moisture_2),
+            undash_8bit(soil_moisture_3),
+            undash_8bit(soil_moisture_4)],
         leafWetness=[
-            leaf_wetness_1,
-            leaf_wetness_2,
-            leaf_wetness_3,
-            leaf_wetness_4],
+            undash_8bit(leaf_wetness_1),
+            undash_8bit(leaf_wetness_2),
+            undash_8bit(leaf_wetness_3),
+            undash_8bit(leaf_wetness_4)],
         insideAlarms=inside_alarms,
         rainAlarms=rain_alarms,
         outsideAlarms=[
@@ -280,6 +285,11 @@ def serialise_loop(loop):
 
     loop_format = '<3sbBhhhBhBBh7B4B4BB7BhBhhhhhhhhh4B4BBB2B8B4BBhBBHH'
 
+    if loop.solarRadiation is None:
+        solarRadiation = 32767
+    else:
+        solarRadiation = loop.solarRadiation
+
     packed = struct.pack(
         loop_format,
         'LOO',  # Magic number
@@ -287,38 +297,38 @@ def serialise_loop(loop):
         0,  # Packet type. 0 = LOOP
         loop.nextRecord,
         mb_to_inhg(loop.barometer * 1000),
-        int(c_to_f(loop.insideTemperature) * 10),
-        loop.insideHumidity,
-        int(c_to_f(loop.outsideTemperature) * 10),
+        serialise_16bit_temp(loop.insideTemperature),
+        dash_8bit(loop.insideHumidity),
+        serialise_16bit_temp(loop.outsideTemperature),
         ms_to_mph(loop.windSpeed),
         ms_to_mph(loop.averageWindSpeed10min),
         loop.windDirection,
-        c_to_f(loop.extraTemperatures[0]) + 90,
-        c_to_f(loop.extraTemperatures[1]) + 90,
-        c_to_f(loop.extraTemperatures[2]) + 90,
-        c_to_f(loop.extraTemperatures[3]) + 90,
-        c_to_f(loop.extraTemperatures[4]) + 90,
-        c_to_f(loop.extraTemperatures[5]) + 90,
-        c_to_f(loop.extraTemperatures[6]) + 90,
-        c_to_f(loop.soilTemperatures[0]) + 90,
-        c_to_f(loop.soilTemperatures[1]) + 90,
-        c_to_f(loop.soilTemperatures[2]) + 90,
-        c_to_f(loop.soilTemperatures[3]) + 90,
-        c_to_f(loop.leafTemperatures[0]) + 90,
-        c_to_f(loop.leafTemperatures[1]) + 90,
-        c_to_f(loop.leafTemperatures[2]) + 90,
-        c_to_f(loop.leafTemperatures[3]) + 90,
-        loop.outsideHumidity,
-        loop.extraHumidities[0],
-        loop.extraHumidities[1],
-        loop.extraHumidities[2],
-        loop.extraHumidities[3],
-        loop.extraHumidities[4],
-        loop.extraHumidities[5],
-        loop.extraHumidities[6],
+        serialise_8bit_temp(loop.extraTemperatures[0]),
+        serialise_8bit_temp(loop.extraTemperatures[1]),
+        serialise_8bit_temp(loop.extraTemperatures[2]),
+        serialise_8bit_temp(loop.extraTemperatures[3]),
+        serialise_8bit_temp(loop.extraTemperatures[4]),
+        serialise_8bit_temp(loop.extraTemperatures[5]),
+        serialise_8bit_temp(loop.extraTemperatures[6]),
+        serialise_8bit_temp(loop.soilTemperatures[0]),
+        serialise_8bit_temp(loop.soilTemperatures[1]),
+        serialise_8bit_temp(loop.soilTemperatures[2]),
+        serialise_8bit_temp(loop.soilTemperatures[3]),
+        serialise_8bit_temp(loop.leafTemperatures[0]),
+        serialise_8bit_temp(loop.leafTemperatures[1]),
+        serialise_8bit_temp(loop.leafTemperatures[2]),
+        serialise_8bit_temp(loop.leafTemperatures[3]),
+        dash_8bit(loop.outsideHumidity),
+        dash_8bit(loop.extraHumidities[0]),
+        dash_8bit(loop.extraHumidities[1]),
+        dash_8bit(loop.extraHumidities[2]),
+        dash_8bit(loop.extraHumidities[3]),
+        dash_8bit(loop.extraHumidities[4]),
+        dash_8bit(loop.extraHumidities[5]),
+        dash_8bit(loop.extraHumidities[6]),
         loop.rainRate,  # What this is depends on station config
-        loop.UV,
-        loop.solarRadiation,
+        dash_8bit(loop.UV),
+        solarRadiation,
         mm_to_inch(loop.stormRain) * 100,
         encode_current_storm_date(loop.startDateOfCurrentStorm),
         loop.dayRain,  # This depends # TODO: make this configurable
@@ -327,14 +337,14 @@ def serialise_loop(loop):
         mm_to_inch(loop.dayET) * 1000,
         mm_to_inch(loop.monthET) * 100,
         mm_to_inch(loop.yearET) * 100,
-        loop.soilMoistures[0],
-        loop.soilMoistures[1],
-        loop.soilMoistures[2],
-        loop.soilMoistures[3],
-        loop.leafWetness[0],
-        loop.leafWetness[1],
-        loop.leafWetness[2],
-        loop.leafWetness[3],
+        dash_8bit(loop.soilMoistures[0]),
+        dash_8bit(loop.soilMoistures[1]),
+        dash_8bit(loop.soilMoistures[2]),
+        dash_8bit(loop.soilMoistures[3]),
+        dash_8bit(loop.leafWetness[0]),
+        dash_8bit(loop.leafWetness[1]),
+        dash_8bit(loop.leafWetness[2]),
+        dash_8bit(loop.leafWetness[3]),
         loop.insideAlarms,  # Inside alarms
         loop.rainAlarms,  # Rain alarms
         loop.outsideAlarms[0],  # Outside alarms A,

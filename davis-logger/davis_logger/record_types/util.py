@@ -113,3 +113,92 @@ class CRC(object):
             crc = (CRC.crc_table[table_idx] ^ (crc << 8)) & 0xffff
 
         return crc
+
+
+def deserialise_8bit_temp(temp):
+    """
+    Converts an 8-bit temperature value to degrees C. If its dashed it converts
+    it to None instead.
+    :param temp: temp in deg F minus 90
+    :rtype: int
+    """
+    if temp == 255:
+        return None
+    else:
+        return f_to_c(temp + 90)
+
+
+def serialise_8bit_temp(temp):
+    """
+    Converts the supplied temperature to the format used in DMP records
+    :param temp: Temperature to convert
+    :return: Serialised temperature
+    :rtype: int
+    """
+
+    if temp is None:
+        return 255
+
+    return int(c_to_f(temp) - 90)
+
+
+def undash_8bit(value):
+    """
+    Returns None if the value is 255, otherwise the value is returned.
+    :param value: Value to check
+    """
+    if value == 255:
+        return None
+    else:
+        return value
+
+
+def dash_8bit(value):
+    """
+    Returns 255 if the supplied value is None, otherwise the value is returned.
+    :param value: Value to check
+    """
+    if value is None:
+        return 255
+    else:
+        return value
+
+
+def deserialise_16bit_temp(temp, minDashed=False):
+    """
+    Converts the 16bit temperature value to degrees C. If its dashed it
+    converts it to None instead.
+    :param temp: Temperature to convert
+    :type temp: int
+    :param minDashed: If the minimum dashed value (-32768) should be used
+    instead
+    :type minDashed: bool
+    :return: Temperature in degrees C
+    :rtype: float or None
+    """
+
+    if temp == 32767 and not minDashed:
+        return None
+    elif temp == -32767 and minDashed:
+        return None
+    else:
+        return f_to_c(temp / 10.0)
+
+
+def serialise_16bit_temp(temp, minDashed=False):
+    """
+    Converts the supplied 16bit temperature to the format used by DMP records.
+    :param temp: The temperature to convert
+    :type temp: float
+    :param minDashed: If the minimum dashed value should be used
+    :type minDashed: bool
+    :return: temp value
+    :rtype: int
+    """
+
+    if temp is None and minDashed:
+        return -32767
+    elif temp is None:
+        return 32767
+
+    return int(c_to_f(temp) * 10.0)
