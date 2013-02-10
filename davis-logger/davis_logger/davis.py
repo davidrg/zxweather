@@ -4,11 +4,11 @@ The Davis module: Code for interfacing with a Davis weather station. The
 Vantage Vue in particular (as I don't have access to anything else to test
 with).
 """
-from collections import namedtuple
 import struct
 import datetime
 from twisted.python import log
-from davis_logger.record_types.dmp import encode_date, encode_time, split_page, deserialise_dmp
+from davis_logger.record_types.dmp import encode_date, encode_time, split_page, \
+    deserialise_dmp
 from davis_logger.record_types.loop import deserialise_loop
 from davis_logger.record_types.util import CRC
 from davis_logger.util import Event
@@ -34,6 +34,7 @@ STATE_DMPAFT_INIT_2 = 4
 
 # Receiving dump pages.
 STATE_DMPAFT_RECV = 5
+
 
 class DavisWeatherStation(object):
     """
@@ -252,8 +253,10 @@ class DavisWeatherStation(object):
 
         if crc != calculated_crc:
             log.msg('CRC mismatch for DMPAFT page count')
-            # TODO: Do we send a NAK or something here?
-            pass
+            # I assume we just start again from scratch if this particular CRC
+            # is bad. Thats what we have to do for the other one at least.
+            self.getSamples(self._dmp_timestamp)
+            return
 
         ack, page_count, first_record_location = struct.unpack(
             '<BHH', payload)
