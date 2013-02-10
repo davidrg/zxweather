@@ -257,8 +257,8 @@ def deserialise_dmp(dmp_string):
         highOutsideTemperature=deserialise_16bit_temp(
             highOutsideTemperature, True),
         lowOutsideTemperature=deserialise_16bit_temp(lowOutsideTemperature),
-        rainfall=rainfall,  # TODO: This depends on station config
-        highRainRate=highRainRate,  # TODO: this depends on station config
+        rainfall=rainfall * 0.2,  # TODO: This depends on station config
+        highRainRate=highRainRate * 0.2,  # TODO: this depends on station config
         barometer=inhg_to_mb(barometer / 1000.0),
         solarRadiation=solarRadiation,
         numberOfWindSamples=numberOfWindSamples,
@@ -344,8 +344,8 @@ def serialise_dmp(dmp):
         serialise_16bit_temp(dmp.outsideTemperature),
         serialise_16bit_temp(dmp.highOutsideTemperature, True),
         serialise_16bit_temp(dmp.lowOutsideTemperature),
-        dmp.rainfall,  # TODO: This depends on station config
-        dmp.highRainRate,  # TODO: This depends on station config
+        int(dmp.rainfall / 0.2),  # TODO: This depends on station config
+        int(dmp.highRainRate / 0.2),  # TODO: This depends on station config
         mb_to_inhg(dmp.barometer * 1000),
         solarRadiation,
         dmp.numberOfWindSamples,

@@ -229,9 +229,9 @@ def deserialise_loop(loop_string):
         stormRain=inch_to_mm(storm_rain / 100),
         startDateOfCurrentStorm=decode_current_storm_date(
             current_storm_start_date),
-        dayRain=day_rain,  # Station config # TODO: make this configurable
-        monthRain=month_rain,  # affects these
-        yearRain=year_rain,  # values
+        dayRain=day_rain * 0.2,  # Station config # TODO: make this configurable
+        monthRain=month_rain * 0.2,  # affects these
+        yearRain=year_rain * 0.2,  # values
         dayET=inch_to_mm(day_ET * 1000),
         monthET=inch_to_mm(month_ET * 100),
         yearET=inch_to_mm(year_ET * 100),
@@ -331,9 +331,9 @@ def serialise_loop(loop):
         solarRadiation,
         mm_to_inch(loop.stormRain) * 100,
         encode_current_storm_date(loop.startDateOfCurrentStorm),
-        loop.dayRain,  # This depends # TODO: make this configurable
-        loop.monthRain,  # on the
-        loop.yearRain,  # station config
+        int(loop.dayRain / 0.2),  # This depends # TODO: make this configurable
+        int(loop.monthRain / 0.2),  # on the
+        int(loop.yearRain / 0.2),  # station config
         mm_to_inch(loop.dayET) * 1000,
         mm_to_inch(loop.monthET) * 100,
         mm_to_inch(loop.yearET) * 100,
