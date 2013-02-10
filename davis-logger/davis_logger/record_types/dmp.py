@@ -92,7 +92,7 @@ def build_page(page_number, records):
     return page
 
 
-def _decode_date(binary_val):
+def decode_date(binary_val):
     """
     Decodes the supplied date in the format used by DMP records.
     :param binary_val: DMP Record date.
@@ -116,7 +116,7 @@ def _decode_date(binary_val):
     return datetime.date(year=year, month=month, day=day)
 
 
-def _encode_date(record_date):
+def encode_date(record_date):
     """
     Encodes the supplied date in the format used by DMP records
     :param record_date: Date to encode
@@ -135,7 +135,7 @@ def _encode_date(record_date):
     return value
 
 
-def _decode_time(binary_val):
+def decode_time(binary_val):
     """
     Decodes the time format used in DMP records
     :param binary_val: Time value (short integer)
@@ -149,7 +149,7 @@ def _decode_time(binary_val):
     return datetime.time(hour=hour, minute=minute)
 
 
-def _encode_time(record_time):
+def encode_time(record_time):
     """
     Encodes the supplied time in the format used by DMP records
     :param record_time: Time to encode
@@ -341,8 +341,8 @@ def deserialise_dmp(dmp_string):
     ET = inch_to_mm(ET * 1000)
 
     unpacked = Dmp(
-        dateStamp=_decode_date(dateStamp),
-        timeStamp=_decode_time(timeStamp),
+        dateStamp=decode_date(dateStamp),
+        timeStamp=decode_time(timeStamp),
         outsideTemperature=_deserialise_16bit_temp(outsideTemperature),
         highOutsideTemperature=_deserialise_16bit_temp(
             highOutsideTemperature, True),
@@ -434,8 +434,8 @@ def serialise_dmp(dmp):
 
     packed = struct.pack(
         dmp_format,
-        _encode_date(dmp.dateStamp),
-        _encode_time(dmp.timeStamp),
+        encode_date(dmp.dateStamp),
+        encode_time(dmp.timeStamp),
         _serialise_16bit_temp(dmp.outsideTemperature),
         _serialise_16bit_temp(dmp.highOutsideTemperature, True),
         _serialise_16bit_temp(dmp.lowOutsideTemperature),
