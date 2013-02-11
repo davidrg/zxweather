@@ -44,6 +44,9 @@ class DavisLoggerProtocol(Protocol):
         # Fired when ever the loop packet subscription expires.
         self.station.loopFinished += self._loopFinished
 
+        # Fired when the init stuff has completed.
+        self.station.InitCompleted += self._init_completed
+
     def dataReceived(self, data):
         """
         Passes all received data on to the weather station.
@@ -58,10 +61,26 @@ class DavisLoggerProtocol(Protocol):
 
     def connectionMade(self):
         """ Called to start logging data. """
+        log.msg('Logger started.')
         log.msg('Latest date: {0} - Latest time: {1} - Station: {2}'.format(
             self._latest_date, self._latest_time, self._station_id))
         #self.station.getLoopPackets(5)
 
+        self.station.initialise()
+
+    def _init_completed(self, stationType, hardwareType, version, versionDate,
+                        stationTime, rainCollectorSizeName):
+
+        log.msg('Station Type: {0} - {1}'.format(stationType, hardwareType))
+
+        if stationType != 17:
+            log.msg('WARNING: Unsupported station: {0}'.format(hardwareType))
+
+        log.msg('Firmware Version: {0} ({1})'.format(versionDate, version))
+        log.msg('Station Time: {0}'.format(stationTime))
+        log.msg('Rain Collector Size: {0}'.format(rainCollectorSizeName))
+
+        # Bring the database up-to-date
         self._fetch_samples()
 
     def _fetch_samples(self):
@@ -211,6 +230,7 @@ class DavisLoggerProtocol(Protocol):
                 self._station_id
             )
         )
+
 
 def _store_latest_rec(result, database_pool, station_id):
 

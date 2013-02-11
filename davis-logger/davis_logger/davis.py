@@ -35,6 +35,20 @@ STATE_DMPAFT_INIT_2 = 4
 # Receiving dump pages.
 STATE_DMPAFT_RECV = 5
 
+# init-1: Getting station type
+INIT_1_STATE_GET_STATION_TYPE = 6
+
+# init-2: Get version date
+INIT_2_GET_VERSION_DATE = 7
+
+# init-3: Get version
+INIT_3_GET_VERSION = 8
+
+# init-4: Get time
+INIT_4_GET_TIME = 9
+
+# init-5: Get rain collector size.
+INIT_5_GET_RAIN_SIZE = 10
 
 class DavisWeatherStation(object):
     """
@@ -71,6 +85,7 @@ class DavisWeatherStation(object):
         self.sendData = Event()
         self.loopDataReceived = Event()
         self.loopFinished = Event()
+        self.InitCompleted = Event()
 
         # This event is raised when samples have finished downloading. The
         # sample records will be passed as a parameter.
@@ -83,7 +98,12 @@ class DavisWeatherStation(object):
             STATE_LPS: self._lpsStateDataReceived,
             STATE_DMPAFT_INIT_1: self._dmpaftInit1DataReceived,
             STATE_DMPAFT_INIT_2: self._dmpaftInit2DataReceived,
-            STATE_DMPAFT_RECV: self._dmpaftRecvDataReceived
+            STATE_DMPAFT_RECV: self._dmpaftRecvDataReceived,
+            INIT_1_STATE_GET_STATION_TYPE: self._stationTypeDataReceived,
+            INIT_2_GET_VERSION_DATE: self._versionDateInfoReceived,
+            INIT_3_GET_VERSION: self._versionInfoReceived,
+            INIT_4_GET_TIME: self._timeInfoReceived,
+            INIT_5_GET_RAIN_SIZE: self._rainSizeReceived,
         }
 
         # Initialise other fields.
@@ -158,6 +178,125 @@ class DavisWeatherStation(object):
 
         self._write('DMPAFT\n')
 
+    def initialise(self):
+        """
+        Gets the station type.
+        :return:
+        """
+        self._wakeUp(self._getStationTypeCallback)
+
+    def _getStationTypeCallback(self):
+        self._state = INIT_1_STATE_GET_STATION_TYPE
+        self._buffer = ''
+        self._write('WRD\x12\x4D\n')
+
+    def _stationTypeDataReceived(self, data):
+        self._buffer += data
+
+        if len(self._buffer) == 2:
+            assert self._buffer[0] == self._ACK
+
+            station_type = ord(self._buffer[1])
+            self._buffer = ''
+
+            hw_type = "Unknown"
+            if station_type == 0:
+                hw_type = "Wizard III"
+            elif station_type == 1:
+                hw_type = "Wizard II"
+            elif station_type == 2:
+                hw_type = "Monitor"
+            elif station_type == 3:
+                hw_type = "Perception"
+            elif station_type == 4:
+                hw_type = "GroWeather"
+            elif station_type == 5:
+                hw_type = "Energy Enviromonitor"
+            elif station_type == 6:
+                hw_type = "Health Enviromonitor"
+            elif station_type == 16:
+                hw_type = "Vantage Pro, Vantage Pro2"
+            elif station_type == 17:
+                hw_type = "Vantage Vue"
+
+            self._hw_type = hw_type
+            self._station_type = station_type
+
+            self._state = INIT_2_GET_VERSION_DATE
+            self._write('VER\n')
+
+    def _versionDateInfoReceived(self, data):
+        self._buffer += data
+
+        if self._buffer.count('\n') == 3:
+            self._version_date = self._buffer.split('\n')[2].strip()
+            self._buffer = ''
+
+            if self._station_type in [16,17]:
+                # NVER is only supported on the Vantage Vue or Vantage Pro2
+                self._state = INIT_3_GET_VERSION
+                self._write('NVER\n')
+            else:
+                self._version = None
+                self._state = INIT_4_GET_TIME
+                self._write('GETTIME\n')
+
+    def _versionInfoReceived(self, data):
+        self._buffer += data
+
+        if self._buffer.count('\n') == 3:
+            self._version = self._buffer.split('\n')[2].strip()
+            self._buffer = ''
+            self._state = INIT_4_GET_TIME
+            self._write('GETTIME\n')
+
+    def _timeInfoReceived(self, data):
+        self._buffer += data
+
+        if len(self._buffer) == 9:
+            seconds = ord(self._buffer[1])
+            minutes = ord(self._buffer[2])
+            hour = ord(self._buffer[3])
+            day = ord(self._buffer[4])
+            month = ord(self._buffer[5])
+            year = ord(self._buffer[6]) + 1900
+            self._station_time = datetime.datetime(year=year, month=month,
+                                                   day=day, hour=hour,
+                                                   minute=minutes,
+                                                   second=seconds)
+
+            self._buffer = ''
+            self._state = INIT_5_GET_RAIN_SIZE
+            self._write('EEBRD 2B 01\n')
+
+    def _rainSizeReceived(self, data):
+        self._buffer += data
+
+        if len(self._buffer) == 4:
+            assert self._buffer[0] == self._ACK
+
+            setup_byte = ord(data[1])
+            rainCollectorSize = (setup_byte & 0x30) >> 4
+            sizeString = "Unknown - assuming 0.2mm"
+            self._rainCollectorSize = 0.2
+            if rainCollectorSize == 0:
+                sizeString = "0.01 Inches"
+                self._rainCollectorSize = 0.254
+            elif rainCollectorSize == 1:
+                sizeString = "0.2mm"
+                self._rainCollectorSize = 0.2
+            elif rainCollectorSize == 2:
+                sizeString = "0.1mm"
+                self._rainCollectorSize = 0.1
+            self._rainCollectorSizeName = sizeString
+
+            self._state = STATE_AWAKE
+
+            self.InitCompleted.fire(self._station_type, self._hw_type,
+                                    self._version, self._version_date,
+                                    self._station_time,
+                                    self._rainCollectorSizeName)
+
     def _write(self, data):
         # TODO: store current time so we know if the console has gone back to
         # sleep.
@@ -195,7 +334,9 @@ class DavisWeatherStation(object):
             self._state = STATE_AWAKE
             self._wakeRetries = 0
             if self._wakeCallback is not None:
-                self._wakeCallback()
+                callback = self._wakeCallback
+                self._wakeCallback = None
+                callback()
 
     def _wakeCheck(self):
         """
@@ -242,7 +383,7 @@ class DavisWeatherStation(object):
                         'Discarding.')
             else:
                 # CRC checks out. Data should be good
-                loop = deserialise_loop(packet_data)
+                loop = deserialise_loop(packet_data, self._rainCollectorSize)
 
                 self.loopDataReceived.fire(loop)
 
@@ -327,7 +468,7 @@ class DavisWeatherStation(object):
         last_ts = None
 
         for record in self._dmp_records:
-            decoded = deserialise_dmp(record)
+            decoded = deserialise_dmp(record, self._rainCollectorSize)
 
             if decoded.dateStamp is None or decoded.timeStamp is None:
                 # We've gone past the last record in archive memory (which was

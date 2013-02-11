@@ -227,11 +227,13 @@ def _serialise_wind_direction_code(value):
     return _compass_points.index(value)
 
 
-def deserialise_dmp(dmp_string):
+def deserialise_dmp(dmp_string, rainCollectorSize=0.2):
     """
     Deserialised a dmp string into a Dmp tuple.
     :param dmp_string: DMP record in string format as sent by the console
     :type dmp_string: str
+    :param rainCollectorSize: Size of the rain collector in millimeters
+    :type rainCollectorSize: float
     :return: The DMP record as a named tuple.
     :rtype: Dmp
     """
@@ -269,10 +271,6 @@ def deserialise_dmp(dmp_string):
 
     ET = inch_to_mm(ET * 1000)
 
-    if numberOfWindSamples > 1000:
-        log.msg('Warning: Number of wind samples is {0}'.format(numberOfWindSamples))
-
-
     unpacked = Dmp(
         dateStamp=decode_date(dateStamp),
         timeStamp=decode_time(timeStamp),
@@ -282,8 +280,8 @@ def deserialise_dmp(dmp_string):
         highOutsideTemperature=deserialise_16bit_temp(
             highOutsideTemperature, True),
         lowOutsideTemperature=deserialise_16bit_temp(lowOutsideTemperature),
-        rainfall=rainfall * 0.2,  # TODO: This depends on station config
-        highRainRate=highRainRate * 0.2,  # TODO: this depends on station config
+        rainfall=rainfall * rainCollectorSize,
+        highRainRate=highRainRate * rainCollectorSize,
         barometer=inhg_to_mb(barometer / 1000.0),
         solarRadiation=solarRadiation,
         numberOfWindSamples=numberOfWindSamples,
@@ -335,12 +333,14 @@ def deserialise_dmp(dmp_string):
     return unpacked
 
 
-def serialise_dmp(dmp):
+def serialise_dmp(dmp, rainCollectorSize=0.2):
     """
     Takes data from a DMP packet and converts it into the string format
     used by the console.
     :param dmp: DMP packet data
     :type dmp: Dmp
+    :param rainCollectorSize: Size of the rain collector in millimeters
+    :type rainCollectorSize: float
     :return: The Dmp tuple packed into a string.
     :rtype: str
     """
@@ -374,8 +374,8 @@ def serialise_dmp(dmp):
         serialise_16bit_temp(dmp.outsideTemperature),
         serialise_16bit_temp(dmp.highOutsideTemperature, True),
         serialise_16bit_temp(dmp.lowOutsideTemperature),
-        int(dmp.rainfall / 0.2),  # TODO: This depends on station config
-        int(dmp.highRainRate / 0.2),  # TODO: This depends on station config
+        int(dmp.rainfall / rainCollectorSize),
+        int(dmp.highRainRate / rainCollectorSize),
         mb_to_inhg(dmp.barometer * 1000),
         solarRadiation,
         dmp.numberOfWindSamples,
