@@ -56,7 +56,7 @@ class DavisLoggerProtocol(Protocol):
 
         ts = struct.unpack('<HH', '\x4a\x1a\xd0\x07')
 
-        self.station.getSamples(ts)
+        self.station.getSamples((0, 0))
 
         #self.station.getLoopPackets(5)
 
@@ -70,7 +70,73 @@ class DavisLoggerProtocol(Protocol):
     def _samplesArrived(self, sampleList):
         log.msg('DMP finished: ')
         for sample in sampleList:
-            log.msg(repr(sample))
+        #    log.msg(repr(sample))
+            self._store_sample(sample)
+
+    def _store_sample(self, sample):
+        global database_pool, station_id
+        database_pool.runInteraction(self._store_sample_int, sample, station_id)
+
+    def _store_sample_int(self, txn, sample, station_id):
+        """
+        :param txn: Database cursor
+        :param sample: Sample to insert
+        :type sample: davis_logger.record_types.dmp.Dmp
+        :param station_id: Station to insert the record for
+        """
+        query = """
+            insert into sample(download_timestamp, time_stamp,
+                indoor_relative_humidity, indoor_temperature, relative_humidity,
+                temperature, absolute_pressure, average_wind_speed,
+                gust_wind_speed, wind_direction, rainfall, station_id)
+            values(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            returning sample_id
+                """
+
+        txn.execute(query,
+                    (
+                        datetime.now(),  # Download timestamp
+                        datetime.combine(sample.dateStamp, sample.timeStamp),
+                        sample.insideHumidity,
+                        sample.insideTemperature,
+                        sample.outsideHumidity,
+                        sample.outsideTemperature,
+                        sample.barometer,
+                        sample.averageWindSpeed,
+                        sample.highWindSpeed,
+                        sample.prevailingWindDirection,
+                        sample.rainfall,
+                        station_id
+                    ))
+
+        sample_id = txn.fetchone()[0]
+
+        query = """
+                insert into davis_sample(
+                    sample_id, record_time, record_date, high_temperature,
+                    low_temperature, high_rain_rate, solar_radiation,
+                    wind_sample_count, gust_wind_direction, average_uv_index,
+                    evapotranspiration, high_solar_radiation, high_uv_index,
+                    forecast_rule_id)
+                values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                """
+        txn.execute(query,
+                    (
+                        sample_id,
+                        sample.timeInteger,
+                        sample.dateInteger,
+                        sample.highOutsideTemperature,
+                        sample.lowOutsideTemperature,
+                        sample.highRainRate,
+                        sample.solarRadiation,
+                        sample.numberOfWindSamples,
+                        sample.highWindSpeedDirection,
+                        sample.averageUVIndex,
+                        sample.ET,
+                        sample.highSolarRadiation,
+                        sample.highUVIndex,
+                        sample.forecastRule
+                    ))
 
     def _store_live(self, loop):
         """
@@ -96,14 +162,14 @@ class DavisLoggerProtocol(Protocol):
         database_pool.runOperation(
             query,
             (
-                datetime.now(),  # Download TS
+                datetime.now(), # Download TS
                 loop.insideHumidity,
                 loop.insideTemperature,
                 loop.outsideHumidity,
                 loop.outsideTemperature,
                 loop.barometer,
                 loop.windSpeed,
-                None,  # Gust wind speed isn't supported for live data
+                None, # Gust wind speed isn't supported for live data
                 loop.windDirection,
                 station_id
             )
