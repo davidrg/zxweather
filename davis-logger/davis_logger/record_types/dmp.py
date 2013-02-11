@@ -18,6 +18,8 @@ Dmp = namedtuple(
     (
         'dateStamp',
         'timeStamp',
+        'dateInteger',
+        'timeInteger',
         'outsideTemperature',
         'highOutsideTemperature',
         'lowOutsideTemperature',
@@ -252,6 +254,9 @@ def deserialise_dmp(dmp_string):
     if solarRadiation == 32767:
         solarRadiation = None
 
+    if highSolarRadiation == 32767:
+        highSolarRadiation = None
+
     if averageWindSpeed == 255:
         averageWindSpeed = None
     else:
@@ -264,9 +269,15 @@ def deserialise_dmp(dmp_string):
 
     ET = inch_to_mm(ET * 1000)
 
+    if numberOfWindSamples > 1000:
+        log.msg('Warning: Number of wind samples is {0}'.format(numberOfWindSamples))
+
+
     unpacked = Dmp(
         dateStamp=decode_date(dateStamp),
         timeStamp=decode_time(timeStamp),
+        dateInteger=dateStamp,
+        timeInteger=timeStamp,
         outsideTemperature=deserialise_16bit_temp(outsideTemperature),
         highOutsideTemperature=deserialise_16bit_temp(
             highOutsideTemperature, True),
@@ -288,7 +299,7 @@ def deserialise_dmp(dmp_string):
         averageUVIndex=averageUVIndex,
         ET=ET,
         highSolarRadiation=highSolarRadiation,
-        highUVIndex=highUVIndex,
+        highUVIndex=undash_8bit(highUVIndex),
         forecastRule=forecastRule,
         leafTemperature=[
             deserialise_8bit_temp(leafTemperature_1),
@@ -341,6 +352,11 @@ def serialise_dmp(dmp):
     else:
         solarRadiation = dmp.solarRadiation
 
+    if dmp.highSolarRadiation is None:
+        highSolarRadiation = 32767
+    else:
+        highSolarRadiation = dmp.highSolarRadiation
+
     if dmp.averageWindSpeed is None:
         averageWindSpeed = 255
     else:
@@ -372,8 +388,8 @@ def serialise_dmp(dmp):
         _serialise_wind_direction_code(dmp.prevailingWindDirection),
         averageUVIndex,
         mm_to_inch(dmp.ET),
-        dmp.highSolarRadiation,
-        dmp.highUVIndex,
+        highSolarRadiation,
+        dash_8bit(dmp.highUVIndex),
         dmp.forecastRule,
         serialise_8bit_temp(dmp.leafTemperature[0]),
         serialise_8bit_temp(dmp.leafTemperature[1]),
