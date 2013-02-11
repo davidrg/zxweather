@@ -305,12 +305,19 @@ class DavisWeatherStation(object):
         page_count, first_record_location = struct.unpack(
             '<HH', payload)
 
-        self._state = STATE_DMPAFT_RECV
         self._dmp_page_count = page_count
         self._dmp_remaining_pages = page_count
         self._dmp_first_record = first_record_location
         self._dmp_buffer = ''
         self._dmp_records = []
+
+        if page_count > 0:
+            self._state = STATE_DMPAFT_RECV
+        else:
+            # Nothing to download
+            self._state = STATE_AWAKE
+            self.dumpFinished.fire([])
+
         self._write(self._ACK)
 
     def _process_dmp_records(self):

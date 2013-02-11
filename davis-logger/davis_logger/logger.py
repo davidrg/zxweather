@@ -23,8 +23,13 @@ class DavisLoggerProtocol(Protocol):
     Bridges communications with the weather station and handles logging data.
     """
 
-    def __init__(self):
+    def __init__(self, database_pool, station_id, latest_date, latest_time):
         self.station = DavisWeatherStation()
+
+        self._database_pool = database_pool
+        self._station_id = station_id
+        self._latest_date = latest_date
+        self._latest_time = latest_time
 
         # Subscribe to outgoing data event
         self.station.sendData += self._sendData
@@ -53,12 +58,14 @@ class DavisLoggerProtocol(Protocol):
 
     def connectionMade(self):
         """ Called to start logging data. """
-
-        ts = struct.unpack('<HH', '\x4a\x1a\xd0\x07')
-
-        self.station.getSamples((0, 0))
-
+        log.msg('Latest date: {0} - Latest time: {1} - Station: {2}'.format(
+            self._latest_date, self._latest_time, self._station_id))
         #self.station.getLoopPackets(5)
+
+        self._fetch_samples()
+
+    def _fetch_samples(self):
+        self.station.getSamples((self._latest_date, self._latest_time))
 
     def _loopPacketReceived(self, loop):
         log.msg('LOOP: ' + repr(loop))
@@ -68,23 +75,24 @@ class DavisLoggerProtocol(Protocol):
         log.msg('LOOP finished')
 
     def _samplesArrived(self, sampleList):
-        log.msg('DMP finished: ')
-        for sample in sampleList:
-        #    log.msg(repr(sample))
-            self._store_sample(sample)
+        self._database_pool.runInteraction(self._store_samples_int, sampleList)
 
-    def _store_sample(self, sample):
-        global database_pool, station_id
-        database_pool.runInteraction(self._store_sample_int, sample, station_id)
+        # This obviously relies on the sample list being ordered.
+        if len(sampleList) > 0:
+            last = sampleList[-1]
+            self._latest_date = last.dateInteger
+            self._latest_time = last.timeInteger
+            log.msg('Last record: {0} {1}'.format(last.dateStamp, last.timeStamp))
+        log.msg('Received {0} archive records'.format(len(sampleList)))
 
-    def _store_sample_int(self, txn, sample, station_id):
+    def _store_samples_int(self, txn, samples):
         """
         :param txn: Database cursor
-        :param sample: Sample to insert
-        :type sample: davis_logger.record_types.dmp.Dmp
-        :param station_id: Station to insert the record for
+        :param samples: Samples to insert
+        :type samples: list of davis_logger.record_types.dmp.Dmp
         """
-        query = """
+
+        base_query = """
             insert into sample(download_timestamp, time_stamp,
                 indoor_relative_humidity, indoor_temperature, relative_humidity,
                 temperature, absolute_pressure, average_wind_speed,
@@ -93,25 +101,7 @@ class DavisLoggerProtocol(Protocol):
             returning sample_id
                 """
 
-        txn.execute(query,
-                    (
-                        datetime.now(),  # Download timestamp
-                        datetime.combine(sample.dateStamp, sample.timeStamp),
-                        sample.insideHumidity,
-                        sample.insideTemperature,
-                        sample.outsideHumidity,
-                        sample.outsideTemperature,
-                        sample.barometer,
-                        sample.averageWindSpeed,
-                        sample.highWindSpeed,
-                        sample.prevailingWindDirection,
-                        sample.rainfall,
-                        station_id
-                    ))
-
-        sample_id = txn.fetchone()[0]
-
-        query = """
+        davis_query = """
                 insert into davis_sample(
                     sample_id, record_time, record_date, high_temperature,
                     low_temperature, high_rain_rate, solar_radiation,
@@ -120,23 +110,44 @@ class DavisLoggerProtocol(Protocol):
                     forecast_rule_id)
                 values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                 """
-        txn.execute(query,
-                    (
-                        sample_id,
-                        sample.timeInteger,
-                        sample.dateInteger,
-                        sample.highOutsideTemperature,
-                        sample.lowOutsideTemperature,
-                        sample.highRainRate,
-                        sample.solarRadiation,
-                        sample.numberOfWindSamples,
-                        sample.highWindSpeedDirection,
-                        sample.averageUVIndex,
-                        sample.ET,
-                        sample.highSolarRadiation,
-                        sample.highUVIndex,
-                        sample.forecastRule
-                    ))
+
+        for sample in samples:
+            txn.execute(base_query,
+                        (
+                            datetime.now(),  # Download timestamp
+                            datetime.combine(sample.dateStamp,
+                                             sample.timeStamp),
+                            sample.insideHumidity,
+                            sample.insideTemperature,
+                            sample.outsideHumidity,
+                            sample.outsideTemperature,
+                            sample.barometer,
+                            sample.averageWindSpeed,
+                            sample.highWindSpeed,
+                            sample.prevailingWindDirection,
+                            sample.rainfall,
+                            self._station_id
+                        ))
+
+            sample_id = txn.fetchone()[0]
+
+            txn.execute(davis_query,
+                        (
+                            sample_id,
+                            sample.timeInteger,
+                            sample.dateInteger,
+                            sample.highOutsideTemperature,
+                            sample.lowOutsideTemperature,
+                            sample.highRainRate,
+                            sample.solarRadiation,
+                            sample.numberOfWindSamples,
+                            sample.highWindSpeedDirection,
+                            sample.averageUVIndex,
+                            sample.ET,
+                            sample.highSolarRadiation,
+                            sample.highUVIndex,
+                            sample.forecastRule
+                        ))
 
     def _store_live(self, loop):
         """
@@ -144,8 +155,6 @@ class DavisLoggerProtocol(Protocol):
         :type loop: davis_logger.record_types.loop.Loop
         :return:
         """
-        global database_pool, station_id
-
         query = """update live_data
                 set download_timestamp = %s,
                     indoor_relative_humidity = %s,
@@ -159,19 +168,19 @@ class DavisLoggerProtocol(Protocol):
                 where station_id = %s
                 """
 
-        database_pool.runOperation(
+        self._database_pool.runOperation(
             query,
             (
-                datetime.now(), # Download TS
+                datetime.now(),  # Download TS
                 loop.insideHumidity,
                 loop.insideTemperature,
                 loop.outsideHumidity,
                 loop.outsideTemperature,
                 loop.barometer,
                 loop.windSpeed,
-                None, # Gust wind speed isn't supported for live data
+                None,  # Gust wind speed isn't supported for live data
                 loop.windDirection,
-                station_id
+                self._station_id
             )
         )
 
@@ -188,7 +197,7 @@ class DavisLoggerProtocol(Protocol):
                 where station_id = %s
                 """
 
-        database_pool.runOperation(
+        self._database_pool.runOperation(
             query,
             (
                 loop.barTrend,
@@ -199,30 +208,54 @@ class DavisLoggerProtocol(Protocol):
                 loop.consoleBatteryVoltage,
                 loop.forecastIcons,
                 loop.forecastRuleNumber,
-                station_id
+                self._station_id
             )
         )
 
+def _store_latest_rec(result, database_pool, station_id):
 
-def _store_station_id(result):
-    global station_id
+    if len(result) == 0:
+        latest_time = 0
+        latest_date = 0
+    else:
+        latest_time = result[0][0]
+        latest_date = result[0][1]
+
+    logger = DavisLoggerProtocol(
+        database_pool, station_id, latest_date, latest_time)
+
+    SerialPort(logger, 'COM1', reactor, baudrate=19200)
+
+
+def _store_station_id(result, database_pool):
     station_id = result[0][0]
     log.msg('Station ID: {0}'.format(station_id))
+
+    query = """
+            select record_time, record_date
+            from sample s
+            inner join davis_sample ds on ds.sample_id = s.sample_id
+            where station_id = %s
+            order by time_stamp desc
+            fetch first 1 rows only
+            """
+
+    database_pool.runQuery(query, (station_id,)).addCallback(
+        _store_latest_rec, database_pool, station_id)
 
 
 def _database_connect(conn_str, station_code):
     global database_pool
     database_pool = adbapi.ConnectionPool("psycopg2", conn_str)
-    deferred = database_pool.runQuery(
-        "select station_id from station where code = %s", (station_code,))
-    deferred.addCallback(_store_station_id)
+    database_pool.runQuery(
+        "select station_id from station where code = %s",
+        (station_code,)).addCallback(_store_station_id, database_pool)
 
 
 log.startLogging(sys.stdout)
 
+# This sets everything running.
 _database_connect("host=localhost port=5432 user=zxweather password=password "
                   "dbname=davis_test", "rua2")
-
-SerialPort(DavisLoggerProtocol(), 'COM1', reactor, baudrate=19200)
 
 reactor.run()
