@@ -2,8 +2,10 @@
 """
 Tests for the DMP encoding/decoding code.
 """
+import struct
 import unittest
 from davis_logger.record_types.dmp import deserialise_dmp, serialise_dmp, split_page, build_page
+from davis_logger.record_types.util import CRC
 
 __author__ = 'david'
 
@@ -52,7 +54,7 @@ class dmp_tests(unittest.TestCase):
 
     sequence = 0
 
-    crc = '\x2c\x13'
+    crc = struct.unpack(CRC.FORMAT, '\x2c\x13')[0]
 
     def test_split_page(self):
         sequence, records, crc = split_page(self.dmp_page)

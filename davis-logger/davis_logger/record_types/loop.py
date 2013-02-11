@@ -149,11 +149,13 @@ def encode_time(timestamp):
     return hour * 100 + minute
 
 
-def deserialise_loop(loop_string):
+def deserialise_loop(loop_string, rainCollectorSize=0.2):
     """
     Takes a LOOP packet from the console and converts it into a namedtuple.
     :param loop_string: 97-character string from the console (packet minus CRC)
     :type loop_string: str
+    :param rainCollectorSize: Size of the rain collector in millimeters
+    :type rainCollectorSize: float
     :return: loop packet
     :rtype: Loop
     """
@@ -223,15 +225,15 @@ def deserialise_loop(loop_string):
             undash_8bit(ext_humid_5),
             undash_8bit(ext_humid_6),
             undash_8bit(ext_humid_7)],
-        rainRate=rain_rate,
+        rainRate=rain_rate * rainCollectorSize,
         UV=undash_8bit(uv),
         solarRadiation=solar_radiation,
         stormRain=inch_to_mm(storm_rain / 100),
         startDateOfCurrentStorm=decode_current_storm_date(
             current_storm_start_date),
-        dayRain=day_rain * 0.2,  # Station config # TODO: make this configurable
-        monthRain=month_rain * 0.2,  # affects these
-        yearRain=year_rain * 0.2,  # values
+        dayRain=day_rain * rainCollectorSize,
+        monthRain=month_rain * rainCollectorSize,
+        yearRain=year_rain * rainCollectorSize,
         dayET=inch_to_mm(day_ET * 1000),
         monthET=inch_to_mm(month_ET * 100),
         yearET=inch_to_mm(year_ET * 100),
@@ -274,11 +276,13 @@ def deserialise_loop(loop_string):
     return loop
 
 
-def serialise_loop(loop):
+def serialise_loop(loop, rainCollectorSize=0.2):
     """
     Converts LOOP data into the string representation used by the console
     :param loop: Loop data
     :type loop: Loop
+    :param rainCollectorSize: Size of the rain collector in millimeters
+    :type rainCollectorSize: float
     :returns: The loop thing as a string
     :rtype: str
     """
@@ -326,14 +330,14 @@ def serialise_loop(loop):
         dash_8bit(loop.extraHumidities[4]),
         dash_8bit(loop.extraHumidities[5]),
         dash_8bit(loop.extraHumidities[6]),
-        loop.rainRate,  # What this is depends on station config
+        loop.rainRate / rainCollectorSize,
         dash_8bit(loop.UV),
         solarRadiation,
         mm_to_inch(loop.stormRain) * 100,
         encode_current_storm_date(loop.startDateOfCurrentStorm),
-        int(loop.dayRain / 0.2),  # This depends # TODO: make this configurable
-        int(loop.monthRain / 0.2),  # on the
-        int(loop.yearRain / 0.2),  # station config
+        int(loop.dayRain / rainCollectorSize),
+        int(loop.monthRain / rainCollectorSize),
+        int(loop.yearRain / rainCollectorSize),
         mm_to_inch(loop.dayET) * 1000,
         mm_to_inch(loop.monthET) * 100,
         mm_to_inch(loop.yearET) * 100,
