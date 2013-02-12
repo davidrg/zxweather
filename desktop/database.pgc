@@ -354,10 +354,10 @@ live_data_record get_live_data_v2() {
     float gust_wind_speed = 0.0;
     int wind_direction;
     long download_timestamp = 0;
-    int station_id_param = station_id;
+    int station_id_param = station_id;    
     EXEC SQL END DECLARE SECTION;
 
-    qDebug() << "V2 data load for station id " << station_id_param;
+    qDebug() << "V2 data load for station id" << station_id_param;
 
     check_data_connection();
 
@@ -370,7 +370,7 @@ live_data_record get_live_data_v2() {
                     ld.apparent_temperature,
                     ld.absolute_pressure,
                     ld.average_wind_speed,
-                    ld.gust_wind_speed,
+                    coalesce(ld.gust_wind_speed,0),
                     ld.wind_direction,
                     extract(epoch from ld.download_timestamp)::integer
              INTO :indoor_temperature,
