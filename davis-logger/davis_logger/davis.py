@@ -150,6 +150,14 @@ class DavisWeatherStation(object):
 
         self._wakeUp(self._getLoopPacketsCallback)
 
+    def cancelLoop(self):
+        """
+        Cancels the current loop request (if any)
+        """
+        self._lps_packets_remaining = 0
+        self._write('\n')
+        self._state = STATE_AWAKE
+
     def _getLoopPacketsCallback(self):
         self._state = STATE_LPS
         self._lps_acknowledged = False
@@ -344,6 +352,7 @@ class DavisWeatherStation(object):
         trigger a retry.
         """
         if self._state == STATE_SLEEPING:
+            log.msg('WakeCheck: Retry...')
             self._wakeUp()
 
     def _lpsStateDataReceived(self, data):
@@ -445,6 +454,9 @@ class DavisWeatherStation(object):
 
         page_count, first_record_location = struct.unpack(
             '<HH', payload)
+
+        log.msg('Pages: {0}, First Record: {1}'.format(
+            page_count, first_record_location))
 
         self._dmp_page_count = page_count
         self._dmp_remaining_pages = page_count

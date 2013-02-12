@@ -81,17 +81,30 @@ class DavisLoggerProtocol(Protocol):
         log.msg('Rain Collector Size: {0}'.format(rainCollectorSizeName))
 
         # Bring the database up-to-date
-        self._fetch_samples()
+        self._lastRecord = -1
+        self.station.getLoopPackets(100)
+        #self._fetch_samples()
 
     def _fetch_samples(self):
         self.station.getSamples((self._latest_date, self._latest_time))
 
     def _loopPacketReceived(self, loop):
-        log.msg('LOOP: ' + repr(loop))
+
+        nextRec = loop.nextRecord
+        multi = (nextRec % 5) == 0 and nextRec != self._lastRecord
+
+        log.msg('{0} - {1} - LOOP: {2}'.format(nextRec, multi, repr(loop)))
         self._store_live(loop)
 
+        if multi:
+            log.msg('New Page. Fetch Samples...')
+            self._lastRecord = nextRec
+            #self.station.cancelLoop()
+            self._fetch_samples()
+
     def _loopFinished(self):
-        log.msg('LOOP finished')
+        log.msg('LOOP finished. Resuming...')
+        self.station.getLoopPackets(100)
 
     def _samplesArrived(self, sampleList):
         self._database_pool.runInteraction(self._store_samples_int, sampleList)
@@ -103,6 +116,7 @@ class DavisLoggerProtocol(Protocol):
             self._latest_time = last.timeInteger
             log.msg('Last record: {0} {1}'.format(last.dateStamp, last.timeStamp))
         log.msg('Received {0} archive records'.format(len(sampleList)))
+        self.station.getLoopPackets(100)
 
     def _store_samples_int(self, txn, samples):
         """
