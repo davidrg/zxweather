@@ -1121,67 +1121,70 @@ $BODY$
 LANGUAGE plpgsql VOLATILE;
 COMMENT ON FUNCTION compute_sample_values() IS 'Calculates values for all calculated fields (wind chill, dew point, rainfall, etc).';
 
--- Computes any computed fields when a new wh1080 sample is inserted (dew point, wind chill, aparent temperature, etc)
+-- Computes any computed fields when a new wh1080 sample is inserted (dew point, wind chill, apparent temperature, etc)
 CREATE OR REPLACE FUNCTION compute_wh1080_sample_values()
   RETURNS trigger AS
-$BODY$
-DECLARE
+  $BODY$
+  DECLARE
     new_rainfall real;
     current_station_id integer;
     new_timestamp timestamptz;
-BEGIN
-    -- If its an insert, calculate any fields that need calculating. We will ignore updates here.
+  BEGIN
+-- If its an insert, calculate any fields that need calculating. We will ignore updates here.
     IF(TG_OP = 'INSERT') THEN
 
-        IF(NEW.invalid_data) THEN
-            -- The outdoor sample data in this record is garbage. Discard
-            -- it to prevent crazy data.
+      IF(NEW.invalid_data) THEN
+-- The outdoor sample data in this record is garbage. Discard
+-- it to prevent crazy data.
 
-            update sample
-            set relative_humidity = null,
-                temperature = null,
-                dew_point = null,
-                wind_chill = null,
-                apparent_temperature = null,
-                average_wind_speed = null,
-                gust_wind_speed = null,
-                rainfall = null
-            where sample_id = NEW.sample_id;
-            -- Wind direction should be fine (it'll be 'INV').
-            -- The rest of the fields are captured by the base station
-            -- and so should be fine.
+        update sample
+        set relative_humidity = null,
+          temperature = null,
+          dew_point = null,
+          wind_chill = null,
+          apparent_temperature = null,
+          average_wind_speed = null,
+          gust_wind_speed = null,
+          rainfall = null
+        where sample_id = NEW.sample_id;
+-- Wind direction should be fine (it'll be null).
+-- The rest of the fields are captured by the base station
+-- and so should be fine.
 
-        ELSE
-            -- Figure out station ID
-            select station_id, time_stamp into current_station_id, new_timestamp
-            from sample where sample_id = NEW.sample_id;
+      ELSE
+-- Figure out station ID
+        select station_id, time_stamp into current_station_id, new_timestamp
+        from sample where sample_id = NEW.sample_id;
 
-            -- Calculate actual rainfall for this record from the total rainfall
-            -- accumulator of this record and the previous record.
-            -- 19660.8 is the maximum rainfall accumulator value (65536 * 0.3mm).
-             select into new_rainfall
-                        CASE WHEN NEW.total_rain - prev.total_rain >= 0 THEN
-                            NEW.total_rain - prev.total_rain
-                        ELSE
-                            NEW.total_rain + (19660.8 - prev.total_rain)
-                        END as rainfall
-            from wh1080_sample prev
-            inner join sample sa on sa.sample_id = prev.sample_id
-            -- find the previous sample:
-            where sa.time_stamp = (select max(time_stamp)
-                                from sample ins
-                                where ins.time_stamp < new_timestamp)
-            and sa.station_id = current_station_id;
+-- Calculate actual rainfall for this record from the total rainfall
+-- accumulator of this record and the previous record.
+-- 19660.8 is the maximum rainfall accumulator value (65536 * 0.3mm).
+        select into new_rainfall
+          CASE WHEN NEW.total_rain - prev.total_rain >= 0 THEN
+            NEW.total_rain - prev.total_rain
+          ELSE
+            NEW.total_rain + (19660.8 - prev.total_rain)
+          END as rainfall
+        from wh1080_sample prev
+          inner join sample sa on sa.sample_id = prev.sample_id
+-- find the previous sample:
+          where sa.time_stamp = (
+            select max(time_stamp)
+            from sample ins
+            where ins.time_stamp < new_timestamp
+                  and ins.station_id = current_station_id
+          )
+                and sa.station_id = current_station_id;
 
-            update sample
-               set rainfall = new_rainfall,
-                   wind_direction = wind_direction_to_degrees(NEW.wind_direction)
-            where sample_id = NEW.sample_id;
-        END IF;
+        update sample
+        set rainfall = new_rainfall,
+          wind_direction = wind_direction_to_degrees(NEW.wind_direction)
+        where sample_id = NEW.sample_id;
+      END IF;
     END IF;
     RETURN NEW;
-END;
-$BODY$
+  END;
+  $BODY$
 LANGUAGE plpgsql VOLATILE;
 COMMENT ON FUNCTION compute_wh1080_sample_values() IS 'Calculates values for all calculated fields (wind chill, dew point, rainfall, etc).';
 
