@@ -44,11 +44,9 @@ MainWindow::MainWindow(QWidget *parent) :
     qDebug() << "MainWindow::MainWindow...";
     ui->setupUi(this);
 
-    setS
-
-    // If we don't do this then there is a heap of empty space at the bottom
-    // of the window.
-    resize(width(), minimumHeight());
+    // Make the window a fixed size.
+    setFixedSize(width(),height());
+    statusBar()->setSizeGripEnabled(false);
 
     sysTrayIcon.reset(new QSystemTrayIcon(this));
     sysTrayIcon->setIcon(QIcon(":/icons/systray_icon_warning"));
