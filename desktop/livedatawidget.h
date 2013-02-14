@@ -69,6 +69,8 @@ private:
     uint seconds_since_last_refresh;
     uint minutes_late;
 
+    uint updateCount;
+
     QTimer* ldTimer;
 
     QHash<int,QString> forecastRules;

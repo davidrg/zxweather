@@ -19,6 +19,7 @@ LiveDataWidget::LiveDataWidget(QWidget *parent) :
 
     seconds_since_last_refresh = 0;
     minutes_late = 0;
+    updateCount = 0;
 
     ldTimer = new QTimer(this);
     ldTimer->setInterval(1000);
@@ -167,7 +168,7 @@ void LiveDataWidget::refreshUi(LiveDataSet lds) {
 
         ui->lblConsoleBattery->setText(
                     QString::number(lds.davisHw.consoleBatteryVoltage,
-                                    'f', 1) + " V");
+                                    'f', 2) + " V");
         ui->lblRainRate->setText(
                     QString::number(lds.davisHw.rainRate, 'f', 1) + " mm/hr");
         ui->lblCurrentStormRain->setText(
@@ -217,11 +218,15 @@ void LiveDataWidget::refreshUi(LiveDataSet lds) {
 
         if (!iconFile.isEmpty()) {
             iconFile = ":/icons/weather/" + iconFile;
+            ui->lblForecastIcon->setPixmap(QPixmap(iconFile));
+        } else {
+            ui->lblForecastIcon->setPixmap(QPixmap());
         }
-        // 183 is longest. Real is forecastRules[lds.davisHw.forecastRule
 
-        ui->lblForecastIcon->setPixmap(QPixmap(iconFile));
-        ui->lblForecast->setText(forecastRules[183]);
+        ui->lblForecast->setText(forecastRules[lds.davisHw.forecastRule]);
+
+        updateCount++;
+        ui->lblUpdateCount->setText(QString::number(updateCount));
     }
 
     ui->lblBarometer->setText(
