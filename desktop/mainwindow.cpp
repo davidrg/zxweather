@@ -44,6 +44,8 @@ MainWindow::MainWindow(QWidget *parent) :
     qDebug() << "MainWindow::MainWindow...";
     ui->setupUi(this);
 
+    setS
+
     // If we don't do this then there is a heap of empty space at the bottom
     // of the window.
     resize(width(), minimumHeight());

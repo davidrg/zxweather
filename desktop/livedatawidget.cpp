@@ -1,89 +1,21 @@
 #include "livedatawidget.h"
+#include "ui_livedatawidget.h"
+#include "settings.h"
+#include "datasource/databasedatasource.h"
+#include "datasource/webdatasource.h"
+#include "datasource/tcplivedatasource.h"
 
-#include <QLabel>
-#include <QGridLayout>
-#include <QFrame>
-#include <QIcon>
 #include <QTimer>
 #include <QFile>
 #include <QTextStream>
-#include <QStringList>
-
-#include "settings.h"
-#include "datasource/webdatasource.h"
-#include "datasource/databasedatasource.h"
-#include "datasource/tcplivedatasource.h"
-
-// Turns out I'm lazy.
-#define GRID_ROW(left, right, name) \
-    left = new QLabel(name, this); \
-    right = new QLabel(this); \
-    gridLayout->addWidget(left, row, 0); \
-    gridLayout->addWidget(right, row, 1); \
-    row++;
-
-static const QString forecastFormatStr =
-        "<html><head/><body><table border=\"0\" "
-        "style=\"margin-top:0px; margin-bottom:0px; margin-left:0px; "
-                "margin-right:0px;\" cellspacing=\"2\" cellpadding=\"2\">"
-        "<tr><td><p valign=\"middle\"><img src=\"%1\"/></p></td>"
-        "<td><p align=\"center\" valign=\"top\">%2</p></td>"
-        "</tr></table></body></html>";
 
 LiveDataWidget::LiveDataWidget(QWidget *parent) :
-    QWidget(parent)
+    QWidget(parent),
+    ui(new Ui::LiveDataWidget)
 {
-    gridLayout = new QGridLayout(this);
+    ui->setupUi(this);
 
     int row = 0;
-
-    lblForecastTitle = new QLabel(this);
-    lblForecastTitle->setText("<b>Forecast</b>");
-    gridLayout->addWidget(lblForecastTitle, row, 0);
-    row++;
-
-    forecastLine = new QFrame(this);
-    forecastLine->setObjectName(QString::fromUtf8("line"));
-    forecastLine->setFrameShape(QFrame::HLine);
-    forecastLine->setFrameShadow(QFrame::Sunken);
-    gridLayout->addWidget(forecastLine, row, 0, 1, 2);
-    row++;
-
-    lblForecast = new QLabel(this);
-    lblForecast->setText("");
-    lblForecast->setWordWrap(true);
-    gridLayout->addWidget(lblForecast, row, 0, 1, 2);
-    row++;
-
-    GRID_ROW(lblTitle, lblTimestamp, "<b>Current Conditions</b>");
-    lblTimestamp->setAlignment(Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter);
-    lblTimestamp->setText("No Data");
-
-    line = new QFrame(this);
-    line->setObjectName(QString::fromUtf8("line"));
-    line->setFrameShape(QFrame::HLine);
-    line->setFrameShadow(QFrame::Sunken);
-    gridLayout->addWidget(line, row, 0, 1, 2);
-    row++;
-
-
-    GRID_ROW(lblLabelRelativeHumidity, lblRelativeHumidity, "Relative Humidity:");
-    GRID_ROW(lblLabelTemperature, lblTemperature, "Temperature:");
-    GRID_ROW(lblLabelApparentTemperature, lblApparentTemperature, "Apparent Temperature:");
-    GRID_ROW(lblLabelWindChill, lblWindChill, "Wind Chill:");
-    GRID_ROW(lblLabelDewPoint, lblDewPoint, "Dew Point:");
-    GRID_ROW(lblLabelAbsolutePressure, lblAbsolutePressure, "Barometer:");
-    GRID_ROW(lblLabelAverageWindSpeed, lblAverageWindSpeed, "Average Wind Speed:");
-    GRID_ROW(lblLabelWindDirection, lblWindDirection, "Wind Direction:");
-
-    GRID_ROW(lblLabelRainRate, lblRainRate, "Rain Rate:");
-    GRID_ROW(lblLabelStormRain, lblStormRain, "Current Storm Rain:");
-    GRID_ROW(lblLabelCurrentStormStartDate, lblCurrentStormStartDate, "Current Storm Start Date:");
-    GRID_ROW(lblLabelConsoleBattery, lblConsoleBattery, "Console Battery Voltage:");
-    // TODO: Transmitter battery status
-
-    gridLayout->setMargin(0);
-    setLayout(gridLayout);
 
     seconds_since_last_refresh = 0;
     minutes_late = 0;
@@ -94,8 +26,13 @@ LiveDataWidget::LiveDataWidget(QWidget *parent) :
 
     loadForecastRules();
 
-    resize(width(), minimumHeight());
 }
+
+LiveDataWidget::~LiveDataWidget()
+{
+    delete ui;
+}
+
 
 void LiveDataWidget::loadForecastRules() {
     QFile f(":/data/forecast_rules");
@@ -178,7 +115,7 @@ void LiveDataWidget::refreshUi(LiveDataSet lds) {
         temp = formatString
                 .arg(QString::number(lds.humidity));
     }
-    lblRelativeHumidity->setText(temp);
+    ui->lblHumidity->setText(temp);
 
     // Temperature
     if (lds.indoorDataAvailable) {
@@ -191,18 +128,18 @@ void LiveDataWidget::refreshUi(LiveDataSet lds) {
         temp = formatString
                 .arg(QString::number(lds.temperature,'f',1));
     }
-    lblTemperature->setText(temp);
+    ui->lblTemperature->setText(temp);
 
-    lblDewPoint->setText(QString::number(lds.dewPoint, 'f', 1) + "\xB0" "C");
-    lblWindChill->setText(QString::number(lds.windChill, 'f', 1) + "\xB0" "C");
-    lblApparentTemperature->setText(
+    ui->lblDewPoint->setText(QString::number(lds.dewPoint, 'f', 1) + "\xB0" "C");
+    ui->lblWindChill->setText(QString::number(lds.windChill, 'f', 1) + "\xB0" "C");
+    ui->lblApparentTemperature->setText(
                 QString::number(lds.apparentTemperature, 'f', 1) + "\xB0" "C");
 
 
-    lblAverageWindSpeed->setText(
+    ui->lblWindSpeed->setText(
                 QString::number(lds.windSpeed, 'f', 1) + " m/s");
-    lblWindDirection->setText(QString::number(lds.windDirection));
-    lblTimestamp->setText(lds.timestamp.toString("h:mm AP"));
+    ui->lblWindDirection->setText(QString::number(lds.windDirection));
+    ui->lblTimestamp->setText(lds.timestamp.toString("h:mm AP"));
 
     QString pressureMsg = "";
     if (lds.hw_type == HW_DAVIS) {
@@ -228,19 +165,19 @@ void LiveDataWidget::refreshUi(LiveDataSet lds) {
         if (!pressureMsg.isEmpty())
             pressureMsg = " (" + pressureMsg + ")";
 
-        lblConsoleBattery->setText(
+        ui->lblConsoleBattery->setText(
                     QString::number(lds.davisHw.consoleBatteryVoltage,
                                     'f', 1) + " V");
-        lblRainRate->setText(
+        ui->lblRainRate->setText(
                     QString::number(lds.davisHw.rainRate, 'f', 1) + " mm/hr");
-        lblStormRain->setText(
+        ui->lblCurrentStormRain->setText(
                     QString::number(lds.davisHw.stormRain, 'f', 1) + " mm");
 
         if (lds.davisHw.stormDateValid)
-            lblCurrentStormStartDate->setText(
+            ui->lblCurrentStormStartDate->setText(
                         lds.davisHw.stormStartDate.toString());
         else
-            lblCurrentStormStartDate->setText("--");
+            ui->lblCurrentStormStartDate->setText("--");
 
         //:/icons/weather/
         QString iconFile = "";
@@ -283,13 +220,11 @@ void LiveDataWidget::refreshUi(LiveDataSet lds) {
         }
         // 183 is longest. Real is forecastRules[lds.davisHw.forecastRule
 
-        QString forecast = forecastFormatStr
-                .arg(iconFile)
-                .arg(forecastRules[183]);
-        lblForecast->setText(forecast);
+        ui->lblForecastIcon->setPixmap(QPixmap(iconFile));
+        ui->lblForecast->setText(forecastRules[183]);
     }
 
-    lblAbsolutePressure->setText(
+    ui->lblBarometer->setText(
                 QString::number(lds.pressure, 'f', 1) + " hPa" + pressureMsg);
 
 }

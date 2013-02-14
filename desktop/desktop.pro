@@ -67,7 +67,8 @@ FORMS    += mainwindow.ui \
     settingsdialog.ui \
     aboutdialog.ui \
     chartwindow.ui \
-    chartoptionsdialog.ui
+    chartoptionsdialog.ui \
+    livedatawidget.ui
 
 OTHER_FILES += \
     database.pgc \
