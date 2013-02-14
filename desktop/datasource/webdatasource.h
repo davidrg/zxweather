@@ -24,6 +24,8 @@ public:
 
     void enableLiveData();
 
+    hardware_type_t getHardwareType();
+
 private slots:
     void dataReady(QNetworkReply* reply);
     void liveDataReady(QNetworkReply* reply);

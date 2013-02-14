@@ -10,4 +10,18 @@
         <file alias="save">resources/disk-black.png</file>
         <file alias="chart-edit">resources/chart--pencil.png</file>
     </qresource>
+    <qresource prefix="/icons/weather">
+        <file alias="mostly_cloudy">resources/weather-cloud.png</file>
+        <file alias="partly_cloudy">resources/weather-cloudy.png</file>
+        <file alias="partly_cloudy_rain">resources/weather-cloudy-rain.png</file>
+        <file alias="mostly_cloudy_rain">resources/weather-rain.png</file>
+        <file alias="mostly_cloudy_snow">resources/weather-snow.png</file>
+        <file alias="clear">resources/weather.png</file>
+        <file alias="partly_cloudy_snow">resources/weather-cloudy-snow.png</file>
+        <file alias="partly_cloudy_snow_or_rain">resources/weather-cloudy-snow-rain.png</file>
+        <file alias="mostly_cloudy_snow_or_rain">resources/weather-snow-rain.png</file>
+    </qresource>
+    <qresource prefix="/data">
+        <file alias="forecast_rules">resources/forecast_rules.dat</file>
+    </qresource>
 </RCC>

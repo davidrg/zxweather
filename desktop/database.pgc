@@ -41,6 +41,7 @@ static DBSignalAdapter* signalAdapter = NULL;
 static int station_id = 0;
 static char* station_code = 0;
 static int station_code_len = 0;
+static int station_hw_type = 0;
 static int db_version = 1;
 static bool connected = false;
 
@@ -152,6 +153,8 @@ bool wdb_connect(const char *target, const char *username, const char* password,
     const char * target_l = target;
     const char * username_l = username;
     const char * password_l = password;
+    int hw_type;
+    int stat_id;
     EXEC SQL END DECLARE SECTION;
 
 
@@ -187,6 +190,20 @@ bool wdb_connect(const char *target, const char *username, const char* password,
     station_code_len = strlen(station) + 1; /* +1 for null termination */
     station_code = (char*)malloc(station_code_len);
     memcpy(station_code, station, station_code_len);
+
+    /* Figure out what sort of hardware this station has */
+    stat_id = station_id;
+    EXEC SQL SELECT CASE WHEN st.code = 'GENERIC' THEN 0
+                         WHEN st.code = 'FOWH1080' THEN 1
+                         WHEN st.code = 'DAVIS' THEN 2
+                         ELSE 0
+                    END
+             INTO :hw_type
+             FROM station s
+             INNER JOIN station_type st
+                     ON s.station_type_id = st.station_type_id
+             WHERE s.station_id = :stat_id;
+    station_hw_type = hw_type;
 
     connected = true;
 
@@ -283,7 +300,6 @@ live_data_record get_live_data_v1() {
     float apparent_temperature = 0.0;
     float absolute_pressure = 0.0;
     float average_wind_speed = 0.0;
-    float gust_wind_speed = 0.0;
     char wind_direction[4];
     long download_timestamp = 0;
     EXEC SQL END DECLARE SECTION;
@@ -303,7 +319,6 @@ live_data_record get_live_data_v1() {
                     ld.apparent_temperature,
                     ld.absolute_pressure,
                     ld.average_wind_speed,
-                    ld.gust_wind_speed,
                     ld.wind_direction,
                     extract(epoch from ld.download_timestamp)::integer
              INTO :indoor_temperature,
@@ -315,7 +330,6 @@ live_data_record get_live_data_v1() {
                   :apparent_temperature,
                   :absolute_pressure,
                   :average_wind_speed,
-                  :gust_wind_speed,
                   :wind_direction,
                   :download_timestamp
              FROM live_data ld
@@ -331,7 +345,6 @@ live_data_record get_live_data_v1() {
     rec.apparent_temperature = apparent_temperature;
     rec.absolute_pressure = absolute_pressure;
     rec.average_wind_speed = average_wind_speed;
-    rec.gust_wind_speed = gust_wind_speed;
     rec.download_timestamp = download_timestamp;
     rec.v1 = true;
     strcpy(rec.wind_direction_str, wind_direction);
@@ -351,10 +364,19 @@ live_data_record get_live_data_v2() {
     float apparent_temperature = 0.0;
     float absolute_pressure = 0.0;
     float average_wind_speed = 0.0;
-    float gust_wind_speed = 0.0;
     int wind_direction;
     long download_timestamp = 0;
     int station_id_param = station_id;    
+
+    /* Extra stuff for Davis hardware: */
+    float rain_rate = 0.0;
+    float storm_rain = 0.0;
+    long current_storm_date = 0;
+    int barometer_trend = 0;
+    int forecast_icon = 0;
+    int forecast_rule = 0;
+    int tx_battery_status = 0;
+    float console_battery_voltage = 0.0;
     EXEC SQL END DECLARE SECTION;
 
     qDebug() << "V2 data load for station id" << station_id_param;
@@ -370,7 +392,6 @@ live_data_record get_live_data_v2() {
                     ld.apparent_temperature,
                     ld.absolute_pressure,
                     ld.average_wind_speed,
-                    coalesce(ld.gust_wind_speed,0),
                     ld.wind_direction,
                     extract(epoch from ld.download_timestamp)::integer
              INTO :indoor_temperature,
@@ -382,7 +403,6 @@ live_data_record get_live_data_v2() {
                   :apparent_temperature,
                   :absolute_pressure,
                   :average_wind_speed,
-                  :gust_wind_speed,
                   :wind_direction,
                   :download_timestamp
              FROM live_data ld
@@ -399,10 +419,41 @@ live_data_record get_live_data_v2() {
     rec.apparent_temperature = apparent_temperature;
     rec.absolute_pressure = absolute_pressure;
     rec.average_wind_speed = average_wind_speed;
-    rec.gust_wind_speed = gust_wind_speed;
     rec.download_timestamp = download_timestamp;
     rec.wind_direction = wind_direction;
     rec.v1 = false;
+    rec.station_type = station_hw_type;
+
+    if (station_hw_type == ST_DAVIS) {
+        EXEC SQL SELECT bar_trend,
+                        rain_rate,
+                        storm_rain,
+                        coalesce(extract(epoch from current_storm_start_date)::integer,0),
+                        transmitter_battery,
+                        console_battery_voltage,
+                        forecast_icon,
+                        forecast_rule_id
+                INTO :barometer_trend,
+                     :rain_rate,
+                     :storm_rain,
+                     :current_storm_date,
+                     :tx_battery_status,
+                     :console_battery_voltage,
+                     :forecast_icon,
+                     :forecast_rule
+                 FROM davis_live_data
+                WHERE station_id = :station_id_param
+                LIMIT 1;
+
+        rec.davis_data.rain_rate = rain_rate;
+        rec.davis_data.storm_rain = storm_rain;
+        rec.davis_data.current_storm_start_date = current_storm_date;
+        rec.davis_data.barometer_trend = barometer_trend;
+        rec.davis_data.forecast_icon = forecast_icon;
+        rec.davis_data.forecast_rule = forecast_rule;
+        rec.davis_data.tx_battery_status = tx_battery_status;
+        rec.davis_data.console_battery = console_battery_voltage;
+    }
 
     return rec;
 }
@@ -421,7 +472,6 @@ live_data_record wdb_get_live_data() {
         rec.apparent_temperature = 0;
         rec.absolute_pressure = 0;
         rec.average_wind_speed = 0;
-        rec.gust_wind_speed = 0;
         rec.wind_direction_str[0] = ' ';
         rec.wind_direction_str[1] = ' ';
         rec.wind_direction_str[2] = ' ';
@@ -437,4 +487,8 @@ live_data_record wdb_get_live_data() {
         return get_live_data_v1();
     else
         return get_live_data_v2();
+}
+
+int wdb_get_hardware_type() {
+    return station_hw_type;
 }

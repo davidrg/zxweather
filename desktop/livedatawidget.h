@@ -3,6 +3,8 @@
 
 #include <QWidget>
 #include <QIcon>
+#include <QHBoxLayout>
+#include <QHash>
 #include "datasource/abstractlivedatasource.h"
 
 class QLabel;
@@ -64,7 +66,6 @@ private:
     QLabel* lblApparentTemperature;
     QLabel* lblAbsolutePressure;
     QLabel* lblAverageWindSpeed;
-    QLabel* lblGustWindSpeed;
     QLabel* lblWindDirection;
     QLabel* lblTimestamp;
 
@@ -76,12 +77,31 @@ private:
     QLabel* lblLabelApparentTemperature;
     QLabel* lblLabelAbsolutePressure;
     QLabel* lblLabelAverageWindSpeed;
-    QLabel* lblLabelGustWindSpeed;
     QLabel* lblLabelWindDirection;
     QLabel* lblLabelTimestamp;
 
+    // Davis stuff
+    QLabel* lblLabelRainRate;
+    QLabel* lblLabelStormRain;
+    QLabel* lblLabelCurrentStormStartDate;
+    QLabel* lblLabelBarometerTrend;
+    QLabel* lblLabelTxBattery;
+    QLabel* lblLabelConsoleBattery;
+    QHBoxLayout* forecastLayout;
+
+    QLabel* lblRainRate;
+    QLabel* lblStormRain;
+    QLabel* lblCurrentStormStartDate;
+    QLabel* lblBarometerTrend;
+    QLabel* lblTxBattery;
+    QLabel* lblConsoleBattery;
+
     QGridLayout* gridLayout;
     QFrame* line;
+
+    QLabel* lblForecastTitle;
+    QFrame* forecastLine;
+    QLabel* lblForecast;
 
     QString previousSysTrayText;
     QString previousSysTrayIcon;
@@ -92,6 +112,10 @@ private:
     uint minutes_late;
 
     QTimer* ldTimer;
+
+    QHash<int,QString> forecastRules;
+
+    void loadForecastRules();
 };
 
 #endif // LIVEDATAWIDGET_H

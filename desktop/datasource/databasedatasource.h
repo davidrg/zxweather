@@ -21,6 +21,8 @@ public:
 
     void enableLiveData();
 
+    hardware_type_t getHardwareType();
+
 private slots:
     void notificationPump(bool force = false);
     void dbError(QString message);

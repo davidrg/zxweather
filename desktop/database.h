@@ -25,23 +25,42 @@
 
 #include "dbsignaladapter.h"
 
+#define ST_GENERIC 0
+#define ST_FINE_OFFSET 1
+#define ST_DAVIS 2
+
+/** Additional data available from Davis weather stations.
+ */
+struct _davis_extra {
+    float rain_rate; /*!< Rain Rate in mm/h */
+    float storm_rain; /*!< Rain for current storm in mm */
+    long current_storm_start_date; /*!< Start date of current storm */
+    int barometer_trend; /*!< Barometer trend */
+    int forecast_icon; /*!< Forecast Icon. See Davis protocol documentaion. */
+    int forecast_rule; /*!< ID of forecast rule description */
+    int tx_battery_status; /*!< Transmitter battery status. Don't know its true meaning */
+    float console_battery; /*!< Console battery voltage */
+};
+
 /** Live data from the database.
  */
 typedef struct _live_data_record {
-    float indoor_temperature; /*!< Indoor temperature (캜). 1 DP. */
+    float indoor_temperature; /*!< Indoor temperature (째C). 1 DP. */
     int indoor_relative_humidity; /*!< Indoor relative humidity (%). 0 DP. */
-    float temperature; /*!< Outdoor temperature (캜). 1 DP. */
+    float temperature; /*!< Outdoor temperature (째C). 1 DP. */
     int relative_humidity; /*!< Outdoor relative humidity (%). 0 DP. */
-    float dew_point; /*!< Dew point (캜). 1 DP. */
-    float wind_chill; /*!< Wind chill (캜). 1 DP. */
-    float apparent_temperature; /*!< Apparent temperature (캜). 1 DP. */
+    float dew_point; /*!< Dew point (째C). 1 DP. */
+    float wind_chill; /*!< Wind chill (째C). 1 DP. */
+    float apparent_temperature; /*!< Apparent temperature (째C). 1 DP. */
     float absolute_pressure; /*!< Absolute pressure (hPa). */
     float average_wind_speed; /*!< Average wind speed. */
-    float gust_wind_speed; /*!< Gust wind speed. */
     int wind_direction; /*!< Wind direction in degrees. */
     char wind_direction_str[4]; /*!< Wind direction (N, NE, NNE, etc). */
     long download_timestamp; /*!< Time when the live data was last refreshed. UNIX time (time_t). */
     bool v1; /*!< v1 data source. If true use wind_direction_str. */
+
+    int station_type; /*!< The weather stations hardware type */
+    struct _davis_extra davis_data; /*!< Additional fields for Davis hardware */
 } live_data_record;
 
 /**
@@ -91,5 +110,10 @@ live_data_record wdb_get_live_data();
  * this function was called.
  */
 bool wdb_live_data_available();
+
+/** Gets the type of station currently connected to.
+ * @return Station type. One of the ST_ constants.
+ */
+int wdb_get_hardware_type();
 
 #endif // DATABASE_H

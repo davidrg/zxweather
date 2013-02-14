@@ -5,6 +5,9 @@
 #include <QFrame>
 #include <QIcon>
 #include <QTimer>
+#include <QFile>
+#include <QTextStream>
+#include <QStringList>
 
 #include "settings.h"
 #include "datasource/webdatasource.h"
@@ -19,6 +22,13 @@
     gridLayout->addWidget(right, row, 1); \
     row++;
 
+static const QString forecastFormatStr =
+        "<html><head/><body><table border=\"0\" "
+        "style=\"margin-top:0px; margin-bottom:0px; margin-left:0px; "
+                "margin-right:0px;\" cellspacing=\"2\" cellpadding=\"2\">"
+        "<tr><td><p valign=\"middle\"><img src=\"%1\"/></p></td>"
+        "<td><p align=\"center\" valign=\"top\">%2</p></td>"
+        "</tr></table></body></html>";
 
 LiveDataWidget::LiveDataWidget(QWidget *parent) :
     QWidget(parent)
@@ -26,6 +36,25 @@ LiveDataWidget::LiveDataWidget(QWidget *parent) :
     gridLayout = new QGridLayout(this);
 
     int row = 0;
+
+    lblForecastTitle = new QLabel(this);
+    lblForecastTitle->setText("<b>Forecast</b>");
+    gridLayout->addWidget(lblForecastTitle, row, 0);
+    row++;
+
+    forecastLine = new QFrame(this);
+    forecastLine->setObjectName(QString::fromUtf8("line"));
+    forecastLine->setFrameShape(QFrame::HLine);
+    forecastLine->setFrameShadow(QFrame::Sunken);
+    gridLayout->addWidget(forecastLine, row, 0, 1, 2);
+    row++;
+
+    lblForecast = new QLabel(this);
+    lblForecast->setText("");
+    lblForecast->setWordWrap(true);
+    gridLayout->addWidget(lblForecast, row, 0, 1, 2);
+    row++;
+
     GRID_ROW(lblTitle, lblTimestamp, "<b>Current Conditions</b>");
     lblTimestamp->setAlignment(Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter);
     lblTimestamp->setText("No Data");
@@ -37,16 +66,21 @@ LiveDataWidget::LiveDataWidget(QWidget *parent) :
     gridLayout->addWidget(line, row, 0, 1, 2);
     row++;
 
+
     GRID_ROW(lblLabelRelativeHumidity, lblRelativeHumidity, "Relative Humidity:");
     GRID_ROW(lblLabelTemperature, lblTemperature, "Temperature:");
     GRID_ROW(lblLabelApparentTemperature, lblApparentTemperature, "Apparent Temperature:");
     GRID_ROW(lblLabelWindChill, lblWindChill, "Wind Chill:");
     GRID_ROW(lblLabelDewPoint, lblDewPoint, "Dew Point:");
-    GRID_ROW(lblLabelAbsolutePressure, lblAbsolutePressure, "Absolute Pressure:");
+    GRID_ROW(lblLabelAbsolutePressure, lblAbsolutePressure, "Barometer:");
     GRID_ROW(lblLabelAverageWindSpeed, lblAverageWindSpeed, "Average Wind Speed:");
-    GRID_ROW(lblLabelGustWindSpeed, lblGustWindSpeed, "Gust Wind Speed:");
     GRID_ROW(lblLabelWindDirection, lblWindDirection, "Wind Direction:");
 
+    GRID_ROW(lblLabelRainRate, lblRainRate, "Rain Rate:");
+    GRID_ROW(lblLabelStormRain, lblStormRain, "Current Storm Rain:");
+    GRID_ROW(lblLabelCurrentStormStartDate, lblCurrentStormStartDate, "Current Storm Start Date:");
+    GRID_ROW(lblLabelConsoleBattery, lblConsoleBattery, "Console Battery Voltage:");
+    // TODO: Transmitter battery status
 
     gridLayout->setMargin(0);
     setLayout(gridLayout);
@@ -57,6 +91,30 @@ LiveDataWidget::LiveDataWidget(QWidget *parent) :
     ldTimer = new QTimer(this);
     ldTimer->setInterval(1000);
     connect(ldTimer, SIGNAL(timeout()), this, SLOT(liveTimeout()));
+
+    loadForecastRules();
+
+    resize(width(), minimumHeight());
+}
+
+void LiveDataWidget::loadForecastRules() {
+    QFile f(":/data/forecast_rules");
+    if (!f.open(QIODevice::ReadOnly))
+        return;
+
+    QTextStream in(&f);
+    QString line = in.readLine();
+    while (!line.isNull()) {
+
+        QStringList bits = line.split('|');
+
+        int id = bits.at(0).toInt();
+        QString forecast = bits.at(1);
+
+        forecastRules[id] = forecast;
+
+        line = in.readLine();
+    }
 }
 
 void LiveDataWidget::liveDataRefreshed(LiveDataSet lds) {
@@ -139,14 +197,101 @@ void LiveDataWidget::refreshUi(LiveDataSet lds) {
     lblWindChill->setText(QString::number(lds.windChill, 'f', 1) + "\xB0" "C");
     lblApparentTemperature->setText(
                 QString::number(lds.apparentTemperature, 'f', 1) + "\xB0" "C");
-    lblAbsolutePressure->setText(
-                QString::number(lds.pressure, 'f', 1) + " hPa");
+
+
     lblAverageWindSpeed->setText(
                 QString::number(lds.windSpeed, 'f', 1) + " m/s");
-    lblGustWindSpeed->setText(
-                QString::number(lds.gustWindSpeed, 'f', 1) + " m/s");
     lblWindDirection->setText(QString::number(lds.windDirection));
     lblTimestamp->setText(lds.timestamp.toString("h:mm AP"));
+
+    QString pressureMsg = "";
+    if (lds.hw_type == HW_DAVIS) {
+        switch (lds.davisHw.barometerTrend) {
+        case -60:
+            pressureMsg = "falling rapidly";
+            break;
+        case -20:
+            pressureMsg = "falling slowly";
+            break;
+        case 0:
+            pressureMsg = "steady";
+            break;
+        case 20:
+            pressureMsg = "rising slowly";
+            break;
+        case 60:
+            pressureMsg = "rising rapidly";
+            break;
+        default:
+            pressureMsg = "";
+        }
+        if (!pressureMsg.isEmpty())
+            pressureMsg = " (" + pressureMsg + ")";
+
+        lblConsoleBattery->setText(
+                    QString::number(lds.davisHw.consoleBatteryVoltage,
+                                    'f', 1) + " V");
+        lblRainRate->setText(
+                    QString::number(lds.davisHw.rainRate, 'f', 1) + " mm/hr");
+        lblStormRain->setText(
+                    QString::number(lds.davisHw.stormRain, 'f', 1) + " mm");
+
+        if (lds.davisHw.stormDateValid)
+            lblCurrentStormStartDate->setText(
+                        lds.davisHw.stormStartDate.toString());
+        else
+            lblCurrentStormStartDate->setText("--");
+
+        //:/icons/weather/
+        QString iconFile = "";
+
+        switch(lds.davisHw.forecastIcon) {
+        case 8:
+            iconFile = "clear";
+            break;
+        case 6:
+            iconFile = "partly_cloudy";
+            break;
+        case 2:
+            iconFile = "mostly_cloudy";
+            break;
+        case 3:
+            iconFile = "mostly_cloudy_rain";
+            break;
+        case 18:
+            iconFile = "mostly_cloudy_snow";
+            break;
+        case 19:
+            iconFile = "mostly_cloudy_snow_or_rain";
+            break;
+        case 7:
+            iconFile = "partly_cloudy_rain";
+            break;
+        case 22:
+            iconFile = "partly_cloudy_show";
+            break;
+        case 23:
+            iconFile = "partly_cloudy_show_or_rain";
+            break;
+        default:
+            iconFile = "";
+            break;
+        }
+
+        if (!iconFile.isEmpty()) {
+            iconFile = ":/icons/weather/" + iconFile;
+        }
+        // 183 is longest. Real is forecastRules[lds.davisHw.forecastRule
+
+        QString forecast = forecastFormatStr
+                .arg(iconFile)
+                .arg(forecastRules[183]);
+        lblForecast->setText(forecast);
+    }
+
+    lblAbsolutePressure->setText(
+                QString::number(lds.pressure, 'f', 1) + " hPa" + pressureMsg);
+
 }
 
 void LiveDataWidget::reconfigureDataSource() {

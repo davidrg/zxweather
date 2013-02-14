@@ -129,3 +129,7 @@ void TcpLiveDataSource::readyRead() {
         line = socket->readLine();
     }
 }
+
+hardware_type_t TcpLiveDataSource::getHardwareType() {
+    return HW_GENERIC;
+}
