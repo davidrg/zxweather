@@ -49,6 +49,8 @@ public:
             QDateTime startTime,
             QDateTime endTime=QDateTime::currentDateTime()) = 0;
 
+    virtual hardware_type_t getHardwareType() = 0;
+
 signals:
     void samplesReady(SampleSet samples);
 

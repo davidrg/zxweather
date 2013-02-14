@@ -322,3 +322,7 @@ void WebDataSource::enableLiveData() {
     liveDataPoll();
     livePollTimer.start();
 }
+
+hardware_type_t WebDataSource::getHardwareType() {
+    return HW_GENERIC;
+}

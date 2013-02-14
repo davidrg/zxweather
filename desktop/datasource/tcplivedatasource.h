@@ -2,6 +2,7 @@
 #define TCPLIVEDATASOURCE_H
 
 #include "abstractlivedatasource.h"
+#include "abstractdatasource.h"
 
 #include <QTcpSocket>
 #include <QScopedPointer>
@@ -14,6 +15,8 @@ public:
     explicit TcpLiveDataSource(QObject *parent = 0);
 
     void enableLiveData();
+
+    hardware_type_t getHardwareType();
 
 signals:
 

@@ -235,7 +235,6 @@ void DatabaseDataSource::notificationPump(bool force) {
         lds.apparentTemperature = rec.apparent_temperature;
         lds.pressure = rec.absolute_pressure;
         lds.windSpeed = rec.average_wind_speed;
-        lds.gustWindSpeed = rec.gust_wind_speed;
         lds.windDirection = rec.wind_direction;
         lds.timestamp = QDateTime::fromTime_t(rec.download_timestamp);
         lds.indoorDataAvailable = true;
@@ -259,6 +258,31 @@ void DatabaseDataSource::notificationPump(bool force) {
             else if (strd == "WNW") lds.windDirection = 292.5;
             else if (strd == "NW") lds.windDirection = 315;
             else if (strd == "NNW") lds.windDirection = 337.5;
+        } else {
+
+            switch (rec.station_type) {
+            case ST_DAVIS:
+                lds.hw_type = HW_DAVIS;
+                break;
+            case ST_FINE_OFFSET:
+                lds.hw_type = HW_FINE_OFFSET;
+                break;
+            case ST_GENERIC:
+            default:
+                lds.hw_type = HW_GENERIC;
+            }
+
+            if (lds.hw_type == HW_DAVIS) {
+                lds.davisHw.barometerTrend = rec.davis_data.barometer_trend;
+                lds.davisHw.consoleBatteryVoltage = rec.davis_data.console_battery;
+                lds.davisHw.forecastIcon = rec.davis_data.forecast_icon;
+                lds.davisHw.forecastRule = rec.davis_data.forecast_rule;
+                lds.davisHw.rainRate = rec.davis_data.rain_rate;
+                lds.davisHw.stormRain = rec.davis_data.storm_rain;
+                lds.davisHw.stormStartDate = QDateTime::fromTime_t(rec.davis_data.current_storm_start_date).date();
+                lds.davisHw.txBatteryStatus = rec.davis_data.tx_battery_status;
+                lds.davisHw.stormDateValid = rec.davis_data.current_storm_start_date > 0;
+            }
         }
 
         emit liveData(lds);
@@ -268,4 +292,17 @@ void DatabaseDataSource::notificationPump(bool force) {
 void DatabaseDataSource::enableLiveData() {
     connectToDB();
     notificationTimer->start();
+}
+
+hardware_type_t DatabaseDataSource::getHardwareType() {
+    int type = wdb_get_hardware_type();
+
+    if (type == ST_GENERIC)
+        return HW_GENERIC;
+    else if (type == ST_FINE_OFFSET)
+        return HW_FINE_OFFSET;
+    else if (type == ST_DAVIS)
+        return HW_DAVIS;
+
+    return HW_GENERIC;
 }

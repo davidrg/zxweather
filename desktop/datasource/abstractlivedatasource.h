@@ -3,6 +3,25 @@
 
 #include <QObject>
 #include <QDateTime>
+#include <QDate>
+
+enum hardware_type_t {
+    HW_GENERIC,
+    HW_FINE_OFFSET,
+    HW_DAVIS
+};
+
+struct _DavisLive {
+    float stormRain;
+    float rainRate;
+    QDate stormStartDate;
+    bool stormDateValid;
+    int barometerTrend;
+    int forecastIcon;
+    int forecastRule;
+    int txBatteryStatus;
+    float consoleBatteryVoltage;
+};
 
 typedef struct _liveData {
     float temperature;
@@ -23,6 +42,10 @@ typedef struct _liveData {
     QDateTime timestamp;
 
     bool indoorDataAvailable;
+
+    hardware_type_t hw_type;
+
+    struct _DavisLive davisHw;
 } LiveDataSet;
 
 /** This is an interface for all data sources that can provide live data.
@@ -40,6 +63,13 @@ public:
      * data until this is called.
      */
     virtual void enableLiveData() = 0;
+
+
+    /** Gets the type of weather station hardware currently in use.
+     *
+     * @return Station type.
+     */
+    virtual hardware_type_t getHardwareType() = 0;
 signals:
     /** Emitted when ever live data is available.
      *
