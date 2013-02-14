@@ -9,6 +9,10 @@
 #include <QFile>
 #include <QTextStream>
 
+#define CHECK_BIT(byte, bit) (((byte >> bit) & 0x01) == 1)
+
+QStringList windDirections;
+
 LiveDataWidget::LiveDataWidget(QWidget *parent) :
     QWidget(parent),
     ui(new Ui::LiveDataWidget)
@@ -24,6 +28,10 @@ LiveDataWidget::LiveDataWidget(QWidget *parent) :
     ldTimer = new QTimer(this);
     ldTimer->setInterval(1000);
     connect(ldTimer, SIGNAL(timeout()), this, SLOT(liveTimeout()));
+
+    windDirections << "N" << "NNE" << "NE" << "ENE" << "E" << "ESE" << "SE"
+                   << "SSE" << "S" << "SSW" << "SW" << "WSW" << "W" << "WNW"
+                   << "NW" << "NNW";
 
     loadForecastRules();
 
@@ -139,8 +147,27 @@ void LiveDataWidget::refreshUi(LiveDataSet lds) {
 
     ui->lblWindSpeed->setText(
                 QString::number(lds.windSpeed, 'f', 1) + " m/s");
-    ui->lblWindDirection->setText(QString::number(lds.windDirection));
     ui->lblTimestamp->setText(lds.timestamp.toString("h:mm AP"));
+
+
+    /*
+function BearingToCP(bearing: integer): string;
+// Converts bearing in degrees to compass point
+var
+  compassp: array[0..15] of string = ('N', 'NNE', 'NE', 'ENE', 'E',
+    'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW');
+begin
+  Result := compassp[(((bearing * 100) + 1125) mod 36000) div 2250];
+end;
+*/
+    int idx = (((lds.windDirection * 100) + 1125) % 36000) / 2250;
+    QString direction = windDirections.at(idx);
+
+    if (lds.windSpeed == 0.0)
+        ui->lblWindDirection->setText("--");
+    else
+        ui->lblWindDirection->setText(QString::number(lds.windDirection) +
+                                      "\xB0 " + direction);
 
     QString pressureMsg = "";
     if (lds.hw_type == HW_DAVIS) {
@@ -227,10 +254,28 @@ void LiveDataWidget::refreshUi(LiveDataSet lds) {
 
         updateCount++;
         ui->lblUpdateCount->setText(QString::number(updateCount));
+
+        // I can't find anything that explains the transmitter battery status
+        // byte but what I can find suggests that it gives the status for
+        // transmitters 1-8. I'm assuming it must be a bitmap.
+        QString txStatus = "bad: ";
+        char txStatusByte = (char)lds.davisHw.txBatteryStatus;
+        for (int i = 0; i < 8; i++) {
+            if (CHECK_BIT(txStatusByte, i))
+                txStatus.append(QString::number(i) + ", ");
+        }
+        if (txStatus == "bad: ")
+            txStatus = "ok";
+        else
+            txStatus = txStatus.mid(0, txStatus.length() - 2);
+        ui->lblTxBattery->setText(txStatus);
+
     }
 
     ui->lblBarometer->setText(
                 QString::number(lds.pressure, 'f', 1) + " hPa" + pressureMsg);
+
+
 
 }
 
