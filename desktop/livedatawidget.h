@@ -3,20 +3,20 @@
 
 #include <QWidget>
 #include <QIcon>
-#include <QHBoxLayout>
 #include <QHash>
 #include "datasource/abstractlivedatasource.h"
 
-class QLabel;
-class QGridLayout;
-class QFrame;
-class QTimer;
+namespace Ui {
+class LiveDataWidget;
+}
 
 class LiveDataWidget : public QWidget
 {
     Q_OBJECT
+    
 public:
     explicit LiveDataWidget(QWidget *parent = 0);
+    ~LiveDataWidget();
     
     /** Reconnects to the datasource. Call this when ever data source
      * settings are changed.
@@ -52,56 +52,14 @@ private slots:
     void error(QString);
 
 private:
+    Ui::LiveDataWidget *ui;
+
     void createDatabaseDataSource();
     void createJsonDataSource();
 
     void refreshUi(LiveDataSet lds);
     void refreshSysTrayText(LiveDataSet lds);
     void refreshSysTrayIcon(LiveDataSet lds);
-
-    QLabel* lblRelativeHumidity;
-    QLabel* lblTemperature;
-    QLabel* lblDewPoint;
-    QLabel* lblWindChill;
-    QLabel* lblApparentTemperature;
-    QLabel* lblAbsolutePressure;
-    QLabel* lblAverageWindSpeed;
-    QLabel* lblWindDirection;
-    QLabel* lblTimestamp;
-
-    QLabel* lblTitle;
-    QLabel* lblLabelRelativeHumidity;
-    QLabel* lblLabelTemperature;
-    QLabel* lblLabelDewPoint;
-    QLabel* lblLabelWindChill;
-    QLabel* lblLabelApparentTemperature;
-    QLabel* lblLabelAbsolutePressure;
-    QLabel* lblLabelAverageWindSpeed;
-    QLabel* lblLabelWindDirection;
-    QLabel* lblLabelTimestamp;
-
-    // Davis stuff
-    QLabel* lblLabelRainRate;
-    QLabel* lblLabelStormRain;
-    QLabel* lblLabelCurrentStormStartDate;
-    QLabel* lblLabelBarometerTrend;
-    QLabel* lblLabelTxBattery;
-    QLabel* lblLabelConsoleBattery;
-    QHBoxLayout* forecastLayout;
-
-    QLabel* lblRainRate;
-    QLabel* lblStormRain;
-    QLabel* lblCurrentStormStartDate;
-    QLabel* lblBarometerTrend;
-    QLabel* lblTxBattery;
-    QLabel* lblConsoleBattery;
-
-    QGridLayout* gridLayout;
-    QFrame* line;
-
-    QLabel* lblForecastTitle;
-    QFrame* forecastLine;
-    QLabel* lblForecast;
 
     QString previousSysTrayText;
     QString previousSysTrayIcon;
@@ -116,6 +74,7 @@ private:
     QHash<int,QString> forecastRules;
 
     void loadForecastRules();
+
 };
 
-#endif // LIVEDATAWIDGET_H
+#endif // LIVEDATAWIDGET2_H
