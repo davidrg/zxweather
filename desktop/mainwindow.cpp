@@ -37,6 +37,10 @@
 #include <QSqlError>
 #include <QSqlQuery>
 
+#include "datasource/databasedatasource.h"
+#include "datasource/tcplivedatasource.h"
+#include "datasource/webdatasource.h"
+
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
@@ -46,6 +50,13 @@ MainWindow::MainWindow(QWidget *parent) :
     // Make the window a fixed size.
     setFixedSize(width(),281);
     //statusBar()->setSizeGripEnabled(false);
+
+    seconds_since_last_refresh = 0;
+    minutes_late = 0;
+
+    ldTimer = new QTimer(this);
+    ldTimer->setInterval(1000);
+    connect(ldTimer, SIGNAL(timeout()), this, SLOT(liveTimeout()));
 
     sysTrayIcon.reset(new QSystemTrayIcon(this));
     sysTrayIcon->setIcon(QIcon(":/icons/systray_icon_warning"));
@@ -70,8 +81,6 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionAbout, SIGNAL(triggered()), this, SLOT(showAbout()));
 
     // Live Data Widget
-    connect(ui->liveData, SIGNAL(warning(QString,QString,QString,bool)),
-            this, SLOT(showWarningPopup(QString,QString,QString,bool)));
     connect(ui->liveData, SIGNAL(sysTrayIconChanged(QIcon)),
             this, SLOT(updateSysTrayIcon(QIcon)));
     connect(ui->liveData, SIGNAL(sysTrayTextChanged(QString)),
@@ -92,7 +101,7 @@ MainWindow::MainWindow(QWidget *parent) :
     }
     else {
         reconnectDatabase();
-        ui->liveData->reconfigureDataSource();
+        reconfigureDataSource();
     }
 }
 
@@ -257,7 +266,7 @@ void MainWindow::showSettings() {
     if (result == QDialog::Accepted) {
         readSettings();
 
-        ui->liveData->reconfigureDataSource();
+        reconfigureDataSource();
         reconnectDatabase();
     }
 }
@@ -331,4 +340,60 @@ void MainWindow::updateSysTrayText(QString text) {
 
 void MainWindow::updateSysTrayIcon(QIcon icon) {
     sysTrayIcon->setIcon(icon);
+}
+
+void MainWindow::dataSourceError(QString message) {
+    showWarningPopup(message, "Error", "", false);
+}
+
+void MainWindow::reconfigureDataSource() {
+    Settings& settings = Settings::getInstance();
+
+    if (settings.liveDataSourceType() == Settings::DS_TYPE_DATABASE) {
+        dataSource.reset(new DatabaseDataSource(this,this));
+    } else if (settings.liveDataSourceType() == Settings::DS_TYPE_WEB_INTERFACE){
+        dataSource.reset(new WebDataSource(this,this));
+    } else {
+        dataSource.reset(new TcpLiveDataSource(this));
+    }
+
+    // Live Data Widget
+    connect(dataSource.data(), SIGNAL(liveData(LiveDataSet)),
+            ui->liveData, SLOT(refreshLiveData(LiveDataSet)));
+
+    // This
+    connect(dataSource.data(), SIGNAL(liveData(LiveDataSet)),
+            this, SLOT(liveDataRefreshed()));
+
+    // Error handler
+    connect(dataSource.data(), SIGNAL(error(QString)),
+            this, SLOT(dataSourceError(QString)));
+
+    dataSource->enableLiveData();
+
+    // Reset late data timer.
+    seconds_since_last_refresh = 0;
+    ldTimer->start();
+}
+
+void MainWindow::liveDataRefreshed() {
+    seconds_since_last_refresh = 0;
+    minutes_late = 0;
+}
+
+void MainWindow::liveTimeout() {
+    seconds_since_last_refresh++; // this is reset when ever live data arrives.
+
+    if (seconds_since_last_refresh == 60) {
+        minutes_late++;
+
+        showWarningPopup("Live data has not been refreshed in over " +
+                         QString::number(minutes_late) +
+                         " minutes. Check data update service.",
+                         "Live data is late",
+                         "Live data is late",
+                         true);
+
+        seconds_since_last_refresh = 0;
+    }
 }

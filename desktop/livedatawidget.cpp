@@ -8,7 +8,6 @@
 #include <QTimer>
 #include <QFile>
 #include <QTextStream>
-#include <QGridLayout>
 
 #define CHECK_BIT(byte, bit) (((byte >> bit) & 0x01) == 1)
 
@@ -20,13 +19,7 @@ LiveDataWidget::LiveDataWidget(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    seconds_since_last_refresh = 0;
-    minutes_late = 0;
     updateCount = 0;
-
-    ldTimer = new QTimer(this);
-    ldTimer->setInterval(1000);
-    connect(ldTimer, SIGNAL(timeout()), this, SLOT(liveTimeout()));
 
     windDirections << "N" << "NNE" << "NE" << "ENE" << "E" << "ESE" << "SE"
                    << "SSE" << "S" << "SSW" << "SW" << "WSW" << "W" << "WNW"
@@ -65,9 +58,6 @@ void LiveDataWidget::refreshLiveData(LiveDataSet lds) {
     refreshUi(lds);
     refreshSysTrayText(lds);
     refreshSysTrayIcon(lds);
-
-    seconds_since_last_refresh = 0;
-    minutes_late = 0;
 }
 
 void LiveDataWidget::refreshSysTrayText(LiveDataSet lds) {
@@ -272,44 +262,4 @@ end;
 
     ui->lblBarometer->setText(
                 QString::number(lds.pressure, 'f', 1) + " hPa" + pressureMsg);
-}
-
-void LiveDataWidget::reconfigureDataSource() {
-    Settings& settings = Settings::getInstance();
-
-    if (settings.liveDataSourceType() == Settings::DS_TYPE_DATABASE) {
-        dataSource.reset(new DatabaseDataSource(this,this));
-    } else if (settings.liveDataSourceType() == Settings::DS_TYPE_WEB_INTERFACE){
-        dataSource.reset(new WebDataSource(this,this));
-    } else {
-        dataSource.reset(new TcpLiveDataSource(this));
-    }
-    connect(dataSource.data(), SIGNAL(liveData(LiveDataSet)),
-            this, SLOT(refreshLiveData(LiveDataSet)));
-    connect(dataSource.data(), SIGNAL(error(QString)),
-            this, SLOT(error(QString)));
-    dataSource->enableLiveData();
-    seconds_since_last_refresh = 0;
-    ldTimer->start();
-}
-
-void LiveDataWidget::liveTimeout() {
-    seconds_since_last_refresh++; // this is reset when ever live data arrives.
-
-    if (seconds_since_last_refresh == 60) {
-        minutes_late++;
-
-        emit warning("Live data has not been refreshed in over " +
-                         QString::number(minutes_late) +
-                         " minutes. Check data update service.",
-                         "Live data is late",
-                         "Live data is late",
-                         true);
-
-        seconds_since_last_refresh = 0;
-    }
-}
-
-void LiveDataWidget::error(QString message) {
-    emit warning(message, "Error", "", false);
 }

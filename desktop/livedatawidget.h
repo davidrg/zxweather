@@ -4,6 +4,7 @@
 #include <QWidget>
 #include <QIcon>
 #include <QHash>
+
 #include "datasource/abstractlivedatasource.h"
 
 namespace Ui {
@@ -18,11 +19,6 @@ public:
     explicit LiveDataWidget(QWidget *parent = 0);
     ~LiveDataWidget();
     
-    /** Reconnects to the datasource. Call this when ever data source
-     * settings are changed.
-     */
-    void reconfigureDataSource();
-
 public slots:
     /** Called when new live data is available.
      *
@@ -33,27 +29,6 @@ public slots:
 signals:
     void sysTrayTextChanged(QString text);
     void sysTrayIconChanged(QIcon icon);
-
-    void warning(
-            QString message,
-            QString title,
-            QString tooltip,
-            bool setWarningIcon);
-
-    void uiReconfigured(int change);
-
-private slots:
-    /** For monitoring live data. This (and the associated time ldTimer) is
-     * what pops up warnings when live data is late.
-     */
-    void liveTimeout();
-
-    // Database errors (for use with the database data source)
-
-    /**
-     * @brief Called when something goes wrong.
-     */
-    void error(QString);
 
 private:
     Ui::LiveDataWidget *ui;
@@ -67,14 +42,7 @@ private:
     QString previousSysTrayText;
     QString previousSysTrayIcon;
 
-    QScopedPointer<AbstractLiveDataSource> dataSource;
-
-    uint seconds_since_last_refresh;
-    uint minutes_late;
-
     uint updateCount;
-
-    QTimer* ldTimer;
 
     QHash<int,QString> forecastRules;
 
