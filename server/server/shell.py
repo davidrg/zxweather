@@ -19,6 +19,7 @@ TABLE_SET_AUTHENTICATED = 2
 TERM_CRT = 0
 TERM_BASIC = 1
 
+
 class Dispatcher(object):
     """
     Processes command strings, finds and sets up the command to be executed
@@ -41,7 +42,7 @@ class Dispatcher(object):
         self.warning_handler = warning_handler
 
         self.environment["term_type"] = TERM_BASIC
-        self.environment["ui_coded"] = False
+        self.environment["ui_json"] = False
         self.environment["json_mode"] = False
 
         self.processor = CommandProcessor(
@@ -51,8 +52,6 @@ class Dispatcher(object):
             self.prompter,
             self.warning_handler)
         self.dispatch_table = std_dispatch_table.copy()
-
-
 
     def get_command(self, command):
         """
@@ -96,6 +95,7 @@ class Dispatcher(object):
 
 INPUT_SHELL = 0
 INPUT_COMMAND = 1
+
 
 class BaseShell(object):
     def __init__(self, user, protocol):

@@ -126,6 +126,15 @@ base_syntaxes = [
     syntax(
         name="show_station",
         handler="show_station",
+        qualifiers=[
+            qualifier(
+                name="json",
+                type="keyword",
+                default_value="true",
+                value_required=False,
+                keywords="boolean"
+            )
+        ],
         parameters=[
             show_param_0,
             parameter(
@@ -228,7 +237,7 @@ base_syntaxes = [
         parameters=[set_param_0],
         qualifiers=[
             qualifier(
-                name="coded",
+                name="json",
                 type="keyword",
                 default_value="true",
                 value_required=False,

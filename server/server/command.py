@@ -6,10 +6,6 @@ from twisted.internet import defer
 
 __author__ = 'david'
 
-TYP_INFO = 1
-TYP_WARN = 2
-TYP_ERROR = 3
-
 class Command(object):
     """
     Base class for all commands executed by the ZXCL Shell.
@@ -48,6 +44,7 @@ class Command(object):
         self.readLineDeferred = None
         self.terminated = False
         self.auto_exit = True
+        self.json_mode = environment['ui_json']
 
         self.force_close = True
 
@@ -151,23 +148,6 @@ class Command(object):
         :param text: Text to write out.
         """
         self.write("{0}\n".format(text))
-
-    def codedWriteLine(self, type, code, message):
-        """
-        Writes out a coded message.
-        :param type: Message type (info, warning, error)
-        :type type: int
-        :param code: Message code. This is command-specific
-        :type code: int < 99
-        :param message: The message to output
-        :type message: str
-        """
-
-        if not self.environment["ui_coded"]:
-            self.write(message + "\r\n")
-        else:
-            msg = "{0}{1:02d} {2}\r\n".format(type,code,message)
-            self.write(msg)
 
     def cleanUp(self):
         """
