@@ -36,7 +36,7 @@ typedef struct _liveData {
     float pressure;
 
     float windSpeed;
-    float gustWindSpeed;
+    float gustWindSpeed; // TODO: Remove me
     int windDirection;
 
     QDateTime timestamp;
