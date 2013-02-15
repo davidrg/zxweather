@@ -22,6 +22,14 @@ public:
      * settings are changed.
      */
     void reconfigureDataSource();
+
+public slots:
+    /** Called when new live data is available.
+     *
+     * @param data The new live data.
+     */
+    void refreshLiveData(LiveDataSet lds);
+
 signals:
     void sysTrayTextChanged(QString text);
     void sysTrayIconChanged(QIcon icon);
@@ -32,13 +40,9 @@ signals:
             QString tooltip,
             bool setWarningIcon);
 
-private slots:
-    /** Called when new live data is available.
-     *
-     * @param data The new live data.
-     */
-    void liveDataRefreshed(LiveDataSet lds);
+    void uiReconfigured(int change);
 
+private slots:
     /** For monitoring live data. This (and the associated time ldTimer) is
      * what pops up warnings when live data is late.
      */
@@ -54,8 +58,7 @@ private slots:
 private:
     Ui::LiveDataWidget *ui;
 
-    void createDatabaseDataSource();
-    void createJsonDataSource();
+    void reconfigureUI(hardware_type_t hw_type);
 
     void refreshUi(LiveDataSet lds);
     void refreshSysTrayText(LiveDataSet lds);
@@ -76,7 +79,6 @@ private:
     QHash<int,QString> forecastRules;
 
     void loadForecastRules();
-
 };
 
 #endif // LIVEDATAWIDGET2_H
