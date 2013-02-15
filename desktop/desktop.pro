@@ -22,12 +22,12 @@ ecpg.variable_out = SOURCES
 ecpg.dependency_type = TYPE_CXX
 QMAKE_EXTRA_COMPILERS += ecpg
 
-win32 {
+win32 { # Use bundled postgres libraries
     LIBS += -L../desktop/lib/libecpg-9.1-win32 -lecpg
     LIBS += -L../desktop/lib/libpq-9.1-win32 -lpq
     INCLUDEPATH += lib/libecpg-9.1-win32/include
 }
-unix {
+unix { # Assumes libecpg and libpq have been installed in /usr/lib
     LIBS += -L/usr/lib -lpq
     LIBS += -L/usr/lib -lecpg
     INCLUDEPATH += /usr/include/postgresql

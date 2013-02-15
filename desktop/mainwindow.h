@@ -30,6 +30,8 @@
 #include <QCloseEvent>
 #include <QScopedPointer>
 
+#include "datasource/abstractlivedatasource.h"
+
 namespace Ui {
 class MainWindow;
 }
@@ -89,9 +91,21 @@ public slots:
     void showAbout();
 
     void showWarningPopup(QString message, QString title, QString tooltip="", bool setWarningIcon=false);
+    void dataSourceError(QString message);
 
     void updateSysTrayText(QString text);
     void updateSysTrayIcon(QIcon icon);
+
+private slots:
+    /** For monitoring live data. This (and the associated time ldTimer) is
+     * what pops up warnings when live data is late.
+     */
+    void liveTimeout();
+
+    /** Mostly used to check for late live data.
+     */
+    void liveDataRefreshed();
+
 protected:
     /**
      * @brief changeEvent handles minimising the window to the system tray if
@@ -122,6 +136,17 @@ private:
     int getDatabaseVersion();
     void databaseCompatibilityChecks();
     void reconnectDatabase();
+
+    /** Reconnects to the datasource. Call this when ever data source
+     * settings are changed.
+     */
+    void reconfigureDataSource();
+
+    QScopedPointer<AbstractLiveDataSource> dataSource;
+
+    uint seconds_since_last_refresh;
+    uint minutes_late;
+    QTimer* ldTimer;
 };
 
 #endif // MAINWINDOW_H
