@@ -43,10 +43,9 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     qDebug() << "MainWindow::MainWindow...";
     ui->setupUi(this);
-
     // Make the window a fixed size.
-    setFixedSize(width(),height());
-    statusBar()->setSizeGripEnabled(false);
+    setFixedSize(width(),281);
+    //statusBar()->setSizeGripEnabled(false);
 
     sysTrayIcon.reset(new QSystemTrayIcon(this));
     sysTrayIcon->setIcon(QIcon(":/icons/systray_icon_warning"));

@@ -8,6 +8,7 @@
 #include <QTimer>
 #include <QFile>
 #include <QTextStream>
+#include <QGridLayout>
 
 #define CHECK_BIT(byte, bit) (((byte >> bit) & 0x01) == 1)
 
@@ -18,8 +19,6 @@ LiveDataWidget::LiveDataWidget(QWidget *parent) :
     ui(new Ui::LiveDataWidget)
 {
     ui->setupUi(this);
-
-    int row = 0;
 
     seconds_since_last_refresh = 0;
     minutes_late = 0;
@@ -42,7 +41,6 @@ LiveDataWidget::~LiveDataWidget()
     delete ui;
 }
 
-
 void LiveDataWidget::loadForecastRules() {
     QFile f(":/data/forecast_rules");
     if (!f.open(QIODevice::ReadOnly))
@@ -63,7 +61,7 @@ void LiveDataWidget::loadForecastRules() {
     }
 }
 
-void LiveDataWidget::liveDataRefreshed(LiveDataSet lds) {
+void LiveDataWidget::refreshLiveData(LiveDataSet lds) {
     refreshUi(lds);
     refreshSysTrayText(lds);
     refreshSysTrayIcon(lds);
@@ -274,9 +272,6 @@ end;
 
     ui->lblBarometer->setText(
                 QString::number(lds.pressure, 'f', 1) + " hPa" + pressureMsg);
-
-
-
 }
 
 void LiveDataWidget::reconfigureDataSource() {
@@ -290,7 +285,7 @@ void LiveDataWidget::reconfigureDataSource() {
         dataSource.reset(new TcpLiveDataSource(this));
     }
     connect(dataSource.data(), SIGNAL(liveData(LiveDataSet)),
-            this, SLOT(liveDataRefreshed(LiveDataSet)));
+            this, SLOT(refreshLiveData(LiveDataSet)));
     connect(dataSource.data(), SIGNAL(error(QString)),
             this, SLOT(error(QString)));
     dataSource->enableLiveData();
