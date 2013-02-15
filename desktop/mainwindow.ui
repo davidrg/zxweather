@@ -34,21 +34,27 @@
   </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QGridLayout" name="gridLayout_2">
-    <item row="0" column="0">
-     <widget class="LiveDataWidget" name="liveData" native="true">
-      <property name="minimumSize">
+    <item row="1" column="1">
+     <widget class="StatusWidget" name="status" native="true"/>
+    </item>
+    <item row="0" column="1">
+     <widget class="ForecastWidget" name="forecast" native="true"/>
+    </item>
+    <item row="2" column="1">
+     <spacer name="verticalSpacer">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
        <size>
-        <width>581</width>
-        <height>233</height>
+        <width>20</width>
+        <height>40</height>
        </size>
       </property>
-      <property name="maximumSize">
-       <size>
-        <width>581</width>
-        <height>233</height>
-       </size>
-      </property>
-     </widget>
+     </spacer>
+    </item>
+    <item row="0" column="0" rowspan="3">
+     <widget class="LiveDataWidget" name="liveData" native="true"/>
     </item>
    </layout>
   </widget>
@@ -124,6 +130,18 @@
    <class>LiveDataWidget</class>
    <extends>QWidget</extends>
    <header>livedatawidget.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>ForecastWidget</class>
+   <extends>QWidget</extends>
+   <header>forecastwidget.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>StatusWidget</class>
+   <extends>QWidget</extends>
+   <header>statuswidget.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

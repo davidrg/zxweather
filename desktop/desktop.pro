@@ -50,7 +50,9 @@ SOURCES += main.cpp\
     chartoptionsdialog.cpp \
     qtcolorbutton/qtcolorbutton.cpp \
     datasource/databasedatasource.cpp \
-    datasource/tcplivedatasource.cpp
+    datasource/tcplivedatasource.cpp \
+    statuswidget.cpp \
+    forecastwidget.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
@@ -70,14 +72,18 @@ HEADERS  += mainwindow.h \
     qtcolorbutton/qtcolorbutton_p.h \
     datasource/databasedatasource.h \
     datasource/abstractlivedatasource.h \
-    datasource/tcplivedatasource.h
+    datasource/tcplivedatasource.h \
+    statuswidget.h \
+    forecastwidget.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \
     aboutdialog.ui \
     chartwindow.ui \
     chartoptionsdialog.ui \
-    livedatawidget.ui
+    livedatawidget.ui \
+    statuswidget.ui \
+    forecastwidget.ui
 
 OTHER_FILES += \
     database.pgc \

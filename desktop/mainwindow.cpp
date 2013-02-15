@@ -50,6 +50,8 @@ MainWindow::MainWindow(QWidget *parent) :
     // Make the window a fixed size.
     setFixedSize(width(),281);
     //statusBar()->setSizeGripEnabled(false);
+    ui->statusBar->setEnabled(false);
+    ui->statusBar->hide();
 
     seconds_since_last_refresh = 0;
     minutes_late = 0;
@@ -357,9 +359,13 @@ void MainWindow::reconfigureDataSource() {
         dataSource.reset(new TcpLiveDataSource(this));
     }
 
-    // Live Data Widget
+    // Data Widgets
     connect(dataSource.data(), SIGNAL(liveData(LiveDataSet)),
             ui->liveData, SLOT(refreshLiveData(LiveDataSet)));
+    connect(dataSource.data(), SIGNAL(liveData(LiveDataSet)),
+            ui->forecast, SLOT(refreshLiveData(LiveDataSet)));
+    connect(dataSource.data(), SIGNAL(liveData(LiveDataSet)),
+            ui->status, SLOT(refreshLiveData(LiveDataSet)));
 
     // This
     connect(dataSource.data(), SIGNAL(liveData(LiveDataSet)),

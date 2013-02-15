@@ -6,10 +6,6 @@
 #include "datasource/tcplivedatasource.h"
 
 #include <QTimer>
-#include <QFile>
-#include <QTextStream>
-
-#define CHECK_BIT(byte, bit) (((byte >> bit) & 0x01) == 1)
 
 QStringList windDirections;
 
@@ -19,39 +15,14 @@ LiveDataWidget::LiveDataWidget(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    updateCount = 0;
-
     windDirections << "N" << "NNE" << "NE" << "ENE" << "E" << "ESE" << "SE"
                    << "SSE" << "S" << "SSW" << "SW" << "WSW" << "W" << "WNW"
                    << "NW" << "NNW";
-
-    loadForecastRules();
-
 }
 
 LiveDataWidget::~LiveDataWidget()
 {
     delete ui;
-}
-
-void LiveDataWidget::loadForecastRules() {
-    QFile f(":/data/forecast_rules");
-    if (!f.open(QIODevice::ReadOnly))
-        return;
-
-    QTextStream in(&f);
-    QString line = in.readLine();
-    while (!line.isNull()) {
-
-        QStringList bits = line.split('|');
-
-        int id = bits.at(0).toInt();
-        QString forecast = bits.at(1);
-
-        forecastRules[id] = forecast;
-
-        line = in.readLine();
-    }
 }
 
 void LiveDataWidget::refreshLiveData(LiveDataSet lds) {
@@ -138,16 +109,6 @@ void LiveDataWidget::refreshUi(LiveDataSet lds) {
     ui->lblTimestamp->setText(lds.timestamp.toString("h:mm AP"));
 
 
-    /*
-function BearingToCP(bearing: integer): string;
-// Converts bearing in degrees to compass point
-var
-  compassp: array[0..15] of string = ('N', 'NNE', 'NE', 'ENE', 'E',
-    'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW');
-begin
-  Result := compassp[(((bearing * 100) + 1125) mod 36000) div 2250];
-end;
-*/
     int idx = (((lds.windDirection * 100) + 1125) % 36000) / 2250;
     QString direction = windDirections.at(idx);
 
@@ -181,9 +142,6 @@ end;
         if (!pressureMsg.isEmpty())
             pressureMsg = " (" + pressureMsg + ")";
 
-        ui->lblConsoleBattery->setText(
-                    QString::number(lds.davisHw.consoleBatteryVoltage,
-                                    'f', 2) + " V");
         ui->lblRainRate->setText(
                     QString::number(lds.davisHw.rainRate, 'f', 1) + " mm/hr");
         ui->lblCurrentStormRain->setText(
@@ -194,69 +152,6 @@ end;
                         lds.davisHw.stormStartDate.toString());
         else
             ui->lblCurrentStormStartDate->setText("--");
-
-        //:/icons/weather/
-        QString iconFile = "";
-
-        switch(lds.davisHw.forecastIcon) {
-        case 8:
-            iconFile = "clear";
-            break;
-        case 6:
-            iconFile = "partly_cloudy";
-            break;
-        case 2:
-            iconFile = "mostly_cloudy";
-            break;
-        case 3:
-            iconFile = "mostly_cloudy_rain";
-            break;
-        case 18:
-            iconFile = "mostly_cloudy_snow";
-            break;
-        case 19:
-            iconFile = "mostly_cloudy_snow_or_rain";
-            break;
-        case 7:
-            iconFile = "partly_cloudy_rain";
-            break;
-        case 22:
-            iconFile = "partly_cloudy_show";
-            break;
-        case 23:
-            iconFile = "partly_cloudy_show_or_rain";
-            break;
-        default:
-            iconFile = "";
-            break;
-        }
-
-        if (!iconFile.isEmpty()) {
-            iconFile = ":/icons/weather/" + iconFile;
-            ui->lblForecastIcon->setPixmap(QPixmap(iconFile));
-        } else {
-            ui->lblForecastIcon->setPixmap(QPixmap());
-        }
-
-        ui->lblForecast->setText(forecastRules[lds.davisHw.forecastRule]);
-
-        updateCount++;
-        ui->lblUpdateCount->setText(QString::number(updateCount));
-
-        // I can't find anything that explains the transmitter battery status
-        // byte but what I can find suggests that it gives the status for
-        // transmitters 1-8. I'm assuming it must be a bitmap.
-        QString txStatus = "bad: ";
-        char txStatusByte = (char)lds.davisHw.txBatteryStatus;
-        for (int i = 0; i < 8; i++) {
-            if (CHECK_BIT(txStatusByte, i))
-                txStatus.append(QString::number(i) + ", ");
-        }
-        if (txStatus == "bad: ")
-            txStatus = "ok";
-        else
-            txStatus = txStatus.mid(0, txStatus.length() - 2);
-        ui->lblTxBattery->setText(txStatus);
 
     }
 
