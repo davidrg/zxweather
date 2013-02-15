@@ -153,6 +153,10 @@ void LiveDataWidget::refreshUi(LiveDataSet lds) {
         else
             ui->lblCurrentStormStartDate->setText("--");
 
+    } else {
+        ui->lblRainRate->setText("not supported");
+        ui->lblCurrentStormRain->setText("not supported");
+        ui->lblCurrentStormStartDate->setText("not supported");
     }
 
     ui->lblBarometer->setText(

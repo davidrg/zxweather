@@ -47,11 +47,22 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     qDebug() << "MainWindow::MainWindow...";
     ui->setupUi(this);
+
     // Make the window a fixed size.
-    setFixedSize(width(),281);
-    //statusBar()->setSizeGripEnabled(false);
-    ui->statusBar->setEnabled(false);
+    ui->statusBar->setSizeGripEnabled(false);
     ui->statusBar->hide();
+
+    // Setup window size.
+    int widgetWidth = ui->liveData->width();
+    widgetWidth += ui->gridLayout->margin() * 2;
+    widgetWidth += ui->forecast->width();
+    widgetWidth += ui->gridLayout->verticalSpacing();
+    setFixedWidth(widgetWidth);
+    // The height is set in main.cpp
+
+
+    // The UI is configured for Davis hardware by default
+    last_hw_type = HW_DAVIS;
 
     seconds_since_last_refresh = 0;
     minutes_late = 0;
@@ -369,7 +380,7 @@ void MainWindow::reconfigureDataSource() {
 
     // This
     connect(dataSource.data(), SIGNAL(liveData(LiveDataSet)),
-            this, SLOT(liveDataRefreshed()));
+            this, SLOT(liveDataRefreshed(LiveDataSet)));
 
     // Error handler
     connect(dataSource.data(), SIGNAL(error(QString)),
@@ -380,11 +391,51 @@ void MainWindow::reconfigureDataSource() {
     // Reset late data timer.
     seconds_since_last_refresh = 0;
     ldTimer->start();
+    ui->status->reset();
 }
 
-void MainWindow::liveDataRefreshed() {
+void MainWindow::liveDataRefreshed(LiveDataSet lds) {
     seconds_since_last_refresh = 0;
     minutes_late = 0;
+
+    qDebug() << width() << height();
+
+    // If the hardware type hasn't changed then there isn't anything to do.
+    if (lds.hw_type == last_hw_type) return;
+
+    if (last_hw_type == HW_DAVIS) {
+        // We're switching from Davis to something else. Switch off all the
+        // Davis-specific panels.
+        ui->forecast->hide();
+        ui->status->hide();
+
+        spacerItem = ui->gridLayout->itemAtPosition(2,1);
+        ui->gridLayout->removeItem(spacerItem);
+
+
+        forecastItem = ui->gridLayout->takeAt(
+                    ui->gridLayout->indexOf(ui->forecast));
+
+        statusItem = ui->gridLayout->takeAt(
+                    ui->gridLayout->indexOf(ui->status));
+    }
+
+    int widgetWidth = ui->liveData->width();
+    widgetWidth += ui->gridLayout->margin() * 2;
+
+    if (lds.hw_type == HW_DAVIS) {
+        ui->gridLayout->addItem(forecastItem, 0, 1);
+        ui->gridLayout->addItem(statusItem, 1, 1);
+        ui->gridLayout->addItem(spacerItem, 2, 1);
+
+        ui->forecast->show();
+        ui->status->show();
+        widgetWidth += ui->forecast->width();
+        widgetWidth += ui->gridLayout->verticalSpacing();
+    }
+
+    last_hw_type = lds.hw_type;
+    setFixedWidth(widgetWidth);
 }
 
 void MainWindow::liveTimeout() {
