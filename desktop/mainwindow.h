@@ -29,6 +29,7 @@
 #include <QSettings>
 #include <QCloseEvent>
 #include <QScopedPointer>
+#include <QLayoutItem>
 
 #include "datasource/abstractlivedatasource.h"
 
@@ -104,7 +105,7 @@ private slots:
 
     /** Mostly used to check for late live data.
      */
-    void liveDataRefreshed();
+    void liveDataRefreshed(LiveDataSet lds);
 
 protected:
     /**
@@ -147,6 +148,11 @@ private:
     uint seconds_since_last_refresh;
     uint minutes_late;
     QTimer* ldTimer;
+
+    hardware_type_t last_hw_type;
+    QLayoutItem* statusItem;
+    QLayoutItem* forecastItem;
+    QLayoutItem* spacerItem;
 };
 
 #endif // MAINWINDOW_H
