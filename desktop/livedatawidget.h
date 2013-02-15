@@ -3,7 +3,6 @@
 
 #include <QWidget>
 #include <QIcon>
-#include <QHash>
 
 #include "datasource/abstractlivedatasource.h"
 
@@ -41,12 +40,6 @@ private:
 
     QString previousSysTrayText;
     QString previousSysTrayIcon;
-
-    uint updateCount;
-
-    QHash<int,QString> forecastRules;
-
-    void loadForecastRules();
 };
 
 #endif // LIVEDATAWIDGET2_H
