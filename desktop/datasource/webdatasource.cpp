@@ -306,6 +306,9 @@ void WebDataSource::liveDataReady(QNetworkReply *reply) {
         // Indoor data is not currently available from the website data feed.
         lds.indoorDataAvailable = false;
 
+        // Only generic hardware supported ATM.
+        lds.hw_type = HW_GENERIC;
+
         emit liveData(lds);
     }
 }

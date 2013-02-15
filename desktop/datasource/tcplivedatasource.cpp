@@ -119,6 +119,9 @@ void TcpLiveDataSource::processStreamLine(QString line) {
     lds.windDirection = parts.at(11).toInt();
     lds.timestamp = QDateTime::currentDateTime();
 
+    lds.indoorDataAvailable = true;
+    lds.hw_type = HW_GENERIC;
+
     emit liveData(lds);
 }
 
