@@ -7,7 +7,7 @@ import pytz
 from datetime import datetime, timedelta
 from twisted.conch.insults import insults
 from server import subscriptions
-from server.command import Command, TYP_INFO, TYP_ERROR
+from server.command import Command
 from server.database import get_station_list, get_station_info, get_sample_csv, station_exists, get_latest_sample_info
 from server.session import get_session_value, update_session, get_session_counts, get_session_id_list, session_exists
 import dateutil.parser
@@ -27,7 +27,7 @@ class ShowUserCommand(Command):
 
         username = get_session_value(self.environment["sessionid"], "username")
 
-        self.codedWriteLine(TYP_INFO, 01, username)
+        self.writeLine(username)
 
 
 class SetClientCommand(Command):
@@ -96,11 +96,11 @@ class SetInterfaceCommand(Command):
 
     def main(self):
         """ Executes the command """
-        if "coded" in self.qualifiers:
-            if self.qualifiers["coded"] == "true":
-                self.environment["ui_coded"] = True
+        if "json" in self.qualifiers:
+            if self.qualifiers["json"] == "true":
+                self.environment["ui_json"] = True
             else:
-                self.environment["ui_coded"] = False
+                self.environment["ui_json"] = False
 
 
 class ShowClientCommand(Command):
@@ -117,11 +117,11 @@ class ShowClientCommand(Command):
         )
 
         if client_info is None:
-            self.codedWriteLine(TYP_INFO, 1, "Unknown client")
+            self.writeLine("Unknown client")
             return
 
-        self.codedWriteLine(TYP_INFO, 2, "Client: {0}".format(client_info["name"]))
-        self.codedWriteLine(TYP_INFO, 3, "Version: {0}".format(client_info["version"]))
+        self.writeLine("Client: {0}".format(client_info["name"]))
+        self.writeLine("Version: {0}".format(client_info["version"]))
 
 class LogoutCommand(Command):
     """
@@ -149,7 +149,7 @@ class ListSessionsCommand(Command):
         sessions = get_session_id_list()
 
         for sid in sessions:
-            self.codedWriteLine(TYP_INFO, 1, sid)
+            self.writeLine(sid)
 
 class ShowSessionCommand(Command):
     """
@@ -160,9 +160,9 @@ class ShowSessionCommand(Command):
         """
         Shows various statistics about all sessions.
         """
-        current,total = get_session_counts()
-        self.codedWriteLine(TYP_INFO, 2, "Current sessions: {0}".format(current))
-        self.codedWriteLine(TYP_INFO, 3, "Total sessions: {0}".format(total))
+        current, total = get_session_counts()
+        self.writeLine("Current sessions: {0}".format(current))
+        self.writeLine("Total sessions: {0}".format(total))
 
 
     def show_session(self, sid):
@@ -172,7 +172,7 @@ class ShowSessionCommand(Command):
         """
 
         if not session_exists(sid):
-            self.codedWriteLine(TYP_ERROR, 1,"Invalid session id")
+            self.writeLine("Invalid session id")
             return
 
         username = get_session_value(sid, "username")
@@ -182,20 +182,20 @@ class ShowSessionCommand(Command):
         protocol = get_session_value(sid, "protocol")
         length = datetime.now() - connect_time
 
-        self.codedWriteLine(TYP_INFO, 5, "Username: {0}".format(username))
-        self.codedWriteLine(TYP_INFO, 6, "Connected: {0} ({1} ago)".format(connect_time,length))
-        self.codedWriteLine(TYP_INFO, 12, "Protocol: {0}".format(protocol))
+        self.writeLine("Username: {0}".format(username))
+        self.writeLine("Connected: {0} ({1} ago)".format(connect_time, length))
+        self.writeLine("Protocol: {0}".format(protocol))
 
         if client_info is not None:
             name = client_info["name"]
             version = client_info["version"]
-            self.codedWriteLine(TYP_INFO, 7,"Client: {0}".format(name))
-            self.codedWriteLine(TYP_INFO, 8,"Version: {0}".format(version))
+            self.writeLine("Client: {0}".format(name))
+            self.writeLine("Version: {0}".format(version))
         else:
-            self.codedWriteLine(TYP_INFO, 9,"Unknown client (interactive?)")
+            self.writeLine("Unknown client (interactive?)")
 
-        self.codedWriteLine(TYP_INFO, 10,"Current Command:")
-        self.codedWriteLine(TYP_INFO, 11,command)
+        self.writeLine("Current Command:")
+        self.writeLine(command)
 
     def main(self):
         if not self.authenticated(): return
@@ -568,7 +568,20 @@ class ShowStationCommand(Command):
     Shows information about a station
     """
 
-    def _output_station_info(self, station_info):
+    def _output_json(self, station_info):
+        result = {
+            "code": self.code,
+            "name": station_info.title,
+            "description": station_info.description,
+            "sample_interval": station_info.sample_interval,
+            "live_data_available": station_info.live_data_available,
+            "hardware_type_code": station_info.station_type_code,
+            "hardware_type_name": station_info.station_type_title
+        }
+
+        self.writeLine(json.dumps(result))
+
+    def _output_standard(self, station_info):
         self.writeLine("Code: " + self.code)
         self.writeLine("Name: " + station_info.title)
         self.writeLine("Description: " + station_info.description)
@@ -579,11 +592,20 @@ class ShowStationCommand(Command):
         self.writeLine("Hardware Type: {0} ({1}) ".format(
             station_info.station_type_code, station_info.station_type_title))
 
+    def _output_station_info(self, station_info):
+        if self.json_mode:
+            self._output_json(station_info)
+        else:
+            self._output_standard(station_info)
         self.finished()
 
     def main(self):
         self.auto_exit = False
         self.code = self.parameters[1]
+        if "json" in self.qualifiers and self.qualifiers["json"] == "true":
+            self.json_mode = True
+        elif "json" in self.qualifiers and self.qualifiers["json"] == "false":
+            self.json_mode = False
 
         if not station_exists(self.code):
             self.writeLine("Invalid station code")
