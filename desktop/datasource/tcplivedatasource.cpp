@@ -22,6 +22,15 @@ TcpLiveDataSource::TcpLiveDataSource(QObject *parent) :
     state = STATE_INIT;
 }
 
+TcpLiveDataSource::~TcpLiveDataSource() {
+    // If we don't disconnect from the sockets events we may have our slots
+    // called after the destructor has completed (causing segfaults, etc).
+    socket->disconnect(this, SLOT(connected()));
+    socket->disconnect(this, SLOT(disconnected()));
+    socket->disconnect(this, SLOT(readyRead()));
+    socket->disconnect(this, SLOT(error(QAbstractSocket::SocketError)));
+}
+
 void TcpLiveDataSource::enableLiveData() {
     Settings& settings = Settings::getInstance();
     qDebug() << "Connect....";
