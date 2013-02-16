@@ -39,9 +39,7 @@ def load_settings():
 
     # Configuration sections
     S_DB = 'database'   # Database configuration
-    S_D = 'data'        # Data configuration
     S_S = 'site'        # Site configuration
-    S_DBR = 'database_replication' # Database replication configuration
 
     # Make sure a few important settings people might overlook are set.
     if not config.has_option(S_S,'site_root'):
