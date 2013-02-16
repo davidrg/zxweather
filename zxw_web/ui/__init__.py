@@ -62,10 +62,11 @@ def validate_request(ui=None,station=None, year=None, month=None, day=None):
     if ui is not None and ui not in uis:
         raise web.NotFound()
 
-    station_id = get_station_id(station)
+    if station is not None:
+        station_id = get_station_id(station)
 
-    if station_id is None:
-        raise web.NotFound()
+        if station_id is None:
+            raise web.NotFound()
 
     # Check the date.
     if year is not None and month is not None and day is not None:
@@ -122,8 +123,9 @@ class stationlist:
 
         validate_request(ui)
 
-        # Only one station is currently supported so just redirect straight
-        # to it rather than giving the user a choice of only one option.
+        # Just redirect straight to the default station. There should be a menu
+        # on that page where the user can navigate to a different one if
+        # required. TODO: Add a cookie to remember the users setting.
         raise web.seeother(config.site_root + ui + '/' + config.default_station_name + '/')
 
 class now:
