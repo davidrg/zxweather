@@ -122,8 +122,6 @@ void TcpLiveDataSource::processStreamLine(QString line) {
         qDebug() << "Not a sample. Type:" << parts.at(0);
     }
 
-    qDebug() << "LEN::" << parts.count();
-
     LiveDataSet lds;
     lds.temperature = parts.at(1).toFloat();
     lds.dewPoint = parts.at(2).toFloat();
@@ -194,8 +192,8 @@ void TcpLiveDataSource::readyRead() {
 
     while (line.count() != 0) {
         line = line.trimmed();
-        qDebug() << "RECV:" << line;
-        qDebug() << "STATE:" << state;
+//        qDebug() << "RECV:" << line;
+//        qDebug() << "STATE:" << state;
 
         if (line == "_ok" || state == STATE_INIT)
             sendNextCommand();
