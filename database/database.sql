@@ -65,7 +65,7 @@ CREATE TABLE sample
 (
   sample_id serial NOT NULL,
   download_timestamp timestamp with time zone, -- When this record was downloaded from the weather station
-  time_stamp timestamp with time zone, -- The calculated date and time when this record was likely recorded by the weather station. How far out it could possibly be depends on the size of the sample interval, etc.
+  time_stamp timestamp with time zone not null, -- The calculated date and time when this record was likely recorded by the weather station. How far out it could possibly be depends on the size of the sample interval, etc.
   indoor_relative_humidity rh_percentage, -- Relative Humidity at the base station
   indoor_temperature real, -- Temperature at the base station
   relative_humidity rh_percentage, -- Relative Humidity
