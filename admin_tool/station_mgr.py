@@ -222,10 +222,23 @@ Description:
             cur.execute("""
 insert into station(code, title, description, station_type_id,
                     sample_interval, live_data_available)
-values(%s,%s,%s,%s,%s,%s)""", (
+values(%s,%s,%s,%s,%s,%s)
+returning station_id""", (
                 station_info["code"], station_info["name"],
                 station_info["description"], type_id, station_info["interval"],
                 station_info["live"]))
+            result = cur.fetchone()
+            station_id = result[0]
+
+            cur.execute("insert into live_data(station_id) values(%s)",
+                        (station_id, ))
+
+            # Davis hardware has an extra live data record.
+            if station_info['type'] == 'DAVIS':
+                cur.execute(
+                    "insert into davis_live_data(station_id) values(%s)",
+                    (station_id,))
+
             con.commit()
             cur.close()
             print("Station created.")

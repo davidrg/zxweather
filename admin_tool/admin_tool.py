@@ -99,7 +99,7 @@ def main():
     """
     Program entry point
     """
-    print("ZXWeather v0.2 admin tool\n\t(C) Copyright David Goodwin, 2013\n")
+    print("ZXWeather v1.0 admin tool\n\t(C) Copyright David Goodwin, 2013\n")
 
     db = get_db_connection()
 
