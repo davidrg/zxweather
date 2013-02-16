@@ -25,18 +25,6 @@ default_ui = 's'
 # Name displayed in the navigation thing
 site_name = 'zxweather'
 
-# Allow updated data (with a valid signature) to be uploaded?
-enable_data_loading = False
-
-# Home directory for GnuPG
-gnupg_home = None
-
-# Binary for GnuPG.
-gpg_binary = None
-
-# Only accept data verified with this public key:
-key_fingerprint = None
-
 def load_settings():
     """
     Loads settings from the configuration file.
@@ -44,7 +32,6 @@ def load_settings():
 
     global db, default_station_name
     global static_data_dir, site_root, default_ui, site_name
-    global enable_data_loading, gnupg_home, gpg_binary, key_fingerprint
 
     import ConfigParser
     config = ConfigParser.ConfigParser()
@@ -52,9 +39,7 @@ def load_settings():
 
     # Configuration sections
     S_DB = 'database'   # Database configuration
-    S_D = 'data'        # Data configuration
     S_S = 'site'        # Site configuration
-    S_DBR = 'database_replication' # Database replication configuration
 
     # Make sure a few important settings people might overlook are set.
     if not config.has_option(S_S,'site_root'):
@@ -89,27 +74,3 @@ def load_settings():
 
     if not static_data_dir.endswith("/"):
         static_data_dir += "/"
-
-    # Database Replication
-    if not config.has_option(S_DBR, 'enable'):
-        enable_data_loading = False
-    else:
-        enable_data_loading = config.getboolean(S_DBR, 'enable')
-
-    # Don't bother loading the rest of the configuration data for database
-    # replication if its not enabled.
-    if enable_data_loading:
-        if not config.has_option(S_DBR, 'gnupg_home'):
-            raise Exception("ConfigurationError: GnuPG home directory not specified. Consult installation reference manual.")
-
-        gnupg_home = config.get(S_DBR, 'gnupg_home')
-
-        if not config.has_option(S_DBR, 'gpg_binary'):
-            gpg_binary = None
-        else:
-            gpg_binary = config.get(S_DBR, 'gpg_binary')
-
-        if not config.has_option(S_DBR, 'key_fingerprint'):
-            print("WARNING: No key fingerprint specified. Any valid signature will be accepted. Consult installation reference manual.")
-        else:
-            key_fingerprint = config.get(S_DBR, 'key_fingerprint')
