@@ -117,8 +117,8 @@ private:
     Settings();
     ~Settings();
 
-    Settings(Settings const&) {}    /* Not implemented. Don't use it. */
-    void operator=(Settings const&) {} /* Not implemented. Don't use it. */
+    Settings(Settings const&); /* Not implemented. Don't use it. */
+    void operator=(Settings const&); /* Not implemented. Don't use it. */
 
     QSettings *settings;
 };
