@@ -305,20 +305,56 @@ def get_live_data(station_id):
     now = datetime.now()
     params = dict(date=date(now.year, now.month, now.day), station=station_id)
 
+    hw_type = get_station_type_code(station_id)
+
     if get_live_data_available(station_id):
         # No need to filter or anything - live_data only contains one record.
-        result = db.query("""select download_timestamp::time as time_stamp,
-                    relative_humidity, temperature, dew_point,
-                    wind_chill, apparent_temperature, absolute_pressure,
-                    average_wind_speed, gust_wind_speed, wind_direction,
-                    extract('epoch' from (now() - download_timestamp)) as age
-                    from live_data where station_id = $station""",
-                    dict(station=station_id))
+        base_query = """
+            select ld.download_timestamp::time as time_stamp,
+                   ld.relative_humidity,
+                   ld.temperature,
+                   ld.dew_point,
+                   ld.wind_chill,
+                   ld.apparent_temperature,
+                   ld.absolute_pressure,
+                   ld.average_wind_speed,
+                   ld.gust_wind_speed,
+                   ld.wind_direction,
+                   extract('epoch' from (now() - ld.download_timestamp)) as age
+                   {ext_columns}
+            from live_data ld{ext_joins}
+            where ld.station_id = $station"""
+
+        ext_columns = ''
+        ext_joins = ''
+
+        if hw_type == 'DAVIS':
+            ext_columns = """,
+                   dd.bar_trend,
+                   dd.rain_rate,
+                   dd.storm_rain,
+                   dd.current_storm_start_date,
+                   dd.transmitter_battery,
+                   dd.console_battery_voltage,
+                   dd.forecast_icon,
+                   dd.forecast_rule_id """
+
+            ext_joins = """
+            inner join davis_live_data dd on dd.station_id = ld.station_id """
+
+        query = base_query.format(ext_columns=ext_columns, ext_joins=ext_joins)
+
+        result = db.query(query, dict(station=station_id))
         if len(result):
             current_data = result[0]
             current_data_ts = current_data.time_stamp
         else:
-            return None,None
+            return None, None, hw_type
+    elif hw_type == 'DAVIS':
+        # Live data for Davis weather stations can't be faked by taking the
+        # most recent sample. This is because most of the davis-specific
+        # fields are only available in live data.
+        return None, None, hw_type
     else:
         # Fetch the latest data for today
         current_data = db.query("""select time_stamp::time as time_stamp, relative_humidity,
@@ -330,10 +366,10 @@ def get_live_data(station_id):
                 where date(time_stamp) = $date
                 and station_id = $station
                 order by time_stamp desc
-                limit 1""",params)[0]
+                limit 1""", params)[0]
         current_data_ts = current_data.time_stamp
 
-    return current_data_ts, current_data
+    return current_data_ts, current_data, hw_type
 
 def get_years(station_id):
     """
