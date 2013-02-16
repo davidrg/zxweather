@@ -406,6 +406,11 @@ class ShowLiveCommand(Command):
     A command that shows live data on a VT100-type terminal.
     """
 
+    wind_directions = [
+        "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW",
+        "WSW", "W", "WNW", "NW", "NNW"
+    ]
+
     def unsubscribe(self):
         """
         Unsubscribes from any current subscriptions.
@@ -445,25 +450,86 @@ class ShowLiveCommand(Command):
         indoor_temp = bits.pop(0) + " C"
         indoor_humidity = bits.pop(0) + "%"
         pressure = bits.pop(0) + " hPa"
-        avg_wind = bits.pop(0) + " m/s"
-        gust_wind = bits.pop(0) + "m/s"
-        wind_direction = bits.pop(0) + " degrees"
+
+        avg_wind_val = float(bits.pop(0))
+        avg_wind = str(avg_wind_val) + " m/s"
+
+        gust_wind_val = bits.pop(0)
+        if not self.davis_mode:
+            if gust_wind_val == 'None':
+                gust_wind = '--'
+            else:
+                gust_wind = gust_wind_val + "m/s"
+
+        if avg_wind_val == 0.0:
+            wind_direction = '--'
+            bits.pop(0)  # Throw away the value.
+        else:
+            wind_direction_val = int(bits.pop(0))
+
+            index = ((wind_direction_val * 100 + 1125) % 36000) / 2250
+
+            wind_direction = str(wind_direction_val) + " degrees (" + \
+                self.wind_directions[index] + ")"
 
         values = [
             temperature, apparent_temperature, wind_chill, dew_point, humidity,
-            indoor_temp, indoor_humidity, pressure, gust_wind, avg_wind,
-            wind_direction, str(datetime.now())
+            indoor_temp, indoor_humidity
         ]
+
+        d_bar_trend = ''
+
+        if self.davis_mode:
+            bar_trend = int(bits.pop(0))
+
+            if bar_trend == -60:
+                d_bar_trend = ' (falling rapidly)'
+            elif bar_trend == -20:
+                d_bar_trend = ' (falling slowly)'
+            elif bar_trend == 0:
+                d_bar_trend = ' (steady)'
+            elif bar_trend == 20:
+                d_bar_trend = ' (rising slowly)'
+            elif bar_trend == 60:
+                d_bar_trend = ' (rising rapidly)'
+
+        values.append(pressure + d_bar_trend)
+        if not self.davis_mode:
+            values.append(gust_wind)
+        values.append(avg_wind)
+        values.append(wind_direction)
+
+        if self.davis_mode:
+            values.append(bits.pop(0) + "mm/h")  # Rain Rate
+            values.append(bits.pop(0) + "mm")  # Storm Rain
+
+            storm_start = bits.pop(0)
+            if storm_start == 'None':
+                values.append('--')
+            else:
+                values.append(storm_start)
+
+            tx_batt = int(bits.pop(0))
+
+            if tx_batt == 0:
+                values.append("ok")
+            else:
+                values.append("warning")
+
+            values.append(bits.pop(0) + "V")  # Console battery voltage
+            #forecast_icons = bits.pop(0)
+            #forecast_rule = bits.pop(0)
+
+        values.append(str(datetime.now()))
 
         pos = 2
 
         for value in values:
-            self.terminal.cursorPosition(24,pos)
+            self.terminal.cursorPosition(26, pos)
             self.terminal.write("{0:<40}".format(value))
             pos += 1
 
-        self.terminal.cursorPosition(80,25)
-
+        self.terminal.cursorPosition(80, 25)
 
     def _setup(self, station_info):
 
@@ -472,15 +538,20 @@ class ShowLiveCommand(Command):
             self.finished()
             return
 
+        if station_info.station_type_code == 'DAVIS':
+            self.davis_mode = True
+        else:
+            self.davis_mode = False
+
         self.terminal.eraseDisplay()
         self.terminal.resetModes([insults.modes.IRM])
 
         # Top line
-        self.terminal.cursorPosition(0,0)
+        self.terminal.cursorPosition(0, 0)
         self.write("\033[7m {0:<72} {1:>5} \033[m".format(station_info.title, self.subscribed_station))
 
-        format_str = "{0:>22}:\r\n"
-        self.terminal.cursorPosition(0,2)
+        format_str = "{0:>24}:\r\n"
+        self.terminal.cursorPosition(0, 2)
         self.terminal.write(format_str.format("Temperature"))
         self.terminal.write(format_str.format("Apparent Temperature"))
         self.terminal.write(format_str.format("Wind Chill"))
@@ -489,13 +560,22 @@ class ShowLiveCommand(Command):
         self.terminal.write(format_str.format("Indoor Temperature"))
         self.terminal.write(format_str.format("Indoor Humidity"))
         self.terminal.write(format_str.format("Pressure"))
-        self.terminal.write(format_str.format("Gust Wind Speed"))
-        self.terminal.write(format_str.format("Average Wind Speed"))
+        if not self.davis_mode:
+            self.terminal.write(format_str.format("Gust Wind Speed"))
+        self.terminal.write(format_str.format("Wind Speed"))
         self.terminal.write(format_str.format("Wind Direction"))
+
+        if self.davis_mode:
+            self.terminal.write(format_str.format("Rain Rate"))
+            self.terminal.write(format_str.format("Current Storm Rain"))
+            self.terminal.write(format_str.format("Current Storm Start Date"))
+            self.terminal.write(format_str.format("Transmitter Battery"))
+            self.terminal.write(format_str.format("Console Battery"))
+
         self.terminal.write(format_str.format("Time Stamp"))
 
         # Bottom line
-        self.terminal.cursorPosition(0,25)
+        self.terminal.cursorPosition(0, 25)
         self.write("\033[7m {0:<39}{1:>39} \033[m".format(
             "Live Data - Ctrl+C to exit", "zxweather"))
 
