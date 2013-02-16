@@ -54,14 +54,14 @@
                     <td>{{ data.records.max_temperature|round(1) }}°C at {{ data.records.max_temperature_ts }}</td>
                 </tr>
                 <tr>
-                    <td>Wind Chill</td>
-                    <td>{{ data.records.min_wind_chill|round(1) }}°C at {{ data.records.min_wind_chill_ts }}</td>
-                    <td>{{ data.records.max_wind_chill|round(1) }}°C at {{ data.records.max_wind_chill_ts }}</td>
-                </tr>
-                <tr>
                     <td>Apparent Temperature</td>
                     <td>{{ data.records.min_apparent_temperature|round(1) }}°C at {{ data.records.min_apparent_temperature_ts }}</td>
                     <td>{{ data.records.max_apparent_temperature|round(1) }}°C at {{ data.records.max_apparent_temperature_ts }}</td>
+                </tr>
+                <tr>
+                    <td>Wind Chill</td>
+                    <td>{{ data.records.min_wind_chill|round(1) }}°C at {{ data.records.min_wind_chill_ts }}</td>
+                    <td>{{ data.records.max_wind_chill|round(1) }}°C at {{ data.records.max_wind_chill_ts }}</td>
                 </tr>
                 <tr>
                     <td>Dew Point</td>
@@ -69,14 +69,14 @@
                     <td>{{ data.records.max_dew_point|round(1) }}°C at {{ data.records.max_dew_point_ts }}</td>
                 </tr>
                 <tr>
-                    <td>Absolute Pressure</td>
-                    <td>{{ data.records.min_absolute_pressure|round(1) }} hPa at {{ data.records.min_absolute_pressure_ts }}</td>
-                    <td>{{ data.records.max_absolute_pressure|round(1) }} hPa at {{ data.records.max_absolute_pressure_ts }}</td>
-                </tr>
-                <tr>
-                    <td>Relative Humidity</td>
+                    <td>Humidity</td>
                     <td>{{ data.records.min_humidity }}% at {{ data.records.min_humidity_ts }}</td>
                     <td>{{ data.records.max_humidity }}% at {{ data.records.max_humidity_ts }}</td>
+                </tr>
+                <tr>
+                    <td>Barometer</td>
+                    <td>{{ data.records.min_absolute_pressure|round(1) }} hPa at {{ data.records.min_absolute_pressure_ts }}</td>
+                    <td>{{ data.records.max_absolute_pressure|round(1) }} hPa at {{ data.records.max_absolute_pressure_ts }}</td>
                 </tr>
                 <tr>
                     <td>Gust Wind Speed</td>
