@@ -36,7 +36,6 @@ function refresh_live_data() {
             var dew_point = data['dew_point'].toFixed(1);
             var absolute_pressure = data['absolute_pressure'].toFixed(1);
             var average_wind_speed = data['average_wind_speed'].toFixed(1);
-            var gust_wind_speed = data['gust_wind_speed'].toFixed(1);
 
             // Icons
             var rh='', t='', at='', wc='', dp='', ap='';
@@ -75,7 +74,6 @@ function refresh_live_data() {
             $("#live_dew_point").html(dp + dew_point + '°C');
             $("#live_absolute_pressure").html(ap + absolute_pressure + ' hPa');
             $("#live_avg_wind_speed").html(average_wind_speed + ' m/s');
-            $("#live_gust_wind_speed").html(gust_wind_speed + ' m/s');
             $("#live_wind_direction").html(data['wind_direction']);
             $("#current_time").html(data['time_stamp']);
 
