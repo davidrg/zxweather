@@ -153,21 +153,42 @@ def get_live_csv(station_code):
 
     # TODO: convert to fixed-point data types (no point returning 2.33333333)
 
-    query = """
-select coalesce(temperature::varchar, 'None') || ',' ||
-       coalesce(dew_point::varchar, 'None') || ',' ||
-       coalesce(apparent_temperature::varchar, 'None') || ',' ||
-       coalesce(wind_chill::varchar, 'None') || ',' ||
-       coalesce(relative_humidity::varchar, 'None') || ',' ||
-       coalesce(indoor_temperature::varchar, 'None') || ',' ||
-       coalesce(indoor_relative_humidity::varchar, 'None') || ',' ||
-       coalesce(absolute_pressure::varchar, 'None') || ',' ||
-       coalesce(average_wind_speed::varchar, 'None') || ',' ||
-       coalesce(gust_wind_speed::varchar, 'None') || ',' ||
-       coalesce(wind_direction::varchar, 'None')
-from live_data
-where station_id = %s
+    base_query = """
+select coalesce(round(ld.temperature::numeric, 2)::varchar, 'None') || ',' ||
+       coalesce(round(ld.dew_point::numeric, 2)::varchar, 'None') || ',' ||
+       coalesce(round(ld.apparent_temperature::numeric, 2)::varchar, 'None') || ',' ||
+       coalesce(round(ld.wind_chill::numeric, 2)::varchar, 'None') || ',' ||
+       coalesce(ld.relative_humidity::varchar, 'None') || ',' ||
+       coalesce(round(ld.indoor_temperature::numeric, 2)::varchar, 'None') || ',' ||
+       coalesce(ld.indoor_relative_humidity::varchar, 'None') || ',' ||
+       coalesce(ld.absolute_pressure::varchar, 'None') || ',' ||
+       coalesce(round(ld.average_wind_speed::numeric, 2)::varchar, 'None') || ',' ||
+       coalesce(round(ld.gust_wind_speed::numeric, 2)::varchar, 'None') || ',' ||
+       coalesce(ld.wind_direction::varchar, 'None') {ext_columns}
+from live_data ld {ext_joins}
+where ld.station_id = %s
     """
+
+    ext_columns = ''
+    ext_joins = ''
+
+    if get_station_hw_type(station_code) == 'DAVIS':
+        # Davis hardware stores some additional live data in a different table.
+        # We need to join onto that and pull in the columns.
+        ext_columns = """ || ',' ||
+coalesce(dd.bar_trend::varchar, 'None') || ',' ||
+coalesce(dd.rain_rate::varchar, 'None') || ',' ||
+coalesce(dd.storm_rain::varchar, 'None') || ',' ||
+coalesce(dd.current_storm_start_date::varchar, 'None') || ',' ||
+coalesce(dd.transmitter_battery::varchar, 'None') || ',' ||
+coalesce(round(dd.console_battery_voltage::numeric, 2)::varchar, 'None') ||','||
+coalesce(dd.forecast_icon::varchar, 'None') || ',' ||
+coalesce(dd.forecast_rule_id::varchar, 'None')
+        """
+        ext_joins = """
+inner join davis_live_data dd on dd.station_id = ld.station_id"""
+
+    query = base_query.format(ext_columns=ext_columns, ext_joins=ext_joins)
 
     return database_pool.runQuery(query, (station_code_id[station_code],))
 
