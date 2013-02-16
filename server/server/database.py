@@ -5,6 +5,7 @@ Functions for querying the database.
 from collections import namedtuple
 from twisted.enterprise import adbapi
 from twisted.internet import defer
+from twisted.python import log
 
 __author__ = 'david'
 
@@ -28,6 +29,16 @@ WH1080SampleRecord = namedtuple(
     )
 )
 
+# For uploading only - missing sample_id
+DavisSampleRecord = namedtuple(
+    'DavisSampleRecord',
+    (
+        'record_time', 'record_date', 'high_temperature', 'low_temperature',
+        'high_rain_rate', 'solar_radiation', 'wind_sample_count',
+        'gust_wind_direction', 'average_uv_index', 'evapotranspiration',
+        'high_solar_radiation', 'high_uv_index', 'forecast_rule_id'
+    )
+)
 
 # For uploading only - missing sample_id
 BaseLiveRecord = namedtuple(
@@ -36,6 +47,16 @@ BaseLiveRecord = namedtuple(
         'station_code', 'download_timestamp', 'indoor_humidity',
         'indoor_temperature', 'temperature', 'humidity', 'pressure',
         'average_wind_speed', 'gust_wind_speed', 'wind_direction'
+    )
+)
+
+# For uploading only - missing sample_id
+DavisLiveRecord = namedtuple(
+    'DavisLiveRecord',
+    (
+        'bar_trend', 'rain_rate', 'storm_rain',
+        'current_storm_start_date', 'transmitter_battery',
+        'console_battery_voltage', 'forecast_icon', 'forecast_rule_id'
     )
 )
 
@@ -321,6 +342,81 @@ def _insert_wh1080_sample_int(txn, base, wh1080, station_id):
     # Done!
     return None
 
+def _insert_davis_sample_int(txn, base, davis, station_id):
+    """
+    Inserts a new sample for Davis-type stations. This includes a record in
+    the sample table and a record in the davis_sample table.
+
+    This must be run as a database interaction as we have to insert two
+    records in a single transaction.
+
+    :param txn: Database transaction cursor thing
+    :param base: Data for the Sample table.
+    :type base: BaseSampleRecord
+    :param davis: Data for the wh1080_sample table
+    :type davis: DavisSampleRecord
+    :param station_id: The ID of the station we are inserting the record for
+    :type station_id: int
+    """
+
+    # Insert the base sample record.
+    query = """
+        insert into sample(download_timestamp, time_stamp,
+            indoor_relative_humidity, indoor_temperature, relative_humidity,
+            temperature, absolute_pressure, average_wind_speed,
+            gust_wind_speed, wind_direction, station_id)
+        values(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        returning sample_id
+        """
+    txn.execute(
+        query,
+        (
+            base.download_timestamp,
+            base.time_stamp,
+            base.indoor_humidity,
+            base.indoor_temperature,
+            base.humidity,
+            base.temperature,
+            base.pressure,
+            base.average_wind_speed,
+            base.gust_wind_speed,
+            base.wind_direction,
+            station_id,
+        )
+    )
+
+    sample_id = txn.fetchone()[0]
+
+    # Now insert the Davis record
+    query = """
+        insert into davis_sample(sample_id, record_time, record_date,
+            high_temperature, low_temperature, high_rain_rate, solar_radiation,
+            wind_sample_count, gust_wind_direction, average_uv_index,
+            evapotranspiration, high_solar_radiation, high_uv_index,
+            forecast_rule_id)
+        values(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+
+    txn.execute(query,
+                (
+                    sample_id,
+                    davis.record_time,
+                    davis.record_date,
+                    davis.high_temperature,
+                    davis.low_temperature,
+                    davis.high_rain_rate,
+                    davis.solar_radiation,
+                    davis.wind_sample_count,
+                    davis.gust_wind_direction,
+                    davis.average_uv_index,
+                    davis.evapotranspiration,
+                    davis.high_solar_radiation,
+                    davis.high_uv_index,
+                    davis.forecast_rule_id
+                ))
+
+    # Done!
+    return None
+
 
 def insert_wh1080_sample(base_data, wh1080_data):
     """
@@ -334,6 +430,20 @@ def insert_wh1080_sample(base_data, wh1080_data):
     """
     return database_pool.runInteraction(
         _insert_wh1080_sample_int, base_data, wh1080_data,
+        station_code_id[base_data.station_code])
+
+def insert_davis_sample(base_data, davis_data):
+    """
+    Inserts a new sample for Davis-type stations. This includes a record in
+    the sample table and a record in the davis_sample table.
+
+    :param base_data: Data for the Sample table.
+    :type base_data: BaseSampleRecord
+    :param davis_data: Data for the davis_sample table
+    :type davis_data: DavisSampleRecord
+    """
+    return database_pool.runInteraction(
+        _insert_davis_sample_int, base_data, davis_data,
         station_code_id[base_data.station_code])
 
 def insert_generic_sample(data):
@@ -369,9 +479,9 @@ def insert_generic_sample(data):
     )
 
 
-def insert_base_live(base_data):
+def update_base_live(base_data):
     """
-    Inserts a new basic live data record using the supplied values.
+    Updates a basic live data record using the supplied values.
     :param base_data: Live data
     :type base_data: BaseLiveRecord
     """
@@ -414,6 +524,88 @@ def insert_base_live(base_data):
     except Exception as e:
         return defer.succeed("# ERR-006: " + e.message)
 
+
+def _update_davis_live_int(txn, base_data, davis_data, station_id):
+
+    query = """update live_data
+                set download_timestamp = %s,
+                    indoor_relative_humidity = %s,
+                    indoor_temperature = %s,
+                    relative_humidity = %s,
+                    temperature = %s,
+                    absolute_pressure = %s,
+                    average_wind_speed = %s,
+                    gust_wind_speed = %s,
+                    wind_direction = %s
+                where station_id = %s
+                """
+
+    try:
+        txn.execute(
+            query,
+            (
+                base_data.download_timestamp,
+                base_data.indoor_humidity,
+                base_data.indoor_temperature,
+                base_data.humidity,
+                base_data.temperature,
+                base_data.pressure,
+                base_data.average_wind_speed,
+                base_data.gust_wind_speed,
+                base_data.wind_direction,
+                station_id
+            )
+        )
+    except Exception as e:
+        return "# ERR-006: " + e.message
+
+    query = """update davis_live_data
+                set bar_trend = %s,
+                    rain_rate = %s,
+                    storm_rain = %s,
+                    current_storm_start_date = %s,
+                    transmitter_battery = %s,
+                    console_battery_voltage = %s,
+                    forecast_icon = %s,
+                    forecast_rule_id = %s
+                where station_id = %s
+                """
+
+    try:
+        txn.execute(
+            query,
+            (
+                davis_data.bar_trend,
+                davis_data.rain_rate,
+                davis_data.storm_rain,
+                davis_data.current_storm_start_date,
+                davis_data.transmitter_battery,
+                davis_data.console_battery_voltage,
+                davis_data.forecast_icon,
+                davis_data.forecast_rule_id,
+                station_id
+            )
+        )
+    except Exception as e:
+        return"# ERR-009: " + e.message
+
+    return None
+
+
+def update_davis_live(base_data, davis_data):
+    """
+    Updates live data for a Davis weather station.
+    :param base_data: Base live data.
+    :type base_data: BaseLiveRecord
+    :param davis_data: Davis-specific live data
+    :type davis_data: DavisLiveRecord
+    :return:
+    """
+    return database_pool.runInteraction(
+        _update_davis_live_int, base_data, davis_data,
+        station_code_id[base_data.station_code]
+    )
+
 def station_exists(station_code):
     """
     Returns true if the supplied station code is valid (if it exists in the
@@ -426,6 +618,7 @@ def station_exists(station_code):
 
     global station_code_id
     return station_code in station_code_id
+
 
 def get_latest_sample_info():
     """
@@ -457,19 +650,22 @@ def get_latest_sample_info():
         return result
 
     query = """
+select st.code, latest.time_stamp, latest.record_number
+from station st
+left outer join (
 select st.code,
        s.time_stamp::varchar,
        w.record_number
 from sample s
 inner join station st on st.station_id = s.station_id
 inner join (
-	-- This will get the timestamp of the most recent record for each station.
-	select station_id, max(time_stamp) as max_ts
-	from sample
-	group by station_id
+    -- This will get the timestamp of the most recent record for each station.
+    select station_id, max(time_stamp) as max_ts
+    from sample
+    group by station_id
 ) as latest on latest.station_id = s.station_id and latest.max_ts = s.time_stamp
 left outer join wh1080_sample w on w.sample_id = s.sample_id
-order by s.time_stamp desc
+order by s.time_stamp desc) latest on latest.code = st.code
     """
 
     deferred = database_pool.runQuery(query)

@@ -40,14 +40,25 @@ class UploadClient(object):
     live_format = "l,{station_code},{download_timestamp},{indoor_humidity}," \
                   "{indoor_temperature},{temperature},{humidity},{pressure}," \
                   "{average_wind_speed},{gust_wind_speed},{wind_direction}"
+    davis_live_format = ",{bar_trend},{rain_rate},{storm_rain}," \
+                        "{current_storm_start_date},{transmitter_battery}," \
+                        "{console_battery_voltage},{forecast_icon}," \
+                        "{forecast_rule_id}"
     base_sample_format = "s,{station_code},{temperature},{humidity}," \
                          "{indoor_temperature},{indoor_humidity},{pressure}," \
                          "{average_wind_speed},{gust_wind_speed}," \
                          "{wind_direction},{rainfall},{download_timestamp}," \
                          "{time_stamp}"
     wh1080_sample_format = ",{sample_interval},{record_number}," \
-                           "{last_in_batch},{invalid_data},{wh1080_wind_direction}," \
-                           "{total_rain},{rain_overflow}"
+                           "{last_in_batch},{invalid_data}," \
+                           "{wh1080_wind_direction},{total_rain}," \
+                           "{rain_overflow}"
+    davis_sample_format = ",{record_time},{record_date},{high_temperature}," \
+                          "{low_temperature},{high_rain_rate}," \
+                          "{solar_radiation},{wind_sample_count}," \
+                          "{gust_wind_direction},{average_uv_index}," \
+                          "{evapotranspiration},{high_solar_radiation}," \
+                          "{high_uv_index},{forecast_rule_id}"
 
     def __init__(self, finished_callback, ready_callback, client_name, client_version=None):
         """
@@ -243,7 +254,7 @@ class UploadClient(object):
         while len(self._sample_buffer) > 0:
             self._writeLine(self._sample_buffer.pop(0))
 
-    def sendLive(self, live_data):
+    def sendLive(self, live_data, hardware_type):
         """
         Sends live data to the remote system. If the remote system is not ready
         to receive live data it will be discarded.
@@ -253,10 +264,14 @@ class UploadClient(object):
 
         if self._mode == MODE_UPLOAD:
             value = self.live_format.format(**live_data)
+
+            if hardware_type == 'DAVIS':
+                value += self.davis_live_format.format(**live_data)
+
             print('Live: ' + value)
             self._writeLine(value)
 
-    def sendSample(self, sample_data, hardware_type):
+    def sendSample(self, sample_data, hardware_type, hold=False):
         """
         Sends sample data to the remote system. If the remote system is not
         ready to receive new samples they will be queued and sent when the
@@ -274,7 +289,17 @@ class UploadClient(object):
         if hardware_type == 'FOWH1080':
             wh1080_value = self.wh1080_sample_format.format(**sample_data)
             value += wh1080_value
+        elif hardware_type == 'DAVIS':
+            davis_value = self.davis_sample_format.format(**sample_data)
+            value += davis_value
         # elif GENERIC: doesn't have any extra stuff not already in value.
 
         self._sample_buffer.append(value)
+        if not hold:
+            self._transmit_samples()
+
+    def flushSamples(self):
+        """
+        Flushes any buffered samples.
+        """
         self._transmit_samples()

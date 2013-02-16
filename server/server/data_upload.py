@@ -5,19 +5,27 @@ the incoming CSV records.
 """
 from twisted.internet import defer
 from server.command import Command
-from server.database import get_station_hw_type, BaseSampleRecord, WH1080SampleRecord, insert_wh1080_sample, BaseLiveRecord, insert_base_live, insert_generic_sample
+from server.database import get_station_hw_type, BaseSampleRecord, \
+    WH1080SampleRecord, insert_wh1080_sample, BaseLiveRecord, \
+    update_base_live, insert_generic_sample, DavisSampleRecord, \
+    insert_davis_sample, DavisLiveRecord, update_davis_live
 
 __author__ = 'david'
+
+# Max-ERR - ERR-010 (next is ERR-011)
+
 
 def _float_or_none(val):
     if val == "Null" or val == "None":
         return None
     return float(val)
 
+
 def _int_or_none(val):
     if val == "Null" or val == "None":
         return None
     return int(val)
+
 
 def _get_base_sample_record(values):
     """
@@ -44,6 +52,7 @@ def _get_base_sample_record(values):
     )
 
     return rec
+
 
 def _get_wh1080_sample_record(values):
     """
@@ -83,6 +92,33 @@ def _get_wh1080_sample_record(values):
     return rec
 
 
+def _get_davis_sample_record(values):
+    """
+    Builds a DavisSampleRecord instance from the supplied values.
+    :param values: Full list of sample values.
+    :return: A new populated DavisSampleRecord
+    :rtype: DavisSampleRecord
+    """
+
+    rec = DavisSampleRecord(
+        record_time=int(values[13]),
+        record_date=int(values[14]),
+        high_temperature=_float_or_none(values[15]),
+        low_temperature=_float_or_none(values[16]),
+        high_rain_rate=_float_or_none(values[17]),
+        solar_radiation=_float_or_none(values[18]),
+        wind_sample_count=_int_or_none(values[19]),
+        gust_wind_direction=_float_or_none(values[20]),
+        average_uv_index=_int_or_none(values[21]),
+        evapotranspiration=_float_or_none(values[22]),
+        high_solar_radiation=_float_or_none(values[23]),
+        high_uv_index=_int_or_none(values[24]),
+        forecast_rule_id=_int_or_none(values[25])
+    )
+
+    return rec
+
+
 def insert_csv_sample(values):
     """
     Inserts CSV sample data.
@@ -104,6 +140,17 @@ def insert_csv_sample(values):
         wh1080 = _get_wh1080_sample_record(values)
 
         return insert_wh1080_sample(base, wh1080)
+
+    elif hw_type == 'DAVIS':
+        if len(values) != 26:
+            msg = "# ERR-008: Invalid DAVIS sample record - column count not " \
+                  "26. Rejecting."
+
+            return defer.succeed(msg)
+
+        davis = _get_davis_sample_record(values)
+        return insert_davis_sample(base, davis)
+
     elif hw_type == 'GENERIC':
         if len(values) != 13:
             msg = "# ERR-003: Invalid GENERIC sample record - "\
@@ -113,6 +160,7 @@ def insert_csv_sample(values):
             return defer.succeed(msg)
 
         return insert_generic_sample(base)
+
     else:
         msg = "# ERR-004: Unsupported hardware type {0}. Record " \
               "rejected.".format(hw_type)
@@ -141,6 +189,32 @@ def _get_base_live_record(values):
     )
     return rec
 
+
+def _get_davis_live_record(values):
+    """
+    Builds a DavisLiveRecord instance from the supplied values.
+    :param values: Full list of live values.
+    :return: A new populated DavisLiveRecord
+    :rtype: DavisLiveRecord
+    """
+
+    storm_date = values[14]
+    if storm_date == 'None':
+        storm_date = None
+
+    rec = DavisLiveRecord(
+        bar_trend=_int_or_none(values[11]),
+        rain_rate=_float_or_none(values[12]),
+        storm_rain=_float_or_none(values[13]),
+        current_storm_start_date=storm_date,
+        transmitter_battery=_int_or_none(values[15]),
+        console_battery_voltage=_float_or_none(values[16]),
+        forecast_icon=_int_or_none(values[17]),
+        forecast_rule_id=_int_or_none(values[18])
+    )
+    return rec
+
+
 def insert_csv_live(values):
     """
     Inserts CSV live data
@@ -159,11 +233,21 @@ def insert_csv_live(values):
                   " 11. Rejecting."
             return defer.succeed(msg)
 
-        return insert_base_live(base)
+        return update_base_live(base)
+    elif hw_type == 'DAVIS':
+        if len(values) != 19:
+            msg = '# ERR-010: Invalid Davis live record - column count not' \
+                  ' 19. Rejecting.'
+            return defer.succeed(msg)
+
+        davis = _get_davis_live_record(values)
+
+        return update_davis_live(base, davis)
     else:
         msg = "# ERR-004: Unsupported hardware type {0}. Record "\
               "rejected.".format(hw_type)
         return defer.succeed(msg)
+
 
 class UploadCommand(Command):
     """
