@@ -32,6 +32,9 @@ insert into db_info(k,v) values('ADMIN_TOOL_MIN_VER_REV','0');
 -- TABLES ------------------------------------------------------------
 ----------------------------------------------------------------------
 
+-- Timestamp really can't be nullable
+alter table sample alter column time_stamp set not null
+
 -- Adjust comment for wind direction.
 COMMENT ON COLUMN sample.wind_direction IS 'Prevailing wind direction in degrees.';
 
