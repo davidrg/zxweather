@@ -1,10 +1,15 @@
 #include "tcplivedatasource.h"
 #include "settings.h"
 #include "constants.h"
+#include "json/json.h"
+
+#include <QVariantMap>
 
 #define STATE_INIT 0
-#define STATE_SUBSCRIBE 1
-#define STATE_STREAMING 2
+#define STATE_STATION_INFO 1
+#define STATE_STATION_INFO_RESPONSE 2
+#define STATE_SUBSCRIBE 3
+#define STATE_STREAMING 4
 
 TcpLiveDataSource::TcpLiveDataSource(QObject *parent) :
     AbstractLiveDataSource(parent)
@@ -71,7 +76,14 @@ void TcpLiveDataSource::sendNextCommand() {
         qDebug() << "SND:" << data;
         socket->write(data.constData(), data.length());
 
-        state = STATE_SUBSCRIBE;
+        state = STATE_STATION_INFO;
+    } else if (state == STATE_STATION_INFO) {
+        QByteArray data = "show station \"";
+        data += stationCode ;
+        data += "\"/json\r\n";
+        qDebug() << "SND:" << data;
+        socket->write(data.constData(), data.length());
+        state = STATE_STATION_INFO_RESPONSE;
     } else if (state == STATE_SUBSCRIBE) {
         // We've sent client details. Now to start streaming.
         QByteArray data("subscribe \"");
@@ -96,7 +108,12 @@ void TcpLiveDataSource::processStreamLine(QString line) {
 
     QStringList parts = line.split(",");
 
-    if (parts.length() < 11) {
+    int expectedLength = 12;
+
+    if (hw_type == HW_DAVIS)
+        expectedLength = 20;
+
+    if (parts.length() < expectedLength) {
         qDebug() << "Invalid live data line:" << line;
         return;
     }
@@ -104,6 +121,8 @@ void TcpLiveDataSource::processStreamLine(QString line) {
     if (parts.at(0) != "l") {
         qDebug() << "Not a sample. Type:" << parts.at(0);
     }
+
+    qDebug() << "LEN::" << parts.count();
 
     LiveDataSet lds;
     lds.temperature = parts.at(1).toFloat();
@@ -115,15 +134,60 @@ void TcpLiveDataSource::processStreamLine(QString line) {
     lds.indoorHumidity = parts.at(7).toInt();
     lds.pressure = parts.at(8).toFloat();
     lds.windSpeed = parts.at(9).toFloat();
-    lds.gustWindSpeed = parts.at(10).toFloat();
+
+    // We don't do gust wind speed in the desktop client anymore.
+    //lds.gustWindSpeed = parts.at(10).toFloat();
+
     lds.windDirection = parts.at(11).toInt();
     lds.timestamp = QDateTime::currentDateTime();
 
     lds.indoorDataAvailable = true;
-    lds.hw_type = HW_GENERIC;
+
+    lds.hw_type = hw_type;
+    if (hw_type == HW_DAVIS) {
+        lds.davisHw.barometerTrend = parts.at(12).toInt();
+        lds.davisHw.rainRate = parts.at(13).toFloat();
+        lds.davisHw.stormRain = parts.at(14).toFloat();
+        lds.davisHw.stormDateValid = (parts.at(15) != "None");
+        if (lds.davisHw.stormDateValid)
+            lds.davisHw.stormStartDate = QDate::fromString(parts.at(15),
+                                                           "yyyy-MM-dd");
+        lds.davisHw.txBatteryStatus = parts.at(16).toInt();
+        lds.davisHw.consoleBatteryVoltage = parts.at(17).toFloat();
+        lds.davisHw.forecastIcon = parts.at(18).toInt();
+        lds.davisHw.forecastRule = parts.at(19).toInt();
+    }
 
     emit liveData(lds);
 }
+
+void TcpLiveDataSource::processStationInfo(QString line) {
+    using namespace QtJson;
+
+    line = line.trimmed();
+    if (line.isEmpty()) return; // Nothing to process.
+
+    bool ok;
+
+    state = STATE_SUBSCRIBE;
+
+    QVariantMap result = Json::parse(line, ok).toMap();
+
+    if (!ok)
+        qWarning() << "Failed to get station information";
+
+    // Lots of other stuff is available in this map too such as station
+    // name and description.
+    QString hardwareTypeCode = result["hardware_type_code"].toString();
+
+    if (hardwareTypeCode == "DAVIS")
+        hw_type = HW_DAVIS;
+    else if (hardwareTypeCode == "FOWH1080")
+        hw_type = HW_FINE_OFFSET;
+    else
+        hw_type = HW_GENERIC;
+}
+
 
 void TcpLiveDataSource::readyRead() {
     QByteArray line = socket->readLine();
@@ -135,9 +199,11 @@ void TcpLiveDataSource::readyRead() {
 
         if (line == "_ok" || state == STATE_INIT)
             sendNextCommand();
-        else if (state == STATE_STREAMING) {
+        else if (state == STATE_STATION_INFO_RESPONSE)
+            processStationInfo(line);
+        else if (state == STATE_STREAMING)
             processStreamLine(line);
-        }
+
         line = socket->readLine();
     }
 }
