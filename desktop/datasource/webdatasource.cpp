@@ -303,11 +303,33 @@ void WebDataSource::liveDataReady(QNetworkReply *reply) {
         lds.apparentTemperature = result["apparent_temperature"].toFloat();
         lds.pressure = result["absolute_pressure"].toFloat();
 
+        QString hw_type_str = result["hw_type"].toString();
+
+        if (hw_type_str == "DAVIS")
+            lds.hw_type = HW_DAVIS;
+        else if (hw_type_str == "FOWH1080")
+            lds.hw_type = HW_FINE_OFFSET;
+        else
+            lds.hw_type = HW_GENERIC;
+
+        if (lds.hw_type == HW_DAVIS) {
+            QVariantMap dd = result["davis"].toMap();
+
+            lds.davisHw.barometerTrend = dd["bar_trend"].toInt();
+            lds.davisHw.rainRate = dd["rain_rate"].toFloat();
+            lds.davisHw.stormRain = dd["storm_rain"].toFloat();
+            lds.davisHw.stormDateValid = !dd["current_storm_date"].isNull();
+            if (lds.davisHw.stormDateValid)
+                lds.davisHw.stormStartDate = QDate::fromString(
+                            dd["current_storm_date"].toString(), "yyyy-MM-dd");
+            lds.davisHw.txBatteryStatus = dd["tx_batt"].toInt();
+            lds.davisHw.consoleBatteryVoltage = dd["console_batt"].toFloat();
+            lds.davisHw.forecastIcon = dd["forecast_icon"].toInt();
+            lds.davisHw.forecastRule = dd["forecast_rule"].toInt();
+        }
+
         // Indoor data is not currently available from the website data feed.
         lds.indoorDataAvailable = false;
-
-        // Only generic hardware supported ATM.
-        lds.hw_type = HW_GENERIC;
 
         emit liveData(lds);
     }
