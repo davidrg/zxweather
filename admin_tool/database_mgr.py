@@ -8,12 +8,14 @@ from ui import get_boolean, get_string_with_length_indicator, get_string, get_nu
 __author__ = 'David Goodwin'
 
 # This version number
-version_major = 0
-version_minor = 2
+version_major = 1
+version_minor = 0
 version_revision = 0
 
-v2_upgrade_script = "database/upgrade.sql"
+v2_upgrade_script = "database/upgrade_v2.sql"
+v3_upgrade_script = "database/upgrade_v3.sql"
 create_script = "database/database.sql"
+
 
 class db_info(object):
     """
@@ -47,7 +49,7 @@ class db_info(object):
         :return: Database connection string
         :rtype: str
         """
-        conn_str = "host={host} port={port} user={user} password={password} "\
+        conn_str = "host={host} port={port} user={user} password={password} " \
                    "dbname={name}".format(
             host=self.hostname,
             port=self.port,
@@ -83,6 +85,7 @@ class db_info(object):
         password = get_string("Password", required=True)
 
         return db_info(hostname, port, user, password, name)
+
 
 def upgrade_v0_2(con):
     """
@@ -172,6 +175,54 @@ You may now enter an optional short description for your weather station.""")
     print("Upgrade completed successfully.")
     return True
 
+
+def upgrade_v1_0(con):
+    """
+    Upgrades the v0.2 database to v1.0.
+    :param con: Database connection
+    :return: Success (true) or failure (false)
+    :rtype: bool
+    """
+    global v2_upgrade_script
+
+    print("Loading upgrade script...")
+    f = open(v3_upgrade_script, 'r')
+    script = f.read()
+    f.close()
+
+    print("""
+zxweather v1.0 database upgrade procedure
+-----------------------------------------
+
+This procedure will upgrade your standard zxweather v0.2.x database to v1.0. In
+the event of failure all database changes should be rolled back automatically
+making this a fairly safe operation. You should still ensure you have a current
+good backup of your database however. If you have customised the security on
+your database you will likely need to reapply these customisations.""")
+
+    # Make sure the user has proper backups.
+    backups = get_boolean("Are you satisfied with the state of your backups? "
+                          "(y/n)",
+                          required=True)
+    if not backups:
+        print("Upgrade canceled.")
+        return False
+
+    cur = con.cursor()
+
+    print("Performing upgrade. This may take some time...")
+    try:
+        cur.execute(script)
+        con.commit()
+        cur.close()
+    except psycopg2.InternalError as inst:
+        print("Upgrade failed. Error: {0}".format(inst.message))
+        cur.close()
+        return False
+
+    print("Upgrade completed successfully.")
+    return True
+
 def get_db_version(cur):
     """
     Gets the database version number
@@ -239,9 +290,9 @@ def connect_to_db(dbc):
         db_version = get_db_version(cur)
 
         # Database is for an older version of zxweather and must be upgraded.
-        if db_version == 1:
-            print("This database is for zxweather v0.1. It must be upgraded "
-                  "to v0.2 to be\ncompatible with this tool.")
+        if db_version in (1,2):
+            print("This database is for zxweather v0.x. It must be upgraded "
+                  "to v1.0 to be\ncompatible with this tool.")
 
             print("If you have added new tables or columns to your database "
                   "you can not upgrade\nit with this tool and should not "
@@ -251,13 +302,24 @@ def connect_to_db(dbc):
                 print("Upgrade canceled.")
                 return None  # We can't proceed with a v0.1 database.
 
-            # Try to perform the database upgrade
-            if not upgrade_v0_2(con):
+            if db_version == 1:
+                # Try to perform the database upgrade
+                if not upgrade_v0_2(con):
+                    print("Database upgrade failed.")
+                    return None  # Its still a v0.1 database.
+
+                print("Your database has been upgraded to the v0.2 format. The"
+                      "v1.0 format upgrade will now start.")
+
+            # It must be a v2 database (or a v1 that has just been upgraded to
+            # schema v2) so upgrading is still required.
+            if not upgrade_v1_0(con):
                 print("Database upgrade failed.")
-                return None # Its still a v0.1 database.
+                return None  # Its still a v0.2 database
+
 
         # The database is for some newer version of zxweather and cant be used.
-        elif db_version > 1 and not is_version_compatible(cur):
+        elif db_version > 2 and not is_version_compatible(cur):
             # Database claims to require a newer version of zxweather. The
             # is_version_compatible function will have already told the user
             # this.

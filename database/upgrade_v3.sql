@@ -21,6 +21,13 @@ INSERT INTO station_type(code, title) VALUES('DAVIS', 'Davis Vantage Vue compati
 -- Bump database revision
 update db_info set v = '3' where k = 'DB_VERSION';
 
+-- Versions of the admin tool before v1.0.0 don't know how to initially populate
+-- the davis_live_data table when creating a new DAVIS-type station. This will
+-- prevent older versions of the admin tool from being used with the database.
+insert into db_info(k,v) values('ADMIN_TOOL_MIN_VER_MAJ','1');
+insert into db_info(k,v) values('ADMIN_TOOL_MIN_VER_MIN','0');
+insert into db_info(k,v) values('ADMIN_TOOL_MIN_VER_REV','0');
+
 ----------------------------------------------------------------------
 -- TABLES ------------------------------------------------------------
 ----------------------------------------------------------------------
