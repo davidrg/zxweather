@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>545</width>
-    <height>388</height>
+    <height>409</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -126,44 +126,34 @@
          <property name="title">
           <string>Minimise Action</string>
          </property>
-         <widget class="QCheckBox" name="chkMinimiseToSystemTray">
-          <property name="geometry">
-           <rect>
-            <x>10</x>
-            <y>20</y>
-            <width>135</width>
-            <height>17</height>
-           </rect>
-          </property>
-          <property name="toolTip">
-           <string>Minimise to the system tray instead of the task bar.</string>
-          </property>
-          <property name="whatsThis">
-           <string>When the program is minimised it will minimise to the system tray instead of the task bar.</string>
-          </property>
-          <property name="text">
-           <string>Minimise to system tray</string>
-          </property>
-         </widget>
-         <widget class="QCheckBox" name="chkCloseToSystemTray">
-          <property name="geometry">
-           <rect>
-            <x>10</x>
-            <y>50</y>
-            <width>177</width>
-            <height>17</height>
-           </rect>
-          </property>
-          <property name="toolTip">
-           <string>When the window is closed it will minimise to the system tray instead.</string>
-          </property>
-          <property name="whatsThis">
-           <string>When the window is closed it will minimise to the system tray instead.</string>
-          </property>
-          <property name="text">
-           <string>Minimise to system tray on close</string>
-          </property>
-         </widget>
+         <layout class="QGridLayout" name="gridLayout_5">
+          <item row="0" column="0">
+           <widget class="QCheckBox" name="chkMinimiseToSystemTray">
+            <property name="toolTip">
+             <string>Minimise to the system tray instead of the task bar.</string>
+            </property>
+            <property name="whatsThis">
+             <string>When the program is minimised it will minimise to the system tray instead of the task bar.</string>
+            </property>
+            <property name="text">
+             <string>Minimise to system tray</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QCheckBox" name="chkCloseToSystemTray">
+            <property name="toolTip">
+             <string>When the window is closed it will minimise to the system tray instead.</string>
+            </property>
+            <property name="whatsThis">
+             <string>When the window is closed it will minimise to the system tray instead.</string>
+            </property>
+            <property name="text">
+             <string>Minimise to system tray on close</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </widget>
        </item>
       </layout>
