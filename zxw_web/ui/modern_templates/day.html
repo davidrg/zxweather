@@ -44,40 +44,36 @@
                         </thead>
                         <tbody>
                         <tr>
-                            <td>Relative Humidity</td>
-                            <td id="live_relative_humidity">{{ data.current_data.relative_humidity }}%</td>
-                        </tr>
-                        <tr>
                             <td>Temperature</td>
-                            <td id="live_temperature">{{ data.current_data.temperature|round(1) }}°C</td>
+                            <td id="live_temperature"></td>
                         </tr>
                         <tr>
                             <td>Apparent Temperature</td>
-                            <td id="live_apparent_temperature">{{ data.current_data.apparent_temperature|round(1) }}°C</td>
+                            <td id="live_apparent_temperature"></td>
                         </tr>
                         <tr>
                             <td>Wind Chill</td>
-                            <td id="live_wind_chill">{{ data.current_data.wind_chill|round(1) }}°C</td>
+                            <td id="live_wind_chill"></td>
                         </tr>
                         <tr>
                             <td>Dew Point</td>
-                            <td id="live_dew_point">{{ data.current_data.dew_point|round(1) }}°C</td>
+                            <td id="live_dew_point"></td>
                         </tr>
                         <tr>
-                            <td>Absolute Pressure</td>
-                            <td id="live_absolute_pressure">{{ data.current_data.absolute_pressure|round(1) }} hPa</td>
+                            <td>Humidity</td>
+                            <td id="live_relative_humidity"></td>
                         </tr>
                         <tr>
-                            <td>Gust Wind Speed</td>
-                            <td id="live_gust_wind_speed">{{ data.current_data.gust_wind_speed|round(1) }} m/s</td>
+                            <td>Barometer</td>
+                            <td id="live_absolute_pressure"></td>
                         </tr>
                         <tr>
-                            <td>Average Wind Speed</td>
-                            <td id="live_avg_wind_speed">{{ data.current_data.average_wind_speed|round(1) }} m/s</td>
+                            <td>Wind Speed</td>
+                            <td id="live_avg_wind_speed"></td>
                         </tr>
                         <tr>
                             <td>Wind Direction</td>
-                            <td id="live_wind_direction">{{ data.current_data.wind_direction }}</td>
+                            <td id="live_wind_direction"></td>
                         </tr> {#
                         <tr>
                             <td>Rainfall</td>
