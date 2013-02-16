@@ -36,8 +36,11 @@ private:
     int port;
     QTimer reconnectTimer;
 
+    hardware_type_t hw_type;
+
     void sendNextCommand();
     void processStreamLine(QString line);
+    void processStationInfo(QString line);
 };
 
 #endif // TCPLIVEDATASOURCE_H

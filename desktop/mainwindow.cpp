@@ -398,8 +398,6 @@ void MainWindow::liveDataRefreshed(LiveDataSet lds) {
     seconds_since_last_refresh = 0;
     minutes_late = 0;
 
-    qDebug() << width() << height();
-
     // If the hardware type hasn't changed then there isn't anything to do.
     if (lds.hw_type == last_hw_type) return;
 
