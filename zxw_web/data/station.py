@@ -38,6 +38,7 @@ class index:
         web.header('Content-Type', 'text/html')
         return render.station_data_index(years=years)
 
+
 class data_json:
     """
     JSON data sources at the station level
@@ -66,13 +67,16 @@ class data_json:
         }
 
         if dataset in pass_through_data_sets.keys():
-            return daily.json_dispatch(station, pass_through_data_sets[dataset], datetime.now().date())
+            return daily.json_dispatch(station,
+                                       pass_through_data_sets[dataset],
+                                       datetime.now().date())
         elif dataset == 'live':
             return live_data(station_id)
         elif dataset == 'samplerange':
             return sample_range(station_id)
         else:
             raise web.NotFound()
+
 
 class datatable_json:
     """
@@ -86,7 +90,10 @@ class datatable_json:
         :return: JSON data
         :raise: web.NotFound if an invalid request is made.
         """
-        if station != config.default_station_name:
+
+        station_id = get_station_id(station)
+
+        if station_id is None:
             raise web.NotFound()
 
         pass_through_data_sets = {
@@ -109,7 +116,7 @@ def live_data(station_id):
     :type station_id: int
     :return: JSON data.
     """
-    data_ts, data = get_live_data(station_id)
+    data_ts, data, hw_type = get_live_data(station_id)
 
 
 
@@ -125,8 +132,22 @@ def live_data(station_id):
                   'wind_direction': data.wind_direction,
                   'time_stamp': str(data.time_stamp),
                   'age': data.age,
-                  's': 'ok'
+                  's': 'ok',
+                  'hw_type': hw_type,
+                  'davis': None
                   }
+
+        if hw_type == 'DAVIS':
+            result['davis'] = {
+                'bar_trend': data.bar_trend,
+                'rain_rate': data.rain_rate,
+                'storm_rain': data.storm_rain,
+                'current_storm_date': data.current_storm_start_date,
+                'tx_batt': data.transmitter_battery,
+                'console_batt': data.console_battery_voltage,
+                'forecast_icon': data.forecast_icon,
+                'forecast_rule': data.forecast_rule_id
+            }
     else:
         result = {'s': 'bad'}
 
@@ -137,6 +158,7 @@ def live_data(station_id):
 
     web.header('Content-Type', 'application/json')
     return json.dumps(result)
+
 
 def sample_range(station_id):
     """

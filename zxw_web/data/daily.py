@@ -188,7 +188,7 @@ def get_7day_samples_data(day, station_id):
          (select max(time_stamp) as ts from sample where date(time_stamp) = $date and station_id = $station) as max_ts
     where s.time_stamp <= max_ts.ts     -- 604800 seconds in a week.
       and s.time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
-      and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp)
+      and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp and station_id = $station)
       and s.station_id = $station
       and prev.station_id = $station
       and st.station_id = prev.station_id
@@ -238,7 +238,7 @@ from (
              (select max(time_stamp) as ts from sample where date(time_stamp) = $date and station_id = $station) as max_ts
         where cur.time_stamp <= max_ts.ts     -- 604800 seconds in a week.
           and cur.time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
-          and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < cur.time_stamp)
+          and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < cur.time_stamp and station_id = $station)
           and cur.station_id = $station
           and prev.station_id = $station
           and st.station_id = cur.station_id

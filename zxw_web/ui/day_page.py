@@ -151,6 +151,8 @@ def get_day_page(ui, station, day):
         date_stamp = day
         current_data = None
 
+        hw_type = None
+
         prev_url = None
         next_url = None
         prev_date = date_stamp - timedelta(1)
@@ -166,7 +168,9 @@ def get_day_page(ui, station, day):
     # Get live data if the page is for today.
     data_age = None
     if today:
-        data.current_data_ts, data.current_data = get_live_data(station_id)
+        data.current_data_ts, data.current_data, \
+            data.nw_type = get_live_data(station_id)
+
         data_age = datetime.combine(day, data.current_data_ts)
 
     data.prev_url, data.next_url = get_day_nav_urls(ui, station, data.date_stamp)
