@@ -4,11 +4,13 @@ Implements the command for uploading data and all the stuff for processing
 the incoming CSV records.
 """
 from twisted.internet import defer
+from twisted.python import log
 from server.command import Command
 from server.database import get_station_hw_type, BaseSampleRecord, \
     WH1080SampleRecord, insert_wh1080_sample, BaseLiveRecord, \
     update_base_live, insert_generic_sample, DavisSampleRecord, \
-    insert_davis_sample, DavisLiveRecord, update_davis_live
+    insert_davis_sample, DavisLiveRecord, update_davis_live, get_station_id, \
+    insert_samples
 
 __author__ = 'david'
 
@@ -119,52 +121,68 @@ def _get_davis_sample_record(values):
     return rec
 
 
-def insert_csv_sample(values):
+def insert_csv_samples(value_set):
     """
     Inserts CSV sample data.
-    :type values: list
+    :type value_set: list
     :Returns: a failure message or None all wrapped in a Deferred
     :rtype: Deferred
     """
-    base = _get_base_sample_record(values)
-    hw_type = get_station_hw_type(base.station_code)
 
-    if hw_type == 'FOWH1080':
-        if len(values) != 20:
-            msg = "# ERR-003: Invalid FOWH1080 sample record - " \
-                  "column count not 20. Rejecting."
-            # Yeah, this is stupid - succeeding with a value is failure,
-            # succeeding with nothing is success.
+    samples = []
+
+    for values in value_set:
+
+        base = _get_base_sample_record(values)
+        hw_type = get_station_hw_type(base.station_code)
+        station_id = get_station_id(base.station_code)
+
+        if hw_type == 'FOWH1080':
+            if len(values) != 20:
+                msg = "# ERR-003: Invalid FOWH1080 sample record - " \
+                      "column count not 20. Rejecting."
+                # Yeah, this is stupid - succeeding with a value is failure,
+                # succeeding with nothing is success.
+                return defer.succeed(msg)
+
+            wh1080 = _get_wh1080_sample_record(values)
+
+            samples.append(('FOWH1080', station_id, base, wh1080))
+            #return insert_wh1080_sample(base, wh1080)
+
+        elif hw_type == 'DAVIS':
+            if len(values) != 26:
+                msg = "# ERR-008: Invalid DAVIS sample record - column count not " \
+                      "26. Rejecting."
+
+                return defer.succeed(msg)
+
+            davis = _get_davis_sample_record(values)
+
+            samples.append(('DAVIS', station_id, base, davis))
+
+            #return insert_davis_sample(base, davis)
+
+        elif hw_type == 'GENERIC':
+            if len(values) != 13:
+                msg = "# ERR-003: Invalid GENERIC sample record - "\
+                      "column count not 13. Rejecting."
+                # Yeah, this is stupid - succeeding with a value is failure,
+                # succeeding with nothing is success.
+                return defer.succeed(msg)
+
+            samples.append(('GENERIC', station_id, base,))
+            #return insert_generic_sample(base)
+
+        else:
+            msg = "# ERR-004: Unsupported hardware type {0}. Record " \
+                  "rejected.".format(hw_type)
             return defer.succeed(msg)
 
-        wh1080 = _get_wh1080_sample_record(values)
+    log.msg('Insert {0} samples...'.format(len(samples)))
 
-        return insert_wh1080_sample(base, wh1080)
+    return insert_samples(samples)
 
-    elif hw_type == 'DAVIS':
-        if len(values) != 26:
-            msg = "# ERR-008: Invalid DAVIS sample record - column count not " \
-                  "26. Rejecting."
-
-            return defer.succeed(msg)
-
-        davis = _get_davis_sample_record(values)
-        return insert_davis_sample(base, davis)
-
-    elif hw_type == 'GENERIC':
-        if len(values) != 13:
-            msg = "# ERR-003: Invalid GENERIC sample record - "\
-                  "column count not 13. Rejecting."
-            # Yeah, this is stupid - succeeding with a value is failure,
-            # succeeding with nothing is success.
-            return defer.succeed(msg)
-
-        return insert_generic_sample(base)
-
-    else:
-        msg = "# ERR-004: Unsupported hardware type {0}. Record " \
-              "rejected.".format(hw_type)
-        return defer.succeed(msg)
 
 def _get_base_live_record(values):
     """
@@ -296,7 +314,10 @@ class UploadCommand(Command):
             # transaction.
             self._sample_lock = True
 
-            insert_csv_sample(self._samples.pop(0)).addErrback(
+            sample_set = self._samples
+            self._samples = []
+
+            insert_csv_samples(sample_set).addErrback(
                 self._error_handler).addCallback(self._result_handler)
         except Exception as e:
             self.writeLine("# ERR-006: " + e.message)

@@ -275,6 +275,17 @@ def get_station_hw_type(code):
     global station_code_hardware_type
     return station_code_hardware_type[code]
 
+def get_station_id(code):
+    """
+    Gets the database ID for the specified station
+    :param code: Station code
+    :type code: str
+    :return: The stations ID
+    :rtype: int
+    """
+    global station_code_id
+    return station_code_id[code]
+
 def _insert_wh1080_sample_int(txn, base, wh1080, station_id):
     """
     Inserts a new sample for WH1080-type stations. This includes a record in
@@ -418,6 +429,64 @@ def _insert_davis_sample_int(txn, base, davis, station_id):
     return None
 
 
+def _insert_generic_sample_int(txn, data, station_id):
+    """
+    Inserts a sample for GENERIC hardware (no hardware-specific tables).
+    :param data: Sample data
+    """
+    query = """
+        insert into sample(download_timestamp, time_stamp,
+            indoor_relative_humidity, indoor_temperature, relative_humidity,
+            temperature, absolute_pressure, average_wind_speed,
+            gust_wind_speed, wind_direction, station_id)
+        values(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """
+
+    return txn.execute(
+        query,
+        (
+            data.download_timestamp,
+            data.time_stamp,
+            data.indoor_humidity,
+            data.indoor_temperature,
+            data.humidity,
+            data.temperature,
+            data.pressure,
+            data.average_wind_speed,
+            data.gust_wind_speed,
+            data.wind_direction,
+            station_id,
+        )
+    )
+
+
+def _insert_samples_int(txn, samples):
+    for sample in samples:
+        hw_type = sample[0]
+        station_id = sample[1]
+
+        if hw_type == 'FOWH1080':
+            _insert_wh1080_sample_int(txn, sample[2], sample[3], station_id)
+        elif hw_type == 'DAVIS':
+            _insert_davis_sample_int(txn, sample[2], sample[3], station_id)
+        elif hw_type == 'GENERIC':
+            _insert_generic_sample_int(txn, sample[2], station_id)
+
+
+def insert_samples(samples):
+    """
+    Inserts one or more samples for any supported station type.
+    :param samples: List of sample tuples. First item must be the base data,
+    any additional items are hardware-specific data
+    :type samples: list
+    :return: Deferred
+    """
+
+    return database_pool.runInteraction(
+        _insert_samples_int, samples
+    )
+
+
 def insert_wh1080_sample(base_data, wh1080_data):
     """
     Inserts a new sample for WH1080-type stations. This includes a record in
@@ -446,36 +515,10 @@ def insert_davis_sample(base_data, davis_data):
         _insert_davis_sample_int, base_data, davis_data,
         station_code_id[base_data.station_code])
 
-def insert_generic_sample(data):
-    """
-    Inserts a sample for GENERIC hardware (no hardware-specific tables).
-    :param data: Sample data
-    """
-    query = """
-        insert into sample(download_timestamp, time_stamp,
-            indoor_relative_humidity, indoor_temperature, relative_humidity,
-            temperature, absolute_pressure, average_wind_speed,
-            gust_wind_speed, wind_direction, station_id)
-        values(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """
-
-    station_id = station_code_id[data.station_code]
-
-    database_pool.runOperation(
-        query,
-        (
-            data.download_timestamp,
-            data.time_stamp,
-            data.indoor_humidity,
-            data.indoor_temperature,
-            data.humidity,
-            data.temperature,
-            data.pressure,
-            data.average_wind_speed,
-            data.gust_wind_speed,
-            data.wind_direction,
-            station_id,
-            )
+def insert_generic_sample(sample):
+    return database_pool.runInteraction(
+        _insert_generic_sample_int, sample,
+        station_code_id[sample.station_code]
     )
 
 
