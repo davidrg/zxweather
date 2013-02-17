@@ -318,7 +318,6 @@ def get_live_data(station_id):
                    ld.apparent_temperature,
                    ld.absolute_pressure,
                    ld.average_wind_speed,
-                   ld.gust_wind_speed,
                    ld.wind_direction,
                    extract('epoch' from (now() - ld.download_timestamp)) as age
                    {ext_columns}
@@ -359,7 +358,7 @@ def get_live_data(station_id):
         # Fetch the latest data for today
         current_data = db.query("""select time_stamp::time as time_stamp, relative_humidity,
                     temperature,dew_point, wind_chill, apparent_temperature,
-                    absolute_pressure, average_wind_speed, gust_wind_speed,
+                    absolute_pressure, average_wind_speed,
                     wind_direction,
                     extract('epoch' from (now() - download_timestamp)) as age
                 from sample

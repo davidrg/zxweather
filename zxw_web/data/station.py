@@ -128,7 +128,6 @@ def live_data(station_id):
                   'apparent_temperature': data.apparent_temperature,
                   'absolute_pressure': data.absolute_pressure,
                   'average_wind_speed': data.average_wind_speed,
-                  'gust_wind_speed': data.gust_wind_speed,
                   'wind_direction': data.wind_direction,
                   'time_stamp': str(data.time_stamp),
                   'age': data.age,
