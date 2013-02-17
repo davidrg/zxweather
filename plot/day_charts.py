@@ -90,6 +90,8 @@ order by cur.time_stamp asc""", (date(year,month,day), station_code,))
                                               str(record[COL_INDOOR_REL_HUMIDITY]),
                                               str(record[COL_RAINFALL])
         ))
+    x_range = (str(weather_data[0][COL_TIMESTAMP]),
+               str(weather_data[len(weather_data) - 1][COL_TIMESTAMP]))
     data_filename = dest_dir + 'gnuplot_data.dat'
     file = open(data_filename, 'w+')
     file.writelines(file_data)
@@ -113,6 +115,7 @@ order by cur.time_stamp asc""", (date(year,month,day), station_code,))
                    ylabel="Temperature (C)",
                    width=width,
                    height=height,
+                   x_range=x_range,
                    lines=[{'filename': data_filename,
                            'xcol': FIELD_TIMESTAMP, # Time
                            'ycol': FIELD_TEMPERATURE, # Temperature
@@ -132,6 +135,7 @@ order by cur.time_stamp asc""", (date(year,month,day), station_code,))
                    ylabel="Temperature (C)",
                    width=width,
                    height=height,
+                   x_range=x_range,
                    lines=[{'filename': data_filename,
                            'xcol': FIELD_TIMESTAMP, # Time
                            'ycol': FIELD_APPARENT_TEMP, # Apparent temperature
@@ -153,6 +157,7 @@ order by cur.time_stamp asc""", (date(year,month,day), station_code,))
                    width=width,
                    height=height,
                    yrange=(0, 100),
+                   x_range=x_range,
                    lines=[{'filename': data_filename,
                            'xcol': FIELD_TIMESTAMP, # Time
                            'ycol': FIELD_REL_HUMIDITY, # Humidity
@@ -170,6 +175,7 @@ order by cur.time_stamp asc""", (date(year,month,day), station_code,))
                    width=width,
                    height=height,
                    yrange=(0, 100),
+                   x_range=x_range,
                    lines=[{'filename': data_filename,
                            'xcol': FIELD_TIMESTAMP, # Time
                            'ycol': FIELD_INDOOR_REL_HUMIDITY, # Indoor Humidity
@@ -186,6 +192,7 @@ order by cur.time_stamp asc""", (date(year,month,day), station_code,))
                    key=False,
                    width=width,
                    height=height,
+                   x_range=x_range,
                    lines=[{'filename': data_filename,
                            'xcol': FIELD_TIMESTAMP, # Time
                            'ycol': FIELD_ABS_PRESSURE, # Absolute Pressure
@@ -202,6 +209,7 @@ order by cur.time_stamp asc""", (date(year,month,day), station_code,))
                    key=False,
                    width=width,
                    height=height,
+                   x_range=x_range,
                    lines=[{'filename': data_filename,
                            'xcol': FIELD_TIMESTAMP, # Time
                            'ycol': FIELD_INDOOR_TEMP, # Indoor Temperature
@@ -298,6 +306,8 @@ order by s.time_stamp asc
                                               str(record[COL_INDOOR_REL_HUMIDITY]),
                                               str(record[COL_RAINFALL])
         ))
+    x_range = (str(temperature_data[0][COL_TIMESTAMP]),
+               str(temperature_data[len(temperature_data) - 1][COL_TIMESTAMP]))
     data_filename = dest_dir + '7-day_gnuplot_data.dat'
     file = open(data_filename, 'w+')
     file.writelines(file_data)
@@ -324,6 +334,7 @@ order by s.time_stamp asc
                    ylabel="Temperature (C)",
                    width=width,
                    height=height,
+                   x_range=x_range,
                    lines=[{'filename': data_filename,
                            'xcol': FIELD_TIMESTAMP, # Time
                            'ycol': FIELD_TEMPERATURE, # Temperature
@@ -346,6 +357,7 @@ order by s.time_stamp asc
                    ylabel="Temperature (C)",
                    width=width,
                    height=height,
+                   x_range=x_range,
                    lines=[{'filename': data_filename,
                            'xcol': FIELD_TIMESTAMP, # Time
                            'ycol': FIELD_APPARENT_TEMP, # Apparent temperature
@@ -370,6 +382,7 @@ order by s.time_stamp asc
                    width=width,
                    height=height,
                    yrange=(0, 100),
+                   x_range=x_range,
                    lines=[{'filename': data_filename,
                            'xcol': FIELD_TIMESTAMP, # Time
                            'ycol': FIELD_REL_HUMIDITY, # Humidity
@@ -390,6 +403,7 @@ order by s.time_stamp asc
                    width=width,
                    height=height,
                    yrange=(0, 100),
+                   x_range=x_range,
                    lines=[{'filename': data_filename,
                            'xcol': FIELD_TIMESTAMP, # Time
                            'ycol': FIELD_INDOOR_REL_HUMIDITY, # Indoor Humidity
@@ -409,6 +423,7 @@ order by s.time_stamp asc
                    key=False,
                    width=width,
                    height=height,
+                   x_range=x_range,
                    lines=[{'filename': data_filename,
                            'xcol': FIELD_TIMESTAMP, # Time
                            'ycol': FIELD_ABS_PRESSURE, # Absolute Pressure
@@ -428,6 +443,7 @@ order by s.time_stamp asc
                    key=False,
                    width=width,
                    height=height,
+                   x_range=x_range,
                    lines=[{'filename': data_filename,
                            'xcol': FIELD_TIMESTAMP, # Time
                            'ycol': FIELD_INDOOR_TEMP, # Indoor Temperature
