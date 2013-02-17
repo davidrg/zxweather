@@ -11,7 +11,7 @@ gnuplot_binary = r'gnuplot'
 def plot_graph(output_filename, title=None, xdata_time=False, ylabel=None,
                lines=None, key=True, width=None, height=None, xlabel=None,
                yrange=None, xdata_is_time=False, timefmt_is_date=False,
-               x_format=None, timefmt_is_time=False):
+               x_format=None, timefmt_is_time=False, x_range=None):
     """
     Plots a graph using gnuplot.
     :param timefmt_is_time:
@@ -30,6 +30,7 @@ def plot_graph(output_filename, title=None, xdata_time=False, ylabel=None,
     :param key:
     :param width:
     :param height:
+    :param x_range: The minimum and maximum
     :return:
     """
 
@@ -85,6 +86,10 @@ set datafile missing "?"
 
     if yrange is not None:
         script += "set yrange [{0}:{1}]\n".format(yrange[0], yrange[1])
+
+    if x_range is not None:
+        script += 'set xrange ["{0}":"{1}"]\n'.format(x_range[0],x_range[1])
+
 
     # Override x_format if x data is time and doesn't include the date.
     if xdata_time and not timefmt_is_date:
