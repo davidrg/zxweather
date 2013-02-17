@@ -296,7 +296,6 @@ void WebDataSource::liveDataReady(QNetworkReply *reply) {
         lds.temperature = result["temperature"].toFloat();
         lds.dewPoint = result["dew_point"].toFloat();
         lds.windChill = result["wind_chill"].toFloat();
-        lds.gustWindSpeed = result["gust_wind_speed"].toFloat();
         lds.humidity = result["relative_humidity"].toInt();
         lds.timestamp = QDateTime::fromString(
                              result["time_stamp"].toString(), "HH:mm:ss");
