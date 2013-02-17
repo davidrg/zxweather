@@ -9,7 +9,7 @@ import config
 from months import month_name
 
 from cache import day_cache_control
-from database import get_live_data, get_daily_records, total_rainfall_in_last_7_days, day_exists, get_live_indoor_data, get_station_id, in_archive_mode
+from database import get_live_data, get_daily_records, total_rainfall_in_last_7_days, day_exists, get_live_indoor_data, get_station_id, in_archive_mode, get_station_type_code
 from ui import get_nav_urls
 import os
 from ui import html_file, month_number, validate_request
@@ -181,12 +181,15 @@ def get_day_page(ui, station, day):
         nav_urls = get_nav_urls(station, current_location)
         data_urls = get_day_data_urls(station, data.date_stamp, ui)
         return modern_templates.day(nav=nav_urls,
-                             data_urls=data_urls,
-                             data=data,
-                             station=station,
-                             ui=ui,
-                             sitename=config.site_name,
-                             archive_mode=in_archive_mode(station_id))
+                                    data_urls=data_urls,
+                                    data=data,
+                                    station=station,
+                                    hw_type=get_station_type_code(station_id),
+                                    ui=ui,
+                                    sitename=config.site_name,
+                                    archive_mode=in_archive_mode(station_id),
+                                    ws_uri=config.ws_uri,
+                                    wss_uri=config.wss_uri)
     else:
         return basic_templates.day(data=data,
                             station=station)

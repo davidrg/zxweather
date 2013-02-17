@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from web.contrib.template import render_jinja
 from cache import day_cache_control
 import config
-from database import get_daily_records, get_years, total_rainfall_in_last_7_days, day_exists, get_station_id, get_station_name, in_archive_mode
+from database import get_daily_records, get_years, total_rainfall_in_last_7_days, day_exists, get_station_id, get_station_name, in_archive_mode, get_station_type_code
 import os
 from months import month_name
 from ui import get_nav_urls
@@ -71,11 +71,14 @@ def get_station_standard(ui, station):
     return modern_templates.station(nav=nav_urls,
                                     data=data,
                                     station=station,
+                                    hw_type=get_station_type_code(station_id),
                                     ui=ui,
                                     sitename=config.site_name,
                                     subdir=sub_dir,
                                     page_data=page_data,
-                                    archive_mode=in_archive_mode(station_id))
+                                    archive_mode=in_archive_mode(station_id),
+                                    ws_uri=config.ws_uri,
+                                    wss_uri=config.wss_uri)
 
 def get_station_basic(station):
     """

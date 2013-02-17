@@ -37,6 +37,12 @@
         <div class="row">
             <div class="span6">
                 <h2>Current Conditions</h2>
+            </div>
+            <div class="span3"><h2>Todays Records</h2></div>
+            <div class="span3"><button id="btn_records_refresh" class="btn refreshbutton" onclick="refresh_records()" data-loading-text="loading..."><i class="icon-refresh"></i> Refresh</button></div>
+        </div>
+        <div class="row">
+            <div class="span6">
                 {# This table is populated from day_live.js -#}
                 <div id="current_conditions">
                 <table class="table table-bordered">
@@ -107,7 +113,7 @@
             </div>
 
             <div class="span6">
-                <h2>Todays Records<button id="btn_records_refresh" class="btn refreshbutton" onclick="refresh_records()" data-loading-text="loading..."><i class="icon-refresh"></i> Refresh</button></h2>
+{#                <h2>Todays Records<button id="btn_records_refresh" class="btn refreshbutton" onclick="refresh_records()" data-loading-text="loading..."><i class="icon-refresh"></i> Refresh</button></h2>#}
                 {% include 'day-records-table.html' %}
             </div>
         </div>
@@ -156,6 +162,12 @@
         var records_url = '../../data/{{ station }}/current_day_records.json';
         var rainfall_totals_url = '../../data/{{ station }}/current_day_rainfall_totals.json';
         var live_auto_refresh = true;
+        var station_code = '{{ station }}';
+        var hw_type = '{{ hw_type }}';
+        var ws_uri = null;
+        var wss_uri = null;
+        {% if ws_uri -%}ws_uri = '{{ ws_uri }}'; {% endif %}
+        {% if wss_uri -%}wss_uri = '{{ wss_uri }}'; {% endif %}
         var is_day_page = false;
     </script>
 

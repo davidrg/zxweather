@@ -25,13 +25,17 @@ default_ui = 's'
 # Name displayed in the navigation thing
 site_name = 'zxweather'
 
+# Websocket URIs
+ws_uri = None
+wss_uri = None
+
 def load_settings():
     """
     Loads settings from the configuration file.
     """
 
     global db, default_station_name
-    global static_data_dir, site_root, default_ui, site_name
+    global static_data_dir, site_root, default_ui, site_name, ws_uri, wss_uri
 
     import ConfigParser
     config = ConfigParser.ConfigParser()
@@ -68,6 +72,11 @@ def load_settings():
     default_ui = config.get(S_S, 'default_ui')
     site_name = config.get(S_S, 'site_name')
     static_data_dir = config.get(S_S, 'static_data_dir')
+
+    if config.has_option(S_S, 'ws_uri'):
+        ws_uri = config.get(S_S, 'ws_uri')
+    if config.has_option(S_S, 'wss_uri'):
+        wss_uri = config.get(S_S, 'wss_uri')
 
     if len(default_station_name) > 5:
         raise Exception('ConfigurationError: Default station name can not be longer than five characters. Consult installation reference manual.')
