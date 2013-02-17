@@ -454,13 +454,6 @@ class ShowLiveCommand(Command):
         avg_wind_val = float(bits.pop(0))
         avg_wind = str(avg_wind_val) + " m/s"
 
-        gust_wind_val = bits.pop(0)
-        if not self.davis_mode:
-            if gust_wind_val == 'None':
-                gust_wind = '--'
-            else:
-                gust_wind = gust_wind_val + "m/s"
-
         if avg_wind_val == 0.0:
             wind_direction = '--'
             bits.pop(0)  # Throw away the value.
@@ -494,8 +487,6 @@ class ShowLiveCommand(Command):
                 d_bar_trend = ' (rising rapidly)'
 
         values.append(pressure + d_bar_trend)
-        if not self.davis_mode:
-            values.append(gust_wind)
         values.append(avg_wind)
         values.append(wind_direction)
 
@@ -560,8 +551,6 @@ class ShowLiveCommand(Command):
         self.terminal.write(format_str.format("Indoor Temperature"))
         self.terminal.write(format_str.format("Indoor Humidity"))
         self.terminal.write(format_str.format("Pressure"))
-        if not self.davis_mode:
-            self.terminal.write(format_str.format("Gust Wind Speed"))
         self.terminal.write(format_str.format("Wind Speed"))
         self.terminal.write(format_str.format("Wind Direction"))
 

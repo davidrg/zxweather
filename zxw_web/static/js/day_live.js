@@ -18,7 +18,7 @@ function live_data_arrived(data) {
         return;
     }
 
-    if (parts.length < 12) {
+    if (parts.length < 11) {
         // Invalid live record (needs at least 12 fields)
         return;
     }
@@ -42,8 +42,7 @@ function live_data_arrived(data) {
         // Indoor humidity - 7
         'absolute_pressure': parseFloat(parts[8]),
         'average_wind_speed': parseFloat(parts[9]),
-        // gust wind speed - 10 (wh1080-specific)
-        'wind_direction': parseInt(parts[11]),
+        'wind_direction': parseInt(parts[10]),
         'hw_type': hw_type,
         'time_stamp': time,
         'age': 0,
@@ -53,20 +52,20 @@ function live_data_arrived(data) {
 
     if (hw_type == 'DAVIS') {
 
-        if (parts.length != 20) {
+        if (parts.length != 19) {
             // Invalid davis record (needs 20 fields)
             return;
         }
 
         result['davis'] = {
-            'bar_trend': parseInt(parts[12]),
-            'rain_rate': parseFloat(parts[13]),
-            'storm_rain': parseFloat(parts[14]),
-            'current_storm_date': parts[15],
-            'tx_batt': parseInt(parts[16]),
-            'console_batt': parseFloat(parts[17]),
-            'forecast_icon': parseInt(parts[18]),
-            'forecast_rule': parseInt(parts[19])
+            'bar_trend': parseInt(parts[11]),
+            'rain_rate': parseFloat(parts[12]),
+            'storm_rain': parseFloat(parts[13]),
+            'current_storm_date': parts[14],
+            'tx_batt': parseInt(parts[15]),
+            'console_batt': parseFloat(parts[16]),
+            'forecast_icon': parseInt(parts[17]),
+            'forecast_rule': parseInt(parts[18])
         };
     }
 

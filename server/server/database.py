@@ -184,7 +184,6 @@ select coalesce(round(ld.temperature::numeric, 2)::varchar, 'None') || ',' ||
        coalesce(ld.indoor_relative_humidity::varchar, 'None') || ',' ||
        coalesce(ld.absolute_pressure::varchar, 'None') || ',' ||
        coalesce(round(ld.average_wind_speed::numeric, 2)::varchar, 'None') || ',' ||
-       coalesce(round(ld.gust_wind_speed::numeric, 2)::varchar, 'None') || ',' ||
        coalesce(ld.wind_direction::varchar, 'None') {ext_columns}
 from live_data ld {ext_joins}
 where ld.station_id = %s

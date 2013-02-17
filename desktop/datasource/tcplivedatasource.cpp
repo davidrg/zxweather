@@ -108,10 +108,10 @@ void TcpLiveDataSource::processStreamLine(QString line) {
 
     QStringList parts = line.split(",");
 
-    int expectedLength = 12;
+    int expectedLength = 11;
 
     if (hw_type == HW_DAVIS)
-        expectedLength = 20;
+        expectedLength = 19;
 
     if (parts.length() < expectedLength) {
         qDebug() << "Invalid live data line:" << line;
@@ -132,28 +132,24 @@ void TcpLiveDataSource::processStreamLine(QString line) {
     lds.indoorHumidity = parts.at(7).toInt();
     lds.pressure = parts.at(8).toFloat();
     lds.windSpeed = parts.at(9).toFloat();
-
-    // We don't do gust wind speed in the desktop client anymore.
-    //lds.gustWindSpeed = parts.at(10).toFloat();
-
-    lds.windDirection = parts.at(11).toInt();
+    lds.windDirection = parts.at(10).toInt();
     lds.timestamp = QDateTime::currentDateTime();
 
     lds.indoorDataAvailable = true;
 
     lds.hw_type = hw_type;
     if (hw_type == HW_DAVIS) {
-        lds.davisHw.barometerTrend = parts.at(12).toInt();
-        lds.davisHw.rainRate = parts.at(13).toFloat();
-        lds.davisHw.stormRain = parts.at(14).toFloat();
-        lds.davisHw.stormDateValid = (parts.at(15) != "None");
+        lds.davisHw.barometerTrend = parts.at(11).toInt();
+        lds.davisHw.rainRate = parts.at(12).toFloat();
+        lds.davisHw.stormRain = parts.at(13).toFloat();
+        lds.davisHw.stormDateValid = (parts.at(14) != "None");
         if (lds.davisHw.stormDateValid)
             lds.davisHw.stormStartDate = QDate::fromString(parts.at(15),
                                                            "yyyy-MM-dd");
-        lds.davisHw.txBatteryStatus = parts.at(16).toInt();
-        lds.davisHw.consoleBatteryVoltage = parts.at(17).toFloat();
-        lds.davisHw.forecastIcon = parts.at(18).toInt();
-        lds.davisHw.forecastRule = parts.at(19).toInt();
+        lds.davisHw.txBatteryStatus = parts.at(15).toInt();
+        lds.davisHw.consoleBatteryVoltage = parts.at(16).toFloat();
+        lds.davisHw.forecastIcon = parts.at(17).toInt();
+        lds.davisHw.forecastRule = parts.at(18).toInt();
     }
 
     emit liveData(lds);
