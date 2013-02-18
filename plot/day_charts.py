@@ -1,5 +1,5 @@
 from datetime import date
-from gnuplot import plot_graph
+from gnuplot import plot_graph, plot_rainfall
 
 __author__ = 'David Goodwin'
 
@@ -214,6 +214,74 @@ order by cur.time_stamp asc""", (date(year,month,day), station_code,))
                            'xcol': FIELD_TIMESTAMP, # Time
                            'ycol': FIELD_INDOOR_TEMP, # Indoor Temperature
                            'title': "Temperature"}])
+
+
+def rainfall_1_day(cur, dest_dir, day, month, year, station_code):
+    """
+    Plots 1-day hourly rainfall charts
+    :param cur: Database cursor
+    :param dest_dir: Directory to write images to
+    :param day: Day to chart for
+    :param month: Month to chart for
+    :param year: Year to chart for
+    :param station_code: The code for the station to plot data for
+    :type station_code: str
+    """
+
+    cur.execute("""
+    select extract(hour from s.time_stamp)::integer  as time_stamp,
+       coalesce(sum(s.rainfall),0)
+    from sample s
+    inner join station st on st.station_id = s.station_id
+    where date(s.time_stamp) = %s
+      and st.code = %s
+    group by extract(hour from s.time_stamp)
+    order by extract(hour from s.time_stamp) asc
+    """, (date(year, month, day), station_code,))
+    rainfall_data = cur.fetchall()
+
+    # Columns in the query
+    COL_HOUR = 0
+    COL_RAINFALL = 1
+
+    # Write the data file for gnuplot
+    file_data = ['# hour\trainfall\n']
+    FORMAT_STRING = '{0}\t{1}\n'
+    rain_total = 0
+    for record in rainfall_data:
+        # TODO: Handle missing data
+        file_data.append(FORMAT_STRING.format(str(record[COL_HOUR]),
+                                              str(record[COL_RAINFALL])))
+        rain_total += record[COL_RAINFALL]
+
+    data_filename = dest_dir + 'hourly_rainfall.dat'
+    data_file = open(data_filename, 'w+')
+    data_file.writelines(file_data)
+    data_file.close()
+
+    empty = rain_total == 0.0
+
+    for large in [True, False]:
+        # Create both large and regular versions of each plot.
+        if large:
+            width = 1140
+            height = 600
+        else:
+            width = 570    # Default width and height
+            height = 300
+
+        # Plot Temperature and Dew Point
+        output_filename = dest_dir + 'hourly_rainfall.png'
+        if large:
+            output_filename = dest_dir + 'hourly_rainfall_large.png'
+
+        plot_rainfall(data_filename,
+                      output_filename,
+                      "Hourly Rainfall",
+                      width,
+                      height,
+                      empty)
+
 
 def charts_7_days(cur, dest_dir, day, month, year, station_code):
     """
@@ -448,3 +516,74 @@ order by s.time_stamp asc
                            'xcol': FIELD_TIMESTAMP, # Time
                            'ycol': FIELD_INDOOR_TEMP, # Indoor Temperature
                            'title': "Temperature"}])
+
+
+# def rainfall_7_day(cur, dest_dir, day, month, year, station_code):
+#     """
+#     Plots 7-day hourly rainfall charts
+#     :param cur: Database cursor
+#     :param dest_dir: Directory to write images to
+#     :param day: Day to chart for
+#     :param month: Month to chart for
+#     :param year: Year to chart for
+#     :param station_code: The code for the station to plot data for
+#     :type station_code: str
+#     """
+#
+#     cur.execute("""
+# select date_trunc('hour', s.time_stamp)  as time_stamp,
+#        coalesce(sum(s.rainfall),0)
+#     from sample s
+# inner join station st on st.station_id = s.station_id
+# inner join (select max(time_stamp) as ts, station_id from sample
+#             where time_stamp::date = %s group by station_id) as max_ts
+#         on s.time_stamp <= max_ts.ts     -- 604800 seconds in a week.
+#        and s.time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
+#   where st.code = %s
+#     group by date_trunc('hour', s.time_stamp)
+#     order by date_trunc('hour', s.time_stamp) asc
+#     """, (date(year, month, day), station_code,))
+#     rainfall_data = cur.fetchall()
+#
+#     # Columns in the query
+#     COL_HOUR = 0
+#     COL_RAINFALL = 1
+#
+#     # Write the data file for gnuplot
+#     file_data = ['# hour\trainfall\n']
+#     FORMAT_STRING = '{0}\t{1}\n'
+#     rain_total = 0
+#     for record in rainfall_data:
+#         # TODO: Handle missing data
+#         file_data.append(FORMAT_STRING.format(str(record[COL_HOUR]),
+#                                               str(record[COL_RAINFALL])))
+#         rain_total += record[COL_RAINFALL]
+#
+#     data_filename = dest_dir + '7-day_hourly_rainfall.dat'
+#     data_file = open(data_filename, 'w+')
+#     data_file.writelines(file_data)
+#     data_file.close()
+#
+#     empty = rain_total == 0.0
+#
+#     for large in [True, False]:
+#         # Create both large and regular versions of each plot.
+#         if large:
+#             width = 1140
+#             height = 600
+#         else:
+#             width = 570    # Default width and height
+#             height = 300
+#
+#         # Plot Temperature and Dew Point
+#         output_filename = dest_dir + '7-day_hourly_rainfall.png'
+#         if large:
+#             output_filename = dest_dir + '7-day_hourly_rainfall_large.png'
+#
+#         plot_rainfall(data_filename,
+#                       output_filename,
+#                       "Hourly Rainfall",
+#                       width,
+#                       height,
+#                       empty,
+#                       columns='1:2:3:txtic($1 $2)')

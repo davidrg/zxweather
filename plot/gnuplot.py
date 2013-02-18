@@ -111,3 +111,54 @@ set datafile missing "?"
         file.close()
         gnuplot = subprocess.Popen([gnuplot_binary], stdin=subprocess.PIPE)
         gnuplot.communicate(script)
+
+
+def plot_rainfall(data_file_name, output_filename, title, width, height, empty,
+                  columns='1:2:xtic(1)'):
+    """
+    Plots a rainfall chart
+    :param data_file_name: Name of the data file
+    :param output_filename: Output name of the PNG file
+    :param title: Chart title
+    :param width: Chart width
+    :param height: Chart height
+    :param columns: Column specification.
+    :return:
+    """
+
+    global gnuplot_binary
+
+    print("Plot {0}".format(output_filename))
+
+    xlabel = 'Hour'
+    ylabel = 'Rainfall (mm)'
+    colour = 'blue'
+
+    script = ""
+
+    script += 'set output "{0}"\n'.format(output_filename)
+    script += 'set terminal pngcairo size {0}, {1}\n'.format(width, height)
+
+    script += "set style fill solid border -1\n"
+    script += "set boxwidth 0.8\n"
+
+    script += 'set title "{0}"\n'.format(title)
+    script += 'set xlabel "{0}"\n'.format(xlabel)
+    script += 'set ylabel "{0}"\n'.format(ylabel)
+    script += "set style fill solid\n"
+    script += "set grid\n"
+    script += "set key off\n"
+    script += 'set format x "%s"\n'
+
+    if empty:
+        script += "set yrange [0:1]\n"
+
+    script += "plot '{file}' using {columns} linecolor rgb '{colour}' with " \
+              "boxes\n".format(file=data_file_name, colour=colour,
+                               columns=columns)
+
+    script_file = open(output_filename + '.plt', 'w+')
+    script_file.writelines(script)
+    script_file.close()
+    gnuplot = subprocess.Popen([gnuplot_binary], stdin=subprocess.PIPE)
+    gnuplot.communicate(script)
