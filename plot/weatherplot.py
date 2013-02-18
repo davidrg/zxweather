@@ -8,7 +8,7 @@ import datetime
 import psycopg2
 import time
 import signal
-from day_charts import charts_1_day, charts_7_days
+from day_charts import charts_1_day, charts_7_days, rainfall_1_day, rainfall_7_day
 import gnuplot
 from month_charts import month_charts
 
@@ -72,7 +72,9 @@ def plot_day(dest_dir, cur, year, month, day, station_code):
 
     # Plot the 1-day charts
     charts_1_day(cur, dest_dir, day, month, year, station_code)
+    rainfall_1_day(cur, dest_dir, day, month, year, station_code)
     charts_7_days(cur, dest_dir, day, month, year, station_code)
+    # rainfall_7_day(cur, dest_dir, day, month, year, station_code)
 
     final_date = date(year,month, day)
     pass
