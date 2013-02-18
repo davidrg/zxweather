@@ -3,16 +3,14 @@
 Data logger for Davis Vantage Vue weather stations.
 """
 from datetime import datetime
-import struct
 import sys
+from twisted.application import service
 from twisted.enterprise import adbapi
 from twisted.internet import reactor
-from twisted.internet.defer import Deferred
 from twisted.internet.protocol import Protocol
 from twisted.internet.serialport import SerialPort
 from twisted.python import log
 from davis_logger.davis import DavisWeatherStation
-from davis_logger.util import toHexString
 
 __author__ = 'david'
 
@@ -93,7 +91,7 @@ class DavisLoggerProtocol(Protocol):
         nextRec = loop.nextRecord
         multi = (nextRec % 5) == 0 and nextRec != self._lastRecord
 
-        log.msg('{0} - {1} - LOOP: {2}'.format(nextRec, multi, repr(loop)))
+        #log.msg('{0} - {1} - LOOP: {2}'.format(nextRec, multi, repr(loop)))
         self._store_live(loop)
 
         if multi:
@@ -246,50 +244,64 @@ class DavisLoggerProtocol(Protocol):
         )
 
 
-def _store_latest_rec(result, database_pool, station_id):
+class DavisService(service.Service):
+    def __init__(self, database, station, port, baud):
+        self.dbc = database
+        self.station_code = station
+        self.serial_port = port
+        self.baud_rate = baud
+        self.station_id = 0
 
-    if len(result) == 0:
-        latest_time = 0
-        latest_date = 0
-    else:
-        latest_time = result[0][0]
-        latest_date = result[0][1]
+    def startService(self):
+        # This will kick off everything else.
+        self._database_connect()
+        service.Service.startService(self)
 
-    logger = DavisLoggerProtocol(
-        database_pool, station_id, latest_date, latest_time)
+    def stopService(self):
+        service.Service.stopService(self)
+        # We don't really need to do anything to shutdown the logger service.
+        # All we could really do is disconnect from the DB and tell the
+        # console to stop sending live data. Thats not really necessary though -
+        # the console will stop on its own after a while and the the database
+        # will disconnect when the application exits.
 
-    SerialPort(logger, 'COM1', reactor, baudrate=19200)
+    def _store_latest_rec(self, result, station_id):
 
+        if len(result) == 0:
+            latest_time = 0
+            latest_date = 0
+        else:
+            latest_time = result[0][0]
+            latest_date = result[0][1]
 
-def _store_station_id(result, database_pool):
-    station_id = result[0][0]
-    log.msg('Station ID: {0}'.format(station_id))
+        logger = DavisLoggerProtocol(
+            self.database_pool, station_id, latest_date, latest_time)
 
-    query = """
-            select record_time, record_date
-            from sample s
-            inner join davis_sample ds on ds.sample_id = s.sample_id
-            where station_id = %s
-            order by time_stamp desc
-            fetch first 1 rows only
-            """
-
-    database_pool.runQuery(query, (station_id,)).addCallback(
-        _store_latest_rec, database_pool, station_id)
-
-
-def _database_connect(conn_str, station_code):
-    global database_pool
-    database_pool = adbapi.ConnectionPool("psycopg2", conn_str)
-    database_pool.runQuery(
-        "select station_id from station where code = %s",
-        (station_code,)).addCallback(_store_station_id, database_pool)
+        self.sp = SerialPort(logger,
+                             self.serial_port,
+                             reactor,
+                             baudrate=self.baud_rate)
 
 
-log.startLogging(sys.stdout)
+    def _store_station_id(self, result):
+        station_id = result[0][0]
+        log.msg('Station ID: {0}'.format(station_id))
 
-# This sets everything running.
-_database_connect("host=localhost port=5432 user=zxweather password=password "
-                  "dbname=davis_test", "rua2")
+        query = """
+                select record_time, record_date
+                from sample s
+                inner join davis_sample ds on ds.sample_id = s.sample_id
+                where station_id = %s
+                order by time_stamp desc
+                fetch first 1 rows only
+                """
 
-reactor.run()
+        self.database_pool.runQuery(query, (station_id,)).addCallback(
+            self._store_latest_rec, station_id)
+
+    def _database_connect(self,):
+        self.database_pool = adbapi.ConnectionPool("psycopg2", self.dbc)
+        self.database_pool.runQuery(
+            "select station_id from station where code = %s",
+            (self.station_code,)).addCallback(self._store_station_id)
+
