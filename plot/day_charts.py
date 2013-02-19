@@ -4,14 +4,13 @@ from gnuplot import plot_graph, plot_rainfall
 __author__ = 'David Goodwin'
 
 
-def charts_1_day(cur, dest_dir, day, month, year, station_code):
+def charts_1_day(cur, dest_dir, plot_date, station_code):
     """
     Charts detailing weather for a single day (24 hours max)
     :param cur: Database cursor
     :param dest_dir: Directory to write images to
-    :param day: Day to chart for
-    :param month: Month to chart for
-    :param year: Year to chart for
+    :param plot_date: Date to chart for
+    :type plot_date: date
     :param station_code: The code for the station to plot data for
     :type station_code: str
     """
@@ -34,11 +33,15 @@ def charts_1_day(cur, dest_dir, day, month, year, station_code):
        end as gap
 from sample cur, sample prev, station s
 where date(cur.time_stamp) = %s
-  and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < cur.time_stamp)
+  and prev.time_stamp = (
+        select max(time_stamp)
+        from sample
+        where time_stamp < cur.time_stamp
+        and station_id = s.station_id)
   and cur.station_id = s.station_id
   and prev.station_id = s.station_id
   and s.code = %s
-order by cur.time_stamp asc""", (date(year,month,day), station_code,))
+order by cur.time_stamp asc""", (plot_date, station_code,))
     weather_data = cur.fetchall()
 
     # Columns in the query
@@ -77,7 +80,7 @@ order by cur.time_stamp asc""", (date(year,month,day), station_code,))
         # Handle missing data.
         if record[COL_PREV_SAMPLE_MISSING]:
             file_data.append(FORMAT_STRING.format(str(record[COL_PREV_TIMESTAMP]),
-                                                  '?','?','?','?','?','?','?','?'))
+                                                  '?','?','?','?','?','?','?','?','?'))
 
         file_data.append(FORMAT_STRING.format(str(record[COL_TIMESTAMP]),
                                               str(record[COL_TEMPERATURE]),
@@ -216,14 +219,13 @@ order by cur.time_stamp asc""", (date(year,month,day), station_code,))
                            'title': "Temperature"}])
 
 
-def rainfall_1_day(cur, dest_dir, day, month, year, station_code):
+def rainfall_1_day(cur, dest_dir, plot_date, station_code):
     """
     Plots 1-day hourly rainfall charts
     :param cur: Database cursor
     :param dest_dir: Directory to write images to
-    :param day: Day to chart for
-    :param month: Month to chart for
-    :param year: Year to chart for
+    :param plot_date: Date to chart for
+    :type plot_date: date
     :param station_code: The code for the station to plot data for
     :type station_code: str
     """
@@ -237,7 +239,7 @@ def rainfall_1_day(cur, dest_dir, day, month, year, station_code):
       and st.code = %s
     group by extract(hour from s.time_stamp)
     order by extract(hour from s.time_stamp) asc
-    """, (date(year, month, day), station_code,))
+    """, (plot_date, station_code,))
     rainfall_data = cur.fetchall()
 
     # Columns in the query
@@ -283,14 +285,12 @@ def rainfall_1_day(cur, dest_dir, day, month, year, station_code):
                       empty)
 
 
-def charts_7_days(cur, dest_dir, day, month, year, station_code):
+def charts_7_days(cur, dest_dir, plot_date, station_code):
     """
     Creates 7-day charts for the specified day
     :param cur: Database cursor
     :param dest_dir: Destination directory
-    :param day: day of month
-    :param month: month
-    :param year: year
+    :param plot_date: Date to plot for
     :param station_code: The code for the station to plot data for
     :type station_code: str
     """
@@ -314,12 +314,16 @@ from sample s, sample prev, station st,
      (select max(time_stamp) as ts, station_id from sample where time_stamp::date = %s group by station_id) as max_ts
 where s.time_stamp <= max_ts.ts     -- 604800 seconds in a week.
   and s.time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
-  and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp)
+  and prev.time_stamp = (
+        select max(time_stamp)
+        from sample
+        where time_stamp < s.time_stamp
+        and station_id = st.station_id)
   and s.station_id = st.station_id
   and prev.station_id = st.station_id
   and st.code = %s
 order by s.time_stamp asc
-""", (date(year,month,day), station_code,))
+""", (plot_date, station_code,))
     temperature_data = cur.fetchall()
 
     # Columns in the query

@@ -33,11 +33,15 @@ def month_charts(cur, dest_dir, month, year, station_code):
        end as gap
 from sample cur, sample prev, station s
 where date(date_trunc('month',cur.time_stamp)) = %s
-  and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < cur.time_stamp)
+  and prev.time_stamp = (
+        select max(time_stamp)
+        from sample
+        where time_stamp < cur.time_stamp
+        and station_id = s.station_id)
   and cur.station_id = s.station_id
   and prev.station_id = s.station_id
   and s.code = %s
-order by cur.time_stamp asc""", (date(year,month,1), station_code))
+order by cur.time_stamp asc""", (date(year, month, 1), station_code))
 
     weather_data = cur.fetchall()
 
