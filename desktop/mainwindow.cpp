@@ -362,6 +362,8 @@ void MainWindow::dataSourceError(QString message) {
 void MainWindow::reconfigureDataSource() {
     Settings& settings = Settings::getInstance();
 
+    setWindowTitle("zxweather - " + settings.stationCode());
+
     if (settings.liveDataSourceType() == Settings::DS_TYPE_DATABASE) {
         dataSource.reset(new DatabaseDataSource(this,this));
     } else if (settings.liveDataSourceType() == Settings::DS_TYPE_WEB_INTERFACE){
