@@ -108,15 +108,15 @@ void LiveDataWidget::refreshUi(LiveDataSet lds) {
                 QString::number(lds.windSpeed, 'f', 1) + " m/s");
     ui->lblTimestamp->setText(lds.timestamp.toString("h:mm AP"));
 
-
-    int idx = (((lds.windDirection * 100) + 1125) % 36000) / 2250;
-    QString direction = windDirections.at(idx);
-
     if (lds.windSpeed == 0.0)
         ui->lblWindDirection->setText("--");
-    else
+    else {
+        int idx = (((lds.windDirection * 100) + 1125) % 36000) / 2250;
+        QString direction = windDirections.at(idx);
+
         ui->lblWindDirection->setText(QString::number(lds.windDirection) +
                                       "\xB0 " + direction);
+    }
 
     QString pressureMsg = "";
     if (lds.hw_type == HW_DAVIS) {
