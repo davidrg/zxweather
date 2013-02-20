@@ -338,6 +338,41 @@ IS 'Each station can only have one sample for a given timestamp.';
 -- FUNCTIONS ---------------------------------------------------------
 ----------------------------------------------------------------------
 
+CREATE OR REPLACE FUNCTION compute_sample_values()
+  RETURNS trigger AS
+  $BODY$
+DECLARE
+    station_code character varying;
+BEGIN
+    -- If its an insert, calculate any fields that need calculating. We will ignore updates here.
+    IF(TG_OP = 'INSERT') THEN
+
+        -- Various calculated temperatures
+        NEW.dew_point = dew_point(NEW.temperature, NEW.relative_humidity);
+        NEW.wind_chill = wind_chill(NEW.temperature, NEW.average_wind_speed);
+        NEW.apparent_temperature = apparent_temperature(NEW.temperature, NEW.average_wind_speed, NEW.relative_humidity);
+
+        IF(round(NEW.average_wind_speed::numeric, 2) = 0.0) THEN
+          NEW.wind_direction = null;
+        END IF;
+
+        -- Rainfall calculations (if required) are performed on trigger
+        -- functions attached to the hardware-specific tables now.
+
+        -- Grab the station code and send out a notification.
+        select s.code into station_code
+        from station s where s.station_id = NEW.station_id;
+
+        perform pg_notify('new_sample', station_code);
+    END IF;
+
+    RETURN NEW;
+END;
+$BODY$
+LANGUAGE plpgsql VOLATILE;
+COMMENT ON FUNCTION compute_sample_values() IS 'Calculates values for all calculated fields (wind chill, dew point, rainfall, etc).';
+
+
 CREATE OR REPLACE FUNCTION compute_wh1080_sample_values()
   RETURNS trigger AS
   $BODY$
@@ -403,6 +438,36 @@ END;
 $BODY$
 LANGUAGE plpgsql VOLATILE;
 COMMENT ON FUNCTION compute_wh1080_sample_values() IS 'Calculates values for all calculated fields (wind chill, dew point, rainfall, etc).';
+
+
+-- Calculates dewpoint, wind chill, apparent temperature, etc.
+CREATE OR REPLACE FUNCTION live_data_update() RETURNS trigger AS
+  $BODY$
+DECLARE
+  station_code character varying;
+BEGIN
+    IF(TG_OP = 'UPDATE') THEN
+        -- Various calculated temperatures
+        NEW.dew_point = dew_point(NEW.temperature, NEW.relative_humidity);
+        NEW.wind_chill = wind_chill(NEW.temperature, NEW.average_wind_speed);
+        NEW.apparent_temperature = apparent_temperature(NEW.temperature, NEW.average_wind_speed, NEW.relative_humidity);
+
+        IF(round(NEW.average_wind_speed::numeric, 2) = 0.0) THEN
+          NEW.wind_direction = null;
+        END IF;
+
+        -- Grab the station code and send out a notification.
+        select s.code into station_code
+        from station s where s.station_id = NEW.station_id;
+
+        perform pg_notify('live_data_updated', station_code);
+
+    END IF;
+
+    RETURN NEW;
+END;$BODY$
+LANGUAGE plpgsql VOLATILE;
+COMMENT ON FUNCTION live_data_update() IS 'Calculates values for all calculated fields.';
 
 
 ----------------------------------------------------------------------
