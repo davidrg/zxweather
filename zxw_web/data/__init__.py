@@ -8,7 +8,7 @@ import web
 from cache import rfcformat
 import config
 from datetime import timedelta, datetime
-from database import day_exists, get_station_id
+from database import day_exists, get_station_id, get_station_name, get_stations
 from months import month_name
 
 __author__ = 'David Goodwin'
@@ -77,7 +77,10 @@ class about_nav(object):
             'this_month': str(now.year) + '/' + month_name[now.month] + '/',
             'this_year': str(now.year) + '/',
             'site_name': config.site_name,
-            'archive_mode': archive_mode
+            'archive_mode': archive_mode,
+            'station_code': station_code,
+            'station_name': get_station_name(station_id),
+            'station_list': get_stations(),
         }
 
         tomorrow = now + timedelta(1)

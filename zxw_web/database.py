@@ -438,3 +438,20 @@ def get_station_name(station_id):
         return result[0].title
     else:
         return None
+
+
+def get_stations():
+    """
+    Gets a list of station code,name pairs for all stations in the database.
+    :return:
+    """
+    result = db.query("select code, title from station order by sort_order asc,"
+                      " title desc")
+
+    stations = []
+
+    for row in result:
+        station = (row.code, row.title)
+        stations.append(station)
+
+    return stations

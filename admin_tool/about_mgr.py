@@ -21,7 +21,7 @@ template_start = """<!DOCTYPE html>
     </style>
     <link rel="stylesheet" href="/css/bootstrap-responsive.css" type="text.css" />
 </head>
-<!-- TEMPLATE_V2 -->
+<!-- TEMPLATE_V3 -->
 <body>
     <div class="navbar navbar-fixed-top">
         <div class="navbar-inner">
@@ -32,7 +32,7 @@ template_start = """<!DOCTYPE html>
                     <span class="icon-bar"></span>
                 </a>
                 <a id="nav_brand" class="brand" href="#"></a>
-                <div class="nav-collapse">
+                <div class="nav-collapse" id="main_nav">
                     <ul class="nav">
                         <li><a href="index.html">Now</a></li>
                         <li><a id="nav_lnk_yesterday" href="">Yesterday</a></li>
@@ -69,11 +69,46 @@ template_end = """    <!-- END_USER_CONTENT -->
                 $("#nav_lnk_this_month").attr('href',data['this_month']);
                 $("#nav_lnk_this_year").attr('href',data['this_year']);
             }
-        });
 
+            var station_list = data['station_list'];
+            if (station_list.length > 1) {
+
+                // Build up the station menu only if there are stations to put
+                // in it. Otherwise an empty hidden station menu messes with
+                // the other menu items.
+                $('#main_nav').append(
+                    ' <ul id="station_menu_top" class="nav pull-right"><li class="dropdown">' +
+                            '<a href="#" class="dropdown-toggle" ' +
+                            'data-toggle="dropdown" id="current_station">' +
+                            '<b class="caret"></b></a>' +
+                            '<ul id="station_menu" class="dropdown-menu"></ul>' +
+                            '</li></ul>'
+                );
+
+                var current_station = $("#current_station");
+                current_station.html(data['station_name'] + current_station.html());
+
+                for (var i = 0; i < station_list.length; i++) {
+                    var station = station_list[i];
+                    var code = station[0];
+                    var name = station[1];
+
+                    var url = "";
+                    if (code == data['station_code']) {
+                        url = "#";
+                    } else {
+                        url = "../" + code + "/about.html";
+                    }
+
+                    $("#station_menu").append('<li><a href="' + url + '">' + name + '</a></li>');
+                }
+            }
+        });
     </script>
+    <script type="text/javascript" src="/js/bootstrap.min.js"></script>
 </body>
 </html>"""
+
 
 def upgrade_file(filename):
     """

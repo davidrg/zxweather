@@ -45,6 +45,27 @@ def get_nav_urls(station, current_url):
     return urls
 
 
+def make_station_switch_urls(station_list, current_url):
+    new_station_list = []
+
+    for station in station_list:
+        code = station[0]
+        name = station[1]
+
+        target = '/s/' + code + '/'
+
+        # The first three segments in the URL will be '', 's' and the station
+        # code. We can throw those away to get the new target URL.
+        target += '/'.join(current_url.split('/')[3:])
+
+        print("~~~TARGET:" + target)
+
+        new_url = relative_url(current_url, target)
+
+        new_station_list.append((new_url, name))
+    return new_station_list
+
+
 # Register available UIs
 uis = ['s','b','m']
 

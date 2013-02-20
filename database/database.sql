@@ -48,6 +48,7 @@ CREATE TABLE station
   station_type_id INTEGER NOT NULL REFERENCES station_type(station_type_id),
   sample_interval integer not null,
   live_data_available boolean not null default true,
+  sort_order integer,
   CONSTRAINT pk_station PRIMARY KEY (station_id)
 );
 
