@@ -1112,6 +1112,10 @@ BEGIN
         NEW.wind_chill = wind_chill(NEW.temperature, NEW.average_wind_speed);
         NEW.apparent_temperature = apparent_temperature(NEW.temperature, NEW.average_wind_speed, NEW.relative_humidity);
 
+        IF(round(NEW.average_wind_speed::numeric, 2) = 0.0) THEN
+          NEW.wind_direction = null;
+        END IF;
+
         -- Rainfall calculations (if required) are performed on trigger
         -- functions attached to the hardware-specific tables now.
 
@@ -1206,6 +1210,10 @@ BEGIN
         NEW.dew_point = dew_point(NEW.temperature, NEW.relative_humidity);
         NEW.wind_chill = wind_chill(NEW.temperature, NEW.average_wind_speed);
         NEW.apparent_temperature = apparent_temperature(NEW.temperature, NEW.average_wind_speed, NEW.relative_humidity);
+
+        IF(round(NEW.average_wind_speed::numeric, 2) = 0.0) THEN
+          NEW.wind_direction = null;
+        END IF;
 
         -- Grab the station code and send out a notification.
         select s.code into station_code
