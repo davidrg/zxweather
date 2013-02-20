@@ -59,6 +59,7 @@ COMMENT ON COLUMN station.description is 'A user-readable description for the st
 COMMENT ON COLUMN station.station_type_id is 'The type of hardware this station uses.';
 COMMENT ON COLUMN station.sample_interval is 'How often (in seconds) new samples are logged.';
 COMMENT ON COLUMN station.live_data_available is 'If live data is available from the live_data table for this station.';
+comment on column station.sort_order is 'The order in which stations should be presented to the user';
 
 -- Generic sample data. Anything that is specific to a particular station type
 -- is in that station-specific table.
