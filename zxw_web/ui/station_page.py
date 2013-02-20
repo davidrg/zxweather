@@ -7,10 +7,10 @@ from datetime import datetime, timedelta
 from web.contrib.template import render_jinja
 from cache import day_cache_control
 import config
-from database import get_daily_records, get_years, total_rainfall_in_last_7_days, day_exists, get_station_id, get_station_name, in_archive_mode, get_station_type_code
+from database import get_daily_records, get_years, total_rainfall_in_last_7_days, day_exists, get_station_id, get_station_name, in_archive_mode, get_station_type_code, get_stations
 import os
 from months import month_name
-from ui import get_nav_urls
+from ui import get_nav_urls, make_station_switch_urls
 from ui import validate_request, html_file
 
 __author__ = 'David Goodwin'
@@ -55,9 +55,12 @@ def get_station_standard(ui, station):
         data.yesterday = None
         data.yesterday_month_s = None
 
+    page_data["station_name"] = get_station_name(station_id)
+    page_data["stations"] = make_station_switch_urls(get_stations(),
+                                                     current_location)
+
     if data.records is None:
         page_data["no_content"] = True
-        page_data["station_name"] = get_station_name(station_id)
     else:
         page_data["no_content"] = False
 

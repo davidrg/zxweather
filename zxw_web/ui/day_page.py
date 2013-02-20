@@ -9,8 +9,8 @@ import config
 from months import month_name
 
 from cache import day_cache_control
-from database import get_live_data, get_daily_records, total_rainfall_in_last_7_days, day_exists, get_live_indoor_data, get_station_id, in_archive_mode, get_station_type_code
-from ui import get_nav_urls
+from database import get_live_data, get_daily_records, total_rainfall_in_last_7_days, day_exists, get_live_indoor_data, get_station_id, in_archive_mode, get_station_type_code, get_station_name, get_stations
+from ui import get_nav_urls, make_station_switch_urls
 import os
 from ui import html_file, month_number, validate_request
 from url_util import relative_url
@@ -177,6 +177,11 @@ def get_day_page(ui, station, day):
 
     day_cache_control(data_age, day, station_id)
 
+    page_data = {
+        "station_name": get_station_name(station_id),
+        "stations": make_station_switch_urls(get_stations(), current_location)
+    }
+
     if ui in ('s','m'):
         nav_urls = get_nav_urls(station, current_location)
         data_urls = get_day_data_urls(station, data.date_stamp, ui)
@@ -189,7 +194,8 @@ def get_day_page(ui, station, day):
                                     sitename=config.site_name,
                                     archive_mode=in_archive_mode(station_id),
                                     ws_uri=config.ws_uri,
-                                    wss_uri=config.wss_uri)
+                                    wss_uri=config.wss_uri,
+                                    page_data=page_data)
     else:
         return basic_templates.day(data=data,
                             station=station)
@@ -281,15 +287,22 @@ def get_indoor_day(ui, station, day):
 
     day_cache_control(data.current_data_ts, day, station_id)
 
+    page_data = {
+        "station_name": get_station_name(station_id),
+        "stations": make_station_switch_urls(get_stations(), current_location)
+    }
+
     if ui in ('s','m'):
         nav_urls = get_nav_urls(station, current_location)
         data_urls = get_indoor_data_urls(station, data.date_stamp, ui)
-        return modern_templates.indoor_day(data=data,
-                                 nav=nav_urls,
-                                 dataurls=data_urls,
-                                 sitename=config.site_name,
-                                 ui=ui,
-                                 archive_mode=in_archive_mode(station_id))
+        return modern_templates.indoor_day(
+            data=data,
+            nav=nav_urls,
+            dataurls=data_urls,
+            sitename=config.site_name,
+            ui=ui,
+            archive_mode=in_archive_mode(station_id),
+            page_data=page_data)
     else:
         return basic_templates.indoor_day(data=data)
 

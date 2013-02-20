@@ -35,6 +35,10 @@ insert into db_info(k,v) values('ADMIN_TOOL_MIN_VER_REV','0');
 -- Timestamp really can't be nullable
 alter table sample alter column time_stamp set not null;
 
+-- New sort order column on station table.
+alter table station add column sort_order integer;
+comment on column station.sort_order is 'The order in which stations should be presented to the user';
+
 -- Adjust comment for wind direction.
 COMMENT ON COLUMN sample.wind_direction IS 'Prevailing wind direction in degrees.';
 

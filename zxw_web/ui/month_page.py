@@ -9,8 +9,8 @@ from config import db
 import config
 from months import month_name, month_number
 from cache import month_cache_control
-from database import month_exists, get_station_id, in_archive_mode
-from ui import get_nav_urls
+from database import month_exists, get_station_id, in_archive_mode, get_station_name, get_stations
+from ui import get_nav_urls, make_station_switch_urls
 import os
 from ui import validate_request, html_file
 from url_util import relative_url
@@ -249,9 +249,17 @@ def get_month(ui, station, year, month):
             daily_records = data_base + sub_dir + 'daily_records.json'
 
         nav_urls = get_nav_urls(station, current_location)
+
+        page_data = {
+            "station_name": get_station_name(station_id),
+            "stations": make_station_switch_urls(get_stations(),
+                                                 current_location)
+        }
+
         return modern_templates.month(nav=nav_urls, data=data,dataurls=urls,
                                       ui=ui, sitename=config.site_name,
-                                      archive_mode=in_archive_mode(station_id))
+                                      archive_mode=in_archive_mode(station_id),
+                                      page_data=page_data)
     else:
         return basic_templates.month(data=data)
 

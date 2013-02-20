@@ -12,6 +12,7 @@ from time import mktime
 import web
 import config
 import os
+from database import get_station_id
 
 __author__ = 'David Goodwin'
 
@@ -38,11 +39,21 @@ class overlay_file:
         # their weather station. This chunk of code is to handle cases where
         # the user has failed to copy the file into the station static data
         # directory.
-        if file == config.default_station_name + '/about.html' and\
-           not os.path.exists(path_name):
-            new_path_name = config.static_data_dir + 'about.html'
-            print("WARNING: Station-level about file redirected to site-level. To suppress this warning, copy {0} to {1}".format(new_path_name,path_name))
-            return new_path_name
+
+        parts = file.split('/')
+        if len(parts) == 2 and parts[1] == 'about.html':
+            # Looks like a station-level about page. Check that its a valid
+            # station code.
+            station_code = parts[0]
+            if get_station_id(station_code) is not None:
+                # Its a valid station-level about page URL. Redirect it if it
+                # doesn't exist.
+                if not os.path.exists(path_name):
+                    new_path_name = config.static_data_dir + 'about.html'
+                    print("WARNING: Station-level about file redirected to "
+                          "site-level. To suppress this warning, copy {0} to "
+                          "{1}".format(new_path_name, path_name))
+                    return new_path_name
 
         return path_name
 

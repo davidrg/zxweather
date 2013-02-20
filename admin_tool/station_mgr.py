@@ -261,6 +261,7 @@ def get_updated_station_info(defaults):
     station_description = get_string("Description", defaults["description"])
     sample_interval = get_number("Sample interval", defaults["interval"])
     live_data = get_boolean("Is live data available for this station", defaults["live"])
+    sort_order = get_number("List order", defaults["sort_order"])
 
     return {
         "id": defaults["id"],
@@ -268,7 +269,8 @@ def get_updated_station_info(defaults):
         "name": station_name,
         "description": station_description,
         "interval": sample_interval,
-        "live": live_data
+        "live": live_data,
+        "sort_order": sort_order
     }
 
 def edit_station(con):
@@ -284,8 +286,8 @@ def edit_station(con):
     selected_station_code = get_code("Station to edit", codes, required=True)
 
     cur.execute("""
-select station_id, title, description, sample_interval, live_data_available
-from station where code = %s
+select station_id, title, description, sample_interval, live_data_available,
+coalesce(sort_order,0) from station where code = %s
     """, (selected_station_code,))
     result = cur.fetchone()
 
@@ -295,7 +297,8 @@ from station where code = %s
         "name": result[1],
         "description": result[2],
         "interval": result[3],
-        "live": result[4]
+        "live": result[4],
+        "sort_order": result[5]
     }
     while True:
         station_info = get_updated_station_info(station_info)
@@ -305,6 +308,7 @@ You entered the following details:
 Name: {name}
 Sample interval: {interval}
 Live data available: {live}
+List order: {sort_order}
 Description:
 {description}
 ----------------------------------
@@ -315,11 +319,12 @@ Description:
 
             cur.execute("""
         update station set title=%s, description=%s, sample_interval=%s,
-                           live_data_available=%s
+                           live_data_available=%s, sort_order=%s
         where station_id = %s""", (
                 station_info["name"],
                 station_info["description"], station_info["interval"],
-                station_info["live"], station_info["id"]))
+                station_info["live"], station_info["sort_order"],
+                station_info["id"] ))
             con.commit()
             cur.close()
             print("Station updated.")

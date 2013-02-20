@@ -11,7 +11,7 @@
     </style>
     <link rel="stylesheet" href="/css/bootstrap-responsive.css" type="text.css" />
 </head>
-<!-- TEMPLATE_V2 -->
+<!-- TEMPLATE_V3 -->
 <body>
     <div class="navbar navbar-fixed-top">
         <div class="navbar-inner">
@@ -22,7 +22,7 @@
                     <span class="icon-bar"></span>
                 </a>
                 <a id="nav_brand" class="brand" href="#"></a>
-                <div class="nav-collapse">
+                <div class="nav-collapse" id="main_nav">
                     <ul class="nav">
                         <li><a href="index.html">Now</a></li>
                         <li><a id="nav_lnk_yesterday" href="">Yesterday</a></li>
@@ -41,8 +41,7 @@
         <!-- ------------------------------------------------------------- --
           -- Make your changes here. You can delete anything between this
           -- comment and the other comment below (including the comments)
-          -- and replace it with your own content. You can also edit the
-          -- text between the <title> </title> tags near the top of the page.
+          -- and replace it with your own content.
           -- Don't remove the BEGIN_USER_CONTENT and END_USER_CONTENT
           -- comments.
           -- ------------------------------------------------------------- -->
@@ -53,7 +52,7 @@
         </p>
         <p>You can change this page to display information about your weather
             station by copying /static/about.html into
-            /static/{station-name}/about.html and modifying it. Consult the
+            /static/{station-code}/about.html and modifying it. Consult the
             installation reference manual for more details.</p>
         <footer>
             <p><a href="http://www.python.org"><img src="/images/python-powered-w-100x40.png" alt="python-powered"/></a>
@@ -85,8 +84,42 @@
                 $("#nav_lnk_this_month").attr('href',data['this_month']);
                 $("#nav_lnk_this_year").attr('href',data['this_year']);
             }
-        });
 
+            var station_list = data['station_list'];
+            if (station_list.length > 1) {
+
+                // Build up the station menu only if there are stations to put
+                // in it. Otherwise an empty hidden station menu messes with
+                // the other menu items.
+                $('#main_nav').append(
+                    ' <ul id="station_menu_top" class="nav pull-right"><li class="dropdown">' +
+                            '<a href="#" class="dropdown-toggle" ' +
+                            'data-toggle="dropdown" id="current_station">' +
+                            '<b class="caret"></b></a>' +
+                            '<ul id="station_menu" class="dropdown-menu"></ul>' +
+                            '</li></ul>'
+                );
+
+                var current_station = $("#current_station");
+                current_station.html(data['station_name'] + current_station.html());
+
+                for (var i = 0; i < station_list.length; i++) {
+                    var station = station_list[i];
+                    var code = station[0];
+                    var name = station[1];
+
+                    var url = "";
+                    if (code == data['station_code']) {
+                        url = "#";
+                    } else {
+                        url = "../" + code + "/about.html";
+                    }
+
+                    $("#station_menu").append('<li><a href="' + url + '">' + name + '</a></li>');
+                }
+            }
+        });
     </script>
+    <script type="text/javascript" src="/js/bootstrap.min.js"></script>
 </body>
 </html>
