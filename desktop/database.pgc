@@ -265,19 +265,22 @@ bool wdb_live_data_available() {
     PGnotify* notification;
     PQconsumeInput(conn);
     while ((notification = PQnotifies(conn)) != NULL) {
-        qDebug() << "Received notification on channel" << notification->relname;
-        qDebug() << "Payload:" << notification->extra;
+        qDebug() << "Received notification:" << notification->relname << notification->extra;
 
         if (strcmp(notification->relname, LIVE_DATA_UPDATE_CHANNEL) == 0) {
+            if (db_version <= 1) {
+                /* the v1 schema doesn't use the payload to indicate station */
+                live_data_available = true;
+            }
             /* For v2+ schema we need to check the payload to ensure this is
              * for the station we're interested in */
-            if ((db_version > 1) &&
-                strncmp(station_code, notification->extra, station_code_len)) {
+            else if (strncmp(station_code, notification->extra, station_code_len) == 0) {
                 // Live data is available for the station we are subscribed to.
                 live_data_available = true;
             } else {
-                /* the v1 schema doesn't use the payload to indicate station */
-                live_data_available = true;
+                /* It's a notification on a v2+ database for a station other
+                 * than the one we're interested in. */
+                live_data_available = false;
             }
         } else {
             qDebug() << "Ignore: Unknown channel";
@@ -365,6 +368,7 @@ live_data_record get_live_data_v2() {
     float absolute_pressure = 0.0;
     float average_wind_speed = 0.0;
     int wind_direction;
+    int wind_direction_null;
     long download_timestamp = 0;
     int station_id_param = station_id;    
 
@@ -403,7 +407,7 @@ live_data_record get_live_data_v2() {
                   :apparent_temperature,
                   :absolute_pressure,
                   :average_wind_speed,
-                  :wind_direction,
+                  :wind_direction :wind_direction_null,
                   :download_timestamp
              FROM live_data ld
              WHERE ld.station_id = :station_id_param
