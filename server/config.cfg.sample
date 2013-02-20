@@ -1,0 +1,70 @@
+##############################################################################
+### Database Configuration ###################################################
+##############################################################################
+[database]
+# This is the database connection string. For example:
+# dsn=host=localhost port=5432 user=zxweather password=password dbname=weather
+dsn=
+
+
+##############################################################################
+### SSH Protocol Configuration ###############################################
+##############################################################################
+# This protocol allows authenticated interactive read-write access to the
+# server. It allows access to some administrative commands to list sessions,etc
+# and also allows weather data to be uploaded. This protocol must be enabled
+# for the weather-push service.
+[ssh]
+
+# If SSH support should be enabled
+enable=True
+
+# The port the SSH service should listen on
+port=4222
+
+# Private and public key filenames
+private_key_file=id_rsa
+public_key_file=id_rsa.pub
+
+# The name of the file containing username:password pairs
+passwords_file=ssh-passwords
+
+##############################################################################
+### Telnet Protocol Configuration ############################################
+##############################################################################
+# This protocol allows interactive read-only access to the server to display
+# current conditions and information about the weather station in a terminal
+# window.
+[telnet]
+enable=False
+port=4223
+
+##############################################################################
+### Standard Protocol Configuration ##########################################
+##############################################################################
+# This protocol is used by the desktop client and anything else wanting access
+# to weather data. In most cases it should be enabled.
+[raw]
+enable=True
+port=4224
+
+##############################################################################
+### WebSocket Protocol Configuration #########################################
+##############################################################################
+# This protocol is used by the web interface to access weather data.
+[websocket]
+enable=True
+port=81
+
+##############################################################################
+### WebSocket SSL Protocol Configuration #####################################
+##############################################################################
+# This a secure websocket endpoint using SSL. It is used as a fallback by the
+# web interface to get around badly configured proxy servers.
+[websocket-ssl]
+enable=True
+port=443
+
+# SSL private key and certificate files
+private_key_file=server.key
+certificate_file=server.crt
