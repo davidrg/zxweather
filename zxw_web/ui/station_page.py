@@ -55,9 +55,13 @@ def get_station_standard(ui, station):
         data.yesterday = None
         data.yesterday_month_s = None
 
+    def _switch_func(station_id):
+        return day_exists(now, station_id)
+
     page_data["station_name"] = get_station_name(station_id)
-    page_data["stations"] = make_station_switch_urls(get_stations(),
-                                                     current_location)
+    page_data["stations"] = make_station_switch_urls(
+        get_stations(), current_location, _switch_func,
+        (now.year, now.month, now.day))
 
     if data.records is None:
         page_data["no_content"] = True

@@ -148,10 +148,14 @@ def get_year(ui,station, year):
 
         nav_urls = get_nav_urls(station, current_location)
 
+        def _switch_func(station_id):
+            return year_exists(year, station_id)
+
         page_data = {
             "station_name": get_station_name(station_id),
-            "stations": make_station_switch_urls(get_stations(),
-                                                 current_location)
+            "stations": make_station_switch_urls(
+                get_stations(), current_location, _switch_func,
+                (year, ))
         }
 
         return modern_templates.year(nav=nav_urls,data=data,urls=urls,

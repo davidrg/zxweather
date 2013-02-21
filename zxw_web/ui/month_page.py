@@ -250,10 +250,14 @@ def get_month(ui, station, year, month):
 
         nav_urls = get_nav_urls(station, current_location)
 
+        def _switch_func(station_id):
+            return month_exists(year, month, station_id)
+
         page_data = {
             "station_name": get_station_name(station_id),
-            "stations": make_station_switch_urls(get_stations(),
-                                                 current_location)
+            "stations": make_station_switch_urls(
+                get_stations(), current_location, _switch_func,
+                (year, month))
         }
 
         return modern_templates.month(nav=nav_urls, data=data,dataurls=urls,
