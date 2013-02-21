@@ -8,7 +8,7 @@ from datetime import timedelta, datetime, date
 from months import month_name, month_number
 from url_util import relative_url
 import config
-from database import day_exists, month_exists, year_exists, get_station_id
+from database import day_exists, month_exists, year_exists, get_station_id, get_sample_range
 import web
 
 __author__ = 'David Goodwin'
@@ -45,22 +45,84 @@ def get_nav_urls(station, current_url):
     return urls
 
 
-def make_station_switch_urls(station_list, current_url):
+def make_station_switch_urls(station_list, current_url, validation_func=None,
+                             target_date=None):
+    """
+    Makes a list of URLs for switching from the current URL to the equivalent
+    URL on each other station in the database.
+    :param station_list: List of stations to build URLs for. The list should
+            be of (station_code, station_name) tuples.
+    :type station_list: list
+    :param current_url: The URL to build equivalent URLs for on other stations
+    :type current_url: str
+    :param validation_func: Function to check if the equivalent URL actually
+            exists on a given station. It should take only a station_id
+            parameter.
+    :type validation_func: callable
+    :param target_date: The date that we will pages we will be building URLs
+            for. This should be a tuple containing one to three elements in
+            the order year, month, day. A year only page would, of course, only
+            supply (year,)
+    :type target_date: tuple
+    :return: A similar station list to that supplied but the first item in
+            each tuple will be the target URL instead of the station code.
+    :rtype: list
+    """
     new_station_list = []
 
     for station in station_list:
         code = station[0]
         name = station[1]
+        station_id = get_station_id(code)
 
-        target = '/s/' + code + '/'
+        is_valid = True
 
-        # The first three segments in the URL will be '', 's' and the station
-        # code. We can throw those away to get the new target URL.
-        target += '/'.join(current_url.split('/')[3:])
+        if validation_func is not None:
+            is_valid = validation_func(station_id)
 
-        print("~~~TARGET:" + target)
+        if not is_valid:
+            # There is no data for the target URL we were going to build.
+            # We need to build a javascript function to get the
 
-        new_url = relative_url(current_url, target)
+            min_ts, max_ts = get_sample_range(station_id)
+
+            earliest_target = '/s/' + code + '/' + str(min_ts.year) + '/' + \
+                              month_name[min_ts.month] + '/' + \
+                              str(min_ts.day) + '/'
+            latest_target = '/s/' + code + '/' + str(max_ts.year) + '/' + \
+                            month_name[max_ts.month] + '/' + \
+                            str(max_ts.day) + '/'
+
+            earliest_url = relative_url(current_url, earliest_target)
+            latest_url = relative_url(current_url, latest_target)
+            earliest_date = str(min_ts.day) + ' ' + month_name[min_ts.month] +\
+                ' ' + str(min_ts.year)
+            latest_date = str(max_ts.day) + ' ' + month_name[max_ts.month] + \
+                ' ' + str(max_ts.year)
+
+            disp_date = str(target_date[0])
+            if len(target_date) > 1:
+                disp_date = month_name[target_date[1]] + ' ' + disp_date
+            if len(target_date) == 3:
+                disp_date = str(target_date[2]) + ' ' + disp_date
+
+            new_url = "javascript:show_no_data('{station_name}', '{date}', " \
+                      "'{earliest_date}', '{earliest_url}', '{latest_date}', " \
+                      "'{latest_url}');".format(station_name=name.replace(
+                                                "'", r"\'"),
+                                                date=disp_date,
+                                                earliest_date=earliest_date,
+                                                earliest_url=earliest_url,
+                                                latest_date=latest_date,
+                                                latest_url=latest_url)
+        else:
+            target = '/s/' + code + '/'
+
+            # The first three segments in the URL will be '', 's' and the station
+            # code. We can throw those away to get the new target URL.
+            target += '/'.join(current_url.split('/')[3:])
+
+            new_url = relative_url(current_url, target)
 
         new_station_list.append((new_url, name))
     return new_station_list

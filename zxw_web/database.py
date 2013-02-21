@@ -269,27 +269,49 @@ where s.time_stamp <= max_ts.ts     -- 604800 seconds in a week.
         '7day_rainfall': sevenday_rainfall_record[0].sevenday_rainfall,
     }
 
+
 def get_latest_sample_timestamp(station_id):
     """
-    Gets the timestamp of the most recent sample in the database
+    Gets the timestamp of the most recent sample in the database. This just
+    wraps get_sample_range().
     :param station_id: The ID of the weather station to work with
     :type station_id: int
     :return: datetime
     """
-    record = db.query("""select max(time_stamp) as time_stamp
-    from sample where station_id = $station""", dict(station=station_id))
-    return record[0].time_stamp
+    min_ts, max_ts = get_sample_range(station_id)
+
+    return max_ts
+
 
 def get_oldest_sample_timestamp(station_id):
     """
-    Gets the timestamp of the least recent sample in the database
+    Gets the timestamp of the least recent sample in the database. This just
+    wraps get_sample_range().
     :param station_id: The ID of the weather station to work with
     :type station_id: int
     :return: datetime
     """
-    record = db.query("""select min(time_stamp) as time_stamp
-        from sample where station_id = $station""", dict(station=station_id))
-    return record[0].time_stamp
+    min_ts, max_ts = get_sample_range(station_id)
+
+    return min_ts
+
+
+def get_sample_range(station_id):
+    """
+    Gets the minimum and maximum sample timestamps in the database for the
+    specified station.
+    :param station_id: The ID of the weather station to work with
+    :return: datetime, datetime
+    """
+    records = db.query("select min(time_stamp) as min_ts, "
+                      "max(time_stamp) as max_ts "
+                      "from sample "
+                      "where station_id=$station", dict(station=station_id))
+
+    record = records[0]
+
+    return record.min_ts, record.max_ts
+
 
 def get_live_data(station_id):
     """

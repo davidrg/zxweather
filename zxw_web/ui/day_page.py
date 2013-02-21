@@ -164,7 +164,6 @@ def get_day_page(ui, station, day):
             rainfall_7days_total = total_rainfall_in_last_7_days(date_stamp,
                                                                  station_id)
 
-
     # Get live data if the page is for today.
     data_age = None
     if today:
@@ -177,9 +176,14 @@ def get_day_page(ui, station, day):
 
     day_cache_control(data_age, day, station_id)
 
+    def _switch_func(station_id):
+        return day_exists(day, station_id)
+
     page_data = {
         "station_name": get_station_name(station_id),
-        "stations": make_station_switch_urls(get_stations(), current_location)
+        "stations": make_station_switch_urls(
+            get_stations(), current_location, _switch_func,
+            (day.year, day.month, day.day))
     }
 
     if ui in ('s','m'):
@@ -287,9 +291,14 @@ def get_indoor_day(ui, station, day):
 
     day_cache_control(data.current_data_ts, day, station_id)
 
+    def _switch_func(station_id):
+        return day_exists(day, station_id)
+
     page_data = {
         "station_name": get_station_name(station_id),
-        "stations": make_station_switch_urls(get_stations(), current_location)
+        "stations": make_station_switch_urls(
+            get_stations(), current_location, _switch_func,
+            (day.year, day.month, day.day))
     }
 
     if ui in ('s','m'):
