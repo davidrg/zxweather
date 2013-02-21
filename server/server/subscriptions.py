@@ -10,6 +10,7 @@ __author__ = 'david'
 
 subscriptions = {}
 _last_sample_ts = {}
+_latest_live = {}
 
 def subscribe(subscriber, station, include_live, include_samples):
     """
@@ -22,13 +23,17 @@ def subscribe(subscriber, station, include_live, include_samples):
     :param include_samples: If samples are wanted
     :type include_samples: bool
     """
-    global subscriptions
+    global subscriptions, _latest_live
 
     if station not in subscriptions:
         subscriptions[station] = {"s":[],"l":[]}
 
     if include_live:
         subscriptions[station]["l"].append(subscriber)
+
+        # Send the most recent sample if we have one.
+        if station in _latest_live:
+            subscriber.live_data(_latest_live[station])
     if include_samples:
         subscriptions[station]["s"].append(subscriber)
 
@@ -55,7 +60,9 @@ def deliver_live_data(station, data):
     :param data: Live data
     :type data: str
     """
-    global subscriptions
+    global subscriptions, _latest_live
+
+    _latest_live[station] = data
 
     if station not in subscriptions:
         return

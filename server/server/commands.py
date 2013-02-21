@@ -304,10 +304,7 @@ class StreamCommand(Command):
         :param data: The new data
         :type data: str
         """
-        if self.buffer_data:
-            self.current_live = data
-        else:
-            self.writeLine(data)
+        self.writeLine(data)
 
     def sample_data(self, data):
         """
