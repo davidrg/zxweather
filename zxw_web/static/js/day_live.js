@@ -9,6 +9,11 @@ var previous_live = null;
 var socket = null;
 var ws_connected = false;
 var ws_state = 'conn';
+var ws_lost_connection = false;
+
+var e_live_status = $('#live_status');
+
+var poll_interval = null;
 
 function live_data_arrived(data) {
     var parts = data.split(',');
@@ -73,6 +78,7 @@ function live_data_arrived(data) {
 }
 
 function poll_live_data() {
+    console.log('Poll...');
     $.getJSON(live_url, function (data) {
         refresh_live_data(data);
     }).error(function() {
@@ -94,23 +100,45 @@ function ws_data_arrived(evt) {
     }
 }
 
+function finish_connection() {
+    // Cancel polling
+    if (poll_interval != null) {
+        window.clearInterval(poll_interval);
+        poll_interval = null;
+    }
 
-function ws_connect(evt) {
     ws_connected = true;
+    ws_lost_connection = false;
     socket.send('set client "zxw_web"/version="1.0.0"\r\n');
 }
 
-
-function ws_error(evt) {
-
+function update_live_status(icon, message) {
+    e_live_status.attr('data-original-title', message);
+    e_live_status.attr('class', 'fm_status_' + icon);
+    e_live_status.tooltip();
 }
 
+function ws_connect(evt) {
+    update_live_status('green', 'Connected');
+    finish_connection();
+}
+
+function wss_connect(evt) {
+    update_live_status('green', 'Connected (wss fallback)');
+    finish_connection();
+}
+
+function ws_error(evt) { }
 
 function start_polling() {
+
+    if (poll_interval != null)
+        window.clearInterval(poll_interval);
+
     // Refresh live data every 48 seconds.
-    window.setInterval(function(){
-        poll_live_data();
-    }, 30000);
+    poll_interval = window.setInterval(function(){
+            poll_live_data();
+        }, 30000);
 }
 
 
@@ -121,27 +149,59 @@ function attempt_ws_connect() {
     socket.onerror = ws_error;
     socket.onclose = function(evt) {
         if (!ws_connected) {
+            console.log('ws Connect failed');
+            update_live_status('grey',
+                'Connect failed. Attempting wss fallback...');
             attempt_wss_connect();
+        } else {
+            console.log('ws Connection lost');
+            ws_connected = false;
+            ws_lost_connection = true;
+            update_live_status('grey',
+                'Lost connection. Attempting reconnect...');
+            connect_live()
         }
     };
+}
+
+function attempt_reconnect() {
+    update_live_status('yellow', 'Attempting reconnect...');
+    connect_live();
 }
 
 
 function attempt_wss_connect() {
     socket = new WebSocket(wss_uri);
     socket.onmessage = ws_data_arrived;
-    socket.onopen = ws_connect;
+    socket.onopen = wss_connect;
     socket.onerror = ws_error;
     socket.onclose = function(evt) {
         if (!ws_connected) {
+            if (ws_lost_connection) {
+                // We've lost the connection and reconnect failed. Re-schedule
+                // a connect later.
+                console.log('wss Connection lost');
+                setTimeout(function(){attempt_reconnect()},60000);
+                update_live_status('yellow',
+                    'Reconnect failed. Retrying in one minute.');
+            } else {
+                console.log('wss Connect failed');
+                update_live_status('yellow',
+                    'Connect failed. Polling for updates every 30 seconds.');
+            }
             start_polling();
+        } else {
+            ws_connected = false;
+            ws_lost_connection = true;
+            update_live_status('grey',
+                'Lost connection. Attempting reconnect...');
+            connect_live()
         }
     };
 }
 
-
-if (live_auto_refresh) {
-     poll_live_data();
+function connect_live() {
+    poll_live_data();
 
     if (window.MozWebSocket) {
          window.WebSocket = window.MozWebSocket;
@@ -153,13 +213,18 @@ if (live_auto_refresh) {
             attempt_ws_connect();
         else if (wss_uri != null)
             attempt_wss_connect();
-        else
+        else {
+            update_live_status('green',
+                'Updating automatically every 30 seconds.');
             start_polling();
+        }
     } else {
+        update_live_status('yellow',
+            'Browser too old for instant updates. Polling for updates every ' +
+                '30 seconds.');
          start_polling();
     }
 }
-
 
 var wind_directions = [
     "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW",
@@ -307,3 +372,5 @@ function refresh_records() {
              });
 }
 
+if (live_auto_refresh)
+    connect_live();

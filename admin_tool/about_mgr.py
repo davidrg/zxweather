@@ -50,6 +50,19 @@ template_start = """<!DOCTYPE html>
 """
 
 template_end = """    <!-- END_USER_CONTENT -->
+
+        <!-- Don't remove this attribution stuff unless you buy licenses
+             for the icons. -->
+        <p>
+            Some icons are Copyright ©
+            <a href="http://p.yusukekamiyamane.com/">Yusuke Kamiyamane</a>.
+            All rights reserved. Licensed under the
+            <a href="http://creativecommons.org/licenses/by/3.0">Creative
+                Commons Attribution 3.0 license</a>. Some icons are from
+            <a href="http://glyphicons.com">Glyph Icons</a> and are available
+            under the <a href="http://creativecommons.org/licenses/by/3.0">
+            Creative Commons Attribution 3.0 license</a>.
+        </p>
     </div>
     <script type="text/javascript" src="/js/jquery.min.js"></script>
     <script type="text/javascript">
