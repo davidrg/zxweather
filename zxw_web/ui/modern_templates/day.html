@@ -33,7 +33,15 @@
     {%- if data.current_data %}
         <div class="row">
             <div class="span6">
-                <h2 id="current">Conditions as of <span id="current_time">{{ data.current_data_ts }}</span></h2>
+                <h2 style="float: left;">Current Conditions</h2>
+                <div style="float: right; padding-top: 12px; padding-left: 5px;">
+                    <div id="live_status" class="fm_status_grey"
+                         data-toggle="tooltip" data-placement="top"
+                         title="Connecting..."></div>
+                </div>
+                <div style="float: right; padding-top: 12px;">
+                    Time: <span id="current_time"></span>
+                </div>
                 <div id="current_conditions">
                     <table  class="table table-bordered">
                         <thead>
@@ -74,11 +82,17 @@
                         <tr>
                             <td>Wind Direction</td>
                             <td id="live_wind_direction"></td>
-                        </tr> {#
-                        <tr>
-                            <td>Rainfall</td>
-                            <td>{{ data.current_data.rainfall|round(1) }} mm</td>
-                        </tr> #}
+                        </tr>
+                        {%  if hw_type == 'DAVIS' %}
+                            <tr>
+                                <td>Rain Rate</td>
+                                <td id="rain_rate"></td>
+                            </tr>
+                            <tr>
+                                <td>Current Storm Rain</td>
+                                <td id="storm_rain"></td>
+                            </tr>
+                        {% endif %}
                         </tbody>
                     </table>
                 </div>
