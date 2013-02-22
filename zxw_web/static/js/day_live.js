@@ -78,7 +78,6 @@ function live_data_arrived(data) {
 }
 
 function poll_live_data() {
-    console.log('Poll...');
     $.getJSON(live_url, function (data) {
         refresh_live_data(data);
     }).error(function() {
@@ -106,7 +105,7 @@ function finish_connection() {
         window.clearInterval(poll_interval);
         poll_interval = null;
     }
-
+    ws_state = 'conn';
     ws_connected = true;
     ws_lost_connection = false;
     socket.send('set client "zxw_web"/version="1.0.0"\r\n');
@@ -149,12 +148,10 @@ function attempt_ws_connect() {
     socket.onerror = ws_error;
     socket.onclose = function(evt) {
         if (!ws_connected) {
-            console.log('ws Connect failed');
             update_live_status('grey',
                 'Connect failed. Attempting wss fallback...');
             attempt_wss_connect();
         } else {
-            console.log('ws Connection lost');
             ws_connected = false;
             ws_lost_connection = true;
             update_live_status('grey',
@@ -180,12 +177,10 @@ function attempt_wss_connect() {
             if (ws_lost_connection) {
                 // We've lost the connection and reconnect failed. Re-schedule
                 // a connect later.
-                console.log('wss Connection lost');
                 setTimeout(function(){attempt_reconnect()},60000);
                 update_live_status('yellow',
                     'Reconnect failed. Retrying in one minute.');
             } else {
-                console.log('wss Connect failed');
                 update_live_status('yellow',
                     'Connect failed. Polling for updates every 30 seconds.');
             }
