@@ -72,6 +72,9 @@ function live_data_arrived(data) {
             'forecast_icon': parseInt(parts[17]),
             'forecast_rule': parseInt(parts[18])
         };
+
+        if (result['davis']['current_storm_date'] == 'None')
+            result['davis']['current_storm_date'] = null;
     }
 
     refresh_live_data(result);
@@ -81,10 +84,10 @@ function poll_live_data() {
     $.getJSON(live_url, function (data) {
         refresh_live_data(data);
     }).error(function() {
-                 $("#cc_refresh_failed").show();
-                 $("#current_conditions").hide();
-                 $("#cc_stale").hide();
-             });
+            $("#cc_refresh_failed").show();
+            $("#current_conditions").hide();
+            $("#cc_stale").hide();
+        });
 }
 
 
@@ -136,8 +139,8 @@ function start_polling() {
 
     // Refresh live data every 48 seconds.
     poll_interval = window.setInterval(function(){
-            poll_live_data();
-        }, 30000);
+        poll_live_data();
+    }, 30000);
 }
 
 
@@ -199,7 +202,7 @@ function connect_live() {
     poll_live_data();
 
     if (window.MozWebSocket) {
-         window.WebSocket = window.MozWebSocket;
+        window.WebSocket = window.MozWebSocket;
     }
 
     if(window.WebSocket) {
@@ -217,7 +220,7 @@ function connect_live() {
         update_live_status('yellow',
             'Browser too old for instant updates. Polling for updates every ' +
                 '30 seconds.');
-         start_polling();
+        start_polling();
     }
 }
 
@@ -260,6 +263,8 @@ function refresh_live_data(data) {
         var average_wind_speed = data['average_wind_speed'].toFixed(1);
         var hw_type = data['hw_type'];
         var wind_direction = data['wind_direction'];
+        var rain_rate = 0;
+        var current_storm_rain = null;
 
         var bar_trend = '';
 
@@ -275,6 +280,14 @@ function refresh_live_data(data) {
                 bar_trend = ' (rising slowly)';
             else if (bar_trend_val == 60)
                 bar_trend = ' (rising rapidly)';
+
+            rain_rate = data['davis']['rain_rate'].toFixed(1);
+
+            var storm_rain = data['davis']['storm_rain'].toFixed(1);
+            var storm_date = data['davis']['current_storm_date'];
+            if (storm_date != null) {
+                current_storm_rain = storm_rain + ' mm from ' + storm_date;
+            }
         }
 
         // Icons
@@ -324,6 +337,15 @@ function refresh_live_data(data) {
         $("#live_wind_direction").html(wind_direction);
         $("#current_time").html(data['time_stamp']);
 
+        if (hw_type == 'DAVIS') {
+            $('#rain_rate').html(rain_rate + ' mm/h');
+            var e_storm_rain = $('#storm_rain');
+            if (current_storm_rain != null)
+                e_storm_rain.html(current_storm_rain);
+            else
+                e_storm_rain.html('--');
+        }
+
     }
     previous_live = data
 }
@@ -361,10 +383,10 @@ function refresh_records() {
         $("#tot_rainfall").html(data['total_rainfall'].toFixed(1));
         $("#btn_records_refresh").button('reset');
     }).error(function() {
-                 $("#records_table").hide();
-                 $("#rec_refresh_failed").show();
-                 $("#btn_records_refresh").button('reset');
-             });
+            $("#records_table").hide();
+            $("#rec_refresh_failed").show();
+            $("#btn_records_refresh").button('reset');
+        });
 }
 
 if (live_auto_refresh)
