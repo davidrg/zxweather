@@ -3,6 +3,9 @@
 {% extends "base.html" %}
 {% block title %}Weather for {{ data.date_stamp }}{% endblock %}
 {% block head %}
+    {%- if data.current_data %}
+    <link rel="stylesheet" href="/css/zxweather.css" type="text/css"/>
+    {% endif %}
 {% endblock %}
 {% block content %}
     <header>
@@ -40,7 +43,7 @@
                          title="Connecting..."></div>
                 </div>
                 <div style="float: right; padding-top: 12px;">
-                    Time: <span id="current_time"></span>
+                    Time: <span id="current_time">{{ data.current_data_ts }}</span>
                 </div>
                 <div id="current_conditions">
                     <table  class="table table-bordered">
