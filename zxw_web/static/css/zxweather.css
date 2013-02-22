@@ -1,0 +1,42 @@
+/* Forecast Icons */
+.fc_clear{
+    background: url('../img/fugue_deriv.png') 0 0;
+    width: 16px; height: 16px; }
+.fc_mostly_cloudy{
+    background: url('../img/fugue_deriv.png') -21px 0;
+    width: 16px; height: 16px; }
+.fc_mostly_cloudy_rain{
+    background: url('../img/fugue_deriv.png') -42px 0;
+    width: 16px; height: 16px; }
+.fc_mostly_cloudy_snow{
+    background: url('../img/fugue_deriv.png') -63px 0;
+    width: 16px; height: 16px; }
+.fc_mostly_cloudy_snow_or_rain{
+    background: url('../img/fugue_deriv.png') -84px 0;
+    width: 16px; height: 16px; }
+.fc_partly_cloudy{
+    background: url('../img/fugue_deriv.png') -105px 0;
+    width: 16px; height: 16px; }
+.fc_partly_cloudy_rain{
+    background: url('../img/fugue_deriv.png') -126px 0;
+    width: 16px; height: 16px; }
+.fc_partly_cloudy_snow{
+    background: url('../img/fugue_deriv.png') -147px 0;
+    width: 16px; height: 16px; }
+.fc_partly_cloudy_snow_or_rain{
+    background: url('../img/fugue_deriv.png') -168px 0;
+    width: 16px; height: 16px; }
+
+/* Status Icons */
+.fm_status_green{
+    background: url('../img/fugue_deriv.png') -189px 0;
+    width: 16px; height: 16px; }
+.fm_status_grey{
+    background: url('../img/fugue_deriv.png') -210px 0;
+    width: 16px; height: 16px; }
+.fm_status_red{
+    background: url('../img/fugue_deriv.png') -231px 0;
+    width: 16px; height: 16px; }
+.fm_status_yellow{
+    background: url('../img/fugue_deriv.png') -252px 0;
+    width: 16px; height: 16px; }

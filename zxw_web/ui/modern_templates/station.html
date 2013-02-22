@@ -17,6 +17,7 @@
 
         }
     </style>
+    <link rel="stylesheet" href="/css/zxweather.css" type="text/css"/>
     {%- endif %}
 {% endblock %}
 {% block content %}
@@ -36,7 +37,17 @@
     <section id="live">
         <div class="row">
             <div class="span6">
-                <h2>Current Conditions</h2>
+                <div style="">
+                    <h2 style="float: left;">Current Conditions</h2>
+                    <div style="float: right; padding-top: 12px; padding-left: 5px;">
+                        <div id="live_status" class="fm_status_grey"
+                             data-toggle="tooltip" data-placement="top"
+                             title="Connecting..."></div>
+                    </div>
+                    <div style="float: right; padding-top: 12px;">
+                        Time: <span id="current_time"></span>
+                    </div>
+                </div>
             </div>
             <div class="span3"><h2>Todays Records</h2></div>
             <div class="span3"><button id="btn_records_refresh" class="btn refreshbutton" onclick="refresh_records()" data-loading-text="loading..."><i class="icon-refresh"></i> Refresh</button></div>
@@ -85,10 +96,20 @@
                         <td>Wind Direction</td>
                         <td id="live_wind_direction"></td>
                     </tr>
+                    {%  if hw_type == 'DAVIS' %}
+                        <tr>
+                            <td>Rain Rate</td>
+                            <td id="rain_rate"></td>
+                        </tr>
+                        <tr>
+                            <td>Current Storm Rain</td>
+                            <td id="storm_rain"></td>
+                        </tr>
+                    {% endif %}
                     </tbody>
                 </table>
-                <p>Time: <span id="current_time"></span></p>
                 </div>
+
                 <div id="cc_stale" style="display: none;">
                     <div class="alert alert-error">
                         <strong>Error:</strong>
@@ -153,6 +174,8 @@
         $("#btn_today_refresh").button('loading');
         $("#btn_7day_refresh").button('loading');
 
+        $('#live_status').tooltip();
+
         // URLs required by day_charts.js and day_live.js
         var live_url = '../../data/{{ station }}/live.json';
         var samples_url = '../../data/{{ station }}/{{ subdir }}current_day_samples.json';
@@ -169,6 +192,8 @@
         {% if ws_uri -%}ws_uri = '{{ ws_uri }}'; {% endif %}
         {% if wss_uri -%}wss_uri = '{{ wss_uri }}'; {% endif %}
         var is_day_page = false;
+
+
     </script>
 
     <script type="text/javascript" src="../../js/day_live.js"></script>
