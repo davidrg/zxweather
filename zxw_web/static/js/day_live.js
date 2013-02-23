@@ -15,6 +15,8 @@ var e_live_status = $('#live_status');
 
 var poll_interval = null;
 
+var davis_forecast_rules = {};
+
 function live_data_arrived(data) {
     var parts = data.split(',');
 
@@ -288,6 +290,46 @@ function refresh_live_data(data) {
             if (storm_date != null) {
                 current_storm_rain = storm_rain + ' mm from ' + storm_date;
             }
+
+            var forecast_icon = data['davis']['forecast_icon'];
+            var e_forecast_icon = $('#forecast_icon');
+            if (forecast_icon == 8)
+                e_forecast_icon.attr('class', 'fc_clear');
+            else if (forecast_icon == 6)
+                e_forecast_icon.attr('class', 'fc_partly_cloudy');
+            else if (forecast_icon == 2)
+                e_forecast_icon.attr('class', 'fc_mostly_cloudy');
+            else if (forecast_icon == 3)
+                e_forecast_icon.attr('class', 'fc_mostly_cloudy_rain');
+            else if (forecast_icon == 18)
+                e_forecast_icon.attr('class', 'fc_mostly_cloudy_snow');
+            else if (forecast_icon == 19)
+                e_forecast_icon.attr('class', 'fc_mostly_cloudy_snow_or_rain');
+            else if (forecast_icon == 7)
+                e_forecast_icon.attr('class', 'fc_partly_cloudy_rain');
+            else if (forecast_icon == 22)
+                e_forecast_icon.attr('class', 'fc_partly_cloudy_snow');
+            else if (forecast_icon == 23)
+                e_forecast_icon.attr('class', 'fc_partly_cloudy_snow_or_rain');
+
+            if (data['davis']['forecast_rule'] in davis_forecast_rules) {
+                $('#forecast_text').html(
+                    davis_forecast_rules[data['davis']['forecast_rule']]);
+            }
+
+            if (!is_day_page) {
+                // The battery alert panels are only on the station overview page.
+                var con_batt_voltage = data['davis']['console_batt'];
+                if (con_batt_voltage < 3.5) {
+                    $('#con_batt_alert').show();
+                    $('#con_voltage').html(con_batt_voltage);
+                }
+
+                var tx_batt_status = data['davis']['tx_batt'];
+                if (tx_batt_status > 0) {
+                    $('#tx_batt_alert').show();
+                }
+            }
         }
 
         // Icons
@@ -391,3 +433,11 @@ function refresh_records() {
 
 if (live_auto_refresh)
     connect_live();
+
+if (hw_type == 'DAVIS') {
+    // Load Davis forecast rules
+    $.getJSON(forecast_rules_uri, function(data) {
+        console.log(data);
+        davis_forecast_rules = data;
+    });
+}
