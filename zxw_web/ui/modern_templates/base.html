@@ -2,9 +2,15 @@
 <html lang="en">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <!-- Anything older than IE8 really can't handle anything except the basic
+         HTML interface. So we'll redirect straight away. -->
+    <!--[if lt IE 8]>
+    <meta http-equiv="refresh" content="0;URL='{{ switch_url['b'] }}'">
+    <![endif]-->
     <title>{% block title %}{% endblock %} - {{ sitename }}</title>
     <meta name="HandheldFriendly" content="true" />
     <meta name="viewport" content="width=device-width, height=device-height, user-scalable=no" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" >
     <link rel="stylesheet" href="/css/bootstrap.css" type="text/css"/>
     <style>
         body {
@@ -37,6 +43,7 @@
         </style>
     {%- endif %}
     {% block head %} {% endblock %}
+    {% if ui == 'm' %}<script type="text/javascript" src="/js/modernizr-canvas.min.js"></script>{% endif %}
 </head>
 <body>
 {#- ###################### Some macros ###################### -#}
@@ -111,6 +118,26 @@
 
     <div class="container">
         {% if ui and ui == 'm' -%}
+        <!--[if IE 8]>
+        <div class="alert">
+        <button type="button" class="close" data-dismiss="alert">×</button>
+        <strong>Unsupported browser!</strong>
+        Internet Explorer 8 is too old to draw the charts on this page. Please
+        upgrade your browser or try one of the other interfaces:
+        <ul>
+            <li><a href="{{ switch_url['s'] }}">Alternate</a> - This still provides interactive charts but they will load very slowly and may lock up your browser window briefly.
+            <li><a href="{{ switch_url['b'] }}">Basic HTML</a> - A very basic interface compatible with Internet Explorer 4+ and Netscape 4.04+
+        </ul>
+        </div>
+        <![endif]-->
+        <div class="alert" style="display:none;" id="canvas_missing">
+            <button type="button" class="close" data-dismiss="alert">×</button>
+            <strong>Unsupported browser!</strong>
+            Your browser does not support the HTML5 Canvas feature. Please upgrade to a more
+            modern browser or try one of the other interfaces:<br><br>
+            <a href="{{ switch_url['s'] }}" class="btn">Switch to Alternate Interface</a>
+            <a href="{{ switch_url['b'] }}" class="btn">Switch to Basic HTML Interface</a>
+        </div>
         <div class="alert alert-info">
             <button type="button" class="close" data-dismiss="alert">×</button>
             <strong>Note!</strong> This is an experimental user interface that
@@ -122,6 +149,21 @@
             document.getElementById('std_ui_link').href = window.location.href.replace('/m/','/s/');
         </script>
         {%- endif -%}
+        {% if ui and ui == 's' %}
+        <!--[if IE 8]>
+        <div class="alert">
+        <button type="button" class="close" data-dismiss="alert">×</button>
+        <strong>Unsupported browser!</strong>
+        The charts on this page have been disabled because Internet Explorer 8
+        draws them very slowly and may lock up for a few seconds as they are
+        drawn. You should upgrade to a modern web browser or switch to the
+        Basic HTML interface.
+
+        <p><br><button id="ie8_enable_charts" onclick="ie8_enable_charts();" class="btn" data-dismiss="alert">Enable Charts</button>
+        <a class="btn" href="{{ switch_url['b'] }}">Switch to the Basic HTML interface</a>
+        </div>
+        <![endif]-->
+        {% endif %}
         {%- block content %}{% endblock %}
     </div>
 

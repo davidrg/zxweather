@@ -10,7 +10,7 @@ from months import month_name
 
 from cache import day_cache_control
 from database import get_live_data, get_daily_records, total_rainfall_in_last_7_days, day_exists, get_live_indoor_data, get_station_id, in_archive_mode, get_station_type_code, get_station_name, get_stations
-from ui import get_nav_urls, make_station_switch_urls
+from ui import get_nav_urls, make_station_switch_urls, build_alternate_ui_urls
 import os
 from ui import html_file, month_number, validate_request
 from url_util import relative_url
@@ -135,7 +135,7 @@ def get_day_page(ui, station, day):
     :type day: date
     :return: View data
     """
-    current_location = '/s/' + station + '/' + str(day.year) + '/' +\
+    current_location = '/*/' + station + '/' + str(day.year) + '/' +\
                        month_name[day.month] + '/' + str(day.day) + '/'
 
     station_id = get_station_id(station)
@@ -199,10 +199,14 @@ def get_day_page(ui, station, day):
                                     archive_mode=in_archive_mode(station_id),
                                     ws_uri=config.ws_uri,
                                     wss_uri=config.wss_uri,
-                                    page_data=page_data)
+                                    page_data=page_data,
+                                    switch_url=build_alternate_ui_urls(
+                                        current_location))
     else:
         return basic_templates.day(data=data,
-                            station=station)
+                            station=station,
+                            switch_url=build_alternate_ui_urls(
+                                current_location))
 
 class day:
     """
@@ -268,7 +272,7 @@ def get_indoor_day(ui, station, day):
     :type day: date
     :return: View data
     """
-    current_location = '/s/' + station + '/' + str(day.year) + '/' +\
+    current_location = '/*/' + station + '/' + str(day.year) + '/' +\
                        month_name[day.month] + '/' + str(day.day) + '/indoor.html'
 
     station_id = get_station_id(station)
@@ -311,9 +315,12 @@ def get_indoor_day(ui, station, day):
             sitename=config.site_name,
             ui=ui,
             archive_mode=in_archive_mode(station_id),
-            page_data=page_data)
+            page_data=page_data,
+            switch_url=build_alternate_ui_urls(current_location))
     else:
-        return basic_templates.indoor_day(data=data)
+        return basic_templates.indoor_day(data=data,
+                                          switch_url=build_alternate_ui_urls(
+                                              current_location))
 
 class indoor_day:
     """

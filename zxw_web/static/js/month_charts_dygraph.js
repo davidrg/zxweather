@@ -34,4 +34,21 @@ function drawCharts() {
     });
 }
 
-drawCharts();
+if (Modernizr.canvas)
+    drawCharts();
+else {
+    var msg = '<strong>Unsupported browser!</strong> These charts can not be drawn because your browser does not support the required features.';
+    $('#lcr_msg').html(msg);
+    $('#lc_msg').html(msg);
+
+    // Only show the Canvas warning if the user isn't using IE8. For IE8 we have
+    // a different warning message as the Alternate interface has some performance
+    // issues there too.
+    if (!($.browser.msie && ($.browser.version == '8.0' || $.browser.version == '7.0')))
+        $('#canvas_missing').show();
+
+    $('#lcr_obsolete_browser').show();
+    $('#lc_obsolete_browser').show();
+    $('#month_charts').hide();
+    $('#records_charts').hide();
+}

@@ -40,27 +40,41 @@
 
     <section id="daily-charts">
         <h2>1-day Charts</h2>
-        <div class="row">
-            <div class="span6">
-                <div id="chart_temperature_div" class="chart">
-                    <img src="/images/loading.gif" alt="loading"/>
+        <div id="day_charts_cont">
+            <div class="row">
+                <div class="span6">
+                    <div id="chart_temperature_div" class="chart">
+                        <img src="/images/loading.gif" alt="loading"/>
+                    </div>
+                </div>
+                <div class="span6">
+                    <div id="chart_humidity_div" class="chart">
+                        <img src="/images/loading.gif" alt="loading"/>
+                    </div>
                 </div>
             </div>
-            <div class="span6">
-                <div id="chart_humidity_div" class="chart">
-                    <img src="/images/loading.gif" alt="loading"/>
-                </div>
+        </div>
+        <div id="lc_obsolete_browser" style="display: none;">
+            <div class="alert alert-warning" id="lc_msg">
+                Charts disabled due to obsolete browser.
             </div>
         </div>
     </section>
 
     <section>
         <h2>7-day Charts</h2>
-        <div id="chart_7_temperature_div" class="chart">
-            <img src="/images/loading.gif" alt="loading"/>
+        <div id="7day-charts">
+            <div id="chart_7_temperature_div" class="chart">
+                <img src="/images/loading.gif" alt="loading"/>
+            </div>
+            <div id="chart_7_humidity_div" class="chart">
+                <img src="/images/loading.gif" alt="loading"/>
+            </div>
         </div>
-        <div id="chart_7_humidity_div" class="chart">
-            <img src="/images/loading.gif" alt="loading"/>
+        <div id="lc7_obsolete_browser" style="display: none;">
+            <div class="alert alert-warning" id="lc7_msg">
+                Charts disabled due to obsolete browser.
+            </div>
         </div>
     </section>
 

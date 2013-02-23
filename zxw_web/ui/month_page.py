@@ -10,7 +10,7 @@ import config
 from months import month_name, month_number
 from cache import month_cache_control
 from database import month_exists, get_station_id, in_archive_mode, get_station_name, get_stations
-from ui import get_nav_urls, make_station_switch_urls
+from ui import get_nav_urls, make_station_switch_urls, build_alternate_ui_urls
 import os
 from ui import validate_request, html_file
 from url_util import relative_url
@@ -193,7 +193,7 @@ def get_month(ui, station, year, month):
     :type month: integer
     :return: View data
     """
-    current_location = '/s/' + station + '/' + str(year) + '/' +\
+    current_location = '/*/' + station + '/' + str(year) + '/' +\
                        month_name[month] + '/'
 
     station_id = get_station_id(station)
@@ -263,9 +263,13 @@ def get_month(ui, station, year, month):
         return modern_templates.month(nav=nav_urls, data=data,dataurls=urls,
                                       ui=ui, sitename=config.site_name,
                                       archive_mode=in_archive_mode(station_id),
-                                      page_data=page_data)
+                                      page_data=page_data,
+                                      switch_url=build_alternate_ui_urls(
+                                          current_location))
     else:
-        return basic_templates.month(data=data)
+        return basic_templates.month(data=data,
+                                     switch_url=build_alternate_ui_urls(
+                                         current_location))
 
 
 class month:

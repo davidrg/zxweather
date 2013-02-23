@@ -9,7 +9,7 @@ import config
 from months import month_name
 from cache import year_cache_control
 from database import year_exists, get_station_id, in_archive_mode, get_station_name, get_stations
-from ui import get_nav_urls, make_station_switch_urls
+from ui import get_nav_urls, make_station_switch_urls, build_alternate_ui_urls
 import os
 from ui import validate_request, html_file
 
@@ -97,7 +97,7 @@ def get_year(ui,station, year):
     :type year: integer
     :return: View data
     """
-    current_location = '/s/' + station + '/' + str(year) + '/'
+    current_location = '/*/' + station + '/' + str(year) + '/'
 
     station_id = get_station_id(station)
 
@@ -162,9 +162,13 @@ def get_year(ui,station, year):
                                      sitename=config.site_name,
                                      ui=ui,
                                      archive_mode=in_archive_mode(station_id),
-                                     page_data=page_data)
+                                     page_data=page_data,
+                                     switch_url=build_alternate_ui_urls(
+                                         current_location))
     else:
-        return basic_templates.year(data=data)
+        return basic_templates.year(data=data,
+                                    switch_url=build_alternate_ui_urls(
+                                        current_location))
 
 class year:
     """

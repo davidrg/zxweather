@@ -437,7 +437,6 @@ if (live_auto_refresh)
 if (hw_type == 'DAVIS') {
     // Load Davis forecast rules
     $.getJSON(forecast_rules_uri, function(data) {
-        console.log(data);
         davis_forecast_rules = data;
     });
 }
