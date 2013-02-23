@@ -66,10 +66,10 @@ void ForecastWidget::refreshLiveData(LiveDataSet lds) {
         iconFile = "partly_cloudy_rain";
         break;
     case 22:
-        iconFile = "partly_cloudy_show";
+        iconFile = "partly_cloudy_snow";
         break;
     case 23:
-        iconFile = "partly_cloudy_show_or_rain";
+        iconFile = "partly_cloudy_snow_or_rain";
         break;
     default:
         iconFile = "";
