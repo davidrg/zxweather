@@ -11,7 +11,7 @@
 
 
 /* Status Icons */
-.fm_status{ background: url('../img/fugue_deriv.png') -210px 0; width: 16px; height: 16px; }
+.fm_status_green{ background: url('../img/fugue_deriv.png') -210px 0; width: 16px; height: 16px; }
 .fm_status_grey{ background: url('../img/fugue_deriv.png') -231px 0; width: 16px; height: 16px; }
 .fm_status_red{ background: url('../img/fugue_deriv.png') -252px 0; width: 16px; height: 16px; }
 .fm_status_yellow{ background: url('../img/fugue_deriv.png') -273px 0; width: 16px; height: 16px; }
