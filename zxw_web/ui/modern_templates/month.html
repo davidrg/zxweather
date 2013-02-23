@@ -95,58 +95,71 @@
 
     <section id="charts">
     <h2>Monthly Charts</h2>
-        <div id="chart_temperature_tdp_div" class="chart">
-            <div class="bg_loading"></div>
+        <div id="month_charts">
+            <div id="chart_temperature_tdp_div" class="chart">
+                <div class="bg_loading"></div>
+            </div>
+            <div id="chart_temperature_awc_div" class="chart">
+                <div class="bg_loading"></div>
+            </div>
+            <div id="chart_humidity_div" class="chart">
+                <div class="bg_loading"></div>
+            </div>
+            <div id="chart_pressure_div" class="chart">
+                <div class="bg_loading"></div>
+            </div>
+            <div id="chart_wind_speed_div" class="chart">
+                <div class="bg_loading"></div>
+            </div>
         </div>
-        <div id="chart_temperature_awc_div" class="chart">
-            <div class="bg_loading"></div>
-        </div>
-        <div id="chart_humidity_div" class="chart">
-            <div class="bg_loading"></div>
-        </div>
-        <div id="chart_pressure_div" class="chart">
-            <div class="bg_loading"></div>
-        </div>
-        <div id="chart_wind_speed_div" class="chart">
-            <div class="bg_loading"></div>
+        <div id="lc_obsolete_browser" style="display: none;">
+            <div class="alert alert-warning" id="lc_msg">
+                Charts disabled due to obsolete browser.
+            </div>
         </div>
     </section>
 
     <section id="daily_record_charts">
         <h2>Daily Records</h2>
-
-        <div class="row">
-            <div class="span6">
-                <div id="chart_rec_temperature" class="chart">
-                    <div class="bg_loading"></div>
+        <div id="records_charts">
+            <div class="row">
+                <div class="span6">
+                    <div id="chart_rec_temperature" class="chart">
+                        <div class="bg_loading"></div>
+                    </div>
+                </div>
+                <div class="span6">
+                    <div id="chart_rec_pressure" class="chart">
+                        <div class="bg_loading"></div>
+                    </div>
                 </div>
             </div>
-            <div class="span6">
-                <div id="chart_rec_pressure" class="chart">
-                    <div class="bg_loading"></div>
+            <div class="row">
+                <div class="span6">
+                    <div id="chart_rec_humidity" class="chart">
+                        <div class="bg_loading"></div>
+                    </div>
+                </div>
+                <div class="span6">
+                    <div id="chart_rainfall" class="chart">
+                        <div class="bg_loading"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="span6">
+                    <div id="chart_rec_wind_speed" class="chart">
+                        <div class="bg_loading"></div>
+                    </div>
+                </div>
+                <div class="span6">
+
                 </div>
             </div>
         </div>
-        <div class="row">
-            <div class="span6">
-                <div id="chart_rec_humidity" class="chart">
-                    <div class="bg_loading"></div>
-                </div>
-            </div>
-            <div class="span6">
-                <div id="chart_rainfall" class="chart">
-                    <div class="bg_loading"></div>
-                </div>
-            </div>
-        </div>
-        <div class="row">
-            <div class="span6">
-                <div id="chart_rec_wind_speed" class="chart">
-                    <div class="bg_loading"></div>
-                </div>
-            </div>
-            <div class="span6">
-
+        <div id="lcr_obsolete_browser" style="display: none;">
+            <div class="alert alert-warning" id="lcr_msg">
+                Charts disabled due to obsolete browser.
             </div>
         </div>
     </section>

@@ -13,6 +13,7 @@ import web
 
 __author__ = 'David Goodwin'
 
+
 def get_nav_urls(station, current_url):
     """
     Gets a dict containing standard navigation URLs relative to the
@@ -26,7 +27,7 @@ def get_nav_urls(station, current_url):
     now = datetime.now().date()
     yesterday = now - timedelta(1)
 
-    home = '/s/' + station + '/'
+    home = '/*/' + station + '/'
     yesterday = home + str(yesterday.year) + '/' +\
                 month_name[yesterday.month] + '/' +\
                 str(yesterday.day) + '/'
@@ -130,6 +131,35 @@ def make_station_switch_urls(station_list, current_url, validation_func=None,
 
 # Register available UIs
 uis = ['s','b','m']
+
+
+def build_alternate_ui_urls(current_url):
+    """
+    Builds URLs to switch to the current URL in all available user interfaces.
+    :param current_url:
+    :return:
+    """
+    global uis
+
+    # The first two segments in the URL will be '' and 's'. We want everything
+    # after this
+    page = '/'.join(current_url.split('/')[2:])
+
+    switch_urls = {}
+
+    for ui in uis:
+        url = '/{0}/{1}'.format(ui, page)
+
+        # A little hack to redirect from the modern station overview page to
+        # the basic current day page instead of the basic station overview page.
+        if len(url.split('/')) == 4 and ui == 'b':
+            if url.split('/')[3] == '':
+                url += 'now'
+
+        switch_urls[ui] = relative_url(current_url, url)
+
+    return switch_urls
+
 
 def validate_request(ui=None,station=None, year=None, month=None, day=None):
     """

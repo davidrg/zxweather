@@ -73,9 +73,6 @@ function drawRecordsLineCharts(record_data,
     wind_speed_chart.draw(wind_speed, wind_speed_options);
 }
 
-
-google.load("visualization", "1", {packages:["corechart"]});
-google.setOnLoadCallback(drawCharts);
 function drawCharts() {
     $.getJSON(daily_records_url, function(data) {
         var record_data = new google.visualization.DataTable(data);
@@ -126,3 +123,32 @@ function drawCharts() {
                               document.getElementById('chart_rec_wind_speed'));
     });
 }
+
+var auto_plot = true;
+if ($.browser.msie && ($.browser.version == '8.0' || $.browser.version == '7.0')) {
+    // On my i7 box IE8 locks up for a second or two as it tries to draw the
+    // charts. For this reason we won't draw them automatically - instead we
+    // warn the user and make them click a button to get the charts.
+    // When IE8 is in IE7 compatibility mode it reports itself as IE 7 so we
+    // check for that too.
+    auto_plot = false;
+}
+
+google.load("visualization", "1", {packages:["corechart"]});
+if (auto_plot)
+    google.setOnLoadCallback(drawCharts);
+else {
+    $("#records_charts").hide();
+    $('#lcr_obsolete_browser').show();
+}
+
+// This is called by the 'Enable Charts' button on the IE8 performance alert.
+function ie8_enable_charts() {
+    $('#ie8_enable_charts').attr('disabled','');
+    $("#records_charts").show();
+    $('#lcr_obsolete_browser').hide();
+    drawCharts();
+    return true;
+}
+
+

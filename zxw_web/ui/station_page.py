@@ -10,7 +10,7 @@ import config
 from database import get_daily_records, get_years, total_rainfall_in_last_7_days, day_exists, get_station_id, get_station_name, in_archive_mode, get_station_type_code, get_stations
 import os
 from months import month_name
-from ui import get_nav_urls, make_station_switch_urls
+from ui import get_nav_urls, make_station_switch_urls, build_alternate_ui_urls
 from ui import validate_request, html_file
 
 __author__ = 'David Goodwin'
@@ -33,7 +33,7 @@ def get_station_standard(ui, station):
     :return: View data.
     """
 
-    current_location = '/s/' + station + '/'
+    current_location = '/*/' + station + '/'
 
     station_id = get_station_id(station)
 
@@ -85,7 +85,9 @@ def get_station_standard(ui, station):
                                     page_data=page_data,
                                     archive_mode=in_archive_mode(station_id),
                                     ws_uri=config.ws_uri,
-                                    wss_uri=config.wss_uri)
+                                    wss_uri=config.wss_uri,
+                                    switch_url=build_alternate_ui_urls(
+                                        current_location))
 
 def get_station_basic(station):
     """

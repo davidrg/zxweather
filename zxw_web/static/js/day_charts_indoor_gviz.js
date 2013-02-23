@@ -5,8 +5,6 @@
  * Time: 5:05 PM
  */
 
-google.load("visualization", "1", {packages:["corechart"]});
-google.setOnLoadCallback(drawCharts);
 function drawCharts() {
 
     function drawAllCharts(data,
@@ -87,4 +85,35 @@ function drawCharts() {
                       document.getElementById('chart_7_humidity_div')
         );
     });
+}
+
+var auto_plot = true;
+if ($.browser.msie && ($.browser.version == '8.0' || $.browser.version == '7.0')) {
+    // On my i7 box IE8 locks up for a second or two as it tries to draw the
+    // charts. For this reason we won't draw them automatically - instead we
+    // warn the user and make them click a button to get the charts.
+    // When IE8 is in IE7 compatibility mode it reports itself as IE 7 so we
+    // check for that too.
+    auto_plot = false;
+}
+
+google.load("visualization", "1", {packages:["corechart"]});
+if (auto_plot)
+    google.setOnLoadCallback(drawCharts);
+else {
+    $("#7day-charts").hide();
+    $("#day_charts_cont").hide();
+    $('#lc7_obsolete_browser').show();
+    $('#lc_obsolete_browser').show();
+}
+
+// This is called by the 'Enable Charts' button on the IE8 performance alert.
+function ie8_enable_charts() {
+    $('#ie8_enable_charts').attr('disabled','');
+    $("#7day-charts").show();
+    $("#day_charts_cont").show();
+    $('#lc7_obsolete_browser').hide();
+    $('#lc_obsolete_browser').hide();
+    drawCharts();
+    return true;
 }
