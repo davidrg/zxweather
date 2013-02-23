@@ -3,9 +3,7 @@
 {% extends "base.html" %}
 {% block title %}Weather for {{ data.date_stamp }}{% endblock %}
 {% block head %}
-    {%- if data.current_data %}
     <link rel="stylesheet" href="/css/zxweather.css" type="text/css"/>
-    {% endif %}
 {% endblock %}
 {% block content %}
     <header>
@@ -32,104 +30,60 @@
         <hr>
     </header>
 
-    <section>
-    {%- if data.current_data %}
+    {% if data.current_data %}
+        {#- We are on the date for today. That means we should show live data, etc. -#}
+        {% include 'current_day_live.html' %}
+    {% else %}
+        {#- We're looking at archive data. We need to just show the records table. -#}
+    <section id="records">
         <div class="row">
             <div class="span6">
-                <h2 style="float: left;">Current Conditions</h2>
-                <div style="float: right; padding-top: 12px; padding-left: 5px;">
-                    <div id="live_status" class="fm_status_grey"
-                         data-toggle="tooltip" data-placement="top"
-                         title="Connecting..."></div>
-                </div>
-                <div style="float: right; padding-top: 12px;">
-                    Time: <span id="current_time">{{ data.current_data_ts }}</span>
-                </div>
-                <div id="current_conditions">
-                    <table  class="table table-bordered">
-                        <thead>
-                        <tr>
-                            <th>Sensor</th>
-                            <th>Value</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        <tr>
-                            <td>Temperature</td>
-                            <td id="live_temperature"></td>
-                        </tr>
-                        <tr>
-                            <td>Apparent Temperature</td>
-                            <td id="live_apparent_temperature"></td>
-                        </tr>
-                        <tr>
-                            <td>Wind Chill</td>
-                            <td id="live_wind_chill"></td>
-                        </tr>
-                        <tr>
-                            <td>Dew Point</td>
-                            <td id="live_dew_point"></td>
-                        </tr>
-                        <tr>
-                            <td>Humidity</td>
-                            <td id="live_relative_humidity"></td>
-                        </tr>
-                        <tr>
-                            <td>Barometer</td>
-                            <td id="live_absolute_pressure"></td>
-                        </tr>
-                        <tr>
-                            <td>Wind Speed</td>
-                            <td id="live_avg_wind_speed"></td>
-                        </tr>
-                        <tr>
-                            <td>Wind Direction</td>
-                            <td id="live_wind_direction"></td>
-                        </tr>
-                        {%  if hw_type == 'DAVIS' %}
-                            <tr>
-                                <td>Rain Rate</td>
-                                <td id="rain_rate"></td>
-                            </tr>
-                            <tr>
-                                <td>Current Storm Rain</td>
-                                <td id="storm_rain"></td>
-                            </tr>
-                        {% endif %}
-                        </tbody>
-                    </table>
-                </div>
-                <div id="cc_stale" style="display: none;">
-                    <div class="alert alert-error">
-                        <strong>Error:</strong>
-                        No live data available. Live data
-                        has not been refreshed in <span id="cc_data_age"></span> seconds.
-                        The update service has likely stopped.
-                    </div>
-                </div>
-                <div id="cc_refresh_failed" style="display: none;">
-                    <div class="alert alert-warning">
-                        <strong>Warning!</strong>
-                        Live data refresh failed. The server may be down.
-                    </div>
-                </div>
+                <h2>Records</h2>
             </div>
             <div class="span6">
-    {%- else -%}
-        <div class="row"><div class="span6">
-    {%- endif %}
-                <h2 id="records">Records{% if data.current_data %}<button id="btn_records_refresh" class="btn refreshbutton" onclick="refresh_records()" data-loading-text="loading..."><i class="icon-refresh"></i> Refresh</button>{% endif %}</h2>
-                {% include 'day-records-table.html' %}
-    {%- if data.current_data %}
+                {#- This space left blank to keep the records table a sensible size. -#}
             </div>
         </div>
-    {%- else -%}
-        </div><div class="span6"></div></div>
-    {%- endif %}
+        <div class="row">
+            <div class="span6">
+                {% include 'day-records-table.html' %}
+            </div>
+            <div class="span6">
+                {#- This space left blank to keep the records table a sensible size. -#}
+            </div>
+        </div>
+        <div class="row">
+            <div class="span6">
+                <p>Total Rainfall: <span id="tot_rainfall">{{ data.records.total_rainfall|round(1) }}</span>mm</p>
+            </div>
+            <div class="span6">
+                {#- This space left blank to keep the records table a sensible size. -#}
+            </div>
+        </div>
     </section>
+    {% endif %}
 
     <section id="1day">
-        <h2>1-day Charts{% if data.current_data %}<button id="btn_today_refresh" class="btn refreshbutton" onclick="refresh_day_charts()" data-loading-text="loading..."><i class="icon-refresh"></i> Refresh</button>{% endif %}</h2>
+        <div class="row">
+            <div class="span6">
+                {% if data.current_data %}
+                <h2>Today</h2>
+                    <p>Total Rainfall: <span id="tot_rainfall">{{ data.records.total_rainfall|round(1) }}</span>mm</p>
+                {% else %}
+                <h2>1-day Charts</h2>
+                {% endif %}
+            </div>
+            <div class="span6">
+                {% if data.current_data %}
+                    <button id="btn_today_refresh" class="btn refreshbutton"
+                            onclick="refresh_day_charts()"
+                            data-loading-text="loading..."
+                            style="float: right;">
+                        <i class="icon-refresh"></i> Refresh
+                    </button>
+                {% endif %}
+            </div>
+        </div>
         {% include 'day-charts.html' %}
     </section>
 
@@ -161,12 +115,13 @@
         var hw_type = '{{ hw_type }}';
         var ws_uri = null;
         var wss_uri = null;
-        {% if ws_uri -%}ws_uri = '{{ ws_uri }}'; {% endif %};
+        {% if ws_uri -%}ws_uri = '{{ ws_uri }}'; {% endif %}
         {% if wss_uri -%}wss_uri = '{{ wss_uri }}'; {% endif %}
         {%- else -%}
         live_auto_refresh = false;
         {%- endif %}
         var is_day_page = true;
+        {% if hw_type == 'DAVIS' %}var forecast_rules_uri = '../../../../../data/davis_forecast_rules.json';{% endif %}
     </script>
 
     <script type="text/javascript" src="../../../../../js/day_live.js"></script>

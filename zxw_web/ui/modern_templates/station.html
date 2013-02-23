@@ -34,112 +34,31 @@
         {%- endfor %}
     </p>
 {% else %}
-    <section id="live">
-        <div class="row">
-            <div class="span6">
-                <h2 style="float: left;">Current Conditions</h2>
-                <div style="float: right; padding-top: 12px; padding-left: 5px;">
-                    <div id="live_status" class="fm_status_grey"
-                         data-toggle="tooltip" data-placement="top"
-                         title="Connecting..."></div>
-                </div>
-                <div style="float: right; padding-top: 12px;">
-                    Time: <span id="current_time"></span>
-                </div>
-            </div>
-            <div class="span3"><h2>Todays Records</h2></div>
-            <div class="span3"><button id="btn_records_refresh" class="btn refreshbutton" onclick="refresh_records()" data-loading-text="loading..."><i class="icon-refresh"></i> Refresh</button></div>
-        </div>
-        <div class="row">
-            <div class="span6">
-                {# This table is populated from day_live.js -#}
-                <div id="current_conditions">
-                <table class="table table-bordered">
-                    <thead>
-                    <tr>
-                        <th>Sensor</th>
-                        <th>Value</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr>
-                        <td>Temperature</td>
-                        <td id="live_temperature"></td>
-                    </tr>
-                    <tr>
-                        <td>Apparent Temperature</td>
-                        <td id="live_apparent_temperature"></td>
-                    </tr>
-                    <tr>
-                        <td>Wind Chill</td>
-                        <td id="live_wind_chill"></td>
-                    </tr>
-                    <tr>
-                        <td>Dew Point</td>
-                        <td id="live_dew_point"></td>
-                    </tr>
-                    <tr>
-                        <td>Humidity</td>
-                        <td id="live_relative_humidity"></td>
-                    </tr>
-                    <tr>
-                        <td>Barometer</td>
-                        <td id="live_absolute_pressure"></td>
-                    </tr>
-                    <tr>
-                        <td>Wind Speed</td>
-                        <td id="live_avg_wind_speed"></td>
-                    </tr>
-                    <tr>
-                        <td>Wind Direction</td>
-                        <td id="live_wind_direction"></td>
-                    </tr>
-                    {%  if hw_type == 'DAVIS' %}
-                        <tr>
-                            <td>Rain Rate</td>
-                            <td id="rain_rate"></td>
-                        </tr>
-                        <tr>
-                            <td>Current Storm Rain</td>
-                            <td id="storm_rain"></td>
-                        </tr>
-                    {% endif %}
-                    </tbody>
-                </table>
-                </div>
+    {% if hw_type == 'DAVIS' %}
+    <div id="tx_batt_alert" class="alert" style="display: none;">
+        <button type="button" class="close" data-dismiss="alert">&times;</button>
+        <div class="fm_battery_low" style="padding-right: 5px; float: left;"></div>
+        <strong>Warning!</strong> Transmitter battery is low
+    </div>
+    <div id="con_batt_alert" class="alert" style="display: none;">
+        <button type="button" class="close" data-dismiss="alert">&times;</button>
+        <div class="fm_battery_low" style="padding-right: 5px; float: left;"></div>
+        <strong>Warning!</strong> Console battery is low (<span id="con_voltage"></span> V)
+    </div>
+    {% endif %}
 
-                <div id="cc_stale" style="display: none;">
-                    <div class="alert alert-error">
-                        <strong>Error:</strong>
-                        No live data available. Live data
-                        has not been refreshed in <span id="cc_data_age"></span> seconds.
-                        The update service has likely stopped.
-                    </div>
-                </div>
-                <div id="cc_bad" style="display: none;">
-                    <div class="alert alert-error">
-                        <strong>Error:</strong>
-                        No live data available. This is likely due to
-                        misconfiguration.
-                    </div>
-                </div>
-                <div id="cc_refresh_failed" style="display: none;">
-                    <div class="alert alert-warning">
-                        <strong>Warning!</strong>
-                        Live data refresh failed. The server may be down.
-                    </div>
-                </div>
-            </div>
-
-            <div class="span6">
-{#                <h2>Todays Records<button id="btn_records_refresh" class="btn refreshbutton" onclick="refresh_records()" data-loading-text="loading..."><i class="icon-refresh"></i> Refresh</button></h2>#}
-                {% include 'day-records-table.html' %}
-            </div>
-        </div>
-    </section>
+    {% include 'current_day_live.html' %}
 
     <section id="today">
-        <h2 id="daily-charts">Today<button id="btn_today_refresh" class="btn refreshbutton" onclick="refresh_day_charts()" data-loading-text="loading..."><i class="icon-refresh"></i> Refresh</button></h2>
+        <div class="row">
+            <div class="span6">
+                <h2 id="daily-charts">Today</h2>
+                <p>Total Rainfall: <span id="tot_rainfall">{{ data.records.total_rainfall|round(1) }}</span>mm</p>
+            </div>
+            <div class="span6">
+                <button id="btn_today_refresh" class="btn refreshbutton" onclick="refresh_day_charts()" data-loading-text="loading..." style="float: right;"><i class="icon-refresh"></i> Refresh</button>
+            </div>
+        </div>
         {% include 'day-charts.html' %}
     </section>
 
@@ -190,8 +109,7 @@
         {% if ws_uri -%}ws_uri = '{{ ws_uri }}'; {% endif %}
         {% if wss_uri -%}wss_uri = '{{ wss_uri }}'; {% endif %}
         var is_day_page = false;
-
-
+        {% if hw_type == 'DAVIS' %}var forecast_rules_uri = '../../data/davis_forecast_rules.json';{% endif %}
     </script>
 
     <script type="text/javascript" src="../../js/day_live.js"></script>
