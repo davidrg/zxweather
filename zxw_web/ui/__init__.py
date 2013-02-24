@@ -87,10 +87,10 @@ def make_station_switch_urls(station_list, current_url, validation_func=None,
 
             min_ts, max_ts = get_sample_range(station_id)
 
-            earliest_target = '/s/' + code + '/' + str(min_ts.year) + '/' + \
+            earliest_target = '/*/' + code + '/' + str(min_ts.year) + '/' + \
                               month_name[min_ts.month] + '/' + \
                               str(min_ts.day) + '/'
-            latest_target = '/s/' + code + '/' + str(max_ts.year) + '/' + \
+            latest_target = '/*/' + code + '/' + str(max_ts.year) + '/' + \
                             month_name[max_ts.month] + '/' + \
                             str(max_ts.day) + '/'
 
@@ -117,7 +117,7 @@ def make_station_switch_urls(station_list, current_url, validation_func=None,
                                                 latest_date=latest_date,
                                                 latest_url=latest_url)
         else:
-            target = '/s/' + code + '/'
+            target = '/*/' + code + '/'
 
             # The first three segments in the URL will be '', 's' and the station
             # code. We can throw those away to get the new target URL.

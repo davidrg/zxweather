@@ -143,11 +143,8 @@
             <strong>Note!</strong> This is an experimental user interface that
             draws charts a bit differently. It is not finished and
             may malfunction or look odd. If you encounter any unusual behaviour
-            you can go back to the <a id="std_ui_link" href="#">Standard UI</a>.
+            you can go back to the <a href="{{ switch_url['s'] }}">Standard UI</a>.
         </div>
-        <script type="text/javascript">
-            document.getElementById('std_ui_link').href = window.location.href.replace('/m/','/s/');
-        </script>
         {%- endif -%}
         {% if ui and ui == 's' %}
         <!--[if IE 8]>
