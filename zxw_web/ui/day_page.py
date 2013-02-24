@@ -94,9 +94,9 @@ def get_day_data_urls(station, day, ui, overview_page=False):
                                                day.month,
                                                day.day)
     if overview_page:
-        current_url = '/s/{0}/'.format(station)
+        current_url = '/*/{0}/'.format(station)
     else:
-        current_url = '/s/{0}/{1}/{2}/{3}/'.format(station,
+        current_url = '/*/{0}/{1}/{2}/{3}/'.format(station,
                                                    day.year,
                                                    month_name[day.month],
                                                    day.day)
