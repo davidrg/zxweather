@@ -52,7 +52,7 @@
     <section id="today">
         <div class="row">
             <div class="span6">
-                <h2 id="daily-charts">Last 24 hours</h2>
+                <h2 id="daily-charts">Last 24 Hours</h2>
                 <p>Total Rainfall: <span id="tot_rainfall">{{ data.records.total_rainfall|round(1) }}</span>mm</p>
             </div>
             <div class="span6">
@@ -63,7 +63,7 @@
     </section>
 
     <section id="last_7_days">
-        <h2>Last 7 days<button id="btn_7day_refresh" class="btn refreshbutton" onclick="refresh_7day_charts()" data-loading-text="loading..."><i class="icon-refresh"></i> Refresh</button></h2>
+        <h2>Last 7 Days<button id="btn_7day_refresh" class="btn refreshbutton" onclick="refresh_7day_charts()" data-loading-text="loading..."><i class="icon-refresh"></i> Refresh</button></h2>
         <p>Data is a 30-minute average over the past seven days.</p>
         {% include 'day-charts-7day.html' %}
     </section>
