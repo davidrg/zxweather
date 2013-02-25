@@ -462,6 +462,46 @@ def get_station_name(station_id):
         return None
 
 
+def get_full_station_info():
+    """
+    Gets full information for all stations in the database - code, name,
+    description, hardware type and date ranges.
+    :return:
+    """
+
+    result = db.query("""
+        select s.code, s.title, s.description, s.sort_order,
+           st.code as hw_type_code, st.title as hw_type_name,
+           sr.min_ts::varchar, sr.max_ts::varchar
+        from station s
+        inner join station_type st on st.station_type_id = s.station_type_id
+        left outer join (
+            select station_id, min(time_stamp) min_ts, max(time_stamp) max_ts
+            from sample
+            group by station_id) as sr on sr.station_id = s.station_id
+        order by s.sort_order
+    """)
+
+    stations = []
+    for record in result:
+        station = {
+            'code': record.code,
+            'name': record.title,
+            'desc': record.description,
+            'order': record.sort_order,
+            'hw_type': {
+                'code': record.hw_type_code,
+                'name': record.hw_type_name
+            },
+            'range': {
+                'min': record.min_ts,
+                'max': record.max_ts
+            }
+        }
+        stations.append(station)
+    return stations
+
+
 def get_stations():
     """
     Gets a list of station code,name pairs for all stations in the database.
