@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from web.contrib.template import render_jinja
 from cache import day_cache_control
 import config
-from database import get_daily_records, get_years, total_rainfall_in_last_7_days, day_exists, get_station_id, get_station_name, in_archive_mode, get_station_type_code, get_stations
+from database import get_daily_records, get_years, total_rainfall_in_last_7_days, day_exists, get_station_id, get_station_name, in_archive_mode, get_station_type_code, get_stations, get_live_data
 import os
 from months import month_name
 from ui import get_nav_urls, make_station_switch_urls, build_alternate_ui_urls
@@ -48,6 +48,10 @@ def get_station_standard(ui, station):
         yesterday = now - timedelta(1)
         yesterday_month_s = month_name[yesterday.month]
         rainfall_7days_total = total_rainfall_in_last_7_days(now, station_id)
+
+    data.current_data_ts, data.current_data, \
+        data.nw_type = get_live_data(station_id)
+
 
     page_data = {}
 

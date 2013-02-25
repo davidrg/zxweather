@@ -35,44 +35,48 @@
                         <tbody>
                         <tr>
                             <td>Temperature</td>
-                            <td id="live_temperature"></td>
+                            <td id="live_temperature">{{ data.current_data.temperature }}°C</td>
                         </tr>
                         <tr>
                             <td>Apparent Temperature</td>
-                            <td id="live_apparent_temperature"></td>
+                            <td id="live_apparent_temperature">{{ data.current_data.apparent_temperature }}°C</td>
                         </tr>
                         <tr>
                             <td>Wind Chill</td>
-                            <td id="live_wind_chill"></td>
+                            <td id="live_wind_chill">{{ data.current_data.wind_chill }}°C</td>
                         </tr>
                         <tr>
                             <td>Dew Point</td>
-                            <td id="live_dew_point"></td>
+                            <td id="live_dew_point">{{ data.current_data.dew_point }}°C</td>
                         </tr>
                         <tr>
                             <td>Humidity</td>
-                            <td id="live_relative_humidity"></td>
+                            <td id="live_relative_humidity">{{ data.current_data.relative_humidity }}%</td>
                         </tr>
                         <tr>
                             <td>Barometer</td>
-                            <td id="live_absolute_pressure"></td>
+                            <td id="live_absolute_pressure">{{ data.current_data.absolute_pressure }} hPa</td>
                         </tr>
                         <tr>
                             <td>Wind Speed</td>
-                            <td id="live_avg_wind_speed"></td>
+                            <td id="live_avg_wind_speed">{{ data.current_data.average_wind_speed }} m/s</td>
                         </tr>
                         <tr>
                             <td>Wind Direction</td>
-                            <td id="live_wind_direction"></td>
+                            <td id="live_wind_direction">
+                                {% if data.current_data.average_wind_speed == 0.0 %}--{% else %}
+                                {{ data.current_data.wind_direction }}°
+                                {% endif %}
+                            </td>
                         </tr>
                         {%  if hw_type == 'DAVIS' %}
                             <tr>
                                 <td>Rain Rate</td>
-                                <td id="rain_rate"></td>
+                                <td id="rain_rate">{{ data.current_data.rain_rate }} mm/h</td>
                             </tr>
                             <tr>
                                 <td>Current Storm Rain</td>
-                                <td id="storm_rain"></td>
+                                <td id="storm_rain">{{ data.current_data.storm_rain }} mm</td>
                             </tr>
                         {% endif %}
                         </tbody>
