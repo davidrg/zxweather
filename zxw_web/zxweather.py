@@ -22,19 +22,20 @@ urls = (
     '/data/(\w*)/(\d+)/(\d+)/(?:index\.html)?', 'data.monthly.index',
     '/data/(\w*)/(\d+)/(?:index\.html)?', 'data.yearly.index',
     '/data/(\w*)/(?:index\.html)?', 'data.station.index',
+    '/data/(?:index\.html)?', 'data.data_index',
 
     # Data sources (mostly JSON)
     # /data/station/year/month/day/... (month is in number format here)
     # All code resides in the data package.
     '/data/(\w*)/(\d+)/(\d+)/(\d+)/datatable/(\w*).json', 'data.daily.dt_json',     # Daily, DT
-        '/data/(\w*)/(\d+)/(\d+)/(\d+)/(\w*).json', 'data.daily.data_json',         # Daily
+    '/data/(\w*)/(\d+)/(\d+)/(\d+)/(\w*).json', 'data.daily.data_json',             # Daily
     '/data/(\w*)/(\d+)/(\d+)/datatable/(\w*).json', 'data.monthly.datatable_json',  # Monthly, DT
     '/data/(\w*)/(\d+)/(\d+)/(\w*).json', 'data.monthly.data_json',                 # Monthly,
     '/data/(\w*)/(\d+)/datatable/(\w*).json', 'data.yearly.datatable_json',         # Yearly, DT
     '/data/(\w*)/(\d+)/(\w*).json', 'data.yearly.data_json',                        # Yearly
     '/data/(\w*)/datatable/(\w*).json', 'data.station.datatable_json',              # Station, DT
     '/data/(\w*)/(\w*).json', 'data.station.data_json',                             # Station
-    '/data/daynav.json', 'data.day_nav',                                            # Global
+    '/data/(\w*).json', 'data.data_json',                                            # Global
 
     # User interface (HTML output).
     # /ui/station/year/month/day

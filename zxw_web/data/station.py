@@ -8,7 +8,7 @@ import web
 from web.contrib.template import render_jinja
 from cache import live_data_cache_control
 import config
-from data import daily
+from data import daily, about_nav
 from database import get_years, get_live_data, get_station_id, get_latest_sample_timestamp, get_oldest_sample_timestamp
 import os
 
@@ -74,6 +74,9 @@ class data_json:
             return live_data(station_id)
         elif dataset == 'samplerange':
             return sample_range(station_id)
+        elif dataset == 'about':
+            nav = about_nav()
+            return nav.GET(station)
         else:
             raise web.NotFound()
 

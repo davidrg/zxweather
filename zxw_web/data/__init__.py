@@ -4,12 +4,15 @@ Data sources.
 """
 
 import json
+import os
 import web
+from web.contrib.template import render_jinja
 from cache import rfcformat
 import config
 from datetime import timedelta, datetime
-from database import day_exists, get_station_id, get_station_name, get_stations
+from database import day_exists, get_station_id, get_station_name, get_stations, get_full_station_info
 from months import month_name
+from static_overlays import overlay_file
 
 __author__ = 'David Goodwin'
 
@@ -49,6 +52,12 @@ class day_nav(object):
         web.header('Expires', rfcformat(tomorrow))
         web.header('Content-Type', 'application/json')
         return json.dumps(data)
+
+    @staticmethod
+    def get_day_nav():
+        nav = day_nav()
+        return nav.GET()
+
 
 class about_nav(object):
     """
@@ -96,3 +105,41 @@ class about_nav(object):
         web.header('Expires', rfcformat(tomorrow))
         web.header('Content-Type', 'application/json')
         return json.dumps(data)
+
+class data_index(object):
+    def GET(self):
+        """
+        Gets a list of data sources available at the station level.
+        :param station: Station to get data for
+        :type station: string
+        :return: html view data.
+        """
+        template_dir = os.path.join(os.path.dirname(__file__),
+                                    os.path.join('templates'))
+        render = render_jinja(template_dir, encoding='utf-8')
+
+        stations = get_stations()
+
+        web.header('Content-Type', 'text/html')
+        return render.data_index(stations=stations)
+
+class data_json(object):
+    def GET(self, resource):
+        if resource == 'daynav':
+            return day_nav.get_day_nav()
+        elif resource == 'sysconfig':
+            return get_sys_config_json()
+        else:
+            static = overlay_file()
+            return static.GET('/data/{0}.json'.format(resource))
+
+
+def get_sys_config_json():
+    sys_config = {
+        'ws_uri': config.ws_uri,
+        'wss_uri': config.wss_uri,
+        'site_name': config.site_name,
+        'stations': get_full_station_info()
+    }
+
+    return json.dumps(sys_config)

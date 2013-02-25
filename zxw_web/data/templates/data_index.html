@@ -1,0 +1,52 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+    <head>
+        <title>zxweather Data Index</title>
+    </head>
+    <body>
+        <h1>Data Index</h1>
+        <hr>
+        <p>This hierarchy provides access to raw station data.</p>
+
+        <table border="2">
+            <tr bgcolor="lightseagreen">
+                <td><b>Format</b></td>
+                <td><b>Link</b></td>
+                <td><b>Description</b></td>
+            </tr>
+            <tr bgcolor="blanchedalmond">
+                <td>JSON</td>
+                <td><a href="daynav.json">daynav.json</a></td>
+                <td>
+                    <strong>Obsolete</strong> Previously used for navigation
+                    links on about pages.
+                </td>
+            </tr>
+            <tr bgcolor="blanchedalmond">
+                <td>JSON</td>
+                <td><a href="davis_forecast_rules.json">davis_forecast_rules.json</a></td>
+                <td>
+                    Descriptions of the forecast rules used by Davis hardware.
+                </td>
+            </tr>
+            <tr bgcolor="blanchedalmond">
+                <td>JSON</td>
+                <td><a href="sysconfig.json">sysconfig.json</a></td>
+                <td>
+                    System configuration information (websocket URIs, available
+                    stations, site name, etc.).
+                </td>
+            </tr>
+        </table>
+
+        <h2>Stations</h2>
+        <p>This system has data for the following weather stations:</p>
+        <ul>
+            {% for station in stations %}
+                <li><a href="{{ station[0] }}/">{{ station[1] }}</a></li>
+            {% endfor %}
+        </ul>
+        <hr>
+    </body>
+</html>
