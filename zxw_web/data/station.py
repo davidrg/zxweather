@@ -9,6 +9,8 @@ from web.contrib.template import render_jinja
 from cache import live_data_cache_control
 import config
 from data import daily, about_nav
+from data.daily import get_24hr_samples_data, get_day_rainfall, get_day_dataset, get_24hr_hourly_rainfall_data
+from data.util import outdoor_sample_result_to_json, outdoor_sample_result_to_datatable, rainfall_sample_result_to_json, rainfall_to_datatable
 from database import get_years, get_live_data, get_station_id, get_latest_sample_timestamp, get_oldest_sample_timestamp
 import os
 
@@ -63,13 +65,25 @@ class data_json:
             'current_day_samples':'samples',
             'current_day_7day_30m_avg_samples':'7day_30m_avg_samples',
             'current_day_rainfall':'hourly_rainfall',
-            'current_day_7day_rainfall':'7day_hourly_rainfall',
+            'current_day_7day_rainfall':'7day_hourly_rainfall'
         }
 
         if dataset in pass_through_data_sets.keys():
             return daily.json_dispatch(station,
                                        pass_through_data_sets[dataset],
                                        datetime.now().date())
+        elif dataset == '24hr_samples':
+            return daily.get_day_dataset(datetime.now(),
+                                         get_24hr_samples_data,
+                                         outdoor_sample_result_to_json,
+                                         station_id)
+        elif dataset == '24hr_rainfall_totals':
+            return get_day_rainfall(datetime.now(), station_id, True)
+        elif dataset == '24hr_hourly_rainfall':
+            return get_day_dataset(datetime.now(),
+                                   get_24hr_hourly_rainfall_data,
+                                   rainfall_sample_result_to_json,
+                                   station_id)
         elif dataset == 'live':
             return live_data(station_id)
         elif dataset == 'samplerange':
@@ -108,6 +122,16 @@ class datatable_json:
 
         if dataset in pass_through_data_sets.keys():
             return daily.dt_json_dispatch(station, pass_through_data_sets[dataset], datetime.now().date())
+        elif dataset == '24hr_samples':
+            return daily.get_day_dataset(datetime.now(),
+                                         get_24hr_samples_data,
+                                         outdoor_sample_result_to_datatable,
+                                         station_id)
+        elif dataset == '24hr_hourly_rainfall':
+            return get_day_dataset(datetime.now(),
+                                   get_24hr_hourly_rainfall_data,
+                                   rainfall_to_datatable,
+                                   station_id)        
         else:
             raise web.NotFound()
 

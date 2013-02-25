@@ -234,27 +234,36 @@ and station_id = $station""", params)
     else:
         return daily_records[0]
 
-def get_daily_rainfall(date, station_id):
+def get_daily_rainfall(time, station_id, use_24hr_range=False):
     """
     Gets rainfall for the specified day and the past seven days
-    :param date: Date to get rainfall for
-    :type date: date
+    :param time: Date or time to get rainfall totals for
+    :type time: date or datetime
     :param station_id: The ID of the weather station to work with
     :type station_id: int
+    :param use_24hr_range: If a 24-hour range from the supplied time should be
+        used rather than the exact date
+    :type use_24hr_range: bool
     :return: dictionary containing rainfall and 7day rainfall
     :rtype: dict
     """
-    params = dict(date=date, station=station_id)
-    day_rainfall_record = db.query("""select sum(rainfall) as day_rainfall
-from sample
-where time_stamp::date = $date
-and station_id = $station""", params)
+    params = dict(time=time, station=station_id)
+    if not use_24hr_range:
+        day_rainfall_record = db.query("""select sum(rainfall) as day_rainfall
+    from sample
+    where time_stamp::date = $time
+    and station_id = $station""", params)
+    else:
+        day_rainfall_record = db.query("""select sum(rainfall) as day_rainfall
+    from sample
+    where (time_stamp < $time and time_stamp > $time - '1 hour'::interval * 24)
+    and station_id = $station""", params)
 
     sevenday_rainfall_record = db.query("""select sum(rainfall) as sevenday_rainfall
 from sample s,
   (
      select max(time_stamp) as ts from sample
-     where date(time_stamp) = $date
+     where date(time_stamp) = $time::date
      and station_id = $station
   ) as max_ts
 where s.time_stamp <= max_ts.ts     -- 604800 seconds in a week.

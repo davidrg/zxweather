@@ -126,7 +126,7 @@ def day_cache_control(data_age, day, station_id):
     """
     if data_age is None:
         age_data = db.query("select max(time_stamp) as max_ts from sample where "
-                            "time_stamp::date = $date "
+                            "time_stamp::date = $date::date "
                             "and station_id = $station",
                             dict(date = day, station=station_id))
         data_age = age_data[0].max_ts

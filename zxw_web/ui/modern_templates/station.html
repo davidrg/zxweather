@@ -52,7 +52,7 @@
     <section id="today">
         <div class="row">
             <div class="span6">
-                <h2 id="daily-charts">Today</h2>
+                <h2 id="daily-charts">Last 24 hours</h2>
                 <p>Total Rainfall: <span id="tot_rainfall">{{ data.records.total_rainfall|round(1) }}</span>mm</p>
             </div>
             <div class="span6">
@@ -94,13 +94,16 @@
         $('#live_status').tooltip();
 
         // URLs required by day_charts.js and day_live.js
+        // The daily charts actually show data for the last 24 hours here.
+        // For daily charts use current_day_samples, current_day_rainfall and
+        // current_day_rainfall_totals instead
         var live_url = '../../data/{{ station }}/live.json';
-        var samples_url = '../../data/{{ station }}/{{ subdir }}current_day_samples.json';
-        var rainfall_url = '../../data/{{ station }}/{{ subdir }}current_day_rainfall.json';
+        var samples_url = '../../data/{{ station }}/{{ subdir }}24hr_samples.json';
+        var rainfall_url = '../../data/{{ station }}/{{ subdir }}24hr_hourly_rainfall.json';
         var samples_7day_url = '../../data/{{ station }}/{{ subdir }}current_day_7day_30m_avg_samples.json';
         var rainfall_7day_url = '../../data/{{ station }}/{{ subdir }}current_day_7day_rainfall.json';
         var records_url = '../../data/{{ station }}/current_day_records.json';
-        var rainfall_totals_url = '../../data/{{ station }}/current_day_rainfall_totals.json';
+        var rainfall_totals_url = '../../data/{{ station }}/24hr_rainfall_totals.json';
         var live_auto_refresh = true;
         var station_code = '{{ station }}';
         var hw_type = '{{ hw_type }}';
