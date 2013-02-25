@@ -8,21 +8,17 @@
     <section id="live">
         <div class="row">
             <div class="span6">
-                <h2 style="float: left;">Current Conditions</h2>
-                <div style="float: right; padding-top: 12px; padding-left: 5px;">
-                    <div id="live_status" class="fm_status_grey"
-                         data-toggle="tooltip" data-placement="right"
-                         title="Connecting..."></div>
+                <div>
+                    <h2 style="float: left;">Current Conditions</h2>
+                    <div style="float: right; padding-top: 12px; padding-left: 5px;">
+                        <div id="live_status" class="fm_status_grey"
+                             data-toggle="tooltip" data-placement="left"
+                             title="Connecting..."></div>
+                    </div>
+                    <div style="float: right; padding-top: 12px;">
+                        Time: <span id="current_time"></span>
+                    </div>
                 </div>
-                <div style="float: right; padding-top: 12px;">
-                    Time: <span id="current_time"></span>
-                </div>
-            </div>
-            <div class="span3"><h2>Todays Records</h2></div>
-            <div class="span3"><button id="btn_records_refresh" class="btn refreshbutton" onclick="refresh_records()" data-loading-text="loading..."><i class="icon-refresh"></i> Refresh</button></div>
-        </div>
-        <div class="row">
-            <div class="span6">
                 {# This table is populated from day_live.js -#}
                 <div id="current_conditions">
                     <table class="table table-bordered">
@@ -107,6 +103,16 @@
             </div>
 
             <div class="span6">
+                <div>
+                    <h2 style="display: inline-block;">Todays Records</h2>
+                    <button id="btn_records_refresh"
+                            class="btn refreshbutton"
+                            style="float: right;"
+                            onclick="refresh_records()"
+                            data-loading-text="loading...">
+                        <i class="icon-refresh"></i> Refresh
+                    </button>
+                </div>
                 {% include 'day-records-table.html' %}
                 {% if hw_type == 'DAVIS' %}
                     <div>
