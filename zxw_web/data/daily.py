@@ -85,19 +85,22 @@ def get_day_records(day, station_id):
     web.header('Content-Length', str(len(json_data)))
     return json_data
 
-def get_day_rainfall(day, station_id):
+def get_day_rainfall(day, station_id, use_24hr_range=False):
     """
     Gets JSON data containing total rainfall for the day and the past seven
     days.
-    :param day:
+    :param day: Date or timestamp
+    :type day: date or datetime
     :param station_id: The ID of the weather station to work with
     :type station_id: int
+    :param use_24hr_range: If a 24-hour time range should be used rather than
+    getting the total for the supplied day
+    :type use_24hr_range: bool
     """
-    rainfall = get_daily_rainfall(day, station_id)
+    rainfall = get_daily_rainfall(day, station_id, use_24hr_range)
 
-    age = get_latest_sample_timestamp(station_id)
     json_data = json.dumps(rainfall)
-    day_cache_control(age,day, station_id)
+    day_cache_control(None, day, station_id)
     web.header('Content-Type','application/json')
     web.header('Content-Length', str(len(json_data)))
     return json_data
@@ -158,6 +161,44 @@ def get_day_samples_data(day, station_id):
     order by s.time_stamp asc"""
                              , params)
 
+    return result
+
+def get_24hr_samples_data(time, station_id):
+    """
+    Gets samples from the 24 hours leading up to the supplied time.
+    :param time: Maximum time to get samples for.
+    :param station_id: The ID of the weather station to work with
+    :type station_id: int
+    :return:
+    """
+
+    # This query is identical to the get_day_samples_data one except for the
+    # first condition in the where clause (where we filter by a 24 hr time
+    # range instead of a specific date).
+    params = dict(time = time, station=station_id)
+    result = config.db.query("""select s.time_stamp::timestamptz,
+               s.temperature,
+               s.dew_point,
+               s.apparent_temperature,
+               s.wind_chill,
+               s.relative_humidity,
+               s.absolute_pressure,
+               s.time_stamp - (st.sample_interval * '1 second'::interval) as prev_sample_time,
+               CASE WHEN (s.time_stamp - prev.time_stamp) > ((st.sample_interval * 2) * '1 second'::interval) THEN
+                  true
+               else
+                  false
+               end as gap,
+               s.average_wind_speed,
+               s.gust_wind_speed
+    from sample s, sample prev
+    inner join station st on st.station_id = prev.station_id
+    where (s.time_stamp < $time and s.time_stamp > $time - '1 hour'::interval * 24)
+      and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp and station_id = $station)
+      and s.station_id = $station
+      and prev.station_id = $station
+    order by s.time_stamp asc"""
+        , params)
     return result
 
 def get_7day_samples_data(day, station_id):
@@ -262,6 +303,28 @@ def get_days_hourly_rainfall_data(day, station_id):
            sum(rainfall) as rainfall
     from sample
     where time_stamp::date = $date
+    and station_id = $station
+    group by date_trunc('hour',time_stamp)
+    order by date_trunc('hour',time_stamp) asc""", params)
+
+    return result
+
+def get_24hr_hourly_rainfall_data(time, station_id):
+    """
+    Gets the days hourly rainfall data.
+    :param time: Time to get rainfall data for from.
+    :param station_id: The ID of the weather station to work with
+    :type station_id: int
+    :return: Rainfall data query result
+    """
+
+    params = dict(time = time, station = station_id)
+
+    result = config.db.query("""select date_trunc('hour',time_stamp) as time_stamp,
+           sum(rainfall) as rainfall
+    from sample
+    where date_trunc('hour', time_stamp) < date_trunc('hour', $time)
+      and date_trunc('hour', time_stamp) > date_trunc('hour', $time - '1 hour'::interval * 25)
     and station_id = $station
     group by date_trunc('hour',time_stamp)
     order by date_trunc('hour',time_stamp) asc""", params)
