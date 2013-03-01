@@ -103,9 +103,39 @@ void LiveDataWidget::refreshUi(LiveDataSet lds) {
     ui->lblApparentTemperature->setText(
                 QString::number(lds.apparentTemperature, 'f', 1) + "\xB0" "C");
 
+    QString bft = "";
+    if (lds.windSpeed < 0.3) // 0
+        bft = "Calm";
+    else if (lds.windSpeed < 2) // 1
+        bft = "Light air";
+    else if (lds.windSpeed < 3) // 2
+        bft = "Light breeze";
+    else if (lds.windSpeed < 5.4) // 3
+        bft = "Gentle breeze";
+    else if (lds.windSpeed < 8) // 4
+        bft = "Moderate breeze";
+    else if (lds.windSpeed < 10.7) // 5
+        bft = "Fresh breeze";
+    else if (lds.windSpeed < 13.8) // 6
+        bft = "Strong breeze";
+    else if (lds.windSpeed < 17.1) // 7
+        bft = "High wind, near gale";
+    else if (lds.windSpeed < 20.6) // 8
+        bft = "Gale, fresh gale";
+    else if (lds.windSpeed < 24.4) // 9
+        bft = "Strong gale";
+    else if (lds.windSpeed < 28.3) // 10
+        bft = "Storm, whole gale";
+    else if (lds.windSpeed < 32.5) // 11
+        bft = "Violent storm";
+    else // 12
+        bft = "Hurricane";
+
+    if (!bft.isEmpty())
+        bft = " (" + bft + ")";
 
     ui->lblWindSpeed->setText(
-                QString::number(lds.windSpeed, 'f', 1) + " m/s");
+                QString::number(lds.windSpeed, 'f', 1) + " m/s" + bft);
     ui->lblTimestamp->setText(lds.timestamp.toString("h:mm AP"));
 
     if (lds.windSpeed == 0.0)
