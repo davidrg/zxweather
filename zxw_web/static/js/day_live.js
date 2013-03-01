@@ -226,6 +226,42 @@ function connect_live() {
     }
 }
 
+// wind_speed(m/s) = 0.837B^(2/3) where B is Beaufort scale number
+// These numbers are quite approximate.
+bft_scale = [
+    // Max wind speed, BFT Number, Description, colour
+    [0.3,   0, 'Clam', '#FFFFFF'],
+    [2,     1, 'Light air', '#CCFFFF'],
+    [3,     2, 'Light breeze', '#99FFCC'],
+    [5.4,   3, 'Gentle breeze', '#99FF99'],
+    [8,     4, 'Moderate breeze', '#99FF66'],
+    [10.7,  5, 'Fresh breeze', '#99FF00'],
+    [13.8,  6, 'Strong breeze', '#CCFF00'],
+    [17.1,  7, 'High wind, moderate gale, near gale', '#FFFF00'],
+    [20.6,  8, 'Gale, fresh gale', '#FFCC00'],
+    [24.4,  9, 'Strong gale', '#FF9900'],
+    [28.3, 10, 'Storm, whole gale', '#FF6600'],
+    [32.5, 11, 'Violent storm', '#FF3300'],
+    [9999, 12, 'Hurricane', '#FF0000']
+    // Speeds over 9999m/s are probably still a hurricane but if you're really
+    // getting those wind speeds then BFT accuracy probably isn't your biggest
+    // problem.
+];
+
+
+/** Gets Beaufort force for the specified wind speed (in m/s)
+ * The return value is a list containing [number, description, colour]
+ * @param wind_speed Wind speed in m/s
+ */
+function bft(wind_speed) {
+    for (var i = 0; i < bft_scale.length; i++)
+        if (wind_speed < bft_scale[i][0])
+            return [bft_scale[i][1], bft_scale[i][2], bft_scale[i][3]];
+
+    return null;
+}
+
+
 var wind_directions = [
     "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW",
     "WSW", "W", "WNW", "NW", "NNW"
@@ -262,11 +298,12 @@ function refresh_live_data(data) {
         var wind_chill = data['wind_chill'].toFixed(1);
         var dew_point = data['dew_point'].toFixed(1);
         var absolute_pressure = data['absolute_pressure'].toFixed(1);
-        var average_wind_speed = data['average_wind_speed'].toFixed(1);
+        var wind_speed = data['average_wind_speed'].toFixed(1);
         var hw_type = data['hw_type'];
         var wind_direction = data['wind_direction'];
         var rain_rate = 0;
         var current_storm_rain = null;
+        var bft_data = bft(wind_speed);
 
         var bar_trend = '';
 
@@ -362,7 +399,7 @@ function refresh_live_data(data) {
             ap = get_ico(absolute_pressure, previous_live['absolute_pressure'].toFixed(1));
         }
 
-        if (average_wind_speed == 0.0)
+        if (wind_speed == 0.0)
             wind_direction = '--';
         else {
             var index = Math.floor(((wind_direction * 100 + 1125) % 36000) / 2250);
@@ -375,7 +412,7 @@ function refresh_live_data(data) {
         $("#live_wind_chill").html(wc + wind_chill + '°C');
         $("#live_dew_point").html(dp + dew_point + '°C');
         $("#live_absolute_pressure").html(ap + absolute_pressure + ' hPa' + bar_trend);
-        $("#live_avg_wind_speed").html(average_wind_speed + ' m/s');
+        $("#live_avg_wind_speed").html(wind_speed + ' m/s (' + bft_data[1] + ')');
         $("#live_wind_direction").html(wind_direction);
         $("#current_time").html(data['time_stamp']);
 
