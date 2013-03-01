@@ -4,12 +4,14 @@ Functions for applying cache-control headers.
 """
 
 from datetime import date, datetime, time, timedelta
-import web
-from config import db
-import config
 from time import  mktime
 from wsgiref.handlers import format_date_time
+
+import web
+
+from config import db
 from database import get_sample_interval, get_live_data_available
+
 
 __author__ = 'David Goodwin'
 
@@ -72,8 +74,8 @@ def live_data_cache_control(data_ts, station_id):
     sample_interval = get_sample_interval(station_id)
 
     if get_live_data_available(station_id):
-        web.header('Cache-Control', 'max-age=' + str(48))
-        web.header('Expires', rfcformat(data_ts + timedelta(0, 48)))
+        web.header('Cache-Control', 'max-age=' + str(30))
+        web.header('Expires', rfcformat(data_ts + timedelta(0, 30)))
     else:
         web.header('Cache-Control', 'max-age=' + str(sample_interval))
         web.header('Expires', rfcformat(data_ts + timedelta(0, sample_interval)))
