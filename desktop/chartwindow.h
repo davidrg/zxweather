@@ -17,7 +17,11 @@ class ChartWindow : public QWidget
     Q_OBJECT
     
 public:
-    explicit ChartWindow(QWidget *parent = 0);
+    explicit ChartWindow(QList<int> columns,
+                         QDateTime startTime,
+                         QDateTime endTime,
+                         enum ChartOptionsDialog::ChartType chartType,
+                         QWidget *parent = 0);
     ~ChartWindow();
     
 private slots:
