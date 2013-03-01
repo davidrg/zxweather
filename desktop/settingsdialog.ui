@@ -75,6 +75,9 @@
               <verstretch>0</verstretch>
              </sizepolicy>
             </property>
+            <property name="whatsThis">
+             <string>The short 5-character code for the station to monitor.</string>
+            </property>
             <property name="maxLength">
              <number>5</number>
             </property>
@@ -99,7 +102,7 @@
           <item row="0" column="0" colspan="3">
            <widget class="QLabel" name="label_7">
             <property name="text">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;This is the code for the station to monitor. It is present in all web interface URLs. For example: &lt;br/&gt;http://weather.zx.net.nz/s/&lt;span style=&quot; font-weight:600;&quot;&gt;rua&lt;/span&gt;/.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;This is the code for the station to monitor. It is present in all web interface URLs. For example: &lt;br/&gt;http://weather.example/s/&lt;span style=&quot; font-weight:600;&quot;&gt;foo&lt;/span&gt;/.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
             <property name="wordWrap">
              <bool>true</bool>
@@ -319,7 +322,11 @@
            </widget>
           </item>
           <item row="0" column="1">
-           <widget class="QLineEdit" name="serverHostnameLineEdit"/>
+           <widget class="QLineEdit" name="serverHostnameLineEdit">
+            <property name="whatsThis">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The host name or Internet Protocol (IP) address for the weather server.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
+           </widget>
           </item>
           <item row="1" column="0">
            <widget class="QLabel" name="label_4">
@@ -330,6 +337,9 @@
           </item>
           <item row="1" column="1">
            <widget class="QSpinBox" name="serverPortSpinBox">
+            <property name="whatsThis">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The port the weather server is listening on.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
             <property name="maximum">
              <number>65535</number>
             </property>
@@ -349,6 +359,9 @@
             <property name="enabled">
              <bool>true</bool>
             </property>
+            <property name="whatsThis">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Samples for drawing charts are retrieived directly from the database. This is the fastest and most efficient option.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
             <property name="text">
              <string>Database</string>
             </property>
@@ -356,6 +369,9 @@
           </item>
           <item>
            <widget class="QRadioButton" name="rbSampleWeb">
+            <property name="whatsThis">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Samples for drawing charts are downloaded from the web interface one full month at a time.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
             <property name="text">
              <string>Web Interface</string>
             </property>
@@ -385,6 +401,9 @@
          <layout class="QVBoxLayout" name="verticalLayout">
           <item>
            <widget class="QRadioButton" name="rbLiveDatabase">
+            <property name="whatsThis">
+             <string>Receives live data from the database. Updates as often as new data is made available in the database.</string>
+            </property>
             <property name="text">
              <string>Database</string>
             </property>
@@ -392,6 +411,9 @@
           </item>
           <item>
            <widget class="QRadioButton" name="rbLiveWeb">
+            <property name="whatsThis">
+             <string>Receives live data from the web interface. This only updates every 30 seconds.</string>
+            </property>
             <property name="text">
              <string>Web Interface</string>
             </property>
@@ -401,6 +423,9 @@
            <widget class="QRadioButton" name="rbLiveServer">
             <property name="enabled">
              <bool>true</bool>
+            </property>
+            <property name="whatsThis">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Receives live data instantly from the weather server. This is the best option if the weather server is available. Note that proxy servers may prevent this from working.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
             <property name="text">
              <string>Weather Server</string>
@@ -460,6 +485,9 @@
             <height>23</height>
            </size>
           </property>
+          <property name="whatsThis">
+           <string>Default colour to draw outdoor temperature lines with in charts.</string>
+          </property>
           <property name="text">
            <string/>
           </property>
@@ -485,6 +513,9 @@
             <width>64</width>
             <height>23</height>
            </size>
+          </property>
+          <property name="whatsThis">
+           <string>Default colour to draw indoor temperature lines with in charts.</string>
           </property>
           <property name="text">
            <string/>
@@ -512,6 +543,9 @@
             <height>23</height>
            </size>
           </property>
+          <property name="whatsThis">
+           <string>Default colour to draw apparent temperature lines with in charts.</string>
+          </property>
           <property name="text">
            <string/>
           </property>
@@ -537,6 +571,9 @@
             <width>64</width>
             <height>23</height>
            </size>
+          </property>
+          <property name="whatsThis">
+           <string>Default colour to draw wind chill lines with in charts.</string>
           </property>
           <property name="text">
            <string/>
@@ -564,6 +601,9 @@
             <height>23</height>
            </size>
           </property>
+          <property name="whatsThis">
+           <string>Default colour to draw dew point lines with in charts.</string>
+          </property>
           <property name="text">
            <string/>
           </property>
@@ -589,6 +629,9 @@
             <width>64</width>
             <height>23</height>
            </size>
+          </property>
+          <property name="whatsThis">
+           <string>Default colour to draw outdoor humidity lines with in charts.</string>
           </property>
           <property name="text">
            <string/>
@@ -616,6 +659,9 @@
             <height>23</height>
            </size>
           </property>
+          <property name="whatsThis">
+           <string>Default colour to draw indoor humidity lines with in charts.</string>
+          </property>
           <property name="text">
            <string/>
           </property>
@@ -642,6 +688,9 @@
             <height>23</height>
            </size>
           </property>
+          <property name="whatsThis">
+           <string>Default colour to draw pressure lines with in charts.</string>
+          </property>
           <property name="text">
            <string/>
           </property>
@@ -667,6 +716,9 @@
             <width>64</width>
             <height>23</height>
            </size>
+          </property>
+          <property name="whatsThis">
+           <string>Default colour to draw rainfall lines with in charts.</string>
           </property>
           <property name="text">
            <string/>
