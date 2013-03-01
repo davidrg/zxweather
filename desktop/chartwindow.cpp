@@ -10,11 +10,19 @@
 #include <QPen>
 #include <QBrush>
 
-ChartWindow::ChartWindow(QWidget *parent) :
+ChartWindow::ChartWindow(QList<int> columns,
+                         QDateTime startTime,
+                         QDateTime endTime,
+                         enum ChartOptionsDialog::ChartType chartType,
+                         QWidget *parent) :
     QWidget(parent),
     ui(new Ui::ChartWindow)
 {
     ui->setupUi(this);
+    this->columns = columns;
+    this->chartType = chartType;
+    ui->startTime->setDateTime(startTime);
+    ui->endTime->setDateTime(endTime);
 
     Settings& settings = Settings::getInstance();
 
@@ -55,27 +63,15 @@ ChartWindow::ChartWindow(QWidget *parent) :
     connect(ui->chart->yAxis, SIGNAL(rangeChanged(QCPRange)),
             ui->chart->yAxis2, SLOT(setRange(QCPRange)));
 
-    // Setup chart type.
-    ChartOptionsDialog options;
-    int result = options.exec();
-    if (result != QDialog::Accepted) {
-        this->close();
-    } else {
-        columns = options.getColumns();
-        ui->startTime->setDateTime(options.getStartTime());
-        ui->endTime->setDateTime(options.getEndTime());
-        chartType = options.getChartType();
-
-        if (chartType == ChartOptionsDialog::Temperature)
-            setWindowTitle("Temperature Chart");
-        else if (chartType == ChartOptionsDialog::Humidity)
-            setWindowTitle("Humidity Chart");
-        else if (chartType == ChartOptionsDialog::Pressure)
-            setWindowTitle("Pressure Chart");
-        else if (chartType == ChartOptionsDialog::Rainfall)
-            setWindowTitle("Rainfall Chart");
-        refresh();
-    }
+    if (chartType == ChartOptionsDialog::Temperature)
+        setWindowTitle("Temperature Chart");
+    else if (chartType == ChartOptionsDialog::Humidity)
+        setWindowTitle("Humidity Chart");
+    else if (chartType == ChartOptionsDialog::Pressure)
+        setWindowTitle("Pressure Chart");
+    else if (chartType == ChartOptionsDialog::Rainfall)
+        setWindowTitle("Rainfall Chart");
+    refresh();
 }
 
 ChartWindow::~ChartWindow()

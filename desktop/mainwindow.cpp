@@ -28,6 +28,7 @@
 #include "aboutdialog.h"
 #include "settings.h"
 #include "chartwindow.h"
+#include "chartoptionsdialog.h"
 
 #include <QtDebug>
 #include <QDateTime>
@@ -342,7 +343,18 @@ void MainWindow::showAbout() {
 }
 
 void MainWindow::showChartWindow() {
-    ChartWindow *cw = new ChartWindow();
+
+    ChartOptionsDialog options;
+    int result = options.exec();
+    if (result != QDialog::Accepted)
+        return; // User canceled. Nothing to do.
+
+    QList<int> columns = options.getColumns();
+    enum ChartOptionsDialog::ChartType chartType = options.getChartType();
+    QDateTime startTime = options.getStartTime();
+    QDateTime endTime = options.getEndTime();
+
+    ChartWindow *cw = new ChartWindow(columns, startTime, endTime, chartType);
     cw->setAttribute(Qt::WA_DeleteOnClose);
     cw->show();
 }
