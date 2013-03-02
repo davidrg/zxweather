@@ -228,7 +228,7 @@ def deserialise_loop(loop_string, rainCollectorSize=0.2):
         rainRate=rain_rate * rainCollectorSize,
         UV=undash_8bit(uv),
         solarRadiation=solar_radiation,
-        stormRain=inch_to_mm(storm_rain / 100),
+        stormRain=inch_to_mm(storm_rain / 100.0),
         startDateOfCurrentStorm=decode_current_storm_date(
             current_storm_start_date),
         dayRain=day_rain * rainCollectorSize,
