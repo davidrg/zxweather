@@ -374,8 +374,8 @@ def _insert_davis_sample_int(txn, base, davis, station_id):
         insert into sample(download_timestamp, time_stamp,
             indoor_relative_humidity, indoor_temperature, relative_humidity,
             temperature, absolute_pressure, average_wind_speed,
-            gust_wind_speed, wind_direction, station_id)
-        values(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            gust_wind_speed, wind_direction, rainfall, station_id)
+        values(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         returning sample_id
         """
     txn.execute(
@@ -391,6 +391,7 @@ def _insert_davis_sample_int(txn, base, davis, station_id):
             base.average_wind_speed,
             base.gust_wind_speed,
             base.wind_direction,
+            base.rainfall,
             station_id,
         )
     )
