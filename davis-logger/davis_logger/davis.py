@@ -120,6 +120,8 @@ class DavisWeatherStation(object):
 
         # Misc
         self._wakeRetries = 0
+        self._crc_errors = 0
+        self._last_crc_error = None
 
     def dataReceived(self, data):
         """
@@ -365,8 +367,18 @@ class DavisWeatherStation(object):
 
         # The LPS command hasn't been acknowledged yet so we're not *really*
         # in LPS mode just yet. Who knows what data we received to end up
-        # here but this is probably bad.
-        assert self._lps_acknowledged
+        # here but this is probably bad. We'll just try to enter LPS mode again.
+        if not self._lps_acknowledged:
+            # If we've gotten here that means an attempt has just been made to
+            # enter LPS mode. The current value in _lps_packets_remaining should
+            # be the number of LPS packets originally requested. So We'll just
+            # say the attempt to enter LPS mode failed and we'll make another
+            # attempt.
+            log.msg('WARNING: LPS mode not acknowledged. Retrying...\n'
+                    'Trigger data was: {0}'.format(toHexString(data)))
+            self._state = STATE_AWAKE
+            self.getLoopPackets(self._lps_packets_remaining)
+            return
 
         if len(data) > 0:
             self._lps_buffer += data
@@ -388,8 +400,19 @@ class DavisWeatherStation(object):
 
             crc = CRC.calculate_crc(packet_data)
             if crc != packet_crc:
+                self._crc_errors += 1
+                if self._last_crc_error is None:
+                    last_crc = 'Never'
+                else:
+                    last_crc = str(self._last_crc_error)
                 log.msg('Warning: CRC validation failed for LOOP packet. '
-                        'Discarding.')
+                        'Discarding. Expected: {0}, got: {1}. '
+                        'This is CRC Error #{4}, last was {5}\n'
+                        'Packet data: {2}\nBuffer data: {3}'.format(
+                        packet_crc, crc, toHexString(packet_data),
+                        toHexString(self._lps_buffer), self._crc_errors,
+                        last_crc))
+                self._last_crc_error = datetime.datetime.now()
             else:
                 # CRC checks out. Data should be good
                 loop = deserialise_loop(packet_data, self._rainCollectorSize)
