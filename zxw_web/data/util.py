@@ -132,8 +132,8 @@ def outdoor_sample_result_to_json(query_data):
               "Dew Point",
               "Apparent Temperature",
               "Wind Chill",
-              "Relative Humidity",
-              "Absolute Pressure",
+              "Humidity",
+              "Pressure",
               "Average Wind Speed",
               "Gust Wind Speed",
               ]
