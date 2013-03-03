@@ -8,12 +8,19 @@
 function drawCharts() {
     $.getJSON(daily_records_url, function(data) {
 
-        drawRecordsLineCharts(data,
-                              document.getElementById('chart_rec_temperature'),
-                              document.getElementById('chart_rec_pressure'),
-                              document.getElementById('chart_rec_humidity'),
-                              document.getElementById('chart_rainfall'),
-                              document.getElementById('chart_rec_wind_speed'));
+        drawRecordsLineCharts(
+            data,
+            document.getElementById('chart_rec_temperature'),
+            document.getElementById('key_rec_temperature'),
+            document.getElementById('chart_rec_pressure'),
+            document.getElementById('key_rec_pressure'),
+            document.getElementById('chart_rec_humidity'),
+            document.getElementById('key_rec_humidity'),
+            document.getElementById('chart_rainfall'),
+            document.getElementById('key_rainfall'),
+            document.getElementById('chart_rec_wind_speed'),
+            document.getElementById('key_rec_wind_speed')
+        );
     });
 }
 

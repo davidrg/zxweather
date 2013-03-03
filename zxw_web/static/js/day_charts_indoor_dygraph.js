@@ -5,7 +5,11 @@
  * Time: 5:12 PM
  */
 
-function drawLineCharts(jsondata, temperature_element, humidity_element) {
+function drawLineCharts(jsondata,
+                        temperature_element,
+                        temperature_key,
+                        humidity_element,
+                        humidity_key) {
     var labels = jsondata['labels'];
     var data = jsondata['data'];
 
@@ -30,6 +34,7 @@ function drawLineCharts(jsondata, temperature_element, humidity_element) {
         temperature_data,
         {
             labels: temperature_labels,
+            labelsDiv: temperature_key,
             animatedZooms: enable_animated_zooms,
             strokeWidth: strokeWidth,
             title: 'Indoor Temperature (°C)',
@@ -38,10 +43,7 @@ function drawLineCharts(jsondata, temperature_element, humidity_element) {
                     valueFormatter: temperatureFormatter
                 }
             },
-            labelsDivStyles: {
-                'text-align': 'right',
-                'background': 'none'
-            }
+            legend: 'always'
         }
     );
 
@@ -50,6 +52,7 @@ function drawLineCharts(jsondata, temperature_element, humidity_element) {
         humidity_data,
         {
             labels: humidity_labels,
+            labelsDiv: humidity_key,
             animatedZooms: enable_animated_zooms,
             strokeWidth: strokeWidth,
             title: 'Indoor Humidity (%)',
@@ -58,10 +61,7 @@ function drawLineCharts(jsondata, temperature_element, humidity_element) {
                     valueFormatter: humidityFormatter
                 }
             },
-            labelsDivStyles: {
-                'text-align': 'right',
-                'background': 'none'
-            }
+            legend: 'always'
         }
     );
 }
@@ -69,14 +69,20 @@ function drawLineCharts(jsondata, temperature_element, humidity_element) {
 function drawCharts() {
     $.getJSON(samples_url, function(data) {
         drawLineCharts(data,
-                       document.getElementById('chart_temperature_div'),
-                       document.getElementById('chart_humidity_div'));
+            document.getElementById('chart_temperature_div'),
+            document.getElementById('chart_temperature_key'),
+            document.getElementById('chart_humidity_div'),
+            document.getElementById('chart_humidity_key')
+        );
     });
 
     $.getJSON(samples_7day_url, function(data) {
         drawLineCharts(data,
-                       document.getElementById('chart_7_temperature_div'),
-                       document.getElementById('chart_7_humidity_div'));
+            document.getElementById('chart_7_temperature_div'),
+            document.getElementById('chart_7_temperature_key'),
+            document.getElementById('chart_7_humidity_div'),
+            document.getElementById('chart_7_humidity_key')
+        );
     });
 }
 

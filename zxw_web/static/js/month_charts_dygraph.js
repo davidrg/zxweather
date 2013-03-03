@@ -14,10 +14,15 @@ function drawCharts() {
         drawSampleLineCharts(
             data,
             document.getElementById('chart_temperature_tdp_div'),
+            document.getElementById('chart_temperature_tdp_key'),
             document.getElementById('chart_temperature_awc_div'),
+            document.getElementById('chart_temperature_awc_key'),
             document.getElementById('chart_humidity_div'),
+            document.getElementById('chart_humidity_key'),
             document.getElementById('chart_pressure_div'),
-            document.getElementById('chart_wind_speed_div')
+            document.getElementById('chart_pressure_key'),
+            document.getElementById('chart_wind_speed_div'),
+            document.getElementById('chart_wind_speed_key')
         );
     });
 
@@ -26,10 +31,15 @@ function drawCharts() {
         drawRecordsLineCharts(
             data,
             document.getElementById('chart_rec_temperature'),
+            document.getElementById('key_rec_temperature'),
             document.getElementById('chart_rec_pressure'),
+            document.getElementById('key_rec_pressure'),
             document.getElementById('chart_rec_humidity'),
+            document.getElementById('key_rec_humidity'),
             document.getElementById('chart_rainfall'),
-            document.getElementById('chart_rec_wind_speed')
+            document.getElementById('key_rainfall'),
+            document.getElementById('chart_rec_wind_speed'),
+            document.getElementById('key_rec_wind_speed')
         );
     });
 }

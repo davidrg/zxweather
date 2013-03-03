@@ -35,7 +35,8 @@ function barChartPlotter(e) {
  * @param element Element to plot in.
  */
 function drawRainfallChart(jsondata,
-                      element) {
+                           element,
+                           labels_element) {
 
     var labels = jsondata['labels'];
     var data = jsondata['data'];
@@ -48,16 +49,13 @@ function drawRainfallChart(jsondata,
                             {
                                 plotter: barChartPlotter,
                                 labels: labels,
+                                labelsDiv: labels_element,
                                 title: 'Rainfall (mm)',
                                 legend: 'always',
                                 axes: {
                                     y: {
                                         valueFormatter: rainfallFormatter
                                     }
-                                },
-                                labelsDivStyles: {
-                                    'text-align': 'right',
-                                    'background': 'none'
                                 },
                                 animatedZooms: true
                             })
@@ -77,11 +75,16 @@ function load_day_charts() {
 
 
         drawSampleLineCharts(data,
-                          document.getElementById('chart_temperature_tdp_div'),
-                          document.getElementById('chart_temperature_awc_div'),
-                          document.getElementById('chart_humidity_div'),
-                          document.getElementById('chart_pressure_div'),
-                          document.getElementById('chart_wind_speed_div')
+            document.getElementById('chart_temperature_tdp_div'),
+            document.getElementById('chart_temperature_tdp_key'),
+            document.getElementById('chart_temperature_awc_div'),
+            document.getElementById('chart_temperature_awc_key'),
+            document.getElementById('chart_humidity_div'),
+            document.getElementById('chart_humidity_key'),
+            document.getElementById('chart_pressure_div'),
+            document.getElementById('chart_pressure_key'),
+            document.getElementById('chart_wind_speed_div'),
+            document.getElementById('chart_wind_speed_key')
         );
 
         samples_loading = false;
@@ -101,7 +104,10 @@ function load_day_charts() {
      */
     $.getJSON(rainfall_url, function(data) {
 
-        drawRainfallChart(data, document.getElementById('chart_hourly_rainfall_div'));
+        drawRainfallChart(
+            data,
+            document.getElementById('chart_hourly_rainfall_div'),
+            document.getElementById('chart_hourly_rainfall_key'));
 
         rainfall_loading = false;
 
@@ -128,11 +134,16 @@ function load_7day_charts() {
     $.getJSON(samples_7day_url, function(data) {
 
         drawSampleLineCharts(data,
-                          document.getElementById('chart_7_temperature_tdp_div'),
-                          document.getElementById('chart_7_temperature_awc_div'),
-                          document.getElementById('chart_7_humidity_div'),
-                          document.getElementById('chart_7_pressure_div'),
-                          document.getElementById('chart_7_wind_speed_div')
+            document.getElementById('chart_7_temperature_tdp_div'),
+            document.getElementById('chart_7_temperature_tdp_key'),
+            document.getElementById('chart_7_temperature_awc_div'),
+            document.getElementById('chart_7_temperature_awc_key'),
+            document.getElementById('chart_7_humidity_div'),
+            document.getElementById('chart_7_humidity_key'),
+            document.getElementById('chart_7_pressure_div'),
+            document.getElementById('chart_7_pressure_key'),
+            document.getElementById('chart_7_wind_speed_div'),
+            document.getElementById('chart_7_wind_speed_key')
         );
 
         samples_7_loading = false;
@@ -151,7 +162,10 @@ function load_7day_charts() {
      */
     $.getJSON(rainfall_7day_url, function(data) {
 
-        drawRainfallChart(data, document.getElementById('chart_7_hourly_rainfall_div'));
+        drawRainfallChart(
+            data,
+            document.getElementById('chart_7_hourly_rainfall_div'),
+            document.getElementById('chart_7_hourly_rainfall_key'));
 
         rainfall_7_loading = false;
 
