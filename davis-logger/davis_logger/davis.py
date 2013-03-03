@@ -413,13 +413,57 @@ class DavisWeatherStation(object):
                         toHexString(self._lps_buffer), self._crc_errors,
                         last_crc))
                 self._last_crc_error = datetime.datetime.now()
+
+                # Now, at this point its possible a mess may have been made. The
+                # errors I see come through are where some data was lost in
+                # transmission resulting in a very short loop packet. Part of
+                # the next loop packet ends up being stolen by the corrupt one
+                # resulting in all subsequent loop packets being broken too.
+                # So to take care of this situation we will search back through
+                # the bad loop packet looking for the string "LOO" and insert
+                # everything from that point back into the start of the buffer.
+
+                # Every LOOP packet should end with \n\r followed by its
+                # two-byte CRC. If this packet doesn't do that then some of it
+                # was probably lost in transmission and part of it actually
+                # belongs to the next packet.
+                if packet[-4:-2] != '\n\r':
+                    # the packet is short. Go looking a second packet header.
+
+                    log.msg('WARNING! End of current packet is corrupt.')
+
+                    end_of_packet = packet.find('\n\r')
+                    next_packet = packet.find('LOO', end_of_packet)
+
+                    if next_packet >= 0:
+                        log.msg("WARNING! Found next packet data within current "
+                                "packet at position {0}. Current packet is {1} "
+                                "bytes short. Attempting to patch up buffer."
+                                .format(next_packet, (99 - next_packet)))
+                        next_packet_data = packet[next_packet:]
+                        self._lps_buffer = next_packet_data + self._lps_buffer
+
+                    # If we didn't find a second packet header then something
+                    # is properly wrong. Just restart the LOOP command and
+                    # everything *should* be OK.
+                    if len(self._lps_buffer) < 3 or \
+                            self._lps_buffer[0:3] != "LOO":
+                        log.msg('WARNING! Buffer is corrupt. Attempting to '
+                                'recover by restarting LOOP command.')
+                        self._lps_buffer = ""
+                        self._state = STATE_AWAKE
+                        if self._lps_packets_remaining <= 0:
+                            self._lps_packets_remaining = 1
+                        self.getLoopPackets(self._lps_packets_remaining)
+                        return
+
             else:
                 # CRC checks out. Data should be good
                 loop = deserialise_loop(packet_data, self._rainCollectorSize)
 
                 self.loopDataReceived.fire(loop)
 
-            if self._lps_packets_remaining == 0:
+            if self._lps_packets_remaining <= 0:
                 self._state = STATE_AWAKE
                 self.loopFinished.fire()
 
