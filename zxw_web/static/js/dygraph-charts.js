@@ -63,17 +63,27 @@ var dateFormatter = function(y) {
  *
  * @param jsondata JSON data (*NOT* the DataTable stuff)
  * @param tdp_element Temperature & Dew Point element
+ * @param tdp_key The element to render the key/labels in
  * @param awc_element Apparent Temperature & Wind Chill element
+ * @param awc_key The element to render the key/labels in
  * @param humidity_element Humidity element
+ * @param humidity_key The element to render the key/labels in
  * @param pressure_element Absolute Pressure element
+ * @param pressure_key The element to render the key/labels in
  * @param wind_speed_element Wind Speed element.
+ * @param wind_speed_key The element to render the key/labels in
  */
 function drawSampleLineCharts(jsondata,
                               tdp_element,
+                              tdp_key,
                               awc_element,
+                              awc_key,
                               humidity_element,
+                              humidity_key,
                               pressure_element,
-                              wind_speed_element) {
+                              pressure_key,
+                              wind_speed_element,
+                              wind_speed_key) {
 
 
     var labels = jsondata['labels'];
@@ -112,6 +122,7 @@ function drawSampleLineCharts(jsondata,
         tdp_data,
         {
             labels: tdp_labels,
+            labelsDiv: tdp_key,
             animatedZooms: enable_animated_zooms,
             strokeWidth: strokeWidth,
             title: 'Temperature and Dew Point (°C)',
@@ -120,17 +131,14 @@ function drawSampleLineCharts(jsondata,
                     valueFormatter: temperatureFormatter
                 }
             },
-            legend: 'always',
-            labelsDivStyles: {
-                'text-align': 'right',
-                'background': 'none'
-            }
+            legend: 'always'
         });
     var awc_chart = new Dygraph(
         awc_element,
         awc_data,
         {
             labels: awc_labels,
+            labelsDiv: awc_key,
             animatedZooms: enable_animated_zooms,
             strokeWidth: strokeWidth,
             title: 'Apparent Temperature and Wind Chill (°C)',
@@ -139,17 +147,14 @@ function drawSampleLineCharts(jsondata,
                     valueFormatter: temperatureFormatter
                 }
             },
-            legend: 'always',
-            labelsDivStyles: {
-                'text-align': 'right',
-                'background': 'none'
-            }
+            legend: 'always'
         });
     var humidity_chart = new Dygraph(
         humidity_element,
         humidity_data,
         {
             labels: humidity_labels,
+            labelsDiv: humidity_key,
             animatedZooms: enable_animated_zooms,
             strokeWidth: strokeWidth,
             title: 'Humidity (%)',
@@ -158,36 +163,30 @@ function drawSampleLineCharts(jsondata,
                     valueFormatter: humidityFormatter
                 }
             },
-            legend: 'always',
-            labelsDivStyles: {
-                'text-align': 'right',
-                'background': 'none'
-            }
+            legend: 'always'
         });
     var pressure_chart = new Dygraph(
         pressure_element,
         pressure_data,
         {
             labels: pressure_labels,
+            labelsDiv: pressure_key,
             animatedZooms: enable_animated_zooms,
             strokeWidth: strokeWidth,
-            title: 'Absolute Pressure (hPa)',
+            title: 'Pressure (hPa)',
             axes: {
                 y: {
                     valueFormatter: pressureFormatter
                 }
             },
-            legend: 'always',
-            labelsDivStyles: {
-                'text-align': 'right',
-                'background': 'none'
-            }
+            legend: 'always'
         });
     var wind_speed_chart = new Dygraph(
         wind_speed_element,
         wind_speed_data,
         {
             labels: wind_speed_labels,
+            labelsDiv: wind_speed_key,
             animatedZooms: enable_animated_zooms,
             strokeWidth: strokeWidth,
             title: 'Wind Speed (m/s)',
@@ -196,11 +195,7 @@ function drawSampleLineCharts(jsondata,
                    valueFormatter: windSpeedFormatter
                 }
             },
-            legend: 'always',
-            labelsDivStyles: {
-                'text-align': 'right',
-                'background': 'none'
-            }
+            legend: 'always'
         });
 }
 
@@ -209,17 +204,27 @@ function drawSampleLineCharts(jsondata,
  *
  * @param jsondata JSON data to plot
  * @param temperature_element Element to draw the temperature chart in
+ * @param temperature_key Element to draw the key/labels in
  * @param pressure_element Element to draw the pressure chart in
+ * @param pressure_key Element to draw the key/labels in
  * @param humidity_element Element to draw the humidity chart in
+ * @param humidity_key Element to draw the key/labels in
  * @param rainfall_element Element to draw the rainfall chart in
+ * @param rainfall_key Element to draw the key/labels in
  * @param wind_speed_element Element to draw the wind speed chart in
+ * @param wind_speed_key Element to draw the key/labels in
  */
 function drawRecordsLineCharts(jsondata,
                                temperature_element,
+                               temperature_key,
                                pressure_element,
+                               pressure_key,
                                humidity_element,
+                               humidity_key,
                                rainfall_element,
-                               wind_speed_element) {
+                               rainfall_key,
+                               wind_speed_element,
+                               wind_speed_key) {
 
     var labels = jsondata['labels'];
     var data = jsondata['data'];
@@ -252,18 +257,13 @@ function drawRecordsLineCharts(jsondata,
     var rainfall_labels = [labels[0],labels[7]];
     var wind_speed_labels = [labels[0],labels[8],labels[9]];
 
-    /* Some settings */
-    var labelStyles = {
-        'text-align': 'right',
-        'background': 'none'
-    };
-
     /* Now chart everything */
     var temp_chart = new Dygraph(
         temperature_element,
         temp_data,
         {
             labels: temp_labels,
+            labelsDiv: temperature_key,
             animatedZooms: enable_animated_zooms,
             strokeWidth: strokeWidth,
             title: "Temperature (°C)",
@@ -275,8 +275,7 @@ function drawRecordsLineCharts(jsondata,
                     valueFormatter: dateFormatter
                 }
             },
-            legend: 'always',
-            labelsDivStyles: labelStyles
+            legend: 'always'
         });
 
     var humidity_chart = new Dygraph(
@@ -284,6 +283,7 @@ function drawRecordsLineCharts(jsondata,
         humidity_data,
         {
             labels: humidity_labels,
+            labelsDiv: humidity_key,
             animatedZooms: enable_animated_zooms,
             strokeWidth: strokeWidth,
             title: "Humidity (%)",
@@ -295,8 +295,7 @@ function drawRecordsLineCharts(jsondata,
                     valueFormatter: dateFormatter
                 }
             },
-            legend: 'always',
-            labelsDivStyles: labelStyles
+            legend: 'always'
         });
 
     var pressure_chart = new Dygraph(
@@ -304,6 +303,7 @@ function drawRecordsLineCharts(jsondata,
         pressure_data,
         {
             labels: pressure_labels,
+            labelsDiv: pressure_key,
             animatedZooms: enable_animated_zooms,
             strokeWidth: strokeWidth,
             title: "Absolute Pressure (hPa)",
@@ -315,8 +315,7 @@ function drawRecordsLineCharts(jsondata,
                     valueFormatter: dateFormatter
                 }
             },
-            legend: 'always',
-            labelsDivStyles: labelStyles
+            legend: 'always'
         });
 
     var rainfall_chart = new Dygraph(
@@ -324,6 +323,7 @@ function drawRecordsLineCharts(jsondata,
         rainfall_data,
         {
             labels: rainfall_labels,
+            labelsDiv: rainfall_key,
             animatedZooms: enable_animated_zooms,
             strokeWidth: strokeWidth,
             title: "Total Rainfall (mm)",
@@ -335,8 +335,7 @@ function drawRecordsLineCharts(jsondata,
                     valueFormatter: dateFormatter
                 }
             },
-            legend: 'always',
-            labelsDivStyles: labelStyles
+            legend: 'always'
         });
 
     var wind_speed_chart = new Dygraph(
@@ -344,6 +343,7 @@ function drawRecordsLineCharts(jsondata,
         wind_speed_data,
         {
             labels: wind_speed_labels,
+            labelsDiv: wind_speed_key,
             animatedZooms: enable_animated_zooms,
             strokeWidth: strokeWidth,
             title: "Wind Speed (m/s)",
@@ -355,7 +355,6 @@ function drawRecordsLineCharts(jsondata,
                     valueFormatter: dateFormatter
                 }
             },
-            legend: 'always',
-            labelsDivStyles: labelStyles
+            legend: 'always'
         });
 }
