@@ -168,7 +168,7 @@ def live_data(station_id):
                 'bar_trend': data.bar_trend,
                 'rain_rate': data.rain_rate,
                 'storm_rain': data.storm_rain,
-                'current_storm_date': data.current_storm_start_date,
+                'current_storm_date': str(data.current_storm_start_date),
                 'tx_batt': data.transmitter_battery,
                 'console_batt': data.console_battery_voltage,
                 'forecast_icon': data.forecast_icon,
