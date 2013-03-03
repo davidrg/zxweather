@@ -469,11 +469,12 @@ function refresh_records() {
 }
 
 if (live_auto_refresh)
+    if (hw_type == 'DAVIS') {
+        // Load Davis forecast rules
+        $.getJSON(forecast_rules_uri, function(data) {
+            davis_forecast_rules = data;
+        });
+    }
+
     connect_live();
 
-if (hw_type == 'DAVIS') {
-    // Load Davis forecast rules
-    $.getJSON(forecast_rules_uri, function(data) {
-        davis_forecast_rules = data;
-    });
-}

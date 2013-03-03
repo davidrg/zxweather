@@ -110,6 +110,9 @@
         var rainfall_totals_url = '{{ data_urls['rainfall_totals'] }}';
         var live_auto_refresh;
         {% if data.current_data -%}
+
+        $('#live_status').tooltip();
+
         live_auto_refresh = true;
         var station_code = '{{ station }}';
         var hw_type = '{{ hw_type }}';
@@ -117,16 +120,18 @@
         var wss_uri = null;
         {% if ws_uri -%}ws_uri = '{{ ws_uri }}'; {% endif %}
         {% if wss_uri -%}wss_uri = '{{ wss_uri }}'; {% endif %}
+        {% if hw_type == 'DAVIS' %}var forecast_rules_uri = '../../../../../data/davis_forecast_rules.json';{% endif %}
         {%- else -%}
         live_auto_refresh = false;
         {%- endif %}
         var is_day_page = true;
-        {% if hw_type == 'DAVIS' %}var forecast_rules_uri = '../../../../../data/davis_forecast_rules.json';{% endif %}
     </script>
 
+    {% if data.current_data %}
     <script type="text/javascript" src="../../../../../js/day_live.js"></script>
+    {% endif %}
     <script type="text/javascript" src="../../../../../js/day_charts.js"></script>
-    {% if ui and ui == 'm' -%}
+    {% if ui and ui in ('s', 'm') -%}
         <script type="text/javascript" src="../../../../../js/dygraph-combined.js"></script>
         <script type="text/javascript" src="../../../../../js/dygraph-charts.js"></script>
         <script type="text/javascript" src="../../../../../js/day_charts_dygraph.js"></script>

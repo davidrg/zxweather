@@ -4,6 +4,7 @@ Handles fetching the day pages in all UIs.
 """
 
 from datetime import datetime, timedelta, date
+import web
 from web.contrib.template import render_jinja
 import config
 from months import month_name
@@ -101,10 +102,10 @@ def get_day_data_urls(station, day, ui, overview_page=False):
                                                    month_name[day.month],
                                                    day.day)
 
-    if ui == 'm':
-        sub_dir = ''
-    else:
+    if ui == 'a':
         sub_dir = 'datatable/'
+    else:
+        sub_dir = ''
 
     urls = {
         'samples': relative_url(current_url,
@@ -135,6 +136,14 @@ def get_day_page(ui, station, day):
     :type day: date
     :return: View data
     """
+
+    if ui == 'm':
+        # 'm' interface doesn't exist right now. Send the user to the
+        # standard UI instead.
+        web.seeother(config.site_root + 's' + '/' + station + '/' +
+                     str(day.year) + '/' + month_name[day.month] + '/' +
+                     str(day.day) + '/')
+
     current_location = '/*/' + station + '/' + str(day.year) + '/' +\
                        month_name[day.month] + '/' + str(day.day) + '/'
 
@@ -160,7 +169,7 @@ def get_day_page(ui, station, day):
         this_month = month_name[day.month].capitalize()
         records = get_daily_records(date_stamp, station_id)
 
-        if ui in ('s','m'):
+        if ui in ('s', 'm', 'a'):
             rainfall_7days_total = total_rainfall_in_last_7_days(date_stamp,
                                                                  station_id)
 
@@ -186,7 +195,7 @@ def get_day_page(ui, station, day):
             (day.year, day.month, day.day))
     }
 
-    if ui in ('s','m'):
+    if ui in ('s', 'm', 'a'):
         nav_urls = get_nav_urls(station, current_location)
         data_urls = get_day_data_urls(station, data.date_stamp, ui)
         return modern_templates.day(nav=nav_urls,
@@ -240,10 +249,10 @@ def get_indoor_data_urls(station, day, ui):
     :type: dict
     """
 
-    if ui == 'm':
-        sub_dir = ''
-    else:
+    if ui == 'a':
         sub_dir = 'datatable/'
+    else:
+        sub_dir = ''
 
     data_base_url = '../../../../../data/{0}/{1}/{2}/{3}/'\
     .format(station, day.year, day.month, day.day)
@@ -272,6 +281,14 @@ def get_indoor_day(ui, station, day):
     :type day: date
     :return: View data
     """
+
+    if ui == 'm':
+        # 'm' interface doesn't exist right now. Send the user to the
+        # standard UI instead.
+        web.seeother(config.site_root + 's' + '/' + station + '/' +
+                     str(day.year) + '/' + month_name[day.month] + '/' +
+                     str(day.day) + '/')
+
     current_location = '/*/' + station + '/' + str(day.year) + '/' +\
                        month_name[day.month] + '/' + str(day.day) + '/indoor.html'
 
@@ -305,7 +322,7 @@ def get_indoor_day(ui, station, day):
             (day.year, day.month, day.day))
     }
 
-    if ui in ('s','m'):
+    if ui in ('s', 'm', 'a'):
         nav_urls = get_nav_urls(station, current_location)
         data_urls = get_indoor_data_urls(station, data.date_stamp, ui)
         return modern_templates.indoor_day(

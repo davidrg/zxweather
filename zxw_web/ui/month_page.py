@@ -193,6 +193,13 @@ def get_month(ui, station, year, month):
     :type month: integer
     :return: View data
     """
+
+    if ui == 'm':
+        # 'm' interface doesn't exist right now. Send the user to the
+        # standard UI instead.
+        web.seeother(config.site_root + 's' + '/' + station + '/' +
+                     str(year) + '/' + month_name[month] + '/')
+
     current_location = '/*/' + station + '/' + str(year) + '/' +\
                        month_name[month] + '/'
 
@@ -233,11 +240,11 @@ def get_month(ui, station, year, month):
         records = get_monthly_records(year,month, station_id)
 
     month_cache_control(year, month, station_id)
-    if ui in ('s','m'):
-        if ui == 'm':
-            sub_dir = ""
-        else:
+    if ui in ('s','m', 'a'):
+        if ui == 'a':
             sub_dir = "datatable/"
+        else:
+            sub_dir = ""
 
         # TODO: Make this a dict.
         class urls:

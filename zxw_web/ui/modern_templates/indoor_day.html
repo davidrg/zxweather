@@ -100,7 +100,7 @@
     var samples_url = "{{ dataurls['samples'] }}";
     var samples_7day_url = "{{ dataurls['samples_7day_30mavg'] }}";
     </script>
-    {% if ui and ui == 'm' -%}
+    {% if ui and ui in ('s', 'm') -%}
     <script type="text/javascript" src="../../../../../js/dygraph-combined.js"></script>
     <script type="text/javascript" src="../../../../../js/dygraph-charts.js"></script>
     <script type="text/javascript" src="../../../../../js/day_charts_indoor_dygraph.js"></script>
