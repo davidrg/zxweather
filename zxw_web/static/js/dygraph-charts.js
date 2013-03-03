@@ -306,7 +306,7 @@ function drawRecordsLineCharts(jsondata,
             labelsDiv: pressure_key,
             animatedZooms: enable_animated_zooms,
             strokeWidth: strokeWidth,
-            title: "Absolute Pressure (hPa)",
+            title: "Pressure (hPa)",
             axes: {
                 y: {
                     valueFormatter: pressureFormatter
