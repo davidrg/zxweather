@@ -130,7 +130,12 @@ def make_station_switch_urls(station_list, current_url, validation_func=None,
 
 
 # Register available UIs
-uis = ['s','b','m']
+uis = [
+    's',    # Standard UI. HTML5 Canvas required
+    'b',    # Basic UI. IE 4.0+, Nescape 4.04+. Requires PNG support.
+    'a',    # Alternate UI. Requires SVG or VML. Otherwise the same as standard.
+    'm'     # Mobile. Currently this is the same as standard.
+]
 
 
 def build_alternate_ui_urls(current_url):
@@ -234,12 +239,18 @@ class stationlist:
         :return: A view.
         """
 
+        if ui == 'm':
+            # 'm' interface doesn't exist right now. Send the user to the
+            # standard UI instead.
+            web.seeother(config.site_root + 's' + '/')
+
         validate_request(ui)
 
         # Just redirect straight to the default station. There should be a menu
         # on that page where the user can navigate to a different one if
         # required. TODO: Add a cookie to remember the users setting.
-        raise web.seeother(config.site_root + ui + '/' + config.default_station_name + '/')
+        raise web.seeother(config.site_root + ui + '/' +
+                           config.default_station_name + '/')
 
 class now:
     """

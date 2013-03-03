@@ -97,6 +97,13 @@ def get_year(ui,station, year):
     :type year: integer
     :return: View data
     """
+
+    if ui == 'm':
+        # 'm' interface doesn't exist right now. Send the user to the
+        # standard UI instead.
+        web.seeother(config.site_root + 's' + '/' + station + '/' +
+                     str(year) + '/')
+
     current_location = '/*/' + station + '/' + str(year) + '/'
 
     station_id = get_station_id(station)
@@ -128,12 +135,12 @@ def get_year(ui,station, year):
 
     year_cache_control(year, station_id)
 
-    if ui in ('s','m'):
+    if ui in ('s', 'm', 'a'):
 
-        if ui == 'm':
-            sub_dir = ''
+        if ui == 'a':
+            sub_dir = 'datatable/'
         else:
-            sub_dir = "datatable/"
+            sub_dir = ""
 
         # TODO: Convert this into a dict
         # Figure out any URLs the page needs to know.

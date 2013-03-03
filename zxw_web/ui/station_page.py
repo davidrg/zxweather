@@ -4,6 +4,7 @@ Handles the station overview page and any other station-level pages.
 """
 
 from datetime import datetime, timedelta
+import web
 from web.contrib.template import render_jinja
 from cache import day_cache_control
 import config
@@ -32,6 +33,11 @@ def get_station_standard(ui, station):
     :param station: Name of the station to show info for.
     :return: View data.
     """
+
+    if ui == 'm':
+        # 'm' interface doesn't exist right now. Send the user to the
+        # standard UI instead.
+        web.seeother(config.site_root + 's' + '/' + station + '/')
 
     current_location = '/*/' + station + '/'
 
@@ -72,10 +78,10 @@ def get_station_standard(ui, station):
     else:
         page_data["no_content"] = False
 
-    if ui == 'm':
-        sub_dir = ''
-    else:
+    if ui == 'a':
         sub_dir = 'datatable/'
+    else:
+        sub_dir = ''
 
     day_cache_control(None, now, station_id)
     nav_urls = get_nav_urls(station, current_location)
@@ -120,7 +126,7 @@ class station(object):
         validate_request(ui,station)
         html_file()
 
-        if ui in ('s','m'):
+        if ui in ('s', 'm', 'a'):
             return get_station_standard(ui, station)
         else:
             return get_station_basic(station)

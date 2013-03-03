@@ -37,7 +37,7 @@
         }
     </style>
     <link rel="stylesheet" href="/css/bootstrap-responsive.css" type="text.css" />
-    {% if ui and ui == 'm' -%}
+    {% if ui and ui in ('s', 'm') -%}
         <style type="text/css">
             .dygraph-title {
                 font-size: 10pt;
@@ -122,7 +122,7 @@
     {%- endif %}
 
     <div class="container">
-        {% if ui and ui == 'm' -%}
+        {% if ui and ui in ('s', 'm') -%}
         <!--[if IE 8]>
         <div class="alert">
         <button type="button" class="close" data-dismiss="alert">×</button>
@@ -130,7 +130,7 @@
         Internet Explorer 8 is too old to draw the charts on this page. Please
         upgrade your browser or try one of the other interfaces:
         <ul>
-            <li><a href="{{ switch_url['s'] }}">Alternate</a> - This still provides interactive charts but they will load very slowly and may lock up your browser window briefly.
+            <li><a href="{{ switch_url['a'] }}">Alternate</a> - This still provides interactive charts but they will load very slowly and may lock up your browser window briefly.
             <li><a href="{{ switch_url['b'] }}">Basic HTML</a> - A very basic interface compatible with Internet Explorer 4+ and Netscape 4.04+
         </ul>
         </div>
@@ -140,18 +140,11 @@
             <strong>Unsupported browser!</strong>
             Your browser does not support the HTML5 Canvas feature. Please upgrade to a more
             modern browser or try one of the other interfaces:<br><br>
-            <a href="{{ switch_url['s'] }}" class="btn">Switch to Alternate Interface</a>
+            <a href="{{ switch_url['a'] }}" class="btn">Switch to Alternate Interface</a>
             <a href="{{ switch_url['b'] }}" class="btn">Switch to Basic HTML Interface</a>
         </div>
-        <div class="alert alert-info">
-            <button type="button" class="close" data-dismiss="alert">×</button>
-            <strong>Note!</strong> This is an experimental user interface that
-            draws charts a bit differently. It is not finished and
-            may malfunction or look odd. If you encounter any unusual behaviour
-            you can go back to the <a href="{{ switch_url['s'] }}">Standard UI</a>.
-        </div>
         {%- endif -%}
-        {% if ui and ui == 's' %}
+        {% if ui and ui == 'a' %}
         <!--[if IE 8]>
         <div class="alert">
         <button type="button" class="close" data-dismiss="alert">×</button>
