@@ -301,11 +301,6 @@ order by s.time_stamp asc
         Called when ever notifications are received.
         :param notify: The notification.
         """
-        log.msg('Notification on channel {0}: {1}'.format(
-            notify.channel, notify.payload))
-
-        print 'Notification on channel {0}: {1}'.format(
-            notify.channel, notify.payload)
 
         if notify.channel == "live_data_updated":
             self._fetch_live(notify.payload)
