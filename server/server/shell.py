@@ -5,6 +5,7 @@ Executes commands sent by remote systems.
 from functools import partial
 import uuid
 import datetime
+from twisted.python import log
 from server.command_tables import  std_verb_table, std_syntax_table, \
     std_keyword_table, std_dispatch_table
 from server.session import register_session, end_session, update_session
@@ -67,7 +68,8 @@ class Dispatcher(object):
         an executable command
         :rtype: partial
         """
-
+        log.msg('{1} cmd-exec: {0}'.format(
+            command, self.environment["sessionid"]))
         try:
             handler, params, qualifiers = self.processor.process_command(command)
         except Exception as e:
