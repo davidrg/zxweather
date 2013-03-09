@@ -303,3 +303,15 @@ class UploadClient(object):
         Flushes any buffered samples.
         """
         self._transmit_samples()
+
+    def reset(self):
+        """
+        Called to reset the client. This is done when the connection to the
+        server is reestablished after being lost
+        :return:
+        """
+        self._mode = MODE_INIT
+        self._line_buffer = ""
+
+        self.latestSampleInfo = None
+        self._sample_buffer = []
