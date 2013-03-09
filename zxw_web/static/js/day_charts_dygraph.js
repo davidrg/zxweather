@@ -5,27 +5,41 @@
  * Time: 9:02 PM
  */
 
-/* This function is stolen from the dygraphs blog:
- * http://blog.dygraphs.com/2012/08/introducing-custom-plotters.html
+/* This function is stolen from the custom plotters exmaple:
+ * http://dygraphs.com/tests/plotters.html
  */
 function barChartPlotter(e) {
     var ctx = e.drawingContext;
     var points = e.points;
-    var y_bottom = e.dygraph.toDomYCoord(0);  // see http://dygraphs.com/jsdoc/symbols/Dygraph.html#toDomYCoord
+    var y_bottom = e.dygraph.toDomYCoord(0);
 
-    // This should really be based on the minimum gap
-    var bar_width = 2/3 * (points[1].canvasx - points[0].canvasx);
-    ctx.fillStyle = e.color;
+    // The RGBColorParser class is provided by rgbcolor.js, which is
+    // packed in with dygraphs.
+    var color = new RGBColorParser(e.color);
+    color.r = Math.floor((255 + color.r) / 2);
+    color.g = Math.floor((255 + color.g) / 2);
+    color.b = Math.floor((255 + color.b) / 2);
+    ctx.fillStyle = color.toRGB();
+
+    // Find the minimum separation between x-values.
+    // This determines the bar width.
+    var min_sep = Infinity;
+    for (var i = 1; i < points.length; i++) {
+        var sep = points[i].canvasx - points[i - 1].canvasx;
+        if (sep < min_sep) min_sep = sep;
+    }
+    var bar_width = Math.floor(2.0 / 3 * min_sep);
 
     // Do the actual plotting.
     for (var i = 0; i < points.length; i++) {
         var p = points[i];
-        var center_x = p.canvasx;  // center of the bar
+        var center_x = p.canvasx;
 
         ctx.fillRect(center_x - bar_width / 2, p.canvasy,
-                     bar_width, y_bottom - p.canvasy);
+            bar_width, y_bottom - p.canvasy);
+
         ctx.strokeRect(center_x - bar_width / 2, p.canvasy,
-                       bar_width, y_bottom - p.canvasy);
+            bar_width, y_bottom - p.canvasy);
     }
 }
 
@@ -57,8 +71,11 @@ function drawRainfallChart(jsondata,
                                         valueFormatter: rainfallFormatter
                                     }
                                 },
-                                animatedZooms: true
-                            })
+                                xRangePad: 15
+                                // Animated zooming must be off for xRangePad
+                                // to have any effect.
+                                //,animatedZooms: true
+                            });
 }
 
 function load_day_charts() {
