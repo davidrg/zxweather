@@ -9,7 +9,7 @@ windows) would have probably been easier.
 """
 __author__ = 'david'
 
-from twisted.internet.error import ConnectionLost
+from twisted.internet.error import ConnectionLost, ConnectionDone
 from twisted.python import log
 from twisted.conch.ssh import transport, connection, userauth, channel
 from twisted.internet import defer, protocol, reactor
@@ -125,6 +125,13 @@ class ShellClientFactory(protocol.ClientFactory):
         serious.
         """
 
+        # Let the client know the connection has gone away.
+        self._client.reset()
+
+        def _auto_reconnect():
+            log.msg('Attempting reconnect...')
+            connector.connect()
+
         if reason.check(KeyValidationError):
             # The server responded with a key we were not expecting. This is
             # quite serious (or would be if we were doing anything sensitive)
@@ -143,8 +150,20 @@ class ShellClientFactory(protocol.ClientFactory):
 
             log.msg('Reconnect...')
             connector.connect()
+        elif reason.check(ConnectionDone):
+            log.msg('Server has closed the connection (server shut down?).')
+            log.msg('Reconnect attempt in 1 minute...')
+            reactor.callLater(60, _auto_reconnect)
         else:
             log.msg('An unexpected error caused client disconnect.')
             reactor.stop()
 
+    def clientConnectionFailed(self, connector, reason):
+        log.msg('Connect failed. Reason: {0}'.format(reason.getErrorMessage()))
+        log.msg('Reconnect attempt in 1 minute...')
 
+        def _auto_reconnect():
+            log.msg('Attempting reconnect...')
+            connector.connect()
+
+        reactor.callLater(60, _auto_reconnect)

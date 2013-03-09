@@ -33,6 +33,10 @@ class WeatherDatabase(object):
         :param station_code: Station to get live data for.
         """
 
+        if self._upload_client.latestSampleInfo is None:
+            # Client is not connected yet.
+            return
+
         # Don't bother sending live data for stations the remote system doesn't
         # know anything about.
         if station_code not in self._upload_client.latestSampleInfo:
@@ -67,6 +71,10 @@ class WeatherDatabase(object):
         UploadClient for uploading.
         :param station_code: Station to get live data for.
         """
+
+        if self._upload_client.latestSampleInfo is None:
+            # Client is not connected yet.
+            return
 
         # Don't bother sending live data for stations the remote system doesn't
         # know anything about.
@@ -266,6 +274,11 @@ order by s.time_stamp asc
             self.process_samples_result, 'DAVIS')
 
     def _fetch_samples(self, station_code):
+
+        if self._upload_client.latestSampleInfo is None:
+            # Client is not connected yet.
+            return
+
         # Don't bother sending samples for stations the remote system doesn't
         # know anything about.
         if station_code not in self._upload_client.latestSampleInfo:
