@@ -218,11 +218,16 @@ def main():
     parser.add_option("-d", "--directory", dest="directory",
                       help="Output Directory")
     parser.add_option("-a", "--plot-new", dest="plot_new",
-                      help="Plot charts for days on or after the date in the specified file")
+                      help="Plot charts for days on or after the date in the "
+                           "specified file")
     parser.add_option("-r", "--replot-pause", dest="replot_pause",
-                      help="Charts will be replotted every x seconds until Ctrl+C is used to terminate the program")
+                      help="Charts will be replotted every x seconds until "
+                           "Ctrl+C is used to terminate the program")
     parser.add_option("-g", "--gnuplot-binary", dest="gnuplot_bin",
                       help="Gnuplot binary to use")
+    parser.add_option("-c", "--gnuplot-processes", dest="gnuplot_count",
+                      help="Number of concurrent gnuplot processes to use. "
+                           "Default is 1.")
     parser.add_option("-s", "--station", dest="station_codes", action="append",
                       help="The stations to plot charts for")
 
@@ -271,6 +276,11 @@ def main():
     if options.gnuplot_bin is not None:
         gnuplot.gnuplot_binary = options.gnuplot_bin
 
+    if options.gnuplot_count is None:
+        gnuplot.gnuplot_count = 1
+    else:
+        gnuplot.gnuplot_count = int(options.gnuplot_count)
+
     print("Connecting to database...")
     connection_string = "host=" + options.hostname
     connection_string += " user=" + options.username
@@ -306,6 +316,8 @@ def main():
         print("Plotting from {0} for station {1}".format(code, plot_dates[code]))
 
     while True:
+        exec_start = time.time()
+
         for station in options.station_codes:
             plot_dates[station] = plot_for_station(station, cur, dest_dir,
                                                    plot_dates[station])
@@ -314,6 +326,8 @@ def main():
             if options.plot_new is not None:
                 with open(options.plot_new,"w") as update_file:
                     pickle.dump(plot_dates, update_file)
+
+        print("Plot completed in {0} seconds".format(time.time() - exec_start))
 
         if options.replot_pause is None:
             break  # Only doing one plot

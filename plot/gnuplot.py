@@ -8,6 +8,31 @@ gnuplot_binary = r'gnuplot'
 
 # TODO: rewrite this garbage to be less garbage-y
 
+gnuplot_instance = None
+gnuplot_count = 1
+next_gnuplot = 0
+
+
+def run_plot_script(script):
+    global gnuplot_instance, gnuplot_binary, next_gnuplot, gnuplot_count
+    if gnuplot_instance is None:
+
+        gnuplot_instance = []
+
+        while len(gnuplot_instance) < gnuplot_count:
+            ins = subprocess.Popen([gnuplot_binary], stdin=subprocess.PIPE)
+            gnuplot_instance.append(ins)
+
+
+    script = "reset\n{0}\n".format(script)
+
+    gnuplot_instance[next_gnuplot].stdin.write(script)
+
+    next_gnuplot += 1
+    if next_gnuplot >= gnuplot_count:
+        next_gnuplot = 0
+
+
 def plot_graph(output_filename, title=None, xdata_time=False, ylabel=None,
                lines=None, key=True, width=None, height=None, xlabel=None,
                yrange=None, xdata_is_time=False, timefmt_is_date=False,
@@ -109,8 +134,9 @@ set datafile missing "?"
         file = open(output_filename + '.plt', 'w+')
         file.writelines(script)
         file.close()
-        gnuplot = subprocess.Popen([gnuplot_binary], stdin=subprocess.PIPE)
-        gnuplot.communicate(script)
+        run_plot_script(script)
+        #gnuplot = subprocess.Popen([gnuplot_binary], stdin=subprocess.PIPE)
+        #gnuplot.communicate(script)
 
 
 def plot_rainfall(data_file_name, output_filename, title, width, height, empty,
@@ -160,5 +186,6 @@ def plot_rainfall(data_file_name, output_filename, title, width, height, empty,
     script_file = open(output_filename + '.plt', 'w+')
     script_file.writelines(script)
     script_file.close()
-    gnuplot = subprocess.Popen([gnuplot_binary], stdin=subprocess.PIPE)
-    gnuplot.communicate(script)
+    run_plot_script(script)
+    #gnuplot = subprocess.Popen([gnuplot_binary], stdin=subprocess.PIPE)
+    #gnuplot.communicate(script)
