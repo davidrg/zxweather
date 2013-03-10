@@ -1,4 +1,6 @@
 # coding=utf-8
+from adodbapi import OperationalError
+from twisted.internet import reactor
 from twisted.python import log
 
 __author__ = 'david'
@@ -16,6 +18,8 @@ class DictConnection(txpostgres.Connection):
     connectionFactory = staticmethod(dict_connect)
 
 class WeatherDatabase(object):
+
+    _CONN_CHECK_INTERVAL = 60
 
     def __init__(self, upload_client):
         """
@@ -318,18 +322,10 @@ order by s.time_stamp asc
                 "station_type st on st.station_type_id = s.station_type_id "
         self._conn.runQuery(query).addCallback(self._store_hardware_types)
 
-    def connect(self, connection_string):
-        """
-        Connects to the database and starts sending live data and new samples to
-        the supplied upload client.
-        :param connection_string: Database connection string
-        :type connection_string: str
-        """
-
-        log.msg('Connect: {0}'.format(connection_string))
-        # connect to the database
+    def _reconnect(self):
+        log.msg('Connect: {0}'.format(self._connection_string))
         self._conn = DictConnection()
-        self._conn_d = self._conn.connect(connection_string)
+        self._conn_d = self._conn.connect(self._connection_string)
 
         # add a NOTIFY observer
         self._conn.addNotifyObserver(self.observer)
@@ -341,3 +337,38 @@ order by s.time_stamp asc
             lambda _: self._conn.runOperation("listen new_sample"))
         self._conn_d.addCallback(
             lambda _: log.msg('Connected to database. Now waiting for data.'))
+
+    def connect(self, connection_string):
+        """
+        Connects to the database and starts sending live data and new samples to
+        the supplied upload client.
+        :param connection_string: Database connection string
+        :type connection_string: str
+        """
+
+        # connect to the database
+        self._connection_string = connection_string
+
+        self._reconnect()
+
+        reactor.callLater(self._CONN_CHECK_INTERVAL, self._conn_check)
+
+    def _conn_check(self):
+        """
+        This is a bit of a nasty way to tell if the DB connection has failed.
+        But as txpostgres doesn't report a lost connection I can't think of
+        any other way to detect it.
+        """
+
+        def _conn_check_failed(failure):
+            failure.trap(psycopg2.OperationalError)
+
+            log.msg('DB connection presumed dead. Actual error was: {0}'.format(
+                failure.getErrorMessage()))
+            log.msg('Attempting reconnect')
+            self._reconnect()
+
+
+        self._conn.runQuery("select 42").addErrback(_conn_check_failed)
+
+        reactor.callLater(self._CONN_CHECK_INTERVAL, self._conn_check)
