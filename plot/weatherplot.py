@@ -9,7 +9,7 @@ import datetime
 import psycopg2
 import time
 import signal
-from day_charts import charts_1_day, charts_7_days, rainfall_1_day
+from day_charts import charts_1_day, charts_7_days, rainfall_1_day, rainfall_7_day
 #, rainfall_7_day
 import gnuplot
 from month_charts import month_charts
@@ -34,6 +34,7 @@ def handler(signum, frame):
     print("weatherplot stopped.")
     exit()
 signal.signal(signal.SIGINT, handler)
+
 
 def plot_day(dest_dir, cur, plot_date, station_code, start_date):
     """
@@ -72,7 +73,7 @@ def plot_day(dest_dir, cur, plot_date, station_code, start_date):
     charts_1_day(cur, dest_dir, plot_date, station_code)
     rainfall_1_day(cur, dest_dir, plot_date, station_code)
     charts_7_days(cur, dest_dir, plot_date, station_code)
-    # rainfall_7_day(cur, dest_dir, plot_date, station_code)
+    #rainfall_7_day(cur, dest_dir, plot_date, station_code)
 
 
 def plot_month(dest_dir, cur, year, month, station_code, start_date):
