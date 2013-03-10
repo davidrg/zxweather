@@ -14,6 +14,7 @@ var ws_lost_connection = false;
 var e_live_status = $('#live_status');
 
 var poll_interval = null;
+var update_check_interval = null;
 
 var davis_forecast_rules = {};
 
@@ -427,8 +428,16 @@ function refresh_live_data(data) {
 
     }
     previous_live = data
-}
 
+    // This is for handling missing updates from the web-socket update method.
+    if (update_check_interval != null)
+        window.clearInterval(update_check_interval);
+    update_check_interval = window.setInterval(function(){
+        $("#cc_data_age").html('over 60');
+        current_conditions.hide();
+        cc_stale.show();
+    }, 60000);
+}
 
 
 function refresh_records() {
