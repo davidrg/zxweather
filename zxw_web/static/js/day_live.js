@@ -16,41 +16,6 @@ var update_check_interval = null;
 
 var davis_forecast_rules = {};
 
-var trend_data = {
-    x: [],
-    temperature: [],
-    apparent_temperature: [],
-    wind_chill: [],
-    dew_point: [],
-    humidity: [],
-    barometer: [],
-    n: 0,
-    add: function (temperature, apparent_temperature, wind_chill,
-                   dew_point, humidity, barometer) {
-        trend_data.x.push(trend_data.n);
-        trend_data.temperature.push(parseFloat(temperature));
-        trend_data.apparent_temperature.push(parseFloat(apparent_temperature));
-        trend_data.wind_chill.push(parseFloat(wind_chill));
-        trend_data.dew_point.push(parseFloat(dew_point));
-        trend_data.humidity.push(parseFloat(humidity));
-        trend_data.barometer.push(parseFloat(barometer));
-
-        // Only keep the most recent 120 data points (5 minutes at davis speed,
-        // 1h36m at Fine Offset speed).
-        if (trend_data.x.length > 120) {
-            trend_data.x.splice(0,1);
-            trend_data.temperature.splice(0,1);
-            trend_data.apparent_temperature.splice(0,1);
-            trend_data.wind_chill.splice(0,1);
-            trend_data.dew_point.splice(0,1);
-            trend_data.humidity.splice(0,1);
-            trend_data.barometer.splice(0,1);
-        }
-
-        trend_data.n += 1;
-    }
-};
-
 function live_data_arrived(data) {
     var parts = data.split(',');
 
@@ -260,46 +225,6 @@ function connect_live() {
     }
 }
 
-
-function trend(x_data, y_data) {
-    var sum_x = 0.0;
-    var sum_y = 0.0;
-    var sum_x_squared = 0.0;
-    var sum_xy = 0.0;
-    var sum_xx = 0.0;
-   // var sum_yy = 0;
-
-    console.log(y_data);
-
-    for (var i = 0; i < x_data.length; i++) {
-        var x = x_data[i];
-        var y = y_data[i];
-
-        sum_x += x;
-        sum_y += y;
-        sum_xy += (x*y);
-        sum_xx += (x*x);
-       // sum_yy += (y*y);
-
-//        sum_x += x;
-//        sum_y += y;
-//        sum_x_squared += x*x;
-//        sum_xy += x*y;
-    }
-
-    var n = x_data.length;
-
-    var slope = (sum_xy - sum_x*sum_y/n) / (sum_x_squared - sum_x^2/n);
-
-    var lr = {};
-    slope = (n * sum_xy - sum_x * sum_y) / (n*sum_xx - sum_x * sum_x);
-   // lr['intercept'] = (sum_y - lr.slope * sum_x)/n;
-   // lr['r2'] = Math.pow((n*sum_xy - sum_x*sum_y)/Math.sqrt((n*sum_xx-sum_x*sum_x)*(n*sum_yy-sum_y*sum_y)),2);
-
-
-    return slope;
-}
-
 // wind_speed(m/s) = 0.837B^(2/3) where B is Beaufort scale number
 // These numbers are quite approximate.
 bft_scale = [
@@ -443,57 +368,6 @@ function refresh_live_data(data) {
             }
         }
 
-        trend_data.add(
-            temperature,
-            apparent_temp,
-            wind_chill,
-            dew_point,
-            relative_humidity,
-            absolute_pressure
-        );
-
-        // Icons
-        var rh='', t='', at='', wc='', dp='', ap='';
-
-        if (trend_data.x.length >= 2) {
-            function get_ico(data_set) {
-                var slope = trend(trend_data.x, data_set);
-                console.log(slope);
-                if (is_day_page) {
-                    if (slope > 0.01)
-                        return '<img src="../../../../../images/up.png" alt="increase" title="increase"/>&nbsp;';
-                    else if (slope >= -0.01 && slope <= 0.01)
-                        return '<img src="../../../../../images/no-change.png" alt="no change" title="no change"/>&nbsp;';
-                    else if (slope < -0.01)
-                        return '<img src="../../../../../images/down.png" alt="decrease" title="decrease"/>&nbsp;';
-                    else
-                        return '';
-                } else { // station overview
-                    if (slope > 0.1)
-                        return '<img src="../../images/up.png" alt="increase" title="increase"/>&nbsp;';
-                    else if (slope >= -0.01 && slope <= 0.01)
-                        return '<img src="../../images/no-change.png" alt="no change" title="no change"/>&nbsp;';
-                    else if (slope < -0.01)
-                        return '<img src="../../images/down.png" alt="decrease" title="decrease"/>&nbsp;';
-                    else
-                        return '';
-                }
-            }
-            console.log(trend_data.x);
-            console.log('rh');
-            rh = get_ico(trend_data.humidity);
-            console.log('t');
-            t = get_ico(trend_data.temperature);
-            console.log('at');
-            at = get_ico(trend_data.apparent_temperature);
-            console.log('wc');
-            wc = get_ico(trend_data.wind_chill);
-            console.log('dp');
-            dp = get_ico(trend_data.dew_point);
-            console.log('ap');
-            ap = get_ico(trend_data.barometer);
-        }
-
         if (wind_speed == 0.0)
             wind_direction = '--';
         else {
@@ -501,12 +375,12 @@ function refresh_live_data(data) {
             wind_direction += '\u00B0 (' + wind_directions[index] + ')'
         }
 
-        $("#live_relative_humidity").html(rh + relative_humidity + '%');
-        $("#live_temperature").html(t + temperature + '°C');
-        $("#live_apparent_temperature").html(at + apparent_temp + '°C');
-        $("#live_wind_chill").html(wc + wind_chill + '°C');
-        $("#live_dew_point").html(dp + dew_point + '°C');
-        $("#live_absolute_pressure").html(ap + absolute_pressure + ' hPa' + bar_trend);
+        $("#live_relative_humidity").html(relative_humidity + '%');
+        $("#live_temperature").html(temperature + '°C');
+        $("#live_apparent_temperature").html(apparent_temp + '°C');
+        $("#live_wind_chill").html(wind_chill + '°C');
+        $("#live_dew_point").html(dew_point + '°C');
+        $("#live_absolute_pressure").html(absolute_pressure + ' hPa' + bar_trend);
         $("#live_avg_wind_speed").html(wind_speed + ' m/s (' + bft_data[1] + ')');
         $("#live_wind_direction").html(wind_direction);
         $("#current_time").html(data['time_stamp']);
