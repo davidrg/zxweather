@@ -107,9 +107,9 @@
                     <ul class="nav pull-right">
                         <li class="dropdown">
                             <a href="#" class="dropdown-toggle" data-toggle="dropdown">{{ page_data["station_name"] }}<b class="caret"></b></a>
-                            <ul class="dropdown-menu">
+                            <ul class="dropdown-menu" id="station_switch_menu">
                                 {% for station in page_data["stations"] %}
-                                <li><a href="{{ station[0] }}">{{ station[1] }}</a></li>
+                                <li><a href="{{ station[0] }}" data-station-code="{{ station[2] }}">{{ station[1] }}</a></li>
                                 {% endfor %}
                             </ul>
                         </li>
@@ -159,6 +159,13 @@
         </div>
         <![endif]-->
         {% endif %}
+        {% if station_message %}
+        <div class="alert alert-info" style="display:none;" id="stn_msg">
+            <button type="button" class="close" data-dismiss="alert"
+                    onclick="msg_close()">×</button>
+            {{ station_message }}
+        </div>
+        {% endif %}
         {%- block content %}{% endblock %}
     </div>
 
@@ -195,6 +202,7 @@
         </div>
     </div>
     <script type="text/javascript" src="/js/jquery.min.js"></script>
+    {% if station_message %}<script type="text/javascript" src="/js/jquery.cookie.js"></script>{% endif %}
     <script type="text/javascript" src="/js/bootstrap.min.js"></script>
     {%- block scripts %}{% endblock %}
     <script type="text/javascript">
@@ -221,6 +229,36 @@
 
         $('#ndModal').modal();
     }
+
+    function switch_url(station_code) {
+        var result = "";
+
+        $('#station_switch_menu').find('li a').each(function() {
+            var href = $(this).attr('href');
+            var code = $(this).attr('data-station-code');
+            if (code == station_code)
+                result = href;
+        });
+
+        return result;
+    }
+
+    function switch_to_station(station_code) {
+        window.location = switch_url(station_code);
+    }
+
+    {% if station_message %}
+    function msg_close() {
+        $.cookie("msg", "{{ station_message_ts }}", {path: '/'});
+    }
+
+    $(document).ready(function() {
+       var close_ts = $.cookie("msg");
+       if (close_ts === undefined || close_ts < {{ station_message_ts }}) {
+           $("#stn_msg").show();
+       }
+    });
+    {% endif %}
     </script>
     {% endif %}
 </body>

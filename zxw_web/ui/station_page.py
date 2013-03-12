@@ -8,7 +8,7 @@ import web
 from web.contrib.template import render_jinja
 from cache import day_cache_control
 import config
-from database import get_daily_records, get_years, total_rainfall_in_last_7_days, day_exists, get_station_id, get_station_name, in_archive_mode, get_station_type_code, get_stations, get_live_data
+from database import get_daily_records, get_years, total_rainfall_in_last_7_days, day_exists, get_station_id, get_station_name, in_archive_mode, get_station_type_code, get_stations, get_live_data, get_station_message
 import os
 from months import month_name
 from ui import get_nav_urls, make_station_switch_urls, build_alternate_ui_urls
@@ -83,6 +83,8 @@ def get_station_standard(ui, station):
     else:
         sub_dir = ''
 
+    msg = get_station_message(station_id)
+
     day_cache_control(None, now, station_id)
     nav_urls = get_nav_urls(station, current_location)
     return modern_templates.station(nav=nav_urls,
@@ -97,7 +99,9 @@ def get_station_standard(ui, station):
                                     ws_uri=config.ws_uri,
                                     wss_uri=config.wss_uri,
                                     switch_url=build_alternate_ui_urls(
-                                        current_location))
+                                        current_location),
+                                    station_message=msg[0],
+                                    station_message_ts=msg[1])
 
 def get_station_basic(station):
     """

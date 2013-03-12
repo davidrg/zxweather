@@ -7,6 +7,7 @@ from ui import pause, get_string_with_length_indicator, get_string, get_code, \
 
 __author__ = 'david'
 
+
 def print_station_list(cur):
     """
     Prints out a list of all weather stations
@@ -30,12 +31,13 @@ inner join station_type st on st.station_type_id = s.station_type_id
 
     for result in results:
         station_codes.append(result[0])
-        print("{0:<5} {1:<8} {2}".format(result[0],result[1],result[2]))
+        print("{0:<5} {1:<8} {2}".format(result[0], result[1], result[2]))
 
     print("----- -------- -----------------------------------------------"
           "---------------")
 
     return station_codes
+
 
 def get_station_codes(cur):
     """
@@ -54,6 +56,7 @@ from station s
 
     return [result[0] for result in results]
 
+
 def list_stations(cur):
     """
     Displays a list of all weather stations in the database.
@@ -65,6 +68,7 @@ def list_stations(cur):
     print_station_list(cur)
 
     pause()
+
 
 def get_new_station_info(cur, defaults):
     """
@@ -123,12 +127,13 @@ your weather station is not in the list below then it is not directly supported
 by zxweather at this time.
 
 Code     Title
--------- ---------------------------------------------------------------------""")
+-------- ---------------------------------------------------------------------
+""")
 
     codes = ['GENERIC']
 
     for result in results:
-        print("{0:<8} {1}".format(result[0],result[1]))
+        print("{0:<8} {1}".format(result[0], result[1]))
         codes.append(result[0].upper())
     print("-------- ------------------------------------------------------"
           "---------------")
@@ -149,7 +154,8 @@ conditions when live data is not available. The sample interval is in seconds
 where 300 is 5 minutes.""")
     sample_interval = get_number("Sample interval", defaults["interval"])
 
-    live_data = get_boolean("Is live data available for this station", defaults["live"])
+    live_data = get_boolean("Is live data available for this station",
+                            defaults["live"])
 
     return {
         "code": station_code,
@@ -159,6 +165,7 @@ where 300 is 5 minutes.""")
         "interval": sample_interval,
         "live": live_data
     }
+
 
 def create_station(con):
     """
@@ -212,7 +219,8 @@ Description:
         print("If you no longer wish to create this station answer no to "
               "the following two\nquestions.\n")
 
-        if get_boolean("Is the information entered correct? (y/n)", required=True):
+        if get_boolean("Is the information entered correct? (y/n)",
+                       required=True):
             print("Creating station...")
 
             cur.execute("select station_type_id from station_type "
@@ -249,6 +257,7 @@ returning station_id""", (
 
     return
 
+
 def get_updated_station_info(defaults):
     """
     Gets the details for a new weather station
@@ -260,7 +269,8 @@ def get_updated_station_info(defaults):
     station_name = get_string("Name", defaults["name"])
     station_description = get_string("Description", defaults["description"])
     sample_interval = get_number("Sample interval", defaults["interval"])
-    live_data = get_boolean("Is live data available for this station", defaults["live"])
+    live_data = get_boolean("Is live data available for this station",
+                            defaults["live"])
     sort_order = get_number("List order", defaults["sort_order"])
 
     return {
@@ -272,6 +282,7 @@ def get_updated_station_info(defaults):
         "live": live_data,
         "sort_order": sort_order
     }
+
 
 def edit_station(con):
     """
@@ -314,7 +325,8 @@ Description:
 ----------------------------------
 """.format(**station_info))
 
-        if get_boolean("Is the information entered correct? (y/n)", required=True):
+        if get_boolean("Is the information entered correct? (y/n)",
+                       required=True):
             print("Updating station...")
 
             cur.execute("""
@@ -324,13 +336,52 @@ Description:
                 station_info["name"],
                 station_info["description"], station_info["interval"],
                 station_info["live"], station_info["sort_order"],
-                station_info["id"] ))
+                station_info["id"]))
             con.commit()
             cur.close()
             print("Station updated.")
             return
         elif not get_boolean("Do you wish to correct it?", True):
             return
+
+
+def set_station_message(con):
+    """
+    Allows the user to set a message for the station.
+    :param con: Database connection
+    """
+
+    print("\n\Set station message")
+    print("------------\n\nThe following stations are available:")
+    cur = con.cursor()
+    codes = print_station_list(cur)
+
+    selected_station_code = get_code("Station to edit", codes, required=True)
+
+    cur.execute("select station_id, message, message_timestamp "
+                "from station where code = %s",
+                (selected_station_code,))
+    result = cur.fetchone()
+
+    print('The current message was set on {0}: {1}\n'.format(
+        result[2], result[1]))
+
+    print("This message will appear on all pages in the web interface where "
+          "data for this station appears. Press return to clear the current "
+          "message.")
+
+    message = get_string("New message", None)
+
+    if message is None:
+        cur.execute("update station set message = null, "
+                    "message_timestamp = null where station_id = %s",
+                    (result[0],))
+    else:
+        cur.execute("update station set message = %s, message_timestamp = NOW() "
+                    "where station_id = %s",
+                    (message, result[0]))
+    con.commit()
+    print("Station message updated.")
 
 
 def manage_stations(con):
@@ -344,19 +395,25 @@ def manage_stations(con):
             "key": "1",
             "name": "List stations",
             "type": "func",
-            "func": lambda : list_stations(con.cursor())
+            "func": lambda: list_stations(con.cursor())
         },
         {
             "key": "2",
             "name": "Create station",
             "type": "func",
-            "func": lambda : create_station(con)
+            "func": lambda: create_station(con)
         },
         {
             "key": "3",
             "name": "Edit station",
             "type": "func",
-            "func": lambda : edit_station(con)
+            "func": lambda: edit_station(con)
+        },
+        {
+            "key": "4",
+            "name": "Set station message",
+            "type": "func",
+            "func": lambda: set_station_message(con)
         },
         {
             "key": "0",
@@ -365,6 +422,5 @@ def manage_stations(con):
         }
     ]
 
-    menu(choices, prompt="\n\nManage Stations\n---------------\n\nSelect option")
-
-
+    menu(choices, prompt="\n\nManage Stations\n---------------\n\n"
+                         "Select option")
