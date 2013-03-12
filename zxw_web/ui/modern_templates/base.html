@@ -249,11 +249,11 @@
 
     {% if station_message %}
     function msg_close() {
-        $.cookie("msg", "{{ station_message_ts }}", {path: '/'});
+        $.cookie("msg-{{ station }}", "{{ station_message_ts }}", {path: '/'});
     }
 
     $(document).ready(function() {
-       var close_ts = $.cookie("msg");
+       var close_ts = $.cookie("msg-{{ station }}");
        if (close_ts === undefined || close_ts < {{ station_message_ts }}) {
            $("#stn_msg").show();
        }
