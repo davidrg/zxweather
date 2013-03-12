@@ -8,7 +8,7 @@ from config import db
 import config
 from months import month_name
 from cache import year_cache_control
-from database import year_exists, get_station_id, in_archive_mode, get_station_name, get_stations
+from database import year_exists, get_station_id, in_archive_mode, get_station_name, get_stations, get_station_message
 from ui import get_nav_urls, make_station_switch_urls, build_alternate_ui_urls
 import os
 from ui import validate_request, html_file
@@ -165,13 +165,17 @@ def get_year(ui,station, year):
                 (year, ))
         }
 
+        msg = get_station_message(station_id)
+
         return modern_templates.year(nav=nav_urls,data=data,urls=urls,
                                      sitename=config.site_name,
                                      ui=ui,
                                      archive_mode=in_archive_mode(station_id),
                                      page_data=page_data,
                                      switch_url=build_alternate_ui_urls(
-                                         current_location))
+                                         current_location),
+                                     station_message=msg[0],
+                                     station_message_ts=msg[1])
     else:
         return basic_templates.year(data=data,
                                     switch_url=build_alternate_ui_urls(

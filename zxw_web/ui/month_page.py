@@ -9,7 +9,7 @@ from config import db
 import config
 from months import month_name, month_number
 from cache import month_cache_control
-from database import month_exists, get_station_id, in_archive_mode, get_station_name, get_stations
+from database import month_exists, get_station_id, in_archive_mode, get_station_name, get_stations, get_station_message
 from ui import get_nav_urls, make_station_switch_urls, build_alternate_ui_urls
 import os
 from ui import validate_request, html_file
@@ -267,12 +267,16 @@ def get_month(ui, station, year, month):
                 (year, month))
         }
 
+        msg = get_station_message(station_id)
+
         return modern_templates.month(nav=nav_urls, data=data,dataurls=urls,
                                       ui=ui, sitename=config.site_name,
                                       archive_mode=in_archive_mode(station_id),
                                       page_data=page_data,
                                       switch_url=build_alternate_ui_urls(
-                                          current_location))
+                                          current_location),
+                                      station_message=msg[0],
+                                      station_message_ts=msg[1])
     else:
         return basic_templates.month(data=data,
                                      switch_url=build_alternate_ui_urls(

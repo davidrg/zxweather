@@ -481,14 +481,14 @@ def get_full_station_info():
     result = db.query("""
         select s.code, s.title, s.description, s.sort_order,
            st.code as hw_type_code, st.title as hw_type_name,
-           sr.min_ts::varchar, sr.max_ts::varchar
+           sr.min_ts::varchar, sr.max_ts::varchar, s.message,
+           s.message_timestamp
         from station s
         inner join station_type st on st.station_type_id = s.station_type_id
         left outer join (
             select station_id, min(time_stamp) min_ts, max(time_stamp) max_ts
             from sample
             group by station_id) as sr on sr.station_id = s.station_id
-        order by s.sort_order
     """)
 
     stations = []
@@ -498,6 +498,8 @@ def get_full_station_info():
             'name': record.title,
             'desc': record.description,
             'order': record.sort_order,
+            'msg': record.message,
+            'msg_ts': record.message_timestamp,
             'hw_type': {
                 'code': record.hw_type_code,
                 'name': record.hw_type_name
@@ -526,3 +528,20 @@ def get_stations():
         stations.append(station)
 
     return stations
+
+
+def get_station_message(station_id):
+    """
+    Gets the message (if any) for the specified station.
+    :param station_id:
+    :return:
+    """
+
+    result = db.query("select message, "
+                      "    extract(epoch from message_timestamp)::integer as ts"
+                      "  from station "
+                      " where station_id = $station",
+                      dict(station=station_id))[0]
+
+
+    return result.message, result.ts

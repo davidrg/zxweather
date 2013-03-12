@@ -49,6 +49,8 @@ CREATE TABLE station
   sample_interval integer not null,
   live_data_available boolean not null default true,
   sort_order integer,
+  message character varying,
+  message_timestamp timestamptz,
   CONSTRAINT pk_station PRIMARY KEY (station_id)
 );
 
@@ -60,6 +62,8 @@ COMMENT ON COLUMN station.station_type_id is 'The type of hardware this station 
 COMMENT ON COLUMN station.sample_interval is 'How often (in seconds) new samples are logged.';
 COMMENT ON COLUMN station.live_data_available is 'If live data is available from the live_data table for this station.';
 comment on column station.sort_order is 'The order in which stations should be presented to the user';
+comment on column station.message is 'A message which should be displayed where ever data for the station appears.';
+comment on column station.message_timestamp is 'When the station message was last updated';
 
 -- Generic sample data. Anything that is specific to a particular station type
 -- is in that station-specific table.

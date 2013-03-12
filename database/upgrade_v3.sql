@@ -39,6 +39,14 @@ alter table sample alter column time_stamp set not null;
 alter table station add column sort_order integer;
 comment on column station.sort_order is 'The order in which stations should be presented to the user';
 
+-- New columns for station messages
+alter table station add column message character varying;
+comment on column station.message is 'A message which should be displayed where ever data for the station appears.';
+
+-- Timestamp of the station message
+alter table station add column message_timestamp timestamptz;
+comment on column station.message_timestamp is 'When the station message was last updated';
+
 -- Adjust comment for wind direction.
 COMMENT ON COLUMN sample.wind_direction IS 'Prevailing wind direction in degrees.';
 

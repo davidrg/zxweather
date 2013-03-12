@@ -10,7 +10,7 @@ import config
 from months import month_name
 
 from cache import day_cache_control
-from database import get_live_data, get_daily_records, total_rainfall_in_last_7_days, day_exists, get_live_indoor_data, get_station_id, in_archive_mode, get_station_type_code, get_station_name, get_stations
+from database import get_live_data, get_daily_records, total_rainfall_in_last_7_days, day_exists, get_live_indoor_data, get_station_id, in_archive_mode, get_station_type_code, get_station_name, get_stations, get_station_message
 from ui import get_nav_urls, make_station_switch_urls, build_alternate_ui_urls
 import os
 from ui import html_file, month_number, validate_request
@@ -198,6 +198,9 @@ def get_day_page(ui, station, day):
     if ui in ('s', 'm', 'a'):
         nav_urls = get_nav_urls(station, current_location)
         data_urls = get_day_data_urls(station, data.date_stamp, ui)
+
+        msg = get_station_message(station_id)
+
         return modern_templates.day(nav=nav_urls,
                                     data_urls=data_urls,
                                     data=data,
@@ -210,7 +213,9 @@ def get_day_page(ui, station, day):
                                     wss_uri=config.wss_uri,
                                     page_data=page_data,
                                     switch_url=build_alternate_ui_urls(
-                                        current_location))
+                                        current_location),
+                                    station_message=msg[0],
+                                    station_message_ts=msg[1])
     else:
         return basic_templates.day(data=data,
                             station=station,
@@ -325,6 +330,7 @@ def get_indoor_day(ui, station, day):
     if ui in ('s', 'm', 'a'):
         nav_urls = get_nav_urls(station, current_location)
         data_urls = get_indoor_data_urls(station, data.date_stamp, ui)
+        msg = get_station_message(station_id)
         return modern_templates.indoor_day(
             data=data,
             nav=nav_urls,
@@ -333,7 +339,9 @@ def get_indoor_day(ui, station, day):
             ui=ui,
             archive_mode=in_archive_mode(station_id),
             page_data=page_data,
-            switch_url=build_alternate_ui_urls(current_location))
+            switch_url=build_alternate_ui_urls(current_location),
+            station_message=msg[0],
+            station_message_ts=msg[1])
     else:
         return basic_templates.indoor_day(data=data,
                                           switch_url=build_alternate_ui_urls(

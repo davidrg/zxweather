@@ -125,7 +125,7 @@ def make_station_switch_urls(station_list, current_url, validation_func=None,
 
             new_url = relative_url(current_url, target)
 
-        new_station_list.append((new_url, name))
+        new_station_list.append((new_url, name, code))
     return new_station_list
 
 
