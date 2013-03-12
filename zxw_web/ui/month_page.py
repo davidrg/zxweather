@@ -275,6 +275,7 @@ def get_month(ui, station, year, month):
                                       page_data=page_data,
                                       switch_url=build_alternate_ui_urls(
                                           current_location),
+                                      station=station,
                                       station_message=msg[0],
                                       station_message_ts=msg[1])
     else:
