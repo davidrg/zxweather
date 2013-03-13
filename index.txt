@@ -3,10 +3,12 @@ INDEX
 ==============================================================================
   admin_tool             Tool for upgrading and managing the database
   database               Database scripts
-  db_push                Tool for pushing db changes to remote web interface
+  davis-logger           Data logger for Davis weather stations
   desktop                Desktop client for Windows and Linux
   doc                    Documentation
   plot                   Static chart plotting program for the web interface
+  server                 Weather server
+  weather_push           Tool for uploading data to weather server
   wh1080                 FineOffset WH1080 database update tools
   zxw_web                Web interface                                                     
 ==============================================================================
