@@ -236,15 +236,8 @@ function drawCharts() {
     });
 }
 
-var auto_plot = true;
-if ($.browser.msie && ($.browser.version == '8.0' || $.browser.version == '7.0')) {
-    // On my i7 box IE8 locks up for a second or two as it tries to draw the
-    // charts. For this reason we won't draw them automatically - instead we
-    // warn the user and make them click a button to get the charts.
-    // When IE8 is in IE7 compatibility mode it reports itself as IE 7 so we
-    // check for that too.
-    auto_plot = false;
-}
+if (typeof auto_plot === 'undefined')
+    var auto_plot = true;
 
 google.load("visualization", "1", {packages:["corechart"]});
 if (auto_plot)
