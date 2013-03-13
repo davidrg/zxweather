@@ -1,17 +1,19 @@
 -------------------------------------------------------------------------------
-zxweather v0.2 (alpha) Release Notes                                13-JAN-2013
+zxweather v1.0 beta 1 Release Notes                                 ??-MAR-2013
 ===============================================================================
 
   zxweather is a system for collecting and displaying data from automatic
-  weather stations 100% compatible with the FineOffset WH1080. It includes:
+  weather stations 100% compatible with the FineOffset WH1080 or Davis Vantage
+  Vue. It includes:
 
     * A Modern HTML5 web interface with a fallback for older browsers.
     * A desktop client for Windows and Linux to display current conditions.
 
-  Note that this is an alpha release. While it is functional it does have known
-  minor defects and is not feature complete. If you encounter any bugs first
+  Note this is the first beta release of version 1.0. It has not received
+  extensive testing and may contain bugs. If you encounter any problems first
   check to see if there is a new release available. If you are running the
-  latest release then please report the bug to bugs@zx.net.nz
+  latest release then please report the bug to bugs@zx.net.nz or see the
+  zxweather website for links to the bug tracker.
 
   Available Documentation:
     DAZW-IG02     zxweather Installation Reference
@@ -22,16 +24,18 @@ zxweather v0.2 (alpha) Release Notes                                13-JAN-2013
   Supported Platforms:
     All components of zxweather are supported under both Linux and Windows.
     Linux is the recommended system for running the server components. The
-    data collection tool requires a little-endian CPU such as Intel x86 and
-    most ARM processors.
+    WH1080 data collection tool requires a little-endian CPU such as Intel x86
+    and most ARM processors.
 
   Software Environment Requirements:
     * PostgreSQL 9.x
     * Python 2.7
     * gnuplot
     * For compiling WH1080 Utilities: GNU C, GNU Make, ECPG, libecpg,
-      libpgtypes, libpq, libusb-1.0 (linux only, binaries are available for 
+      libpgtypes, libpq, libusb-1.0 (linux only, binaries are available for
       windows systems)
+    See the Installation Reference manual for a full list of all dependencies
+    that must be installed on systems running the various zxweather components.
 
   License:
     See the COPYING file which you should have received with this distribution.
@@ -40,10 +44,12 @@ zxweather v0.2 (alpha) Release Notes                                13-JAN-2013
 
     Documentation is licensed under the GNU Free Documentation License, Version
     1.3 or any later version published by the Free Software Foundation.
+    
+    Some graphics are licensed under a Creative Commons Attribution 3.0 license.
 
   Known Issues:
     * It is important to consult section 3.2 of the Installation Reference
-      Manual (DAZW-IG01) before restarting the WH1080 Update Service after
+      Manual (DAZW-IG02) before restarting the WH1080 Update Service after
       extended down time, a weather station reset or erasing the weather
       stations memory. Failure carry out the procedure described when required
       may result in data loss.
@@ -54,18 +60,50 @@ zxweather v0.2 (alpha) Release Notes                                13-JAN-2013
       or workaround.
     * If the WH1080 Update Service looses its database connection it will exit.
 
-  New in v0.2:
-    * The desktop client can now retrieve data from the web interface as well
-      as directly from the database.
-    * Support for multiple weather stations logging to the same database
-    * Limited support for viewing data from multiple weather stations in the
-      web interface and desktop clients
-    * Other weather station hardware types besides the FineOffset WH1080 are
-      now supported provided the data can be loaded into the database. Loading
-      the data requires writing or obtaining a third-party application (no
-      software is supplied as part of zxweather to interface with other
-      weather station hardware). See the zxweather Database Structure manual
-      (DAZW-DB02) for details on doing this.
+  New in v1.0:
+    General:
+      * Support for weather stations compatible with the Davis Vantage Vue.
+    Weather Server:
+      New component. It is available over SSH, Telnet, a raw TCP socket as well
+      as secured and unsecured WebSockets. It can update a database with new
+      data received over SSH. It can stream data updates to clients connected
+      on any protocol.
+    weather-push:
+      * Replaces db_push. Streams data updates to a remove weather server over
+        SSH.
+      * Numerous upgrades over db_push: more reliable, easier to configure,
+        support for logging and runs as a daemon
+    Desktop Client:
+      * Chart plotting. These can be exported to PNG, JPG, BMP or PDF. Chart
+        data can come from the database or web interface.
+      * Davis hardware support.
+      * Now shows wind direction as a compass point as well as in degrees
+      * Proper Linux support
+      * Supports receiving live data from the weather server via TCP
+      * Bft description is now shown for wind speed
+    Web Interface:
+      * Supports streaming live data from the weather server using WebSockets
+        on supported browsers. This updates data instantly without polling.
+      * Davis hardware support
+      * Basic UI now has 24-hour rainfall charts
+      * When multiple stations are present in the database a menu is now present
+        to switch between stations.
+      * /s UI now uses the HTML5 Canvas charting library previously used by
+        the /m UI.
+      * The Google Visualisation API previously available as the /s UI is now
+        the Alternate UI (/a) for older browsers
+      * Old versions of Internet Explorer are handled better now.
+      * Day level charts on the /s and /a station overview pages now show data
+        for the last 24 hours rather than the current date.
+      * Bft description is now shown for wind speed
+      * A notification message can now be shown on station-level pages. This is
+        configured through the admin tool and can be closed by the user (with
+        the closed state being remembered).
+    Weather-plot:
+      * Now supports plotting charts for multiple stations
+      * Performance has been improved significantly
+      * Now supports multiple parallel gnuplot instances for extra performance
+        on multiprocessor systems.
 
   Changelog:
     See the CHANGES file which you should have received with this distribution.
