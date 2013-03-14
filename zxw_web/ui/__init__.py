@@ -243,6 +243,7 @@ class stationlist:
             # 'm' interface doesn't exist right now. Send the user to the
             # standard UI instead.
             web.seeother(config.site_root + 's' + '/')
+            return
 
         validate_request(ui)
 

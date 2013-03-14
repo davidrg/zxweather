@@ -56,17 +56,23 @@ function refresh_7day_charts() {
 function show_hide_rainfall_charts(chart) {
     $.getJSON(rainfall_totals_url, function(data) {
         if (chart == 0 || chart == 1) {
-            if (data['rainfall'] > 0)
+            if (data['rainfall'] > 0) {
                 $("#chart_hourly_rainfall_div").show();
-            else
+                $("#chart_hourly_rainfall_key").show();
+            } else {
                 $("#chart_hourly_rainfall_div").hide();
+                $("#chart_hourly_rainfall_key").hide();
+            }
         }
 
         if (chart == 0 || chart == 2) {
-            if (data['7day_rainfall'] > 0)
+            if (data['7day_rainfall'] > 0) {
                 $("#chart_7_hourly_rainfall_div").show();
-            else
+                $("#chart_7_hourly_rainfall_key").show();
+            } else {
                 $("#chart_7_hourly_rainfall_div").hide();
+                $("#chart_7_hourly_rainfall_key").hide();
+            }
         }
     }).error(function() {
         $("#chart_hourly_rainfall_div").hide();
