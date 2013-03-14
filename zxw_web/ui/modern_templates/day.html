@@ -4,108 +4,107 @@
 {% block title %}Weather for {{ data.date_stamp }}{% endblock %}
 {% block head %}{% endblock %}
 {% block content %}
-    <header>
-        <div class="row">
-            <div class="span6">
-                <h1>Weather for {{ data.date_stamp }}</h1>
-            </div>
-            <div class="span6">
-                <div class="btn-group nav-cluster">
-                    {% if data.prev_url -%}
-                        <a href="{{ data.prev_url }}" class="btn"><i class="icon-backward"></i> {{ data.prev_date }}</a>
-                    {%- else -%}
-                        <a href="#" class="btn disabled" onclick="return false;"><i class="icon-backward"></i> {{ data.prev_date }}</a>
-                    {%- endif %}
-                    <a href="../" class="btn">{{ data.this_month }}</a>
-                    {% if data.next_url -%}
-                        <a href="{{ data.next_url }}" class="btn">{{ data.next_date }} <i class="icon-forward"></i></a>
-                    {%- else -%}
-                        <a href="#" class="btn disabled" onclick="return false;">{{ data.next_date }} <i class="icon-forward"></i></a>
-                    {%- endif %}
+        <header>
+            <div class="row">
+                <div class="span6">
+                    <h1>Weather for {{ data.date_stamp }}</h1>
+                </div>
+                <div class="span6">
+                    <div class="btn-group nav-cluster">
+                        {% if data.prev_url -%}
+                            <a href="{{ data.prev_url }}" class="btn"><i class="icon-backward"></i> {{ data.prev_date }}</a>
+                        {%- else -%}
+                            <a href="#" class="btn disabled" onclick="return false;"><i class="icon-backward"></i> {{ data.prev_date }}</a>
+                        {%- endif %}
+                        <a href="../" class="btn">{{ data.this_month }}</a>
+                        {% if data.next_url -%}
+                            <a href="{{ data.next_url }}" class="btn">{{ data.next_date }} <i class="icon-forward"></i></a>
+                        {%- else -%}
+                            <a href="#" class="btn disabled" onclick="return false;">{{ data.next_date }} <i class="icon-forward"></i></a>
+                        {%- endif %}
+                    </div>
                 </div>
             </div>
-        </div>
-        <hr>
-    </header>
+            <hr>
+        </header>
 
-    {% if data.current_data %}
-        {#- We are on the date for today. That means we should show live data, etc. -#}
-        {% include 'current_day_live.html' %}
-    {% else %}
-        {#- We're looking at archive data. We need to just show the records table. -#}
-    <section id="records">
-        <div class="row">
-            <div class="span6">
-                <h2>Records</h2>
+        {% if data.current_data %}
+            {#- We are on the date for today. That means we should show live data, etc. -#}
+            {% include 'current_day_live.html' %}
+        {% else %}
+            {#- We're looking at archive data. We need to just show the records table. -#}
+        <section id="records">
+            <div class="row">
+                <div class="span6">
+                    <h2>Records</h2>
+                </div>
+                <div class="span6">
+                    {#- This space left blank to keep the records table a sensible size. -#}
+                </div>
             </div>
-            <div class="span6">
-                {#- This space left blank to keep the records table a sensible size. -#}
+            <div class="row">
+                <div class="span6">
+                    {% include 'day-records-table.html' %}
+                </div>
+                <div class="span6">
+                    {#- This space left blank to keep the records table a sensible size. -#}
+                </div>
             </div>
-        </div>
-        <div class="row">
-            <div class="span6">
-                {% include 'day-records-table.html' %}
-            </div>
-            <div class="span6">
-                {#- This space left blank to keep the records table a sensible size. -#}
-            </div>
-        </div>
-        <div class="row">
-            <div class="span6">
-                <p>Total Rainfall: <span id="tot_rainfall">{{ data.records.total_rainfall|round(1) }}</span>mm</p>
-            </div>
-            <div class="span6">
-                {#- This space left blank to keep the records table a sensible size. -#}
-            </div>
-        </div>
-    </section>
-    {% endif %}
-
-    <section id="1day">
-        <div class="row">
-            <div class="span6">
-                {% if data.current_data %}
-                <h2>Today</h2>
+            <div class="row">
+                <div class="span6">
                     <p>Total Rainfall: <span id="tot_rainfall">{{ data.records.total_rainfall|round(1) }}</span>mm</p>
-                {% else %}
-                <h2>1-day Charts</h2>
-                {% endif %}
+                </div>
+                <div class="span6">
+                    {#- This space left blank to keep the records table a sensible size. -#}
+                </div>
             </div>
-            <div class="span6">
-                {% if data.current_data %}
-                    <div class="current_day_refresh">
-                        <button id="btn_today_refresh" class="btn refreshbutton"
-                                onclick="refresh_day_charts()"
-                                data-loading-text="loading..."
-                                style="float: right;">
-                            <i class="icon-refresh"></i> Refresh
-                        </button>
-                    </div>
-                {% endif %}
-            </div>
-        </div>
-        {% include 'day-charts.html' %}
-    </section>
+        </section>
+        {%- endif %}
 
-    <section id="7day">
-        <div class="row">
-            <div class="span6">
-                <h2>7-day Charts</h2>
-                <p>Data is a 30-minute average.</p>
+        <section id="1day">
+            <div class="row">
+                <div class="span6">
+                    {% if data.current_data %}
+                    <h2>Today</h2>
+                        <p>Total Rainfall: <span id="tot_rainfall">{{ data.records.total_rainfall|round(1) }}</span>mm</p>
+                    {% else %}
+                    <h2>1-day Charts</h2>
+                    {% endif %}
+                </div>
+                <div class="span6">
+                    {% if data.current_data %}
+                        <div class="current_day_refresh">
+                            <button id="btn_today_refresh" class="btn refreshbutton"
+                                    onclick="refresh_day_charts()"
+                                    data-loading-text="loading..."
+                                    style="float: right;">
+                                <i class="icon-refresh"></i> Refresh
+                            </button>
+                        </div>
+                    {% endif %}
+                </div>
             </div>
-            <div class="span6">
-                {% if data.current_data %}
-                    <div class="current_day_refresh">
-                        <button id="btn_7day_refresh" class="btn refreshbutton" onclick="refresh_7day_charts()" data-loading-text="loading..."><i class="icon-refresh"></i> Refresh</button>
-                    </div>
-                {% endif %}
+            {% include 'day-charts.html' %}
+        </section>
+
+        <section id="7day">
+            <div class="row">
+                <div class="span6">
+                    <h2>7-day Charts</h2>
+                    <p>Data is a 30-minute average.</p>
+                </div>
+                <div class="span6">
+                    {% if data.current_data %}
+                        <div class="current_day_refresh">
+                            <button id="btn_7day_refresh" class="btn refreshbutton" onclick="refresh_7day_charts()" data-loading-text="loading..."><i class="icon-refresh"></i> Refresh</button>
+                        </div>
+                    {% endif %}
+                </div>
             </div>
-        </div>
-        {% include 'day-charts-7day.html' %}
-    </section>
+            {% include 'day-charts-7day.html' %}
+        </section>
 
-    <a href="indoor.html">I</a>
-
+        <a href="indoor.html">I</a>
 {% endblock %}
 {% block scripts %}
     <script type="text/javascript">

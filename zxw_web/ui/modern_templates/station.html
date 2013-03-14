@@ -3,80 +3,80 @@
 {% block title %}Station Overview{% endblock %}
 {% block head %}{% endblock %}
 {% block content %}
-{% if page_data["no_content"] %}
-    <h1>{{ page_data["station_name"] }}</h1>
-    <p>
-        There is no recent data available from this weather station at this
-        time. Historical data remains available for the following
-        years:
-        {% set i = 0 -%}
-        {%- for year in data.years -%}
-            {%- set i = i + 1 -%}
-            <a href="{{ year }}/">{{ year }}</a>{% if i < data.years|length %}, {% endif %}
-        {%- endfor %}
-    </p>
-{% else %}
-    {% if hw_type == 'DAVIS' %}
-    <div id="tx_batt_alert" class="alert" style="display: none;">
-        <button type="button" class="close" data-dismiss="alert">&times;</button>
-        <div class="fm_battery_low" style="padding-right: 5px; float: left;"></div>
-        <strong>Warning!</strong> Transmitter battery is low
-    </div>
-    <div id="con_batt_alert" class="alert" style="display: none;">
-        <button type="button" class="close" data-dismiss="alert">&times;</button>
-        <div class="fm_battery_low" style="padding-right: 5px; float: left;"></div>
-        <strong>Warning!</strong> Console battery is low (<span id="con_voltage"></span> V)
-    </div>
-    {% endif %}
-
-    {% include 'current_day_live.html' %}
-
-    <section id="today">
-        <div class="row">
-            <div class="span6">
-                <h2 id="daily-charts">Last 24 Hours</h2>
-                <p>Total Rainfall: <span id="tot_rainfall">{{ data.records.total_rainfall|round(1) }}</span>mm</p>
-            </div>
-            <div class="span6">
-                <div class="current_day_refresh">
-                    <button id="btn_today_refresh" class="btn refreshbutton" onclick="refresh_day_charts()" data-loading-text="loading..." style="float: right;"><i class="icon-refresh"></i> Refresh</button>
-                </div>
-            </div>
-        </div>
-        {% include 'day-charts.html' %}
-    </section>
-
-    <section id="last_7_days">
-        <div class="row">
-            <div class="span6">
-        <h2>Last 7 Days</h2>
-        <p>Data is a 30-minute average over the past seven days.</p>
-            </div>
-            <div class="span6">
-                <div class="current_day_refresh">
-                    <button id="btn_7day_refresh" class="btn refreshbutton" onclick="refresh_7day_charts()" data-loading-text="loading..."><i class="icon-refresh"></i> Refresh</button>
-                </div>
-            </div>
-        </div>
-        {% include 'day-charts-7day.html' %}
-    </section>
-
-    <section id="history">
-        <h2>Weather History</h2>
-        <p>Full weather data is available at the day, month and year levels.
-            You can start browsing by year:
+{%- if page_data["no_content"] %}
+        <h1>{{ page_data["station_name"] }}</h1>
+        <p>
+            There is no recent data available from this weather station at this
+            time. Historical data remains available for the following
+            years:
             {% set i = 0 -%}
             {%- for year in data.years -%}
                 {%- set i = i + 1 -%}
                 <a href="{{ year }}/">{{ year }}</a>{% if i < data.years|length %}, {% endif %}
             {%- endfor %}
         </p>
-    </section>
-    <hr>
-    <footer>
-        <p>Problems? <a href="../../b/{{ station }}/now">Basic HTML</a></p>
-    </footer>
-{% endif %}
+{%- else -%}
+        {% if hw_type == 'DAVIS' %}
+        <div id="tx_batt_alert" class="alert" style="display: none;">
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
+            <div class="fm_battery_low" style="padding-right: 5px; float: left;"></div>
+            <strong>Warning!</strong> Transmitter battery is low
+        </div>
+        <div id="con_batt_alert" class="alert" style="display: none;">
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
+            <div class="fm_battery_low" style="padding-right: 5px; float: left;"></div>
+            <strong>Warning!</strong> Console battery is low (<span id="con_voltage"></span> V)
+        </div>
+
+        {%- endif %}
+        {% include 'current_day_live.html' %}
+
+        <section id="today">
+            <div class="row">
+                <div class="span6">
+                    <h2 id="daily-charts">Last 24 Hours</h2>
+                    <p>Total Rainfall: <span id="tot_rainfall">{{ data.records.total_rainfall|round(1) }}</span>mm</p>
+                </div>
+                <div class="span6">
+                    <div class="current_day_refresh">
+                        <button id="btn_today_refresh" class="btn refreshbutton" onclick="refresh_day_charts()" data-loading-text="loading..." style="float: right;"><i class="icon-refresh"></i> Refresh</button>
+                    </div>
+                </div>
+            </div>
+            {% include 'day-charts.html' %}
+        </section>
+
+        <section id="last_7_days">
+            <div class="row">
+                <div class="span6">
+            <h2>Last 7 Days</h2>
+            <p>Data is a 30-minute average over the past seven days.</p>
+                </div>
+                <div class="span6">
+                    <div class="current_day_refresh">
+                        <button id="btn_7day_refresh" class="btn refreshbutton" onclick="refresh_7day_charts()" data-loading-text="loading..."><i class="icon-refresh"></i> Refresh</button>
+                    </div>
+                </div>
+            </div>
+            {% include 'day-charts-7day.html' %}
+        </section>
+
+        <section id="history">
+            <h2>Weather History</h2>
+            <p>Full weather data is available at the day, month and year levels.
+                You can start browsing by year:
+                {% set i = 0 -%}
+                {%- for year in data.years -%}
+                    {%- set i = i + 1 -%}
+                    <a href="{{ year }}/">{{ year }}</a>{% if i < data.years|length %}, {% endif %}
+                {%- endfor %}
+            </p>
+        </section>
+        <hr>
+        <footer>
+            <p>Problems? <a href="../../b/{{ station }}/now">Basic HTML</a></p>
+        </footer>
+{%- endif -%}
 {% endblock %}
 {% block scripts %}
 {%- if not page_data["no_content"] %}
