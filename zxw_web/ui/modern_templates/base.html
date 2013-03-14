@@ -14,18 +14,8 @@
     <link rel="stylesheet" href="/css/bootstrap.min.css" type="text/css"/>
     <link rel="stylesheet" href="/css/bootstrap-responsive.css" type="text/css" />
     <link rel="stylesheet" href="/css/zxweather.css" type="text/css"/>
-    {% if ui and ui in ('s', 'm') -%}
-        <style type="text/css">
-            .dygraph-title {
-                font-size: 10pt;
-            }
-            .dygraph-label {
-                font-size: 10pt;
-            }
-        </style>
-    {%- endif %}
-    {% block head %} {% endblock %}
     <script type="text/javascript" src="/js/modernizr-canvas.min.js"></script>
+    {%- block head %} {% endblock %}
 </head>
 <body>
 {#- ###################### Some macros ###################### -#}
@@ -57,8 +47,8 @@
     {%- endif -%}
     <a href="{{ nav[id] }}">{{ name }}</a></li>
 {%- endmacro %}
-
     {% if nav -%}
+    <!-- Top nav -->
     <div class="navbar navbar-fixed-top navbar-inverse">
         <div class="navbar-inner">
             <div class="container">
@@ -70,34 +60,35 @@
                 <a class="brand" href="#">{{ sitename }}</a>
                 <div class="nav-collapse">
                     <ul class="nav">
-                        {% if archive_mode %}
+                        {%- if archive_mode %}
                         {{ navli('home', 'Home') }}
                         {% else %}
                         {{ navli('home','Now') }}
                         {{ navli('yesterday','Yesterday') }}
                         {{ navli('this_month','This Month') }}
                         {{ navli('this_year','This Year') }}
-                        {% endif %}
+                        {%- endif %}
                         {{ navli('about','About') }}
                     </ul>
-                    {% if (page_data["stations"]|length) > 1 %}
+                    {%- if (page_data["stations"]|length) > 1 %}
                     <ul class="nav pull-right">
                         <li class="dropdown">
                             <a href="#" class="dropdown-toggle" data-toggle="dropdown">{{ page_data["station_name"] }}<b class="caret"></b></a>
                             <ul class="dropdown-menu" id="station_switch_menu">
-                                {% for station in page_data["stations"] %}
+                                {%- for station in page_data["stations"] %}
                                 <li><a href="{{ station[0] }}" data-station-code="{{ station[2] }}">{{ station[1] }}</a></li>
-                                {% endfor %}
+                                {%- endfor %}
                             </ul>
                         </li>
                     </ul>
-                    {% endif %}
+                    {%- endif %}
                 </div><!--/.nav-collapse -->
             </div>
         </div>
     </div>
     {%- endif %}
 
+    <!-- Main page body -->
     <div class="container">
         {% if ui and ui in ('s', 'm') -%}
         <!--[if IE 8]>
@@ -120,8 +111,8 @@
             <a href="{{ switch_url['a'] }}" class="btn">Switch to Alternate Interface</a>
             <a href="{{ switch_url['b'] }}" class="btn">Switch to Basic HTML Interface</a>
         </div>
-        {%- endif -%}
-        {% if ui and ui == 'a' %}
+        {%- endif %}
+        {%- if ui and ui == 'a' %}
         <!--[if IE 8]>
         <div class="alert">
         <button type="button" class="close" data-dismiss="alert">×</button>
@@ -136,19 +127,21 @@
         </div>
         <script type="text/javascript">var auto_plot=false;</script>
         <![endif]-->
-        {% endif %}
-        {% if station_message %}
+        {%- endif %}
+        {%- if station_message %}
         <div class="alert alert-info" style="display:none;" id="stn_msg">
             <button type="button" class="close" data-dismiss="alert"
                     onclick="msg_close()">×</button>
             {{ station_message }}
         </div>
-        {% endif %}
+        {%- endif %}
+        <!-- Content -->
         {%- block content %}{% endblock %}
+        <!-- /Content -->
     </div>
 
-    {% if (page_data["stations"]|length) > 1 %}
-    {# This dialog and associated script, etc, is used when switching to a
+    {%- if (page_data["stations"]|length) > 1 %}
+    {#- This dialog and associated script, etc, is used when switching to a
      # station that doesn't have data for what ever date you switched from. In
      # that case the user is given the option to navigate to a page the station
      # *does* have data for or to go back where they came from. As this is only
@@ -182,7 +175,8 @@
     <script type="text/javascript" src="/js/jquery.min.js"></script>
     {% if station_message %}<script type="text/javascript" src="/js/jquery.cookie.js"></script>{% endif %}
     <script type="text/javascript" src="/js/bootstrap.min.js"></script>
-    {%- block scripts %}{% endblock %}
+    {%- block scripts %}
+    {% endblock -%}
     <script type="text/javascript">
     function show_no_data(station_name, date, earliest_date, earliest_url, latest_date, latest_url) {
         $('#nd_station').html(station_name);
@@ -236,8 +230,8 @@
            $("#stn_msg").show();
        }
     });
-    {% endif %}
+    {%- endif %}
     </script>
-    {% endif %}
+    {%- endif %}
 </body>
 </html>
