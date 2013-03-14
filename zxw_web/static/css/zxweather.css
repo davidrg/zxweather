@@ -1,3 +1,53 @@
+body {
+    padding-top: 50px; /* Account for the navbar */
+}
+.chart {
+    height: 200px;
+}
+
+.chart_key {
+    padding-bottom: 20px;
+    text-align: right;
+}
+
+/* The loading animation that appears in charts */
+div.chart div.bg_loading {
+    background: url("../images/loading.gif") no-repeat center center;
+    width: 100%;
+    height: 100%;
+}
+
+.refreshbutton {
+    float: right;
+}
+
+h1 { font-size: 31.5px; line-height: 36px; }
+h2 { font-size: 24.5px; line-height: 36px; }
+h3 { font-size: 18px; line-height: 27px; }
+h4 { font-size: 14px; line-height: 18px; }
+h5 { font-size: 12px; line-height: 18px; }
+
+.current_day_refresh {
+    padding-top: 40px;
+}
+
+.nav-cluster {
+    float: right;
+    padding-top: 15px;
+}
+
+section {
+    padding-top: 20px;
+}
+
+section:first-of-type {
+    padding-top: 0;
+}
+
+/*
+ * Icons
+ */
+
 /* Forecast Icons */
 .fc_clear{ background: url('../img/fugue_deriv.png') 0 0; width: 16px; height: 16px; }
 .fc_mostly_cloudy{ background: url('../img/fugue_deriv.png') -21px 0; width: 16px; height: 16px; }
@@ -18,3 +68,4 @@
 
 /* Misc */
 .fm_battery_low{ background: url('../img/fugue_deriv.png') -189px 0; width: 16px; height: 16px; }
+

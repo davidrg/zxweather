@@ -11,7 +11,7 @@
                 <h1>Weather for {{ data.this_month }} {{ data.year_stamp }}</h1>
             </div>
             <div class="span6">
-                <div class="btn-group" style="float:right;">
+                <div class="btn-group nav-cluster">
                     {% if data.prev_url -%}
                         <a href="{{ data.prev_url }}" class="btn"><i class="icon-backward"></i> {{ data.prev_month }}</a>
                     {%- else -%}
@@ -37,7 +37,7 @@
         <hr>
     </header>
 
-    <section id="records">
+    <section id="records" class="non-padded">
         <h2>Records</h2>
         <table class="table table-bordered">
             <thead>

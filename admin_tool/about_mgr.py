@@ -14,16 +14,12 @@ template_start = """<!DOCTYPE html>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
     <title>About</title>
     <link rel="stylesheet" href="/css/bootstrap.css" type="text/css"/>
-    <style>
-        body {
-            padding-top: 60px; /* Account for the navbar */
-        }
-    </style>
-    <link rel="stylesheet" href="/css/bootstrap-responsive.css" type="text.css" />
+    <link rel="stylesheet" href="/css/bootstrap-responsive.css" type="text/css" />
+    <link rel="stylesheet" href="/css/zxweather.css" type="text/css"/>
 </head>
 <!-- TEMPLATE_V3 -->
 <body>
-    <div class="navbar navbar-fixed-top">
+    <div class="navbar navbar-fixed-top navbar-inverse">
         <div class="navbar-inner">
             <div class="container">
                 <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">

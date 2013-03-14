@@ -11,7 +11,7 @@
                 <h1>Weather for {{ data.this_year }}</h1>
             </div>
             <div class="span6">
-                <div class="btn-group" style="float:right;">
+                <div class="btn-group nav-cluster">
                     {% if urls.prev_url -%}
                         <a href="{{ urls.prev_url }}" class="btn"><i class="icon-backward"></i> {{ data.prev_year }}</a>
                     {%- else -%}
