@@ -44,6 +44,14 @@ section:first-of-type {
     padding-top: 0;
 }
 
+.dygraph-title {
+    font-size: 10pt;
+}
+
+.dygraph-label {
+    font-size: 10pt;
+}
+
 /*
  * Icons
  */

@@ -79,7 +79,7 @@
 {% endif %}
 {% endblock %}
 {% block scripts %}
-{% if not page_data["no_content"] %}
+{%- if not page_data["no_content"] %}
     <script type="text/javascript">
         $("#btn_today_refresh").button('loading');
         $("#btn_7day_refresh").button('loading');
@@ -105,18 +105,19 @@
         {% if ws_uri -%}ws_uri = '{{ ws_uri }}'; {% endif %}
         {% if wss_uri -%}wss_uri = '{{ wss_uri }}'; {% endif %}
         var is_day_page = false;
-        {% if hw_type == 'DAVIS' %}var forecast_rules_uri = '../../data/davis_forecast_rules.json';{% endif %}
+        {%- if hw_type == 'DAVIS' %}
+        var forecast_rules_uri = '../../data/davis_forecast_rules.json';{% endif %}
     </script>
 
     <script type="text/javascript" src="../../js/day_live.js"></script>
     <script type="text/javascript" src="../../js/day_charts.js"></script>
     {% if ui and ui in ('s', 'm') -%}
-        <script type="text/javascript" src="../../js/dygraph-combined.js"></script>
-        <script type="text/javascript" src="../../js/dygraph-charts.js"></script>
-        <script type="text/javascript" src="../../js/day_charts_dygraph.js"></script>
+    <script type="text/javascript" src="../../js/dygraph-combined.js"></script>
+    <script type="text/javascript" src="../../js/dygraph-charts.js"></script>
+    <script type="text/javascript" src="../../js/day_charts_dygraph.js"></script>
     {% else -%}
-        <script type="text/javascript" src="http://www.google.com/jsapi"></script>
-        <script type="text/javascript" src="../../js/day_charts_gviz.js"></script>
+    <script type="text/javascript" src="http://www.google.com/jsapi"></script>
+    <script type="text/javascript" src="../../js/day_charts_gviz.js"></script>
     {%- endif -%}
-{% endif %}
+{%- endif -%}
 {% endblock %}
