@@ -2,9 +2,7 @@
 
 {% extends "base.html" %}
 {% block title %}Weather for {{ data.date_stamp }}{% endblock %}
-{% block head %}
-    <link rel="stylesheet" href="/css/zxweather.css" type="text/css"/>
-{% endblock %}
+{% block head %}{% endblock %}
 {% block content %}
     <header>
         <div class="row">
@@ -12,7 +10,7 @@
                 <h1>Weather for {{ data.date_stamp }}</h1>
             </div>
             <div class="span6">
-                <div class="btn-group" style="float:right;">
+                <div class="btn-group nav-cluster">
                     {% if data.prev_url -%}
                         <a href="{{ data.prev_url }}" class="btn"><i class="icon-backward"></i> {{ data.prev_date }}</a>
                     {%- else -%}
@@ -75,12 +73,14 @@
             </div>
             <div class="span6">
                 {% if data.current_data %}
-                    <button id="btn_today_refresh" class="btn refreshbutton"
-                            onclick="refresh_day_charts()"
-                            data-loading-text="loading..."
-                            style="float: right;">
-                        <i class="icon-refresh"></i> Refresh
-                    </button>
+                    <div class="current_day_refresh">
+                        <button id="btn_today_refresh" class="btn refreshbutton"
+                                onclick="refresh_day_charts()"
+                                data-loading-text="loading..."
+                                style="float: right;">
+                            <i class="icon-refresh"></i> Refresh
+                        </button>
+                    </div>
                 {% endif %}
             </div>
         </div>
@@ -88,7 +88,19 @@
     </section>
 
     <section id="7day">
-        <h2>7-day Charts{% if data.current_data %}<button id="btn_7day_refresh" class="btn refreshbutton" onclick="refresh_7day_charts()" data-loading-text="loading..."><i class="icon-refresh"></i> Refresh</button>{% endif %}</h2>
+        <div class="row">
+            <div class="span6">
+                <h2>7-day Charts</h2>
+                <p>Data is a 30-minute average.</p>
+            </div>
+            <div class="span6">
+                {% if data.current_data %}
+                    <div class="current_day_refresh">
+                        <button id="btn_7day_refresh" class="btn refreshbutton" onclick="refresh_7day_charts()" data-loading-text="loading..."><i class="icon-refresh"></i> Refresh</button>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
         {% include 'day-charts-7day.html' %}
     </section>
 
@@ -111,7 +123,7 @@
         var live_auto_refresh;
         {% if data.current_data -%}
 
-        $('#live_status').tooltip();
+        $('#live_status_cont').tooltip();
 
         live_auto_refresh = true;
         var station_code = '{{ station }}';

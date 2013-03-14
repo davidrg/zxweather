@@ -10,6 +10,7 @@ var ws_state = 'conn';
 var ws_lost_connection = false;
 
 var e_live_status = $('#live_status');
+var e_live_status_cont = $('#live_status_cont');
 
 var poll_interval = null;
 var update_check_interval = null;
@@ -116,7 +117,7 @@ function finish_connection() {
 }
 
 function update_live_status(icon, message) {
-    e_live_status.attr('data-original-title', message);
+    e_live_status_cont.attr('data-original-title', message);
     e_live_status.attr('class', 'fm_status_' + icon);
     e_live_status.tooltip();
 }
