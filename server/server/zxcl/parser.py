@@ -2,7 +2,7 @@
 """
 The ZXCL Parser and related bits.
 """
-from lexer import Lexer, UnexpectedCharacterError
+from lexer import Lexer
 
 __author__ = 'david'
 
