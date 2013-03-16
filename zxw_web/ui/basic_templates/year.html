@@ -3,13 +3,12 @@
 {% extends "base.html" %}
 {% block title %}Weather for {{ data.this_year }}{% endblock %}
 {% block content %}
-
     <h1>Weather for {{ data.this_year }}</h1>
     <hr>
 
     <h2>Months for {{ data.this_year }}</h2>
     <ul>
-        {% for monthlink in data.months %}
+        {% for monthlink in data.months -%}
             <li><a href="{{ monthlink[0] }}/">{{ monthlink[1] }}</a></li>
         {% endfor %}
     </ul>
@@ -66,21 +65,16 @@
 
     <hr>
     <center>
-        {% if data.prev_url %}
+        {% if data.prev_url -%}
             <a href="{{ data.prev_url }}">&lt;&lt; {{ data.prev_year }}</a>
-        {% else %}
+        {%- else -%}
             &lt;&lt; {{ data.prev_year }}
-        {% endif %}
-        |
-        <a href="../">Station</a>
-        |
-        {% if data.next_url %}
+        {%- endif %} |
+        <a href="../">Station Overview</a> |
+        {% if data.next_url -%}
             <a href="{{ data.next_url }}">{{ data.next_year }} &gt;&gt;</a>
-        {% else %}
+        {%- else -%}
             {{ data.next_year }} &gt;&gt;
-        {% endif %}
-        <br>
-        <a href="../now">Today</a>
+        {%- endif %}
     </center>
-
 {% endblock %}

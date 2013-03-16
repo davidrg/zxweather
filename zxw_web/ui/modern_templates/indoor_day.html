@@ -89,12 +89,8 @@
             </div>
         </div>
     </section>
-
-    <hr>
-    <div class="footer-navlinks">
-    <a href="index.html">Back to outdoor weather</a>
-    </div>
 {% endblock %}
+{% block footer_left %}<a href="index.html">Back to outdoor weather</a>{% endblock %}
 {% block scripts %}
     <script type="text/javascript">
     var samples_url = "{{ dataurls['samples'] }}";

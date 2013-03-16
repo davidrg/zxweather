@@ -122,7 +122,7 @@ def in_archive_mode(station_id):
     # TODO: Cache me. This is called a lot.
 
     result = db.query("""select 42 from sample
-    where date(time_stamp) = date(NOW()) or date(time_stamp) = date(NOW()) - '1 day'::interval
+    where (date(time_stamp) = date(NOW()) or date(time_stamp) = date(NOW()) - '1 day'::interval)
     and station_id = $station limit 1""", dict(station=station_id))
 
     if not len(result):

@@ -12,8 +12,8 @@
         <a href="#7day">7-day charts</a>
     </center>
 
-    {% if data.current_data %}
-    <a name="current">
+    {% if data.current_data -%}
+    <a name="current"></a>
     <h2>Conditions as of {{ data.current_data_ts }}</h2>
     <table border=2>
         <tr bgcolor="lightseagreen">
@@ -58,7 +58,7 @@
         </tr> #}
     </table>
     {% endif %}
-    <a name="records">
+    <a name="records"></a>
     <h2>Records</h2>
     <table border=2>
         <tr bgcolor="lightseagreen">
@@ -109,7 +109,7 @@
     </table>
     <p>Total Rainfall: {{ data.records.total_rainfall|round(1) }}mm</p>
 
-    <a name="1day">
+    <a name="1day"></a>
     <h2>1-day Charts</h2>
     <a href="temperature_tdp_large.png"><img src="temperature_tdp.png" alt="[1-day Temperature and Dew Point]"></a>
     <a href="temperature_awc_large.png"><img src="temperature_awc.png" alt="[1-day Apparent Temperature and Wind Chill]"></a>
@@ -120,7 +120,7 @@
     <br>
     <a href="gnuplot_data.dat">gnuplot data</a>
 
-    <a name="7day">
+    <a name="7day"></a>
     <h2>7-day Charts</h2>
     <a href="7-day_temperature_tdp_large.png"><img src="7-day_temperature_tdp.png" alt="[7-day Temperature and Dew Point]"></a>
     <a href="7-day_temperature_awc_large.png"><img src="7-day_temperature_awc.png" alt="[7-day Apparent Temperature and Wind Chill]"></a>
@@ -132,22 +132,18 @@
     
     <hr>
     <center>
-    {% if data.prev_url %}
+    {% if data.prev_url -%}
         <a href="{{ data.prev_url }}">&lt;&lt; {{ data.prev_date }}</a>
-    {% else %}
+    {%- else -%}
         {{ data.prev_date }}
-    {% endif %}
-    |
-    <a href="../">{{ data.this_month }}</a>
-    |
-    {% if data.next_url %}
+    {%- endif %} |
+    <a href="../">{{ data.this_month }}</a> |
+    {% if data.next_url -%}
         <a href="{{ data.next_url }}">{{ data.next_date }} &gt;&gt;</a>
-    {% else %}
+    {%- else -%}
         {{ data.next_date }}
-    {% endif %}
+    {%- endif %}
     <br>
-    <a href="../../../now">Today</a>
+    <a href="../../../">Current Conditions</a> | <a href="indoor.html">Indoor readings</a>
     </center>
-    <a href="indoor.html">I</a>
-
 {% endblock %}

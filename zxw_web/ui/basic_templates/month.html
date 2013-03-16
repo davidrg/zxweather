@@ -13,17 +13,17 @@
         <a href="#charts">Charts</a>
     </center>
 
-    <a name="days">
+    <a name="days"></a>
     <h2>Days for {{ data.this_month }} {{ data.year_stamp }}</h2>
     <p>
-        {% set i = 0 %}
+        {% set i = 0 -%}
         {% for day in data.days %}
-            {% set i = i + 1 %}
+            {%- set i = i + 1 -%}
             <a href="{{ day }}/">{{ day }}</a> {% if i < data.days|length %}|{% endif %}
         {% endfor %}
     </p>
 
-    <a name="records">
+    <a name="records"></a>
     <h2>Records</h2>
     <table border=2>
         <tr bgcolor="lightseagreen">
@@ -74,7 +74,7 @@
     </table>
     <p>Total Rainfall: {{ data.records.total_rainfall|round(1) }}mm</p>
 
-    <a name="charts">
+    <a name="charts"></a>
     <h2>Monthly Charts</h2>
     <a href="temperature_tdp_large.png"><img src="temperature_tdp.png" alt="[Month Temperature and Dew Point]"></a>
     <a href="temperature_awc_large.png"><img src="temperature_awc.png" alt="[Month Apparent Temperature and Wind Chill]"></a>
@@ -86,21 +86,18 @@
 
     <hr>
     <center>
-        {% if data.prev_url %}
+        {% if data.prev_url -%}
             <a href="{{ data.prev_url }}">&lt;&lt; {{ data.prev_month }} {{ data.prev_year }}</a>
-        {% else %}
+        {%- else -%}
             &lt;&lt; {{ data.prev_month }} {{ data.prev_year }}
-        {% endif %}
-        |
-        <a href="../">{{ data.this_year }}</a>
-        |
-        {% if data.next_url %}
+        {%- endif %} |
+        <a href="../">{{ data.this_year }}</a> |
+        {% if data.next_url -%}
             <a href="{{ data.next_url }}">{{ data.next_month }} {{ data.next_year }} &gt;&gt;</a>
-        {% else %}
+        {%- else -%}
             {{ data.next_month }} {{ data.next_year }} &gt;&gt;
-        {% endif %}
+        {%- endif %}
         <br>
-        <a href="../../now">Today</a>
+        <a href="../../">Current Conditions</a>
     </center>
-
 {% endblock %}
