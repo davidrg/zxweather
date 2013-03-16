@@ -2,7 +2,7 @@
 """
 WebSocket support for zxweatherd.
 """
-from autobahn.websocket import WebSocketServerProtocol, WebSocketServerFactory, listenWS
+from autobahn.websocket import WebSocketServerProtocol, WebSocketServerFactory
 from twisted.application import internet
 from twisted.internet import ssl
 from server.session import end_session
