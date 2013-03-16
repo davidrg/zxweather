@@ -110,8 +110,57 @@ def get_station_basic(station):
     :param station:
     :return:
     """
+
+    current_location = '/*/' + station + '/'
+
     station_id = get_station_id(station)
-    return basic_templates.station(years=get_years(station_id),station=station)
+
+    now = datetime.now().date()
+
+    class data:
+        """ Data required by the view """
+        records = get_daily_records(now, station_id)
+        years = get_years(station_id)
+        year = now.year
+        month_s = month_name[now.month]
+        yesterday = now - timedelta(1)
+        yesterday_month_s = month_name[yesterday.month]
+        rainfall_7days_total = total_rainfall_in_last_7_days(now, station_id)
+
+    data.current_data_ts, data.current_data, \
+        data.nw_type = get_live_data(station_id)
+
+    page_data = {}
+
+    if not day_exists(data.yesterday, station_id):
+        data.yesterday = None
+        data.yesterday_month_s = None
+
+    page_data["station_name"] = get_station_name(station_id)
+    page_data["station_code"] = station
+
+    if data.records is None:
+        page_data["no_content"] = True
+    else:
+        page_data["no_content"] = False
+
+    page_data["stations"] = get_stations()
+
+    day_cache_control(None, now, station_id)
+    nav_urls = get_nav_urls(station, current_location)
+
+    image_base = str(now.year) + '/' + month_name[now.month] + '/' + \
+        str(now.day) + '/'
+
+    return basic_templates.station(years=get_years(station_id),
+                                   station=station,
+                                   data=data,
+                                   nav=nav_urls,
+                                   image_base=image_base,
+                                   page_data=page_data,
+                                   archive_mode=in_archive_mode(station_id),
+                                   switch_url=build_alternate_ui_urls(
+                                       current_location))
 
 class station(object):
     """

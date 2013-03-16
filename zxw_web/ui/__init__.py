@@ -154,13 +154,6 @@ def build_alternate_ui_urls(current_url):
 
     for ui in uis:
         url = '/{0}/{1}'.format(ui, page)
-
-        # A little hack to redirect from the modern station overview page to
-        # the basic current day page instead of the basic station overview page.
-        if len(url.split('/')) == 4 and ui == 'b':
-            if url.split('/')[3] == '':
-                url += 'now'
-
         switch_urls[ui] = relative_url(current_url, url)
 
     return switch_urls

@@ -104,8 +104,9 @@
             {% include 'day-charts-7day.html' %}
         </section>
 
-        <a href="indoor.html">I</a>
+
 {% endblock %}
+{% block footer_left %}<a href="indoor.html">Indoor readings</a>{% endblock %}
 {% block scripts %}
     <script type="text/javascript">
         $("#btn_today_refresh").button('loading');

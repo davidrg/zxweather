@@ -27,6 +27,8 @@ h3 { font-size: 18px; line-height: 27px; }
 h4 { font-size: 14px; line-height: 18px; }
 h5 { font-size: 12px; line-height: 18px; }
 
+footer { padding-bottom: 10px; }
+
 .current_day_refresh {
     padding-top: 40px;
 }

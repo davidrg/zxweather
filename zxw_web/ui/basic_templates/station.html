@@ -2,15 +2,175 @@
 
 {% block title %}Station  Overview{% endblock %}
 {% block content %}
+    {%- if page_data["no_content"] %}
+    <h1>{{ page_data["station_name"] }}</h1>
+    <hr>
+    {% if not archive_mode -%}
+    <center>
+        <a href="{{ nav['yesterday'] }}">Yesterday</a> |
+        <a href="{{ nav['this_month'] }}">This Month</a> |
+        <a href="{{ nav['this_year'] }}">This Year</a>
+    </center>
+    {%- endif %}
+    <p>
+        There is no recent data available from this weather station at this
+        time. Historical data remains available for the following
+        years:
+        {% set i = 0 -%}
+        {%- for year in data.years -%}
+            {%- set i = i + 1 -%}
+            <a href="{{ year }}/">{{ year }}</a>{% if i < data.years|length %}, {% endif %}
+        {%- endfor %}
+    </p>
+    {%- else -%}
     <h1>Station Overview - {{ station }}</h1>
     <hr>
-    <p>Current conditions are on the <a href="now">page for today</a>.</p>
-    <h2>Available Years</h2>
-    <p>Weather data is available for the following years:</p>
+    <center>
+        <a href="{{ nav['yesterday'] }}">Yesterday</a> |
+        <a href="{{ nav['this_month'] }}">This Month</a> |
+        <a href="{{ nav['this_year'] }}">This Year</a>
+    </center>
+    <center>
+        {% if data.current_data %}<a href="#current">Current Conditions</a> |{% endif %}
+        <a href="#records">Records</a> |
+        <a href="#1day">1-day charts</a> |
+        <a href="#7day">7-day charts</a>
+    </center>
+
+    {% if data.current_data -%}
+    <a name="current"></a>
+    <h2>Conditions as of {{ data.current_data_ts }}</h2>
+    <table border=2>
+        <tr bgcolor="lightseagreen">
+            <td><b>Sensor</b></td>
+            <td><b>Value</b></td>
+        </tr>
+        <tr bgcolor="blanchedalmond">
+            <td>Temperature</td>
+            <td>{{ data.current_data.temperature|round(1) }}°C</td>
+        </tr>
+        <tr bgcolor="blanchedalmond">
+            <td>Apparent Temperature</td>
+            <td>{{ data.current_data.apparent_temperature|round(1) }}°C</td>
+        </tr>
+        <tr bgcolor="blanchedalmond">
+            <td>Wind Chill</td>
+            <td>{{ data.current_data.wind_chill|round(1) }}°C</td>
+        </tr>
+        <tr bgcolor="blanchedalmond">
+            <td>Dew Point</td>
+            <td>{{ data.current_data.dew_point|round(1) }}°C</td>
+        </tr>
+        <tr bgcolor="blanchedalmond">
+            <td>Humidity</td>
+            <td>{{ data.current_data.relative_humidity }}%</td>
+        </tr>
+        <tr bgcolor="blanchedalmond">
+            <td>Barometer</td>
+            <td>{{ data.current_data.absolute_pressure|round(1) }} hPa</td>
+        </tr>
+        <tr bgcolor="blanchedalmond">
+            <td>Wind Speed</td>
+            <td>{{ data.current_data.average_wind_speed|round(1) }} m/s</td>
+        </tr>
+        <tr bgcolor="blanchedalmond">
+            <td>Wind Direction</td>
+            <td>{{ data.current_data.wind_direction }}</td>
+        </tr>
+    </table>
+    {% endif %}
+    <a name="records"></a>
+    <h2>Records</h2>
+    <table border=2>
+        <tr bgcolor="lightseagreen">
+            <td><b>Sensor</b></td>
+            <td><b>Min</b></td>
+            <td><b>Max</b></td>
+        </tr>
+        <tr bgcolor="blanchedalmond">
+            <td>Temperature</td>
+            <td>{{ data.records.min_temperature|round(1) }}°C at {{ data.records.min_temperature_ts }}</td>
+            <td>{{ data.records.max_temperature|round(1) }}°C at {{ data.records.max_temperature_ts }}</td>
+        </tr>
+        <tr bgcolor="blanchedalmond">
+            <td>Apparent Temperature</td>
+            <td>{{ data.records.min_apparent_temperature|round(1) }}°C at {{ data.records.min_apparent_temperature_ts }}</td>
+            <td>{{ data.records.max_apparent_temperature|round(1) }}°C at {{ data.records.max_apparent_temperature_ts }}</td>
+        </tr>
+        <tr bgcolor="blanchedalmond">
+            <td>Wind Chill</td>
+            <td>{{ data.records.min_wind_chill|round(1) }}°C at {{ data.records.min_wind_chill_ts }}</td>
+            <td>{{ data.records.max_wind_chill|round(1) }}°C at {{ data.records.max_wind_chill_ts }}</td>
+        </tr>
+        <tr bgcolor="blanchedalmond">
+            <td>Dew Point</td>
+            <td>{{ data.records.min_dew_point|round(1) }}°C at {{ data.records.min_dew_point_ts }}</td>
+            <td>{{ data.records.max_dew_point|round(1) }}°C at {{ data.records.max_dew_point_ts }}</td>
+        </tr>
+        <tr bgcolor="blanchedalmond">
+            <td>Humidity</td>
+            <td>{{ data.records.min_humidity }}% at {{ data.records.min_humidity_ts }}</td>
+            <td>{{ data.records.max_humidity }}% at {{ data.records.max_humidity_ts }}</td>
+        </tr>
+        <tr bgcolor="blanchedalmond">
+            <td>Barometer</td>
+            <td>{{ data.records.min_absolute_pressure|round(1) }} hPa at {{ data.records.min_absolute_pressure_ts }}</td>
+            <td>{{ data.records.max_absolute_pressure|round(1) }} hPa at {{ data.records.max_absolute_pressure_ts }}</td>
+        </tr>
+        <tr>
+            <td bgcolor="blanchedalmond">Gust Wind Speed</td>
+            <td></td>
+            <td bgcolor="blanchedalmond">{{ data.records.max_gust_wind_speed|round(1) }} m/s at {{ data.records.max_gust_wind_speed_ts }}</td>
+        </tr>
+        <tr>
+            <td bgcolor="blanchedalmond">Average Wind Speed</td>
+            <td></td>
+            <td bgcolor="blanchedalmond">{{ data.records.max_average_wind_speed|round(1) }} m/s at {{ data.records.max_average_wind_speed_ts }}</td>
+        </tr>
+    </table>
+    <p>Total Rainfall: {{ data.records.total_rainfall|round(1) }}mm</p>
+
+    <a name="1day"></a>
+    <h2>1-day Charts</h2>
+    <a href="{{ image_base }}temperature_tdp_large.png"><img src="{{ image_base }}temperature_tdp.png" alt="[1-day Temperature and Dew Point]"></a>
+    <a href="{{ image_base }}temperature_awc_large.png"><img src="{{ image_base }}temperature_awc.png" alt="[1-day Apparent Temperature and Wind Chill]"></a>
+    <a href="{{ image_base }}humidity_large.png"><img src="{{ image_base }}humidity.png" alt="[1-day Humidity]"></a>
+    <a href="{{ image_base }}pressure_large.png"><img src="{{ image_base }}pressure.png" alt="[1-day Pressure]"></a>
+    <a href="{{ image_base }}hourly_rainfall_large.png"><img src="{{ image_base }}hourly_rainfall.png" alt="[1-day hourly rainfall]"></a>
+
+    <br>
+    <a href="{{ image_base }}gnuplot_data.dat">gnuplot data</a>
+
+    <a name="7day"></a>
+    <h2>7-day Charts</h2>
+    <a href="{{ image_base }}7-day_temperature_tdp_large.png"><img src="{{ image_base }}7-day_temperature_tdp.png" alt="[7-day Temperature and Dew Point]"></a>
+    <a href="{{ image_base }}7-day_temperature_awc_large.png"><img src="{{ image_base }}7-day_temperature_awc.png" alt="[7-day Apparent Temperature and Wind Chill]"></a>
+    <a href="{{ image_base }}7-day_humidity_large.png"><img src="{{ image_base }}7-day_humidity.png" alt="[7-day Humidity]"></a>
+    <a href="{{ image_base }}7-day_pressure_large.png"><img src="{{ image_base }}7-day_pressure.png" alt="[7-day Pressure]"></a>
+
+    <br>
+    <a href="{{ image_base }}7-day_gnuplot_data.dat">gnuplot data</a>
+
+    <h2>Weather History</h2>
+    <p>
+        Full weather data is available at the day, month and year levels.
+        You can start browsing by year:
+    </p>
     <ul>
-    {% for year in years %}
-        <li><a href="{{ year }}/">{{ year }}</a></li>
-    {% endfor %}
+        {% for year in years %}<li><a href="{{ year }}/">{{ year }}</a></li>{% endfor %}
     </ul>
+    {% endif %}
+    {%- if (page_data["stations"]|length) > 1 %}
+    <h2>Other Weather Stations</h2>
+    <ul>
+        {% for station in page_data["stations"] -%}
+            {%- if station[0] == page_data["station_code"]  -%}
+                <li><strong>{{ station[1] }}</strong>
+            {%- else -%}
+                <li><a href="../{{ station[0] }}/">{{ station[1] }}</a>
+            {%- endif -%}
+        {%- endfor %}
+    </ul>
+    {%- endif %}
     <hr>
 {% endblock %}

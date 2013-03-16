@@ -7,7 +7,7 @@
     <hr> {#  This is only shown when we are looking at todays weather. #}
     <p>These are recordings for temperature and humidity at the indoor
     base station.</p>
-    {% if data.current_data %}
+    {% if data.current_data -%}
     <h2>Conditions as of {{ data.current_data_ts }}</h2>
     <p>Data is for the five minute period ending at {{ data.current_data_ts }}</p>
     <table border=2>
@@ -24,7 +24,7 @@
             <td>{{ data.current_data.indoor_temperature|round(1) }}°C</td>
         </tr>
     </table>
-    {% endif %}
+    {%- endif %}
     
     <h2>1-day Charts</h2>
     <a href="indoor_temperature_large.png"><img src="indoor_temperature.png" alt="[1-day Indoor Temperature]"></a>
@@ -38,5 +38,4 @@
     <center>
     <a href="">Back to outdoor weather</a>
     </center>
-
 {% endblock %}

@@ -138,6 +138,32 @@
         <!-- Content -->
         {%- block content %}{% endblock %}
         <!-- /Content -->
+        <hr>
+        <footer>
+            <div class="row">
+                <div class="span6">
+                    {% block footer_left %}{% endblock %}
+                </div>
+                <div class="span6">
+                    <div style="text-align: right">
+                        Interface: {% if ui == 's' -%}
+                        <strong>Standard</strong>
+                    {%- else -%}
+                        <a href="{{ switch_url['s'] }}">Standard</a>
+                    {%- endif %} | {% if ui == 'a' -%}
+                        <strong>Alternate</strong>
+                    {%- else -%}
+                        <a href="{{ switch_url['a'] }}">Alternate</a>
+                    {%- endif %} | {% if ui == 'b' -%}
+                        <strong>Basic</strong>
+                    {%- else -%}
+                        <a href="{{ switch_url['b'] }}">Basic</a>
+                    {%- endif %}
+                    </div>
+                </div>
+            </div>
+
+        </footer>
     </div>
 
     {%- if (page_data["stations"]|length) > 1 %}
