@@ -172,8 +172,6 @@ def get_live_csv(station_code):
     :rtype: Deferred
     """
 
-    # TODO: convert to fixed-point data types (no point returning 2.33333333)
-
     base_query = """
 select coalesce(round(ld.temperature::numeric, 2)::varchar, 'None') || ',' ||
        coalesce(round(ld.dew_point::numeric, 2)::varchar, 'None') || ',' ||
@@ -227,20 +225,18 @@ def get_sample_csv(station_code, start_time, end_time=None):
     :rtype: Deferred
     """
 
-    # TODO: convert to fixed-point data types (no point returning 2.33333333)
-
     query_cols = """
 select time_stamp,
-       coalesce(temperature::varchar, 'None') || ',' ||
-       coalesce(dew_point::varchar, 'None') || ',' ||
-       coalesce(apparent_temperature::varchar, 'None') || ',' ||
-       coalesce(wind_chill::varchar, 'None') || ',' ||
+       coalesce(round(temperature::numeric, 2)::varchar, 'None') || ',' ||
+       coalesce(round(dew_point::numeric, 2)::varchar, 'None') || ',' ||
+       coalesce(round(apparent_temperature::numeric, 2)::varchar, 'None')||','||
+       coalesce(round(wind_chill::numeric, 2)::varchar, 'None') || ',' ||
        coalesce(relative_humidity::varchar, 'None') || ',' ||
-       coalesce(indoor_temperature::varchar, 'None') || ',' ||
+       coalesce(round(indoor_temperature::numeric, 2)::varchar, 'None') ||','||
        coalesce(indoor_relative_humidity::varchar, 'None') || ',' ||
        coalesce(absolute_pressure::varchar, 'None') || ',' ||
-       coalesce(average_wind_speed::varchar, 'None') || ',' ||
-       coalesce(gust_wind_speed::varchar, 'None') || ',' ||
+       coalesce(round(average_wind_speed::numeric, 2)::varchar, 'None') || ','||
+       coalesce(round(gust_wind_speed::numeric, 2)::varchar, 'None') || ',' ||
        coalesce(wind_direction::varchar, 'None') || ',' ||
        coalesce(rainfall::varchar, 'None')
 from sample
