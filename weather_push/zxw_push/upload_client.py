@@ -268,7 +268,7 @@ class UploadClient(object):
             if hardware_type == 'DAVIS':
                 value += self.davis_live_format.format(**live_data)
 
-            print('Live: ' + value)
+            #print('Live: ' + value)
             self._writeLine(value)
 
     def sendSample(self, sample_data, hardware_type, hold=False):
@@ -284,7 +284,7 @@ class UploadClient(object):
 
         value = self.base_sample_format.format(**sample_data)
 
-        log.msg('Sample: ' + value)
+        #log.msg('Sample: ' + value)
 
         if hardware_type == 'FOWH1080':
             wh1080_value = self.wh1080_sample_format.format(**sample_data)

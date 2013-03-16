@@ -52,7 +52,7 @@ def getPushService(hostname, port, username, password, host_key_fingerprint, dsn
     global database
     log.msg('Connecting...')
 
-    log.startLogging(DailyLogFile.fromFullPath("log-file"), setStdout=False)
+    #log.startLogging(DailyLogFile.fromFullPath("log-file"), setStdout=False)
 
     _upload_client = UploadClient(
         client_finished, lambda : client_ready(dsn), "weather-push")
