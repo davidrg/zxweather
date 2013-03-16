@@ -153,9 +153,16 @@ function attempt_ws_connect() {
     socket.onerror = ws_error;
     socket.onclose = function(evt) {
         if (!ws_connected) {
-            update_live_status('grey',
-                'Connect failed. Attempting wss fallback...');
-            attempt_wss_connect();
+            if (typeof wss_uri === 'undefined' || wss_uri == null) {
+                // wss not enabled.
+                update_live_status('yellow',
+                    'Connect failed. Polling for updates every 30 seconds.');
+                start_polling();
+            } else {
+                update_live_status('grey',
+                    'Connect failed. Attempting wss fallback...');
+                attempt_wss_connect();
+            }
         } else {
             ws_connected = false;
             ws_lost_connection = true;
