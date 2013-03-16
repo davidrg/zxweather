@@ -1,5 +1,4 @@
 # coding=utf-8
-from adodbapi import OperationalError
 from twisted.internet import reactor
 from twisted.python import log
 
