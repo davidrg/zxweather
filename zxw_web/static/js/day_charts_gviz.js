@@ -1,10 +1,9 @@
-/** Code to draw all line charts using the goolge visualisation API.
+/** Code to draw all day-level line charts using the Google Visualisation API.
  *
  * User: David Goodwin
  * Date: 21/06/12
  * Time: 10:24 PM
  */
-
 
 function drawAllLineCharts(data,
                            tdp_element,
@@ -129,10 +128,10 @@ function load_day_charts() {
         if (!samples_loading && !rainfall_loading)
             $("#btn_today_refresh").button('reset');
     }).error(function() {
-                 $("#day_charts_cont").hide();
-                 $("#lc_refresh_failed").show();
-                 $("#btn_today_refresh").button('reset');
-             });
+            $("#day_charts_cont").hide();
+            $("#lc_refresh_failed").show();
+            $("#btn_today_refresh").button('reset');
+    });
 
     /***************************************************************
      * Fetch the days hourly rainfall and chart it

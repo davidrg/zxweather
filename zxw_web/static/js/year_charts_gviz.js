@@ -121,7 +121,10 @@ function drawCharts() {
                               document.getElementById('chart_rec_humidity'),
                               document.getElementById('chart_rainfall'),
                               document.getElementById('chart_rec_wind_speed'));
-    });
+    }).error(function() {
+            $("#records_charts").hide();
+            $("#lcr_refresh_failed").show();
+        });
 }
 
 if (typeof auto_plot === 'undefined')

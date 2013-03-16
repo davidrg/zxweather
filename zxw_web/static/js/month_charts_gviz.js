@@ -183,7 +183,10 @@ function drawCharts() {
                              document.getElementById('chart_pressure_div'),
                              document.getElementById('chart_wind_speed_div')
         );
-    });
+    }).error(function() {
+            $("#month_charts").hide();
+            $("#lc_refresh_failed").show();
+        });
 
     $.getJSON(daily_records_url, function(data) {
         var record_data = new google.visualization.DataTable(data);
@@ -233,7 +236,10 @@ function drawCharts() {
             document.getElementById('chart_rainfall'),
             document.getElementById('chart_rec_wind_speed')
         );
-    });
+    }).error(function() {
+            $("#records_charts").hide();
+            $("#lcr_refresh_failed").show();
+        });
 }
 
 if (typeof auto_plot === 'undefined')
