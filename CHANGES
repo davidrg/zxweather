@@ -60,6 +60,8 @@ CHANGES                                            zxweather release 1.0 beta 1
         performance.
       - A message can now be displayed in the web interface (basic UI excluded)
         for each station. This is turned on through the admin tool.
+      - Basic interface now handles archive mode
+      - All pages now have UI switch links at the bottom right of the page.
     Bug Fixes:
       - Fixed multi-station compatibility problem with 7-day data sources in
         the web interface.
@@ -103,6 +105,11 @@ CHANGES                                            zxweather release 1.0 beta 1
       - Dygraphs upgraded to the latest version and fixed problems with rainfall
         chart. Labels are now drawn under the chart
       - Current conditions trend icons removed from web interface.
+      - Upgraded to bootstrap 2.3.1 (from 2.0.3)
+      - Upgraded to jQuery 1.9.1 (from 1.7.2)
+      - The station overview page in the basic interface now shows current
+        conditions like in other interfaces
+      - Basic interface HTML is a little more valid
 
   Version 0.2 (alpha)
     New Features:
