@@ -111,4 +111,35 @@ class WebSocketShellProtocol(WebSocketServerProtocol, BaseShell):
         """
         self.sendMessage(self.prompt[self.prompt_number])
 
-    # TODO: consider overriding sendServerStatus()
+    def sendServerStatus(self, redirectUrl = None, redirectAfter = 0):
+        """
+        Used to send out server status/version upon receiving a HTTP/GET
+        without upgrade to WebSocket header (and option serverStatus is True).
+        """
+        html = """
+    <!DOCTYPE html>
+    <html>
+       <head>
+          <title>zxweather server WebSocket endpoint</title>
+       </head>
+       <body>
+          <h1>zxweather WebSocket Endpoint</h1>
+          <hr>
+          <p>
+             This is not a web server. You have reached the WebSocket endpoint
+             on the zxweather server. Its purpose is to supply instant data
+             update notifications and other station data to the web interface.
+          </p>
+          <p>If you actually were expecting to do WebSockety stuff here then
+             your WebSocket client failed to send the appropriate upgrade
+             header (or something else stripped it off).
+          </p>
+          <p>See Also: <a href="http://tools.ietf.org/html/rfc6455">RFC-6455 -
+          The WebSocket Protocol</a>
+          </p>
+          <hr>
+          <div style="text-align: right">zxweather server</div>
+       </body>
+    </html>
+    """
+        self.sendHtml(html)
