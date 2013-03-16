@@ -68,8 +68,8 @@ class Dispatcher(object):
         an executable command
         :rtype: partial
         """
-        log.msg('{1} cmd-exec: {0}'.format(
-            command, self.environment["sessionid"]))
+        log.msg('cmd-exec: {0}'.format(command),
+                system="Dispatcher/{0}".format(self.environment["sessionid"]))
         try:
             handler, params, qualifiers = self.processor.process_command(command)
         except Exception as e:
