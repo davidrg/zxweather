@@ -328,7 +328,8 @@ class DavisWeatherStation(object):
             self._wakeRetries = 0
             raise Exception('Console failed to wake')
 
-        log.msg('Wake attempt {0}'.format(self._wakeRetries))
+        if self._wakeRetries > 1:
+            log.msg('Wake attempt {0}'.format(self._wakeRetries))
 
         self._write('\n')
 

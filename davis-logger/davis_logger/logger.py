@@ -101,7 +101,6 @@ class DavisLoggerProtocol(Protocol):
             self._fetch_samples()
 
     def _loopFinished(self):
-        log.msg('LOOP finished. Resuming...')
         self.station.getLoopPackets(100)
 
     def _samplesArrived(self, sampleList):
