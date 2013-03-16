@@ -24,7 +24,10 @@ function drawCharts() {
             document.getElementById('chart_wind_speed_div'),
             document.getElementById('chart_wind_speed_key')
         );
-    });
+    }).error(function() {
+            $("#month_charts").hide();
+            $("#lc_refresh_failed").show();
+        });
 
     $.getJSON(daily_records_url, function(data) {
 
@@ -41,7 +44,10 @@ function drawCharts() {
             document.getElementById('chart_rec_wind_speed'),
             document.getElementById('key_rec_wind_speed')
         );
-    });
+    }).error(function() {
+            $("#records_charts").hide();
+            $("#lcr_refresh_failed").show();
+        });
 }
 
 if (Modernizr.canvas)
