@@ -55,6 +55,7 @@ port=4224
 [websocket]
 enable=True
 port=81
+hostname=server.example.com
 
 ##############################################################################
 ### WebSocket SSL Protocol Configuration #####################################
@@ -64,6 +65,7 @@ port=81
 [websocket-ssl]
 enable=True
 port=443
+hostname=server.example.com
 
 # SSL private key and certificate files
 private_key_file=server.key
