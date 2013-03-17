@@ -77,6 +77,9 @@ enable_web_socket = True
 # The port to listen on
 web_socket_port = 81
 
+# Hostname the websocket service will be available under
+web_socket_hostname = 'server.example.com'
+
 ##############################################################################
 ### WebSocket TLS Protocol Configuration #####################################
 ##############################################################################
@@ -97,6 +100,9 @@ web_socket_tls_certificate_file = 'server.crt'
 
 # SSL Certificate chain filename (file must be PEM encoded)
 web_socket_tls_chain_file = None
+
+# Hostname the websocket service will be available under
+web_socket_tls_hostname = 'server.example.com'
 
 ##############################################################################
 ##############################################################################
@@ -129,13 +135,14 @@ if enable_raw:
     raw_config = {'port': raw_port}
 
 if enable_web_socket:
-    ws_config = {'port': web_socket_port}
+    ws_config = {'port': web_socket_port, 'host': web_socket_hostname}
 
 if enable_web_socket_tls:
     wss_config = {
         'port': web_socket_tls_port,
         'key': web_socket_tls_private_key_file,
-        'certificate': web_socket_tls_certificate_file
+        'certificate': web_socket_tls_certificate_file,
+        'host': web_socket_tls_hostname
     }
 
 service = getServerService(
