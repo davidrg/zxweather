@@ -79,11 +79,13 @@ class ZXWServerServiceMaker(object):
             chain = None
             if config.has_option(S_WSS, 'chain_file'):
                 chain = config.get(S_WSS, 'chain_file')
+            if config.has_option(S_WSS, 'certificate_file'):
+                cert = config.get(S_WSS, 'certificate_file')
 
             wss_config = {
                 'port': config.getint(S_WSS, 'port'),
                 'key': config.get(S_WSS, 'private_key_file'),
-                'certificate': config.get(S_WSS, 'certificate_file'),
+                'certificate': cert,
                 'chain': chain,
             }
 
