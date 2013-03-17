@@ -37,20 +37,24 @@ class ChainedOpenSSLContextFactory(ssl.DefaultOpenSSLContextFactory):
 
 
 
-def getWebSocketService(port):
+def getWebSocketService(host, port):
     """
     Gets a WebSocket service listening on the specified port
+    :param host: The hostname the server is available under
+    :type host: str
     :param port: Port number
     :type port: int
     """
-    factory = WebSocketServerFactory("ws://localhost:{0}".format(port))
+    factory = WebSocketServerFactory("ws://{1}:{0}".format(port, host))
     factory.protocol = WebSocketShellProtocol
 
     return internet.TCPServer(port, factory)
 
-def getWebSocketSecureService(port, key, certificate, chain):
+def getWebSocketSecureService(host, port, key, certificate, chain):
     """
     Gets a SSL WebSocket service listening on the specified port
+    :param host: The hostname the server is available under
+    :type host: str
     :param port: Port to listen on
     :type port: int
     :param key: Server private key filename
@@ -68,7 +72,7 @@ def getWebSocketSecureService(port, key, certificate, chain):
     # openssl x509 -in server.crt -out server.pem
 
     contextFactory = ChainedOpenSSLContextFactory(key, certificate, chain)
-    factory = WebSocketServerFactory("ws://localhost:{0}".format(port))
+    factory = WebSocketServerFactory("wss://{1}:{0}".format(port, host))
     factory.protocol = WebSocketShellProtocol
 
     return internet.SSLServer(port, factory, contextFactory)
