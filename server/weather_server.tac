@@ -95,6 +95,9 @@ web_socket_tls_private_key_file = 'server.key'
 # SSL Certificate
 web_socket_tls_certificate_file = 'server.crt'
 
+# SSL Certificate chain filename (file must be PEM encoded)
+web_socket_tls_chain_file = None
+
 ##############################################################################
 ##############################################################################
 ##############################################################################

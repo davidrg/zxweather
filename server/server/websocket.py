@@ -2,6 +2,7 @@
 """
 WebSocket support for zxweatherd.
 """
+from OpenSSL import SSL
 from autobahn.websocket import WebSocketServerProtocol, WebSocketServerFactory
 from twisted.application import internet
 from twisted.internet import ssl
@@ -9,6 +10,30 @@ from server.session import end_session
 from server.shell import BaseShell
 
 __author__ = 'david'
+
+class ChainedOpenSSLContextFactory(ssl.DefaultOpenSSLContextFactory):
+    def __init__(self, privateKeyFileName, certificateFileName,
+                 certificateChainFileName):
+        """
+        :param privateKeyFileName: Name of a file containing a private key
+        :param certificateFileName: Name of a file containing a certificate
+        :param certificateChainFileName: Name of a file containing a
+                                        certificate chain
+        :param sslmethod: The SSL method to use
+        """
+        self.privateKeyFileName = privateKeyFileName
+        self.certificateFileName = certificateFileName
+        self.certificateChainFileName = certificateChainFileName
+        self.cacheContext()
+
+    def cacheContext(self):
+        ctx = SSL.Context(SSL.SSLv23_METHOD)
+        ctx.use_certificate_file(self.certificateFileName)
+        if self.certificateChainFileName is not None:
+            ctx.use_certificate_chain_file(self.certificateChainFileName)
+        ctx.use_privatekey_file(self.privateKeyFileName)
+        self._context = ctx
+
 
 
 def getWebSocketService(port):
@@ -22,7 +47,7 @@ def getWebSocketService(port):
 
     return internet.TCPServer(port, factory)
 
-def getWebSocketSecureService(port, key, certificate):
+def getWebSocketSecureService(port, key, certificate, chain):
     """
     Gets a SSL WebSocket service listening on the specified port
     :param port: Port to listen on
@@ -31,6 +56,8 @@ def getWebSocketSecureService(port, key, certificate):
     :type key: str
     :param certificate: Server certificate filename
     :type certificate: str
+    :param chain: Certificate chain filename (PEM encoded)
+    :type chain: str
     """
 
     # To make self-signed keys:
@@ -39,7 +66,7 @@ def getWebSocketSecureService(port, key, certificate):
     # openssl x509 -req -days 3650 -in server.csr -signkey server.key -out server.crt
     # openssl x509 -in server.crt -out server.pem
 
-    contextFactory = ssl.DefaultOpenSSLContextFactory(key, certificate)
+    contextFactory = ChainedOpenSSLContextFactory(key, certificate, chain)
     factory = WebSocketServerFactory("ws://localhost:{0}".format(port))
     factory.protocol = WebSocketShellProtocol
 

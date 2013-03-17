@@ -76,10 +76,15 @@ class ZXWServerServiceMaker(object):
         if config.has_section(S_WSS) and config.has_option(S_WSS, 'enable') \
                 and config.getboolean(S_WSS, 'enable'):
 
+            chain = None
+            if config.has_option(S_WSS, 'chain_file'):
+                chain = config.get(S_WSS, 'chain_file')
+
             wss_config = {
                 'port': config.getint(S_WSS, 'port'),
                 'key': config.get(S_WSS, 'private_key_file'),
-                'certificate': config.get(S_WSS, 'certificate_file')
+                'certificate': config.get(S_WSS, 'certificate_file'),
+                'chain': chain,
             }
 
         return ssh_config, telnet_config, raw_config, ws_config, wss_config, dsn

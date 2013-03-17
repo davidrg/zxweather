@@ -21,7 +21,8 @@ def setupDatabase(dsn):
     listener_connect(dsn)
 
 
-def getServerService(dsn, ssh_config, telnet_config, tcp_config, ws_config, wss_config):
+def getServerService(dsn, ssh_config, telnet_config, tcp_config, ws_config,
+                     wss_config):
     """
     Gets the zxweatherd server service.
     :param dsn: Database connection string
