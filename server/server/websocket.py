@@ -28,7 +28,8 @@ class ChainedOpenSSLContextFactory(ssl.DefaultOpenSSLContextFactory):
 
     def cacheContext(self):
         ctx = SSL.Context(SSL.SSLv23_METHOD)
-        ctx.use_certificate_file(self.certificateFileName)
+        if self.certificateFileName is not None:
+            ctx.use_certificate_file(self.certificateFileName)
         if self.certificateChainFileName is not None:
             ctx.use_certificate_chain_file(self.certificateChainFileName)
         ctx.use_privatekey_file(self.privateKeyFileName)
