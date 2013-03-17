@@ -70,7 +70,8 @@ class ZXWServerServiceMaker(object):
         if config.has_section(S_WS) and config.has_option(S_WS, 'enable') \
                 and config.getboolean(S_WS, 'enable'):
             ws_config = {
-                'port': config.getint(S_WS, 'port')
+                'port': config.getint(S_WS, 'port'),
+                'host': config.get(S_WS, 'hostname'),
             }
 
         if config.has_section(S_WSS) and config.has_option(S_WSS, 'enable') \
