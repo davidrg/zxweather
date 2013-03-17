@@ -112,8 +112,8 @@
             <a href="{{ switch_url['b'] }}" class="btn">Switch to Basic HTML Interface</a>
         </div>
         {%- endif %}
-        {%- if ui and ui == 'a' %}
         <!--[if IE 8]>
+        {%- if ui and ui == 'a' %}
         <div class="alert">
         <button type="button" class="close" data-dismiss="alert">×</button>
         <strong>Unsupported browser!</strong>
@@ -125,9 +125,9 @@
         <p><br><button id="ie8_enable_charts" onclick="ie8_enable_charts();" class="btn" data-dismiss="alert">Enable Charts</button>
         <a class="btn" href="{{ switch_url['b'] }}">Switch to the Basic HTML interface</a>
         </div>
-        <script type="text/javascript">var auto_plot=false;</script>
-        <![endif]-->
         {%- endif %}
+        <script type="text/javascript">{% if ui == 'a' %}var auto_plot=false;{% endif %}var ie8=true;</script>
+        <![endif]-->
         {%- if station_message %}
         <div class="alert alert-info" style="display:none;" id="stn_msg">
             <button type="button" class="close" data-dismiss="alert"

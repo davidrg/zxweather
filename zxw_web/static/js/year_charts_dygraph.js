@@ -32,10 +32,13 @@ if (Modernizr.canvas)
 else {
     $('#lcr_msg').html('<strong>Unsupported browser!</strong> These charts can not be drawn because your browser does not support the required features.');
 
+    if (typeof ie8 === 'undefined')
+        var ie8 = false;
+
     // Only show the Canvas warning if the user isn't using IE8. For IE8 we have
     // a different warning message as the Alternate interface has some performance
     // issues there too.
-    if (!($.browser.msie && ($.browser.version == '8.0' || $.browser.version == '7.0')))
+    if (!ie8)
         $('#canvas_missing').show();
 
     $('#lcr_obsolete_browser').show();
