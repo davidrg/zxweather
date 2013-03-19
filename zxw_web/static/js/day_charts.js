@@ -63,6 +63,7 @@ function show_hide_rainfall_charts(chart) {
                 $("#chart_hourly_rainfall_div").hide();
                 $("#chart_hourly_rainfall_key").hide();
             }
+            $("#tot_rainfall").html(data['rainfall'].toFixed(1));
         }
 
         if (chart == 0 || chart == 2) {

@@ -16,43 +16,43 @@
                         <tbody>
                         <tr>
                             <td>Temperature</td>
-                            <td id="temp_min">{{ data.records.min_temperature|round(1) }}°C at {{ data.records.min_temperature_ts }}</td>
-                            <td id="temp_max">{{ data.records.max_temperature|round(1) }}°C at {{ data.records.max_temperature_ts }}</td>
+                            <td id="temp_min">{% if data.records %}{{ data.records.min_temperature|round(1) }}°C at {{ data.records.min_temperature_ts }}{% else %}--{% endif %}</td>
+                            <td id="temp_max">{% if data.records %}{{ data.records.max_temperature|round(1) }}°C at {{ data.records.max_temperature_ts }}{% else %}--{% endif %}</td>
                         </tr>
                         <tr>
                             <td>Apparent Temperature</td>
-                            <td id="at_min">{{ data.records.min_apparent_temperature|round(1) }}°C at {{ data.records.min_apparent_temperature_ts }}</td>
-                            <td id="at_max">{{ data.records.max_apparent_temperature|round(1) }}°C at {{ data.records.max_apparent_temperature_ts }}</td>
+                            <td id="at_min">{% if data.records %}{{ data.records.min_apparent_temperature|round(1) }}°C at {{ data.records.min_apparent_temperature_ts }}{% else %}--{% endif %}</td>
+                            <td id="at_max">{% if data.records %}{{ data.records.max_apparent_temperature|round(1) }}°C at {{ data.records.max_apparent_temperature_ts }}{% else %}--{% endif %}</td>
                         </tr>
                         <tr>
                             <td>Wind Chill</td>
-                            <td id="wc_min">{{ data.records.min_wind_chill|round(1) }}°C at {{ data.records.min_wind_chill_ts }}</td>
-                            <td id="wc_max">{{ data.records.max_wind_chill|round(1) }}°C at {{ data.records.max_wind_chill_ts }}</td>
+                            <td id="wc_min">{% if data.records %}{{ data.records.min_wind_chill|round(1) }}°C at {{ data.records.min_wind_chill_ts }}{% else %}--{% endif %}</td>
+                            <td id="wc_max">{% if data.records %}{{ data.records.max_wind_chill|round(1) }}°C at {{ data.records.max_wind_chill_ts }}{% else %}--{% endif %}</td>
                         </tr>
                         <tr>
                             <td>Dew Point</td>
-                            <td id="dp_min">{{ data.records.min_dew_point|round(1) }}°C at {{ data.records.min_dew_point_ts }}</td>
-                            <td id="dp_max">{{ data.records.max_dew_point|round(1) }}°C at {{ data.records.max_dew_point_ts }}</td>
+                            <td id="dp_min">{% if data.records %}{{ data.records.min_dew_point|round(1) }}°C at {{ data.records.min_dew_point_ts }}{% else %}--{% endif %}</td>
+                            <td id="dp_max">{% if data.records %}{{ data.records.max_dew_point|round(1) }}°C at {{ data.records.max_dew_point_ts }}{% else %}--{% endif %}</td>
                         </tr>
                         <tr>
                             <td>Humidity</td>
-                            <td id="rh_min">{{ data.records.min_humidity }}% at {{ data.records.min_humidity_ts }}</td>
-                            <td id="rh_max">{{ data.records.max_humidity }}% at {{ data.records.max_humidity_ts }}</td>
+                            <td id="rh_min">{% if data.records %}{{ data.records.min_humidity }}% at {{ data.records.min_humidity_ts }}{% else %}--{% endif %}</td>
+                            <td id="rh_max">{% if data.records %}{{ data.records.max_humidity }}% at {{ data.records.max_humidity_ts }}{% else %}--{% endif %}</td>
                         </tr>
                         <tr>
                             <td>Barometer</td>
-                            <td id="ap_min">{{ data.records.min_absolute_pressure|round(1) }} hPa at {{ data.records.min_absolute_pressure_ts }}</td>
-                            <td id="ap_max">{{ data.records.max_absolute_pressure|round(1) }} hPa at {{ data.records.max_absolute_pressure_ts }}</td>
+                            <td id="ap_min">{% if data.records %}{{ data.records.min_absolute_pressure|round(1) }} hPa at {{ data.records.min_absolute_pressure_ts }}{% else %}--{% endif %}</td>
+                            <td id="ap_max">{% if data.records %}{{ data.records.max_absolute_pressure|round(1) }} hPa at {{ data.records.max_absolute_pressure_ts }}{% else %}--{% endif %}</td>
                         </tr>
                         <tr>
                             <td>Gust Wind Speed</td>
                             <td class="no-value"></td>
-                            <td id="gws">{{ data.records.max_gust_wind_speed|round(1) }} m/s at {{ data.records.max_gust_wind_speed_ts }}</td>
+                            <td id="gws">{% if data.records %}{{ data.records.max_gust_wind_speed|round(1) }} m/s at {{ data.records.max_gust_wind_speed_ts }}{% else %}--{% endif %}</td>
                         </tr>
                         <tr>
                             <td>Average Wind Speed</td>
                             <td class="no-value"></td>
-                            <td id="aws">{{ data.records.max_average_wind_speed|round(1) }} m/s at {{ data.records.max_average_wind_speed_ts }}</td>
+                            <td id="aws">{% if data.records %}{{ data.records.max_average_wind_speed|round(1) }} m/s at {{ data.records.max_average_wind_speed_ts }}{% else %}--{% endif %}</td>
                         </tr>
                         </tbody>
                     </table>

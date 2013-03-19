@@ -130,6 +130,24 @@ def in_archive_mode(station_id):
     else:
         return False
 
+
+def no_data_in_24_hours(station_id):
+    """
+    Checks to see if there is no data for the last 24 hours
+    :param station_id: ID of the station to check
+    :return: True if the station is missing data for the last 24 hours
+    :rtype: bool
+    """
+
+    # TODO: Cache me. This is called a lot.
+
+    result = db.query("""select 42 from sample
+    where time_stamp >= (NOW() - '24 hours'::interval)
+    and station_id = $station limit 1""", dict(station=station_id))
+
+    return len(result) == 0
+
+
 def month_exists(year, month, station_id):
     """
     Checks to see if a specific month exists in the database.
@@ -253,13 +271,7 @@ def get_daily_rainfall(time, station_id, use_24hr_range=False):
     from sample
     where time_stamp::date = $time
     and station_id = $station""", params)
-    else:
-        day_rainfall_record = db.query("""select sum(rainfall) as day_rainfall
-    from sample
-    where (time_stamp < $time and time_stamp > $time - '1 hour'::interval * 24)
-    and station_id = $station""", params)
-
-    sevenday_rainfall_record = db.query("""select sum(rainfall) as sevenday_rainfall
+        sevenday_rainfall_record = db.query("""select sum(rainfall) as sevenday_rainfall
 from sample s,
   (
      select max(time_stamp) as ts from sample
@@ -268,6 +280,17 @@ from sample s,
   ) as max_ts
 where s.time_stamp <= max_ts.ts     -- 604800 seconds in a week.
   and s.time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
+  and s.station_id = $station""", params)
+    else:
+        day_rainfall_record = db.query("""select sum(rainfall) as day_rainfall
+    from sample
+    where (time_stamp < $time and time_stamp > $time - '1 hour'::interval * 24)
+    and station_id = $station""", params)
+
+        sevenday_rainfall_record = db.query("""select sum(rainfall) as sevenday_rainfall
+from sample s
+where s.time_stamp <= $time     -- 604800 seconds in a week.
+  and s.time_stamp >= ($time - (604800 * '1 second'::interval))
   and s.station_id = $station""", params)
 
     if len(day_rainfall_record) == 0 or len(sevenday_rainfall_record) is None:

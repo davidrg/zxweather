@@ -35,7 +35,7 @@
             <div class="row">
                 <div class="span6">
                     <h2 id="daily-charts">Last 24 Hours</h2>
-                    <p>Total Rainfall: <span id="tot_rainfall">{{ data.records.total_rainfall|round(1) }}</span>mm</p>
+                    <p>Total Rainfall: <span id="tot_rainfall">{% if data.records %}{{ data.records.total_rainfall|round(1) }}</span>mm{% else %}--{% endif %}</p>
                 </div>
                 <div class="span6">
                     <div class="current_day_refresh">
@@ -89,8 +89,8 @@
         var live_url = '../../data/{{ station }}/live.json';
         var samples_url = '../../data/{{ station }}/{{ subdir }}24hr_samples.json';
         var rainfall_url = '../../data/{{ station }}/{{ subdir }}24hr_hourly_rainfall.json';
-        var samples_7day_url = '../../data/{{ station }}/{{ subdir }}current_day_7day_30m_avg_samples.json';
-        var rainfall_7day_url = '../../data/{{ station }}/{{ subdir }}current_day_7day_rainfall.json';
+        var samples_7day_url = '../../data/{{ station }}/{{ subdir }}168hr_30m_avg_samples.json';
+        var rainfall_7day_url = '../../data/{{ station }}/{{ subdir }}168hr_rainfall.json';
         var records_url = '../../data/{{ station }}/current_day_records.json';
         var rainfall_totals_url = '../../data/{{ station }}/24hr_rainfall_totals.json';
         var live_auto_refresh = true;

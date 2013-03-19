@@ -8,7 +8,10 @@ import web
 from web.contrib.template import render_jinja
 from cache import day_cache_control
 import config
-from database import get_daily_records, get_years, total_rainfall_in_last_7_days, day_exists, get_station_id, get_station_name, in_archive_mode, get_station_type_code, get_stations, get_live_data, get_station_message
+from database import get_daily_records, get_years, \
+    total_rainfall_in_last_7_days, day_exists, get_station_id, \
+    get_station_name, in_archive_mode, get_station_type_code, get_stations, \
+    get_live_data, get_station_message, no_data_in_24_hours
 import os
 from months import month_name
 from ui import get_nav_urls, make_station_switch_urls, build_alternate_ui_urls
@@ -58,25 +61,17 @@ def get_station_standard(ui, station):
     data.current_data_ts, data.current_data, \
         data.nw_type = get_live_data(station_id)
 
-
-    page_data = {}
-
     if not day_exists(data.yesterday, station_id):
         data.yesterday = None
         data.yesterday_month_s = None
 
-    def _switch_func(station_id):
-        return day_exists(now, station_id)
-
-    page_data["station_name"] = get_station_name(station_id)
-    page_data["stations"] = make_station_switch_urls(
-        get_stations(), current_location, _switch_func,
-        (now.year, now.month, now.day))
-
-    if data.records is None:
-        page_data["no_content"] = True
-    else:
-        page_data["no_content"] = False
+    page_data = {
+        "station_name": get_station_name(station_id),
+        "stations": make_station_switch_urls(
+            get_stations(), current_location, None,
+            (now.year, now.month, now.day)),
+        "no_content": no_data_in_24_hours(station_id)
+    }
 
     if ui == 'a':
         sub_dir = 'datatable/'
@@ -130,21 +125,16 @@ def get_station_basic(station):
     data.current_data_ts, data.current_data, \
         data.nw_type = get_live_data(station_id)
 
-    page_data = {}
-
     if not day_exists(data.yesterday, station_id):
         data.yesterday = None
         data.yesterday_month_s = None
 
-    page_data["station_name"] = get_station_name(station_id)
-    page_data["station_code"] = station
-
-    if data.records is None:
-        page_data["no_content"] = True
-    else:
-        page_data["no_content"] = False
-
-    page_data["stations"] = get_stations()
+    page_data = {
+        "station_name": get_station_name(station_id),
+        "station_code": station,
+        "no_content": data.records is None,
+        "stations": get_stations()
+    }
 
     day_cache_control(None, now, station_id)
     nav_urls = get_nav_urls(station, current_location)
@@ -161,6 +151,7 @@ def get_station_basic(station):
                                    archive_mode=in_archive_mode(station_id),
                                    switch_url=build_alternate_ui_urls(
                                        current_location))
+
 
 class station(object):
     """
