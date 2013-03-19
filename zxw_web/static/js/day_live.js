@@ -443,7 +443,6 @@ function refresh_records() {
         $("#gws").html(data['max_gust_wind_speed'].toFixed(1) + ' m/s at ' + data['max_gust_wind_speed_ts']);
         $("#aws").html(data['max_average_wind_speed'].toFixed(1) + ' m/s at ' + data['max_average_wind_speed_ts']);
 
-        $("#tot_rainfall").html(data['total_rainfall'].toFixed(1));
         $("#btn_records_refresh").button('reset');
     }).error(function() {
             $("#records_table").hide();

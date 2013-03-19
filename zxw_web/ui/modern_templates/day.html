@@ -52,7 +52,7 @@
             </div>
             <div class="row">
                 <div class="span6">
-                    <p>Total Rainfall: <span id="tot_rainfall">{{ data.records.total_rainfall|round(1) }}</span>mm</p>
+                    <p>Total Rainfall: <span id="tot_rainfall">{% if data.records %}{{ data.records.total_rainfall|round(1) }}</span>mm{% else %}--{% endif %}</p>
                 </div>
                 <div class="span6">
                     {#- This space left blank to keep the records table a sensible size. -#}

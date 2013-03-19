@@ -288,6 +288,59 @@ group by iq.quadrant
 order by iq.quadrant asc""", params)
     return result
 
+
+def get_168hr_30mavg_samples_data(day, station_id):
+    """
+    Gets 30-minute averaged sample data over the 7-day period ending on the
+    specified time (rather than day).
+    :param day: end time stamp.
+    :type day: datetime
+    :param station_id: The ID of the weather station to work with
+    :type station_id: int
+    :return: Data.
+    """
+    params = dict(time = day, station = station_id)
+    result = config.db.query("""select min(iq.time_stamp) as time_stamp,
+       avg(iq.temperature) as temperature,
+       avg(iq.dew_point) as dew_point,
+       avg(iq.apparent_temperature) as apparent_temperature,
+       avg(wind_chill) as wind_chill,
+       avg(relative_humidity)::integer as relative_humidity,
+       avg(absolute_pressure) as absolute_pressure,
+       min(prev_sample_time) as prev_sample_time,
+       bool_or(gap) as gap,
+       avg(iq.average_wind_speed) as average_wind_speed,
+       max(iq.gust_wind_speed) as gust_wind_speed
+from (
+        select cur.time_stamp,
+               (extract(epoch from cur.time_stamp) / 1800)::integer AS quadrant,
+               cur.temperature,
+               cur.dew_point,
+               cur.apparent_temperature,
+               cur.wind_chill,
+               cur.relative_humidity,
+               cur.absolute_pressure,
+               cur.time_stamp - (st.sample_interval * '1 second'::interval) as prev_sample_time,
+               CASE WHEN (cur.time_stamp - prev.time_stamp) > ((st.sample_interval * 2) * '1 second'::interval) THEN
+                  true
+               else
+                  false
+               end as gap,
+               cur.average_wind_speed,
+               cur.gust_wind_speed
+        from sample cur, sample prev, station st
+        where cur.time_stamp <= $time  -- 604800 seconds in a week.
+          and cur.time_stamp >= ($time - (604800 * '1 second'::interval))
+          and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < cur.time_stamp and station_id = $station)
+          and cur.station_id = $station
+          and prev.station_id = $station
+          and st.station_id = cur.station_id
+        order by cur.time_stamp asc) as iq
+group by iq.quadrant
+order by iq.quadrant asc""", params)
+    return result
+
+
 def get_days_hourly_rainfall_data(day, station_id):
     """
     Gets the days hourly rainfall data.
@@ -356,6 +409,32 @@ def get_7day_hourly_rainfall_data(day, station_id):
     order by date_trunc('hour',time_stamp) asc""", params)
 
     return result
+
+
+def get_168hr_hourly_rainfall_data(day, station_id):
+    """
+    Gets hourly rainfall data for the 168 hour period ending at the specified
+    time (rather than date).
+    :param day: End of the 168 hour period
+    :type day: datetime
+    :param station_id: The ID of the weather station to work with
+    :type station_id: int
+    :return: Rainfall data query result.
+    """
+
+    params = dict(time = day, station = station_id)
+
+    result = config.db.query("""select date_trunc('hour',time_stamp) as time_stamp,
+           sum(rainfall) as rainfall
+    from sample
+    where time_stamp <= $time
+      and time_stamp >= ($time - (604800 * '1 second'::interval))
+      and station_id = $station
+    group by date_trunc('hour',time_stamp)
+    order by date_trunc('hour',time_stamp) asc""", params)
+
+    return result
+
 
 def get_day_indoor_samples_data(day, station_id):
     """

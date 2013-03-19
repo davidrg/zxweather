@@ -84,6 +84,16 @@ class data_json:
                                    get_24hr_hourly_rainfall_data,
                                    rainfall_sample_result_to_json,
                                    station_id)
+        elif dataset == '168hr_30m_avg_samples':
+            return daily.get_day_dataset(datetime.now(),
+                                         daily.get_168hr_30mavg_samples_data,
+                                         daily.outdoor_sample_result_to_json,
+                                         station_id)
+        elif dataset == '168hr_rainfall':
+            return daily.get_day_dataset(datetime.now(),
+                                         daily.get_168hr_hourly_rainfall_data,
+                                         rainfall_sample_result_to_json,
+                                         station_id)
         elif dataset == 'live':
             return live_data(station_id)
         elif dataset == 'samplerange':
@@ -131,7 +141,17 @@ class datatable_json:
             return get_day_dataset(datetime.now(),
                                    get_24hr_hourly_rainfall_data,
                                    rainfall_to_datatable,
-                                   station_id)        
+                                   station_id)
+        elif dataset == '168hr_30m_avg_samples':
+            return daily.get_day_dataset(datetime.now(),
+                                         daily.get_168hr_30mavg_samples_data,
+                                         outdoor_sample_result_to_datatable,
+                                         station_id)
+        elif dataset == '168hr_rainfall':
+            return daily.get_day_dataset(datetime.now(),
+                                         daily.get_168hr_hourly_rainfall_data,
+                                         rainfall_to_datatable,
+                                         station_id)
         else:
             raise web.NotFound()
 
