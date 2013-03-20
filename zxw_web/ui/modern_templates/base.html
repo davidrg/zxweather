@@ -257,6 +257,7 @@
        }
     });
     {%- endif %}
+    $.cookie("last_ui", "{{ ui }}", {path: '/'});
     </script>
     {%- endif %}
 </body>
