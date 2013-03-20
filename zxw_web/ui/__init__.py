@@ -161,7 +161,8 @@ def build_alternate_ui_urls(current_url):
 
 def validate_request(ui=None,station=None, year=None, month=None, day=None):
     """
-    Validates request parameters. All parameters are optional.
+    Validates request parameters. All parameters are optional. It also stores
+    the UI (if supplied) in the last_ui cookie used in redirects.
     :param ui: UI that was requested.
     :param station: Station that was requested
     :param year: Data year
@@ -172,6 +173,9 @@ def validate_request(ui=None,station=None, year=None, month=None, day=None):
 
     if ui is not None and ui not in uis:
         raise web.NotFound()
+
+    if ui is not None:
+        web.setcookie('last_ui', ui)
 
     if station is not None:
         station_id = get_station_id(station)
@@ -212,12 +216,15 @@ class site_index:
         :raise: web.seeother() if default is specified or there is only one UI.
         """
 
-        if config.default_ui is not None:
-            raise web.seeother(config.site_root + config.default_ui + '/' +
-                               config.default_station_name + '/')
-        else:
-            raise web.seeother(config.site_root + 's/' +
-                               config.default_station_name + '/')
+        ui = web.cookies().get('last_ui')
+        if ui is None:
+            ui = config.default_ui
+
+        if ui not in ('s', 'm', 'a', 'b'):
+            ui = 's'
+
+        raise web.seeother(config.site_root + ui + '/' +
+                           config.default_station_name + '/')
 
 
 class stationlist:
