@@ -77,6 +77,7 @@ def make_station_switch_urls(station_list, current_url, validation_func=None,
         station_id = get_station_id(code)
 
         is_valid = True
+        ok = True
 
         if validation_func is not None:
             is_valid = validation_func(station_id)
@@ -87,35 +88,40 @@ def make_station_switch_urls(station_list, current_url, validation_func=None,
 
             min_ts, max_ts = get_sample_range(station_id)
 
-            earliest_target = '/*/' + code + '/' + str(min_ts.year) + '/' + \
-                              month_name[min_ts.month] + '/' + \
-                              str(min_ts.day) + '/'
-            latest_target = '/*/' + code + '/' + str(max_ts.year) + '/' + \
-                            month_name[max_ts.month] + '/' + \
-                            str(max_ts.day) + '/'
+            if min_ts is not None or max_ts is not None:
 
-            earliest_url = relative_url(current_url, earliest_target)
-            latest_url = relative_url(current_url, latest_target)
-            earliest_date = str(min_ts.day) + ' ' + month_name[min_ts.month] +\
-                ' ' + str(min_ts.year)
-            latest_date = str(max_ts.day) + ' ' + month_name[max_ts.month] + \
-                ' ' + str(max_ts.year)
 
-            disp_date = str(target_date[0])
-            if len(target_date) > 1:
-                disp_date = month_name[target_date[1]] + ' ' + disp_date
-            if len(target_date) == 3:
-                disp_date = str(target_date[2]) + ' ' + disp_date
+                earliest_target = '/*/' + code + '/' + str(min_ts.year) + '/' + \
+                                  month_name[min_ts.month] + '/' + \
+                                  str(min_ts.day) + '/'
+                latest_target = '/*/' + code + '/' + str(max_ts.year) + '/' + \
+                                month_name[max_ts.month] + '/' + \
+                                str(max_ts.day) + '/'
 
-            new_url = "javascript:show_no_data('{station_name}', '{date}', " \
-                      "'{earliest_date}', '{earliest_url}', '{latest_date}', " \
-                      "'{latest_url}');".format(station_name=name.replace(
-                                                "'", r"\'"),
-                                                date=disp_date,
-                                                earliest_date=earliest_date,
-                                                earliest_url=earliest_url,
-                                                latest_date=latest_date,
-                                                latest_url=latest_url)
+                earliest_url = relative_url(current_url, earliest_target)
+                latest_url = relative_url(current_url, latest_target)
+                earliest_date = str(min_ts.day) + ' ' + month_name[min_ts.month] +\
+                    ' ' + str(min_ts.year)
+                latest_date = str(max_ts.day) + ' ' + month_name[max_ts.month] + \
+                    ' ' + str(max_ts.year)
+
+                disp_date = str(target_date[0])
+                if len(target_date) > 1:
+                    disp_date = month_name[target_date[1]] + ' ' + disp_date
+                if len(target_date) == 3:
+                    disp_date = str(target_date[2]) + ' ' + disp_date
+
+                new_url = "javascript:show_no_data('{station_name}', " \
+                          "'{date}', '{earliest_date}', '{earliest_url}', " \
+                          "'{latest_date}', '{latest_url}');"\
+                    .format(station_name=name.replace("'", r"\'"),
+                            date=disp_date,
+                            earliest_date=earliest_date,
+                            earliest_url=earliest_url,
+                            latest_date=latest_date,
+                            latest_url=latest_url)
+
+                new_station_list.append((new_url, name, code))
         else:
             target = '/*/' + code + '/'
 
@@ -124,8 +130,8 @@ def make_station_switch_urls(station_list, current_url, validation_func=None,
             target += '/'.join(current_url.split('/')[3:])
 
             new_url = relative_url(current_url, target)
+            new_station_list.append((new_url, name, code))
 
-        new_station_list.append((new_url, name, code))
     return new_station_list
 
 
