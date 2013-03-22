@@ -3,7 +3,7 @@ from gnuplot import plot_graph
 
 __author__ = 'David Goodwin'
 
-def month_charts(cur, dest_dir, month, year, station_code):
+def month_charts(cur, dest_dir, month, year, station_code, output_format):
     """
     Charts detailing weather for a single month.
     :param cur: Database cursor
@@ -12,6 +12,8 @@ def month_charts(cur, dest_dir, month, year, station_code):
     :param year: Year to chart for
     :param station_code: The code for the station to plot data for
     :type station_code: str
+    :param output_format: The output format (eg, "pngcairo")
+    :type output_format: str
     :return:
     """
 
@@ -114,9 +116,9 @@ order by cur.time_stamp asc""", (date(year, month, 1), station_code))
             height = 300
 
         # Plot Temperature and Dew Point
-        output_filename = dest_dir + 'temperature_tdp.png'
+        output_filename = dest_dir + 'temperature_tdp'
         if large:
-            output_filename = dest_dir + 'temperature_tdp_large.png'
+            output_filename = dest_dir + 'temperature_tdp_large'
 
         plot_graph(output_filename,
                    xdata_is_time=True,
@@ -135,12 +137,13 @@ order by cur.time_stamp asc""", (date(year, month, 1), station_code))
                            {'filename': data_filename,
                             'xcol': FIELD_TIMESTAMP, # Time
                             'ycol': FIELD_DEW_POINT, # Dew Point
-                            'title': "Dew Point"}])
+                            'title': "Dew Point"}],
+                   output_format=output_format)
 
         # Plot Apparent Temperature and Wind Chill
-        output_filename = dest_dir + 'temperature_awc.png'
+        output_filename = dest_dir + 'temperature_awc'
         if large:
-            output_filename = dest_dir + 'temperature_awc_large.png'
+            output_filename = dest_dir + 'temperature_awc_large'
         plot_graph(output_filename,
                    xdata_is_time=True,
                    xlabel='Day of Month',
@@ -158,12 +161,13 @@ order by cur.time_stamp asc""", (date(year, month, 1), station_code))
                            {'filename': data_filename,
                             'xcol': FIELD_TIMESTAMP, # Time
                             'ycol': FIELD_WIND_CHILL, # Wind Chill
-                            'title': "Wind Chill"}])
+                            'title': "Wind Chill"}],
+                   output_format=output_format)
 
         # Humidity
-        output_filename = dest_dir + 'humidity.png'
+        output_filename = dest_dir + 'humidity'
         if large:
-            output_filename = dest_dir + 'humidity_large.png'
+            output_filename = dest_dir + 'humidity_large'
         plot_graph(output_filename,
                    xdata_is_time=True,
                    xlabel='Day of Month',
@@ -179,12 +183,13 @@ order by cur.time_stamp asc""", (date(year, month, 1), station_code))
                    lines=[{'filename': data_filename,
                            'xcol': FIELD_TIMESTAMP, # Time
                            'ycol': FIELD_REL_HUMIDITY, # Humidity
-                           'title': "Relative Humidity"}])
+                           'title': "Relative Humidity"}],
+                   output_format=output_format)
 
         # Indoor Humidity
-        output_filename = dest_dir + 'indoor_humidity.png'
+        output_filename = dest_dir + 'indoor_humidity'
         if large:
-            output_filename = dest_dir + 'indoor_humidity_large.png'
+            output_filename = dest_dir + 'indoor_humidity_large'
         plot_graph(output_filename,
                    xdata_is_time=True,
                    xlabel='Day of Month',
@@ -200,12 +205,13 @@ order by cur.time_stamp asc""", (date(year, month, 1), station_code))
                    lines=[{'filename': data_filename,
                            'xcol': FIELD_TIMESTAMP, # Time
                            'ycol': FIELD_INDOOR_REL_HUMIDITY, # Indoor Humidity
-                           'title': "Relative Humidity"}])
+                           'title': "Relative Humidity"}],
+                   output_format=output_format)
 
         # Absolute Pressure
-        output_filename = dest_dir + 'pressure.png'
+        output_filename = dest_dir + 'pressure'
         if large:
-            output_filename = dest_dir + 'pressure_large.png'
+            output_filename = dest_dir + 'pressure_large'
         plot_graph(output_filename,
                    xdata_is_time=True,
                    xlabel='Day of Month',
@@ -220,12 +226,13 @@ order by cur.time_stamp asc""", (date(year, month, 1), station_code))
                    lines=[{'filename': data_filename,
                            'xcol': FIELD_TIMESTAMP, # Time
                            'ycol': FIELD_ABS_PRESSURE, # Absolute Pressure
-                           'title': "Absolute Pressure"}])
+                           'title': "Absolute Pressure"}],
+                   output_format=output_format)
 
         # Indoor Temperature
-        output_filename = dest_dir + 'indoor_temperature.png'
+        output_filename = dest_dir + 'indoor_temperature'
         if large:
-            output_filename = dest_dir + 'indoor_temperature_large.png'
+            output_filename = dest_dir + 'indoor_temperature_large'
         plot_graph(output_filename,
                    xdata_is_time=True,
                    xlabel='Day of Month',
@@ -240,5 +247,6 @@ order by cur.time_stamp asc""", (date(year, month, 1), station_code))
                    lines=[{'filename': data_filename,
                            'xcol': FIELD_TIMESTAMP, # Time
                            'ycol': FIELD_INDOOR_TEMP, # Indoor Temperature
-                           'title': "Temperature"}])
+                           'title': "Temperature"}],
+                   output_format=output_format)
     pass

@@ -33,10 +33,37 @@ def run_plot_script(script):
         next_gnuplot = 0
 
 
+def get_file_extension(output_format):
+    """
+    Tries to come up with a file extension for the supplied output format.
+    Note that just because this function can come up with a file extension
+    doesn't mean that the charts will come out ok.
+    :param output_format: Output format (really the gnuplot terminal stuff)
+    :return: File extension
+    """
+    # postscript enhanced
+    # postscript eps
+    formats = [
+        ("png", ".png"),
+        ("gif", ".gif"),
+        ("jpeg", ".jpg"),
+        ("pdf", ".pdf"),
+        ("postscript", ".ps"),
+        ("svg", ".svg"),
+        ("canvas", ".js"),
+
+    ]
+    for fmt in formats:
+        if output_format.startswith(fmt[0]):
+            return fmt[1]
+    return ""
+
+
 def plot_graph(output_filename, title=None, xdata_time=False, ylabel=None,
                lines=None, key=True, width=None, height=None, xlabel=None,
                yrange=None, xdata_is_time=False, timefmt_is_date=False,
-               x_format=None, timefmt_is_time=False, x_range=None):
+               x_format=None, timefmt_is_time=False, x_range=None,
+               output_format="pngcairo"):
     """
     Plots a graph using gnuplot.
     :param timefmt_is_time:
@@ -56,10 +83,14 @@ def plot_graph(output_filename, title=None, xdata_time=False, ylabel=None,
     :param width:
     :param height:
     :param x_range: The minimum and maximum
+    :param output_format: Output image format (eg, "gif" or "pngcairo"
+    :type output_format: str
     :return:
     """
 
     global gnuplot_binary
+
+    output_filename += get_file_extension(output_format)
 
     print("Plot {0}".format(output_filename))
 
@@ -72,9 +103,10 @@ set datafile missing "?"
 """.format(output_filename)
 
     if width is not None and height is not None:
-        script += "set terminal pngcairo size {0}, {1}\n".format(width,height)
+        script += "set terminal {2} size {0}, {1}\n".format(width, height,
+                                                            output_format)
     else:
-        script += "set terminal pngcairo\n"
+        script += "set terminal {0}\n".format(output_format)
 
     if title is not None:
         script += 'set title "{0}"\n'.format(title)
@@ -131,16 +163,16 @@ set datafile missing "?"
             # case of missing data.
             script += "'{0}' using {1}:(${2}) title \"{3}\"".format(line['filename'],
                                                                  line['xcol'], line['ycol'], line['title'])
-        file = open(output_filename + '.plt', 'w+')
-        file.writelines(script)
-        file.close()
+        output_file = open(output_filename + '.plt', 'w+')
+        output_file.writelines(script)
+        output_file.close()
         run_plot_script(script)
         #gnuplot = subprocess.Popen([gnuplot_binary], stdin=subprocess.PIPE)
         #gnuplot.communicate(script)
 
 
 def plot_rainfall(data_file_name, output_filename, title, width, height, empty,
-                  columns='1:2:xtic(1)'):
+                  columns='1:2:xtic(1)', output_format="pngcairo"):
     """
     Plots a rainfall chart
     :param data_file_name: Name of the data file
@@ -149,10 +181,14 @@ def plot_rainfall(data_file_name, output_filename, title, width, height, empty,
     :param width: Chart width
     :param height: Chart height
     :param columns: Column specification.
+    :param output_format: Output format (eg, "pngcairo")
+    :type output_format: str
     :return:
     """
 
     global gnuplot_binary
+
+    output_filename += get_file_extension(output_format)
 
     print("Plot {0}".format(output_filename))
 
@@ -163,7 +199,8 @@ def plot_rainfall(data_file_name, output_filename, title, width, height, empty,
     script = ""
 
     script += 'set output "{0}"\n'.format(output_filename)
-    script += 'set terminal pngcairo size {0}, {1}\n'.format(width, height)
+    script += 'set terminal {2} size {0}, {1}\n'.format(width, height,
+                                                        output_format)
 
     script += "set style fill solid border -1\n"
     script += "set boxwidth 0.8\n"

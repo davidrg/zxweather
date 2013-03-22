@@ -4,7 +4,7 @@ from gnuplot import plot_graph, plot_rainfall
 __author__ = 'David Goodwin'
 
 
-def charts_1_day(cur, dest_dir, plot_date, station_code):
+def charts_1_day(cur, dest_dir, plot_date, station_code, output_format):
     """
     Charts detailing weather for a single day (24 hours max)
     :param cur: Database cursor
@@ -13,6 +13,8 @@ def charts_1_day(cur, dest_dir, plot_date, station_code):
     :type plot_date: date
     :param station_code: The code for the station to plot data for
     :type station_code: str
+    :param output_format: Output format (eg, "pngcairo")
+    :type output_format: str
     """
 
     cur.execute("""select cur.time_stamp::time,
@@ -109,9 +111,9 @@ order by cur.time_stamp asc""", (plot_date, station_code,))
             height = 300
 
         # Plot Temperature and Dew Point
-        output_filename = dest_dir + 'temperature_tdp.png'
+        output_filename = dest_dir + 'temperature_tdp'
         if large:
-            output_filename = dest_dir + 'temperature_tdp_large.png'
+            output_filename = dest_dir + 'temperature_tdp_large'
         plot_graph(output_filename,
                    xdata_time=True,
                    title="Temperature and Dew Point",
@@ -126,12 +128,13 @@ order by cur.time_stamp asc""", (plot_date, station_code,))
                            {'filename': data_filename,
                             'xcol': FIELD_TIMESTAMP, # Time
                             'ycol': FIELD_DEW_POINT, # Dew Point
-                            'title': "Dew Point"}])
+                            'title': "Dew Point"}],
+                   output_format=output_format)
 
         # Plot Apparent Temperature and Wind Chill
-        output_filename = dest_dir + 'temperature_awc.png'
+        output_filename = dest_dir + 'temperature_awc'
         if large:
-            output_filename = dest_dir + 'temperature_awc_large.png'
+            output_filename = dest_dir + 'temperature_awc_large'
         plot_graph(output_filename,
                    xdata_time=True,
                    title="Apparent Temperature and Wind Chill",
@@ -146,12 +149,13 @@ order by cur.time_stamp asc""", (plot_date, station_code,))
                            {'filename': data_filename,
                             'xcol': FIELD_TIMESTAMP, # Time
                             'ycol': FIELD_WIND_CHILL, # Wind Chill
-                            'title': "Wind Chill"}])
+                            'title': "Wind Chill"}],
+                   output_format=output_format)
 
         # Humidity
-        output_filename = dest_dir + 'humidity.png'
+        output_filename = dest_dir + 'humidity'
         if large:
-            output_filename = dest_dir + 'humidity_large.png'
+            output_filename = dest_dir + 'humidity_large'
         plot_graph(output_filename,
                    xdata_time=True,
                    title="Humidity",
@@ -164,12 +168,13 @@ order by cur.time_stamp asc""", (plot_date, station_code,))
                    lines=[{'filename': data_filename,
                            'xcol': FIELD_TIMESTAMP, # Time
                            'ycol': FIELD_REL_HUMIDITY, # Humidity
-                           'title': "Relative Humidity"}])
+                           'title': "Relative Humidity"}],
+                   output_format=output_format)
 
         # Indoor Humidity
-        output_filename = dest_dir + 'indoor_humidity.png'
+        output_filename = dest_dir + 'indoor_humidity'
         if large:
-            output_filename = dest_dir + 'indoor_humidity_large.png'
+            output_filename = dest_dir + 'indoor_humidity_large'
         plot_graph(output_filename,
                    xdata_time=True,
                    title="Indoor Humidity",
@@ -182,12 +187,13 @@ order by cur.time_stamp asc""", (plot_date, station_code,))
                    lines=[{'filename': data_filename,
                            'xcol': FIELD_TIMESTAMP, # Time
                            'ycol': FIELD_INDOOR_REL_HUMIDITY, # Indoor Humidity
-                           'title': "Relative Humidity"}])
+                           'title': "Relative Humidity"}],
+                   output_format=output_format)
 
         # Absolute Pressure
-        output_filename = dest_dir + 'pressure.png'
+        output_filename = dest_dir + 'pressure'
         if large:
-            output_filename = dest_dir + 'pressure_large.png'
+            output_filename = dest_dir + 'pressure_large'
         plot_graph(output_filename,
                    xdata_time=True,
                    title="Absolute Pressure",
@@ -199,12 +205,13 @@ order by cur.time_stamp asc""", (plot_date, station_code,))
                    lines=[{'filename': data_filename,
                            'xcol': FIELD_TIMESTAMP, # Time
                            'ycol': FIELD_ABS_PRESSURE, # Absolute Pressure
-                           'title': "Absolute Pressure"}])
+                           'title': "Absolute Pressure"}],
+                   output_format=output_format)
 
         # Indoor Temperature
-        output_filename = dest_dir + 'indoor_temperature.png'
+        output_filename = dest_dir + 'indoor_temperature'
         if large:
-            output_filename = dest_dir + 'indoor_temperature_large.png'
+            output_filename = dest_dir + 'indoor_temperature_large'
         plot_graph(output_filename,
                    xdata_time=True,
                    title="Indoor Temperature",
@@ -216,10 +223,11 @@ order by cur.time_stamp asc""", (plot_date, station_code,))
                    lines=[{'filename': data_filename,
                            'xcol': FIELD_TIMESTAMP, # Time
                            'ycol': FIELD_INDOOR_TEMP, # Indoor Temperature
-                           'title': "Temperature"}])
+                           'title': "Temperature"}],
+                   output_format=output_format)
 
 
-def rainfall_1_day(cur, dest_dir, plot_date, station_code):
+def rainfall_1_day(cur, dest_dir, plot_date, station_code, output_format):
     """
     Plots 1-day hourly rainfall charts
     :param cur: Database cursor
@@ -228,6 +236,8 @@ def rainfall_1_day(cur, dest_dir, plot_date, station_code):
     :type plot_date: date
     :param station_code: The code for the station to plot data for
     :type station_code: str
+    :param output_format: Output format (eg, "pngcairo")
+    :type output_format: str
     """
 
     cur.execute("""
@@ -273,19 +283,20 @@ def rainfall_1_day(cur, dest_dir, plot_date, station_code):
             height = 300
 
         # Plot Temperature and Dew Point
-        output_filename = dest_dir + 'hourly_rainfall.png'
+        output_filename = dest_dir + 'hourly_rainfall'
         if large:
-            output_filename = dest_dir + 'hourly_rainfall_large.png'
+            output_filename = dest_dir + 'hourly_rainfall_large'
 
         plot_rainfall(data_filename,
                       output_filename,
                       "Hourly Rainfall",
                       width,
                       height,
-                      empty)
+                      empty,
+                      output_format=output_format)
 
 
-def charts_7_days(cur, dest_dir, plot_date, station_code):
+def charts_7_days(cur, dest_dir, plot_date, station_code, output_format):
     """
     Creates 7-day charts for the specified day
     :param cur: Database cursor
@@ -293,6 +304,8 @@ def charts_7_days(cur, dest_dir, plot_date, station_code):
     :param plot_date: Date to plot for
     :param station_code: The code for the station to plot data for
     :type station_code: str
+    :param output_format: The output format (eg, "pngcairo")
+    :type output_format: str
     """
     cur.execute("""select s.time_stamp,
        s.temperature,
@@ -394,9 +407,9 @@ order by s.time_stamp asc
             height = 300
 
         # Plot Temperature and Dew Point
-        output_filename = dest_dir + '7-day_temperature_tdp.png'
+        output_filename = dest_dir + '7-day_temperature_tdp'
         if large:
-            output_filename = dest_dir + '7-day_temperature_tdp_large.png'
+            output_filename = dest_dir + '7-day_temperature_tdp_large'
         plot_graph(output_filename,
                    xdata_is_time=True,
                    xlabel='Date',
@@ -414,12 +427,13 @@ order by s.time_stamp asc
                            {'filename': data_filename,
                             'xcol': FIELD_TIMESTAMP, # Time
                             'ycol': FIELD_DEW_POINT, # Dew Point
-                            'title': "Dew Point"}])
+                            'title': "Dew Point"}],
+                   output_format=output_format)
 
         # Plot Apparent Temperature and Wind Chill
-        output_filename = dest_dir + '7-day_temperature_awc.png'
+        output_filename = dest_dir + '7-day_temperature_awc'
         if large:
-            output_filename = dest_dir + '7-day_temperature_awc_large.png'
+            output_filename = dest_dir + '7-day_temperature_awc_large'
         plot_graph(output_filename,
                    xdata_is_time=True,
                    xlabel='Date',
@@ -437,12 +451,13 @@ order by s.time_stamp asc
                            {'filename': data_filename,
                             'xcol': FIELD_TIMESTAMP, # Time
                             'ycol': FIELD_WIND_CHILL, # Wind Chill
-                            'title': "Wind Chill"}])
+                            'title': "Wind Chill"}],
+                   output_format=output_format)
 
         # Humidity
-        output_filename = dest_dir + '7-day_humidity.png'
+        output_filename = dest_dir + '7-day_humidity'
         if large:
-            output_filename = dest_dir + '7-day_humidity_large.png'
+            output_filename = dest_dir + '7-day_humidity_large'
         plot_graph(output_filename,
                    xdata_is_time=True,
                    xlabel='Date',
@@ -458,12 +473,13 @@ order by s.time_stamp asc
                    lines=[{'filename': data_filename,
                            'xcol': FIELD_TIMESTAMP, # Time
                            'ycol': FIELD_REL_HUMIDITY, # Humidity
-                           'title': "Relative Humidity"}])
+                           'title': "Relative Humidity"}],
+                   output_format=output_format)
 
         # Indoor Humidity
-        output_filename = dest_dir + '7-day_indoor_humidity.png'
+        output_filename = dest_dir + '7-day_indoor_humidity'
         if large:
-            output_filename = dest_dir + '7-day_indoor_humidity_large.png'
+            output_filename = dest_dir + '7-day_indoor_humidity_large'
         plot_graph(output_filename,
                    xdata_is_time=True,
                    xlabel='Date',
@@ -479,12 +495,13 @@ order by s.time_stamp asc
                    lines=[{'filename': data_filename,
                            'xcol': FIELD_TIMESTAMP, # Time
                            'ycol': FIELD_INDOOR_REL_HUMIDITY, # Indoor Humidity
-                           'title': "Relative Humidity"}])
+                           'title': "Relative Humidity"}],
+                   output_format=output_format)
 
         # Absolute Pressure
-        output_filename = dest_dir + '7-day_pressure.png'
+        output_filename = dest_dir + '7-day_pressure'
         if large:
-            output_filename = dest_dir + '7-day_pressure_large.png'
+            output_filename = dest_dir + '7-day_pressure_large'
         plot_graph(output_filename,
                    xdata_is_time=True,
                    xlabel='Date',
@@ -499,12 +516,13 @@ order by s.time_stamp asc
                    lines=[{'filename': data_filename,
                            'xcol': FIELD_TIMESTAMP, # Time
                            'ycol': FIELD_ABS_PRESSURE, # Absolute Pressure
-                           'title': "Absolute Pressure"}])
+                           'title': "Absolute Pressure"}],
+                   output_format=output_format)
 
         # Indoor Temperature
-        output_filename = dest_dir + '7-day_indoor_temperature.png'
+        output_filename = dest_dir + '7-day_indoor_temperature'
         if large:
-            output_filename = dest_dir + '7-day_indoor_temperature_large.png'
+            output_filename = dest_dir + '7-day_indoor_temperature_large'
         plot_graph(output_filename,
                    xdata_is_time=True,
                    xlabel='Date',
@@ -519,10 +537,11 @@ order by s.time_stamp asc
                    lines=[{'filename': data_filename,
                            'xcol': FIELD_TIMESTAMP, # Time
                            'ycol': FIELD_INDOOR_TEMP, # Indoor Temperature
-                           'title': "Temperature"}])
+                           'title': "Temperature"}],
+                   output_format=output_format)
 
 
-def rainfall_7_day(cur, dest_dir, plot_date, station_code):
+def rainfall_7_day(cur, dest_dir, plot_date, station_code, output_format):
     """
     Plots 7-day hourly rainfall charts
 
@@ -537,6 +556,8 @@ def rainfall_7_day(cur, dest_dir, plot_date, station_code):
     :param year: Year to chart for
     :param station_code: The code for the station to plot data for
     :type station_code: str
+    :param output_format: The output format (eg, "pngcairo")
+    :type output_format: str
     """
 
     cur.execute("""
@@ -585,9 +606,9 @@ inner join (select max(time_stamp) as ts, station_id from sample
             height = 300
 
         # Plot Temperature and Dew Point
-        output_filename = dest_dir + '7-day_hourly_rainfall.png'
+        output_filename = dest_dir + '7-day_hourly_rainfall'
         if large:
-            output_filename = dest_dir + '7-day_hourly_rainfall_large.png'
+            output_filename = dest_dir + '7-day_hourly_rainfall_large'
 
         plot_rainfall(data_filename,
                       output_filename,
@@ -595,4 +616,5 @@ inner join (select max(time_stamp) as ts, station_id from sample
                       width,
                       height,
                       empty,
-                      columns='3:xtic(strcol(1)." ".strcol(2))')
+                      columns='3:xtic(strcol(1)." ".strcol(2))',
+                      output_format=output_format)
