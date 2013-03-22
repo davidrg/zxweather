@@ -9,12 +9,13 @@ import datetime
 import psycopg2
 import time
 import signal
-from day_charts import charts_1_day, charts_7_days, rainfall_1_day, rainfall_7_day
-#, rainfall_7_day
+from day_charts import charts_1_day, charts_7_days, rainfall_1_day
 import gnuplot
 from month_charts import month_charts
 
 __author__ = 'David Goodwin'
+
+# TODO: Refactor this entire program. Its a horrible mess.
 
 month_name = {1 : 'january',
               2 : 'february',
@@ -36,7 +37,7 @@ def handler(signum, frame):
 signal.signal(signal.SIGINT, handler)
 
 
-def plot_day(dest_dir, cur, plot_date, station_code, start_date):
+def plot_day(dest_dir, cur, plot_date, station_code, start_date, output_format):
     """
     Plots charts for a single day.
 
@@ -49,6 +50,8 @@ def plot_day(dest_dir, cur, plot_date, station_code, start_date):
     :type station_code: str
     :param start_date: The date to plot from
     :type start_date: date
+    :param output_format: The output format (eg, "pngcairo")
+    :type output_format: str
     :return:
     """
 
@@ -70,13 +73,14 @@ def plot_day(dest_dir, cur, plot_date, station_code, start_date):
         pass
 
     # Plot the 1-day charts
-    charts_1_day(cur, dest_dir, plot_date, station_code)
-    rainfall_1_day(cur, dest_dir, plot_date, station_code)
-    charts_7_days(cur, dest_dir, plot_date, station_code)
-    #rainfall_7_day(cur, dest_dir, plot_date, station_code)
+    charts_1_day(cur, dest_dir, plot_date, station_code, output_format)
+    rainfall_1_day(cur, dest_dir, plot_date, station_code, output_format)
+    charts_7_days(cur, dest_dir, plot_date, station_code, output_format)
+    #rainfall_7_day(cur, dest_dir, plot_date, station_code, output_format)
 
 
-def plot_month(dest_dir, cur, year, month, station_code, start_date):
+def plot_month(dest_dir, cur, year, month, station_code, start_date,
+               output_format):
     """
     Plots charts for a particular month
     :param dest_dir:
@@ -87,6 +91,8 @@ def plot_month(dest_dir, cur, year, month, station_code, start_date):
     :type station_code: str
     :param start_date: The date to plot from
     :type start_date: date
+    :param output_format: The output format (eg, "pngcairo")
+    :type output_format: str
     :return: The final date plotted for
     :rtype: date
     """
@@ -109,7 +115,7 @@ def plot_month(dest_dir, cur, year, month, station_code, start_date):
         pass  # Directory probably already exists.
 
     # Generate graphs for the entire month
-    month_charts(cur, dest_dir, month, year, station_code)
+    month_charts(cur, dest_dir, month, year, station_code, output_format)
 
     # Then deal with each day
     cur.execute("""select distinct extract(day from s.time_stamp)
@@ -124,11 +130,12 @@ def plot_month(dest_dir, cur, year, month, station_code, start_date):
     final_date = None
     for day in days:
         final_date = date(year, month, int(day[0]))
-        plot_day(dest_dir, cur, final_date, station_code, start_date)
+        plot_day(dest_dir, cur, final_date, station_code, start_date,
+                 output_format)
     return final_date
 
 
-def plot_year(dest_dir, cur, year, station_code, start_date):
+def plot_year(dest_dir, cur, year, station_code, start_date, output_format):
     """
     Plots summary graphs for the specified year. It will then call
     plot_month() for each month in the database for this year.
@@ -142,6 +149,8 @@ def plot_year(dest_dir, cur, year, station_code, start_date):
     :type station_code: str
     :param start_date: The date to plot from
     :type start_date: date
+    :param output_format: The output format (eg "pngcairo")
+    :type output_format: str
     :return: The final date plotted for
     :rtype: date
     """
@@ -171,12 +180,12 @@ def plot_year(dest_dir, cur, year, station_code, start_date):
     final_date = None
     for month in months:
         final_date = plot_month(dest_dir, cur, year, int(month[0]),
-                                station_code, start_date)
+                                station_code, start_date, output_format)
 
     return final_date
 
 
-def plot_for_station(code, cur, dest_dir, start_date):
+def plot_for_station(code, cur, dest_dir, start_date, output_format):
 
     # First up, figure out what years we have
     cur.execute("""select distinct extract(year from s.time_stamp)
@@ -190,7 +199,8 @@ def plot_for_station(code, cur, dest_dir, start_date):
 
     final_date = None
     for year in years:
-        final_date = plot_year(dest_dir, cur, int(year[0]), code, start_date)
+        final_date = plot_year(dest_dir, cur, int(year[0]), code, start_date,
+                               output_format)
 
     print("Plot completed at {0} for station {1}".format(
         datetime.datetime.now(), code))
@@ -231,6 +241,13 @@ def main():
     parser.add_option("-s", "--station", dest="station_codes", action="append",
                       help="The stations to plot charts for")
 
+    # TODO: Don't rewrite the data file for each format
+    # parser.add_option("-f", "--output-format", dest="output_formats",
+    #                   action="append",
+    #                   help="The formats to generate output in. Default is "
+    #                        "'pngcairo' (high quality PNG). Other options are "
+    #                        "'png' and 'gif'.")
+
     (options, args) = parser.parse_args()
 
 
@@ -256,6 +273,9 @@ def main():
     if options.directory is None:
         print("ERROR: output directory not specified")
         error = True
+    #if options.output_formats is None or len(options.output_formats) == 0:
+        # Default output format.
+    options.output_formats = ["pngcairo"]
 
     if error:
         print("Required parameters were not supplied. Re-run with --help for options.")
@@ -310,22 +330,36 @@ def main():
             plot_dates = {}
 
     for code in options.station_codes:
-        if code not in plot_dates:
-            plot_dates[code] = date(1900, 01, 01)
+        for output_format in options.output_formats:
+            if len(options.output_formats) == 1 and output_format == "pngcairo":
+                format_key = code
+            else:
+                format_key = "{0}_{1}".format(code, output_format)
+            if format_key not in plot_dates:
+                plot_dates[format_key] = date(1900, 01, 01)
 
-        print("Plotting from {0} for station {1}".format(code, plot_dates[code]))
+            print("Plotting from {0} for station {1}, format {2}".format(
+                code, plot_dates[format_key], output_format))
 
     while True:
         exec_start = time.time()
 
         for station in options.station_codes:
-            plot_dates[station] = plot_for_station(station, cur, dest_dir,
-                                                   plot_dates[station])
+            for output_format in options.output_formats:
+                if len(options.output_formats) == 1 and \
+                        output_format == "pngcairo":
+                    format_key = station
+                else:
+                    format_key = "{0}_{1}".format(station, output_format)
 
-            # Update stored date for next time
-            if options.plot_new is not None:
-                with open(options.plot_new,"w") as update_file:
-                    pickle.dump(plot_dates, update_file)
+                plot_dates[format_key] = plot_for_station(
+                    station, cur, dest_dir, plot_dates[format_key],
+                    output_format)
+
+                # Update stored date for next time
+                if options.plot_new is not None:
+                    with open(options.plot_new, "w") as update_file:
+                        pickle.dump(plot_dates, update_file)
 
         print("Plot completed in {0} seconds".format(time.time() - exec_start))
 
