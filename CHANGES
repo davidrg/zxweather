@@ -62,6 +62,7 @@ CHANGES                                            zxweather release 1.0 beta 1
         for each station. This is turned on through the admin tool.
       - Basic interface now handles archive mode
       - All pages now have UI switch links at the bottom right of the page.
+      - Ability to control live data timeout warnings
     Bug Fixes:
       - Fixed multi-station compatibility problem with 7-day data sources in
         the web interface.
