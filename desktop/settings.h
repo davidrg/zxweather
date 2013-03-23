@@ -113,6 +113,13 @@ public:
 
     void setSingleShotFirstRun();
     bool singleShotFirstRun();
+
+    /* Live timeout stuff */
+    void setLiveTimeoutEnabled(bool enabled);
+    bool liveTimeoutEnabled();
+
+    void setLiveTimeoutInterval(uint interval);
+    uint liveTimeoutInterval();
 private:
     Settings();
     ~Settings();

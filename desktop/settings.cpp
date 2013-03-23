@@ -33,6 +33,11 @@ namespace SettingsKey {
     namespace General {
         const QString MINIMISE_TO_SYSTRAY = "General/minimise_to_systray";
         const QString CLOSE_TO_SYSTRAY = "General/close_to_systray";
+
+        namespace LiveMon {
+            const QString ENABLED = "General/live_mon/enabled";
+            const QString INTERVAL = "General/live_mon/interval";
+        }
     }
 
     /** Settings about where to get data from.
@@ -412,4 +417,22 @@ void Settings::setSingleShotFirstRun() {
 
 bool Settings::singleShotFirstRun() {
     return settings->value(SettingsKey::SingleShot::FIRST_RUN, false).toBool();
+}
+
+void Settings::setLiveTimeoutEnabled(bool enabled) {
+    settings->setValue(SettingsKey::General::LiveMon::ENABLED, enabled);
+}
+
+bool Settings::liveTimeoutEnabled() {
+    return settings->value(SettingsKey::General::LiveMon::ENABLED,
+                           true).toBool();
+}
+
+void Settings::setLiveTimeoutInterval(uint interval) {
+    settings->setValue(SettingsKey::General::LiveMon::INTERVAL, interval);
+}
+
+uint Settings::liveTimeoutInterval() {
+    return settings->value(SettingsKey::General::LiveMon::INTERVAL,
+                           60000).toUInt();
 }
