@@ -89,6 +89,8 @@ void SettingsDialog::writeSettings() {
     // General tab
     settings.setMinimiseToSysTray(ui->chkMinimiseToSystemTray->isChecked());
     settings.setCloseToSysTray(ui->chkCloseToSystemTray->isChecked());
+    settings.setLiveTimeoutEnabled(ui->gbLiveDataWarning->isChecked());
+    settings.setLiveTimeoutInterval(ui->sbLiveDataWarningInterval->value() * 1000);
 
     // Data source tab
     settings.setDatabaseName(ui->databaseLineEdit->text());
@@ -133,6 +135,8 @@ void SettingsDialog::loadSettings() {
     // General tab
     ui->chkMinimiseToSystemTray->setChecked(settings.miniseToSysTray());
     ui->chkCloseToSystemTray->setChecked(settings.closeToSysTray());
+    ui->gbLiveDataWarning->setChecked(settings.liveTimeoutEnabled());
+    ui->sbLiveDataWarningInterval->setValue(settings.liveTimeoutInterval() / 1000);
 
     // Data source tab
     ui->databaseLineEdit->setText(settings.databaseName());

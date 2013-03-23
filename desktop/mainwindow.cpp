@@ -65,13 +65,6 @@ MainWindow::MainWindow(QWidget *parent) :
     // The UI is configured for Davis hardware by default
     last_hw_type = HW_DAVIS;
 
-    seconds_since_last_refresh = 0;
-    minutes_late = 0;
-
-    ldTimer = new QTimer(this);
-    ldTimer->setInterval(1000);
-    connect(ldTimer, SIGNAL(timeout()), this, SLOT(liveTimeout()));
-
     sysTrayIcon.reset(new QSystemTrayIcon(this));
     sysTrayIcon->setIcon(QIcon(":/icons/systray_icon_warning"));
     sysTrayIcon->setToolTip("No data");
@@ -99,6 +92,13 @@ MainWindow::MainWindow(QWidget *parent) :
             this, SLOT(updateSysTrayIcon(QIcon)));
     connect(ui->liveData, SIGNAL(sysTrayTextChanged(QString)),
             this, SLOT(updateSysTrayText(QString)));
+
+    // Live data monitor.
+    liveMonitor.reset(new LiveMonitor());
+    connect(liveMonitor.data(),
+            SIGNAL(showWarningPopup(QString,QString,QString,bool)),
+            this,
+            SLOT(showWarningPopup(QString,QString,QString,bool)));
 
     // Show the settings dialog on the first run.
     if (!Settings::getInstance().singleShotFirstRun()) {
@@ -280,6 +280,8 @@ void MainWindow::showSettings() {
     if (result == QDialog::Accepted) {
         readSettings();
 
+        liveMonitor->reconfigure();
+
         reconfigureDataSource();
         reconnectDatabase();
     }
@@ -292,6 +294,10 @@ void MainWindow::showWarningPopup(QString message, QString title, QString toolti
         sysTrayIcon->setIcon(QIcon(":/icons/systray_icon_warning"));
     if (!message.isEmpty())
         sysTrayIcon->showMessage(title, message, QSystemTrayIcon::Warning);
+}
+
+void MainWindow::clearWarningPopup() {
+    sysTrayIcon->setIcon(normalSysTrayIcon);
 }
 
 void MainWindow::readSettings() {
@@ -364,6 +370,7 @@ void MainWindow::updateSysTrayText(QString text) {
 }
 
 void MainWindow::updateSysTrayIcon(QIcon icon) {
+    normalSysTrayIcon = icon;
     sysTrayIcon->setIcon(icon);
 }
 
@@ -392,6 +399,11 @@ void MainWindow::reconfigureDataSource() {
     connect(dataSource.data(), SIGNAL(liveData(LiveDataSet)),
             ui->status, SLOT(refreshLiveData(LiveDataSet)));
 
+    // Live data timeout monitor
+    connect(dataSource.data(), SIGNAL(liveData(LiveDataSet)),
+            liveMonitor.data(), SLOT(LiveDataRefreshed()));
+    liveMonitor->enable();
+
     // This
     connect(dataSource.data(), SIGNAL(liveData(LiveDataSet)),
             this, SLOT(liveDataRefreshed(LiveDataSet)));
@@ -403,14 +415,12 @@ void MainWindow::reconfigureDataSource() {
     dataSource->enableLiveData();
 
     // Reset late data timer.
-    seconds_since_last_refresh = 0;
-    ldTimer->start();
     ui->status->reset();
 }
 
 void MainWindow::liveDataRefreshed(LiveDataSet lds) {
-    seconds_since_last_refresh = 0;
-    minutes_late = 0;
+
+    clearWarningPopup();
 
     // If the hardware type hasn't changed then there isn't anything to do.
     if (lds.hw_type == last_hw_type) return;
@@ -450,19 +460,3 @@ void MainWindow::liveDataRefreshed(LiveDataSet lds) {
     setFixedWidth(widgetWidth);
 }
 
-void MainWindow::liveTimeout() {
-    seconds_since_last_refresh++; // this is reset when ever live data arrives.
-
-    if (seconds_since_last_refresh == 60) {
-        minutes_late++;
-
-        showWarningPopup("Live data has not been refreshed in over " +
-                         QString::number(minutes_late) +
-                         " minutes. Check data update service.",
-                         "Live data is late",
-                         "Live data is late",
-                         true);
-
-        seconds_since_last_refresh = 0;
-    }
-}

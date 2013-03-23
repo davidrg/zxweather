@@ -31,6 +31,8 @@
 #include <QScopedPointer>
 #include <QLayoutItem>
 
+#include "livemonitor.h"
+
 #include "datasource/abstractlivedatasource.h"
 
 namespace Ui {
@@ -92,17 +94,13 @@ public slots:
     void showAbout();
 
     void showWarningPopup(QString message, QString title, QString tooltip="", bool setWarningIcon=false);
+    void clearWarningPopup();
     void dataSourceError(QString message);
 
     void updateSysTrayText(QString text);
     void updateSysTrayIcon(QIcon icon);
 
 private slots:
-    /** For monitoring live data. This (and the associated time ldTimer) is
-     * what pops up warnings when live data is late.
-     */
-    void liveTimeout();
-
     /** Mostly used to check for late live data.
      */
     void liveDataRefreshed(LiveDataSet lds);
@@ -145,9 +143,8 @@ private:
 
     QScopedPointer<AbstractLiveDataSource> dataSource;
 
-    uint seconds_since_last_refresh;
-    uint minutes_late;
-    QTimer* ldTimer;
+    QScopedPointer<LiveMonitor> liveMonitor;
+    QIcon normalSysTrayIcon;
 
     hardware_type_t last_hw_type;
     QLayoutItem* statusItem;
