@@ -237,7 +237,7 @@ function connect_live() {
 // These numbers are quite approximate.
 bft_scale = [
     // Max wind speed, BFT Number, Description, colour
-    [0.3,   0, 'Clam', '#FFFFFF'],
+    [0.3,   0, 'Calm', '#FFFFFF'],
     [2,     1, 'Light air', '#CCFFFF'],
     [3,     2, 'Light breeze', '#99FFCC'],
     [5.4,   3, 'Gentle breeze', '#99FF99'],
