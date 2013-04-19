@@ -24,4 +24,7 @@
     <qresource prefix="/data">
         <file alias="forecast_rules">resources/forecast_rules.dat</file>
     </qresource>
+    <qresource prefix="/cache_db">
+        <file alias="create.sql">resources/database.sql</file>
+    </qresource>
 </RCC>

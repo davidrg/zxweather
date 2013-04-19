@@ -350,3 +350,12 @@ void WebDataSource::enableLiveData() {
 hardware_type_t WebDataSource::getHardwareType() {
     return HW_GENERIC;
 }
+
+void WebDataSource::openCache() {
+    // Try to open the database. If it doesn't exist then create it.
+}
+
+void WebDataSource::isCached(QString station, QDate date) {
+    // Check to see if an entry exists in the cache_entries table for this
+    // station and date combination.
+}
