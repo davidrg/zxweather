@@ -366,7 +366,10 @@ def indoor_sample_result_to_json(query_data):
     for record in query_data:
         if record.gap:
             # Insert a gap
-            data_set.append([])
+            data_set.append([
+                record.time_stamp.isoformat(),
+                None, None
+            ])
 
         data_set.append(
             [
