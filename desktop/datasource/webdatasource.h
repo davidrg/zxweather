@@ -53,6 +53,10 @@ private:
     void processData();
     void rangeRequestResult(QString data);
 
+    void openCache();
+    bool isCached(QString station, QDate date);
+    bool isMonthCached(QString station, QDate month);
+
     bool rangeRequest;
 
     // for live data stuff
