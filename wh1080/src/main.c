@@ -257,6 +257,7 @@ void usage(char* appname) {
     printf("\t-d database\tThe database to connect to\n");
     printf("\t-u user\t\tThe user account on the database server\n");
     printf("\t-p password\tThe database account password\n");
+    printf("\t-s code\tThe station code to download data for\n");    
     printf("\t-l\t\tForce all records to be downloaded, not just new ones.\n");
     printf("\nOther output options:\n");
     printf("\t-c\t\tDisplay device configuration\n");
