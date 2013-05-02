@@ -3,6 +3,7 @@ from gnuplot import plot_graph
 
 __author__ = 'David Goodwin'
 
+
 def month_charts(cur, dest_dir, month, year, station_code, output_format):
     """
     Charts detailing weather for a single month.
@@ -86,8 +87,10 @@ order by cur.time_stamp asc""", (date(year, month, 1), station_code))
     for record in weather_data:
         # Handle missing data.
         if record[COL_PREV_SAMPLE_MISSING]:
-            file_data.append(FORMAT_STRING.format(str(record[COL_PREV_TIMESTAMP]),
-                                                  '?','?','?','?','?','?','?','?'))
+            file_data.append(
+                FORMAT_STRING.format(str(record[COL_PREV_TIMESTAMP]),
+                                     '?', '?', '?', '?', '?', '?', '?', '?',
+                                     '?'))
 
         file_data.append(FORMAT_STRING.format(str(record[COL_TIMESTAMP]),
                                               str(record[COL_TEMPERATURE]),
@@ -97,7 +100,8 @@ order by cur.time_stamp asc""", (date(year, month, 1), station_code))
                                               str(record[COL_REL_HUMIDITY]),
                                               str(record[COL_ABS_PRESSURE]),
                                               str(record[COL_INDOOR_TEMP]),
-                                              str(record[COL_INDOOR_REL_HUMIDITY]),
+                                              str(record[
+                                                  COL_INDOOR_REL_HUMIDITY]),
                                               str(record[COL_RAINFALL])
         ))
     x_range = (str(weather_data[0][COL_TIMESTAMP]),
@@ -134,10 +138,10 @@ order by cur.time_stamp asc""", (date(year, month, 1), station_code))
                            'xcol': FIELD_TIMESTAMP, # Time
                            'ycol': FIELD_TEMPERATURE, # Temperature
                            'title': "Temperature"},
-                           {'filename': data_filename,
-                            'xcol': FIELD_TIMESTAMP, # Time
-                            'ycol': FIELD_DEW_POINT, # Dew Point
-                            'title': "Dew Point"}],
+                          {'filename': data_filename,
+                           'xcol': FIELD_TIMESTAMP, # Time
+                           'ycol': FIELD_DEW_POINT, # Dew Point
+                           'title': "Dew Point"}],
                    output_format=output_format)
 
         # Plot Apparent Temperature and Wind Chill
@@ -158,10 +162,10 @@ order by cur.time_stamp asc""", (date(year, month, 1), station_code))
                            'xcol': FIELD_TIMESTAMP, # Time
                            'ycol': FIELD_APPARENT_TEMP, # Apparent temperature
                            'title': "Apparent Temperature"},
-                           {'filename': data_filename,
-                            'xcol': FIELD_TIMESTAMP, # Time
-                            'ycol': FIELD_WIND_CHILL, # Wind Chill
-                            'title': "Wind Chill"}],
+                          {'filename': data_filename,
+                           'xcol': FIELD_TIMESTAMP, # Time
+                           'ycol': FIELD_WIND_CHILL, # Wind Chill
+                           'title': "Wind Chill"}],
                    output_format=output_format)
 
         # Humidity
