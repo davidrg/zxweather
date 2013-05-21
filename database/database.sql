@@ -7,7 +7,7 @@ BEGIN;
 CREATE DOMAIN rh_percentage
   AS integer;
 COMMENT ON DOMAIN rh_percentage
-  IS 'Relative Humidity percentage (0-99%)';
+  IS 'Relative Humidity percentage (0-100%)';
 
 -- Valid wind directions
 CREATE DOMAIN wind_direction
@@ -107,13 +107,13 @@ COMMENT ON COLUMN sample.station_id IS 'The weather station this sample is for';
 
 ALTER TABLE sample
 ADD CONSTRAINT chk_outdoor_relative_humidity
-CHECK (relative_humidity > 0 and relative_humidity < 100);
+CHECK (relative_humidity > 0 and relative_humidity <= 100);
 COMMENT ON CONSTRAINT chk_outdoor_relative_humidity ON sample
 IS 'Ensure the outdoor relative humidity is in the range 0-100';
 
 ALTER TABLE sample
 ADD CONSTRAINT chk_indoor_relative_humidity
-CHECK (indoor_relative_humidity > 0 and indoor_relative_humidity < 100);
+CHECK (indoor_relative_humidity > 0 and indoor_relative_humidity <= 100);
 COMMENT ON CONSTRAINT chk_indoor_relative_humidity ON sample
 IS 'Ensure the indoor relative humidity is in the range 0-100';
 
