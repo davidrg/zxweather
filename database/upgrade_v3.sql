@@ -32,6 +32,27 @@ insert into db_info(k,v) values('ADMIN_TOOL_MIN_VER_REV','0');
 -- TABLES ------------------------------------------------------------
 ----------------------------------------------------------------------
 
+-- A percentage.
+COMMENT ON DOMAIN rh_percentage
+  IS 'Relative Humidity percentage (0-100%)';
+
+ALTER TABLE sample
+    drop constraint chk_outdoor_relative_humidity;
+
+alter table sample
+ADD CONSTRAINT chk_outdoor_relative_humidity
+CHECK (relative_humidity > 0 and relative_humidity <= 100);
+COMMENT ON CONSTRAINT chk_outdoor_relative_humidity ON sample
+IS 'Ensure the outdoor relative humidity is in the range 0-100';
+
+ALTER TABLE sample
+    drop constraint chk_indoor_relative_humidity;
+ALTER TABLE sample
+ADD CONSTRAINT chk_indoor_relative_humidity
+CHECK (indoor_relative_humidity > 0 and indoor_relative_humidity <= 100);
+COMMENT ON CONSTRAINT chk_indoor_relative_humidity ON sample
+IS 'Ensure the indoor relative humidity is in the range 0-100';
+
 -- Timestamp really can't be nullable
 alter table sample alter column time_stamp set not null;
 
