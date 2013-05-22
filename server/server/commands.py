@@ -123,6 +123,75 @@ class ShowClientCommand(Command):
         self.writeLine("Client: {0}".format(client_info["name"]))
         self.writeLine("Version: {0}".format(client_info["version"]))
 
+
+class ShowEnvironmentCommand(Command):
+    """
+    Allows environment variables to be inspected
+    """
+
+    # These are hidden from the user
+    ReservedVariableNames = [
+        'prompt',
+        'authenticated',
+        'terminal',
+        'sessionid',
+        'f_logout'
+    ]
+
+    # These are shown but can not be changed
+    ReadOnlyVariables = [
+        'ui_json',
+        'term_mode',
+        'protocol',
+        'term_echo',
+        'json_mode',
+        'term_type'
+    ]
+
+    SystemVariables = ReservedVariableNames + ReadOnlyVariables
+
+    def _print_variable(self, variable):
+        if variable in self.ReservedVariableNames:
+            return
+
+        self.writeLine("{0} = {1}".format(variable,
+                                          repr(self.environment[variable])))
+
+    def main(self):
+        """
+        Prints out the value for one environment variable or all variables
+        """
+        if "variable" in self.qualifiers:
+            var = self.qualifiers["variable"]
+            self._print_variable(var)
+        else:
+            for key in self.environment:
+                self._print_variable(key)
+
+
+class SetEnvironmentCommand(Command):
+    """
+    Allows environment variables to be set
+    """
+
+    def main(self):
+        """
+        Prints out the value for one environment variable or all variables
+        """
+
+        variable = self.parameters[1]
+        value = self.parameters[2]
+
+        if variable in ShowEnvironmentCommand.ReservedVariableNames:
+            self.write("Can not set reserved variable name: {0}\r\n"
+                .format(variable))
+        elif variable in ShowEnvironmentCommand.ReadOnlyVariables:
+            self.write("Can not set read-only variable: {0}\r\n"
+                .format(variable))
+        else:
+            self.environment[variable] = value
+
+
 class LogoutCommand(Command):
     """
     A command that attempts to log the user out using a function stored in
@@ -196,6 +265,13 @@ class ShowSessionCommand(Command):
 
         self.writeLine("Current Command:")
         self.writeLine(command)
+        self.writeLine("Custom Environment Variables:")
+        client_env = get_session_value(sid, "environment")
+        for key in client_env:
+            if key not in ShowEnvironmentCommand.SystemVariables:
+                self.writeLine("{0} = {1}".format(
+                    key, repr(client_env[key])))
+
 
     def main(self):
         if not self.authenticated(): return

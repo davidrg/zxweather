@@ -6,7 +6,8 @@ from server.commands import ShowUserCommand, ShowClientCommand, \
     SetClientCommand, LogoutCommand, TestCommand, ShowSessionCommand,\
     SetPromptCommand, SetTerminalCommand, SetInterfaceCommand, StreamCommand, \
     ListSessionsCommand, ListStationsCommand, ShowStationCommand, \
-    ShowLiveCommand, ShowLatestCommand
+    ShowLiveCommand, ShowLatestCommand, ShowEnvironmentCommand, \
+    SetEnvironmentCommand
 from server.data_upload import UploadCommand
 from server.zxcl.command_table import verb_table, verb, parameter, \
     syntax_table, syntax, qualifier, keyword_table, keyword_set, keyword, synonym
@@ -59,7 +60,8 @@ base_keywords = [
             keyword(value="session", syntax="show_session"),
             keyword(value="station", syntax="show_station"),
             keyword(value="live", syntax="show_live"),
-            keyword(value="latest", syntax="show_latest")
+            keyword(value="latest", syntax="show_latest"),
+            keyword(value="environment", syntax="show_environment")
         ]
     ),
     keyword_set(
@@ -69,6 +71,7 @@ base_keywords = [
             keyword(value="prompt", syntax="set_prompt"),
             keyword(value="terminal", syntax="set_terminal"),
             keyword(value="interface", syntax="set_interface"),
+            keyword(value="environment", syntax="set_environment")
         ]
     ),
     keyword_set(
@@ -172,6 +175,20 @@ base_syntaxes = [
             qualifier(name="json")
         ]
     ),
+    syntax(
+        name="show_environment",
+        handler="show_environment",
+        parameters=[
+            show_param_0
+        ],
+        qualifiers=[
+            qualifier(
+                name="variable",
+                type="string",
+                value_required=True
+            )
+        ]
+    ),
 
     ##### SET #####
     syntax(
@@ -245,6 +262,29 @@ base_syntaxes = [
             )
         ]
     ),
+    syntax(
+        name="set_environment",
+        handler="set_environment",
+        parameters=[
+            set_param_0,
+            parameter(
+                position=1,
+                type="string",
+                required=True,
+                prompt="Variable name: ",
+                label="Variable Name"
+            ),
+            parameter(
+                position=2,
+                type=None,
+                required=True,
+                prompt="Value: ",
+                label="Variable Value"
+            )
+        ],
+        qualifiers=[]
+    ),
+
 
     ##### LIST #####
     syntax(
@@ -311,11 +351,13 @@ base_dispatch = {
     "show_station": ShowStationCommand,
     "show_live": ShowLiveCommand,
     "show_latest": ShowLatestCommand,
+    "show_environment": ShowEnvironmentCommand,
 
     "set_client": SetClientCommand,
     "set_prompt": SetPromptCommand,
     "set_terminal": SetTerminalCommand,
     "set_interface": SetInterfaceCommand,
+    "set_environment": SetEnvironmentCommand,
 
     "list_sessions": ListSessionsCommand, # auth
     "list_stations": ListStationsCommand,

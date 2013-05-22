@@ -148,7 +148,8 @@ class BaseShell(object):
                 "username": username,
                 "command": "[shell]",
                 "connected": datetime.datetime.now(),
-                "protocol": protocol
+                "protocol": protocol,
+                "environment": self.dispatcher.environment
             }
         )
 
