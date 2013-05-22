@@ -315,7 +315,8 @@ class CommandProcessor(object):
         syntax_switched = False
 
         # Check the parameters type
-        if value_type != parameter[K_PARAMETER_TYPE]:
+        if value_type != parameter[K_PARAMETER_TYPE] and \
+                parameter[K_PARAMETER_TYPE] is not None:
             raise Exception("Parameter type is {type} but got a "
                             "{got}".format(
                 type=parameter[K_PARAMETER_TYPE],

@@ -122,7 +122,7 @@ def parameter(position, type, required=False, prompt=None, default=None,
     :param position: The parameter number
     :type position: int
     :param type: The data type. One of int, keyword, float, string or date.
-    :type type: str
+    :type type: str or None
     :param required: If the parameter is required or not
     :type required: bool
     :param prompt: The text to use when prompting the user for the parameter.
@@ -143,7 +143,7 @@ def parameter(position, type, required=False, prompt=None, default=None,
     :rtype: dict
     """
 
-    if type not in ["int","keyword","float","string","date"]:
+    if type not in ["int", "keyword", "float", "string", "date", None]:
         raise Exception("Invalid type {0}".format(type))
 
     return {

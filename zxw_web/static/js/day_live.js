@@ -114,6 +114,8 @@ function finish_connection() {
     ws_connected = true;
     ws_lost_connection = false;
     socket.send('set client "zxw_web"/version="1.0.0"\r\n');
+    socket.send('set environment "browser_UserAgent" "' +
+        navigator.userAgent.replace('"', '\\"') + '"\r\n');
 }
 
 function update_live_status(icon, message) {
