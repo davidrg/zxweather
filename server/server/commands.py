@@ -209,16 +209,100 @@ class LogoutCommand(Command):
 
 class ListSessionsCommand(Command):
     """
-    Lists all active sessions on the system
+    Lists all active sessions on the system. If we're using a video terminal
+    then the session list will be drawn as a table using VT100 line drawing
+    characters.
     """
+
+    def _table_line(self, connect_time_max_len, format_string, protocol_max_len,
+                   sid_max_len, username_max_len, join_char):
+
+
+        if self.environment["term_mode"] == TERM_CRT:
+
+            if join_char == '\x77':
+                # top
+                left_char = '\x6c'
+                right_char = '\x6b'
+            elif join_char == '\x6e':
+                # middle
+                left_char = '\x74'
+                right_char = '\x75'
+            else:
+                # bottom
+                left_char = '\x6d'
+                right_char = '\x6a'
+
+            self.write("\033(0")
+            self.write(left_char + "\x71" * sid_max_len + join_char)
+            self.write("\x71" * username_max_len + join_char)
+            self.write("\x71" * protocol_max_len + join_char)
+            self.write("\x71" * connect_time_max_len + right_char)
+            self.writeLine("\033(B")
+        else:
+            self.writeLine(format_string.format(
+                '-' * sid_max_len,
+                '-' * username_max_len,
+                '-' * protocol_max_len,
+                '-' * connect_time_max_len))
 
     def main(self):
         if not self.authenticated(): return
 
         sessions = get_session_id_list()
 
+        session_table = []
+        sid_max_len = 36
+        username_max_len = 8
+        protocol_max_len = 8
+        connect_time_max_len = 12
+
         for sid in sessions:
-            self.writeLine(sid)
+            username = get_session_value(sid, "username")
+            connect_time = get_session_value(sid, "connected")
+            protocol = get_session_value(sid, "protocol")
+            length = str(datetime.now() - connect_time)
+
+            if len(username) > username_max_len:
+                username_max_len = len(username)
+            if len(protocol) > protocol_max_len:
+                protocol_max_len = len(protocol)
+            if len(length) > connect_time_max_len:
+                connect_time_max_len = len(length)
+
+            session_table.append((sid, username, protocol, length))
+
+        if self.environment["term_mode"] == TERM_CRT:
+            format_string = "\033(0\x78\033(B{{0:<{0}}}" \
+                            "\033(0\x78\033(B{{1:<{1}}}" \
+                            "\033(0\x78\033(B{{2:<{2}}}" \
+                            "\033(0\x78\033(B{{3:<{3}}}" \
+                            "\033(0\x78\033(B" \
+                .format(
+                    sid_max_len, username_max_len, protocol_max_len,
+                    connect_time_max_len)
+        else:
+            format_string = "{{0:<{0}}}  {{1:<{1}}}  {{2:<{2}}}  {{3:<{3}}}"\
+                .format(
+                    sid_max_len, username_max_len, protocol_max_len,
+                    connect_time_max_len)
+
+        if self.environment["term_mode"] == TERM_CRT:
+            self._table_line(connect_time_max_len, format_string,
+                             protocol_max_len, sid_max_len, username_max_len,
+                             '\x77')
+
+        self.writeLine(format_string.format(
+            "Session Id", "Username", "Protocol", "Connect time"))
+
+        self._table_line(connect_time_max_len, format_string, protocol_max_len,
+                         sid_max_len, username_max_len, '\x6e')
+
+        for entry in session_table:
+            self.writeLine(format_string.format(*entry))
+
+        self._table_line(connect_time_max_len, format_string, protocol_max_len,
+                        sid_max_len, username_max_len, '\x76')
 
 class ShowSessionCommand(Command):
     """
