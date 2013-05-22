@@ -13,7 +13,7 @@ float_regex = re.compile("(\+|\-)?((\d+\.\d*((e|E)(\+|\-)?\d+)?)|(\.\d+((e|E)(\+
 int_regex = re.compile("(\+|\-)?\d+")
 identifier_regex = re.compile("([a-z]|[A-Z]|_)([a-z]|[A-Z]|[0-9]|_)*")
 date_regex = re.compile("(\d\d?\-(([A-Z]|[a-z]){3})\-\d\d\d\d)")
-string_regex = re.compile(r'"((\\"|[^")])*)"')
+string_regex = re.compile(r'"((\\"|[^"])*)"')
 
 # These regexes are used for determining raw value types entered at user
 # prompts. These only differ from the lexing regexes above in that they match
@@ -22,7 +22,7 @@ float_regex_v = re.compile("(\+|\-)?((\d+\.\d*((e|E)(\+|\-)?\d+)?)|(\.\d+((e|E)(
 int_regex_v = re.compile("(\+|\-)?\d+$")
 identifier_regex_v = re.compile("([a-z]|[A-Z]|_)([a-z]|[A-Z]|[0-9]|_)*$")
 date_regex_v = re.compile("(\d\d?\-(([A-Z]|[a-z]){3})\-\d\d\d\d)$")
-string_regex_v = re.compile(r'"((\\"|[^")])*)"$')
+string_regex_v = re.compile(r'"((\\"|[^"])*)"$')
 
 # The float regex is looking for:
 #    FLOAT
