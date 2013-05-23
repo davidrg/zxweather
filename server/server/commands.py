@@ -845,12 +845,70 @@ class ListStationsCommand(Command):
     Lists all stations in the database.
     """
 
+    def _table_line(self, code_max_len, name_max_len, format_string,
+                    join_char):
+
+        if self.environment["term_mode"] == TERM_CRT:
+
+            if join_char == '\x77':
+                # top
+                left_char = '\x6c'
+                right_char = '\x6b'
+            elif join_char == '\x6e':
+                # middle
+                left_char = '\x74'
+                right_char = '\x75'
+            else:
+                # bottom
+                left_char = '\x6d'
+                right_char = '\x6a'
+
+            self.write("\033(0")
+            self.write(left_char + "\x71" * code_max_len + join_char)
+            self.write("\x71" * name_max_len + right_char)
+            self.writeLine("\033(B")
+        else:
+            self.writeLine(format_string.format(
+                '-' * code_max_len,
+                '-' * name_max_len))
+
     def _output_station_list(self, station_list):
-        self.writeLine("Code: Name:")
-        self.writeLine("----- -----------------------------------------------"
-                       "--------------------------")
+        stations = []
+        code_max_len = 4
+        name_max_len = 4
+
         for station in station_list:
-            self.writeLine("{0:<5} {1}".format(station[0], station[1]))
+            code = station[0]
+            name = station[1]
+
+            if len(code) > code_max_len:
+                code_max_len = len(code)
+            if len(name) > name_max_len:
+                name_max_len = len(name)
+
+            stations.append((code,name))
+
+        if self.environment["term_mode"] == TERM_CRT:
+            format_string = "\033(0\x78\033(B{{0:<{0}}}" \
+                            "\033(0\x78\033(B{{1:<{1}}}" \
+                            "\033(0\x78\033(B" \
+                .format(code_max_len, name_max_len)
+        else:
+            format_string = "{{0:<{0}}}  {{1:<{1}}}"\
+                .format(code_max_len, name_max_len)
+
+        if self.environment["term_mode"] == TERM_CRT:
+            self._table_line(code_max_len, name_max_len, format_string, '\x77')
+
+        self.writeLine(format_string.format("Code", "Name"))
+
+        self._table_line(code_max_len, name_max_len, format_string, '\x6e')
+
+        for entry in stations:
+            self.writeLine(format_string.format(*entry))
+
+        self._table_line(code_max_len, name_max_len, format_string, '\x76')
+
         self.finished()
 
     def main(self):
