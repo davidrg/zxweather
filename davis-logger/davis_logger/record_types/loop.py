@@ -67,7 +67,7 @@ def decode_current_storm_date(binary_val):
     """
 
     # +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-    # | MONTH             | DAY               | YEAR                      |
+    # | MONTH - 0xF000| DAY - 0xF80           | YEAR - 0x7F               |
     # +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
     #    15  14  13  11  12  11  10   9   8   7   6   5   4   3   2   1   0
 
@@ -75,8 +75,8 @@ def decode_current_storm_date(binary_val):
     if binary_val == -1:
         return None
 
-    month_mask = 0xF800
-    day_mask = 0x07C0
+    month_mask = 0xF000
+    day_mask = 0x0F80
     year_mask = 0x007F
 
     month = (binary_val & month_mask) >> 12
