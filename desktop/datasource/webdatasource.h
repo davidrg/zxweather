@@ -12,6 +12,15 @@
 #include <QUrl>
 #include <QTimer>
 
+typedef struct _data_file_t {
+    QString filename;
+    uint32_t size;
+    QDateTime last_modified;
+    QString name;
+} data_file_t;
+
+class SampleDownloader;
+
 class WebDataSource : public AbstractDataSource
 {
     Q_OBJECT
@@ -38,6 +47,9 @@ private:
     QStringList urlQueue;
     QStringList dataSetQueue;
 
+    QList<data_file_t> dataFileQueue;
+    data_file_t currentDataFile;
+
     QStringList allData;
     QDateTime start;
     QDateTime end;
@@ -49,7 +61,7 @@ private:
 
     QStringList failedDataSets;
 
-    void downloadNextDataSet();
+    void prepareNextDataSet();
     void processData();
     void rangeRequestResult(QString data);
 
@@ -58,6 +70,7 @@ private:
     bool isMonthCached(QString station, QDate month);
 
     bool rangeRequest;
+    bool dataSetQueuePrep;
 
     // for live data stuff
     QScopedPointer<QNetworkAccessManager> liveNetAccessManager;
