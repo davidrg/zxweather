@@ -1,5 +1,13 @@
 -- Cache schema - zxweather desktop v1.0
 
+-- WARNING: This file is split into multiple statements on the semi-colon
+--          character. DO NOT include it in any comments, strings or anywhere
+--          else that isn't the end of a statement.
+
+-- WARNING: Comments are manually stripped out of this file. For them to be
+--          correctly stripped out ensure they always begin at the start of the
+--          line.
+
 create table station (
   id integer not null primary key,
   url text not null
@@ -7,17 +15,30 @@ create table station (
 
 create index station_url on station(url);
 
+-- Information on the specific data files that cached information has been
+-- pulled from.
+create table data_file (
+  id integer not null primary key,
+  station integer not null,
+  url text not null,
+  last_modified datetime not null,
+  size integer not null,
+  start_date integer not null,
+  file_type integer not null
+);
+
 -- Cached samples
 create table sample (
   id integer not null primary key,
   station integer not null,
+  data_file integer not null,
   timestamp integer not null,
   temperature real,
   dew_point real,
   apparent_temperature real,
   wind_chill real,
   humidity integer,
-  absolute_pressure real,
+  pressure real,
   indoor_temperature real,
   indoor_humidity integer,
   rainfall real
@@ -25,9 +46,14 @@ create table sample (
 
 create index sample_stn_ts on sample(station, timestamp asc);
 
--- The data files we already have cached locally. 
-create table cache_entries (
-  station integer not null,
-  date integer not null,
-  primary key (station, date)
+-- Database metadata - version number, etc.
+create table db_metadata (
+  k text not null primary key,
+  v text
 );
+
+insert into db_metadata(k,v) values('v','1');
+
+-- Try to enable the write ahead log (requires SQLite 3.7.0+)
+-- This improves performance by quite a bit.
+PRAGMA journal_mode=WAL;

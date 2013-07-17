@@ -13,6 +13,7 @@ typedef struct _SampleSet {
     unsigned long sampleCount;
 
     // Timestamp for each sample
+    QVector<uint> timestampUnix;
     QVector<double> timestamp;
 
     // Temperature
