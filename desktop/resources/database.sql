@@ -21,11 +21,11 @@ create table data_file (
   id integer not null primary key,
   station integer not null,
   url text not null,
-  last_modified datetime not null,
-  size integer not null,
-  start_date integer not null,
-  file_type integer not null
+  last_modified integer not null,
+  size integer not null
 );
+
+create index file_url on data_file(url);
 
 -- Cached samples
 create table sample (
