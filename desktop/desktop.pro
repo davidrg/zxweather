@@ -53,7 +53,9 @@ SOURCES += main.cpp\
     datasource/tcplivedatasource.cpp \
     statuswidget.cpp \
     forecastwidget.cpp \
-    livemonitor.cpp
+    livemonitor.cpp \
+    datasource/webcachedb.cpp \
+    datasource/sampleset.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
@@ -76,7 +78,9 @@ HEADERS  += mainwindow.h \
     datasource/tcplivedatasource.h \
     statuswidget.h \
     forecastwidget.h \
-    livemonitor.h
+    livemonitor.h \
+    datasource/webcachedb.h \
+    datasource/sampleset.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \

@@ -2,6 +2,7 @@
 #include "constants.h"
 #include "settings.h"
 #include "json/json.h"
+#include "webcachedb.h"
 
 #include <QMessageBox>
 #include <QStringList>
@@ -12,11 +13,6 @@
 #include <float.h>
 #include <QDateTime>
 #include <QNetworkProxyFactory>
-
-#include <QtSql>
-
-#define SAMPLE_CACHE "sample-cache"
-#define sampleCacheDb QSqlDatabase::database(SAMPLE_CACHE)
 
 void getURLList(
         QString baseURL, QDateTime startTime, QDateTime endTime,
@@ -69,9 +65,6 @@ WebDataSource::WebDataSource(QWidget *parentWidget, QObject *parent) :
     QNetworkDiskCache* cache = new QNetworkDiskCache(this);
     cache->setCacheDirectory(Settings::getInstance().dataSetCacheDir());
     netAccessManager->setCache(cache);
-
-    // Open the sample data cache database.
-    openCache();
 
     // Setup live data functionality
     liveNetAccessManager.reset(new QNetworkAccessManager(this));
@@ -283,7 +276,8 @@ void WebDataSource::makeNextCacheStatusRequest() {
 void WebDataSource::cacheStatusRequestFinished(QNetworkReply *reply) {
 
     QString url = reply->request().url().toString();
-    data_file_t cache_info = getDataFileCacheInformation(url);
+    data_file_t cache_info =
+            WebCacheDB::getInstance().getDataFileCacheInformation(url);
 
     qDebug() << "Cache status request for url [" << url << "] finished.";
 
@@ -367,7 +361,7 @@ void WebDataSource::downloadRequestFinished(QNetworkReply *reply) {
 
 
     qDebug() << "Checking db cache status...";
-    cache_stats_t cacheStats = getCacheStats(url);
+    cache_stats_t cacheStats = WebCacheDB::getInstance().getCacheStats(url);
     if (cacheStats.isValid) {
         qDebug() << "File exists in cache db and contains"
                  << cacheStats.count << "records between"
@@ -378,7 +372,7 @@ void WebDataSource::downloadRequestFinished(QNetworkReply *reply) {
                                         cacheStats);
 
     makeProgress("Caching data for " + name);
-    cacheDataFile(dataFile, stationUrl);
+    WebCacheDB::getInstance().cacheDataFile(dataFile, stationUrl);
 
     if (!acceptedURLs.isEmpty())
         makeNextDataRequest();
@@ -394,23 +388,6 @@ void WebDataSource::completeDataRequest() {
     emit samplesReady(data);
     dlReset();
     // Done!
-}
-
-void ReserveSampleSetSpace(SampleSet& samples, int size)
-{
-    qDebug() << "Reserving space for" << size << "samples.";
-    samples.timestampUnix.reserve(size);
-    samples.sampleCount = size;
-    samples.timestamp.reserve(size);
-    samples.temperature.reserve(size);
-    samples.dewPoint.reserve(size);
-    samples.apparentTemperature.reserve(size);
-    samples.windChill.reserve(size);
-    samples.indoorTemperature.reserve(size);
-    samples.humidity.reserve(size);
-    samples.indoorHumidity.reserve(size);
-    samples.pressure.reserve(size);
-    samples.rainfall.reserve(size);
 }
 
 data_file_t WebDataSource::loadDataFile(QString url, QStringList fileData,
@@ -512,10 +489,11 @@ data_file_t WebDataSource::loadDataFile(QString url, QStringList fileData,
 SampleSet WebDataSource::selectRequestedData() {
     // TODO: fetch the requested data from the sample cache and return it.
 
-    int start = dlStartTime.toTime_t();
-    int end = dlEndTime.toTime_t();
-
-    return retrieveDataSet(stationUrl, start, end);
+    SampleSet samples = WebCacheDB::getInstance().retrieveDataSet(stationUrl,
+                                                                  dlStartTime,
+                                                                  dlEndTime);
+    qDebug() << "Got" << samples.timestamp.count() << "samples back";
+    return samples;
 }
 
 void getURLList(QString baseURL, QDateTime startTime, QDateTime endTime,
@@ -633,438 +611,3 @@ void WebDataSource::enableLiveData() {
 hardware_type_t WebDataSource::getHardwareType() {
     return HW_GENERIC;
 }
-
-/*****************************************************************************
- **** SAMPLE CACHE DATABASE **************************************************
- *****************************************************************************/
-
-void createTableStructure() {
-    qDebug() << "Create cache database structure...";
-    QFile createScript(":/cache_db/create.sql");
-    createScript.open(QIODevice::ReadOnly);
-
-    QString script;
-
-    while(!createScript.atEnd()) {
-        QString line = createScript.readLine();
-        if (!line.startsWith("--"))
-            script += line;
-    }
-
-    // This is really nasty.
-    QStringList statements = script.split(";");
-
-    QSqlQuery query(sampleCacheDb);
-
-    foreach(QString statement, statements) {
-        statement = statement.trimmed();
-
-        qDebug() << statement;
-
-        // The split above strips off the semicolons.
-        query.exec(statement);
-
-        if (query.lastError().isValid()) {
-            QMessageBox::warning(0, "Cache warning",
-                                 "Failed to create cache structure. Error was: "
-                                 + query.lastError().driverText());
-            return;
-        }
-    }
-}
-
-void WebDataSource::openCache() {
-
-    if (QSqlDatabase::database(SAMPLE_CACHE,true).isValid())
-        return; // Database is already open.
-
-
-    // Try to open the database. If it doesn't exist then create it.
-    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", SAMPLE_CACHE);
-    db.setDatabaseName("local-cache.db");
-    if (!db.open()) {
-        QMessageBox::critical(0, "Error", "Failed to open cache database");
-        return;
-    }
-
-
-    QSqlQuery query("select * from sqlite_master "
-                    "where name='db_metadata' and type='table'",
-                    sampleCacheDb);
-    if (!query.isActive()) {
-        QMessageBox::warning(0, "Cache warning",
-                             "Failed to determine cache version. Cache "
-                             "functionality will be disabled.");
-        return;
-    }
-
-    if (!query.next()) {
-        createTableStructure(); // Its a blank database
-    }
-}
-
-
-
-
-/** Gets the station ID in the cache database. If the station does not already
- * exist in the database it is created.
- *
- * @param station Station URL
- * @return Station ID for use when querying the sampe and cache_entries tables.
- */
-int getStationId(QString station) {
-    QSqlQuery query(sampleCacheDb);
-    query.prepare("select id from station where url = :url");
-    query.bindValue(":url", station);
-    query.exec();
-    if (query.first()) {
-        return query.record().field(0).value().toInt();
-    } else {
-        query.prepare("insert into station(url) values(:url)");
-        query.bindValue(":url", station);
-        query.exec();
-        if (!query.lastError().isValid())
-            return getStationId(station);
-        else
-            return -1; // failure
-    }
-}
-
-/** Gets the cache file ID in the cache database. If the file does not already
- * exist then -1 is returned.
- *
- * @param filename File URL
- * @return File ID or -1 if file does not exist.
- */
-int getDataFileId(QString filename) {
-    QSqlQuery query(sampleCacheDb);
-    query.prepare("select id from data_file where url = :url");
-    query.bindValue(":url", filename);
-    query.exec();
-    if (query.first()) {
-        return query.record().field(0).value().toInt();
-    } else {
-        return -1;
-    }
-}
-
-int createDataFile(data_file_t dataFile, int stationId) {
-    QSqlQuery query(sampleCacheDb);
-    query.prepare("insert into data_file(station, url, last_modified, size) "
-                  "values(:station, :url, :last_modified, :size)");
-    query.bindValue(":station", stationId);
-    query.bindValue(":url", dataFile.filename);
-    query.bindValue(":last_modified", dataFile.last_modified.toTime_t());
-    query.bindValue(":size", dataFile.size);
-    query.exec();
-
-    if (!query.lastError().isValid()) {
-        return query.lastInsertId().toInt();
-    } else {
-        // Failed to isnert.
-        qWarning() << "Failed to create data file in database. Error was: "
-                   << query.lastError();
-        return -1;
-    }
-}
-
-void updateDataFile(int fileId, int lastModified, int size) {
-    qDebug() << "Updating data file details...";
-    QSqlQuery query(sampleCacheDb);
-    query.prepare("update data_file set last_modified = :last_modified, "
-                  "size = :size where id = :id");
-    query.bindValue(":last_modified", lastModified);
-    query.bindValue(":size", size);
-    query.bindValue(":id", fileId);
-    query.exec();
-
-    if (query.lastError().isValid())
-        qWarning() << "Failed to update data file information. Error was "
-                   << query.lastError();
-}
-
-/** Gets some basic cache related information about the specified data file.
- * This is the last modified timestamp and the data files original size when
- * last downloaded.
- *
- * @param url
- * @return
- */
-data_file_t getDataFileCacheInformation(QString url) {
-
-    data_file_t dataFile;
-
-    qDebug() << "Querying cache stats for URL" << url;
-
-    QSqlQuery query(sampleCacheDb);
-    query.prepare("select last_modified, size from data_file "
-                  "where url =  :url");
-    query.bindValue(":url", url);
-    query.exec();
-    if (query.first()) {
-
-        QSqlRecord record = query.record();
-        dataFile.filename = url;
-        dataFile.isValid = true;
-        dataFile.last_modified = QDateTime::fromTime_t(record.value(0).toInt());
-        dataFile.size = record.value(1).toInt();
-
-        qDebug() << "Cache stats loaded from DB:"
-                 << dataFile.last_modified << dataFile.size;
-
-        return dataFile;
-    } else if (query.lastError().isValid()) {
-        qWarning() << "Failed to get cache stats:" << query.lastError();
-    }
-
-    qDebug() << "URL not found in database. NO CACHE STATS AVAILABLE.";
-
-    // Probably doesn't exist in the database.
-    dataFile.isValid = false;
-    return dataFile;
-}
-
-
-/* How caching works:
- *  - Only download data file if either:
- *     + Its not present in the DB at all
- *     + Its timestamp (use HTTP HEAD command) does not match that stored
- *       in the database
- *  - To decide what needs caching:
- *     1. Grab the min and max timestamp for that file in the DB as well
- *        as the record count.
- *     2. Ensure the record count between those timestamps matches what
- *        is in the data file. If it matches then that range does not need
- *        to be cached.
- *     3. If the range count does not match then drop the entire data file
- *        from the DB and re-cache it
- *     4. If the range count *DOES* match then cache all samples falling
- *        outside the range only.
- * This should mean we don't need to check for individual samples. It
- * should also make it easier to decide what needs downloading and what
- * doesn't.
- */
-
-cache_stats_t getCacheStats(QString filename) {
-    cache_stats_t cacheStats;
-
-    int fileId = getDataFileId(filename);
-    if (fileId == -1) {
-        // File doesn't exist. No stats for you.
-        cacheStats.isValid = false;
-        return cacheStats;
-    }
-
-    QSqlQuery query(sampleCacheDb);
-    query.prepare("select min(timestamp), max(timestamp), count(*) "
-                  "from sample where data_file = :data_file_id "
-                  "group by data_file");
-    query.bindValue(":data_file_id", fileId);
-    query.exec();
-
-    if (query.first()) {
-        QSqlRecord record = query.record();
-        cacheStats.start = QDateTime::fromTime_t(record.field(0).value().toInt());
-        cacheStats.end = QDateTime::fromTime_t(record.field(1).value().toInt());
-        cacheStats.count = record.field(2).value().toInt();
-        cacheStats.isValid = true;
-    } else {
-        qWarning() << "Failed to retrieve cache stats. Error was " << query.lastError();
-        cacheStats.isValid = false;
-    }
-    return cacheStats;
-}
-
-void truncateFile(int fileId) {
-    QSqlQuery query(sampleCacheDb);
-    query.prepare("delete from sample where data_file = :data_file_id");
-    query.bindValue(":data_file_id", fileId);
-    query.exec();
-
-    if (query.lastError().isValid())
-        qWarning() << "Failed to dump expired samples. "
-                      "Cache will likely become corrupt. Error was "
-                   << query.lastError();
-}
-
-
-void cacheDataFile(data_file_t dataFile, QString stationUrl) {
-
-    int stationId = getStationId(stationUrl);
-
-    int dataFileId = getDataFileId(dataFile.filename);
-
-    if (dataFileId == -1) {
-        // new file.
-        dataFileId = createDataFile(dataFile, stationId);
-
-        if (dataFileId == -1) {
-            // Oops! something went wrong.
-            qWarning() << "createDataFile() failed. Aborting cache store.";
-            return;
-        }
-
-    } else {
-        // data file exists. Update it.
-        updateDataFile(dataFileId,
-                       dataFile.last_modified.toTime_t(),
-                       dataFile.size);
-    }
-
-    if (dataFile.expireExisting) {
-        // Trash any existing samples for this file.
-        truncateFile(dataFileId);
-    }
-
-    // Cool. Data file is all ready - now insert the samples.
-    cacheDataSet(dataFile.samples, stationId, dataFileId);
-}
-
-/** Stores the supplied dataset in the cache database.
- *
- */
-void cacheDataSet(SampleSet samples, int stationId, int dataFileId) {
-    qDebug() << "Caching dataset of" << samples.sampleCount << "samples...";
-    // First up, grab the list of samples that are missing from the database.
-    QVariantList timestamps, temperature, dewPoint, apparentTemperature,
-            windChill, indoorTemperature, humidity, indoorHumidity, pressure,
-            rainfall, stationIds, dataFileIds;
-
-    qDebug() << "Preparing list of samples to insert...";
-
-    QTime timer;
-    timer.start();
-
-    for (unsigned int i = 0; i < samples.sampleCount; i++) {
-        uint timestamp = samples.timestampUnix.at(i);            
-
-        stationIds << stationId;   // Kinda pointless but the API wants it.
-        dataFileIds << dataFileId; // Likewise
-
-        timestamps.append(timestamp);
-        temperature.append(samples.temperature.at(i));
-        dewPoint.append(samples.dewPoint.at(i));
-        apparentTemperature.append(samples.apparentTemperature.at(i));
-        windChill.append(samples.windChill.at(i));
-        indoorTemperature.append(samples.indoorTemperature.at(i));
-        humidity.append(samples.humidity.at(i));
-        indoorHumidity.append(samples.indoorHumidity.at(i));
-        pressure.append(samples.pressure.at(i));
-        rainfall.append(samples.rainfall.at(i));
-    }
-
-    // Wrapping bulk inserts in a transaction cuts total time by orders of
-    // magnitude
-    QSqlDatabase db = sampleCacheDb;
-    db.transaction();
-
-    qDebug() << "Inserting" << stationIds.count() << "samples...";
-    timer.start();
-    if (!timestamps.isEmpty()) {
-        // We have data to store.
-        QSqlQuery query(db);
-        query.prepare(
-                    "insert into sample(station, timestamp, temperature, "
-                    "dew_point, apparent_temperature, wind_chill, humidity, "
-                    "pressure, indoor_temperature, indoor_humidity, rainfall, "
-                    "data_file) "
-                    "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
-        query.addBindValue(stationIds);
-        query.addBindValue(timestamps);
-        query.addBindValue(temperature);
-        query.addBindValue(dewPoint);
-        query.addBindValue(apparentTemperature);
-        query.addBindValue(windChill);
-        query.addBindValue(humidity);
-        query.addBindValue(pressure);
-        query.addBindValue(indoorTemperature);
-        query.addBindValue(indoorHumidity);
-        query.addBindValue(rainfall);
-        query.addBindValue(dataFileIds);
-        if (!query.execBatch()) {
-            qWarning() << "Sample insert failed: " << query.lastError();
-        } else {
-            qDebug() << "Inserted: " << query.numRowsAffected();
-        }
-    }
-    qDebug() << "Insert finished at " << timer.elapsed() << "msecs. Committing transaction...";
-    if (!db.commit()) {
-        qWarning() << "Transaction commit failed. Data not cached.";
-    }
-    qDebug() << "Transaction committed at " << timer.elapsed() << "msecs";
-
-    qDebug() << "Cache insert completed.";
-}
-
-SampleSet retrieveDataSet(QString stationUrl, int startTime, int endTime) {
-    QSqlQuery query(sampleCacheDb);
-    SampleSet samples;
-
-    int stationId = getStationId(stationUrl);
-
-    QString where_clause = "where station = :station_id "
-            "and timestamp >= :start_time and timestamp <= :end_time";
-
-    query.prepare("select count(*) from sample " + where_clause);
-    query.bindValue(":station_id", stationId);
-    query.bindValue(":start_time", startTime);
-    query.bindValue(":end_time", endTime);
-    query.exec();
-
-    if (!query.first()) {
-        qWarning() << "Failed to get sample count. Error was "
-                   << query.lastError();
-        return samples;
-    }
-
-    int count = query.record().field(0).value().toInt();
-
-    qDebug() << "There are" << count << "samples within the date range:"
-             << startTime << "to" << endTime;
-
-    ReserveSampleSetSpace(samples, count);
-
-    query.prepare("select timestamp, temperature, dew_point, "
-                  "apparent_temperature, wind_chill, indoor_temperature, "
-                  "humidity, indoor_humidity, pressure, rainfall "
-                  "from sample " + where_clause + " order by timestamp asc");
-
-    query.bindValue(":station_id", stationId);
-    query.bindValue(":start_time", startTime);
-    query.bindValue(":end_time", endTime);
-    query.exec();
-
-    if (query.first()) {
-        // At least one record came back. Go pull all of them out and dump
-        // them in the SampleSet.
-        do {
-            QSqlRecord record = query.record();
-
-            int timeStamp = record.value(0).toInt();
-            samples.timestampUnix.append(timeStamp);
-            samples.timestamp.append(timeStamp);
-
-            samples.temperature.append(record.value(1).toDouble());
-            samples.dewPoint.append(record.value(2).toDouble());
-            samples.apparentTemperature.append(record.value(3).toDouble());
-            samples.windChill.append(record.value(4).toDouble());
-            samples.humidity.append(record.value(5).toDouble());
-            samples.pressure.append(record.value(6).toDouble());
-            samples.indoorTemperature.append(record.value(7).toDouble());
-            samples.indoorHumidity.append(record.value(8).toDouble());
-            samples.rainfall.append(record.value(8).toDouble());
-        } while (query.next());
-    } else if (query.lastError().isValid()) {
-        qWarning() << "Failed to get sample set. Error was "
-                   << query.lastError();
-        SampleSet blank;
-        return blank;
-    } else {
-        qDebug() << "Apparently there were no samples for the time range. "
-                    "Cache store failed?";
-    }
-
-
-    return samples;
-}
-
