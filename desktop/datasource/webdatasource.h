@@ -12,22 +12,8 @@
 #include <QUrl>
 #include <QTimer>
 
-typedef struct _data_file_t {
-    QString filename;
-    int size;
-    QDateTime last_modified;
-    SampleSet samples;
-    bool isValid;
-    bool expireExisting;
-} data_file_t;
-
-typedef struct _cache_stats_t {
-    int count;
-    QDateTime start;
-    QDateTime end;
-    bool isValid;
-} cache_stats_t;
-
+typedef struct _data_file_t data_file_t;
+typedef struct _cache_stats_t cache_stats_t;
 
 class WebDataSource : public AbstractDataSource
 {

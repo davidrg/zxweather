@@ -2,35 +2,12 @@
 #define ABSTRACTDATASOURCE_H
 
 #include <QObject>
-#include <QVector>
 #include <QDateTime>
 #include <QProgressDialog>
 #include <QWidget>
 
 #include "abstractlivedatasource.h"
-
-typedef struct _SampleSet {
-    unsigned long sampleCount;
-
-    // Timestamp for each sample
-    QVector<uint> timestampUnix;
-    QVector<double> timestamp;
-
-    // Temperature
-    QVector<double> temperature;
-    QVector<double> dewPoint;
-    QVector<double> apparentTemperature;
-    QVector<double> windChill;
-    QVector<double> indoorTemperature;
-
-    // Humidity
-    QVector<double> humidity;
-    QVector<double> indoorHumidity;
-
-    // Pressure
-    QVector<double> pressure;
-    QVector<double> rainfall;
-} SampleSet;
+#include "sampleset.h"
 
 class AbstractDataSource : public AbstractLiveDataSource
 {
