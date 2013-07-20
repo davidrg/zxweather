@@ -101,9 +101,6 @@ public:
     void setChartColours(ChartColours colours);
     ChartColours getChartColours();
 
-    /* Web data source cache */
-    QString dataSetCacheDir();
-
     /* Single shot stuff */
     void setSingleShotMinimiseToSysTray();
     bool singleShotMinimiseToSysTray();

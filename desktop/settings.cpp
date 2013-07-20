@@ -375,18 +375,6 @@ ChartColours Settings::getChartColours() {
     return colours;
 }
 
-QString Settings::dataSetCacheDir() {
-
-    QString path = QDesktopServices::storageLocation(
-                QDesktopServices::CacheLocation) + "/net_cache";
-
-    // Make sure the target directory actually exists.
-    if (!QDir(path).exists())
-        QDir().mkpath(path);
-
-    return path;
-}
-
 QString Settings::stationCode() {
     QString result = settings->value(
                 SettingsKey::DataSource::STATION_NAME,"").toString();

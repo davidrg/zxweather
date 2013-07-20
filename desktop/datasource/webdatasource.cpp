@@ -52,11 +52,6 @@ WebDataSource::WebDataSource(QWidget *parentWidget, QObject *parent) :
     connect(netAccessManager.data(), SIGNAL(finished(QNetworkReply*)),
             this, SLOT(requestFinished(QNetworkReply*)));
 
-    // Setup data cache thing.
-    QNetworkDiskCache* cache = new QNetworkDiskCache(this);
-    cache->setCacheDirectory(Settings::getInstance().dataSetCacheDir());
-    netAccessManager->setCache(cache);
-
     // Setup live data functionality
     liveNetAccessManager.reset(new QNetworkAccessManager(this));
     connect(liveNetAccessManager.data(), SIGNAL(finished(QNetworkReply*)),
