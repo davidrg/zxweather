@@ -55,7 +55,8 @@ SOURCES += main.cpp\
     forecastwidget.cpp \
     livemonitor.cpp \
     datasource/webcachedb.cpp \
-    datasource/sampleset.cpp
+    datasource/sampleset.cpp \
+    exportdialog.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
@@ -80,7 +81,8 @@ HEADERS  += mainwindow.h \
     forecastwidget.h \
     livemonitor.h \
     datasource/webcachedb.h \
-    datasource/sampleset.h
+    datasource/sampleset.h \
+    exportdialog.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \
@@ -89,7 +91,8 @@ FORMS    += mainwindow.ui \
     chartoptionsdialog.ui \
     livedatawidget.ui \
     statuswidget.ui \
-    forecastwidget.ui
+    forecastwidget.ui \
+    exportdialog.ui
 
 OTHER_FILES += \
     database.pgc \

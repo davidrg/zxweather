@@ -75,6 +75,10 @@ public slots:
      */
     void showChartWindow();
 
+    /** Shows the data export dialog.
+     */
+    void showExportDialog();
+
     // System tray
     /**
      * @brief trayIconActivated is called when the user clicks on the system
