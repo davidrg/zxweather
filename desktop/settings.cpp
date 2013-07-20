@@ -24,6 +24,8 @@
 #include <QSettings>
 #include <QCoreApplication>
 #include <QFile>
+#include <QDir>
+#include <QDesktopServices>
 
 /** Settings keys.
  */
@@ -371,6 +373,18 @@ ChartColours Settings::getChartColours() {
                 SettingsKey::Colours::Charts::RAINFALL,
                 Qt::blue).value<QColor>();
     return colours;
+}
+
+QString Settings::dataSetCacheDir() {
+
+    QString path = QDesktopServices::storageLocation(
+                QDesktopServices::CacheLocation) + "/net_cache";
+
+    // Make sure the target directory actually exists.
+    if (!QDir(path).exists())
+        QDir().mkpath(path);
+
+    return path;
 }
 
 QString Settings::stationCode() {
