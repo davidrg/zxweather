@@ -102,7 +102,7 @@ public:
     ChartColours getChartColours();
 
     /* Web data source cache */
-    QString dataSetCacheDir() { return "cache/"; }
+    QString dataSetCacheDir();
 
     /* Single shot stuff */
     void setSingleShotMinimiseToSysTray();
