@@ -4,7 +4,6 @@
 #include "json/json.h"
 #include "webcachedb.h"
 
-#include <QMessageBox>
 #include <QStringList>
 #include <QNetworkRequest>
 #include <QNetworkDiskCache>
@@ -17,14 +16,6 @@
 void getURLList(
         QString baseURL, QDateTime startTime, QDateTime endTime,
         QStringList& urlList, QStringList& nameList);
-void ReserveSampleSetSpace(SampleSet &samples, int size);
-
-// Sample cache DB forward declarations
-data_file_t getDataFileCacheInformation(QString url);
-void cacheDataFile(data_file_t dataFile, QString stationUrl);
-void cacheDataSet(SampleSet samples, int stationId, int dataFileId);
-cache_stats_t getCacheStats(QString filename);
-SampleSet retrieveDataSet(QString stationUrl, int startTime, int endTime);
 
 // TODO: make the progress dialog cancel button work.
 
@@ -164,7 +155,7 @@ void WebDataSource::requestFinished(QNetworkReply *reply) {
             // abort but any other time its fine. As such we only get here if
             // its either a range request 404 or its some other error we don't
             // check for.
-            QMessageBox::warning(NULL, "Download failed", reply->errorString());
+            emit sampleRetrievalError(reply->errorString());
             dlReset();
             return;
         } else {
@@ -211,8 +202,8 @@ void WebDataSource::rangeRequestFinished(QNetworkReply *reply) {
     QVariantMap result = Json::parse(data, ok).toMap();
 
     if (!ok) {
-        QMessageBox::warning(0, "Error",
-                             "JSON parsing failed for timestamp range request");
+        emit sampleRetrievalError("JSON parsing failed for timestamp range "
+                                  "request. Download aborted.");
         qWarning() << "Failed parsing JSON response from timestamp range request";
 
         // abort.

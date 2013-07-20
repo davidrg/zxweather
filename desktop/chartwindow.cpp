@@ -9,6 +9,7 @@
 #include <QtDebug>
 #include <QPen>
 #include <QBrush>
+#include <QMessageBox>
 
 ChartWindow::ChartWindow(QList<int> columns,
                          QDateTime startTime,
@@ -35,6 +36,8 @@ ChartWindow::ChartWindow(QList<int> columns,
     connect(ui->saveButton, SIGNAL(clicked()), this, SLOT(save()));
     connect(dataSource.data(), SIGNAL(samplesReady(SampleSet)),
             this, SLOT(samplesReady(SampleSet)));
+    connect(dataSource.data(), SIGNAL(sampleRetrievalError(QString)),
+            this, SLOT(samplesError(QString)));
 
     // Configure chart
 
@@ -163,6 +166,11 @@ void ChartWindow::samplesReady(SampleSet samples) {
 
     ui->chart->rescaleAxes();
     ui->chart->replot();
+}
+
+void ChartWindow::samplesError(QString message)
+{
+    QMessageBox::critical(this, "Error", message);
 }
 
 void ChartWindow::mousePress() {

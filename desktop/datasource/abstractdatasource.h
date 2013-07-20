@@ -30,7 +30,18 @@ public:
     virtual hardware_type_t getHardwareType() = 0;
 
 signals:
+    /** Emitted when samples have been retrieved and are ready for processing.
+     *
+     * @param samples Requested samples.
+     */
     void samplesReady(SampleSet samples);
+
+    /** Emitted when an error occurs during sample retrieval which forced the
+     * request to be aborted.
+     *
+     * @param message Message describing the error.
+     */
+    void sampleRetrievalError(QString message);
 
 protected:
     QScopedPointer<QProgressDialog> progressDialog;
