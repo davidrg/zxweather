@@ -2,6 +2,7 @@
 
 #include <QtSql>
 #include <QtDebug>
+#include <QDesktopServices>
 
 #define SAMPLE_CACHE "sample-cache"
 #define sampleCacheDb QSqlDatabase::database(SAMPLE_CACHE)
@@ -20,7 +21,18 @@ void WebCacheDB::openDatabase() {
 
     // Try to open the database. If it doesn't exist then create it.
     QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", SAMPLE_CACHE);
-    db.setDatabaseName("local-cache.db");
+    QString filename = QDesktopServices::storageLocation(
+                QDesktopServices::CacheLocation);
+
+    // Make sure the target directory actually exists.
+    if (!QDir(filename).exists())
+        QDir().mkpath(filename);
+
+    filename += "/sample-cache.db";
+
+    qDebug() << "Cache database:" << filename;
+
+    db.setDatabaseName(filename);
     if (!db.open()) {
         emit criticalError("Failed to open cache database");
         return;
