@@ -29,6 +29,7 @@
 #include "settings.h"
 #include "chartwindow.h"
 #include "chartoptionsdialog.h"
+#include "exportdialog.h"
 
 #include <QtDebug>
 #include <QDateTime>
@@ -84,6 +85,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     // Toolbar
     connect(ui->actionCharts, SIGNAL(triggered()), this, SLOT(showChartWindow()));
+    connect(ui->actionExport_Data, SIGNAL(triggered()), this, SLOT(showExportDialog()));
     connect(ui->actionSettings, SIGNAL(triggered()), this, SLOT(showSettings()));
     connect(ui->actionAbout, SIGNAL(triggered()), this, SLOT(showAbout()));
 
@@ -363,6 +365,11 @@ void MainWindow::showChartWindow() {
     ChartWindow *cw = new ChartWindow(columns, startTime, endTime, chartType);
     cw->setAttribute(Qt::WA_DeleteOnClose);
     cw->show();
+}
+
+void MainWindow::showExportDialog() {
+    ExportDialog dialog;
+    dialog.exec();
 }
 
 void MainWindow::updateSysTrayText(QString text) {
