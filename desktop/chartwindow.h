@@ -27,6 +27,7 @@ public:
 private slots:
     void refresh();
     void samplesReady(SampleSet samples);
+    void samplesError(QString message);
 
     // chart slots
     void mousePress();
