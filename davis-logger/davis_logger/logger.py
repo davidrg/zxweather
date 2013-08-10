@@ -21,6 +21,11 @@ class DavisLoggerProtocol(Protocol):
     Bridges communications with the weather station and handles logging data.
     """
 
+    # The number of loop packets to request. Apparently there is an undocumented
+    # maximum value of around 220. Probably best to keep this number 200 or
+    # lower.
+    _loopPacketRequestSize = 100
+
     def __init__(self, database_pool, station_id, latest_date, latest_time):
         self.station = DavisWeatherStation()
 
@@ -80,7 +85,7 @@ class DavisLoggerProtocol(Protocol):
 
         # Bring the database up-to-date
         self._lastRecord = -1
-        self.station.getLoopPackets(100)
+        self.station.getLoopPackets(self._loopPacketRequestSize)
         #self._fetch_samples()
 
     def _fetch_samples(self):
@@ -101,7 +106,7 @@ class DavisLoggerProtocol(Protocol):
             self._fetch_samples()
 
     def _loopFinished(self):
-        self.station.getLoopPackets(100)
+        self.station.getLoopPackets(self._loopPacketRequestSize)
 
     def _samplesArrived(self, sampleList):
         self._database_pool.runInteraction(self._store_samples_int, sampleList)
@@ -113,7 +118,7 @@ class DavisLoggerProtocol(Protocol):
             self._latest_time = last.timeInteger
             log.msg('Last record: {0} {1}'.format(last.dateStamp, last.timeStamp))
         log.msg('Received {0} archive records'.format(len(sampleList)))
-        self.station.getLoopPackets(100)
+        self.station.getLoopPackets(self._loopPacketRequestSize)
 
     def _store_samples_int(self, txn, samples):
         """

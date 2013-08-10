@@ -63,7 +63,8 @@ class DavisWeatherStation(object):
     _ACK = '\x06'
 
     # The console uses '!' as a NAK character to signal invalid parameters.
-    _NAK = '\x21'
+    _NAK = '\x21'  # TODO: Some other software uses \x15 here claiming the
+                   # documentation is wrong. Further investigation required.
 
     # Used to signal to the console that its response did not pass the CRC
     # check. Sending this back will make the console resend its last message.
