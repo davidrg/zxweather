@@ -81,6 +81,8 @@ class DavisWeatherStation(object):
     # has started and DONE to signal it has finished.
     _DONE = 'DONE\n\r'
 
+    _max_dst_offset = datetime.timedelta(hours=2)
+
     def __init__(self):
         # Setup events
         self.sendData = Event()
@@ -562,7 +564,9 @@ class DavisWeatherStation(object):
             if last_ts is None:
                 last_ts = decoded_ts
 
-            if decoded_ts < last_ts:
+            # We will ignore it if the time jumps back a little bit as its
+            # probably just daylight savings ending.
+            if decoded_ts < (last_ts - self._max_dst_offset):
                 # We've gone past the last record in archive memory and now
                 # we're looking at old data. We should discard this record
                 # and not bother looking at the rest.
