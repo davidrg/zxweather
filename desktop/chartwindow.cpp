@@ -41,12 +41,12 @@ ChartWindow::ChartWindow(QList<int> columns,
 
     // Configure chart
 
-    ui->chart->setInteractions(QCustomPlot::iRangeZoom |
-                               QCustomPlot::iSelectAxes |
-                               QCustomPlot::iRangeDrag);
-    ui->chart->setRangeDrag(Qt::Horizontal|Qt::Vertical);
-    ui->chart->setRangeZoom(Qt::Horizontal|Qt::Vertical);
-    ui->chart->setupFullAxesBox();
+    ui->chart->setInteractions(QCP::iRangeZoom |
+                               QCP::iSelectAxes |
+                               QCP::iRangeDrag);
+    ui->chart->axisRect()->setRangeDrag(Qt::Horizontal|Qt::Vertical);
+    ui->chart->axisRect()->setRangeZoom(Qt::Horizontal|Qt::Vertical);
+    ui->chart->axisRect()->setupFullAxesBox();
     ui->chart->xAxis->setLabel("Time");
     ui->chart->xAxis->setTickLabelType(QCPAxis::ltDateTime);
 
@@ -175,49 +175,49 @@ void ChartWindow::samplesError(QString message)
 
 void ChartWindow::mousePress() {
     // Only allow panning in the direction of the selected axis
-    if (ui->chart->xAxis->selected().testFlag(QCPAxis::spAxis))
-        ui->chart->setRangeDrag(ui->chart->xAxis->orientation());
-    else if (ui->chart->yAxis->selected().testFlag(QCPAxis::spAxis))
-        ui->chart->setRangeDrag(ui->chart->yAxis->orientation());
+    if (ui->chart->xAxis->selectedParts().testFlag(QCPAxis::spAxis))
+        ui->chart->axisRect()->setRangeDrag(ui->chart->xAxis->orientation());
+    else if (ui->chart->yAxis->selectedParts().testFlag(QCPAxis::spAxis))
+        ui->chart->axisRect()->setRangeDrag(ui->chart->yAxis->orientation());
     else
-        ui->chart->setRangeDrag(Qt::Horizontal|Qt::Vertical);
+        ui->chart->axisRect()->setRangeDrag(Qt::Horizontal|Qt::Vertical);
 }
 
 void ChartWindow::mouseWheel() {
     // Zoom on what ever axis is selected (if one is selected)
-    if (ui->chart->xAxis->selected().testFlag(QCPAxis::spAxis))
-        ui->chart->setRangeZoom(ui->chart->xAxis->orientation());
-    else if (ui->chart->yAxis->selected().testFlag(QCPAxis::spAxis))
-        ui->chart->setRangeZoom(ui->chart->yAxis->orientation());
+    if (ui->chart->xAxis->selectedParts().testFlag(QCPAxis::spAxis))
+        ui->chart->axisRect()->setRangeZoom(ui->chart->xAxis->orientation());
+    else if (ui->chart->yAxis->selectedParts().testFlag(QCPAxis::spAxis))
+        ui->chart->axisRect()->setRangeZoom(ui->chart->yAxis->orientation());
     else
-        ui->chart->setRangeZoom(Qt::Horizontal|Qt::Vertical);
+        ui->chart->axisRect()->setRangeZoom(Qt::Horizontal|Qt::Vertical);
 }
 
 void ChartWindow::selectionChanged() {
     // If either x axis or its tick labels is selected, select both axes
-    if (ui->chart->xAxis->selected().testFlag(QCPAxis::spAxis) ||
-            ui->chart->xAxis->selected().testFlag(QCPAxis::spTickLabels) ||
-            ui->chart->xAxis2->selected().testFlag(QCPAxis::spAxis) ||
-            ui->chart->xAxis2->selected().testFlag(QCPAxis::spTickLabels)) {
+    if (ui->chart->xAxis->selectedParts().testFlag(QCPAxis::spAxis) ||
+            ui->chart->xAxis->selectedParts().testFlag(QCPAxis::spTickLabels) ||
+            ui->chart->xAxis2->selectedParts().testFlag(QCPAxis::spAxis) ||
+            ui->chart->xAxis2->selectedParts().testFlag(QCPAxis::spTickLabels)) {
 
-        ui->chart->xAxis->setSelected(QCPAxis::spAxis | QCPAxis::spTickLabels);
-        ui->chart->xAxis2->setSelected(QCPAxis::spAxis | QCPAxis::spTickLabels);
+        ui->chart->xAxis->setSelectedParts(QCPAxis::spAxis | QCPAxis::spTickLabels);
+        ui->chart->xAxis2->setSelectedParts(QCPAxis::spAxis | QCPAxis::spTickLabels);
     }
 
     // If either y axis or its tick labels is selected, select both axes
-    if (ui->chart->yAxis->selected().testFlag(QCPAxis::spAxis) ||
-            ui->chart->yAxis->selected().testFlag(QCPAxis::spTickLabels) ||
-            ui->chart->yAxis2->selected().testFlag(QCPAxis::spAxis) ||
-            ui->chart->yAxis2->selected().testFlag(QCPAxis::spTickLabels)) {
+    if (ui->chart->yAxis->selectedParts().testFlag(QCPAxis::spAxis) ||
+            ui->chart->yAxis->selectedParts().testFlag(QCPAxis::spTickLabels) ||
+            ui->chart->yAxis2->selectedParts().testFlag(QCPAxis::spAxis) ||
+            ui->chart->yAxis2->selectedParts().testFlag(QCPAxis::spTickLabels)) {
 
-        ui->chart->yAxis->setSelected(QCPAxis::spAxis | QCPAxis::spTickLabels);
-        ui->chart->yAxis2->setSelected(QCPAxis::spAxis | QCPAxis::spTickLabels);
+        ui->chart->yAxis->setSelectedParts(QCPAxis::spAxis | QCPAxis::spTickLabels);
+        ui->chart->yAxis2->setSelectedParts(QCPAxis::spAxis | QCPAxis::spTickLabels);
     }
 }
 
 void ChartWindow::save() {
 
-    QString pdfFilter = "Portable Document Format (*.pdf)";
+    QString pdfFilter = "Adobe Portable Document Format (*.pdf)";
     QString pngFilter = "Portable Network Graphics (*.png)";
     QString jpgFilter = "JPEG (*.jpg)";
     QString bmpFilter = "Windows Bitmap (*.bmp)";
@@ -237,6 +237,7 @@ void ChartWindow::save() {
     // To prevent selected stuff appearing in the output
     ui->chart->deselectAll();
 
+    // TODO: Provide a UI to ask for width, height, cosmetic pen (PS), etc.
     if (selectedFilter == pdfFilter)
         ui->chart->savePdf(fileName);
     else if (selectedFilter == pngFilter)
