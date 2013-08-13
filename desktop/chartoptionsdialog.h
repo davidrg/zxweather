@@ -14,6 +14,9 @@
 #define COL_HUMIDITY_INDOORS 7
 #define COL_PRESSURE 8
 #define COL_RAINFALL 9
+#define COL_AVG_WINDSPEED 10
+#define COL_GUST_WINDSPEED 11
+#define COL_WIND_DIRECTION 12
 
 namespace Ui {
 class ChartOptionsDialog;

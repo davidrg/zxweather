@@ -16,4 +16,6 @@ void ReserveSampleSetSpace(SampleSet& samples, int size)
     samples.indoorHumidity.reserve(size);
     samples.pressure.reserve(size);
     samples.rainfall.reserve(size);
+    samples.averageWindSpeed.reserve(size);
+    samples.gustWindSpeed.reserve(size);
 }

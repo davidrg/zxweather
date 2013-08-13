@@ -459,6 +459,12 @@ data_file_t WebDataSource::loadDataFile(QString url, QStringList fileData,
         samples.indoorTemperature.append(values.takeFirst().toDouble());
         samples.indoorHumidity.append(values.takeFirst().toDouble());
         samples.rainfall.append(values.takeFirst().toDouble());
+        samples.averageWindSpeed.append(values.takeFirst().toDouble());
+        samples.gustWindSpeed.append(values.takeFirst().toDouble());
+
+        QVariant val = values.takeFirst();
+        if (val != "None")
+            samples.windDirection[timestamp] = val.toUInt();
     }
 
     data_file_t dataFile;

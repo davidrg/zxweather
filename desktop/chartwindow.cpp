@@ -87,6 +87,7 @@ void ChartWindow::populateAxisLabels() {
     axisLabels.insert(AT_RAINFALL, "Rainfall (mm)");
     axisLabels.insert(AT_TEMPERATURE, "Temperature (\xB0""C)");
     axisLabels.insert(AT_WIND_SPEED, "Wind speed (m/s)");
+    axisLabels.insert(AT_WIND_DIRECTION, "Wind direction (degrees)");
 }
 
 void ChartWindow::refresh() {
@@ -215,6 +216,29 @@ void ChartWindow::samplesReady(SampleSet samples) {
 //            bars->setBrush(QBrush(Qt::green));
 //            bars->setWidth(1000);
             // set pen
+        } else if (column == COL_AVG_WINDSPEED) {
+            graph->setValueAxis(getValueAxis(AT_WIND_SPEED));
+            graph->setData(samples.timestamp, samples.averageWindSpeed);
+            graph->setName("Average Wind Speed");
+            graph->setPen(QPen(colours.averageWindSpeed));
+        } else if (column == COL_GUST_WINDSPEED) {
+            graph->setValueAxis(getValueAxis(AT_WIND_SPEED));
+            graph->setData(samples.timestamp, samples.gustWindSpeed);
+            graph->setName("Gust Wind Speed");
+            graph->setPen(QPen(colours.gustWindSpeed));
+        } else if (column == COL_WIND_DIRECTION) {
+            graph->setValueAxis(getValueAxis(AT_WIND_DIRECTION));
+            QList<uint> keys = samples.windDirection.keys();
+            qSort(keys.begin(), keys.end());
+            QVector<double> timestamps;
+            QVector<double> values;
+            foreach(uint key, keys) {
+                timestamps.append(key);
+                values.append(samples.windDirection[key]);
+            }
+            graph->setData(timestamps,values);
+            graph->setName("Wind Direction");
+            graph->setPen(QPen(colours.windDirection));
         }
 
         graph->rescaleAxes();

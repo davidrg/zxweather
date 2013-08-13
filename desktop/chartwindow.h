@@ -47,6 +47,7 @@ private:
     typedef enum {
         AT_TEMPERATURE,
         AT_WIND_SPEED,
+        AT_WIND_DIRECTION,
         AT_PRESSURE,
         AT_HUMIDITY,
         AT_RAINFALL

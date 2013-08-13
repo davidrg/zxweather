@@ -126,6 +126,9 @@ void SettingsDialog::writeSettings() {
     colours.temperature = ui->qcpTemperature->color();
     colours.windChill = ui->qcpWindChill->color();
     colours.rainfall = ui->qcpRainfall->color();
+    colours.averageWindSpeed = ui->qcpAverageWindSpeed->color();
+    colours.gustWindSpeed = ui->qcpGustWindSpeed->color();
+    colours.windDirection = ui->qcpWindDirection->color();
     settings.setChartColours(colours);
 }
 
@@ -175,6 +178,9 @@ void SettingsDialog::loadSettings() {
     ui->qcpTemperature->setColor(colours.temperature);
     ui->qcpWindChill->setColor(colours.windChill);
     ui->qcpRainfall->setColor(colours.rainfall);
+    ui->qcpAverageWindSpeed->setColor(colours.averageWindSpeed);
+    ui->qcpGustWindSpeed->setColor(colours.gustWindSpeed);
+    ui->qcpWindDirection->setColor(colours.windDirection);
 
     dataSourceChanged();
 }
