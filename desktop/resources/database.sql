@@ -41,7 +41,10 @@ create table sample (
   pressure real,
   indoor_temperature real,
   indoor_humidity integer,
-  rainfall real
+  rainfall real,
+  average_wind_speed real,
+  gust_wind_speed real,
+  wind_direction integer
 );
 
 create index sample_stn_ts on sample(station, timestamp asc);

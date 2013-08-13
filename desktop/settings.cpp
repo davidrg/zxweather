@@ -80,6 +80,9 @@ namespace SettingsKey {
             const QString INDOOR_HUMIDITY = "Colours/Charts/indoor_humidity";
             const QString PRESSURE = "Colours/Charts/pressure";
             const QString RAINFALL = "Colors/Charts/rainfall";
+            const QString AVG_WIND_SPEED = "Colors/Charts/average_wind_speed";
+            const QString GUST_WIND_SPEED = "Colors/Charts/gust_wind_speed";
+            const QString WIND_DIRECTION = "Colors/Charts/wind_direction";
         }
     }
 
@@ -341,6 +344,12 @@ void Settings::setChartColours(ChartColours colours) {
                        colours.windChill);
     settings->setValue(SettingsKey::Colours::Charts::RAINFALL,
                        colours.rainfall);
+    settings->setValue(SettingsKey::Colours::Charts::AVG_WIND_SPEED,
+                       colours.averageWindSpeed);
+    settings->setValue(SettingsKey::Colours::Charts::GUST_WIND_SPEED,
+                       colours.gustWindSpeed);
+    settings->setValue(SettingsKey::Colours::Charts::WIND_DIRECTION,
+                       colours.windDirection);
 }
 
 ChartColours Settings::getChartColours() {
@@ -372,6 +381,25 @@ ChartColours Settings::getChartColours() {
     colours.rainfall = settings->value(
                 SettingsKey::Colours::Charts::RAINFALL,
                 Qt::blue).value<QColor>();
+    colours.averageWindSpeed = settings->value(
+                SettingsKey::Colours::Charts::AVG_WIND_SPEED,
+                Qt::cyan).value<QColor>();
+    colours.gustWindSpeed = settings->value(
+                SettingsKey::Colours::Charts::GUST_WIND_SPEED,
+                Qt::red).value<QColor>();
+    colours.windDirection = settings->value(
+                SettingsKey::Colours::Charts::WIND_DIRECTION,
+                Qt::green).value<QColor>();
+
+    /* Available default colours:
+     *   Qt::magenta
+     *   Qt::yellow
+     *   Qt::gray
+     *   Qt::lightGray
+     *   Qt::white
+     * white and light gray may not be real options.
+     */
+
     return colours;
 }
 

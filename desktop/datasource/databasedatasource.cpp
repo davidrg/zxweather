@@ -125,17 +125,8 @@ void DatabaseDataSource::fetchSamples(QDateTime startTime, QDateTime endTime) {
     if (progressDialog->wasCanceled()) return;
 
     SampleSet samples;
+    ReserveSampleSetSpace(samples, size);
     samples.sampleCount = size;
-    samples.timestamp.reserve(size);
-    samples.temperature.reserve(size);
-    samples.dewPoint.reserve(size);
-    samples.apparentTemperature.reserve(size);
-    samples.windChill.reserve(size);
-    samples.indoorTemperature.reserve(size);
-    samples.humidity.reserve(size);
-    samples.indoorHumidity.reserve(size);
-    samples.pressure.reserve(size);
-    samples.rainfall.reserve(size);
 
     query.prepare("select time_stamp, "
                   "       temperature, "
@@ -144,9 +135,12 @@ void DatabaseDataSource::fetchSamples(QDateTime startTime, QDateTime endTime) {
                   "       wind_chill, "
                   "       indoor_temperature, "
                   "       relative_humidity, "
-                  "        indoor_relative_humidity, "
+                  "       indoor_relative_humidity, "
                   "       absolute_pressure, "
-                  "       rainfall "
+                  "       rainfall, "
+                  "       average_wind_speed, "
+                  "       gust_wind_speed, "
+                  "       wind_direction "
                   "from sample "
                   "where station_id = :stationId "
                   "  and time_stamp >= :startTs "
@@ -169,7 +163,9 @@ void DatabaseDataSource::fetchSamples(QDateTime startTime, QDateTime endTime) {
     while (query.next()) {
         if (progressDialog->wasCanceled()) return;
 
-        samples.timestamp.append(query.value(0).toDateTime().toTime_t());
+        time_t timestamp = query.value(0).toDateTime().toTime_t();
+
+        samples.timestamp.append(timestamp);
         samples.temperature.append(query.value(1).toDouble());
         samples.dewPoint.append(query.value(2).toDouble());
         samples.apparentTemperature.append(query.value(3).toDouble());
@@ -179,6 +175,11 @@ void DatabaseDataSource::fetchSamples(QDateTime startTime, QDateTime endTime) {
         samples.indoorHumidity.append(query.value(7).toDouble());
         samples.pressure.append(query.value(8).toDouble());
         samples.rainfall.append(query.value(9).toDouble());
+        samples.averageWindSpeed.append(query.value(10).toDouble());
+        samples.gustWindSpeed.append(query.value(11).toDouble());
+
+        if (!query.value(12).isNull()) // Wind direction is often null.
+            samples.windDirection[timestamp] = query.value(12).toUInt();
     }
     progressDialog->setLabelText("Draw...");
     progressDialog->setValue(4);

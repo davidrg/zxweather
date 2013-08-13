@@ -48,6 +48,12 @@ void ChartOptionsDialog::checkAndAccept() {
         columns.append(COL_PRESSURE);
     if (ui->cbRainfall->isChecked())
         columns.append(COL_RAINFALL);
+    if (ui->cbAverageWindSpeed->isChecked())
+        columns.append(COL_AVG_WINDSPEED);
+    if (ui->cbGustWindSpeed->isChecked())
+        columns.append(COL_GUST_WINDSPEED);
+    if (ui->cbWindDirection->isChecked())
+        columns.append(COL_WIND_DIRECTION);
 
     if (columns.isEmpty()) {
         QMessageBox::information(this, "Data Sets",

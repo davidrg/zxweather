@@ -271,7 +271,8 @@ void WebCacheDB::cacheDataSet(SampleSet samples,
     // First up, grab the list of samples that are missing from the database.
     QVariantList timestamps, temperature, dewPoint, apparentTemperature,
             windChill, indoorTemperature, humidity, indoorHumidity, pressure,
-            rainfall, stationIds, dataFileIds;
+            rainfall, stationIds, dataFileIds, averageWindSpeeds,
+            gustWindSpeeds, windDirections;
 
     qDebug() << "Preparing list of samples to insert...";
 
@@ -294,6 +295,18 @@ void WebCacheDB::cacheDataSet(SampleSet samples,
         indoorHumidity.append(samples.indoorHumidity.at(i));
         pressure.append(samples.pressure.at(i));
         rainfall.append(samples.rainfall.at(i));
+        averageWindSpeeds.append(samples.averageWindSpeed.at(i));
+        gustWindSpeeds.append(samples.gustWindSpeed.at(i));
+
+        if (samples.windDirection.contains(timestamp))
+            windDirections.append(samples.windDirection[timestamp]);
+        else {
+            // Append null (no wind speed at this timestamp).
+            QVariant val;
+            val.convert(QVariant::Int);
+            windDirections.append(val);
+        }
+
     }
 
     // Wrapping bulk inserts in a transaction cuts total time by orders of
@@ -310,8 +323,9 @@ void WebCacheDB::cacheDataSet(SampleSet samples,
                     "insert into sample(station, timestamp, temperature, "
                     "dew_point, apparent_temperature, wind_chill, humidity, "
                     "pressure, indoor_temperature, indoor_humidity, rainfall, "
-                    "data_file) "
-                    "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+                    "data_file, average_wind_speed, gust_wind_speed, "
+                    "wind_direction) "
+                    "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
         query.addBindValue(stationIds);
         query.addBindValue(timestamps);
         query.addBindValue(temperature);
@@ -324,6 +338,9 @@ void WebCacheDB::cacheDataSet(SampleSet samples,
         query.addBindValue(indoorHumidity);
         query.addBindValue(rainfall);
         query.addBindValue(dataFileIds);
+        query.addBindValue(averageWindSpeeds);
+        query.addBindValue(gustWindSpeeds);
+        query.addBindValue(windDirections);
         if (!query.execBatch()) {
             qWarning() << "Sample insert failed: " << query.lastError();
         } else {
@@ -372,7 +389,8 @@ SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
 
     query.prepare("select timestamp, temperature, dew_point, "
                   "apparent_temperature, wind_chill, indoor_temperature, "
-                  "humidity, indoor_humidity, pressure, rainfall "
+                  "humidity, indoor_humidity, pressure, rainfall, "
+                  "average_wind_speed, gust_wind_speed, wind_direction "
                   "from sample " + where_clause + " order by timestamp asc");
 
     query.bindValue(":station_id", stationId);
@@ -399,6 +417,12 @@ SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
             samples.indoorHumidity.append(record.value(7).toDouble());
             samples.pressure.append(record.value(8).toDouble());
             samples.rainfall.append(record.value(9).toDouble());
+            samples.averageWindSpeed.append(record.value(10).toDouble());
+            samples.gustWindSpeed.append(record.value(11).toDouble());
+
+            if (!record.value(12).isNull()) // Wind direction can be null.
+                samples.windDirection[timeStamp] = record.value(12).toUInt();
+
         } while (query.next());
     } else if (query.lastError().isValid()) {
         qWarning() << "Failed to get sample set. Error was "

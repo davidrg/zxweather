@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>447</width>
+    <width>468</width>
     <height>382</height>
    </rect>
   </property>
@@ -124,6 +124,23 @@
       <string>Data Sets</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_2">
+      <item row="4" column="0">
+       <widget class="QCheckBox" name="cbWindChill">
+        <property name="text">
+         <string>Wind Chill</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QCheckBox" name="cbIndoorHumidity">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="text">
+         <string>Inside Humidity</string>
+        </property>
+       </widget>
+      </item>
       <item row="0" column="0">
        <widget class="QLabel" name="label_2">
         <property name="text">
@@ -131,7 +148,27 @@
         </property>
        </widget>
       </item>
-      <item row="2" column="2">
+      <item row="3" column="0">
+       <widget class="QCheckBox" name="cbApparentTemperature">
+        <property name="text">
+         <string>Apparent Temperature</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QCheckBox" name="cbHumidity">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="text">
+         <string>Humidity</string>
+        </property>
+        <property name="checked">
+         <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="3">
        <widget class="QCheckBox" name="cbRainfall">
         <property name="enabled">
          <bool>true</bool>
@@ -151,43 +188,10 @@
         </property>
        </widget>
       </item>
-      <item row="0" column="1">
-       <widget class="QLabel" name="label_3">
+      <item row="0" column="3">
+       <widget class="QLabel" name="label_4">
         <property name="text">
-         <string>Humidity:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="2">
-       <widget class="QCheckBox" name="cbPressure">
-        <property name="enabled">
-         <bool>true</bool>
-        </property>
-        <property name="text">
-         <string>Barometric Pressure</string>
-        </property>
-        <property name="checked">
-         <bool>false</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="4" column="0">
-       <widget class="QCheckBox" name="cbWindChill">
-        <property name="text">
-         <string>Wind Chill</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="QCheckBox" name="cbHumidity">
-        <property name="enabled">
-         <bool>true</bool>
-        </property>
-        <property name="text">
-         <string>Humidity</string>
-        </property>
-        <property name="checked">
-         <bool>false</bool>
+         <string>Other:</string>
         </property>
        </widget>
       </item>
@@ -208,27 +212,51 @@
         </property>
        </widget>
       </item>
-      <item row="3" column="0">
-       <widget class="QCheckBox" name="cbApparentTemperature">
+      <item row="0" column="1">
+       <widget class="QLabel" name="label_3">
         <property name="text">
-         <string>Apparent Temperature</string>
+         <string>Humidity:</string>
         </property>
        </widget>
       </item>
-      <item row="0" column="2">
-       <widget class="QLabel" name="label_4">
-        <property name="text">
-         <string>Other:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="1">
-       <widget class="QCheckBox" name="cbIndoorHumidity">
+      <item row="1" column="3">
+       <widget class="QCheckBox" name="cbPressure">
         <property name="enabled">
          <bool>true</bool>
         </property>
         <property name="text">
-         <string>Inside Humidity</string>
+         <string>Barometric Pressure</string>
+        </property>
+        <property name="checked">
+         <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="2">
+       <widget class="QLabel" name="label_5">
+        <property name="text">
+         <string>Wind:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="2">
+       <widget class="QCheckBox" name="cbAverageWindSpeed">
+        <property name="text">
+         <string>Average</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="2">
+       <widget class="QCheckBox" name="cbGustWindSpeed">
+        <property name="text">
+         <string>Gust</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="2">
+       <widget class="QCheckBox" name="cbWindDirection">
+        <property name="text">
+         <string>Direction</string>
         </property>
        </widget>
       </item>
@@ -245,6 +273,9 @@
   <tabstop>cbDewPoint</tabstop>
   <tabstop>cbHumidity</tabstop>
   <tabstop>cbIndoorHumidity</tabstop>
+  <tabstop>cbAverageWindSpeed</tabstop>
+  <tabstop>cbGustWindSpeed</tabstop>
+  <tabstop>cbWindDirection</tabstop>
   <tabstop>cbPressure</tabstop>
   <tabstop>cbRainfall</tabstop>
   <tabstop>rbTToday</tabstop>
