@@ -358,11 +358,10 @@ void MainWindow::showChartWindow() {
         return; // User canceled. Nothing to do.
 
     QList<int> columns = options.getColumns();
-    enum ChartOptionsDialog::ChartType chartType = options.getChartType();
     QDateTime startTime = options.getStartTime();
     QDateTime endTime = options.getEndTime();
 
-    ChartWindow *cw = new ChartWindow(columns, startTime, endTime, chartType);
+    ChartWindow *cw = new ChartWindow(columns, startTime, endTime);
     cw->setAttribute(Qt::WA_DeleteOnClose);
     cw->show();
 }

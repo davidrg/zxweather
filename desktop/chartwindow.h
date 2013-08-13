@@ -4,9 +4,11 @@
 #include <QWidget>
 #include <QScopedPointer>
 #include <QList>
+#include <QPointer>
 
 #include "chartoptionsdialog.h"
 #include "datasource/webdatasource.h"
+#include "qcp/qcustomplot.h"
 
 namespace Ui {
 class ChartWindow;
@@ -20,7 +22,6 @@ public:
     explicit ChartWindow(QList<int> columns,
                          QDateTime startTime,
                          QDateTime endTime,
-                         enum ChartOptionsDialog::ChartType chartType,
                          QWidget *parent = 0);
     ~ChartWindow();
     
@@ -30,18 +31,50 @@ private slots:
     void samplesError(QString message);
 
     // chart slots
-    void mousePress();
-    void mouseWheel();
+    void mousePress(QMouseEvent* event);
+    void mouseMove(QMouseEvent* event);
+    void mouseRelease();
+    void mouseWheel(QWheelEvent *event);
     void selectionChanged();
+
+    void axisLockToggled();
 
     // Save As slot
     void save();
 
 private:
+
+    typedef enum {
+        AT_TEMPERATURE,
+        AT_WIND_SPEED,
+        AT_PRESSURE,
+        AT_HUMIDITY,
+        AT_RAINFALL
+    } AxisType;
+
+    QMap<AxisType, QString> axisLabels;
+    QMap<AxisType, QPointer<QCPAxis> > configuredAxes;
+
+    void populateAxisLabels();
+    QPointer<QCPAxis> createAxis(AxisType type);
+    QPointer<QCPAxis> getValueAxis(AxisType axisType);
+
+    bool yScaleLock;
+
+    bool isAnyYAxisSelected();
+    QPointer<QCPAxis> valueAxisWithSelectedParts();
+
+    bool isYAxisLockOn();
+
+    // For manually implementing RangeDrag on any additional independent
+    // Y axes:
+    QPoint mDragStart;
+    bool mDragging;
+    QMap<AxisType, QCPRange> mDragStartVertRange;
+
     Ui::ChartWindow *ui;
     QScopedPointer<AbstractDataSource> dataSource;
     QList<int> columns;
-    enum ChartOptionsDialog::ChartType chartType;
 };
 
 #endif // CHARTWINDOW_H

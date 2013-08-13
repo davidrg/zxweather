@@ -14,14 +14,18 @@
 ChartWindow::ChartWindow(QList<int> columns,
                          QDateTime startTime,
                          QDateTime endTime,
-                         enum ChartOptionsDialog::ChartType chartType,
                          QWidget *parent) :
     QWidget(parent),
     ui(new Ui::ChartWindow)
 {
     ui->setupUi(this);
+    populateAxisLabels();
+
+    // These will be turned back on later if they are needed.
+    ui->cbYLock->setVisible(false);
+    ui->YLockDiv->setVisible(false);
+
     this->columns = columns;
-    this->chartType = chartType;
     ui->startTime->setDateTime(startTime);
     ui->endTime->setDateTime(endTime);
 
@@ -38,24 +42,27 @@ ChartWindow::ChartWindow(QList<int> columns,
             this, SLOT(samplesReady(SampleSet)));
     connect(dataSource.data(), SIGNAL(sampleRetrievalError(QString)),
             this, SLOT(samplesError(QString)));
+    connect(ui->cbYLock, SIGNAL(toggled(bool)), this, SLOT(axisLockToggled()));
 
     // Configure chart
-
     ui->chart->setInteractions(QCP::iRangeZoom |
                                QCP::iSelectAxes |
                                QCP::iRangeDrag);
     ui->chart->axisRect()->setRangeDrag(Qt::Horizontal|Qt::Vertical);
     ui->chart->axisRect()->setRangeZoom(Qt::Horizontal|Qt::Vertical);
-    ui->chart->axisRect()->setupFullAxesBox();
+    //ui->chart->axisRect()->setupFullAxesBox();
     ui->chart->xAxis->setLabel("Time");
     ui->chart->xAxis->setTickLabelType(QCPAxis::ltDateTime);
 
     // Chart events
     connect(ui->chart, SIGNAL(mousePress(QMouseEvent*)),
-            this, SLOT(mousePress()));
-
+            this, SLOT(mousePress(QMouseEvent*)));
+    connect(ui->chart, SIGNAL(mouseMove(QMouseEvent*)),
+            this, SLOT(mouseMove(QMouseEvent*)));
+    connect(ui->chart, SIGNAL(mouseRelease(QMouseEvent*)),
+            this, SLOT(mouseRelease()));
     connect(ui->chart, SIGNAL(mouseWheel(QWheelEvent*)),
-            this, SLOT(mouseWheel()));
+            this, SLOT(mouseWheel(QWheelEvent*)));
 
     connect(ui->chart, SIGNAL(selectionChangedByUser()),
             this, SLOT(selectionChanged()));
@@ -63,17 +70,9 @@ ChartWindow::ChartWindow(QList<int> columns,
     // Keep axis ranges locked
     connect(ui->chart->xAxis, SIGNAL(rangeChanged(QCPRange)),
             ui->chart->xAxis2, SLOT(setRange(QCPRange)));
-    connect(ui->chart->yAxis, SIGNAL(rangeChanged(QCPRange)),
-            ui->chart->yAxis2, SLOT(setRange(QCPRange)));
 
-    if (chartType == ChartOptionsDialog::Temperature)
-        setWindowTitle("Temperature Chart");
-    else if (chartType == ChartOptionsDialog::Humidity)
-        setWindowTitle("Humidity Chart");
-    else if (chartType == ChartOptionsDialog::Pressure)
-        setWindowTitle("Pressure Chart");
-    else if (chartType == ChartOptionsDialog::Rainfall)
-        setWindowTitle("Rainfall Chart");
+    setWindowTitle("Chart");
+
     refresh();
 }
 
@@ -82,9 +81,59 @@ ChartWindow::~ChartWindow()
     delete ui;
 }
 
+void ChartWindow::populateAxisLabels() {
+    axisLabels.insert(AT_HUMIDITY, "Humidity (%)");
+    axisLabels.insert(AT_PRESSURE, "Pressure (hPa)");
+    axisLabels.insert(AT_RAINFALL, "Rainfall (mm)");
+    axisLabels.insert(AT_TEMPERATURE, "Temperature (\xB0""C)");
+    axisLabels.insert(AT_WIND_SPEED, "Wind speed (m/s)");
+}
+
 void ChartWindow::refresh() {
 
     dataSource->fetchSamples(ui->startTime->dateTime(), ui->endTime->dateTime());
+}
+
+
+QPointer<QCPAxis> ChartWindow::createAxis(AxisType type) {
+    QCPAxis* axis = NULL;
+    if (configuredAxes.isEmpty()) {
+        axis = ui->chart->yAxis;
+    } else if (configuredAxes.count() == 1) {
+        axis = ui->chart->yAxis2;
+        axis->setVisible(true);
+        axis->setTickLabels(true);
+    } else {
+        // Every second axis can go on the right.
+        if (configuredAxes.count() % 2 == 0)
+            axis = ui->chart->axisRect()->addAxis(QCPAxis::atLeft);
+        else
+            axis = ui->chart->axisRect()->addAxis(QCPAxis::atRight);
+    }
+    configuredAxes.insert(type, axis);
+    mDragStartVertRange.insert(type, QCPRange());
+    axis->setLabel(axisLabels[type]);
+
+    if (configuredAxes.count() > 1) {
+        // Now that we have multiple axes the Y Lock option becomes available.
+        ui->YLockDiv->setVisible(true);
+        ui->cbYLock->setVisible(true);
+    }
+
+
+    return axis;
+}
+
+QPointer<QCPAxis> ChartWindow::getValueAxis(AxisType axisType) {
+    QPointer<QCPAxis> axis = NULL;
+    if (!configuredAxes.contains(axisType))
+        // Axis of specified type doesn't exist. Create it.
+        axis = createAxis(axisType);
+    else
+        // Axis already exists
+        axis = configuredAxes[axisType];
+
+    return axis;
 }
 
 void ChartWindow::samplesReady(SampleSet samples) {
@@ -96,12 +145,13 @@ void ChartWindow::samplesReady(SampleSet samples) {
     ui->chart->clearGraphs();
     ui->chart->clearPlottables();
 
-    if (chartType == ChartOptionsDialog::Temperature)
-        ui->chart->yAxis->setLabel("Temperature (\xB0""C)");
-    else if (chartType == ChartOptionsDialog::Humidity)
-        ui->chart->yAxis->setLabel("Humidity (%)");
-    else
-        ui->chart->yAxis->setLabel("Pressure (hPa)");
+    /* Required axes:
+     *  Temperature (degrees C)
+     *  Speed (m/s)
+     *  Pressure (hPa)
+     *  Humidity (%)
+     *  Rainfall (mm)
+     */
 
     foreach (int column, columns) {
         QCPGraph * graph = NULL;
@@ -109,38 +159,47 @@ void ChartWindow::samplesReady(SampleSet samples) {
             graph = ui->chart->addGraph();
 
         if (column == COL_TEMPERATURE) {
+            graph->setValueAxis(getValueAxis(AT_TEMPERATURE));
             graph->setData(samples.timestamp, samples.temperature);
             graph->setName("Temperature");
             graph->setPen(QPen(colours.temperature));
         } else if (column == COL_TEMPERATURE_INDOORS) {
+            graph->setValueAxis(getValueAxis(AT_TEMPERATURE));
             graph->setData(samples.timestamp, samples.indoorTemperature);
             graph->setName("Indoor Temperature");
             graph->setPen(QPen(colours.indoorTemperature));
         } else if (column == COL_APPARENT_TEMPERATURE) {
+            graph->setValueAxis(getValueAxis(AT_TEMPERATURE));
             graph->setData(samples.timestamp, samples.apparentTemperature);
             graph->setName("Apparent Temperature");
             graph->setPen(QPen(colours.apparentTemperature));
         } else if (column == COL_WIND_CHILL) {
+            graph->setValueAxis(getValueAxis(AT_TEMPERATURE));
             graph->setData(samples.timestamp, samples.windChill);
             graph->setName("Wind Chill");
             graph->setPen(QPen(colours.windChill));
         } else if (column == COL_DEW_POINT) {
+            graph->setValueAxis(getValueAxis(AT_TEMPERATURE));
             graph->setData(samples.timestamp, samples.dewPoint);
             graph->setName("Dew Point");
             graph->setPen(QPen(colours.dewPoint));
         } else if (column == COL_HUMIDITY) {
+            graph->setValueAxis(getValueAxis(AT_HUMIDITY));
             graph->setData(samples.timestamp, samples.humidity);
             graph->setName("Humidity");
             graph->setPen(QPen(colours.humidity));
         } else if (column == COL_HUMIDITY_INDOORS) {
+            graph->setValueAxis(getValueAxis(AT_HUMIDITY));
             graph->setData(samples.timestamp, samples.indoorHumidity);
             graph->setName("Indoor Humidity");
             graph->setPen(QPen(colours.indoorHumidity));
         } else if (column == COL_PRESSURE) {
+            graph->setValueAxis(getValueAxis(AT_PRESSURE));
             graph->setData(samples.timestamp, samples.pressure);
             graph->setName("Pressure");
             graph->setPen(QPen(colours.pressure));
         } else if (column == COL_RAINFALL) {
+            graph->setValueAxis(getValueAxis(AT_RAINFALL));
             // How do you plot rainfall data so it doesn't look stupid?
             // I don't know. Needs to be lower resolution I guess.
             graph->setData(samples.timestamp, samples.rainfall);
@@ -157,6 +216,8 @@ void ChartWindow::samplesReady(SampleSet samples) {
 //            bars->setWidth(1000);
             // set pen
         }
+
+        graph->rescaleAxes();
     }
 
     if (columns.count() > 1)
@@ -173,24 +234,158 @@ void ChartWindow::samplesError(QString message)
     QMessageBox::critical(this, "Error", message);
 }
 
-void ChartWindow::mousePress() {
+bool ChartWindow::isAnyYAxisSelected() {
+    bool yAxisPartSelected = false;
+    foreach(QPointer<QCPAxis> axis, configuredAxes) {
+        if (axis->selectedParts().testFlag(QCPAxis::spAxis) ||
+                axis->selectedParts().testFlag(QCPAxis::spTickLabels))
+            yAxisPartSelected = true;
+    }
+
+    return yAxisPartSelected;
+}
+
+QPointer<QCPAxis> ChartWindow::valueAxisWithSelectedParts() {
+    foreach(QPointer<QCPAxis> axis, configuredAxes) {
+        if (axis->selectedParts().testFlag(QCPAxis::spAxis) ||
+                axis->selectedParts().testFlag(QCPAxis::spTickLabels))
+            return axis;
+    }
+    return 0;
+}
+
+void ChartWindow::mousePress(QMouseEvent *event) {
     // Only allow panning in the direction of the selected axis
     if (ui->chart->xAxis->selectedParts().testFlag(QCPAxis::spAxis))
         ui->chart->axisRect()->setRangeDrag(ui->chart->xAxis->orientation());
-    else if (ui->chart->yAxis->selectedParts().testFlag(QCPAxis::spAxis))
-        ui->chart->axisRect()->setRangeDrag(ui->chart->yAxis->orientation());
-    else
-        ui->chart->axisRect()->setRangeDrag(Qt::Horizontal|Qt::Vertical);
+    else if (isAnyYAxisSelected() && !isYAxisLockOn()) {
+        QPointer<QCPAxis> axis = valueAxisWithSelectedParts();
+        ui->chart->axisRect()->setRangeDrag(axis->orientation());
+        ui->chart->axisRect()->setRangeDragAxes(ui->chart->xAxis, axis);
+    } else {
+        /* No specific axis selected. Pan all the axes!
+         *
+         * Problem: QCustomPlot can't pan more than one set of axes. Damn.
+         *
+         * Solution: Let QCustomPlot pan X1,Y1 and we'll have to manually
+         *           pan all the remaining Y axes. :|
+         *
+         */
+        ui->chart->axisRect()->setRangeDragAxes(ui->chart->xAxis,
+                                                ui->chart->yAxis);
+        if (isAnyYAxisSelected()) {
+            // A Y axis is selected. If we got in here then Y Axis Lock must
+            // be on. We'll only pan vertically.
+            ui->chart->axisRect()->setRangeDrag(Qt::Vertical);
+        } else {
+            ui->chart->axisRect()->setRangeDrag(Qt::Horizontal|Qt::Vertical);
+        }
+
+        mDragStart = event->pos();
+        if (event->buttons() & Qt::LeftButton) {
+            mDragging = true;
+            // We probably don't need to mess with AA settings -
+            // QCPAxisRect::mousePressEvent(QMouseEvent*) should fire next
+            // and take care of that for us.
+
+            // We have to store multiple vertical start ranges (one for each
+            // Y axis).
+            foreach (AxisType axisType, configuredAxes.keys()) {
+                QPointer<QCPAxis> axis = configuredAxes[axisType];
+                QCPRange range = axis->range();
+                mDragStartVertRange[axisType] = range;
+            }
+        }
+    }
 }
 
-void ChartWindow::mouseWheel() {
+void ChartWindow::mouseMove(QMouseEvent *event){
+    if (mDragging) {
+        foreach(AxisType axisType, configuredAxes.keys()) {
+            QPointer<QCPAxis> axis = configuredAxes[axisType];
+
+            // QCustomPlot will handle RangeDrag for y1. We only need to do
+            // all the others.
+            if (axis == ui->chart->yAxis)
+                continue;
+
+            // This logic is exactly the same as what can be found in
+            // QCPAxisRect::mouseMoveEvent(QMouseEvent*) from QCustomPlot 1.0.0
+
+            if (axis->scaleType() == QCPAxis::stLinear) {
+
+              double diff = axis->pixelToCoord(mDragStart.y())
+                      - axis->pixelToCoord(event->pos().y());
+
+              axis->setRange(
+                          mDragStartVertRange[axisType].lower + diff,
+                          mDragStartVertRange[axisType].upper + diff);
+
+            } else if (axis->scaleType() == QCPAxis::stLogarithmic) {
+              double diff = axis->pixelToCoord(mDragStart.y())
+                      / axis->pixelToCoord(event->pos().y());
+              axis->setRange(
+                          mDragStartVertRange[axisType].lower * diff,
+                          mDragStartVertRange[axisType].upper * diff);
+            }
+        }
+        // We shouldn't need to do a replot -
+        // QCPAxisRect::mouseMoveEvent(QMouseEvent*) should fire next and
+        // handle it for us.
+    }
+}
+
+void ChartWindow::mouseRelease() {
+    mDragging = false;
+    // QCPAxisRect::mouseReleaseEvent(QMouseEvent *) should fire next and
+    // deal with the AA stuff so we shouldn't need to here.
+}
+
+void ChartWindow::mouseWheel(QWheelEvent* event) {
     // Zoom on what ever axis is selected (if one is selected)
     if (ui->chart->xAxis->selectedParts().testFlag(QCPAxis::spAxis))
         ui->chart->axisRect()->setRangeZoom(ui->chart->xAxis->orientation());
-    else if (ui->chart->yAxis->selectedParts().testFlag(QCPAxis::spAxis))
-        ui->chart->axisRect()->setRangeZoom(ui->chart->yAxis->orientation());
-    else
-        ui->chart->axisRect()->setRangeZoom(Qt::Horizontal|Qt::Vertical);
+    else if (isAnyYAxisSelected() && !isYAxisLockOn()) {
+        // A Y axis is selected and axis lock is not on. So we'll just scale
+        // that one axis.
+        QPointer<QCPAxis> axis = valueAxisWithSelectedParts();
+        ui->chart->axisRect()->setRangeZoom(axis->orientation());
+        ui->chart->axisRect()->setRangeZoomAxes(ui->chart->xAxis, axis);
+    } else {
+        /* No specific axis selected. Zoom all the axes!
+         *
+         * Problem: QCustomPlot can't zoom multiple axes. Damn.
+         *
+         * Solution: Let it zoom x1 and y1 and we'll handle zooming all the
+         *           other y axes manually :|
+         */
+        ui->chart->axisRect()->setRangeZoomAxes(ui->chart->xAxis,
+                                                ui->chart->yAxis);
+        if (isAnyYAxisSelected()) {
+            // A Y axis is selected. If we got in here then Y axis lock must
+            // be on. We'll only scale vertically.
+            ui->chart->axisRect()->setRangeZoom(Qt::Vertical);
+        } else {
+            ui->chart->axisRect()->setRangeZoom(Qt::Horizontal|Qt::Vertical);
+        }
+
+        // This is the same logic as used by QCustomPlot v1.0.0 in
+        // QCPAxisRect::wheelEvent(QWheelEvent*)
+
+        // a single step delta is +/-120 usually
+        double wheelSteps = event->delta()/120.0;
+        double verticalRangeZoomFactor =
+                ui->chart->axisRect()->rangeZoomFactor(Qt::Vertical);
+
+        foreach (QPointer<QCPAxis> axis, configuredAxes) {
+            double factor = pow(verticalRangeZoomFactor, wheelSteps);
+            // We don't want to scale y1 - QCustomPlot will handle that.
+            if (axis != ui->chart->yAxis) {
+                axis->scaleRange(factor,
+                                 axis->pixelToCoord(event->pos().y()));
+            }
+        }
+    }
 }
 
 void ChartWindow::selectionChanged() {
@@ -204,15 +399,33 @@ void ChartWindow::selectionChanged() {
         ui->chart->xAxis2->setSelectedParts(QCPAxis::spAxis | QCPAxis::spTickLabels);
     }
 
-    // If either y axis or its tick labels is selected, select both axes
-    if (ui->chart->yAxis->selectedParts().testFlag(QCPAxis::spAxis) ||
-            ui->chart->yAxis->selectedParts().testFlag(QCPAxis::spTickLabels) ||
-            ui->chart->yAxis2->selectedParts().testFlag(QCPAxis::spAxis) ||
-            ui->chart->yAxis2->selectedParts().testFlag(QCPAxis::spTickLabels)) {
+    // If either y axis or its tick labels are selected, select both axes
+    if (isAnyYAxisSelected()) {
+        // If one part (tick labels or the actual axis) is selected, ensure
+        // both are.
 
-        ui->chart->yAxis->setSelectedParts(QCPAxis::spAxis | QCPAxis::spTickLabels);
-        ui->chart->yAxis2->setSelectedParts(QCPAxis::spAxis | QCPAxis::spTickLabels);
+        if (isYAxisLockOn()) {
+            // ALL axes should be selected
+            foreach (AxisType axisType, configuredAxes.keys()) {
+                QPointer<QCPAxis> axis = configuredAxes[axisType];
+                axis->setSelectedParts(QCPAxis::spAxis |
+                                       QCPAxis::spTickLabels);
+            }
+        } else {
+            // Just ensure the axis is fully selected.
+            QPointer<QCPAxis> axis = valueAxisWithSelectedParts();
+            axis->setSelectedParts(QCPAxis::spAxis | QCPAxis::spTickLabels);
+        }
     }
+}
+
+void ChartWindow::axisLockToggled() {
+    ui->chart->deselectAll();
+    ui->chart->replot();
+}
+
+bool ChartWindow::isYAxisLockOn() {
+    return ui->cbYLock->isVisible() && ui->cbYLock->isChecked();
 }
 
 void ChartWindow::save() {

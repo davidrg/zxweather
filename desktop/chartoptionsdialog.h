@@ -24,7 +24,6 @@ class ChartOptionsDialog : public QDialog
     Q_OBJECT
     
 public:
-    enum ChartType {Temperature, Humidity, Pressure, Rainfall};
 
     explicit ChartOptionsDialog(QWidget *parent = 0);
     ~ChartOptionsDialog();
@@ -32,10 +31,8 @@ public:
     QDateTime getStartTime();
     QDateTime getEndTime();
     QList<int> getColumns();
-    enum ChartType getChartType();
 
 private slots:
-    void typeChanged();
     void dateChanged();
     void checkAndAccept();
 
