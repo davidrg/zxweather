@@ -361,6 +361,18 @@ class DavisWeatherStation(object):
             log.msg('WakeCheck: Retry...')
             self._wakeUp()
 
+    def _lpsFaultReset(self):
+        """
+        Resets the current LPS command. For when things go badly wrong and there
+        isn't any other safe way to recover.
+        :return:
+        """
+        self._lps_buffer = ""
+        self._state = STATE_AWAKE
+        if self._lps_packets_remaining <= 0:
+            self._lps_packets_remaining = 1
+        self.getLoopPackets(self._lps_packets_remaining)
+
     def _lpsStateDataReceived(self, data):
         """ Handles data while in the LPS state (receiving LOOP packets)
         """
@@ -435,7 +447,6 @@ class DavisWeatherStation(object):
                     # the packet is short. Go looking a second packet header.
 
                     log.msg('WARNING! End of current packet is corrupt.')
-
                     end_of_packet = packet.find('\n\r')
                     next_packet = packet.find('LOO', end_of_packet)
 
@@ -454,11 +465,7 @@ class DavisWeatherStation(object):
                             self._lps_buffer[0:3] != "LOO":
                         log.msg('WARNING! Buffer is corrupt. Attempting to '
                                 'recover by restarting LOOP command.')
-                        self._lps_buffer = ""
-                        self._state = STATE_AWAKE
-                        if self._lps_packets_remaining <= 0:
-                            self._lps_packets_remaining = 1
-                        self.getLoopPackets(self._lps_packets_remaining)
+                        self._lpsFaultReset()
                         return
 
             else:
@@ -470,6 +477,54 @@ class DavisWeatherStation(object):
             if self._lps_packets_remaining <= 0:
                 self._state = STATE_AWAKE
                 self.loopFinished.fire()
+        elif len(self._lps_buffer) > 3 and self._lps_buffer[0:3] != "LOO":
+            # The packet buffer is corrupt. It should *always* start with the
+            # string "LOO" (as all LOOP packets start with that).
+            # It isn't really safe to assume anything about the state of the
+            # LOOP command at this point. Best just to reset it and continue
+            # on.
+            log.msg("WARNING: Buffer contents is invalid. Discarding and "
+                    "resetting LOOP process...")
+            log.msg("Buffer contents: {0}".format(
+                toHexString(self._lps_buffer)))
+            self._lpsFaultReset()
+            return
+        elif self._lps_buffer.find("\r\n") >= 0 or \
+                self._lps_buffer[3:].find("LOO") >= 0:
+            # 1. The current packet terminated early (length is <98 and we found
+            #    the end-of-packet marker)
+            # OR
+            # 2. We found the start of a second packet in the current packet
+            #    buffer
+            # Either way some data has gone missing and the packet buffer
+            # is full of garbage. We'll try to throw out the first (bad) packet.
+
+            # Its not safe to try and patch if we're running out of LOOP
+            # packets.
+            if self._lps_packets_remaining < 5:
+                log.msg("WARNING: A second packet header was detected in the"
+                        "buffer. Resetting LOOP process...")
+                self._lpsFaultReset()
+                return
+
+            log.msg("WARNING! A second packet header was detected in the "
+                    "buffer. First packet is corrupt. Attempting to fix "
+                    "buffer...")
+
+            next_packet = self._lps_buffer.find('LOO', 3)
+            if next_packet >= 0:
+                log.msg("Found second packet in buffer at position {0}. "
+                        "Current packet is {1} bytes short.".format(
+                        next_packet, (99-next_packet)))
+                self._lps_buffer = self._lps_buffer[next_packet:]
+                self._lps_packets_remaining -= 1
+
+            if len(self._lps_buffer) < 3 or self._lps_buffer[0:3] != "LOO":
+                log.msg("Recovery failed. Resetting LOOP process...")
+                self._lpsFaultReset()
+                return
+
+
 
     def _dmpaftInit1DataReceived(self, data):
         if data != self._ACK:
