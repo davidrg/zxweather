@@ -18,15 +18,18 @@ def charts_1_day(cur, dest_dir, plot_date, station_code, output_format):
     """
 
     cur.execute("""select cur.time_stamp::time,
-       cur.temperature,
+       round(cur.temperature::numeric,2),
        round(cur.dew_point::numeric, 1),
        round(cur.apparent_temperature::numeric, 1),
-       cur.wind_chill,
+       round(cur.wind_chill::numeric,1),
        cur.relative_humidity,
-       cur.absolute_pressure,
-       cur.indoor_temperature,
+       round(cur.absolute_pressure::numeric,2),
+       round(cur.indoor_temperature::numeric,2),
        cur.indoor_relative_humidity,
        round(cur.rainfall::numeric, 1),
+       round(cur.average_wind_speed::numeric,2),
+       round(cur.gust_wind_speed::numeric,2),
+       cur.wind_direction,
        cur.time_stamp::time - (s.sample_interval * '1 minute'::interval) as prev_sample_time,
        CASE WHEN (cur.time_stamp - prev.time_stamp) > ((s.sample_interval * 2) * '1 minute'::interval) THEN
           true
@@ -57,8 +60,11 @@ order by cur.time_stamp asc""", (plot_date, station_code,))
     COL_INDOOR_TEMP = 7
     COL_INDOOR_REL_HUMIDITY = 8
     COL_RAINFALL = 9
-    COL_PREV_TIMESTAMP = 10
-    COL_PREV_SAMPLE_MISSING = 11
+    COL_AVG_WIND_SPEED = 10
+    COL_GUST_WIND_SPEED = 11
+    COL_WIND_DIRECTION = 12
+    COL_PREV_TIMESTAMP = 13
+    COL_PREV_SAMPLE_MISSING = 14
 
     # Fields in the data file for gnuplot. Field numbers start at 1.
     FIELD_TIMESTAMP = COL_TIMESTAMP + 1
@@ -71,20 +77,24 @@ order by cur.time_stamp asc""", (plot_date, station_code,))
     FIELD_INDOOR_TEMP = COL_INDOOR_TEMP + 1
     FIELD_INDOOR_REL_HUMIDITY = COL_INDOOR_REL_HUMIDITY + 1
     FIELD_RAINFALL = COL_RAINFALL + 1
+    FIELD_AVG_WIND_SPEED = COL_AVG_WIND_SPEED + 1
+    FIELD_GUST_WIND_SPEED = COL_GUST_WIND_SPEED + 1
+    FIELD_WIND_DIRECTION = COL_WIND_DIRECTION + 1
+
     # Write the data file for gnuplot
     file_data = [
         '# timestamp\ttemperature\tdew point\tapparent temperature\twind chill'
         '\trelative humidity\tabsolute pressure\tindoor temperature\t'
-        'indoor relative humidity\trainfall\n']
+        'indoor relative humidity\trainfall\taverage wind speed\tgust wind speed\twind direction\n']
 
-    FORMAT_STRING = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\n'
+    FORMAT_STRING = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t{10}\t{11}\t{12}\n'
     for record in weather_data:
         # Handle missing data.
         if record[COL_PREV_SAMPLE_MISSING]:
             file_data.append(
                 FORMAT_STRING.format(str(record[COL_PREV_TIMESTAMP]),
                                      '?', '?', '?', '?', '?', '?', '?', '?',
-                                     '?'))
+                                     '?', '?', '?', '?'))
 
         file_data.append(FORMAT_STRING.format(str(record[COL_TIMESTAMP]),
                                               str(record[COL_TEMPERATURE]),
@@ -96,7 +106,10 @@ order by cur.time_stamp asc""", (plot_date, station_code,))
                                               str(record[COL_INDOOR_TEMP]),
                                               str(record[
                                                   COL_INDOOR_REL_HUMIDITY]),
-                                              str(record[COL_RAINFALL])
+                                              str(record[COL_RAINFALL]),
+                                              str(record[COL_AVG_WIND_SPEED]),
+                                              str(record[COL_GUST_WIND_SPEED]),
+                                              str(record[COL_WIND_DIRECTION])
         ))
     x_range = (str(weather_data[0][COL_TIMESTAMP]),
                str(weather_data[len(weather_data) - 1][COL_TIMESTAMP]))
@@ -311,15 +324,18 @@ def charts_7_days(cur, dest_dir, plot_date, station_code, output_format):
     :type output_format: str
     """
     cur.execute("""select s.time_stamp,
-       s.temperature,
+       round(s.temperature::numeric,2),
        round(s.dew_point::numeric, 1),
        round(s.apparent_temperature::numeric, 1),
-       s.wind_chill,
+       round(s.wind_chill::numeric,1),
        s.relative_humidity,
-       s.absolute_pressure,
-       s.indoor_temperature,
+       round(s.absolute_pressure::numeric,2),
+       round(s.indoor_temperature::numeric,2),
        s.indoor_relative_humidity,
        round(s.rainfall::numeric, 1),
+       round(s.average_wind_speed::numeric,2),
+       round(s.gust_wind_speed::numeric,2),
+       s.wind_direction,
        s.time_stamp::time - (st.sample_interval * '1 minute'::interval) as prev_sample_time,
        CASE WHEN (s.time_stamp - prev.time_stamp) > ((st.sample_interval * 2) * '1 minute'::interval) THEN
           true
@@ -353,8 +369,11 @@ order by s.time_stamp asc
     COL_INDOOR_TEMP = 7
     COL_INDOOR_REL_HUMIDITY = 8
     COL_RAINFALL = 9
-    COL_PREV_TIMESTAMP = 10
-    COL_PREV_SAMPLE_MISSING = 11
+    COL_AVG_WIND_SPEED = 10
+    COL_GUST_WIND_SPEED = 11
+    COL_WIND_DIRECTION = 12
+    COL_PREV_TIMESTAMP = 13
+    COL_PREV_SAMPLE_MISSING = 14
 
     # Fields in the data file for gnuplot. Field numbers start at 1.
     FIELD_TIMESTAMP = COL_TIMESTAMP + 1
@@ -370,20 +389,23 @@ order by s.time_stamp asc
     FIELD_INDOOR_TEMP = COL_INDOOR_TEMP + 2
     FIELD_INDOOR_REL_HUMIDITY = COL_INDOOR_REL_HUMIDITY + 2
     FIELD_RAINFALL = COL_RAINFALL + 2
+    FIELD_AVG_WIND_SPEED = COL_AVG_WIND_SPEED + 2
+    FIELD_GUST_WIND_SPEED = COL_GUST_WIND_SPEED + 2
+    FIELD_WIND_DIRECTION = COL_WIND_DIRECTION + 2
 
     # Write the data file for gnuplot
     file_data = [
         '# timestamp\ttemperature\tdew point\tapparent temperature\twind chill'
         '\trelative humidity\tabsolute pressure\tindoor temperature'
-        '\tindoor relative humidity\trainfall\n']
-    FORMAT_STRING = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\n'
+        '\tindoor relative humidity\trainfall\taverage wind speed\tgust wind speed\twind direction\n']
+    FORMAT_STRING = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t{10}\t{11}\t{12}\n'
     for record in temperature_data:
         # Handle missing data.
         if record[COL_PREV_SAMPLE_MISSING]:
             file_data.append(
                 FORMAT_STRING.format(str(record[COL_PREV_TIMESTAMP]),
                                      '?', '?', '?', '?', '?', '?', '?', '?',
-                                     '?'))
+                                     '?', '?', '?', '?'))
 
         file_data.append(FORMAT_STRING.format(str(record[COL_TIMESTAMP]),
                                               str(record[COL_TEMPERATURE]),
@@ -395,7 +417,10 @@ order by s.time_stamp asc
                                               str(record[COL_INDOOR_TEMP]),
                                               str(record[
                                                   COL_INDOOR_REL_HUMIDITY]),
-                                              str(record[COL_RAINFALL])
+                                              str(record[COL_RAINFALL]),
+                                              str(record[COL_AVG_WIND_SPEED]),
+                                              str(record[COL_GUST_WIND_SPEED]),
+                                              str(record[COL_WIND_DIRECTION])
         ))
     x_range = (str(temperature_data[0][COL_TIMESTAMP]),
                str(temperature_data[len(temperature_data) - 1][COL_TIMESTAMP]))
