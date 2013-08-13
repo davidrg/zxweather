@@ -24,6 +24,10 @@ typedef struct _SampleSet {
     // Pressure
     QVector<double> pressure;
     QVector<double> rainfall;
+
+    // Wind speed
+    QVector<double> averageWindSpeed;
+    QVector<double> gustWindSpeed;
 } SampleSet;
 
 void ReserveSampleSetSpace(SampleSet& samples, int size);

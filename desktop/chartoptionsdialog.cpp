@@ -10,12 +10,6 @@ ChartOptionsDialog::ChartOptionsDialog(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    // Chart types
-    connect(ui->rbCtTemperature, SIGNAL(clicked()), this, SLOT(typeChanged()));
-    connect(ui->rbCtHumidity, SIGNAL(clicked()), this, SLOT(typeChanged()));
-    connect(ui->rbCtPressure, SIGNAL(clicked()), this, SLOT(typeChanged()));
-    connect(ui->rbCtRainfall, SIGNAL(clicked()), this, SLOT(typeChanged()));
-
     // Time ranges
     connect(ui->rbTCustom, SIGNAL(clicked()), this, SLOT(dateChanged()));
     connect(ui->rbTThisMonth, SIGNAL(clicked()), this, SLOT(dateChanged()));
@@ -33,63 +27,27 @@ ChartOptionsDialog::~ChartOptionsDialog()
     delete ui;
 }
 
-void ChartOptionsDialog::typeChanged() {
-    ui->cbApparentTemperature->setEnabled(false);
-    ui->cbDewPoint->setEnabled(false);
-    ui->cbHumidity->setEnabled(false);
-    ui->cbIndoorHumidity->setEnabled(false);
-    ui->cbIndoorTemperature->setEnabled(false);
-    ui->cbTemperature->setEnabled(false);
-    ui->cbWindChill->setEnabled(false);
-
-    ui->cbPressure->setChecked(false);
-    ui->cbRainfall->setChecked(false);
-
-
-    if (ui->rbCtTemperature->isChecked()) {
-        ui->cbApparentTemperature->setEnabled(true);
-        ui->cbDewPoint->setEnabled(true);
-        ui->cbIndoorTemperature->setEnabled(true);
-        ui->cbTemperature->setEnabled(true);
-        ui->cbWindChill->setEnabled(true);
-    } else if (ui->rbCtHumidity->isChecked()) {
-        ui->cbHumidity->setEnabled(true);
-        ui->cbIndoorHumidity->setEnabled(true);
-    } else if (ui->rbCtPressure->isChecked()) {
-        // Don't bother enabling pressure - it always has to be checked if
-        // we're plotting pressure.
-        ui->cbPressure->setChecked(true);
-    } else if (ui->rbCtRainfall->isChecked()) {
-        // Don't bother enabling rainfall for the same reasons as pressure.
-        ui->cbRainfall->setChecked(true);
-    }
-
-}
-
 void ChartOptionsDialog::checkAndAccept() {
     columns.clear();
 
-    if (ui->rbCtTemperature->isChecked()) {
-        if (ui->cbTemperature->isChecked())
-            columns.append(COL_TEMPERATURE);
-        if (ui->cbIndoorTemperature->isChecked())
-            columns.append(COL_TEMPERATURE_INDOORS);
-        if (ui->cbApparentTemperature->isChecked())
-            columns.append(COL_APPARENT_TEMPERATURE);
-        if (ui->cbDewPoint->isChecked())
-            columns.append(COL_DEW_POINT);
-        if (ui->cbWindChill->isChecked())
-            columns.append(COL_WIND_CHILL);
-    } else if (ui->rbCtHumidity->isChecked()) {
-        if (ui->cbHumidity->isChecked())
-            columns.append(COL_HUMIDITY);
-        if (ui->cbIndoorHumidity->isChecked())
-            columns.append(COL_HUMIDITY_INDOORS);
-    } else if (ui->rbCtPressure->isChecked()) {
+    if (ui->cbTemperature->isChecked())
+        columns.append(COL_TEMPERATURE);
+    if (ui->cbIndoorTemperature->isChecked())
+        columns.append(COL_TEMPERATURE_INDOORS);
+    if (ui->cbApparentTemperature->isChecked())
+        columns.append(COL_APPARENT_TEMPERATURE);
+    if (ui->cbDewPoint->isChecked())
+        columns.append(COL_DEW_POINT);
+    if (ui->cbWindChill->isChecked())
+        columns.append(COL_WIND_CHILL);
+    if (ui->cbHumidity->isChecked())
+        columns.append(COL_HUMIDITY);
+    if (ui->cbIndoorHumidity->isChecked())
+        columns.append(COL_HUMIDITY_INDOORS);
+    if (ui->cbPressure->isChecked())
         columns.append(COL_PRESSURE);
-    } else if (ui->rbCtRainfall->isChecked()) {
+    if (ui->cbRainfall->isChecked())
         columns.append(COL_RAINFALL);
-    }
 
     if (columns.isEmpty()) {
         QMessageBox::information(this, "Data Sets",
@@ -169,14 +127,3 @@ QList<int> ChartOptionsDialog::getColumns() {
     return columns;
 }
 
-enum ChartOptionsDialog::ChartType ChartOptionsDialog::getChartType() {
-    if (ui->rbCtTemperature->isChecked()) {
-        return ChartOptionsDialog::Temperature;
-    } else if (ui->rbCtHumidity->isChecked()) {
-        return ChartOptionsDialog::Humidity;
-    } else if (ui->rbCtRainfall->isChecked()) {
-        return ChartOptionsDialog::Rainfall;
-    }
-
-    return ChartOptionsDialog::Pressure;
-}

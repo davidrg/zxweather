@@ -112,6 +112,32 @@
       </widget>
      </item>
      <item>
+      <widget class="QCheckBox" name="cbYLock">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
+       <property name="toolTip">
+        <string>If any Y axis is selected all Y axes will scale and pan at the same time</string>
+       </property>
+       <property name="whatsThis">
+        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When this checkbox is checked then all Y axes will be selected at once. This allows all Y axes to be scaled/panned together.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+       </property>
+       <property name="text">
+        <string>Lock Y Axes</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="Line" name="YLockDiv">
+       <property name="orientation">
+        <enum>Qt::Vertical</enum>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="QToolButton" name="saveButton">
        <property name="whatsThis">
         <string>Allows saving the chart in PNG, JPG, BMP and PDF formats.</string>
