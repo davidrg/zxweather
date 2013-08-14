@@ -358,3 +358,10 @@ function drawRecordsLineCharts(jsondata,
             legend: 'always'
         });
 }
+
+// Disable touch interaction - it causes usability problems on small screens
+// such as mobile phones. May re-enable it sometime in the future if I can
+// find a way to only enable it for tablets.
+Dygraph.Interaction.endTouch =
+    Dygraph.Interaction.moveTouch =
+        Dygraph.Interaction.startTouch = function() {};
