@@ -8,6 +8,7 @@
 #include <QVariant>
 #include <QProgressDialog>
 #include <QtDebug>
+#include <QSqlRecord>
 
 DatabaseDataSource::DatabaseDataSource(QWidget* parentWidget, QObject *parent) :
     AbstractDataSource(parentWidget, parent)
@@ -87,7 +88,41 @@ QString DatabaseDataSource::getStationHwType() {
     return hardwareType;
 }
 
-void DatabaseDataSource::fetchSamples(QDateTime startTime, QDateTime endTime) {
+QString DatabaseDataSource::buildSelectForColumns(SampleColumns columns)
+{
+    QString selectPart = "select time_stamp";
+
+    if (columns.testFlag(SC_Temperature))
+        selectPart += ", temperature";
+    if (columns.testFlag(SC_DewPoint))
+        selectPart += ", dew_point";
+    if (columns.testFlag(SC_ApparentTemperature))
+        selectPart += ", apparent_temperature";
+    if (columns.testFlag(SC_WindChill))
+        selectPart += ", wind_chill";
+    if (columns.testFlag(SC_IndoorTemperature))
+        selectPart += ", indoor_temperature";
+    if (columns.testFlag(SC_Humidity))
+        selectPart += ", relative_humidity";
+    if (columns.testFlag(SC_IndoorHumidity))
+        selectPart += ", indoor_relative_humidity";
+    if (columns.testFlag(SC_Pressure))
+        selectPart += ", absolute_pressure";
+    if (columns.testFlag(SC_Rainfall))
+        selectPart += ", rainfall";
+    if (columns.testFlag(SC_AverageWindSpeed))
+        selectPart += ", average_wind_speed";
+    if (columns.testFlag(SC_GustWindSpeed))
+        selectPart += ", gust_wind_speed";
+    if (columns.testFlag(SC_WindDirection))
+        selectPart += ", wind_direction";
+
+    return selectPart;
+}
+
+void DatabaseDataSource::fetchSamples(SampleColumns columns,
+                                      QDateTime startTime,
+                                      QDateTime endTime) {
     progressDialog->setWindowTitle("Loading...");
     progressDialog->setLabelText("Initialise...");
     progressDialog->setRange(0,5);
@@ -125,23 +160,12 @@ void DatabaseDataSource::fetchSamples(QDateTime startTime, QDateTime endTime) {
     if (progressDialog->wasCanceled()) return;
 
     SampleSet samples;
-    ReserveSampleSetSpace(samples, size);
+    ReserveSampleSetSpace(samples, size, columns);
     samples.sampleCount = size;
 
-    query.prepare("select time_stamp, "
-                  "       temperature, "
-                  "       dew_point, "
-                  "       apparent_temperature, "
-                  "       wind_chill, "
-                  "       indoor_temperature, "
-                  "       relative_humidity, "
-                  "       indoor_relative_humidity, "
-                  "       absolute_pressure, "
-                  "       rainfall, "
-                  "       average_wind_speed, "
-                  "       gust_wind_speed, "
-                  "       wind_direction "
-                  "from sample "
+    QString selectPart = buildSelectForColumns(columns);
+
+    query.prepare(selectPart + " from sample "
                   "where station_id = :stationId "
                   "  and time_stamp >= :startTs "
                   "  and time_stamp <= :endTs"
@@ -163,23 +187,56 @@ void DatabaseDataSource::fetchSamples(QDateTime startTime, QDateTime endTime) {
     while (query.next()) {
         if (progressDialog->wasCanceled()) return;
 
-        time_t timestamp = query.value(0).toDateTime().toTime_t();
+        QSqlRecord record = query.record();
 
+        time_t timestamp = record.value("time_stamp").toDateTime().toTime_t();
         samples.timestamp.append(timestamp);
-        samples.temperature.append(query.value(1).toDouble());
-        samples.dewPoint.append(query.value(2).toDouble());
-        samples.apparentTemperature.append(query.value(3).toDouble());
-        samples.windChill.append(query.value(4).toDouble());
-        samples.indoorTemperature.append(query.value(5).toDouble());
-        samples.humidity.append(query.value(6).toDouble());
-        samples.indoorHumidity.append(query.value(7).toDouble());
-        samples.pressure.append(query.value(8).toDouble());
-        samples.rainfall.append(query.value(9).toDouble());
-        samples.averageWindSpeed.append(query.value(10).toDouble());
-        samples.gustWindSpeed.append(query.value(11).toDouble());
 
-        if (!query.value(12).isNull()) // Wind direction is often null.
-            samples.windDirection[timestamp] = query.value(12).toUInt();
+        if (columns.testFlag(SC_Temperature))
+            samples.temperature.append(record.value("temperature").toDouble());
+
+        if (columns.testFlag(SC_DewPoint))
+            samples.dewPoint.append(record.value("dew_point").toDouble());
+
+        if (columns.testFlag(SC_ApparentTemperature))
+            samples.apparentTemperature.append(
+                        record.value("apparent_temperature").toDouble());
+
+        if (columns.testFlag(SC_WindChill))
+            samples.windChill.append(record.value("wind_chill").toDouble());
+
+        if (columns.testFlag(SC_IndoorTemperature))
+            samples.indoorTemperature.append(
+                        record.value("indoor_temperature").toDouble());
+
+        if (columns.testFlag(SC_Humidity))
+            samples.humidity.append(
+                        record.value("relative_humidity").toDouble());
+
+        if (columns.testFlag(SC_IndoorHumidity))
+            samples.indoorHumidity.append(
+                        record.value("indoor_relative_humidity").toDouble());
+
+        if (columns.testFlag(SC_Pressure))
+            samples.pressure.append(
+                        record.value("absolute_pressure").toDouble());
+
+        if (columns.testFlag(SC_Rainfall))
+            samples.rainfall.append(record.value("rainfall").toDouble());
+
+        if (columns.testFlag(SC_AverageWindSpeed))
+            samples.averageWindSpeed.append(
+                        record.value("average_wind_speed").toDouble());
+
+        if (columns.testFlag(SC_GustWindSpeed))
+            samples.gustWindSpeed.append(
+                        record.value("gust_wind_speed").toDouble());
+
+        if (columns.testFlag(SC_WindDirection))
+            // Wind direction is often null.
+            if (!record.value("wind_direction").isNull())
+                samples.windDirection[timestamp] =
+                        record.value("wind_direction").toUInt();
     }
     progressDialog->setLabelText("Draw...");
     progressDialog->setValue(4);

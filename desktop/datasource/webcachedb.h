@@ -67,12 +67,14 @@ public:
      *                   for (eg, http://weather.zx.net.nz/b/rua2/)
      * @param startTime Start time.
      * @param endTime End time.
+     * @param columns The columns to return.
      * @return Any available data for the weather station between the
      *         requested times (including the requested times themselves).
      */
     SampleSet retrieveDataSet(QString stationUrl,
                               QDateTime startTime,
-                              QDateTime endTime);
+                              QDateTime endTime,
+                              SampleColumns columns);
 
     /** Stores the specified data file in the cache database. If the file does
      * not exist it will be created, otherwise it will be updated. All samples
@@ -182,6 +184,14 @@ private:
      * @param dataFileId The data file the samples belong to
      */
     void cacheDataSet(SampleSet samples, int stationId, int dataFileId);
+
+    /** Builds the select part of a query which includes the specified columns.
+     * The timestamp column is always included.
+     *
+     * @param columns Columns to include in the select.
+     * @return "select" followed by the specified columns.
+     */
+    QString buildSelectForColumns(SampleColumns columns);
 };
 
 #endif // WEBCACHEDB_H

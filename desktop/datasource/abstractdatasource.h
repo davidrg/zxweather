@@ -14,16 +14,18 @@ class AbstractDataSource : public AbstractLiveDataSource
     Q_OBJECT
 public:
     explicit AbstractDataSource(QWidget* parentWidget = 0, QObject *parent = 0);
-    
+
     /** Gets all samples for the supplied time range. When the samples have
      * finished downloading the samplesReady signal will be emitted with the
      * requested sample set.
      *
-     * @param startTime Minimum timestamp
+     * @param columns The columns to include in the dataset.
+     * @param startTime Minimum timestamp.
      * @param endTime Maximum timestamp. Defaults to now.
      * @return A set of all samples between the two timestamps (inclusive)
      */
     virtual void fetchSamples(
+            SampleColumns columns,
             QDateTime startTime,
             QDateTime endTime=QDateTime::currentDateTime()) = 0;
 
@@ -46,5 +48,7 @@ signals:
 protected:
     QScopedPointer<QProgressDialog> progressDialog;
 };
+
+
 
 #endif // ABSTRACTDATASOURCE_H
