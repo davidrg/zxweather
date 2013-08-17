@@ -86,10 +86,12 @@ void WebDataSource::dlReset() {
 /** Fetches weather samples from the remote server. The samplesReady signal is
  * emitted when the samples have arrived.
  *
+ * @param columns The columns to return.
  * @param startTime timestamp for the first record to return.
  * @param endTime timestamp for the last record to return
  */
-void WebDataSource::fetchSamples(QDateTime startTime, QDateTime endTime) {
+void WebDataSource::fetchSamples(SampleColumns columns,
+                                 QDateTime startTime, QDateTime endTime) {
 
     // We can only process one fetch at a time right now.
     Q_ASSERT_X(download_state == DLS_READY, "fetchSamples",
@@ -101,6 +103,7 @@ void WebDataSource::fetchSamples(QDateTime startTime, QDateTime endTime) {
     progressDialog->show();
     dlStartTime = startTime;
     dlEndTime = endTime;
+    columnsToReturn = columns;
 
     QUrl rangeRequestUrl = buildRangeRequestURL();
     qDebug() << "Range request:" << rangeRequestUrl;
@@ -440,7 +443,7 @@ data_file_t WebDataSource::loadDataFile(QString url, QStringList fileData,
 
     // Allocate memory for the sample set
     int size = timeStamps.count();
-    ReserveSampleSetSpace(samples, size);
+    ReserveSampleSetSpace(samples, size, ALL_SAMPLE_COLUMNS);
 
     while (!timeStamps.isEmpty()) {
 
@@ -481,9 +484,11 @@ data_file_t WebDataSource::loadDataFile(QString url, QStringList fileData,
 SampleSet WebDataSource::selectRequestedData() {
     // TODO: fetch the requested data from the sample cache and return it.
 
-    SampleSet samples = WebCacheDB::getInstance().retrieveDataSet(stationUrl,
-                                                                  dlStartTime,
-                                                                  dlEndTime);
+    SampleSet samples = WebCacheDB::getInstance().retrieveDataSet(
+                stationUrl,
+                dlStartTime,
+                dlEndTime,
+                columnsToReturn);
     qDebug() << "Got" << samples.timestamp.count() << "samples back";
     return samples;
 }

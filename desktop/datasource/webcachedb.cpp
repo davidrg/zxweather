@@ -357,9 +357,42 @@ void WebCacheDB::cacheDataSet(SampleSet samples,
     qDebug() << "Cache insert completed.";
 }
 
+QString WebCacheDB::buildSelectForColumns(SampleColumns columns)
+{
+    QString selectPart = "select timestamp";
+
+    if (columns.testFlag(SC_Temperature))
+        selectPart += ", temperature";
+    if (columns.testFlag(SC_DewPoint))
+        selectPart += ", dew_point";
+    if (columns.testFlag(SC_ApparentTemperature))
+        selectPart += ", apparent_temperature";
+    if (columns.testFlag(SC_WindChill))
+        selectPart += ", wind_chill";
+    if (columns.testFlag(SC_IndoorTemperature))
+        selectPart += ", indoor_temperature";
+    if (columns.testFlag(SC_Humidity))
+        selectPart += ", humidity";
+    if (columns.testFlag(SC_IndoorHumidity))
+        selectPart += ", indoor_humidity";
+    if (columns.testFlag(SC_Pressure))
+        selectPart += ", pressure";
+    if (columns.testFlag(SC_Rainfall))
+        selectPart += ", rainfall";
+    if (columns.testFlag(SC_AverageWindSpeed))
+        selectPart += ", average_wind_speed";
+    if (columns.testFlag(SC_GustWindSpeed))
+        selectPart += ", gust_wind_speed";
+    if (columns.testFlag(SC_WindDirection))
+        selectPart += ", wind_direction";
+
+    return selectPart;
+}
+
 SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
                                       QDateTime startTime,
-                                      QDateTime endTime) {
+                                      QDateTime endTime,
+                                      SampleColumns columns) {
     QSqlQuery query(sampleCacheDb);
     SampleSet samples;
 
@@ -385,13 +418,12 @@ SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
     qDebug() << "There are" << count << "samples within the date range:"
              << startTime << "to" << endTime;
 
-    ReserveSampleSetSpace(samples, count);
+    ReserveSampleSetSpace(samples, count, columns);
 
-    query.prepare("select timestamp, temperature, dew_point, "
-                  "apparent_temperature, wind_chill, indoor_temperature, "
-                  "humidity, indoor_humidity, pressure, rainfall, "
-                  "average_wind_speed, gust_wind_speed, wind_direction "
-                  "from sample " + where_clause + " order by timestamp asc");
+    QString selectPart = buildSelectForColumns(columns);
+
+    query.prepare(selectPart + " from sample " +
+                  where_clause + " order by timestamp asc");
 
     query.bindValue(":station_id", stationId);
     query.bindValue(":start_time", startTime.toTime_t());
@@ -404,24 +436,55 @@ SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
         do {
             QSqlRecord record = query.record();
 
-            int timeStamp = record.value(0).toInt();
+            int timeStamp = record.value("timestamp").toInt();
             samples.timestampUnix.append(timeStamp);
             samples.timestamp.append(timeStamp);
 
-            samples.temperature.append(record.value(1).toDouble());
-            samples.dewPoint.append(record.value(2).toDouble());
-            samples.apparentTemperature.append(record.value(3).toDouble());
-            samples.windChill.append(record.value(4).toDouble());
-            samples.indoorTemperature.append(record.value(5).toDouble());
-            samples.humidity.append(record.value(6).toDouble());
-            samples.indoorHumidity.append(record.value(7).toDouble());
-            samples.pressure.append(record.value(8).toDouble());
-            samples.rainfall.append(record.value(9).toDouble());
-            samples.averageWindSpeed.append(record.value(10).toDouble());
-            samples.gustWindSpeed.append(record.value(11).toDouble());
+            if (columns.testFlag(SC_Temperature))
+                samples.temperature.append(
+                            record.value("temperature").toDouble());
 
-            if (!record.value(12).isNull()) // Wind direction can be null.
-                samples.windDirection[timeStamp] = record.value(12).toUInt();
+            if (columns.testFlag(SC_DewPoint))
+                samples.dewPoint.append(record.value("dew_point").toDouble());
+
+            if (columns.testFlag(SC_ApparentTemperature))
+                samples.apparentTemperature.append(
+                            record.value("apparent_temperature").toDouble());
+
+            if (columns.testFlag(SC_WindChill))
+                samples.windChill.append(
+                            record.value("wind_chill").toDouble());
+
+            if (columns.testFlag(SC_IndoorTemperature))
+                samples.indoorTemperature.append(
+                            record.value("indoor_temperature").toDouble());
+
+            if (columns.testFlag(SC_Humidity))
+                samples.humidity.append(record.value("humidity").toDouble());
+
+            if (columns.testFlag(SC_IndoorHumidity))
+                samples.indoorHumidity.append(
+                            record.value("indoor_humidity").toDouble());
+
+            if (columns.testFlag(SC_Pressure))
+                samples.pressure.append(record.value("pressure").toDouble());
+
+            if (columns.testFlag(SC_Rainfall))
+                samples.rainfall.append(record.value("rainfall").toDouble());
+
+            if (columns.testFlag(SC_AverageWindSpeed))
+                samples.averageWindSpeed.append(
+                            record.value("average_wind_speed").toDouble());
+
+            if (columns.testFlag(SC_GustWindSpeed))
+                samples.gustWindSpeed.append(
+                            record.value("gust_wind_speed").toDouble());
+
+            if (columns.testFlag(SC_WindDirection))
+                // Wind direction can be null.
+                if (!record.value("wind_direction").isNull())
+                    samples.windDirection[timeStamp] =
+                            record.value("wind_direction").toUInt();
 
         } while (query.next());
     } else if (query.lastError().isValid()) {

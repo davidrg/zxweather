@@ -16,6 +16,7 @@ public:
     ~DatabaseDataSource();
 
     virtual void fetchSamples(
+            SampleColumns columns,
             QDateTime startTime,
             QDateTime endTime=QDateTime::currentDateTime());
 
@@ -30,6 +31,8 @@ private slots:
 private:
     int getStationId();
     QString getStationHwType();
+
+    QString buildSelectForColumns(SampleColumns columns);
 
     // Live data functionality
     void connectToDB();

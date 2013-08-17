@@ -92,7 +92,26 @@ void ChartWindow::populateAxisLabels() {
 
 void ChartWindow::refresh() {
 
-    dataSource->fetchSamples(ui->startTime->dateTime(), ui->endTime->dateTime());
+    SampleColumns columnSet;
+
+#define ADD_COLUMN_FLAG(colInt, colFlag) if (columns.contains(colInt)) columnSet |= colFlag;
+
+    ADD_COLUMN_FLAG(COL_TEMPERATURE, SC_Temperature);
+    ADD_COLUMN_FLAG(COL_TEMPERATURE_INDOORS, SC_IndoorTemperature);
+    ADD_COLUMN_FLAG(COL_APPARENT_TEMPERATURE, SC_ApparentTemperature);
+    ADD_COLUMN_FLAG(COL_WIND_CHILL, SC_WindChill);
+    ADD_COLUMN_FLAG(COL_DEW_POINT, SC_DewPoint);
+    ADD_COLUMN_FLAG(COL_HUMIDITY, SC_Humidity);
+    ADD_COLUMN_FLAG(COL_HUMIDITY_INDOORS, SC_IndoorHumidity);
+    ADD_COLUMN_FLAG(COL_PRESSURE, SC_Pressure);
+    ADD_COLUMN_FLAG(COL_RAINFALL, SC_Rainfall);
+    ADD_COLUMN_FLAG(COL_AVG_WINDSPEED, SC_AverageWindSpeed);
+    ADD_COLUMN_FLAG(COL_GUST_WINDSPEED, SC_GustWindSpeed);
+    ADD_COLUMN_FLAG(COL_WIND_DIRECTION, SC_WindDirection);
+
+    dataSource->fetchSamples(columnSet,
+                             ui->startTime->dateTime(),
+                             ui->endTime->dateTime());
 }
 
 

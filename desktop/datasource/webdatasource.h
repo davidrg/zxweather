@@ -22,6 +22,7 @@ public:
     explicit WebDataSource(QWidget* parentWidget = 0, QObject *parent = 0);
     
     void fetchSamples(
+            SampleColumns columns,
             QDateTime startTime,
             QDateTime endTime=QDateTime::currentDateTime());
 
@@ -73,6 +74,9 @@ private:
 
     /**** Sample data member variables ****/
     SampleDownloadState download_state;
+
+    SampleColumns columnsToReturn;
+
 
     // Time range we are currently downloading:
     QDateTime dlStartTime, dlEndTime;
