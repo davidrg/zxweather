@@ -36,7 +36,10 @@ private:
         C_WIND_CHILL,
         C_DEW_POINT,
         C_PRESSURE,
-        C_RAINFALL
+        C_RAINFALL,
+        C_AVG_WIND_SPEED,
+        C_GUST_WIND_SPEED,
+        C_WIND_DIRECTION
     } COLUMNS;
 
     Ui::ExportDialog *ui;

@@ -164,6 +164,12 @@ QSet<ExportDialog::COLUMNS> ExportDialog::getColumns()
         columns.insert(ExportDialog::C_TEMPERATURE);
     if (ui->cbWindChill->isChecked())
         columns.insert(ExportDialog::C_WIND_CHILL);
+    if (ui->cbAverageWindSpeed->isChecked())
+        columns.insert(ExportDialog::C_AVG_WIND_SPEED);
+    if (ui->cbGustWindSpeed->isChecked())
+        columns.insert(ExportDialog::C_GUST_WIND_SPEED);
+    if (ui->cbWindDirection->isChecked())
+        columns.insert(ExportDialog::C_WIND_DIRECTION);
 
     return columns;
 }
@@ -188,6 +194,9 @@ QList<ExportDialog::COLUMNS> ExportDialog::columnList(QSet<COLUMNS> columns)
     CHECK_AND_ADD(C_INDOOR_HUMIDITY);
     CHECK_AND_ADD(C_PRESSURE);
     CHECK_AND_ADD(C_RAINFALL);
+    CHECK_AND_ADD(C_AVG_WIND_SPEED);
+    CHECK_AND_ADD(C_GUST_WIND_SPEED);
+    CHECK_AND_ADD(C_WIND_DIRECTION);
 
     return list;
 }
@@ -209,7 +218,10 @@ void ExportDialog::exportData() {
                                                     QString(),
                                                     FILTERS,
                                                     &selectedFilter);
-    if (filename.isEmpty()) reject(); // user canceled
+    if (filename.isEmpty()) {
+        reject(); // user canceled
+        return;
+    }
 
     targetFilename = filename;
 
@@ -228,11 +240,9 @@ void ExportDialog::exportData() {
     ADD_COLUMN_FLAG(C_INDOOR_HUMIDITY, SC_IndoorHumidity);
     ADD_COLUMN_FLAG(C_PRESSURE, SC_Pressure);
     ADD_COLUMN_FLAG(C_RAINFALL, SC_Rainfall);
-    /*
-    ADD_COLUMN_FLAG(COL_AVG_WINDSPEED, SC_AverageWindSpeed);
-    ADD_COLUMN_FLAG(COL_GUST_WINDSPEED, SC_GustWindSpeed);
-    ADD_COLUMN_FLAG(COL_WIND_DIRECTION, SC_WindDirection);
-    */
+    ADD_COLUMN_FLAG(C_AVG_WIND_SPEED, SC_AverageWindSpeed);
+    ADD_COLUMN_FLAG(C_GUST_WIND_SPEED, SC_GustWindSpeed);
+    ADD_COLUMN_FLAG(C_WIND_DIRECTION, SC_WindDirection);
 
     dataSource->fetchSamples(columnSet, startTime, endTime);
 }
@@ -251,6 +261,7 @@ void ExportDialog::samplesReady(SampleSet samples)
                               "Failed to open file for writing. " +
                               dataFile.errorString());
         reject();
+        return;
     }
 
     QList<COLUMNS> columns = columnList(getColumns());
@@ -301,6 +312,22 @@ void ExportDialog::samplesReady(SampleSet samples)
                 rowData.append(QString::number(
                                    samples.windChill.at(i),'f', 1));
                 break;
+            case C_AVG_WIND_SPEED:
+                rowData.append(QString::number(
+                                   samples.averageWindSpeed.at(i),'f',1));
+                break;
+            case C_GUST_WIND_SPEED:
+                rowData.append(QString::number(
+                                   samples.gustWindSpeed.at(i),'f',1));
+                break;
+            case C_WIND_DIRECTION: {
+                time_t ts = samples.timestampUnix.at(i);
+                if (samples.windDirection.contains(ts))
+                    rowData.append(QString::number(samples.windDirection[ts]));
+                else
+                    rowData.append("");
+                break;
+            }
             default:
                 rowData.append("(ERROR: Unrecognised column)");
             }
@@ -365,6 +392,15 @@ QString ExportDialog::getHeaderRow(QList<COLUMNS> columns) {
             break;
         case C_WIND_CHILL:
             columnNames.append("Wind Chill");
+            break;
+        case C_AVG_WIND_SPEED:
+            columnNames.append("Average Wind Speed");
+            break;
+        case C_GUST_WIND_SPEED:
+            columnNames.append("Gust Wind Speed");
+            break;
+        case C_WIND_DIRECTION:
+            columnNames.append("Wind Direction");
             break;
         default:
             columnNames.append("(Unknown)");

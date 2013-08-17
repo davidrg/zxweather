@@ -14,7 +14,7 @@
    <string>Export data</string>
   </property>
   <property name="windowIcon">
-   <iconset>
+   <iconset resource="resources.qrc">
     <normaloff>:/icons/export-data</normaloff>:/icons/export-data</iconset>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
@@ -40,6 +40,9 @@
       </item>
       <item row="0" column="4">
        <widget class="QLineEdit" name="leCustomDelimiter">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
         <property name="maximumSize">
          <size>
           <width>50</width>
@@ -84,6 +87,39 @@
       <string>Columns</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_2">
+      <item row="0" column="0">
+       <widget class="QCheckBox" name="cbTimestamp">
+        <property name="text">
+         <string>Timestamp</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QCheckBox" name="cbTemperature">
+        <property name="text">
+         <string>Temperature</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QCheckBox" name="cbHumidity">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="text">
+         <string>Humidity</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
       <item row="4" column="1">
        <widget class="QCheckBox" name="cbRainfall">
         <property name="enabled">
@@ -91,19 +127,6 @@
         </property>
         <property name="text">
          <string>Rainfall</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="1">
-       <widget class="QCheckBox" name="cbPressure">
-        <property name="enabled">
-         <bool>true</bool>
-        </property>
-        <property name="text">
-         <string>Pressure</string>
         </property>
         <property name="checked">
          <bool>true</bool>
@@ -123,13 +146,13 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="1">
-       <widget class="QCheckBox" name="cbHumidity">
+      <item row="3" column="1">
+       <widget class="QCheckBox" name="cbPressure">
         <property name="enabled">
          <bool>true</bool>
         </property>
         <property name="text">
-         <string>Humidity</string>
+         <string>Pressure</string>
         </property>
         <property name="checked">
          <bool>true</bool>
@@ -176,20 +199,30 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="0">
-       <widget class="QCheckBox" name="cbTemperature">
+      <item row="0" column="2">
+       <widget class="QCheckBox" name="cbAverageWindSpeed">
         <property name="text">
-         <string>Temperature</string>
+         <string>Average Wind Speed</string>
         </property>
         <property name="checked">
          <bool>true</bool>
         </property>
        </widget>
       </item>
-      <item row="0" column="0">
-       <widget class="QCheckBox" name="cbTimestamp">
+      <item row="1" column="2">
+       <widget class="QCheckBox" name="cbGustWindSpeed">
         <property name="text">
-         <string>Timestamp</string>
+         <string>Gust Wind Speed</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="2">
+       <widget class="QCheckBox" name="cbWindDirection">
+        <property name="text">
+         <string>Wind Direction</string>
         </property>
         <property name="checked">
          <bool>true</bool>
@@ -321,6 +354,9 @@
   <tabstop>cbIndoorHumidity</tabstop>
   <tabstop>cbPressure</tabstop>
   <tabstop>cbRainfall</tabstop>
+  <tabstop>cbAverageWindSpeed</tabstop>
+  <tabstop>cbGustWindSpeed</tabstop>
+  <tabstop>cbWindDirection</tabstop>
   <tabstop>rbTToday</tabstop>
   <tabstop>rbTYesterday</tabstop>
   <tabstop>rbTThisWeek</tabstop>
@@ -331,7 +367,9 @@
   <tabstop>endTime</tabstop>
   <tabstop>buttonBox</tabstop>
  </tabstops>
- <resources/>
+ <resources>
+  <include location="resources.qrc"/>
+ </resources>
  <connections>
   <connection>
    <sender>buttonBox</sender>
