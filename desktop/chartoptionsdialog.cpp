@@ -10,6 +10,9 @@ ChartOptionsDialog::ChartOptionsDialog(QWidget *parent) :
 {
     ui->setupUi(this);
 
+    ui->startTime->setDateTime(QDateTime::currentDateTime().addDays(-1));
+    ui->endTime->setDateTime(QDateTime::currentDateTime());
+
     // Time ranges
     connect(ui->rbTCustom, SIGNAL(clicked()), this, SLOT(dateChanged()));
     connect(ui->rbTThisMonth, SIGNAL(clicked()), this, SLOT(dateChanged()));

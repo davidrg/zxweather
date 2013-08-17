@@ -231,8 +231,11 @@
           <property name="enabled">
            <bool>false</bool>
           </property>
+          <property name="keyboardTracking">
+           <bool>false</bool>
+          </property>
           <property name="displayFormat">
-           <string>d/M/yyyy h:mm:ss AP</string>
+           <string>yyyy-MM-dd hh:mm:ss</string>
           </property>
          </widget>
         </item>
@@ -258,7 +261,10 @@
            <bool>false</bool>
           </property>
           <property name="displayFormat">
-           <string>d/M/yyyy h:mm:ss AP</string>
+           <string>yyyy-MM-dd hh:mm:ss</string>
+          </property>
+          <property name="calendarPopup">
+           <bool>false</bool>
           </property>
          </widget>
         </item>
