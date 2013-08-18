@@ -26,22 +26,6 @@ private slots:
     void samplesFailed(QString message);
     
 private:
-    typedef enum {
-        C_TIMESTAMP,
-        C_TEMPERATURE,
-        C_INDOOR_TEMPERATURE,
-        C_HUMIDITY,
-        C_INDOOR_HUMIDITY,
-        C_APPARENT_TEMPERATURE,
-        C_WIND_CHILL,
-        C_DEW_POINT,
-        C_PRESSURE,
-        C_RAINFALL,
-        C_AVG_WIND_SPEED,
-        C_GUST_WIND_SPEED,
-        C_WIND_DIRECTION
-    } COLUMNS;
-
     Ui::ExportDialog *ui;
     QScopedPointer<AbstractDataSource> dataSource;
 
@@ -50,9 +34,8 @@ private:
     QString getDelimiter();
     QDateTime getStartTime();
     QDateTime getEndTime();
-    QSet<COLUMNS> getColumns();
-    QList<COLUMNS> columnList(QSet<COLUMNS> columns);
-    QString getHeaderRow(QList<COLUMNS> columns);
+    SampleColumns getColumns();
+    QString getHeaderRow(SampleColumns columns);
 };
 
 #endif // EXPORTDIALOG_H
