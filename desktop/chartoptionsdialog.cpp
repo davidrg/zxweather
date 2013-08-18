@@ -31,34 +31,34 @@ ChartOptionsDialog::~ChartOptionsDialog()
 }
 
 void ChartOptionsDialog::checkAndAccept() {
-    columns.clear();
+    columns &= SC_NoColumns;
 
     if (ui->cbTemperature->isChecked())
-        columns.append(COL_TEMPERATURE);
+        columns |= SC_Temperature;
     if (ui->cbIndoorTemperature->isChecked())
-        columns.append(COL_TEMPERATURE_INDOORS);
+        columns |= SC_IndoorTemperature;
     if (ui->cbApparentTemperature->isChecked())
-        columns.append(COL_APPARENT_TEMPERATURE);
+        columns |= SC_ApparentTemperature;
     if (ui->cbDewPoint->isChecked())
-        columns.append(COL_DEW_POINT);
+        columns |= SC_DewPoint;
     if (ui->cbWindChill->isChecked())
-        columns.append(COL_WIND_CHILL);
+        columns |= SC_WindChill;
     if (ui->cbHumidity->isChecked())
-        columns.append(COL_HUMIDITY);
+        columns |= SC_Humidity;
     if (ui->cbIndoorHumidity->isChecked())
-        columns.append(COL_HUMIDITY_INDOORS);
+        columns |= SC_IndoorHumidity;
     if (ui->cbPressure->isChecked())
-        columns.append(COL_PRESSURE);
+        columns |= SC_Pressure;
     if (ui->cbRainfall->isChecked())
-        columns.append(COL_RAINFALL);
+        columns |= SC_Rainfall;
     if (ui->cbAverageWindSpeed->isChecked())
-        columns.append(COL_AVG_WINDSPEED);
+        columns |= SC_AverageWindSpeed;
     if (ui->cbGustWindSpeed->isChecked())
-        columns.append(COL_GUST_WINDSPEED);
+        columns |= SC_GustWindSpeed;
     if (ui->cbWindDirection->isChecked())
-        columns.append(COL_WIND_DIRECTION);
+        columns |= SC_WindDirection;
 
-    if (columns.isEmpty()) {
+    if (columns == SC_NoColumns) {
         QMessageBox::information(this, "Data Sets",
                                  "At least one data set must be selected");
         return;
@@ -132,7 +132,7 @@ QDateTime ChartOptionsDialog::getEndTime() {
         return ui->endTime->dateTime();
 }
 
-QList<int> ChartOptionsDialog::getColumns() {
+SampleColumns ChartOptionsDialog::getColumns() {
     return columns;
 }
 

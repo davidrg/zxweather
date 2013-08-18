@@ -11,7 +11,7 @@
 #include <QBrush>
 #include <QMessageBox>
 
-ChartWindow::ChartWindow(QList<int> columns,
+ChartWindow::ChartWindow(SampleColumns columns,
                          QDateTime startTime,
                          QDateTime endTime,
                          QWidget *parent) :
@@ -91,25 +91,7 @@ void ChartWindow::populateAxisLabels() {
 }
 
 void ChartWindow::refresh() {
-
-    SampleColumns columnSet;
-
-#define ADD_COLUMN_FLAG(colInt, colFlag) if (columns.contains(colInt)) columnSet |= colFlag;
-
-    ADD_COLUMN_FLAG(COL_TEMPERATURE, SC_Temperature);
-    ADD_COLUMN_FLAG(COL_TEMPERATURE_INDOORS, SC_IndoorTemperature);
-    ADD_COLUMN_FLAG(COL_APPARENT_TEMPERATURE, SC_ApparentTemperature);
-    ADD_COLUMN_FLAG(COL_WIND_CHILL, SC_WindChill);
-    ADD_COLUMN_FLAG(COL_DEW_POINT, SC_DewPoint);
-    ADD_COLUMN_FLAG(COL_HUMIDITY, SC_Humidity);
-    ADD_COLUMN_FLAG(COL_HUMIDITY_INDOORS, SC_IndoorHumidity);
-    ADD_COLUMN_FLAG(COL_PRESSURE, SC_Pressure);
-    ADD_COLUMN_FLAG(COL_RAINFALL, SC_Rainfall);
-    ADD_COLUMN_FLAG(COL_AVG_WINDSPEED, SC_AverageWindSpeed);
-    ADD_COLUMN_FLAG(COL_GUST_WINDSPEED, SC_GustWindSpeed);
-    ADD_COLUMN_FLAG(COL_WIND_DIRECTION, SC_WindDirection);
-
-    dataSource->fetchSamples(columnSet,
+    dataSource->fetchSamples(columns,
                              ui->startTime->dateTime(),
                              ui->endTime->dateTime());
 }
@@ -165,68 +147,72 @@ void ChartWindow::samplesReady(SampleSet samples) {
     ui->chart->clearGraphs();
     ui->chart->clearPlottables();
 
-    /* Required axes:
-     *  Temperature (degrees C)
-     *  Speed (m/s)
-     *  Pressure (hPa)
-     *  Humidity (%)
-     *  Rainfall (mm)
-     */
-
-    foreach (int column, columns) {
-        QCPGraph * graph = NULL;
-//        if (column != COL_RAINFALL)
-            graph = ui->chart->addGraph();
-
-        if (column == COL_TEMPERATURE) {
-            graph->setValueAxis(getValueAxis(AT_TEMPERATURE));
-            graph->setData(samples.timestamp, samples.temperature);
-            graph->setName("Temperature");
-            graph->setPen(QPen(colours.temperature));
-        } else if (column == COL_TEMPERATURE_INDOORS) {
-            graph->setValueAxis(getValueAxis(AT_TEMPERATURE));
-            graph->setData(samples.timestamp, samples.indoorTemperature);
-            graph->setName("Indoor Temperature");
-            graph->setPen(QPen(colours.indoorTemperature));
-        } else if (column == COL_APPARENT_TEMPERATURE) {
-            graph->setValueAxis(getValueAxis(AT_TEMPERATURE));
-            graph->setData(samples.timestamp, samples.apparentTemperature);
-            graph->setName("Apparent Temperature");
-            graph->setPen(QPen(colours.apparentTemperature));
-        } else if (column == COL_WIND_CHILL) {
-            graph->setValueAxis(getValueAxis(AT_TEMPERATURE));
-            graph->setData(samples.timestamp, samples.windChill);
-            graph->setName("Wind Chill");
-            graph->setPen(QPen(colours.windChill));
-        } else if (column == COL_DEW_POINT) {
-            graph->setValueAxis(getValueAxis(AT_TEMPERATURE));
-            graph->setData(samples.timestamp, samples.dewPoint);
-            graph->setName("Dew Point");
-            graph->setPen(QPen(colours.dewPoint));
-        } else if (column == COL_HUMIDITY) {
-            graph->setValueAxis(getValueAxis(AT_HUMIDITY));
-            graph->setData(samples.timestamp, samples.humidity);
-            graph->setName("Humidity");
-            graph->setPen(QPen(colours.humidity));
-        } else if (column == COL_HUMIDITY_INDOORS) {
-            graph->setValueAxis(getValueAxis(AT_HUMIDITY));
-            graph->setData(samples.timestamp, samples.indoorHumidity);
-            graph->setName("Indoor Humidity");
-            graph->setPen(QPen(colours.indoorHumidity));
-        } else if (column == COL_PRESSURE) {
-            graph->setValueAxis(getValueAxis(AT_PRESSURE));
-            graph->setData(samples.timestamp, samples.pressure);
-            graph->setName("Pressure");
-            graph->setPen(QPen(colours.pressure));
-        } else if (column == COL_RAINFALL) {
-            graph->setValueAxis(getValueAxis(AT_RAINFALL));
-            // How do you plot rainfall data so it doesn't look stupid?
-            // I don't know. Needs to be lower resolution I guess.
-            graph->setData(samples.timestamp, samples.rainfall);
-            graph->setName("Rainfall");
-            graph->setPen(QPen(colours.rainfall));
-            //graph->setLineStyle(QCPGraph::lsNone);
-            //graph->setScatterStyle(QCP::ssCross);
+    if (columns.testFlag(SC_Temperature)) {
+        QCPGraph* graph = ui->chart->addGraph();
+        graph->setValueAxis(getValueAxis(AT_TEMPERATURE));
+        graph->setData(samples.timestamp, samples.temperature);
+        graph->setName("Temperature");
+        graph->setPen(QPen(colours.temperature));
+    }
+    if (columns.testFlag(SC_IndoorTemperature)) {
+        QCPGraph * graph = ui->chart->addGraph();
+        graph->setValueAxis(getValueAxis(AT_TEMPERATURE));
+        graph->setData(samples.timestamp, samples.indoorTemperature);
+        graph->setName("Indoor Temperature");
+        graph->setPen(QPen(colours.indoorTemperature));
+    }
+    if (columns.testFlag(SC_ApparentTemperature)) {
+        QCPGraph * graph = ui->chart->addGraph();
+        graph->setValueAxis(getValueAxis(AT_TEMPERATURE));
+        graph->setData(samples.timestamp, samples.apparentTemperature);
+        graph->setName("Apparent Temperature");
+        graph->setPen(QPen(colours.apparentTemperature));
+    }
+    if (columns.testFlag(SC_DewPoint)) {
+        QCPGraph * graph = ui->chart->addGraph();
+        graph->setValueAxis(getValueAxis(AT_TEMPERATURE));
+        graph->setData(samples.timestamp, samples.dewPoint);
+        graph->setName("Dew Point");
+        graph->setPen(QPen(colours.dewPoint));
+    }
+    if (columns.testFlag(SC_WindChill)) {
+        QCPGraph * graph = ui->chart->addGraph();
+        graph->setValueAxis(getValueAxis(AT_TEMPERATURE));
+        graph->setData(samples.timestamp, samples.windChill);
+        graph->setName("Wind Chill");
+        graph->setPen(QPen(colours.windChill));
+    }
+    if (columns.testFlag(SC_Humidity)) {
+        QCPGraph * graph = ui->chart->addGraph();
+        graph->setValueAxis(getValueAxis(AT_HUMIDITY));
+        graph->setData(samples.timestamp, samples.humidity);
+        graph->setName("Humidity");
+        graph->setPen(QPen(colours.humidity));
+    }
+    if (columns.testFlag(SC_IndoorHumidity)) {
+        QCPGraph * graph = ui->chart->addGraph();
+        graph->setValueAxis(getValueAxis(AT_HUMIDITY));
+        graph->setData(samples.timestamp, samples.indoorHumidity);
+        graph->setName("Indoor Humidity");
+        graph->setPen(QPen(colours.indoorHumidity));
+    }
+    if (columns.testFlag(SC_Pressure)) {
+        QCPGraph * graph = ui->chart->addGraph();
+        graph->setValueAxis(getValueAxis(AT_PRESSURE));
+        graph->setData(samples.timestamp, samples.pressure);
+        graph->setName("Pressure");
+        graph->setPen(QPen(colours.pressure));
+    }
+    if (columns.testFlag(SC_Rainfall)) {
+        QCPGraph * graph = ui->chart->addGraph();
+        graph->setValueAxis(getValueAxis(AT_RAINFALL));
+        // How do you plot rainfall data so it doesn't look stupid?
+        // I don't know. Needs to be lower resolution I guess.
+        graph->setData(samples.timestamp, samples.rainfall);
+        graph->setName("Rainfall");
+        graph->setPen(QPen(colours.rainfall));
+        //graph->setLineStyle(QCPGraph::lsNone);
+        //graph->setScatterStyle(QCP::ssCross);
 //            QCPBars *bars = new QCPBars(ui->chart->xAxis, ui->chart->yAxis);
 //            ui->chart->addPlottable(bars);
 //            bars->setData(samples.timestamp, samples.rainfall);
@@ -234,36 +220,39 @@ void ChartWindow::samplesReady(SampleSet samples) {
 //            bars->setPen(QPen(Qt::darkBlue));
 //            bars->setBrush(QBrush(Qt::green));
 //            bars->setWidth(1000);
-            // set pen
-        } else if (column == COL_AVG_WINDSPEED) {
-            graph->setValueAxis(getValueAxis(AT_WIND_SPEED));
-            graph->setData(samples.timestamp, samples.averageWindSpeed);
-            graph->setName("Average Wind Speed");
-            graph->setPen(QPen(colours.averageWindSpeed));
-        } else if (column == COL_GUST_WINDSPEED) {
-            graph->setValueAxis(getValueAxis(AT_WIND_SPEED));
-            graph->setData(samples.timestamp, samples.gustWindSpeed);
-            graph->setName("Gust Wind Speed");
-            graph->setPen(QPen(colours.gustWindSpeed));
-        } else if (column == COL_WIND_DIRECTION) {
-            graph->setValueAxis(getValueAxis(AT_WIND_DIRECTION));
-            QList<uint> keys = samples.windDirection.keys();
-            qSort(keys.begin(), keys.end());
-            QVector<double> timestamps;
-            QVector<double> values;
-            foreach(uint key, keys) {
-                timestamps.append(key);
-                values.append(samples.windDirection[key]);
-            }
-            graph->setData(timestamps,values);
-            graph->setName("Wind Direction");
-            graph->setPen(QPen(colours.windDirection));
+        // set pen
+    }
+    if (columns.testFlag(SC_AverageWindSpeed)) {
+        QCPGraph * graph = ui->chart->addGraph();
+        graph->setValueAxis(getValueAxis(AT_WIND_SPEED));
+        graph->setData(samples.timestamp, samples.averageWindSpeed);
+        graph->setName("Average Wind Speed");
+        graph->setPen(QPen(colours.averageWindSpeed));
+    }
+    if (columns.testFlag(SC_GustWindSpeed)) {
+        QCPGraph * graph = ui->chart->addGraph();
+        graph->setValueAxis(getValueAxis(AT_WIND_SPEED));
+        graph->setData(samples.timestamp, samples.gustWindSpeed);
+        graph->setName("Gust Wind Speed");
+        graph->setPen(QPen(colours.gustWindSpeed));
+    }
+    if (columns.testFlag(SC_WindDirection)) {
+        QCPGraph * graph = ui->chart->addGraph();
+        graph->setValueAxis(getValueAxis(AT_WIND_DIRECTION));
+        QList<uint> keys = samples.windDirection.keys();
+        qSort(keys.begin(), keys.end());
+        QVector<double> timestamps;
+        QVector<double> values;
+        foreach(uint key, keys) {
+            timestamps.append(key);
+            values.append(samples.windDirection[key]);
         }
-
-        graph->rescaleAxes();
+        graph->setData(timestamps,values);
+        graph->setName("Wind Direction");
+        graph->setPen(QPen(colours.windDirection));
     }
 
-    if (columns.count() > 1)
+    if (ui->chart->graphCount() > 1)
         ui->chart->legend->setVisible(true);
     else
         ui->chart->legend->setVisible(false);

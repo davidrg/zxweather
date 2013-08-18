@@ -357,7 +357,7 @@ void MainWindow::showChartWindow() {
     if (result != QDialog::Accepted)
         return; // User canceled. Nothing to do.
 
-    QList<int> columns = options.getColumns();
+    SampleColumns columns = options.getColumns();
     QDateTime startTime = options.getStartTime();
     QDateTime endTime = options.getEndTime();
 

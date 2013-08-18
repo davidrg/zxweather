@@ -5,18 +5,7 @@
 #include <QDateTime>
 #include <QList>
 
-#define COL_TEMPERATURE 1
-#define COL_TEMPERATURE_INDOORS 2
-#define COL_APPARENT_TEMPERATURE 3
-#define COL_WIND_CHILL 4
-#define COL_DEW_POINT 5
-#define COL_HUMIDITY 6
-#define COL_HUMIDITY_INDOORS 7
-#define COL_PRESSURE 8
-#define COL_RAINFALL 9
-#define COL_AVG_WINDSPEED 10
-#define COL_GUST_WINDSPEED 11
-#define COL_WIND_DIRECTION 12
+#include "datasource/samplecolumns.h"
 
 namespace Ui {
 class ChartOptionsDialog;
@@ -33,7 +22,7 @@ public:
     
     QDateTime getStartTime();
     QDateTime getEndTime();
-    QList<int> getColumns();
+    SampleColumns getColumns();
 
 private slots:
     void dateChanged();
@@ -41,7 +30,7 @@ private slots:
 
 private:
     Ui::ChartOptionsDialog *ui;
-    QList<int> columns;
+    SampleColumns columns;
 };
 
 #endif // CHARTOPTIONSDIALOG_H

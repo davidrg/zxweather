@@ -19,7 +19,7 @@ class ChartWindow : public QWidget
     Q_OBJECT
     
 public:
-    explicit ChartWindow(QList<int> columns,
+    explicit ChartWindow(SampleColumns columns,
                          QDateTime startTime,
                          QDateTime endTime,
                          QWidget *parent = 0);
@@ -75,7 +75,7 @@ private:
 
     Ui::ChartWindow *ui;
     QScopedPointer<AbstractDataSource> dataSource;
-    QList<int> columns;
+    SampleColumns columns;
 };
 
 #endif // CHARTWINDOW_H
