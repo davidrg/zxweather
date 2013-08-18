@@ -36,6 +36,9 @@ private slots:
     void mouseRelease();
     void mouseWheel(QWheelEvent *event);
     void selectionChanged();
+    void axisDoubleClick(QCPAxis* axis,
+                         QCPAxis::SelectablePart part,
+                         QMouseEvent* event);
 
     void axisLockToggled();
 
@@ -55,6 +58,7 @@ private:
 
     QMap<AxisType, QString> axisLabels;
     QMap<AxisType, QPointer<QCPAxis> > configuredAxes;
+    QMap<QCPAxis*, AxisType> axisTypes;
 
     void populateAxisLabels();
     QPointer<QCPAxis> createAxis(AxisType type);
