@@ -10,6 +10,7 @@
 #include <QPen>
 #include <QBrush>
 #include <QMessageBox>
+#include <QInputDialog>
 
 ChartWindow::ChartWindow(SampleColumns columns,
                          QDateTime startTime,
@@ -67,6 +68,15 @@ ChartWindow::ChartWindow(SampleColumns columns,
     connect(ui->chart, SIGNAL(selectionChangedByUser()),
             this, SLOT(selectionChanged()));
 
+    connect(ui->chart,
+            SIGNAL(axisDoubleClick(QCPAxis*,
+                                   QCPAxis::SelectablePart,
+                                   QMouseEvent*)),
+            this,
+            SLOT(axisDoubleClick(QCPAxis*,
+                                 QCPAxis::SelectablePart,
+                                 QMouseEvent*)));
+
     // Keep axis ranges locked
     connect(ui->chart->xAxis, SIGNAL(rangeChanged(QCPRange)),
             ui->chart->xAxis2, SLOT(setRange(QCPRange)));
@@ -113,6 +123,7 @@ QPointer<QCPAxis> ChartWindow::createAxis(AxisType type) {
             axis = ui->chart->axisRect()->addAxis(QCPAxis::atRight);
     }
     configuredAxes.insert(type, axis);
+    axisTypes.insert(axis,type);
     mDragStartVertRange.insert(type, QCPRange());
     axis->setLabel(axisLabels[type]);
 
@@ -447,6 +458,30 @@ void ChartWindow::selectionChanged() {
             // Just ensure the axis is fully selected.
             QPointer<QCPAxis> axis = valueAxisWithSelectedParts();
             axis->setSelectedParts(QCPAxis::spAxis | QCPAxis::spTickLabels);
+        }
+    }
+}
+
+void ChartWindow::axisDoubleClick(QCPAxis *axis, QCPAxis::SelectablePart part,
+                                  QMouseEvent *event)
+{
+    // If the user double-clicked on the axis label then ask for new
+    // label text.
+    if (part == QCPAxis::spAxisLabel) {
+        AxisType type = axisTypes[axis];
+        QString defaultLabel = axisLabels[type];
+        bool ok;
+
+        QString newLabel = QInputDialog::getText(
+                    this,
+                    defaultLabel + " Axis Label",
+                    "New axis label:",
+                    QLineEdit::Normal,
+                    axis->label(),
+                    &ok);
+        if (ok) {
+            axis->setLabel(newLabel);
+            ui->chart->replot();
         }
     }
 }
