@@ -143,65 +143,39 @@ QDateTime ExportDialog::getEndTime() {
         return ui->endTime->dateTime();
 }
 
-QSet<ExportDialog::COLUMNS> ExportDialog::getColumns()
+SampleColumns ExportDialog::getColumns()
 {
-    QSet<COLUMNS> columns;
+    SampleColumns columns;
+
 
     if (ui->cbTimestamp->isChecked())
-        columns.insert(ExportDialog::C_TIMESTAMP);
+        columns |= SC_Timestamp;
     if (ui->cbApparentTemperature->isChecked())
-        columns.insert(ExportDialog::C_APPARENT_TEMPERATURE);
+        columns |= SC_ApparentTemperature;
     if (ui->cbDewPoint->isChecked())
-        columns.insert(ExportDialog::C_DEW_POINT);
+        columns |= SC_DewPoint;
     if (ui->cbHumidity->isChecked())
-        columns.insert(ExportDialog::C_HUMIDITY);
+        columns |= SC_Humidity;
     if (ui->cbIndoorHumidity->isChecked())
-        columns.insert(ExportDialog::C_INDOOR_HUMIDITY);
+        columns |= SC_IndoorHumidity;
     if (ui->cbIndoorTemperature->isChecked())
-        columns.insert(ExportDialog::C_INDOOR_TEMPERATURE);
+        columns |= SC_IndoorTemperature;
     if (ui->cbPressure->isChecked())
-        columns.insert(ExportDialog::C_PRESSURE);
+        columns |= SC_Pressure;
     if (ui->cbRainfall->isChecked())
-        columns.insert(ExportDialog::C_RAINFALL);
+        columns |= SC_Rainfall;
     if (ui->cbTemperature->isChecked())
-        columns.insert(ExportDialog::C_TEMPERATURE);
+        columns |= SC_Temperature;
     if (ui->cbWindChill->isChecked())
-        columns.insert(ExportDialog::C_WIND_CHILL);
+        columns |= SC_WindChill;
     if (ui->cbAverageWindSpeed->isChecked())
-        columns.insert(ExportDialog::C_AVG_WIND_SPEED);
+        columns |= SC_AverageWindSpeed;
     if (ui->cbGustWindSpeed->isChecked())
-        columns.insert(ExportDialog::C_GUST_WIND_SPEED);
+        columns |= SC_GustWindSpeed;
     if (ui->cbWindDirection->isChecked())
-        columns.insert(ExportDialog::C_WIND_DIRECTION);
+        columns |= SC_WindDirection;
 
     return columns;
-}
-
-
-// #define lazyness
-#define CHECK_AND_ADD(column) if (columns.contains(column)) list.append(column)
-
-// QSet is unordered. We want an ordered list in some places which is what
-// this gives us.
-QList<ExportDialog::COLUMNS> ExportDialog::columnList(QSet<COLUMNS> columns)
-{
-    QList<COLUMNS> list;
-
-    CHECK_AND_ADD(C_TIMESTAMP);
-    CHECK_AND_ADD(C_TEMPERATURE);
-    CHECK_AND_ADD(C_APPARENT_TEMPERATURE);
-    CHECK_AND_ADD(C_WIND_CHILL);
-    CHECK_AND_ADD(C_DEW_POINT);
-    CHECK_AND_ADD(C_HUMIDITY);
-    CHECK_AND_ADD(C_INDOOR_TEMPERATURE);
-    CHECK_AND_ADD(C_INDOOR_HUMIDITY);
-    CHECK_AND_ADD(C_PRESSURE);
-    CHECK_AND_ADD(C_RAINFALL);
-    CHECK_AND_ADD(C_AVG_WIND_SPEED);
-    CHECK_AND_ADD(C_GUST_WIND_SPEED);
-    CHECK_AND_ADD(C_WIND_DIRECTION);
-
-    return list;
 }
 
 
@@ -228,26 +202,7 @@ void ExportDialog::exportData() {
 
     targetFilename = filename;
 
-    QSet<COLUMNS> columns = getColumns();
-
-    SampleColumns columnSet;
-
-#define ADD_COLUMN_FLAG(colInt, colFlag) if (columns.contains(colInt)) columnSet |= colFlag;
-
-    ADD_COLUMN_FLAG(C_TEMPERATURE, SC_Temperature);
-    ADD_COLUMN_FLAG(C_INDOOR_TEMPERATURE, SC_IndoorTemperature);
-    ADD_COLUMN_FLAG(C_APPARENT_TEMPERATURE, SC_ApparentTemperature);
-    ADD_COLUMN_FLAG(C_WIND_CHILL, SC_WindChill);
-    ADD_COLUMN_FLAG(C_DEW_POINT, SC_DewPoint);
-    ADD_COLUMN_FLAG(C_HUMIDITY, SC_Humidity);
-    ADD_COLUMN_FLAG(C_INDOOR_HUMIDITY, SC_IndoorHumidity);
-    ADD_COLUMN_FLAG(C_PRESSURE, SC_Pressure);
-    ADD_COLUMN_FLAG(C_RAINFALL, SC_Rainfall);
-    ADD_COLUMN_FLAG(C_AVG_WIND_SPEED, SC_AverageWindSpeed);
-    ADD_COLUMN_FLAG(C_GUST_WIND_SPEED, SC_GustWindSpeed);
-    ADD_COLUMN_FLAG(C_WIND_DIRECTION, SC_WindDirection);
-
-    dataSource->fetchSamples(columnSet, startTime, endTime);
+    dataSource->fetchSamples(getColumns(), startTime, endTime);
 }
 
 void ExportDialog::samplesReady(SampleSet samples)
@@ -267,7 +222,7 @@ void ExportDialog::samplesReady(SampleSet samples)
         return;
     }
 
-    QList<COLUMNS> columns = columnList(getColumns());
+    SampleColumns columns = getColumns();
 
     QString headerRow = getHeaderRow(columns);
     if (!headerRow.isEmpty())
@@ -277,64 +232,44 @@ void ExportDialog::samplesReady(SampleSet samples)
 
     for (int i = 0; i < samples.timestamp.count(); i++) {
         QStringList rowData;
-        foreach (COLUMNS column, columns) {
-            switch(column) {
-            case C_TIMESTAMP:
-                rowData.append(
-                            QDateTime::fromTime_t(samples.timestampUnix.at(i))
-                               .toString(Qt::ISODate));
-                break;
-            case C_APPARENT_TEMPERATURE:
-                rowData.append(QString::number(
-                                   samples.apparentTemperature.at(i),'f', 1));
-                break;
-            case C_DEW_POINT:
-                rowData.append(QString::number(samples.dewPoint.at(i),'f', 1));
-                break;
-            case C_HUMIDITY:
-                rowData.append(QString::number(samples.humidity.at(i)));
-                break;
-            case C_INDOOR_HUMIDITY:
-                rowData.append(QString::number(samples.indoorHumidity.at(i)));
-                break;
-            case C_INDOOR_TEMPERATURE:
-                rowData.append(QString::number(
-                                   samples.indoorTemperature.at(i),'f', 1));
-                break;
-            case C_PRESSURE:
-                rowData.append(QString::number(samples.pressure.at(i),'f', 1));
-                break;
-            case C_RAINFALL:
-                rowData.append(QString::number(samples.rainfall.at(i),'f', 1));
-                break;
-            case C_TEMPERATURE:
-                rowData.append(QString::number(
-                                   samples.temperature.at(i),'f', 1));
-                break;
-            case C_WIND_CHILL:
-                rowData.append(QString::number(
-                                   samples.windChill.at(i),'f', 1));
-                break;
-            case C_AVG_WIND_SPEED:
-                rowData.append(QString::number(
-                                   samples.averageWindSpeed.at(i),'f',1));
-                break;
-            case C_GUST_WIND_SPEED:
-                rowData.append(QString::number(
-                                   samples.gustWindSpeed.at(i),'f',1));
-                break;
-            case C_WIND_DIRECTION: {
-                time_t ts = samples.timestampUnix.at(i);
-                if (samples.windDirection.contains(ts))
-                    rowData.append(QString::number(samples.windDirection[ts]));
-                else
-                    rowData.append("");
-                break;
-            }
-            default:
-                rowData.append("(ERROR: Unrecognised column)");
-            }
+
+        if (columns.testFlag(SC_Timestamp))
+            rowData.append(QDateTime::fromTime_t(
+                               samples.timestampUnix.at(i))
+                           .toString(Qt::ISODate));
+        if (columns.testFlag(SC_Temperature))
+            rowData.append(QString::number(samples.temperature.at(i),'f', 1));
+        if (columns.testFlag(SC_ApparentTemperature))
+            rowData.append(QString::number(
+                               samples.apparentTemperature.at(i),'f', 1));
+        if (columns.testFlag(SC_WindChill))
+            rowData.append(QString::number(samples.windChill.at(i),'f', 1));
+        if (columns.testFlag(SC_DewPoint))
+            rowData.append(QString::number(samples.dewPoint.at(i),'f', 1));
+        if (columns.testFlag(SC_Humidity))
+            rowData.append(QString::number(samples.humidity.at(i)));
+        if (columns.testFlag(SC_IndoorTemperature))
+            rowData.append(QString::number(
+                               samples.indoorTemperature.at(i),'f', 1));
+        if (columns.testFlag(SC_IndoorHumidity))
+            rowData.append(QString::number(samples.indoorHumidity.at(i)));
+        if (columns.testFlag(SC_Pressure))
+            rowData.append(QString::number(samples.pressure.at(i),'f', 1));
+        if (columns.testFlag(SC_Rainfall))
+            rowData.append(QString::number(samples.rainfall.at(i),'f', 1));
+        if (columns.testFlag(SC_AverageWindSpeed))
+            rowData.append(QString::number(
+                               samples.averageWindSpeed.at(i),'f',1));
+        if (columns.testFlag(SC_GustWindSpeed))
+            rowData.append(QString::number(samples.gustWindSpeed.at(i),'f',1));
+        if (columns.testFlag(SC_WindDirection)) {
+            time_t ts = samples.timestampUnix.at(i);
+            if (samples.windDirection.contains(ts))
+                rowData.append(QString::number(samples.windDirection[ts]));
+             else
+                 rowData.append("");
         }
+
         QString row = rowData.join(delimiter) + "\n";
         dataFile.write(row.toAscii());
 
@@ -361,54 +296,35 @@ void ExportDialog::samplesFailed(QString message)
     reject();
 }
 
-QString ExportDialog::getHeaderRow(QList<COLUMNS> columns) {
+QString ExportDialog::getHeaderRow(SampleColumns columns) {
     QStringList columnNames;
 
-    foreach (COLUMNS column, columns) {
-        switch(column) {
-        case C_TIMESTAMP:
-            columnNames.append("Timestamp");
-            break;
-        case C_APPARENT_TEMPERATURE:
-            columnNames.append("Apparent Temperature");
-            break;
-        case C_DEW_POINT:
-            columnNames.append("Dew Point");
-            break;
-        case C_HUMIDITY:
-            columnNames.append("Humidity");
-            break;
-        case C_INDOOR_HUMIDITY:
-            columnNames.append("Indoor Humidity");
-            break;
-        case C_INDOOR_TEMPERATURE:
-            columnNames.append("Indoor Temperature");
-            break;
-        case C_PRESSURE:
-            columnNames.append("Pressure");
-            break;
-        case C_RAINFALL:
-            columnNames.append("Rainfall");
-            break;
-        case C_TEMPERATURE:
-            columnNames.append("Temperature");
-            break;
-        case C_WIND_CHILL:
-            columnNames.append("Wind Chill");
-            break;
-        case C_AVG_WIND_SPEED:
-            columnNames.append("Average Wind Speed");
-            break;
-        case C_GUST_WIND_SPEED:
-            columnNames.append("Gust Wind Speed");
-            break;
-        case C_WIND_DIRECTION:
-            columnNames.append("Wind Direction");
-            break;
-        default:
-            columnNames.append("(Unknown)");
-        }
-    }
+    if (columns.testFlag(SC_Timestamp))
+        columnNames.append("Timestamp");
+    if (columns.testFlag(SC_Temperature))
+        columnNames.append("Temperature");
+    if (columns.testFlag(SC_ApparentTemperature))
+        columnNames.append("Apparent Temperature");
+    if (columns.testFlag(SC_WindChill))
+        columnNames.append("Wind Chill");
+    if (columns.testFlag(SC_DewPoint))
+        columnNames.append("Dew Point");
+    if (columns.testFlag(SC_Humidity))
+        columnNames.append("Humidity");
+    if (columns.testFlag(SC_IndoorTemperature))
+        columnNames.append("Indoor Temperature");
+    if (columns.testFlag(SC_IndoorHumidity))
+        columnNames.append("Indoor Humidity");
+    if (columns.testFlag(SC_Pressure))
+         columnNames.append("Pressure");
+    if (columns.testFlag(SC_Rainfall))
+        columnNames.append("Rainfall");
+    if (columns.testFlag(SC_AverageWindSpeed))
+        columnNames.append("Average Wind Speed");
+    if (columns.testFlag(SC_GustWindSpeed))
+        columnNames.append("Gust Wind Speed");
+    if (columns.testFlag(SC_WindDirection))
+        columnNames.append("Wind Direction");
 
     return columnNames.join(getDelimiter()) + "\n";
 }
