@@ -82,7 +82,8 @@ HEADERS  += mainwindow.h \
     livemonitor.h \
     datasource/webcachedb.h \
     datasource/sampleset.h \
-    exportdialog.h
+    exportdialog.h \
+    datasource/samplecolumns.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \
