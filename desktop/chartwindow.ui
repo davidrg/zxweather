@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>645</width>
+    <width>694</width>
     <height>436</height>
    </rect>
   </property>
@@ -182,6 +182,9 @@
        <horstretch>0</horstretch>
        <verstretch>0</verstretch>
       </sizepolicy>
+     </property>
+     <property name="contextMenuPolicy">
+      <enum>Qt::CustomContextMenu</enum>
      </property>
      <property name="whatsThis">
       <string>Use the mouse wheel to zoom, drag to pan. Double click on the axes to limit pan and zoom.</string>

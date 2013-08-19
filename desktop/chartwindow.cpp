@@ -11,6 +11,7 @@
 #include <QBrush>
 #include <QMessageBox>
 #include <QInputDialog>
+#include <QMenu>
 
 ChartWindow::ChartWindow(SampleColumns columns,
                          QDateTime startTime,
@@ -20,6 +21,7 @@ ChartWindow::ChartWindow(SampleColumns columns,
     ui(new Ui::ChartWindow)
 {
     ui->setupUi(this);
+
     populateAxisLabels();
 
     // These will be turned back on later if they are needed.
@@ -68,6 +70,8 @@ ChartWindow::ChartWindow(SampleColumns columns,
     connect(ui->chart, SIGNAL(selectionChangedByUser()),
             this, SLOT(selectionChanged()));
 
+    connect(ui->chart, SIGNAL(titleDoubleClick(QMouseEvent*,QCPPlotTitle*)),
+            this, SLOT(titleDoubleClick(QMouseEvent*, QCPPlotTitle*)));
     connect(ui->chart,
             SIGNAL(axisDoubleClick(QCPAxis*,
                                    QCPAxis::SelectablePart,
@@ -76,6 +80,8 @@ ChartWindow::ChartWindow(SampleColumns columns,
             SLOT(axisDoubleClick(QCPAxis*,
                                  QCPAxis::SelectablePart,
                                  QMouseEvent*)));
+    connect(ui->chart, SIGNAL(customContextMenuRequested(QPoint)),
+            this, SLOT(chartContextMenuRequested(QPoint)));
 
     // Keep axis ranges locked
     connect(ui->chart->xAxis, SIGNAL(rangeChanged(QCPRange)),
@@ -486,8 +492,68 @@ void ChartWindow::axisDoubleClick(QCPAxis *axis, QCPAxis::SelectablePart part,
     }
 }
 
+void ChartWindow::titleDoubleClick(QMouseEvent *event, QCPPlotTitle *title)
+{
+    Q_UNUSED(event)
+
+    // Allow the graph title to be changed.
+    bool ok;
+    QString newTitle = QInputDialog::getText(
+                this,
+                "Chart Title",
+                "New chart title:",
+                QLineEdit::Normal,
+                title->text(),
+                &ok);
+    if (ok) {
+        title->setText(newTitle);
+        ui->chart->replot();
+    }
+}
+
 void ChartWindow::axisLockToggled() {
     ui->chart->deselectAll();
+    ui->chart->replot();
+}
+
+void ChartWindow::chartContextMenuRequested(QPoint point)
+{
+    QMenu* menu = new QMenu(this);
+    menu->setAttribute(Qt::WA_DeleteOnClose);
+
+    if (!plotTitle.isNull() && plotTitle->selectTest(point, false) >= 0) {
+        // User right-clicked on the plot title.
+        menu->addAction("Remove Title", this, SLOT(removeTitle()));
+    }
+    else if (plotTitle.isNull()) {
+        menu->addAction("Add Title", this, SLOT(addTitle()));
+    }
+
+    menu->popup(ui->chart->mapToGlobal(point));
+}
+
+void ChartWindow::addTitle()
+{
+    bool ok;
+    QString newTitle = QInputDialog::getText(
+                this,
+                "Chart Title",
+                "New chart title:",
+                QLineEdit::Normal,
+                "",
+                &ok);
+    if (ok) {
+        ui->chart->plotLayout()->insertRow(0);
+        plotTitle = new QCPPlotTitle(ui->chart, newTitle);
+        ui->chart->plotLayout()->addElement(0, 0, plotTitle);
+        ui->chart->replot();
+    }
+}
+
+void ChartWindow::removeTitle()
+{
+    ui->chart->plotLayout()->remove(plotTitle);
+    ui->chart->plotLayout()->simplify();
     ui->chart->replot();
 }
 
