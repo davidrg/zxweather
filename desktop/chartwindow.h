@@ -50,6 +50,7 @@ private slots:
     void showTitleToggle();
     void moveLegend();
     void removeSelectedGraph();
+    void addGraph();
 
     // Save As slot
     void save();
@@ -84,6 +85,8 @@ private:
     void showLegendContextMenu(QPoint point);
 
     void removeUnusedAxes();
+
+    SampleColumns availableColumns();
 
     // For manually implementing RangeDrag on any additional independent
     // Y axes:

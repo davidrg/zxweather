@@ -1,6 +1,7 @@
 #include "chartwindow.h"
 #include "ui_chartwindow.h"
 #include "settings.h"
+#include "addgraphdialog.h"
 
 #include "datasource/webdatasource.h"
 #include "datasource/databasedatasource.h"
@@ -12,6 +13,7 @@
 #include <QMessageBox>
 #include <QInputDialog>
 #include <QMenu>
+#include <QIcon>
 
 #define GRAPH_TYPE "GraphType"
 #define GRAPH_AXIS "GraphAxisType"
@@ -563,28 +565,40 @@ void ChartWindow::chartContextMenuRequested(QPoint point)
     QMenu* menu = new QMenu(this);
     menu->setAttribute(Qt::WA_DeleteOnClose);
 
+    /******** Graph add/remove ********/
+
+    // If a graph is currently selected let it be removed.
     if (!ui->chart->selectedGraphs().isEmpty()) {
         menu->addAction("Remove selected graph",
                         this, SLOT(removeSelectedGraph()));
     }
 
-    if (!menu->actions().isEmpty())
-        menu->addSeparator();
+    QAction *action = menu->addAction(QIcon(":/icons/chart-add"), "Add Graph",
+                                      this, SLOT(addGraph()));
+
+    if (availableColumns() == 0) {
+        // All graphs are already in the chart. No more to add.
+        action->setEnabled(false);
+    }
+
+    /******** Plot feature visibility ********/
+    menu->addSeparator();
 
     // Title visibility option.
-    QAction* action = menu->addAction("Show Title",
-                                      this, SLOT(showTitleToggle()));
+    action = menu->addAction("Show Title",
+                             this, SLOT(showTitleToggle()));
     action->setCheckable(true);
     action->setChecked(!plotTitle.isNull());
 
 
     // Legend visibility option.
     action = menu->addAction("Show Legend",
-                                      this, SLOT(showLegendToggle()));
+                             this, SLOT(showLegendToggle()));
     action->setCheckable(true);
     action->setChecked(ui->chart->legend->visible());
 
 
+    /******** Finished ********/
     menu->popup(ui->chart->mapToGlobal(point));
 }
 
@@ -670,6 +684,30 @@ void ChartWindow::removeSelectedGraph()
     }
 }
 
+void ChartWindow::addGraph()
+{
+    AddGraphDialog adg(availableColumns(), this);
+    if (adg.exec() == QDialog::Accepted) {
+        SampleColumns newCols = adg.selectedColumns();
+
+        if (newCols == SC_NoColumns)
+            return; // Nothing chosen - nothing to do
+
+
+        /* TODO: try a selective refresh. If this is a big chart then doing
+         * a full refresh like this could take a while.
+         *
+         * The date range hasn't changed so there is certainly no need to go
+         * and fetch *all* the data again - we should just get the data
+         * required by the new columns and plot those leaving whats already
+         * in the chart alone.
+         */
+
+        columns |= newCols;
+        refresh();
+    }
+}
+
 bool ChartWindow::isYAxisLockOn() {
     return ui->cbYLock->isVisible() && ui->cbYLock->isChecked();
 }
@@ -728,6 +766,21 @@ void ChartWindow::removeUnusedAxes()
             ui->chart->axisRect()->removeAxis(axis);
         }
     }
+}
+
+SampleColumns ChartWindow::availableColumns()
+{
+    SampleColumns availableColumns = ~columns;
+
+    // This will have gone and set all the unused bits in the int too.
+    // Go clear anything we don't use.
+    availableColumns &= ALL_SAMPLE_COLUMNS;
+
+    // Then unset the timestamp flag if its set (its not a valid option here).
+    if (availableColumns.testFlag(SC_Timestamp))
+        availableColumns &= ~SC_Timestamp;
+
+    return availableColumns;
 }
 
 void ChartWindow::save() {

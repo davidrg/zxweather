@@ -56,7 +56,8 @@ SOURCES += main.cpp\
     livemonitor.cpp \
     datasource/webcachedb.cpp \
     datasource/sampleset.cpp \
-    exportdialog.cpp
+    exportdialog.cpp \
+    addgraphdialog.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
@@ -83,7 +84,8 @@ HEADERS  += mainwindow.h \
     datasource/webcachedb.h \
     datasource/sampleset.h \
     exportdialog.h \
-    datasource/samplecolumns.h
+    datasource/samplecolumns.h \
+    addgraphdialog.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \
@@ -93,7 +95,8 @@ FORMS    += mainwindow.ui \
     livedatawidget.ui \
     statuswidget.ui \
     forecastwidget.ui \
-    exportdialog.ui
+    exportdialog.ui \
+    addgraphdialog.ui
 
 OTHER_FILES += \
     database.pgc \
