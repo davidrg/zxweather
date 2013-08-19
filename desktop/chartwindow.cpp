@@ -13,6 +13,8 @@
 #include <QInputDialog>
 #include <QMenu>
 
+#define GRAPH_TYPE "GraphType"
+
 ChartWindow::ChartWindow(SampleColumns columns,
                          QDateTime startTime,
                          QDateTime endTime,
@@ -50,7 +52,8 @@ ChartWindow::ChartWindow(SampleColumns columns,
     // Configure chart
     ui->chart->setInteractions(QCP::iRangeZoom |
                                QCP::iSelectAxes |
-                               QCP::iRangeDrag);
+                               QCP::iRangeDrag |
+                               QCP::iSelectPlottables);
     ui->chart->axisRect()->setRangeDrag(Qt::Horizontal|Qt::Vertical);
     ui->chart->axisRect()->setRangeZoom(Qt::Horizontal|Qt::Vertical);
     //ui->chart->axisRect()->setupFullAxesBox();
@@ -107,6 +110,10 @@ void ChartWindow::populateAxisLabels() {
 }
 
 void ChartWindow::refresh() {
+
+    // No columns selected? nothing to do.
+    if (columns == SC_NoColumns) return;
+
     dataSource->fetchSamples(columns,
                              ui->startTime->dateTime(),
                              ui->endTime->dateTime());
@@ -170,6 +177,7 @@ void ChartWindow::samplesReady(SampleSet samples) {
         graph->setData(samples.timestamp, samples.temperature);
         graph->setName("Temperature");
         graph->setPen(QPen(colours.temperature));
+        graph->setProperty(GRAPH_TYPE, SC_Temperature);
     }
     if (columns.testFlag(SC_IndoorTemperature)) {
         QCPGraph * graph = ui->chart->addGraph();
@@ -177,6 +185,7 @@ void ChartWindow::samplesReady(SampleSet samples) {
         graph->setData(samples.timestamp, samples.indoorTemperature);
         graph->setName("Indoor Temperature");
         graph->setPen(QPen(colours.indoorTemperature));
+        graph->setProperty(GRAPH_TYPE, SC_IndoorTemperature);
     }
     if (columns.testFlag(SC_ApparentTemperature)) {
         QCPGraph * graph = ui->chart->addGraph();
@@ -184,6 +193,7 @@ void ChartWindow::samplesReady(SampleSet samples) {
         graph->setData(samples.timestamp, samples.apparentTemperature);
         graph->setName("Apparent Temperature");
         graph->setPen(QPen(colours.apparentTemperature));
+        graph->setProperty(GRAPH_TYPE, SC_ApparentTemperature);
     }
     if (columns.testFlag(SC_DewPoint)) {
         QCPGraph * graph = ui->chart->addGraph();
@@ -191,6 +201,7 @@ void ChartWindow::samplesReady(SampleSet samples) {
         graph->setData(samples.timestamp, samples.dewPoint);
         graph->setName("Dew Point");
         graph->setPen(QPen(colours.dewPoint));
+        graph->setProperty(GRAPH_TYPE, SC_DewPoint);
     }
     if (columns.testFlag(SC_WindChill)) {
         QCPGraph * graph = ui->chart->addGraph();
@@ -198,6 +209,7 @@ void ChartWindow::samplesReady(SampleSet samples) {
         graph->setData(samples.timestamp, samples.windChill);
         graph->setName("Wind Chill");
         graph->setPen(QPen(colours.windChill));
+        graph->setProperty(GRAPH_TYPE, SC_WindChill);
     }
     if (columns.testFlag(SC_Humidity)) {
         QCPGraph * graph = ui->chart->addGraph();
@@ -205,6 +217,7 @@ void ChartWindow::samplesReady(SampleSet samples) {
         graph->setData(samples.timestamp, samples.humidity);
         graph->setName("Humidity");
         graph->setPen(QPen(colours.humidity));
+        graph->setProperty(GRAPH_TYPE, SC_Humidity);
     }
     if (columns.testFlag(SC_IndoorHumidity)) {
         QCPGraph * graph = ui->chart->addGraph();
@@ -212,6 +225,7 @@ void ChartWindow::samplesReady(SampleSet samples) {
         graph->setData(samples.timestamp, samples.indoorHumidity);
         graph->setName("Indoor Humidity");
         graph->setPen(QPen(colours.indoorHumidity));
+        graph->setProperty(GRAPH_TYPE, SC_IndoorHumidity);
     }
     if (columns.testFlag(SC_Pressure)) {
         QCPGraph * graph = ui->chart->addGraph();
@@ -219,6 +233,7 @@ void ChartWindow::samplesReady(SampleSet samples) {
         graph->setData(samples.timestamp, samples.pressure);
         graph->setName("Pressure");
         graph->setPen(QPen(colours.pressure));
+        graph->setProperty(GRAPH_TYPE, SC_Pressure);
     }
     if (columns.testFlag(SC_Rainfall)) {
         QCPGraph * graph = ui->chart->addGraph();
@@ -238,6 +253,7 @@ void ChartWindow::samplesReady(SampleSet samples) {
 //            bars->setBrush(QBrush(Qt::green));
 //            bars->setWidth(1000);
         // set pen
+        graph->setProperty(GRAPH_TYPE, SC_Rainfall);
     }
     if (columns.testFlag(SC_AverageWindSpeed)) {
         QCPGraph * graph = ui->chart->addGraph();
@@ -245,6 +261,7 @@ void ChartWindow::samplesReady(SampleSet samples) {
         graph->setData(samples.timestamp, samples.averageWindSpeed);
         graph->setName("Average Wind Speed");
         graph->setPen(QPen(colours.averageWindSpeed));
+        graph->setProperty(GRAPH_TYPE, SC_AverageWindSpeed);
     }
     if (columns.testFlag(SC_GustWindSpeed)) {
         QCPGraph * graph = ui->chart->addGraph();
@@ -252,6 +269,7 @@ void ChartWindow::samplesReady(SampleSet samples) {
         graph->setData(samples.timestamp, samples.gustWindSpeed);
         graph->setName("Gust Wind Speed");
         graph->setPen(QPen(colours.gustWindSpeed));
+        graph->setProperty(GRAPH_TYPE, SC_GustWindSpeed);
     }
     if (columns.testFlag(SC_WindDirection)) {
         QCPGraph * graph = ui->chart->addGraph();
@@ -267,6 +285,7 @@ void ChartWindow::samplesReady(SampleSet samples) {
         graph->setData(timestamps,values);
         graph->setName("Wind Direction");
         graph->setPen(QPen(colours.windDirection));
+        graph->setProperty(GRAPH_TYPE, SC_WindDirection);
     }
 
     if (ui->chart->graphCount() > 1)
@@ -498,7 +517,7 @@ void ChartWindow::titleDoubleClick(QMouseEvent *event, QCPPlotTitle *title)
 
     // Allow the graph title to be changed.
     bool ok;
-    QString newTitle = QInputDialog::getText(
+    plotTitleValue = QInputDialog::getText(
                 this,
                 "Chart Title",
                 "New chart title:",
@@ -506,7 +525,7 @@ void ChartWindow::titleDoubleClick(QMouseEvent *event, QCPPlotTitle *title)
                 title->text(),
                 &ok);
     if (ok) {
-        title->setText(newTitle);
+        title->setText(plotTitleValue);
         ui->chart->replot();
     }
 }
@@ -518,16 +537,36 @@ void ChartWindow::axisLockToggled() {
 
 void ChartWindow::chartContextMenuRequested(QPoint point)
 {
+
+    if (ui->chart->legend->selectTest(point, false) >= 0) {
+        showLegendContextMenu(point);
+        return;
+    }
+
     QMenu* menu = new QMenu(this);
     menu->setAttribute(Qt::WA_DeleteOnClose);
 
-    if (!plotTitle.isNull() && plotTitle->selectTest(point, false) >= 0) {
-        // User right-clicked on the plot title.
-        menu->addAction("Remove Title", this, SLOT(removeTitle()));
+    if (!ui->chart->selectedGraphs().isEmpty()) {
+        menu->addAction("Remove selected graph",
+                        this, SLOT(removeSelectedGraph()));
     }
-    else if (plotTitle.isNull()) {
-        menu->addAction("Add Title", this, SLOT(addTitle()));
-    }
+
+    if (!menu->actions().isEmpty())
+        menu->addSeparator();
+
+    // Title visibility option.
+    QAction* action = menu->addAction("Show Title",
+                                      this, SLOT(showTitleToggle()));
+    action->setCheckable(true);
+    action->setChecked(!plotTitle.isNull());
+
+
+    // Legend visibility option.
+    action = menu->addAction("Show Legend",
+                                      this, SLOT(showLegendToggle()));
+    action->setCheckable(true);
+    action->setChecked(ui->chart->legend->visible());
+
 
     menu->popup(ui->chart->mapToGlobal(point));
 }
@@ -535,16 +574,23 @@ void ChartWindow::chartContextMenuRequested(QPoint point)
 void ChartWindow::addTitle()
 {
     bool ok;
-    QString newTitle = QInputDialog::getText(
-                this,
-                "Chart Title",
-                "New chart title:",
-                QLineEdit::Normal,
-                "",
-                &ok);
+    if (plotTitleValue.isNull()) {
+        // Title has never been set. Ask for a value.
+        plotTitleValue = QInputDialog::getText(
+                    this,
+                    "Chart Title",
+                    "New chart title:",
+                    QLineEdit::Normal,
+                    "",
+                    &ok);
+    } else {
+        // Just re-use the previous title.
+        ok = true;
+    }
+
     if (ok) {
         ui->chart->plotLayout()->insertRow(0);
-        plotTitle = new QCPPlotTitle(ui->chart, newTitle);
+        plotTitle = new QCPPlotTitle(ui->chart, plotTitleValue);
         ui->chart->plotLayout()->addElement(0, 0, plotTitle);
         ui->chart->replot();
     }
@@ -557,8 +603,85 @@ void ChartWindow::removeTitle()
     ui->chart->replot();
 }
 
+void ChartWindow::showLegendToggle()
+{
+    ui->chart->legend->setVisible(!ui->chart->legend->visible());
+    ui->chart->replot();
+}
+
+void ChartWindow::showTitleToggle()
+{
+    if (plotTitle.isNull())
+        addTitle();
+    else
+        removeTitle();
+}
+
+void ChartWindow::moveLegend()
+{
+    if (QAction* menuAction = qobject_cast<QAction*>(sender())) {
+        // We were called by a context menu. We should have the necessary
+        // data.
+        bool ok;
+        int intData = menuAction->data().toInt(&ok);
+        if (ok) {
+            ui->chart->axisRect()->insetLayout()->setInsetAlignment(
+                        0, (Qt::Alignment)intData);
+            ui->chart->replot();
+        }
+    }
+}
+
+void ChartWindow::removeSelectedGraph()
+{
+    if (!ui->chart->selectedGraphs().isEmpty()) {
+        QCPGraph* graph = ui->chart->selectedGraphs().first();
+
+        // Turn off the column so it doesn't come back when the user
+        // hits refresh.
+        SampleColumn column = (SampleColumn)graph->property(GRAPH_TYPE).toInt();
+        columns &= ~column;
+
+        ui->chart->removeGraph(graph);
+        ui->chart->replot();
+    }
+}
+
 bool ChartWindow::isYAxisLockOn() {
     return ui->cbYLock->isVisible() && ui->cbYLock->isChecked();
+}
+
+void ChartWindow::showLegendContextMenu(QPoint point)
+{
+    QMenu *menu = new QMenu(this);
+    menu->setAttribute(Qt::WA_DeleteOnClose);
+
+    menu->addAction("Move to top left",
+                    this,
+                    SLOT(moveLegend()))->setData((int)(Qt::AlignTop
+                                                       | Qt::AlignLeft));
+    menu->addAction("Move to top center",
+                    this,
+                    SLOT(moveLegend()))->setData((int)(Qt::AlignTop
+                                                       | Qt::AlignHCenter));
+    menu->addAction("Move to top right",
+                    this,
+                    SLOT(moveLegend()))->setData((int)(Qt::AlignTop
+                                                       | Qt::AlignRight));
+    menu->addAction("Move to bottom right",
+                    this,
+                    SLOT(moveLegend()))->setData((int)(Qt::AlignBottom
+                                                       | Qt::AlignRight));
+    menu->addAction("Move to bottom center",
+                    this,
+                    SLOT(moveLegend()))->setData((int)(Qt::AlignBottom
+                                                       | Qt::AlignHCenter));
+    menu->addAction("Move to bottom left",
+                    this,
+                    SLOT(moveLegend()))->setData((int)(Qt::AlignBottom
+                                                       | Qt::AlignLeft));
+
+    menu->popup(ui->chart->mapToGlobal(point));
 }
 
 void ChartWindow::save() {
