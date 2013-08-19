@@ -42,9 +42,14 @@ private slots:
     void titleDoubleClick(QMouseEvent*event, QCPPlotTitle*title);
     void axisLockToggled();
 
+    // Context menu related stuff
     void chartContextMenuRequested(QPoint point);
     void addTitle();
     void removeTitle();
+    void showLegendToggle();
+    void showTitleToggle();
+    void moveLegend();
+    void removeSelectedGraph();
 
     // Save As slot
     void save();
@@ -75,6 +80,8 @@ private:
 
     bool isYAxisLockOn();
 
+    void showLegendContextMenu(QPoint point);
+
     // For manually implementing RangeDrag on any additional independent
     // Y axes:
     QPoint mDragStart;
@@ -86,6 +93,7 @@ private:
     SampleColumns columns;
 
     QPointer<QCPPlotTitle> plotTitle;
+    QString plotTitleValue;
 };
 
 #endif // CHARTWINDOW_H
