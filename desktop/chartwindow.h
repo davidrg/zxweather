@@ -68,6 +68,7 @@ private:
     QMap<AxisType, QString> axisLabels;
     QMap<AxisType, QPointer<QCPAxis> > configuredAxes;
     QMap<QCPAxis*, AxisType> axisTypes;
+    QMap<AxisType, int> axisReferences;
 
     void populateAxisLabels();
     QPointer<QCPAxis> createAxis(AxisType type);
@@ -81,6 +82,8 @@ private:
     bool isYAxisLockOn();
 
     void showLegendContextMenu(QPoint point);
+
+    void removeUnusedAxes();
 
     // For manually implementing RangeDrag on any additional independent
     // Y axes:

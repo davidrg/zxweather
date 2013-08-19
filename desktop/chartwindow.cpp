@@ -14,6 +14,7 @@
 #include <QMenu>
 
 #define GRAPH_TYPE "GraphType"
+#define GRAPH_AXIS "GraphAxisType"
 
 ChartWindow::ChartWindow(SampleColumns columns,
                          QDateTime startTime,
@@ -159,6 +160,10 @@ QPointer<QCPAxis> ChartWindow::getValueAxis(AxisType axisType) {
         // Axis already exists
         axis = configuredAxes[axisType];
 
+    if (!axisReferences.contains(axisType))
+        axisReferences.insert(axisType,0);
+    axisReferences[axisType]++;
+
     return axis;
 }
 
@@ -178,6 +183,7 @@ void ChartWindow::samplesReady(SampleSet samples) {
         graph->setName("Temperature");
         graph->setPen(QPen(colours.temperature));
         graph->setProperty(GRAPH_TYPE, SC_Temperature);
+        graph->setProperty(GRAPH_AXIS, AT_TEMPERATURE);
     }
     if (columns.testFlag(SC_IndoorTemperature)) {
         QCPGraph * graph = ui->chart->addGraph();
@@ -186,6 +192,7 @@ void ChartWindow::samplesReady(SampleSet samples) {
         graph->setName("Indoor Temperature");
         graph->setPen(QPen(colours.indoorTemperature));
         graph->setProperty(GRAPH_TYPE, SC_IndoorTemperature);
+        graph->setProperty(GRAPH_AXIS, AT_TEMPERATURE);
     }
     if (columns.testFlag(SC_ApparentTemperature)) {
         QCPGraph * graph = ui->chart->addGraph();
@@ -194,6 +201,7 @@ void ChartWindow::samplesReady(SampleSet samples) {
         graph->setName("Apparent Temperature");
         graph->setPen(QPen(colours.apparentTemperature));
         graph->setProperty(GRAPH_TYPE, SC_ApparentTemperature);
+        graph->setProperty(GRAPH_AXIS, AT_TEMPERATURE);
     }
     if (columns.testFlag(SC_DewPoint)) {
         QCPGraph * graph = ui->chart->addGraph();
@@ -202,6 +210,7 @@ void ChartWindow::samplesReady(SampleSet samples) {
         graph->setName("Dew Point");
         graph->setPen(QPen(colours.dewPoint));
         graph->setProperty(GRAPH_TYPE, SC_DewPoint);
+        graph->setProperty(GRAPH_AXIS, AT_TEMPERATURE);
     }
     if (columns.testFlag(SC_WindChill)) {
         QCPGraph * graph = ui->chart->addGraph();
@@ -210,6 +219,7 @@ void ChartWindow::samplesReady(SampleSet samples) {
         graph->setName("Wind Chill");
         graph->setPen(QPen(colours.windChill));
         graph->setProperty(GRAPH_TYPE, SC_WindChill);
+        graph->setProperty(GRAPH_AXIS, AT_TEMPERATURE);
     }
     if (columns.testFlag(SC_Humidity)) {
         QCPGraph * graph = ui->chart->addGraph();
@@ -218,6 +228,7 @@ void ChartWindow::samplesReady(SampleSet samples) {
         graph->setName("Humidity");
         graph->setPen(QPen(colours.humidity));
         graph->setProperty(GRAPH_TYPE, SC_Humidity);
+        graph->setProperty(GRAPH_AXIS, AT_HUMIDITY);
     }
     if (columns.testFlag(SC_IndoorHumidity)) {
         QCPGraph * graph = ui->chart->addGraph();
@@ -226,6 +237,7 @@ void ChartWindow::samplesReady(SampleSet samples) {
         graph->setName("Indoor Humidity");
         graph->setPen(QPen(colours.indoorHumidity));
         graph->setProperty(GRAPH_TYPE, SC_IndoorHumidity);
+        graph->setProperty(GRAPH_AXIS, AT_HUMIDITY);
     }
     if (columns.testFlag(SC_Pressure)) {
         QCPGraph * graph = ui->chart->addGraph();
@@ -234,6 +246,7 @@ void ChartWindow::samplesReady(SampleSet samples) {
         graph->setName("Pressure");
         graph->setPen(QPen(colours.pressure));
         graph->setProperty(GRAPH_TYPE, SC_Pressure);
+        graph->setProperty(GRAPH_AXIS, AT_PRESSURE);
     }
     if (columns.testFlag(SC_Rainfall)) {
         QCPGraph * graph = ui->chart->addGraph();
@@ -254,6 +267,7 @@ void ChartWindow::samplesReady(SampleSet samples) {
 //            bars->setWidth(1000);
         // set pen
         graph->setProperty(GRAPH_TYPE, SC_Rainfall);
+        graph->setProperty(GRAPH_AXIS, AT_RAINFALL);
     }
     if (columns.testFlag(SC_AverageWindSpeed)) {
         QCPGraph * graph = ui->chart->addGraph();
@@ -262,6 +276,7 @@ void ChartWindow::samplesReady(SampleSet samples) {
         graph->setName("Average Wind Speed");
         graph->setPen(QPen(colours.averageWindSpeed));
         graph->setProperty(GRAPH_TYPE, SC_AverageWindSpeed);
+        graph->setProperty(GRAPH_AXIS, AT_WIND_SPEED);
     }
     if (columns.testFlag(SC_GustWindSpeed)) {
         QCPGraph * graph = ui->chart->addGraph();
@@ -270,6 +285,7 @@ void ChartWindow::samplesReady(SampleSet samples) {
         graph->setName("Gust Wind Speed");
         graph->setPen(QPen(colours.gustWindSpeed));
         graph->setProperty(GRAPH_TYPE, SC_GustWindSpeed);
+        graph->setProperty(GRAPH_AXIS, AT_WIND_SPEED);
     }
     if (columns.testFlag(SC_WindDirection)) {
         QCPGraph * graph = ui->chart->addGraph();
@@ -286,6 +302,7 @@ void ChartWindow::samplesReady(SampleSet samples) {
         graph->setName("Wind Direction");
         graph->setPen(QPen(colours.windDirection));
         graph->setProperty(GRAPH_TYPE, SC_WindDirection);
+        graph->setProperty(GRAPH_AXIS, AT_WIND_DIRECTION);
     }
 
     if (ui->chart->graphCount() > 1)
@@ -642,6 +659,12 @@ void ChartWindow::removeSelectedGraph()
         SampleColumn column = (SampleColumn)graph->property(GRAPH_TYPE).toInt();
         columns &= ~column;
 
+        // One less use of this particular axis.
+        AxisType axisType = (AxisType)graph->property(GRAPH_AXIS).toInt();
+        axisReferences[axisType]--;
+
+        removeUnusedAxes();
+
         ui->chart->removeGraph(graph);
         ui->chart->replot();
     }
@@ -656,6 +679,7 @@ void ChartWindow::showLegendContextMenu(QPoint point)
     QMenu *menu = new QMenu(this);
     menu->setAttribute(Qt::WA_DeleteOnClose);
 
+    // Options to re-position the legend
     menu->addAction("Move to top left",
                     this,
                     SLOT(moveLegend()))->setData((int)(Qt::AlignTop
@@ -681,10 +705,29 @@ void ChartWindow::showLegendContextMenu(QPoint point)
                     SLOT(moveLegend()))->setData((int)(Qt::AlignBottom
                                                        | Qt::AlignLeft));
 
+    // And an option to get rid of it entirely.
     menu->addSeparator();
     menu->addAction("Hide", this, SLOT(showLegendToggle()));
 
     menu->popup(ui->chart->mapToGlobal(point));
+}
+
+void ChartWindow::removeUnusedAxes()
+{
+    foreach(AxisType type, axisReferences.keys()) {
+        if (axisReferences[type] == 0) {
+            // Axis is now unused. Remove it.
+            QPointer<QCPAxis> axis = configuredAxes[type];
+
+            // Remove all the tracking information.
+            configuredAxes.remove(type);
+            axisTypes.remove(axis);
+            axisReferences.remove(type);
+
+            // And then the axis itself.
+            ui->chart->axisRect()->removeAxis(axis);
+        }
+    }
 }
 
 void ChartWindow::save() {
