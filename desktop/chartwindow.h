@@ -39,8 +39,12 @@ private slots:
     void axisDoubleClick(QCPAxis* axis,
                          QCPAxis::SelectablePart part,
                          QMouseEvent* event);
-
+    void titleDoubleClick(QMouseEvent*event, QCPPlotTitle*title);
     void axisLockToggled();
+
+    void chartContextMenuRequested(QPoint point);
+    void addTitle();
+    void removeTitle();
 
     // Save As slot
     void save();
@@ -80,6 +84,8 @@ private:
     Ui::ChartWindow *ui;
     QScopedPointer<AbstractDataSource> dataSource;
     SampleColumns columns;
+
+    QPointer<QCPPlotTitle> plotTitle;
 };
 
 #endif // CHARTWINDOW_H
