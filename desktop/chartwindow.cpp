@@ -681,6 +681,9 @@ void ChartWindow::showLegendContextMenu(QPoint point)
                     SLOT(moveLegend()))->setData((int)(Qt::AlignBottom
                                                        | Qt::AlignLeft));
 
+    menu->addSeparator();
+    menu->addAction("Hide", this, SLOT(showLegendToggle()));
+
     menu->popup(ui->chart->mapToGlobal(point));
 }
 
