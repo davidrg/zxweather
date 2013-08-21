@@ -127,6 +127,8 @@ QPointer<QCPAxis> ChartWindow::createAxis(AxisType type) {
     QCPAxis* axis = NULL;
     if (configuredAxes.isEmpty()) {
         axis = ui->chart->yAxis;
+        axis->setVisible(true);
+        axis->setTickLabels(true);
     } else if (configuredAxes.count() == 1) {
         axis = ui->chart->yAxis2;
         axis->setVisible(true);
@@ -177,6 +179,10 @@ void ChartWindow::samplesReady(SampleSet samples) {
 
     ui->chart->clearGraphs();
     ui->chart->clearPlottables();
+    foreach(AxisType type, axisReferences.keys())
+        axisReferences[type] = 0;
+    removeUnusedAxes();
+
 
     if (columns.testFlag(SC_Temperature)) {
         QCPGraph* graph = ui->chart->addGraph();
@@ -763,8 +769,22 @@ void ChartWindow::removeUnusedAxes()
             axisReferences.remove(type);
 
             // And then the axis itself.
-            ui->chart->axisRect()->removeAxis(axis);
+            if (axis == ui->chart->yAxis) {
+                ui->chart->yAxis->setVisible(false);
+                ui->chart->yAxis->setTickLabels(false);
+            } else if (axis == ui->chart->yAxis2) {
+                ui->chart->yAxis2->setVisible(false);
+                ui->chart->yAxis2->setTickLabels(false);
+            } else {
+                ui->chart->axisRect()->removeAxis(axis);
+            }
         }
+    }
+
+    if (configuredAxes.count() <= 1) {
+        // Not enough axes for Y lock to be available.
+        ui->YLockDiv->setVisible(false);
+        ui->cbYLock->setVisible(false);
     }
 }
 
