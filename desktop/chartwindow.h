@@ -33,16 +33,12 @@ private slots:
     void samplesError(QString message);
 
     // chart slots
-    void mousePress(QMouseEvent* event);
-    void mouseMove(QMouseEvent* event);
-    void mouseRelease();
-    void mouseWheel(QWheelEvent *event);
-    void selectionChanged();
     void axisDoubleClick(QCPAxis* axis,
                          QCPAxis::SelectablePart part,
                          QMouseEvent* event);
     void titleDoubleClick(QMouseEvent*event, QCPPlotTitle*title);
-    void axisLockToggled();
+
+    void setYAxisLock();
 
     // Context menu related stuff
     void chartContextMenuRequested(QPoint point);
@@ -102,24 +98,12 @@ private:
     QPointer<QCPAxis> createAxis(AxisType type);
     QPointer<QCPAxis> getValueAxis(AxisType axisType);
 
-    bool yScaleLock;
-
-    bool isAnyYAxisSelected();
-    QPointer<QCPAxis> valueAxisWithSelectedParts();
-
-    bool isYAxisLockOn();
-
     void showLegendContextMenu(QPoint point);
 
     void removeUnusedAxes();
 
     SampleColumns availableColumns();
 
-    // For manually implementing RangeDrag on any additional independent
-    // Y axes:
-    QPoint mDragStart;
-    bool mDragging;
-    QMap<AxisType, QCPRange> mDragStartVertRange;
 
     Ui::ChartWindow *ui;
     QScopedPointer<AbstractDataSource> dataSource;

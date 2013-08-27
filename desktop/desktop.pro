@@ -57,7 +57,8 @@ SOURCES += main.cpp\
     datasource/webcachedb.cpp \
     datasource/sampleset.cpp \
     exportdialog.cpp \
-    addgraphdialog.cpp
+    addgraphdialog.cpp \
+    interactiveplot.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
@@ -85,7 +86,8 @@ HEADERS  += mainwindow.h \
     datasource/sampleset.h \
     exportdialog.h \
     datasource/samplecolumns.h \
-    addgraphdialog.h
+    addgraphdialog.h \
+    interactiveplot.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \
