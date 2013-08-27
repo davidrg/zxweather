@@ -8,7 +8,7 @@ AddGraphDialog::AddGraphDialog(SampleColumns availableColumns,
 {
     ui->setupUi(this);
 
-    connect(ui->buttonBox, SIGNAL(accepted()), this, SLOT(dialogAccepted()));
+    connect(ui->buttonBox, SIGNAL(accepted()), this, SLOT(accept()));
 
     if ((availableColumns & TEMPERATURE_COLUMNS) == 0) {
         // No temperature columns are available. Turn it off entirely.
