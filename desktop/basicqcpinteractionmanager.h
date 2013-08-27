@@ -1,23 +1,23 @@
-#ifndef INTERACTIVEPLOT_H
-#define INTERACTIVEPLOT_H
+#ifndef BASICQCPINTERACTIONMANAGER_H
+#define BASICQCPINTERACTIONMANAGER_H
 
-#include "qcp/qcustomplot.h"
+#include <QObject>
 #include <QPointer>
+#include "qcp/qcustomplot.h"
 
-class InteractivePlot : public QCustomPlot
+class BasicQCPInteractionManager : public QObject
 {
     Q_OBJECT
 
     Q_PROPERTY(bool yAxisLock READ isYAxisLockEnabled WRITE setYAxisLockEnabled)
-
 public:
-    explicit InteractivePlot(QWidget *parent = 0);   
-
-    bool isYAxisLockEnabled() const { return yAxisLock; }
+    explicit BasicQCPInteractionManager(QCustomPlot* plot, QObject *parent = 0);
     
+    bool isYAxisLockEnabled() const { return yAxisLock; }
+
 public slots:
     void setYAxisLockEnabled(bool enabled) { yAxisLock = enabled;}
-    
+
 private slots:
     void mousePress(QMouseEvent* event);
     void mouseMove(QMouseEvent* event);
@@ -38,6 +38,9 @@ private:
     QPoint mDragStart;
     bool mDragging;
     QMap<QCPAxis*, QCPRange> mDragStartVertRange;
+
+    QPointer<QCustomPlot> plot;
+    
 };
 
-#endif // INTERACTIVEPLOT_H
+#endif // BASICQCPINTERACTIONMANAGER_H
