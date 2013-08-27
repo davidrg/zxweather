@@ -5,6 +5,7 @@
 #include <QScopedPointer>
 #include <QList>
 #include <QPointer>
+#include <QDateTime>
 
 #include "chartoptionsdialog.h"
 #include "datasource/webdatasource.h"
@@ -19,13 +20,14 @@ class ChartWindow : public QWidget
     Q_OBJECT
     
 public:
-    explicit ChartWindow(SampleColumns columns,
+    explicit ChartWindow(SampleColumns currentChartColumns,
                          QDateTime startTime,
                          QDateTime endTime,
                          QWidget *parent = 0);
     ~ChartWindow();
     
 private slots:
+    void reload();
     void refresh();
     void samplesReady(SampleSet samples);
     void samplesError(QString message);
@@ -56,6 +58,31 @@ private slots:
     void save();
 
 private:
+    void drawChart(SampleSet samples);
+
+    void requestData(SampleColumns columns,
+                     bool merge = false,
+                     QDateTime start = QDateTime(),
+                     QDateTime end = QDateTime());
+
+    // Methods which handle the individual graph types.
+    void addTemperatureGraph(SampleSet samples);
+    void addIndoorTemperatureGraph(SampleSet samples);
+    void addApparentTemperatureGraph(SampleSet samples);
+    void addDewPointGraph(SampleSet samples);
+    void addWindChillGraph(SampleSet samples);
+    void addHumidityGraph(SampleSet samples);
+    void addIndoorHumidityGraph(SampleSet samples);
+    void addPressureGraph(SampleSet samples);
+    void addRainfallGraph(SampleSet samples);
+    void addAverageWindSpeedGraph(SampleSet samples);
+    void addGustWindSpeedGraph(SampleSet samples);
+    void addWindDirectionGraph(SampleSet samples);
+
+    void addGraphs(SampleColumns currentChartColumns, SampleSet samples);
+
+    void mergeSampleSet(SampleSet samples, SampleColumns columns);
+
 
     typedef enum {
         AT_TEMPERATURE,
@@ -96,10 +123,21 @@ private:
 
     Ui::ChartWindow *ui;
     QScopedPointer<AbstractDataSource> dataSource;
-    SampleColumns columns;
+
+    // Columns currently displayed in the chart.
+    SampleColumns currentChartColumns;
+
+    // Columns available in the sample cache.
+    SampleColumns dataSetColumns;
 
     QPointer<QCPPlotTitle> plotTitle;
     QString plotTitleValue;
+
+    SampleSet sampleCache;
+    QDateTime startTime;
+    QDateTime endTime;
+    bool mergeSamples;
+    SampleColumns mergeColumns;
 };
 
 #endif // CHARTWINDOW_H
