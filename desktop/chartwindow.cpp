@@ -27,6 +27,9 @@ ChartWindow::ChartWindow(SampleColumns columns,
 {
     ui->setupUi(this);
 
+    basicInteractionManager.reset(
+            new BasicQCPInteractionManager(ui->chart, this));
+
     populateAxisLabels();
 
     // These will be turned back on later if they are needed.
@@ -164,7 +167,7 @@ QPointer<QCPAxis> ChartWindow::createAxis(AxisType type) {
 }
 
 void ChartWindow::setYAxisLock() {
-    ui->chart->setYAxisLockEnabled(ui->cbYLock->isEnabled()
+    basicInteractionManager->setYAxisLockEnabled(ui->cbYLock->isEnabled()
                                    && ui->cbYLock->isChecked());
     ui->chart->deselectAll();
     ui->chart->replot();

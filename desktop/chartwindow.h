@@ -10,6 +10,7 @@
 #include "chartoptionsdialog.h"
 #include "datasource/webdatasource.h"
 #include "qcp/qcustomplot.h"
+#include "basicqcpinteractionmanager.h"
 
 namespace Ui {
 class ChartWindow;
@@ -122,6 +123,8 @@ private:
     QDateTime endTime;
     bool mergeSamples;
     SampleColumns mergeColumns;
+
+    QScopedPointer<BasicQCPInteractionManager> basicInteractionManager;
 };
 
 #endif // CHARTWINDOW_H
