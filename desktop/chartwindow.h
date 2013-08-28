@@ -45,6 +45,7 @@ private slots:
     void removeTitle();
     void showLegendToggle();
     void showTitleToggle();
+    void showGridToggle();
     void moveLegend();
     void removeSelectedGraph();
     void addGraph();
@@ -54,6 +55,11 @@ private slots:
 
 private:
     void showLegendContextMenu(QPoint point);
+
+    QList<QCPAxis*> valueAxes();
+
+    bool gridVisible;
+
 
     Ui::ChartWindow *ui;
 

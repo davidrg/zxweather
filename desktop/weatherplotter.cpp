@@ -11,6 +11,8 @@ WeatherPlotter::WeatherPlotter(QCustomPlot *chart, QObject *parent) :
 {
     this->chart = chart;
 
+    setAxisGridVisible(true);
+
     populateAxisLabels();
 
     // Configure chart
@@ -102,6 +104,7 @@ QPointer<QCPAxis> WeatherPlotter::createAxis(AxisType type) {
         else
             axis = chart->axisRect()->addAxis(QCPAxis::atRight);
     }
+    axis->grid()->setVisible(axisGridVisible());
     configuredAxes.insert(type, axis);
     axisTypes.insert(axis,type);
     axis->setLabel(axisLabels[type]);

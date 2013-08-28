@@ -26,6 +26,8 @@ ChartWindow::ChartWindow(SampleColumns columns,
 {
     ui->setupUi(this);
 
+    gridVisible = true;
+
     basicInteractionManager.reset(
             new BasicQCPInteractionManager(ui->chart, this));
 
@@ -187,6 +189,13 @@ void ChartWindow::chartContextMenuRequested(QPoint point)
     action->setCheckable(true);
     action->setChecked(ui->chart->legend->visible());
 
+    // Grid visibility option
+    action = menu->addAction("Show Grid",
+                             this,
+                             SLOT(showGridToggle()));
+    action->setCheckable(true);
+    action->setChecked(gridVisible);
+
 
     /******** Finished ********/
     menu->popup(ui->chart->mapToGlobal(point));
@@ -238,6 +247,21 @@ void ChartWindow::showTitleToggle()
         removeTitle();
 }
 
+void ChartWindow::showGridToggle() {
+
+    gridVisible = !gridVisible;
+
+    plotter->setAxisGridVisible(gridVisible);
+
+    QList<QCPAxis*> axes = valueAxes();
+    axes << ui->chart->xAxis;
+
+    foreach(QCPAxis* axis, axes) {
+        axis->grid()->setVisible(gridVisible);
+    }
+    ui->chart->replot();
+}
+
 void ChartWindow::moveLegend()
 {
     if (QAction* menuAction = qobject_cast<QAction*>(sender())) {
@@ -262,6 +286,11 @@ void ChartWindow::removeSelectedGraph()
         // hits refresh.
         plotter->removeGraph((SampleColumn)graph->property(GRAPH_TYPE).toInt());
     }
+}
+
+
+QList<QCPAxis*> ChartWindow::valueAxes() {
+    return ui->chart->axisRect()->axes(QCPAxis::atLeft | QCPAxis::atRight);
 }
 
 void ChartWindow::addGraph()
