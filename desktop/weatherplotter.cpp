@@ -58,8 +58,26 @@ void WeatherPlotter::reload() {
     requestData(currentChartColumns);
 }
 
-void WeatherPlotter::refresh() {
-    drawChart(sampleCache);
+void WeatherPlotter::refresh(QDateTime start, QDateTime end) {
+
+    bool cacheValid = true;
+
+    if (!start.isNull() && start != startTime) {
+        cacheValid = false;
+        startTime = start;
+    }
+    if (!end.isNull() && end != endTime) {
+        cacheValid = false;
+        endTime = end;
+    }
+
+    if (cacheValid) {
+        qDebug() << "Time range not changed. Refreshing with sample cache...";
+        drawChart(sampleCache);
+    } else {
+        qDebug() << "Requesting new data and redrawing...";
+        requestData(currentChartColumns, false);
+    }
 }
 
 void WeatherPlotter::requestData(SampleColumns columns,

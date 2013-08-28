@@ -73,7 +73,7 @@ signals:
     void axisCountChanged(int count);
 
 public slots:
-    void refresh();
+    void refresh(QDateTime start = QDateTime(), QDateTime end = QDateTime());
     void reload();
 
     /** Controls if axis grids should be visible by default.
