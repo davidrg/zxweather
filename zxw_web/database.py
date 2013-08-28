@@ -504,7 +504,7 @@ def get_full_station_info():
     result = db.query("""
         select s.code, s.title, s.description, s.sort_order,
            st.code as hw_type_code, st.title as hw_type_name,
-           sr.min_ts::varchar, sr.max_ts::varchar, s.message,
+           sr.min_ts, sr.max_ts, s.message,
            s.message_timestamp
         from station s
         inner join station_type st on st.station_type_id = s.station_type_id
@@ -522,16 +522,24 @@ def get_full_station_info():
             'desc': record.description,
             'order': record.sort_order,
             'msg': record.message,
-            'msg_ts': record.message_timestamp,
+            'msg_ts': None,
             'hw_type': {
                 'code': record.hw_type_code,
                 'name': record.hw_type_name
             },
             'range': {
-                'min': record.min_ts,
-                'max': record.max_ts
+                'min': None,
+                'max': None
             }
         }
+
+        if record.message_timestamp is not None:
+            station['msg_ts'] = record.message_timestamp.isoformat()
+        if record.min_ts is not None:
+            station['range']['min'] = record.min_ts.isoformat()
+        if record.max_ts is not None:
+            station['range']['max'] = record.max_ts.isoformat()
+
         stations.append(station)
     return stations
 
