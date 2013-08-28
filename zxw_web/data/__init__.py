@@ -138,6 +138,8 @@ def get_sys_config_json():
     sys_config = {
         'ws_uri': config.ws_uri,
         'wss_uri': config.wss_uri,
+        'zxweatherd_host': config.zxweatherd_hostname,
+        'zxweatherd_raw_port': config.zxweatherd_raw_port,
         'site_name': config.site_name,
         'stations': get_full_station_info()
     }

@@ -28,6 +28,8 @@ site_name = 'zxweather'
 # Websocket URIs
 ws_uri = None
 wss_uri = None
+zxweatherd_hostname = None
+zxweatherd_raw_port = None
 
 def load_settings():
     """
@@ -36,6 +38,7 @@ def load_settings():
 
     global db, default_station_name
     global static_data_dir, site_root, default_ui, site_name, ws_uri, wss_uri
+    global zxweatherd_hostname, zxweatherd_raw_port
 
     import ConfigParser
     config = ConfigParser.ConfigParser()
@@ -45,6 +48,7 @@ def load_settings():
     # Configuration sections
     S_DB = 'database'   # Database configuration
     S_S = 'site'        # Site configuration
+    S_D = 'zxweatherd'  # zxweatherd configuration information
 
     # Make sure a few important settings people might overlook are set.
     if not config.has_option(S_S,'site_root'):
@@ -74,10 +78,18 @@ def load_settings():
     site_name = config.get(S_S, 'site_name')
     static_data_dir = config.get(S_S, 'static_data_dir')
 
-    if config.has_option(S_S, 'ws_uri'):
-        ws_uri = config.get(S_S, 'ws_uri')
-    if config.has_option(S_S, 'wss_uri'):
-        wss_uri = config.get(S_S, 'wss_uri')
+    if config.has_option(S_D, 'hostname'):
+        zxweatherd_hostname = config.get(S_D, 'hostname')
+        if config.has_option(S_D, 'ws_port'):
+            ws_port = config.getint(S_D, 'ws_port')
+            ws_uri = "ws://{host}:{port}/".format(host=zxweatherd_hostname,
+                                                  port=ws_port)
+        if config.has_option(S_D, 'wss_port'):
+            wss_port = config.getint(S_D, 'wss_port')
+            wss_uri = "wss://{host}:{port}/".format(host=zxweatherd_hostname,
+                                                    port=wss_port)
+        if config.has_option(S_D, 'raw_port'):
+            zxweatherd_raw_port = config.getint(S_D, 'raw_port')
 
     if len(default_station_name) > 5:
         raise Exception('ConfigurationError: Default station name can not be longer than five characters. Consult installation reference manual.')

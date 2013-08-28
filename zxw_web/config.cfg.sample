@@ -35,5 +35,18 @@ site_name: zxweather
 #site_root: http://weather.example.com/
 #static_data_dir: /opt/zxweather/zxw_web/static/
 #station_name: somewhere
-#ws_uri: ws://weather.example.com:8080/
-#wss_uri: wss://weather.example.com:443/
+
+# zxweather Server Configuration
+# hostname       - Name or IP address of the computer running the zxweather
+#                  server
+# ws_port        - WebSocket port. One or both of ws_port and wss_port must be
+#                  specified for instant data update functionality.
+# wss_port       - WebSocket Secure port. One or both of ws_port and wss_port
+#                  must be specified for instant data update functionality.
+# raw_port       - Standard (raw) port. Only used for desktop client
+#                  auto-configuration.
+[zxweatherd]
+#hostname: weather.example.com
+#ws_port: 8080
+#wss_port: 443
+#raw_port: 4242
