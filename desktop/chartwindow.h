@@ -50,6 +50,8 @@ private slots:
     void removeSelectedGraph();
     void addGraph();
 
+    void refresh();
+
     // Save As slot
     void save();
 

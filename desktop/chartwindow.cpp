@@ -45,7 +45,7 @@ ChartWindow::ChartWindow(SampleColumns columns,
     else
         plotter->setDataSource(new WebDataSource(this, this));
 
-    connect(ui->pbRefresh, SIGNAL(clicked()), plotter.data(), SLOT(reload()));
+    connect(ui->pbRefresh, SIGNAL(clicked()), this, SLOT(refresh()));
     connect(ui->saveButton, SIGNAL(clicked()), this, SLOT(save()));
     connect(ui->cbYLock, SIGNAL(toggled(bool)), this, SLOT(setYAxisLock()));
 
@@ -81,6 +81,10 @@ ChartWindow::ChartWindow(SampleColumns columns,
 ChartWindow::~ChartWindow()
 {
     delete ui;
+}
+
+void ChartWindow::refresh() {
+    plotter->refresh(ui->startTime->dateTime(), ui->endTime->dateTime());
 }
 
 void ChartWindow::chartAxisCountChanged(int count) {

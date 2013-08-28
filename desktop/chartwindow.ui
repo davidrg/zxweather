@@ -43,7 +43,7 @@
         </datetime>
        </property>
        <property name="displayFormat">
-        <string>d/M/yyyy h:mm:ss AP</string>
+        <string>yyyy-MM-dd hh:mm:ss</string>
        </property>
       </widget>
      </item>
@@ -77,7 +77,7 @@
         </time>
        </property>
        <property name="displayFormat">
-        <string>d/M/yyyy h:mm:ss AP</string>
+        <string>yyyy-MM-dd hh:mm:ss</string>
        </property>
       </widget>
      </item>
