@@ -12,6 +12,9 @@
 class WeatherPlotter : public QObject
 {
     Q_OBJECT
+
+    Q_PROPERTY(bool axisGridVisible READ axisGridVisible WRITE setAxisGridVisible)
+
 public:
     explicit WeatherPlotter(QCustomPlot* chart, QObject *parent = 0);
     
@@ -59,12 +62,25 @@ public:
      * @return Columns not currently in the chart.
      */
     SampleColumns availableColumns();
+
+    /** Returns true if axis grids will be visible by default.
+     *
+     * @return True if axis grids are visible by default.
+     */
+    bool axisGridVisible() const { return mAxisGridsVisible; }
+
 signals:
     void axisCountChanged(int count);
 
 public slots:
     void refresh();
     void reload();
+
+    /** Controls if axis grids should be visible by default.
+     *
+     * @param visible If axis grids should be visible by default.
+     */
+    void setAxisGridVisible(bool visible) { mAxisGridsVisible = visible; }
 
 private slots:
     void samplesReady(SampleSet samples);
@@ -154,6 +170,8 @@ private:
     SampleColumns dataSetColumns;
 
     QCustomPlot* chart;
+
+    bool mAxisGridsVisible; /*!< If axis grids should be visible on creation */
 };
 
 #endif // WEATHERPLOT_H
