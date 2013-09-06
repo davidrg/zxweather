@@ -86,7 +86,8 @@ CREATE TABLE sample
   rainfall real, -- Calculated rainfall. Calculation is based on total_rainfall and rain_overflow columns compared to the previous sample.
   station_id integer not null references station(station_id),
   CONSTRAINT pk_sample PRIMARY KEY (sample_id ),
-  CONSTRAINT chk_wind_degrees CHECK (wind_direction >= 0 AND wind_direction < 360) -- Ensure wind direction is valid
+  CONSTRAINT chk_wind_degrees CHECK (wind_direction >= 0 AND wind_direction < 360), -- Ensure wind direction is valid
+  CONSTRAINT station_timestamp_unique UNIQUE(time_stamp, station_id) DEFERRABLE INITIALLY IMMEDIATE -- Prevent duplicate timestamps for a station
 );
 COMMENT ON TABLE sample IS 'Samples from the weather station.';
 COMMENT ON COLUMN sample.download_timestamp IS 'When this record was downloaded from the weather station';
@@ -104,6 +105,8 @@ COMMENT ON COLUMN sample.gust_wind_speed IS 'Gust wind speed in m/s.';
 COMMENT ON COLUMN sample.wind_direction IS 'Prevailing wind direction in degrees.';
 COMMENT ON COLUMN sample.rainfall IS 'Calculated rainfall in mm. Smallest recordable amount is 0.3mm. Calculation is based on total_rainfall and rain_overflow columns compared to the previous sample.';
 COMMENT ON COLUMN sample.station_id IS 'The weather station this sample is for';
+
+COMMENT ON CONSTRAINT station_timestamp_unique ON sample IS 'Each station can only have one sample for a given timestamp.';
 
 ALTER TABLE sample
 ADD CONSTRAINT chk_outdoor_relative_humidity
