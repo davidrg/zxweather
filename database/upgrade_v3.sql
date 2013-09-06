@@ -356,16 +356,14 @@ comment on column davis_live_data.forecast_icon is 'Forecast icon';
 comment on column davis_live_data.forecast_rule_id is 'Current forecast rule. See davis_forecast_rule table for values';
 
 ----------------------------------------------------------------------
--- INDICIES ----------------------------------------------------------
+-- CONSTRAINTS ----------------------------------------------------------
 ----------------------------------------------------------------------
 
 -- Don't allow duplicate timestamps within a station.
-CREATE UNIQUE INDEX idx_station_timestamp_unique
-ON sample
-USING btree
-(time_stamp, station_id);
-COMMENT ON INDEX idx_station_timestamp_unique
-IS 'Each station can only have one sample for a given timestamp.';
+ALTER TABLE sample
+  ADD CONSTRAINT station_timestamp_unique UNIQUE(time_stamp, station_id)
+  DEFERRABLE INITIALLY IMMEDIATE;
+COMMENT ON CONSTRAINT station_timestamp_unique ON sample IS 'Each station can only have one sample for a given timestamp.';
 
 ----------------------------------------------------------------------
 -- FUNCTIONS ---------------------------------------------------------
