@@ -500,7 +500,180 @@ END;$BODY$
 LANGUAGE plpgsql VOLATILE;
 COMMENT ON FUNCTION live_data_update() IS 'Calculates values for all calculated fields.';
 
+----------------------------------------------------------------------
+-- VIEWS -------------------------------------------------------------
+----------------------------------------------------------------------
+CREATE OR REPLACE VIEW daily_indoor_records AS
+ SELECT data.date_stamp,
+        data.station_id,
+        data.min_indoor_temperature,
+        max(data.min_indoor_temperature_ts) AS min_indoor_temperature_ts,
+        data.max_indoor_temperature,
+        max(data.max_indoor_temperature_ts) AS max_indoor_temperature_ts,
+        data.min_indoor_humidity,
+        max(data.min_indoor_humidity_ts) AS min_indoor_humidity_ts,
+        data.max_indoor_humidity,
+        max(data.max_indoor_humidity_ts) AS max_indoor_humidity_ts
+   FROM (SELECT dr.date_stamp,
+                dr.station_id,
+                dr.max_indoor_temperature,
+                CASE
+                    WHEN s.indoor_temperature = dr.max_indoor_temperature THEN s.time_stamp
+                    ELSE NULL::timestamp with time zone
+                END AS max_indoor_temperature_ts,
+                dr.min_indoor_temperature,
+                CASE
+                    WHEN s.indoor_temperature = dr.min_indoor_temperature THEN s.time_stamp
+                    ELSE NULL::timestamp with time zone
+                END AS min_indoor_temperature_ts,
+                dr.max_indoor_humidity,
+                CASE
+                    WHEN s.indoor_relative_humidity = dr.max_indoor_humidity THEN s.time_stamp
+                    ELSE NULL::timestamp with time zone
+                END AS max_indoor_humidity_ts,
+                dr.min_indoor_humidity,
+                CASE
+                    WHEN s.indoor_relative_humidity = dr.min_indoor_humidity THEN s.time_stamp
+                    ELSE NULL::timestamp with time zone
+                END AS min_indoor_humidity_ts
+           FROM sample s
+      JOIN ( SELECT date(s.time_stamp) AS date_stamp, s.station_id,
+                    min(s.indoor_temperature) AS min_indoor_temperature,
+                    max(s.indoor_temperature) AS max_indoor_temperature,
+                    min(s.indoor_relative_humidity) AS min_indoor_humidity,
+                    max(s.indoor_relative_humidity) AS max_indoor_humidity
+               FROM sample s
+             GROUP BY date(s.time_stamp),
+                      s.station_id
+           ) dr ON date(s.time_stamp) = dr.date_stamp
+     WHERE s.indoor_temperature = dr.max_indoor_temperature
+        OR s.indoor_temperature = dr.min_indoor_temperature
+        OR s.indoor_relative_humidity = dr.max_indoor_humidity
+        OR s.indoor_relative_humidity = dr.min_indoor_humidity ) data
+  GROUP BY data.date_stamp,
+           data.station_id,
+           data.max_indoor_temperature,
+           data.min_indoor_temperature,
+           data.max_indoor_humidity,
+           data.min_indoor_humidity
+  ORDER BY data.date_stamp DESC;
 
+COMMENT ON VIEW daily_indoor_records
+IS 'Indoor minimum and maximum temperature and humidity records for each day.';
+
+CREATE OR REPLACE VIEW monthly_indoor_records AS
+ SELECT data.date_stamp,
+        data.station_id,
+        data.min_indoor_temperature,
+        max(data.min_indoor_temperature_ts) AS min_indoor_temperature_ts,
+        data.max_indoor_temperature,
+        max(data.max_indoor_temperature_ts) AS max_indoor_temperature_ts,
+        data.min_indoor_humidity,
+        max(data.min_indoor_humidity_ts) AS min_indoor_humidity_ts,
+        data.max_indoor_humidity,
+        max(data.max_indoor_humidity_ts) AS max_indoor_humidity_ts
+   FROM (SELECT dr.date_stamp,
+                dr.station_id,
+                dr.max_indoor_temperature,
+                CASE
+                    WHEN s.indoor_temperature = dr.max_indoor_temperature THEN s.time_stamp
+                    ELSE NULL::timestamp with time zone
+                END AS max_indoor_temperature_ts,
+                dr.min_indoor_temperature,
+                CASE
+                    WHEN s.indoor_temperature = dr.min_indoor_temperature THEN s.time_stamp
+                    ELSE NULL::timestamp with time zone
+                END AS min_indoor_temperature_ts,
+                dr.max_indoor_humidity,
+                CASE
+                    WHEN s.indoor_relative_humidity = dr.max_indoor_humidity THEN s.time_stamp
+                    ELSE NULL::timestamp with time zone
+                END AS max_indoor_humidity_ts,
+                dr.min_indoor_humidity,
+                CASE
+                    WHEN s.indoor_relative_humidity = dr.min_indoor_humidity THEN s.time_stamp
+                    ELSE NULL::timestamp with time zone
+                END AS min_indoor_humidity_ts
+           FROM sample s
+      JOIN ( SELECT date(date_trunc('month', s.time_stamp)) AS date_stamp, s.station_id,
+                    min(s.indoor_temperature) AS min_indoor_temperature,
+                    max(s.indoor_temperature) AS max_indoor_temperature,
+                    min(s.indoor_relative_humidity) AS min_indoor_humidity,
+                    max(s.indoor_relative_humidity) AS max_indoor_humidity
+               FROM sample s
+             GROUP BY date_stamp, s.station_id) dr
+        ON date(date_trunc('month', s.time_stamp)) = dr.date_stamp
+     WHERE s.indoor_temperature = dr.max_indoor_temperature
+        OR s.indoor_temperature = dr.min_indoor_temperature
+        OR s.indoor_relative_humidity = dr.max_indoor_humidity
+        OR s.indoor_relative_humidity = dr.min_indoor_humidity ) data
+  GROUP BY data.date_stamp,
+           data.station_id,
+           data.max_indoor_temperature,
+           data.min_indoor_temperature,
+           data.max_indoor_humidity,
+           data.min_indoor_humidity
+  ORDER BY data.date_stamp DESC;
+
+COMMENT ON VIEW monthly_indoor_records
+IS 'Indoor minimum and maximum temperature and humidity records for each month.';
+
+CREATE OR REPLACE VIEW yearly_indoor_records AS
+ SELECT data.year_stamp,
+        data.station_id,
+        data.min_indoor_temperature,
+        max(data.min_indoor_temperature_ts) AS min_indoor_temperature_ts,
+        data.max_indoor_temperature,
+        max(data.max_indoor_temperature_ts) AS max_indoor_temperature_ts,
+        data.min_indoor_humidity,
+        max(data.min_indoor_humidity_ts) AS min_indoor_humidity_ts,
+        data.max_indoor_humidity,
+        max(data.max_indoor_humidity_ts) AS max_indoor_humidity_ts
+   FROM (SELECT dr.year_stamp,
+                dr.station_id,
+                dr.max_indoor_temperature,
+                CASE
+                    WHEN s.indoor_temperature = dr.max_indoor_temperature THEN s.time_stamp
+                    ELSE NULL::timestamp with time zone
+                END AS max_indoor_temperature_ts,
+                dr.min_indoor_temperature,
+                CASE
+                    WHEN s.indoor_temperature = dr.min_indoor_temperature THEN s.time_stamp
+                    ELSE NULL::timestamp with time zone
+                END AS min_indoor_temperature_ts,
+                dr.max_indoor_humidity,
+                CASE
+                    WHEN s.indoor_relative_humidity = dr.max_indoor_humidity THEN s.time_stamp
+                    ELSE NULL::timestamp with time zone
+                END AS max_indoor_humidity_ts,
+                dr.min_indoor_humidity,
+                CASE
+                    WHEN s.indoor_relative_humidity = dr.min_indoor_humidity THEN s.time_stamp
+                    ELSE NULL::timestamp with time zone
+                END AS min_indoor_humidity_ts
+           FROM sample s
+      JOIN ( SELECT extract(year from s.time_stamp) as year_stamp, s.station_id,
+                    min(s.indoor_temperature) AS min_indoor_temperature,
+                    max(s.indoor_temperature) AS max_indoor_temperature,
+                    min(s.indoor_relative_humidity) AS min_indoor_humidity,
+                    max(s.indoor_relative_humidity) AS max_indoor_humidity
+               FROM sample s
+             GROUP BY year_stamp, s.station_id) dr
+        ON extract(year from s.time_stamp) = dr.year_stamp
+     WHERE s.indoor_temperature = dr.max_indoor_temperature
+        OR s.indoor_temperature = dr.min_indoor_temperature
+        OR s.indoor_relative_humidity = dr.max_indoor_humidity
+        OR s.indoor_relative_humidity = dr.min_indoor_humidity ) data
+  GROUP BY data.year_stamp,
+           data.station_id,
+           data.max_indoor_temperature,
+           data.min_indoor_temperature,
+           data.max_indoor_humidity,
+           data.min_indoor_humidity
+  ORDER BY data.year_stamp DESC;
+
+COMMENT ON VIEW yearly_indoor_records
+IS 'Indoor minimum and maximum temperature and humidity records for each year.';
 ----------------------------------------------------------------------
 -- END ---------------------------------------------------------------
 ----------------------------------------------------------------------
