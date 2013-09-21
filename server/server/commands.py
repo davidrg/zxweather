@@ -872,7 +872,7 @@ class ListStationsCommand(Command):
                 '-' * code_max_len,
                 '-' * name_max_len))
 
-    def _output_station_list(self, station_list):
+    def _output_station_list_term(self, station_list):
         stations = []
         code_max_len = 4
         name_max_len = 4
@@ -911,6 +911,31 @@ class ListStationsCommand(Command):
 
         self.finished()
 
+    def _output_station_list_json(self, station_list):
+
+        result = []
+        for stn in station_list:
+            station = {
+                "code": stn[0],
+                "name": stn[1]
+            }
+            result.append(station)
+
+        self.writeLine(json.dumps(result))
+        self.finished()
+
+    def _output_station_list(self, station_list):
+        if self._json_mode:
+            self._output_station_list_json(station_list)
+        else:
+            self._output_station_list_term(station_list)
+
     def main(self):
         self.auto_exit = False
+
+        if "json" in self.qualifiers:
+            self._json_mode = True
+        else:
+            self._json_mode = self.environment["json_mode"]
+
         get_station_list().addCallback(self._output_station_list)
