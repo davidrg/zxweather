@@ -294,6 +294,15 @@ base_syntaxes = [
     syntax(
         name="list_stations",
         handler="list_stations",
+        qualifiers=[
+            qualifier(
+                name="json",
+                type="keyword",
+                default_value="true",
+                value_required=False,
+                keywords="boolean"
+            )
+        ],
         parameters=[list_param_0]
     ),
     syntax(
