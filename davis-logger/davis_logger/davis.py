@@ -109,6 +109,9 @@ class DavisWeatherStation(object):
             INIT_5_GET_RAIN_SIZE: self._rainSizeReceived,
         }
 
+        self._reset_state()
+
+    def _reset_state(self):
         # Initialise other fields.
         self._state = STATE_SLEEPING
 
@@ -125,6 +128,14 @@ class DavisWeatherStation(object):
         self._wakeRetries = 0
         self._crc_errors = 0
         self._last_crc_error = None
+
+    def reset(self):
+        """
+        Resets the data logger after a stall. Current state is wiped and the
+        initialise() is called to get everything running again.
+        """
+        self._reset_state()
+        self.initialise()
 
     def dataReceived(self, data):
         """
