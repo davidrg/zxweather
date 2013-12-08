@@ -2,7 +2,7 @@
 """
 Data logger for Davis Vantage Vue weather stations.
 """
-from datetime import datetime
+from datetime import datetime, timedelta
 import sys
 from twisted.application import service
 from twisted.enterprise import adbapi
@@ -28,6 +28,13 @@ class DavisLoggerProtocol(Protocol):
 
     def __init__(self, database_pool, station_id, latest_date, latest_time):
         self.station = DavisWeatherStation()
+
+        # Setup the watchdog. This will give the data logger a kick if it stalls
+        # (this can happen sometimes when data gets lost due to noise on the
+        # serial cable)
+        self._data_last_received = datetime.now()
+        self._watchdog_reset = False
+        self._reschedule_watchdog()
 
         self._database_pool = database_pool
         self._station_id = station_id
@@ -57,6 +64,8 @@ class DavisLoggerProtocol(Protocol):
         """
         #log.msg('>> {0}'.format(toHexString(data)))
         self.station.dataReceived(data)
+
+        self._data_last_received = datetime.now()
 
     def _sendData(self, data):
         #log.msg('<< {0}'.format(toHexString(data)))
@@ -247,6 +256,28 @@ class DavisLoggerProtocol(Protocol):
             )
         )
 
+    def _reschedule_watchdog(self, interval=60):
+        reactor.callLater(interval, self._watchdog)
+
+    def _watchdog(self):
+
+        if self._data_last_received < datetime.now() - timedelta(0, 60):
+            # No data has been received in the last minute. This indicates
+            # the data logger has stalled (under normal operation we should be
+            # receiving LOOP packets every 2 seconds or so). Time to restart it:
+
+            if self._watchdog_reset:
+                log.msg('Watchdog: Previous data logger restart failed.')
+
+            log.msg('Watchdog: No data received from weather station since {0}'
+                    .format(self._data_last_received))
+            log.msg('Watchdog: Attempting to restart data logger...')
+            self._watchdog_reset = True
+            self.station.reset()
+        elif self._watchdog_reset:
+            log.msg('Watchdog: data logger restart was successful. ')
+
+        self._reschedule_watchdog()
 
 class DavisService(service.Service):
     def __init__(self, database, station, port, baud):
