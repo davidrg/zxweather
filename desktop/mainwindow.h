@@ -136,7 +136,6 @@ private:
 
     void readSettings();
 
-    int getDatabaseVersion();
     void databaseCompatibilityChecks();
     void reconnectDatabase();
 
