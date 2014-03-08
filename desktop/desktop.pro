@@ -57,6 +57,7 @@ SOURCES += main.cpp\
     datasource/webcachedb.cpp \
     datasource/sampleset.cpp \
     exportdialog.cpp \
+    dbutil.cpp \
     addgraphdialog.cpp \
     basicqcpinteractionmanager.cpp \
     weatherplotter.cpp
@@ -85,6 +86,7 @@ HEADERS  += mainwindow.h \
     livemonitor.h \
     datasource/webcachedb.h \
     datasource/sampleset.h \
+    dbutil.h \
     exportdialog.h \
     datasource/samplecolumns.h \
     addgraphdialog.h \

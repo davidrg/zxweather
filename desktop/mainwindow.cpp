@@ -31,6 +31,8 @@
 #include "chartoptionsdialog.h"
 #include "exportdialog.h"
 
+#include "dbutil.h"
+
 #include <QtDebug>
 #include <QDateTime>
 #include <QMessageBox>
@@ -121,71 +123,41 @@ MainWindow::MainWindow(QWidget *parent) :
     }
 }
 
-int MainWindow::getDatabaseVersion() {
-    QSqlQuery query("select * "
-                    "from information_schema.tables "
-                    "where table_schema = 'public' "
-                    "  and table_name = 'db_info'");
-    if (!query.isActive()) {
-        return -1;
-    } else if (query.size() == 1){
-        // It is at least a v2 (zxweather 0.2) schema.
-        query.exec("select v::integer "
-                   "from DB_INFO "
-                   "where k = 'DB_VERSION'");
-        if (!query.isActive() || query.size() != 1) {
-            return -1;
-        } else {
-            query.first();
-            return query.value(0).toInt();
-        }
-    }
-
-    return 1;
-}
-
 void MainWindow::databaseCompatibilityChecks() {
-    int version = getDatabaseVersion();
-    qDebug() << "Schema version:" << version;
-    if (version == -1) {
+
+    using namespace DbUtil;
+
+    QSqlDatabase db = QSqlDatabase::database(QSqlDatabase::defaultConnection);
+
+    DatabaseCompatibility compatibility = checkDatabaseCompatibility(db);
+
+    if (compatibility == DC_BadSchemaVersion) {
         qDebug() << "Bad schema version.";
-        QMessageBox::warning(this, "Database Error",
-                             "Unable to determine database version. "
-                             "Charting functions will not be available.");
+        QMessageBox::warning(this, tr("Database Error"),
+                             tr("Unable to determine database version. "
+                             "Charting functions will not be available."));
         ui->actionCharts->setEnabled(false);
         QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
-    } else if (version > 1) {
-        qDebug() << "V2+ database.";
-
-        // Check that this version of the desktop client hasn't been
-        // blacklisted by the database.
-        QSqlQuery query("select version_check('desktop',1,0,0)");
-        if (!query.isActive()) {
-            QMessageBox::warning(this, "Warning",
-                                 "Unable to determine database compatibility."
-                                 " This application may not function "
-                                 "correctly with the configured database.");
-        } else {
-            query.first();
-            if (!query.value(0).toBool()) {
-
-                QString version = "";
-                query.exec("select minimum_version_string('desktop')");
-                if (query.isActive()) {
-                    query.first();
-                    version = " Please upgrade to at least version " +
-                            query.value(0).toString() + ".";
-                }
-
-                QMessageBox::warning(this, "Database Incompatible",
-                                     "The configured database is incompatible "
-                                     "with this version of the zxweather "
-                                     "desktop client." + version + " Database"
-                                     " functionality will be disabled.");
-                QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
-                ui->actionCharts->setEnabled(false);
-            }
+    } else if (compatibility == DC_Unknown) {
+        QMessageBox::warning(this, tr("Warning"),
+                             tr("Unable to determine database compatibility."
+                             " This application may not function "
+                             "correctly with the configured database."));
+    } else if (compatibility == DC_Incompatible) {
+        QString version = getMinimumAppVersion(db);
+        if (!version.isNull()) {
+            // This will only work on a v2+ schema (zxweather v0.2+)
+            version = tr(" Please upgrade to at least version ")
+                    + version + ".";
         }
+
+        QMessageBox::warning(this, tr("Database Incompatible"),
+                             tr("The configured database is incompatible "
+                             "with this version of the zxweather "
+                             "desktop client.") + version + tr(" Database"
+                             " functionality will be disabled."));
+        QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
+        ui->actionCharts->setEnabled(false);
     }
 }
 
@@ -262,7 +234,7 @@ void MainWindow::changeEvent(QEvent *e)
                                      "system tray. To restore it, click on the "
                                      "icon. This behaviour can be changed in the "
                                      "settings dialog.");
-                Settings::getInstance().singleShotMinimiseToSysTray();
+                Settings::getInstance().setSingleShotMinimiseToSysTray();
             }
 
             // We can't call hide from the event handler. So we get the
