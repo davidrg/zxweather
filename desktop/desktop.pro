@@ -60,7 +60,16 @@ SOURCES += main.cpp\
     dbutil.cpp \
     addgraphdialog.cpp \
     basicqcpinteractionmanager.cpp \
-    weatherplotter.cpp
+    weatherplotter.cpp \
+    config_wizard/configwizard.cpp \
+    config_wizard/intropage.cpp \
+    config_wizard/accesstypepage.cpp \
+    config_wizard/databasedetailspage.cpp \
+    config_wizard/selectstationpage.cpp \
+    config_wizard/internetsiteinfopage.cpp \
+    config_wizard/confirmdetailspage.cpp \
+    config_wizard/serverstationlister.cpp \
+    config_wizard/serverdetailspage.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
@@ -91,7 +100,17 @@ HEADERS  += mainwindow.h \
     datasource/samplecolumns.h \
     addgraphdialog.h \
     basicqcpinteractionmanager.h \
-    weatherplotter.h
+    weatherplotter.h \
+    config_wizard/configwizard.h \
+    config_wizard/intropage.h \
+    config_wizard/configwizard_private.h \
+    config_wizard/accesstypepage.h \
+    config_wizard/databasedetailspage.h \
+    config_wizard/selectstationpage.h \
+    config_wizard/internetsiteinfopage.h \
+    config_wizard/confirmdetailspage.h \
+    config_wizard/serverstationlister.h \
+    config_wizard/serverdetailspage.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \

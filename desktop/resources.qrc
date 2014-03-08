@@ -29,4 +29,8 @@
     <qresource prefix="/cache_db">
         <file alias="create.sql">resources/database.sql</file>
     </qresource>
+    <qresource prefix="/images/config_wizard">
+        <file alias="logo">resources/config_wizard/zxwd_logo_temp.png</file>
+        <file alias="watermark">resources/config_wizard/zxwd_watermark_temp.png</file>
+    </qresource>
 </RCC>
