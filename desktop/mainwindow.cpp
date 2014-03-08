@@ -45,6 +45,8 @@
 #include "datasource/tcplivedatasource.h"
 #include "datasource/webdatasource.h"
 
+#include "config_wizard/configwizard.h"
+
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
@@ -104,11 +106,16 @@ MainWindow::MainWindow(QWidget *parent) :
             this,
             SLOT(showWarningPopup(QString,QString,QString,bool)));
 
-    // Show the settings dialog on the first run.
+    // Show the configuration wizard on the first run.
     if (!Settings::getInstance().singleShotFirstRun()) {
-        showSettings();
+        ConfigWizard wiz;
+        if (wiz.exec() != QDialog::Accepted) {
+            // Config wizard was canceled. Show the settings dialog instead.
+            showSettings();
+        }
         Settings::getInstance().setSingleShotFirstRun();
     }
+
     qDebug() << "Read settings and connect...";
     readSettings();
 
