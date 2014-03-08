@@ -297,6 +297,10 @@ void ExportDialog::samplesFailed(QString message)
 }
 
 QString ExportDialog::getHeaderRow(SampleColumns columns) {
+
+    if (!ui->cbIncludeHeadings->isChecked())
+        return "";
+
     QStringList columnNames;
 
     if (columns.testFlag(SC_Timestamp))
