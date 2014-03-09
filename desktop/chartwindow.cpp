@@ -153,7 +153,8 @@ void ChartWindow::titleDoubleClick(QMouseEvent *event, QCPPlotTitle *title)
 void ChartWindow::chartContextMenuRequested(QPoint point)
 {
 
-    if (ui->chart->legend->selectTest(point, false) >= 0) {
+    if (ui->chart->legend->selectTest(point, false) >= 0
+            && ui->chart->legend->visible()) {
         showLegendContextMenu(point);
         return;
     }
