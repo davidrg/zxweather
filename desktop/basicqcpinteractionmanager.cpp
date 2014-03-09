@@ -15,13 +15,46 @@ BasicQCPInteractionManager::BasicQCPInteractionManager(QCustomPlot *plot, QObjec
             this, SLOT(mouseWheel(QWheelEvent*)));
     connect(plot, SIGNAL(selectionChangedByUser()),
             this, SLOT(axisSelectionChanged()));
+    connect(plot, SIGNAL(legendClick(QCPLegend*,QCPAbstractLegendItem*,QMouseEvent*)),
+            this, SLOT(legendClick(QCPLegend*,QCPAbstractLegendItem*,QMouseEvent*)));
 
     plot->setInteractions(QCP::iRangeZoom |
                           QCP::iSelectAxes |
                           QCP::iRangeDrag |
-                          QCP::iSelectPlottables);
+                          QCP::iSelectPlottables |
+                          QCP::iSelectLegend);
     plot->axisRect()->setRangeDrag(Qt::Horizontal|Qt::Vertical);
     plot->axisRect()->setRangeZoom(Qt::Horizontal|Qt::Vertical);
+    plot->legend->setSelectableParts(QCPLegend::spItems);
+}
+
+void BasicQCPInteractionManager::legendClick(QCPLegend *legend,
+                                             QCPAbstractLegendItem *item,
+                                             QMouseEvent *event) {
+
+    /*
+     * Select the plottable associated with a legend item when the legend
+     * item is selected.
+     */
+
+    QCPPlottableLegendItem* plotItem = qobject_cast<QCPPlottableLegendItem*>(item);
+
+    if (plotItem == NULL) {
+        qDebug() << "Not a plottable legend item.";
+        // The legend item isn't for a plottable. nothing to do here.
+        return;
+    }
+
+    QCPAbstractPlottable* plottable = plotItem->plottable();
+
+    // Deselect any other selected plottables.
+    QCustomPlot* plot = plottable->parentPlot();
+    for (int i = 0; i < plot->plottableCount(); i++) {
+        plot->plottable(i)->setSelected(false);
+    }
+
+    // Then select the plottable associated with this legend item.
+    plottable->setSelected(plotItem->selected());
 }
 
 
