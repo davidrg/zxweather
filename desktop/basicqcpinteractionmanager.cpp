@@ -17,6 +17,8 @@ BasicQCPInteractionManager::BasicQCPInteractionManager(QCustomPlot *plot, QObjec
             this, SLOT(axisSelectionChanged()));
     connect(plot, SIGNAL(legendClick(QCPLegend*,QCPAbstractLegendItem*,QMouseEvent*)),
             this, SLOT(legendClick(QCPLegend*,QCPAbstractLegendItem*,QMouseEvent*)));
+    connect(plot, SIGNAL(plottableClick(QCPAbstractPlottable*,QMouseEvent*)),
+            this, SLOT(plottableClick(QCPAbstractPlottable*,QMouseEvent*)));
 
     plot->setInteractions(QCP::iRangeZoom |
                           QCP::iSelectAxes |
@@ -57,6 +59,21 @@ void BasicQCPInteractionManager::legendClick(QCPLegend *legend,
     plottable->setSelected(plotItem->selected());
 }
 
+void BasicQCPInteractionManager::plottableClick(QCPAbstractPlottable* plottable,
+                                                QMouseEvent* event) {
+    if (plottable->selected()) {
+        QCustomPlot* plot = plottable->parentPlot();
+
+        // Clear selected items.
+        for (int i = 0; i < plot->legend->itemCount(); i++) {
+            QCPAbstractLegendItem* item = plot->legend->item(i);
+            item->setSelected(false);
+        }
+
+        QCPPlottableLegendItem *lip = plot->legend->itemWithPlottable(plottable);
+        lip->setSelected(true);
+    }
+}
 
 void BasicQCPInteractionManager::mousePress(QMouseEvent *event) {
     // Only allow panning in the direction of the selected axis
