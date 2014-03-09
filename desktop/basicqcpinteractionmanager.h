@@ -26,6 +26,10 @@ private slots:
 
     void axisSelectionChanged();
 
+    void legendClick(QCPLegend* legend,
+                     QCPAbstractLegendItem* item,
+                     QMouseEvent* event);
+
 private:
     bool isAnyYAxisSelected();
     QPointer<QCPAxis> valueAxisWithSelectedParts();
