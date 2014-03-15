@@ -138,6 +138,7 @@ void DatabaseDataSource::fetchSamples(SampleColumns columns,
 
     QSqlQuery query;
 
+    // TODO: this is not compatible with the v1 schema (station_id column)
     query.prepare("select count(*)"
                   "from sample "
                   "where station_id = :stationId "
