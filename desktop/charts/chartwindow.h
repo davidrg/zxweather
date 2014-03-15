@@ -49,6 +49,7 @@ private slots:
     void moveLegend();
     void removeSelectedGraph();
     void addGraph();
+    void customiseChart();
 
     void refresh();
 

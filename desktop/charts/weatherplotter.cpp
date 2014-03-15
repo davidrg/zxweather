@@ -4,83 +4,6 @@
 #include <QtDebug>
 #include <QMessageBox>
 
-GraphStyle::GraphStyle(SampleColumn column) {
-    ChartColours colours = Settings::getInstance().getChartColours();
-
-    QColor colour;
-
-    switch (column) {
-    case SC_Temperature:
-        colour = colours.temperature;
-        name = "Temperature";
-        break;
-    case SC_IndoorTemperature:
-        colour = colours.indoorTemperature;
-        name = "Indoor Temperature";
-        break;
-    case SC_ApparentTemperature:
-        colour = colours.apparentTemperature;
-        name = "Apparent Temperature";
-        break;
-    case SC_WindChill:
-        colour = colours.windChill;
-        name = "Wind Chill";
-        break;
-    case SC_DewPoint:
-        colour = colours.dewPoint;
-        name = "Dew Point";
-        break;
-    case SC_Humidity:
-        colour = colours.humidity;
-        name = "Humidity";
-        break;
-    case SC_IndoorHumidity:
-        colour = colours.indoorHumidity;
-        name = "Indoor Humidity";
-        break;
-    case SC_Pressure:
-        colour = colours.pressure;
-        name = "Pressure";
-        break;
-    case SC_Rainfall:
-        colour = colours.rainfall;
-        name = "Rainfall";
-        break;
-    case SC_AverageWindSpeed:
-        colour = colours.averageWindSpeed;
-        name = "Average Wind Speed";
-        break;
-    case SC_GustWindSpeed:
-        colour = colours.gustWindSpeed;
-        name = "Gust Wind Speed";
-        break;
-    case SC_WindDirection:
-        colour = colours.windDirection;
-        name = "Wind Direction";
-        break;
-    case SC_NoColumns:
-    case SC_Timestamp:
-    default:
-        // This should never happen.
-        colour = Qt::black;
-        name = "Invalid Graph";
-    }
-
-    pen = QPen(colour);
-    scatterStyle = QCPScatterStyle::ssNone;
-    brush = QBrush();
-    lineStyle = QCPGraph::lsLine;
-}
-
-void GraphStyle::applyStyle(QCPGraph *graph) {
-    graph->setName(getName());
-    graph->setPen(getPen());
-    graph->setScatterStyle(getScatterStyle());
-    graph->setBrush(getBrush());
-    graph->setLineStyle(getLineStyle());
-}
-
-
 WeatherPlotter::WeatherPlotter(QCustomPlot *chart, QObject *parent) :
     QObject(parent)
 {
@@ -304,13 +227,20 @@ void WeatherPlotter::addGenericGraph(SampleColumn column, SampleSet samples) {
     graph->setValueAxis(getValueAxis(axisType));
     graph->setData(samples.timestamp, samplesForColumn(column,samples));
 
-    GraphStyle(column).applyStyle(graph);
+    GraphStyle gs;
+    if (graphStyles.contains(column))
+        gs = graphStyles[column];
+    else {
+        gs = column;
+        graphStyles[column] = gs;
+    }
+    gs.applyStyle(graph);
 
     graph->setProperty(GRAPH_TYPE, column);
     graph->setProperty(GRAPH_AXIS, axisType);
 }
 
-void WeatherPlotter::addRainfallGraph(SampleSet samples, GraphStyle style)
+void WeatherPlotter::addRainfallGraph(SampleSet samples)
 {
     QCPGraph * graph = chart->addGraph();
     graph->setValueAxis(getValueAxis(AT_RAINFALL));
@@ -318,7 +248,15 @@ void WeatherPlotter::addRainfallGraph(SampleSet samples, GraphStyle style)
     // I don't know. Needs to be lower resolution I guess.
     graph->setData(samples.timestamp, samples.rainfall);
 
-    style.applyStyle(graph);
+    SampleColumn column = SC_Rainfall;
+    GraphStyle gs;
+    if (graphStyles.contains(column))
+        gs = graphStyles[column];
+    else {
+        gs = column;
+        graphStyles[column] = gs;
+    }
+    gs.applyStyle(graph);
 
     //graph->setLineStyle(QCPGraph::lsNone);
     //graph->setScatterStyle(QCP::ssCross);
@@ -334,7 +272,7 @@ void WeatherPlotter::addRainfallGraph(SampleSet samples, GraphStyle style)
     graph->setProperty(GRAPH_AXIS, AT_RAINFALL);
 }
 
-void WeatherPlotter::addWindDirectionGraph(SampleSet samples, GraphStyle style)
+void WeatherPlotter::addWindDirectionGraph(SampleSet samples)
 {
     QCPGraph * graph = chart->addGraph();
     graph->setValueAxis(getValueAxis(AT_WIND_DIRECTION));
@@ -348,7 +286,15 @@ void WeatherPlotter::addWindDirectionGraph(SampleSet samples, GraphStyle style)
     }
     graph->setData(timestamps,values);
 
-    style.applyStyle(graph);
+    SampleColumn column = SC_WindDirection;
+    GraphStyle gs;
+    if (graphStyles.contains(column))
+        gs = graphStyles[column];
+    else {
+        gs = column;
+        graphStyles[column] = gs;
+    }
+    gs.applyStyle(graph);
 
     graph->setProperty(GRAPH_TYPE, SC_WindDirection);
     graph->setProperty(GRAPH_AXIS, AT_WIND_DIRECTION);
@@ -597,4 +543,12 @@ void WeatherPlotter::removeGraph(SampleColumn column) {
 QString WeatherPlotter::defaultLabelForAxis(QCPAxis *axis) {
     AxisType type = axisTypes[axis];
     return axisLabels[type];
+}
+
+QMap<SampleColumn, GraphStyle> WeatherPlotter::getGraphStyles() {
+    return graphStyles;
+}
+
+void WeatherPlotter::setGraphStyles(QMap<SampleColumn, GraphStyle> styles) {
+    graphStyles = styles;
 }

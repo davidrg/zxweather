@@ -33,4 +33,19 @@
         <file alias="logo">resources/config_wizard/zxwd_logo_temp.png</file>
         <file alias="watermark">resources/config_wizard/zxwd_watermark_temp.png</file>
     </qresource>
+    <qresource prefix="/icons/scatter_style">
+        <file alias="ssCircle">resources/scatter_style/ssCircle.png</file>
+        <file alias="ssCross">resources/scatter_style/ssCross.png</file>
+        <file alias="ssCrossCircle">resources/scatter_style/ssCrossCircle.png</file>
+        <file alias="ssCrossSquare">resources/scatter_style/ssCrossSquare.png</file>
+        <file alias="ssDiamond">resources/scatter_style/ssDiamond.png</file>
+        <file alias="ssDisc">resources/scatter_style/ssDisc.png</file>
+        <file alias="ssPlus">resources/scatter_style/ssPlus.png</file>
+        <file alias="ssPlusCircle">resources/scatter_style/ssPlusCircle.png</file>
+        <file alias="ssPlusSquare">resources/scatter_style/ssPlusSquare.png</file>
+        <file alias="ssSquare">resources/scatter_style/ssSquare.png</file>
+        <file alias="ssStar">resources/scatter_style/ssStar.png</file>
+        <file alias="ssTriangle">resources/scatter_style/ssTriangle.png</file>
+        <file alias="ssTriangleInverted">resources/scatter_style/ssTriangleInverted.png</file>
+    </qresource>
 </RCC>
