@@ -69,7 +69,9 @@ SOURCES += main.cpp\
     config_wizard/internetsiteinfopage.cpp \
     config_wizard/confirmdetailspage.cpp \
     config_wizard/serverstationlister.cpp \
-    config_wizard/serverdetailspage.cpp
+    config_wizard/serverdetailspage.cpp \
+    charts/customisechartdialog.cpp \
+    charts/graphstyle.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
@@ -110,7 +112,9 @@ HEADERS  += mainwindow.h \
     config_wizard/internetsiteinfopage.h \
     config_wizard/confirmdetailspage.h \
     config_wizard/serverstationlister.h \
-    config_wizard/serverdetailspage.h
+    config_wizard/serverdetailspage.h \
+    charts/customisechartdialog.h \
+    charts/graphstyle.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \
@@ -121,7 +125,8 @@ FORMS    += mainwindow.ui \
     statuswidget.ui \
     forecastwidget.ui \
     exportdialog.ui \
-    charts/addgraphdialog.ui
+    charts/addgraphdialog.ui \
+    charts/customisechartdialog.ui
 
 OTHER_FILES += \
     database.pgc \

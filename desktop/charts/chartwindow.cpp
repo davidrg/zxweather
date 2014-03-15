@@ -2,6 +2,7 @@
 #include "ui_chartwindow.h"
 #include "settings.h"
 #include "addgraphdialog.h"
+#include "customisechartdialog.h"
 
 #include "datasource/webdatasource.h"
 #include "datasource/databasedatasource.h"
@@ -177,6 +178,13 @@ void ChartWindow::chartContextMenuRequested(QPoint point)
         // All graphs are already in the chart. No more to add.
         action->setEnabled(false);
     }
+
+#ifdef QT_DEBUG
+    menu->addSeparator();
+
+    menu->addAction("Customise",
+                    this, SLOT(customiseChart()));
+#endif
 
     /******** Plot feature visibility ********/
     menu->addSeparator();
@@ -376,3 +384,42 @@ void ChartWindow::save() {
         ui->chart->saveBmp(fileName);
 }
 
+void ChartWindow::customiseChart() {
+
+    QMap<SampleColumn, GraphStyle> originalStyles = plotter->getGraphStyles();
+
+    CustomiseChartDialog ccd(originalStyles, this);
+    if (ccd.exec() == QDialog::Accepted) {
+        QMap<SampleColumn, GraphStyle> newStyles = ccd.getGraphStyles();
+
+        qDebug() << "Customise Chart Accept.";
+
+        bool replotRequired = false;
+
+        foreach (SampleColumn column, originalStyles.keys()) {
+            GraphStyle original = originalStyles[column];
+            GraphStyle updated = newStyles[column];
+
+            qDebug() << "Checking column " << column;
+
+            if (updated != original) {
+                qDebug() << "Column settings changed.";
+                // Find the graph and restyle it.
+
+                for (int i = 0; i < ui->chart->graphCount(); i++) {
+                    QCPGraph* graph = ui->chart->graph(i);
+                    if (graph->property(GRAPH_TYPE).toInt() == column) {
+                        qDebug() << "Graph found. Restyling.";
+                        updated.applyStyle(graph);
+                    }
+                }
+
+                replotRequired = true;
+            }
+        }
+        plotter->setGraphStyles(newStyles);
+
+        if (replotRequired)
+            ui->chart->replot();
+    }
+}

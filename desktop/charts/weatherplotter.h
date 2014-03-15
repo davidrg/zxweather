@@ -3,35 +3,13 @@
 
 #include "qcp/qcustomplot.h"
 #include "datasource/abstractdatasource.h"
+#include "graphstyle.h"
+
 
 #include <QPointer>
 
 #define GRAPH_TYPE "GraphType"
 #define GRAPH_AXIS "GraphAxisType"
-
-class GraphStyle {
-public:
-    GraphStyle(SampleColumn column);
-
-    QString getName() { return name; }
-    QPen getPen() { return pen; }
-    QCPScatterStyle getScatterStyle() { return scatterStyle; }
-    QBrush getBrush() { return brush; }
-    QCPGraph::LineStyle getLineStyle() { return lineStyle; }
-
-    void setName(QString name) { this->name = name; }
-    void setLineColour(QColor colour) { pen = QPen(colour); }
-    void setScatterStyle(QCPScatterStyle style) { scatterStyle = style; }
-    void setLineStype(QCPGraph::LineStyle style) { lineStyle = style; }
-
-    void applyStyle(QCPGraph* graph);
-private:
-    QString name;
-    QPen pen;
-    QCPScatterStyle scatterStyle;
-    QBrush brush;
-    QCPGraph::LineStyle lineStyle;
-};
 
 class WeatherPlotter : public QObject
 {
@@ -106,6 +84,8 @@ public slots:
      */
     void setAxisGridVisible(bool visible) { mAxisGridsVisible = visible; }
 
+     QMap<SampleColumn, GraphStyle> getGraphStyles();
+     void setGraphStyles(QMap<SampleColumn, GraphStyle> styles);
 private slots:
     void samplesReady(SampleSet samples);
     void samplesError(QString message);
@@ -143,8 +123,10 @@ private:
                      QDateTime end = QDateTime());
 
     // Methods which handle the individual graph types.
-    void addRainfallGraph(SampleSet samples, GraphStyle style = SC_Rainfall);
-    void addWindDirectionGraph(SampleSet samples, GraphStyle style = SC_WindDirection);
+    void addRainfallGraph(SampleSet samples);
+    void addWindDirectionGraph(SampleSet samples);
+
+    QMap<SampleColumn, GraphStyle> graphStyles;
 
     void addGenericGraph(SampleColumn column, SampleSet samples);
     AxisType axisTypeForColumn(SampleColumn column);
