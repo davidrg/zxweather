@@ -43,11 +43,11 @@ SOURCES += main.cpp\
     json/json.cpp \
     settings.cpp \
     livedatawidget.cpp \
-    qcp/qcustomplot.cpp \
-    chartwindow.cpp \
+    charts/qcp/qcustomplot.cpp \
+    charts/chartwindow.cpp \
     datasource/abstractdatasource.cpp \
     datasource/webdatasource.cpp \
-    chartoptionsdialog.cpp \
+    charts/chartoptionsdialog.cpp \
     qtcolorbutton/qtcolorbutton.cpp \
     datasource/databasedatasource.cpp \
     datasource/tcplivedatasource.cpp \
@@ -58,9 +58,9 @@ SOURCES += main.cpp\
     datasource/sampleset.cpp \
     exportdialog.cpp \
     dbutil.cpp \
-    addgraphdialog.cpp \
-    basicqcpinteractionmanager.cpp \
-    weatherplotter.cpp \
+    charts/addgraphdialog.cpp \
+    charts/basicqcpinteractionmanager.cpp \
+    charts/weatherplotter.cpp \
     config_wizard/configwizard.cpp \
     config_wizard/intropage.cpp \
     config_wizard/accesstypepage.cpp \
@@ -79,12 +79,12 @@ HEADERS  += mainwindow.h \
     json/json.h \
     settings.h \
     livedatawidget.h \
-    qcp/qcustomplot.h \
-    chartwindow.h \
+    charts/qcp/qcustomplot.h \
+    charts/chartwindow.h \
     datasource/abstractdatasource.h \
     datasource/webdatasource.h \
     constants.h \
-    chartoptionsdialog.h \
+    charts/chartoptionsdialog.h \
     qtcolorbutton/qtcolorbutton.h \
     qtcolorbutton/qtcolorbutton_p.h \
     datasource/databasedatasource.h \
@@ -98,9 +98,9 @@ HEADERS  += mainwindow.h \
     dbutil.h \
     exportdialog.h \
     datasource/samplecolumns.h \
-    addgraphdialog.h \
-    basicqcpinteractionmanager.h \
-    weatherplotter.h \
+    charts/addgraphdialog.h \
+    charts/basicqcpinteractionmanager.h \
+    charts/weatherplotter.h \
     config_wizard/configwizard.h \
     config_wizard/intropage.h \
     config_wizard/configwizard_private.h \
@@ -115,13 +115,13 @@ HEADERS  += mainwindow.h \
 FORMS    += mainwindow.ui \
     settingsdialog.ui \
     aboutdialog.ui \
-    chartwindow.ui \
-    chartoptionsdialog.ui \
+    charts/chartwindow.ui \
+    charts/chartoptionsdialog.ui \
     livedatawidget.ui \
     statuswidget.ui \
     forecastwidget.ui \
     exportdialog.ui \
-    addgraphdialog.ui
+    charts/addgraphdialog.ui
 
 OTHER_FILES += \
     database.pgc \
