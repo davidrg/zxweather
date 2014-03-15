@@ -9,6 +9,30 @@
 #define GRAPH_TYPE "GraphType"
 #define GRAPH_AXIS "GraphAxisType"
 
+class GraphStyle {
+public:
+    GraphStyle(SampleColumn column);
+
+    QString getName() { return name; }
+    QPen getPen() { return pen; }
+    QCPScatterStyle getScatterStyle() { return scatterStyle; }
+    QBrush getBrush() { return brush; }
+    QCPGraph::LineStyle getLineStyle() { return lineStyle; }
+
+    void setName(QString name) { this->name = name; }
+    void setLineColour(QColor colour) { pen = QPen(colour); }
+    void setScatterStyle(QCPScatterStyle style) { scatterStyle = style; }
+    void setLineStype(QCPGraph::LineStyle style) { lineStyle = style; }
+
+    void applyStyle(QCPGraph* graph);
+private:
+    QString name;
+    QPen pen;
+    QCPScatterStyle scatterStyle;
+    QBrush brush;
+    QCPGraph::LineStyle lineStyle;
+};
+
 class WeatherPlotter : public QObject
 {
     Q_OBJECT
@@ -87,6 +111,16 @@ private slots:
     void samplesError(QString message);
 
 private:
+    typedef enum {
+        AT_NONE,
+        AT_TEMPERATURE,
+        AT_WIND_SPEED,
+        AT_WIND_DIRECTION,
+        AT_PRESSURE,
+        AT_HUMIDITY,
+        AT_RAINFALL
+    } AxisType;
+
     void drawChart(SampleSet samples);
 
     /** Requests data from the data source and sets up the charts state to
@@ -109,18 +143,12 @@ private:
                      QDateTime end = QDateTime());
 
     // Methods which handle the individual graph types.
-    void addTemperatureGraph(SampleSet samples);
-    void addIndoorTemperatureGraph(SampleSet samples);
-    void addApparentTemperatureGraph(SampleSet samples);
-    void addDewPointGraph(SampleSet samples);
-    void addWindChillGraph(SampleSet samples);
-    void addHumidityGraph(SampleSet samples);
-    void addIndoorHumidityGraph(SampleSet samples);
-    void addPressureGraph(SampleSet samples);
-    void addRainfallGraph(SampleSet samples);
-    void addAverageWindSpeedGraph(SampleSet samples);
-    void addGustWindSpeedGraph(SampleSet samples);
-    void addWindDirectionGraph(SampleSet samples);
+    void addRainfallGraph(SampleSet samples, GraphStyle style = SC_Rainfall);
+    void addWindDirectionGraph(SampleSet samples, GraphStyle style = SC_WindDirection);
+
+    void addGenericGraph(SampleColumn column, SampleSet samples);
+    AxisType axisTypeForColumn(SampleColumn column);
+    QVector<double> samplesForColumn(SampleColumn column, SampleSet samples);
 
     void addGraphs(SampleColumns currentChartColumns, SampleSet samples);
 
@@ -128,19 +156,8 @@ private:
 
     void removeUnusedAxes();
 
-
-
     QScopedPointer<AbstractDataSource> dataSource;
 
-
-    typedef enum {
-        AT_TEMPERATURE,
-        AT_WIND_SPEED,
-        AT_WIND_DIRECTION,
-        AT_PRESSURE,
-        AT_HUMIDITY,
-        AT_RAINFALL
-    } AxisType;
 
     QMap<AxisType, QPointer<QCPAxis> > configuredAxes;
     QMap<QCPAxis*, AxisType> axisTypes;
