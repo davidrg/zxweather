@@ -27,8 +27,8 @@
 
 #include "aboutdialog.h"
 #include "settings.h"
-#include "chartwindow.h"
-#include "chartoptionsdialog.h"
+#include "charts/chartwindow.h"
+#include "charts/chartoptionsdialog.h"
 #include "exportdialog.h"
 
 #include "dbutil.h"
