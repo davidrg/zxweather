@@ -4,6 +4,81 @@
 #include <QtDebug>
 #include <QMessageBox>
 
+GraphStyle::GraphStyle(SampleColumn column) {
+    ChartColours colours = Settings::getInstance().getChartColours();
+
+    QColor colour;
+
+    switch (column) {
+    case SC_Temperature:
+        colour = colours.temperature;
+        name = "Temperature";
+        break;
+    case SC_IndoorTemperature:
+        colour = colours.indoorTemperature;
+        name = "Indoor Temperature";
+        break;
+    case SC_ApparentTemperature:
+        colour = colours.apparentTemperature;
+        name = "Apparent Temperature";
+        break;
+    case SC_WindChill:
+        colour = colours.windChill;
+        name = "Wind Chill";
+        break;
+    case SC_DewPoint:
+        colour = colours.dewPoint;
+        name = "Dew Point";
+        break;
+    case SC_Humidity:
+        colour = colours.humidity;
+        name = "Humidity";
+        break;
+    case SC_IndoorHumidity:
+        colour = colours.indoorHumidity;
+        name = "Indoor Humidity";
+        break;
+    case SC_Pressure:
+        colour = colours.pressure;
+        name = "Pressure";
+        break;
+    case SC_Rainfall:
+        colour = colours.rainfall;
+        name = "Rainfall";
+        break;
+    case SC_AverageWindSpeed:
+        colour = colours.averageWindSpeed;
+        name = "Average Wind Speed";
+        break;
+    case SC_GustWindSpeed:
+        colour = colours.gustWindSpeed;
+        name = "Gust Wind Speed";
+        break;
+    case SC_WindDirection:
+        colour = colours.windDirection;
+        name = "Wind Direction";
+        break;
+    case SC_NoColumns:
+    case SC_Timestamp:
+    default:
+        // This should never happen.
+        colour = Qt::black;
+        name = "Invalid Graph";
+    }
+
+    pen = QPen(colour);
+    scatterStyle = QCPScatterStyle::ssNone;
+    brush = QBrush();
+    lineStyle = QCPGraph::lsLine;
+}
+
+void GraphStyle::applyStyle(QCPGraph *graph) {
+    graph->setName(getName());
+    graph->setPen(getPen());
+    graph->setScatterStyle(getScatterStyle());
+    graph->setBrush(getBrush());
+    graph->setLineStyle(getLineStyle());
+}
 
 
 WeatherPlotter::WeatherPlotter(QCustomPlot *chart, QObject *parent) :
@@ -148,121 +223,103 @@ QPointer<QCPAxis> WeatherPlotter::getValueAxis(AxisType axisType) {
     return axis;
 }
 
-void WeatherPlotter::addTemperatureGraph(SampleSet samples)
-{
-    ChartColours colours = Settings::getInstance().getChartColours();
+WeatherPlotter::AxisType WeatherPlotter::axisTypeForColumn(SampleColumn column) {
+    switch (column) {
+    case SC_Temperature:
+    case SC_IndoorTemperature:
+    case SC_ApparentTemperature:
+    case SC_WindChill:
+    case SC_DewPoint:
+        return AT_TEMPERATURE;
+
+    case SC_Humidity:
+    case SC_IndoorHumidity:
+        return AT_HUMIDITY;
+
+    case SC_Pressure:
+        return AT_PRESSURE;
+
+    case SC_Rainfall:
+        return AT_RAINFALL;
+
+    case SC_AverageWindSpeed:
+    case SC_GustWindSpeed:
+        return AT_WIND_SPEED;
+
+    case SC_WindDirection:
+        return AT_WIND_DIRECTION;
+
+    case SC_NoColumns:
+    case SC_Timestamp:
+    default:
+        // This should never happen.
+        return AT_NONE;
+    }
+}
+
+QVector<double> WeatherPlotter::samplesForColumn(SampleColumn column, SampleSet samples) {
+
+    Q_ASSERT_X(column != SC_WindDirection, "samplesForColumn", "WindDirection is unsupported");
+    Q_ASSERT_X(column != SC_NoColumns, "samplesForColumn", "Invalid column SC_NoColumns");
+    Q_ASSERT_X(column != SC_Timestamp, "samplesForColumn", "Invalid column SC_Timestamp");
+
+    switch (column) {
+    case SC_Temperature:
+        return samples.temperature;
+    case SC_IndoorTemperature:
+        return samples.indoorTemperature;
+    case SC_ApparentTemperature:
+        return samples.apparentTemperature;
+    case SC_WindChill:
+        return samples.windChill;
+    case SC_DewPoint:
+        return samples.dewPoint;
+    case SC_Humidity:
+        return samples.humidity;
+    case SC_IndoorHumidity:
+        return samples.indoorHumidity;
+    case SC_Pressure:
+        return samples.pressure;
+    case SC_Rainfall:
+        return samples.rainfall;
+    case SC_AverageWindSpeed:
+        return samples.averageWindSpeed;
+    case SC_GustWindSpeed:
+        return samples.gustWindSpeed;
+
+    case SC_WindDirection:
+    case SC_NoColumns:
+    case SC_Timestamp:
+    default:
+        // This should never happen.
+        return QVector<double>();
+    }
+}
+
+void WeatherPlotter::addGenericGraph(SampleColumn column, SampleSet samples) {
+
+    AxisType axisType = axisTypeForColumn(column);
 
     QCPGraph* graph = chart->addGraph();
-    graph->setValueAxis(getValueAxis(AT_TEMPERATURE));
-    graph->setData(samples.timestamp, samples.temperature);
-    graph->setName("Temperature");
-    graph->setPen(QPen(colours.temperature));
-    graph->setProperty(GRAPH_TYPE, SC_Temperature);
-    graph->setProperty(GRAPH_AXIS, AT_TEMPERATURE);
+    graph->setValueAxis(getValueAxis(axisType));
+    graph->setData(samples.timestamp, samplesForColumn(column,samples));
+
+    GraphStyle(column).applyStyle(graph);
+
+    graph->setProperty(GRAPH_TYPE, column);
+    graph->setProperty(GRAPH_AXIS, axisType);
 }
 
-void WeatherPlotter::addIndoorTemperatureGraph(SampleSet samples)
+void WeatherPlotter::addRainfallGraph(SampleSet samples, GraphStyle style)
 {
-    ChartColours colours = Settings::getInstance().getChartColours();
-
-    QCPGraph * graph = chart->addGraph();
-    graph->setValueAxis(getValueAxis(AT_TEMPERATURE));
-    graph->setData(samples.timestamp, samples.indoorTemperature);
-    graph->setName("Indoor Temperature");
-    graph->setPen(QPen(colours.indoorTemperature));
-    graph->setProperty(GRAPH_TYPE, SC_IndoorTemperature);
-    graph->setProperty(GRAPH_AXIS, AT_TEMPERATURE);
-}
-
-void WeatherPlotter::addApparentTemperatureGraph(SampleSet samples)
-{
-    ChartColours colours = Settings::getInstance().getChartColours();
-
-    QCPGraph * graph = chart->addGraph();
-    graph->setValueAxis(getValueAxis(AT_TEMPERATURE));
-    graph->setData(samples.timestamp, samples.apparentTemperature);
-    graph->setName("Apparent Temperature");
-    graph->setPen(QPen(colours.apparentTemperature));
-    graph->setProperty(GRAPH_TYPE, SC_ApparentTemperature);
-    graph->setProperty(GRAPH_AXIS, AT_TEMPERATURE);
-}
-
-void WeatherPlotter::addDewPointGraph(SampleSet samples)
-{
-    ChartColours colours = Settings::getInstance().getChartColours();
-
-    QCPGraph * graph = chart->addGraph();
-    graph->setValueAxis(getValueAxis(AT_TEMPERATURE));
-    graph->setData(samples.timestamp, samples.dewPoint);
-    graph->setName("Dew Point");
-    graph->setPen(QPen(colours.dewPoint));
-    graph->setProperty(GRAPH_TYPE, SC_DewPoint);
-    graph->setProperty(GRAPH_AXIS, AT_TEMPERATURE);
-}
-
-void WeatherPlotter::addWindChillGraph(SampleSet samples)
-{
-    ChartColours colours = Settings::getInstance().getChartColours();
-
-    QCPGraph * graph = chart->addGraph();
-    graph->setValueAxis(getValueAxis(AT_TEMPERATURE));
-    graph->setData(samples.timestamp, samples.windChill);
-    graph->setName("Wind Chill");
-    graph->setPen(QPen(colours.windChill));
-    graph->setProperty(GRAPH_TYPE, SC_WindChill);
-    graph->setProperty(GRAPH_AXIS, AT_TEMPERATURE);
-}
-
-void WeatherPlotter::addHumidityGraph(SampleSet samples)
-{
-    ChartColours colours = Settings::getInstance().getChartColours();
-
-    QCPGraph * graph = chart->addGraph();
-    graph->setValueAxis(getValueAxis(AT_HUMIDITY));
-    graph->setData(samples.timestamp, samples.humidity);
-    graph->setName("Humidity");
-    graph->setPen(QPen(colours.humidity));
-    graph->setProperty(GRAPH_TYPE, SC_Humidity);
-    graph->setProperty(GRAPH_AXIS, AT_HUMIDITY);
-}
-
-void WeatherPlotter::addIndoorHumidityGraph(SampleSet samples)
-{
-    ChartColours colours = Settings::getInstance().getChartColours();
-
-    QCPGraph * graph = chart->addGraph();
-    graph->setValueAxis(getValueAxis(AT_HUMIDITY));
-    graph->setData(samples.timestamp, samples.indoorHumidity);
-    graph->setName("Indoor Humidity");
-    graph->setPen(QPen(colours.indoorHumidity));
-    graph->setProperty(GRAPH_TYPE, SC_IndoorHumidity);
-    graph->setProperty(GRAPH_AXIS, AT_HUMIDITY);
-}
-
-void WeatherPlotter::addPressureGraph(SampleSet samples)
-{
-    ChartColours colours = Settings::getInstance().getChartColours();
-
-    QCPGraph * graph = chart->addGraph();
-    graph->setValueAxis(getValueAxis(AT_PRESSURE));
-    graph->setData(samples.timestamp, samples.pressure);
-    graph->setName("Pressure");
-    graph->setPen(QPen(colours.pressure));
-    graph->setProperty(GRAPH_TYPE, SC_Pressure);
-    graph->setProperty(GRAPH_AXIS, AT_PRESSURE);
-}
-
-void WeatherPlotter::addRainfallGraph(SampleSet samples)
-{
-    ChartColours colours = Settings::getInstance().getChartColours();
-
     QCPGraph * graph = chart->addGraph();
     graph->setValueAxis(getValueAxis(AT_RAINFALL));
     // How do you plot rainfall data so it doesn't look stupid?
     // I don't know. Needs to be lower resolution I guess.
     graph->setData(samples.timestamp, samples.rainfall);
-    graph->setName("Rainfall");
-    graph->setPen(QPen(colours.rainfall));
+
+    style.applyStyle(graph);
+
     //graph->setLineStyle(QCPGraph::lsNone);
     //graph->setScatterStyle(QCP::ssCross);
 //            QCPBars *bars = new QCPBars(ui->chart->xAxis, ui->chart->yAxis);
@@ -277,36 +334,8 @@ void WeatherPlotter::addRainfallGraph(SampleSet samples)
     graph->setProperty(GRAPH_AXIS, AT_RAINFALL);
 }
 
-void WeatherPlotter::addAverageWindSpeedGraph(SampleSet samples)
+void WeatherPlotter::addWindDirectionGraph(SampleSet samples, GraphStyle style)
 {
-    ChartColours colours = Settings::getInstance().getChartColours();
-
-    QCPGraph * graph = chart->addGraph();
-    graph->setValueAxis(getValueAxis(AT_WIND_SPEED));
-    graph->setData(samples.timestamp, samples.averageWindSpeed);
-    graph->setName("Average Wind Speed");
-    graph->setPen(QPen(colours.averageWindSpeed));
-    graph->setProperty(GRAPH_TYPE, SC_AverageWindSpeed);
-    graph->setProperty(GRAPH_AXIS, AT_WIND_SPEED);
-}
-
-void WeatherPlotter::addGustWindSpeedGraph(SampleSet samples)
-{
-    ChartColours colours = Settings::getInstance().getChartColours();
-
-    QCPGraph * graph = chart->addGraph();
-    graph->setValueAxis(getValueAxis(AT_WIND_SPEED));
-    graph->setData(samples.timestamp, samples.gustWindSpeed);
-    graph->setName("Gust Wind Speed");
-    graph->setPen(QPen(colours.gustWindSpeed));
-    graph->setProperty(GRAPH_TYPE, SC_GustWindSpeed);
-    graph->setProperty(GRAPH_AXIS, AT_WIND_SPEED);
-}
-
-void WeatherPlotter::addWindDirectionGraph(SampleSet samples)
-{
-    ChartColours colours = Settings::getInstance().getChartColours();
-
     QCPGraph * graph = chart->addGraph();
     graph->setValueAxis(getValueAxis(AT_WIND_DIRECTION));
     QList<uint> keys = samples.windDirection.keys();
@@ -318,8 +347,9 @@ void WeatherPlotter::addWindDirectionGraph(SampleSet samples)
         values.append(samples.windDirection[key]);
     }
     graph->setData(timestamps,values);
-    graph->setName("Wind Direction");
-    graph->setPen(QPen(colours.windDirection));
+
+    style.applyStyle(graph);
+
     graph->setProperty(GRAPH_TYPE, SC_WindDirection);
     graph->setProperty(GRAPH_AXIS, AT_WIND_DIRECTION);
 }
@@ -330,40 +360,50 @@ void WeatherPlotter::addGraphs(SampleColumns columns, SampleSet samples)
     qDebug() << "Adding graphs:" << columns;
 
     if (columns.testFlag(SC_Temperature))
-        addTemperatureGraph(samples);
+        addGenericGraph(SC_Temperature, samples);
+        //addTemperatureGraph(samples);
 
     if (columns.testFlag(SC_IndoorTemperature))
-        addIndoorTemperatureGraph(samples);
+        addGenericGraph(SC_IndoorTemperature, samples);
+        //addIndoorTemperatureGraph(samples);
 
     if (columns.testFlag(SC_ApparentTemperature))
-        addApparentTemperatureGraph(samples);
+        addGenericGraph(SC_ApparentTemperature, samples);
+        //addApparentTemperatureGraph(samples);
 
     if (columns.testFlag(SC_DewPoint))
-        addDewPointGraph(samples);
+        addGenericGraph(SC_DewPoint, samples);
+        //addDewPointGraph(samples);
 
     if (columns.testFlag(SC_WindChill))
-        addWindChillGraph(samples);
+        addGenericGraph(SC_WindChill, samples);
+        //addWindChillGraph(samples);
 
     if (columns.testFlag(SC_Humidity))
-        addHumidityGraph(samples);
+        addGenericGraph(SC_Humidity, samples);
+        //addHumidityGraph(samples);
 
     if (columns.testFlag(SC_IndoorHumidity))
-        addIndoorHumidityGraph(samples);
+        addGenericGraph(SC_IndoorHumidity, samples);
+        //addIndoorHumidityGraph(samples);
 
     if (columns.testFlag(SC_Pressure))
-        addPressureGraph(samples);
+        addGenericGraph(SC_Pressure, samples);
+        //addPressureGraph(samples);
 
     if (columns.testFlag(SC_Rainfall))
-        addRainfallGraph(samples);
+        addRainfallGraph(samples); // keep
 
     if (columns.testFlag(SC_AverageWindSpeed))
-        addAverageWindSpeedGraph(samples);
+        addGenericGraph(SC_AverageWindSpeed, samples);
+        //addAverageWindSpeedGraph(samples);
 
     if (columns.testFlag(SC_GustWindSpeed))
-        addGustWindSpeedGraph(samples);
+        addGenericGraph(SC_GustWindSpeed, samples);
+        //addGustWindSpeedGraph(samples);
 
     if (columns.testFlag(SC_WindDirection))
-        addWindDirectionGraph(samples);
+        addWindDirectionGraph(samples); // keep
 }
 
 void WeatherPlotter::drawChart(SampleSet samples)
