@@ -141,16 +141,7 @@ class ShellClientFactory(protocol.ClientFactory):
             log.msg('Connection aborted due to key host key validation error. '
                     'Check your configuration.')
             reactor.stop()
-        elif reason.check(ConnectionLost):
-            # We lost the connection for some reason. Reconnect.
-
-            if not reactor.running:
-                log.msg('Connection lost due to server shutdown.')
-                return
-
-            log.msg('Reconnect...')
-            connector.connect()
-        elif reason.check(ConnectionDone):
+        elif reason.check(ConnectionDone) or reason.check(ConnectionLost):
             log.msg('Server has closed the connection (server shut down?).')
             log.msg('Reconnect attempt in 1 minute...')
             reactor.callLater(60, _auto_reconnect)
