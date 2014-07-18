@@ -232,11 +232,15 @@ void ChartWindow::addTitle()
     }
 
     if (ok) {
-        ui->chart->plotLayout()->insertRow(0);
-        plotTitle = new QCPPlotTitle(ui->chart, plotTitleValue);
-        ui->chart->plotLayout()->addElement(0, 0, plotTitle);
+        addTitle(plotTitleValue);
         ui->chart->replot();
     }
+}
+
+void ChartWindow::addTitle(QString title) {
+    ui->chart->plotLayout()->insertRow(0);
+    plotTitle = new QCPPlotTitle(ui->chart, title);
+    ui->chart->plotLayout()->addElement(0, 0, plotTitle);
 }
 
 void ChartWindow::removeTitle()
@@ -418,6 +422,9 @@ void ChartWindow::customiseChart() {
             }
         }
         plotter->setGraphStyles(newStyles);
+
+
+
 
         if (replotRequired)
             ui->chart->replot();

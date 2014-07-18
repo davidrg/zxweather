@@ -114,7 +114,8 @@ HEADERS  += mainwindow.h \
     config_wizard/serverstationlister.h \
     config_wizard/serverdetailspage.h \
     charts/customisechartdialog.h \
-    charts/graphstyle.h
+    charts/graphstyle.h \
+    charts/chartsettings.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \

@@ -47,7 +47,7 @@ void CustomiseChartDialog::addGraphSettingsForColumn(SampleColumn column) {
 
     static int row = 2;
 
-    GraphStyle gs;
+    GraphStyle gs(column);
     bool graphEnabled = graphStyles.contains(column);
     if (graphEnabled)
         gs = graphStyles[column];
@@ -167,7 +167,7 @@ void CustomiseChartDialog::addGraphSettingsForColumn(SampleColumn column) {
 
 void CustomiseChartDialog::updateGraphStyle(SampleColumn column) {
     GraphSettingsWidgets widgets = graphSettingsWidgets[column];
-qDebug() << "Updating graph style for column" << column;
+    qDebug() << "Updating graph style for column" << column;
     if (widgets.name->isEnabled()) {
         GraphStyle gs;
         gs.setName(widgets.name->text());
