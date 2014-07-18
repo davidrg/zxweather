@@ -66,6 +66,7 @@ private:
 
     Ui::ChartWindow *ui;
 
+    void addTitle(QString title);
     QPointer<QCPPlotTitle> plotTitle;
     QString plotTitleValue;
 
