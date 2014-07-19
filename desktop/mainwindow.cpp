@@ -337,10 +337,17 @@ void MainWindow::showChartWindow() {
         return; // User canceled. Nothing to do.
 
     SampleColumns columns = options.getColumns();
-    QDateTime startTime = options.getStartTime();
-    QDateTime endTime = options.getEndTime();
 
-    ChartWindow *cw = new ChartWindow(columns, startTime, endTime);
+    DataSet ds;
+    ds.columns = columns;
+    ds.startTime = options.getStartTime();
+    ds.endTime = options.getEndTime();
+    QList<DataSet> dataSets;
+    dataSets << ds;
+
+    qDebug() <<"DS Columns:"<< (int)ds.columns;
+
+    ChartWindow *cw = new ChartWindow(dataSets);
     cw->setAttribute(Qt::WA_DeleteOnClose);
     cw->show();
 }

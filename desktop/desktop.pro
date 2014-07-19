@@ -71,7 +71,9 @@ SOURCES += main.cpp\
     config_wizard/serverstationlister.cpp \
     config_wizard/serverdetailspage.cpp \
     charts/customisechartdialog.cpp \
-    charts/graphstyle.cpp
+    charts/graphstyle.cpp \
+    charts/cachemanager.cpp \
+    datasource/samplecolumns.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
@@ -115,7 +117,8 @@ HEADERS  += mainwindow.h \
     config_wizard/serverdetailspage.h \
     charts/customisechartdialog.h \
     charts/graphstyle.h \
-    charts/chartsettings.h
+    charts/chartsettings.h \
+    charts/cachemanager.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \

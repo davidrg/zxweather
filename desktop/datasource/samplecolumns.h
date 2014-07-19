@@ -2,6 +2,7 @@
 #define SAMPLECOLUMNS_H
 
 #include <QFlags>
+#include <QDateTime>
 
 enum SampleColumn {
     SC_NoColumns           = 0x0000,
@@ -37,5 +38,29 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(SampleColumns)
     SC_GustWindSpeed)
 
 #define OTHER_COLUMNS (SC_Pressure | SC_Rainfall)
+
+typedef uint16_t dataset_id_t;
+
+/** Describes a set of columns to be plotted in a chart along with the
+ * timespan they should be plotted over. It also includes an ID will be
+ * set by the ChartWindow to a unique value for use as a key in hashtables,
+ * etc.
+ */
+typedef struct {
+    dataset_id_t id;
+    SampleColumns columns;
+    QDateTime startTime;
+    QDateTime endTime;
+    QString axisLabel;
+} DataSet;
+
+/** Compares two DataSets to see if they're equal for data caching purposes.
+ * Note that this only includes start time, end time, column set and id.
+ *
+ * @param lhs First dataset
+ * @param rhs Second dataset
+ * @return true if the two datasets are equal.
+ */
+bool operator==(const DataSet& lhs, const DataSet& rhs);
 
 #endif // SAMPLECOLUMNS_H

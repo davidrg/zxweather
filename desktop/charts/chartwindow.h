@@ -22,9 +22,7 @@ class ChartWindow : public QWidget
     Q_OBJECT
     
 public:
-    explicit ChartWindow(SampleColumns currentChartColumns,
-                         QDateTime startTime,
-                         QDateTime endTime,
+    explicit ChartWindow(QList<DataSet> dataSets,
                          QWidget *parent = 0);
     ~ChartWindow();
     
