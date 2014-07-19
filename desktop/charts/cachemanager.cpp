@@ -41,6 +41,8 @@ void CacheManager::getDataSets(QList<DataSet> dataSets) {
 
 void CacheManager::getNextDataSet() {
     qDebug() << "Fetching next dataset...";
+    Q_ASSERT_X(!dataSetsToFetch.isEmpty(), "getNextDataSet", "No more data sets to fetch");
+
     DataSet ds = dataSetsToFetch.first();
     DataSet cachedDataSet = datasetCache[ds.id];
 
@@ -51,8 +53,9 @@ void CacheManager::getNextDataSet() {
                  << "(start" << ds.startTime << ", end"
                  << ds.endTime << ", columns" << ds.columns
                  << ") - already cached";
-        dataSetsToFetch.removeFirst();
-        getNextDataSet();
+
+        // Pull the data from cache
+        samplesReady(sampleCache[ds.id]);
 
     } else {
         // We either don't have the dataset cached or the dataset has changed
@@ -87,6 +90,7 @@ void CacheManager::samplesReady(SampleSet samples) {
         dataSetsToFetch.clear();
         requestedDataSets.clear();
     } else {
+        qDebug() << "Datasets remaining to fetch:" << dataSetsToFetch.count();
         // Still more work to do.
         getNextDataSet();
     }
