@@ -20,23 +20,26 @@ WeatherPlotter::WeatherPlotter(QCustomPlot *chart, QObject *parent) :
     // Keep axis ranges locked
     connect(chart->xAxis, SIGNAL(rangeChanged(QCPRange)),
             chart->xAxis2, SLOT(setRange(QCPRange)));
+
+    cacheManager.reset(new CacheManager(this));
+    connect(cacheManager.data(), SIGNAL(dataSetsReady(QMap<dataset_id_t,SampleSet>)),
+            this, SLOT(dataSetsReady(QMap<dataset_id_t,SampleSet>)));
+    connect(cacheManager.data(), SIGNAL(retreivalError(QString)),
+            this, SLOT(dataSourceError(QString)));
 }
 
 void WeatherPlotter::setDataSource(AbstractDataSource *dataSource)
 {
-    connect(dataSource, SIGNAL(samplesReady(SampleSet)),
-            this, SLOT(samplesReady(SampleSet)));
-    connect(dataSource, SIGNAL(sampleRetrievalError(QString)),
-            this, SLOT(samplesError(QString)));
-
-    this->dataSource.reset(dataSource);
+    cacheManager->setDataSource(dataSource);
 }
 
-void WeatherPlotter::drawChart(SampleColumns columns, QDateTime startTime,
-                            QDateTime endTime)
+void WeatherPlotter::drawChart(QList<DataSet> dataSets)
 {
-    currentChartColumns = columns;
-    requestData(columns, false, startTime, endTime);
+    foreach (DataSet dataSet, dataSets) {
+        this->dataSets[dataSet.id] = dataSet;
+    }
+
+    cacheManager->getDataSets(dataSets);
 }
 
 void WeatherPlotter::populateAxisLabels() {
@@ -50,94 +53,121 @@ void WeatherPlotter::populateAxisLabels() {
 
 void WeatherPlotter::reload() {
 
-    // No columns selected? nothing to do.
-    if (currentChartColumns == SC_NoColumns) return;
+    int dataSetsToPlot = 0;
+    foreach (DataSet dataSet, dataSets.values()) {
+        if (dataSet.columns != SC_NoColumns) dataSetsToPlot++;
+    }
+    if (dataSetsToPlot == 0)
+        return; // No columns selected? nothing to do.
 
-    requestData(currentChartColumns);
+    cacheManager->flushCache();
+
+    cacheManager->getDataSets(dataSets.values());
 }
 
-void WeatherPlotter::refresh(QDateTime start, QDateTime end) {
+void WeatherPlotter::changeDataSetTimespan(dataset_id_t dataSetId, QDateTime start, QDateTime end) {
 
-    bool cacheValid = true;
+    DataSet ds = dataSets[dataSetId];
 
-    if (!start.isNull() && start != startTime) {
-        cacheValid = false;
-        startTime = start;
+    if (!start.isNull() && start != ds.startTime) {
+        ds.startTime = start;
     }
-    if (!end.isNull() && end != endTime) {
-        cacheValid = false;
-        endTime = end;
+    if (!end.isNull() && end != ds.endTime) {
+        ds.endTime = end;
     }
+    dataSets[dataSetId] = ds;
 
-    if (cacheValid) {
-        qDebug() << "Time range not changed. Refreshing with sample cache...";
-        drawChart(sampleCache);
-    } else {
-        qDebug() << "Requesting new data and redrawing...";
-        requestData(currentChartColumns, false);
-    }
+    cacheManager->getDataSets(dataSets.values());
 }
 
-void WeatherPlotter::requestData(SampleColumns columns,
-                              bool merge,
-                              QDateTime start,
-                              QDateTime end) {
+QPointer<QCPAxis> WeatherPlotter::createValueAxis(AxisType type) {
+    Q_ASSERT_X(type < AT_KEY, "createValueAxis", "Axis type must not be for a key axis");
 
-    if (start.isNull())
-        start = startTime;
-    if (end.isNull())
-        end = endTime;
-
-    mergeSamples = merge;
-    if (merge) {
-        dataSetColumns |= columns;
-        mergeColumns = columns;
-    } else
-        dataSetColumns = columns;
-    startTime = start;
-    endTime = end;
-
-    qDebug() << "Fetching columns" << columns << "between" << start << "and" << end;
-
-    dataSource->fetchSamples(columns, start, end);
-}
-
-QPointer<QCPAxis> WeatherPlotter::createAxis(AxisType type) {
     QCPAxis* axis = NULL;
-    if (configuredAxes.isEmpty()) {
+    if (configuredValueAxes.isEmpty()) {
 
         axis = chart->yAxis;
         axis->setVisible(true);
         axis->setTickLabels(true);
-    } else if (configuredAxes.count() == 1) {
+    } else if (configuredValueAxes.count() == 1) {
         axis = chart->yAxis2;
         axis->setVisible(true);
         axis->setTickLabels(true);
     } else {
         // Every second axis can go on the right.
-        if (configuredAxes.count() % 2 == 0)
+        if (configuredValueAxes.count() % 2 == 0)
             axis = chart->axisRect()->addAxis(QCPAxis::atLeft);
         else
             axis = chart->axisRect()->addAxis(QCPAxis::atRight);
     }
     axis->grid()->setVisible(axisGridVisible());
-    configuredAxes.insert(type, axis);
+    configuredValueAxes.insert(type, axis);
     axisTypes.insert(axis,type);
     axis->setLabel(axisLabels[type]);
 
-    emit axisCountChanged(configuredAxes.count());
+    emit axisCountChanged(configuredKeyAxes.count() + configuredValueAxes.count());
 
     return axis;
 }
 
 QPointer<QCPAxis> WeatherPlotter::getValueAxis(AxisType axisType) {
+    Q_ASSERT_X(axisType < AT_KEY, "getValueAxis", "Axis type must not be for a key axis");
+
     QPointer<QCPAxis> axis = NULL;
-    if (!configuredAxes.contains(axisType))
+    if (!configuredValueAxes.contains(axisType))
         // Axis of specified type doesn't exist. Create it.
-        axis = createAxis(axisType);
+        axis = createValueAxis(axisType);
     else
         // Axis already exists
-        axis = configuredAxes[axisType];
+        axis = configuredValueAxes[axisType];
+
+    if (!axisReferences.contains(axisType))
+        axisReferences.insert(axisType,0);
+    axisReferences[axisType]++;
+
+    return axis;
+}
+
+QPointer<QCPAxis> WeatherPlotter::createKeyAxis(dataset_id_t dataSetId) {
+    AxisType type = (AxisType)(AT_KEY + dataSetId);
+
+    QCPAxis* axis = NULL;
+    if (configuredKeyAxes.isEmpty()) {
+
+        axis = chart->xAxis;
+        axis->setVisible(true);
+        axis->setTickLabels(true);
+    } else if (configuredKeyAxes.count() == 1) {
+        axis = chart->xAxis2;
+        axis->setVisible(true);
+        axis->setTickLabels(true);
+    } else {
+        // Every second axis can go on the top.
+        if (configuredKeyAxes.count() % 2 == 0)
+            axis = chart->axisRect()->addAxis(QCPAxis::atBottom);
+        else
+            axis = chart->axisRect()->addAxis(QCPAxis::atTop);
+    }
+    axis->grid()->setVisible(axisGridVisible());
+    configuredKeyAxes.insert(type, axis);
+    axisTypes.insert(axis,type);
+    axis->setLabel(axisLabels[type]);
+
+    emit axisCountChanged(configuredKeyAxes.count() + configuredValueAxes.count());
+
+    return axis;
+}
+
+QPointer<QCPAxis> WeatherPlotter::getKeyAxis(dataset_id_t dataSetId) {
+    AxisType axisType = (AxisType)(AT_KEY + dataSetId);
+
+    QPointer<QCPAxis> axis = NULL;
+    if (!configuredKeyAxes.contains(axisType))
+        // Axis of specified type doesn't exist. Create it.
+        axis = createKeyAxis(axisType);
+    else
+        // Axis already exists
+        axis = configuredKeyAxes[axisType];
 
     if (!axisReferences.contains(axisType))
         axisReferences.insert(axisType,0);
@@ -219,31 +249,34 @@ QVector<double> WeatherPlotter::samplesForColumn(SampleColumn column, SampleSet 
     }
 }
 
-void WeatherPlotter::addGenericGraph(SampleColumn column, SampleSet samples) {
-
+void WeatherPlotter::addGenericGraph(DataSet dataSet, SampleColumn column, SampleSet samples) {
+    qDebug() << "Adding graph for dataset" << dataSet.id << "column" << (int)column;
     AxisType axisType = axisTypeForColumn(column);
 
     QCPGraph* graph = chart->addGraph();
     graph->setValueAxis(getValueAxis(axisType));
+    graph->setKeyAxis(getKeyAxis(dataSet.id));
     graph->setData(samples.timestamp, samplesForColumn(column,samples));
 
     GraphStyle gs;
     if (graphStyles.contains(column))
-        gs = graphStyles[column];
+        gs = graphStyles[dataSet.id][column];
     else {
         gs = column;
-        graphStyles[column] = gs;
+        graphStyles[dataSet.id][column] = gs;
     }
     gs.applyStyle(graph);
 
     graph->setProperty(GRAPH_TYPE, column);
     graph->setProperty(GRAPH_AXIS, axisType);
+    graph->setProperty(GRAPH_DATASET, dataSet.id);
 }
 
-void WeatherPlotter::addRainfallGraph(SampleSet samples)
+void WeatherPlotter::addRainfallGraph(DataSet dataSet, SampleSet samples)
 {
     QCPGraph * graph = chart->addGraph();
     graph->setValueAxis(getValueAxis(AT_RAINFALL));
+    graph->setKeyAxis(getKeyAxis(dataSet.id));
     // How do you plot rainfall data so it doesn't look stupid?
     // I don't know. Needs to be lower resolution I guess.
     graph->setData(samples.timestamp, samples.rainfall);
@@ -251,10 +284,10 @@ void WeatherPlotter::addRainfallGraph(SampleSet samples)
     SampleColumn column = SC_Rainfall;
     GraphStyle gs;
     if (graphStyles.contains(column))
-        gs = graphStyles[column];
+        gs = graphStyles[dataSet.id][column];
     else {
         gs = column;
-        graphStyles[column] = gs;
+        graphStyles[dataSet.id][column] = gs;
     }
     gs.applyStyle(graph);
 
@@ -270,12 +303,15 @@ void WeatherPlotter::addRainfallGraph(SampleSet samples)
     // set pen
     graph->setProperty(GRAPH_TYPE, SC_Rainfall);
     graph->setProperty(GRAPH_AXIS, AT_RAINFALL);
+    graph->setProperty(GRAPH_DATASET, dataSet.id);
 }
 
-void WeatherPlotter::addWindDirectionGraph(SampleSet samples)
+void WeatherPlotter::addWindDirectionGraph(DataSet dataSet, SampleSet samples)
 {
     QCPGraph * graph = chart->addGraph();
     graph->setValueAxis(getValueAxis(AT_WIND_DIRECTION));
+    graph->setKeyAxis(getKeyAxis(dataSet.id));
+
     QList<uint> keys = samples.windDirection.keys();
     qSort(keys.begin(), keys.end());
     QVector<double> timestamps;
@@ -289,72 +325,77 @@ void WeatherPlotter::addWindDirectionGraph(SampleSet samples)
     SampleColumn column = SC_WindDirection;
     GraphStyle gs;
     if (graphStyles.contains(column))
-        gs = graphStyles[column];
+        gs = graphStyles[dataSet.id][column];
     else {
         gs = column;
-        graphStyles[column] = gs;
+        graphStyles[dataSet.id][column] = gs;
     }
     gs.applyStyle(graph);
 
     graph->setProperty(GRAPH_TYPE, SC_WindDirection);
     graph->setProperty(GRAPH_AXIS, AT_WIND_DIRECTION);
+    graph->setProperty(GRAPH_DATASET, dataSet.id);
 }
 
-
-void WeatherPlotter::addGraphs(SampleColumns columns, SampleSet samples)
+void WeatherPlotter::addGraphs(QMap<dataset_id_t, SampleSet> sampleSets)
 {
-    qDebug() << "Adding graphs:" << columns;
+    foreach (dataset_id_t dataSetId, sampleSets.keys()) {
+        DataSet ds = dataSets[dataSetId];
+        SampleSet samples = sampleSets[dataSetId];
 
-    if (columns.testFlag(SC_Temperature))
-        addGenericGraph(SC_Temperature, samples);
-        //addTemperatureGraph(samples);
+        qDebug() << "Adding graphs" << (int)ds.columns << "for dataset" << ds.id;
 
-    if (columns.testFlag(SC_IndoorTemperature))
-        addGenericGraph(SC_IndoorTemperature, samples);
-        //addIndoorTemperatureGraph(samples);
+        if (ds.columns.testFlag(SC_Temperature))
+            addGenericGraph(ds, SC_Temperature, samples);
+            //addTemperatureGraph(samples);
 
-    if (columns.testFlag(SC_ApparentTemperature))
-        addGenericGraph(SC_ApparentTemperature, samples);
-        //addApparentTemperatureGraph(samples);
+        if (ds.columns.testFlag(SC_IndoorTemperature))
+            addGenericGraph(ds, SC_IndoorTemperature, samples);
+            //addIndoorTemperatureGraph(samples);
 
-    if (columns.testFlag(SC_DewPoint))
-        addGenericGraph(SC_DewPoint, samples);
-        //addDewPointGraph(samples);
+        if (ds.columns.testFlag(SC_ApparentTemperature))
+            addGenericGraph(ds, SC_ApparentTemperature, samples);
+            //addApparentTemperatureGraph(samples);
 
-    if (columns.testFlag(SC_WindChill))
-        addGenericGraph(SC_WindChill, samples);
-        //addWindChillGraph(samples);
+        if (ds.columns.testFlag(SC_DewPoint))
+            addGenericGraph(ds, SC_DewPoint, samples);
+            //addDewPointGraph(samples);
 
-    if (columns.testFlag(SC_Humidity))
-        addGenericGraph(SC_Humidity, samples);
-        //addHumidityGraph(samples);
+        if (ds.columns.testFlag(SC_WindChill))
+            addGenericGraph(ds, SC_WindChill, samples);
+            //addWindChillGraph(samples);
 
-    if (columns.testFlag(SC_IndoorHumidity))
-        addGenericGraph(SC_IndoorHumidity, samples);
-        //addIndoorHumidityGraph(samples);
+        if (ds.columns.testFlag(SC_Humidity))
+            addGenericGraph(ds, SC_Humidity, samples);
+            //addHumidityGraph(samples);
 
-    if (columns.testFlag(SC_Pressure))
-        addGenericGraph(SC_Pressure, samples);
-        //addPressureGraph(samples);
+        if (ds.columns.testFlag(SC_IndoorHumidity))
+            addGenericGraph(ds, SC_IndoorHumidity, samples);
+            //addIndoorHumidityGraph(samples);
 
-    if (columns.testFlag(SC_Rainfall))
-        addRainfallGraph(samples); // keep
+        if (ds.columns.testFlag(SC_Pressure))
+            addGenericGraph(ds, SC_Pressure, samples);
+            //addPressureGraph(samples);
 
-    if (columns.testFlag(SC_AverageWindSpeed))
-        addGenericGraph(SC_AverageWindSpeed, samples);
-        //addAverageWindSpeedGraph(samples);
+        if (ds.columns.testFlag(SC_Rainfall))
+            addRainfallGraph(ds, samples); // keep
 
-    if (columns.testFlag(SC_GustWindSpeed))
-        addGenericGraph(SC_GustWindSpeed, samples);
-        //addGustWindSpeedGraph(samples);
+        if (ds.columns.testFlag(SC_AverageWindSpeed))
+            addGenericGraph(ds, SC_AverageWindSpeed, samples);
+            //addAverageWindSpeedGraph(samples);
 
-    if (columns.testFlag(SC_WindDirection))
-        addWindDirectionGraph(samples); // keep
+        if (ds.columns.testFlag(SC_GustWindSpeed))
+            addGenericGraph(ds, SC_GustWindSpeed, samples);
+            //addGustWindSpeedGraph(samples);
+
+        if (ds.columns.testFlag(SC_WindDirection))
+            addWindDirectionGraph(ds, samples); // keep
+    }
 }
 
-void WeatherPlotter::drawChart(SampleSet samples)
+void WeatherPlotter::drawChart(QMap<dataset_id_t, SampleSet> sampleSets)
 {
-    qDebug() << "Samples: " << samples.sampleCount;
+    qDebug() << "Drawing Chart...";
 
     chart->clearGraphs();
     chart->clearPlottables();
@@ -362,8 +403,7 @@ void WeatherPlotter::drawChart(SampleSet samples)
         axisReferences[type] = 0;
     removeUnusedAxes();
 
-    addGraphs(currentChartColumns, samples);
-
+    addGraphs(sampleSets);
 
     if (chart->graphCount() > 1)
         chart->legend->setVisible(true);
@@ -374,74 +414,13 @@ void WeatherPlotter::drawChart(SampleSet samples)
     chart->replot();
 }
 
-void WeatherPlotter::mergeSampleSet(SampleSet samples, SampleColumns columns)
-{
-    qDebug() << "Merging in columns:" << columns;
-    if (columns.testFlag(SC_Temperature))
-        sampleCache.temperature = samples.temperature;
-
-    if (columns.testFlag(SC_IndoorTemperature))
-        sampleCache.indoorTemperature = samples.indoorTemperature;
-
-    if (columns.testFlag(SC_ApparentTemperature))
-        sampleCache.apparentTemperature = samples.apparentTemperature;
-
-    if (columns.testFlag(SC_DewPoint))
-        sampleCache.dewPoint = samples.dewPoint;
-
-    if (columns.testFlag(SC_WindChill))
-        sampleCache.windChill = samples.windChill;
-
-    if (columns.testFlag(SC_Humidity))
-        sampleCache.humidity = samples.humidity;
-
-    if (columns.testFlag(SC_IndoorHumidity))
-        sampleCache.indoorHumidity = samples.indoorHumidity;
-
-    if (columns.testFlag(SC_Pressure))
-        sampleCache.pressure = samples.pressure;
-
-    if (columns.testFlag(SC_Rainfall))
-        sampleCache.rainfall = samples.rainfall;
-
-    if (columns.testFlag(SC_AverageWindSpeed))
-        sampleCache.averageWindSpeed = samples.averageWindSpeed;
-
-    if (columns.testFlag(SC_GustWindSpeed))
-        sampleCache.gustWindSpeed = samples.gustWindSpeed;
-
-    if (columns.testFlag(SC_WindDirection))
-        sampleCache.windDirection = samples.windDirection;
-
-    dataSetColumns |= columns;
+void WeatherPlotter::dataSetsReady(QMap<dataset_id_t, SampleSet> samples) {
+    qDebug() << "Data received from cache manager. Drawing chart for"
+             << samples.keys().count() << "datasets...";
+    drawChart(samples);
 }
 
-void WeatherPlotter::samplesReady(SampleSet samples) {
-    qDebug() << "Samples ready";
-    if (mergeSamples) {
-        qDebug() << "Merging received samples into cache...";
-        SampleColumns columns = mergeColumns;
-
-        mergeSampleSet(samples, columns);
-
-        // Add the new graphs into the chart.
-        addGraphs(mergeColumns, samples);
-        currentChartColumns |= mergeColumns;
-        chart->rescaleAxes();
-        chart->replot();
-    } else {
-        qDebug() << "Refreshing cache...";
-        // Cache future samples for fast refreshing.
-        sampleCache = samples;
-
-        // Completely redraw the chart.
-        drawChart(samples);
-    }
-    mergeSamples = false;
-    mergeColumns = SC_NoColumns;
-}
-
-void WeatherPlotter::samplesError(QString message)
+void WeatherPlotter::dataSourceError(QString message)
 {
     // TODO: Find a better way of doing this
     QMessageBox::critical(0, "Error", message);
@@ -452,10 +431,18 @@ void WeatherPlotter::removeUnusedAxes()
     foreach(AxisType type, axisReferences.keys()) {
         if (axisReferences[type] == 0) {
             // Axis is now unused. Remove it.
-            QPointer<QCPAxis> axis = configuredAxes[type];
+            QPointer<QCPAxis> axis;
+
+            if (type >= AT_KEY) {
+                axis = configuredKeyAxes[type];
+                configuredKeyAxes.remove(type);
+            } else {
+                axis = configuredValueAxes[type];
+                configuredValueAxes.remove(type);
+            }
 
             // Remove all the tracking information.
-            configuredAxes.remove(type);
+
             axisTypes.remove(axis);
             axisReferences.remove(type);
 
@@ -466,17 +453,24 @@ void WeatherPlotter::removeUnusedAxes()
             } else if (axis == chart->yAxis2) {
                 chart->yAxis2->setVisible(false);
                 chart->yAxis2->setTickLabels(false);
+            } else if (axis == chart->xAxis) {
+                chart->xAxis->setVisible(false);
+                chart->xAxis->setTickLabels(false);
+            } else if (axis == chart->xAxis2) {
+                chart->xAxis2->setVisible(false);
+                chart->xAxis2->setTickLabels(false);
             } else {
                 chart->axisRect()->removeAxis(axis);
             }
         }
     }
-    emit axisCountChanged(configuredAxes.count());
+    emit axisCountChanged(configuredValueAxes.count() + configuredKeyAxes.count());
 }
 
-SampleColumns WeatherPlotter::availableColumns()
+SampleColumns WeatherPlotter::availableColumns(dataset_id_t dataSetId)
 {
-    SampleColumns availableColumns = ~currentChartColumns;
+    //SampleColumns availableColumns = ~currentChartColumns;
+    SampleColumns availableColumns = ~dataSets[dataSetId].columns;
 
     // This will have gone and set all the unused bits in the int too.
     // Go clear anything we don't use.
@@ -489,37 +483,23 @@ SampleColumns WeatherPlotter::availableColumns()
     return availableColumns;
 }
 
-void WeatherPlotter::addGraphs(SampleColumns columns) {
-    if (columns == SC_NoColumns)
-        return; // Nothing chosen - nothing to do
+void WeatherPlotter::addGraphs(dataset_id_t dataSetId, SampleColumns columns) {
+    dataSets[dataSetId].columns |= columns;
 
-    // See if we already have everything we need in the sample cache.
-    if ((columns & dataSetColumns) == columns) {
-        // Looks like all the data is already there. Just need to re-add
-        // the missing graphs
-        qDebug() << "Data for graph already exists. Not refetching.";
-
-        addGraphs(columns, sampleCache);
-        currentChartColumns |= columns;
-        chart->replot();
-    } else {
-        // Some data is missing. Go fetch it.
-
-        qDebug() << "Requesting data for: " << columns;
-
-        requestData(columns, true);
-    }
+    cacheManager->getDataSets(dataSets.values());
 }
 
-void WeatherPlotter::removeGraph(SampleColumn column) {
+void WeatherPlotter::removeGraph(dataset_id_t dataSetId, SampleColumn column) {
 
     // Try to find the graph that goes with this column.
     QCPGraph* graph = 0;
     for (int i = 0; i < chart->graphCount(); i++) {
         SampleColumn graphColumn =
                 (SampleColumn)chart->graph(i)->property(GRAPH_TYPE).toInt();
+        dataset_id_t graphDataSetId =
+                (dataset_id_t)chart->graph(i)->property(GRAPH_DATASET).toUInt();
 
-        if (graphColumn == column)
+        if (graphColumn == column && graphDataSetId == dataSetId)
             graph = chart->graph(i);
     }
 
@@ -528,7 +508,7 @@ void WeatherPlotter::removeGraph(SampleColumn column) {
         return;
     }
 
-    currentChartColumns &= ~column;
+    dataSets[dataSetId].columns &= ~column;
 
     // One less use of this particular axis.
     AxisType axisType = (AxisType)graph->property(GRAPH_AXIS).toInt();
@@ -542,13 +522,23 @@ void WeatherPlotter::removeGraph(SampleColumn column) {
 
 QString WeatherPlotter::defaultLabelForAxis(QCPAxis *axis) {
     AxisType type = axisTypes[axis];
-    return axisLabels[type];
+
+    if (type >= AT_KEY) {
+        // Its an X axis. Its label comes from the dataset.
+        dataset_id_t dataSetId = type - AT_KEY;
+        QString label = dataSets[dataSetId].axisLabel;
+        if (label.isEmpty())
+            return "Time";
+        return label;
+    } else {
+        return axisLabels[type];
+    }
 }
 
-QMap<SampleColumn, GraphStyle> WeatherPlotter::getGraphStyles() {
-    return graphStyles;
+QMap<SampleColumn, GraphStyle> WeatherPlotter::getGraphStyles(dataset_id_t dataSetId) {
+    return graphStyles[dataSetId];
 }
 
-void WeatherPlotter::setGraphStyles(QMap<SampleColumn, GraphStyle> styles) {
-    graphStyles = styles;
+void WeatherPlotter::setGraphStyles(QMap<SampleColumn, GraphStyle> styles, dataset_id_t dataSetId) {
+    graphStyles[dataSetId] = styles;
 }

@@ -16,16 +16,14 @@
 #include <QMenu>
 #include <QIcon>
 
+#define DELETE_ME_AND_FIX_ERRORS 0
 
-
-ChartWindow::ChartWindow(SampleColumns columns,
-                         QDateTime startTime,
-                         QDateTime endTime,
+ChartWindow::ChartWindow(QList<DataSet> dataSets,
                          QWidget *parent) :
     QWidget(parent),
     ui(new Ui::ChartWindow)
 {
-    ui->setupUi(this);
+    ui->setupUi(this);       
 
     gridVisible = true;
 
@@ -74,9 +72,22 @@ ChartWindow::ChartWindow(SampleColumns columns,
 
     setWindowTitle("Chart");
 
-    ui->startTime->setDateTime(startTime);
-    ui->endTime->setDateTime(endTime);
-    plotter->drawChart(columns, startTime, endTime);
+    if (dataSets.count() > 1) {
+        // If we have multiple datasets then we can't use the simple
+        // start/end time boxes.
+        ui->startTime->setVisible(false);
+        ui->endTime->setVisible(false);
+    } else {
+        ui->startTime->setDateTime(dataSets.first().startTime);
+        ui->endTime->setDateTime(dataSets.first().endTime);
+    }
+
+    // Reset the IDs on all incoming datasets to ensure they're unique.
+    for (int i = 0; i < dataSets.count(); i++) {
+        dataSets[i].id = i;
+    }
+
+    plotter->drawChart(dataSets);
 }
 
 ChartWindow::~ChartWindow()
@@ -85,7 +96,8 @@ ChartWindow::~ChartWindow()
 }
 
 void ChartWindow::refresh() {
-    plotter->refresh(ui->startTime->dateTime(), ui->endTime->dateTime());
+    // Update the first dataset only
+    plotter->changeDataSetTimespan(DELETE_ME_AND_FIX_ERRORS, ui->startTime->dateTime(), ui->endTime->dateTime());
 }
 
 void ChartWindow::chartAxisCountChanged(int count) {
@@ -174,7 +186,7 @@ void ChartWindow::chartContextMenuRequested(QPoint point)
     QAction *action = menu->addAction(QIcon(":/icons/chart-add"), "Add Graph",
                                       this, SLOT(addGraph()));
 
-    if (plotter->availableColumns() == 0) {
+    if (plotter->availableColumns(DELETE_ME_AND_FIX_ERRORS) == 0) {
         // All graphs are already in the chart. No more to add.
         action->setEnabled(false);
     }
@@ -301,7 +313,7 @@ void ChartWindow::removeSelectedGraph()
 
         // Turn off the column so it doesn't come back when the user
         // hits refresh.
-        plotter->removeGraph((SampleColumn)graph->property(GRAPH_TYPE).toInt());
+        plotter->removeGraph(DELETE_ME_AND_FIX_ERRORS,(SampleColumn)graph->property(GRAPH_TYPE).toInt());
     }
 }
 
@@ -312,9 +324,9 @@ QList<QCPAxis*> ChartWindow::valueAxes() {
 
 void ChartWindow::addGraph()
 {
-    AddGraphDialog adg(plotter->availableColumns(), this);
+    AddGraphDialog adg(plotter->availableColumns(DELETE_ME_AND_FIX_ERRORS), this);
     if (adg.exec() == QDialog::Accepted)
-        plotter->addGraphs(adg.selectedColumns());
+        plotter->addGraphs(DELETE_ME_AND_FIX_ERRORS,adg.selectedColumns());
 }
 
 void ChartWindow::showLegendContextMenu(QPoint point)
@@ -390,7 +402,7 @@ void ChartWindow::save() {
 
 void ChartWindow::customiseChart() {
 
-    QMap<SampleColumn, GraphStyle> originalStyles = plotter->getGraphStyles();
+    QMap<SampleColumn, GraphStyle> originalStyles = plotter->getGraphStyles(DELETE_ME_AND_FIX_ERRORS);
 
     CustomiseChartDialog ccd(originalStyles, this);
     if (ccd.exec() == QDialog::Accepted) {
@@ -421,7 +433,7 @@ void ChartWindow::customiseChart() {
                 replotRequired = true;
             }
         }
-        plotter->setGraphStyles(newStyles);
+        plotter->setGraphStyles(newStyles, DELETE_ME_AND_FIX_ERRORS);
 
 
 
