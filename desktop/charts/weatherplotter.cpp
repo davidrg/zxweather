@@ -13,14 +13,6 @@ WeatherPlotter::WeatherPlotter(QCustomPlot *chart, QObject *parent) :
 
     populateAxisLabels();
 
-    // Configure chart
-    chart->xAxis->setLabel("Time");
-    chart->xAxis->setTickLabelType(QCPAxis::ltDateTime);
-
-    // Keep axis ranges locked
-    connect(chart->xAxis, SIGNAL(rangeChanged(QCPRange)),
-            chart->xAxis2, SLOT(setRange(QCPRange)));
-
     cacheManager.reset(new CacheManager(this));
     connect(cacheManager.data(), SIGNAL(dataSetsReady(QMap<dataset_id_t,SampleSet>)),
             this, SLOT(dataSetsReady(QMap<dataset_id_t,SampleSet>)));
@@ -133,7 +125,6 @@ QPointer<QCPAxis> WeatherPlotter::createKeyAxis(dataset_id_t dataSetId) {
 
     QCPAxis* axis = NULL;
     if (configuredKeyAxes.isEmpty()) {
-
         axis = chart->xAxis;
         axis->setVisible(true);
         axis->setTickLabels(true);
@@ -148,6 +139,7 @@ QPointer<QCPAxis> WeatherPlotter::createKeyAxis(dataset_id_t dataSetId) {
         else
             axis = chart->axisRect()->addAxis(QCPAxis::atTop);
     }
+    axis->setTickLabelType(QCPAxis::ltDateTime);
     axis->grid()->setVisible(axisGridVisible());
     configuredKeyAxes.insert(type, axis);
     axisTypes.insert(axis,type);
