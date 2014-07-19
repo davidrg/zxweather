@@ -156,7 +156,7 @@ QPointer<QCPAxis> WeatherPlotter::getKeyAxis(dataset_id_t dataSetId) {
     QPointer<QCPAxis> axis = NULL;
     if (!configuredKeyAxes.contains(axisType))
         // Axis of specified type doesn't exist. Create it.
-        axis = createKeyAxis(axisType);
+        axis = createKeyAxis(dataSetId);
     else
         // Axis already exists
         axis = configuredKeyAxes[axisType];
@@ -434,6 +434,8 @@ void WeatherPlotter::removeUnusedAxes()
             }
 
             // Remove all the tracking information.
+
+            qDebug() << "Removing axis type" << type;
 
             axisTypes.remove(axis);
             axisReferences.remove(type);
