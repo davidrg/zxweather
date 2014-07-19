@@ -282,12 +282,12 @@ void ChartWindow::showGridToggle() {
 
     plotter->setAxisGridVisible(gridVisible);
 
-    QList<QCPAxis*> axes = valueAxes();
-    axes << ui->chart->xAxis;
+    QList<QCPAxis*> axes = ui->chart->axisRect()->axes();
 
     foreach(QCPAxis* axis, axes) {
         axis->grid()->setVisible(gridVisible);
     }
+
     ui->chart->replot();
 }
 
