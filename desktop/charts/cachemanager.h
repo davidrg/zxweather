@@ -30,6 +30,8 @@ public:
      */
     void getDataSets(QList<DataSet> dataSets);
 
+    /** Flushes all cached samples.
+     */
     void flushCache();
 
 signals:
@@ -62,6 +64,15 @@ private:
     /** Asks the datasource for data from the next dataset.
      */
     void getNextDataSet();
+
+    /** Merges a new sampleset into an existing cached dataset. This
+     * is used when new columns are requested a dataset already in cache.
+     *
+     * @param dataSetId Dataset to merge the sampleset into
+     * @param samples Samples to merge
+     * @param columns Which columns in the sampleset to merge
+     */
+    void mergeSampleSet(dataset_id_t dataSetId, SampleSet samples, SampleColumns columns);
 
     /** Datasource that we're caching data from
      */

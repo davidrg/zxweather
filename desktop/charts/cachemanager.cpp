@@ -35,7 +35,6 @@ void CacheManager::getDataSets(QList<DataSet> dataSets) {
         requestedDataSets.append(ds.id);
     }
 
-
     getNextDataSet();
 }
 
@@ -57,12 +56,53 @@ void CacheManager::getNextDataSet() {
         // Pull the data from cache
         samplesReady(sampleCache[ds.id]);
 
+    }
+    else if (ds.id == cachedDataSet.id &&
+             ds.startTime == cachedDataSet.startTime &&
+             ds.endTime == cachedDataSet.endTime) {
+        // Only the columns have changed. We should be able to pull some or all data
+        // from cache.
+        if ((ds.columns & cachedDataSet.columns) == ds.columns) {
+            // Some columns have been removed from the dataset but no new ones were added.
+            // This means that we can just return data from cache. The WeatherPlotter will
+            // simply ignore any columns in the SampleSet it didn't request.
+
+            qDebug() << "Skipping dataset" << ds.id
+                     << "(start" << ds.startTime << ", end"
+                     << ds.endTime << ", columns" << ds.columns
+                     << ") - column superset already cached";
+
+            samplesReady(sampleCache[ds.id]);
+        } else {
+            // These bits are set both in the cache and request.
+            SampleColumns commonColumns = ds.columns & cachedDataSet.columns;
+
+            // Find columns that are in ds.columns but not in cachedDataSet.columns
+            SampleColumns newColumns = ds.columns & (~commonColumns);
+
+            // There are some new flags.
+            qDebug() << "Requested dataset" << ds.id
+                     << "(start" << ds.startTime << ", end"
+                     << ds.endTime << ", columns" << ds.columns
+                     << ") is a superset of the cached dataset. "
+                        "Fetching new columns (" << newColumns << ") only.";
+
+            // Make a note of the new columns we're fetching. We'll have to merge these
+            // into the cache later.
+            dataSetsToFetch[0].columns = newColumns;
+
+            // Fetch the data.
+            dataSource->fetchSamples(newColumns, ds.startTime, ds.endTime);
+        }
     } else {
-        // We either don't have the dataset cached or the dataset has changed
-        // and so needs to be fetched again.
+        // We either don't have the dataset cached or the datasets timespan has changed.
+        // Its too hard trying to merge the timespan so we'll just request the entire
+        // dataset again.
 
         qDebug() << "Fetching columns" << ds.columns << "between" << ds.startTime
                  << "and" << ds.endTime << "for data set" << ds.id;
+
+
 
         dataSource->fetchSamples(ds.columns, ds.startTime, ds.endTime);
     }
@@ -72,10 +112,24 @@ void CacheManager::samplesReady(SampleSet samples) {
     qDebug() << "Samples ready";
 
     DataSet ds = dataSetsToFetch.takeFirst();
+    DataSet cachedDataSet = datasetCache[ds.id];
 
-    // Cache future samples for fast refreshing.
-    sampleCache[ds.id] = samples;
-    datasetCache[ds.id] = ds;
+    if (ds.startTime != cachedDataSet.startTime ||
+        ds.endTime != cachedDataSet.endTime ||
+        ds.id != cachedDataSet.id) {
+        // Timespan has changed. Reset the cached dataset to what we just received.
+
+        sampleCache[ds.id] = samples;
+        datasetCache[ds.id] = ds;
+    } else if (ds.id == cachedDataSet.id) {
+        // We have the dataset cached with matching timespan and id but the columns
+        // are different. If any of the columns in the SampleSet are missing from
+        // the cache then merge them in.
+        if ((ds.columns & cachedDataSet.columns) != ds.columns)
+            mergeSampleSet(ds.id, samples, ds.columns);
+        else
+            qDebug() << "Requested samples already in cache - no merge necessary";
+    }
 
     if (dataSetsToFetch.isEmpty()) {
         qDebug() << "Finished fetching data.";
@@ -94,6 +148,48 @@ void CacheManager::samplesReady(SampleSet samples) {
         // Still more work to do.
         getNextDataSet();
     }
+}
+
+void CacheManager::mergeSampleSet(dataset_id_t dataSetId, SampleSet samples, SampleColumns columns)
+{
+    qDebug() << "Merging in columns" << columns << "for dataset" << dataSetId;
+    if (columns.testFlag(SC_Temperature))
+        sampleCache[dataSetId].temperature = samples.temperature;
+
+    if (columns.testFlag(SC_IndoorTemperature))
+        sampleCache[dataSetId].indoorTemperature = samples.indoorTemperature;
+
+    if (columns.testFlag(SC_ApparentTemperature))
+        sampleCache[dataSetId].apparentTemperature = samples.apparentTemperature;
+
+    if (columns.testFlag(SC_DewPoint))
+        sampleCache[dataSetId].dewPoint = samples.dewPoint;
+
+    if (columns.testFlag(SC_WindChill))
+        sampleCache[dataSetId].windChill = samples.windChill;
+
+    if (columns.testFlag(SC_Humidity))
+        sampleCache[dataSetId].humidity = samples.humidity;
+
+    if (columns.testFlag(SC_IndoorHumidity))
+        sampleCache[dataSetId].indoorHumidity = samples.indoorHumidity;
+
+    if (columns.testFlag(SC_Pressure))
+        sampleCache[dataSetId].pressure = samples.pressure;
+
+    if (columns.testFlag(SC_Rainfall))
+        sampleCache[dataSetId].rainfall = samples.rainfall;
+
+    if (columns.testFlag(SC_AverageWindSpeed))
+        sampleCache[dataSetId].averageWindSpeed = samples.averageWindSpeed;
+
+    if (columns.testFlag(SC_GustWindSpeed))
+        sampleCache[dataSetId].gustWindSpeed = samples.gustWindSpeed;
+
+    if (columns.testFlag(SC_WindDirection))
+        sampleCache[dataSetId].windDirection = samples.windDirection;
+
+    datasetCache[dataSetId].columns |= columns;
 }
 
 void CacheManager::sampleRetrievalError(QString message) {
