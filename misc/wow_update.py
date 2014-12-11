@@ -9,7 +9,7 @@ minutes. So the best way to run this script will be to:
     1. chmod +x this script
     2. copy wow_update.cfg into /etc and edit it to match your setup
     3. throw something like the following in /etc/crontab:
-            0,15,30,45 * * * * /path/to/wow_update.py
+      0,15,30,45 * * * * root /path/to/wow_update.py >> /var/log/wow_update.log
 
 
 This script will submit the following data:
@@ -126,7 +126,7 @@ class Data(object):
 
 def get_latest_data_for_station(con, station_code):
     query = """
-select to_char(s.time_stamp at time zone 'gmt', 'YYYY-MM-DD HH:MI:SS') as time_stamp,
+select to_char(s.time_stamp at time zone 'gmt', 'YYYY-MM-DD HH24:MI:SS') as time_stamp,
        s.wind_direction::integer,
        s.average_wind_speed,
        s.gust_wind_speed,
