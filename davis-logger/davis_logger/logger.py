@@ -101,14 +101,10 @@ class DavisLoggerProtocol(Protocol):
         self.station.getSamples((self._latest_date, self._latest_time))
 
     def _loopPacketReceived(self, loop):
-
-        nextRec = loop.nextRecord
-        multi = (nextRec % 5) == 0 and nextRec != self._lastRecord
-
-        #log.msg('{0} - {1} - LOOP: {2}'.format(nextRec, multi, repr(loop)))
         self._store_live(loop)
 
-        if multi:
+        nextRec = loop.nextRecord
+        if nextRec != self._lastRecord:
             log.msg('New Page. Fetch Samples...')
             self._lastRecord = nextRec
             #self.station.cancelLoop()
