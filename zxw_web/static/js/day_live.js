@@ -218,10 +218,10 @@ function connect_live() {
 
     if(window.WebSocket) {
         // Browser seems to support websockets. Try that if we can.
-        if (ws_uri != null)
-            attempt_ws_connect();
-        else if (wss_uri != null)
+        if (wss_uri != null)
             attempt_wss_connect();
+        else if (ws_uri != null)
+            attempt_ws_connect();
         else {
             update_live_status('green',
                 'Updating automatically every 30 seconds.');
