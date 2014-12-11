@@ -357,51 +357,52 @@ void WebCacheDB::cacheDataSet(SampleSet samples,
     qDebug() << "Cache insert completed.";
 }
 
+QString WebCacheDB::buildColumnList(SampleColumns columns, QString format) {
+    QString query;
+    if (columns.testFlag(SC_Timestamp))
+        query += format.arg("timestamp");
+    if (columns.testFlag(SC_Temperature))
+        query += format.arg("temperature");
+    if (columns.testFlag(SC_DewPoint))
+        query += format.arg("dew_point");
+    if (columns.testFlag(SC_ApparentTemperature))
+        query += format.arg("apparent_temperature");
+    if (columns.testFlag(SC_WindChill))
+        query += format.arg("wind_chill");
+    if (columns.testFlag(SC_IndoorTemperature))
+        query += format.arg("indoor_temperature");
+    if (columns.testFlag(SC_IndoorHumidity))
+        query += format.arg("indoor_humidity");
+    if (columns.testFlag(SC_Humidity))
+        query += format.arg("humidity");
+    if (columns.testFlag(SC_Pressure))
+        query += format.arg("pressure");
+    if (columns.testFlag(SC_AverageWindSpeed))
+        query += format.arg("average_wind_speed");
+    if (columns.testFlag(SC_GustWindSpeed))
+        query += format.arg("gust_wind_speed");
+    if (columns.testFlag(SC_Rainfall))
+        query += format.arg("rainfall");
+    if (columns.testFlag(SC_WindDirection))
+        query += format.arg("wind_direction");
+    return query;
+}
+
 QString WebCacheDB::buildSelectForColumns(SampleColumns columns)
 {
     QString selectPart = "select timestamp";
 
-    if (columns.testFlag(SC_Temperature))
-        selectPart += ", temperature";
-    if (columns.testFlag(SC_DewPoint))
-        selectPart += ", dew_point";
-    if (columns.testFlag(SC_ApparentTemperature))
-        selectPart += ", apparent_temperature";
-    if (columns.testFlag(SC_WindChill))
-        selectPart += ", wind_chill";
-    if (columns.testFlag(SC_IndoorTemperature))
-        selectPart += ", indoor_temperature";
-    if (columns.testFlag(SC_Humidity))
-        selectPart += ", humidity";
-    if (columns.testFlag(SC_IndoorHumidity))
-        selectPart += ", indoor_humidity";
-    if (columns.testFlag(SC_Pressure))
-        selectPart += ", pressure";
-    if (columns.testFlag(SC_Rainfall))
-        selectPart += ", rainfall";
-    if (columns.testFlag(SC_AverageWindSpeed))
-        selectPart += ", average_wind_speed";
-    if (columns.testFlag(SC_GustWindSpeed))
-        selectPart += ", gust_wind_speed";
-    if (columns.testFlag(SC_WindDirection))
-        selectPart += ", wind_direction";
+    selectPart += buildColumnList(columns & ~SC_Timestamp, ", %1");
 
     return selectPart;
 }
 
-SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
-                                      QDateTime startTime,
-                                      QDateTime endTime,
-                                      SampleColumns columns) {
-    QSqlQuery query(sampleCacheDb);
-    SampleSet samples;
-
-    int stationId = getStationId(stationUrl);
-
-    QString where_clause = "where station = :station_id "
+int WebCacheDB::getNonAggregatedRowCount(int stationId, QDateTime startTime, QDateTime endTime) {
+    QString qry = "select count(*) from sample where station = :station_id "
             "and timestamp >= :start_time and timestamp <= :end_time";
 
-    query.prepare("select count(*) from sample " + where_clause);
+    QSqlQuery query(sampleCacheDb);
+    query.prepare(qry);
     query.bindValue(":station_id", stationId);
     query.bindValue(":start_time", startTime.toTime_t());
     query.bindValue(":end_time", endTime.toTime_t());
@@ -410,20 +411,203 @@ SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
     if (!query.first()) {
         qWarning() << "Failed to get sample count. Error was "
                    << query.lastError();
-        return samples;
+        return -1;
     }
 
-    int count = query.record().field(0).value().toInt();
+    return query.record().field(0).value().toInt();
+}
+
+int WebCacheDB::getAggregatedRowCount(int stationId,
+                                      QDateTime startTime,
+                                      QDateTime endTime,
+                                      AggregateFunction aggregateFunction,
+                                      AggregateGroupType groupType,
+                                      uint32_t groupMinutes) {
+
+    qDebug() << "Aggregate Function: " << aggregateFunction;
+    qDebug() << "Group Type: " << groupType;
+    if (groupType == AGT_Custom) {
+        qDebug() << "Custom group minutes: " << groupMinutes;
+    }
+
+    QString qry = buildAggregatedSelect(SC_NoColumns,
+                                        aggregateFunction,
+                                        groupType);
+
+    qry = "select count(*) as cnt from ( " + qry + " ) as x ";
+
+    QSqlQuery query(sampleCacheDb);
+    query.prepare(qry);
+
+    query.bindValue(":station_id", stationId);
+    query.bindValue(":stationIdB", stationId);
+    query.bindValue(":stationIdC", stationId);
+    query.bindValue(":start_time", startTime.toTime_t());
+    query.bindValue(":end_time", endTime.toTime_t());
+
+    if (groupType == AGT_Custom) {
+        query.bindValue(":groupSeconds", groupMinutes * 60);
+    }
+
+    qDebug() << "\n\nQuery: " << qry;
+
+    query.exec();
+
+    if (!query.first()) {
+        qWarning() << "Failed to get sample count. Error was "
+                   << query.lastError();
+        qDebug() << query.boundValues();
+        return -1;
+    }
+
+    return query.record().field(0).value().toInt();
+}
+
+QSqlQuery WebCacheDB::buildBasicSelectQuery(SampleColumns columns) {
+    QString sql = buildSelectForColumns(columns);
+    sql += " from sample where station = :station_id "
+             "and timestamp >= :start_time and timestamp <= :end_time"
+             " order by timestamp asc";
+
+    QSqlQuery query(sampleCacheDb);
+    query.prepare(sql);
+    return query;
+}
+
+QString WebCacheDB::buildAggregatedSelect(SampleColumns columns,
+                                          AggregateFunction function,
+                                          AggregateGroupType groupType) {
+
+    QString fn = "";
+    if (function == AF_Average)
+        fn = "avg";
+    if (function == AF_Maximum)
+        fn = "max";
+    if (function == AF_Minimum)
+        fn = "min";
+    if (function == AF_Sum || function == AF_RunningTotal)
+        fn = "sum";
+
+    /*
+     * SQLite doesn't support window functions so for AF_RunningTotal we'll
+     * just compute a Sum here for each grouping and calculate the running
+     * total manually in C++ land later.
+     */
+
+    QString query = "select iq.quadrant as quadrant ";
+
+    if (columns.testFlag(SC_Timestamp))
+        query += ", min(iq.timestamp) as timestamp ";
+
+    query += buildColumnList(columns & ~SC_Timestamp, QString(", %1(iq.%2) as %2 ").arg(fn).arg("%1"));
+    query += " from (select ";
+
+    if (groupType == AGT_Custom) {
+        query += "(cur.timestamp / :groupSeconds) AS quadrant ";
+    } else if (groupType == AGT_Month) {
+        query += "strftime('%s', julianday(datetime(cur.timestamp, 'unixepoch', 'start of month'))) as quadrant";
+        // In postgres this would be: extract(epoch from date_trunc('month', cur.time_stamp))::integer as quadrant
+    } else { // year
+        query += "strftime('%s', julianday(datetime(cur.timestamp, 'unixepoch', 'start of year'))) as quadrant";
+        // In postgres this would be: extract(epoch from date_trunc('year', cur.time_stamp))::integer as quadrant
+    }
+
+    query += buildColumnList(columns, ", cur.%1 ");
+
+    query += " from sample cur, sample prev"
+             " where cur.timestamp <= :end_time"
+             " and cur.timestamp >= :start_time"
+             " and prev.timestamp = (select max(timestamp) from sample where timestamp < cur.timestamp"
+             "        and station = :station_id )"
+             " and cur.station = :stationIdB "
+             " and prev.station = :stationIdC "
+             " order by cur.timestamp asc) as iq "
+             " group by iq.quadrant "
+             " order by iq.quadrant asc ";
+
+    /*
+      resulting query parameters are:
+      :stationId  \
+      :stationIdB  = These must be the same value.
+      :stationIdC /
+      :startTime
+      :endTime
+      :groupSeconds (only if AGT_Custom)
+     */
+
+    qDebug() << query;
+
+    return query;
+
+}
+
+QSqlQuery WebCacheDB::buildAggregatedSelectQuery(SampleColumns columns,
+                                                 int stationId,
+                                                 AggregateFunction aggregateFunction,
+                                                 AggregateGroupType groupType,
+                                                 uint32_t groupMinutes) {
+
+    qDebug() << "Aggregate Function: " << aggregateFunction;
+    qDebug() << "Group Type: " << groupType;
+    if (groupType == AGT_Custom) {
+        qDebug() << "Custom group minutes: " << groupMinutes;
+    }
+
+    QString qry = buildAggregatedSelect(columns,
+                                        aggregateFunction,
+                                        groupType);
+
+    QSqlQuery query(sampleCacheDb);
+    query.prepare(qry);
+
+    query.bindValue(":stationIdB", stationId);
+    query.bindValue(":stationIdC", stationId);
+
+    if (groupType == AGT_Custom)
+        query.bindValue(":groupSeconds", groupMinutes * 60);
+
+    return query;
+}
+
+SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
+                                      QDateTime startTime,
+                                      QDateTime endTime,
+                                      SampleColumns columns,
+                                      AggregateFunction aggregateFunction,
+                                      AggregateGroupType aggregateGroupType,
+                                      uint32_t groupMinutes) {
+    QSqlQuery query(sampleCacheDb);
+    SampleSet samples;
+
+    int stationId = getStationId(stationUrl);
+
+    int count;
+
+    if (aggregateFunction == AF_None || aggregateGroupType == AGT_None) {
+        count = getNonAggregatedRowCount(stationId, startTime, endTime);
+    } else {
+        count = getAggregatedRowCount(stationId, startTime, endTime,
+                                      aggregateFunction, aggregateGroupType,
+                                      groupMinutes);
+    }
+
+    if (count == -1) {
+        return samples; /* error */
+    }
 
     qDebug() << "There are" << count << "samples within the date range:"
              << startTime << "to" << endTime;
 
     ReserveSampleSetSpace(samples, count, columns);
 
-    QString selectPart = buildSelectForColumns(columns);
-
-    query.prepare(selectPart + " from sample " +
-                  where_clause + " order by timestamp asc");
+    if (aggregateFunction == AF_None || aggregateGroupType == AGT_None) {
+        query = buildBasicSelectQuery(columns);
+    } else {
+        // Aggregated queries always require the timestamp column.
+        query = buildAggregatedSelectQuery(columns | SC_Timestamp, stationId,
+                                           aggregateFunction,
+                                           aggregateGroupType, groupMinutes);
+    }
 
     query.bindValue(":station_id", stationId);
     query.bindValue(":start_time", startTime.toTime_t());
@@ -431,6 +615,9 @@ SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
     query.exec();
 
     if (query.first()) {
+
+        double previousRainfall = 0.0;
+
         // At least one record came back. Go pull all of them out and dump
         // them in the SampleSet.
         do {
@@ -469,8 +656,21 @@ SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
             if (columns.testFlag(SC_Pressure))
                 samples.pressure.append(record.value("pressure").toDouble());
 
-            if (columns.testFlag(SC_Rainfall))
-                samples.rainfall.append(record.value("rainfall").toDouble());
+            if (columns.testFlag(SC_Rainfall)) {
+                double value = record.value("rainfall").toDouble();
+
+                // Because SQLite doesn't support window functions we have to
+                // calculate the running total manually. We'll only bother doing
+                // it for rainfall as it doesn't really make sense for the rest
+                // (the PostgreSQL backend supports it on everyhing only because
+                // its easier than doing it on one column only).
+                if (aggregateFunction == AF_RunningTotal) {
+                    previousRainfall += value;
+                    samples.rainfall.append(previousRainfall);
+                } else {
+                    samples.rainfall.append(value);
+                }
+            }
 
             if (columns.testFlag(SC_AverageWindSpeed))
                 samples.averageWindSpeed.append(

@@ -23,6 +23,9 @@ public:
     QDateTime getStartTime();
     QDateTime getEndTime();
     SampleColumns getColumns();
+    AggregateFunction getAggregateFunction();
+    AggregateGroupType getAggregateGroupType();
+    uint32_t getCustomMinutes();
 
 private slots:
     void dateChanged();

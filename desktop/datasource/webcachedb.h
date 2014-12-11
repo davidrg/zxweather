@@ -5,6 +5,7 @@
 #include <QDateTime>
 
 #include "datasource/sampleset.h"
+#include "datasource/aggregate.h"
 
 typedef struct _data_file_t {
     QString filename;
@@ -42,6 +43,8 @@ typedef struct _cache_stats_t {
  * doesn't.
  */
 
+class QSqlQuery;
+
 /** Provides access to the cache database used by the web data source.
  * WebCacheDB is a singleton. Call getInstance() to grab the instance.
  *
@@ -68,13 +71,19 @@ public:
      * @param startTime Start time.
      * @param endTime End time.
      * @param columns The columns to return.
+     * @param aggregateFunction The aggregate function to use (if any)
+     * @param aggregateGroupType Timespan to group by
+     * @param groupMinutes Custom grouping value in minutes (for AGT_Custom)
      * @return Any available data for the weather station between the
      *         requested times (including the requested times themselves).
      */
     SampleSet retrieveDataSet(QString stationUrl,
                               QDateTime startTime,
                               QDateTime endTime,
-                              SampleColumns columns);
+                              SampleColumns columns,
+                              AggregateFunction aggregateFunction,
+                              AggregateGroupType aggregateGroupType,
+                              uint32_t groupMinutes);
 
     /** Stores the specified data file in the cache database. If the file does
      * not exist it will be created, otherwise it will be updated. All samples
@@ -185,6 +194,14 @@ private:
      */
     void cacheDataSet(SampleSet samples, int stationId, int dataFileId);
 
+    /** Builds a list of columns for the specified column set using the
+     * supplied format string. In the format string, %1 is the column name.
+     * @param columns Columns to include in the column list
+     * @param format Format string for building a single column spec.
+     * @return List of columns.
+     */
+    QString buildColumnList(SampleColumns columns, QString format);
+
     /** Builds the select part of a query which includes the specified columns.
      * The timestamp column is always included.
      *
@@ -192,6 +209,60 @@ private:
      * @return "select" followed by the specified columns.
      */
     QString buildSelectForColumns(SampleColumns columns);
+
+    /** Gets the row count for a non-aggregated data set.
+     *
+     * @param stationId Station to get row count for
+     * @param startTime start time for data range
+     * @param endTime end time for data range
+     * @return Row count. -1 if there was an error.
+     */
+    int getNonAggregatedRowCount(int stationId, QDateTime startTime, QDateTime endTime);
+
+    /** Builds the base aggregated select query used for row counts and data retreival.
+     *
+     * @param columns Columns to fetch. Pass SC_None for row counts.
+     * @param function Aggregate function to use
+     * @param groupType Time span grouping.
+     * @param groupMinutes Number of minutes to group by for AGT_Custom
+     * @return An aggregated SQL query.
+     */
+    QString buildAggregatedSelect(SampleColumns columns, AggregateFunction function,
+                                  AggregateGroupType groupType);
+
+    /** Gets the row count for an aggregated data set.
+     *
+     * @param stationId Station to get the row count for
+     * @param startTime Start time for data range
+     * @param endTime End time for data range
+     * @param aggregateFunction Aggregate function to use (sum, min, max, etc)
+     * @param groupType Grouping to use (day, week, month, etc)
+     * @param groupMinutes Number of minutes to group by for custom grouping.
+     *
+     * @return Row count. -1 if there was an error.
+     */
+    int getAggregatedRowCount(int stationId, QDateTime startTime, QDateTime endTime,
+                              AggregateFunction aggregateFunction,
+                              AggregateGroupType groupType, uint32_t groupMinutes);
+
+    /** Builds a basic query to fetch data without any aggregation.
+     * @param columns Columns to fetch.
+     * @return Data query
+     */
+    QSqlQuery buildBasicSelectQuery(SampleColumns columns);
+
+    /** Builds a query that fetches aggregated data.
+     *
+     * @param columns Columns to fetch
+     * @param stationId Station to fetch data for.
+     * @param aggregateFunction Aggregation function to use
+     * @param groupType Time period to group by
+     * @param groupMinutes Number of minutes to group by if groupType is AGT_Custom
+     * @return Data query
+     */
+    QSqlQuery buildAggregatedSelectQuery(SampleColumns columns, int stationId,
+                                         AggregateFunction aggregateFunction,
+                                         AggregateGroupType groupType, uint32_t groupMinutes);
 };
 
 #endif // WEBCACHEDB_H

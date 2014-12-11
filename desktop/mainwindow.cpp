@@ -342,10 +342,16 @@ void MainWindow::showChartWindow() {
     ds.columns = columns;
     ds.startTime = options.getStartTime();
     ds.endTime = options.getEndTime();
+    ds.aggregateFunction = options.getAggregateFunction();
+    ds.groupType = options.getAggregateGroupType();
+    ds.customGroupMinutes = options.getCustomMinutes();
     QList<DataSet> dataSets;
     dataSets << ds;
 
     qDebug() <<"DS Columns:"<< (int)ds.columns;
+    qDebug() << "AGFunc" << ds.aggregateFunction;
+    qDebug() << "AGGrp" << ds.groupType;
+    qDebug() << "AGMin" << ds.customGroupMinutes;
 
     ChartWindow *cw = new ChartWindow(dataSets);
     cw->setAttribute(Qt::WA_DeleteOnClose);
