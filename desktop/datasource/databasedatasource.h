@@ -18,7 +18,10 @@ public:
     virtual void fetchSamples(
             SampleColumns columns,
             QDateTime startTime,
-            QDateTime endTime=QDateTime::currentDateTime());
+            QDateTime endTime=QDateTime::currentDateTime(),
+            AggregateFunction aggregateFunction = AF_None,
+            AggregateGroupType groupType = AGT_None,
+            uint32_t groupMinutes = 0);
 
     void enableLiveData();
 
@@ -32,7 +35,7 @@ private:
     int getStationId();
     QString getStationHwType();
 
-    QString buildSelectForColumns(SampleColumns columns);
+    //QString buildSelectForColumns(SampleColumns columns);
 
     // Live data functionality
     void connectToDB();

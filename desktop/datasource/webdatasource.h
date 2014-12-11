@@ -24,7 +24,10 @@ public:
     void fetchSamples(
             SampleColumns columns,
             QDateTime startTime,
-            QDateTime endTime=QDateTime::currentDateTime());
+            QDateTime endTime=QDateTime::currentDateTime(),
+            AggregateFunction aggregateFunction = AF_None,
+            AggregateGroupType groupType = AGT_None,
+            uint32_t groupMinutes = 0);
 
     void enableLiveData();
 
@@ -75,7 +78,11 @@ private:
     /**** Sample data member variables ****/
     SampleDownloadState download_state;
 
+    // Details of the data to request from the CacheDB once its populated.
     SampleColumns columnsToReturn;
+    AggregateFunction returnAggregate;
+    AggregateGroupType returnGroupType;
+    uint32_t returnGroupMinutes;
 
 
     // Time range we are currently downloading:

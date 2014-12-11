@@ -50,7 +50,9 @@ void CacheManager::getNextDataSet() {
 
         qDebug() << "Skipping dataset" << ds.id
                  << "(start" << ds.startTime << ", end"
-                 << ds.endTime << ", columns" << ds.columns
+                 << ds.endTime << ", columns" << ds.columns << ", function"
+                 << ds.aggregateFunction << ", grouping" << ds.groupType
+                 << ", minutes" << ds.customGroupMinutes
                  << ") - already cached";
 
         // Pull the data from cache
@@ -59,7 +61,10 @@ void CacheManager::getNextDataSet() {
     }
     else if (ds.id == cachedDataSet.id &&
              ds.startTime == cachedDataSet.startTime &&
-             ds.endTime == cachedDataSet.endTime) {
+             ds.endTime == cachedDataSet.endTime &&
+             ds.aggregateFunction == cachedDataSet.aggregateFunction &&
+             ds.groupType == cachedDataSet.groupType &&
+             ds.customGroupMinutes == cachedDataSet.customGroupMinutes) {
         // Only the columns have changed. We should be able to pull some or all data
         // from cache.
         if ((ds.columns & cachedDataSet.columns) == ds.columns) {
@@ -69,7 +74,9 @@ void CacheManager::getNextDataSet() {
 
             qDebug() << "Skipping dataset" << ds.id
                      << "(start" << ds.startTime << ", end"
-                     << ds.endTime << ", columns" << ds.columns
+                     << ds.endTime << ", columns" << ds.columns << ", function"
+                     << ds.aggregateFunction << ", grouping" << ds.groupType
+                     << ", minutes" << ds.customGroupMinutes
                      << ") - column superset already cached";
 
             samplesReady(sampleCache[ds.id]);
@@ -83,7 +90,9 @@ void CacheManager::getNextDataSet() {
             // There are some new flags.
             qDebug() << "Requested dataset" << ds.id
                      << "(start" << ds.startTime << ", end"
-                     << ds.endTime << ", columns" << ds.columns
+                     << ds.endTime << ", columns" << ds.columns << ", function"
+                     << ds.aggregateFunction << ", grouping" << ds.groupType
+                     << ", minutes" << ds.customGroupMinutes
                      << ") is a superset of the cached dataset. "
                         "Fetching new columns (" << newColumns << ") only.";
 
@@ -92,7 +101,8 @@ void CacheManager::getNextDataSet() {
             dataSetsToFetch[0].columns = newColumns;
 
             // Fetch the data.
-            dataSource->fetchSamples(newColumns, ds.startTime, ds.endTime);
+            dataSource->fetchSamples(newColumns, ds.startTime, ds.endTime,
+                                     ds.aggregateFunction, ds.groupType, ds.customGroupMinutes);
         }
     } else {
         // We either don't have the dataset cached or the datasets timespan has changed.
@@ -104,7 +114,8 @@ void CacheManager::getNextDataSet() {
 
 
 
-        dataSource->fetchSamples(ds.columns, ds.startTime, ds.endTime);
+        dataSource->fetchSamples(ds.columns, ds.startTime, ds.endTime,
+                                 ds.aggregateFunction, ds.groupType, ds.customGroupMinutes);
     }
 }
 
@@ -116,8 +127,12 @@ void CacheManager::samplesReady(SampleSet samples) {
 
     if (ds.startTime != cachedDataSet.startTime ||
         ds.endTime != cachedDataSet.endTime ||
-        ds.id != cachedDataSet.id) {
-        // Timespan has changed. Reset the cached dataset to what we just received.
+        ds.id != cachedDataSet.id ||
+        ds.aggregateFunction != cachedDataSet.aggregateFunction ||
+        ds.groupType != cachedDataSet.groupType ||
+        ds.customGroupMinutes != cachedDataSet.customGroupMinutes) {
+        // Timespan or aggregate has changed. Reset the cached dataset to what
+        //we just received.
 
         sampleCache[ds.id] = samples;
         datasetCache[ds.id] = ds;

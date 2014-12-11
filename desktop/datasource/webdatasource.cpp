@@ -91,7 +91,11 @@ void WebDataSource::dlReset() {
  * @param endTime timestamp for the last record to return
  */
 void WebDataSource::fetchSamples(SampleColumns columns,
-                                 QDateTime startTime, QDateTime endTime) {
+                                 QDateTime startTime,
+                                 QDateTime endTime,
+                                 AggregateFunction aggregateFunction,
+                                 AggregateGroupType groupType,
+                                 uint32_t groupMinutes) {
 
     // We can only process one fetch at a time right now.
     Q_ASSERT_X(download_state == DLS_READY, "fetchSamples",
@@ -104,6 +108,10 @@ void WebDataSource::fetchSamples(SampleColumns columns,
     dlStartTime = startTime;
     dlEndTime = endTime;
     columnsToReturn = columns;
+    returnAggregate = aggregateFunction;
+    returnGroupType = groupType;
+    returnGroupMinutes = groupMinutes;
+
 
     QUrl rangeRequestUrl = buildRangeRequestURL();
     qDebug() << "Range request:" << rangeRequestUrl;
@@ -238,8 +246,10 @@ void WebDataSource::rangeRequestFinished(QNetworkReply *reply) {
     }
 
     // 4 for each url (cache check, download, process, cache store)
-    // Plus one for range request plus another for the final cache retrieve
-    progressDialog->setRange(0, candidateURLs.count() * 4 + 2);
+    // Plus one for range request plus another for the final cache retrieve.
+    // Plus one more for good luck because the dialog was disappearing before
+    // the dataset was selected.
+    progressDialog->setRange(0, candidateURLs.count() * 4 + 3);
     progressDialog->setValue(1);
 
     setDownloadState(DLS_CHECK_CACHE);
@@ -488,7 +498,10 @@ SampleSet WebDataSource::selectRequestedData() {
                 stationUrl,
                 dlStartTime,
                 dlEndTime,
-                columnsToReturn);
+                columnsToReturn,
+                returnAggregate,
+                returnGroupType,
+                returnGroupMinutes);
     qDebug() << "Got" << samples.timestamp.count() << "samples back";
     return samples;
 }

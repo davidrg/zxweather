@@ -27,7 +27,10 @@ public:
     virtual void fetchSamples(
             SampleColumns columns,
             QDateTime startTime,
-            QDateTime endTime=QDateTime::currentDateTime()) = 0;
+            QDateTime endTime=QDateTime::currentDateTime(),
+            AggregateFunction aggregateFunction = AF_None,
+            AggregateGroupType groupType = AGT_None,
+            uint32_t groupMinutes = 0) = 0;
 
     virtual hardware_type_t getHardwareType() = 0;
 

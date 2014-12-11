@@ -118,7 +118,8 @@ HEADERS  += mainwindow.h \
     charts/customisechartdialog.h \
     charts/graphstyle.h \
     charts/chartsettings.h \
-    charts/cachemanager.h
+    charts/cachemanager.h \
+    datasource/aggregate.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \

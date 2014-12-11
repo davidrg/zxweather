@@ -4,6 +4,8 @@
 #include <QFlags>
 #include <QDateTime>
 
+#include "aggregate.h"
+
 enum SampleColumn {
     SC_NoColumns           = 0x0000,
     SC_Timestamp           = 0x0001,
@@ -47,11 +49,14 @@ typedef uint16_t dataset_id_t;
  * etc.
  */
 typedef struct {
-    dataset_id_t id;
-    SampleColumns columns;
-    QDateTime startTime;
-    QDateTime endTime;
-    QString axisLabel;
+    dataset_id_t id;    /*!< Unique identifier for the dataset */
+    SampleColumns columns;  /*!< Columns that should be displayed for the dataset */
+    QDateTime startTime;    /*!< Start of the timespan */
+    QDateTime endTime;      /*!< End of the timespan */
+
+    AggregateFunction aggregateFunction;    /*!< Function to be used for grouping (if any) */
+    AggregateGroupType groupType; /*!< Grouping type to use (if any) */
+    uint32_t customGroupMinutes;  /*!< Number of minutes to group by if group type is AGT_Custom */
 } DataSet;
 
 /** Compares two DataSets to see if they're equal for data caching purposes.

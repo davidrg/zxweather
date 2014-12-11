@@ -132,6 +132,53 @@ QDateTime ChartOptionsDialog::getEndTime() {
         return ui->endTime->dateTime();
 }
 
+AggregateFunction ChartOptionsDialog::getAggregateFunction() {
+    if (!ui->gbAggregate->isChecked())
+        return AF_None;
+
+    int function = ui->cbMethod->currentIndex();
+
+    switch(function) {
+    case 0:
+        return AF_Average;
+    case 1:
+        return AF_Minimum;
+    case 2:
+        return AF_Maximum;
+    case 3:
+        return AF_Sum;
+    case 4:
+        return AF_RunningTotal;
+    default:
+        return AF_None;
+    }
+}
+
+AggregateGroupType ChartOptionsDialog::getAggregateGroupType() {
+    if (!ui->gbAggregate->isChecked())
+        return AGT_None;
+
+    if (ui->rbMonthly->isChecked())
+        return AGT_Month;
+    if (ui->rbYearly->isChecked())
+        return AGT_Year;
+    return AGT_Custom;
+}
+
+uint32_t ChartOptionsDialog::getCustomMinutes() {
+    if (!ui->gbAggregate->isChecked())
+        return 0;
+    if (ui->rbHourly->isChecked())
+        return 60;
+    if (ui->rbDaily->isChecked())
+        return 1440;
+    if (ui->rbWeekly->isChecked())
+        return 10080;
+    if (ui->rbCustom->isChecked())
+        return ui->sbCustomMinutes->value();
+    return 0;
+}
+
 SampleColumns ChartOptionsDialog::getColumns() {
     return columns;
 }

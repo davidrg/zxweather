@@ -88,54 +88,120 @@ QString DatabaseDataSource::getStationHwType() {
     return hardwareType;
 }
 
-QString DatabaseDataSource::buildSelectForColumns(SampleColumns columns)
-{
-    QString selectPart = "select time_stamp";
-
+QString buildColumnList(SampleColumns columns, QString format) {
+    QString query;
+    if (columns.testFlag(SC_Timestamp))
+        query += format.arg("time_stamp");
     if (columns.testFlag(SC_Temperature))
-        selectPart += ", temperature";
+        query += format.arg("temperature");
     if (columns.testFlag(SC_DewPoint))
-        selectPart += ", dew_point";
+        query += format.arg("dew_point");
     if (columns.testFlag(SC_ApparentTemperature))
-        selectPart += ", apparent_temperature";
+        query += format.arg("apparent_temperature");
     if (columns.testFlag(SC_WindChill))
-        selectPart += ", wind_chill";
+        query += format.arg("wind_chill");
     if (columns.testFlag(SC_IndoorTemperature))
-        selectPart += ", indoor_temperature";
-    if (columns.testFlag(SC_Humidity))
-        selectPart += ", relative_humidity";
+        query += format.arg("indoor_temperature");
     if (columns.testFlag(SC_IndoorHumidity))
-        selectPart += ", indoor_relative_humidity";
+        query += format.arg("indoor_relative_humidity");
+    if (columns.testFlag(SC_Humidity))
+        query += format.arg("relative_humidity");
     if (columns.testFlag(SC_Pressure))
-        selectPart += ", absolute_pressure";
-    if (columns.testFlag(SC_Rainfall))
-        selectPart += ", rainfall";
+        query += format.arg("absolute_pressure");
     if (columns.testFlag(SC_AverageWindSpeed))
-        selectPart += ", average_wind_speed";
+        query += format.arg("average_wind_speed");
     if (columns.testFlag(SC_GustWindSpeed))
-        selectPart += ", gust_wind_speed";
-    if (columns.testFlag(SC_WindDirection))
-        selectPart += ", wind_direction";
-
-    return selectPart;
+        query += format.arg("gust_wind_speed");
+    if (columns.testFlag(SC_Rainfall))
+        query += format.arg("rainfall");
+    return query;
 }
 
-void DatabaseDataSource::fetchSamples(SampleColumns columns,
-                                      QDateTime startTime,
-                                      QDateTime endTime) {
-    progressDialog->setWindowTitle("Loading...");
-    progressDialog->setLabelText("Initialise...");
-    progressDialog->setRange(0,5);
-    progressDialog->setValue(0);
+QString buildSelectForColumns(SampleColumns columns)
+{
+    // Unset timestamp column (we'll put that in ourselves)
+    columns &= ~SC_Timestamp;
 
-    int stationId = getStationId();
-    if (stationId == -1) return; // Bad station code.
-    QString hwType = getStationHwType();
+    QString query = "select time_stamp";
+    query += buildColumnList(columns, ", %1");
 
-    progressDialog->setLabelText("Count...");
-    progressDialog->setValue(1);
-    if (progressDialog->wasCanceled()) return;
+    return query;
+}
 
+QString buildGroupedSelect(SampleColumns columns, AggregateFunction function, AggregateGroupType groupType, uint32_t minutes) {
+
+    QString fn = "";
+    if (function == AF_Average)
+        fn = "avg";
+    if (function == AF_Maximum)
+        fn = "max";
+    if (function == AF_Minimum)
+        fn = "min";
+    if (function == AF_Sum || function == AF_RunningTotal)
+        fn = "sum";
+
+    QString query = "select iq.quadrant as quadrant ";
+
+    if (columns.testFlag(SC_Timestamp))
+        query += ", min(iq.time_stamp) as time_stamp ";
+
+    query += buildColumnList(columns & ~SC_Timestamp, QString(", %1(iq.%2) as %2 ").arg(fn).arg("%1"));
+    query += " from (select ";
+
+    if (groupType == AGT_Custom)
+        query += "(extract(epoch from cur.time_stamp) / :groupSeconds)::integer AS quadrant ";
+    else if (groupType == AGT_Month)
+        query += "extract(epoch from date_trunc('month', cur.time_stamp))::integer as quadrant ";
+    else // year
+        query += "extract(epoch from date_trunc('year', cur.time_stamp))::integer as quadrant ";
+
+    query += buildColumnList(columns, ", cur.%1 ");
+
+    query += " from sample cur, sample prev, station st"
+             " where cur.time_stamp <= :endTime"
+             " and cur.time_stamp >= :startTime"
+             " and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < cur.time_stamp"
+             "        and station_id = :stationId )"
+             " and cur.station_id = :stationIdB "
+             " and prev.station_id = :stationIdC "
+             " and st.station_id = cur.station_id "
+             " order by cur.time_stamp asc) as iq "
+             " group by iq.quadrant "
+             " order by iq.quadrant asc ";
+
+    if (function == AF_RunningTotal && columns.testFlag(SC_Timestamp)) {
+        // This requires a window function to do it efficiently.
+        // And that needs to be outside the grouped query.
+        QString outer_query = "select grouped.quadrant, grouped.time_stamp ";
+
+        outer_query += buildColumnList(columns & ~SC_Timestamp, ", sum(grouped.%1) over (order by grouped.time_stamp) as %1 ");
+        outer_query += " from (" + query + ") as grouped order by grouped.time_stamp asc";
+        query = outer_query;
+        qDebug() << query;
+    }
+    /*
+      resulting query parameters are:
+      :stationId
+      :startTime
+      :endTime
+      :groupSeconds (only if AGT_Custom)
+     */
+
+    qDebug() << query;
+
+    return query;
+
+}
+
+QString buildGroupedCount(AggregateFunction function, AggregateGroupType groupType, uint32_t minutes) {
+
+    QString baseQuery = buildGroupedSelect(SC_NoColumns, function, groupType, minutes);
+
+    QString query = "select count(*) as cnt from ( " + baseQuery + " ) as x ";
+    return query;
+}
+
+int basicCountQuery(int stationId, QDateTime startTime, QDateTime endTime) {
     QSqlQuery query;
 
     // TODO: this is not compatible with the v1 schema (station_id column)
@@ -151,10 +217,118 @@ void DatabaseDataSource::fetchSamples(SampleColumns columns,
     if (!result || !query.isActive()) {
         QMessageBox::warning(NULL, "Database Error",
                              query.lastError().driverText());
-        return;
+        return -1;
     }
     query.first();
-    int size = query.value(0).toInt();
+    return query.value(0).toInt();
+}
+
+int groupedCountQuery(int stationId, QDateTime startTime, QDateTime endTime,
+                      AggregateFunction function, AggregateGroupType groupType, uint32_t minutes) {
+    QSqlQuery query;
+
+    QString qry = buildGroupedCount(function, groupType, minutes);
+    qDebug() << "Grouped count";
+    qDebug() << "Query:" << qry;
+    qDebug() << "Parameters: stationId -" << stationId << ", startTime -" << startTime
+             << ", endTime -" << endTime << ", groupSeconds -" << minutes * 60;
+    qDebug() << "GroupType:" << groupType << "(Custom:" << AGT_Custom << ")";
+
+    // TODO: this is not compatible with the v1 schema (station_id column)
+    query.prepare(qry);
+    query.bindValue(":stationId", stationId);
+    query.bindValue(":stationIdB", stationId);
+    query.bindValue(":stationIdC", stationId);
+    query.bindValue(":startTime", startTime);
+    query.bindValue(":endTime", endTime);
+
+    if (groupType == AGT_Custom)
+        query.bindValue(":groupSeconds", minutes * 60);
+
+    bool result = query.exec();
+    if (!result || !query.isActive()) {
+        qWarning() << "DB ERROR";
+        QMessageBox::warning(NULL, "Database Error",
+                             query.lastError().driverText());
+        return -1;
+    }
+    result = query.first();
+
+    int count = query.record().value("cnt").toInt();
+    qDebug() << query.record();
+    qDebug() << query.executedQuery();
+    qDebug() << "Count:" << count;
+    return count;
+}
+
+QSqlQuery setupBasicQuery(SampleColumns columns, int stationId, QDateTime startTime, QDateTime endTime) {
+
+    qDebug() << "Basic Query";
+
+    QString selectPart = buildSelectForColumns(columns);
+    selectPart += " from sample "
+            "where station_id = :stationId "
+            "  and time_stamp >= :startTime "
+            "  and time_stamp <= :endTime";
+
+    qDebug() << "Query:" << selectPart;
+
+    QSqlQuery query;
+    query.prepare(selectPart);
+    return query;
+}
+
+
+QSqlQuery setupGroupedQuery(SampleColumns columns, int stationId,
+                       AggregateFunction function, AggregateGroupType groupType, uint32_t minutes) {
+
+    qDebug() << "Grouped Query";
+
+    QString qry = buildGroupedSelect(columns, function, groupType, minutes);
+
+    qDebug() << "Query:" << qry;
+    qDebug() << "Parameters: stationId -" << stationId << ", groupSeconds -" << minutes * 60;
+    qDebug() << "GroupType:" << groupType << "(Custom:" << AGT_Custom << ")";
+
+    QSqlQuery query;
+
+    query.prepare(qry);
+
+    query.bindValue(":stationIdB", stationId);
+    query.bindValue(":stationIdC", stationId);
+
+    if (groupType == AGT_Custom)
+        query.bindValue(":groupSeconds", minutes * 60);
+
+    return query;
+}
+
+void DatabaseDataSource::fetchSamples(SampleColumns columns,
+                                      QDateTime startTime,
+                                      QDateTime endTime,
+                                      AggregateFunction aggregateFunction,
+                                      AggregateGroupType groupType,
+                                      uint32_t groupMinutes) {
+    progressDialog->setWindowTitle("Loading...");
+    progressDialog->setLabelText("Initialise...");
+    progressDialog->setRange(0,5);
+    progressDialog->setValue(0);
+
+    int stationId = getStationId();
+    if (stationId == -1) return; // Bad station code.
+    QString hwType = getStationHwType();
+
+    progressDialog->setLabelText("Count...");
+    progressDialog->setValue(1);
+    if (progressDialog->wasCanceled()) return;
+
+    int size;
+    if (aggregateFunction == AF_None || groupType == AGT_None)
+        size = basicCountQuery(stationId, startTime, endTime);
+    else
+        size = groupedCountQuery(stationId, startTime, endTime,
+                                 aggregateFunction, groupType, groupMinutes);
+    if (size == -1) return; // error
 
     progressDialog->setLabelText("Query...");
     progressDialog->setValue(2);
@@ -164,18 +338,20 @@ void DatabaseDataSource::fetchSamples(SampleColumns columns,
     ReserveSampleSetSpace(samples, size, columns);
     samples.sampleCount = size;
 
-    QString selectPart = buildSelectForColumns(columns);
+    QSqlQuery query;
+    if (aggregateFunction == AF_None || groupType == AGT_None)
+        query = setupBasicQuery(columns, stationId, startTime, endTime);
+    else
+        query = setupGroupedQuery(columns | SC_Timestamp, stationId,
+                          aggregateFunction, groupType, groupMinutes);
 
-    query.prepare(selectPart + " from sample "
-                  "where station_id = :stationId "
-                  "  and time_stamp >= :startTs "
-                  "  and time_stamp <= :endTs"
-                );
+    qDebug() <<  "Parameters: startTime -" << startTime << ", endTime -" << endTime;
+
     query.bindValue(":stationId", stationId);
-    query.bindValue(":startTs", startTime);
-    query.bindValue(":endTs", endTime);
+    query.bindValue(":startTime", startTime);
+    query.bindValue(":endTime", endTime);
     query.setForwardOnly(true);
-    result = query.exec();
+    bool result = query.exec();
     if (!result || !query.isActive()) {
         QMessageBox::warning(NULL, "Database Error",
                              query.lastError().driverText());
