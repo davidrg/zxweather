@@ -189,9 +189,10 @@ def plot_for_station(code, cur, dest_dir, start_date, output_format):
 
     # First up, figure out what years we have
     cur.execute("""select distinct extract(year from s.time_stamp)
-                           from sample s
-                           inner join station st on st.station_id = s.station_id
-                           where st.code = %s
+from sample s
+inner join station st on st.station_id = s.station_id
+where st.code = %s
+order by extract(year from s.time_stamp) asc
                            """, (code,))
     years = cur.fetchall()
 
