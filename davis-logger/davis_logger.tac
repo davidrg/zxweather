@@ -38,6 +38,9 @@ serial_port = '/dev/ttyS0'
 # this can be changed on the station console.
 baud_rate = 19200
 
+# File to dump bad samples into
+sample_error_file = "errors.csv"
+
 ##############################################################################
 ##############################################################################
 ##############################################################################
@@ -48,6 +51,7 @@ from twisted.application.service import Application, IProcess
 application = Application("davisd")
 IProcess(application).processName = "davisd"
 
-service = DavisService(dsn, station_code, serial_port, baud_rate)
+service = DavisService(dsn, station_code, serial_port, baud_rate,
+                       sample_error_file)
 
 service.setServiceParent(application)
