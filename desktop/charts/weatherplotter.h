@@ -12,6 +12,12 @@
 #define GRAPH_AXIS "GraphAxisType"
 #define GRAPH_DATASET "GraphDataSet"
 
+/** WeatherPlotter is responsible for plotting weather data in a QCustomPlot widget.
+ *
+ * Given a list of DataSets, each with a timespan and set of columns, WeatherPlotter
+ * will coordinate with CacheManager to retrieive the data from an AbstractDataSource
+ * instance and insert the necessary QCPGraph and QCPAxis objects into the plot.
+ */
 class WeatherPlotter : public QObject
 {
     Q_OBJECT
