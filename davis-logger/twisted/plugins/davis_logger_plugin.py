@@ -18,6 +18,8 @@ class Options(usage.Options):
         ["serial_port", "p", None,
          "The serial port device the weather station is attached to."],
         ["baud_rate", "b", 19200, "Serial baud rate", int],
+        ["sample_error_file", "f", None,
+         "CSV file to dump samples into when inserting to the database fails"]
     ]
 
 
@@ -51,7 +53,9 @@ class DavisLoggerServiceMaker(object):
         station_code = options["station_code"]
         serial_port = options["serial_port"]
         baud_rate = options["baud_rate"]
+        sample_error_file = options["sample_error_file"]
 
-        return DavisService(dsn, station_code, serial_port, baud_rate)
+        return DavisService(dsn, station_code, serial_port, baud_rate,
+                            sample_error_file)
 
 serviceMaker = DavisLoggerServiceMaker()

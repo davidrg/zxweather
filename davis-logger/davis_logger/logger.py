@@ -2,8 +2,12 @@
 """
 Data logger for Davis Vantage Vue weather stations.
 """
+import csv
 from datetime import datetime, timedelta
+import json
+import os
 import sys
+import psycopg2
 from twisted.application import service
 from twisted.enterprise import adbapi
 from twisted.internet import reactor
@@ -26,7 +30,8 @@ class DavisLoggerProtocol(Protocol):
     # lower.
     _loopPacketRequestSize = 100
 
-    def __init__(self, database_pool, station_id, latest_date, latest_time):
+    def __init__(self, database_pool, station_id, latest_date, latest_time,
+                 sample_error_file):
         self.station = DavisWeatherStation()
 
         # Setup the watchdog. This will give the data logger a kick if it stalls
@@ -56,6 +61,10 @@ class DavisLoggerProtocol(Protocol):
 
         # Fired when the init stuff has completed.
         self.station.InitCompleted += self._init_completed
+
+        self._error_state = False
+
+        self.sample_error_file = sample_error_file
 
     def dataReceived(self, data):
         """
@@ -114,7 +123,16 @@ class DavisLoggerProtocol(Protocol):
         self.station.getLoopPackets(self._loopPacketRequestSize)
 
     def _samplesArrived(self, sampleList):
-        self._database_pool.runInteraction(self._store_samples_int, sampleList)
+
+        if self._error_state:
+            self._write_samples_to_error_log(sampleList)
+            log.msg("** WARNING: logger operating in error state. Stop logger, "
+                    "correct error, merge sample error log into database and "
+                    "restart logger.")
+            log.msg("** NOTICE: Redirected {0} samples to sample error log"
+                    .format(len(sampleList)))
+        else:
+            self._database_pool.runInteraction(self._store_samples_int, sampleList)
 
         # This obviously relies on the sample list being ordered.
         if len(sampleList) > 0:
@@ -124,6 +142,39 @@ class DavisLoggerProtocol(Protocol):
             log.msg('Last record: {0} {1}'.format(last.dateStamp, last.timeStamp))
         log.msg('Received {0} archive records'.format(len(sampleList)))
         self.station.getLoopPackets(self._loopPacketRequestSize)
+
+    def _write_samples_to_error_log(self, samples):
+        with open(self.sample_error_file, "ab") as csvfile:
+            csvwriter = csv.writer(csvfile)
+            for sample in samples:
+                csvwriter.writerow([
+                    self._station_id,
+                    datetime.now(),  # Download timestamp
+                    datetime.combine(sample.dateStamp,
+                                     sample.timeStamp),
+                    sample.insideHumidity,
+                    sample.insideTemperature,
+                    sample.outsideHumidity,
+                    sample.outsideTemperature,
+                    sample.barometer,
+                    sample.averageWindSpeed,
+                    sample.highWindSpeed,
+                    sample.prevailingWindDirection,
+                    sample.rainfall,
+                    sample.timeInteger,
+                    sample.dateInteger,
+                    sample.highOutsideTemperature,
+                    sample.lowOutsideTemperature,
+                    sample.highRainRate,
+                    sample.solarRadiation,
+                    sample.numberOfWindSamples,
+                    sample.highWindSpeedDirection,
+                    sample.averageUVIndex,
+                    sample.ET,
+                    sample.highSolarRadiation,
+                    sample.highUVIndex,
+                    sample.forecastRule
+                ])
 
     def _store_samples_int(self, txn, samples):
         """
@@ -151,43 +202,56 @@ class DavisLoggerProtocol(Protocol):
                 values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                 """
 
-        for sample in samples:
-            txn.execute(base_query,
-                        (
-                            datetime.now(),  # Download timestamp
-                            datetime.combine(sample.dateStamp,
-                                             sample.timeStamp),
-                            sample.insideHumidity,
-                            sample.insideTemperature,
-                            sample.outsideHumidity,
-                            sample.outsideTemperature,
-                            sample.barometer,
-                            sample.averageWindSpeed,
-                            sample.highWindSpeed,
-                            sample.prevailingWindDirection,
-                            sample.rainfall,
-                            self._station_id
-                        ))
+        try:
+            for sample in samples:
+                txn.execute(base_query,
+                            (
+                                datetime.now(),  # Download timestamp
+                                datetime.combine(sample.dateStamp,
+                                                 sample.timeStamp),
+                                sample.insideHumidity,
+                                sample.insideTemperature,
+                                sample.outsideHumidity,
+                                sample.outsideTemperature,
+                                sample.barometer,
+                                sample.averageWindSpeed,
+                                sample.highWindSpeed,
+                                sample.prevailingWindDirection,
+                                sample.rainfall,
+                                self._station_id
+                            ))
 
-            sample_id = txn.fetchone()[0]
+                sample_id = txn.fetchone()[0]
 
-            txn.execute(davis_query,
-                        (
-                            sample_id,
-                            sample.timeInteger,
-                            sample.dateInteger,
-                            sample.highOutsideTemperature,
-                            sample.lowOutsideTemperature,
-                            sample.highRainRate,
-                            sample.solarRadiation,
-                            sample.numberOfWindSamples,
-                            sample.highWindSpeedDirection,
-                            sample.averageUVIndex,
-                            sample.ET,
-                            sample.highSolarRadiation,
-                            sample.highUVIndex,
-                            sample.forecastRule
-                        ))
+                txn.execute(davis_query,
+                            (
+                                sample_id,
+                                sample.timeInteger,
+                                sample.dateInteger,
+                                sample.highOutsideTemperature,
+                                sample.lowOutsideTemperature,
+                                sample.highRainRate,
+                                sample.solarRadiation,
+                                sample.numberOfWindSamples,
+                                sample.highWindSpeedDirection,
+                                sample.averageUVIndex,
+                                sample.ET,
+                                sample.highSolarRadiation,
+                                sample.highUVIndex,
+                                sample.forecastRule
+                            ))
+        except psycopg2.Error as e:
+            log.msg("""Database exception trying to insert samples:-
+{0}
+If error is violation of station_timestamp_unique constraint this may be caused
+by a change in time zone due to daylight savings.""".format(e.pgerror))
+            self._error_state = True
+
+            log.msg("Logger is now in error state. All data will be redirected "
+                    "to error_samples.csv")
+
+            self._write_samples_to_error_log(samples)
+
 
     def _store_live(self, loop):
         """
@@ -276,12 +340,16 @@ class DavisLoggerProtocol(Protocol):
         self._reschedule_watchdog()
 
 class DavisService(service.Service):
-    def __init__(self, database, station, port, baud):
+    def __init__(self, database, station, port, baud, sample_error_file):
         self.dbc = database
         self.station_code = station
         self.serial_port = port
         self.baud_rate = baud
         self.station_id = 0
+        self.sample_error_file = sample_error_file
+
+        if not os.access(self.sample_error_file, os.W_OK):
+            raise Exception("Unable to write to failed sample output file {0}".format(self.sample_error_file))
 
     def startService(self):
         # This will kick off everything else.
@@ -306,7 +374,8 @@ class DavisService(service.Service):
             latest_date = result[0][1]
 
         logger = DavisLoggerProtocol(
-            self.database_pool, station_id, latest_date, latest_time)
+            self.database_pool, station_id, latest_date, latest_time,
+            self.sample_error_file)
 
         self.sp = SerialPort(logger,
                              self.serial_port,
