@@ -11,7 +11,7 @@ import config
 from database import get_daily_records, get_years, \
     total_rainfall_in_last_7_days, day_exists, get_station_id, \
     get_station_name, in_archive_mode, get_station_type_code, get_stations, \
-    get_live_data, get_station_message, no_data_in_24_hours
+    get_live_data, get_station_message, no_data_in_24_hours, get_station_config
 import os
 from months import month_name
 from ui import get_nav_urls, make_station_switch_urls, build_alternate_ui_urls
@@ -83,10 +83,12 @@ def get_station_standard(ui, station):
     hw_type = get_station_type_code(station_id)
 
     reception_available = False
+    uv_and_solar_available = False
 
-    if hw_type == 'DAVIS' and station in config.davis_station_ids:
-        # TODO: check station is wireless
-        reception_available = True
+    if hw_type == 'DAVIS':
+        hw_config = get_station_config(station_id)
+        reception_available = hw_config['is_wireless']
+        uv_and_solar_available = hw_config['has_solar_and_uv']
 
     day_cache_control(None, now, station_id)
     nav_urls = get_nav_urls(station, current_location)
@@ -105,7 +107,8 @@ def get_station_standard(ui, station):
                                         current_location),
                                     station_message=msg[0],
                                     station_message_ts=msg[1],
-                                    reception_available=reception_available)
+                                    reception_available=reception_available,
+                                    solar_uv_available=uv_and_solar_available)
 
 def get_station_basic(station):
     """
@@ -151,12 +154,21 @@ def get_station_basic(station):
     image_base = str(now.year) + '/' + month_name[now.month] + '/' + \
         str(now.day) + '/'
 
+    hw_type = get_station_type_code(station_id)
+    uv_and_solar_available = False
+
+    if hw_type == 'DAVIS':
+        hw_config = get_station_config(station_id)
+        uv_and_solar_available = hw_config['has_solar_and_uv']
+
     return basic_templates.station(years=get_years(station_id),
                                    station=station,
                                    data=data,
                                    nav=nav_urls,
                                    image_base=image_base,
                                    page_data=page_data,
+                                   hw_type=hw_type,
+                                   solar_uv_available=uv_and_solar_available,
                                    archive_mode=in_archive_mode(station_id),
                                    switch_url=build_alternate_ui_urls(
                                        current_location))
@@ -251,10 +263,10 @@ class reception(object):
 
         station_id = get_station_id(station)
         hw_type = get_station_type_code(station_id)
+        hw_config = get_station_config(station_id)
 
-        if hw_type != 'DAVIS' or station not in config.davis_station_ids:
+        if hw_type != 'DAVIS' or not hw_config['is_wireless']:
             # This page is only available for wireless Davis stations
-            # TODO: check the station is wireless
             raise web.NotFound()
 
         if ui == 'b':

@@ -14,7 +14,7 @@ from data.daily import get_24hr_samples_data, get_day_rainfall, get_day_dataset,
 from data.util import outdoor_sample_result_to_json, outdoor_sample_result_to_datatable, rainfall_sample_result_to_json, rainfall_to_datatable, \
     reception_result_to_json, reception_result_to_datatable
 from database import get_years, get_live_data, get_station_id, get_latest_sample_timestamp, get_oldest_sample_timestamp, \
-    get_station_type_code
+    get_station_type_code, get_station_config
 import os
 
 __author__ = 'David Goodwin'
@@ -70,6 +70,8 @@ class data_json:
 
         hw_type = get_station_type_code(station_id)
 
+        hw_config = get_station_config(station_id)
+
         pass_through_data_sets = {
             'current_day_records':'records',
             'current_day_rainfall_totals':'rainfall',
@@ -98,8 +100,7 @@ class data_json:
         elif dataset == '24hr_reception' and hw_type in ["DAVIS"]:
             # This is only supported for wireless DAVIS hardware at this time.
 
-            if station not in config.davis_station_ids:
-                # TODO: check the station is wireless too
+            if not hw_config['is_wireless']:
                 raise web.NotFound()
 
             return get_day_dataset(datetime.now(),
@@ -109,8 +110,7 @@ class data_json:
         elif dataset == '168hr_reception' and hw_type in ["DAVIS"]:
             # This is only supported for wireless DAVIS hardware at this time.
 
-            if station not in config.davis_station_ids:
-                # TODO: check the station is wireless too
+            if not hw_config['is_wireless']:
                 raise web.NotFound()
 
             return get_day_dataset(datetime.now(),
@@ -157,6 +157,7 @@ class datatable_json:
             raise web.NotFound()
 
         hw_type = get_station_type_code(station_id)
+        hw_config = get_station_config(station_id)
 
         pass_through_data_sets = {
             'current_day_samples':'samples',
@@ -190,8 +191,7 @@ class datatable_json:
         elif dataset == '24hr_reception' and hw_type in ["DAVIS"]:
             # This is only supported for wireless DAVIS hardware at this time.
 
-            if station not in config.davis_station_ids:
-                # TODO: check the station is wireless too
+            if not hw_config['is_wireless']:
                 raise web.NotFound()
 
             return get_day_dataset(datetime.now(),
@@ -201,8 +201,7 @@ class datatable_json:
         elif dataset == '168hr_reception' and hw_type in ["DAVIS"]:
             # This is only supported for wireless DAVIS hardware at this time.
 
-            if station not in config.davis_station_ids:
-                # TODO: check the station is wireless too
+            if not hw_config['is_wireless']:
                 raise web.NotFound()
 
             return get_day_dataset(datetime.now(),

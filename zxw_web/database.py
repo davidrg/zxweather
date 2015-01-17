@@ -2,8 +2,9 @@
 """
 Various common functions to get data from the database.
 """
+import json
 
-from config import db, davis_station_ids
+from config import db
 from datetime import datetime, date
 
 __author__ = 'David Goodwin'
@@ -77,7 +78,11 @@ def get_davis_max_wireless_packets(station_id):
 
     station_code = get_station_code(station_id)
 
-    if station_code not in davis_station_ids:
+    hw_config = get_station_config(station_id)
+
+    broadcast_id = hw_config['broadcast_id']
+
+    if broadcast_id is None:
         # The station broadcast ID hasn't been set for this station. Can't
         # compute the number of samples.
         return None
@@ -92,7 +97,7 @@ def get_davis_max_wireless_packets(station_id):
     from station stn where stn.code = $station
     """
 
-    result = db.query(query, dict(id=davis_station_ids[station_code],
+    result = db.query(query, dict(id=broadcast_id,
                                   station=station_code))
 
     if len(result):
@@ -120,6 +125,26 @@ def get_station_type_code(station_id):
         return result[0].code
     else:
         return None
+
+
+def get_station_config(station_id):
+    """
+    Returns the hardware configuration parameters for the specified station.
+    :param station_id: Station to get hardware config for.
+    :return: Hardware configuration parameters. Exactly what this is depends
+    entirely on the hardware type.
+    """
+    query = "select station_config from station where station_id = $station"
+
+    result = db.query(query, dict(station=station_id))
+
+    if len(result):
+        data = result[0].station_config
+        if data is None:
+            return None
+        return json.loads(data)
+    return None
+
 
 def get_live_data_available(station_id):
     """
@@ -444,7 +469,9 @@ def get_live_data(station_id):
                    dd.transmitter_battery,
                    dd.console_battery_voltage,
                    dd.forecast_icon,
-                   dd.forecast_rule_id """
+                   dd.forecast_rule_id,
+                   dd.uv_index,
+                   dd.solar_radiation"""
 
             ext_joins = """
             inner join davis_live_data dd on dd.station_id = ld.station_id """
@@ -559,7 +586,7 @@ def get_full_station_info():
         select s.code, s.title, s.description, s.sort_order,
            st.code as hw_type_code, st.title as hw_type_name,
            sr.min_ts, sr.max_ts, s.message,
-           s.message_timestamp
+           s.message_timestamp, s.station_config
         from station s
         inner join station_type st on st.station_type_id = s.station_type_id
         left outer join (
@@ -570,6 +597,12 @@ def get_full_station_info():
 
     stations = []
     for record in result:
+
+        hw_config = None
+
+        if record.station_config is not None:
+            hw_config = json.loads(record.station_config)
+
         station = {
             'code': record.code,
             'name': record.title,
@@ -584,7 +617,8 @@ def get_full_station_info():
             'range': {
                 'min': None,
                 'max': None
-            }
+            },
+            'hw_config': hw_config
         }
 
         if record.message_timestamp is not None:

@@ -50,12 +50,28 @@
         </tr>
         <tr bgcolor="blanchedalmond">
             <td>Wind Direction</td>
-            <td>{{ data.current_data.wind_direction }}</td>
-        </tr> {#
+            <td>{% if data.current_data.wind_direction is none %}--{% else %}{{ data.current_data.wind_direction }}{% endif %}</td>
+        </tr>
+        {%-  if hw_type == 'DAVIS' %}
+        {%- if solar_uv_available %}
         <tr bgcolor="blanchedalmond">
-            <td>Rainfall</td>
-            <td>{{ data.current_data.rainfall|round(1) }} mm</td>
-        </tr> #}
+            <td>UV Index</td>
+            <td id="uv_index">{{ data.current_data.uv_index }}</td>
+        </tr>
+        <tr bgcolor="blanchedalmond">
+            <td>Solar Radiation</td>
+            <td id="solar_radiation">{{ data.current_data.solar_radiation }} w/m&sup2;</td>
+        </tr>
+        {%- endif %}
+        <tr bgcolor="blanchedalmond">
+            <td>Rain Rate</td>
+            <td id="rain_rate">{{ data.current_data.rain_rate }} mm/h</td>
+        </tr>
+        <tr bgcolor="blanchedalmond">
+            <td>Current Storm Rain</td>
+            <td id="storm_rain">{{ data.current_data.storm_rain }} mm</td>
+        </tr>
+        {%- endif %}
     </table>
     {% endif %}
     <a name="records"></a>
