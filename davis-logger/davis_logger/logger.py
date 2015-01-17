@@ -90,7 +90,7 @@ class DavisLoggerProtocol(Protocol):
         self.station.initialise()
 
     def _init_completed(self, stationType, hardwareType, version, versionDate,
-                        stationTime, rainCollectorSizeName):
+                        stationTime, rainCollectorSizeName, archiveInterval):
 
         log.msg('Station Type: {0} - {1}'.format(stationType, hardwareType))
 
@@ -100,6 +100,15 @@ class DavisLoggerProtocol(Protocol):
         log.msg('Firmware Version: {0} ({1})'.format(versionDate, version))
         log.msg('Station Time: {0}'.format(stationTime))
         log.msg('Rain Collector Size: {0}'.format(rainCollectorSizeName))
+        log.msg('Archive Interval: {0} minutes'.format(archiveInterval))
+
+        if (archiveInterval != 5):
+            log.msg('WARNING: Archive interval should be set to\n5 minutes. '
+                    'While your current setting of {0} will probably work as '
+                    'long as the\nsetting for this station in the database '
+                    'matches it is untested. It is\nrecommended that you change'
+                    'it to 5 minutes via WeatherLink.'.format(archiveInterval))
+
 
         # Bring the database up-to-date
         self._lastRecord = -1

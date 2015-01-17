@@ -50,6 +50,9 @@ INIT_4_GET_TIME = 9
 # init-5: Get rain collector size.
 INIT_5_GET_RAIN_SIZE = 10
 
+# init-6: Get the archive interval
+INIT_6_GET_ARCHIVE_INTERVAL = 11
+
 class DavisWeatherStation(object):
     """
     A class for interfacing with a davis weather station.
@@ -107,6 +110,7 @@ class DavisWeatherStation(object):
             INIT_3_GET_VERSION: self._versionInfoReceived,
             INIT_4_GET_TIME: self._timeInfoReceived,
             INIT_5_GET_RAIN_SIZE: self._rainSizeReceived,
+            INIT_6_GET_ARCHIVE_INTERVAL: self._archiveIntervalReceived,
         }
 
         self._reset_state()
@@ -314,12 +318,27 @@ class DavisWeatherStation(object):
                 self._rainCollectorSize = 0.1
             self._rainCollectorSizeName = sizeString
 
+            self._buffer = ''
+            self._state = INIT_6_GET_ARCHIVE_INTERVAL
+            self._write("EEBRD 2D 01\n")
+
+
+
+    def _archiveIntervalReceived(self, data):
+        self._buffer += data
+
+        if len(self._buffer) == 4:
+            assert self._buffer[0] == self._ACK
+
+            self._archive_interval = ord(data[1])
+
             self._state = STATE_AWAKE
 
             self.InitCompleted.fire(self._station_type, self._hw_type,
                                     self._version, self._version_date,
                                     self._station_time,
-                                    self._rainCollectorSizeName)
+                                    self._rainCollectorSizeName,
+                                    self._archive_interval)
 
     def _write(self, data):
         # TODO: store current time so we know if the console has gone back to
