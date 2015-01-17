@@ -348,6 +348,12 @@ class DavisService(service.Service):
         self.station_id = 0
         self.sample_error_file = sample_error_file
 
+        if not os.path.exists(self.sample_error_file):
+            # File doesn't exist. Try to create it.
+            log.msg("Sample error file does not exist. Attempting to create...")
+            with open(self.sample_error_file, 'a'):
+                os.utime(self.sample_error_file, None)
+
         if not os.access(self.sample_error_file, os.W_OK):
             raise Exception("Unable to write to failed sample output file {0}".format(self.sample_error_file))
 
