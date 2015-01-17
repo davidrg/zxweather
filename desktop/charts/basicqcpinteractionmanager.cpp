@@ -235,6 +235,7 @@ QList<QCPAxis*> BasicQCPInteractionManager::valueAxes() {
 
 void BasicQCPInteractionManager::axisSelectionChanged() {
     // If either x axis or its tick labels is selected, select both axes
+    // TODO: This probably needs to go now that the X axes are independent
     if (plot->xAxis->selectedParts().testFlag(QCPAxis::spAxis) ||
             plot->xAxis->selectedParts().testFlag(QCPAxis::spTickLabels) ||
             plot->xAxis2->selectedParts().testFlag(QCPAxis::spAxis) ||

@@ -14,7 +14,7 @@
    <string>Add graph</string>
   </property>
   <property name="windowIcon">
-   <iconset resource="resources.qrc">
+   <iconset resource="../resources.qrc">
     <normaloff>:/icons/chart-add</normaloff>:/icons/chart-add</iconset>
   </property>
   <layout class="QGridLayout" name="gridLayout">
@@ -189,7 +189,7 @@
   <tabstop>buttonBox</tabstop>
  </tabstops>
  <resources>
-  <include location="resources.qrc"/>
+  <include location="../resources.qrc"/>
  </resources>
  <connections>
   <connection>
