@@ -31,6 +31,8 @@ wss_uri = None
 zxweatherd_hostname = None
 zxweatherd_raw_port = None
 
+davis_station_ids = {}
+
 def load_settings():
     """
     Loads settings from the configuration file.
@@ -39,6 +41,7 @@ def load_settings():
     global db, default_station_name
     global static_data_dir, site_root, default_ui, site_name, ws_uri, wss_uri
     global zxweatherd_hostname, zxweatherd_raw_port
+    global davis_station_ids
 
     import ConfigParser
     config = ConfigParser.ConfigParser()
@@ -49,6 +52,7 @@ def load_settings():
     S_DB = 'database'   # Database configuration
     S_S = 'site'        # Site configuration
     S_D = 'zxweatherd'  # zxweatherd configuration information
+    S_I = 'davis_station_ids' # Broadcast IDs for wireless davis stations
 
     # Make sure a few important settings people might overlook are set.
     if not config.has_option(S_S,'site_root'):
@@ -96,3 +100,8 @@ def load_settings():
 
     if not static_data_dir.endswith("/"):
         static_data_dir += "/"
+
+    # Get davis station broadcast IDs
+    stations = config.options(S_I)
+    for station in stations:
+        davis_station_ids[station] = config.getint(S_I, station)

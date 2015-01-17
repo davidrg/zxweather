@@ -3,7 +3,7 @@
 Various common functions to get data from the database.
 """
 
-from config import db
+from config import db, davis_station_ids
 from datetime import datetime, date
 
 __author__ = 'David Goodwin'
@@ -26,6 +26,24 @@ def get_station_id(station):
     else:
         return None
 
+def get_station_code(station):
+    """
+    Gets the code for the specified station id.
+    :param station: Station id
+    :type station: int
+    :return: The code for the given station code
+    :rtype: str
+    """
+
+    # TODO: Cache me
+
+    result = db.query("select code from station where station_id = $station",
+                      dict(station=station))
+    if len(result):
+        return result[0].code
+    else:
+        return None
+
 def get_sample_interval(station_id):
     """
     Gets the sample interval for the specified station.
@@ -45,6 +63,42 @@ def get_sample_interval(station_id):
         return result[0].sample_interval
     else:
         return None
+
+
+def get_davis_max_wireless_packets(station_id):
+    """
+    Gets the number of samples we should have received from the ISS with 100%
+    reception. To calculate this we need the ID the station broadcasts on
+    which comes from the web interfaces config file.
+
+    :param station_id: Station to get the wireless packet count.
+    :return: Packet count or None if not configured.
+    """
+
+    station_code = get_station_code(station_id)
+
+    if station_code not in davis_station_ids:
+        # The station broadcast ID hasn't been set for this station. Can't
+        # compute the number of samples.
+        return None
+
+    # This query is correct for a Vantage Pro2 and a Vantage Vue. The
+    # original Vantage Pro uses a different formula.
+    query = """select 	(stn.sample_interval::float)
+	    /
+	((41+$id-1)::float
+	   /16.0
+	) as max_packets
+    from station stn where stn.code = $station
+    """
+
+    result = db.query(query, dict(id=davis_station_ids[station_code],
+                                  station=station_code))
+
+    if len(result):
+        return result[0].max_packets
+    return None
+
 
 def get_station_type_code(station_id):
     """

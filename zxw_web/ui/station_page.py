@@ -80,12 +80,20 @@ def get_station_standard(ui, station):
 
     msg = get_station_message(station_id)
 
+    hw_type = get_station_type_code(station_id)
+
+    reception_available = False
+
+    if hw_type == 'DAVIS' and station in config.davis_station_ids:
+        # TODO: check station is wireless
+        reception_available = True
+
     day_cache_control(None, now, station_id)
     nav_urls = get_nav_urls(station, current_location)
     return modern_templates.station(nav=nav_urls,
                                     data=data,
                                     station=station,
-                                    hw_type=get_station_type_code(station_id),
+                                    hw_type=hw_type,
                                     ui=ui,
                                     sitename=config.site_name,
                                     subdir=sub_dir,
@@ -96,7 +104,8 @@ def get_station_standard(ui, station):
                                     switch_url=build_alternate_ui_urls(
                                         current_location),
                                     station_message=msg[0],
-                                    station_message_ts=msg[1])
+                                    station_message_ts=msg[1],
+                                    reception_available=reception_available)
 
 def get_station_basic(station):
     """
@@ -174,3 +183,84 @@ class station(object):
             return get_station_standard(ui, station)
         else:
             return get_station_basic(station)
+
+
+def get_station_reception_standard(ui, station):
+    """
+    Gets a page showing reception quality for the last 24 hours.
+
+    :param ui: UI to get
+    :type ui: str
+    :param station: The station to get data for.  Only used for building
+    URLs at the moment
+    :type station: string
+    :param day: Page day
+    :type day: date
+    :return: View data
+    """
+
+    day = datetime.now().date()
+
+    current_location = '/*/' + station + '/reception.html'
+
+    station_id = get_station_id(station)
+
+    def _switch_func(station_id):
+        return True
+
+    page_data = {
+        "station_name": get_station_name(station_id),
+        "stations": make_station_switch_urls(
+            get_stations(), current_location, _switch_func,
+            (day.year, day.month, day.day))
+    }
+
+    if ui in ('s', 'm', 'a'):
+        nav_urls = get_nav_urls(station, current_location)
+        msg = get_station_message(station_id)
+        return modern_templates.reception(
+            nav=nav_urls,
+            sitename=config.site_name,
+            ui=ui,
+            archive_mode=in_archive_mode(station_id),
+            page_data=page_data,
+            switch_url=build_alternate_ui_urls(current_location),
+            station=station,
+            station_message=msg[0],
+            station_message_ts=msg[1],
+            basic_ui_available=False # Not available in the basic UI.
+        )
+    else:
+        raise web.NotFound()
+
+
+class reception(object):
+    """
+    Page giving details on station reception for the last 24 hours and 7 days.
+    """
+    def GET(self, ui, station):
+        """
+        Station overview page (on the standard UI) or year list page (basic UI)
+        :param ui: UI to use
+        :type ui: str
+        :param station: Station to get data for
+        :type station: str
+        :return: HTML data.
+        """
+        validate_request(ui, station)
+
+        station_id = get_station_id(station)
+        hw_type = get_station_type_code(station_id)
+
+        if hw_type != 'DAVIS' or station not in config.davis_station_ids:
+            # This page is only available for wireless Davis stations
+            # TODO: check the station is wireless
+            raise web.NotFound()
+
+        if ui == 'b':
+            # Not available in the basic UI (too much work for too little gain)
+            raise web.NotFound()
+
+        html_file()
+
+        return get_station_reception_standard(ui, station)

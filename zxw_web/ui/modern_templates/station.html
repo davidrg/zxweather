@@ -74,6 +74,11 @@
         </section>
 {%- endif -%}
 {% endblock %}
+{% block footer_left %}
+{%- if reception_available -%}
+                    <a href="reception.html">Wireless reception</a>
+{%- endif -%}
+{% endblock %}
 {% block scripts %}
 {%- if not page_data["no_content"] %}
     <script type="text/javascript">

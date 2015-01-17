@@ -45,6 +45,7 @@ urls = (
     '/(s|b|m|a)/(\w*)/(\d+)/(\w*)/(?:index\.html)?', 'ui.month_page.month',   # A particular month
     '/(s|b|m|a)/(\w*)/(\d+)/(?:index\.html)?', 'ui.year_page.year',           # A particular year
     '/(s|b|m|a)/(\w*)/now', 'ui.now',                                         # Go to todays page
+    '/(s|b|m|a)/(\w*)/reception\.html', 'ui.station_page.reception',         # Reception page
     '/(s|b|m|a)/(\w*)/(?:index\.html)?', 'ui.station_page.station',           # Index page
     '/(?:s|m|a)/(\w*)/about.json', 'data.about_nav',                          #
     '/(s|b|m|a)/(?:index\.html)?', 'ui.stationlist',                          # Station redirect

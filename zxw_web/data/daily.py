@@ -6,7 +6,8 @@ Used for generating charts in JavaScript, etc.
 
 from datetime import date, datetime
 from cache import day_cache_control
-from database import get_daily_records, get_daily_rainfall, get_latest_sample_timestamp, day_exists, get_station_id
+from database import get_daily_records, get_daily_rainfall, get_latest_sample_timestamp, day_exists, get_station_id, \
+    get_davis_max_wireless_packets
 import web
 import config
 import json
@@ -384,6 +385,49 @@ def get_24hr_hourly_rainfall_data(time, station_id):
 
     return result
 
+
+def get_24hr_reception(time, station_id):
+    """
+    Gets reception from the wireless sensors over the last 24 hours. This
+    query is specific to Davis weather stations.
+    :param time: Maximum time to get samples for.
+    :param station_id: The ID of the weather station to work with
+    :type station_id: int
+    :return: Reception data
+    """
+
+    max_packets = get_davis_max_wireless_packets(station_id)
+
+    if max_packets is None:
+        return None
+
+    params = dict(time=time, station=station_id, maxpackets=max_packets)
+
+    query = """select s.time_stamp::timestamptz,
+       round((ds.wind_sample_count / $maxpackets * 100),1)::float as reception,
+
+       s.time_stamp - (st.sample_interval * '1 second'::interval) as prev_sample_time,
+       CASE WHEN (s.time_stamp - prev.time_stamp) > ((st.sample_interval * 2) * '1 second'::interval) THEN
+	  true
+       else
+	  false
+       end as gap
+
+    from sample s, davis_sample ds, sample prev
+    inner join station st on st.station_id = prev.station_id
+    where (s.time_stamp < $time and s.time_stamp > $time - '1 hour'::interval * 24)
+      and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp and station_id = $station)
+      and s.station_id = $station
+      and prev.station_id = $station
+      and ds.sample_id = s.sample_id
+    order by s.time_stamp asc
+    """
+
+    result = config.db.query(query, params)
+
+    return result
+
+
 def get_7day_hourly_rainfall_data(day, station_id):
     """
     Gets hourly rainfall data for the 7 day period ending at the specified date.
@@ -432,6 +476,39 @@ def get_168hr_hourly_rainfall_data(day, station_id):
       and station_id = $station
     group by date_trunc('hour',time_stamp)
     order by date_trunc('hour',time_stamp) asc""", params)
+
+    return result
+
+
+def get_168hr_reception(time, station_id):
+    max_packets = get_davis_max_wireless_packets(station_id)
+
+    if max_packets is None:
+        return None
+
+    params = dict(time=time, station=station_id, maxpackets=max_packets)
+
+    query = """select s.time_stamp::timestamptz,
+       round((ds.wind_sample_count / $maxpackets * 100),1)::float as reception,
+
+       s.time_stamp - (st.sample_interval * '1 second'::interval) as prev_sample_time,
+       CASE WHEN (s.time_stamp - prev.time_stamp) > ((st.sample_interval * 2) * '1 second'::interval) THEN
+	  true
+       else
+	  false
+       end as gap
+
+    from sample s, davis_sample ds, sample prev
+    inner join station st on st.station_id = prev.station_id
+    where (s.time_stamp < $time and s.time_stamp > $time - (604800 * '1 second'::interval))
+      and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp and station_id = $station)
+      and s.station_id = $station
+      and prev.station_id = $station
+      and ds.sample_id = s.sample_id
+    order by s.time_stamp asc
+    """
+
+    result = config.db.query(query, params)
 
     return result
 

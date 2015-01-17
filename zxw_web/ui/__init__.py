@@ -8,7 +8,8 @@ from datetime import timedelta, datetime, date
 from months import month_name, month_number
 from url_util import relative_url
 import config
-from database import day_exists, month_exists, year_exists, get_station_id, get_sample_range
+from database import day_exists, month_exists, year_exists, get_station_id, get_sample_range, \
+    get_station_type_code
 import web
 
 __author__ = 'David Goodwin'
