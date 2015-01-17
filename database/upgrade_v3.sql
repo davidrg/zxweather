@@ -343,7 +343,9 @@ create table davis_live_data (
   transmitter_battery int,
   console_battery_voltage float,
   forecast_icon int,
-  forecast_rule_id int
+  forecast_rule_id int,
+  uv_index int,
+  solar_radiation int
 );
 comment on table davis_live_data is 'Additional live data available from Davis-compatible hardware';
 comment on column davis_live_data.bar_trend is 'Barometer trend. -60 is falling rapidly, -20 is falling slowly, 0 is steady, 20 is rising slowly, 60 is rising rapidly.';
@@ -354,7 +356,8 @@ comment on column davis_live_data.transmitter_battery is 'Transmitter battery st
 comment on column davis_live_data.console_battery_voltage is 'Console battery voltage';
 comment on column davis_live_data.forecast_icon is 'Forecast icon';
 comment on column davis_live_data.forecast_rule_id is 'Current forecast rule. See davis_forecast_rule table for values';
-
+comment on column davis_live_data.uv_index is 'Latest UV index reading';
+comment on column davis_live_data.solar_radiation is 'Latest solar radiation reading in watt/meter squared';
 ----------------------------------------------------------------------
 -- CONSTRAINTS ----------------------------------------------------------
 ----------------------------------------------------------------------
