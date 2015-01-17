@@ -50,3 +50,15 @@ site_name: zxweather
 #ws_port: 8080
 #wss_port: 443
 #raw_port: 4242
+
+
+[davis_station_ids]
+# If you have a wireless Davis weather stations (Vantage Vue, Vantage Pro2)
+# and you want to be able to see signal quality zxweather needs to know the
+# ID the stations ISS is broadcasting on. By default this is probably 1.
+# For each wireless Davis station you have, add an entry here like this:
+#     station_code: id
+# For example:
+#     rua2: 1
+# If you don't have any wireless Davis weather stations (or don't care
+# about seeing how good your reception is) you can leave this section empty.

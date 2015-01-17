@@ -154,11 +154,15 @@
                         <strong>Alternate</strong>
                     {%- else -%}
                         <a href="{{ switch_url['a'] }}">Alternate</a>
-                    {%- endif %} | {% if ui == 'b' -%}
+                    {%- endif %}
+                    {#- Define and set basic_ui_available to False if a
+                     #  a particular page (like wireless reception) is not
+                     #  available from the Basic UI. -#}
+                    {% if basic_ui_available is undefined or basic_ui_available is none or basic_ui_available%} | {% if ui == 'b' -%}
                         <strong>Basic</strong>
                     {%- else -%}
                         <a href="{{ switch_url['b'] }}">Basic</a>
-                    {%- endif %}
+                    {%- endif %}{% endif %}
                     </div>
                 </div>
             </div>

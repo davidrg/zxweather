@@ -73,6 +73,22 @@
                     Samples for the last 24 hours.
                 </td>
             </tr>
+            {% if reception_available %}
+            <tr bgcolor="blanchedalmond">
+                <td>JSON</td>
+                <td><a href="24hr_reception.json">24hr_reception.json</a></td>
+                <td>
+                    Station reception over last 24 hours
+                </td>
+            </tr>
+            <tr bgcolor="blanchedalmond">
+                <td>JSON</td>
+                <td><a href="168hr_reception.json">168hr_reception.json</a></td>
+                <td>
+                    Station reception over last 168 hours (7 days)
+                </td>
+            </tr>
+            {% endif %}
             <tr bgcolor="blanchedalmond">
                 <td>JSON</td>
                 <td><a href="current_day_7day_30m_avg_samples.json">current_day_7day_30m_avg_samples.json</a></td>
@@ -129,6 +145,22 @@
                     Samples for the last 24 hours.
                 </td>
             </tr>
+            {% if reception_available %}
+            <tr bgcolor="blanchedalmond">
+                <td>Google DataTable JSON</td>
+                <td><a href="datatable/24hr_reception.json">datatable/24hr_reception.json</a></td>
+                <td>
+                    Station reception over last 24 hours
+                </td>
+            </tr>
+            <tr bgcolor="blanchedalmond">
+                <td>Google DataTable JSON</td>
+                <td><a href="datatable/168hr_reception.json">datatable/168hr_reception.json</a></td>
+                <td>
+                    Station reception over last 168 hours (7 days)
+                </td>
+            </tr>
+            {% endif %}
             <tr bgcolor="blanchedalmond">
                 <td>Google DataTable JSON</td>
                 <td><a href="datatable/current_day_7day_30m_avg_samples.json">datatable/current_day_7day_30m_avg_samples.json</a></td>

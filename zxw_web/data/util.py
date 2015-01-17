@@ -213,6 +213,94 @@ def rainfall_sample_result_to_json(query_data):
 
     return json_data, data_age
 
+
+def reception_result_to_json(query_data):
+    """
+    Converts the supplied reception to JSON format.
+    :param query_data: Data to convert.
+    :return: json_data, data_age
+    """
+
+    labels = ["Time",
+              "Reception",
+              ]
+
+    data_age = None
+    data_set = []
+
+    for record in query_data:
+        if record.gap:
+            # Insert a gap
+            data_set.append([
+                record.time_stamp.isoformat(),
+                None, None,
+            ])
+
+        data_set.append(
+            [
+                record.time_stamp.isoformat(),
+                record.reception,
+            ]
+        )
+
+        data_age = record.time_stamp
+
+    result = {
+        'data': data_set,
+        'labels': labels
+    }
+
+    json_data = json.dumps(result)
+
+    return json_data, data_age
+
+
+def reception_result_to_datatable(query_data):
+    """
+    Converts the supplied reception to the Google DataTable format.
+    :param query_data: Data to convert.
+    :return: json_data, data_age
+    """
+
+    cols = [{'id': 'timestamp',
+             'label': 'Time Stamp',
+             'type': 'datetime'},
+            {'id': 'reception',
+             'label': 'Reception',
+             'type': 'number'},
+    ]
+
+    rows = []
+
+    # At the end of the following loop, this will contain the timestamp for
+    # the most recent record in this data set.
+    data_age = None
+
+    for record in query_data:
+
+        # Handle gaps in the dataset
+        if record.gap:
+            rows.append({'c': [{'v': datetime_to_js_date(record.prev_sample_time)},
+                    {'v': None},
+            ]
+            })
+
+        rows.append({'c': [{'v': datetime_to_js_date(record.time_stamp)},
+                {'v': record.reception},
+        ]
+        })
+
+        data_age = record.time_stamp
+
+    data = {'cols': cols,
+            'rows': rows}
+
+    if pretty_print:
+        return json.dumps(data, sort_keys=True, indent=4), data_age
+    else:
+        return json.dumps(data), data_age
+
+
 def daily_records_result_to_datatable(query_data):
     """
     Converts daily records query data into DataTable JSON format for the

@@ -9,9 +9,12 @@ from web.contrib.template import render_jinja
 from cache import live_data_cache_control
 import config
 from data import daily, about_nav
-from data.daily import get_24hr_samples_data, get_day_rainfall, get_day_dataset, get_24hr_hourly_rainfall_data
-from data.util import outdoor_sample_result_to_json, outdoor_sample_result_to_datatable, rainfall_sample_result_to_json, rainfall_to_datatable
-from database import get_years, get_live_data, get_station_id, get_latest_sample_timestamp, get_oldest_sample_timestamp
+from data.daily import get_24hr_samples_data, get_day_rainfall, get_day_dataset, get_24hr_hourly_rainfall_data, \
+    get_24hr_reception, get_168hr_reception
+from data.util import outdoor_sample_result_to_json, outdoor_sample_result_to_datatable, rainfall_sample_result_to_json, rainfall_to_datatable, \
+    reception_result_to_json, reception_result_to_datatable
+from database import get_years, get_live_data, get_station_id, get_latest_sample_timestamp, get_oldest_sample_timestamp, \
+    get_station_type_code
 import os
 
 __author__ = 'David Goodwin'
@@ -37,8 +40,14 @@ class index:
 
         years = get_years(station_id)
 
+        reception_available = False
+        hw_type = get_station_type_code(station_id)
+        if hw_type in ['DAVIS']:
+            reception_available = True
+
         web.header('Content-Type', 'text/html')
-        return render.station_data_index(years=years)
+        return render.station_data_index(years=years,
+                                         reception_available=reception_available)
 
 
 class data_json:
@@ -58,6 +67,8 @@ class data_json:
 
         if station_id is None:
             raise web.NotFound()
+
+        hw_type = get_station_type_code(station_id)
 
         pass_through_data_sets = {
             'current_day_records':'records',
@@ -83,6 +94,28 @@ class data_json:
             return get_day_dataset(datetime.now(),
                                    get_24hr_hourly_rainfall_data,
                                    rainfall_sample_result_to_json,
+                                   station_id)
+        elif dataset == '24hr_reception' and hw_type in ["DAVIS"]:
+            # This is only supported for wireless DAVIS hardware at this time.
+
+            if station not in config.davis_station_ids:
+                # TODO: check the station is wireless too
+                raise web.NotFound()
+
+            return get_day_dataset(datetime.now(),
+                                   get_24hr_reception,
+                                   reception_result_to_json,
+                                   station_id)
+        elif dataset == '168hr_reception' and hw_type in ["DAVIS"]:
+            # This is only supported for wireless DAVIS hardware at this time.
+
+            if station not in config.davis_station_ids:
+                # TODO: check the station is wireless too
+                raise web.NotFound()
+
+            return get_day_dataset(datetime.now(),
+                                   get_168hr_reception,
+                                   reception_result_to_json,
                                    station_id)
         elif dataset == '168hr_30m_avg_samples':
             return daily.get_day_dataset(datetime.now(),
@@ -123,6 +156,8 @@ class datatable_json:
         if station_id is None:
             raise web.NotFound()
 
+        hw_type = get_station_type_code(station_id)
+
         pass_through_data_sets = {
             'current_day_samples':'samples',
             'current_day_7day_30m_avg_samples':'7day_30m_avg_samples',
@@ -152,6 +187,28 @@ class datatable_json:
                                          daily.get_168hr_hourly_rainfall_data,
                                          rainfall_to_datatable,
                                          station_id)
+        elif dataset == '24hr_reception' and hw_type in ["DAVIS"]:
+            # This is only supported for wireless DAVIS hardware at this time.
+
+            if station not in config.davis_station_ids:
+                # TODO: check the station is wireless too
+                raise web.NotFound()
+
+            return get_day_dataset(datetime.now(),
+                                   get_24hr_reception,
+                                   reception_result_to_datatable,
+                                   station_id)
+        elif dataset == '168hr_reception' and hw_type in ["DAVIS"]:
+            # This is only supported for wireless DAVIS hardware at this time.
+
+            if station not in config.davis_station_ids:
+                # TODO: check the station is wireless too
+                raise web.NotFound()
+
+            return get_day_dataset(datetime.now(),
+                                   get_168hr_reception,
+                                   reception_result_to_datatable,
+                                   station_id)
         else:
             raise web.NotFound()
 
