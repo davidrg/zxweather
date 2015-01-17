@@ -56,7 +56,8 @@ DavisLiveRecord = namedtuple(
     (
         'bar_trend', 'rain_rate', 'storm_rain',
         'current_storm_start_date', 'transmitter_battery',
-        'console_battery_voltage', 'forecast_icon', 'forecast_rule_id'
+        'console_battery_voltage', 'forecast_icon', 'forecast_rule_id',
+        'uv_index', 'solar_radiation'
     )
 )
 
