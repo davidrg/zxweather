@@ -102,7 +102,9 @@ class WeatherDatabase(object):
            dd.transmitter_battery,
            dd.console_battery_voltage,
            dd.forecast_icon,
-           dd.forecast_rule_id
+           dd.forecast_rule_id,
+           dd.uv_index,
+           dd.solar_radiation
     from live_data ld
     inner join station s on s.station_id = ld.station_id
     inner join davis_live_data dd on dd.station_id = ld.station_id

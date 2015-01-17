@@ -608,7 +608,9 @@ def _update_davis_live_int(txn, base_data, davis_data, station_id):
                     transmitter_battery = %s,
                     console_battery_voltage = %s,
                     forecast_icon = %s,
-                    forecast_rule_id = %s
+                    forecast_rule_id = %s,
+                    uv_index = %s,
+                    solar_radiation = %s
                 where station_id = %s
                 """
 
@@ -624,6 +626,8 @@ def _update_davis_live_int(txn, base_data, davis_data, station_id):
                 davis_data.console_battery_voltage,
                 davis_data.forecast_icon,
                 davis_data.forecast_rule_id,
+                davis_data.uv_index,
+                davis_data.solar_radiation,
                 station_id
             )
         )

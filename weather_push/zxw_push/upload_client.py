@@ -45,7 +45,7 @@ class UploadClient(object):
     davis_live_format = ",{bar_trend},{rain_rate},{storm_rain}," \
                         "{current_storm_start_date},{transmitter_battery}," \
                         "{console_battery_voltage},{forecast_icon}," \
-                        "{forecast_rule_id}"
+                        "{forecast_rule_id},{uv_index},{solar_radiation}"
     base_sample_format = "s,{station_code},{temperature},{humidity}," \
                          "{indoor_temperature},{indoor_humidity},{pressure}," \
                          "{average_wind_speed},{gust_wind_speed}," \
