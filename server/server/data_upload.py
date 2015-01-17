@@ -228,7 +228,9 @@ def _get_davis_live_record(values):
         transmitter_battery=_int_or_none(values[15]),
         console_battery_voltage=_float_or_none(values[16]),
         forecast_icon=_int_or_none(values[17]),
-        forecast_rule_id=_int_or_none(values[18])
+        forecast_rule_id=_int_or_none(values[18]),
+        uv_index=_int_or_none(values[19]),
+        solar_radiation=_int_or_none(values[20])
     )
     return rec
 
@@ -253,7 +255,7 @@ def insert_csv_live(values):
 
         return update_base_live(base)
     elif hw_type == 'DAVIS':
-        if len(values) != 19:
+        if len(values) != 21:
             msg = '# ERR-010: Invalid Davis live record - column count not' \
                   ' 19. Rejecting.'
             return defer.succeed(msg)
