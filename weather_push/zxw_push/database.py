@@ -190,6 +190,7 @@ where st.code = %s
 
         query += """
 order by s.time_stamp asc
+limit 10000
         """
 
         self._conn.runQuery(query, params).addCallback(
@@ -223,6 +224,7 @@ where st.code = %
 
         query += """
 order by s.time_stamp asc
+limit 10000
         """
 
         self._conn.runQuery(query, params).addCallback(
@@ -271,6 +273,7 @@ where st.code = %s
 
         query += """
 order by s.time_stamp asc
+limit 10000
         """
 
         self._conn.runQuery(query, params).addCallback(
