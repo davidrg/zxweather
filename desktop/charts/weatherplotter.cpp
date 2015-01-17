@@ -519,11 +519,9 @@ QString WeatherPlotter::defaultLabelForAxis(QCPAxis *axis) {
 
     if (type >= AT_KEY) {
         // Its an X axis. Its label comes from the dataset.
-        dataset_id_t dataSetId = type - AT_KEY;
-        QString label = dataSets[dataSetId].axisLabel;
-        if (label.isEmpty())
-            return "Time";
-        return label;
+        //dataset_id_t dataSetId = type - AT_KEY;
+        // TODO: Something else here
+        return "Time";
     } else {
         return axisLabels[type];
     }
