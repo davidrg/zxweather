@@ -326,6 +326,10 @@ order by s.time_stamp asc
         self._conn = DictConnection()
         self._conn_d = self._conn.connect(self._connection_string)
 
+        # We don't know how many of the samples we sent made it to the server
+        # so we'll take its view of the world over our own.
+        self._latest_ts = {}
+
         # add a NOTIFY observer
         self._conn.addNotifyObserver(self.observer)
 
