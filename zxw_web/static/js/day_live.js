@@ -59,7 +59,7 @@ function live_data_arrived(data) {
 
     if (hw_type == 'DAVIS') {
 
-        if (parts.length != 19) {
+        if (parts.length != 21) {
             // Invalid davis record (needs 20 fields)
             return;
         }
@@ -72,7 +72,9 @@ function live_data_arrived(data) {
             'tx_batt': parseInt(parts[15]),
             'console_batt': parseFloat(parts[16]),
             'forecast_icon': parseInt(parts[17]),
-            'forecast_rule': parseInt(parts[18])
+            'forecast_rule': parseInt(parts[18]),
+            'uv_index': parseInt(parts[19]),
+            'solar_radiation': parseInt(parts[20])
         };
 
         if (result['davis']['current_storm_date'] == 'None')
@@ -313,6 +315,8 @@ function refresh_live_data(data) {
         var rain_rate = 0;
         var current_storm_rain = null;
         var bft_data = bft(wind_speed);
+        var uv_index = 0;
+        var solar_radiation = 0;
 
         var bar_trend = '';
 
@@ -330,6 +334,8 @@ function refresh_live_data(data) {
                 bar_trend = ' (rising rapidly)';
 
             rain_rate = data['davis']['rain_rate'].toFixed(1);
+            uv_index = data['davis']['uv_index'];
+            solar_radiation = data['davis']['solar_radiation'];
 
             var storm_rain = data['davis']['storm_rain'].toFixed(1);
             var storm_date = data['davis']['current_storm_date'];
@@ -402,6 +408,11 @@ function refresh_live_data(data) {
                 e_storm_rain.html(current_storm_rain);
             else
                 e_storm_rain.html('--');
+
+            if (solar_and_uv_available) {
+                $("#uv_index").html(uv_index);
+                $("#solar_radiation").html(solar_radiation + " w/m&sup2;");
+            }
         }
 
     }

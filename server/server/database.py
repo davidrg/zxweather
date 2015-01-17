@@ -201,7 +201,9 @@ coalesce(dd.current_storm_start_date::varchar, 'None') || ',' ||
 coalesce(dd.transmitter_battery::varchar, 'None') || ',' ||
 coalesce(round(dd.console_battery_voltage::numeric, 2)::varchar, 'None') ||','||
 coalesce(dd.forecast_icon::varchar, 'None') || ',' ||
-coalesce(dd.forecast_rule_id::varchar, 'None')
+coalesce(dd.forecast_rule_id::varchar, 'None') || ',' ||
+coalesce(dd.uv_index::varchar, 'None') || ',' ||
+coalesce(dd.solar_radiation::varchar, 'None')
         """
         ext_joins = """
 inner join davis_live_data dd on dd.station_id = ld.station_id"""
