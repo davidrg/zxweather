@@ -2,6 +2,7 @@
 """
 Menus and routines for managing weather stations in the database.
 """
+import json
 from ui import pause, get_string_with_length_indicator, get_string, get_code, \
     get_boolean, menu, get_number
 
@@ -157,13 +158,66 @@ where 300 is 5 minutes.""")
     live_data = get_boolean("Is live data available for this station",
                             defaults["live"])
 
+    print("""The List Order setting controls where the weather station should
+appear in a list of multiple weather stations. If there will only be one
+weather station in this database then you can leave this value as 0.""")
+    sort_order = get_number("List order", defaults["sort_order"])
+
+    davis_settings = None
+    if hardware_code == "DAVIS":
+        # Prompt for extra configuration data used by davis weather stations
+
+        print("""
+Choose which Davis weather station you are using form the list below. If you
+are using a wireless Vantage Pro2 or Vantage Pro2 Plus ISS with a Vantage Vue
+console then choose Vantage Pro2 or Vantage Pro2 Plus.
+
+Code     Title
+-------- ---------------------------------------------------------------------
+PRO2    Vantage Pro2
+PRO2C   Vantage Pro2 (non-wireless/cabled version)
+PRO2P   Vantage Pro2 Plus (includes UV and Solar Radiation sensors)
+PRO2CP  Vantage Pro2 Plus (non-wireless/cabled with UV and Solar sensors)
+VUE      Vantage Vue
+-------- ---------------------------------------------------------------------
+""")
+
+        station = get_code(
+            "Hardware type code",
+            ['PRO2', 'PRO2C', 'PRO2P', 'PRO2CP', 'VUE'],
+            defaults['davis_settings']['hardware_type'],
+            required)
+
+        is_wireless = True
+        has_solar_and_uv = False
+
+        if station in ['PRO2C', 'PRO2CP']:
+            is_wireless = False
+        if station in ['PRO2P', 'PRO2CP']:
+            has_solar_and_uv = True
+
+        station_id = None
+
+        if is_wireless:
+            station_id = get_number("Which ID is the station broadcasting on?",
+                                    defaults['davis_settings']['broadcast_id'])
+
+        davis_settings = {
+            "hardware_type": station,
+            "is_wireless": is_wireless,
+            "has_solar_and_uv": has_solar_and_uv,
+            "broadcast_id": station_id
+        }
+
     return {
         "code": station_code,
         "name": station_name,
         "description": station_description,
         "type": hardware_code,
         "interval": sample_interval,
-        "live": live_data
+        "live": live_data,
+        "sort_order": sort_order,
+        "davis_settings": davis_settings
     }
 
 
@@ -198,7 +252,12 @@ review your responses and either edit them, create the station or cancel.""")
         "description": "",
         "type": None,
         "interval": 300,
-        "live": True
+        "live": True,
+        "sort_order": 0,
+        "davis_settings": {
+            'hardware_type': 'VPRO2',
+            'broadcast_id': 1
+        }
     }
 
     while True:
@@ -210,8 +269,17 @@ Code: {code}
 Name: {name}
 Sample interval: {interval}
 Live data available: {live}
+Sort order: {sort_order}
 Hardware type: {type}
-Description:
+""".format(**station_info))
+
+        if station_info['type'] == "DAVIS":
+            davis_info = station_info['davis_settings']
+            print("""Weather station model: {hardware_type}
+Station ID: {broadcast_id}
+""".format(**davis_info))
+
+        print("""Description:
 {description}
 ----------------------------------
 """.format(**station_info))
@@ -227,14 +295,21 @@ Description:
                         "where code = %s", (station_info["type"],))
             type_id = cur.fetchone()[0]
 
+            station_config = None
+
+            if station_info['type'] == "DAVIS":
+                station_config = json.dumps(station_info['davis_settings'])
+
             cur.execute("""
 insert into station(code, title, description, station_type_id,
-                    sample_interval, live_data_available)
-values(%s,%s,%s,%s,%s,%s)
+                    sample_interval, live_data_available, sort_order,
+                    station_config)
+values(%s,%s,%s,%s,%s,%s,%s,%s)
 returning station_id""", (
                 station_info["code"], station_info["name"],
                 station_info["description"], type_id, station_info["interval"],
-                station_info["live"]))
+                station_info["live"], station_info["sort_order"],
+                station_config))
             result = cur.fetchone()
             station_id = result[0]
 
@@ -273,6 +348,52 @@ def get_updated_station_info(defaults):
                             defaults["live"])
     sort_order = get_number("List order", defaults["sort_order"])
 
+    davis_settings = defaults["davis_settings"]
+    if defaults['hw_type'] == "DAVIS":
+        # Prompt for extra configuration data used by davis weather stations
+
+        print("""
+    Choose which Davis weather station you are using form the list below. If you
+    are using a wireless Vantage Pro2 or Vantage Pro2 Plus ISS with a Vantage Vue
+    console then choose Vantage Pro2 or Vantage Pro2 Plus.
+
+    Code     Title
+    -------- ---------------------------------------------------------------------
+    PRO2     Vantage Pro2
+    PRO2C    Vantage Pro2 (non-wireless/cabled version)
+    PRO2P    Vantage Pro2 Plus (includes UV and Solar Radiation sensors)
+    PRO2CP   Vantage Pro2 Plus (non-wireless/cabled with UV and Solar sensors)
+    VUE      Vantage Vue
+    -------- ---------------------------------------------------------------------
+    """)
+
+        station = get_code(
+            "Hardware type code",
+            ['PRO2', 'PRO2C', 'PRO2P', 'PRO2CP', 'VUE'],
+            defaults['davis_settings']['hardware_type'],
+            False)
+
+        is_wireless = True
+        has_solar_and_uv = False
+
+        if station in ['PRO2C', 'PRO2CP']:
+            is_wireless = False
+        if station in ['PRO2P', 'PRO2CP']:
+            has_solar_and_uv = True
+
+        station_id = None
+
+        if is_wireless:
+            station_id = get_number("Which ID is the station broadcasting on?",
+                                    defaults['davis_settings']['broadcast_id'])
+
+        davis_settings = {
+            "hardware_type": station,
+            "is_wireless": is_wireless,
+            "has_solar_and_uv": has_solar_and_uv,
+            "broadcast_id": station_id
+        }
+
     return {
         "id": defaults["id"],
         "code": defaults["code"],
@@ -280,7 +401,9 @@ def get_updated_station_info(defaults):
         "description": station_description,
         "interval": sample_interval,
         "live": live_data,
-        "sort_order": sort_order
+        "sort_order": sort_order,
+        "hw_type": defaults["hw_type"],
+        "davis_settings": davis_settings
     }
 
 
@@ -297,8 +420,17 @@ def edit_station(con):
     selected_station_code = get_code("Station to edit", codes, required=True)
 
     cur.execute("""
-select station_id, title, description, sample_interval, live_data_available,
-coalesce(sort_order,0) from station where code = %s
+select stn.station_id,
+       stn.title,
+       stn.description,
+       stn.sample_interval,
+       stn.live_data_available,
+       coalesce(stn.sort_order,0),
+       ht.code as hardware_type,
+       station_config
+from station stn
+inner join station_type ht on ht.station_type_id = stn.station_type_id
+where stn.code = %s
     """, (selected_station_code,))
     result = cur.fetchone()
 
@@ -309,8 +441,23 @@ coalesce(sort_order,0) from station where code = %s
         "description": result[2],
         "interval": result[3],
         "live": result[4],
-        "sort_order": result[5]
+        "sort_order": result[5],
+        "hw_type": result[6],
+        "davis_settings": None
     }
+
+    hw_config = result[7]
+    if station_info["hw_type"] == "DAVIS":
+        if hw_config is None:
+            davis_settings = {
+                "hardware_type": "PRO2",
+                "broadcast_id": 1
+            }
+        else:
+            davis_settings = json.loads(hw_config)
+
+        station_info["davis_settings"] = davis_settings
+
     while True:
         station_info = get_updated_station_info(station_info)
         print("""
@@ -319,7 +466,16 @@ You entered the following details:
 Name: {name}
 Sample interval: {interval}
 Live data available: {live}
-List order: {sort_order}
+List order: {sort_order}""".format(**station_info))
+
+        if station_info['hw_type'] == "DAVIS":
+            davis_info = station_info['davis_settings']
+            print("""Weather station model: {hardware_type}
+Station ID: {broadcast_id}
+""".format(**davis_info))
+
+
+        print("""
 Description:
 {description}
 ----------------------------------
@@ -329,14 +485,19 @@ Description:
                        required=True):
             print("Updating station...")
 
+            station_config = None
+            if station_info["hw_type"] == "DAVIS":
+                station_config = json.dumps(station_info["davis_settings"])
+
             cur.execute("""
         update station set title=%s, description=%s, sample_interval=%s,
-                           live_data_available=%s, sort_order=%s
+                           live_data_available=%s, sort_order=%s,
+                           station_config = %s
         where station_id = %s""", (
                 station_info["name"],
                 station_info["description"], station_info["interval"],
                 station_info["live"], station_info["sort_order"],
-                station_info["id"]))
+                station_config, station_info["id"]))
             con.commit()
             cur.close()
             print("Station updated.")

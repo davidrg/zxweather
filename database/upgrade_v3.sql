@@ -68,6 +68,9 @@ comment on column station.message is 'A message which should be displayed where 
 alter table station add column message_timestamp timestamptz;
 comment on column station.message_timestamp is 'When the station message was last updated';
 
+alter table station add column station_config character varying;
+comment on column station.station_config is 'JSON document containing extra configuration data for the station. The structure of this document depends on the station type.';
+
 -- Adjust comment for wind direction.
 COMMENT ON COLUMN sample.wind_direction IS 'Prevailing wind direction in degrees.';
 
