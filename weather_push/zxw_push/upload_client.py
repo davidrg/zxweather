@@ -2,6 +2,7 @@
 """
 A client for uploading weather data to a remote server.
 """
+from collections import deque
 import json
 from twisted.internet import reactor
 from twisted.python import log
@@ -30,6 +31,7 @@ MODE_FINISHED = 5
 
 # Done
 MODE_DONE = 6
+
 
 class UploadClient(object):
     """
@@ -83,6 +85,8 @@ class UploadClient(object):
         self._client_version = client_version
         self._finished_callback = finished_callback
         self._client_ready = ready_callback
+
+        self._sent_data = deque([], maxlen=50)
 
     def makeConnection(self, channel):
         self._channel = channel
@@ -207,6 +211,20 @@ class UploadClient(object):
         # is always updated from the timestamp of the most recent record
         # (meaning gaps will never be filled in)
 
+        log.msg("--------------------------------------------------------")
+        log.msg("Upload error encountered.")
+        log.msg("Dumping last {0} samples sent".format(self._sent_data.maxlen))
+
+        i = 0
+        for value in self._sent_data:
+            log.msg("{0}: {1}".format(i, value))
+            i += 1
+
+        i = 0
+        log.msg("Contents of output buffer:")
+        for value in self._sample_buffer:
+            log.msg("{0}: {1}".format(i, value))
+            i += 1
 
         log.msg('Upload error: ' + error[2:])
         log.msg('Upload canceled to prevent remote database corruption. '
@@ -231,8 +249,16 @@ class UploadClient(object):
             # Convert the result from a list to a dict so we can look stuff
             # up by station code.
             self.latestSampleInfo = {}
+
+            log.msg("---- Station info ----")
             for station_info in result:
                 self.latestSampleInfo[station_info['station']] = station_info
+                log.msg("Station: " + station_info['station'])
+                log.msg(" - Timestamp: " + station_info['timestamp'])
+
+                if 'wh1080_record_number' in station_info:
+                    log.msg(" - WH1080 Record: " + str(station_info['wh1080_record_number']))
+
 
     def quit(self):
         """
@@ -252,7 +278,9 @@ class UploadClient(object):
             return
 
         while len(self._sample_buffer) > 0:
-            self._writeLine(self._sample_buffer.pop(0))
+            value = self._sample_buffer.pop(0)
+            self._sent_data.append(value)
+            self._writeLine(value)
 
     def sendLive(self, live_data, hardware_type):
         """
