@@ -277,10 +277,18 @@ class UploadClient(object):
         if self._mode != MODE_UPLOAD:
             return
 
+        sample_count = len(self._sample_buffer)
+
+        if sample_count > 50:
+            log.msg("Transmitting {0} samples...".format(sample_count))
+
         while len(self._sample_buffer) > 0:
             value = self._sample_buffer.pop(0)
             self._sent_data.append(value)
             self._writeLine(value)
+
+        if sample_count > 50:
+            log.msg("Transmission complete.")
 
     def sendLive(self, live_data, hardware_type):
         """
