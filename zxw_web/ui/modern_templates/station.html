@@ -107,7 +107,9 @@
         {% if wss_uri -%}wss_uri = '{{ wss_uri }}'; {% endif %}
         var is_day_page = false;
         {%- if hw_type == 'DAVIS' %}
-        var forecast_rules_uri = '../../data/davis_forecast_rules.json';{% endif %}
+        var forecast_rules_uri = '../../data/davis_forecast_rules.json';
+        var solar_and_uv_available = {% if solar_uv_available %}true{% else %}false{% endif %};
+        {% endif %}
     </script>
 
     <script type="text/javascript" src="../../js/day_live.js"></script>

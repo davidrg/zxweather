@@ -132,7 +132,9 @@
         var wss_uri = null;
         {% if ws_uri -%}ws_uri = '{{ ws_uri }}'; {% endif %}
         {% if wss_uri -%}wss_uri = '{{ wss_uri }}'; {% endif %}
-        {% if hw_type == 'DAVIS' %}var forecast_rules_uri = '../../../../../data/davis_forecast_rules.json';{% endif %}
+        {% if hw_type == 'DAVIS' %}
+        var forecast_rules_uri = '../../../../../data/davis_forecast_rules.json';{% endif %}
+        var solar_and_uv_available = {% if solar_uv_available %}true{% else %}false{% endif %};
         {%- else -%}
         live_auto_refresh = false;
         {%- endif %}

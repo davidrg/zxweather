@@ -248,7 +248,9 @@ def live_data(station_id):
                 'tx_batt': data.transmitter_battery,
                 'console_batt': data.console_battery_voltage,
                 'forecast_icon': data.forecast_icon,
-                'forecast_rule': data.forecast_rule_id
+                'forecast_rule': data.forecast_rule_id,
+                'uv_index': data.uv_index,
+                'solar_radiation': data.solar_radiation
             }
     else:
         result = {'s': 'bad'}
