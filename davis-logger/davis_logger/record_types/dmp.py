@@ -267,7 +267,9 @@ def deserialise_dmp(dmp_string, rainCollectorSize=0.2):
     if averageUVIndex == 255:
         averageUVIndex = None
     else:
-        averageUVIndex *= 10
+        averageUVIndex /= 10.0
+
+    highUVIndex /= 10.0
 
     ET = inch_to_mm(ET * 1000)
 

@@ -186,6 +186,10 @@ def deserialise_loop(loop_string, rainCollectorSize=0.2):
     if solar_radiation == 32767:
         solar_radiation = None
 
+    decoded_uv = undash_8bit(uv)
+    if decoded_uv is not None:
+        decoded_uv /= 10.0
+
     # Now pack all those variables into something a little more workable.
     # We'll to unit conversions, etc, at the same time.
     loop = Loop(
@@ -226,7 +230,7 @@ def deserialise_loop(loop_string, rainCollectorSize=0.2):
             undash_8bit(ext_humid_6),
             undash_8bit(ext_humid_7)],
         rainRate=rain_rate * rainCollectorSize,
-        UV=undash_8bit(uv),
+        UV=decoded_uv,
         solarRadiation=solar_radiation,
         stormRain=inch_to_mm(storm_rain / 100.0),
         startDateOfCurrentStorm=decode_current_storm_date(

@@ -73,7 +73,7 @@ function live_data_arrived(data) {
             'console_batt': parseFloat(parts[16]),
             'forecast_icon': parseInt(parts[17]),
             'forecast_rule': parseInt(parts[18]),
-            'uv_index': parseInt(parts[19]),
+            'uv_index': parseFloat(parts[19]),
             'solar_radiation': parseInt(parts[20])
         };
 

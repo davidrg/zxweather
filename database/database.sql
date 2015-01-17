@@ -36,7 +36,7 @@ COMMENT ON COLUMN station_type.title IS 'A user-readable title for the station t
 -- Only one station type supported at the moment.
 INSERT INTO station_type(code, title) VALUES('FOWH1080', 'Fine Offset WH1080-compatible');
 INSERT INTO station_type(code, title) VALUES('GENERIC', 'Unknown/Generic weather station');
-INSERT INTO station_type(code, title) VALUES('DAVIS', 'Davis Vantage Vue compatible');
+INSERT INTO station_type(code, title) VALUES('DAVIS', 'Davis Vantage Pro2 or Vantage Vue');
 
 -- Information on stations in this database.
 CREATE TABLE station
@@ -51,6 +51,7 @@ CREATE TABLE station
   sort_order integer,
   message character varying,
   message_timestamp timestamptz,
+  station_config character varying,
   CONSTRAINT pk_station PRIMARY KEY (station_id)
 );
 
@@ -64,6 +65,7 @@ COMMENT ON COLUMN station.live_data_available is 'If live data is available from
 comment on column station.sort_order is 'The order in which stations should be presented to the user';
 comment on column station.message is 'A message which should be displayed where ever data for the station appears.';
 comment on column station.message_timestamp is 'When the station message was last updated';
+comment on column station.station_config is 'JSON document containing extra configuration data for the station. The structure of this document depends on the station type.';
 
 -- Generic sample data. Anything that is specific to a particular station type
 -- is in that station-specific table.
@@ -153,10 +155,10 @@ create table davis_sample (
   solar_radiation float,
   wind_sample_count int,
   gust_wind_direction float,
-  average_uv_index int,
+  average_uv_index numeric(2,1),
   evapotranspiration float,
   high_solar_radiation float,
-  high_uv_index int,
+  high_uv_index numeric(2,1),
   forecast_rule_id int
 
   -- These columns are not currently stored as I've no way of testing them with
@@ -448,7 +450,9 @@ create table davis_live_data (
   transmitter_battery int,
   console_battery_voltage float,
   forecast_icon int,
-  forecast_rule_id int
+  forecast_rule_id int,
+  uv_index numeric(2,1),
+  solar_radiation int
 );
 comment on table davis_live_data is 'Additional live data available from Davis-compatible hardware';
 comment on column davis_live_data.bar_trend is 'Barometer trend. -60 is falling rapidly, -20 is falling slowly, 0 is steady, 20 is rising slowly, 60 is rising rapidly.';
@@ -459,7 +463,8 @@ comment on column davis_live_data.transmitter_battery is 'Transmitter battery st
 comment on column davis_live_data.console_battery_voltage is 'Console battery voltage';
 comment on column davis_live_data.forecast_icon is 'Forecast icon';
 comment on column davis_live_data.forecast_rule_id is 'Current forecast rule. See davis_forecast_rule table for values';
-
+comment on column davis_live_data.uv_index is 'Latest UV index reading';
+comment on column davis_live_data.solar_radiation is 'Latest solar radiation reading in watt/meter squared';
 
 -- A table to store some basic information about the database (such as schema
 -- version).
