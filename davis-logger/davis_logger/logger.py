@@ -306,7 +306,9 @@ by a change in time zone due to daylight savings.""".format(e.pgerror))
                     transmitter_battery = %s,
                     console_battery_voltage = %s,
                     forecast_icon = %s,
-                    forecast_rule_id = %s
+                    forecast_rule_id = %s,
+                    uv_index = %s,
+                    solar_radiation = %s
                 where station_id = %s
                 """
 
@@ -321,6 +323,8 @@ by a change in time zone due to daylight savings.""".format(e.pgerror))
                 loop.consoleBatteryVoltage,
                 loop.forecastIcons,
                 loop.forecastRuleNumber,
+                loop.UV,
+                loop.solarRadiation,
                 self._station_id
             )
         )
