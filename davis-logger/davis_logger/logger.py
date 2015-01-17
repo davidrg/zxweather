@@ -94,9 +94,6 @@ class DavisLoggerProtocol(Protocol):
 
         log.msg('Station Type: {0} - {1}'.format(stationType, hardwareType))
 
-        if stationType != 17:
-            log.msg('WARNING: Unsupported station: {0}'.format(hardwareType))
-
         log.msg('Firmware Version: {0} ({1})'.format(versionDate, version))
         log.msg('Station Time: {0}'.format(stationTime))
         log.msg('Rain Collector Size: {0}'.format(rainCollectorSizeName))

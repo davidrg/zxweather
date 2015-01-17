@@ -16,7 +16,7 @@
 ----------------------------------------------------------------------
 
 -- Add new Davis station type
-INSERT INTO station_type(code, title) VALUES('DAVIS', 'Davis Vantage Vue compatible');
+INSERT INTO station_type(code, title) VALUES('DAVIS', 'Davis Vantage Pro2 or Vantage Vue');
 
 -- Bump database revision
 update db_info set v = '3' where k = 'DB_VERSION';
