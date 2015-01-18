@@ -155,10 +155,10 @@ create table davis_sample (
   solar_radiation float,
   wind_sample_count int,
   gust_wind_direction float,
-  average_uv_index numeric(2,1),
+  average_uv_index numeric(3,1),
   evapotranspiration float,
   high_solar_radiation float,
-  high_uv_index numeric(2,1),
+  high_uv_index numeric(3,1),
   forecast_rule_id int
 
   -- These columns are not currently stored as I've no way of testing them with
@@ -451,7 +451,7 @@ create table davis_live_data (
   console_battery_voltage float,
   forecast_icon int,
   forecast_rule_id int,
-  uv_index numeric(2,1),
+  uv_index numeric(3,1),
   solar_radiation int
 );
 comment on table davis_live_data is 'Additional live data available from Davis-compatible hardware';
