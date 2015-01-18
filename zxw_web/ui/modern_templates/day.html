@@ -121,20 +121,21 @@
         var records_url = '{{ data_urls['records'] }}';
         var rainfall_totals_url = '{{ data_urls['rainfall_totals'] }}';
         var live_auto_refresh;
+        var hw_type = '{{ hw_type }}';
+        var solar_and_uv_available = {% if solar_uv_available %}true{% else %}false{% endif %};
         {% if data.current_data -%}
 
         $('#live_status_cont').tooltip();
 
         live_auto_refresh = true;
         var station_code = '{{ station }}';
-        var hw_type = '{{ hw_type }}';
+
         var ws_uri = null;
         var wss_uri = null;
         {% if ws_uri -%}ws_uri = '{{ ws_uri }}'; {% endif %}
         {% if wss_uri -%}wss_uri = '{{ wss_uri }}'; {% endif %}
         {% if hw_type == 'DAVIS' %}
         var forecast_rules_uri = '../../../../../data/davis_forecast_rules.json';{% endif %}
-        var solar_and_uv_available = {% if solar_uv_available %}true{% else %}false{% endif %};
         {%- else -%}
         live_auto_refresh = false;
         {%- endif %}

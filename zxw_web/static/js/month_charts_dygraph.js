@@ -22,7 +22,11 @@ function drawCharts() {
             document.getElementById('chart_pressure_div'),
             document.getElementById('chart_pressure_key'),
             document.getElementById('chart_wind_speed_div'),
-            document.getElementById('chart_wind_speed_key')
+            document.getElementById('chart_wind_speed_key'),
+            document.getElementById('chart_solar_radiation_div'),
+            document.getElementById('chart_solar_radiation_key'),
+            document.getElementById('chart_uv_index_div'),
+            document.getElementById('chart_uv_index_key')
         );
     }).error(function() {
             $("#month_charts").hide();

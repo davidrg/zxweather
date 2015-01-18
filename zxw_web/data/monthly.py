@@ -278,7 +278,9 @@ def get_30m_avg_month_samples_data(year,month, station_id):
        min(prev_sample_time) as prev_sample_time,
        bool_or(gap) as gap,
        avg(iq.average_wind_speed) as average_wind_speed,
-       max(iq.gust_wind_speed) as gust_wind_speed
+       max(iq.gust_wind_speed) as gust_wind_speed,
+       avg(iq.uv_index) as uv_index,
+       avg(iq.solar_radiation) as solar_radiation
 from (
         select cur.time_stamp,
                (extract(epoch from cur.time_stamp) / 1800)::integer AS quadrant,
@@ -295,13 +297,15 @@ from (
                   false
                end as gap,
                cur.average_wind_speed,
-               cur.gust_wind_speed
-        from sample cur, sample prev
+               cur.gust_wind_speed,
+               ds.average_uv_index as uv_index,
+               ds.solar_radiation
+        from sample cur
+        inner join sample prev on prev.station_id = cur.station_id and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < cur.time_stamp and station_id = $station)
         inner join station st on st.station_id = prev.station_id
+        left outer join davis_sample ds on ds.sample_id = cur.sample_id
         where date(date_trunc('month',cur.time_stamp)) = date(date_trunc('month',$date))
-          and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < cur.time_stamp and station_id = $station)
           and cur.station_id = $station
-          and prev.station_id = $station
         order by cur.time_stamp asc) as iq
 where date_trunc('month',iq.time_stamp) = date_trunc('month', $date)
 group by iq.quadrant

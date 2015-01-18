@@ -9,7 +9,8 @@ from config import db
 import config
 from months import month_name, month_number
 from cache import month_cache_control
-from database import month_exists, get_station_id, in_archive_mode, get_station_name, get_stations, get_station_message
+from database import month_exists, get_station_id, in_archive_mode, get_station_name, get_stations, get_station_message, \
+    get_station_type_code, get_station_config
 from ui import get_nav_urls, make_station_switch_urls, build_alternate_ui_urls
 import os
 from ui import validate_request, html_file
@@ -269,6 +270,13 @@ def get_month(ui, station, year, month):
 
         msg = get_station_message(station_id)
 
+        hw_type = get_station_type_code(station_id)
+
+        uv_and_solar_available = False
+        if hw_type == 'DAVIS':
+            hw_config = get_station_config(station_id)
+            uv_and_solar_available = hw_config['has_solar_and_uv']
+
         return modern_templates.month(nav=nav_urls, data=data,dataurls=urls,
                                       ui=ui, sitename=config.site_name,
                                       archive_mode=in_archive_mode(station_id),
@@ -277,7 +285,10 @@ def get_month(ui, station, year, month):
                                           current_location),
                                       station=station,
                                       station_message=msg[0],
-                                      station_message_ts=msg[1])
+                                      station_message_ts=msg[1],
+                                      hw_type=hw_type,
+                                      solar_uv_available=uv_and_solar_available,
+                                      )
     else:
         return basic_templates.month(data=data,
                                      switch_url=build_alternate_ui_urls(

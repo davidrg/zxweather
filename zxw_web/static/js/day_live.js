@@ -212,8 +212,6 @@ function attempt_wss_connect() {
 }
 
 function connect_live() {
-    poll_live_data();
-
     if (window.MozWebSocket) {
         window.WebSocket = window.MozWebSocket;
     }
@@ -411,7 +409,7 @@ function refresh_live_data(data) {
 
             if (solar_and_uv_available) {
                 $("#uv_index").html(uv_index);
-                $("#solar_radiation").html(solar_radiation + " w/m&sup2;");
+                $("#solar_radiation").html(solar_radiation + " W/m&sup2;");
             }
         }
 

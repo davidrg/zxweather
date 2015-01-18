@@ -128,6 +128,24 @@
                         <div id="chart_pressure_key" class="chart_key"></div>
                     </div>
                 </div>
+                {%- if solar_uv_available %}
+                <div class="row">
+                    <div class="span12">
+                        <div id="chart_solar_radiation_div" class="chart">
+                            <div class="bg_loading"></div>
+                        </div>
+                        <div id="chart_solar_radiation_key" class="chart_key"></div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="span12">
+                        <div id="chart_uv_index_div" class="chart">
+                            <div class="bg_loading"></div>
+                        </div>
+                        <div id="chart_uv_index_key" class="chart_key"></div>
+                    </div>
+                </div>
+                {%- endif %}
                 <div class="row">
                     <div class="span12">
                         <div id="chart_wind_speed_div" class="chart">
@@ -209,6 +227,10 @@
     // URLs required by month_charts.js
     var samples_url = '{{ dataurls.samples_30m_avg }}';
     var daily_records_url = '{{ dataurls.daily_records }}';
+    var hw_type = '{{ hw_type }}';
+    {%- if hw_type == 'DAVIS' %}
+    var solar_and_uv_available = {% if solar_uv_available %}true{% else %}false{% endif %};
+    {% endif %}
     </script>
     {% if ui and ui in ('s', 'm') -%}
     <script type="text/javascript" src="../../../../js/dygraph-combined.js"></script>

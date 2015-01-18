@@ -32,6 +32,22 @@
                     <div id="chart_pressure_key" class="chart_key"></div>
                 </div>
             </div>
+            {%- if solar_uv_available %}
+            <div class="row">
+                <div class="span6">
+                    <div id="chart_solar_radiation_div" class="chart">
+                        <div class="bg_loading"></div>
+                    </div>
+                    <div id="chart_solar_radiation_key" class="chart_key"></div>
+                </div>
+                <div class="span6">
+                    <div id="chart_uv_index_div" class="chart">
+                        <div class="bg_loading"></div>
+                    </div>
+                    <div id="chart_uv_index_key" class="chart_key"></div>
+                </div>
+            </div>
+            {%- endif %}
             <div class="row">
                 <div class="span6">
                     <div id="chart_wind_speed_div" class="chart">
