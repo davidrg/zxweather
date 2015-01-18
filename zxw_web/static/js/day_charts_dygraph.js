@@ -90,7 +90,6 @@ function load_day_charts() {
      */
     $.getJSON(samples_url, function(data) {
 
-
         drawSampleLineCharts(data,
             document.getElementById('chart_temperature_tdp_div'),
             document.getElementById('chart_temperature_tdp_key'),
@@ -101,7 +100,11 @@ function load_day_charts() {
             document.getElementById('chart_pressure_div'),
             document.getElementById('chart_pressure_key'),
             document.getElementById('chart_wind_speed_div'),
-            document.getElementById('chart_wind_speed_key')
+            document.getElementById('chart_wind_speed_key'),
+            document.getElementById('chart_solar_radiation_div'),
+            document.getElementById('chart_solar_radiation_key'),
+            document.getElementById('chart_uv_index_div'),
+            document.getElementById('chart_uv_index_key')
         );
 
         samples_loading = false;
@@ -160,7 +163,11 @@ function load_7day_charts() {
             document.getElementById('chart_7_pressure_div'),
             document.getElementById('chart_7_pressure_key'),
             document.getElementById('chart_7_wind_speed_div'),
-            document.getElementById('chart_7_wind_speed_key')
+            document.getElementById('chart_7_wind_speed_key'),
+            document.getElementById('chart_7_solar_radiation_div'),
+            document.getElementById('chart_7_solar_radiation_key'),
+            document.getElementById('chart_7_uv_index_div'),
+            document.getElementById('chart_7_uv_index_key')
         );
 
         samples_7_loading = false;

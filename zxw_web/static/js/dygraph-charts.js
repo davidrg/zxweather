@@ -57,6 +57,9 @@ var rainfallFormatter = function(y) {
 var dateFormatter = function(y) {
     return new Date(y).strftime('%Y/%m/%d');
 };
+var solarRadiationFormatter = function(y) {
+    return y.toFixed(1) + '  W/m&sup2;';
+};
 
 /** Draws all sample line charts on the day and month-level pages including
  * the station overview page.
@@ -72,6 +75,10 @@ var dateFormatter = function(y) {
  * @param pressure_key The element to render the key/labels in
  * @param wind_speed_element Wind Speed element.
  * @param wind_speed_key The element to render the key/labels in
+ * @param solar_radiation_element Solar Radiation chart element
+ * @param solar_radiation_key The element to render the key/labels in
+ * @param uv_index_element UV Index chart element
+ * @param uv_index_key The element to render the key/labels in
  */
 function drawSampleLineCharts(jsondata,
                               tdp_element,
@@ -83,7 +90,11 @@ function drawSampleLineCharts(jsondata,
                               pressure_element,
                               pressure_key,
                               wind_speed_element,
-                              wind_speed_key) {
+                              wind_speed_key,
+                              solar_radiation_element,
+                              solar_radiation_key,
+                              uv_index_element,
+                              uv_index_key) {
 
 
     var labels = jsondata['labels'];
@@ -108,6 +119,13 @@ function drawSampleLineCharts(jsondata,
     var humidity_data = selectColumns(data, [0,5]);
     var pressure_data = selectColumns(data, [0,6]);
     var wind_speed_data = selectColumns(data, [0,7,8]);
+    var uv_index_data = null;
+    var solar_radiation_data = null;
+
+    if (hw_type == "DAVIS" && solar_and_uv_available) {
+        uv_index_data = selectColumns(data, [0, 9]);
+        solar_radiation_data = selectColumns(data, [0, 10]);
+    }
 
     /* And the labels */
     var tdp_labels = [labels[0],labels[1],labels[2]];
@@ -115,6 +133,8 @@ function drawSampleLineCharts(jsondata,
     var humidity_labels = [labels[0],labels[5]];
     var pressure_labels = [labels[0],labels[6]];
     var wind_speed_labels = [labels[0],labels[7],labels[8]];
+    var uv_index_labels = [labels[0], labels[9]];
+    var solar_radiation_labels = [labels[0], labels[10]];
 
     /* Now chart it all */
     var tdp_chart = new Dygraph(
@@ -181,6 +201,42 @@ function drawSampleLineCharts(jsondata,
             },
             legend: 'always'
         });
+
+    if (uv_index_data != null) {
+        var uv_index_chart = new Dygraph(
+            uv_index_element,
+            uv_index_data,
+            {
+                labels: uv_index_labels,
+                labelsDiv: uv_index_key,
+                animatedZooms: enable_animated_zooms,
+                strokeWidth: strokeWidth,
+                title: 'UV Index',
+                legend: 'always'
+            }
+        )
+    }
+
+    if (solar_radiation_data != null) {
+        var solar_radiation_chart = new Dygraph(
+            solar_radiation_element,
+            solar_radiation_data,
+            {
+                labels: solar_radiation_labels,
+                labelsDiv: solar_radiation_key,
+                animatedZooms: enable_animated_zooms,
+                strokeWidth: strokeWidth,
+                title: 'Solar Radiation',
+                axes: {
+                    y: {
+                       valueFormatter: solarRadiationFormatter
+                    }
+                },
+                legend: 'always'
+            }
+        )
+    }
+
     var wind_speed_chart = new Dygraph(
         wind_speed_element,
         wind_speed_data,

@@ -240,6 +240,11 @@ def live_data(station_id):
                   }
 
         if hw_type == 'DAVIS':
+
+            uv = None
+            if data.uv_index is not None:
+                uv = float(data.uv_index)
+
             result['davis'] = {
                 'bar_trend': data.bar_trend,
                 'rain_rate': data.rain_rate,
@@ -249,7 +254,7 @@ def live_data(station_id):
                 'console_batt': data.console_battery_voltage,
                 'forecast_icon': data.forecast_icon,
                 'forecast_rule': data.forecast_rule_id,
-                'uv_index': data.uv_index,
+                'uv_index': uv,
                 'solar_radiation': data.solar_radiation
             }
     else:

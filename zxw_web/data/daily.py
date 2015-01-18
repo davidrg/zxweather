@@ -152,13 +152,16 @@ def get_day_samples_data(day, station_id):
                   false
                end as gap,
                s.average_wind_speed,
-               s.gust_wind_speed
-    from sample s, sample prev
+               s.gust_wind_speed,
+               ds.average_uv_index as uv_index,
+               ds.solar_radiation
+    from sample s
+    inner join sample prev on prev.station_id = s.station_id
+                          and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp and station_id = $station)
     inner join station st on st.station_id = prev.station_id
+    left outer join davis_sample ds on ds.sample_id = s.sample_id
     where date(s.time_stamp) = $date
-      and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp and station_id = $station)
       and s.station_id = $station
-      and prev.station_id = $station
     order by s.time_stamp asc"""
                              , params)
 
@@ -191,13 +194,16 @@ def get_24hr_samples_data(time, station_id):
                   false
                end as gap,
                s.average_wind_speed,
-               s.gust_wind_speed
-    from sample s, sample prev
+               s.gust_wind_speed,
+               ds.average_uv_index as uv_index,
+               ds.solar_radiation
+    from sample s
+    inner join sample prev on prev.station_id = s.station_id
+                          and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp and station_id = $station)
     inner join station st on st.station_id = prev.station_id
+    left outer join davis_sample ds on ds.sample_id = s.sample_id
     where (s.time_stamp < $time and s.time_stamp > $time - '1 hour'::interval * 24)
-      and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp and station_id = $station)
       and s.station_id = $station
-      and prev.station_id = $station
     order by s.time_stamp asc"""
         , params)
     return result
@@ -225,15 +231,16 @@ def get_7day_samples_data(day, station_id):
               false
            end as gap,
            s.average_wind_speed,
-           s.gust_wind_speed
-    from sample s, sample prev, station st,
-         (select max(time_stamp) as ts from sample where date(time_stamp) = $date and station_id = $station) as max_ts
-    where s.time_stamp <= max_ts.ts     -- 604800 seconds in a week.
+           s.gust_wind_speed,
+           ds.average_uv_index as uv_index,
+           ds.solar_radiation
+    from (select max(time_stamp) as ts from sample where date(time_stamp) = $date and station_id = $station) as max_ts
+    inner join sample s on s.time_stamp <= max_ts.ts  -- 604800 seconds in a week.
       and s.time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
-      and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp and station_id = $station)
-      and s.station_id = $station
-      and prev.station_id = $station
-      and st.station_id = prev.station_id
+    inner join sample prev on prev.station_id = s.station_id and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < s.time_stamp and station_id = $station)
+    inner join station st on st.station_id = s.station_id
+    left outer join davis_sample ds on ds.sample_id = s.sample_id
+    where s.station_id = $station
     order by s.time_stamp asc
     """, params)
     return result
@@ -258,7 +265,9 @@ def get_7day_30mavg_samples_data(day, station_id):
        min(prev_sample_time) as prev_sample_time,
        bool_or(gap) as gap,
        avg(iq.average_wind_speed) as average_wind_speed,
-       max(iq.gust_wind_speed) as gust_wind_speed
+       max(iq.gust_wind_speed) as gust_wind_speed,
+       avg(iq.uv_index) as uv_index,
+       avg(iq.solar_radiation) as solar_radiation
 from (
         select cur.time_stamp,
                (extract(epoch from cur.time_stamp) / 1800)::integer AS quadrant,
@@ -275,15 +284,16 @@ from (
                   false
                end as gap,
                cur.average_wind_speed,
-               cur.gust_wind_speed
-        from sample cur, sample prev, station st,
-             (select max(time_stamp) as ts from sample where date(time_stamp) = $date and station_id = $station) as max_ts
-        where cur.time_stamp <= max_ts.ts     -- 604800 seconds in a week.
-          and cur.time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
-          and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < cur.time_stamp and station_id = $station)
-          and cur.station_id = $station
-          and prev.station_id = $station
-          and st.station_id = cur.station_id
+               cur.gust_wind_speed,
+               ds.average_uv_index as uv_index,
+               ds.solar_radiation
+        from (select max(time_stamp) as ts from sample where date(time_stamp) = $date and station_id = $station) as max_ts
+        inner join sample cur on cur.time_stamp <= max_ts.ts  -- 604800 seconds in a week.
+			     and cur.time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
+        inner join station st on st.station_id = cur.station_id
+        inner join sample prev on prev.station_id = cur.station_id and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < cur.time_stamp and station_id = $station)
+        left outer join davis_sample ds on ds.sample_id = cur.sample_id
+        where cur.station_id = $station
         order by cur.time_stamp asc) as iq
 group by iq.quadrant
 order by iq.quadrant asc""", params)
@@ -311,7 +321,9 @@ def get_168hr_30mavg_samples_data(day, station_id):
        min(prev_sample_time) as prev_sample_time,
        bool_or(gap) as gap,
        avg(iq.average_wind_speed) as average_wind_speed,
-       max(iq.gust_wind_speed) as gust_wind_speed
+       max(iq.gust_wind_speed) as gust_wind_speed,
+       avg(iq.uv_index) as uv_index,
+       avg(iq.solar_radiation) as solar_radiation
 from (
         select cur.time_stamp,
                (extract(epoch from cur.time_stamp) / 1800)::integer AS quadrant,
@@ -328,14 +340,17 @@ from (
                   false
                end as gap,
                cur.average_wind_speed,
-               cur.gust_wind_speed
-        from sample cur, sample prev, station st
+               cur.gust_wind_speed,
+               ds.average_uv_index as uv_index,
+               ds.solar_radiation
+        from sample cur
+        inner join station st on st.station_id = cur.station_id
+        inner join sample prev on prev.station_id = cur.station_id
+                              and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < cur.time_stamp and station_id = $station)
+        left outer join davis_sample ds on ds.sample_id = cur.sample_id
         where cur.time_stamp <= $time  -- 604800 seconds in a week.
           and cur.time_stamp >= ($time - (604800 * '1 second'::interval))
-          and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < cur.time_stamp and station_id = $station)
           and cur.station_id = $station
-          and prev.station_id = $station
-          and st.station_id = cur.station_id
         order by cur.time_stamp asc) as iq
 group by iq.quadrant
 order by iq.quadrant asc""", params)

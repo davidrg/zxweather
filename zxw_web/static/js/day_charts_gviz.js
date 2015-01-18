@@ -10,11 +10,13 @@ function drawAllLineCharts(data,
                            awc_element,
                            humidity_element,
                            pressure_element,
-                           wind_speed_element) {
+                           wind_speed_element,
+                           solar_radiation_element,
+                           uv_index_element) {
 
     // Temperature and Dewpoint only (columns 1 and 2)
     var temperature_tdp = new google.visualization.DataView(data);
-    temperature_tdp.hideColumns([3,4,5,6,7,8]);
+    temperature_tdp.hideColumns([3,4,5,6,7,8,9,10]);
 
     var temperature_tdp_options = {
         title: 'Temperature and Dew Point (°C)',
@@ -25,7 +27,7 @@ function drawAllLineCharts(data,
 
     // Apparent Temperature and Wind Chill only (columns 3 and 4)
     var temperature_awc = new google.visualization.DataView(data);
-    temperature_awc.hideColumns([1,2,5,6,7,8]);
+    temperature_awc.hideColumns([1,2,5,6,7,8,9,10]);
 
     var temperature_awc_options = {
         title: 'Apparent Temperature and Wind Chill (°C)',
@@ -36,7 +38,7 @@ function drawAllLineCharts(data,
 
     // Absolute Pressure only (column 6)
     var pressure = new google.visualization.DataView(data);
-    pressure.hideColumns([1,2,3,4,5,7,8]);
+    pressure.hideColumns([1,2,3,4,5,7,8,9,10]);
 
     var pressure_options = {
         title: 'Absolute Pressure (hPa)',
@@ -48,7 +50,7 @@ function drawAllLineCharts(data,
 
     // Humidity only (column 5)
     var humidity = new google.visualization.DataView(data);
-    humidity.hideColumns([1,2,3,4,6,7,8]);
+    humidity.hideColumns([1,2,3,4,6,7,8,9,10]);
 
     var humidity_options = {
         title: 'Humidity (%)',
@@ -57,9 +59,33 @@ function drawAllLineCharts(data,
     var humidity_chart = new google.visualization.LineChart(humidity_element);
     humidity_chart.draw(humidity, humidity_options);
 
+    if (hw_type == "DAVIS" && solar_and_uv_available) {
+        // Solar Radiation only (column 10)
+        var solar_radiation = new google.visualization.DataView(data);
+        solar_radiation.hideColumns([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+
+        var solar_radiation_options = {
+            title: 'Solar Radiation (W/m\u00B2)',
+            legend: {position: 'none'}
+        };
+        var solar_radiation_chart = new google.visualization.LineChart(solar_radiation_element);
+        solar_radiation_chart.draw(solar_radiation, solar_radiation_options);
+
+        // UV Index only (column 9)
+        var uv_index = new google.visualization.DataView(data);
+        uv_index.hideColumns([1, 2, 3, 4, 5, 6, 7, 8, 10]);
+
+        var uv_index_options = {
+            title: 'UV Index',
+            legend: {position: 'none'}
+        };
+        var uv_index_chart = new google.visualization.LineChart(uv_index_element);
+        uv_index_chart.draw(uv_index, uv_index_options);
+    }
+
     // Wind speed only (columns 7 and 8)
     var wind_speed = new google.visualization.DataView(data);
-    wind_speed.hideColumns([1,2,3,4,5,6]);
+    wind_speed.hideColumns([1,2,3,4,5,6,9,10]);
 
     var wind_speed_options = {
         title: 'Wind Speed (m/s)',
@@ -114,12 +140,18 @@ function load_day_charts() {
         windSpeedFormatter.format(sampledata,7);
         windSpeedFormatter.format(sampledata,8);
 
+        var solarRadiationFormatter = new google.visualization.NumberFormat(
+            { pattern: '#### W/m\u00B2'});
+        solarRadiationFormatter.format(sampledata,9);
+
         drawAllLineCharts(sampledata,
                           document.getElementById('chart_temperature_tdp_div'),
                           document.getElementById('chart_temperature_awc_div'),
                           document.getElementById('chart_humidity_div'),
                           document.getElementById('chart_pressure_div'),
-                          document.getElementById('chart_wind_speed_div')
+                          document.getElementById('chart_wind_speed_div'),
+                          document.getElementById('chart_solar_radiation_div'),
+                          document.getElementById('chart_uv_index_div')
         );
 
         samples_loading = false;
@@ -227,12 +259,18 @@ function load_7day_charts() {
         windSpeedFormatter.format(sampledata,7);
         windSpeedFormatter.format(sampledata,8);
 
+        var solarRadiationFormatter = new google.visualization.NumberFormat(
+            { pattern: '#### W/m\u00B2'});
+        solarRadiationFormatter.format(sampledata,9);
+
         drawAllLineCharts(sampledata,
                           document.getElementById('chart_7_temperature_tdp_div'),
                           document.getElementById('chart_7_temperature_awc_div'),
                           document.getElementById('chart_7_humidity_div'),
                           document.getElementById('chart_7_pressure_div'),
-                          document.getElementById('chart_7_wind_speed_div')
+                          document.getElementById('chart_7_wind_speed_div'),
+                          document.getElementById('chart_7_solar_radiation_div'),
+                          document.getElementById('chart_7_uv_index_div')
         );
 
         samples_7_loading = false;

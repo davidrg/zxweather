@@ -74,6 +74,12 @@ def outdoor_sample_result_to_datatable(query_data):
             {'id': 'gws',
              'label': 'Gust Wind Speed',
              'type': 'number'},
+            {'id': 'uvi',
+             'label': 'UV Index',
+             'type': 'number'},
+            {'id': 'sr',
+             'label': 'Solar Radiation',
+             'type': 'number'},
     ]
 
     rows = []
@@ -95,8 +101,14 @@ def outdoor_sample_result_to_datatable(query_data):
                     {'v': None},
                     {'v': None},
                     {'v': None},
+                    {'v': None},
+                    {'v': None},
             ]
             })
+
+        uv = None
+        if record.uv_index is not None:
+            uv = float(record.uv_index)
 
         rows.append({'c': [{'v': datetime_to_js_date(record.time_stamp)},
                 {'v': record.temperature},
@@ -107,6 +119,8 @@ def outdoor_sample_result_to_datatable(query_data):
                 {'v': record.absolute_pressure},
                 {'v': record.average_wind_speed},
                 {'v': record.gust_wind_speed},
+                {'v': uv},
+                {'v': record.solar_radiation},
         ]
         })
 
@@ -136,6 +150,8 @@ def outdoor_sample_result_to_json(query_data):
               "Pressure",
               "Average Wind Speed",
               "Gust Wind Speed",
+              "UV Index",
+              "Solar Radiation"
               ]
 
     data_age = None
@@ -146,8 +162,12 @@ def outdoor_sample_result_to_json(query_data):
             # Insert a gap
             data_set.append([
                 record.time_stamp.isoformat(),
-                None, None, None, None, None, None, None, None
+                None, None, None, None, None, None, None, None, None, None
             ])
+
+        uv = None
+        if record.uv_index is not None:
+            uv = float(record.uv_index)
 
         data_set.append(
             [
@@ -159,7 +179,9 @@ def outdoor_sample_result_to_json(query_data):
                 record.relative_humidity,
                 record.absolute_pressure,
                 record.average_wind_speed,
-                record.gust_wind_speed
+                record.gust_wind_speed,
+                uv,
+                record.solar_radiation
             ]
         )
 
