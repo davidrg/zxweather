@@ -80,6 +80,12 @@
     <a href="temperature_awc_large.png"><img src="temperature_awc.png" alt="[Month Apparent Temperature and Wind Chill]"></a>
     <a href="humidity_large.png"><img src="humidity.png" alt="[Month Humidity]"></a>
     <a href="pressure_large.png"><img src="pressure.png" alt="[Month Pressure]"></a>
+    {%-  if hw_type == 'DAVIS' %}
+    {%- if solar_uv_available %}
+    <a href="solar_radiation_large.png"><img src="solar_radiation.png" alt="[Month Solar Radiation]"></a>
+    <a href="uv_index_large.png"><img src="uv_index.png" alt="[Month UV index]"></a>
+    {%- endif %}
+    {%- endif %}
 
     <br>
     <a href="gnuplot_data.dat">gnuplot data</a>

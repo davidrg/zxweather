@@ -4,7 +4,8 @@ from gnuplot import plot_graph, plot_rainfall
 __author__ = 'David Goodwin'
 
 
-def charts_1_day(cur, dest_dir, plot_date, station_code, output_format):
+def charts_1_day(cur, dest_dir, plot_date, station_code, output_format,
+                 hw_config):
     """
     Charts detailing weather for a single day (24 hours max)
     :param cur: Database cursor
@@ -15,6 +16,8 @@ def charts_1_day(cur, dest_dir, plot_date, station_code, output_format):
     :type station_code: str
     :param output_format: Output format (eg, "pngcairo")
     :type output_format: str
+    :param hw_config: station hardware configuration details
+    :type hw_config: weatherplot.StationConfig
     """
 
     cur.execute("""select cur.time_stamp::time,
@@ -35,16 +38,18 @@ def charts_1_day(cur, dest_dir, plot_date, station_code, output_format):
           true
        else
           false
-       end as gap
-from sample cur, sample prev, station s
+       end as gap,
+       ds.average_uv_index as uv_index,
+       ds.solar_radiation
+from sample cur
+inner join sample prev on prev.time_stamp = (
+        select max(x.time_stamp)
+        from sample x
+        where x.time_stamp < cur.time_stamp
+        and x.station_id = cur.station_id) and prev.station_id = cur.station_id
+inner join station s on s.station_id = cur.station_id
+left outer join davis_sample ds on ds.sample_id = cur.sample_id
 where date(cur.time_stamp) = %s
-  and prev.time_stamp = (
-        select max(time_stamp)
-        from sample
-        where time_stamp < cur.time_stamp
-        and station_id = s.station_id)
-  and cur.station_id = s.station_id
-  and prev.station_id = s.station_id
   and s.code = %s
 order by cur.time_stamp asc""", (plot_date, station_code,))
     weather_data = cur.fetchall()
@@ -65,6 +70,8 @@ order by cur.time_stamp asc""", (plot_date, station_code,))
     COL_WIND_DIRECTION = 12
     COL_PREV_TIMESTAMP = 13
     COL_PREV_SAMPLE_MISSING = 14
+    COL_UV_INDEX = 15
+    COL_SOLAR_RADIATION = 16
 
     # Fields in the data file for gnuplot. Field numbers start at 1.
     FIELD_TIMESTAMP = COL_TIMESTAMP + 1
@@ -80,21 +87,24 @@ order by cur.time_stamp asc""", (plot_date, station_code,))
     FIELD_AVG_WIND_SPEED = COL_AVG_WIND_SPEED + 1
     FIELD_GUST_WIND_SPEED = COL_GUST_WIND_SPEED + 1
     FIELD_WIND_DIRECTION = COL_WIND_DIRECTION + 1
+    FIELD_UV_INDEX = 14
+    FIELD_SOLAR_RADIATION = 15
 
     # Write the data file for gnuplot
     file_data = [
         '# timestamp\ttemperature\tdew point\tapparent temperature\twind chill'
         '\trelative humidity\tabsolute pressure\tindoor temperature\t'
-        'indoor relative humidity\trainfall\taverage wind speed\tgust wind speed\twind direction\n']
+        'indoor relative humidity\trainfall\taverage wind speed\t'
+        'gust wind speed\twind direction\tuv index\tsolar radiation\n']
 
-    FORMAT_STRING = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t{10}\t{11}\t{12}\n'
+    FORMAT_STRING = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t{10}\t{11}\t{12}\t{13}\t{14}\n'
     for record in weather_data:
         # Handle missing data.
         if record[COL_PREV_SAMPLE_MISSING]:
             file_data.append(
                 FORMAT_STRING.format(str(record[COL_PREV_TIMESTAMP]),
                                      '?', '?', '?', '?', '?', '?', '?', '?',
-                                     '?', '?', '?', '?'))
+                                     '?', '?', '?', '?', '?', '?'))
 
         file_data.append(FORMAT_STRING.format(str(record[COL_TIMESTAMP]),
                                               str(record[COL_TEMPERATURE]),
@@ -109,7 +119,9 @@ order by cur.time_stamp asc""", (plot_date, station_code,))
                                               str(record[COL_RAINFALL]),
                                               str(record[COL_AVG_WIND_SPEED]),
                                               str(record[COL_GUST_WIND_SPEED]),
-                                              str(record[COL_WIND_DIRECTION])
+                                              str(record[COL_WIND_DIRECTION]),
+                                              str(record[COL_UV_INDEX]),
+                                              str(record[COL_SOLAR_RADIATION])
         ))
     x_range = (str(weather_data[0][COL_TIMESTAMP]),
                str(weather_data[len(weather_data) - 1][COL_TIMESTAMP]))
@@ -242,6 +254,44 @@ order by cur.time_stamp asc""", (plot_date, station_code,))
                            'title': "Temperature"}],
                    output_format=output_format)
 
+        # Solar Radiation
+        if hw_config.has_solar_sensor:
+            output_filename = dest_dir + 'solar_radiation'
+            if large:
+                output_filename = dest_dir + 'solar_radiation_large'
+            plot_graph(output_filename,
+                       xdata_time=True,
+                       title="Solar Radiation",
+                       ylabel="W/m^2",
+                       key=False,
+                       width=width,
+                       height=height,
+                       x_range=x_range,
+                       lines=[{'filename': data_filename,
+                               'xcol': FIELD_TIMESTAMP, # Time
+                               'ycol': FIELD_SOLAR_RADIATION,
+                               'title': "Solar Radiation"}],
+                       output_format=output_format)
+
+        # UV Index
+        if hw_config.has_uv_sensor:
+            output_filename = dest_dir + 'uv_index'
+            if large:
+                output_filename = dest_dir + 'uv_index_large'
+            plot_graph(output_filename,
+                       xdata_time=True,
+                       title="UV Index",
+                       ylabel="",
+                       key=False,
+                       width=width,
+                       height=height,
+                       x_range=x_range,
+                       lines=[{'filename': data_filename,
+                               'xcol': FIELD_TIMESTAMP, # Time
+                               'ycol': FIELD_UV_INDEX,
+                               'title': "UV Index"}],
+                       output_format=output_format)
+
 
 def rainfall_1_day(cur, dest_dir, plot_date, station_code, output_format):
     """
@@ -312,7 +362,8 @@ def rainfall_1_day(cur, dest_dir, plot_date, station_code, output_format):
                       output_format=output_format)
 
 
-def charts_7_days(cur, dest_dir, plot_date, station_code, output_format):
+def charts_7_days(cur, dest_dir, plot_date, station_code, output_format,
+                 hw_config):
     """
     Creates 7-day charts for the specified day
     :param cur: Database cursor
@@ -322,6 +373,8 @@ def charts_7_days(cur, dest_dir, plot_date, station_code, output_format):
     :type station_code: str
     :param output_format: The output format (eg, "pngcairo")
     :type output_format: str
+    :param hw_config: station hardware configuration details
+    :type hw_config: weatherplot.StationConfig
     """
     cur.execute("""select s.time_stamp,
        round(s.temperature::numeric,2),
@@ -341,19 +394,21 @@ def charts_7_days(cur, dest_dir, plot_date, station_code, output_format):
           true
        else
           false
-       end as gap
-from sample s, sample prev, station st,
-     (select max(time_stamp) as ts, station_id from sample where time_stamp::date = %s group by station_id) as max_ts
-where s.time_stamp <= max_ts.ts     -- 604800 seconds in a week.
-  and s.time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
-  and prev.time_stamp = (
-        select max(time_stamp)
-        from sample
-        where time_stamp < s.time_stamp
-        and station_id = st.station_id)
-  and s.station_id = st.station_id
-  and prev.station_id = st.station_id
-  and st.code = %s
+       end as gap,
+       ds.average_uv_index as uv_index,
+       ds.solar_radiation
+from (select max(time_stamp) as ts, station_id from sample where time_stamp::date = %s group by station_id) as max_ts
+inner join sample s on s.time_stamp <= max_ts.ts
+        and s.time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
+inner join sample prev on prev.station_id = s.station_id
+        and prev.time_stamp = (
+            select max(ps.time_stamp)
+            from sample ps
+            where ps.time_stamp < s.time_stamp
+            and ps.station_id = s.station_id)
+inner join station st on st.station_id = s.station_id
+left outer join davis_sample ds on ds.sample_id = s.sample_id
+where st.code = %s
 order by s.time_stamp asc
 """, (plot_date, station_code,))
     temperature_data = cur.fetchall()
@@ -374,6 +429,8 @@ order by s.time_stamp asc
     COL_WIND_DIRECTION = 12
     COL_PREV_TIMESTAMP = 13
     COL_PREV_SAMPLE_MISSING = 14
+    COL_UV_INDEX = 15
+    COL_SOLAR_RADIATION = 16
 
     # Fields in the data file for gnuplot. Field numbers start at 1.
     FIELD_TIMESTAMP = COL_TIMESTAMP + 1
@@ -392,20 +449,22 @@ order by s.time_stamp asc
     FIELD_AVG_WIND_SPEED = COL_AVG_WIND_SPEED + 2
     FIELD_GUST_WIND_SPEED = COL_GUST_WIND_SPEED + 2
     FIELD_WIND_DIRECTION = COL_WIND_DIRECTION + 2
+    FIELD_UV_INDEX = 15
+    FIELD_SOLAR_RADIATION = 16
 
     # Write the data file for gnuplot
     file_data = [
         '# timestamp\ttemperature\tdew point\tapparent temperature\twind chill'
         '\trelative humidity\tabsolute pressure\tindoor temperature'
-        '\tindoor relative humidity\trainfall\taverage wind speed\tgust wind speed\twind direction\n']
-    FORMAT_STRING = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t{10}\t{11}\t{12}\n'
+        '\tindoor relative humidity\trainfall\taverage wind speed\tgust wind speed\twind direction\tuv index\tsolar radiation\n']
+    FORMAT_STRING = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t{10}\t{11}\t{12}\t{13}\t{14}\n'
     for record in temperature_data:
         # Handle missing data.
         if record[COL_PREV_SAMPLE_MISSING]:
             file_data.append(
                 FORMAT_STRING.format(str(record[COL_PREV_TIMESTAMP]),
                                      '?', '?', '?', '?', '?', '?', '?', '?',
-                                     '?', '?', '?', '?'))
+                                     '?', '?', '?', '?', '?', '?'))
 
         file_data.append(FORMAT_STRING.format(str(record[COL_TIMESTAMP]),
                                               str(record[COL_TEMPERATURE]),
@@ -420,7 +479,9 @@ order by s.time_stamp asc
                                               str(record[COL_RAINFALL]),
                                               str(record[COL_AVG_WIND_SPEED]),
                                               str(record[COL_GUST_WIND_SPEED]),
-                                              str(record[COL_WIND_DIRECTION])
+                                              str(record[COL_WIND_DIRECTION]),
+                                              str(record[COL_UV_INDEX]),
+                                              str(record[COL_SOLAR_RADIATION])
         ))
     x_range = (str(temperature_data[0][COL_TIMESTAMP]),
                str(temperature_data[len(temperature_data) - 1][COL_TIMESTAMP]))
@@ -569,6 +630,50 @@ order by s.time_stamp asc
                            'xcol': FIELD_TIMESTAMP, # Time
                            'ycol': FIELD_INDOOR_TEMP, # Indoor Temperature
                            'title': "Temperature"}],
+                   output_format=output_format)
+
+        # Solar Radiation
+        if hw_config.has_solar_sensor:
+            output_filename = dest_dir + '7-day_solar_radiation'
+            if large:
+                output_filename = dest_dir + '7-day_solar_radiation_large'
+        plot_graph(output_filename,
+                   xdata_is_time=True,
+                   xlabel='Date',
+                   x_format='%d-%b',
+                   timefmt_is_date=True,
+                   title="Solar Radiation",
+                   ylabel="W/m^2",
+                   key=False,
+                   width=width,
+                   height=height,
+                   x_range=x_range,
+                   lines=[{'filename': data_filename,
+                           'xcol': FIELD_TIMESTAMP,  # Time
+                           'ycol': FIELD_SOLAR_RADIATION,
+                           'title': "Solar Radiation"}],
+                   output_format=output_format)
+
+        # UV Index
+        if hw_config.has_uv_sensor:
+            output_filename = dest_dir + '7-day_uv_index'
+            if large:
+                output_filename = dest_dir + '7-day_uv_index_large'
+        plot_graph(output_filename,
+                   xdata_is_time=True,
+                   xlabel='Date',
+                   x_format='%d-%b',
+                   timefmt_is_date=True,
+                   title="UV Index",
+                   ylabel="",
+                   key=False,
+                   width=width,
+                   height=height,
+                   x_range=x_range,
+                   lines=[{'filename': data_filename,
+                           'xcol': FIELD_TIMESTAMP,  # Time
+                           'ycol': FIELD_UV_INDEX,
+                           'title': "UV Index"}],
                    output_format=output_format)
 
 

@@ -240,6 +240,13 @@ def get_month(ui, station, year, month):
         # Min/Max values for the month
         records = get_monthly_records(year,month, station_id)
 
+    hw_type = get_station_type_code(station_id)
+
+    uv_and_solar_available = False
+    if hw_type == 'DAVIS':
+        hw_config = get_station_config(station_id)
+        uv_and_solar_available = hw_config['has_solar_and_uv']
+
     month_cache_control(year, month, station_id)
     if ui in ('s','m', 'a'):
         if ui == 'a':
@@ -270,12 +277,7 @@ def get_month(ui, station, year, month):
 
         msg = get_station_message(station_id)
 
-        hw_type = get_station_type_code(station_id)
 
-        uv_and_solar_available = False
-        if hw_type == 'DAVIS':
-            hw_config = get_station_config(station_id)
-            uv_and_solar_available = hw_config['has_solar_and_uv']
 
         return modern_templates.month(nav=nav_urls, data=data,dataurls=urls,
                                       ui=ui, sitename=config.site_name,
@@ -292,7 +294,9 @@ def get_month(ui, station, year, month):
     else:
         return basic_templates.month(data=data,
                                      switch_url=build_alternate_ui_urls(
-                                         current_location))
+                                         current_location),
+                                     hw_type=hw_type,
+                                     solar_uv_available=uv_and_solar_available,)
 
 
 class month:

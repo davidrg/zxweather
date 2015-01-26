@@ -2,6 +2,7 @@
 # coding=utf-8
 from __future__ import print_function
 from datetime import date
+import json
 from optparse import OptionParser
 import os
 import pickle
@@ -30,6 +31,43 @@ month_name = {1 : 'january',
               11: 'november',
               12: 'december'}
 
+
+class StationConfig(object):
+    def __init__(self, hw_type, config_data):
+        self._hw_type = hw_type
+        if hw_type == 'DAVIS' and config_data is not None:
+            self._load_davis_data(json.loads(config_data))
+
+
+    def _load_davis_data(self, config_document):
+        self._is_wireless = config_document['is_wireless']
+        self._has_solar_sensor = config_document['has_solar_and_uv']
+        self._has_uv_sensor = config_document['has_solar_and_uv']
+        self._broadcast_id = config_document['broadcast_id']
+        #self._hardware_type = config_document['hardware_type']
+
+    @property
+    def hardware_type(self):
+        return self._hw_type
+
+    @property
+    def is_wireless(self):
+        return self._is_wireless
+
+    @property
+    def has_solar_sensor(self):
+        return self._has_solar_sensor
+
+    @property
+    def has_uv_sensor(self):
+        return self._has_uv_sensor
+
+    @property
+    def broadcast_id(self):
+        return self._broadcast_id
+
+
+
 # Handle Ctr;+C nicely.
 def handler(signum, frame):
     print("weatherplot stopped.")
@@ -37,7 +75,8 @@ def handler(signum, frame):
 signal.signal(signal.SIGINT, handler)
 
 
-def plot_day(dest_dir, cur, plot_date, station_code, start_date, output_format):
+def plot_day(dest_dir, cur, plot_date, station_code, start_date, output_format,
+             hw_config):
     """
     Plots charts for a single day.
 
@@ -52,6 +91,8 @@ def plot_day(dest_dir, cur, plot_date, station_code, start_date, output_format):
     :type start_date: date
     :param output_format: The output format (eg, "pngcairo")
     :type output_format: str
+    :param hw_config: Station hardware configuration
+    :type hw_config: StationConfig
     :return:
     """
 
@@ -73,14 +114,18 @@ def plot_day(dest_dir, cur, plot_date, station_code, start_date, output_format):
         pass
 
     # Plot the 1-day charts
-    charts_1_day(cur, dest_dir, plot_date, station_code, output_format)
+    charts_1_day(cur, dest_dir, plot_date, station_code, output_format,
+                 hw_config)
     rainfall_1_day(cur, dest_dir, plot_date, station_code, output_format)
-    charts_7_days(cur, dest_dir, plot_date, station_code, output_format)
+    charts_7_days(cur, dest_dir, plot_date, station_code, output_format,
+                  hw_config)
+
+    # Disabled because the graph is fairly unreadable
     #rainfall_7_day(cur, dest_dir, plot_date, station_code, output_format)
 
 
 def plot_month(dest_dir, cur, year, month, station_code, start_date,
-               output_format):
+               output_format, hw_config):
     """
     Plots charts for a particular month
     :param dest_dir:
@@ -93,6 +138,8 @@ def plot_month(dest_dir, cur, year, month, station_code, start_date,
     :type start_date: date
     :param output_format: The output format (eg, "pngcairo")
     :type output_format: str
+    :param hw_config: Station hardware configuration
+    :type hw_config: StationConfig
     :return: The final date plotted for
     :rtype: date
     """
@@ -115,7 +162,8 @@ def plot_month(dest_dir, cur, year, month, station_code, start_date,
         pass  # Directory probably already exists.
 
     # Generate graphs for the entire month
-    month_charts(cur, dest_dir, month, year, station_code, output_format)
+    month_charts(cur, dest_dir, month, year, station_code, output_format,
+                 hw_config)
 
     # Then deal with each day
     cur.execute("""select distinct extract(day from s.time_stamp)
@@ -131,11 +179,11 @@ def plot_month(dest_dir, cur, year, month, station_code, start_date,
     for day in days:
         final_date = date(year, month, int(day[0]))
         plot_day(dest_dir, cur, final_date, station_code, start_date,
-                 output_format)
+                 output_format, hw_config)
     return final_date
 
 
-def plot_year(dest_dir, cur, year, station_code, start_date, output_format):
+def plot_year(dest_dir, cur, year, station_code, start_date, output_format, hw_config):
     """
     Plots summary graphs for the specified year. It will then call
     plot_month() for each month in the database for this year.
@@ -151,6 +199,8 @@ def plot_year(dest_dir, cur, year, station_code, start_date, output_format):
     :type start_date: date
     :param output_format: The output format (eg "pngcairo")
     :type output_format: str
+    :param hw_config: Hardware configuration data
+    :type hw_config: StationConfig
     :return: The final date plotted for
     :rtype: date
     """
@@ -180,7 +230,8 @@ def plot_year(dest_dir, cur, year, station_code, start_date, output_format):
     final_date = None
     for month in months:
         final_date = plot_month(dest_dir, cur, year, int(month[0]),
-                                station_code, start_date, output_format)
+                                station_code, start_date, output_format,
+                                hw_config)
 
     return final_date
 
@@ -196,12 +247,21 @@ order by extract(year from s.time_stamp) asc
                            """, (code,))
     years = cur.fetchall()
 
+    cur.execute("""select s.station_config as config_data,
+       st.code as hw_type
+from station s
+inner join station_type st on st.station_type_id = s.station_type_id
+where s.code = %s""", (code,))
+    result = cur.fetchone()
+
+    hw_config = StationConfig(result[1], result[0])
+
     dest_dir += code + '/'
 
     final_date = None
     for year in years:
         final_date = plot_year(dest_dir, cur, int(year[0]), code, start_date,
-                               output_format)
+                               output_format, hw_config)
 
     print("Plot completed at {0} for station {1}".format(
         datetime.datetime.now(), code))
