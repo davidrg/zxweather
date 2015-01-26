@@ -131,8 +131,13 @@
     <a href="temperature_awc_large.png"><img src="temperature_awc.png" alt="[1-day Apparent Temperature and Wind Chill]"></a>
     <a href="humidity_large.png"><img src="humidity.png" alt="[1-day Humidity]"></a>
     <a href="pressure_large.png"><img src="pressure.png" alt="[1-day Pressure]"></a>
+    {%-  if hw_type == 'DAVIS' %}
+    {%- if solar_uv_available %}
+    <a href="solar_radiation_large.png"><img src="solar_radiation.png" alt="[1-day Solar Radiation]"></a>
+    <a href="uv_index_large.png"><img src="uv_index.png" alt="[1-day UV index]"></a>
+    {%- endif %}
+    {%- endif %}
     <a href="hourly_rainfall_large.png"><img src="hourly_rainfall.png" alt="[1-day hourly rainfall]"></a>
-
     <br>
     <a href="gnuplot_data.dat">gnuplot data</a>
 
@@ -142,7 +147,12 @@
     <a href="7-day_temperature_awc_large.png"><img src="7-day_temperature_awc.png" alt="[7-day Apparent Temperature and Wind Chill]"></a>
     <a href="7-day_humidity_large.png"><img src="7-day_humidity.png" alt="[7-day Humidity]"></a>
     <a href="7-day_pressure_large.png"><img src="7-day_pressure.png" alt="[7-day Pressure]"></a>
-
+    {%-  if hw_type == 'DAVIS' %}
+    {%- if solar_uv_available %}
+    <a href="7-day_solar_radiation_large.png"><img src="7-day_solar_radiation.png" alt="[7-day Solar Radiation]"></a>
+    <a href="7-day_uv_index_large.png"><img src="7-day_uv_index.png" alt="[7-day UV index]"></a>
+    {%- endif %}
+    {%- endif %}
     <br>
     <a href="7-day_gnuplot_data.dat">gnuplot data</a>
     
