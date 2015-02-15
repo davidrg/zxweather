@@ -75,5 +75,48 @@ class dmp_tests(unittest.TestCase):
             encoded = serialise_dmp(decoded)
             decoded2 = deserialise_dmp(encoded)
 
-            self.assertDictEqual(decoded._asdict(), decoded2._asdict())
+            # Check each field matches
+            self.assertEqual(decoded.dateStamp, decoded2.dateStamp)
+            self.assertEqual(decoded.timeStamp, decoded2.timeStamp)
+            self.assertEqual(decoded.timeZone, decoded2.timeZone)
+            self.assertEqual(decoded.dateInteger, decoded2.dateInteger)
+            self.assertEqual(decoded.timeInteger, decoded2.timeInteger)
+            self.assertEqual(decoded.outsideTemperature,
+                             decoded2.outsideTemperature)
+            self.assertEqual(decoded.highOutsideTemperature,
+                             decoded2.highOutsideTemperature)
+            self.assertEqual(decoded.lowOutsideTemperature,
+                             decoded2.lowOutsideTemperature)
+            self.assertEqual(decoded.rainfall, decoded2.rainfall)
+            self.assertEqual(decoded.highRainRate, decoded2.highRainRate)
+            self.assertEqual(decoded.barometer, decoded2.barometer)
+            self.assertEqual(decoded.solarRadiation, decoded2.solarRadiation)
+            self.assertEqual(decoded.numberOfWindSamples,
+                             decoded2.numberOfWindSamples)
+            self.assertEqual(decoded.insideTemperature,
+                             decoded2.insideTemperature)
+            self.assertEqual(decoded.insideHumidity, decoded2.insideHumidity)
+            self.assertEqual(decoded.outsideHumidity, decoded2.outsideHumidity)
+            self.assertEqual(decoded.averageWindSpeed,
+                             decoded2.averageWindSpeed)
+            self.assertEqual(decoded.highWindSpeed, decoded2.highWindSpeed)
+            self.assertEqual(decoded.highWindSpeedDirection,
+                             decoded2.highWindSpeedDirection)
+            self.assertEqual(decoded.prevailingWindDirection,
+                             decoded2.prevailingWindDirection)
+            self.assertEqual(decoded.averageUVIndex, decoded2.averageUVIndex)
+            self.assertEqual(decoded.ET, decoded2.ET)
+            self.assertEqual(decoded.highSolarRadiation,
+                             decoded2.highSolarRadiation)
+            self.assertEqual(decoded.highUVIndex, decoded2.highUVIndex)
+            self.assertEqual(decoded.forecastRule, decoded2.forecastRule)
+            self.assertEqual(decoded.leafTemperature, decoded2.leafTemperature)
+            self.assertEqual(decoded.leafWetness, decoded2.leafWetness)
+            self.assertEqual(decoded.soilTemperatures,
+                             decoded2.soilTemperatures)
+            self.assertEqual(decoded.extraHumidities, decoded2.extraHumidities)
+            self.assertEqual(decoded.extraTemperatures,
+                             decoded2.extraTemperatures)
+            self.assertEqual(decoded.soilMoistures, decoded2.soilMoistures)
+
             self.assertEqual(record, encoded)

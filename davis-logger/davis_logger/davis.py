@@ -11,6 +11,7 @@ from davis_logger.record_types.dmp import encode_date, encode_time, \
     split_page, deserialise_dmp
 from davis_logger.record_types.loop import deserialise_loop
 from davis_logger.record_types.util import CRC
+from davis_logger.station_procedures import DstSwitchProcedure
 from davis_logger.util import Event, toHexString
 
 __author__ = 'david'
@@ -52,6 +53,16 @@ INIT_5_GET_RAIN_SIZE = 10
 
 # init-6: Get the archive interval
 INIT_6_GET_ARCHIVE_INTERVAL = 11
+
+# init-7: Get daylight savings type (automatic or manual)
+INIT_7_GET_DAYLIGHT_SAVINGS_TYPE = 12
+
+# init-8: Get daylight manual daylight savings mode (on, off or undefined)
+INIT_8_GET_DAYLIGHT_SAVINGS_STATUS = 13
+
+# For generic procedure type things
+STATE_IN_PROCEDURE = 14
+
 
 class DavisWeatherStation(object):
     """
@@ -97,6 +108,9 @@ class DavisWeatherStation(object):
         # sample records will be passed as a parameter.
         self.dumpFinished = Event()
 
+        self._procedure = None
+        self._procedure_callback = None
+
         # This table controls which function handles received data in each
         # state.
         self._state_data_handlers = {
@@ -111,6 +125,9 @@ class DavisWeatherStation(object):
             INIT_4_GET_TIME: self._timeInfoReceived,
             INIT_5_GET_RAIN_SIZE: self._rainSizeReceived,
             INIT_6_GET_ARCHIVE_INTERVAL: self._archiveIntervalReceived,
+            INIT_7_GET_DAYLIGHT_SAVINGS_TYPE: self._daylightSavingsTypeReceived,
+            INIT_8_GET_DAYLIGHT_SAVINGS_STATUS: self._daylightSavingsStatusReceived,
+            STATE_IN_PROCEDURE: self._procedure_data_received,
         }
 
         self._reset_state()
@@ -154,6 +171,31 @@ class DavisWeatherStation(object):
             return
 
         self._state_data_handlers[self._state](data)
+
+    def setManualDaylightSavingsState(self, new_dst_state, callback=None):
+        log.msg("Switching DST mode to {0}".format(new_dst_state))
+        self._procedure = DstSwitchProcedure(self._write, new_dst_state)
+        self._procedure_callback = callback
+        self._procedure.finished += self._procedure_finished
+        self._wakeUp(self._start_procedure)
+
+    def _start_procedure(self):
+        self._state = STATE_IN_PROCEDURE
+        self._procedure.start()
+
+    def _procedure_data_received(self, data):
+        if self._procedure is not None:
+            self._procedure.data_received(data)
+
+    def _procedure_finished(self):
+        log.msg("Procedure completed.")
+        self._state = STATE_AWAKE
+        self._procedure = None
+        if self._procedure_callback is not None:
+            cb = self._procedure_callback
+            self._procedure_callback = None
+            cb()
+
 
     def getLoopPackets(self, packet_count):
         """
@@ -278,20 +320,21 @@ class DavisWeatherStation(object):
             self._state = INIT_4_GET_TIME
             self._write('GETTIME\n')
 
+    def _decodeTimeInBuffer(self):
+        seconds = ord(self._buffer[1])
+        minutes = ord(self._buffer[2])
+        hour = ord(self._buffer[3])
+        day = ord(self._buffer[4])
+        month = ord(self._buffer[5])
+        year = ord(self._buffer[6]) + 1900
+        return datetime.datetime(year=year, month=month, day=day, hour=hour,
+                                 minute=minutes, second=seconds)
+
     def _timeInfoReceived(self, data):
         self._buffer += data
 
         if len(self._buffer) == 9:
-            seconds = ord(self._buffer[1])
-            minutes = ord(self._buffer[2])
-            hour = ord(self._buffer[3])
-            day = ord(self._buffer[4])
-            month = ord(self._buffer[5])
-            year = ord(self._buffer[6]) + 1900
-            self._station_time = datetime.datetime(year=year, month=month,
-                                                   day=day, hour=hour,
-                                                   minute=minutes,
-                                                   second=seconds)
+            self._station_time = self._decodeTimeInBuffer()
 
             self._buffer = ''
             self._state = INIT_5_GET_RAIN_SIZE
@@ -322,8 +365,6 @@ class DavisWeatherStation(object):
             self._state = INIT_6_GET_ARCHIVE_INTERVAL
             self._write("EEBRD 2D 01\n")
 
-
-
     def _archiveIntervalReceived(self, data):
         self._buffer += data
 
@@ -332,13 +373,62 @@ class DavisWeatherStation(object):
 
             self._archive_interval = ord(data[1])
 
-            self._state = STATE_AWAKE
+            self._buffer = ''
+            self._state = INIT_7_GET_DAYLIGHT_SAVINGS_TYPE
+            self._write("EEBRD 12 1\n")
 
+    def _daylightSavingsTypeReceived(self, data):
+        self._buffer += data
+
+        if len(self._buffer) == 4:
+            assert self._buffer[0] == self._ACK
+
+            data = self._buffer[1]
+
+            packet_crc = struct.unpack(CRC.FORMAT, self._buffer[2:])[0]
+            calculated_crc = CRC.calculate_crc(data)
+
+            assert packet_crc == calculated_crc
+
+            result = ord(data)
+            if result == 1:
+                self._auto_dst_enabled = False
+            elif result == 0:
+                self._auto_dst_enabled = True
+
+            self._buffer = ''
+            self._state = INIT_8_GET_DAYLIGHT_SAVINGS_STATUS
+            self._write("EEBRD 13 1\n")
+
+    def _daylightSavingsStatusReceived(self, data):
+        self._buffer += data
+
+        if len(self._buffer) == 4:
+            assert self._buffer[0] == self._ACK
+
+            data = self._buffer[1]
+
+            packet_crc = struct.unpack(CRC.FORMAT, self._buffer[2:])[0]
+            calculated_crc = CRC.calculate_crc(data)
+
+            assert packet_crc == calculated_crc
+
+            result = ord(data)
+
+            if result == 1:
+                dst_on = True
+            else:
+                dst_on = False
+
+            self._buffer = ''
+            self._state = STATE_AWAKE
             self.InitCompleted.fire(self._station_type, self._hw_type,
                                     self._version, self._version_date,
                                     self._station_time,
                                     self._rainCollectorSizeName,
-                                    self._archive_interval)
+                                    self._archive_interval,
+                                    self._auto_dst_enabled,
+                                    dst_on)
 
     def _write(self, data):
         # TODO: store current time so we know if the console has gone back to
@@ -554,8 +644,6 @@ class DavisWeatherStation(object):
                 self._lpsFaultReset()
                 return
 
-
-
     def _dmpaftInit1DataReceived(self, data):
         if data != self._ACK:
             log.msg('Warning: Expected ACK')
@@ -625,9 +713,12 @@ class DavisWeatherStation(object):
         else:
             # Nothing to download
             self._state = STATE_AWAKE
-            self.dumpFinished.fire([])
 
         self._write(self._ACK)
+
+        if page_count <= 0:
+            # Let everyone know we're done.
+            self.dumpFinished.fire([])
 
     def _process_dmp_records(self):
 
@@ -693,3 +784,4 @@ class DavisWeatherStation(object):
                 log.msg('CRC Failed')
                 # CRC failed. Ask for the page to be sent again.
                 self._write(self._NAK)
+
