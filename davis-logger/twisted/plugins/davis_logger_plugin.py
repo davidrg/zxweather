@@ -19,7 +19,11 @@ class Options(usage.Options):
          "The serial port device the weather station is attached to."],
         ["baud_rate", "b", 19200, "Serial baud rate", int],
         ["sample_error_file", "f", None,
-         "CSV file to dump samples into when inserting to the database fails"]
+         "CSV file to dump samples into when inserting to the database fails"],
+        ["auto_dst", "d", False,
+         "Automatic daylight savings"],
+        ["auto_dst_timezone", "z", "",
+         "Timezone for automatic daylight savings"]
     ]
 
 
@@ -54,8 +58,10 @@ class DavisLoggerServiceMaker(object):
         serial_port = options["serial_port"]
         baud_rate = options["baud_rate"]
         sample_error_file = options["sample_error_file"]
+        auto_dst = options["auto_dst"]
+        time_zone = options["auto_dst_timezone"]
 
         return DavisService(dsn, station_code, serial_port, baud_rate,
-                            sample_error_file)
+                            sample_error_file, auto_dst, time_zone)
 
 serviceMaker = DavisLoggerServiceMaker()

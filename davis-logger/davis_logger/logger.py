@@ -3,7 +3,7 @@
 Data logger for Davis Vantage Vue weather stations.
 """
 import csv
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 import json
 import os
 import sys
@@ -15,6 +15,7 @@ from twisted.internet.protocol import Protocol
 from twisted.internet.serialport import SerialPort
 from twisted.python import log
 from davis_logger.davis import DavisWeatherStation
+from davis_logger.dst_switcher import DstInfo, DstSwitcher, NullDstSwitcher
 
 __author__ = 'david'
 
@@ -31,8 +32,12 @@ class DavisLoggerProtocol(Protocol):
     _loopPacketRequestSize = 100
 
     def __init__(self, database_pool, station_id, latest_date, latest_time,
-                 sample_error_file):
+                 sample_error_file, auto_dst, time_zone, latest_ts):
         self.station = DavisWeatherStation()
+
+        self._auto_dst = auto_dst
+        self._time_zone = time_zone
+        self._latest_ts = latest_ts
 
         # Setup the watchdog. This will give the data logger a kick if it stalls
         # (this can happen sometimes when data gets lost due to noise on the
@@ -90,7 +95,8 @@ class DavisLoggerProtocol(Protocol):
         self.station.initialise()
 
     def _init_completed(self, stationType, hardwareType, version, versionDate,
-                        stationTime, rainCollectorSizeName, archiveInterval):
+                        stationTime, rainCollectorSizeName, archiveInterval,
+                        auto_dst_on, dst_on):
 
         log.msg('Station Type: {0} - {1}'.format(stationType, hardwareType))
 
@@ -98,19 +104,40 @@ class DavisLoggerProtocol(Protocol):
         log.msg('Station Time: {0}'.format(stationTime))
         log.msg('Rain Collector Size: {0}'.format(rainCollectorSizeName))
         log.msg('Archive Interval: {0} minutes'.format(archiveInterval))
+        log.msg('Station Auto DST Enabled: {0}'.format(auto_dst_on))
+        log.msg('Station Manual Daylight Savings - DST On: {0}'.format(dst_on))
 
-        if (archiveInterval != 5):
+        if archiveInterval != 5:
             log.msg('WARNING: Archive interval should be set to\n5 minutes. '
                     'While your current setting of {0} will probably work as '
                     'long as the\nsetting for this station in the database '
                     'matches it is untested. It is\nrecommended that you change'
                     'it to 5 minutes via WeatherLink.'.format(archiveInterval))
 
+        dst_is_off = not dst_on
+        self._suppress_dst_fix = auto_dst_on
+
+        if self._auto_dst:
+
+            if auto_dst_on:
+                log.msg("NOTICE: The station has automatic daylight savings "
+                        "turned on. This program will not attempt to alter "
+                        "daylight savings but an attempt will be made to fix"
+                        " any incoming samples with an incorrect timestamp.")
+
+            dst_info = DstInfo(self._time_zone)
+            self._dst_switcher = DstSwitcher(dst_info, archiveInterval,
+                                             self._latest_ts)
+            if dst_is_off:
+                self._dst_switcher.suppress_dst_off()
+        else:
+            # If auto daylight savings is disabled then use a dummy switcher
+            # that doesn't do anything.
+            self._dst_switcher = NullDstSwitcher()
 
         # Bring the database up-to-date
         self._lastRecord = -1
         self.station.getLoopPackets(self._loopPacketRequestSize)
-        #self._fetch_samples()
 
     def _fetch_samples(self):
         self.station.getSamples((self._latest_date, self._latest_time))
@@ -128,26 +155,47 @@ class DavisLoggerProtocol(Protocol):
     def _loopFinished(self):
         self.station.getLoopPackets(self._loopPacketRequestSize)
 
+    def _start_loop(self):
+        self.station.getLoopPackets(self._loopPacketRequestSize)
+
     def _samplesArrived(self, sampleList):
 
+        adjusted_samples = [self._dst_switcher.process_sample(sample)
+                            for sample in sampleList]
+
+        loop = True
+
+        if self._dst_switcher.station_time_needs_adjusting and \
+                not self._suppress_dst_fix:
+            # Don't start looping once the samples have been processed
+            loop = False
+
+            # Because we need the station to turn off daylight savings first.
+            # When its finished doing that it will call _start_loop for us.
+            self.station.setManualDaylightSavingsState(
+                self._dst_switcher.new_dst_state_is_on, self._start_loop)
+
         if self._error_state:
-            self._write_samples_to_error_log(sampleList)
+            self._write_samples_to_error_log(adjusted_samples)
             log.msg("** WARNING: logger operating in error state. Stop logger, "
                     "correct error, merge sample error log into database and "
                     "restart logger.")
             log.msg("** NOTICE: Redirected {0} samples to sample error log"
-                    .format(len(sampleList)))
+                    .format(len(adjusted_samples)))
         else:
-            self._database_pool.runInteraction(self._store_samples_int, sampleList)
+            self._database_pool.runInteraction(self._store_samples_int,
+                                               adjusted_samples)
 
         # This obviously relies on the sample list being ordered.
-        if len(sampleList) > 0:
-            last = sampleList[-1]
+        if len(adjusted_samples) > 0:
+            last = adjusted_samples[-1]
             self._latest_date = last.dateInteger
             self._latest_time = last.timeInteger
             log.msg('Last record: {0} {1}'.format(last.dateStamp, last.timeStamp))
-        log.msg('Received {0} archive records'.format(len(sampleList)))
-        self.station.getLoopPackets(self._loopPacketRequestSize)
+        log.msg('Received {0} archive records'.format(len(adjusted_samples)))
+
+        if loop:
+            self._start_loop()
 
     def _write_samples_to_error_log(self, samples):
         with open(self.sample_error_file, "ab") as csvfile:
@@ -158,6 +206,7 @@ class DavisLoggerProtocol(Protocol):
                     datetime.now(),  # Download timestamp
                     datetime.combine(sample.dateStamp,
                                      sample.timeStamp),
+                    sample.timeZone,
                     sample.insideHumidity,
                     sample.insideTemperature,
                     sample.outsideHumidity,
@@ -210,11 +259,22 @@ class DavisLoggerProtocol(Protocol):
 
         try:
             for sample in samples:
+
+                t = sample.timeStamp
+
+                if sample.timeZone is not None:
+                    # timeZone is only present on samples adjusted by the
+                    # DST Switcher.
+                    t = time(t.hour, t.minute, t.second, t.microsecond,
+                             psycopg2.tz.FixedOffsetTimezone(
+                                 offset=sample.timeZone))
+
+                ts = datetime.combine(sample.dateStamp, t)
+
                 txn.execute(base_query,
                             (
                                 datetime.now(),  # Download timestamp
-                                datetime.combine(sample.dateStamp,
-                                                 sample.timeStamp),
+                                ts,
                                 sample.insideHumidity,
                                 sample.insideTemperature,
                                 sample.outsideHumidity,
@@ -257,7 +317,6 @@ by a change in time zone due to daylight savings.""".format(e.pgerror))
                     "to error_samples.csv")
 
             self._write_samples_to_error_log(samples)
-
 
     def _store_live(self, loop):
         """
@@ -349,14 +408,18 @@ by a change in time zone due to daylight savings.""".format(e.pgerror))
 
         self._reschedule_watchdog()
 
+
 class DavisService(service.Service):
-    def __init__(self, database, station, port, baud, sample_error_file):
+    def __init__(self, database, station, port, baud, sample_error_file,
+                 auto_dst, time_zone):
         self.dbc = database
         self.station_code = station
         self.serial_port = port
         self.baud_rate = baud
         self.station_id = 0
         self.sample_error_file = sample_error_file
+        self.auto_dst = auto_dst
+        self.time_zone = time_zone
 
         if not os.path.exists(self.sample_error_file):
             # File doesn't exist. Try to create it.
@@ -385,13 +448,15 @@ class DavisService(service.Service):
         if len(result) == 0:
             latest_time = 0
             latest_date = 0
+            latest_ts = datetime.now()
         else:
             latest_time = result[0][0]
             latest_date = result[0][1]
+            latest_ts = result[0][2]
 
         logger = DavisLoggerProtocol(
             self.database_pool, station_id, latest_date, latest_time,
-            self.sample_error_file)
+            self.sample_error_file, self.auto_dst, self.time_zone, latest_ts)
 
         self.sp = SerialPort(logger,
                              self.serial_port,
@@ -404,7 +469,7 @@ class DavisService(service.Service):
         log.msg('Station ID: {0}'.format(station_id))
 
         query = """
-                select record_time, record_date
+                select ds.record_time, ds.record_date, s.time_stamp
                 from sample s
                 inner join davis_sample ds on ds.sample_id = s.sample_id
                 where station_id = %s

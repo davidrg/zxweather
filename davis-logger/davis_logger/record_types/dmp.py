@@ -13,42 +13,86 @@ from davis_logger.record_types.util import inhg_to_mb, mph_to_ms, \
 
 __author__ = 'david'
 
-Dmp = namedtuple(
-    'Dmp',
-    (
-        'dateStamp',
-        'timeStamp',
-        'dateInteger',
-        'timeInteger',
-        'outsideTemperature',
-        'highOutsideTemperature',
-        'lowOutsideTemperature',
-        'rainfall',
-        'highRainRate',
-        'barometer',
-        'solarRadiation',
-        'numberOfWindSamples',
-        'insideTemperature',
-        'insideHumidity',
-        'outsideHumidity',
-        'averageWindSpeed',
-        'highWindSpeed',
-        'highWindSpeedDirection',
-        'prevailingWindDirection',
-        'averageUVIndex',
-        'ET',
-        'highSolarRadiation',
-        'highUVIndex',
-        'forecastRule',
-        'leafTemperature',
-        'leafWetness',
-        'soilTemperatures',
-        # download record type
-        'extraHumidities',
-        'extraTemperatures',
-        'soilMoistures'
-    )
-)
+# Dmp = namedtuple(
+#     'Dmp',
+#     (
+#         'dateStamp',
+#         'timeStamp',
+#         'timeZone',
+#         'dateInteger',
+#         'timeInteger',
+#         'outsideTemperature',
+#         'highOutsideTemperature',
+#         'lowOutsideTemperature',
+#         'rainfall',
+#         'highRainRate',
+#         'barometer',
+#         'solarRadiation',
+#         'numberOfWindSamples',
+#         'insideTemperature',
+#         'insideHumidity',
+#         'outsideHumidity',
+#         'averageWindSpeed',
+#         'highWindSpeed',
+#         'highWindSpeedDirection',
+#         'prevailingWindDirection',
+#         'averageUVIndex',
+#         'ET',
+#         'highSolarRadiation',
+#         'highUVIndex',
+#         'forecastRule',
+#         'leafTemperature',
+#         'leafWetness',
+#         'soilTemperatures',
+#         # download record type
+#         'extraHumidities',
+#         'extraTemperatures',
+#         'soilMoistures'
+#     )
+# )
+
+class Dmp(object):
+    def __init__(self, dateStamp, timeStamp, timeZone, dateInteger, timeInteger,
+        outsideTemperature, highOutsideTemperature, lowOutsideTemperature,
+        rainfall, highRainRate, barometer, solarRadiation, numberOfWindSamples,
+        insideTemperature, insideHumidity, outsideHumidity, averageWindSpeed,
+        highWindSpeed, highWindSpeedDirection, prevailingWindDirection,
+        averageUVIndex, ET, highSolarRadiation, highUVIndex, forecastRule,
+        leafTemperature, leafWetness, soilTemperatures, extraHumidities,
+        extraTemperatures, soilMoistures):
+
+        self.dateStamp = dateStamp
+        self.timeStamp = timeStamp
+        self.timeZone = timeZone
+        self.dateInteger = dateInteger
+        self.timeInteger = timeInteger
+        self.outsideTemperature = outsideTemperature
+        self.highOutsideTemperature = highOutsideTemperature
+        self.lowOutsideTemperature = lowOutsideTemperature
+        self.rainfall = rainfall
+        self.highRainRate = highRainRate
+        self.barometer = barometer
+        self.solarRadiation = solarRadiation
+        self.numberOfWindSamples = numberOfWindSamples
+        self.insideTemperature = insideTemperature
+        self.insideHumidity = insideHumidity
+        self.outsideHumidity = outsideHumidity
+        self.averageWindSpeed = averageWindSpeed
+        self.highWindSpeed = highWindSpeed
+        self.highWindSpeedDirection = highWindSpeedDirection
+        self.prevailingWindDirection = prevailingWindDirection
+        self.averageUVIndex = averageUVIndex
+        self.ET = ET
+        self.highSolarRadiation = highSolarRadiation
+        self.highUVIndex = highUVIndex
+        self.forecastRule = forecastRule
+        self.leafTemperature = leafTemperature
+        self.leafWetness = leafWetness
+        self.soilTemperatures = soilTemperatures
+        self.extraHumidities = extraHumidities
+        self.extraTemperatures = extraTemperatures
+        self.soilMoistures = soilMoistures
+
 
 
 def split_page(page_string):
@@ -276,6 +320,7 @@ def deserialise_dmp(dmp_string, rainCollectorSize=0.2):
     unpacked = Dmp(
         dateStamp=decode_date(dateStamp),
         timeStamp=decode_time(timeStamp),
+        timeZone=None,
         dateInteger=dateStamp,
         timeInteger=timeStamp,
         outsideTemperature=deserialise_16bit_temp(outsideTemperature),
@@ -369,6 +414,8 @@ def serialise_dmp(dmp, rainCollectorSize=0.2):
     else:
         averageUVIndex = dmp.averageUVIndex / 10
 
+    highUVIndex = dmp.highUVIndex * 10
+
     packed = struct.pack(
         dmp_format,
         encode_date(dmp.dateStamp),
@@ -391,7 +438,7 @@ def serialise_dmp(dmp, rainCollectorSize=0.2):
         averageUVIndex,
         mm_to_inch(dmp.ET),
         highSolarRadiation,
-        dash_8bit(dmp.highUVIndex),
+        highUVIndex,
         dmp.forecastRule,
         serialise_8bit_temp(dmp.leafTemperature[0]),
         serialise_8bit_temp(dmp.leafTemperature[1]),
