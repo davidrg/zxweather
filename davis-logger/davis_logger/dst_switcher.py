@@ -41,10 +41,6 @@ class DstInfo(object):
 
         self._now = time_source
 
-        #def test_thing():
-        #    return datetime(2015, 9, 27, 1, 0, 0)
-        #self._now = test_thing
-
         self._tz = timezone(time_zone)
 
         self._load_transitions()
@@ -72,13 +68,11 @@ class DstInfo(object):
                 # This is the DST end transition
                 time += self.dst_offset
                 transition = (time, zone, standard_offset, utc_offset)
-                #print("END: " + str(transition))
                 self._end_transitions.append(transition)
             else:
                 # The DST Start transition
                 time -= self.dst_offset
                 transition = (time, zone, standard_offset, utc_offset)
-                #print("STR: " + str(transition))
                 self._start_transitions.append(transition)
 
     def _nearest_dst_start_transition(self):
@@ -256,8 +250,8 @@ class DstSwitcher(NullDstSwitcher):
             # turning daylight savings off. I guess the user has already
             # done it manually. Don't need to adjust samples anymore.
 
-            self._log("Station time appears to have gone back. Assuming DST has "
-                  "been turned off on station. Switching off DST fix mode.")
+            self._log("Station time appears to have gone back. Assuming DST has"
+                      "been turned off on station. Switching off DST fix mode.")
 
             self._dst_on = None
             self._switch_mode = False
@@ -269,9 +263,9 @@ class DstSwitcher(NullDstSwitcher):
             # on adjusting it forward by an hour to turn daylight savings
             # on. I guess the user has already done it manually.
 
-            self._log("Station time appears to have gone foward by nearly an hour."
-                  " Assuming DST has been turned on on station. Switching off "
-                  "DST fix mode.")
+            self._log("Station time appears to have gone forward by nearly an "
+                      "hour. Assuming DST has been turned on on station. "
+                      "Switching off DST fix mode.")
 
             self._dst_on = None
             self._switch_mode = False
@@ -280,13 +274,11 @@ class DstSwitcher(NullDstSwitcher):
 
         # Looks like we still need to adjust some timestamps.
         if self._dst_on is True:
-            self._log("Putting sample ts forward")
             new_ts = time_stamp + self._dst_info.dst_offset
 
             sample.timeStamp = new_ts.time()
             sample.timeZone = self._dst_info.dst_timezone
         else:
-            self._log("Putting sample ts back")
             new_ts = time_stamp - self._dst_info.dst_offset
             sample.timeStamp = new_ts.time()
             sample.timeZone = self._dst_info.standard_timezone
@@ -312,7 +304,6 @@ class DstSwitcher(NullDstSwitcher):
         if self._switch_mode:
             # The samples timezone will have been set as part of the time
             # correction. Nothing to do here.
-            self._log("TZ Set Skip: in switch mode. TC {0}".format(_get_timestamp(sample)))
             return sample
 
         time_stamp = _get_timestamp(sample)
@@ -333,12 +324,8 @@ class DstSwitcher(NullDstSwitcher):
                 # transition. So if this variable is set we know DST has been
                 # turned off one way or another.
                 sample.timeZone = self._dst_info.standard_timezone
-                self._log("Standard TZ set for {0}".format(time_stamp))
             else:
                 sample.timeZone = self._dst_info.dst_timezone
-                self._log("DST TZ set for {0}".format(time_stamp))
-        else:
-            self._log("Skip TC {0}".format(time_stamp))
 
         return sample
 
@@ -354,8 +341,6 @@ class DstSwitcher(NullDstSwitcher):
 
         time_stamp = _get_timestamp(sample)
 
-        self._log("IN: {0}".format(time_stamp))
-
         expected_next_ts = time_stamp + self._sample_interval
 
         if self._switch_mode:
@@ -368,7 +353,8 @@ class DstSwitcher(NullDstSwitcher):
             # Daylight savings starts between now and when the next sample is
             # due to be logged. Time for DST Mode!
 
-            self._log("Turning on DST fix mode. DST now ON. Sample not modified.")
+            self._log("Turning on DST fix mode. DST now ON. Sample not "
+                      "modified.")
 
             self._enter_dst_mode(True, time_stamp)
 
@@ -378,9 +364,10 @@ class DstSwitcher(NullDstSwitcher):
 
             if self._suppress_dst_off:
                 self._log("DST OFF trigger ignored - previous transition was "
-                      "DST OFF")
+                          "DST OFF")
             else:
-                self._log("Turning on DST fix mode. DST now OFF. Sample not modified.")
+                self._log("Turning on DST fix mode. DST now OFF. Sample not "
+                          "modified.")
 
                 # Set the timezone here as the call later in the function won't
                 # do it once _enter_dst_mode has turned fix mode on.
@@ -395,7 +382,8 @@ class DstSwitcher(NullDstSwitcher):
             # daylight savings started sometime between this sample and the
             # previous recorded sample. We need to start fixing samples from
             # this sample onwards.
-            self._log("DST starts NOW. Turning on DST fix mode and fixing sample.")
+            self._log("DST starts NOW. Turning on DST fix mode and fixing "
+                      "sample.")
             self._enter_dst_mode(True, time_stamp)
             sample = self._adjust_sample(sample)
             self._previous_timestamp = time_stamp
@@ -408,10 +396,10 @@ class DstSwitcher(NullDstSwitcher):
 
             if self._suppress_dst_off:
                 self._log("DST OFF trigger ignored - previous transition was "
-                      "DST OFF")
+                          "DST OFF")
             else:
                 self._log("DST ends NOW. Turning on DST fix mode and fixing "
-                      "sample.")
+                          "sample.")
                 self._enter_dst_mode(False, time_stamp)
                 sample = self._adjust_sample(sample)
                 self._previous_timestamp = time_stamp
