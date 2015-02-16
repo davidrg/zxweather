@@ -74,10 +74,8 @@ class DstSwitchProcedure(Procedure):
         # Completely linear!
         self._state += 1
         self._buffer = ""
-        log.msg("Moved to state {0}".format(self._state))
 
         if data is not None:
-            log.msg("Write data: {0}".format(toHexString(data)))
             self._write(data)
 
     def start(self):
