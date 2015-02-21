@@ -21,6 +21,27 @@
 dsn = ""
 
 ##############################################################################
+### Message Broker Configuration #############################################
+##############################################################################
+
+# Using this feature requires the pika library to be installed
+
+# The logger can broadcast live data to RabbitMQ. This is useful if you're
+# running on something like a Raspberry Pi where you don't want to be writing
+# a database transaction to the SD card every 2 seconds. See the manual for
+# more details.
+
+#mq_host = "localhost"
+#mq_port = 5672
+#mq_username = "guest"
+#mq_password = "guest"
+#mq_vhost = "/"
+
+# Name of the exchange to broadcast to. This must be a topic exchange. Routing
+# keys will be station_code.datatype (eg, rua2.live)
+#mq_exchange = "weather"
+
+##############################################################################
 #   Station Configuration ####################################################
 ##############################################################################
 
@@ -84,7 +105,26 @@ from twisted.application.service import Application, IProcess
 application = Application("davisd")
 IProcess(application).processName = "davisd"
 
+x_mq_hostname = None
+x_mq_port = None
+x_mq_exchange = None
+x_mq_username = None
+x_mq_password = None
+x_mq_vhost = None
+
+try:
+    x_mq_hostname = mq_host
+    x_mq_port = mq_port
+    x_mq_exchange = mq_exchange
+    x_mq_username = mq_username
+    x_mq_password = mq_password
+    x_mq_vhost = mq_vhost
+except NameError:
+    pass
+
 service = DavisService(dsn, station_code, serial_port, baud_rate,
-                       sample_error_file, auto_dst, time_zone)
+                       sample_error_file, auto_dst, time_zone, x_mq_hostname,
+                       x_mq_port, x_mq_exchange, x_mq_username, x_mq_password,
+                       x_mq_vhost)
 
 service.setServiceParent(application)
