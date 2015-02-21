@@ -6,16 +6,18 @@ import csv
 from datetime import datetime, timedelta, time
 import json
 import os
-import sys
+
 import psycopg2
 from twisted.application import service
 from twisted.enterprise import adbapi
-from twisted.internet import reactor
+from twisted.internet import reactor, protocol, defer
 from twisted.internet.protocol import Protocol
 from twisted.internet.serialport import SerialPort
 from twisted.python import log
+
 from davis_logger.davis import DavisWeatherStation
 from davis_logger.dst_switcher import DstInfo, DstSwitcher, NullDstSwitcher
+
 
 __author__ = 'david'
 
@@ -32,12 +34,15 @@ class DavisLoggerProtocol(Protocol):
     _loopPacketRequestSize = 100
 
     def __init__(self, database_pool, station_id, latest_date, latest_time,
-                 sample_error_file, auto_dst, time_zone, latest_ts):
+                 sample_error_file, auto_dst, time_zone, latest_ts,
+                 database_live_data_enabled, mq_publisher):
         self.station = DavisWeatherStation()
 
         self._auto_dst = auto_dst
         self._time_zone = time_zone
         self._latest_ts = latest_ts
+        self._database_live_data_enabled = database_live_data_enabled
+        self._mq_publisher = mq_publisher
 
         # Setup the watchdog. This will give the data logger a kick if it stalls
         # (this can happen sometimes when data gets lost due to noise on the
@@ -76,13 +81,13 @@ class DavisLoggerProtocol(Protocol):
         Passes all received data on to the weather station.
         :param data: Data to pass on
         """
-        #log.msg('>> {0}'.format(toHexString(data)))
+        # log.msg('>> {0}'.format(toHexString(data)))
         self.station.dataReceived(data)
 
         self._data_last_received = datetime.now()
 
     def _sendData(self, data):
-        #log.msg('<< {0}'.format(toHexString(data)))
+        # log.msg('<< {0}'.format(toHexString(data)))
         self.transport.write(data)
 
     def connectionMade(self):
@@ -90,7 +95,7 @@ class DavisLoggerProtocol(Protocol):
         log.msg('Logger started.')
         log.msg('Latest date: {0} - Latest time: {1} - Station: {2}'.format(
             self._latest_date, self._latest_time, self._station_id))
-        #self.station.getLoopPackets(5)
+        # self.station.getLoopPackets(5)
 
         self.station.initialise()
 
@@ -143,13 +148,13 @@ class DavisLoggerProtocol(Protocol):
         self.station.getSamples((self._latest_date, self._latest_time))
 
     def _loopPacketReceived(self, loop):
-        self._store_live(loop)
+        self._publish_live(loop)
 
         nextRec = loop.nextRecord
         if nextRec != self._lastRecord:
             log.msg('New Page. Fetch Samples...')
             self._lastRecord = nextRec
-            #self.station.cancelLoop()
+            # self.station.cancelLoop()
             self._fetch_samples()
 
     def _loopFinished(self):
@@ -191,7 +196,8 @@ class DavisLoggerProtocol(Protocol):
             last = adjusted_samples[-1]
             self._latest_date = last.dateInteger
             self._latest_time = last.timeInteger
-            log.msg('Last record: {0} {1}'.format(last.dateStamp, last.timeStamp))
+            log.msg(
+                'Last record: {0} {1}'.format(last.dateStamp, last.timeStamp))
         log.msg('Received {0} archive records'.format(len(adjusted_samples)))
 
         if loop:
@@ -318,6 +324,14 @@ by a change in time zone due to daylight savings.""".format(e.pgerror))
 
             self._write_samples_to_error_log(samples)
 
+    def _publish_live(self, loop):
+
+        if self._mq_publisher is not None:
+            self._mq_publisher.publish_live(loop)
+
+        if self._database_live_data_enabled:
+            self._store_live(loop)
+
     def _store_live(self, loop):
         """
         :param loop:
@@ -409,9 +423,47 @@ by a change in time zone due to daylight savings.""".format(e.pgerror))
         self._reschedule_watchdog()
 
 
+class MQPublisher(object):
+    """
+    Handles publishing data to a message broker.
+    """
+
+    def __init__(self, channel, station_code, exchange):
+        """
+        Sets up the publisher.
+        """
+        import pika
+        self._channel = channel
+        self._key_prefix = station_code + "."
+        self._properties = pika.BasicProperties(
+            app_id='DavisLogger',
+            content_type='application/json')
+        self._exchange = exchange
+
+    def publish_live(self, loop_data):
+        """
+        Publishes the live data to the message broker.
+        """
+
+        loop_dict = loop_data._asdict()
+
+        # Convert times and dates to strings.
+        loop_dict["timeOfSunrise"] = loop_dict["timeOfSunrise"].isoformat()
+        loop_dict["timeOfSunset"] = loop_dict["timeOfSunset"].isoformat()
+
+        if loop_dict["startDateOfCurrentStorm"] is not None:
+            loop_dict["startDateOfCurrentStorm"] = loop_dict["startDateOfCurrentStorm"].isoformat()
+
+        routing_key = self._key_prefix + "live"
+        self._channel.basic_publish(self._exchange, routing_key,
+                                    json.dumps(loop_dict),
+                                    self._properties)
+
+
 class DavisService(service.Service):
     def __init__(self, database, station, port, baud, sample_error_file,
-                 auto_dst, time_zone):
+                 auto_dst, time_zone, mq_host, mq_port, mq_exchange,
+                 mq_username, mq_password, mq_vhost):
         self.dbc = database
         self.station_code = station
         self.serial_port = port
@@ -421,6 +473,14 @@ class DavisService(service.Service):
         self.auto_dst = auto_dst
         self.time_zone = time_zone
 
+        self._mq_host = mq_host
+        self._mq_port = mq_port
+        self._mq_exchange = mq_exchange
+        self._mq_username = mq_username
+        self._mq_password = mq_password
+        self._mq_vhost = mq_vhost
+        self._mq_publisher = None
+
         if not os.path.exists(self.sample_error_file):
             # File doesn't exist. Try to create it.
             log.msg("Sample error file does not exist. Attempting to create...")
@@ -428,7 +488,9 @@ class DavisService(service.Service):
                 os.utime(self.sample_error_file, None)
 
         if not os.access(self.sample_error_file, os.W_OK):
-            raise Exception("Unable to write to failed sample output file {0}".format(self.sample_error_file))
+            raise Exception(
+                "Unable to write to failed sample output file {0}".format(
+                    self.sample_error_file))
 
     def startService(self):
         # This will kick off everything else.
@@ -446,17 +508,63 @@ class DavisService(service.Service):
     def _store_latest_rec(self, result, station_id):
 
         if len(result) == 0:
-            latest_time = 0
-            latest_date = 0
-            latest_ts = datetime.now()
+            self._latest_time = 0
+            self._latest_date = 0
+            self._latest_ts = datetime.now()
         else:
-            latest_time = result[0][0]
-            latest_date = result[0][1]
-            latest_ts = result[0][2]
+            self._latest_time = result[0][0]
+            self._latest_date = result[0][1]
+            self._latest_ts = result[0][2]
 
+        if self._mq_host is None:
+            self._start_logging()
+        else:
+            self._mq_connect()
+
+    @defer.inlineCallbacks
+    def _mq_setup(self, connection):
+        log.msg("Broker connected. Configuring...")
+
+        channel = yield connection.channel()
+
+        yield channel.exchange_declare(exchange=self._mq_exchange, type='topic')
+        self._mq_publisher = MQPublisher(channel, self.station_code,
+                                         self._mq_exchange)
+
+        log.msg("Broker configured.")
+        self._start_logging()
+
+    def _mq_connect(self):
+        try:
+            log.msg("Attempting to connect to message broker...")
+            import pika
+            from pika.credentials import PlainCredentials
+            from pika.adapters import twisted_connection
+
+            credentials = PlainCredentials(self._mq_username, self._mq_password)
+
+            parameters = pika.ConnectionParameters(virtual_host=self._mq_vhost,
+                                                   credentials=credentials)
+            cc = protocol.ClientCreator(
+                reactor, twisted_connection.TwistedProtocolConnection,
+                parameters)
+
+            d = cc.connectTCP(self._mq_host, self._mq_port)
+            d.addCallback(lambda protocol: protocol.ready)
+            d.addCallback(self._mq_setup)
+
+        except ImportError:
+            log.msg("*** WARNING: RabbitMQ Client library (pika) is not "
+                    "available. Data will NOT be logged to RabbitMQ.")
+            self._start_logging()
+
+    def _start_logging(self):
+        log.msg("Starting data logger...")
         logger = DavisLoggerProtocol(
-            self.database_pool, station_id, latest_date, latest_time,
-            self.sample_error_file, self.auto_dst, self.time_zone, latest_ts)
+            self.database_pool, self._station_id, self._latest_date,
+            self._latest_time, self.sample_error_file, self.auto_dst,
+            self.time_zone, self._latest_ts, self._live_available,
+            self._mq_publisher)
 
         self.sp = SerialPort(logger,
                              self.serial_port,
@@ -465,8 +573,10 @@ class DavisService(service.Service):
 
 
     def _store_station_id(self, result):
-        station_id = result[0][0]
-        log.msg('Station ID: {0}'.format(station_id))
+        self._station_id = result[0][0]
+        self._live_available = result[0][1]
+        log.msg('Station ID: {0}'.format(self._station_id))
+        log.msg('Live data available: {0}'.format(self._live_available))
 
         query = """
                 select ds.record_time, ds.record_date, s.time_stamp
@@ -477,12 +587,13 @@ class DavisService(service.Service):
                 fetch first 1 rows only
                 """
 
-        self.database_pool.runQuery(query, (station_id,)).addCallback(
-            self._store_latest_rec, station_id)
+        self.database_pool.runQuery(query, (self._station_id,)).addCallback(
+            self._store_latest_rec, self._station_id)
 
-    def _database_connect(self,):
+    def _database_connect(self, ):
         self.database_pool = adbapi.ConnectionPool("psycopg2", self.dbc)
         self.database_pool.runQuery(
-            "select station_id from station where code = %s",
+            "select station_id, live_data_available "
+            "from station where code = %s",
             (self.station_code,)).addCallback(self._store_station_id)
 

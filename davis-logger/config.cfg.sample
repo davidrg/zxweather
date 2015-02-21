@@ -1,0 +1,80 @@
+# zxweather data logger for Davis weather stations
+# Sample configuration file
+
+##############################################################################
+### Database Configuration ###################################################
+##############################################################################
+[database]
+# This is the database connection string. For example:
+# dsn=host=localhost port=5432 user=zxweather password=password dbname=weather
+dsn=
+
+
+##############################################################################
+### Message Broker Configuration #############################################
+##############################################################################
+[rabbitmq]
+# The logger can broadcast live data to RabbitMQ. This is useful if you're
+# running on something like a Raspberry Pi where you don't want to be writing
+# a database transaction to the SD card every 2 seconds. See the manual for
+# more details.
+
+# Using this feature requires the pika library to be installed
+
+#host=localhost
+#port=5672
+
+#username=guest
+#password=guest
+
+#virtual_host=/
+
+#exchange=weather
+
+##############################################################################
+### Station Configuration ####################################################
+##############################################################################
+[station]
+station_code=sb
+
+##############################################################################
+#   Logging Configuration ####################################################
+##############################################################################
+[logger]
+
+serial_port=COM2
+
+baud_rate=19200
+
+# File to dump bad samples into
+sample_error_file=errors.csv
+
+
+##############################################################################
+#   Daylight Savings Configuration ###########################################
+##############################################################################
+[dst]
+
+# Automatically adjust for daylight savings:
+#   This setting causes the data logger to automatically adjust the weather
+#   stations clock and your data for Daylight Savings. When daylight savings
+#   changes it will:
+#     * Fix the timestamps on any data in the weather stations memory to account
+#       for daylight savings
+#     * Adjust the daylight savings setting on the weather station so data
+#       produced by the weather station in the future doesn't need fixing.
+#   Use this setting if your station does not support daylight savings in your
+#   location or does not do it correctly.
+#
+#   If you turn this setting on you should have your weather stations daylight
+#   savings set to "Manual". You can change this setting directly on your
+#   weather stations console or by using the set-clock utility.
+#
+#   This setting is incompatible with archive intervals greater than one hour.
+
+auto_dst = True
+
+# Time zone for daylight savings:
+#   Where in the world are you? You can see a list of valid options on Wikipedia
+#   at http://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+time_zone = "Pacific/Auckland"
