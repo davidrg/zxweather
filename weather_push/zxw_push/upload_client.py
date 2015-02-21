@@ -254,7 +254,10 @@ class UploadClient(object):
             for station_info in result:
                 self.latestSampleInfo[station_info['station']] = station_info
                 log.msg("Station: " + station_info['station'])
-                log.msg(" - Timestamp: " + station_info['timestamp'])
+                if station_info['timestamp'] is None:
+                    log.msg(" - Timestamp: None")
+                else:
+                    log.msg(" - Timestamp: " + station_info['timestamp'])
 
                 if 'wh1080_record_number' in station_info:
                     log.msg(" - WH1080 Record: " + str(station_info['wh1080_record_number']))
