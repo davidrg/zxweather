@@ -114,7 +114,7 @@ def _get_davis_sample_record(values):
         average_uv_index=_int_or_none(values[21]),
         evapotranspiration=_float_or_none(values[22]),
         high_solar_radiation=_float_or_none(values[23]),
-        high_uv_index=_int_or_none(values[24]),
+        high_uv_index=_float_or_none(values[24]),
         forecast_rule_id=_int_or_none(values[25])
     )
 
@@ -229,7 +229,7 @@ def _get_davis_live_record(values):
         console_battery_voltage=_float_or_none(values[16]),
         forecast_icon=_int_or_none(values[17]),
         forecast_rule_id=_int_or_none(values[18]),
-        uv_index=_int_or_none(values[19]),
+        uv_index=_float_or_none(values[19]),
         solar_radiation=_int_or_none(values[20])
     )
     return rec
