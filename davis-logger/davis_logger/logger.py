@@ -437,7 +437,8 @@ class MQPublisher(object):
         self._key_prefix = station_code + "."
         self._properties = pika.BasicProperties(
             app_id='DavisLogger',
-            content_type='application/json')
+            content_type='application/json',
+            type='DavisLive')
         self._exchange = exchange
 
     def publish_live(self, loop_data):

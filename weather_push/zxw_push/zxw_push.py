@@ -9,6 +9,7 @@ from twisted.python import log
 from client.ssh_client import ShellClientFactory
 from client.upload_client import UploadClient
 from client.database import WeatherDatabase
+from client.mq_receiver import RabbitMqReceiver
 
 __author__ = 'david'
 
@@ -57,7 +58,7 @@ def getPushService(hostname, port, username, password, host_key_fingerprint,
     :param mq_vhost: RabbitMQ virtual host
     :type mq_vhost: str
     """
-    global database
+    global database, mq_client
     log.msg('Connecting...')
 
     # log.startLogging(DailyLogFile.fromFullPath("log-file"), setStdout=False)
@@ -72,6 +73,14 @@ def getPushService(hostname, port, username, password, host_key_fingerprint,
 
     _upload_client.Ready += database.transmitter_ready
     _upload_client.ReceiptConfirmation += database.confirm_receipt
+
+    if mq_host is not None:
+        mq_client = RabbitMqReceiver(mq_user, mq_password, mq_vhost,
+                                     mq_host, mq_port, mq_exchange)
+        mq_client.LiveUpdate += _upload_client.sendLive
+        _upload_client.Ready += mq_client.connect
+
+
 
     if transport_type == "ssh":
 
