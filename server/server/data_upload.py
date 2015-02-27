@@ -111,7 +111,7 @@ def _get_davis_sample_record(values):
         solar_radiation=_float_or_none(values[18]),
         wind_sample_count=_int_or_none(values[19]),
         gust_wind_direction=_float_or_none(values[20]),
-        average_uv_index=_int_or_none(values[21]),
+        average_uv_index=_float_or_none(values[21]),
         evapotranspiration=_float_or_none(values[22]),
         high_solar_radiation=_float_or_none(values[23]),
         high_uv_index=_float_or_none(values[24]),
@@ -275,14 +275,21 @@ class UploadCommand(Command):
     _to_ the database for storage.
     """
 
-    def _result_handler(self, message):
-        if message is None:
+    def _result_handler(self, result):
+
+        if isinstance(result, basestring):
+            # Its an error message
+            self.writeLine(result)
+        else:
+            if result is not None:
+                # It should be a list of confirmation messages
+                for item in result:
+                    self.writeLine(item)
+
             # No errors. Lets insert another sample (if there is one)...
             self._sample_lock = False
             self._processSamples()
             return
-
-        self.writeLine(message)
 
     def _setErrorCondition(self):
         # Something went wrong inserting a new sample. We will now throw away
