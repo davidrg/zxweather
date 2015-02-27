@@ -90,7 +90,7 @@ host_key = None
 ##############################################################################
 # Don't change anything below this point.
 
-from zxw_push.zxw_push import getPushService
+from zxw_push.zxw_push import getClientService
 from twisted.application.service import Application, IProcess
 
 # this is the core part of any tac file, the creation of the root-level
@@ -109,7 +109,7 @@ except NameError:
     pass
 
 # attach the service to its parent application
-service = getPushService(
+service = getClientService(
     hostname,
     port,
     username,

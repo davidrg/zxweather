@@ -63,6 +63,8 @@ CHANGES                                            zxweather release 1.0 beta 1
       - Basic interface now handles archive mode
       - All pages now have UI switch links at the bottom right of the page.
       - Ability to control live data timeout warnings
+      - Script to submit data to UK Met Office WOW service. Readings will appear
+        on NZ MetService website too.
     Bug Fixes:
       - Fixed multi-station compatibility problem with 7-day data sources in
         the web interface.

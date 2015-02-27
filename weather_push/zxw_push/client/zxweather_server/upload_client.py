@@ -6,7 +6,7 @@ from collections import deque
 import json
 from twisted.internet import reactor
 from twisted.python import log
-from ..common.util import Event
+from ...common.util import Event
 
 __author__ = 'david'
 
@@ -34,9 +34,10 @@ MODE_FINISHED = 5
 MODE_DONE = 6
 
 
-class UploadClient(object):
+class ZXDUploadClient(object):
     """
-    This client handles uploading data to the
+    Upload client for sending data to the zxweather server via SSH (or any
+    other protocols where the UPLOAD command is available)
     """
 
     # Format strings for sending data.
