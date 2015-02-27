@@ -5,23 +5,13 @@ weather push: A program for pushing weather data to a remote zxweatherd server.
 from twisted.application import internet
 from twisted.internet import reactor
 from twisted.python import log
-from twisted.python.logfile import DailyLogFile
-from ssh_client import ShellClientFactory
-from upload_client import UploadClient
-from database import WeatherDatabase
+#from twisted.python.logfile import DailyLogFile
+from client.ssh_client import ShellClientFactory
+from client.upload_client import UploadClient
+from client.database import WeatherDatabase
 
 __author__ = 'david'
 
-
-def client_ready(dsn):
-    """
-    Called when the UploadClient is ready to receive data. This is where we
-    connect to the database, etc.
-    :param dsn: Data source name
-    :type dsn: str
-    """
-    print('Client ready.')
-    database.connect(dsn)
 
 def client_finished():
     """
@@ -32,7 +22,9 @@ def client_finished():
     reactor.stop()
 
 
-def getPushService(hostname, port, username, password, host_key_fingerprint, dsn):
+def getPushService(hostname, port, username, password, host_key_fingerprint,
+                   dsn, transport_type, encoding, mq_host, mq_port, mq_exchange,
+                   mq_user, mq_password, mq_vhost):
     """
     Connects to the remote server.
     :param hostname: Remote host to connect to
@@ -48,18 +40,44 @@ def getPushService(hostname, port, username, password, host_key_fingerprint, dsn
     :type host_key_fingerprint: str or None
     :param dsn: Database connection string
     :type dsn: str
+    :param transport_type: Transport type to use (ssh or udp)
+    :type transport_type: str
+    :param encoding: Data encoding to use (standard or diff)
+    :type encoding: str
+    :param mq_host: RabbitMQ hostname
+    :type mq_host: str
+    :param mq_port: RabbitMQ port
+    :type mq_port: int
+    :param mq_exchange: RabbitMQ Exchange
+    :type mq_exchange: str
+    :param mq_user: RabbitMQ Username
+    :type mq_user: str
+    :param mq_password: RabbitMQ Password
+    :type mq_password: str
+    :param mq_vhost: RabbitMQ virtual host
+    :type mq_vhost: str
     """
     global database
     log.msg('Connecting...')
 
-    #log.startLogging(DailyLogFile.fromFullPath("log-file"), setStdout=False)
+    # log.startLogging(DailyLogFile.fromFullPath("log-file"), setStdout=False)
 
     _upload_client = UploadClient(
-        client_finished, lambda : client_ready(dsn), "weather-push")
+        client_finished, "weather-push")
 
-    database = WeatherDatabase(_upload_client)
+    database = WeatherDatabase(hostname, dsn)
+    database.LiveUpdate += _upload_client.sendLive
+    database.NewSample += _upload_client.sendSample
+    database.EndOfSamples += _upload_client.flushSamples
 
-    factory = ShellClientFactory(username, password, host_key_fingerprint,
-        _upload_client)
+    _upload_client.Ready += database.transmitter_ready
+    _upload_client.ReceiptConfirmation += database.confirm_receipt
 
-    return internet.TCPClient(hostname, port, factory)
+    if transport_type == "ssh":
+
+        factory = ShellClientFactory(username, password, host_key_fingerprint,
+                                     _upload_client)
+
+        return internet.TCPClient(hostname, port, factory)
+    else:
+        return None

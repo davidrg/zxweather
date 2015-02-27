@@ -1,4 +1,8 @@
 # coding=utf-8
+import ConfigParser
+
+from zxw_push.zxw_push import getPushService
+
 __author__ = 'david'
 
 from zope.interface import implements
@@ -7,17 +11,10 @@ from twisted.python import usage
 from twisted.plugin import IPlugin
 from twisted.application.service import IServiceMaker
 
-from zxw_push.zxw_push import getPushService
-
 
 class Options(usage.Options):
     optParameters = [
-        ["host", 'h', None, "The remote hostname or IP address"],
-        ["port", "p", 22, "The port the remote SSH service is listening on.", int],
-        ["username", "u", None, "The username to authenticate with"],
-        ["password", "a", "", "The password to authenticate with"],
-        ["key_fingerprint", "k", None, "Remote host SSH key fingerprint"],
-        ["dsn", "d", None, "Database connection string"]
+        ["config-file", "f", None, "Configuration file."],
     ]
 
 
@@ -31,6 +28,62 @@ class ZXWPushServiceMaker(object):
     description = "Service for pushing data out to a remote weather server"
     options = Options
 
+    def _readConfigFile(self, filename):
+        S_DATABASE = 'database'
+        S_RABBITMQ = 'rabbitmq'
+        S_TRANSPORT = 'transport'
+        S_SSH = 'ssh'
+
+        config = ConfigParser.ConfigParser()
+        config.read([filename])
+
+        dsn = config.get(S_DATABASE, 'dsn')
+
+        mq_host = None
+        mq_port = None
+        mq_exchange = None
+        mq_user = None
+        mq_password = None
+        mq_vhost = "/"
+
+        if config.has_section(S_RABBITMQ):
+            if config.has_option(S_RABBITMQ, "host") \
+                    and config.has_option(S_RABBITMQ, "port"):
+                mq_host = config.get(S_RABBITMQ, "host")
+                mq_port = config.getint(S_RABBITMQ, "port")
+                mq_user = config.get(S_RABBITMQ, "user")
+                mq_password = config.get(S_RABBITMQ, "password")
+                mq_exchange = config.get(S_RABBITMQ, "exchange")
+
+            if config.has_option(S_RABBITMQ, "virtual_host"):
+                mq_vhost = config.get(S_RABBITMQ, "virtual_host")
+
+        transport_type = config.get(S_TRANSPORT, "type")
+        if transport_type not in ["ssh", "udp"]:
+            raise Exception("Invalid transport type")
+
+        encoding = config.get(S_TRANSPORT, "encoding")
+        if encoding not in ["standard", "diff"]:
+            raise Exception("Invalid encoding type")
+
+        hostname = config.get(S_TRANSPORT, "hostname")
+        port = config.getint(S_TRANSPORT, "port")
+
+        ssh_user = None
+        ssh_password = None
+        ssh_host_key = None
+
+        if transport_type == "ssh":
+            ssh_user = config.get(S_SSH, "username")
+            ssh_password = config.get(S_SSH, "password")
+
+            if config.has_option(S_SSH, "host_key"):
+                ssh_host_key = config.get(S_SSH, "host_key")
+
+        return dsn, mq_host, mq_port, mq_exchange, mq_user, mq_password, \
+            mq_vhost, transport_type, encoding, hostname, port, ssh_user, \
+            ssh_password, ssh_host_key
+
     def makeService(self, options):
         """
         Construct the TCPService.
@@ -38,22 +91,28 @@ class ZXWPushServiceMaker(object):
         :type options: dict
         """
 
-        # Check for required parameters.
-        if options["host"] is None:
-            raise Exception('Hostname is required')
-        elif options["username"] is None:
-            raise Exception('Username required')
-        elif options["dsn"] is None:
-            raise Exception('Database connection string required')
+        dsn, mq_host, mq_port, mq_exchange, mq_user, mq_password, \
+            mq_vhost, transport_type, encoding, hostname, port, ssh_user, \
+            ssh_password, ssh_host_key = self._readConfigFile(
+                options['config-file'])
 
         # All OK. Go get the service.
         return getPushService(
-            options["host"],
-            int(options["port"]),
-            options["username"],
-            options["password"],
-            options["key_fingerprint"],
-            options["dsn"]
+            hostname,
+            port,
+            ssh_user,
+            ssh_password,
+            ssh_host_key,
+            dsn,
+            transport_type,
+            encoding,
+            mq_host,
+            mq_port,
+            mq_exchange,
+            mq_user,
+            mq_password,
+            mq_vhost
         )
+
 
 serviceMaker = ZXWPushServiceMaker()

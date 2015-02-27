@@ -74,6 +74,36 @@ comment on column station.station_config is 'JSON document containing extra conf
 -- Adjust comment for wind direction.
 COMMENT ON COLUMN sample.wind_direction IS 'Prevailing wind direction in degrees.';
 
+
+-- For replicating data to other databases
+create table remote_site (
+  site_id serial not null primary key,
+  hostname character varying
+);
+
+comment on table remote_site is 'A remote site data is replicated to';
+comment on column remote_site.site_id is 'Site ID, primary key';
+comment on column remote_site.hostname is 'Hostname/domain name for the remote site';
+
+create type sample_replication_status as enum('pending', 'awaiting_confirmation', 'done');
+comment on type sample_replication_status is 'Sample replication status';
+
+create table replication_status (
+  sample_id integer not null references sample(sample_id),
+  site_id integer not null references remote_site(site_id),
+  status sample_replication_status not null default 'pending',
+  status_time timestamptz default NOW(),
+  retries integer not null default 0,
+  primary key(sample_id, site_id)
+);
+
+comment on table replication_status is 'Replication status for each sample';
+comment on column replication_status.sample_id is 'ID of the sample';
+comment on column replication_status.site_id is 'Remote site';
+comment on column replication_status.status is 'Status of the sample on the remote site';
+comment on column replication_status.status_time is 'Time the status last changed';
+comment on column replication_status.retries is 'Number of times the sample has been transmitted';
+
 -- A table for data specific to Davis-compatible hardware.
 create table davis_sample (
   sample_id integer not null primary key references sample(sample_id),
@@ -376,6 +406,37 @@ COMMENT ON CONSTRAINT station_timestamp_unique ON sample IS 'Each station can on
 -- FUNCTIONS ---------------------------------------------------------
 ----------------------------------------------------------------------
 
+CREATE OR REPLACE FUNCTION add_replication_status()
+  RETURNS trigger AS
+  $BODY$
+DECLARE
+
+BEGIN
+    -- If its an insert then add a new replication status record for each remote
+    -- site
+    IF(TG_OP = 'INSERT') THEN
+        insert into replication_status(site_id, sample_id)
+        select rs.site_id, NEW.sample_id
+        from  remote_site rs
+        where rs.site_id not in (
+          select rs.site_id
+          from remote_site rs
+          inner join replication_status as repl on repl.site_id = rs.site_id
+                                                   and repl.sample_id = NEW.sample_id
+        );
+    END IF;
+
+    RETURN NEW;
+END;
+$BODY$
+LANGUAGE plpgsql VOLATILE;
+COMMENT ON FUNCTION add_replication_status() IS 'Adds a new replication status record for each remote site for a new sample.';
+
+CREATE TRIGGER add_replication_status AFTER INSERT
+   ON sample FOR EACH ROW
+   EXECUTE PROCEDURE public.add_replication_status();
+
+
 CREATE OR REPLACE FUNCTION compute_sample_values()
   RETURNS trigger AS
   $BODY$
@@ -409,6 +470,8 @@ END;
 $BODY$
 LANGUAGE plpgsql VOLATILE;
 COMMENT ON FUNCTION compute_sample_values() IS 'Calculates values for all calculated fields (wind chill, dew point, rainfall, etc).';
+
+
 
 
 CREATE OR REPLACE FUNCTION compute_wh1080_sample_values()

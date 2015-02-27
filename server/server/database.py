@@ -284,6 +284,18 @@ def get_station_id(code):
     global station_code_id
     return station_code_id[code]
 
+def _sample_exists(txn, station_id, time_stamp):
+    query = "select sample_id from sample " \
+            "where station_id = %s and time_stamp = %s"
+    txn.execute(query, (station_id, time_stamp))
+
+    result = txn.fetchone()
+
+    if result is None:
+        return False
+    return True
+
+
 def _insert_wh1080_sample_int(txn, base, wh1080, station_id):
     """
     Inserts a new sample for WH1080-type stations. This includes a record in
@@ -350,6 +362,7 @@ def _insert_wh1080_sample_int(txn, base, wh1080, station_id):
 
     # Done!
     return None
+
 
 def _insert_davis_sample_int(txn, base, davis, station_id):
     """
@@ -460,16 +473,33 @@ def _insert_generic_sample_int(txn, data, station_id):
 
 
 def _insert_samples_int(txn, samples):
+
+    results = []
+
     for sample in samples:
         hw_type = sample[0]
         station_id = sample[1]
+        base = sample[2]
 
-        if hw_type == 'FOWH1080':
-            _insert_wh1080_sample_int(txn, sample[2], sample[3], station_id)
-        elif hw_type == 'DAVIS':
-            _insert_davis_sample_int(txn, sample[2], sample[3], station_id)
-        elif hw_type == 'GENERIC':
-            _insert_generic_sample_int(txn, sample[2], station_id)
+        station_code = base.station_code
+        time_stamp = base.time_stamp
+
+        if _sample_exists(txn, station_id, base.time_stamp):
+            # Sample already exists. Don't bother trying to insert - it will
+            # just fail.
+            results.append("# WARN-001: Duplicate sample {0} {1}".format(station_code,
+                                                               time_stamp))
+        else:
+            if hw_type == 'FOWH1080':
+                _insert_wh1080_sample_int(txn, base, sample[3], station_id)
+            elif hw_type == 'DAVIS':
+                _insert_davis_sample_int(txn, base, sample[3], station_id)
+            elif hw_type == 'GENERIC':
+                _insert_generic_sample_int(txn, base, station_id)
+
+        results.append("CONFIRM {0}\t{1}".format(station_code, time_stamp))
+
+    return results
 
 
 def insert_samples(samples):

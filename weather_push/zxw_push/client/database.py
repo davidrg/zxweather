@@ -1,6 +1,8 @@
 # coding=utf-8
-from twisted.internet import reactor
+from twisted.enterprise import adbapi
+from twisted.internet import reactor, defer
 from twisted.python import log
+from ..common.util import Event
 
 __author__ = 'david'
 import psycopg2
@@ -20,15 +22,87 @@ class WeatherDatabase(object):
 
     _CONN_CHECK_INTERVAL = 60
 
-    def __init__(self, upload_client):
+    def __init__(self, hostname, dsn):
         """
-        :param upload_client: The UploadClient instance to use for pushing data
-        out to the remote system
-        :type upload_client: UploadClient
+        """
+        self.NewSample = Event()
+        self.EndOfSamples = Event()
+        self.LiveUpdate = Event()
+
+        self._hostname = hostname
+        self._site_id = None
+        self._transmitter_ready = False
+        self._connection_string = dsn
+
+        self._remote_stations = None
+
+        self._confirmations = []
+
+        self._database_pool = None
+
+        self._processing_confirmations = False
+        self._peak_confirmation_queue_length = 0
+
+    def transmitter_ready(self, remote_stations):
+        self._remote_stations = remote_stations
+        self._transmitter_ready = True
+        self._connect()
+
+    def confirm_receipt(self, station_code, time_stamp):
+        """
+        Confirms that the remote system has received a sample for the specified
+        station with the given time stamp.
+
+        :param station_code: Station the sample was for
+        :param time_stamp: Timestamp of the sample
         :return:
         """
-        self._upload_client = upload_client
-        self._latest_ts = {}
+
+        self._confirmations.append((station_code, time_stamp))
+
+        if not self._processing_confirmations:
+            self._process_confirmations()
+
+    @defer.inlineCallbacks
+    def _process_confirmations(self):
+        self._processing_confirmations = True
+
+        log_interval = 100
+
+        while len(self._confirmations) > 0:
+
+            self._peak_confirmation_queue_length = max(
+                len(self._confirmations), self._peak_confirmation_queue_length)
+
+            log_interval -= 1
+            if log_interval == 0:
+                log.msg("Receipt confirmation queue length: {0} (peak {1})".format(
+                    len(self._confirmations),
+                    self._peak_confirmation_queue_length))
+                log_interval = 100
+
+            confirmation = self._confirmations.pop(0)
+            station_code = confirmation[0]
+            time_stamp = confirmation[1]
+
+            query = """
+            update replication_status ars
+            set status = 'done',
+            status_time = NOW()
+            from replication_status rs
+            inner join sample s on s.sample_id = rs.sample_id
+            inner join station st on st.station_id = s.station_id
+            where s.time_stamp = %s
+              and st.code = %s
+              and rs.site_id = %s
+              and ars.sample_id = rs.sample_id
+              and ars.site_id=rs.site_id
+            """
+
+            yield self._database_pool.runOperation(query, (time_stamp,
+                                                           station_code,
+                                                           self._site_id))
+        self._processing_confirmations = False
 
     def _fetch_generic_live(self, station_code):
         """
@@ -36,13 +110,13 @@ class WeatherDatabase(object):
         :param station_code: Station to get live data for.
         """
 
-        if self._upload_client.latestSampleInfo is None:
+        if not self._transmitter_ready:
             # Client is not connected yet.
             return
 
         # Don't bother sending live data for stations the remote system doesn't
         # know anything about.
-        if station_code not in self._upload_client.latestSampleInfo:
+        if station_code not in self._remote_stations:
             return
 
         query = """
@@ -61,12 +135,12 @@ class WeatherDatabase(object):
     where s.code = %s
         """
 
-        def process_result(result, upload_client):
+        def process_result(result):
             station_data = result[0]
-            upload_client.sendLive(station_data, 'GENERIC')
+            self.LiveUpdate.fire(station_data, 'GENERIC')
 
         self._conn.runQuery(query, (station_code,)).addCallback(
-            process_result, self._upload_client)
+            process_result)
 
     def _fetch_davis_live(self, station_code):
         """
@@ -75,13 +149,13 @@ class WeatherDatabase(object):
         :param station_code: Station to get live data for.
         """
 
-        if self._upload_client.latestSampleInfo is None:
+        if not self._transmitter_ready:
             # Client is not connected yet.
             return
 
         # Don't bother sending live data for stations the remote system doesn't
         # know anything about.
-        if station_code not in self._upload_client.latestSampleInfo:
+        if station_code not in self._remote_stations:
             return
 
         query = """
@@ -111,12 +185,12 @@ class WeatherDatabase(object):
     where s.code = %s
         """
 
-        def process_result(result, upload_client):
+        def process_result(result):
             station_data = result[0]
-            upload_client.sendLive(station_data, 'DAVIS')
+            self.LiveUpdate.fire(station_data, 'DAVIS')
 
         self._conn.runQuery(query, (station_code,)).addCallback(
-            process_result, self._upload_client)
+            process_result)
 
     def _fetch_live(self, station_code):
         """
@@ -132,28 +206,36 @@ class WeatherDatabase(object):
         else:  # FineOffset and Generic hardware don't send any extra data
             self._fetch_generic_live(station_code)
 
-    def _get_latest_ts(self, station_code):
-        if station_code not in self._latest_ts:
-            self._latest_ts[station_code] = self._upload_client.latestSampleInfo[station_code]['timestamp']
-        return self._latest_ts[station_code]
-
     def process_samples_result(self, result, hw_type):
         """
         Sends the results from a samples query off to the upload client.
         :param result: Query result
         :param hw_type: Hardware type for the station.
         """
-        for data in result:
-            self._upload_client.sendSample(data, hw_type, True)
-            self._latest_ts[data['station_code']] = data['time_stamp']
 
-        self._upload_client.flushSamples()
+        for data in result:
+            self._update_replication_status(data["sample_id"])
+            self.NewSample.fire(data, hw_type, True)
+
+        self.EndOfSamples.fire()
+
+    def _update_replication_status(self, sample_id):
+        query = """
+        update replication_status
+        set status = 'awaiting_confirmation',
+        status_time = NOW(),
+        retries = case when status = 'pending' then 0 else retries + 1 end
+        where sample_id = %s and site_id = %s
+        """
+
+        self._conn.runOperation(query, (sample_id, self._site_id))
 
     # TODO: merge the three samples queries.
 
-    def fetch_wh1080_samples(self, station_code, latest_ts):
+    def fetch_wh1080_samples(self, station_code):
         query = """
-select st.code as station_code,
+select s.sample_id as sample_id,
+       st.code as station_code,
        coalesce(s.indoor_relative_humidity::varchar, 'None') as indoor_humidity,
        coalesce(s.indoor_temperature::varchar, 'None') as indoor_temperature,
        coalesce(s.temperature::varchar, 'None') as temperature,
@@ -180,27 +262,28 @@ select st.code as station_code,
 from sample s
 inner join station st on st.station_id = s.station_id
 inner join wh1080_sample wh on wh.sample_id = s.sample_id
+inner join replication_status rs on rs.sample_id = s.sample_id
 where st.code = %s
-        """
-        params = (station_code,)
+  and rs.site_id = %s
 
-        # If there is no latest timestamp then the remote database is probably
-        # empty so we'll send everything.
-        if latest_ts is not None:
-            query += "  and s.time_stamp > %s"
-            params = (station_code, latest_ts)
-
-        query += """
+  -- Grab everything that is pending
+  and (rs.status = 'pending' or (
+          -- And everything that has been waiting for receipt confirmation for
+          -- more than 5 minutes
+          rs.status = 'awaiting_confirmation'
+          and rs.status_time < NOW() - '10 minutes'::interval))
 order by s.time_stamp asc
 limit 10000
         """
+        params = (station_code, self._site_id)
 
         self._conn.runQuery(query, params).addCallback(
             self.process_samples_result, 'FOWH1080')
 
-    def fetch_generic_samples(self, station_code, latest_ts):
+    def fetch_generic_samples(self, station_code):
         query = """
-select st.code as station_code,
+select s.sample_id as sample_id,
+       st.code as station_code,
        coalesce(s.indoor_relative_humidity::varchar, 'None') as indoor_humidity,
        coalesce(s.indoor_temperature::varchar, 'None') as indoor_temperature,
        coalesce(s.temperature::varchar, 'None') as temperature,
@@ -214,27 +297,28 @@ select st.code as station_code,
        coalesce(s.time_stamp::varchar, 'None') as time_stamp
 from sample s
 inner join station st on st.station_id = s.station_id
+inner join replication_status rs on rs.sample_id = s.sample_id
 where st.code = %
-        """
-        params = (station_code,)
+  and rs.site_id = %s
 
-        # If there is no latest timestamp then the remote database is probably
-        # empty so we'll send everything.
-        if latest_ts is not None:
-            query += "  and s.time_stamp > %s"
-            params = (station_code, latest_ts)
-
-        query += """
+  -- Grab everything that is pending
+  and (rs.status = 'pending' or (
+          -- And everything that has been waiting for receipt confirmation for
+          -- more than 5 minutes
+          rs.status = 'awaiting_confirmation'
+          and rs.status_time < NOW() - '10 minutes'::interval))
 order by s.time_stamp asc
-limit 10000
+limit 100
         """
+        params = (station_code, self._site_id)
 
         self._conn.runQuery(query, params).addCallback(
             self.process_samples_result, 'GENERIC')
 
-    def _fetch_davis_samples(self, station_code, latest_ts):
+    def _fetch_davis_samples(self, station_code):
         query = """
-select st.code as station_code,
+select s.sample_id as sample_id,
+       st.code as station_code,
        coalesce(s.indoor_relative_humidity::varchar, 'None') as indoor_humidity,
        coalesce(s.indoor_temperature::varchar, 'None') as indoor_temperature,
        coalesce(s.temperature::varchar, 'None') as temperature,
@@ -263,46 +347,43 @@ select st.code as station_code,
 from sample s
 inner join station st on st.station_id = s.station_id
 inner join davis_sample ds on ds.sample_id = s.sample_id
+inner join replication_status rs on rs.sample_id = s.sample_id
 where st.code = %s
-        """
-        params = (station_code,)
+  and rs.site_id = %s
 
-        # If there is no latest timestamp then the remote database is probably
-        # empty so we'll send everything.
-        if latest_ts is not None:
-            query += "  and s.time_stamp > %s"
-            params = (station_code, latest_ts)
-
-        query += """
+  -- Grab everything that is pending
+  and (rs.status = 'pending' or (
+          -- And everything that has been waiting for receipt confirmation for
+          -- more than 5 minutes
+          rs.status = 'awaiting_confirmation'
+          and rs.status_time < NOW() - '10 minutes'::interval))
 order by s.time_stamp asc
 limit 10000
         """
+        params = (station_code, self._site_id)
 
         self._conn.runQuery(query, params).addCallback(
             self.process_samples_result, 'DAVIS')
 
     def _fetch_samples(self, station_code):
-
-        if self._upload_client.latestSampleInfo is None:
+        log.msg("Fetch samples for {0}".format(station_code))
+        if not self._transmitter_ready:
             # Client is not connected yet.
             return
 
         # Don't bother sending samples for stations the remote system doesn't
         # know anything about.
-        if station_code not in self._upload_client.latestSampleInfo:
+        if station_code not in self._remote_stations:
             return
-
-        latest_ts = self._get_latest_ts(station_code)
 
         hw_type = self.station_code_hardware_type[station_code]
 
         if hw_type == 'FOWH1080':
-            self.fetch_wh1080_samples(station_code, latest_ts)
+            self.fetch_wh1080_samples(station_code)
         elif hw_type == 'DAVIS':
-            self._fetch_davis_samples(station_code, latest_ts)
+            self._fetch_davis_samples(station_code)
         else:  # Its GENERIC or something unsupported.
-            self.fetch_generic_samples(station_code, latest_ts)
-
+            self.fetch_generic_samples(station_code)
 
     def observer(self, notify):
         """
@@ -326,27 +407,48 @@ limit 10000
                 "station_type st on st.station_type_id = s.station_type_id "
         self._conn.runQuery(query).addCallback(self._store_hardware_types)
 
-    def _reconnect(self):
-        log.msg('Connect: {0}'.format(self._connection_string))
-        self._conn = DictConnection()
-        self._conn_d = self._conn.connect(self._connection_string)
+    @defer.inlineCallbacks
+    def _prepare_sample_queue(self):
+        """
+        Make sure we the replication_status table is appropriately populated
+        for the remote site.
+        :return:
+        """
+        query = "select site_id from remote_site where hostname = %s"
 
-        # We don't know how many of the samples we sent made it to the server
-        # so we'll take its view of the world over our own.
-        self._latest_ts = {}
+        result = yield self._conn.runQuery(query, (self._hostname,))
 
-        # add a NOTIFY observer
-        self._conn.addNotifyObserver(self.observer)
+        if len(result) == 0:
+            log.msg("Remote site is not known. Adding site definition...")
+            query = "insert into remote_site(hostname) values(%s) " \
+                    "returning site_id"
 
-        self._conn_d.addCallback(lambda _:self._cache_hardware_types())
-        self._conn_d.addCallback(
-            lambda _: self._conn.runOperation("listen live_data_updated"))
-        self._conn_d.addCallback(
-            lambda _: self._conn.runOperation("listen new_sample"))
-        self._conn_d.addCallback(
-            lambda _: log.msg('Connected to database. Now waiting for data.'))
+            result = yield self._conn.runQuery(query, (self._hostname,))
 
-    def connect(self, connection_string):
+            self._site_id = result[0][0]
+            log.msg("Rebuilding replication status for site {0}. This may take "
+                    "some time...".format(self._site_id))
+
+            query = """
+            insert into replication_status(site_id, sample_id)
+            select rs.site_id, sample.sample_id
+            from sample, remote_site rs
+            where rs.site_id not in (
+            select rs.site_id
+            from sample as sample_inr
+            inner join remote_site rs on rs.site_id = %s
+            inner join replication_status as repl on repl.site_id = rs.site_id and repl.sample_id = sample_inr.sample_id
+            where sample_inr.sample_id = sample.sample_id
+            )
+            and rs.site_id = %s
+            """
+
+            yield self._conn.runOperation(query, (self._site_id, self._site_id,))
+            log.msg("Rebuild complete.")
+        else:
+            self._site_id = result[0][0]
+
+    def _connect(self):
         """
         Connects to the database and starts sending live data and new samples to
         the supplied upload client.
@@ -354,29 +456,22 @@ limit 10000
         :type connection_string: str
         """
 
-        # connect to the database
-        self._connection_string = connection_string
+        log.msg('Connect: {0}'.format(self._connection_string))
+        self._conn = DictConnection()
+        self._conn_d = self._conn.connect(self._connection_string)
 
-        self._reconnect()
+        # add a NOTIFY observer
+        self._conn.addNotifyObserver(self.observer)
 
-        reactor.callLater(self._CONN_CHECK_INTERVAL, self._conn_check)
+        self._conn_d.addCallback(lambda _: self._cache_hardware_types())
+        self._conn_d.addCallback(lambda _: self._prepare_sample_queue())
+        self._conn_d.addCallback(
+            lambda _: self._conn.runOperation("listen live_data_updated"))
+        self._conn_d.addCallback(
+            lambda _: self._conn.runOperation("listen new_sample"))
+        self._conn_d.addCallback(
+            lambda _: log.msg('Connected to database. Now waiting for data.'))
 
-    def _conn_check(self):
-        """
-        This is a bit of a nasty way to tell if the DB connection has failed.
-        But as txpostgres doesn't report a lost connection I can't think of
-        any other way to detect it.
-        """
+        self._database_pool = adbapi.ConnectionPool("psycopg2",
+                                                    self._connection_string)
 
-        def _conn_check_failed(failure):
-            failure.trap(psycopg2.OperationalError)
-
-            log.msg('DB connection presumed dead. Actual error was: {0}'.format(
-                failure.getErrorMessage()))
-            log.msg('Attempting reconnect')
-            self._reconnect()
-
-
-        self._conn.runQuery("select 42").addErrback(_conn_check_failed)
-
-        reactor.callLater(self._CONN_CHECK_INTERVAL, self._conn_check)

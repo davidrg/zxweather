@@ -6,6 +6,7 @@ from collections import deque
 import json
 from twisted.internet import reactor
 from twisted.python import log
+from ..common.util import Event
 
 __author__ = 'david'
 
@@ -62,7 +63,7 @@ class UploadClient(object):
                           "{evapotranspiration},{high_solar_radiation}," \
                           "{high_uv_index},{forecast_rule_id}"
 
-    def __init__(self, finished_callback, ready_callback, client_name, client_version=None):
+    def __init__(self, finished_callback, client_name, client_version=None):
         """
         Sets up the upload client.
         :param finished_callback: Called when the upload client has
@@ -84,9 +85,13 @@ class UploadClient(object):
         self._client_name = client_name
         self._client_version = client_version
         self._finished_callback = finished_callback
-        self._client_ready = ready_callback
 
         self._sent_data = deque([], maxlen=50)
+
+        self.Ready = Event()
+        self.ReceiptConfirmation = Event()
+
+        self._upload_ready = False
 
     def makeConnection(self, channel):
         self._channel = channel
@@ -152,12 +157,22 @@ class UploadClient(object):
             if data.startswith("# ERR"):
                 # Something went wrong.
                 self._handleUploadError(data)
+            elif data.startswith("# WARN-001:"):
+                # Duplicate upload warning. Don't care - it should have come
+                # with an acknowledgement message which will prevent it being
+                # re-sent again
+                pass
+            elif data.startswith("CONFIRM "):
+                # Receipt confirmation.
+                self._confirm_receipt(data[8:])
             elif data[0] == '#':
                 # The upload command has sent a message saying its ready.
                 # Let what ever is managing this object know so it can start
                 # giving us data to send.
                 log.msg('Server message: ' + data[1:])
-                self._client_ready()
+                if not self._upload_ready:
+                    self._upload_ready = True
+                    self.Ready.fire(self.latestSampleInfo)
 
         elif self._mode == MODE_DONE:
             # We've logged out.
@@ -170,6 +185,12 @@ class UploadClient(object):
                     # Normal end: Something else asked us to disconnect. Tell
                     # them we've done as requested.
                     self._finished_callback()
+
+    def _confirm_receipt(self, line):
+        bits = line.split("\t")
+        station_code = bits[0]
+        ts = bits[1]
+        self.ReceiptConfirmation.fire(station_code, ts)
 
     def _writeLine(self, data):
         self.write(data + "\n")
@@ -262,7 +283,6 @@ class UploadClient(object):
                 if 'wh1080_record_number' in station_info:
                     log.msg(" - WH1080 Record: " + str(station_info['wh1080_record_number']))
 
-
     def quit(self):
         """
         Disconnects from the remote host.
@@ -319,6 +339,9 @@ class UploadClient(object):
         :type sample_data: dict
         :param hardware_type: The hardware type code for the station.
         :type hardware_type: str
+        :param hold: Hold on samples until a flush is requested. Set to True
+                    when there are multiple samples to send
+        :type hold: bool
         """
 
         value = self.base_sample_format.format(**sample_data)
@@ -351,6 +374,7 @@ class UploadClient(object):
         """
         self._mode = MODE_INIT
         self._line_buffer = ""
+        self._upload_ready = False
 
         self.latestSampleInfo = None
         self._sample_buffer = []
