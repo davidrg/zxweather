@@ -1,7 +1,7 @@
 # coding=utf-8
 import ConfigParser
 
-from zxw_push.zxw_push import getPushService
+from zxw_push.zxw_push import getClientService
 
 __author__ = 'david'
 
@@ -18,7 +18,7 @@ class Options(usage.Options):
     ]
 
 
-class ZXWPushServiceMaker(object):
+class ZXWPushClientServiceMaker(object):
     """
     Creates the zxweather WeatherPush service. Or, rather, prepares it from the
     supplied command-line arguments.
@@ -97,7 +97,7 @@ class ZXWPushServiceMaker(object):
                 options['config-file'])
 
         # All OK. Go get the service.
-        return getPushService(
+        return getClientService(
             hostname,
             port,
             ssh_user,
@@ -115,4 +115,4 @@ class ZXWPushServiceMaker(object):
         )
 
 
-serviceMaker = ZXWPushServiceMaker()
+serviceMaker = ZXWPushClientServiceMaker()

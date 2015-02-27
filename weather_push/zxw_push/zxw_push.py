@@ -6,10 +6,11 @@ from twisted.application import internet
 from twisted.internet import reactor
 from twisted.python import log
 #from twisted.python.logfile import DailyLogFile
-from client.ssh_client import ShellClientFactory
-from client.upload_client import UploadClient
+from client.zxweather_server import ShellClientFactory, ZXDUploadClient
+from client.weather_push_server import WeatherPushDatagramClient
 from client.database import WeatherDatabase
 from client.mq_receiver import RabbitMqReceiver
+from server.DatagramServer import WeatherPushDatagramServer
 
 __author__ = 'david'
 
@@ -23,11 +24,11 @@ def client_finished():
     reactor.stop()
 
 
-def getPushService(hostname, port, username, password, host_key_fingerprint,
+def getClientService(hostname, port, username, password, host_key_fingerprint,
                    dsn, transport_type, encoding, mq_host, mq_port, mq_exchange,
                    mq_user, mq_password, mq_vhost):
     """
-    Connects to the remote server.
+    Connects to a remote WeatherPush server or zxweather daemon
     :param hostname: Remote host to connect to
     :type hostname: str
     :param port: port number
@@ -63,8 +64,14 @@ def getPushService(hostname, port, username, password, host_key_fingerprint,
 
     # log.startLogging(DailyLogFile.fromFullPath("log-file"), setStdout=False)
 
-    _upload_client = UploadClient(
-        client_finished, "weather-push")
+    if transport_type == "ssh":
+        # Connecting to a remote zxweather server via SSH
+        _upload_client = ZXDUploadClient(
+            client_finished, "weather-push")
+    else:
+        # Connecting to a remote weather push server via UDP
+        _upload_client = WeatherPushDatagramClient(hostname, port)
+
 
     database = WeatherDatabase(hostname, dsn)
     database.LiveUpdate += _upload_client.sendLive
@@ -80,8 +87,6 @@ def getPushService(hostname, port, username, password, host_key_fingerprint,
         mq_client.LiveUpdate += _upload_client.sendLive
         _upload_client.Ready += mq_client.connect
 
-
-
     if transport_type == "ssh":
 
         factory = ShellClientFactory(username, password, host_key_fingerprint,
@@ -89,4 +94,15 @@ def getPushService(hostname, port, username, password, host_key_fingerprint,
 
         return internet.TCPClient(hostname, port, factory)
     else:
-        return None
+        # 0 for any port (don't care)
+        return internet.UDPClient(0, _upload_client)
+
+
+def getServerService(port):
+    """
+    Starts a WeatherPush server
+    :param port: UDP port to listen on
+    """
+    datagram_server = WeatherPushDatagramServer()
+
+    return internet.UDPServer(port, datagram_server)
