@@ -152,12 +152,12 @@ create table davis_sample (
   high_temperature float,
   low_temperature float,
   high_rain_rate float,
-  solar_radiation float,
+  solar_radiation int,
   wind_sample_count int,
   gust_wind_direction float,
   average_uv_index numeric(3,1),
   evapotranspiration float,
-  high_solar_radiation float,
+  high_solar_radiation int,
   high_uv_index numeric(3,1),
   forecast_rule_id int
 
