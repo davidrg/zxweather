@@ -2,7 +2,8 @@
 """
 weather push: A program for pushing weather data to a remote zxweatherd server.
 """
-from twisted.application import internet
+import socket
+from twisted.application import internet, service
 from twisted.internet import reactor
 from twisted.python import log
 #from twisted.python.logfile import DailyLogFile
@@ -24,9 +25,22 @@ def client_finished():
     reactor.stop()
 
 
+class DatagramClientService(service.Service):
+    def __init__(self, protocol):
+        self._protocol = protocol
+
+    def startService(self):
+        log.msg("Starting UDP Client service...")
+        # Port 0 for any port (don't care which - we're only getting replies)
+        self._port = reactor.listenUDP(0, self._protocol)
+
+    def stopService(self):
+        return self._port.stopListening()
+
+
 def getClientService(hostname, port, username, password, host_key_fingerprint,
-                   dsn, transport_type, encoding, mq_host, mq_port, mq_exchange,
-                   mq_user, mq_password, mq_vhost):
+                   dsn, transport_type, mq_host, mq_port, mq_exchange,
+                   mq_user, mq_password, mq_vhost, authorisation_code):
     """
     Connects to a remote WeatherPush server or zxweather daemon
     :param hostname: Remote host to connect to
@@ -64,19 +78,22 @@ def getClientService(hostname, port, username, password, host_key_fingerprint,
 
     # log.startLogging(DailyLogFile.fromFullPath("log-file"), setStdout=False)
 
+    database = WeatherDatabase(hostname, dsn)
+
     if transport_type == "ssh":
         # Connecting to a remote zxweather server via SSH
         _upload_client = ZXDUploadClient(
             client_finished, "weather-push")
     else:
+        ip_address = socket.gethostbyname(hostname)
         # Connecting to a remote weather push server via UDP
-        _upload_client = WeatherPushDatagramClient(hostname, port)
+        _upload_client = WeatherPushDatagramClient(
+            ip_address, port, authorisation_code,
+            database.get_last_confirmed_sample)
 
-
-    database = WeatherDatabase(hostname, dsn)
-    database.LiveUpdate += _upload_client.sendLive
-    database.NewSample += _upload_client.sendSample
-    database.EndOfSamples += _upload_client.flushSamples
+    database.LiveUpdate += _upload_client.send_live
+    database.NewSample += _upload_client.send_sample
+    database.EndOfSamples += _upload_client.flush_samples
 
     _upload_client.Ready += database.transmitter_ready
     _upload_client.ReceiptConfirmation += database.confirm_receipt
@@ -84,7 +101,7 @@ def getClientService(hostname, port, username, password, host_key_fingerprint,
     if mq_host is not None:
         mq_client = RabbitMqReceiver(mq_user, mq_password, mq_vhost,
                                      mq_host, mq_port, mq_exchange)
-        mq_client.LiveUpdate += _upload_client.sendLive
+        mq_client.LiveUpdate += _upload_client.send_live
         _upload_client.Ready += mq_client.connect
 
     if transport_type == "ssh":
@@ -94,15 +111,13 @@ def getClientService(hostname, port, username, password, host_key_fingerprint,
 
         return internet.TCPClient(hostname, port, factory)
     else:
-        # 0 for any port (don't care)
-        return internet.UDPClient(0, _upload_client)
+        return DatagramClientService(_upload_client)
 
-
-def getServerService(port):
+def getServerService(dsn, interface, port):
     """
     Starts a WeatherPush server
     :param port: UDP port to listen on
     """
-    datagram_server = WeatherPushDatagramServer()
+    datagram_server = WeatherPushDatagramServer(dsn)
 
-    return internet.UDPServer(port, datagram_server)
+    return internet.UDPServer(port, datagram_server, interface=interface)

@@ -314,7 +314,7 @@ class ZXDUploadClient(object):
         if sample_count > 50:
             log.msg("Transmission complete.")
 
-    def sendLive(self, live_data, hardware_type):
+    def send_live(self, live_data, hardware_type):
         """
         Sends live data to the remote system. If the remote system is not ready
         to receive live data it will be discarded.
@@ -331,7 +331,18 @@ class ZXDUploadClient(object):
             #print('Live: ' + value)
             self._writeLine(value)
 
-    def sendSample(self, sample_data, hardware_type, hold=False):
+    @staticmethod
+    def _stringify_dict(data):
+        # Converts all the values in the dict to strings
+
+        result = {}
+
+        for key in data.keys():
+            result[key] = str(data[key])
+
+        return result
+
+    def send_sample(self, sample_data, hardware_type, hold=False):
         """
         Sends sample data to the remote system. If the remote system is not
         ready to receive new samples they will be queued and sent when the
@@ -344,6 +355,8 @@ class ZXDUploadClient(object):
                     when there are multiple samples to send
         :type hold: bool
         """
+
+        sample_data = self._stringify_dict(sample_data)
 
         value = self.base_sample_format.format(**sample_data)
 
@@ -361,7 +374,7 @@ class ZXDUploadClient(object):
         if not hold:
             self._transmit_samples()
 
-    def flushSamples(self):
+    def flush_samples(self):
         """
         Flushes any buffered samples.
         """
