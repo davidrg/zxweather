@@ -1,3 +1,4 @@
+# coding=utf-8
 __author__ = 'david'
 
 class Event(object):
@@ -47,3 +48,19 @@ class Event(object):
 
         for handler in to_remove:
             self.__isub__(handler)
+
+
+class Sequencer(object):
+    def __init__(self):
+        self._sequence_id = 0
+
+    def _next_sequence_id(self):
+        self._sequence_id += 1
+
+        if self._sequence_id >= 65535:
+            self._sequence_id = 0
+
+        return self._sequence_id
+
+    def __call__(self, *args, **kwargs):
+        return self._next_sequence_id()

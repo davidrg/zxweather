@@ -63,6 +63,174 @@ class WeatherDatabase(object):
         if not self._processing_confirmations:
             self._process_confirmations()
 
+    @staticmethod
+    def _wh1080_sample_query(ascending):
+        query = """
+        select s.sample_id as sample_id,
+       st.code as station_code,
+       s.indoor_relative_humidity as indoor_humidity,
+       s.indoor_temperature as indoor_temperature,
+       s.temperature as temperature,
+       s.relative_humidity as humidity,
+       s.absolute_pressure as pressure,
+       s.average_wind_speed as average_wind_speed,
+       s.gust_wind_speed as gust_wind_speed,
+       s.wind_direction as wind_direction,
+       s.rainfall as rainfall,
+       s.download_timestamp as download_timestamp,
+       s.time_stamp as time_stamp,
+       wh.sample_interval as sample_interval,
+       wh.record_number,
+       wh.last_in_batch,
+       wh.invalid_data,
+       wh.wind_direction as wh1080_wind_direction,
+       wh.total_rain as total_rain,
+       wh.rain_overflow
+from sample s
+inner join station st on st.station_id = s.station_id
+inner join wh1080_sample wh on wh.sample_id = s.sample_id
+inner join replication_status rs on rs.sample_id = s.sample_id
+where st.code = %(station_code)s
+  and rs.site_id = %(site_id)s
+
+  -- Grab everything that is pending
+  and ((%(pending)s and (rs.status = 'pending' or (
+          -- And everything that has been waiting for receipt confirmation for
+          -- more than 5 minutes
+          rs.status = 'awaiting_confirmation'
+          and rs.status_time < NOW() - '10 minutes'::interval)))
+        or (not %(pending)s and (rs.status='done'))
+order by s.time_stamp {0}
+limit %(limit)s
+"""
+        if ascending:
+            return query.format('asc',)
+        else:
+            return query.format('desc',)
+
+    @staticmethod
+    def _davis_sample_query(ascending):
+        query = """
+select s.sample_id as sample_id,
+       st.code as station_code,
+       s.indoor_relative_humidity as indoor_humidity,
+       s.indoor_temperature as indoor_temperature,
+       s.temperature as temperature,
+       s.relative_humidity as humidity,
+       s.absolute_pressure as pressure,
+       s.average_wind_speed as average_wind_speed,
+       s.gust_wind_speed as gust_wind_speed,
+       s.wind_direction as wind_direction,
+       s.rainfall as rainfall,
+       s.download_timestamp as download_timestamp,
+       s.time_stamp as time_stamp,
+
+       ds.record_time as record_time,
+       ds.record_date as record_date,
+       ds.high_temperature as high_temperature,
+       ds.low_temperature as low_temperature,
+       ds.high_rain_rate as high_rain_rate,
+       ds.solar_radiation as solar_radiation,
+       ds.wind_sample_count as wind_sample_count,
+       ds.gust_wind_direction as gust_wind_direction,
+       ds.average_uv_index as average_uv_index,
+       ds.evapotranspiration as evapotranspiration,
+       ds.high_solar_radiation as high_solar_radiation,
+       ds.high_uv_index as high_uv_index,
+       ds.forecast_rule_id as forecast_rule_id
+from sample s
+inner join station st on st.station_id = s.station_id
+inner join davis_sample ds on ds.sample_id = s.sample_id
+inner join replication_status rs on rs.sample_id = s.sample_id
+where st.code = %(station_code)s
+  and rs.site_id = %(site_id)s
+
+  -- Grab everything that is pending
+  and ((%(pending)s and (rs.status = 'pending' or (
+          -- And everything that has been waiting for receipt confirmation for
+          -- more than 5 minutes
+          rs.status = 'awaiting_confirmation'
+          and rs.status_time < NOW() - '10 minutes'::interval)))
+        or (not %(pending)s and (rs.status='done'))
+order by s.time_stamp {0}
+limit %(limit)s
+        """
+
+        if ascending:
+            return query.format('asc',)
+        else:
+            return query.format('desc',)
+
+    @staticmethod
+    def _generic_sample_query(ascending):
+        query = """
+select s.sample_id as sample_id,
+       st.code as station_code,
+       s.indoor_relative_humidity as indoor_humidity,
+       s.indoor_temperature as indoor_temperature,
+       s.temperature as temperature,
+       s.relative_humidity as humidity,
+       s.absolute_pressure as pressure,
+       s.average_wind_speed as average_wind_speed,
+       s.gust_wind_speed as gust_wind_speed,
+       s.wind_direction as wind_direction,
+       s.rainfall as rainfall,
+       s.download_timestamp as download_timestamp,
+       s.time_stamp as time_stamp
+from sample s
+inner join station st on st.station_id = s.station_id
+inner join replication_status rs on rs.sample_id = s.sample_id
+where st.code = %(station_code)s
+  and rs.site_id = %(site_id)s
+
+  -- Grab everything that is pending
+  and ((%(pending)s and (rs.status = 'pending' or (
+          -- And everything that has been waiting for receipt confirmation for
+          -- more than 5 minutes
+          rs.status = 'awaiting_confirmation'
+          and rs.status_time < NOW() - '10 minutes'::interval)))
+        or (not %(pending)s and (rs.status='done'))
+order by s.time_stamp {0}
+limit %(limit)s
+        """
+
+        if ascending:
+            return query.format('asc',)
+        else:
+            return query.format('desc',)
+
+    @defer.inlineCallbacks
+    def get_last_confirmed_sample(self, station_code):
+        """
+        Returns the most recent sample for the specified station that the
+        server is known to have received, decoded and stored successfully.
+
+        :param station_code: Station code to get confirmed sample for
+        :type station_code: str
+        :return: Sample data
+        :rtype: dict
+        """
+
+        hw_type = self.station_code_hardware_type[station_code]
+
+        if hw_type == 'FOWH1080':
+            query = self._wh1080_sample_query(False)
+        elif hw_type == 'DAVIS':
+            query = self._davis_sample_query(False)
+        else:  # Its GENERIC or something unsupported.
+            query = self._generic_sample_query(False)
+
+        parameters = {
+            'station_code': station_code,
+            'site_id': self._site_id,
+            'pending': False,
+            'limit': 1
+        }
+
+        result = yield self._conn.runQuery(query, parameters)
+
+        defer.returnValue(result)
+
     @defer.inlineCallbacks
     def _process_confirmations(self):
         self._processing_confirmations = True
@@ -230,141 +398,7 @@ class WeatherDatabase(object):
 
         self._conn.runOperation(query, (sample_id, self._site_id))
 
-    # TODO: merge the three samples queries.
-
-    def fetch_wh1080_samples(self, station_code):
-        query = """
-select s.sample_id as sample_id,
-       st.code as station_code,
-       coalesce(s.indoor_relative_humidity::varchar, 'None') as indoor_humidity,
-       coalesce(s.indoor_temperature::varchar, 'None') as indoor_temperature,
-       coalesce(s.temperature::varchar, 'None') as temperature,
-       coalesce(s.relative_humidity::varchar, 'None') as humidity,
-       coalesce(s.absolute_pressure::varchar, 'None') as pressure,
-       coalesce(s.average_wind_speed::varchar, 'None') as average_wind_speed,
-       coalesce(s.gust_wind_speed::varchar, 'None') as gust_wind_speed,
-       coalesce(s.wind_direction::varchar, 'None') as wind_direction,
-       coalesce(s.rainfall::varchar, 'None') as rainfall,
-       coalesce(s.download_timestamp::varchar, 'None') as download_timestamp,
-       coalesce(s.time_stamp::varchar, 'None') as time_stamp,
-       coalesce(wh.sample_interval::varchar, 'None') as sample_interval,
-       wh.record_number,
-       case when wh.last_in_batch then 'True'
-            when wh.last_in_batch is null then 'None'
-            else 'False' end as last_in_batch,
-       case when wh.invalid_data then 'True'
-            else 'False' end as invalid_data,
-       coalesce(wh.wind_direction::varchar, 'None') as wh1080_wind_direction,
-       coalesce(wh.total_rain::varchar, 'None') as total_rain,
-       case when wh.rain_overflow then 'True'
-            when wh.rain_overflow is null then 'None'
-            else 'False' end as rain_overflow
-from sample s
-inner join station st on st.station_id = s.station_id
-inner join wh1080_sample wh on wh.sample_id = s.sample_id
-inner join replication_status rs on rs.sample_id = s.sample_id
-where st.code = %s
-  and rs.site_id = %s
-
-  -- Grab everything that is pending
-  and (rs.status = 'pending' or (
-          -- And everything that has been waiting for receipt confirmation for
-          -- more than 5 minutes
-          rs.status = 'awaiting_confirmation'
-          and rs.status_time < NOW() - '10 minutes'::interval))
-order by s.time_stamp asc
-limit 10000
-        """
-        params = (station_code, self._site_id)
-
-        self._conn.runQuery(query, params).addCallback(
-            self.process_samples_result, 'FOWH1080')
-
-    def fetch_generic_samples(self, station_code):
-        query = """
-select s.sample_id as sample_id,
-       st.code as station_code,
-       coalesce(s.indoor_relative_humidity::varchar, 'None') as indoor_humidity,
-       coalesce(s.indoor_temperature::varchar, 'None') as indoor_temperature,
-       coalesce(s.temperature::varchar, 'None') as temperature,
-       coalesce(s.relative_humidity::varchar, 'None') as humidity,
-       coalesce(s.absolute_pressure::varchar, 'None') as pressure,
-       coalesce(s.average_wind_speed::varchar, 'None') as average_wind_speed,
-       coalesce(s.gust_wind_speed::varchar, 'None') as gust_wind_speed,
-       coalesce(s.wind_direction::varchar, 'None') as wind_direction,
-       coalesce(s.rainfall::varchar, 'None') as rainfall,
-       coalesce(s.download_timestamp::varchar, 'None') as download_timestamp,
-       coalesce(s.time_stamp::varchar, 'None') as time_stamp
-from sample s
-inner join station st on st.station_id = s.station_id
-inner join replication_status rs on rs.sample_id = s.sample_id
-where st.code = %
-  and rs.site_id = %s
-
-  -- Grab everything that is pending
-  and (rs.status = 'pending' or (
-          -- And everything that has been waiting for receipt confirmation for
-          -- more than 5 minutes
-          rs.status = 'awaiting_confirmation'
-          and rs.status_time < NOW() - '10 minutes'::interval))
-order by s.time_stamp asc
-limit 100
-        """
-        params = (station_code, self._site_id)
-
-        self._conn.runQuery(query, params).addCallback(
-            self.process_samples_result, 'GENERIC')
-
-    def _fetch_davis_samples(self, station_code):
-        query = """
-select s.sample_id as sample_id,
-       st.code as station_code,
-       coalesce(s.indoor_relative_humidity::varchar, 'None') as indoor_humidity,
-       coalesce(s.indoor_temperature::varchar, 'None') as indoor_temperature,
-       coalesce(s.temperature::varchar, 'None') as temperature,
-       coalesce(s.relative_humidity::varchar, 'None') as humidity,
-       coalesce(s.absolute_pressure::varchar, 'None') as pressure,
-       coalesce(s.average_wind_speed::varchar, 'None') as average_wind_speed,
-       coalesce(s.gust_wind_speed::varchar, 'None') as gust_wind_speed,
-       coalesce(s.wind_direction::varchar, 'None') as wind_direction,
-       coalesce(s.rainfall::varchar, 'None') as rainfall,
-       coalesce(s.download_timestamp::varchar, 'None') as download_timestamp,
-       coalesce(s.time_stamp::varchar, 'None') as time_stamp,
-
-       ds.record_time::varchar as record_time,
-       ds.record_date::varchar as record_date,
-       coalesce(ds.high_temperature::varchar, 'None') as high_temperature,
-       coalesce(ds.low_temperature::varchar, 'None') as low_temperature,
-       coalesce(ds.high_rain_rate::varchar, 'None') as high_rain_rate,
-       coalesce(ds.solar_radiation::varchar, 'None') as solar_radiation,
-       coalesce(ds.wind_sample_count::varchar, 'None') as wind_sample_count,
-       coalesce(ds.gust_wind_direction::varchar, 'None') as gust_wind_direction,
-       coalesce(ds.average_uv_index::varchar, 'None') as average_uv_index,
-       coalesce(ds.evapotranspiration::varchar, 'None') as evapotranspiration,
-       coalesce(ds.high_solar_radiation::varchar, 'None') as high_solar_radiation,
-       coalesce(ds.high_uv_index::varchar, 'None') as high_uv_index,
-       coalesce(ds.forecast_rule_id::varchar, 'None') as forecast_rule_id
-from sample s
-inner join station st on st.station_id = s.station_id
-inner join davis_sample ds on ds.sample_id = s.sample_id
-inner join replication_status rs on rs.sample_id = s.sample_id
-where st.code = %s
-  and rs.site_id = %s
-
-  -- Grab everything that is pending
-  and (rs.status = 'pending' or (
-          -- And everything that has been waiting for receipt confirmation for
-          -- more than 5 minutes
-          rs.status = 'awaiting_confirmation'
-          and rs.status_time < NOW() - '10 minutes'::interval))
-order by s.time_stamp asc
-limit 10000
-        """
-        params = (station_code, self._site_id)
-
-        self._conn.runQuery(query, params).addCallback(
-            self.process_samples_result, 'DAVIS')
-
+    @defer.inlineCallbacks
     def _fetch_samples(self, station_code):
         log.msg("Fetch samples for {0}".format(station_code))
         if not self._transmitter_ready:
@@ -379,11 +413,22 @@ limit 10000
         hw_type = self.station_code_hardware_type[station_code]
 
         if hw_type == 'FOWH1080':
-            self.fetch_wh1080_samples(station_code)
+            query = self._wh1080_sample_query(True)
         elif hw_type == 'DAVIS':
-            self._fetch_davis_samples(station_code)
+            query = self._davis_sample_query(True)
         else:  # Its GENERIC or something unsupported.
-            self.fetch_generic_samples(station_code)
+            query = self._generic_sample_query(True)
+
+        parameters = {
+            'station_code': station_code,
+            'site_id': self._site_id,
+            'pending': True,
+            'limit': 10000
+        }
+
+        result = yield self._conn.runQuery(query, parameters)\
+
+        self.process_samples_result(result, hw_type)
 
     def observer(self, notify):
         """

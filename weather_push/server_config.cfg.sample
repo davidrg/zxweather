@@ -1,0 +1,32 @@
+# zxweather replication server service
+# sample configuration file
+
+##############################################################################
+### Database Configuration ###################################################
+##############################################################################
+[database]
+# This is the connection string for the database containing data you wish
+# to push out to the remote server. An example might be:
+# dsn = "host=localhost port=5432 user=zxweather password=password dbname=weather"
+
+dsn=
+
+
+##############################################################################
+### Transport Configuration ##################################################
+##############################################################################
+[transport]
+
+
+# This is the interface to listen on. No value is all interfaces.
+interface=
+
+# The UDP port to listen on
+port=4222
+
+
+
+
+
+
+

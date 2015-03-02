@@ -24,8 +24,9 @@ class ZXWPushClientServiceMaker(object):
     supplied command-line arguments.
     """
     implements(IServiceMaker, IPlugin)
-    tapname = "weather_push"
-    description = "Service for pushing data out to a remote weather server"
+    tapname = "weather_push_client"
+    description = "Service for pushing data out the weather push server or a " \
+                  "remote zxweather server"
     options = Options
 
     def _readConfigFile(self, filename):
@@ -62,10 +63,6 @@ class ZXWPushClientServiceMaker(object):
         if transport_type not in ["ssh", "udp"]:
             raise Exception("Invalid transport type")
 
-        encoding = config.get(S_TRANSPORT, "encoding")
-        if encoding not in ["standard", "diff"]:
-            raise Exception("Invalid encoding type")
-
         hostname = config.get(S_TRANSPORT, "hostname")
         port = config.getint(S_TRANSPORT, "port")
 
@@ -73,16 +70,21 @@ class ZXWPushClientServiceMaker(object):
         ssh_password = None
         ssh_host_key = None
 
+        authorisation_code = None
+
         if transport_type == "ssh":
             ssh_user = config.get(S_SSH, "username")
             ssh_password = config.get(S_SSH, "password")
 
             if config.has_option(S_SSH, "host_key"):
                 ssh_host_key = config.get(S_SSH, "host_key")
+        elif transport_type == "udp":
+            authorisation_code = config.get(S_TRANSPORT, "authorisation_code")
+
 
         return dsn, mq_host, mq_port, mq_exchange, mq_user, mq_password, \
-            mq_vhost, transport_type, encoding, hostname, port, ssh_user, \
-            ssh_password, ssh_host_key
+            mq_vhost, transport_type, hostname, port, ssh_user, \
+            ssh_password, ssh_host_key, authorisation_code
 
     def makeService(self, options):
         """
@@ -92,8 +94,8 @@ class ZXWPushClientServiceMaker(object):
         """
 
         dsn, mq_host, mq_port, mq_exchange, mq_user, mq_password, \
-            mq_vhost, transport_type, encoding, hostname, port, ssh_user, \
-            ssh_password, ssh_host_key = self._readConfigFile(
+            mq_vhost, transport_type, hostname, port, ssh_user, \
+            ssh_password, ssh_host_key, authorisation_code = self._readConfigFile(
                 options['config-file'])
 
         # All OK. Go get the service.
@@ -105,13 +107,13 @@ class ZXWPushClientServiceMaker(object):
             ssh_host_key,
             dsn,
             transport_type,
-            encoding,
             mq_host,
             mq_port,
             mq_exchange,
             mq_user,
             mq_password,
-            mq_vhost
+            mq_vhost,
+            authorisation_code
         )
 
 
