@@ -51,7 +51,7 @@ class DavisLoggerServiceMaker(object):
                     and config.has_option(S_RABBITMQ, "port"):
                 mq_host = config.get(S_RABBITMQ, "host")
                 mq_port = config.getint(S_RABBITMQ, "port")
-                mq_user = config.get(S_RABBITMQ, "user")
+                mq_user = config.get(S_RABBITMQ, "username")
                 mq_password = config.get(S_RABBITMQ, "password")
                 mq_exchange = config.get(S_RABBITMQ, "exchange")
 
