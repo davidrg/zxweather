@@ -77,4 +77,4 @@ auto_dst = True
 # Time zone for daylight savings:
 #   Where in the world are you? You can see a list of valid options on Wikipedia
 #   at http://en.wikipedia.org/wiki/List_of_tz_database_time_zones
-time_zone = "Pacific/Auckland"
+time_zone = Pacific/Auckland
