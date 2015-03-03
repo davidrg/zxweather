@@ -168,16 +168,16 @@ weather station in this database then you can leave this value as 0.""")
         # Prompt for extra configuration data used by davis weather stations
 
         print("""
-Choose which Davis weather station you are using form the list below. If you
+Choose which Davis weather station you are using from the list below. If you
 are using a wireless Vantage Pro2 or Vantage Pro2 Plus ISS with a Vantage Vue
 console then choose Vantage Pro2 or Vantage Pro2 Plus.
 
 Code     Title
 -------- ---------------------------------------------------------------------
-PRO2    Vantage Pro2
-PRO2C   Vantage Pro2 (non-wireless/cabled version)
-PRO2P   Vantage Pro2 Plus (includes UV and Solar Radiation sensors)
-PRO2CP  Vantage Pro2 Plus (non-wireless/cabled with UV and Solar sensors)
+PRO2     Vantage Pro2
+PRO2C    Vantage Pro2 (non-wireless/cabled version)
+PRO2P    Vantage Pro2 Plus (includes UV and Solar Radiation sensors)
+PRO2CP   Vantage Pro2 Plus (non-wireless/cabled with UV and Solar sensors)
 VUE      Vantage Vue
 -------- ---------------------------------------------------------------------
 """)
