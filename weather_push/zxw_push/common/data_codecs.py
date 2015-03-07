@@ -100,7 +100,7 @@ def _time_decode(binary_val):
 
 
 def _float_encode(value):
-    return int(value*10)
+    return int(round(value, 1)*10)
 
 
 def _float_decode(value):
@@ -108,11 +108,10 @@ def _float_decode(value):
 
 
 def _float_encode_2dp(value):
-    return int(value*100)
+    return int(round(value, 2)*100)
 
 
 def _float_decode_2dp(value):
-    log.msg(value)
     return value / 100.0
 
 _INT_8 = "b"
