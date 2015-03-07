@@ -48,8 +48,6 @@ class WeatherPushDatagramServer(DatagramProtocol):
         :param datagram: Received datagram data
         :param address: Sending address
         """
-        log.msg("Received {0} from {1}".format(datagram, address))
-
         packet = decode_packet(datagram)
 
         if isinstance(packet, StationInfoRequestPacket):
@@ -166,7 +164,6 @@ class WeatherPushDatagramServer(DatagramProtocol):
         records = packet.records
 
         log.msg("Packet record count: {0}".format(len(records)))
-        log.msg(packet._encoded_records)
 
         # Now run through the records processing each one. Processing in this
         # case means:
@@ -185,7 +182,7 @@ class WeatherPushDatagramServer(DatagramProtocol):
             station_code = self._station_id_code[record.station_id]
 
             if isinstance(record, LiveDataRecord):
-                log.msg("Record is LIVE")
+                log.msg("Record is LIVE - ID {0}".format(record.sequence_id))
                 if record.sequence_id < self._previous_live_record_id:
                     # The record ID has jumped back! This means either the
                     # packet has arrived out of order or the counter has
