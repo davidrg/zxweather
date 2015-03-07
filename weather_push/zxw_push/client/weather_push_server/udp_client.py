@@ -4,8 +4,7 @@ from twisted.internet.protocol import DatagramProtocol
 from twisted.python import log
 
 from zxw_push.common.data_codecs import encode_live_record, \
-    encode_sample_record, \
-    calculate_encoded_size
+    encode_sample_record
 from zxw_push.common.util import Event, Sequencer
 from zxw_push.common.packets import StationInfoRequestPacket, decode_packet, \
     StationInfoResponsePacket, LiveDataRecord, SampleDataRecord, \
@@ -46,6 +45,8 @@ class WeatherPushDatagramClient(DatagramProtocol):
         self._station_codes = None
 
         self._station_info_request_retries = 0
+
+        self._ready_event_fired = False
 
         # This variable tracks how many of the last 256 live data records
         # went missing because either:
@@ -131,6 +132,8 @@ class WeatherPushDatagramClient(DatagramProtocol):
         self._station_ids = {}
         self._station_codes = {}
 
+        station_codes = []
+
         log.msg("Received station list:- ")
         for station in station_list_packet.stations:
             station_code = station[0].strip()
@@ -141,11 +144,16 @@ class WeatherPushDatagramClient(DatagramProtocol):
             self._stations[station_code] = hardware_type_id
             self._station_ids[station_code] = station_id
             self._station_codes[station_id] = station_code
+            station_codes.append(station_code)
 
             # Have to strip as its a fixed-width field padded with spaces
 
             log.msg("\t- station {0} hardware {1} station id {2}".format(
                 station_code, hardware_type_id, station_id))
+
+        if not self._ready_event_fired:
+            self.Ready.fire(station_codes)
+            self._ready_event_fired = True
 
     def _handle_sample_acknowledgements(self, packet):
         if self._stations is None:
@@ -295,6 +303,8 @@ class WeatherPushDatagramClient(DatagramProtocol):
         :type hardware_type: str
         """
 
+        log.msg(live_data)
+
         previous_live_record = self._previous_live_record[station_id]
         previous_sample = yield self._confirmed_sample_func(
             self._station_codes[station_id])
@@ -308,29 +318,30 @@ class WeatherPushDatagramClient(DatagramProtocol):
         data_size = 0
 
         # Grab any samples waiting and do those first
-        while len(self._outgoing_samples[station_id]) > 0:
-            sample = self._outgoing_samples[station_id].pop(0)
+        if station_id in self._outgoing_samples.keys():
+            while len(self._outgoing_samples[station_id]) > 0:
+                sample = self._outgoing_samples[station_id].pop(0)
 
-            if previous_sample is not None:
-                sample["sample_diff_timestamp"] = previous_sample["time_stamp"]
+                if previous_sample is not None:
+                    sample["sample_diff_timestamp"] = previous_sample["time_stamp"]
 
-            record = self._make_sample_weather_record(sample, previous_sample,
-                                                      hardware_type,
-                                                      station_id)
-            weather_records.append(record)
+                record = self._make_sample_weather_record(sample, previous_sample,
+                                                          hardware_type,
+                                                          station_id)
+                weather_records.append(record)
 
-            # While we haven't confirmed the server has received this sample
-            # the next sample in the packet can be diffed from it anyway as
-            # if it gets the next sample its guaranteed to get this one too
-            # as they're in the same packet.
-            previous_sample = sample
+                # While we haven't confirmed the server has received this sample
+                # the next sample in the packet can be diffed from it anyway as
+                # if it gets the next sample its guaranteed to get this one too
+                # as they're in the same packet.
+                previous_sample = sample
 
-            data_size += record.encoded_size()
+                data_size += record.encoded_size()
 
-            if data_size > max_sample_payload:
-                # Enough samples! We need to leave some space in this packet
-                # for the live data update
-                break
+                if data_size > max_sample_payload:
+                    # Enough samples! We need to leave some space in this packet
+                    # for the live data update
+                    break
 
         if previous_sample is not None:
             live_data["sample_diff_timestamp"] = previous_sample["time_stamp"]
@@ -338,8 +349,12 @@ class WeatherPushDatagramClient(DatagramProtocol):
         if previous_live_record is not None:
             live_data["live_diff_sequence"] = previous_live_record[1]
 
+        previous_live = None
+        if previous_live_record is not None:
+            previous_live = previous_live_record[0]
+
         live_record = self._make_live_weather_record(
-            live_data, previous_live_record[0], previous_sample,
+            live_data, previous_live, previous_sample,
             hardware_type, station_id
         )
 
@@ -347,11 +362,16 @@ class WeatherPushDatagramClient(DatagramProtocol):
 
         self._previous_live_record[station_id] = (live_data,
                                                   live_record.sequence_id)
+        log.msg("New live")
+        log.msg(live_data)
 
         packet = WeatherDataPacket(self._sequence_id(),
                                    self._authorisation_code)
 
         for record in weather_records:
             packet.add_record(record)
+
+        log.msg("Sending weather data packet with {0} records".format(
+            len(packet.records)))
 
         self._send_packet(packet)
