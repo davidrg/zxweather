@@ -645,6 +645,9 @@ def build_field_id_list_for_live_against_sample(sample_record, live_record,
         field_number = field[0]
         field_name = field[1]
 
+        if field_name is None:
+            continue  # Unused field
+
         if field_name not in sample_field_names:
             # The sample record doesn't contain this field at all. So it must
             # be sent.
@@ -658,6 +661,8 @@ def build_field_id_list_for_live_against_sample(sample_record, live_record,
             # Fields exist in both records but they have different values. So
             # we must send it.
             result.append(field_name)
+
+    return result
 
 
 def get_field_ids_set(field_id_bits):
@@ -755,7 +760,7 @@ def get_live_data_field_options(live_record, previous_live_record,
     live_diff_field_id = None
     sample_diff_field_id = None
 
-    for field in _live_fields:
+    for field in _live_fields[hardware_type.upper()]:
         if field[1] == "live_diff_sequence":
             live_diff_field_id = field[0]
         elif field[1] == "sample_diff_timestamp":
