@@ -1,4 +1,7 @@
 # coding=utf-8
+"""
+weather-push binary streaming protocol packet definitions
+"""
 from math import log
 import struct
 import datetime
@@ -97,7 +100,8 @@ class Packet(object):
         :param value: 8-bit packet type ID
         :type value: int
         """
-        assert (0 <= value <= 254)
+        if not (0 <= value <= 256):
+            raise ValueError("Value must be between 0 and 256")
 
         self._packet_type = value
 
@@ -116,8 +120,8 @@ class Packet(object):
         :param value: 64bit unsigned integer
         :type value: int
         """
-        assert (value >= 0)
-        assert (_size_of_int(value) <= 8)
+        if not (0 <= value <= 0xFFFFFFFF):
+            raise ValueError("Value must be between 0 and 0xFFFFFFFF")
 
         self._authorisation_code = value
 
@@ -137,19 +141,30 @@ class Packet(object):
         :type value: int
         """
 
-        assert (value >= 0)
-        assert (_size_of_int(value) <= 2)
+        if not (0 <= value <= 65535):
+            raise ValueError("Value must be between 0 and 65535")
 
         self._sequence = value
 
     def _get_packet_header(self):
-        return struct.pack(self._HEADER_FORMAT,
-                           self.packet_type,
-                           0,  # Reserved field (one byte)
-                           self.sequence,
-                           self.authorisation_code)
+        packed = struct.pack(self._HEADER_FORMAT,
+                             self.packet_type,
+                             0,  # Reserved field (one byte)
+                             self.sequence,
+                             self.authorisation_code)
+
+        pk_type, res, seq, auth = struct.unpack_from(
+            self._HEADER_FORMAT, packed)
+
+        assert(pk_type == self.packet_type)
+        assert(res == 0)
+        assert(seq == self.sequence)
+        assert(auth == self.authorisation_code)
+
+        return packed
 
     def _load_packet_header(self, packet_data):
+
         self._packet_type, reserved, self.sequence, \
             self._authorisation_code = struct.unpack_from(
                 self._HEADER_FORMAT, packet_data)
@@ -342,6 +357,9 @@ class StationInfoResponsePacket(Packet):
             station_code, hw_type_id, station_id = struct.unpack(
                 self._STATION_FMT, station)
 
+            # Station code will be padded with null bytes. Un-pad it.
+            station_code = station_code.split("\x00")[0]
+
             self._stations.append((station_code, hw_type_id, station_id))
 
             if station_data == '\x04':
@@ -373,6 +391,9 @@ class WeatherRecord(object):
 
     def __init__(self):
         self._record_type = None
+        self._station_id = None
+        self._fields = None
+        self._field_data = None
 
     @property
     def record_type(self):
@@ -388,15 +409,72 @@ class WeatherRecord(object):
         :param value: 8-bit record type ID
         :type value: int
         """
-        assert (0 <= value <= 254)
+        if not (0 <= value <= 256):
+            raise ValueError("Value must be between 0 and 256")
 
         self._record_type = value
+
+    @property
+    def station_id(self):
+        """
+        Returns the station ID
+        :return: station ID
+        :rtype: int
+        """
+        return self._station_id
+
+    @station_id.setter
+    def station_id(self, value):
+        """
+        Sets the station ID.
+        :param value: Station ID
+        :type value: int
+        """
+        if not (0 <= value <= 256):
+            raise ValueError("Value must be between 0 and 256")
+
+        self._station_id = value
+
+    @property
+    def field_list(self):
+        """
+        A list of Field IDs present in the field data
+        """
+        return get_field_ids_set(self._fields)
+
+    @field_list.setter
+    def field_list(self, field_ids):
+        """
+        Sets the list of field IDs present in the field data
+        :param field_ids: List of fields present in the field data
+        :type field_ids: list[int]
+        """
+        self._fields = set_field_ids(field_ids)
+
+    @property
+    def field_data(self):
+        """
+        Returns the raw binary encoded field data
+        :return: field data
+        :rtype: bytearray
+        """
+        return self._field_data
+
+    @field_data.setter
+    def field_data(self, value):
+        """
+        sets the raw field data
+
+        :param value: Raw binary encoded field data
+        :type value: bytearray
+        """
+        self._field_data = value
 
     def _get_record_header(self):
         return struct.pack(self._FMT_HEADER, self.record_type)
 
     def _load_record_header(self, packet_data):
-        self._record_type = struct.unpack_from(self._FMT_HEADER, packet_data)
+        self._record_type = struct.unpack_from(self._FMT_HEADER, packet_data)[0]
 
     def encode(self):
         """
@@ -415,6 +493,17 @@ class WeatherRecord(object):
         """
 
         self._load_record_header(packet_data)
+
+    def calculated_record_size(self, hardware_type):
+        """
+        Returns the calculated size of the record based on the specified
+        hardware type
+        :param hardware_type: Type of weather station that generated the record
+        :type hardware_type: str
+        :returns: Expected size of the record
+        :rtype: int
+        """
+        return struct.calcsize(WeatherRecord._FMT_HEADER)
 
 
 class LiveDataRecord(WeatherRecord):
@@ -445,26 +534,7 @@ class LiveDataRecord(WeatherRecord):
     def __init__(self):
         super(LiveDataRecord, self).__init__()
         self.record_type = 0x01  # Live
-        self._station_id = None
         self._sequence_id = None
-        self._fields = None
-        self._field_data = None
-
-    @property
-    def station_id(self):
-        """
-        8 bit station identifier
-        """
-        return self._station_id
-
-    @station_id.setter
-    def station_id(self, value):
-        """
-        Sets the 8 bit station identifier
-        :param value: New station identifier
-        :type value: int
-        """
-        self._station_id = value
 
     @property
     def sequence_id(self):
@@ -481,39 +551,9 @@ class LiveDataRecord(WeatherRecord):
         :param value: Sequence number
         :type value: int
         """
+        if not (0 <= value <= 65535):
+            raise ValueError("Value must be between 0 and 65535")
         self._sequence_id = value
-
-    @property
-    def field_list(self):
-        """
-        A list of Field IDs present in the field data
-        """
-        return get_field_ids_set(self._fields)
-
-    @field_list.setter
-    def field_list(self, field_ids):
-        """
-        Sets the list of field IDs present in the field data
-        :param field_ids: List of fields present in the field data
-        :type field_ids: list[int]
-        """
-        self._fields = set_field_ids(field_ids)
-
-    @property
-    def field_data(self):
-        """
-        The binary encoded field data
-        """
-        return self._field_data
-
-    @field_data.setter
-    def field_data(self, value):
-        """
-        The binary encoded field data
-        :param value: Binary encoded field data
-        :type value: bytearray
-        """
-        self._field_data = value
 
     def encode(self):
         """
@@ -547,7 +587,7 @@ class LiveDataRecord(WeatherRecord):
             base_header_size
         )
 
-        header_size = base_header_size + struct.calcsize(self._FMT_HEADER)
+        header_size = base_header_size + struct.calcsize(self._RECORD_HEADER)
 
         self.field_data = data[header_size:]
 
@@ -556,8 +596,23 @@ class LiveDataRecord(WeatherRecord):
         Returns how big the encoded form of the record should be
         """
         return len(self._field_data) + \
-               struct.calcsize(self._RECORD_HEADER) + \
-               struct.calcsize(self._FMT_HEADER)
+            struct.calcsize(self._RECORD_HEADER) + \
+            struct.calcsize(self._FMT_HEADER)
+
+    def calculated_record_size(self, hardware_type):
+        """
+        Returns the calculated size of the record based on the specified
+        hardware type
+        :param hardware_type: Type of weather station that generated the record
+        :type hardware_type: str
+        :returns: Expected size of the record
+        :rtype: int
+        """
+        base_header = struct.calcsize(WeatherRecord._FMT_HEADER)
+        record_header = struct.calcsize(self._RECORD_HEADER)
+        field_size = calculate_encoded_size(self.field_list, hardware_type,
+                                            True)
+        return base_header + record_header + field_size
 
 
 class SampleDataRecord(WeatherRecord):
@@ -589,67 +644,9 @@ class SampleDataRecord(WeatherRecord):
 
     def __init__(self):
         super(SampleDataRecord, self).__init__()
-        self.record_type = 0x01  # Live
-        self._station_id = None
-        self._fields = None
-        self._field_data = None
+        self.record_type = 0x02  # Sample
         self._timestamp = None
         self._download_timestamp = None
-
-    @property
-    def station_id(self):
-        """
-        Returns the station ID
-        :return: station ID
-        :rtype: int
-        """
-        return self._station_id
-
-    @station_id.setter
-    def station_id(self, value):
-        """
-        Sets the station ID.
-        :param value: Station ID
-        :type value: int
-        """
-        self._station_id = value
-
-    @property
-    def field_list(self):
-        """
-        Gets the list of field IDs present in the field data
-        :return: Field ID list
-        :rtype: list[int]
-        """
-        return get_field_ids_set(self._fields)
-
-    @field_list.setter
-    def field_list(self, field_ids):
-        """
-        Sets the list of fields present in the field data
-        :param field_ids: Field IDs present
-        :type field_ids: list[int]
-        """
-        self._fields = set_field_ids(field_ids)
-
-    @property
-    def field_data(self):
-        """
-        Returns the raw binary encoded field data
-        :return: field data
-        :rtype: bytearray
-        """
-        return self._field_data
-
-    @field_data.setter
-    def field_data(self, value):
-        """
-        sets the raw field data
-
-        :param value: Raw binary encoded field data
-        :type value: bytearray
-        """
-        self._field_data = value
 
     @property
     def timestamp(self):
@@ -731,7 +728,7 @@ class SampleDataRecord(WeatherRecord):
         self.timestamp = timestamp_decode(timestamp)
         self.download_timestamp = timestamp_decode(download_timestamp)
 
-        header_size = base_header_size + struct.calcsize(self._FMT_HEADER)
+        header_size = base_header_size + struct.calcsize(self._RECORD_HEADER)
 
         self.field_data = data[header_size:]
 
@@ -740,8 +737,23 @@ class SampleDataRecord(WeatherRecord):
         Returns how big the encoded form of the record should be
         """
         return len(self._field_data) + \
-               struct.calcsize(self._RECORD_HEADER) + \
-               struct.calcsize(self._FMT_HEADER)
+            struct.calcsize(self._RECORD_HEADER) + \
+            struct.calcsize(self._FMT_HEADER)
+
+    def calculated_record_size(self, hardware_type):
+        """
+        Returns the calculated size of the record based on the specified
+        hardware type
+        :param hardware_type: Type of weather station that generated the record
+        :type hardware_type: str
+        :returns: Expected size of the record
+        :rtype: int
+        """
+        base_header = struct.calcsize(WeatherRecord._FMT_HEADER)
+        record_header = struct.calcsize(self._RECORD_HEADER)
+        field_size = calculate_encoded_size(self.field_list, hardware_type,
+                                            False)
+        return base_header + record_header + field_size
 
 
 class WeatherDataPacket(Packet):
@@ -782,9 +794,13 @@ class WeatherDataPacket(Packet):
 
     def add_record(self, record):
         """
-        Adds a record to the data packet
-        :param record:
-        :return:
+        Adds a record to the data packet. Note that if the record depends on
+        another record either:
+          - the server must already have that record OR
+          - that record must have already been added to this packet
+
+        :param record: Record to add
+        :type record: WeatherRecord
         """
         self._records.append(record)
 
@@ -809,7 +825,7 @@ class WeatherDataPacket(Packet):
         packet_data = super(WeatherDataPacket, self).encode()
 
         if len(self._records) == 1:
-            packet_data = self._records[0].encode()
+            packet_data += self._records[0].encode()
         else:
             for record in self._records:
                 packet_data += record.encode()
@@ -829,59 +845,92 @@ class WeatherDataPacket(Packet):
         # Decode the header
         super(WeatherDataPacket, self).decode(packet_data)
 
-        self._encoded_records = packet_data[self._HEADER_FORMAT:]
+        header_size = struct.calcsize(self._HEADER_FORMAT)
+
+        self._encoded_records = packet_data[header_size:]
+
+    @staticmethod
+    def _decode_record(record_data):
+        if record_data[0] == "\x01":
+            # Live record
+            record = LiveDataRecord()
+            record.decode(record_data)
+        elif record_data[0] == "\x02":
+            # Sample record
+            record = SampleDataRecord()
+            record.decode(record_data)
+        else:
+            # Unknown/unsupported record
+            return None
+        return record
 
     def decode_records(self, hardware_type_map):
         """
-        Decodes the set of encoded records loaded by the decode function.
+        Decodes all records in the packet. This isn't done by the usual decode
+        function as it required hardware type information that isn't contained
+        within the packet.
         :param hardware_type_map: Map of station ID to hardware type code
-        :type hardware_type_map: dict[int, str]
+        :type hardware_type_map: dict
         """
+        end_of_transmission = False
 
-        # Splice to throw away the end of transmission marker
-        split_records = self._encoded_records[:-1].split('\x1E')
+        data_buffer = self._encoded_records
 
-        while len(split_records) > 0:
-            base_record = WeatherRecord()
-            base_record.decode(self._encoded_records)
+        record_data = ""
 
-            is_live = False
+        while len(data_buffer) > 0:
+            point = data_buffer.find("\x1E")
 
-            if base_record.record_type == 0x1:
-                record = LiveDataRecord()
-                is_live = True
-            elif base_record.record_type == 0x02:
-                record = SampleDataRecord()
-            else:
-                # TODO: Log warning - unknown/unsupported record type
-                # We can't continue processing because we can't be sure if
-                # the next item in the list of split records is part of this
-                # record we can't decode or the start of the next record.
+            if point == -1:
+                # Not found. Try the end of transmission marker instead
+                point = data_buffer.find("\x04")
+                if point == -1:
+                    # TODO: print("Next record marker not found")
+                    return
+                else:
+                    # This might mark the end of the packet.
+                    end_of_transmission = True
+
+            if len(data_buffer) == 1 and end_of_transmission:
+                break  # No more records.
+
+            # Copy the records data from the buffer
+            record_data += data_buffer[:point]
+
+            # And then remove that data from the buffer. We use +2 to remove the
+            # end of record marker too
+            data_buffer = data_buffer[point+1:]
+
+            # Decode the record so we know what type it is
+            record = self._decode_record(record_data)
+            if record is None:
+                # TODO: print("Invalid record ID")
                 return
 
-            record_part = split_records.pop(0)
+            calculated_size = record.calculated_record_size(
+                hardware_type_map[record.station_id])
 
-            record.decode(record_part)
+            if len(record_data) > calculated_size:
+                # TODO: print("Corrupt packet - misplaced end of record marker")
+                return
 
-            field_set = record.field_list
-
-            required_data_size = calculate_encoded_size(
-                field_set,
-                hardware_type_map[record.station_id],
-                is_live)
-
-            if required_data_size == len(record_part):
-                self._records.append(record)
+            if len(record_data) == calculated_size:
+                # Record decoded!
+                self.add_record(record)
+                record_data = ""
                 continue
 
-            while len(record_part) < required_data_size:
-                next_part = split_records.pop(0)
-                if next_part == '':
-                    next_part = '\x1E'
-                record_part += next_part
+            if len(data_buffer) == 0 and end_of_transmission:
+                # TODO: print("Unable to decode record - no more data in
+                # packet! Packet"
+                #      " is malformed.")
+                return
 
-            record.decode(record_part)
-            self._records.append(record)
+            # The record must contain the end of record character as part of
+            # its data. Continue on...
+            record_data += "\x1E"
+
+            # Go around the loop again to add on another chunk of data.
 
 
 class SampleAcknowledgementPacket(Packet):
@@ -961,6 +1010,10 @@ class SampleAcknowledgementPacket(Packet):
         :param value: Number of missing transmissions
         :type value: int
         """
+
+        if not (0 <= value <= 256):
+            raise ValueError("Value must be between 0 and 256")
+
         self._lost_live_records = value
 
     def add_sample_acknowledgement(self, station_id, sample_timestamp):
@@ -978,8 +1031,8 @@ class SampleAcknowledgementPacket(Packet):
         """
 
         # Make sure the data fits
-        assert(_size_of_int(station_id) <= 1)
-        assert(_size_of_int(sample_timestamp) <= 4)
+        if not (0 <= station_id <= 256):
+            raise ValueError("Station ID must be between 0 and 256")
 
         self._acknowledgements.append((station_id,
                                        timestamp_encode(sample_timestamp)))
@@ -991,7 +1044,7 @@ class SampleAcknowledgementPacket(Packet):
         :return: List of sample acknowledgements
         :rtype: list[(int,datetime.datetime)]
         """
-        return [(x[0], timestamp_decode(x[1]) for x in self._acknowledgements)]
+        return [(x[0], timestamp_decode(x[1])) for x in self._acknowledgements]
 
     def encode(self):
         """
@@ -1028,7 +1081,7 @@ class SampleAcknowledgementPacket(Packet):
             self._FMT_PACKET_DATA,
             packet_data,
             offset=struct.calcsize(self._HEADER_FORMAT)
-        )
+        )[0]
 
         header_size += struct.calcsize(self._FMT_PACKET_DATA)
 
