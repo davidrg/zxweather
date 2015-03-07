@@ -2,9 +2,10 @@
 """
 Functions for encoding and decoding weather data to be sent over the wire
 """
+import calendar
 import struct
-import time
 import datetime
+from twisted.python import log
 
 __author__ = 'david'
 
@@ -16,7 +17,7 @@ def timestamp_encode(time_stamp):
     :param time_stamp: Timestamp at UTC
     :type time_stamp: datetime.datetime
     """
-    return time.mktime(time_stamp.timetuple())
+    return calendar.timegm(time_stamp.timetuple())
 
 
 def timestamp_decode(value):
@@ -111,6 +112,7 @@ def _float_encode_2dp(value):
 
 
 def _float_decode_2dp(value):
+    log.msg(value)
     return value / 100.0
 
 _INT_8 = "b"
@@ -121,6 +123,12 @@ _INT_32 = "l"
 _U_INT_32 = "L"
 _BOOL = "?"
 
+_INT_8_NULL = -128
+_U_INT_8_NULL = 255
+_INT_16_NULL = -32768  # For float this is -3276.8 @ 1dp or -327.68 @ 2dp
+_U_INT_16_NULL = 65535  # For float this is 6553.5 @ 1dp or 655.35 @ 2dp
+_U_INT_32_NULL = 4294967295
+
 # Live fields in the order they appear in binary encodings.
 # Tuple values are:
 #   0 - field ID
@@ -128,40 +136,46 @@ _BOOL = "?"
 #   2 - field packing type
 #   3 - optional function to adjust data before packing
 #   4 - optional function to adjust data after unpacking
+#   5 - null value
 _generic_live_fields = [
     # Num, name, type, encode conversion function, decode conversion function
-    (0, "live_diff_sequence", _U_INT_16, None, None),
-    (1, "sample_diff_timestamp", _U_INT_32, timestamp_encode, timestamp_decode),
-    (2, "indoor_humidity", _U_INT_8, None, None),
-    (3, "indoor_temperature", _INT_16, _float_encode_2dp, _float_decode_2dp),
-    (4, "temperature", _INT_16, _float_encode_2dp, _float_decode_2dp),
-    (5, "humidity", _U_INT_8, None, None),
-    (6, "pressure", _U_INT_16, _float_encode, _float_decode),
-    (7, "average_wind_speed", _U_INT_16, _float_encode, _float_decode),
-    (8, "gust_wind_speed", _U_INT_16, _float_encode, _float_decode),
-    (9, "wind_direction", _U_INT_16, None, None),
-    (10, None, None, None, None),  # hardware: davis
-    (11, None, None, None, None),  # hardware: davis
-    (12, None, None, None, None),  # hardware: davis
-    (13, None, None, None, None),  # hardware: davis
-    (14, None, None, None, None),  # hardware: davis
-    (15, None, None, None, None),  # hardware: davis
-    (16, None, None, None, None),  # hardware: davis
-    (17, None, None, None, None),  # hardware: davis
-    (18, None, None, None, None),  # hardware: davis
-    (19, None, None, None, None),  # hardware: davis
-    (20, None, None, None, None),
-    (21, None, None, None, None),
-    (22, None, None, None, None),
-    (23, None, None, None, None),
-    (24, None, None, None, None),
-    (25, None, None, None, None),
-    (26, None, None, None, None),
-    (27, None, None, None, None),
-    (28, None, None, None, None),
-    (29, None, None, None, None),
-    (30, None, None, None, None),
-    (31, None, None, None, None),
+    (0, "live_diff_sequence", _U_INT_16, None, None, None),
+    (1, "sample_diff_timestamp", _U_INT_32, timestamp_encode, timestamp_decode,
+     None),
+    (2, "indoor_humidity", _U_INT_8, None, None, _U_INT_8_NULL),
+    (3, "indoor_temperature", _INT_16, _float_encode_2dp, _float_decode_2dp,
+     _INT_16_NULL),
+    (4, "temperature", _INT_16, _float_encode_2dp, _float_decode_2dp,
+     _INT_16_NULL),
+    (5, "humidity", _U_INT_8, None, None, _U_INT_8_NULL),
+    (6, "pressure", _U_INT_16, _float_encode, _float_decode, _U_INT_16_NULL),
+    (7, "average_wind_speed", _U_INT_16, _float_encode, _float_decode,
+     _U_INT_16_NULL),
+    (8, "gust_wind_speed", _U_INT_16, _float_encode, _float_decode,
+     _U_INT_16_NULL),
+    (9, "wind_direction", _U_INT_16, None, None, _U_INT_16_NULL),
+    (10, None, None, None, None, None),  # hardware: davis
+    (11, None, None, None, None, None),  # hardware: davis
+    (12, None, None, None, None, None),  # hardware: davis
+    (13, None, None, None, None, None),  # hardware: davis
+    (14, None, None, None, None, None),  # hardware: davis
+    (15, None, None, None, None, None),  # hardware: davis
+    (16, None, None, None, None, None),  # hardware: davis
+    (17, None, None, None, None, None),  # hardware: davis
+    (18, None, None, None, None, None),  # hardware: davis
+    (19, None, None, None, None, None),  # hardware: davis
+    (20, None, None, None, None, None),
+    (21, None, None, None, None, None),
+    (22, None, None, None, None, None),
+    (23, None, None, None, None, None),
+    (24, None, None, None, None, None),
+    (25, None, None, None, None, None),
+    (26, None, None, None, None, None),
+    (27, None, None, None, None, None),
+    (28, None, None, None, None, None),
+    (29, None, None, None, None, None),
+    (30, None, None, None, None, None),
+    (31, None, None, None, None, None),
 ]
 
 _davis_live_fields = [
@@ -175,28 +189,30 @@ _davis_live_fields = [
     _generic_live_fields[7],  # average wind speed
     _generic_live_fields[8],  # gust wind speed
     _generic_live_fields[9],  # wind direction
-    (10, "bar_trend", _INT_8, None, None),
-    (11, "rain_rate", _U_INT_16, _float_encode, _float_decode),
-    (12, "storm_rain", _U_INT_16, _float_encode, _float_decode),
-    (13, "current_storm_start_date", _U_INT_16, _date_encode, _date_decode),
-    (14, "transmitter_battery", _U_INT_8, None, None),
-    (15, "console_battery_voltage", _U_INT_16, _float_encode, _float_decode),
-    (16, "forecast_icon", _U_INT_8, None, None),
-    (17, "forecast_rule_id", _U_INT_8, None, None),
-    (18, "uv_index", _U_INT_8, _float_encode, _float_decode),
-    (19, "solar_radiation", _U_INT_16, None, None),
-    (20, None, None, None, None),
-    (21, None, None, None, None),
-    (22, None, None, None, None),
-    (23, None, None, None, None),
-    (24, None, None, None, None),
-    (25, None, None, None, None),
-    (26, None, None, None, None),
-    (27, None, None, None, None),
-    (28, None, None, None, None),
-    (29, None, None, None, None),
-    (30, None, None, None, None),
-    (31, None, None, None, None),
+    (10, "bar_trend", _INT_8, None, None, _INT_8_NULL),
+    (11, "rain_rate", _U_INT_16, _float_encode, _float_decode, _U_INT_16_NULL),
+    (12, "storm_rain", _U_INT_16, _float_encode, _float_decode, _U_INT_16_NULL),
+    (13, "current_storm_start_date", _U_INT_16, _date_encode, _date_decode,
+     _U_INT_16_NULL),
+    (14, "transmitter_battery", _U_INT_8, None, None, _U_INT_8_NULL),
+    (15, "console_battery_voltage", _U_INT_16, _float_encode, _float_decode,
+     _U_INT_16_NULL),
+    (16, "forecast_icon", _U_INT_8, None, None, _U_INT_8_NULL),
+    (17, "forecast_rule_id", _U_INT_8, None, None, _U_INT_8_NULL),
+    (18, "uv_index", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
+    (19, "solar_radiation", _U_INT_16, None, None, _U_INT_16_NULL),
+    (20, None, None, None, None, None),
+    (21, None, None, None, None, None),
+    (22, None, None, None, None, None),
+    (23, None, None, None, None, None),
+    (24, None, None, None, None, None),
+    (25, None, None, None, None, None),
+    (26, None, None, None, None, None),
+    (27, None, None, None, None, None),
+    (28, None, None, None, None, None),
+    (29, None, None, None, None, None),
+    (30, None, None, None, None, None),
+    (31, None, None, None, None, None),
 ]
 
 _live_fields = {
@@ -215,7 +231,7 @@ all_live_field_ids = {
 
 _generic_sample_fields = [
     # Num, name, type, encode conversion function, decode conversion function
-    (0, None, None, None, None),
+    (0, None, None, None, None, None),
     _generic_live_fields[1],  # sample diff timestamp
     _generic_live_fields[2],  # indoor humidity
     _generic_live_fields[3],  # indoor temperature
@@ -225,33 +241,33 @@ _generic_sample_fields = [
     _generic_live_fields[7],  # average wind speed
     _generic_live_fields[8],  # gust wind speed
     _generic_live_fields[9],  # wind direction
-    (10, "rainfall", _U_INT_16, _float_encode, _float_decode),
-    (11, None, None, None, None),  # hardware: davis, wh1080
-    (12, None, None, None, None),  # hardware: davis, wh1080
-    (13, None, None, None, None),  # hardware: davis, wh1080
-    (14, None, None, None, None),  # hardware: davis, wh1080
-    (15, None, None, None, None),  # hardware: davis, wh1080
-    (16, None, None, None, None),  # hardware: davis, wh1080
-    (17, None, None, None, None),  # hardware: davis, wh1080
-    (18, None, None, None, None),  # hardware: davis
-    (19, None, None, None, None),  # hardware: davis
-    (20, None, None, None, None),  # hardware: davis
-    (21, None, None, None, None),  # hardware: davis
-    (22, None, None, None, None),  # hardware: davis
-    (23, None, None, None, None),  # hardware: davis
-    (24, None, None, None, None),
-    (25, None, None, None, None),
-    (26, None, None, None, None),
-    (27, None, None, None, None),
-    (28, None, None, None, None),
-    (29, None, None, None, None),
-    (30, None, None, None, None),
-    (31, None, None, None, None),
+    (10, "rainfall", _U_INT_16, _float_encode, _float_decode, _U_INT_16_NULL),
+    (11, None, None, None, None, None),  # hardware: davis, wh1080
+    (12, None, None, None, None, None),  # hardware: davis, wh1080
+    (13, None, None, None, None, None),  # hardware: davis, wh1080
+    (14, None, None, None, None, None),  # hardware: davis, wh1080
+    (15, None, None, None, None, None),  # hardware: davis, wh1080
+    (16, None, None, None, None, None),  # hardware: davis, wh1080
+    (17, None, None, None, None, None),  # hardware: davis, wh1080
+    (18, None, None, None, None, None),  # hardware: davis
+    (19, None, None, None, None, None),  # hardware: davis
+    (20, None, None, None, None, None),  # hardware: davis
+    (21, None, None, None, None, None),  # hardware: davis
+    (22, None, None, None, None, None),  # hardware: davis
+    (23, None, None, None, None, None),  # hardware: davis
+    (24, None, None, None, None, None),
+    (25, None, None, None, None, None),
+    (26, None, None, None, None, None),
+    (27, None, None, None, None, None),
+    (28, None, None, None, None, None),
+    (29, None, None, None, None, None),
+    (30, None, None, None, None, None),
+    (31, None, None, None, None, None),
 ]
 
 _wh1080_sample_fields = [
     # Num, name, type, encode conversion function, decode conversion function
-    (0, None, None, None, None),
+    (0, None, None, None, None, None),
     _generic_sample_fields[1],  # sample diff timestamp
     _generic_sample_fields[2],  # indoor humidity
     _generic_sample_fields[3],  # indoor temperature
@@ -262,32 +278,32 @@ _wh1080_sample_fields = [
     _generic_sample_fields[8],  # gust wind speed
     _generic_sample_fields[9],  # wind direction
     _generic_sample_fields[10],  # rainfall
-    (11, "sample_interval", _U_INT_8, None, None),  # Sample interval in minutes
-    (12, "record_number", _U_INT_16, None, None),
-    (13, "last_in_batch", _BOOL, None, None),
-    (14, "invalid_data", _BOOL, None, None),
-    (15, "wind_direction", "3s", None, None),
-    (16, "total_rain", _U_INT_32, _float_encode, _float_decode),
-    (17, "rain_overflow", _BOOL, None, None),
-    (18, None, None, None, None),
-    (19, None, None, None, None),
-    (20, None, None, None, None),
-    (21, None, None, None, None),
-    (22, None, None, None, None),
-    (23, None, None, None, None),
-    (24, None, None, None, None),
-    (25, None, None, None, None),
-    (26, None, None, None, None),
-    (27, None, None, None, None),
-    (28, None, None, None, None),
-    (29, None, None, None, None),
-    (30, None, None, None, None),
-    (31, None, None, None, None),
+    (11, "sample_interval", _U_INT_8, None, None, _U_INT_8_NULL),  # minutes
+    (12, "record_number", _U_INT_16, None, None, _U_INT_16_NULL),
+    (13, "last_in_batch", _BOOL, None, None, None),
+    (14, "invalid_data", _BOOL, None, None, None),
+    (15, "wind_direction", "3s", None, None, '\xFF\xFF\xFF'),
+    (16, "total_rain", _U_INT_32, _float_encode, _float_decode, _U_INT_32_NULL),
+    (17, "rain_overflow", _BOOL, None, None, None),
+    (18, None, None, None, None, None),
+    (19, None, None, None, None, None),
+    (20, None, None, None, None, None),
+    (21, None, None, None, None, None),
+    (22, None, None, None, None, None),
+    (23, None, None, None, None, None),
+    (24, None, None, None, None, None),
+    (25, None, None, None, None, None),
+    (26, None, None, None, None, None),
+    (27, None, None, None, None, None),
+    (28, None, None, None, None, None),
+    (29, None, None, None, None, None),
+    (30, None, None, None, None, None),
+    (31, None, None, None, None, None),
 ]
 
 _davis_sample_fields = [
     # Num, name, type, encode conversion function, decode conversion function
-    (0, None, None, None, None),
+    (0, None, None, None, None, None),
     _generic_sample_fields[1],  # sample diff timestamp
     _generic_sample_fields[2],  # indoor humidity
     _generic_sample_fields[3],  # indoor temperature
@@ -298,27 +314,33 @@ _davis_sample_fields = [
     _generic_sample_fields[8],  # gust wind speed
     _generic_sample_fields[9],  # wind direction
     _generic_sample_fields[10],  # rainfall
-    (11, "record_time", _U_INT_16, None, None),
-    (12, "record_date", _U_INT_16, None, None),
-    (13, "high_temperature", _INT_16, _float_encode_2dp, _float_decode_2dp),
-    (14, "low_temperature", _INT_16, _float_encode_2dp, _float_decode_2dp),
-    (15, "high_rain_rate", _INT_16, _float_encode, _float_decode),
-    (16, "solar_radiation", _INT_16, None, None),
-    (17, "wind_sample_count", _U_INT_8, None, None),
-    (18, "gust_wind_direction", _U_INT_16, _float_encode, _float_decode),
-    (19, "average_uv_index", _U_INT_8, _float_encode, _float_decode),
-    (20, "evapotranspiration", _U_INT_32, None, None),
-    (21, "high_solar_radiation", _U_INT_16, None, None),
-    (22, "high_uv_index", _U_INT_8, _float_encode, _float_decode),
-    (23, "forecast_rule", _U_INT_8, None, None),
-    (24, None, None, None, None),
-    (25, None, None, None, None),
-    (26, None, None, None, None),
-    (27, None, None, None, None),
-    (28, None, None, None, None),
-    (29, None, None, None, None),
-    (30, None, None, None, None),
-    (31, None, None, None, None),
+    (11, "record_time", _U_INT_16, None, None, None),
+    (12, "record_date", _U_INT_16, None, None, None),
+    (13, "high_temperature", _INT_16, _float_encode_2dp, _float_decode_2dp,
+     _INT_16_NULL),
+    (14, "low_temperature", _INT_16, _float_encode_2dp, _float_decode_2dp,
+     _INT_16_NULL),
+    (15, "high_rain_rate", _INT_16, _float_encode, _float_decode,
+     _INT_16_NULL),
+    (16, "solar_radiation", _U_INT_16, None, None, _U_INT_16_NULL),
+    (17, "wind_sample_count", _U_INT_8, None, None, _U_INT_8_NULL),
+    (18, "gust_wind_direction", _U_INT_16, _float_encode, _float_decode,
+     _U_INT_16_NULL),
+    (19, "average_uv_index", _U_INT_8, _float_encode, _float_decode,
+     _U_INT_8_NULL),
+    (20, "evapotranspiration", _U_INT_32, None, None, _U_INT_32_NULL),
+    (21, "high_solar_radiation", _U_INT_16, None, None, _U_INT_16_NULL),
+    (22, "high_uv_index", _U_INT_8, _float_encode, _float_decode,
+     _U_INT_8_NULL),
+    (23, "forecast_rule", _U_INT_8, None, None, _U_INT_8_NULL),
+    (24, None, None, None, None, None),
+    (25, None, None, None, None, None),
+    (26, None, None, None, None, None),
+    (27, None, None, None, None, None),
+    (28, None, None, None, None, None),
+    (29, None, None, None, None, None),
+    (30, None, None, None, None, None),
+    (31, None, None, None, None, None),
 ]
 
 _sample_fields = {
@@ -335,6 +357,14 @@ all_sample_field_ids = {
     "DAVIS": range(2, 24)
 }
 
+# These are fields that both live and sample records share in common. Same
+# field ID, same field name, same data type, etc
+common_live_sample_field_ids = {
+    "GENERIC": range(1, 10),
+    "WH1080": range(1, 10),
+    "DAVIS": range(1, 10)
+}
+
 
 def _encode_dict(data_dict, field_definitions, field_ids):
 
@@ -345,9 +375,14 @@ def _encode_dict(data_dict, field_definitions, field_ids):
         # function
         field_number = field[0]
         field_name = field[1]
+
+        if field_name is None:
+            continue  # Unused field
+
         field_type = "!" + field[2]
         encode_function = field[3]
         # decode_function = field[4]
+        null_value = field[5]
 
         if field_number not in field_ids:
             continue
@@ -358,7 +393,22 @@ def _encode_dict(data_dict, field_definitions, field_ids):
         if encode_function is None:
             encode_function = lambda x: x
 
-        field_value = encode_function(data_dict[field_name])
+        log.msg("Encode field {0} value {1}".format(field_name, data_dict[field_name]))
+
+        unencoded_value = data_dict[field_name]
+
+        # If these two are equal then we've got a bug! The null values in the
+        # field definition tables should never occur in real data.
+        assert(unencoded_value != null_value)
+
+        # The field doesn't have a null value defined and we've got a null value
+        # for it! We've encountered data we can't encode. This would be a bug.
+        assert(not(unencoded_value is None and null_value is None))
+
+        if unencoded_value is None:
+            field_value = null_value
+        else:
+            field_value = encode_function(data_dict[field_name])
 
         encoded_value = struct.pack(field_type, field_value)
 
@@ -377,9 +427,14 @@ def _decode_dict(encoded_data, field_definitions, field_ids):
         # function
         field_number = field[0]
         field_name = field[1]
+
+        if field_name is None:
+            continue  # Unused field
+
         field_type = "!" + field[2]
         # encode_function = field[3]
         decode_function = field[4]
+        null_value = field[5]
 
         if field_number not in field_ids:
             continue
@@ -387,14 +442,19 @@ def _decode_dict(encoded_data, field_definitions, field_ids):
         if field_name is None:
             continue  # Reserved field
 
+        log.msg("Decode field " + field_name)
+
         field_size = struct.calcsize(field_type)
 
         if decode_function is None:
             decode_function = lambda x: x
 
-        value = struct.unpack_from(field_type, encoded_data, offset)
+        value = struct.unpack_from(field_type, encoded_data, offset)[0]
 
-        result[field_name] = decode_function(value)
+        if value == null_value:
+            result[field_name] = None
+        else:
+            result[field_name] = decode_function(value)
 
         offset += field_size
 
@@ -531,14 +591,22 @@ def build_field_id_list(base_record, target_record, hardware_type, is_live):
 
     if is_live:
         field_definitions = _live_fields[hardware_type.upper()]
+        ignore_fields = [0, 1]  # Live diff ID and sample diff ID
     else:
         field_definitions = _sample_fields[hardware_type.upper()]
+        ignore_fields = [1, ]   # Sample diff ID
 
     result = []
 
     for field in field_definitions:
         field_id = field[0]
         field_name = field[1]
+
+        if field_name is None:
+            continue  # Unused field
+
+        if field_id in ignore_fields:
+            continue  # Special non-data field.
 
         base_value = base_record[field_name]
         target_value = target_record[field_name]
@@ -921,3 +989,94 @@ def encode_sample_record(sample_record, previous_sample_record, hardware_type):
     uncompressed_size = no_diff_option[2]
 
     return encoded, field_ids, (uncompressed_size, saving, compression)
+
+
+def _patch_record(record, base_record, existing_field_ids, all_field_ids,
+                  field_definitions):
+    missing_fields = [f for f in all_field_ids if f not in existing_field_ids]
+
+    new_record = record
+
+    for field in field_definitions:
+        field_id = field[0]
+        name = field[1]
+
+        if field_id in missing_fields:
+            new_record[name] = base_record[name]
+
+    return new_record
+
+
+def patch_live_from_live(live_record, base_live_record, existing_field_ids,
+                         hardware_type):
+    """
+    Copies fields from the base live record which are not present in the live
+    record according to the list of existing field ids supplied.
+
+    :param live_record: Live record to patch
+    :type live_record: dict
+    :param base_live_record: Source for missing field data
+    :type base_live_record: dict
+    :param existing_field_ids: List of fields missing in the record being
+                               patched
+    :type existing_field_ids: list[int]
+    :param hardware_type: Type of hardware that generated both records
+    :type hardware_type: str
+    :return: Patched live record
+    :rtype: dict
+    """
+    all_fields = all_live_field_ids[hardware_type.upper()]
+    field_definitions = _live_fields[hardware_type.upper()]
+
+    return _patch_record(live_record, base_live_record, existing_field_ids,
+                         all_fields, field_definitions)
+
+
+def patch_live_from_sample(live_record, base_sample_record, existing_field_ids,
+                           hardware_type):
+    """
+    Copies fields from the base live record which are not present in the live
+    record according to the list of existing field ids supplied.
+
+    :param live_record: Live record to patch
+    :type live_record: dict
+    :param base_sample_record: Source for missing field data
+    :type base_sample_record: dict
+    :param existing_field_ids: List of fields missing in the record being
+                               patched
+    :type existing_field_ids: list[int]
+    :param hardware_type: Type of hardware that generated both records
+    :type hardware_type: str
+    :return: Patched live record
+    :rtype: dict
+    """
+    all_fields = common_live_sample_field_ids[hardware_type.upper()]
+    field_definitions = _sample_fields[hardware_type.upper()]
+
+    return _patch_record(live_record, base_sample_record, existing_field_ids,
+                         all_fields, field_definitions)
+
+
+def patch_sample(sample_record, base_sample_record, existing_field_ids,
+                 hardware_type):
+    """
+    Copies fields from the base sample record which are not present in the
+    sample record according to the list of existing field ids supplied.
+
+    :param sample_record: Sample record to patch
+    :type sample_record: dict
+    :param base_sample_record: Source for missing field data
+    :type base_sample_record: dict
+    :param existing_field_ids: List of fields missing in the record being
+                               patched
+    :type existing_field_ids: list[int]
+    :param hardware_type: Type of hardware that generated both records
+    :type hardware_type: str
+    :return: Patched live record
+    :rtype: dict
+    """
+    all_fields = all_sample_field_ids[hardware_type.upper()]
+    field_definitions = _sample_fields[hardware_type.upper()]
+
+    return _patch_record(sample_record, base_sample_record, existing_field_ids,
+                         all_fields, field_definitions)
