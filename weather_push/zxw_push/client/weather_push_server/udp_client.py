@@ -257,11 +257,14 @@ class WeatherPushDatagramClient(DatagramProtocol):
                                                              previous_live,
                                                              previous_sample,
                                                              hardware_type)
-        record = LiveDataRecord()
-        record.station_id = station_id
-        record.sequence_id = self._live_sequence_id[station_id]()
-        record.field_list = field_ids
-        record.field_data = encoded
+        record = None
+
+        if encoded is not None:
+            record = LiveDataRecord()
+            record.station_id = station_id
+            record.sequence_id = self._live_sequence_id[station_id]()
+            record.field_list = field_ids
+            record.field_data = encoded
 
         # Log some compression statistics
         original_size = compression[0]
@@ -369,12 +372,21 @@ class WeatherPushDatagramClient(DatagramProtocol):
             hardware_type, station_id
         )
 
-        weather_records.append(live_record)
+        # live_record is None when compression throws away *all* data (meaning
+        # there is no change from the last live record so no differences to
+        # send)
+        if live_record is None and len(weather_records) == 0:
+            # Nothing to send
+            log.msg("Live record compressed away. Weather packet empty. "
+                    "Nothing to send.")
+            return
 
-        self._previous_live_record[station_id] = (live_data,
-                                                  live_record.sequence_id)
-        log.msg("New live")
-        log.msg(live_data)
+        if live_record is not None:
+            weather_records.append(live_record)
+
+            self._previous_live_record[station_id] = (live_data,
+                                                      live_record.sequence_id)
+            log.msg("New live - ID {0}".format(live_record.sequence_id))
 
         packet = WeatherDataPacket(self._sequence_id(),
                                    self._authorisation_code)
