@@ -196,6 +196,15 @@ class WeatherPushDatagramClient(DatagramProtocol):
 
         self._flush_data_buffer(station_id, live, hardware_type)
 
+    @staticmethod
+    def _to_real_dict(input):
+        result = {}
+
+        for key in input.keys():
+            result[key] = input[key]
+
+        return result
+
     def send_sample(self, sample, hardware_type, hold=False):
         """
         Queues a sample for transmission to the remote server. The sample will
@@ -210,6 +219,8 @@ class WeatherPushDatagramClient(DatagramProtocol):
         # To suppress warning about unused parameter
         if hold:
             pass
+
+        sample = self._to_real_dict(sample)
 
         station_code = sample['station_code']
 
