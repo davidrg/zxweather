@@ -530,6 +530,7 @@ class LiveDataRecord(WeatherRecord):
     """
 
     _RECORD_HEADER = '!BHL'
+    HEADER_SIZE = 8
 
     def __init__(self):
         super(LiveDataRecord, self).__init__()
@@ -641,6 +642,8 @@ class SampleDataRecord(WeatherRecord):
     """
 
     _RECORD_HEADER = '!BLLL'
+
+    HEADER_SIZE = 14
 
     def __init__(self):
         super(SampleDataRecord, self).__init__()
@@ -853,10 +856,24 @@ class WeatherDataPacket(Packet):
     def _decode_record(record_data):
         if record_data[0] == "\x01":
             # Live record
+
+            if len(record_data) < SampleDataRecord.HEADER_SIZE:
+                # Not enough data to decode record header
+                record = WeatherRecord()
+                record.decode(record_data)
+                return record
+
             record = LiveDataRecord()
             record.decode(record_data)
         elif record_data[0] == "\x02":
             # Sample record
+
+            if len(record_data) < SampleDataRecord.HEADER_SIZE:
+                # Not enough data to decode record header
+                record = WeatherRecord()
+                record.decode(record_data)
+                return record
+
             record = SampleDataRecord()
             record.decode(record_data)
         else:
@@ -907,18 +924,26 @@ class WeatherDataPacket(Packet):
                 # TODO: print("Invalid record ID")
                 return
 
-            calculated_size = record.calculated_record_size(
-                hardware_type_map[record.station_id])
+            # If it is a live or sample record see if we've got all the data
+            if isinstance(record, SampleDataRecord) or \
+               isinstance(record, LiveDataRecord):
 
-            if len(record_data) > calculated_size:
-                # TODO: print("Corrupt packet - misplaced end of record marker")
-                return
+                calculated_size = record.calculated_record_size(
+                    hardware_type_map[record.station_id])
 
-            if len(record_data) == calculated_size:
-                # Record decoded!
-                self.add_record(record)
-                record_data = ""
-                continue
+                if len(record_data) > calculated_size:
+                    # TODO: print("Corrupt packet - misplaced end of record marker")
+                    return
+
+                if len(record_data) == calculated_size:
+                    # Record decoded!
+                    self.add_record(record)
+                    record_data = ""
+                    continue
+
+            # ELSE: Its a WeatherDataRecord - this means we don't even have
+            # enough data to decode the header of whatever type of record it is
+            # Continue fetching data.
 
             if len(data_buffer) == 0 and end_of_transmission:
                 # TODO: print("Unable to decode record - no more data in
