@@ -331,7 +331,7 @@ _davis_sample_fields = [
     (21, "high_solar_radiation", _U_INT_16, None, None, _U_INT_16_NULL),
     (22, "high_uv_index", _U_INT_8, _float_encode, _float_decode,
      _U_INT_8_NULL),
-    (23, "forecast_rule", _U_INT_8, None, None, _U_INT_8_NULL),
+    (23, "forecast_rule_id", _U_INT_8, None, None, _U_INT_8_NULL),
     (24, None, None, None, None, None),
     (25, None, None, None, None, None),
     (26, None, None, None, None, None),
