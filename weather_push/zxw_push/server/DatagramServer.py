@@ -103,7 +103,17 @@ class WeatherPushDatagramServer(DatagramProtocol):
                                hardware_type,
                                self._station_code_id[station_code])
 
+        # Client has probably just reconnected so we'll clear some state so
+        # that the client can start sequence IDs from 0, etc.
+        self._reset_tracking_variables()
+
         self._send_packet(packet, address)
+
+    def _reset_tracking_variables(self):
+        self._previous_live_record_id = 0
+        self._lost_live_records = 0
+        self._live_record_cache = {}
+        self._live_record_cache_ids = []
 
     def _get_live_record(self, record_id, station_id):
         rid = (station_id, record_id)
