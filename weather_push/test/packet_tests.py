@@ -519,7 +519,7 @@ class WeatherDataPacketTests(unittest.TestCase):
         # Add a selection of records
         rec = LiveDataRecord()
         rec.station_id = 2  # WH1080
-        rec.sequence_id = 12345
+        rec.sequence_id = 4
         rec.field_list = [4]
         # Given the above field list and hardware type, the field data should
         # be 11 bytes
