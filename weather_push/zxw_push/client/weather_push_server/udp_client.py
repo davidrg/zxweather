@@ -331,7 +331,7 @@ class WeatherPushDatagramClient(DatagramProtocol):
         # Grab any samples waiting and do those first
         if station_id in self._outgoing_samples.keys():
             while len(self._outgoing_samples[station_id]) > 0:
-                sample = self._outgoing_samples[station_id].pop(0)
+                sample = self._outgoing_samples[station_id].pop(0)[0]
 
                 if previous_sample is not None:
                     sample["sample_diff_timestamp"] = previous_sample["time_stamp"]
