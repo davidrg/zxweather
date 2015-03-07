@@ -751,6 +751,7 @@ def get_live_data_field_options(live_record, previous_live_record,
              the computed size of the fields and the computed size of the fields
              that were excluded.
     :rtype: ((bool, list[int], int, int), (bool or None, list[int], int, int),
+             (bool or None, list[int], int, int),
              (bool or None, list[int], int, int))
     """
 
@@ -769,6 +770,8 @@ def get_live_data_field_options(live_record, previous_live_record,
         if live_diff_field_id is not None and sample_diff_field_id is not None:
             break  # Done!
 
+    skip_available = False
+
     live_diff_fields = None
     live_diff_size = None
     if previous_live_record is not None:
@@ -776,6 +779,9 @@ def get_live_data_field_options(live_record, previous_live_record,
                                                live_record,
                                                hardware_type,
                                                True)  # True for live
+
+        if len(live_diff_fields) == 0:
+            skip_available = True
 
         # Diffing includes a small size penalty as we have to send an additional
         # field we wouldn't normally to indicate what we're diffing against.
@@ -799,20 +805,25 @@ def get_live_data_field_options(live_record, previous_live_record,
                                                   hardware_type,
                                                   True)  # True for live
 
+    # (unused, field list, total size, size reduction)
     no_diff_option = (None, all_fields, all_fields_size, 0)
     live_diff_option = None
     sample_diff_option = None
+    skip_option = None
 
     if live_diff_fields is not None:
         saving = all_fields_size - live_diff_size
         live_diff_option = (True, live_diff_fields, live_diff_size, saving)
+
+    if skip_available:
+        skip_option = (None, [], 0, all_fields_size)
 
     if sample_diff_fields is not None:
         saving = all_fields_size - sample_diff_size
         sample_diff_option = (False, sample_diff_fields, sample_diff_size,
                               saving)
 
-    return no_diff_option, live_diff_option, sample_diff_option
+    return no_diff_option, live_diff_option, sample_diff_option, skip_option
 
 
 def encode_live_record(live_record, previous_live_record,
@@ -844,7 +855,7 @@ def encode_live_record(live_record, previous_live_record,
     :rtype: bytearray, list[int], (int, int, str)
     """
 
-    no_diff_option, live_diff_option, sample_diff_option = \
+    no_diff_option, live_diff_option, sample_diff_option, skip_option = \
         get_live_data_field_options(
             live_record, previous_live_record,
             previous_sample_record, hardware_type
@@ -857,6 +868,9 @@ def encode_live_record(live_record, previous_live_record,
 
     if sample_diff_option is not None:
         options.append((3, sample_diff_option[3]))
+
+    if skip_option is not None:
+        options.append((4, skip_option[3]))
 
     smallest_option = sorted(options, key=lambda x: x[1], reverse=True)[0][0]
 
@@ -876,8 +890,16 @@ def encode_live_record(live_record, previous_live_record,
         field_ids = sample_diff_option[1]
         compression = "sample-diff"
         saving = sample_diff_option[3]
+    elif smallest_option == 4:
+        # Skip (don't even bother sending a record)
+        field_ids = []
+        compression = "skip"
+        saving = skip_option[3]
 
-    encoded = encode_live_data(live_record, hardware_type, field_ids)
+    if smallest_option == 4:  # Skip option
+        encoded = None
+    else:
+        encoded = encode_live_data(live_record, hardware_type, field_ids)
 
     uncompressed_size = no_diff_option[2]
 
