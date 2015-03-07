@@ -268,7 +268,7 @@ class WeatherPushDatagramClient(DatagramProtocol):
         reduction_size = compression[1]
         algorithm = compression[2]
         new_size_percentage = ((original_size - reduction_size) /
-                               original_size) * 100
+                               (original_size * 1.0)) * 100.0
         log.msg("Reduced LIVE   by {0} bytes (new size is {1}%) using "
                 "algorithm {2}".format(reduction_size, new_size_percentage,
                                        algorithm))
@@ -293,7 +293,7 @@ class WeatherPushDatagramClient(DatagramProtocol):
         reduction_size = compression[1]
         algorithm = compression[2]
         new_size_percentage = ((original_size - reduction_size) /
-                               original_size) * 100
+                               (original_size * 1.0)) * 100.0
         log.msg("Reduced SAMPLE by {0} bytes (new size is {1}%) using "
                 "algorithm {2}".format(reduction_size, new_size_percentage,
                                        algorithm))
@@ -314,7 +314,7 @@ class WeatherPushDatagramClient(DatagramProtocol):
         :type hardware_type: str
         """
 
-        log.msg(live_data)
+        #log.msg(live_data)
 
         previous_live_record = self._previous_live_record[station_id]
         previous_sample = yield self._confirmed_sample_func(
