@@ -857,7 +857,7 @@ class WeatherDataPacket(Packet):
         if record_data[0] == "\x01":
             # Live record
 
-            if len(record_data) < SampleDataRecord.HEADER_SIZE:
+            if len(record_data) < LiveDataRecord.HEADER_SIZE:
                 # Not enough data to decode record header
                 record = WeatherRecord()
                 record.decode(record_data)
@@ -932,7 +932,8 @@ class WeatherDataPacket(Packet):
                     hardware_type_map[record.station_id])
 
                 if len(record_data) > calculated_size:
-                    # TODO: print("Corrupt packet - misplaced end of record marker")
+                    # TODO: print("Corrupt packet - misplaced end of
+                    # record marker")
                     return
 
                 if len(record_data) == calculated_size:

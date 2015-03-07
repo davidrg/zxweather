@@ -503,6 +503,63 @@ class WeatherDataPacketTests(unittest.TestCase):
             else:
                 self.assertTrue(False)
 
+    def test_single_record_round_trip(self):
+        """
+        Tests that what goes in comes back out.
+        """
+
+        hardware_types = {
+            1: "DAVIS",
+            2: "WH1080",
+            3: "GENERIC"
+        }
+
+        packet = WeatherDataPacket(sequence=5, authorisation_code=0xABCDEFAB)
+
+        # Add a selection of records
+        rec = LiveDataRecord()
+        rec.station_id = 2  # WH1080
+        rec.sequence_id = 12345
+        rec.field_list = [4]
+        # Given the above field list and hardware type, the field data should
+        # be 11 bytes
+        rec.field_data = "12"
+        self.assertEqual(len(rec.field_data), 2)
+        packet.add_record(rec)
+
+        encoded = packet.encode()
+
+        out_packet = WeatherDataPacket()
+        out_packet.decode(encoded)
+        out_packet.decode_records(hardware_types)
+
+        self.assertEqual(packet.sequence, out_packet.sequence)
+        self.assertEqual(packet.authorisation_code,
+                         out_packet.authorisation_code)
+
+        # Now test all the records survived!
+        self.assertEqual(len(packet.records), len(out_packet.records))
+
+        for idx, in_record in enumerate(packet.records):
+            out_record = out_packet.records[idx]
+
+            self.assertEqual(in_record.station_id, out_record.station_id)
+            self.assertListEqual(in_record.field_list,
+                                 out_record.field_list)
+            self.assertEqual(in_record.field_data, out_record.field_data)
+
+            if isinstance(in_record, LiveDataRecord):
+                self.assertIsInstance(out_record, LiveDataRecord)
+                self.assertEqual(in_record.sequence_id, out_record.sequence_id)
+
+            elif isinstance(in_record, SampleDataRecord):
+                self.assertIsInstance(out_record, SampleDataRecord)
+                self.assertEqual(in_record.timestamp, out_record.timestamp)
+                self.assertEqual(in_record.download_timestamp,
+                                 out_record.download_timestamp)
+            else:
+                self.assertTrue(False)
+
 
 class SampleAcknowledgementPacketTests(unittest.TestCase):
     """
