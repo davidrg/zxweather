@@ -457,6 +457,19 @@ class WeatherDataPacketTests(unittest.TestCase):
         self.assertEqual(len(rec.field_data), 10)
         packet.add_record(rec)
 
+        # This record contains the end-of-record marker early on in the header.
+        # We need to make sure this situation is still correctly handled.
+        rec = LiveDataRecord()
+        rec.station_id = 2  # WH1080
+        rec.sequence_id = 0x1E
+        rec.field_list = [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27,
+                          29, 31]
+        # Given the above field list and hardware type, the field data should
+        # be 11 bytes
+        rec.field_data = "123456 \xDE\xAD\xBE\xEF"
+        self.assertEqual(len(rec.field_data), 11)
+        packet.add_record(rec)
+
         encoded = packet.encode()
 
         out_packet = WeatherDataPacket()
