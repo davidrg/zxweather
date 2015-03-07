@@ -954,7 +954,10 @@ class WeatherDataPacket(Packet):
 
             # The record must contain the end of record character as part of
             # its data. Continue on...
-            record_data += "\x1E"
+            if end_of_transmission:
+                record_data += "\x04"
+            else:
+                record_data += "\x1E"
 
             # Go around the loop again to add on another chunk of data.
 
