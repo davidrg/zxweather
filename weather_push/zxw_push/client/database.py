@@ -326,7 +326,7 @@ class WeatherDatabase(object):
             'limit': 10000
         }
 
-        result = yield self._conn.runQuery(query, parameters)\
+        result = yield self._conn.runQuery(query, parameters)
 
         self.process_samples_result(result, hw_type)
 
