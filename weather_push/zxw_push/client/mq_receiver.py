@@ -34,7 +34,7 @@ class RabbitMqReceiver(object):
         """
         log.msg(latest_sample_info)
         # Grab a list of stations the remote server knows about
-        for station in latest_sample_info.keys():
+        for station in latest_sample_info:
             self._station_codes.append(station)
 
         try:
@@ -114,6 +114,12 @@ class RabbitMqReceiver(object):
 
         data = json.loads(body)
 
+        if data["startDateOfCurrentStorm"] is not None:
+            current_storm_date = datetime.strptime(data["startDateOfCurrentStorm"],
+                                                   "%Y-%m-%d").date()
+        else:
+            current_storm_date = None
+
         live_packet = {
             # Generic live data
             "station_code": station_code,
@@ -131,7 +137,7 @@ class RabbitMqReceiver(object):
             "bar_trend": data["barTrend"],
             "rain_rate": data["rainRate"],
             "storm_rain": data["stormRain"],
-            "current_storm_start_date": data["startDateOfCurrentStorm"],
+            "current_storm_start_date": current_storm_date,
             "transmitter_battery": data["transmitterBatteryStatus"],
             "console_battery_voltage": data["consoleBatteryVoltage"],
             "forecast_icon": data["forecastIcons"],
