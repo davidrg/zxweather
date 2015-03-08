@@ -37,13 +37,13 @@ class PacketTests(unittest.TestCase):
         packet = Packet()
 
         # This should be ok
-        packet.packet_type = 256
+        packet.packet_type = 255
 
         def _set_val(val):
             packet.packet_type = val
 
         # This should fail
-        self.assertRaises(ValueError, _set_val, 257)
+        self.assertRaises(ValueError, _set_val, 256)
 
     def test_negative_packet_type_is_rejected(self):
         """
@@ -186,13 +186,13 @@ class WeatherRecordTests(unittest.TestCase):
         packet = WeatherRecord()
 
         # This should be ok
-        packet.record_type = 256
+        packet.record_type = 255
 
         def _set_val(val):
             packet.record_type = val
 
         # This should fail
-        self.assertRaises(ValueError, _set_val, 257)
+        self.assertRaises(ValueError, _set_val, 256)
 
     def test_negative_record_type_is_rejected(self):
         """
@@ -218,13 +218,13 @@ class WeatherRecordTests(unittest.TestCase):
         record = LiveDataRecord()
 
         # This should be ok
-        record.station_id = 256
+        record.station_id = 255
 
         def _set_val(val):
             record.station_id = val
 
         # This should fail
-        self.assertRaises(ValueError, _set_val, 257)
+        self.assertRaises(ValueError, _set_val, 256)
 
     def test_negative_station_id_is_rejected(self):
         """
@@ -596,13 +596,13 @@ class SampleAcknowledgementPacketTests(unittest.TestCase):
         packet = SampleAcknowledgementPacket()
 
         # This should be ok
-        packet.lost_live_records = 256
+        packet.lost_live_records = 255
 
         def _set_val(val):
             packet.lost_live_records = val
 
         # This should fail
-        self.assertRaises(ValueError, _set_val, 257)
+        self.assertRaises(ValueError, _set_val, 256)
 
     def test_negative_lost_record_count_is_rejected(self):
         """
@@ -626,10 +626,10 @@ class SampleAcknowledgementPacketTests(unittest.TestCase):
         packet = SampleAcknowledgementPacket()
 
         # This should be ok
-        packet.add_sample_acknowledgement(256, datetime.now())
+        packet.add_sample_acknowledgement(255, datetime.now())
 
         # This should fail
-        self.assertRaises(ValueError, packet.add_sample_acknowledgement, 257,
+        self.assertRaises(ValueError, packet.add_sample_acknowledgement, 256,
                           datetime.now())
 
     def test_negative_station_id_is_rejected(self):

@@ -100,8 +100,8 @@ class Packet(object):
         :param value: 8-bit packet type ID
         :type value: int
         """
-        if not (0 <= value <= 256):
-            raise ValueError("Value must be between 0 and 256")
+        if not (0 <= value <= 255):
+            raise ValueError("Value must be between 0 and 255")
 
         self._packet_type = value
 
@@ -409,8 +409,8 @@ class WeatherRecord(object):
         :param value: 8-bit record type ID
         :type value: int
         """
-        if not (0 <= value <= 256):
-            raise ValueError("Value must be between 0 and 256")
+        if not (0 <= value <= 255):
+            raise ValueError("Value must be between 0 and 255")
 
         self._record_type = value
 
@@ -430,8 +430,8 @@ class WeatherRecord(object):
         :param value: Station ID
         :type value: int
         """
-        if not (0 <= value <= 256):
-            raise ValueError("Value must be between 0 and 256")
+        if not (0 <= value <= 255):
+            raise ValueError("Value must be between 0 and 255")
 
         self._station_id = value
 
@@ -1040,8 +1040,8 @@ class SampleAcknowledgementPacket(Packet):
         :type value: int
         """
 
-        if not (0 <= value <= 256):
-            raise ValueError("Value must be between 0 and 256")
+        if not (0 <= value <= 255):
+            raise ValueError("Value must be between 0 and 255")
 
         self._lost_live_records = value
 
@@ -1060,8 +1060,8 @@ class SampleAcknowledgementPacket(Packet):
         """
 
         # Make sure the data fits
-        if not (0 <= station_id <= 256):
-            raise ValueError("Station ID must be between 0 and 256")
+        if not (0 <= station_id <= 255):
+            raise ValueError("Station ID must be between 0 and 255")
 
         self._acknowledgements.append((station_id,
                                        timestamp_encode(sample_timestamp)))

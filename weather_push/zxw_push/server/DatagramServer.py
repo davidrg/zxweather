@@ -1,3 +1,7 @@
+# coding=utf-8
+"""
+UDP implementation of the WeatherPush server
+"""
 from twisted.internet import defer
 from twisted.internet.protocol import DatagramProtocol
 from twisted.python import log
@@ -12,7 +16,12 @@ from zxw_push.server.database import ServerDatabase
 __author__ = 'david'
 
 
+# Can't fix old-style-class-ness as its a twisted thing.
+# noinspection PyClassicStyleClass
 class WeatherPushDatagramServer(DatagramProtocol):
+    """
+    Implements the server-side of the WeatherPush protocol.
+    """
 
     _MAX_LIVE_RECORD_CACHE = 5
     _MAX_SAMPLE_RECORD_CACHE = 1
@@ -42,6 +51,12 @@ class WeatherPushDatagramServer(DatagramProtocol):
         log.msg("Datagram Server started")
         self._db = ServerDatabase(self._dsn)
 
+        # TODO: Allocate station IDs so that the server can come and go without
+        # clients having to reconnect. This will need to be fairly deterministic
+        # to ensure the same station IDs get allocated to the same stations each
+        # time. Perhaps just sort by the artificial primary key? New stations
+        # will always get the next largest ID so gaps will never be filled...
+
     def datagramReceived(self, datagram, address):
         """
         Processes a received datagram
@@ -68,9 +83,10 @@ class WeatherPushDatagramServer(DatagramProtocol):
                     payload_size,
                     payload_size + udp_header_size,
                     payload_size + udp_header_size + ip4_header_size
-        ))
+                ))
 
         self.transport.write(encoded, address)
+        log.msg("Packet sent.")
 
     @defer.inlineCallbacks
     def _send_station_info(self, address, authorisation_code):
@@ -130,16 +146,33 @@ class WeatherPushDatagramServer(DatagramProtocol):
             rid = self._live_record_cache_ids.pop(0)
             del self._live_record_cache[rid]
 
+    @staticmethod
+    def _to_real_dict(input):
+        result = {}
+
+        for key in input.keys():
+            result[key] = input[key]
+
+        return result
+
     @defer.inlineCallbacks
-    def _get_sample_record(self, station_id, sample_id):
-        rid = (station_id, sample_id)
+    def _get_sample_record(self, station_id, time_stamp):
+        rid = (station_id, time_stamp)
+
         if rid in self._sample_record_cache.keys():
             defer.returnValue(self._sample_record_cache[rid])
 
-        sample = yield self._db.get_sample(station_id, sample_id)
+        station_code = self._station_id_code[station_id]
+        hw_type = self._station_id_hardware_type[station_id]
+
+        sample = yield self._db.get_sample(station_code, time_stamp, hw_type)
 
         if sample is not None:
-            self._cache_sample_record(station_id, sample_id, sample)
+
+            # Convert it to a real dict so things don't get confusing later
+            sample = self._to_real_dict(sample)
+
+            self._cache_sample_record(station_id, time_stamp, sample)
             defer.returnValue(sample)
 
         defer.returnValue(None)
@@ -150,9 +183,185 @@ class WeatherPushDatagramServer(DatagramProtocol):
         self._sample_record_cache_ids.append(rid)
         self._sample_record_cache[rid] = sample
 
-        while len(self._sample_record_cache_ids) > self._MAX_SAMPLE_RECORD_CACHE:
+        while len(self._sample_record_cache_ids) > \
+                self._MAX_SAMPLE_RECORD_CACHE:
             rid = self._sample_record_cache_ids.pop(0)
             del self._sample_record_cache[rid]
+
+    @defer.inlineCallbacks
+    def _build_live_from_sample_diff(self, data, station_id, fields, hw_type):
+        """
+        Decompresses a live record compressed using sample-diff. If the required
+        sample can't be found None is returned to indicate failure.
+
+        :param data: Live record data
+        :type data: dict
+        :param station_id: Station ID that recorded the data
+        :type station_id: int
+        :param fields: List of fields contained in the data
+        :type fields: list[int]
+        :param hw_type: Type of hardware used by the station
+        :type hw_type: str
+        :return: Decompressed live data or None on failure
+        """
+        other_sample_id = data["sample_diff_timestamp"]
+        other_sample = yield self._get_sample_record(
+            station_id, other_sample_id)
+
+        if other_sample is None:
+            # base record could not be found. This means that
+            # either:
+            #  1. It hasn't arrived yet (its coming out of order) OR
+            #  2. It went missing
+            # Either we can't decode this record. Count it as an
+            # error and move on.
+            log.msg("-> UNDEC - other sample missing")
+            self._lost_live_records += 1
+            defer.returnValue(None)
+
+        new_live = patch_live_from_sample(data, other_sample,
+                                          fields, hw_type)
+
+        defer.returnValue(new_live)
+
+    def _build_live_from_live_diff(self, data, station_id, fields, hw_type):
+        """
+        Decompresses a live record compressed using live-diff. If the required
+        live record can't be found None is returned to indicate failure.
+
+        :param data: Live record data
+        :type data: dict
+        :param station_id: Station ID that recorded the data
+        :type station_id: int
+        :param fields: List of fields contained in the data
+        :type fields: list[int]
+        :param hw_type: Type of hardware used by the station
+        :type hw_type: str
+        :return: Decompressed live data or None on failure
+        """
+        other_live_id = data["live_diff_sequence"]
+        other_live = self._get_live_record(other_live_id, station_id)
+
+        if other_live is None:
+            # base record could not be found. This means that
+            # either:
+            #  1. It hasn't arrived yet (its coming out of order) OR
+            #  2. It went missing
+            # Either we can't decode this record. Count it as an
+            # error and move on.
+            self._lost_live_records += 1
+            log.msg("-> UNDEC - Other live not in cache")
+            return None
+
+        return patch_live_from_live(data, other_live, fields, hw_type)
+
+    def _check_for_missing_live_records(self, sequence_id):
+        if sequence_id < self._previous_live_record_id:
+            # The record ID has jumped back! This means either the
+            # packet has arrived out of order or the counter has
+            # overflowed.
+            diff = self._previous_live_record_id - sequence_id
+            if diff <= 60000:
+                # Probably a lost live record. If it had gone back more
+                # than 60k then we'd just assume a counter overflow.
+                self._lost_live_records += 1
+                log.msg("Ignoring live record {0} - out of order"
+                        .format(sequence_id))
+                return False
+
+            # The counter has wrapped around. This record is OK but
+            # we need to check to see if any records in between have
+            # gone missing. The last received record was before the
+            # overflow (which is at 65535) and the current one is after
+            # it so:
+            missing_records = 65535 - self._previous_live_record_id
+            missing_records += sequence_id
+            if missing_records > 1:
+                log.msg("-> Sequence jump over overflow")
+                self._lost_live_record(missing_records)
+        else:
+            # Take note of any missing records since the last received
+            # one
+            diff = sequence_id - self._previous_live_record_id
+            if diff > 1:
+                log.msg("-> Sequence jump")
+                self._lost_live_record(diff)
+
+                self._previous_live_record_id = sequence_id
+
+        return True
+
+    def _received_live_record(self):
+        self._lost_live_records -= 1
+        if self._lost_live_records < 0:
+            self._lost_live_records = 0
+
+    def _lost_live_record(self, count=1):
+        self._lost_live_records += count
+        if self._lost_live_records > 255:
+            self._lost_live_records = 255
+
+        log.msg("Update loss: {0}%".format(
+            (self._lost_live_records / 255.0)*100))
+
+    @defer.inlineCallbacks
+    def _handle_live_record(self, record):
+        """
+        Handles decoding and broadcasting a live record
+
+        :param record: The received weather record
+        :type record: LiveDataRecord
+        :return: True on success, False on Failure
+        :rtype: bool
+        """
+
+        fields = record.field_list
+        data = record.field_data
+        hw_type = self._station_id_hardware_type[record.station_id]
+        station_code = self._station_id_code[record.station_id]
+
+        log.msg("Record is LIVE - ID {0}".format(record.sequence_id))
+        in_order = self._check_for_missing_live_records(
+            record.sequence_id)
+
+        if not in_order:
+            defer.returnValue(False)  # Record arrived too late to be useful.
+
+        rec_data = decode_live_data(data, hw_type, fields)
+
+        if "live_diff_sequence" in rec_data:
+
+            new_live = self._build_live_from_live_diff(
+                rec_data, record.station_id, fields, hw_type
+            )
+
+        elif "sample_diff_timestamp" in rec_data:
+            new_live = yield self._build_live_from_sample_diff(
+                rec_data, record.station_id, fields, hw_type
+            )
+
+        else:
+            # No compression. All the data should be right there in
+            # the record.
+            new_live = rec_data
+
+        if new_live is None:
+            # Couldn't decompress - base record doesn't exist
+            defer.returnValue(False)
+
+        self._cache_live_record(new_live, record.sequence_id,
+                                record.station_id)
+
+        # Update missing record statistics
+        self._received_live_record()
+        self._previous_live_record_id = record.sequence_id
+
+        # Insert decoded into the database as live data
+        yield self._db.store_live_data(station_code, new_live)
+
+        # TODO: Broadcast to message bus if configured
+
+        defer.returnValue(True)
 
     @defer.inlineCallbacks
     def _handle_weather_data(self, address, packet):
@@ -162,6 +371,9 @@ class WeatherPushDatagramServer(DatagramProtocol):
         packet.decode_records(self._station_id_hardware_type)
 
         records = packet.records
+
+        if len(records) > 1:
+            log.msg("####################################################")
 
         log.msg("Packet record count: {0}".format(len(records)))
 
@@ -173,107 +385,28 @@ class WeatherPushDatagramServer(DatagramProtocol):
 
         ack_packet = SampleAcknowledgementPacket()
 
+        sample_records = False
+
         for record in records:
-            log.msg("Process record")
-
-            fields = record.field_list
-            data = record.field_data
-            hw_type = self._station_id_hardware_type[record.station_id]
-            station_code = self._station_id_code[record.station_id]
-
             if isinstance(record, LiveDataRecord):
-                log.msg("Record is LIVE - ID {0}".format(record.sequence_id))
-                if record.sequence_id < self._previous_live_record_id:
-                    # The record ID has jumped back! This means either the
-                    # packet has arrived out of order or the counter has
-                    # overflowed.
-                    diff = self._previous_live_record_id - record.sequence_id
-                    if diff <= 60000:
-                        # Probably a lost live record. If it had gone back more
-                        # than 60k then we'd just assume a counter overflow.
-                        self._lost_live_records += 1
-                        log.msg("Ignoring live record {0} - out of order"
-                                .format(record.sequence_id))
-                        continue
+                ok = yield self._handle_live_record(record)
 
-                    # The counter has wrapped around. This record is OK but
-                    # we need to check to see if any records in between have
-                    # gone missing. The last received record was before the
-                    # overflow (which is at 65535) and the current one is after
-                    # it so:
-                    missing_records = 65535 - self._previous_live_record_id
-                    missing_records += record.sequence_id
-                    self._lost_live_records += missing_records
-                else:
-                    # Take not of any missing records since the last received
-                    # one
-                    self._lost_live_records += (record.sequence_id -
-                                                self._previous_live_record_id)
-
-                rec_data = decode_live_data(data, hw_type, fields)
-
-                if "live_diff_sequence" in rec_data:
-
-                    other_live_id = rec_data["live_diff_sequence"]
-                    other_live = yield self._get_live_record(other_live_id,
-                                                             record.station_id)
-
-                    if other_live is None:
-                        # base record could not be found. This means that
-                        # either:
-                        #  1. It hasn't arrived yet (its coming out of order) OR
-                        #  2. It went missing
-                        # Either we can't decode this record. Count it as an
-                        # error and move on.
-                        self._lost_live_records += 1
-                        continue
-
-                    new_live = patch_live_from_live(rec_data, other_live,
-                                                    fields, hw_type)
-
-                elif "sample_diff_timestamp" in rec_data:
-                    other_sample_id = rec_data["sample_diff_timestamp"]
-                    other_sample = yield self._get_sample_record(
-                        record.station_id, other_sample_id)
-
-                    if other_sample is None:
-                        # base record could not be found. This means that
-                        # either:
-                        #  1. It hasn't arrived yet (its coming out of order) OR
-                        #  2. It went missing
-                        # Either we can't decode this record. Count it as an
-                        # error and move on.
-                        self._lost_live_records += 1
-                        continue
-
-                    new_live = patch_live_from_sample(rec_data, other_sample,
-                                                      fields, hw_type)
-                else:
-                    # No compression. All the data should be right there in
-                    # the record.
-                    new_live = rec_data
-
-                # Update missing record statistics
-                self._lost_live_records -= 1
-                if self._lost_live_records < 0:
-                    self._lost_live_records = 0
-
-                # Insert decoded into the database as live data
-                yield self._db.store_live_data(station_code, new_live, hw_type)
-
-                # TODO: Broadcast to message bus if configured
-
-                self._cache_live_record(new_live, record.sequence_id,
-                                        record.station_id)
-                self._previous_live_record_id = record.sequence_id
+                if not ok:
+                    continue
 
             elif isinstance(record, SampleDataRecord):
                 log.msg("Record is SAMPLE")
+
+                fields = record.field_list
+                data = record.field_data
+                hw_type = self._station_id_hardware_type[record.station_id]
+                station_code = self._station_id_code[record.station_id]
+
                 rec_data = decode_sample_data(data, hw_type, fields)
 
                 if "sample_diff_timestamp" in rec_data:
                     other_sample_id = rec_data["sample_diff_timestamp"]
-                    other_sample = self._get_sample_record(
+                    other_sample = yield self._get_sample_record(
                         record.station_id, other_sample_id)
 
                     if other_sample is None:
@@ -286,21 +419,42 @@ class WeatherPushDatagramServer(DatagramProtocol):
                                 "been received. This is probably a client bug."
                                 .format(record.timestamp, station_code,
                                         other_sample_id))
-                        pass
+                        continue
 
                     new_sample = patch_sample(rec_data, other_sample,
                                               fields, hw_type)
+                    log.msg("REC DATA: " + repr(rec_data))
+                    log.msg("DECODED: " + repr(new_sample))
                 else:
                     # No compression. Use the record as-is
+                    log.msg("Sample not compressed")
                     new_sample = rec_data
+
+                new_sample["time_stamp"] = record.timestamp
+                new_sample["download_timestamp"] = record.download_timestamp
+
+                # Add the sample to the cache to allow future samples to be
+                # decompressed without hitting the database.
+                self._cache_sample_record(record.station_id,
+                                          record.timestamp,
+                                          new_sample)
 
                 # Insert decoded into the database as sample data and append to
                 # acknowledgement packet
-                self._db.store_sample(station_code, new_sample, hw_type)
+                yield self._db.store_sample(station_code, new_sample)
 
                 ack_packet.add_sample_acknowledgement(record.station_id,
                                                       record.timestamp)
+                sample_records = True
 
-        ack_packet.lost_live_records = self._lost_live_records
-        #self._send_packet(ack_packet, address)
+        # Make sure the count is valid
+        if self._lost_live_records > 255:
+            self._lost_live_records = 255
+
+        # Only send the acknowledgement packet if we've got samples to
+        # acknowledge
+        if sample_records:
+            ack_packet.lost_live_records = self._lost_live_records
+            self._send_packet(ack_packet, address)
+
         # Done!

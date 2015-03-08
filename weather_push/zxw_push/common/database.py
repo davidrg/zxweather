@@ -19,16 +19,25 @@ where rs.site_id = %(site_id)s
         or (not %(pending_b)s and (rs.status='done')))
 """
 
+_TIMESTAMP_CLAUSE = """
+where s.time_stamp = %(timestamp)s
+"""
 
-def wh1080_sample_query(ascending, pending_clause=True):
+_WHERE_CLAUSES = {
+    "": "",
+    "pending": _PENDING_CLAUSE,
+    "timestamp": _TIMESTAMP_CLAUSE
+}
+
+
+def wh1080_sample_query(ascending, where_clause="pending"):
     """
     Returns the sample query for a WH1080 weather station
     :param ascending: If the query should be sorted by timestamp ascending
                       instead of descending
     :type ascending: bool
-    :param pending_clause: If the replication pending status clause should be
-                           included or not
-    :type pending_clause: bool
+    :param where_clause: Where clause to use
+    :type where_clause: str
     :returns: Sample query
     :rtype: str
     """
@@ -64,27 +73,23 @@ limit %(limit)s
 
     query_format = {
         "sort_order": 'desc',
-        "where_clause": _PENDING_CLAUSE
+        "where_clause": _WHERE_CLAUSES[where_clause]
     }
 
     if ascending:
         query_format["sort_order"] = 'asc'
 
-    if not pending_clause:
-        query_format["where_clause"] = ""
-
     return query.format(**query_format)
 
 
-def davis_sample_query(ascending, pending_clause=True):
+def davis_sample_query(ascending, where_clause="pending"):
     """
     Returns the sample query for a Davis weather station
     :param ascending: If the query should be sorted by timestamp ascending
                       instead of descending
     :type ascending: bool
-    :param pending_clause: If the replication pending status clause should be
-                           included or not
-    :type pending_clause: bool
+    :param where_clause: Where clause to use
+    :type where_clause: str
     :returns: Sample query
     :rtype: str
     """
@@ -127,28 +132,24 @@ limit %(limit)s
 
     query_format = {
         "sort_order": 'desc',
-        "where_clause": _PENDING_CLAUSE
+        "where_clause": _WHERE_CLAUSES[where_clause]
     }
 
     if ascending:
         query_format["sort_order"] = 'asc'
 
-    if not pending_clause:
-        query_format["where_clause"] = ""
-
     #log.msg(query.format(**query_format))
     return query.format(**query_format)
 
 
-def generic_sample_query(ascending, pending_clause=True):
+def generic_sample_query(ascending, where_clause="pending"):
     """
     Returns the sample query for a generic weather station
     :param ascending: If the query should be sorted by timestamp ascending
                       instead of descending
     :type ascending: bool
-    :param pending_clause: If the replication pending status clause should be
-                           included or not
-    :type pending_clause: bool
+    :param where_clause: Where clause to use
+    :type where_clause: str
     :returns: Sample query
     :rtype: str
     """
@@ -176,13 +177,10 @@ limit %(limit)s
 
     query_format = {
         "sort_order": 'desc',
-        "where_clause": _PENDING_CLAUSE
+        "where_clause": _WHERE_CLAUSES[where_clause]
     }
 
     if ascending:
         query_format["sort_order"] = 'asc'
-
-    if not pending_clause:
-        query_format["where_clause"] = ""
 
     return query.format(**query_format)

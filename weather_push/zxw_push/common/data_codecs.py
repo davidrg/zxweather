@@ -392,8 +392,6 @@ def _encode_dict(data_dict, field_definitions, field_ids):
         if encode_function is None:
             encode_function = lambda x: x
 
-        log.msg("Encode field {0} value {1}".format(field_name, data_dict[field_name]))
-
         unencoded_value = data_dict[field_name]
 
         # If these two are equal then we've got a bug! The null values in the
@@ -440,8 +438,6 @@ def _decode_dict(encoded_data, field_definitions, field_ids):
 
         if field_name is None:
             continue  # Reserved field
-
-        log.msg("Decode field " + field_name)
 
         field_size = struct.calcsize(field_type)
 
@@ -654,13 +650,16 @@ def build_field_id_list_for_live_against_sample(sample_record, live_record,
             result.append(field_number)
             continue
 
+        if field_name == "sample_diff_timestamp":
+            continue  # Special field.
+
         base_value = sample_record[field_name]
         live_value = live_record[field_name]
 
         if base_value != live_value:
             # Fields exist in both records but they have different values. So
             # we must send it.
-            result.append(field_name)
+            result.append(field_number)
 
     return result
 
@@ -827,7 +826,7 @@ def get_live_data_field_options(live_record, previous_live_record,
 
 
 def encode_live_record(live_record, previous_live_record,
-                       previous_sample_record, hardware_type):
+                       previous_sample_record, hardware_type, compress):
     """
     Encodes a live data record. If previous_live_record and/or
     previous_sample_record are also supplied it may choose to encode the live
@@ -851,6 +850,8 @@ def encode_live_record(live_record, previous_live_record,
     :param hardware_type: Type of weather station hardware that generated the
                           live and sample records
     :type hardware_type: str
+    :param compress: If the live record should be compressed where possible
+    :type compress: bool
     :returns: Encoded live record and a list of the fields that were encoded
     :rtype: bytearray, list[int], (int, int, str)
     """
@@ -861,18 +862,23 @@ def encode_live_record(live_record, previous_live_record,
             previous_sample_record, hardware_type
         )
 
-    options = [(1, no_diff_option[3])]
+    if compress:
+        options = [(1, no_diff_option[3])]
 
-    if live_diff_option is not None:
-        options.append((2, live_diff_option[3]))
+        if live_diff_option is not None:
+            options.append((2, live_diff_option[3]))
 
-    if sample_diff_option is not None:
-        options.append((3, sample_diff_option[3]))
+        if sample_diff_option is not None:
+            options.append((3, sample_diff_option[3]))
 
-    if skip_option is not None:
-        options.append((4, skip_option[3]))
+        if skip_option is not None:
+            options.append((4, skip_option[3]))
 
-    smallest_option = sorted(options, key=lambda x: x[1], reverse=True)[0][0]
+        smallest_option = sorted(options,
+                                 key=lambda x: x[1],
+                                 reverse=True)[0][0]
+    else:
+        smallest_option = 1  # No compression
 
     field_ids = None
     saving = 0
@@ -931,7 +937,7 @@ def get_sample_data_field_options(sample_record, previous_sample_record,
 
     sample_diff_field_id = None
 
-    for field in _live_fields:
+    for field in _sample_fields[hardware_type.upper()]:
         if field[1] == "sample_diff_timestamp":
             sample_diff_field_id = field[0]
             break
@@ -1026,6 +1032,9 @@ def _patch_record(record, base_record, existing_field_ids, all_field_ids,
     for field in field_definitions:
         field_id = field[0]
         name = field[1]
+
+        if name is None:
+            continue
 
         if field_id in missing_fields:
             new_record[name] = base_record[name]
