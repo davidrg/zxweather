@@ -908,7 +908,8 @@ class WeatherDataPacket(Packet):
                     # This might mark the end of the packet.
                     end_of_transmission = True
 
-            if len(data_buffer) == 1 and end_of_transmission:
+            if len(data_buffer) == 1 and end_of_transmission and \
+               len(record_data) == 0:
                 break  # No more records.
 
             # Copy the records data from the buffer
