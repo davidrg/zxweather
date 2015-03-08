@@ -105,6 +105,7 @@ class WeatherDatabase(object):
 
         hw_type = self.station_code_hardware_type[station_code]
 
+        # Default clause for all queries is pending
         if hw_type == 'FOWH1080':
             query = wh1080_sample_query(False)
         elif hw_type == 'DAVIS':
@@ -311,6 +312,7 @@ class WeatherDatabase(object):
 
         hw_type = self.station_code_hardware_type[station_code]
 
+        # default where clause for all queries is "pending"
         if hw_type == 'FOWH1080':
             query = wh1080_sample_query(True)
         elif hw_type == 'DAVIS':

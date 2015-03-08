@@ -62,6 +62,13 @@ class WeatherPushDatagramClient(DatagramProtocol):
         # This variable is updated via sample acknowledgement packets.
         self._lost_live_updates = 0
 
+        # How many compressed live records we should send before forcing a full
+        # (uncompressed) record
+        self._max_compressed_live_records = 30
+
+        self._compressed_live_records_remaining = \
+            self._max_compressed_live_records
+
     def startProtocol(self):
         """
         Sets up the transport and fires off an initial station list request
@@ -253,10 +260,22 @@ class WeatherPushDatagramClient(DatagramProtocol):
     def _make_live_weather_record(self, data, previous_live, previous_sample,
                                   hardware_type, station_id):
 
+        # We send a full uncompressed record every so often just in case a
+        # packet has gone missing or arrived out of order at some point.
+        # When that happens the server looses the ability to decode live records
+        # until we 'reset' the compression by sending an uncompressed record.
+        compress = True
+        if self._compressed_live_records_remaining <= 0:
+            log.msg("-----> Forcing uncompressed live update")
+            compress = False
+            self._compressed_live_records_remaining = \
+                self._max_compressed_live_records
+
         encoded, field_ids, compression = encode_live_record(data,
                                                              previous_live,
                                                              previous_sample,
-                                                             hardware_type)
+                                                             hardware_type,
+                                                             compress)
         record = None
 
         if encoded is not None:
@@ -276,11 +295,22 @@ class WeatherPushDatagramClient(DatagramProtocol):
                 "algorithm {2}".format(reduction_size, new_size_percentage,
                                        algorithm))
 
+        # Track how many compressed records we've sent.
+        if algorithm != "none":
+            self._compressed_live_records_remaining -= 1
+
         return record
 
     @staticmethod
     def _make_sample_weather_record(data, previous_sample, hardware_type,
                                     station_id):
+
+        # Samples are always compressed when it makes sense (which is
+        # practically always). There is no forced uncompressed record as we
+        # always know exactly what the remote server has so we're never
+        # compressing against data the server might not have which would prevent
+        # it from being able to decompress
+
         encoded, field_ids, compression = encode_sample_record(
             data, previous_sample, hardware_type)
 
@@ -325,9 +355,11 @@ class WeatherPushDatagramClient(DatagramProtocol):
 
         weather_records = []
 
-        # UDP max is really 65507 but we need to reserve a bit of space for the
-        # live record
-        max_sample_payload = 65000
+        # UDP max is really 65507 but we want to avoid fragmenting the packet
+        # as it will reduce the chance of it arriving at its destination intact.
+        # 512 bytes should be a safe number but we'll leave a bit of room for
+        # a live record.
+        max_sample_payload = 450
 
         data_size = 0
 
@@ -339,7 +371,8 @@ class WeatherPushDatagramClient(DatagramProtocol):
                 if previous_sample is not None:
                     sample["sample_diff_timestamp"] = previous_sample["time_stamp"]
 
-                record = self._make_sample_weather_record(sample, previous_sample,
+                record = self._make_sample_weather_record(sample,
+                                                          previous_sample,
                                                           hardware_type,
                                                           station_id)
                 weather_records.append(record)
