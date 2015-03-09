@@ -7,7 +7,7 @@
 [database]
 # This is the connection string for the database containing data you wish
 # to push out to the remote server. An example might be:
-# dsn = "host=localhost port=5432 user=zxweather password=password dbname=weather"
+# dsn=host=localhost port=5432 user=zxweather password=password dbname=weather
 
 dsn=
 
