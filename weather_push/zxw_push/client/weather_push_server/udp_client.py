@@ -73,7 +73,11 @@ class WeatherPushDatagramClient(DatagramProtocol):
         """
         Sets up the transport and fires off an initial station list request
         """
-        self.transport.connect(self._ip_address, self._port)
+        # Connecting the transport like this causes reliability problems. Every
+        # so often we just start getting exceptions every time we try to write
+        # to the transport - possibly caused by the network interface (ppp0)
+        # disappearing briefly .
+        # self.transport.connect(self._ip_address, self._port)
 
         log.msg("Requesting station list from server...")
         self._request_station_list()
@@ -105,7 +109,7 @@ class WeatherPushDatagramClient(DatagramProtocol):
         #             payload_size + udp_header_size + ip4_header_size)
         #         )
 
-        self.transport.write(encoded)
+        self.transport.write(encoded, (self._ip_address, self._port))
 
     def _request_station_list(self):
         packet = StationInfoRequestPacket(self._sequence_id(),
