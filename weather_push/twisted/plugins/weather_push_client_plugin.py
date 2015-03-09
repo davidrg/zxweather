@@ -79,7 +79,7 @@ class ZXWPushClientServiceMaker(object):
             if config.has_option(S_SSH, "host_key"):
                 ssh_host_key = config.get(S_SSH, "host_key")
         elif transport_type == "udp":
-            authorisation_code = config.get(S_TRANSPORT, "authorisation_code")
+            authorisation_code = config.getint(S_TRANSPORT, "authorisation_code")
 
 
         return dsn, mq_host, mq_port, mq_exchange, mq_user, mq_password, \

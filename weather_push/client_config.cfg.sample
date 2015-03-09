@@ -7,7 +7,7 @@
 [database]
 # This is the connection string for the database containing data you wish
 # to push out to the remote server. An example might be:
-# dsn = "host=localhost port=5432 user=zxweather password=password dbname=weather"
+# dsn=host=localhost port=5432 user=zxweather password=password dbname=weather
 
 dsn=
 
@@ -26,7 +26,7 @@ dsn=
 #host=localhost
 #port=5672
 
-#username=guest
+#user=guest
 #password=guest
 
 #virtual_host=/
@@ -51,6 +51,10 @@ hostname=localhost
 
 # The remote port to connect to.
 port=4222
+
+# Authorisation code for the UDP transport. This controls which weather stations
+# you can submit data for
+authorisation_code=123
 
 ##############################################################################
 ### SSH Configuration ########################################################
