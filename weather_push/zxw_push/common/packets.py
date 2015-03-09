@@ -5,6 +5,7 @@ weather-push binary streaming protocol packet definitions
 from math import log
 import struct
 import datetime
+from twisted.python import log as _log
 
 from zxw_push.common.data_codecs import get_field_ids_set, set_field_ids, \
     timestamp_encode, timestamp_decode, calculate_encoded_size
@@ -902,7 +903,7 @@ class WeatherDataPacket(Packet):
                 # Not found. Try the end of transmission marker instead
                 point = data_buffer.find("\x04")
                 if point == -1:
-                    # TODO: print("Next record marker not found")
+                    _log.msg("** DECODE ERROR: Next record marker not found.")
                     return
                 else:
                     # This might mark the end of the packet.
@@ -922,7 +923,8 @@ class WeatherDataPacket(Packet):
             # Decode the record so we know what type it is
             record = self._decode_record(record_data)
             if record is None:
-                # TODO: print("Invalid record ID")
+                _log.msg("** DECODE ERROR: Invalid record type ID {0}".format(
+                    ord(record_data[0])))
                 return
 
             # If it is a live or sample record see if we've got all the data
@@ -933,8 +935,7 @@ class WeatherDataPacket(Packet):
                     hardware_type_map[record.station_id])
 
                 if len(record_data) > calculated_size:
-                    # TODO: print("Corrupt packet - misplaced end of
-                    # record marker")
+                    _log.msg("** DECODE ERROR: Misplaced end of record marker at {0}".format(point))
                     return
 
                 if len(record_data) == calculated_size:
@@ -948,9 +949,8 @@ class WeatherDataPacket(Packet):
             # Continue fetching data.
 
             if len(data_buffer) == 0 and end_of_transmission:
-                # TODO: print("Unable to decode record - no more data in
-                # packet! Packet"
-                #      " is malformed.")
+                _log.msg("** DECODE ERROR: Unable to decode record - no more "
+                         "data in packet.")
                 return
 
             # The record must contain the end of record character as part of
