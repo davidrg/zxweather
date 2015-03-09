@@ -94,17 +94,16 @@ class WeatherPushDatagramClient(DatagramProtocol):
     def _send_packet(self, packet):
         encoded = packet.encode()
 
-        payload_size = len(encoded)
-        udp_header_size = 8
-        ip4_header_size = 20
-
-        log.msg("Sending {0} packet. Payload {1} bytes. UDP size {2} bytes. "
-                "IPv4 size {3} bytes.".format(
-                    packet.__class__.__name__,
-                    payload_size,
-                    payload_size + udp_header_size,
-                    payload_size + udp_header_size + ip4_header_size)
-                )
+        # payload_size = len(encoded)
+        # udp_header_size = 8
+        # ip4_header_size = 20
+        # log.msg("Sending {0} packet. Payload {1} bytes. UDP size {2} bytes. "
+        #         "IPv4 size {3} bytes.".format(
+        #             packet.__class__.__name__,
+        #             payload_size,
+        #             payload_size + udp_header_size,
+        #             payload_size + udp_header_size + ip4_header_size)
+        #         )
 
         self.transport.write(encoded)
 
@@ -277,6 +276,7 @@ class WeatherPushDatagramClient(DatagramProtocol):
                                                              hardware_type,
                                                              compress)
         record = None
+        seq_id = None
 
         if encoded is not None:
             record = LiveDataRecord()
@@ -285,6 +285,8 @@ class WeatherPushDatagramClient(DatagramProtocol):
             record.field_list = field_ids
             record.field_data = encoded
 
+            seq_id = record.sequence_id
+
         # Log some compression statistics
         original_size = compression[0]
         reduction_size = compression[1]
@@ -292,8 +294,10 @@ class WeatherPushDatagramClient(DatagramProtocol):
         new_size_percentage = ((original_size - reduction_size) /
                                (original_size * 1.0)) * 100.0
         log.msg("Reduced LIVE   by {0} bytes (new size is {1}%) using "
-                "algorithm {2}".format(reduction_size, new_size_percentage,
-                                       algorithm))
+                "algorithm {2}. Live ID: {3}".format(reduction_size,
+                                                     new_size_percentage,
+                                                     algorithm,
+                                                     seq_id))
 
         # Track how many compressed records we've sent.
         if algorithm != "none":
@@ -410,8 +414,8 @@ class WeatherPushDatagramClient(DatagramProtocol):
         # send)
         if live_record is None and len(weather_records) == 0:
             # Nothing to send
-            log.msg("Live record compressed away. Weather packet empty. "
-                    "Nothing to send.")
+            #log.msg("Live record compressed away. Weather packet empty. "
+            #        "Nothing to send.")
             return
 
         if live_record is not None:
@@ -419,7 +423,7 @@ class WeatherPushDatagramClient(DatagramProtocol):
 
             self._previous_live_record[station_id] = (live_data,
                                                       live_record.sequence_id)
-            log.msg("New live - ID {0}".format(live_record.sequence_id))
+            #log.msg("New live - ID {0}".format(live_record.sequence_id))
 
         packet = WeatherDataPacket(self._sequence_id(),
                                    self._authorisation_code)
@@ -427,7 +431,7 @@ class WeatherPushDatagramClient(DatagramProtocol):
         for record in weather_records:
             packet.add_record(record)
 
-        log.msg("Sending weather data packet with {0} records".format(
-            len(packet.records)))
+        #log.msg("Sending weather data packet with {0} records".format(
+        #    len(packet.records)))
 
         self._send_packet(packet)
