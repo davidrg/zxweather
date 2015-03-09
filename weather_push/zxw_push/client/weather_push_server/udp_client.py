@@ -1,4 +1,7 @@
 # coding=utf-8
+"""
+Client implementation of Weather Push UDP protocol
+"""
 from twisted.internet import reactor, defer
 from twisted.internet.protocol import DatagramProtocol
 from twisted.python import log
@@ -207,11 +210,11 @@ class WeatherPushDatagramClient(DatagramProtocol):
         self._flush_data_buffer(station_id, live, hardware_type)
 
     @staticmethod
-    def _to_real_dict(input):
+    def _to_real_dict(value):
         result = {}
 
-        for key in input.keys():
-            result[key] = input[key]
+        for key in value.keys():
+            result[key] = value[key]
 
         return result
 
@@ -355,8 +358,6 @@ class WeatherPushDatagramClient(DatagramProtocol):
         :type hardware_type: str
         """
 
-        #log.msg(live_data)
-
         previous_live_record = self._previous_live_record[station_id]
         previous_sample = yield self._confirmed_sample_func(
             self._station_codes[station_id])
@@ -377,7 +378,8 @@ class WeatherPushDatagramClient(DatagramProtocol):
                 sample = self._outgoing_samples[station_id].pop(0)[0]
 
                 if previous_sample is not None:
-                    sample["sample_diff_timestamp"] = previous_sample["time_stamp"]
+                    sample["sample_diff_timestamp"] = \
+                        previous_sample["time_stamp"]
 
                 record = self._make_sample_weather_record(sample,
                                                           previous_sample,
@@ -418,8 +420,6 @@ class WeatherPushDatagramClient(DatagramProtocol):
         # send)
         if live_record is None and len(weather_records) == 0:
             # Nothing to send
-            #log.msg("Live record compressed away. Weather packet empty. "
-            #        "Nothing to send.")
             return
 
         if live_record is not None:
@@ -427,15 +427,11 @@ class WeatherPushDatagramClient(DatagramProtocol):
 
             self._previous_live_record[station_id] = (live_data,
                                                       live_record.sequence_id)
-            #log.msg("New live - ID {0}".format(live_record.sequence_id))
 
         packet = WeatherDataPacket(self._sequence_id(),
                                    self._authorisation_code)
 
         for record in weather_records:
             packet.add_record(record)
-
-        #log.msg("Sending weather data packet with {0} records".format(
-        #    len(packet.records)))
 
         self._send_packet(packet)

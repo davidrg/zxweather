@@ -147,11 +147,11 @@ class WeatherPushDatagramServer(DatagramProtocol):
             del self._live_record_cache[rid]
 
     @staticmethod
-    def _to_real_dict(input):
+    def _to_real_dict(value):
         result = {}
 
-        for key in input.keys():
-            result[key] = input[key]
+        for key in value.keys():
+            result[key] = value[key]
 
         return result
 
@@ -371,9 +371,6 @@ class WeatherPushDatagramServer(DatagramProtocol):
         packet.decode_records(self._station_id_hardware_type)
 
         records = packet.records
-
-        if len(records) > 1:
-            log.msg("####################################################")
 
         log.msg("Packet record count: {0}".format(len(records)))
 
