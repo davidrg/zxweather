@@ -195,6 +195,8 @@ class WeatherPushDatagramClient(DatagramProtocol):
         if self._stations is None:
             return
 
+        live = self._to_real_dict(live)
+
         station_code = live['station_code']
 
         if station_code not in self._stations.keys():
