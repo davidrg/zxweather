@@ -560,7 +560,7 @@ def calculate_encoded_size(field_ids, hardware_type, is_live):
         if field_name is None:
             continue  # Reserved field has no size
 
-        total_size += struct.calcsize(field_type)
+        total_size += struct.calcsize("!" + field_type)
 
     return total_size
 
