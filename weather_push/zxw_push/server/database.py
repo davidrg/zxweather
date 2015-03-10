@@ -210,7 +210,7 @@ class ServerDatabase(object):
     @defer.inlineCallbacks
     def _get_sample_id(self, station_id, time_stamp):
         query = "select sample_id from sample " \
-                "where station_id = %s and time_stamp = %s"
+                "where station_id = %s and time_stamp = (%s at time zone 'GMT')"
         result = yield self._conn.runQuery(query, (station_id, time_stamp))
 
         if result is None or len(result) == 0:
@@ -239,8 +239,8 @@ class ServerDatabase(object):
                            wind_direction,
                            rainfall,
                            station_id)
-        values(%(download_timestamp)s,
-               %(time_stamp)s,
+        values(%(download_timestamp)s at time zone 'GMT',
+               %(time_stamp)s at time zone 'GMT',
                %(indoor_humidity)s,
                %(indoor_temperature)s,
                %(humidity)s,

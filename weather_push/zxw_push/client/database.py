@@ -160,16 +160,21 @@ class WeatherDatabase(object):
             from replication_status rs
             inner join sample s on s.sample_id = rs.sample_id
             inner join station st on st.station_id = s.station_id
-            where s.time_stamp = %s
-              and st.code = %s
-              and rs.site_id = %s
+            where s.time_stamp = (%(time_stamp)s at time zone 'GMT')
+              and st.code = %(code)s
+              and rs.site_id = %(site_id)s
               and ars.sample_id = rs.sample_id
               and ars.site_id=rs.site_id
             """
 
-            yield self._database_pool.runOperation(query, (time_stamp,
-                                                           station_code,
-                                                           self._site_id))
+            parameters = {
+                'time_stamp': time_stamp,
+                'code': station_code,
+                'site_id': self._site_id
+            }
+
+            yield self._database_pool.runOperation(query, parameters)
+
         self._processing_confirmations = False
 
     def _fetch_generic_live(self, station_code):
@@ -189,7 +194,7 @@ class WeatherDatabase(object):
 
         query = """
         select s.code as station_code,
-           ld.download_timestamp,
+           ld.download_timestamp at time zone 'GMT',
            ld.indoor_relative_humidity as indoor_humidity,
            ld.indoor_temperature,
            ld.temperature,
@@ -228,7 +233,7 @@ class WeatherDatabase(object):
 
         query = """
         select s.code as station_code,
-           ld.download_timestamp,
+           ld.download_timestamp at time zone 'GMT',
            ld.indoor_relative_humidity as indoor_humidity,
            ld.indoor_temperature,
            ld.temperature,
