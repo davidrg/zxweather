@@ -39,8 +39,8 @@ class DatagramClientService(service.Service):
 
 
 def getClientService(hostname, port, username, password, host_key_fingerprint,
-                   dsn, transport_type, mq_host, mq_port, mq_exchange,
-                   mq_user, mq_password, mq_vhost, authorisation_code):
+                     dsn, transport_type, mq_host, mq_port, mq_exchange,
+                     mq_user, mq_password, mq_vhost, authorisation_code):
     """
     Connects to a remote WeatherPush server or zxweather daemon
     :param hostname: Remote host to connect to
@@ -58,8 +58,6 @@ def getClientService(hostname, port, username, password, host_key_fingerprint,
     :type dsn: str
     :param transport_type: Transport type to use (ssh or udp)
     :type transport_type: str
-    :param encoding: Data encoding to use (standard or diff)
-    :type encoding: str
     :param mq_host: RabbitMQ hostname
     :type mq_host: str
     :param mq_port: RabbitMQ port
@@ -72,6 +70,8 @@ def getClientService(hostname, port, username, password, host_key_fingerprint,
     :type mq_password: str
     :param mq_vhost: RabbitMQ virtual host
     :type mq_vhost: str
+    :param authorisation_code: Authorisation code to use for server
+    :type authorisation_code: int
     """
     global database, mq_client
     log.msg('Connecting...')
