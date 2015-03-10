@@ -42,7 +42,7 @@ def wh1080_sample_query(ascending, where_clause="pending"):
     :rtype: str
     """
     query = """
-        select s.sample_id as sample_id,
+       select s.sample_id as sample_id,
        st.code as station_code,
        s.indoor_relative_humidity as indoor_humidity,
        s.indoor_temperature as indoor_temperature,
@@ -53,8 +53,8 @@ def wh1080_sample_query(ascending, where_clause="pending"):
        s.gust_wind_speed as gust_wind_speed,
        s.wind_direction as wind_direction,
        s.rainfall as rainfall,
-       s.download_timestamp as download_timestamp,
-       s.time_stamp as time_stamp,
+       s.download_timestamp at time zone 'GMT' as download_timestamp,
+       s.time_stamp at time zone 'GMT' as time_stamp,
        wh.sample_interval as sample_interval,
        wh.record_number,
        wh.last_in_batch,
@@ -105,8 +105,8 @@ select s.sample_id as sample_id,
        s.gust_wind_speed as gust_wind_speed,
        s.wind_direction as wind_direction,
        s.rainfall as rainfall,
-       s.download_timestamp as download_timestamp,
-       s.time_stamp as time_stamp,
+       s.download_timestamp at time zone 'GMT' as download_timestamp,
+       s.time_stamp at time zone 'GMT' as time_stamp,
 
        ds.record_time as record_time,
        ds.record_date as record_date,
@@ -165,8 +165,8 @@ select s.sample_id as sample_id,
        s.gust_wind_speed as gust_wind_speed,
        s.wind_direction as wind_direction,
        s.rainfall as rainfall,
-       s.download_timestamp as download_timestamp,
-       s.time_stamp as time_stamp
+       s.download_timestamp at time zone 'GMT' as download_timestamp,
+       s.time_stamp at time zone 'GMT' as time_stamp
 from sample s
 inner join station st on st.station_id = s.station_id
                          and st.code = %(station_code)s
