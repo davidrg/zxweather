@@ -159,7 +159,7 @@ def deserialise_loop(loop_string, rainCollectorSize=0.2):
     :return: loop packet
     :rtype: Loop
     """
-    loop_format = '<3sbBhhhBhBBh7B4B4BB7BhBhhhhhhhhh4B4BBB2B8B4BBhBBHH2s'
+    loop_format = '<3sbBHHhBhBBH7B4B4BB7BHBHHHHHHHHH4B4BBB2B8B4BBHBBHH2s'
 
     # Here we unpack the loop packet using that nasty format string above.
     # Oh what a lot of variables.
@@ -232,7 +232,8 @@ def deserialise_loop(loop_string, rainCollectorSize=0.2):
         rainRate=rain_rate * rainCollectorSize,
         UV=decoded_uv,
         solarRadiation=solar_radiation,
-        stormRain=inch_to_mm(storm_rain / 100.0),
+        # Manual says this is 100ths of an inch. The manual is wrong:
+        stormRain=storm_rain * rainCollectorSize,
         startDateOfCurrentStorm=decode_current_storm_date(
             current_storm_start_date),
         dayRain=day_rain * rainCollectorSize,
