@@ -62,5 +62,12 @@ class Sequencer(object):
 
         return self._sequence_id
 
+    def rollback(self):
+
+        self._sequence_id -= 1
+
+        if self._sequence_id < 0:
+            self._sequence_id = 65534
+
     def __call__(self, *args, **kwargs):
         return self._next_sequence_id()
