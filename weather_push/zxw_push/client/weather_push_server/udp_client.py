@@ -2,6 +2,7 @@
 """
 Client implementation of Weather Push UDP protocol
 """
+import datetime
 from twisted.internet import reactor, defer
 from twisted.internet.protocol import DatagramProtocol
 from twisted.python import log
@@ -12,10 +13,14 @@ from zxw_push.common.util import Event, Sequencer
 from zxw_push.common.packets import StationInfoRequestPacket, decode_packet, \
     StationInfoResponsePacket, LiveDataRecord, SampleDataRecord, \
     WeatherDataPacket, SampleAcknowledgementPacket
+import csv
 
 
 __author__ = 'david'
 
+# Set this to the name of the csv file to log packet statistics to. Set it to
+# None to disable statistics logging.
+_PACKET_STATISTICS_FILE = None
 
 # No control over it being an old-style class
 # noinspection PyClassicStyleClass
@@ -99,6 +104,12 @@ class WeatherPushDatagramClient(DatagramProtocol):
             self._handle_sample_acknowledgements(packet)
 
     def _send_packet(self, packet):
+        """
+
+        :param packet: Packet to send
+        :type packet: Packet
+        :return:
+        """
         encoded = packet.encode()
 
         # payload_size = len(encoded)
@@ -111,6 +122,9 @@ class WeatherPushDatagramClient(DatagramProtocol):
         #             payload_size + udp_header_size,
         #             payload_size + udp_header_size + ip4_header_size)
         #         )
+
+        self._log_record_statistics(packet.sequence, packet.__class__.__name__,
+                                    len(encoded), 0, "raw")
 
         self.transport.write(encoded, (self._ip_address, self._port))
 
@@ -265,8 +279,19 @@ class WeatherPushDatagramClient(DatagramProtocol):
         """
         pass
 
+    def _log_record_statistics(self, packet_id, record_type, original_size,
+                               reduction_size, algorithm, live_id=None):
+        if _PACKET_STATISTICS_FILE is not None:
+            with open(_PACKET_STATISTICS_FILE, "ab") as csv_file:
+                writer = csv.writer(csv_file)
+                writer.writerow([
+                    datetime.datetime.now(),
+                    packet_id, record_type, original_size, reduction_size,
+                    algorithm, live_id
+                ])
+
     def _make_live_weather_record(self, data, previous_live, previous_sample,
-                                  hardware_type, station_id):
+                                  hardware_type, station_id, packet_id):
 
         # We send a full uncompressed record every so often just in case a
         # packet has gone missing or arrived out of order at some point.
@@ -300,13 +325,17 @@ class WeatherPushDatagramClient(DatagramProtocol):
         original_size = compression[0]
         reduction_size = compression[1]
         algorithm = compression[2]
-        new_size_percentage = ((original_size - reduction_size) /
-                               (original_size * 1.0)) * 100.0
-        log.msg("Reduced LIVE   by {0} bytes (new size is {1}%) using "
-                "algorithm {2}. Live ID: {3}".format(reduction_size,
-                                                     new_size_percentage,
-                                                     algorithm,
-                                                     seq_id))
+        # new_size_percentage = ((original_size - reduction_size) /
+        #                        (original_size * 1.0)) * 100.0
+
+        self._log_record_statistics(packet_id, "LIVE", original_size,
+                                    reduction_size, algorithm, seq_id)
+
+        # log.msg("Reduced LIVE   by {0} bytes (new size is {1}%) using "
+        #         "algorithm {2}. Live ID: {3}".format(reduction_size,
+        #                                              new_size_percentage,
+        #                                              algorithm,
+        #                                              seq_id))
 
         # Track how many compressed records we've sent.
         if algorithm != "none":
@@ -314,9 +343,8 @@ class WeatherPushDatagramClient(DatagramProtocol):
 
         return record
 
-    @staticmethod
-    def _make_sample_weather_record(data, previous_sample, hardware_type,
-                                    station_id):
+    def _make_sample_weather_record(self, data, previous_sample, hardware_type,
+                                    station_id, packet_id):
 
         # Samples are always compressed when it makes sense (which is
         # practically always). There is no forced uncompressed record as we
@@ -338,11 +366,15 @@ class WeatherPushDatagramClient(DatagramProtocol):
         original_size = compression[0]
         reduction_size = compression[1]
         algorithm = compression[2]
-        new_size_percentage = ((original_size - reduction_size) /
-                               (original_size * 1.0)) * 100.0
-        log.msg("Reduced SAMPLE by {0} bytes (new size is {1}%) using "
-                "algorithm {2}".format(reduction_size, new_size_percentage,
-                                       algorithm))
+        # new_size_percentage = ((original_size - reduction_size) /
+        #                        (original_size * 1.0)) * 100.0
+
+        self._log_record_statistics(packet_id, "SAMPLE", original_size,
+                                    reduction_size, algorithm)
+
+        # log.msg("Reduced SAMPLE by {0} bytes (new size is {1}%) using "
+        #         "algorithm {2}".format(reduction_size, new_size_percentage,
+        #                                algorithm))
 
         return record
 
@@ -374,6 +406,8 @@ class WeatherPushDatagramClient(DatagramProtocol):
 
         data_size = 0
 
+        packet_id = self._sequence_id()
+
         # Grab any samples waiting and do those first
         if station_id in self._outgoing_samples.keys():
             while len(self._outgoing_samples[station_id]) > 0:
@@ -386,7 +420,8 @@ class WeatherPushDatagramClient(DatagramProtocol):
                 record = self._make_sample_weather_record(sample,
                                                           previous_sample,
                                                           hardware_type,
-                                                          station_id)
+                                                          station_id,
+                                                          packet_id)
                 weather_records.append(record)
 
                 # While we haven't confirmed the server has received this sample
@@ -414,14 +449,16 @@ class WeatherPushDatagramClient(DatagramProtocol):
 
         live_record = self._make_live_weather_record(
             live_data, previous_live, previous_sample,
-            hardware_type, station_id
+            hardware_type, station_id, packet_id
         )
 
         # live_record is None when compression throws away *all* data (meaning
         # there is no change from the last live record so no differences to
         # send)
         if live_record is None and len(weather_records) == 0:
-            # Nothing to send
+            # Nothing to send. Roll-back the packet ID so it doesn't jump
+            # forward when we do actually send something.
+            self._sequence_id.rollback()
             return
 
         if live_record is not None:
@@ -430,7 +467,7 @@ class WeatherPushDatagramClient(DatagramProtocol):
             self._previous_live_record[station_id] = (live_data,
                                                       live_record.sequence_id)
 
-        packet = WeatherDataPacket(self._sequence_id(),
+        packet = WeatherDataPacket(packet_id,
                                    self._authorisation_code)
 
         for record in weather_records:
