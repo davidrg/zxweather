@@ -38,11 +38,16 @@ class ServerDatabase(object):
         query = """
         select s.code as code,
                st.code as hw_type,
-               s.station_id as station_id
+               s.station_id as station_id,
+               row_number() OVER () as sid
         from station s
         inner join station_type st on st.station_type_id = s.station_type_id
+        -- This should give us a list of stations in the order they were created
+        order by s.station_id
         """
 
+        # Note: This query must always return all stations in order for the sid
+        # field to be consistent.
         result = yield self._conn.runQuery(query)
 
         # Cache this information for future reference.
