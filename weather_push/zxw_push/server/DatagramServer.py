@@ -30,7 +30,6 @@ class WeatherPushDatagramServer(DatagramProtocol):
         self._dsn = dsn
         self._sequence_id = Sequencer()
         self._db = None
-        self._next_station_id = 0
         self._station_code_id = {}
         self._station_id_code = {}
         self._station_id_hardware_type = {}
@@ -44,6 +43,9 @@ class WeatherPushDatagramServer(DatagramProtocol):
         self._sample_record_cache = {}
         self._sample_record_cache_ids = []
 
+        self._ready = False
+
+    @defer.inlineCallbacks
     def startProtocol(self):
         """
         Called when the protocol has started. Connects to the database, etc.
@@ -51,11 +53,9 @@ class WeatherPushDatagramServer(DatagramProtocol):
         log.msg("Datagram Server started")
         self._db = ServerDatabase(self._dsn)
 
-        # TODO: Allocate station IDs so that the server can come and go without
-        # clients having to reconnect. This will need to be fairly deterministic
-        # to ensure the same station IDs get allocated to the same stations each
-        # time. Perhaps just sort by the artificial primary key? New stations
-        # will always get the next largest ID so gaps will never be filled...
+        yield self._get_stations(None)
+
+        self._ready = True
 
     def datagramReceived(self, datagram, address):
         """
@@ -88,34 +88,42 @@ class WeatherPushDatagramServer(DatagramProtocol):
         self.transport.write(encoded, address)
         log.msg("Packet sent.")
 
+    def _add_station_to_caches(self, station_code, hardware_type, station_id):
+        if station_code not in self._station_code_id.keys():
+            self._station_code_id[station_code] = station_id
+            self._station_id_hardware_type[station_id] = hardware_type
+            self._station_id_code[station_id] = station_code
+
+    @defer.inlineCallbacks
+    def _get_stations(self, authorisation_code):
+        station_info = yield self._db.get_station_info(authorisation_code)
+
+        station_set = []
+
+        for station in station_info:
+            station_code = station[0]
+            hardware_type = station[1]
+            # real_station_id = station[2]
+            station_id = station[3]
+            self._add_station_to_caches(station_code, hardware_type, station_id)
+
+            station_set.append((station_code, hardware_type,
+                                self._station_code_id[station_code]))
+
+        defer.returnValue(station_set)
+
     @defer.inlineCallbacks
     def _send_station_info(self, address, authorisation_code):
         log.msg("Sending station info...")
-
-        station_info = yield self._db.get_station_info(authorisation_code)
 
         packet = StationInfoResponsePacket(
             self._sequence_id(),
             authorisation_code)
 
-        for station in station_info:
-            station_code = station[0]
-            hardware_type = station[1]
-            if station_code not in self._station_code_id.keys():
+        station_set = yield self._get_stations(authorisation_code)
 
-                if self._next_station_id >= 255:
-                    log.msg("*** WARNING: out of station IDs")
-                    continue
-
-                self._station_code_id[station_code] = self._next_station_id
-                self._station_id_hardware_type[self._next_station_id] = \
-                    hardware_type
-                self._station_id_code[self._next_station_id] = station_code
-                self._next_station_id += 1
-
-            packet.add_station(station_code,
-                               hardware_type,
-                               self._station_code_id[station_code])
+        for station in station_set:
+            packet.add_station(station[0], station[1], station[2])
 
         # Client has probably just reconnected so we'll clear some state so
         # that the client can start sequence IDs from 0, etc.
@@ -365,6 +373,10 @@ class WeatherPushDatagramServer(DatagramProtocol):
 
     @defer.inlineCallbacks
     def _handle_weather_data(self, address, packet):
+
+        if not self._ready:
+            return  # We're not ready to process data yet. Ignore it.
+
         # The packet won't have fully decoded itself as it needs access to
         # hardware type information for each station id in the packet. So we
         # have to do that here.
