@@ -159,7 +159,7 @@ def deserialise_loop(loop_string, rainCollectorSize=0.2):
     :return: loop packet
     :rtype: Loop
     """
-    loop_format = '<3sbBHHhBhBBH7B4B4BB7BHBHHHHHHHHH4B4BBB2B8B4BBHBBHH2s'
+    loop_format = '<3sbBhhhBhBBh7B4B4BB7BhBhhhhhhhhh4B4BBB2B8B4BBhBBHH2s'
 
     # Here we unpack the loop packet using that nasty format string above.
     # Oh what a lot of variables.
