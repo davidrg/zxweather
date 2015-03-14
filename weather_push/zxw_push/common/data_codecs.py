@@ -641,6 +641,9 @@ def build_field_id_list_for_live_against_sample(sample_record, live_record,
         field_number = field[0]
         field_name = field[1]
 
+        if field_number in [0, 1]:
+            continue  # Special fields
+
         if field_name is None:
             continue  # Unused field
 
@@ -649,9 +652,6 @@ def build_field_id_list_for_live_against_sample(sample_record, live_record,
             # be sent.
             result.append(field_number)
             continue
-
-        if field_name == "sample_diff_timestamp":
-            continue  # Special field.
 
         base_value = sample_record[field_name]
         live_value = live_record[field_name]
