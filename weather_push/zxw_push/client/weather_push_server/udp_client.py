@@ -22,6 +22,7 @@ __author__ = 'david'
 # None to disable statistics logging.
 _PACKET_STATISTICS_FILE = None
 
+
 # No control over it being an old-style class
 # noinspection PyClassicStyleClass
 class WeatherPushDatagramClient(DatagramProtocol):
@@ -299,7 +300,6 @@ class WeatherPushDatagramClient(DatagramProtocol):
         # until we 'reset' the compression by sending an uncompressed record.
         compress = True
         if self._compressed_live_records_remaining <= 0:
-            log.msg("-----> Forcing uncompressed live update")
             compress = False
             self._compressed_live_records_remaining = \
                 self._max_compressed_live_records
