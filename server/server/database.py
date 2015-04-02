@@ -319,7 +319,9 @@ def _insert_wh1080_sample_int(txn, base, wh1080, station_id):
             indoor_relative_humidity, indoor_temperature, relative_humidity,
             temperature, absolute_pressure, average_wind_speed,
             gust_wind_speed, wind_direction, station_id)
-        values(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        values(%s::timestamp at time zone 'gmt',
+               %s::timestamp at time zone 'gmt',
+               %s, %s, %s, %s, %s, %s, %s, %s, %s)
         returning sample_id
         """
     txn.execute(
@@ -387,7 +389,9 @@ def _insert_davis_sample_int(txn, base, davis, station_id):
             indoor_relative_humidity, indoor_temperature, relative_humidity,
             temperature, absolute_pressure, average_wind_speed,
             gust_wind_speed, wind_direction, rainfall, station_id)
-        values(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        values(%s::timestamp at time zone 'gmt',
+               %s::timestamp at time zone 'gmt',
+               %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         returning sample_id
         """
     txn.execute(
@@ -451,7 +455,9 @@ def _insert_generic_sample_int(txn, data, station_id):
             indoor_relative_humidity, indoor_temperature, relative_humidity,
             temperature, absolute_pressure, average_wind_speed,
             gust_wind_speed, wind_direction, station_id)
-        values(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        values(%s::timestamp at time zone 'gmt',
+               %s::timestamp at time zone 'gmt',
+               %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
 
     return txn.execute(
