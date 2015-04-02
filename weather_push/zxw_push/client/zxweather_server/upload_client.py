@@ -338,7 +338,14 @@ class ZXDUploadClient(object):
         result = {}
 
         for key in data.keys():
-            result[key] = str(data[key])
+
+            if key in ["download_timestamp", "timestamp"]:
+                # Date times are sent in ISO8601 format at GMT.
+                result[key] = data[key].isoformat()
+                #log.msg(data[key].isoformat())
+                #raise Exception("Foo")
+            else:
+                result[key] = str(data[key])
 
         return result
 
