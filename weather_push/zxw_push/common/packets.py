@@ -349,8 +349,9 @@ class StationInfoResponsePacket(Packet):
 
         while True:
             if len(station_data) < station_size:
-                # TODO: Log a warning - the packet is malformed
-                pass
+                _log.msg("Station Info Response Packet is malformed - "
+                         "insufficient data for station record")
+                return
 
             station = station_data[:station_size]
             station_data = station_data[station_size:]
@@ -935,7 +936,8 @@ class WeatherDataPacket(Packet):
                     hardware_type_map[record.station_id])
 
                 if len(record_data) > calculated_size:
-                    _log.msg("** DECODE ERROR: Misplaced end of record marker at {0}".format(point))
+                    _log.msg("** DECODE ERROR: Misplaced end of record marker "
+                             "at {0}".format(point))
                     return
 
                 if len(record_data) == calculated_size:
@@ -1123,7 +1125,9 @@ class SampleAcknowledgementPacket(Packet):
             if len(data) == 1:
                 if data[0] == '\x04':
                     break  # Done processing records
-                # TODO: Log error - malformed packet
+                _log.msg("Malformed Sample Acknowledgement Packet - unexpected "
+                         "end of record set.")
+                return
 
             record = data[:record_size]
             data = data[record_size:]
@@ -1156,7 +1160,8 @@ def decode_packet(packet_data):
     header.decode(packet_data)
 
     if header.packet_type not in _PACKET_TYPES.keys():
-        # TODO: Log a warning - invalid packet type id
+        _log.msg("*** WARNING: Invalid packet type {0}".format(
+            header.packet_type))
         return None
 
     packet = _PACKET_TYPES[header.packet_type]()
