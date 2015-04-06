@@ -16,7 +16,7 @@ __author__ = 'david'
 
 _HARDWARE_TYPE_CODES = {
     0x01: "GENERIC",
-    0x02: "WH1080",
+    0x02: "FOWH1080",
     0x03: "DAVIS"
 }
 
