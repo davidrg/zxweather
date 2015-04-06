@@ -4,6 +4,7 @@ A client for uploading weather data to a remote server.
 """
 from collections import deque
 import json
+from datetime import datetime
 from twisted.internet import reactor
 from twisted.python import log
 from ...common.util import Event
@@ -323,6 +324,12 @@ class ZXDUploadClient(object):
         """
 
         if self._mode == MODE_UPLOAD:
+
+            live_data = self._stringify_dict(live_data)
+
+            if 'download_timestamp' not in live_data:
+                live_data['download_timestamp'] = datetime.now().isoformat()
+
             value = self.live_format.format(**live_data)
 
             if hardware_type == 'DAVIS':

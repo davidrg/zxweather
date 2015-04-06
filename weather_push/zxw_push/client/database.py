@@ -160,7 +160,7 @@ class WeatherDatabase(object):
             from replication_status rs
             inner join sample s on s.sample_id = rs.sample_id
             inner join station st on st.station_id = s.station_id
-            where s.time_stamp = (%(time_stamp)s at time zone 'GMT')
+            where s.time_stamp = (%(time_stamp)s::timestamp at time zone 'GMT')
               and st.code = %(code)s
               and rs.site_id = %(site_id)s
               and ars.sample_id = rs.sample_id
