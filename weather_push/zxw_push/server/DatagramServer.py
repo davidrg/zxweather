@@ -77,16 +77,15 @@ class WeatherPushDatagramServer(DatagramProtocol):
         udp_header_size = 8
         ip4_header_size = 20
 
-        log.msg("Sending {0} packet. Payload {1} bytes. UDP size {2} bytes. "
-                "IPv4 size {3} bytes.".format(
-                    packet.__class__.__name__,
-                    payload_size,
-                    payload_size + udp_header_size,
-                    payload_size + udp_header_size + ip4_header_size
-                ))
+        # log.msg("Sending {0} packet. Payload {1} bytes. UDP size {2} bytes. "
+        #         "IPv4 size {3} bytes.".format(
+        #             packet.__class__.__name__,
+        #             payload_size,
+        #             payload_size + udp_header_size,
+        #             payload_size + udp_header_size + ip4_header_size
+        #         ))
 
         self.transport.write(encoded, address)
-        log.msg("Packet sent.")
 
     def _add_station_to_caches(self, station_code, hardware_type, station_id):
         if station_code not in self._station_code_id.keys():
@@ -223,7 +222,8 @@ class WeatherPushDatagramServer(DatagramProtocol):
             #  2. It went missing
             # Either we can't decode this record. Count it as an
             # error and move on.
-            log.msg("-> UNDEC - other sample missing")
+            log.msg("** NOTICE: Live record decoding failed - other sample "
+                    "missing")
             self._lost_live_records += 1
             defer.returnValue(None)
 
@@ -258,7 +258,8 @@ class WeatherPushDatagramServer(DatagramProtocol):
             # Either we can't decode this record. Count it as an
             # error and move on.
             self._lost_live_records += 1
-            log.msg("-> UNDEC - Other live not in cache")
+            log.msg("** NOTICE: Live record decoding failed - other live not "
+                    "in cache")
             return None
 
         return patch_live_from_live(data, other_live, fields, hw_type)
@@ -273,7 +274,7 @@ class WeatherPushDatagramServer(DatagramProtocol):
                 # Probably a lost live record. If it had gone back more
                 # than 60k then we'd just assume a counter overflow.
                 self._lost_live_records += 1
-                log.msg("Ignoring live record {0} - out of order"
+                log.msg("** NOTICE: Ignoring live record {0} - out of order"
                         .format(sequence_id))
                 return False
 
@@ -285,14 +286,12 @@ class WeatherPushDatagramServer(DatagramProtocol):
             missing_records = 65535 - self._previous_live_record_id
             missing_records += sequence_id
             if missing_records > 1:
-                log.msg("-> Sequence jump over overflow")
                 self._lost_live_record(missing_records)
         else:
             # Take note of any missing records since the last received
             # one
             diff = sequence_id - self._previous_live_record_id
             if diff > 1:
-                log.msg("-> Sequence jump")
                 self._lost_live_record(diff)
 
                 self._previous_live_record_id = sequence_id
@@ -308,9 +307,6 @@ class WeatherPushDatagramServer(DatagramProtocol):
         self._lost_live_records += count
         if self._lost_live_records > 255:
             self._lost_live_records = 255
-
-        log.msg("Update loss: {0}%".format(
-            (self._lost_live_records / 255.0)*100))
 
     @defer.inlineCallbacks
     def _handle_live_record(self, record):
@@ -328,7 +324,6 @@ class WeatherPushDatagramServer(DatagramProtocol):
         hw_type = self._station_id_hardware_type[record.station_id]
         station_code = self._station_id_code[record.station_id]
 
-        log.msg("Record is LIVE - ID {0}".format(record.sequence_id))
         in_order = self._check_for_missing_live_records(
             record.sequence_id)
 
@@ -384,8 +379,6 @@ class WeatherPushDatagramServer(DatagramProtocol):
 
         records = packet.records
 
-        log.msg("Packet record count: {0}".format(len(records)))
-
         # Now run through the records processing each one. Processing in this
         # case means:
         #   - Patching in any missing data from other referenced packets
@@ -404,7 +397,6 @@ class WeatherPushDatagramServer(DatagramProtocol):
                     continue
 
             elif isinstance(record, SampleDataRecord):
-                log.msg("Record is SAMPLE")
 
                 fields = record.field_list
                 data = record.field_data
@@ -432,11 +424,8 @@ class WeatherPushDatagramServer(DatagramProtocol):
 
                     new_sample = patch_sample(rec_data, other_sample,
                                               fields, hw_type)
-                    log.msg("REC DATA: " + repr(rec_data))
-                    log.msg("DECODED: " + repr(new_sample))
                 else:
                     # No compression. Use the record as-is
-                    log.msg("Sample not compressed")
                     new_sample = rec_data
 
                 new_sample["time_stamp"] = record.timestamp
