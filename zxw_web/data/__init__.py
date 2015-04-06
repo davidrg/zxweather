@@ -10,7 +10,8 @@ from web.contrib.template import render_jinja
 from cache import rfcformat
 import config
 from datetime import timedelta, datetime
-from database import day_exists, get_station_id, get_station_name, get_stations, get_full_station_info
+from database import day_exists, get_station_id, get_station_name, get_stations, get_full_station_info, \
+    get_site_name
 from months import month_name
 from static_overlays import overlay_file
 
@@ -36,7 +37,7 @@ class day_nav(object):
             'yesterday': str(yesterday.year) + '/' + month_name[yesterday.month] + '/' + str(yesterday.day) + '/',
             'this_month': str(now.year) + '/' + month_name[now.month] + '/',
             'this_year': str(now.year) + '/',
-            'site_name': config.site_name
+            'site_name': get_site_name(None)
         }
 
         tomorrow = now + timedelta(1)
@@ -85,7 +86,7 @@ class about_nav(object):
             'yesterday': str(yesterday.year) + '/' + month_name[yesterday.month] + '/' + str(yesterday.day) + '/',
             'this_month': str(now.year) + '/' + month_name[now.month] + '/',
             'this_year': str(now.year) + '/',
-            'site_name': config.site_name,
+            'site_name': get_site_name(station_id),
             'archive_mode': archive_mode,
             'station_code': station_code,
             'station_name': get_station_name(station_id),
@@ -140,7 +141,7 @@ def get_sys_config_json():
         'wss_uri': config.wss_uri,
         'zxweatherd_host': config.zxweatherd_hostname,
         'zxweatherd_raw_port': config.zxweatherd_raw_port,
-        'site_name': config.site_name,
+        'site_name': get_site_name(None),
         'stations': get_full_station_info()
     }
 

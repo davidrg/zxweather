@@ -71,6 +71,9 @@ comment on column station.message_timestamp is 'When the station message was las
 alter table station add column station_config character varying;
 comment on column station.station_config is 'JSON document containing extra configuration data for the station. The structure of this document depends on the station type.';
 
+alter table station add column site_title character varying;
+comment on column station.site_title is 'Title for weather station. Displayed at the top of pages in the web UI.';
+
 -- Adjust comment for wind direction.
 COMMENT ON COLUMN sample.wind_direction IS 'Prevailing wind direction in degrees.';
 

@@ -11,7 +11,8 @@ import config
 from database import get_daily_records, get_years, \
     total_rainfall_in_last_7_days, day_exists, get_station_id, \
     get_station_name, in_archive_mode, get_station_type_code, get_stations, \
-    get_live_data, get_station_message, no_data_in_24_hours, get_station_config
+    get_live_data, get_station_message, no_data_in_24_hours, get_station_config, \
+    get_site_name
 import os
 from months import month_name
 from ui import get_nav_urls, make_station_switch_urls, build_alternate_ui_urls
@@ -97,7 +98,7 @@ def get_station_standard(ui, station):
                                     station=station,
                                     hw_type=hw_type,
                                     ui=ui,
-                                    sitename=config.site_name,
+                                    sitename=get_site_name(station_id),
                                     subdir=sub_dir,
                                     page_data=page_data,
                                     archive_mode=in_archive_mode(station_id),
@@ -232,7 +233,7 @@ def get_station_reception_standard(ui, station):
         msg = get_station_message(station_id)
         return modern_templates.reception(
             nav=nav_urls,
-            sitename=config.site_name,
+            sitename=get_site_name(station_id),
             ui=ui,
             archive_mode=in_archive_mode(station_id),
             page_data=page_data,

@@ -111,6 +111,11 @@ users.""")
 
     station_name = get_string("Name", default, required)
 
+    print("\nThe Website Title is displayed at the top of all pages for this "
+          "weather station in the web UI. If not set then the default value "
+          "from the configuration file will be used.")
+    site_title = get_string("Website Title", defaults["site_title"], False)
+
     print("""
 You may now enter an optional short description for your weather station.""")
     station_description = get_string("Description", defaults["description"])
@@ -217,7 +222,8 @@ VUE      Vantage Vue
         "interval": sample_interval,
         "live": live_data,
         "sort_order": sort_order,
-        "davis_settings": davis_settings
+        "davis_settings": davis_settings,
+        "site_title": site_title
     }
 
 
@@ -239,6 +245,7 @@ you are uncertain about anything.
 You will now be prompted for some information about your weather station:
   - Station Code
   - Station Name
+  - Title for website
   - Description
   - Hardware Type
   - The stations sample interval
@@ -257,7 +264,8 @@ review your responses and either edit them, create the station or cancel.""")
         "davis_settings": {
             'hardware_type': 'VPRO2',
             'broadcast_id': 1
-        }
+        },
+        "site_title": None
     }
 
     while True:
@@ -267,6 +275,7 @@ You entered the following details:
 ----------------------------------
 Code: {code}
 Name: {name}
+Website Title: {site_title}
 Sample interval: {interval}
 Live data available: {live}
 Sort order: {sort_order}
@@ -303,13 +312,13 @@ Station ID: {broadcast_id}
             cur.execute("""
 insert into station(code, title, description, station_type_id,
                     sample_interval, live_data_available, sort_order,
-                    station_config)
-values(%s,%s,%s,%s,%s,%s,%s,%s)
+                    station_config, site_title)
+values(%s,%s,%s,%s,%s,%s,%s,%s,%s)
 returning station_id""", (
                 station_info["code"], station_info["name"],
                 station_info["description"], type_id, station_info["interval"],
                 station_info["live"], station_info["sort_order"],
-                station_config))
+                station_config, station_info["site_title"]))
             result = cur.fetchone()
             station_id = result[0]
 
@@ -343,6 +352,7 @@ def get_updated_station_info(defaults):
 
     station_name = get_string("Name", defaults["name"])
     station_description = get_string("Description", defaults["description"])
+    site_title = get_string("Website Title", defaults["site_title"])
     sample_interval = get_number("Sample interval", defaults["interval"])
     live_data = get_boolean("Is live data available for this station",
                             defaults["live"])
@@ -403,7 +413,8 @@ def get_updated_station_info(defaults):
         "live": live_data,
         "sort_order": sort_order,
         "hw_type": defaults["hw_type"],
-        "davis_settings": davis_settings
+        "davis_settings": davis_settings,
+        "site_title": site_title
     }
 
 
@@ -427,7 +438,8 @@ select stn.station_id,
        stn.live_data_available,
        coalesce(stn.sort_order,0),
        ht.code as hardware_type,
-       station_config
+       station_config,
+       site_title
 from station stn
 inner join station_type ht on ht.station_type_id = stn.station_type_id
 where stn.code = %s
@@ -443,7 +455,8 @@ where stn.code = %s
         "live": result[4],
         "sort_order": result[5],
         "hw_type": result[6],
-        "davis_settings": None
+        "davis_settings": None,
+        "site_title": result[8]
     }
 
     hw_config = result[7]
@@ -464,6 +477,7 @@ where stn.code = %s
 You entered the following details:
 ----------------------------------
 Name: {name}
+Website Title: {site_title}
 Sample interval: {interval}
 Live data available: {live}
 List order: {sort_order}""".format(**station_info))
@@ -492,12 +506,13 @@ Description:
             cur.execute("""
         update station set title=%s, description=%s, sample_interval=%s,
                            live_data_available=%s, sort_order=%s,
-                           station_config = %s
+                           station_config = %s, site_title = %s
         where station_id = %s""", (
                 station_info["name"],
                 station_info["description"], station_info["interval"],
                 station_info["live"], station_info["sort_order"],
-                station_config, station_info["id"]))
+                station_config, station_info["site_title"],
+                station_info["id"]))
             con.commit()
             cur.close()
             print("Station updated.")
