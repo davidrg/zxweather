@@ -104,6 +104,11 @@ comment on column replication_status.status is 'Status of the sample on the remo
 comment on column replication_status.status_time is 'Time the status last changed';
 comment on column replication_status.retries is 'Number of times the sample has been transmitted';
 
+CREATE INDEX replication_status_status_site_id_idx
+  ON replication_status
+  USING btree
+  (status, site_id);
+
 -- A table for data specific to Davis-compatible hardware.
 create table davis_sample (
   sample_id integer not null primary key references sample(sample_id),
