@@ -6,6 +6,7 @@ import json
 
 from config import db
 from datetime import datetime, date
+import config
 
 __author__ = 'David Goodwin'
 
@@ -586,7 +587,7 @@ def get_full_station_info():
         select s.code, s.title, s.description, s.sort_order,
            st.code as hw_type_code, st.title as hw_type_name,
            sr.min_ts, sr.max_ts, s.message,
-           s.message_timestamp, s.station_config
+           s.message_timestamp, s.station_config, s.site_title
         from station s
         inner join station_type st on st.station_type_id = s.station_type_id
         left outer join (
@@ -618,7 +619,8 @@ def get_full_station_info():
                 'min': None,
                 'max': None
             },
-            'hw_config': hw_config
+            'hw_config': hw_config,
+            'site_title': record.site_title
         }
 
         if record.message_timestamp is not None:
@@ -664,3 +666,23 @@ def get_station_message(station_id):
 
 
     return result.message, result.ts
+
+def get_site_name(station_id):
+    """
+    Returns the site name
+    :param station_code: Station code to get the site name for
+    """
+
+    # TODO: Cache me
+
+    if station_id is None:
+        return config.site_name
+
+    result = db.query("select site_title from station "
+                      "where station_id = $station and site_title is not null",
+                      dict(station=station_id))
+
+    if len(result) == 0:
+        return config.site_name
+
+    return result[0].site_title

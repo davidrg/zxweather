@@ -52,6 +52,7 @@ CREATE TABLE station
   message character varying,
   message_timestamp timestamptz,
   station_config character varying,
+  site_title character varying,
   CONSTRAINT pk_station PRIMARY KEY (station_id)
 );
 
@@ -66,6 +67,7 @@ comment on column station.sort_order is 'The order in which stations should be p
 comment on column station.message is 'A message which should be displayed where ever data for the station appears.';
 comment on column station.message_timestamp is 'When the station message was last updated';
 comment on column station.station_config is 'JSON document containing extra configuration data for the station. The structure of this document depends on the station type.';
+comment on column station.site_title is 'Web UI page title for weather station.';
 
 -- Generic sample data. Anything that is specific to a particular station type
 -- is in that station-specific table.
