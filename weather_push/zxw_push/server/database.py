@@ -69,7 +69,6 @@ class ServerDatabase(object):
         :param live_record: New live data
         :type live_record: dict
         """
-        log.msg(live_record)
 
         hardware_type = self._station_code_hw_type[station_code]
         station_id = self._station_code_id[station_code]
@@ -90,7 +89,6 @@ class ServerDatabase(object):
         :type sample: dict
         :return:
         """
-        log.msg(sample)
 
         hardware_type = self._station_code_hw_type[station_code]
         station_id = self._station_code_id[station_code]
