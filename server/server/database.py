@@ -286,7 +286,7 @@ def get_station_id(code):
 
 def _sample_exists(txn, station_id, time_stamp):
     query = "select sample_id from sample " \
-            "where station_id = %s and time_stamp = %s"
+            "where station_id = %s and time_stamp = %s::timestamp at time zone 'gmt'"
     txn.execute(query, (station_id, time_stamp))
 
     result = txn.fetchone()
