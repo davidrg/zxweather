@@ -77,6 +77,14 @@ comment on column station.site_title is 'Title for weather station. Displayed at
 -- Adjust comment for wind direction.
 COMMENT ON COLUMN sample.wind_direction IS 'Prevailing wind direction in degrees.';
 
+-- Index over station ID and timestamp to improve performance of chart queries.
+CREATE INDEX idx_station_timestamp
+  ON sample
+  USING btree
+  (station_id, time_stamp DESC);
+COMMENT ON INDEX idx_station_timestamp
+  IS 'Index over station ID and timestamp for finding recent samples';
+
 
 -- For replicating data to other databases
 create table remote_site (

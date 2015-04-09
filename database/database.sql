@@ -538,6 +538,17 @@ CREATE INDEX idx_time_stamp
 COMMENT ON INDEX idx_time_stamp
   IS 'To make operations such as recalculating rainfall a little quicker.';
 
+-- Cuts fetching data for the last 7 days from 4s to 60ms in cases where
+-- multiple weather stations are present with a vastly different number of
+-- samples
+CREATE INDEX idx_station_timestamp
+  ON sample
+  USING btree
+  (station_id, time_stamp DESC);
+COMMENT ON INDEX idx_station_timestamp
+  IS 'Index over station ID and timestamp for finding recent samples';
+
+
 -- Don't allow duplicate timestamps within a station.
 CREATE UNIQUE INDEX idx_station_timestamp_unique
 ON sample
@@ -545,6 +556,7 @@ USING btree
 (time_stamp, station_id);
 COMMENT ON INDEX idx_station_timestamp_unique
 IS 'Each station can only have one sample for a given timestamp.';
+
 
 -- For the latest_record_number view.
 --CREATE INDEX idx_latest_record
