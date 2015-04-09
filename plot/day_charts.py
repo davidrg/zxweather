@@ -637,44 +637,44 @@ order by s.time_stamp asc
             output_filename = dest_dir + '7-day_solar_radiation'
             if large:
                 output_filename = dest_dir + '7-day_solar_radiation_large'
-        plot_graph(output_filename,
-                   xdata_is_time=True,
-                   xlabel='Date',
-                   x_format='%d-%b',
-                   timefmt_is_date=True,
-                   title="Solar Radiation",
-                   ylabel="W/m^2",
-                   key=False,
-                   width=width,
-                   height=height,
-                   x_range=x_range,
-                   lines=[{'filename': data_filename,
-                           'xcol': FIELD_TIMESTAMP,  # Time
-                           'ycol': FIELD_SOLAR_RADIATION,
-                           'title': "Solar Radiation"}],
-                   output_format=output_format)
+            plot_graph(output_filename,
+                       xdata_is_time=True,
+                       xlabel='Date',
+                       x_format='%d-%b',
+                       timefmt_is_date=True,
+                       title="Solar Radiation",
+                       ylabel="W/m^2",
+                       key=False,
+                       width=width,
+                       height=height,
+                       x_range=x_range,
+                       lines=[{'filename': data_filename,
+                               'xcol': FIELD_TIMESTAMP,  # Time
+                               'ycol': FIELD_SOLAR_RADIATION,
+                               'title': "Solar Radiation"}],
+                       output_format=output_format)
 
         # UV Index
         if hw_config.has_uv_sensor:
             output_filename = dest_dir + '7-day_uv_index'
             if large:
                 output_filename = dest_dir + '7-day_uv_index_large'
-        plot_graph(output_filename,
-                   xdata_is_time=True,
-                   xlabel='Date',
-                   x_format='%d-%b',
-                   timefmt_is_date=True,
-                   title="UV Index",
-                   ylabel="",
-                   key=False,
-                   width=width,
-                   height=height,
-                   x_range=x_range,
-                   lines=[{'filename': data_filename,
-                           'xcol': FIELD_TIMESTAMP,  # Time
-                           'ycol': FIELD_UV_INDEX,
-                           'title': "UV Index"}],
-                   output_format=output_format)
+            plot_graph(output_filename,
+                       xdata_is_time=True,
+                       xlabel='Date',
+                       x_format='%d-%b',
+                       timefmt_is_date=True,
+                       title="UV Index",
+                       ylabel="",
+                       key=False,
+                       width=width,
+                       height=height,
+                       x_range=x_range,
+                       lines=[{'filename': data_filename,
+                               'xcol': FIELD_TIMESTAMP,  # Time
+                               'ycol': FIELD_UV_INDEX,
+                               'title': "UV Index"}],
+                       output_format=output_format)
 
 
 def rainfall_7_day(cur, dest_dir, plot_date, station_code, output_format):
