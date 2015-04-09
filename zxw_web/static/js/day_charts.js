@@ -10,19 +10,33 @@ var samples_7_loading = true;
 var rainfall_7_loading = true;
 
 function refresh_day_charts() {
-    $("#chart_temperature_tdp_div").empty();
-    $("#chart_temperature_awc_div").empty();
-    $("#chart_humidity_div").empty();
-    $("#chart_pressure_div").empty();
-    $("#chart_wind_speed_div").empty();
-    $("#chart_hourly_rainfall_div").empty();
+    var chart_temperature_tdp_div = $("#chart_temperature_tdp_div");
+    var chart_temperature_awc_div = $("#chart_temperature_awc_div");
+    var chart_humidity_div = $("#chart_humidity_div");
+    var chart_pressure_div = $("#chart_pressure_div");
+    var chart_wind_speed_div = $("#chart_wind_speed_div");
+    var chart_hourly_rainfall_div = $("#chart_hourly_rainfall_div");
+    var chart_solar_radiation_div = $("#chart_solar_radiation_div");
+    var chart_uv_index_div = $("#chart_uv_index_div");
 
-    $("#chart_temperature_tdp_div").html('<div class="bg_loading"></div>');
-    $("#chart_temperature_awc_div").html('<div class="bg_loading"></div>');
-    $("#chart_humidity_div").html('<div class="bg_loading"></div>');
-    $("#chart_pressure_div").html('<div class="bg_loading"></div>');
-    $("#chart_wind_speed_div").html('<div class="bg_loading"></div>');
-    $("#chart_hourly_rainfall_div").html('<div class="bg_loading"></div>');
+    chart_temperature_tdp_div.empty();
+    chart_temperature_awc_div.empty();
+    chart_humidity_div.empty();
+    chart_pressure_div.empty();
+    chart_wind_speed_div.empty();
+    chart_hourly_rainfall_div.empty();
+    chart_solar_radiation_div.empty();
+    chart_uv_index_div.empty();
+
+    var loading_div = '<div class="bg_loading"></div>';
+    chart_temperature_tdp_div.html(loading_div);
+    chart_temperature_awc_div.html(loading_div);
+    chart_humidity_div.html(loading_div);
+    chart_pressure_div.html(loading_div);
+    chart_wind_speed_div.html(loading_div);
+    chart_hourly_rainfall_div.html(loading_div);
+    chart_solar_radiation_div.html(loading_div);
+    chart_uv_index_div.html(loading_div);
 
     load_day_charts();
     show_hide_rainfall_charts(1); // 1 = 1day chart only
@@ -30,19 +44,33 @@ function refresh_day_charts() {
 
 
 function refresh_7day_charts() {
-    $("#chart_7_temperature_tdp_div").empty();
-    $("#chart_7_temperature_awc_div").empty();
-    $("#chart_7_humidity_div").empty();
-    $("#chart_7_pressure_div").empty();
-    $("#chart_7_wind_speed_div").empty();
-    $("#chart_7_hourly_rainfall_div").empty();
+    var chart_7_temperature_tdp_div = $("#chart_7_temperature_tdp_div");
+    var chart_7_awc_div = $("#chart_7_temperature_awc_div");
+    var chart_7_humidity_div = $("#chart_7_humidity_div");
+    var chart_7_pressure_div = $("#chart_7_pressure_div");
+    var chart_7_wind_speed_div = $("#chart_7_wind_speed_div");
+    var chart_7_hourly_rainfall_div = $("#chart_7_hourly_rainfall_div");
+    var chart_7_solar_radiation_div = $("#chart_7_solar_radiation_div");
+    var chart_7_uv_index_div = $("#chart_7_uv_index_div");
 
-    $("#chart_7_temperature_tdp_div").html('<div class="bg_loading"></div>');
-    $("#chart_7_temperature_awc_div").html('<div class="bg_loading"></div>');
-    $("#chart_7_humidity_div").html('<div class="bg_loading"></div>');
-    $("#chart_7_pressure_div").html('<div class="bg_loading"></div>');
-    $("#chart_7_wind_speed_div").html('<div class="bg_loading"></div>');
-    $("#chart_7_hourly_rainfall_div").html('<div class="bg_loading"></div>');
+    chart_7_temperature_tdp_div.empty();
+    chart_7_awc_div.empty();
+    chart_7_humidity_div.empty();
+    chart_7_pressure_div.empty();
+    chart_7_wind_speed_div.empty();
+    chart_7_hourly_rainfall_div.empty();
+    chart_7_solar_radiation_div.empty();
+    chart_7_uv_index_div.empty();
+
+    var loading_div = '<div class="bg_loading"></div>';
+    chart_7_temperature_tdp_div.html(loading_div);
+    chart_7_awc_div.html(loading_div);
+    chart_7_humidity_div.html(loading_div);
+    chart_7_pressure_div.html(loading_div);
+    chart_7_wind_speed_div.html(loading_div);
+    chart_7_hourly_rainfall_div.html(loading_div);
+    chart_7_solar_radiation_div.html(loading_div);
+    chart_7_uv_index_div.html(loading_div);
 
     load_7day_charts();
     show_hide_rainfall_charts(2); // 2 = 7day chart only

@@ -419,10 +419,10 @@ function refresh_live_data(data) {
     if (update_check_interval != null)
         window.clearInterval(update_check_interval);
     update_check_interval = window.setInterval(function(){
-        $("#cc_data_age").html('over 60');
+        $("#cc_data_age").html('over 300');
         current_conditions.hide();
         cc_stale.show();
-    }, 60000);
+    }, 300000);
 }
 
 
