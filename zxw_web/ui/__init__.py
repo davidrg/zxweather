@@ -234,6 +234,15 @@ class site_index:
                            config.default_station_name + '/')
 
 
+class dir_redirect:
+    """
+    If a directory-type URL is requested (eg, /s) this will add on the slash
+    to produce the proper URL and redirect.
+    """
+    def GET(self):
+        raise web.seeother(web.ctx["path"] + "/")
+
+
 class stationlist:
     """
     Index page for a particular station. Should allow you to choose how to

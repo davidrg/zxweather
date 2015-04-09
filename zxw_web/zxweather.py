@@ -42,13 +42,18 @@ urls = (
     # All code resides in the ui package.
     '/(s|b|m|a)/(\w*)/(\d+)/(\w*)/(\d+)/(?:index\.html)?', 'ui.day_page.day', # A particular day
     '/(s|b|m|a)/(\w*)/(\d+)/(\w*)/(\d+)/indoor.html', 'ui.day_page.indoor_day', # indoor stats for a particular day.
+    '/(?:s|b|m|a)/(?:\w*)/(?:\d+)/(?:\w*)/(?:\d+)', 'ui.dir_redirect',        # Redirect: day
     '/(s|b|m|a)/(\w*)/(\d+)/(\w*)/(?:index\.html)?', 'ui.month_page.month',   # A particular month
+    '/(?:s|b|m|a)/(?:\w*)/(?:\d+)/(?:\w*)', 'ui.dir_redirect',                # Redirect: month
     '/(s|b|m|a)/(\w*)/(\d+)/(?:index\.html)?', 'ui.year_page.year',           # A particular year
+    '/(?:s|b|m|a)/(?:\w*)/(?:\d+)', 'ui.dir_redirect',                        # Redirect: year
     '/(s|b|m|a)/(\w*)/now', 'ui.now',                                         # Go to todays page
-    '/(s|b|m|a)/(\w*)/reception\.html', 'ui.station_page.reception',         # Reception page
+    '/(s|b|m|a)/(\w*)/reception\.html', 'ui.station_page.reception',          # Reception page
     '/(s|b|m|a)/(\w*)/(?:index\.html)?', 'ui.station_page.station',           # Index page
+    '/(?:s|b|m|a)/(?:\w+)', 'ui.dir_redirect',                                # Redirect: station
     '/(?:s|m|a)/(\w*)/about.json', 'data.about_nav',                          #
     '/(s|b|m|a)/(?:index\.html)?', 'ui.stationlist',                          # Station redirect
+    '/(?:s|b|m|a)', 'ui.dir_redirect',                                        # Redirect: UI
     '/(?:index\.html)?', 'ui.site_index',                                 # Site index redirect
 
     # Static file overlays.
