@@ -37,6 +37,11 @@ class StationConfig(object):
         self._hw_type = hw_type
         if hw_type == 'DAVIS' and config_data is not None:
             self._load_davis_data(json.loads(config_data))
+        else:
+            self._is_wireless = False
+            self._has_solar_sensor = False
+            self._has_uv_sensor = False
+            self._broadcast_id = None
 
 
     def _load_davis_data(self, config_document):
