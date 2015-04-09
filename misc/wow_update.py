@@ -58,10 +58,17 @@ class Config(object):
         config = ConfigParser.ConfigParser()
         config.read(self._config_file_locations)
 
-        self.aws_pin = config.get("site_info", "aws_pin")
-        self.site_id = config.get("site_info", "site_id")
+        self.stations = []
 
-        self.station_code = config.get('station', 'station_code')
+        for section in config.sections():
+            if section == "database":
+                continue
+
+            aws_pin = config.get(section, "aws_pin")
+            site_id = config.get(section, "site_id")
+            station_code = config.get(section, 'station_code')
+
+            self.stations.append((station_code, site_id, aws_pin))
 
         # Read database config
         hostname = config.get('database', 'host')
@@ -211,17 +218,23 @@ def main():
 
     con = config.getDatabaseConnection()
 
-    data = get_latest_data_for_station(con, config.station_code)
+    for station in config.stations:
+        station_code = station[0]
+        site_id = station[1]
+        aws_pin = station[2]
+
+
+        data = get_latest_data_for_station(con, station_code)
+
+        if data is None:
+            print("No data available at this time.")
+            return
+
+        url = build_submit_url(site_id, aws_pin, data)
+
+        submit_data(url)
 
     con.close()
-
-    if data == None:
-        print("No data available at this time.")
-        return
-
-    url = build_submit_url(config.site_id, config.aws_pin, data)
-
-    submit_data(url)
 
 if __name__ == "__main__":
     main()
