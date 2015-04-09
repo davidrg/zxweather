@@ -44,8 +44,8 @@ urls = (
     '/(s|b|m|a)/(\w*)/(\d+)/(\w*)/(\d+)/indoor.html', 'ui.day_page.indoor_day', # indoor stats for a particular day.
     '/(?:s|b|m|a)/(?:\w*)/(?:\d+)/(?:\w*)/(?:\d+)', 'ui.dir_redirect',        # Redirect: day
     '/(s|b|m|a)/(\w*)/(\d+)/(\w*)/(?:index\.html)?', 'ui.month_page.month',   # A particular month
-    '/(?:s|b|m|a)/(?:\w*)/(?:\d+)/(?:\w*)', 'ui.dir_redirect',                # Redirect: month
     '/(s|b|m|a)/(\w*)/(\d+)/(?:index\.html)?', 'ui.year_page.year',           # A particular year
+    '/(?:s|b|m|a)/(?:\w*)/(?:\d+)/(?:\w*)', 'ui.dir_redirect',                # Redirect: month
     '/(?:s|b|m|a)/(?:\w*)/(?:\d+)', 'ui.dir_redirect',                        # Redirect: year
     '/(s|b|m|a)/(\w*)/now', 'ui.now',                                         # Go to todays page
     '/(s|b|m|a)/(\w*)/reception\.html', 'ui.station_page.reception',          # Reception page
