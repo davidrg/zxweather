@@ -226,7 +226,7 @@ function drawSampleLineCharts(jsondata,
                 labelsDiv: solar_radiation_key,
                 animatedZooms: enable_animated_zooms,
                 strokeWidth: strokeWidth,
-                title: 'Solar Radiation',
+                title: 'Solar Radiation (W/m&sup2;)',
                 axes: {
                     y: {
                        valueFormatter: solarRadiationFormatter
