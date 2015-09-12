@@ -5,15 +5,17 @@ Functions for encoding and decoding weather data to be sent over the wire
 import calendar
 import struct
 import datetime
-from twisted.python import log
 
 __author__ = 'david'
 
 
 def timestamp_encode(time_stamp):
     """
-    NOTE: supplied time stamp must be at UTC
+    NOTE: supplied time stamp must be at UTC. Fractional seconds are discarded.
 
+    >>> timestamp_encode(datetime.datetime(2015, 9, 13, 9, 31, 11, 836000))
+    1442136671
+    >>>
     :param time_stamp: Timestamp at UTC
     :type time_stamp: datetime.datetime
     """
@@ -22,7 +24,11 @@ def timestamp_encode(time_stamp):
 
 def timestamp_decode(value):
     """
-    Decodes the supplied timestamp value and returns it as a timestamp at UTC
+    Decodes the supplied timestamp value and returns it as a timestamp at UTC.
+
+    >>> timestamp_decode(1442136671)
+    datetime.datetime(2015, 9, 13, 9, 31, 11)
+    >>>
 
     :param value: timestamp value
     :type value: int
@@ -32,6 +38,20 @@ def timestamp_decode(value):
 
 
 def _date_encode(date):
+    """
+    Encodes the date as a single 16bit integer. None is encoded as 0xFFFF
+
+    >>> _date_encode(datetime.date(2015, 9, 13))
+    7981
+    >>> _date_encode(None)
+    65535
+    >>>
+
+    :param date: Date to encode. None is encoded as 0xFFFF.
+    :type date: datetime.date or None
+    :return: Date encoded as a 16bit integer.
+    :rtype: int
+    """
     if date is None:
         return 0xFFFF
 
@@ -46,13 +66,34 @@ def _date_encode(date):
 
 
 def _date_decode(date):
+    """
+    Decodes a date encoded with _encode_date(). This takes a single 16 bit
+    integer as input producing a date. Out of range values give None.
+
+    >>> _date_decode(7981)
+    datetime.date(2015, 9, 13)
+    >>> _date_decode(65535) is None
+    True
+    >>> _date_decode(66000) is None
+    True
+    >>> _date_decode(-1) is None
+    True
+    >>> _date_decode(0) is None
+    True
+    >>>
+
+    :param date: Input date encoded as a 16 bit integer
+    :type date: int
+    :return: Decoded date or None if input was 0xFFFF
+    :rtype: datetime.date or None
+    """
 
     # +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
     # | YEAR                      | MONTH         | DAY               |
     # +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
     #    15  14  13  12  11  10   9   8   7   6   5   4   3   2   1   0
 
-    if date == 0xFFFF:
+    if date >= 0xFFFF or date <= 0:
         return None
 
     year_mask = 0xFE00
@@ -68,9 +109,17 @@ def _date_decode(date):
 
 def _time_encode(record_time):
     """
-    Encodes the supplied time in the format used by DMP records
+    Encodes the supplied time as a 16bit integer in the format used by DMP
+    records. None is encoded as 0xFFFF. Seconds are discarded.
+
+    >>> _time_encode(None)
+    65535
+    >>> _time_encode(datetime.time(9, 50))
+    950
+    >>>
+
     :param record_time: Time to encode
-    :type record_time: datetime.time
+    :type record_time: datetime.time or None
     :return: Encoded time
     :rtype: int
     """
@@ -83,14 +132,26 @@ def _time_encode(record_time):
 
 def _time_decode(binary_val):
     """
-    Decodes the time format used in DMP records
+    Decodes times encoded as a 16bit integer by _time_encode(). Out of range
+    values are decoded to None.
+
+    >>> _time_decode(-1) is None
+    True
+    >>> _time_decode(0) is None
+    True
+    >>> _time_decode(65535) is None
+    True
+    >>> _time_decode(950)
+    datetime.time(9, 50)
+    >>>
+
     :param binary_val: Time value (short integer)
     :type binary_val: int
     :return: Decoded time
     :rtype: datetime.time
     """
 
-    if binary_val == 0xFFFF:
+    if binary_val >= 0xFFFF or binary_val <= 0:
         return None
 
     hour = binary_val / 100
@@ -100,18 +161,68 @@ def _time_decode(binary_val):
 
 
 def _float_encode(value):
+    """
+    Encodes a float as an integer, rounded to 1 decimal place
+
+    >>> _float_encode(15.389)
+    154
+    >>>
+
+    :param value: Input float
+    :type value: float
+    :return: An integer representing the float to 1dp
+    :rtype: int
+    """
+
     return int(round(value, 1)*10)
 
 
 def _float_decode(value):
+    """
+    Decodes a float encoded with _float_encode().
+
+    >>> _float_decode(154)
+    15.4
+    >>>
+
+    :param value: integer value representing float to 1dp
+    :type value: int
+    :return: Float value
+    :rtype: float
+    """
+
     return value / 10.0
 
 
 def _float_encode_2dp(value):
+    """
+    Encodes a float as an integer, rounded to 2 decimal places
+
+    >>> _float_encode_2dp(15.388)
+    1539
+    >>>
+
+    :param value: Input float
+    :type value: float
+    :return: An integer representing the float to 2dp
+    :rtype: int
+    """
     return int(round(value, 2)*100)
 
 
 def _float_decode_2dp(value):
+    """
+    Decodes a float encoded with _float_encode_2dp().
+
+    >>> _float_decode_2dp(1539)
+    15.39
+    >>>
+
+    :param value: integer value representing float to 2dp
+    :type value: int
+    :return: Float value
+    :rtype: float
+    """
     return value / 100.0
 
 _INT_8 = "b"
