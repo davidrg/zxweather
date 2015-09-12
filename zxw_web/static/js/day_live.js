@@ -143,7 +143,7 @@ function start_polling() {
     if (poll_interval != null)
         window.clearInterval(poll_interval);
 
-    // Refresh live data every 48 seconds.
+    // Refresh live data every 30 seconds.
     poll_interval = window.setInterval(function(){
         poll_live_data();
     }, 30000);
