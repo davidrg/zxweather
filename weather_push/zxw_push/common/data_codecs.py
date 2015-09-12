@@ -477,46 +477,60 @@ common_live_sample_field_ids = {
 
 
 def _encode_dict(data_dict, field_definitions, field_ids):
+    """
+    Encodes a dictionary of values into a byte string using the supplied
+    field definitions and list of fields which should be encoded.
 
+    :param data_dict: Data to be encoded
+    :type data_dict: dict
+    :param field_definitions: List of field definitions. Each field definition
+    specifies the fields ID, name, data type and functions to encode/decode the
+    data.
+    :type: list
+    :param field_ids: List of Field IDs which should be included in the output.
+    :type: list
+    :return: A byte array representing the input data selected by the list of
+    field IDs.
+    :rtype: bytearray
+    """
     result = bytearray()
 
     for field in field_definitions:
-        # Num, name, type, encode conversion function, decode conversion
-        # function
+        # Field definition values:
         field_number = field[0]
         field_name = field[1]
 
         if field_name is None:
-            continue  # Unused field
-
-        field_type = "!" + field[2]
-        encode_function = field[3]
-        # decode_function = field[4]
-        null_value = field[5]
+            continue  # Unused or reserved field
 
         if field_number not in field_ids:
-            continue
+            continue  # We're not including this field in the output.
 
-        if field_name is None:
-            continue  # Reserved field
+        # More field definition value
+        field_type = "!" + field[2]  # Encode big-endian (! = network/big)
+        encode_function = field[3]
+        # value 4 is the decode function - don't need it here
+        null_value = field[5]
 
         if encode_function is None:
-            encode_function = lambda x: x
+            encode_function = lambda x: x  # No special encoding required.
 
         unencoded_value = data_dict[field_name]
 
         # If these two are equal then we've got a bug! The null values in the
         # field definition tables should never occur in real data.
-        assert(unencoded_value != null_value)
+        assert unencoded_value != null_value, \
+            "Value to encode collides with fields null value."
 
         # The field doesn't have a null value defined and we've got a null value
         # for it! We've encountered data we can't encode. This would be a bug.
-        assert(not(unencoded_value is None and null_value is None))
+        assert not(unencoded_value is None and null_value is None), \
+            "Attempted to encode null value for not null field."
 
         if unencoded_value is None:
             field_value = null_value
         else:
-            field_value = encode_function(data_dict[field_name])
+            field_value = encode_function(unencoded_value)
 
         encoded_value = struct.pack(field_type, field_value)
 
