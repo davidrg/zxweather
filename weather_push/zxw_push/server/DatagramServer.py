@@ -406,9 +406,9 @@ class WeatherPushDatagramServer(DatagramProtocol):
                 rec_data = decode_sample_data(data, hw_type, fields)
 
                 if "sample_diff_timestamp" in rec_data:
-                    other_sample_id = rec_data["sample_diff_timestamp"]
+                    other_sample_timestamp = rec_data["sample_diff_timestamp"]
                     other_sample = yield self._get_sample_record(
-                        record.station_id, other_sample_id)
+                        record.station_id, other_sample_timestamp)
 
                     if other_sample is None:
                         # base record could not be found. This means the client
@@ -419,7 +419,7 @@ class WeatherPushDatagramServer(DatagramProtocol):
                                 "ignored - record depends on {2} which has not "
                                 "been received. This is probably a client bug."
                                 .format(record.timestamp, station_code,
-                                        other_sample_id))
+                                        other_sample_timestamp))
                         continue
 
                     new_sample = patch_sample(rec_data, other_sample,
