@@ -550,19 +550,21 @@ def _decode_dict(encoded_data, field_definitions, field_ids):
         field_number = field[0]
         field_name = field[1]
 
-        if field_name is None:
-            continue  # Unused field
+        if field_number not in field_ids:
+            continue
+
+        # If a field is in the field list that means it should have encoded
+        # data. Nameless fields don't don't support encoding or decoding so
+        # if the field name is None then either the list of field definitions
+        # don't match what the encoder used or the list of field IDs is wrong.
+        # Either way its a bug.
+        assert field_name is not None, \
+            "Reserved/unused field included in field list."
 
         field_type = "!" + field[2]
         # encode_function = field[3]
         decode_function = field[4]
         null_value = field[5]
-
-        if field_number not in field_ids:
-            continue
-
-        if field_name is None:
-            continue  # Reserved field
 
         field_size = struct.calcsize(field_type)
 
