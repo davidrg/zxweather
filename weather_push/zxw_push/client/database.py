@@ -8,12 +8,11 @@ from twisted.python import log
 from ..common.util import Event
 from zxw_push.common.database import wh1080_sample_query, davis_sample_query, \
     generic_sample_query
-
-__author__ = 'david'
 import psycopg2
 from psycopg2.extras import DictConnection as Psycopg2DictConn
 from txpostgres import txpostgres
 
+__author__ = 'david'
 
 def dict_connect(*args, **kwargs):
     """
@@ -330,7 +329,7 @@ class WeatherDatabase(object):
             'site_id': self._site_id,
             'pending': True,
             'pending_b': True,
-            'limit': 10000
+            'limit': 1500  # This is about the max records we could send in 5 min
         }
 
         result = yield self._conn.runQuery(query, parameters)

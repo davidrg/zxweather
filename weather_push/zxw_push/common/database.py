@@ -20,7 +20,7 @@ where rs.site_id = %(site_id)s
 """
 
 _TIMESTAMP_CLAUSE = """
-where s.time_stamp = %(timestamp)s
+where (s.time_stamp at time zone 'GMT') = %(timestamp)s
 """
 
 _WHERE_CLAUSES = {

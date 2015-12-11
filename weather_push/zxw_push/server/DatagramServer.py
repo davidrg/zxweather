@@ -164,6 +164,10 @@ class WeatherPushDatagramServer(DatagramProtocol):
 
     @defer.inlineCallbacks
     def _get_sample_record(self, station_id, time_stamp):
+        """
+        :type station_id: int
+        :type time_stamp: datetime.datetime
+        """
         rid = (station_id, time_stamp)
 
         if rid in self._sample_record_cache.keys():
