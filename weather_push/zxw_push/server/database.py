@@ -7,7 +7,6 @@ from psycopg2.extras import DictCursor
 
 from twisted.enterprise import adbapi
 from twisted.internet import defer
-from twisted.python import log
 from zxw_push.common.database import wh1080_sample_query
 from zxw_push.common.database import davis_sample_query
 from zxw_push.common.database import generic_sample_query
@@ -94,11 +93,20 @@ class ServerDatabase(object):
         station_id = self._station_code_id[station_code]
 
         if hardware_type == "GENERIC":
-            yield self._store_generic_sample(station_id, sample)
+            yield self._conn.runInteraction(
+                ServerDatabase._store_generic_sample_interaction,
+                station_id,
+                sample)
         elif hardware_type == "WH1080":
-            yield self._store_wh1080_sample(station_id, sample)
+            yield self._conn.runInteraction(
+                ServerDatabase._store_wh1080_sample_interaction,
+                station_id,
+                sample)
         elif hardware_type == "DAVIS":
-            yield self._store_davis_sample(station_id, sample)
+            yield self._conn.runInteraction(
+                ServerDatabase._store_davis_sample_interaction,
+                station_id,
+                sample)
 
     @defer.inlineCallbacks
     def get_latest_sample(self, station_code, hw_type):
@@ -134,7 +142,7 @@ class ServerDatabase(object):
 
         :param station_code: Station to get the sample for
         :type station_code: str
-        :param time_stamp: Sample timestamp
+        :param time_stamp: Sample timestamp AT GMT
         :param hw_type: Type of hardware that generated the sample
         :type hw_type: str
         :return: The sample as a dict or None if it doesn't exist
@@ -220,14 +228,28 @@ class ServerDatabase(object):
             defer.returnValue(None)
         defer.returnValue(result[0][0])
 
-    @defer.inlineCallbacks
-    def _store_generic_sample(self, station_id, sample_record):
+    @staticmethod
+    def _get_sample_id_interaction(txn, station_id, time_stamp):
+        query = "select sample_id from sample " \
+                "where station_id = %s and time_stamp = (%s at time zone 'GMT')"
+        txn.execute(query, (station_id, time_stamp))
 
-        sample_id = yield self._get_sample_id(station_id,
-                                              sample_record["time_stamp"])
+        result = txn.fetchone()
+
+        if result is None or len(result) == 0:
+            return None
+        return result[0]
+
+    @staticmethod
+    def _store_generic_sample_interaction(txn, station_id, sample_record):
+
+        # See if the sample already exists
+        sample_id = ServerDatabase._get_sample_id_interaction(
+            txn, station_id, sample_record["time_stamp"])
+
         if sample_id is not None:
             # Sample already exists. Nothing to do.
-            defer.returnValue(sample_id)
+            return sample_id
 
         query = """
         insert into sample(download_timestamp,
@@ -259,20 +281,22 @@ class ServerDatabase(object):
 
         sample_record["station_id"] = station_id
 
-        result = yield self._conn.runQuery(query, sample_record)
+        txn.execute(query, sample_record)
+        return txn.fetchone()[0]
 
-        defer.returnValue(result[0][0])
+    @staticmethod
+    def _store_wh1080_sample_interaction(txn, station_id, sample_record):
 
-    @defer.inlineCallbacks
-    def _store_wh1080_sample(self, station_id, sample_record):
+        # See if the sample already exists
+        sample_id = ServerDatabase._get_sample_id_interaction(
+            txn, station_id, sample_record["time_stamp"])
 
-        sample_id = yield self._get_sample_id(station_id,
-                                              sample_record["time_stamp"])
         if sample_id is not None:
             # Sample already exists. Nothing to do.
-            defer.returnValue(sample_id)
+            return sample_id
 
-        sample_id = yield self._store_generic_sample(station_id, sample_record)
+        sample_id = ServerDatabase._store_generic_sample_interaction(
+            txn, station_id, sample_record)
 
         query = """
         insert into wh1080_sample(sample_id,
@@ -294,20 +318,25 @@ class ServerDatabase(object):
 
         sample_record["sample_id"] = sample_id
 
-        yield self._conn.runOperation(query, sample_record)
+        txn.execute(query, sample_record)
 
-        defer.returnValue(sample_id)
+        return sample_id
 
-    @defer.inlineCallbacks
-    def _store_davis_sample(self, station_id, sample_record):
+    @staticmethod
+    def _store_davis_sample_interaction(txn, station_id, sample_record):
 
-        sample_id = yield self._get_sample_id(station_id,
-                                              sample_record["time_stamp"])
+        sample_id = ServerDatabase._get_sample_id_interaction(
+            txn, station_id, sample_record["time_stamp"])
+
         if sample_id is not None:
             # Sample already exists. Nothing to do.
-            defer.returnValue(sample_id)
+            return sample_id
 
-        sample_id = yield self._store_generic_sample(station_id, sample_record)
+        # TODO: Don't do this separately. We need to run it in a single
+        # transaction with the rest of this function. Otherwise we risk
+        # having part of the insert fail.
+        sample_id = ServerDatabase._store_generic_sample_interaction(
+            txn, station_id, sample_record)
 
         query = """
         insert into davis_sample(sample_id,
@@ -341,6 +370,6 @@ class ServerDatabase(object):
 
         sample_record["sample_id"] = sample_id
 
-        yield self._conn.runOperation(query, sample_record)
+        txn.execute(query, sample_record)
 
-        defer.returnValue(sample_id)
+        return sample_id
