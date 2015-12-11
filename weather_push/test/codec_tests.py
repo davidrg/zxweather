@@ -5,6 +5,7 @@ from zxw_push.common.data_codecs import _encode_dict, _U_INT_16, _U_INT_32, \
 
 __author__ = 'david'
 
+
 class EncodeDictTests(unittest.TestCase):
     """
     Unit tests for the _encode_dict function in data_codecs. This function
@@ -219,6 +220,7 @@ class EncodeDictTests(unittest.TestCase):
 
         self.assertRaises(AssertionError,
                           _encode_dict, *(data, field_definitions, field_ids))
+
 
 class DecodeDictTests(unittest.TestCase):
     def test_single_value_is_decoded(self):
