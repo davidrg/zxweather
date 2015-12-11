@@ -279,8 +279,8 @@ def get_30m_avg_month_samples_data(year,month, station_id):
        bool_or(gap) as gap,
        avg(iq.average_wind_speed) as average_wind_speed,
        max(iq.gust_wind_speed) as gust_wind_speed,
-       avg(iq.uv_index) as uv_index,
-       avg(iq.solar_radiation) as solar_radiation
+       avg(iq.uv_index)::real as uv_index,
+       avg(iq.solar_radiation)::real as solar_radiation
 from (
         select cur.time_stamp,
                (extract(epoch from cur.time_stamp) / 1800)::integer AS quadrant,
