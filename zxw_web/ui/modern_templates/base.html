@@ -202,11 +202,12 @@
             <a href="#" class="btn" data-dismiss="modal" aria-hidden="true">Close</a>
         </div>
     </div>
+    {% endif %}
     <script type="text/javascript" src="/js/jquery.min.js"></script>
     <script type="text/javascript" src="/js/jquery.cookie.js"></script>
     <script type="text/javascript" src="/js/bootstrap.min.js"></script>
-    {%- block scripts %}
-    {% endblock -%}
+    {% block scripts %}
+    {% endblock %}
     <script type="text/javascript">
     function show_no_data(station_name, date, earliest_date, earliest_url, latest_date, latest_url) {
         $('#nd_station').html(station_name);
@@ -263,6 +264,5 @@
     {%- endif %}
     $.cookie("last_ui", "{{ ui }}", {path: '/'});
     </script>
-    {%- endif %}
 </body>
 </html>
