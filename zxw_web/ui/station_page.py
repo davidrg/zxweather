@@ -38,9 +38,9 @@ def get_station_standard(ui, station):
     :return: View data.
     """
 
-    if ui == 'm':
-        # 'm' interface doesn't exist right now. Send the user to the
-        # standard UI instead.
+    if ui == 'm' or (ui == 'a' and config.disable_alt_ui):
+        # user requested the disabled alt UI or the future 'm' UI. Send the user
+        # to the standard UI instead.
         web.seeother(config.site_root + 's' + '/' + station + '/')
 
     current_location = '/*/' + station + '/'
@@ -98,6 +98,7 @@ def get_station_standard(ui, station):
                                     station=station,
                                     hw_type=hw_type,
                                     ui=ui,
+                                    alt_ui_disabled=config.disable_alt_ui,
                                     sitename=get_site_name(station_id),
                                     subdir=sub_dir,
                                     page_data=page_data,
@@ -164,6 +165,7 @@ def get_station_basic(station):
 
     return basic_templates.station(years=get_years(station_id),
                                    station=station,
+                                   alt_ui_disabled=config.disable_alt_ui,
                                    data=data,
                                    nav=nav_urls,
                                    image_base=image_base,
@@ -235,6 +237,7 @@ def get_station_reception_standard(ui, station):
             nav=nav_urls,
             sitename=get_site_name(station_id),
             ui=ui,
+            alt_ui_disabled=config.disable_alt_ui,
             archive_mode=in_archive_mode(station_id),
             page_data=page_data,
             switch_url=build_alternate_ui_urls(current_location),

@@ -195,9 +195,9 @@ def get_month(ui, station, year, month):
     :return: View data
     """
 
-    if ui == 'm':
-        # 'm' interface doesn't exist right now. Send the user to the
-        # standard UI instead.
+    if ui == 'm' or (ui == 'a' and config.disable_alt_ui):
+        # user requested the disabled alt UI or the future 'm' UI. Send the user
+        # to the standard UI instead.
         web.seeother(config.site_root + 's' + '/' + station + '/' +
                      str(year) + '/' + month_name[month] + '/')
 
@@ -281,6 +281,7 @@ def get_month(ui, station, year, month):
 
         return modern_templates.month(nav=nav_urls, data=data,dataurls=urls,
                                       ui=ui, sitename=get_site_name(station_id),
+                                      alt_ui_disabled=config.disable_alt_ui,
                                       archive_mode=in_archive_mode(station_id),
                                       page_data=page_data,
                                       switch_url=build_alternate_ui_urls(
@@ -295,6 +296,7 @@ def get_month(ui, station, year, month):
         return basic_templates.month(data=data,
                                      switch_url=build_alternate_ui_urls(
                                          current_location),
+                                     alt_ui_disabled=config.disable_alt_ui,
                                      hw_type=hw_type,
                                      solar_uv_available=uv_and_solar_available,)
 

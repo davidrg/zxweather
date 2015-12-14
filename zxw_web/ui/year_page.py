@@ -99,9 +99,9 @@ def get_year(ui,station, year):
     :return: View data
     """
 
-    if ui == 'm':
-        # 'm' interface doesn't exist right now. Send the user to the
-        # standard UI instead.
+    if ui == 'm' or (ui == 'a' and config.disable_alt_ui):
+        # user requested the disabled alt UI or the future 'm' UI. Send the user
+        # to the standard UI instead.
         web.seeother(config.site_root + 's' + '/' + station + '/' +
                      str(year) + '/')
 
@@ -171,6 +171,7 @@ def get_year(ui,station, year):
         return modern_templates.year(nav=nav_urls,data=data,urls=urls,
                                      sitename=get_site_name(station_id),
                                      ui=ui,
+                                     alt_ui_disabled=config.disable_alt_ui,
                                      archive_mode=in_archive_mode(station_id),
                                      page_data=page_data,
                                      switch_url=build_alternate_ui_urls(
@@ -180,6 +181,7 @@ def get_year(ui,station, year):
                                      station_message_ts=msg[1])
     else:
         return basic_templates.year(data=data,
+                                    alt_ui_disabled=config.disable_alt_ui,
                                     switch_url=build_alternate_ui_urls(
                                         current_location))
 

@@ -10,8 +10,8 @@
     {% block content %}{% endblock %}
     <div align="right">
         Interface:
-        <a href="{{ switch_url['s'] }}">Standard</a> |
-        <a href="{{ switch_url['a'] }}">Alternate</a> |
+        <a href="{{ switch_url['s'] }}">Standard</a> {% if not alt_ui_disabled %}|
+        <a href="{{ switch_url['a'] }}">Alternate</a>{% endif %} |
         <strong>Basic</strong>
     </div>
 </body>
