@@ -22,6 +22,11 @@ site_root = None
 # Set to None to use the UI picker page.
 default_ui = 's'
 
+# Set to True to disable the alternate UI. The alternate UI requires access to
+# the public internet so you may want to turn it off if you're just running it
+# on a private network with no internet access.
+disable_alt_ui = False
+
 # Name displayed in the navigation thing
 site_name = 'zxweather'
 
@@ -38,7 +43,7 @@ def load_settings():
 
     global db, default_station_name
     global static_data_dir, site_root, default_ui, site_name, ws_uri, wss_uri
-    global zxweatherd_hostname, zxweatherd_raw_port
+    global zxweatherd_hostname, zxweatherd_raw_port, disable_alt_ui
 
     import ConfigParser
     config = ConfigParser.ConfigParser()
@@ -78,6 +83,9 @@ def load_settings():
     default_ui = config.get(S_S, 'default_ui')
     site_name = config.get(S_S, 'site_name')
     static_data_dir = config.get(S_S, 'static_data_dir')
+
+    if config.has_option(S_S, 'disable_alt_ui'):
+        disable_alt_ui = config.getboolean(S_S, 'disable_alt_ui')
 
     if config.has_option(S_D, 'hostname'):
         zxweatherd_hostname = config.get(S_D, 'hostname')
