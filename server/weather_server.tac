@@ -13,7 +13,7 @@
 #
 #
 ##############################################################################
-### Database Configuration ###################################################
+#   Database Configuration ###################################################
 ##############################################################################
 
 # This is the database connection string. An example one might be:
@@ -21,7 +21,21 @@
 dsn = ""
 
 ##############################################################################
-### SSH Protocol Configuration ###############################################
+#   Message Broker Configuration #############################################
+##############################################################################
+
+# If your live data is broadcast by a RabbitMQ Message Broker, configure the
+# message broker below:
+enable_broker = False
+broker_username = "guest"
+broker_password = "guest"
+broker_vhost = "/"
+broker_hostname = "localhost"
+broker_port = 5672
+broker_exchange = "weather"
+
+##############################################################################
+#   SSH Protocol Configuration ###############################################
 ##############################################################################
 # This protocol allows authenticated interactive read-write access to the
 # server. It allows access to some administrative commands to list sessions,etc
@@ -42,7 +56,7 @@ ssh_public_key_file = 'id_rsa.pub'
 ssh_passwords_file = 'ssh-passwords'
 
 ##############################################################################
-### Telnet Protocol Configuration ############################################
+#   Telnet Protocol Configuration ############################################
 ##############################################################################
 # This protocol allows interactive read-only access to the server to display
 # current conditions and information about the weather station in a terminal
@@ -55,7 +69,7 @@ enable_telnet = True
 telnet_port = 4223
 
 ##############################################################################
-### Standard Protocol Configuration ##########################################
+#   Standard Protocol Configuration ##########################################
 ##############################################################################
 # This protocol is used by the desktop client and anything else wanting access
 # to weather data. In most cases it should be enabled.
@@ -67,7 +81,7 @@ enable_raw = True
 raw_port = 4224
 
 ##############################################################################
-### WebSocket Protocol Configuration #########################################
+#   WebSocket Protocol Configuration #########################################
 ##############################################################################
 # This protocol is used by the web interface to access weather data.
 
@@ -81,7 +95,7 @@ web_socket_port = 81
 web_socket_hostname = 'server.example.com'
 
 ##############################################################################
-### WebSocket TLS Protocol Configuration #####################################
+#   WebSocket TLS Protocol Configuration #####################################
 ##############################################################################
 # This a secure websocket endpoint using TLS. It is used as a fallback by the
 # web interface to get around badly configured proxy servers.
@@ -119,6 +133,7 @@ telnet_config = None
 raw_config = None
 ws_config = None
 wss_config = None
+rabbit_mq_config = None
 
 if enable_ssh:
     ssh_config = {
@@ -145,6 +160,18 @@ if enable_web_socket_tls:
         'host': web_socket_tls_hostname
     }
 
+if enable_broker:
+    rabbit_mq_config = {
+        'hostname': broker_hostname,
+        'port': broker_port,
+        'username': broker_username,
+        'password': broker_password,
+        'vhost': broker_vhost,
+        'exchange': broker_exchange
+    }
+
+
 service = getServerService(
-    dsn, ssh_config, telnet_config, raw_config, ws_config, wss_config)
+    dsn, ssh_config, telnet_config, raw_config, ws_config, wss_config,
+    rabbit_mq_config)
 service.setServiceParent(application)
