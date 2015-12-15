@@ -3,8 +3,10 @@
 Handles streaming samples around
 """
 from datetime import datetime, timedelta
+
+import math
 import pytz
-from server.database import get_live_csv, get_sample_csv
+from server.database import get_live_csv, get_sample_csv, get_station_hw_type
 
 __author__ = 'david'
 
@@ -97,16 +99,175 @@ def _station_live_updated_callback(data, code):
     dat = "l,{0}".format(row[0])
     deliver_live_data(code, dat)
 
-def station_live_updated(station_code):
+
+# Format strings for live data broadcast over RabbitMQ.
+base_live_fmt = "{outsideTemperature},{dewPoint},{apparentTemperature}," \
+                "{windChill},{outsideHumidity},{insideTemperature}," \
+                "{insideHumidity},{barometer},{windSpeed},{windDirection}"
+davis_live_fmt = base_live_fmt + ",{barTrend},{rainRate},{stormRain}," \
+                                 "{startDateOfCurrentStorm}," \
+                                 "{transmitterBatteryStatus}," \
+                                 "{consoleBatteryVoltage},{forecastIcons}," \
+                                 "{forecastRuleNumber},{UV},{solarRadiation}"
+
+
+def round_maybe_none_to_2dp(val):
+    if val is None:
+        return None
+    return "{0:.2f}".format(val)
+
+
+def wind_chill(temperature, wind_speed):
+    """
+    Calculates Wind Chill given temperature and wind speed. This is a port of
+    the PL/pgSQL implementation.
+
+    :param temperature: Outside temperature in degrees C
+    :type temperature: float
+    :param wind_speed: Average wind speed in m/s
+    :type wind_speed: float
+    :return: Wind speed in degrees C
+    :rtype: float
+    """
+    if temperature is None or wind_speed is None:
+        return None
+
+    wind_kph = wind_speed * 3.6
+    if wind_kph <= 4.8 or temperature > 10.0:
+        return temperature
+
+    result = 13.12 \
+        + (temperature * 0.6215) \
+        + (((0.3965 * temperature) - 11.37) * pow(wind_kph, 0.16))
+
+    if result > temperature:
+        return temperature
+
+    return result
+
+
+def apparent_temperature(temperature, wind_speed, relative_humidity):
+    """
+    Calculates Apparent Temperature given temperature, wind speed and humidity.
+    This is a port of the PL/pgSQL implementation.
+
+    :param temperature: Outside temperature in degrees C
+    :type temperature: float
+    :param wind_speed: Wind speed in m/s
+    :type wind_speed: float
+    :param relative_humidity: Relative Humidity
+    :type relative_humidity: float
+    :return: Apparent Temperature in degrees C
+    :rtype: float
+    """
+
+    if temperature is None or wind_speed is None or relative_humidity is None:
+        return None
+
+    # Water Vapour Pressure in hPa
+    wvp = (relative_humidity / 100.0) \
+        * 6.105 * pow(2.718281828,
+                      ((17.27 * temperature) / (237.7 + temperature)))
+
+    return temperature + (0.33 * wvp) - (0.7 * wind_speed) - 4.00
+
+
+def dew_point(temperature, relative_humidity):
+    """
+    Calculates Dew Point given temperature and relative humidity. This is a port
+    of the PL/pgSQL function.
+    :param temperature: Temperature in degrees C
+    :type temperature: float
+    :param relative_humidity: Humidity
+    :type relative_humidity: float
+    :return: Dew point in degrees C
+    :rtype: float
+    """
+
+    if temperature is None or relative_humidity is None:
+        return None
+
+    a = 17.271
+    b = 237.7  # in degrees C
+    gamma = ((a * temperature) / (b + temperature)) + \
+        math.log(relative_humidity / 100.0)
+
+    return (b * gamma) / (a - gamma)
+
+
+def station_live_updated(station_code, data=None):
     """
     Called when the live data for the specified station has been updated in.
     the database. This will retrieve the data from the database and broadcast
     it out to all subscribers.
     :param station_code: Station that has just received new live data.
     :type station_code: str
+    :param data: Live data, unencoded
+    :type data: dict
     """
 
-    get_live_csv(station_code).addCallback(_station_live_updated_callback, station_code)
+    if data is None:
+        get_live_csv(station_code).addCallback(_station_live_updated_callback,
+                                               station_code)
+    else:
+        # Encode the data as CSV then fire it off.
+        # The standard format is:
+        # Temperature, DewPoint, ApparentTemperature, WindChill,
+        # RelativeHumidity, IndoorTemperature, IndoorRelativeHumidity,
+        # AbsolutePressure, AverageWindSpeed, WindDirection,
+        #
+        # If the station hardware type is DAVIS we use this format instead:
+        # Temperature, DewPoint, ApparentTemperature, WindChill,
+        # RelativeHumidity, IndoorTemperature, IndoorRelativeHumidity,
+        # AbsolutePressure, AverageWindSpeed, WindDirection,
+
+        # BarTrend, RainRate, StormRain, CurrentStormStartDate,
+        # TransmitterBattery, ConsoleBattery, ForecastIcon, ForecastRuleId,
+        # UVIndex, SolarRadiation
+
+        # The keys in the data structure don't match the rest of zxweather as
+        # the davis logger was the first one to support outputting live data
+        # via RabbitMQ and it just serializes one of its internal data
+        # structures out to JSON. Probably should have designed that better.
+        # Oh well.
+
+        # We need to calculate Dew Point, Apparent Temperature and Wind Chill
+        # ourselves as these values aren't broadcast over RabbitMQ.
+
+        data["dewPoint"] = dew_point(data["outsideTemperature"],
+                                     data["outsideHumidity"])
+        data["apparentTemperature"] = apparent_temperature(
+                data["outsideTemperature"],
+                data["windSpeed"],
+                data["outsideHumidity"])
+
+        data["windChill"] = wind_chill(
+                data["outsideTemperature"], data["windSpeed"])
+
+        data["outsideTemperature"] = round_maybe_none_to_2dp(
+                data["outsideTemperature"])
+        data["dewPoint"] = round_maybe_none_to_2dp(data["dewPoint"])
+        data["apparentTemperature"] = round_maybe_none_to_2dp(
+                data["apparentTemperature"])
+        data["windChill"] = round_maybe_none_to_2dp(data["windChill"])
+        data["insideTemperature"] = round_maybe_none_to_2dp(
+                data["insideTemperature"])
+        data["windSpeed"] = round_maybe_none_to_2dp(data["windSpeed"])
+        data["barometer"] = round_maybe_none_to_2dp(data["barometer"])
+
+        if get_station_hw_type(station_code) == 'DAVIS':
+            data["consoleBatteryVoltage"] = \
+                round_maybe_none_to_2dp(data["consoleBatteryVoltage"])
+
+            val = davis_live_fmt.format(**data)
+        else:
+            val = base_live_fmt.format(**data)
+
+        # _station_live_updated_callback is expecting the result of a database
+        # query - one row with one column.
+        val = [[val, ], ]
+        _station_live_updated_callback(val, station_code)
+
 
 def _station_samples_updated_callback(data, code):
     global _last_sample_ts

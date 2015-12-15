@@ -3,8 +3,11 @@
 zxweather shell daemon
 """
 from twisted.application.service import MultiService
+from twisted.python import log
+
 from server.database import database_connect
 from server.dbupdates import listener_connect
+from server.mq_receiver import mq_listener_connect
 from server.ssh import getSSHService
 from server.tcp import getTCPService
 from server.websocket import getWebSocketService, getWebSocketSecureService
@@ -22,7 +25,7 @@ def setupDatabase(dsn):
 
 
 def getServerService(dsn, ssh_config, telnet_config, tcp_config, ws_config,
-                     wss_config):
+                     wss_config, rabbitmq_config):
     """
     Gets the zxweatherd server service.
     :param dsn: Database connection string
@@ -37,6 +40,8 @@ def getServerService(dsn, ssh_config, telnet_config, tcp_config, ws_config,
     :type ws_config: dict
     :param wss_config: WebSocket Secure protocol configuration (TLS)
     :type wss_config: dict
+    :param rabbitmq_config: RabbitMQ Connection Settings
+    :type rabbitmq_config: dict
     :return: Server service.
     """
 
@@ -44,6 +49,9 @@ def getServerService(dsn, ssh_config, telnet_config, tcp_config, ws_config,
         raise Exception('No protocols enabled')
 
     setupDatabase(dsn)
+
+    if rabbitmq_config is not None:
+        mq_listener_connect(**rabbitmq_config)
 
     service = MultiService()
 

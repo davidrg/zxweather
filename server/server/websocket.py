@@ -2,10 +2,14 @@
 """
 WebSocket support for zxweatherd.
 """
-from OpenSSL import SSL
-from autobahn.websocket import WebSocketServerProtocol, WebSocketServerFactory
+from autobahn.twisted.websocket import WebSocketServerProtocol, WebSocketServerFactory
+
 from twisted.application import internet
 from twisted.internet import ssl
+from twisted.python import log
+
+from OpenSSL import SSL
+
 from server.session import end_session
 from server.shell import BaseShell
 
@@ -45,6 +49,7 @@ def getWebSocketService(host, port):
     :param port: Port number
     :type port: int
     """
+
     factory = WebSocketServerFactory("ws://{1}:{0}".format(port, host))
     factory.protocol = WebSocketShellProtocol
 

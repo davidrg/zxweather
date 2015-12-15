@@ -1,14 +1,32 @@
 ##############################################################################
-### Database Configuration ###################################################
+#   Database Configuration ###################################################
 ##############################################################################
 [database]
 # This is the database connection string. For example:
 # dsn=host=localhost port=5432 user=zxweather password=password dbname=weather
 dsn=
 
+##############################################################################
+#   Message Broker Configuration #############################################
+##############################################################################
+# If your live data is broadcast by a RabbitMQ Message Broker, configure the
+# message broker below:
+[message_broker]
+
+enable=False
+username=guest
+password=guest
+vhost=/
+hostname=localhost
+port=5672
+exchange=weather
+
+# Note that stations should only broadcast their live data via either the
+# database OR RabbitMQ. If you broadcast via both the weather server will pick
+# up both.
 
 ##############################################################################
-### SSH Protocol Configuration ###############################################
+#   SSH Protocol Configuration ###############################################
 ##############################################################################
 # This protocol allows authenticated interactive read-write access to the
 # server. It allows access to some administrative commands to list sessions,etc
@@ -30,7 +48,7 @@ public_key_file=id_rsa.pub
 passwords_file=ssh-passwords
 
 ##############################################################################
-### Telnet Protocol Configuration ############################################
+#   Telnet Protocol Configuration ############################################
 ##############################################################################
 # This protocol allows interactive read-only access to the server to display
 # current conditions and information about the weather station in a terminal
@@ -40,7 +58,7 @@ enable=False
 port=4223
 
 ##############################################################################
-### Standard Protocol Configuration ##########################################
+#   Standard Protocol Configuration ##########################################
 ##############################################################################
 # This protocol is used by the desktop client and anything else wanting access
 # to weather data. In most cases it should be enabled.
@@ -49,7 +67,7 @@ enable=True
 port=4224
 
 ##############################################################################
-### WebSocket Protocol Configuration #########################################
+#   WebSocket Protocol Configuration #########################################
 ##############################################################################
 # This protocol is used by the web interface to access weather data.
 [websocket]
@@ -58,7 +76,7 @@ port=81
 hostname=server.example.com
 
 ##############################################################################
-### WebSocket SSL Protocol Configuration #####################################
+#   WebSocket SSL Protocol Configuration #####################################
 ##############################################################################
 # This a secure websocket endpoint using SSL. It is used as a fallback by the
 # web interface to get around badly configured proxy servers.

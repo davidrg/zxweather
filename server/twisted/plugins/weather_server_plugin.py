@@ -34,6 +34,7 @@ class ZXWServerServiceMaker(object):
         S_WS = 'websocket'
         S_WSS = 'websocket-ssl'
         S_DATABASE = 'database'
+        S_BROKER = 'message_broker'
 
         config = ConfigParser.ConfigParser()
         config.read([filename])
@@ -43,6 +44,7 @@ class ZXWServerServiceMaker(object):
         raw_config = None
         ws_config = None
         wss_config = None
+        broker_config = None
         dsn = config.get(S_DATABASE, 'dsn')
 
         if config.has_section(S_SSH) and config.has_option(S_SSH, 'enable') \
@@ -93,7 +95,21 @@ class ZXWServerServiceMaker(object):
                 'chain': chain,
             }
 
-        return ssh_config, telnet_config, raw_config, ws_config, wss_config, dsn
+        if config.has_section(S_BROKER) \
+                and config.has_option(S_BROKER, 'enable') \
+                and config.getboolean(S_BROKER, 'enable'):
+
+            broker_config = {
+                'hostname': config.get(S_BROKER, 'hostname'),
+                'port': config.getint(S_BROKER, 'port'),
+                'username': config.get(S_BROKER, 'username'),
+                'password': config.get(S_BROKER, 'password'),
+                'vhost': config.get(S_BROKER, 'vhost'),
+                'exchange': config.get(S_BROKER, 'exchange')
+            }
+
+        return ssh_config, telnet_config, raw_config, ws_config, wss_config, \
+               dsn, broker_config
 
     def makeService(self, options):
         """
@@ -107,13 +123,13 @@ class ZXWServerServiceMaker(object):
             raise Exception('Configuration file required')
 
         ssh_config, telnet_config, raw_config, websocket_config, wss_config, \
-            dsn = self._readConfigFile(options['config-file'])
+            dsn, broker_config = self._readConfigFile(options['config-file'])
 
 
         # All OK. Go get the service.
         return getServerService(
             dsn, ssh_config, telnet_config, raw_config,
-            websocket_config, wss_config)
+            websocket_config, wss_config, broker_config)
 
 
 serviceMaker = ZXWServerServiceMaker()
