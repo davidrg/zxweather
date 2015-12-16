@@ -2,11 +2,16 @@
 """
 WebSocket support for zxweatherd.
 """
-from autobahn.twisted.websocket import WebSocketServerProtocol, WebSocketServerFactory
+import txaio
+
+# Autobahn moved stuff around at some point.
+try:
+    from autobahn.twisted.websocket import WebSocketServerProtocol, WebSocketServerFactory
+except:
+    from autobahn.websocket import WebSocketServerProtocol, WebSocketServerFactory
 
 from twisted.application import internet
 from twisted.internet import ssl
-from twisted.python import log
 
 from OpenSSL import SSL
 
@@ -14,6 +19,7 @@ from server.session import end_session
 from server.shell import BaseShell
 
 __author__ = 'david'
+
 
 class ChainedOpenSSLContextFactory(ssl.DefaultOpenSSLContextFactory):
     def __init__(self, privateKeyFileName, certificateFileName,
@@ -49,6 +55,8 @@ def getWebSocketService(host, port):
     :param port: Port number
     :type port: int
     """
+
+    txaio.use_twisted()
 
     factory = WebSocketServerFactory("ws://{1}:{0}".format(port, host))
     factory.protocol = WebSocketShellProtocol
@@ -90,6 +98,14 @@ class WebSocketShellProtocol(WebSocketServerProtocol, BaseShell):
     """
 
     def __init__(self):
+        # noinspection PyBroadException
+        try:
+            # Later versions of autobahn require this. Earlier versions don't
+            # support it at all.
+            WebSocketServerProtocol.__init__(self)
+        except:
+            pass
+
         BaseShell.__init__(self, None, "websocket")
         self._buffer = ""
 
