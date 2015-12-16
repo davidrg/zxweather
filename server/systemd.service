@@ -1,0 +1,12 @@
+[Unit]
+Description=zxweather daemon
+
+[Service]
+ExecStart=/usr/bin/twistd --nodaemon --pidfile= weather_server --config-file=/etc/zxweather/server.cfg
+WorkingDirectory=/opt/zxweather/server
+User=root
+Group=root
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
