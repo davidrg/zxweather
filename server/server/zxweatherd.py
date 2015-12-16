@@ -45,7 +45,8 @@ def getServerService(dsn, ssh_config, telnet_config, tcp_config, ws_config,
     :return: Server service.
     """
 
-    if ssh_config is None and telnet_config is None:
+    if ssh_config is None and telnet_config is None and tcp_config is None \
+            and ws_config is None and wss_config is None:
         raise Exception('No protocols enabled')
 
     setupDatabase(dsn)
