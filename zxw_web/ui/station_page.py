@@ -230,6 +230,15 @@ def get_station_reception_standard(ui, station):
             (day.year, day.month, day.day))
     }
 
+    hw_type = get_station_type_code(station_id)
+    hw_config = get_station_config(station_id)
+    is_wireless = True
+
+    if hw_type != 'DAVIS' or not hw_config['is_wireless']:
+        # This page is only available for wireless Davis stations
+        is_wireless = False
+
+
     if ui in ('s', 'm', 'a'):
         nav_urls = get_nav_urls(station, current_location)
         msg = get_station_message(station_id)
@@ -244,7 +253,8 @@ def get_station_reception_standard(ui, station):
             station=station,
             station_message=msg[0],
             station_message_ts=msg[1],
-            basic_ui_available=False # Not available in the basic UI.
+            basic_ui_available=False,  # Not available in the basic UI.
+            is_wireless=is_wireless
         )
     else:
         raise web.NotFound()
@@ -264,14 +274,6 @@ class reception(object):
         :return: HTML data.
         """
         validate_request(ui, station)
-
-        station_id = get_station_id(station)
-        hw_type = get_station_type_code(station_id)
-        hw_config = get_station_config(station_id)
-
-        if hw_type != 'DAVIS' or not hw_config['is_wireless']:
-            # This page is only available for wireless Davis stations
-            raise web.NotFound()
 
         if ui == 'b':
             # Not available in the basic UI (too much work for too little gain)

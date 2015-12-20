@@ -4,46 +4,56 @@
 {% block title %}Wireless Reception Quality{% endblock %}
 {% block head %}{% endblock %}
 {% block content %}
-    <h1>Wireless Reception Quality</h1>
-    <hr>
-
-    <section id="daily-charts">
-        <h2>Last 24 hours</h2>
-        <div id="day_charts_cont">
-            <div class="row">
-                <div class="span12">
-                    <div id="chart_reception_div" class="chart">
-                        <img src="/images/loading.gif" alt="loading"/>
+        <h1>Wireless Reception Quality</h1>
+        <hr>
+{% if is_wireless %}
+        <section id="daily-charts">
+            <h2>Last 24 hours</h2>
+            <div id="day_charts_cont">
+                <div class="row">
+                    <div class="span12">
+                        <div id="chart_reception_div" class="chart">
+                            <img src="/images/loading.gif" alt="loading"/>
+                        </div>
+                        <div id="chart_reception_key" class="chart_key"></div>
                     </div>
-                    <div id="chart_reception_key" class="chart_key"></div>
                 </div>
             </div>
-        </div>
-        <div id="lc_obsolete_browser" style="display: none;">
-            <div class="alert alert-warning" id="lc_msg">
-                Charts disabled due to obsolete browser.
-            </div>
-        </div>
-    </section>
-
-    <section id="7-day-charts">
-        <h2>Last 7 days</h2>
-        <div id="7day-charts">
-            <div class="row">
-                <div class="span12">
-                    <div id="chart_7_reception_div" class="chart">
-                        <img src="/images/loading.gif" alt="loading"/>
-                    </div>
-                    <div id="chart_7_reception_key" class="chart_key"></div>
+            <div id="lc_obsolete_browser" style="display: none;">
+                <div class="alert alert-warning" id="lc_msg">
+                    Charts disabled due to obsolete browser.
                 </div>
             </div>
-        </div>
-        <div id="lc7_obsolete_browser" style="display: none;">
-            <div class="alert alert-warning" id="lc7_msg">
-                Charts disabled due to obsolete browser.
+        </section>
+
+        <section id="7-day-charts">
+            <h2>Last 7 days</h2>
+            <div id="7day-charts">
+                <div class="row">
+                    <div class="span12">
+                        <div id="chart_7_reception_div" class="chart">
+                            <img src="/images/loading.gif" alt="loading"/>
+                        </div>
+                        <div id="chart_7_reception_key" class="chart_key"></div>
+                    </div>
+                </div>
             </div>
-        </div>
-    </section>
+            <div id="lc7_obsolete_browser" style="display: none;">
+                <div class="alert alert-warning" id="lc7_msg">
+                    Charts disabled due to obsolete browser.
+                </div>
+            </div>
+        </section>
+{% else %}
+        <section>
+        <p>
+            Wireless reception quality is not available for this station: only
+            the Davis Vantage Vue and Davis Vantage Pro 2 (wireless) weather
+            stations are supported by this page.
+        </p>
+        <p><a href="./">Return to Station Overview</a></p>
+        </section>
+{% endif %}
 {% endblock %}
 {% block footer_left %}<a href="index.html">Back to station overview</a>{% endblock %}
 {% block scripts %}
