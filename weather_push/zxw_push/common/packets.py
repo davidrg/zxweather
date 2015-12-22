@@ -22,7 +22,7 @@ _HARDWARE_TYPE_CODES = {
 
 _HARDWARE_TYPE_IDS = {
     "GENERIC": 0x01,
-    "WH1080": 0x02,
+    "FOWH1080": 0x02,
     "DAVIS": 0x03
 }
 
