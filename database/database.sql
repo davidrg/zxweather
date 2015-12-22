@@ -164,10 +164,8 @@ create table davis_sample (
   forecast_rule_id int
 
   -- These columns are not currently stored as I've no way of testing them with
-  -- my Vantage Vue and I doubt most people would have any of the extra sensors.
-  -- I've left UV enabled as not recording that data at all is more likely to
-  -- affect other potential users. Its still not displayed anywhere as I've
-  -- no way of testing it.
+  -- my Vantage Vue or Cabled Vantage Pro2 Plus and I doubt most people would
+  -- have any of the extra sensors.
 
   --leaf_temperature_A float,
   --leaf_temperature_B float,
@@ -500,6 +498,58 @@ comment on column davis_live_data.forecast_icon is 'Forecast icon';
 comment on column davis_live_data.forecast_rule_id is 'Current forecast rule. See davis_forecast_rule table for values';
 comment on column davis_live_data.uv_index is 'Latest UV index reading';
 comment on column davis_live_data.solar_radiation is 'Latest solar radiation reading in watt/meter squared';
+
+-- A table for tracking types of images (eg, a Camera image, a Weather Satellite
+-- image, a Weather Satellite sound recording, etc)
+create table image_type (
+  image_type_id serial primary key not null,
+  code varchar(5) unique not null,
+  type_name character varying
+);
+comment on table image_type is 'A type of image stored against a weather station';
+comment on column image_type.image_type_id is 'Primary key';
+comment on column image_type.code is 'Unique code for image type';
+comment on column image_type.type_name is 'Descriptive name of the image type';
+
+-- Only one supported image type for now - Camera pictures
+insert into image_type(code, type_name) values('CAM', 'Camera');
+
+-- Where an image came from (a particular camera, a weather satellite receiving
+-- station, etc)
+create table image_source (
+  image_source_id serial primary key not null,
+  code varchar(5) unique not null,
+  station_id integer not null references station(station_id),
+  source_name character varying
+);
+
+comment on table image_source is 'A camera or other source of images (or image like things)';
+comment on column image_source.image_source_id is 'Primary key';
+comment on column image_source.code is 'Unique code for the image source';
+comment on column image_source.station_id is 'Station the source is associated with';
+comment on column image_source.source_name is 'Name of the source';
+
+-- Images.
+create table image (
+  image_id serial primary key not null,
+  image_type_id integer not null references image_type(image_type_id),
+  image_source_id integer not null references image_source(image_source_id),
+  time_stamp timestamptz not null,
+  title character varying,
+  description character varying,
+  image_data bytea,
+  mime_type character varying,
+  metadata json
+);
+comment on table image is 'An image. This could be a picture from a camera, or an image from a weather satellite or even the original sound recording from the weather satellite.';
+comment on column image.image_type_id is 'The type of image this is. This will control how its processed and displayed';
+comment on column image.image_source_id is 'The source of the image';
+comment on column image.time_stamp is 'Time the image was taken';
+comment on column image.title is 'A title for the image';
+comment on column image.description is 'A description for the image';
+comment on column image.image_data is 'The raw image binary data';
+comment on column image.mime_type is 'Image MIME type';
+comment on column image.metadata is 'Any additional data for this image';
 
 -- A table to store some basic information about the database (such as schema
 -- version).
