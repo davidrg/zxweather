@@ -148,7 +148,7 @@ class StationInfoResponsePacketTests(unittest.TestCase):
         input_packet.authorisation_code = 12345
 
         input_packet.add_station("test1", "davis", 1)
-        input_packet.add_station("test2", "wh1080", 2)
+        input_packet.add_station("test2", "fowh1080", 2)
         input_packet.add_station("test3", "generic", 3)
 
         encoded = input_packet.encode()
