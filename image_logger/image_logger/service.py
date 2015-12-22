@@ -215,7 +215,7 @@ class ImageLoggerService(service.Service):
                                self._sunset.minute,
                                self._sunset.second)
 
-        seconds_until_sunset = (current_time - sunset_time).seconds
+        seconds_until_sunset = (sunset_time - current_time).seconds
 
         reactor.callLater(seconds_until_sunset,
                           self._stop_logging,
@@ -225,6 +225,10 @@ class ImageLoggerService(service.Service):
                 seconds_until_sunset, sunset_time))
 
     def _start_logging(self, trigger):
+
+        if self._logging:
+            return  # Nothing to do
+
         log.msg("Starting logger: {0}".format(trigger))
         self._logging = True
 
