@@ -1,0 +1,73 @@
+
+##############################################################################
+#   Database Configuration ###################################################
+##############################################################################
+[database]
+
+dsn=host=localhost port=5432 user=zxweather password=password dbname=weather
+
+##############################################################################
+#   Message Broker Configuration #############################################
+##############################################################################
+[rabbitmq]
+
+# If you have a Davis Vantage Pro2 Plus weather station, the schedule can be
+# started and stopped by your weather stations solar sensors. If you broadcast
+# weather data via a RabbitMQ message broker rather than the database you can
+# configure the message broker below. When enabled, live data will be received
+# from RabbitMQ only - any live data broadcast via the database will be ignored.
+
+# Using this feature requires the pika library to be installed
+
+#host=localhost
+#port=5672
+#user=guest
+#password=guest
+#virtual_host=/
+
+# Name of the exchange to bind to. This must be a topic exchange.
+#exchange=weather
+
+##############################################################################
+#   Schedule Configuration ###################################################
+##############################################################################
+[schedule]
+
+# How often images should be captured in minutes
+capture_interval=60
+
+# Set this to true if you'd rather not capture images of the night sky. If your
+# camera just produces black images at night you may as well turn this on to
+# prevent those from being captured. When turned off images will be captured
+# through the night and the other settings in this section will be ignored.
+capture_during_daylight_only=true
+
+# What time the sun rises and sets. If the above setting is turned on images
+# will only be captured between these times. The first image will be taken
+# at sunrise.
+sunrise_time=6:00
+sunset_time=20:00
+
+# If your weather station is a Davis Vantage Pro2 Plus you can turn this setting
+# on and use the weather stations solar sensors to automatically detect sunrise
+# and sunset. This overrides the sunrise_time/sunset_time settings above.
+use_solar_sensors=True
+
+# The station that should be used for sunrise detection
+station_code=stn
+
+##############################################################################
+#   Camera Configuration #####################################################
+##############################################################################
+[camera]
+
+# Only IP cameras which provide an HTTP interface are supported. Enter the URL
+# for your camera that produces an image below:
+camera_url=https://10.0.1.206/snapshot.cgi?chan=0
+
+# The Image Source that images should be logged against
+image_source=cam01
+
+# You can turn this on if security isn't a concern and your camera has an SSL
+# certificate that can't be verified.
+disable_ssl_certificate_verification=false
