@@ -75,7 +75,7 @@ station_code = "abc"
 # for your camera that produces an image below:
 camera_url = "https://10.0.1.206/snapshot.cgi?chan=0"
 
-# The camera images should be logged against
+# The Image Source that images should be logged against
 image_source_code = "cam01"
 
 # You can turn this on if security isn't a concern and your camera has an SSL
