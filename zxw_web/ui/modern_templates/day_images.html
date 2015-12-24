@@ -1,0 +1,31 @@
+        {% if images  -%}
+        {% for source in images -%}
+        <section class="images">
+            <div class="row">
+                <div class="span6">
+                    <h2>{{ source['name'] }}</h2>
+                </div>
+            </div>
+            {%- if source['description'] %}
+            <div class="row">
+                <div class="span12">
+                    <p>{{ source['description'] }}</p>
+                </div>
+            </div>
+            {% endif -%}
+            <div class="row">
+                <div class="span12">
+                    <ul class="thumbnails">
+                        {% for img in source['images'] -%}
+                        <li>
+                            <a href="{{ img.url }}" class="thumbnail">
+                                <img src="{{ img.thumbnail_url }}" title="{{ img.time }}"/>
+                            </a>
+                        </li>
+                        {%- endfor %}
+                    </ul>
+                </div>
+            </div>
+        </section>
+        {%- endfor %}
+        {%- endif %}

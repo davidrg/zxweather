@@ -161,11 +161,6 @@ class ImageLoggerService(service.Service):
         if response_data is None or not len(response_data):
             raise Exception("Empty repsonse from camera")
 
-        from time import mktime
-
-        with open("Z:/dl_test/{0}.jpg".format(mktime(datetime.now().timetuple())), "w+b") as f:
-            f.write(response_data)
-
         yield self._database.store_image(ts, response_data, content_type)
 
         log.msg("Image stored.")
@@ -245,6 +240,10 @@ class ImageLoggerService(service.Service):
         # stops detecting sunlight
 
     def _stop_logging(self, trigger):
+
+        if not self._logging:
+            return
+
         log.msg("Stopping logger: {0}".format(trigger))
         self._logging = False
 

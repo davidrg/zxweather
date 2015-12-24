@@ -18,6 +18,7 @@ config.load_settings()
 urls = (
     # Data Index
     # Provides a list of available data sourcesd at the various levels.
+    '/data/(\w*)/(\d+)/(\d+)/(\d+)/images/(\w*)/(?:index\.html)?', 'data.daily_index.images',
     '/data/(\w*)/(\d+)/(\d+)/(\d+)/(?:index\.html)?', 'data.daily_index.index',
     '/data/(\w*)/(\d+)/(\d+)/(?:index\.html)?', 'data.monthly.index',
     '/data/(\w*)/(\d+)/(?:index\.html)?', 'data.yearly.index',
@@ -27,6 +28,7 @@ urls = (
     # Data sources (mostly JSON)
     # /data/station/year/month/day/... (month is in number format here)
     # All code resides in the data package.
+    '/data/(\w*)/(\d+)/(\d+)/(\d+)/images/(\w*)/(\d+)/(\w*).(\w*)', 'data.daily.image', # Daily, image
     '/data/(\w*)/(\d+)/(\d+)/(\d+)/datatable/(\w*).json', 'data.daily.dt_json',     # Daily, DT
     '/data/(\w*)/(\d+)/(\d+)/(\d+)/(\w*).json', 'data.daily.data_json',             # Daily
     '/data/(\w*)/(\d+)/(\d+)/datatable/(\w*).json', 'data.monthly.datatable_json',  # Monthly, DT

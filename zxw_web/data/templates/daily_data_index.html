@@ -41,6 +41,24 @@
     <dt>Google DataTable JSON</dt>
     <dd>JSON DataTable data for the Google Visualisation API</dd>
 </dl>
+<h1>Image Sources</h1>
+<p>
+    The following image sources are present for this station
+</p>
+
+<table border="2">
+    <tr bgcolor="lightseagreen">
+        <td><b>Code</b></td>
+        <td><b>Name</b></td>
+    </tr>
+    {%  for source in image_sources %}
+        <tr bgcolor="blanchedalmond">
+        <td><a href="images/{{ source.code.lower() }}/">{{ source.code.lower() }}</a></td>
+        <td>{{ source.source_name }}</td>
+        </tr>
+    {% endfor %}
+</table>
+
 <hr>
 <center><a href="../">Up to Monthly data sets</a></center>
 </body>

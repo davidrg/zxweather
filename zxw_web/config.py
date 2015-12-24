@@ -2,6 +2,8 @@
 """
 Handles loading the configuration file and making configuration data available.
 """
+import os
+
 __author__ = 'David Goodwin'
 
 import web
@@ -36,6 +38,11 @@ wss_uri = None
 zxweatherd_hostname = None
 zxweatherd_raw_port = None
 
+# Thumbnail settings
+cache_thumbnails = False
+cache_directory = None
+thumbnail_size = (304, 171)
+
 def load_settings():
     """
     Loads settings from the configuration file.
@@ -44,6 +51,7 @@ def load_settings():
     global db, default_station_name
     global static_data_dir, site_root, default_ui, site_name, ws_uri, wss_uri
     global zxweatherd_hostname, zxweatherd_raw_port, disable_alt_ui
+    global cache_thumbnails, cache_directory, thumbnail_size
 
     import ConfigParser
     config = ConfigParser.ConfigParser()
@@ -54,7 +62,7 @@ def load_settings():
     S_DB = 'database'   # Database configuration
     S_S = 'site'        # Site configuration
     S_D = 'zxweatherd'  # zxweatherd configuration information
-    S_I = 'davis_station_ids' # Broadcast IDs for wireless davis stations
+    S_T = 'image_thumbnails'    # Image thumbnail options
 
     # Make sure a few important settings people might overlook are set.
     if not config.has_option(S_S,'site_root'):
@@ -101,7 +109,35 @@ def load_settings():
             zxweatherd_raw_port = config.getint(S_D, 'raw_port')
 
     if len(default_station_name) > 5:
-        raise Exception('ConfigurationError: Default station name can not be longer than five characters. Consult installation reference manual.')
+        raise Exception('ConfigurationError: Default station name can not be '
+                        'longer than five characters. Consult installation '
+                        'reference manual.')
 
     if not static_data_dir.endswith("/"):
         static_data_dir += "/"
+
+    # Thumbnail settings
+    if config.has_option(S_T, "cache_thumbnails"):
+        cache_thumbnails = config.getboolean(S_T, "cache_thumbnails")
+
+        if config.has_option(S_T, "cache_directory"):
+            cache_directory = config.get(S_T, "cache_directory")
+
+            if not cache_directory.endswith(os.path.sep):
+                cache_directory += os.path.sep
+            cache_directory += "thumbnails" + os.path.sep
+
+            if not os.path.exists(cache_directory):
+                        os.makedirs(cache_directory)
+        else:
+            raise Exception("Thumbnail cache directory not set")
+
+    if config.has_option(S_T, "thumbnail_size"):
+        val = config.get(S_T, "thumbnail_size")
+        bits = val.split("x")
+        if len(bits) != 2:
+            raise Exception("Invalid thumbnail dimensions. "
+                            "Expected WIDTHxHEIGHT.")
+        thumbnail_size = (int(bits[0]), int(bits[1]))
+
+
