@@ -3,11 +3,14 @@
 Provides access to zxweather daily data over HTTP in a number of formats.
 Used for generating charts in JavaScript, etc.
 """
+import mimetypes
+import os
+from datetime import date, datetime, timedelta
 
-from datetime import date, datetime
-from cache import day_cache_control
+from cache import day_cache_control, rfcformat
 from database import get_daily_records, get_daily_rainfall, get_latest_sample_timestamp, day_exists, get_station_id, \
-    get_davis_max_wireless_packets
+    get_davis_max_wireless_packets, image_exists, get_image_metadata, get_image, \
+    get_image_mime_type
 import web
 import config
 import json
@@ -816,3 +819,134 @@ class dt_json:
         """
         this_date = date(int(year),int(month),int(day))
         return dt_json_dispatch(station, dataset, this_date)
+
+class image:
+    """
+    Gets an image
+    """
+
+    def GET(self, station, year, month, day, source, image_id, mode, extension):
+        """
+        Fetches an image from the database.
+
+        :param station: Station to get data for
+        :type station: str
+        :param year: Year to get data for
+        :type year: str
+        :param month: month to get data for
+        :type month: str
+        :param day: day to get data for
+        :type day: str
+        :param source: Image source code
+        :type source: str
+        :param image_id: Image id
+        :type image_id: int
+        :param mode: image mode - full, thumbnail or metadata
+        :type mode: str
+        :param extension: Image file extension.
+        :type extension: str
+        :return: The image
+        """
+
+        this_date = date(int(year), int(month), int(day))
+
+        image_id = int(image_id)
+
+        if not image_exists(station, this_date, source, image_id):
+            raise web.NotFound()
+
+        if mode == "metadata":
+            metadata = get_image_metadata(image_id)
+            if metadata is None:
+                raise web.NotFound()
+
+            result = json.dumps(metadata.metadata)
+
+            web.header('Content-Type', 'application/json')
+            web.header('Content-Length', str(len(result)))
+            web.header('Expires', rfcformat(metadata.time_stamp +
+                                            timedelta(days=30)))
+            web.header('Last-Modified', rfcformat(metadata.time_stamp))
+
+            return result
+        elif mode == "full":
+            img = get_image(image_id)
+            if img is None or img.image_data is None or img.mime_type is None:
+                raise web.NotFound()
+            web.header('Content-Type', img.mime_type)
+            web.header('Content-Length', str(len(img.image_data)))
+            web.header('Expires', rfcformat(img.time_stamp +
+                                            timedelta(days=30)))
+            web.header('Last-Modified', rfcformat(img.time_stamp))
+            return img.image_data
+        elif mode == "thumbnail":
+            is_cached = False
+
+            thumb_data = None
+            mime_type = None
+            time_stamp = None
+
+            cache_file = ""
+
+            if config.cache_thumbnails:
+                mime_type_and_ts = get_image_mime_type(image_id)
+                mime_type = mime_type_and_ts.mime_type
+                time_stamp = mime_type_and_ts.time_stamp
+
+                ext = mimetypes.guess_extension(mime_type)
+                if ext == ".jpe":
+                    ext = ".jpeg"
+
+                cache_file = "{0}{1}{2}".format(
+                    config.cache_directory, image_id, ext
+                )
+
+                if os.path.isfile(cache_file):
+                    with open(cache_file, "r+b") as f:
+                        thumb_data = f.read()
+                    is_cached = True
+
+            if not is_cached:
+                img_info = get_image(image_id)
+                if img_info is None or img_info.image_data is None or img_info.mime_type is None:
+                    raise web.NotFound()
+
+                mime_type = img_info.mime_type
+                time_stamp = img_info.time_stamp
+
+                # Thumbnail the image. This needs Pillow (or perhaps PIL)
+                from io import BytesIO
+                from PIL import Image
+
+                original = BytesIO(img_info.image_data)
+
+                img = Image.open(original)
+
+                print(config.thumbnail_size)
+
+                img.thumbnail(config.thumbnail_size, Image.ANTIALIAS)
+
+                ext = mimetypes.guess_extension(mime_type)
+                if ext == ".jpe":
+                    ext = ".jpeg"
+                ext = ext[1:]
+
+                out = BytesIO()
+                img.save(out, format=ext)
+                thumb_data = out.getvalue()
+                out.close()
+                original.close()
+
+                if config.cache_thumbnails:
+                    # Cache the image
+                    with open(cache_file, 'w+b') as f:
+                        f.write(thumb_data)
+
+            web.header('Content-Type', mime_type)
+            web.header('Content-Length', str(len(thumb_data)))
+            web.header('Expires', rfcformat(time_stamp +
+                                            timedelta(days=30)))
+            web.header('Last-Modified', rfcformat(time_stamp))
+            return thumb_data
+
+        raise web.NotFound()

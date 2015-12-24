@@ -686,3 +686,128 @@ def get_site_name(station_id):
         return config.site_name
 
     return result[0].site_title
+
+
+def get_image_sources_for_station(station_id):
+    """
+    Returns a list of all image sources for the specified station ID.
+
+    :param station_id: Station to get image sources for
+    :type station_id: int
+    :return: List of image sources
+    """
+
+    result = db.query("select image_source_id, code, source_name, description "
+                      "from image_source where station_id = $station",
+                      dict(station=station_id))
+    if len(result) == 0:
+        return None
+
+    return result
+
+
+def get_image_source(station_id, source_code):
+
+    result = db.query("""select image_source_id, source_name
+from image_source where code = $source and station_id = $station""",
+                      dict(source=source_code.upper(), station=station_id))
+    if len(result):
+        return result[0]
+    return None
+
+
+def get_day_images_for_source(source_id, image_date):
+    """
+    Returns a list of all images for the specified image source and date.
+    :param source_id: Image source
+    :type source_id: int
+    :param image_date: Date to fetch images for
+    :type image_date: date
+    :return: A list of available images
+    """
+
+    query = """
+    select i.image_id as id,
+           i.time_stamp,
+           i.mime_type,
+           it.type_name as type_name,
+           i.title,
+           i.description,
+           case when i.metadata is null then False else True end as has_metadata
+    from image i
+    inner join image_type it on it.image_type_id = i.image_type_id
+    where i.image_source_id = $source_id
+      and i.time_stamp::date = $date
+    """
+
+    result = db.query(query, dict(source_id=source_id, date=image_date))
+    return result
+
+
+def image_exists(station, image_date, source_code, image_id):
+    query = """
+    select image_id
+    from image i
+    inner join image_source src on src.image_source_id = i.image_source_id
+    inner join station stn on stn.station_id = src.station_id
+    where stn.code = $station_code
+      and i.time_stamp::date = $image_date
+      and src.code = $source_code
+      and i.image_id = $image_id
+        """
+
+    result = db.query(query, dict(station_code=station, image_date=image_date,
+                                  source_code=source_code.upper(),
+                                  image_id=image_id))
+    if len(result):
+        return True
+    return False
+
+
+def get_image_metadata(image_id):
+    result = db.query("select metadata, time_stamp "
+                      "from image where image_id = $id",
+                      dict(id=image_id))
+    if len(result):
+        return result[0]
+    return None
+
+
+def get_image(image_id):
+    result = db.query("select image_data, mime_type, time_stamp "
+                      "from image where image_id = $id",
+                      dict(id=image_id))
+    if len(result):
+        return result[0]
+    return None
+
+
+def get_image_mime_type(image_id):
+    result = db.query("select mime_type, time_stamp "
+                      "from image where image_id = $id",
+                      dict(id=image_id))
+    if len(result):
+        return result[0]
+    return None
+
+
+def get_images_for_source(source_id, day):
+    query = """
+    select i.time_stamp,
+           src.code as source,
+           i.image_id as id,
+           i.mime_type,
+           stn.code as station
+    from image i
+    inner join image_source src on src.image_source_id = i.image_source_id
+    inner join station stn on stn.station_id = src.station_id
+    where src.image_source_id = $source_id
+      and i.time_stamp::date = $day
+    order by i.time_stamp
+    """
+
+    result = db.query(query, dict(source_id=source_id, day=day))
+
+    if len(result):
+        return result
+    return None

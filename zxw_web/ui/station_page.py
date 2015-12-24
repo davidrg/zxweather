@@ -17,6 +17,7 @@ import os
 from months import month_name
 from ui import get_nav_urls, make_station_switch_urls, build_alternate_ui_urls
 from ui import validate_request, html_file
+from ui.day_page import get_station_day_images
 
 __author__ = 'David Goodwin'
 
@@ -91,6 +92,8 @@ def get_station_standard(ui, station):
         reception_available = hw_config['is_wireless']
         uv_and_solar_available = hw_config['has_solar_and_uv']
 
+    images = get_station_day_images(station_id, now)
+
     day_cache_control(None, now, station_id)
     nav_urls = get_nav_urls(station, current_location)
     return modern_templates.station(nav=nav_urls,
@@ -110,7 +113,8 @@ def get_station_standard(ui, station):
                                     station_message=msg[0],
                                     station_message_ts=msg[1],
                                     reception_available=reception_available,
-                                    solar_uv_available=uv_and_solar_available)
+                                    solar_uv_available=uv_and_solar_available,
+                                    images=images)
 
 def get_station_basic(station):
     """
@@ -163,6 +167,8 @@ def get_station_basic(station):
         hw_config = get_station_config(station_id)
         uv_and_solar_available = hw_config['has_solar_and_uv']
 
+    images = get_station_day_images(station_id, now)
+
     return basic_templates.station(years=get_years(station_id),
                                    station=station,
                                    alt_ui_disabled=config.disable_alt_ui,
@@ -174,7 +180,8 @@ def get_station_basic(station):
                                    solar_uv_available=uv_and_solar_available,
                                    archive_mode=in_archive_mode(station_id),
                                    switch_url=build_alternate_ui_urls(
-                                       current_location))
+                                       current_location),
+                                   images=images)
 
 
 class station(object):
@@ -237,7 +244,6 @@ def get_station_reception_standard(ui, station):
     if hw_type != 'DAVIS' or not hw_config['is_wireless']:
         # This page is only available for wireless Davis stations
         is_wireless = False
-
 
     if ui in ('s', 'm', 'a'):
         nav_urls = get_nav_urls(station, current_location)

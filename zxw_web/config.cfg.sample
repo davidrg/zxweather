@@ -23,10 +23,8 @@ password: password
 # station_name    - The code for the weather station you want to be the
 #                   one users see by default. Consult the Installation
 #                   Reference Manual for more details.
-# ws_uri          - URI for the zxweatherd WebSocket end-point. Leave commented
-#                   out to disable.
-# wss_uri         - URI for the zxweatherd secure WebSocket end-point. Leave
-#                   commented out to disable.
+# disable_alt_ui  - If the alternate UI (using the Google Visualisation API)
+#                   should be disabled
 
 [site]
 default_ui: s
@@ -35,6 +33,7 @@ site_name: zxweather
 #site_root: http://weather.example.com/
 #static_data_dir: /opt/zxweather/zxw_web/static/
 #station_name: somewhere
+# disable_alt_ui: True
 
 # zxweather Server Configuration
 # hostname       - Name or IP address of the computer running the zxweather
@@ -50,3 +49,13 @@ site_name: zxweather
 #ws_port: 8080
 #wss_port: 443
 #raw_port: 4242
+
+# Settings for image thumbnails
+# cache_thumbnails  - If thumbnails should be cached. This improves response
+#                     times but requires disk space
+# cache_directory   - Where thumbnails should be stored
+# thumbnail_size    - The maximum thumbnail size (width x height)
+[image_thumbnails]
+cache_thumbnails: False
+#cache_directory: Z:/opt/zxweather/zxw_web/thumb_cache/
+thumbnail_size: 304x171

@@ -2,7 +2,6 @@
 """
 Handles fetching the day pages in all UIs.
 """
-
 from datetime import datetime, timedelta, date
 import web
 from web.contrib.template import render_jinja
@@ -15,6 +14,7 @@ from database import get_live_data, get_daily_records, total_rainfall_in_last_7_
 from ui import get_nav_urls, make_station_switch_urls, build_alternate_ui_urls
 import os
 from ui import html_file, month_number, validate_request
+from ui.images import get_station_day_images
 from url_util import relative_url
 
 __author__ = 'David Goodwin'
@@ -123,6 +123,7 @@ def get_day_data_urls(station, day, ui, overview_page=False):
 
     return urls
 
+
 def get_day_page(ui, station, day):
     """
     Gives an overview for a day. If the day is today then current weather
@@ -203,6 +204,8 @@ def get_day_page(ui, station, day):
         hw_config = get_station_config(station_id)
         uv_and_solar_available = hw_config['has_solar_and_uv']
 
+    images = get_station_day_images(station_id, day)
+
     if ui in ('s', 'm', 'a'):
         nav_urls = get_nav_urls(station, current_location)
         data_urls = get_day_data_urls(station, data.date_stamp, ui)
@@ -225,7 +228,8 @@ def get_day_page(ui, station, day):
                                         current_location),
                                     station_message=msg[0],
                                     station_message_ts=msg[1],
-                                    solar_uv_available=uv_and_solar_available,)
+                                    solar_uv_available=uv_and_solar_available,
+                                    images=images)
     else:
         return basic_templates.day(data=data,
                             station=station,
@@ -233,7 +237,8 @@ def get_day_page(ui, station, day):
                             alt_ui_disabled=config.disable_alt_ui,
                             solar_uv_available=uv_and_solar_available,
                             switch_url=build_alternate_ui_urls(
-                                current_location))
+                                current_location),
+                            images=images)
 
 class day:
     """

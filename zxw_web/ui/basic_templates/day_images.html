@@ -1,0 +1,13 @@
+    {% if images  -%}
+    {% for source in images -%}
+    <h2>{{ source['name'] }}</h2>
+    {%- if source['description'] %}
+    <p>{{ source['description'] }}</p>
+    {% endif -%}
+    {% for img in source['images'] -%}
+    <a href="{{ img.url }}" class="thumbnail">
+        <img src="{{ img.thumbnail_url }}" title="{{ img.time }}"/>
+    </a>
+    {%- endfor %}
+    {%- endfor %}
+    {%- endif %}

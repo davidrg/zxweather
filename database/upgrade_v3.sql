@@ -137,7 +137,8 @@ create table image_source (
   image_source_id serial primary key not null,
   code varchar(5) unique not null,
   station_id integer not null references station(station_id),
-  source_name character varying
+  source_name character varying,
+  description character varying
 );
 
 comment on table image_source is 'A camera or other source of images (or image like things)';
@@ -145,6 +146,7 @@ comment on column image_source.image_source_id is 'Primary key';
 comment on column image_source.code is 'Unique code for the image source';
 comment on column image_source.station_id is 'Station the source is associated with';
 comment on column image_source.source_name is 'Name of the source';
+comment on column image_source.description is 'Description of the source';
 
 create table image (
   image_id serial primary key not null,
