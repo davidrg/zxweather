@@ -60,7 +60,7 @@ class ZXWPushClientServiceMaker(object):
                 mq_vhost = config.get(S_RABBITMQ, "virtual_host")
 
         transport_type = config.get(S_TRANSPORT, "type")
-        if transport_type not in ["ssh", "udp"]:
+        if transport_type not in ["ssh", "udp", "tcp"]:
             raise Exception("Invalid transport type")
 
         hostname = config.get(S_TRANSPORT, "hostname")
@@ -78,9 +78,8 @@ class ZXWPushClientServiceMaker(object):
 
             if config.has_option(S_SSH, "host_key"):
                 ssh_host_key = config.get(S_SSH, "host_key")
-        elif transport_type == "udp":
+        elif transport_type == "udp" or transport_type == "tcp":
             authorisation_code = config.getint(S_TRANSPORT, "authorisation_code")
-
 
         return dsn, mq_host, mq_port, mq_exchange, mq_user, mq_password, \
             mq_vhost, transport_type, hostname, port, ssh_user, \

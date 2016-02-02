@@ -1,30 +1,21 @@
 # coding=utf-8
 """
-weather-push binary streaming protocol packet definitions
+weather-push binary streaming protocol packet definitions. Has separate packet
+types for TCP and UDP transport protocols.
 """
 from math import log
 import struct
 import datetime
 from twisted.python import log as _log
 
-from zxw_push.common.data_codecs import get_field_ids_set, set_field_ids, \
-    timestamp_encode, timestamp_decode, calculate_encoded_size
+from zxw_push.common.data_codecs import timestamp_encode, timestamp_decode
+from zxw_push.common.packets.common import Packet, HARDWARE_TYPE_CODES, \
+    HARDWARE_TYPE_IDS, LiveDataRecord, WeatherRecord, SampleDataRecord, \
+    StationInfoRecord
 
 __author__ = 'david'
 
 # Max UDP payload is 65,507 bytes
-
-_HARDWARE_TYPE_CODES = {
-    0x01: "GENERIC",
-    0x02: "FOWH1080",
-    0x03: "DAVIS"
-}
-
-_HARDWARE_TYPE_IDS = {
-    "GENERIC": 0x01,
-    "FOWH1080": 0x02,
-    "DAVIS": 0x03
-}
 
 
 def _size_of_int(n):
@@ -33,9 +24,9 @@ def _size_of_int(n):
     return int(log(n, 256)) + 1
 
 
-class Packet(object):
+class UDPPacket(Packet):
     """
-    Common functionality for all packets.
+    Common functionality for all UDP packets.
 
     This class is not intended to be sent over the wire on its own. As such
     it has no packet type ID.
@@ -63,48 +54,21 @@ class Packet(object):
                              server.
     """
 
-    # All packets use big endian
-    _FMT_ENDIANNESS = "!"
-
-    # unsigned char for packet type (0-255)
-    _FMT_PACKET_TYPE = "B"
-
-    # Three bytes reserved for future use
-    _FMT_RESERVED = "B"
-
     # unsigned 16bit int (short) for the sequence number
     _FMT_SEQUENCE = "H"
 
     # 64bit unsigned integer for authorisation code
     _FMT_AUTH_CODE = "Q"
 
-    # This is the common header for all packets
-    _HEADER_FORMAT = _FMT_ENDIANNESS + _FMT_PACKET_TYPE + _FMT_RESERVED + \
-        _FMT_SEQUENCE + _FMT_AUTH_CODE
+    # This is the common header for all udp packets
+    _HEADER_FORMAT = Packet._FMT_ENDIANNESS + Packet._FMT_PACKET_TYPE + \
+        Packet._FMT_RESERVED + _FMT_SEQUENCE + _FMT_AUTH_CODE
 
-    def __init__(self):
-        self._packet_type = None
-        self._authorisation_code = None
-        self._sequence = None
+    def __init__(self, packet_type, sequence=0, authorisation_code=0):
+        super(UDPPacket, self).__init__(packet_type)
 
-    @property
-    def packet_type(self):
-        """
-        Returns the packet type ID
-        """
-        return self._packet_type
-
-    @packet_type.setter
-    def packet_type(self, value):
-        """
-        Sets the packet type ID
-        :param value: 8-bit packet type ID
-        :type value: int
-        """
-        if not (0 <= value <= 255):
-            raise ValueError("Value must be between 0 and 255")
-
-        self._packet_type = value
+        self._authorisation_code = authorisation_code
+        self._sequence = sequence
 
     @property
     def authorisation_code(self):
@@ -170,6 +134,14 @@ class Packet(object):
             self._authorisation_code = struct.unpack_from(
                 self._HEADER_FORMAT, packet_data)
 
+    @staticmethod
+    def _get_header_size():
+        """
+        Returns the size of the header.
+        :rtype: int
+        """
+        return struct.calcsize(UDPPacket._HEADER_FORMAT)
+
     def encode(self):
         """
         Returns the encoded form of the packet which can be transmitted over a
@@ -189,7 +161,7 @@ class Packet(object):
         self._load_packet_header(packet_data)
 
 
-class StationInfoRequestPacket(Packet):
+class StationInfoRequestUDPPacket(UDPPacket):
     """
     Requests information about the stations the server knows about and will
     receive data for given the supplied authorisation code.
@@ -200,11 +172,8 @@ class StationInfoRequestPacket(Packet):
     """
 
     def __init__(self, sequence=0, authorisation_code=0):
-        super(StationInfoRequestPacket, self).__init__()
-
-        self.authorisation_code = authorisation_code
-        self.packet_type = 0x01
-        self.sequence = sequence
+        super(StationInfoRequestUDPPacket, self).__init__(0x01, sequence,
+                                                          authorisation_code)
 
     def encode(self):
         """
@@ -213,7 +182,7 @@ class StationInfoRequestPacket(Packet):
 
         :rtype: bytearray
         """
-        return super(StationInfoRequestPacket, self).encode()
+        return super(StationInfoRequestUDPPacket, self).encode()
 
     def decode(self, packet_data):
         """
@@ -222,10 +191,10 @@ class StationInfoRequestPacket(Packet):
         :type packet_data: bytearray
         """
 
-        super(StationInfoRequestPacket, self).decode(packet_data)
+        super(StationInfoRequestUDPPacket, self).decode(packet_data)
 
 
-class StationInfoResponsePacket(Packet):
+class StationInfoResponseUDPPacket(UDPPacket):
     """
     Response to a StationInfoRequestPacket containing information for each
     station that can be accessed with the authorisation code originally
@@ -265,16 +234,14 @@ class StationInfoResponsePacket(Packet):
 
     """
 
-    _STATION_FMT = Packet._FMT_ENDIANNESS + "5sBB"
+    _STATION_FMT = UDPPacket._FMT_ENDIANNESS + "5sBB"
 
     def __init__(self, sequence=0, authorisation_code=0):
-        super(StationInfoResponsePacket, self).__init__()
-
-        self.authorisation_code = authorisation_code
-        self.packet_type = 0x02
-        self.sequence = sequence
+        super(StationInfoResponseUDPPacket, self).__init__(0x02, sequence,
+                                                           authorisation_code)
 
         self._stations = []
+        """ :type self._stations: [StationInfoRecord] """
 
     @property
     def stations(self):
@@ -282,10 +249,9 @@ class StationInfoResponsePacket(Packet):
         Returns a list of all the stations in the packet.
 
         :return: List of stations
-        :rtype: [(str, str)]
+        :rtype: [StationInfoRecord]
         """
-        return [(station[0], _HARDWARE_TYPE_CODES[station[1]], station[2])
-                for station in self._stations]
+        return self._stations
 
     def add_station(self, station_code, hardware_type, station_id):
         """
@@ -300,14 +266,8 @@ class StationInfoResponsePacket(Packet):
         :type station_id: int
         """
 
-        assert (len(station_code) <= 5)
-
-        hardware_id = _HARDWARE_TYPE_IDS[hardware_type.upper()]
-
-        assert (0 <= hardware_id <= 254)
-        assert (0 <= station_id <= 254)
-
-        self._stations.append((station_code, hardware_id, station_id))
+        self._stations.append(StationInfoRecord(station_code, hardware_type,
+                                                station_id))
 
     def encode(self):
         """
@@ -316,18 +276,14 @@ class StationInfoResponsePacket(Packet):
 
         :rtype: bytearray
         """
-        packet_data = super(StationInfoResponsePacket, self).encode()
+        packet_data = super(StationInfoResponseUDPPacket, self).encode()
 
         for station in self._stations:
-            encoded_station = struct.pack(self._STATION_FMT,
-                                          station[0],  # Station code
-                                          station[1],  # Hardware Type ID
-                                          station[2])  # Station ID
-            packet_data += encoded_station
+            packet_data += station.encode()
 
         # Add on the end of transmission marker to signal there are no more
         # stations in the list
-        packet_data += struct.pack(Packet._FMT_ENDIANNESS + "c", "\x04")
+        packet_data += struct.pack(UDPPacket._FMT_ENDIANNESS + "c", "\x04")
         return packet_data
 
     def decode(self, packet_data):
@@ -338,12 +294,13 @@ class StationInfoResponsePacket(Packet):
         """
 
         # Decode the packet header
-        super(StationInfoResponsePacket, self).decode(packet_data)
+        super(StationInfoResponseUDPPacket, self).decode(packet_data)
 
         # Throw away the header data and decode all of the packets
-        header_size = struct.calcsize(self._HEADER_FORMAT)
+        header_size = self._get_header_size()
 
-        station_size = struct.calcsize(self._STATION_FMT)
+        # station_size = struct.calcsize(self._STATION_FMT)
+        station_size = StationInfoRecord.size()
 
         station_data = packet_data[header_size:]
 
@@ -356,412 +313,15 @@ class StationInfoResponsePacket(Packet):
             station = station_data[:station_size]
             station_data = station_data[station_size:]
 
-            station_code, hw_type_id, station_id = struct.unpack(
-                self._STATION_FMT, station)
-
-            # Station code will be padded with null bytes. Un-pad it.
-            station_code = station_code.split("\x00")[0]
-
-            self._stations.append((station_code, hw_type_id, station_id))
+            rec = StationInfoRecord()
+            rec.decode(station)
+            self._stations.append(rec)
 
             if station_data == '\x04':
                 return  # End of transmission marker reached. No more stations.
 
 
-class WeatherRecord(object):
-    """
-    Base class for all record types. It has no record type ID.
-
-    All records start with a header that looks like this:
-    +------+----------------+----------------+----------------+----------------+
-    |Octet |       0        |       1        |       2        |       3        |
-    +------+----------------+----------------+----------------+----------------+
-    |   Bit| 0 1 2 3 4 5 6 7| 0 1 2 3 4 5 6 7| 0 1 2 3 4 5 6 7| 0 1 2 3 4 5 6 7|
-    +------+----------------+----------------+----------------+----------------+
-    | 0   0|  Record Type   |
-    +------+----------------+
-
-    """
-
-    # All packets use big endian
-    _FMT_ENDIANNESS = "!"
-
-    # unsigned char for packet type (0-255)
-    _FMT_RECORD_TYPE = "B"
-
-    _FMT_HEADER = _FMT_ENDIANNESS + _FMT_RECORD_TYPE
-
-    def __init__(self):
-        self._record_type = None
-        self._station_id = None
-        self._fields = None
-        self._field_data = None
-
-    @property
-    def record_type(self):
-        """
-        Returns the record type ID
-        """
-        return self._record_type
-
-    @record_type.setter
-    def record_type(self, value):
-        """
-        Sets the record type ID
-        :param value: 8-bit record type ID
-        :type value: int
-        """
-        if not (0 <= value <= 255):
-            raise ValueError("Value must be between 0 and 255")
-
-        self._record_type = value
-
-    @property
-    def station_id(self):
-        """
-        Returns the station ID
-        :return: station ID
-        :rtype: int
-        """
-        return self._station_id
-
-    @station_id.setter
-    def station_id(self, value):
-        """
-        Sets the station ID.
-        :param value: Station ID
-        :type value: int
-        """
-        if not (0 <= value <= 255):
-            raise ValueError("Value must be between 0 and 255")
-
-        self._station_id = value
-
-    @property
-    def field_list(self):
-        """
-        A list of Field IDs present in the field data
-        """
-        return get_field_ids_set(self._fields)
-
-    @field_list.setter
-    def field_list(self, field_ids):
-        """
-        Sets the list of field IDs present in the field data
-        :param field_ids: List of fields present in the field data
-        :type field_ids: list[int]
-        """
-        self._fields = set_field_ids(field_ids)
-
-    @property
-    def field_data(self):
-        """
-        Returns the raw binary encoded field data
-        :return: field data
-        :rtype: bytearray
-        """
-        return self._field_data
-
-    @field_data.setter
-    def field_data(self, value):
-        """
-        sets the raw field data
-
-        :param value: Raw binary encoded field data
-        :type value: bytearray
-        """
-        self._field_data = value
-
-    def _get_record_header(self):
-        return struct.pack(self._FMT_HEADER, self.record_type)
-
-    def _load_record_header(self, packet_data):
-        self._record_type = struct.unpack_from(self._FMT_HEADER, packet_data)[0]
-
-    def encode(self):
-        """
-        Returns the encoded form of the packet which can be transmitted over a
-        network.
-
-        :rtype: bytearray
-        """
-        return self._get_record_header()
-
-    def decode(self, packet_data):
-        """
-        Decodes the packet data.
-        :param packet_data: Data to decode
-        :type packet_data: bytearray
-        """
-
-        self._load_record_header(packet_data)
-
-    def calculated_record_size(self, hardware_type):
-        """
-        Returns the calculated size of the record based on the specified
-        hardware type
-        :param hardware_type: Type of weather station that generated the record
-        :type hardware_type: str
-        :returns: Expected size of the record
-        :rtype: int
-        """
-        return struct.calcsize(WeatherRecord._FMT_HEADER)
-
-
-class LiveDataRecord(WeatherRecord):
-    """
-    This is a record that contains live weather data.
-
-    Its record type ID is 0x01
-
-    The basic structure is:
-    +------+----------------+----------------+----------------+----------------+
-    |Octet |       0        |       1        |       2        |       3        |
-    +------+----------------+----------------+----------------+----------------+
-    |   Bit| 0 1 2 3 4 5 6 7| 0 1 2 3 4 5 6 7| 0 1 2 3 4 5 6 7| 0 1 2 3 4 5 6 7|
-    +------+----------------+----------------+----------------+----------------+
-    | 0   0|  Record Type   | Station ID     | Sequence ID                     |
-    +------+----------------+----------------+----------------+----------------+
-    | 4  32| Fields Bits                                                       |
-    +------+----------------+----------------+----------------+----------------+
-    | 8  64| Field set...                                                      |
-    +------+----------------+----------------+----------------+----------------+
-
-    The field set block is variable length. Its length can be computed based on
-    which bits are set in the fields bitmask.
-    """
-
-    _RECORD_HEADER = '!BHL'
-    HEADER_SIZE = 8
-
-    def __init__(self):
-        super(LiveDataRecord, self).__init__()
-        self.record_type = 0x01  # Live
-        self._sequence_id = None
-
-    @property
-    def sequence_id(self):
-        """
-        Gets the records live data sequence number
-        """
-        return self._sequence_id
-
-    @sequence_id.setter
-    def sequence_id(self, value):
-        """
-        Sets the records live data sequence number. This must be greater
-        than the sequence number on the last record sent.
-        :param value: Sequence number
-        :type value: int
-        """
-        if not (0 <= value <= 65535):
-            raise ValueError("Value must be between 0 and 65535")
-        self._sequence_id = value
-
-    def encode(self):
-        """
-        Encodes the live data record and returns its binary representation
-        """
-        packed = super(LiveDataRecord, self).encode()
-
-        packed += struct.pack(self._RECORD_HEADER,
-                              self.station_id,
-                              self.sequence_id,
-                              self._fields)
-
-        packed += self._field_data
-
-        return packed
-
-    def decode(self, data):
-        """
-        Decodes the binary representation of a live data record and updates
-        this objects values with those from the supplied data.
-        :param data: Binary live data record
-        :type data: bytearray
-        """
-        super(LiveDataRecord, self).decode(data)
-
-        base_header_size = struct.calcsize(self._FMT_HEADER)
-
-        self._station_id, self._sequence_id, self._fields = struct.unpack_from(
-            self._RECORD_HEADER,
-            data,
-            base_header_size
-        )
-
-        header_size = base_header_size + struct.calcsize(self._RECORD_HEADER)
-
-        self.field_data = data[header_size:]
-
-    def encoded_size(self):
-        """
-        Returns how big the encoded form of the record should be
-        """
-        return len(self._field_data) + \
-            struct.calcsize(self._RECORD_HEADER) + \
-            struct.calcsize(self._FMT_HEADER)
-
-    def calculated_record_size(self, hardware_type):
-        """
-        Returns the calculated size of the record based on the specified
-        hardware type
-        :param hardware_type: Type of weather station that generated the record
-        :type hardware_type: str
-        :returns: Expected size of the record
-        :rtype: int
-        """
-        base_header = struct.calcsize(WeatherRecord._FMT_HEADER)
-        record_header = struct.calcsize(self._RECORD_HEADER)
-        field_size = calculate_encoded_size(self.field_list, hardware_type,
-                                            True)
-        return base_header + record_header + field_size
-
-
-class SampleDataRecord(WeatherRecord):
-    """
-    This is a record that contains sample weather data.
-
-    Its record type ID is 0x02
-
-    The basic structure is:
-    +------+----------------+----------------+----------------+----------------+
-    |Octet |       0        |       1        |       2        |       3        |
-    +------+----------------+----------------+----------------+----------------+
-    |   Bit| 0 1 2 3 4 5 6 7| 0 1 2 3 4 5 6 7| 0 1 2 3 4 5 6 7| 0 1 2 3 4 5 6 7|
-    +------+----------------+----------------+----------------+----------------+
-    | 0   0|  Record Type   | Station ID     | Timestamp...                    |
-    +------+----------------+----------------+----------------+----------------+
-    | 4  32| ... Timestamp                   | Download timestamp...           |
-    +------+----------------+----------------+----------------+----------------+
-    | 8  64| ... Download timestamp          | Field bits...                   |
-    +------+----------------+----------------+----------------+----------------+
-    |12  96| ... Field bits                  | Field data...                   |
-    +------+----------------+----------------+----------------+----------------+
-
-    The field set block is variable length. Its length can be computed based on
-    which bits are set in the fields bitmask.
-    """
-
-    _RECORD_HEADER = '!BLLL'
-
-    HEADER_SIZE = 14
-
-    def __init__(self):
-        super(SampleDataRecord, self).__init__()
-        self.record_type = 0x02  # Sample
-        self._timestamp = None
-        self._download_timestamp = None
-
-    @property
-    def timestamp(self):
-        """
-        Gets the samples timestamp
-        :return: Sample timestamp
-        :rtype: datetime.datetime
-        """
-        return self._timestamp
-
-    @timestamp.setter
-    def timestamp(self, value):
-        """
-        Sets the time when this sample was originally taken by the weather
-        station hardware
-        :param value: Sample timestamp
-        :type value: datetime.datetime
-        """
-        self._timestamp = value
-
-    @property
-    def download_timestamp(self):
-        """
-        Gets the time when this sample was originally downloaded from the
-        weather station hardware
-        :return: sample download timestamp
-        :rtype: datetime.datetime
-        """
-        return self._download_timestamp
-
-    @download_timestamp.setter
-    def download_timestamp(self, value):
-        """
-        Sets the time when the data was originally downloaded from the weather
-        station hardware.
-
-        :param value: Weather station download time
-        :type value: datetime.datetime
-        """
-        self._download_timestamp = value
-
-    def encode(self):
-        """
-        Encodes this sample data record and returns its binary representation
-        :return: Binary representation of this object
-        :rtype: bytearray
-        """
-        packed = super(SampleDataRecord, self).encode()
-
-        packed += struct.pack(self._RECORD_HEADER,
-                              self.station_id,
-                              timestamp_encode(self._timestamp),
-                              timestamp_encode(self._download_timestamp),
-                              self._fields)
-
-        packed += self._field_data
-
-        return packed
-
-    def decode(self, data):
-        """
-        Decodes the binary representation of a sample data record and updates
-        this objects values with those from the supplied data.
-
-        :param data: Binary sample data record
-        :type data: bytearray
-        """
-        super(SampleDataRecord, self).decode(data)
-
-        base_header_size = struct.calcsize(self._FMT_HEADER)
-
-        self._station_id, timestamp, download_timestamp, self._fields = \
-            struct.unpack_from(
-                self._RECORD_HEADER,
-                data,
-                base_header_size
-            )
-
-        self.timestamp = timestamp_decode(timestamp)
-        self.download_timestamp = timestamp_decode(download_timestamp)
-
-        header_size = base_header_size + struct.calcsize(self._RECORD_HEADER)
-
-        self.field_data = data[header_size:]
-
-    def encoded_size(self):
-        """
-        Returns how big the encoded form of the record should be
-        """
-        return len(self._field_data) + \
-            struct.calcsize(self._RECORD_HEADER) + \
-            struct.calcsize(self._FMT_HEADER)
-
-    def calculated_record_size(self, hardware_type):
-        """
-        Returns the calculated size of the record based on the specified
-        hardware type
-        :param hardware_type: Type of weather station that generated the record
-        :type hardware_type: str
-        :returns: Expected size of the record
-        :rtype: int
-        """
-        base_header = struct.calcsize(WeatherRecord._FMT_HEADER)
-        record_header = struct.calcsize(self._RECORD_HEADER)
-        field_size = calculate_encoded_size(self.field_list, hardware_type,
-                                            False)
-        return base_header + record_header + field_size
-
-
-class WeatherDataPacket(Packet):
+class WeatherDataUDPPacket(UDPPacket):
     """
     This is a packet that contains one or more weather data records.
 
@@ -789,11 +349,9 @@ class WeatherDataPacket(Packet):
     """
 
     def __init__(self, sequence=0, authorisation_code=0):
-        super(WeatherDataPacket, self).__init__()
+        super(WeatherDataUDPPacket, self).__init__(0x03, sequence,
+                                                   authorisation_code)
 
-        self.authorisation_code = authorisation_code
-        self.packet_type = 0x03
-        self.sequence = sequence
         self._records = []
         self._encoded_records = None
 
@@ -827,7 +385,7 @@ class WeatherDataPacket(Packet):
 
         :rtype: bytearray
         """
-        packet_data = super(WeatherDataPacket, self).encode()
+        packet_data = super(WeatherDataUDPPacket, self).encode()
 
         if len(self._records) == 1:
             packet_data += self._records[0].encode()
@@ -848,9 +406,9 @@ class WeatherDataPacket(Packet):
         """
 
         # Decode the header
-        super(WeatherDataPacket, self).decode(packet_data)
+        super(WeatherDataUDPPacket, self).decode(packet_data)
 
-        header_size = struct.calcsize(self._HEADER_FORMAT)
+        header_size = self._get_header_size()
 
         self._encoded_records = packet_data[header_size:]
 
@@ -965,7 +523,7 @@ class WeatherDataPacket(Packet):
             # Go around the loop again to add on another chunk of data.
 
 
-class SampleAcknowledgementPacket(Packet):
+class SampleAcknowledgementUDPPacket(UDPPacket):
     """
     This packet contains a list of samples the server has committed to its
     database along with additional statistics the client can use to adjust how
@@ -991,7 +549,7 @@ class SampleAcknowledgementPacket(Packet):
     The lost live recs field indicates how many of the last 256 live records
     arrived out of order or went missing entirely on their way to the server. If
     this value is quite high the client should probably stop differencing live
-    records.
+    records or use TCP instead
 
     One acknowledgement record looks like this:
     +------+----------------+----------------+----------------+----------------+
@@ -1014,11 +572,8 @@ class SampleAcknowledgementPacket(Packet):
     _FMT_ACKNOWLEDGEMENT_RECORD = "!LB"
 
     def __init__(self, sequence=0, authorisation_code=0):
-        super(SampleAcknowledgementPacket, self).__init__()
-
-        self.authorisation_code = authorisation_code
-        self.packet_type = 0x04
-        self.sequence = sequence
+        super(SampleAcknowledgementUDPPacket, self).__init__(0x04, sequence,
+                                                             authorisation_code)
 
         self._lost_live_records = 0
         self._acknowledgements = []
@@ -1085,7 +640,7 @@ class SampleAcknowledgementPacket(Packet):
 
         :rtype: bytearray
         """
-        data = super(SampleAcknowledgementPacket, self).encode()
+        data = super(SampleAcknowledgementUDPPacket, self).encode()
 
         data += struct.pack(self._FMT_PACKET_DATA, self._lost_live_records)
 
@@ -1094,7 +649,7 @@ class SampleAcknowledgementPacket(Packet):
                                 acknowledgement[1], acknowledgement[0])
             #                     Timestamp         station ID
 
-        data += struct.pack(Packet._FMT_ENDIANNESS + "c", "\x04")
+        data += struct.pack(UDPPacket._FMT_ENDIANNESS + "c", "\x04")
 
         return data
 
@@ -1105,7 +660,7 @@ class SampleAcknowledgementPacket(Packet):
         :type packet_data: bytearray
         """
 
-        super(SampleAcknowledgementPacket, self).decode(packet_data)
+        super(SampleAcknowledgementUDPPacket, self).decode(packet_data)
 
         header_size = struct.calcsize(self._HEADER_FORMAT)
 
@@ -1136,36 +691,3 @@ class SampleAcknowledgementPacket(Packet):
                 self._FMT_ACKNOWLEDGEMENT_RECORD, record)
 
             self._acknowledgements.append((station_id, time_stamp))
-
-
-_PACKET_TYPES = {
-    0x01: StationInfoRequestPacket,
-    0x02: StationInfoResponsePacket,
-    0x03: WeatherDataPacket,
-    0x04: SampleAcknowledgementPacket
-}
-
-
-def decode_packet(packet_data):
-    """
-    Decodes the supplied packet data and returns it as an instance of one of
-    the packet classes. If decoding fails then None is returned.
-
-    :param packet_data: Input packet data
-    :type packet_data: bytearray
-    :return: The decoded packet
-    :rtype: StationInfoRequestPacket or StationInfoResponsePacket or None
-    """
-    header = Packet()
-    header.decode(packet_data)
-
-    if header.packet_type not in _PACKET_TYPES.keys():
-        _log.msg("*** WARNING: Invalid packet type {0}".format(
-            header.packet_type))
-        return None
-
-    packet = _PACKET_TYPES[header.packet_type]()
-
-    packet.decode(packet_data)
-
-    return packet

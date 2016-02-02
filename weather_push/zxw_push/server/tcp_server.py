@@ -1,92 +1,104 @@
 # coding=utf-8
 """
-UDP implementation of the WeatherPush server
+TCP implementation of the WeatherPush server. Much the same as the UDP version
+but slightly different packets.
 """
-from twisted.internet import defer
-from twisted.internet.protocol import DatagramProtocol
+from twisted.internet import defer, reactor, protocol
 from twisted.python import log
 from zxw_push.common.data_codecs import decode_live_data, decode_sample_data, \
     patch_live_from_live, patch_live_from_sample, patch_sample
-from zxw_push.common.packets import decode_packet, \
-    StationInfoRequestUDPPacket, StationInfoResponseUDPPacket, \
-    WeatherDataUDPPacket, LiveDataRecord, SampleDataRecord, \
-    SampleAcknowledgementUDPPacket
-from zxw_push.common.util import Sequencer
+from zxw_push.common.packets import decode_packet, LiveDataRecord, \
+    SampleDataRecord, get_data_required_for_size_calculation, get_packet_size, \
+    AuthenticateTCPPacket, WeatherDataTCPPacket, StationInfoTCPPacket, \
+    SampleAcknowledgementTCPPacket
 from zxw_push.server.database import ServerDatabase
 
 __author__ = 'david'
 
 
+# TODO: The TCP and UDP servers could share a bit more code around sample
+# decoding and caching
+
+
 # Can't fix old-style-class-ness as its a twisted thing.
 # noinspection PyClassicStyleClass
-class WeatherPushDatagramServer(DatagramProtocol):
+class WeatherPushTcpServer(protocol.Protocol):
     """
-    Implements the server-side of the WeatherPush protocol.
+    Implements the server-side of the WeatherPush TCP protocol.
     """
 
     _MAX_LIVE_RECORD_CACHE = 5
     _MAX_SAMPLE_RECORD_CACHE = 1
 
-    def __init__(self, dsn):
-        self._dsn = dsn
-        self._sequence_id = Sequencer()
+    def __init__(self):
+        self._dsn = None
         self._db = None
         self._station_code_id = {}
         self._station_id_code = {}
         self._station_id_hardware_type = {}
 
-        self._lost_live_records = 0
-
-        self._previous_live_record_id = 0
         self._live_record_cache = {}
-        self._live_record_cache_ids = []
+        self._live_record_cache_ids = {}
 
         self._sample_record_cache = {}
         self._sample_record_cache_ids = []
 
         self._ready = False
 
-    @defer.inlineCallbacks
-    def startProtocol(self):
+        self._receive_buffer = ''
+
+        self._authenticated = False
+
+    def start_protocol(self, dsn):
         """
         Called when the protocol has started. Connects to the database, etc.
         """
-        log.msg("Datagram Server started")
+
+        self._dsn = dsn
+
+        log.msg("TCP Server started")
         self._db = ServerDatabase(self._dsn)
 
-        yield self._get_stations(None)
+        self._get_stations(None)
 
         self._ready = True
 
-    def datagramReceived(self, datagram, address):
+    def dataReceived(self, data):
         """
         Processes a received datagram
-        :param datagram: Received datagram data
-        :param address: Sending address
+        :param data: Received data
         """
-        packet = decode_packet(datagram)
 
-        if isinstance(packet, StationInfoRequestUDPPacket):
-            self._send_station_info(address, packet.authorisation_code)
-        elif isinstance(packet, WeatherDataUDPPacket):
-            self._handle_weather_data(address, packet)
+        self._receive_buffer += data
 
-    def _send_packet(self, packet, address):
+        if not self._ready:
+            reactor.callLater(1, self.dataReceived, "")
+
+        if len(self._receive_buffer) < get_data_required_for_size_calculation(
+                self._receive_buffer):
+            return
+
+        packet_size = get_packet_size(self._receive_buffer)
+
+        if len(self._receive_buffer) >= packet_size:
+            packet_data = self._receive_buffer[:packet_size]
+            self._receive_buffer = self._receive_buffer[packet_size:]
+
+            packet = decode_packet(packet_data)
+
+            if isinstance(packet, AuthenticateTCPPacket):
+                self._send_station_info(packet.authorisation_code)
+            elif self._authenticated:
+                # These packets require authentication before they will be
+                # processed. Until the client has authenticated we'll just
+                # ignore them.
+                if isinstance(packet, WeatherDataTCPPacket):
+                    self._handle_weather_data(packet)
+
+    def _send_packet(self, packet):
         encoded = packet.encode()
 
-        # payload_size = len(encoded)
-        # udp_header_size = 8
-        # ip4_header_size = 20
-
-        # log.msg("Sending {0} packet. Payload {1} bytes. UDP size {2} bytes. "
-        #         "IPv4 size {3} bytes.".format(
-        #             packet.__class__.__name__,
-        #             payload_size,
-        #             payload_size + udp_header_size,
-        #             payload_size + udp_header_size + ip4_header_size
-        #         ))
-
-        self.transport.write(encoded, address)
+        self.transport.write(encoded)
 
     def _add_station_to_caches(self, station_code, hardware_type, station_id):
         if station_code not in self._station_code_id.keys():
@@ -113,12 +125,17 @@ class WeatherPushDatagramServer(DatagramProtocol):
         defer.returnValue(station_set)
 
     @defer.inlineCallbacks
-    def _send_station_info(self, address, authorisation_code):
+    def _send_station_info(self, authorisation_code):
+
+        # TODO: check auth code and respond with bad auth if it doesn't work
+        #if authorisation_code != self._authorisation_code:
+        #    pass
+
+        self._authenticated = True
+
         log.msg("Sending station info...")
 
-        packet = StationInfoResponseUDPPacket(
-            self._sequence_id(),
-            authorisation_code)
+        packet = StationInfoTCPPacket()
 
         station_set = yield self._get_stations(authorisation_code)
 
@@ -129,30 +146,30 @@ class WeatherPushDatagramServer(DatagramProtocol):
         # that the client can start sequence IDs from 0, etc.
         self._reset_tracking_variables()
 
-        self._send_packet(packet, address)
+        self._send_packet(packet)
 
     def _reset_tracking_variables(self):
-        self._previous_live_record_id = 0
-        self._lost_live_records = 0
         self._live_record_cache = {}
-        self._live_record_cache_ids = []
+        self._live_record_cache_ids = {}
 
     def _get_live_record(self, record_id, station_id):
-        rid = (station_id, record_id)
-        if rid in self._live_record_cache.keys():
-            return self._live_record_cache[rid]
+        if record_id in self._live_record_cache[station_id].keys():
+            return self._live_record_cache[station_id][record_id]
 
         return None
 
     def _cache_live_record(self, new_live, record_id, station_id):
-        rid = (station_id, record_id)
 
-        self._live_record_cache_ids.append(rid)
-        self._live_record_cache[rid] = new_live
+        if station_id not in self._live_record_cache_ids.keys():
+            self._live_record_cache_ids[station_id] = []
+            self._live_record_cache[station_id] = dict()
 
-        while len(self._live_record_cache_ids) > self._MAX_LIVE_RECORD_CACHE:
-            rid = self._live_record_cache_ids.pop(0)
-            del self._live_record_cache[rid]
+        self._live_record_cache_ids[station_id].append(record_id)
+        self._live_record_cache[station_id][record_id] = new_live
+
+        while len(self._live_record_cache_ids[station_id]) > self._MAX_LIVE_RECORD_CACHE:
+            rid = self._live_record_cache_ids[station_id].pop(0)
+            del self._live_record_cache[station_id][rid]
 
     @staticmethod
     def _to_real_dict(value):
@@ -228,8 +245,7 @@ class WeatherPushDatagramServer(DatagramProtocol):
             # Either we can't decode this record. Count it as an
             # error and move on.
             log.msg("** NOTICE: Live record decoding failed - other sample "
-                    "missing")
-            self._lost_live_records += 1
+                    "missing. This is probably a client bug.")
             defer.returnValue(None)
 
         new_live = patch_live_from_sample(data, other_sample,
@@ -237,7 +253,7 @@ class WeatherPushDatagramServer(DatagramProtocol):
 
         defer.returnValue(new_live)
 
-    def _build_live_from_live_diff(self, data, station_id, fields, hw_type):
+    def _build_live_from_live_diff(self, data, station_id, fields, hw_type, sequence_id):
         """
         Decompresses a live record compressed using live-diff. If the required
         live record can't be found None is returned to indicate failure.
@@ -254,7 +270,7 @@ class WeatherPushDatagramServer(DatagramProtocol):
         """
         other_live_id = data["live_diff_sequence"]
         other_live = self._get_live_record(other_live_id, station_id)
-
+        log.msg("live {0}/{1}".format(station_id, sequence_id))
         if other_live is None:
             # base record could not be found. This means that
             # either:
@@ -262,56 +278,12 @@ class WeatherPushDatagramServer(DatagramProtocol):
             #  2. It went missing
             # Either we can't decode this record. Count it as an
             # error and move on.
-            self._lost_live_records += 1
-            log.msg("** NOTICE: Live record decoding failed - other live not "
-                    "in cache")
+            log.msg("** NOTICE: Live record decoding failed for station {2} - other live not "
+                    "in cache. This is probably a client bug. This live is {0},"
+                    " other is {1}".format(sequence_id, other_live_id, station_id))
             return None
 
         return patch_live_from_live(data, other_live, fields, hw_type)
-
-    def _check_for_missing_live_records(self, sequence_id):
-        if sequence_id < self._previous_live_record_id:
-            # The record ID has jumped back! This means either the
-            # packet has arrived out of order or the counter has
-            # overflowed.
-            diff = self._previous_live_record_id - sequence_id
-            if diff <= 60000:
-                # Probably a lost live record. If it had gone back more
-                # than 60k then we'd just assume a counter overflow.
-                self._lost_live_records += 1
-                log.msg("** NOTICE: Ignoring live record {0} - out of order"
-                        .format(sequence_id))
-                return False
-
-            # The counter has wrapped around. This record is OK but
-            # we need to check to see if any records in between have
-            # gone missing. The last received record was before the
-            # overflow (which is at 65535) and the current one is after
-            # it so:
-            missing_records = 65535 - self._previous_live_record_id
-            missing_records += sequence_id
-            if missing_records > 1:
-                self._lost_live_record(missing_records)
-        else:
-            # Take note of any missing records since the last received
-            # one
-            diff = sequence_id - self._previous_live_record_id
-            if diff > 1:
-                self._lost_live_record(diff)
-
-                self._previous_live_record_id = sequence_id
-
-        return True
-
-    def _received_live_record(self):
-        self._lost_live_records -= 1
-        if self._lost_live_records < 0:
-            self._lost_live_records = 0
-
-    def _lost_live_record(self, count=1):
-        self._lost_live_records += count
-        if self._lost_live_records > 255:
-            self._lost_live_records = 255
 
     @defer.inlineCallbacks
     def _handle_live_record(self, record):
@@ -329,18 +301,13 @@ class WeatherPushDatagramServer(DatagramProtocol):
         hw_type = self._station_id_hardware_type[record.station_id]
         station_code = self._station_id_code[record.station_id]
 
-        in_order = self._check_for_missing_live_records(
-            record.sequence_id)
-
-        if not in_order:
-            defer.returnValue(False)  # Record arrived too late to be useful.
-
         rec_data = decode_live_data(data, hw_type, fields)
 
         if "live_diff_sequence" in rec_data:
 
             new_live = self._build_live_from_live_diff(
-                rec_data, record.station_id, fields, hw_type
+                rec_data, record.station_id, fields, hw_type,
+                record.sequence_id
             )
 
         elif "sample_diff_timestamp" in rec_data:
@@ -360,10 +327,6 @@ class WeatherPushDatagramServer(DatagramProtocol):
         self._cache_live_record(new_live, record.sequence_id,
                                 record.station_id)
 
-        # Update missing record statistics
-        self._received_live_record()
-        self._previous_live_record_id = record.sequence_id
-
         # Insert decoded into the database as live data
         yield self._db.store_live_data(station_code, new_live)
 
@@ -372,7 +335,7 @@ class WeatherPushDatagramServer(DatagramProtocol):
         defer.returnValue(True)
 
     @defer.inlineCallbacks
-    def _handle_weather_data(self, address, packet):
+    def _handle_weather_data(self, packet):
 
         if not self._ready:
             return  # We're not ready to process data yet. Ignore it.
@@ -390,7 +353,7 @@ class WeatherPushDatagramServer(DatagramProtocol):
         #   - Inserting into the database
         #   - preparing an acknowledgement record
 
-        ack_packet = SampleAcknowledgementUDPPacket()
+        ack_packet = SampleAcknowledgementTCPPacket()
 
         sample_records = False
 
@@ -450,14 +413,9 @@ class WeatherPushDatagramServer(DatagramProtocol):
                                                       record.timestamp)
                 sample_records = True
 
-        # Make sure the count is valid
-        if self._lost_live_records > 255:
-            self._lost_live_records = 255
-
         # Only send the acknowledgement packet if we've got samples to
         # acknowledge
         if sample_records:
-            ack_packet.lost_live_records = self._lost_live_records
-            self._send_packet(ack_packet, address)
+            self._send_packet(ack_packet)
 
         # Done!

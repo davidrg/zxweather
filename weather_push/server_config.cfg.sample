@@ -22,9 +22,10 @@ dsn=
 interface=
 
 # The UDP port to listen on
-port=4222
+port=4295
 
-
+# The TCP port to listen on
+tcp_port = 4296
 
 
 

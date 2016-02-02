@@ -1,6 +1,6 @@
 # coding=utf-8
 ##############################################################################
-### Instructions #############################################################
+#   Instructions #############################################################
 ##############################################################################
 #
 # This is a twisted application configuration file for the weather push server
@@ -13,7 +13,7 @@
 #
 
 ##############################################################################
-### Database Configuration ###################################################
+#   Database Configuration ###################################################
 ##############################################################################
 
 # This is the connection string for the database containing data you wish
@@ -22,15 +22,18 @@
 dsn = ""
 
 ##############################################################################
-### Transport Configuration ##################################################
+#   Transport Configuration ##################################################
 ##############################################################################
 
 
 # This is the network interface to listen on. Empty string is all interfaces.
 interface = ""
 
-# The remote port to connect to.
+# The UDP port to listen on
 port = 4295
+
+# The TCP port to listen on
+tcp_port = 4296
 
 ##############################################################################
 ##############################################################################
@@ -49,5 +52,5 @@ IProcess(application).processName = "weather_push_server"
 
 # attach the service to its parent application
 service = getServerService(
-    dsn, interface, port)
+    dsn, interface, port, tcp_port)
 service.setServiceParent(application)
