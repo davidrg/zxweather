@@ -49,6 +49,10 @@ class Event(object):
         for handler in to_remove:
             self.__isub__(handler)
 
+    @property
+    def handlers(self):
+        return list(self._handlers)
+
 
 class Sequencer(object):
     def __init__(self):

@@ -41,7 +41,9 @@ class ZXWPushServerServiceMaker(object):
         interface = config.get(S_TRANSPORT, "interface")
         port = config.getint(S_TRANSPORT, "port")
 
-        return dsn, interface, port
+        tcp_port = config.getint(S_TRANSPORT, "tcp_port")
+
+        return dsn, interface, port, tcp_port
 
     def makeService(self, options):
         """
@@ -50,11 +52,12 @@ class ZXWPushServerServiceMaker(object):
         :type options: dict
         """
 
-        dsn, interface, port = self._readConfigFile(options['config-file'])
+        dsn, interface, port, tcp_port = \
+            self._readConfigFile(options['config-file'])
 
         # All OK. Go get the service.
         return getServerService(
-            dsn, interface, port
+            dsn, interface, port, tcp_port
         )
 
 

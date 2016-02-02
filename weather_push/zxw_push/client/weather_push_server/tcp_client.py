@@ -1,18 +1,21 @@
-# coding=utf-8
 """
-Client implementation of Weather Push UDP protocol
+Client implementation of Weather Push TCP protocol. It works largely the same
+way as the UDP implementation but with different packet types.
 """
 import datetime
+
 from twisted.internet import reactor, defer
-from twisted.internet.protocol import DatagramProtocol
+from twisted.internet import protocol
 from twisted.python import log
 
 from zxw_push.common.data_codecs import encode_live_record, \
     encode_sample_record
 from zxw_push.common.util import Event, Sequencer
-from zxw_push.common.packets import StationInfoRequestUDPPacket, \
-    decode_packet, StationInfoResponseUDPPacket, LiveDataRecord, \
-    SampleDataRecord, WeatherDataUDPPacket, SampleAcknowledgementUDPPacket
+from zxw_push.common.packets import decode_packet, LiveDataRecord, \
+    SampleDataRecord, AuthenticateTCPPacket, WeatherDataTCPPacket, \
+    StationInfoTCPPacket, SampleAcknowledgementTCPPacket, \
+    AuthenticateFailedTCPPacket, get_packet_size, \
+    get_data_required_for_size_calculation
 import csv
 
 
@@ -25,24 +28,20 @@ _PACKET_STATISTICS_FILE = None
 
 # No control over it being an old-style class
 # noinspection PyClassicStyleClass
-class WeatherPushDatagramClient(DatagramProtocol):
+class WeatherPushProtocol(protocol.Protocol):
     """
-    Handles sending weather data to a remote WeatherPush server via UDP
+    Handles sending weather data to a remote WeatherPush server via TCP
     """
     _STATION_LIST_TIMEOUT = 60  # seconds to wait for a response
 
-    def __init__(self, ip_address, port, authorisation_code,
+    def __init__(self, authorisation_code,
                  confirmed_sample_func):
-        self._ip_address = ip_address
-        self._port = port
+
         self._authorisation_code = authorisation_code
         self._confirmed_sample_func = confirmed_sample_func
 
         self.Ready = Event()
         self.ReceiptConfirmation = Event()
-
-        # 16bit integer sequences for packet and live records
-        self._sequence_id = Sequencer()
 
         # These are all keyed by station id
         self._live_sequence_id = {}  # Sequencers for each station
@@ -53,23 +52,13 @@ class WeatherPushDatagramClient(DatagramProtocol):
         self._station_ids = None
         self._station_codes = None
 
-        self._station_info_request_retries = 0
+        self._authentication_retries = 0
 
         self._ready_event_fired = False
 
-        # This variable tracks how many of the last 256 live data records
-        # went missing because either:
-        # - The packet containing them went missing
-        #    - The packet containing them arrived in the wrong order
-        #    - The live data was diff-compressed against a live record that
-        #      went missing for one of these three reasons
-        # If this value is 128 that means that fully 50% of the live records
-        # we sent either never reached the server or could not be used or
-        # decoded when they did arrive. If this value gets high we probably
-        # want to abandon diff-compression as it will only increase the error
-        # rate (due to reason #3 above)
-        # This variable is updated via sample acknowledgement packets.
-        self._lost_live_updates = 0
+        self._receive_buffer = ''
+
+        self._authentication_failed = False
 
         # How many compressed live records we should send before forcing a full
         # (uncompressed) record
@@ -78,31 +67,41 @@ class WeatherPushDatagramClient(DatagramProtocol):
         self._compressed_live_records_remaining = \
             self._max_compressed_live_records
 
-    def startProtocol(self):
+    def connectionMade(self):
         """
-        Sets up the transport and fires off an initial station list request
+        Fires off an initial station list request
         """
-        # Connecting the transport like this causes reliability problems. Every
-        # so often we just start getting exceptions every time we try to write
-        # to the transport - possibly caused by the network interface (ppp0)
-        # disappearing briefly .
-        # self.transport.connect(self._ip_address, self._port)
 
-        log.msg("Requesting station list from server...")
-        self._request_station_list()
+        log.msg("Authenticating...")
+        self._authenticate()
 
-    def datagramReceived(self, datagram, address):
+    def dataReceived(self, data):
         """
         Called whenever a packet arrives.
-        :param datagram: Packet data
-        :param address: Address and port from source application
+        :param data: Packet data
         """
-        packet = decode_packet(datagram)
+        log.msg("dataReceived")####
 
-        if isinstance(packet, StationInfoResponseUDPPacket):
-            self._handle_station_list(packet)
-        elif isinstance(packet, SampleAcknowledgementUDPPacket):
-            self._handle_sample_acknowledgements(packet)
+        self._receive_buffer += data
+
+        if len(self._receive_buffer) < get_data_required_for_size_calculation(
+                self._receive_buffer):
+            return
+
+        packet_size = get_packet_size(self._receive_buffer)
+
+        if len(self._receive_buffer) >= packet_size:
+            packet_data = self._receive_buffer[:packet_size]
+            self._receive_buffer = self._receive_buffer[packet_size:]
+
+            packet = decode_packet(packet_data)
+
+            if isinstance(packet, StationInfoTCPPacket):
+                self._handle_station_list(packet)
+            elif isinstance(packet, SampleAcknowledgementTCPPacket):
+                self._handle_sample_acknowledgements(packet)
+            elif isinstance(packet, AuthenticateFailedTCPPacket):
+                self._handle_failed_authentication()
 
     def _send_packet(self, packet):
         """
@@ -111,49 +110,46 @@ class WeatherPushDatagramClient(DatagramProtocol):
         :type packet: Packet
         :return:
         """
+        log.msg("sendPacket")####
+        log.msg(type(packet))
         encoded = packet.encode()
+        log.msg("writePacket")###
 
-        # payload_size = len(encoded)
-        # udp_header_size = 8
-        # ip4_header_size = 20
-        # log.msg("Sending {0} packet. Payload {1} bytes. UDP size {2} bytes. "
-        #         "IPv4 size {3} bytes.".format(
-        #             packet.__class__.__name__,
-        #             payload_size,
-        #             payload_size + udp_header_size,
-        #             payload_size + udp_header_size + ip4_header_size)
-        #         )
+        if isinstance(encoded, bytearray):
+            log.msg("BYTE ARRAY!!!")
+            encoded = bytes(encoded)
 
-        self._log_record_statistics(packet.sequence, packet.__class__.__name__,
-                                    len(encoded), 0, "raw")
+        self.transport.write(encoded)
 
-        self.transport.write(encoded, (self._ip_address, self._port))
-
-    def _request_station_list(self):
-        packet = StationInfoRequestUDPPacket(self._sequence_id(),
-                                             self._authorisation_code)
+    def _authenticate(self):
+        log.msg("authenticate")####
+        packet = AuthenticateTCPPacket(self._authorisation_code)
 
         self._send_packet(packet)
 
         reactor.callLater(self._STATION_LIST_TIMEOUT,
-                          self._request_station_list_timeout)
+                          self._authenticate_timeout)
 
-    def _request_station_list_timeout(self):
-        if self._stations is None:
+    def _authenticate_timeout(self):
+        if self._stations is None and not self._authentication_failed:
             # No station info response packet received. Try asking again
-            self._station_info_request_retries += 1
-            log.msg("No response from server for station list request after "
+            self._authentication_retries += 1
+            log.msg("No response from server for authentication request after "
                     "{1} seconds. Resending request. This is retry {0}.".format(
-                        self._station_info_request_retries,
+                        self._authentication_retries,
                         self._STATION_LIST_TIMEOUT))
-            self._request_station_list()
+            self._authenticate()
+
+    def _handle_failed_authentication(self):
+        log.msg("Authentication failed.")
+        self._authentication_failed = True
 
     def _handle_station_list(self, station_list_packet):
         """
         Handles any received station list packets.
         :param station_list_packet: Packet containing a list of stations we can
                                     submit data for
-        :type station_list_packet: StationInfoResponseUDPPacket
+        :type station_list_packet: StationInfoTCPPacket
         """
 
         self._stations = {}
@@ -178,6 +174,7 @@ class WeatherPushDatagramClient(DatagramProtocol):
             log.msg("\t- station {0} hardware {1} station id {2}".format(
                 station_code, station.hardware_type, station_id))
 
+        log.msg("Now ready.")####
         if not self._ready_event_fired:
             self.Ready.fire(station_codes)
             self._ready_event_fired = True
@@ -185,8 +182,6 @@ class WeatherPushDatagramClient(DatagramProtocol):
     def _handle_sample_acknowledgements(self, packet):
         if self._stations is None:
             return
-
-        self._lost_live_updates = packet.lost_live_records
 
         for acknowledgement in packet.sample_acknowledgements():
             station_id = acknowledgement[0]
@@ -206,6 +201,7 @@ class WeatherPushDatagramClient(DatagramProtocol):
         :param hardware_type: Type of hardware that generated the record
         :type hardware_type: str
         """
+        log.msg("send_live")####
         if self._stations is None:
             return
 
@@ -244,7 +240,7 @@ class WeatherPushDatagramClient(DatagramProtocol):
         :param hardware_type: Type of hardware that generated the sample
         :param hold: Ignored
         """
-
+        log.msg("send_sample")####
         # To suppress warning about unused parameter
         if hold:
             pass
@@ -272,7 +268,7 @@ class WeatherPushDatagramClient(DatagramProtocol):
         primarily used for batching up a large number of samples by calling
         sendSample with the hold parameter set.
 
-        The UDP Client always sends data in batches to improve efficiency -
+        The TCP Client always sends data in batches to improve efficiency -
         either with a live record or when the number of samples waiting gets
         large enough. As a result this function (and the hold parameter on
         sendSample) does nothing.
@@ -292,7 +288,7 @@ class WeatherPushDatagramClient(DatagramProtocol):
                 ])
 
     def _make_live_weather_record(self, data, previous_live, previous_sample,
-                                  hardware_type, station_id, packet_id):
+                                  hardware_type, station_id):
 
         # We send a full uncompressed record every so often just in case a
         # packet has gone missing or arrived out of order at some point.
@@ -310,7 +306,6 @@ class WeatherPushDatagramClient(DatagramProtocol):
                                                              hardware_type,
                                                              compress)
         record = None
-        seq_id = None
 
         if encoded is not None:
             record = LiveDataRecord()
@@ -319,23 +314,7 @@ class WeatherPushDatagramClient(DatagramProtocol):
             record.field_list = field_ids
             record.field_data = encoded
 
-            seq_id = record.sequence_id
-
-        # Log some compression statistics
-        original_size = compression[0]
-        reduction_size = compression[1]
         algorithm = compression[2]
-        # new_size_percentage = ((original_size - reduction_size) /
-        #                        (original_size * 1.0)) * 100.0
-
-        self._log_record_statistics(packet_id, "LIVE", original_size,
-                                    reduction_size, algorithm, seq_id)
-
-        # log.msg("Reduced LIVE   by {0} bytes (new size is {1}%) using "
-        #         "algorithm {2}. Live ID: {3}".format(reduction_size,
-        #                                              new_size_percentage,
-        #                                              algorithm,
-        #                                              seq_id))
 
         # Track how many compressed records we've sent.
         if algorithm != "none":
@@ -343,8 +322,9 @@ class WeatherPushDatagramClient(DatagramProtocol):
 
         return record
 
-    def _make_sample_weather_record(self, data, previous_sample, hardware_type,
-                                    station_id, packet_id):
+    @staticmethod
+    def _make_sample_weather_record(data, previous_sample, hardware_type,
+                                    station_id):
 
         # Samples are always compressed when it makes sense (which is
         # practically always). There is no forced uncompressed record as we
@@ -362,20 +342,6 @@ class WeatherPushDatagramClient(DatagramProtocol):
         record.timestamp = data["time_stamp"]
         record.download_timestamp = data["download_timestamp"]
 
-        # Log some compression statistics
-        original_size = compression[0]
-        reduction_size = compression[1]
-        algorithm = compression[2]
-        # new_size_percentage = ((original_size - reduction_size) /
-        #                        (original_size * 1.0)) * 100.0
-
-        self._log_record_statistics(packet_id, "SAMPLE", original_size,
-                                    reduction_size, algorithm)
-
-        # log.msg("Reduced SAMPLE by {0} bytes (new size is {1}%) using "
-        #         "algorithm {2}".format(reduction_size, new_size_percentage,
-        #                                algorithm))
-
         return record
 
     @defer.inlineCallbacks
@@ -392,21 +358,16 @@ class WeatherPushDatagramClient(DatagramProtocol):
         :type hardware_type: str
         """
 
-        previous_live_record = self._previous_live_record[station_id]
         previous_sample = yield self._confirmed_sample_func(
             self._station_codes[station_id])
 
         weather_records = []
 
-        # UDP max is really 65507 but we want to avoid fragmenting the packet
-        # as it will reduce the chance of it arriving at its destination intact.
-        # 512 bytes should be a safe number but we'll leave a bit of room for
-        # a live record.
-        max_sample_payload = 450
+        # Max is really 65535 but we'll leave some space for the live record and
+        # packet headers, etc.
+        max_sample_payload = 65000
 
         data_size = 0
-
-        packet_id = self._sequence_id()
 
         # Grab any samples waiting and do those first
         if station_id in self._outgoing_samples.keys():
@@ -420,8 +381,7 @@ class WeatherPushDatagramClient(DatagramProtocol):
                 record = self._make_sample_weather_record(sample,
                                                           previous_sample,
                                                           hardware_type,
-                                                          station_id,
-                                                          packet_id)
+                                                          station_id)
                 weather_records.append(record)
 
                 # While we haven't confirmed the server has received this sample
@@ -440,35 +400,36 @@ class WeatherPushDatagramClient(DatagramProtocol):
         if previous_sample is not None:
             live_data["sample_diff_timestamp"] = previous_sample["time_stamp"]
 
-        if previous_live_record is not None:
-            live_data["live_diff_sequence"] = previous_live_record[1]
-
+        previous_live_record = self._previous_live_record[station_id]
         previous_live = None
+
         if previous_live_record is not None:
             previous_live = previous_live_record[0]
+            previous_live_seq = previous_live_record[1]
+
+            log.msg("Station {1} Compress live against: {0}".format(
+                    previous_live_seq, station_id)) ###
+            live_data["live_diff_sequence"] = previous_live_seq
 
         live_record = self._make_live_weather_record(
             live_data, previous_live, previous_sample,
-            hardware_type, station_id, packet_id
+            hardware_type, station_id
         )
 
         # live_record is None when compression throws away *all* data (meaning
         # there is no change from the last live record so no differences to
         # send)
-        if live_record is None and len(weather_records) == 0:
-            # Nothing to send. Roll-back the packet ID so it doesn't jump
-            # forward when we do actually send something.
-            self._sequence_id.rollback()
-            return
-
         if live_record is not None:
             weather_records.append(live_record)
 
             self._previous_live_record[station_id] = (live_data,
                                                       live_record.sequence_id)
 
-        packet = WeatherDataUDPPacket(packet_id,
-                                      self._authorisation_code)
+        if len(weather_records) == 0:
+            # Nothing to send.
+            return
+
+        packet = WeatherDataTCPPacket()
 
         for record in weather_records:
             packet.add_record(record)

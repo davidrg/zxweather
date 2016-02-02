@@ -1,6 +1,6 @@
 # coding=utf-8
 ##############################################################################
-### Instructions #############################################################
+#   Instructions #############################################################
 ##############################################################################
 #
 # This is a twisted application configuration file for the weather_push client
@@ -13,7 +13,7 @@
 #
 
 ##############################################################################
-### Database Configuration ###################################################
+#   Database Configuration ###################################################
 ##############################################################################
 
 # This is the connection string for the database containing data you wish
@@ -22,7 +22,7 @@
 dsn = ""
 
 ##############################################################################
-### RabbitMQ Configuration ###################################################
+#   RabbitMQ Configuration ###################################################
 ##############################################################################
 
 # Live data can be received via RabbitMQ instead of the database. This is only
@@ -43,24 +43,23 @@ dsn = ""
 #mq_exchange="weather"
 
 ##############################################################################
-### Transport Configuration ##################################################
+#   Transport Configuration ##################################################
 ##############################################################################
 
 # Transport type. Options are:
 #  ssh  - connects to the weather server via the SSH protocol using a username
-#         and password
-#  udp  - Connects to the remote receiving service via UDP. This uses less
-#         bandwidth (good for expensive internet connections such as 3G) but
-#         may result in some live data updates getting lost.
-transport_type = "ssh"
+#         and password. This should be relatively secure but very inefficient.
+#  udp  - Connects to the remote receiving service via UDP. This uses a lot less
+#         bandwidth than ssh (good for expensive internet connections such as
+#         3G) but may frequently loose live data updates.
+#  tcp  - Connects to the remote receiving service via TCP. This has the
+#         reliability of the SSH option but with less security and lower data
+#         use (but probably not as low as the UDP option).
+#
+# The recommend option is udp or tcp. If bandwidth use is important it may be
+# best to benchmark both to see what gives you the best results.
 
-# Data encoding. Options are:
-# standard      - less efficient but more reliable.
-# diff          - Only includes fields in each update that have a different
-#                 value from the previous update. This uses less data (good for
-#                 expensive links) but when used over UDP it may increase the
-#                 number of discarded live data updates.
-encoding = "standard"
+transport_type = "ssh"
 
 # This is the remote hostname or IP Address to connect to.
 hostname = "localhost"
@@ -73,7 +72,7 @@ port = 4222
 authorisation_code = 123
 
 ##############################################################################
-### SSH Configuration ########################################################
+#   SSH Configuration ########################################################
 ##############################################################################
 
 # This only applies if you're using the ssh transport.
@@ -126,6 +125,6 @@ service = getClientService(
     username,
     password,
     host_key,
-    dsn, transport_type, encoding, x_mq_host, x_mq_port, x_mq_exchange,
-    x_mq_user, x_mq_password, x_mq_vhost)
+    dsn, transport_type, x_mq_host, x_mq_port, x_mq_exchange,
+    x_mq_user, x_mq_password, x_mq_vhost, authorisation_code)
 service.setServiceParent(application)

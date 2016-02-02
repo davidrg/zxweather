@@ -40,10 +40,16 @@ dsn=
 
 # Transport type. Options are:
 #  ssh  - connects to the weather server via the SSH protocol using a username
-#         and password
-#  udp  - Connects to the remote receiving service via UDP. This uses less
-#         bandwidth (good for expensive internet connections such as 3G) but
-#         may result in some live data updates getting lost.
+#         and password. This should be relatively secure but very inefficient.
+#  udp  - Connects to the remote receiving service via UDP. This uses a lot less
+#         bandwidth than ssh (good for expensive internet connections such as
+#         3G) but may frequently loose live data updates.
+#  tcp  - Connects to the remote receiving service via TCP. This has the
+#         reliability of the SSH option but with less security and lower data
+#         use (but probably not as low as the UDP option).
+#
+# The recommend option is udp or tcp. If bandwidth use is important it may be
+# best to benchmark both to see what gives you the best results.
 type=ssh
 
 # This is the remote hostname or IP Address to connect to.
