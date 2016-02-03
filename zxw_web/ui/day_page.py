@@ -229,7 +229,8 @@ def get_day_page(ui, station, day):
                                     station_message=msg[0],
                                     station_message_ts=msg[1],
                                     solar_uv_available=uv_and_solar_available,
-                                    images=images)
+                                    images=images,
+                                    tracking_id=config.google_analytics_id)
     else:
         return basic_templates.day(data=data,
                             station=station,
@@ -360,7 +361,8 @@ def get_indoor_day(ui, station, day):
             switch_url=build_alternate_ui_urls(current_location),
             station=station,
             station_message=msg[0],
-            station_message_ts=msg[1])
+            station_message_ts=msg[1],
+            tracking_id=config.google_analytics_id)
     else:
         return basic_templates.indoor_day(data=data,
                                           alt_ui_disabled=config.disable_alt_ui,

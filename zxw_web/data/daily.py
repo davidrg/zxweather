@@ -922,8 +922,6 @@ class image:
 
                 img = Image.open(original)
 
-                print(config.thumbnail_size)
-
                 img.thumbnail(config.thumbnail_size, Image.ANTIALIAS)
 
                 ext = mimetypes.guess_extension(mime_type)

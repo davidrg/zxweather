@@ -114,7 +114,8 @@ def get_station_standard(ui, station):
                                     station_message_ts=msg[1],
                                     reception_available=reception_available,
                                     solar_uv_available=uv_and_solar_available,
-                                    images=images)
+                                    images=images,
+                                    tracking_id=config.google_analytics_id)
 
 def get_station_basic(station):
     """
@@ -260,7 +261,8 @@ def get_station_reception_standard(ui, station):
             station_message=msg[0],
             station_message_ts=msg[1],
             basic_ui_available=False,  # Not available in the basic UI.
-            is_wireless=is_wireless
+            is_wireless=is_wireless,
+            tracking_id=config.google_analytics_id
         )
     else:
         raise web.NotFound()

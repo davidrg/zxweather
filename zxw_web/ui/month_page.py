@@ -291,6 +291,7 @@ def get_month(ui, station, year, month):
                                       station_message_ts=msg[1],
                                       hw_type=hw_type,
                                       solar_uv_available=uv_and_solar_available,
+                                      tracking_id=config.google_analytics_id
                                       )
     else:
         return basic_templates.month(data=data,
