@@ -67,7 +67,7 @@ def get_station_day_images(station_id, day):
                 source_images = []
                 for image in image_itr:
                     source_images.append(StationImage(image, '../../../../..'))
-            if not len(source_images):
+            if source_images is not None and not len(source_images):
                 source_images = None
 
             if source_images is not None:
