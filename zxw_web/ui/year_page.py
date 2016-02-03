@@ -178,7 +178,8 @@ def get_year(ui,station, year):
                                          current_location),
                                      station=station,
                                      station_message=msg[0],
-                                     station_message_ts=msg[1])
+                                     station_message_ts=msg[1],
+                                     tracking_id=config.google_analytics_id)
     else:
         return basic_templates.year(data=data,
                                     alt_ui_disabled=config.disable_alt_ui,

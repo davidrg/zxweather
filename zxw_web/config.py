@@ -43,6 +43,10 @@ cache_thumbnails = False
 cache_directory = None
 thumbnail_size = (304, 171)
 
+# Google analyics tracking ID. Set to a value to enable.
+google_analytics_id = None
+
+
 def load_settings():
     """
     Loads settings from the configuration file.
@@ -51,6 +55,7 @@ def load_settings():
     global db, default_station_name
     global static_data_dir, site_root, default_ui, site_name, ws_uri, wss_uri
     global zxweatherd_hostname, zxweatherd_raw_port, disable_alt_ui
+    global google_analytics_id
     global cache_thumbnails, cache_directory, thumbnail_size
 
     import ConfigParser
@@ -94,6 +99,9 @@ def load_settings():
 
     if config.has_option(S_S, 'disable_alt_ui'):
         disable_alt_ui = config.getboolean(S_S, 'disable_alt_ui')
+
+    if config.has_option(S_S, "google_analytics_id"):
+        google_analytics_id = config.get(S_S, "google_analytics_id")
 
     if config.has_option(S_D, 'hostname'):
         zxweatherd_hostname = config.get(S_D, 'hostname')
@@ -139,5 +147,6 @@ def load_settings():
             raise Exception("Invalid thumbnail dimensions. "
                             "Expected WIDTHxHEIGHT.")
         thumbnail_size = (int(bits[0]), int(bits[1]))
+
 
 
