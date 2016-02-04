@@ -69,7 +69,7 @@ class TcpClientFactory(ReconnectingClientFactory):
     def clientConnectionFailed(self, connector, reason):
         log.msg("Connection failed")
         self.NotReady.fire()
-        ReconnectingClientFactory.clientCOnnectionFailed(self, connector, reason)
+        ReconnectingClientFactory.clientConnectionFailed(self, connector, reason)
 
 
 # This wraps up the eventual TCP Client as a service while its still connecting.
@@ -154,8 +154,8 @@ class TcpClientService(service.Service):
         # The TCP ignores this.
         pass
 
-    def stopService(self):
-        return self._protocol.transport.looseConnection()
+    #def stopService(self):
+        #return self._protocol.transport.looseConnection()
 
 
 def getClientService(hostname, port, username, password, host_key_fingerprint,
@@ -247,10 +247,10 @@ def getClientService(hostname, port, username, password, host_key_fingerprint,
     if transport_type != "ssh":
         # The SSH transport doesn't support sending images at all.
         database.NewImage += _upload_client.send_image
+        _upload_client.ImageReceiptConfirmation += database.confirm_image_receipt
 
     _upload_client.Ready += database.transmitter_ready
     _upload_client.ReceiptConfirmation += database.confirm_receipt
-    _upload_client.ImageReceiptConfirmation += database.confirm_image_receipt
 
     if mq_host is not None:
         mq_client = RabbitMqReceiver(mq_user, mq_password, mq_vhost,

@@ -93,7 +93,7 @@ tcp_port=4296
 resize_images=False
 
 new_width=640
-new_heigh=368
+new_height=368
 
 
 
