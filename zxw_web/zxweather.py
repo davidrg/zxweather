@@ -22,6 +22,7 @@ urls = (
     '/data/(\w*)/(\d+)/(\d+)/(\d+)/(?:index\.html)?', 'data.daily_index.index',
     '/data/(\w*)/(\d+)/(\d+)/(?:index\.html)?', 'data.monthly.index',
     '/data/(\w*)/(\d+)/(?:index\.html)?', 'data.yearly.index',
+    '/data/(\w*)/images/(\w*)/(?:index\.html)?', 'data.station.images',
     '/data/(\w*)/(?:index\.html)?', 'data.station.index',
     '/data/(?:index\.html)?', 'data.data_index',
 
@@ -36,8 +37,10 @@ urls = (
     '/data/(\w*)/(\d+)/datatable/(\w*).json', 'data.yearly.datatable_json',         # Yearly, DT
     '/data/(\w*)/(\d+)/(\w*).json', 'data.yearly.data_json',                        # Yearly
     '/data/(\w*)/datatable/(\w*).json', 'data.station.datatable_json',              # Station, DT
+    '/data/(\w*)/images/(\w*)/latest/(\w*)', 'data.station.latest_image',           # Link to latest image
     '/data/(\w*)/(\w*).json', 'data.station.data_json',                             # Station
-    '/data/(\w*).json', 'data.data_json',                                            # Global
+    '/data/(\w*).json', 'data.data_json',                                           # Global
+
 
     # User interface (HTML output).
     # /ui/station/year/month/day

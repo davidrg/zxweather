@@ -716,7 +716,7 @@ from image_source where code = $source and station_id = $station""",
     return None
 
 
-def get_day_images_for_source(source_id, image_date):
+def get_day_images_for_source(source_id, image_date=None):
     """
     Returns a list of all images for the specified image source and date.
     :param source_id: Image source
@@ -737,7 +737,8 @@ def get_day_images_for_source(source_id, image_date):
     from image i
     inner join image_type it on it.image_type_id = i.image_type_id
     where i.image_source_id = $source_id
-      and i.time_stamp::date = $date
+      and (i.time_stamp::date = $date or $date is null)
+    order by i.time_stamp asc
     """
 
     result = db.query(query, dict(source_id=source_id, date=image_date))
@@ -810,4 +811,20 @@ def get_images_for_source(source_id, day=None):
 
     if len(result):
         return result
+    return None
+
+
+def get_most_recent_image_id_for_source(source_id):
+    query = """
+    select image_id, time_stamp, mime_type
+    from image i
+    where i.image_source_id = $source_id
+    order by time_stamp DESC
+    limit 1
+    """
+
+    result = db.query(query, dict(source_id=source_id))
+
+    if len(result):
+        return result[0]
     return None

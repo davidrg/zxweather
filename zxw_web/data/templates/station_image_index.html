@@ -1,0 +1,49 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <title>Images</title>
+</head>
+<body>
+<h1>Images for {{ source_name }}</h1>
+<hr>
+<p>Latest image: <a href="latest/full">Full Size</a>,
+    <a href="latest/thumbnail">Thumbnail</a>,
+    <a href="latest/metadata">Metadata</a>
+</p>
+
+<p>The following images are available for {{ source_name }}:</p>
+<table border="2">
+    <tr bgcolor="lightseagreen">
+        <td><b>Timestamp</b></td>
+        <td><b>MIME Type</b></td>
+        <td><b>Type</b></td>
+        <td><b>Title</b></td>
+        <td><b>Description</b></td>
+        <td><b>Links</b></td>
+    </tr>
+
+    {% for image in image_list %}
+    {% set url_base="../../" + image.time_stamp.year|string + "/" + image.time_stamp.month|string + "/" + image.time_stamp.day|string + "/images/" + source_code + "/" %}
+    <tr bgcolor="blanchedalmond">
+        <td>{{ image.time_stamp }}</td>
+        <td>{{ image.mime_type }}</td>
+        <td>{{ image.type_name }}</td>
+        <td>{{ image.title }}</td>
+        <td>{{ image.description }}</td>
+        <td>
+            <a href="{{ url_base }}{{ image.id }}/full{{ extensions[image.mime_type] }}">Full size</a>
+            <a href="{{ url_base }}{{ image.id }}/thumbnail{{ extensions[image.mime_type] }}">Thumbnail</a>
+
+            {% if image.has_metadata %}
+                <a href="{{ url_base }}{{ image.id }}/metadata.json">Metadata</a>
+            {% endif %}
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+<hr>
+<center><a href="../../">Up to Station</a></center>
+</body>
+</html>
