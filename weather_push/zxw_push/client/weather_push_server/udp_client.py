@@ -32,14 +32,17 @@ class WeatherPushDatagramClient(DatagramProtocol):
     _STATION_LIST_TIMEOUT = 60  # seconds to wait for a response
 
     def __init__(self, ip_address, port, authorisation_code,
-                 confirmed_sample_func):
+                 confirmed_sample_func, tcp_client_factory):
         self._ip_address = ip_address
         self._port = port
         self._authorisation_code = authorisation_code
         self._confirmed_sample_func = confirmed_sample_func
+        self._tcp_client_factory = tcp_client_factory
+        self._tcp_client = None
 
         self.Ready = Event()
         self.ReceiptConfirmation = Event()
+        self.ImageReceiptConfirmation = Event()
 
         # 16bit integer sequences for packet and live records
         self._sequence_id = Sequencer()
@@ -90,6 +93,11 @@ class WeatherPushDatagramClient(DatagramProtocol):
 
         log.msg("Requesting station list from server...")
         self._request_station_list()
+
+    def stopProtocol(self):
+        # Shut down the TCP client if its running.
+        if self._tcp_client is not None:
+            self._tcp_client.stopService()
 
     def datagramReceived(self, datagram, address):
         """
@@ -263,6 +271,18 @@ class WeatherPushDatagramClient(DatagramProtocol):
             self._outgoing_samples[station_id] = []
 
         self._outgoing_samples[station_id].append((sample, hardware_type))
+
+    def send_image(self, image):
+        # The UDP transport doesn't support sending images. So we rely on a
+        # private instance of the TCP client to do that. This client instance
+        # will only handle images - the rest of the weather data will go over
+        # UDP.
+
+        if self._tcp_client is None:
+            log.msg("Starting TCP client to transmit image.")
+            self._tcp_client = self._tcp_client_factory()
+
+        self._tcp_client.send_image(image)
 
     # Cant be static as we need to stay compatible with other client classes
     # noinspection PyMethodMayBeStatic

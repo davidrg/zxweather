@@ -5,7 +5,8 @@ from datetime import datetime
 
 from zxw_push.common.packets import SampleDataRecord, WeatherDataTCPPacket, \
     LiveDataRecord, SampleAcknowledgementTCPPacket, AuthenticateTCPPacket
-from zxw_push.common.packets.tcp_packets import TcpPacket, StationInfoTCPPacket
+from zxw_push.common.packets.tcp_packets import TcpPacket, StationInfoTCPPacket, \
+    ImageTCPPacket, ImageAcknowledgementTCPPacket
 
 __author__ = 'david'
 
@@ -80,10 +81,11 @@ class AuthenticatePacketTests(unittest.TestCase):
         """
 
         # This should be ok - four bytes total
-        AuthenticateTCPPacket(0xFFFFFFFF)  # 4,294,967,295
+        AuthenticateTCPPacket(0xFFFFFFFFFFFFFFFF)
 
-        # This should fail - five bytes total (33 bits set) 8,589,934,591
-        self.assertRaises(ValueError, AuthenticateTCPPacket, 0x01FFFFFFFF)
+        # This should fail - nine bytes total (65 bits set)
+        self.assertRaises(ValueError, AuthenticateTCPPacket,
+                          0x1FFFFFFFFFFFFFFFF)
 
     def test_negative_authorisation_code_is_rejected(self):
         """
@@ -119,6 +121,12 @@ class StationInfoResponsePacketTests(unittest.TestCase):
         input_packet.add_station("test2", "fowh1080", 2)
         input_packet.add_station("test3", "generic", 3)
 
+        input_packet.add_image_source("src1", 4)
+        input_packet.add_image_source("src2", 5)
+
+        input_packet.add_image_type("typ1", 6)
+        input_packet.add_image_type("typ2", 7)
+
         encoded = input_packet.encode()
 
         output_packet = StationInfoTCPPacket()
@@ -127,6 +135,10 @@ class StationInfoResponsePacketTests(unittest.TestCase):
         self.assertEqual(output_packet.packet_type, input_packet.packet_type)
 
         self.assertListEqual(output_packet.stations, input_packet.stations)
+        self.assertListEqual(output_packet.image_sources,
+                             input_packet.image_sources)
+        self.assertListEqual(output_packet.image_types,
+                             input_packet.image_types)
 
     def test_size(self):
         """
@@ -138,6 +150,12 @@ class StationInfoResponsePacketTests(unittest.TestCase):
         input_packet.add_station("test1", "davis", 1)
         input_packet.add_station("test2", "fowh1080", 2)
         input_packet.add_station("test3", "generic", 3)
+
+        input_packet.add_image_source("src1", 4)
+        input_packet.add_image_source("src2", 5)
+
+        input_packet.add_image_type("typ1", 6)
+        input_packet.add_image_type("typ2", 7)
 
         encoded = input_packet.encode()
 
@@ -468,3 +486,291 @@ class SampleAcknowledgementPacketTests(unittest.TestCase):
         size = SampleAcknowledgementTCPPacket.packet_size(encoded)
 
         self.assertEqual(len(encoded), size)
+
+
+class ImageTcpPacketTests(unittest.TestCase):
+    def test_round_trip(self):
+        type_id = 1
+        source_id = 2
+        time = datetime(2016, 2, 3, 22, 53, 18)
+        title = "-12-title-34-"
+        description = "-56-description-78-"
+        mime_type = "-90-mime-type-12-"
+        metadata = "-34-metadata-56-"
+        image_data = "~!@#$%^^&*()\x1E\x00\xDE\xAD\xBE\xEFThis should accept " \
+                     "binary\x00data!@#$%^&"
+
+        input_packet = ImageTCPPacket(type_id, source_id, time, title,
+                                      description, mime_type, metadata,
+                                      image_data)
+
+        encoded = input_packet.encode()
+
+        output_packet = ImageTCPPacket()
+        output_packet.decode(encoded)
+
+        self.assertEqual(output_packet.image_type_id, type_id)
+        self.assertEqual(output_packet.image_source_id, source_id)
+        self.assertEqual(output_packet.timestamp, time)
+        self.assertEqual(output_packet.title, title)
+        self.assertEqual(output_packet.description, description)
+        self.assertEqual(output_packet.mime_type, mime_type)
+        self.assertEqual(output_packet.metadata, metadata)
+        self.assertEqual(output_packet.image_data, image_data)
+
+    def test_round_trip_without_title(self):
+        type_id = 1
+        source_id = 2
+        time = datetime(2016, 2, 3, 22, 53, 18)
+        title = ""
+        description = "-56-description-78-"
+        mime_type = "-90-mime-type-12-"
+        metadata = "-34-metadata-56-"
+        image_data = "~!@#$%^^&*()\x1E\x00\xDE\xAD\xBE\xEFThis should accept " \
+                     "binary\x00data!@#$%^&"
+
+        input_packet = ImageTCPPacket(type_id, source_id, time, title,
+                                      description, mime_type, metadata,
+                                      image_data)
+
+        encoded = input_packet.encode()
+
+        output_packet = ImageTCPPacket()
+        output_packet.decode(encoded)
+
+        self.assertEqual(output_packet.image_type_id, type_id)
+        self.assertEqual(output_packet.image_source_id, source_id)
+        self.assertEqual(output_packet.timestamp, time)
+        self.assertEqual(output_packet.title, title)
+        self.assertEqual(output_packet.description, description)
+        self.assertEqual(output_packet.mime_type, mime_type)
+        self.assertEqual(output_packet.metadata, metadata)
+        self.assertEqual(output_packet.image_data, image_data)
+
+    def test_round_trip_without_description(self):
+        type_id = 1
+        source_id = 2
+        time = datetime(2016, 2, 3, 22, 53, 18)
+        title = "-12-title-34-"
+        description = ""
+        mime_type = "-90-mime-type-12-"
+        metadata = "-34-metadata-56-"
+        image_data = "~!@#$%^^&*()\x1E\x00\xDE\xAD\xBE\xEFThis should accept " \
+                     "binary\x00data!@#$%^&"
+
+        input_packet = ImageTCPPacket(type_id, source_id, time, title,
+                                      description, mime_type, metadata,
+                                      image_data)
+
+        encoded = input_packet.encode()
+
+        output_packet = ImageTCPPacket()
+        output_packet.decode(encoded)
+
+        self.assertEqual(output_packet.image_type_id, type_id)
+        self.assertEqual(output_packet.image_source_id, source_id)
+        self.assertEqual(output_packet.timestamp, time)
+        self.assertEqual(output_packet.title, title)
+        self.assertEqual(output_packet.description, description)
+        self.assertEqual(output_packet.mime_type, mime_type)
+        self.assertEqual(output_packet.metadata, metadata)
+        self.assertEqual(output_packet.image_data, image_data)
+
+    def test_round_trip_without_mime_type(self):
+        type_id = 1
+        source_id = 2
+        time = datetime(2016, 2, 3, 22, 53, 18)
+        title = "-12-title-34-"
+        description = "-56-description-78-"
+        mime_type = ""
+        metadata = "-34-metadata-56-"
+        image_data = "~!@#$%^^&*()\x1E\x00\xDE\xAD\xBE\xEFThis should accept " \
+                     "binary\x00data!@#$%^&"
+
+        input_packet = ImageTCPPacket(type_id, source_id, time, title,
+                                      description, mime_type, metadata,
+                                      image_data)
+
+        encoded = input_packet.encode()
+
+        output_packet = ImageTCPPacket()
+        output_packet.decode(encoded)
+
+        self.assertEqual(output_packet.image_type_id, type_id)
+        self.assertEqual(output_packet.image_source_id, source_id)
+        self.assertEqual(output_packet.timestamp, time)
+        self.assertEqual(output_packet.title, title)
+        self.assertEqual(output_packet.description, description)
+        self.assertEqual(output_packet.mime_type, mime_type)
+        self.assertEqual(output_packet.metadata, metadata)
+        self.assertEqual(output_packet.image_data, image_data)
+
+    def test_round_trip_without_metadata(self):
+        type_id = 1
+        source_id = 2
+        time = datetime(2016, 2, 3, 22, 53, 18)
+        title = "-12-title-34-"
+        description = "-56-description-78-"
+        mime_type = "-90-mime-type-12-"
+        metadata = ""
+        image_data = "~!@#$%^^&*()\x1E\x00\xDE\xAD\xBE\xEFThis should accept " \
+                     "binary\x00data!@#$%^&"
+
+        input_packet = ImageTCPPacket(type_id, source_id, time, title,
+                                      description, mime_type, metadata,
+                                      image_data)
+
+        encoded = input_packet.encode()
+
+        output_packet = ImageTCPPacket()
+        output_packet.decode(encoded)
+
+        self.assertEqual(output_packet.image_type_id, type_id)
+        self.assertEqual(output_packet.image_source_id, source_id)
+        self.assertEqual(output_packet.timestamp, time)
+        self.assertEqual(output_packet.title, title)
+        self.assertEqual(output_packet.description, description)
+        self.assertEqual(output_packet.mime_type, mime_type)
+        self.assertEqual(output_packet.metadata, metadata)
+        self.assertEqual(output_packet.image_data, image_data)
+
+    def test_round_trip_without_title_or_description(self):
+        type_id = 1
+        source_id = 2
+        time = datetime(2016, 2, 3, 22, 53, 18)
+        title = ""
+        description = ""
+        mime_type = "-90-mime-type-12-"
+        metadata = "-34-metadata-56-"
+        image_data = "~!@#$%^^&*()\x1E\x00\xDE\xAD\xBE\xEFThis should accept " \
+                     "binary\x00data!@#$%^&"
+
+        input_packet = ImageTCPPacket(type_id, source_id, time, title,
+                                      description, mime_type, metadata,
+                                      image_data)
+
+        encoded = input_packet.encode()
+
+        output_packet = ImageTCPPacket()
+        output_packet.decode(encoded)
+
+        self.assertEqual(output_packet.image_type_id, type_id)
+        self.assertEqual(output_packet.image_source_id, source_id)
+        self.assertEqual(output_packet.timestamp, time)
+        self.assertEqual(output_packet.title, title)
+        self.assertEqual(output_packet.description, description)
+        self.assertEqual(output_packet.mime_type, mime_type)
+        self.assertEqual(output_packet.metadata, metadata)
+        self.assertEqual(output_packet.image_data, image_data)
+
+    def test_round_trip_with_no_text_fields(self):
+        type_id = 1
+        source_id = 2
+        time = datetime(2016, 2, 3, 22, 53, 18)
+        title = ""
+        description = ""
+        mime_type = ""
+        metadata = ""
+        image_data = "~!@#$%^^&*()\x1E\x00\xDE\xAD\xBE\xEFThis should accept " \
+                     "binary\x00data!@#$%^&"
+
+        input_packet = ImageTCPPacket(type_id, source_id, time, title,
+                                      description, mime_type, metadata,
+                                      image_data)
+
+        encoded = input_packet.encode()
+
+        output_packet = ImageTCPPacket()
+        output_packet.decode(encoded)
+
+        self.assertEqual(output_packet.image_type_id, type_id)
+        self.assertEqual(output_packet.image_source_id, source_id)
+        self.assertEqual(output_packet.timestamp, time)
+        self.assertEqual(output_packet.title, title)
+        self.assertEqual(output_packet.description, description)
+        self.assertEqual(output_packet.mime_type, mime_type)
+        self.assertEqual(output_packet.metadata, metadata)
+        self.assertEqual(output_packet.image_data, image_data)
+
+    def test_packet_size(self):
+        type_id = 1
+        source_id = 2
+        time = datetime(2016, 2, 3, 22, 53, 18)
+        title = "-12-title-34-"
+        description = "-56-description-78-"
+        mime_type = "-90-mime-type-12-"
+        metadata = "-34-metadata-56-"
+        image_data = "~!@#$%^^&*()\x1E\x00\xDE\xAD\xBE\xEFThis should accept " \
+                     "binary\x00data!@#$%^&"
+
+        input_packet = ImageTCPPacket(type_id, source_id, time, title,
+                                      description, mime_type, metadata,
+                                      image_data)
+
+        encoded = input_packet.encode()
+
+        output_packet = ImageTCPPacket()
+
+        required = output_packet.packet_size_bytes_required()
+
+        header = encoded[:required]
+
+        size = output_packet.packet_size(header)
+
+        self.assertEqual(size, len(encoded))
+
+
+class ImageAcknowledgementTCPPacketTests(unittest.TestCase):
+    def test_round_trip_with_one_record(self):
+        input_packet = ImageAcknowledgementTCPPacket()
+        input_packet.add_image(1, 2, datetime(2016, 2, 3, 22, 53, 18))
+
+        encoded = input_packet.encode()
+
+        output_packet = ImageAcknowledgementTCPPacket()
+        output_packet.decode(encoded)
+
+        self.assertListEqual(output_packet.images, input_packet.images)
+
+    def test_round_trip_with_two_records(self):
+        input_packet = ImageAcknowledgementTCPPacket()
+        input_packet.add_image(1, 2, datetime(2016, 2, 3, 22, 53, 18))
+        input_packet.add_image(3, 4, datetime(2016, 2, 3, 23, 53, 18))
+
+        encoded = input_packet.encode()
+
+        output_packet = ImageAcknowledgementTCPPacket()
+        output_packet.decode(encoded)
+
+        self.assertListEqual(output_packet.images, input_packet.images)
+
+    def test_round_trip_with_three_records(self):
+        input_packet = ImageAcknowledgementTCPPacket()
+        input_packet.add_image(1, 2, datetime(2016, 2, 3, 22, 53, 18))
+        input_packet.add_image(3, 4, datetime(2016, 2, 3, 23, 53, 18))
+        input_packet.add_image(5, 6, datetime(2016, 2, 4, 0, 53, 18))
+
+        encoded = input_packet.encode()
+
+        output_packet = ImageAcknowledgementTCPPacket()
+        output_packet.decode(encoded)
+
+        self.assertListEqual(output_packet.images, input_packet.images)
+
+    def test_packet_size(self):
+        input_packet = ImageAcknowledgementTCPPacket()
+        input_packet.add_image(1, 2, datetime(2016, 2, 3, 22, 53, 18))
+        input_packet.add_image(3, 4, datetime(2016, 2, 3, 23, 53, 18))
+        input_packet.add_image(5, 6, datetime(2016, 2, 4, 0, 53, 18))
+
+        encoded = input_packet.encode()
+
+        output_packet = ImageAcknowledgementTCPPacket()
+
+        required = output_packet.packet_size_bytes_required()
+
+        header = encoded[:required]
+
+        size = output_packet.packet_size(header)
+
+        self.assertEqual(size, len(encoded))

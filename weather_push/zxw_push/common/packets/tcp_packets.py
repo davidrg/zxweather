@@ -2,28 +2,10 @@
 import struct
 
 from twisted.python import log
-from twisted.internet import reactor
 
 from zxw_push.common.data_codecs import timestamp_decode, timestamp_encode
 from zxw_push.common.packets.common import Packet, StationInfoRecord, \
     SampleDataRecord, LiveDataRecord, WeatherRecord
-
-
-def toHexString(string):
-    """
-    Converts the supplied string to hex.
-    :param string: Input string
-    :return:
-    """
-    result = ""
-    for char in string:
-
-        hex_encoded = hex(ord(char))[2:]
-        if len(hex_encoded) == 1:
-            hex_encoded = '0' + hex_encoded
-
-        result += r'\x{0}'.format(hex_encoded)
-    return result
 
 
 class TcpPacket(Packet):
@@ -82,8 +64,8 @@ class AuthenticateTCPPacket(TcpPacket):
     def __init__(self, authorisation_code=0):
         super(AuthenticateTCPPacket, self).__init__(0x05)
 
-        if not (0 <= authorisation_code <= 0xFFFFFFFF):
-            raise ValueError("Value must be between 0 and 0xFFFFFFFF")
+        if not (0 <= authorisation_code <= 0xFFFFFFFFFFFFFFFF):
+            raise ValueError("Value must be between 0 and 0xFFFFFFFFFFFFFFFF")
 
         self._authorisation_code = authorisation_code
 
@@ -103,7 +85,8 @@ class AuthenticateTCPPacket(TcpPacket):
 
         packet_data = packet_data[header_size:]
 
-        self._authorisation_code = struct.unpack(self._FMT, packet_data)[0]
+        self._authorisation_code, = struct.unpack(self._FMT, packet_data)
+
 
     @staticmethod
     def packet_size(packet_header):
@@ -132,12 +115,15 @@ class AuthenticateFailedTCPPacket(TcpPacket):
 
 class StationInfoTCPPacket(TcpPacket):
     """
-    This packet contains information about stations known to the server. This
-    includes the station code, hardware type ID and a station ID.
+    This packet contains information about stations, image types and image
+    sources known to the server. For each station this includes the station
+    code, hardware type ID and a station ID. For image types and sources this
+    is just a code and an ID.
 
     The packets payload always starts off with a single byte station count
-    followed by one or more station records. The packets length is determined
-    by the number of these records.
+    followed by a single byte image type count and a single byte image source
+    count. After this come the station records, image type records and
+    image source records.
 
     The packets Type is 0x06
 
@@ -146,21 +132,25 @@ class StationInfoTCPPacket(TcpPacket):
     +------+----------------+----------------+----------------+----------------+
     |   Bit| 0 1 2 3 4 5 6 7| 0 1 2 3 4 5 6 7| 0 1 2 3 4 5 6 7| 0 1 2 3 4 5 6 7|
     +------+----------------+----------------+----------------+----------------+
-    | 0   0|  Packet Type   | Reserved       | Station Count  | Station 1      |
-    +------+----------------+----------------+----------------+                +
-    | 4  32|                                                                   |
-    +------+                                 +----------------+----------------+
-    | 8  64|                                 | Station 2...                    |
-    +------+----------------+----------------+                                 +
-    |12  96|                                                                   |
+    | 0   0|  Packet Type   | Reserved       | Station Count  | Image Type Cnt |
+    +------+----------------+----------------+----------------+----------------+
+    | 4  32| Image Src Cnt  | Station 1....                                    |
+    +------+----------------+                                                  +
+    | 8  64|                                                                   |
+    +------+----------------+----------------+----------------+----------------+
+    |12  96| Station 2...                                                      |
     +------+----------------+----------------+----------------+----------------+
     """
 
-    _FMT_STATION_COUNT = "B"
+    _FMT_PAYLOAD = "BBB"
+
+    _FMT_CODE_MAP = "5sB"
 
     def __init__(self):
         super(StationInfoTCPPacket, self).__init__(0x06)
         self._stations = []
+        self._image_types = []
+        self._image_sources = []
 
     @property
     def stations(self):
@@ -188,6 +178,31 @@ class StationInfoTCPPacket(TcpPacket):
         self._stations.append(StationInfoRecord(station_code, hardware_type,
                                                 station_id))
 
+    @property
+    def image_types(self):
+        """
+        Returns a list of all image type code to id mappings in the packet
+        :return: List of image type code to image type id mappings
+        :rtype: [(str, int)]
+        """
+
+        return self._image_types
+
+    def add_image_type(self, type_code, type_id):
+        self._image_types.append((type_code, type_id))
+
+    @property
+    def image_sources(self):
+        """
+        Returns a list of all image source code to id mappings in the packet
+        :return: List of image source code to image source id mappings
+        :rtype: [(str, int)]
+        """
+        return self._image_sources
+
+    def add_image_source(self, source_code, source_id):
+        self._image_sources.append((source_code, source_id))
+
     def encode(self):
         """
         Returns the encoded form of the packet which can be transmitted over a
@@ -198,11 +213,21 @@ class StationInfoTCPPacket(TcpPacket):
         packet_data = super(StationInfoTCPPacket, self).encode()
 
         packet_data += struct.pack(self._FMT_ENDIANNESS +
-                                   self._FMT_STATION_COUNT,
-                                   len(self._stations))
+                                   self._FMT_PAYLOAD,
+                                   len(self._stations),
+                                   len(self._image_types),
+                                   len(self._image_sources))
 
         for station in self._stations:
             packet_data += station.encode()
+
+        for image_type in self._image_types:
+            packet_data += struct.pack(self._FMT_CODE_MAP, image_type[0],
+                                       image_type[1])
+
+        for image_source in self._image_sources:
+            packet_data += struct.pack(self._FMT_CODE_MAP, image_source[0],
+                                       image_source[1])
 
         return packet_data
 
@@ -216,14 +241,28 @@ class StationInfoTCPPacket(TcpPacket):
         # Decode the packet header
         super(StationInfoTCPPacket, self).decode(packet_data)
 
+        header_size = self._get_header_size()
+
+        packet_data = packet_data[header_size:]
+
+        station_count, image_type_count, image_source_count = \
+            struct.unpack_from(self._FMT_ENDIANNESS +
+                               self._FMT_PAYLOAD, packet_data)
+
         # Throw away the header data and decode all of the packets
-        header_size = self._get_header_size() + \
-                      struct.calcsize(self._FMT_STATION_COUNT)
 
-        # station_size = struct.calcsize(self._STATION_FMT)
         station_size = StationInfoRecord.size()
+        code_map_size = struct.calcsize(self._FMT_CODE_MAP)
 
-        station_data = packet_data[header_size:]
+        station_offset = struct.calcsize(self._FMT_PAYLOAD)
+        station_list_size = station_size * station_count
+        image_type_offset = station_offset + station_list_size
+        image_type_list_size = code_map_size * image_type_count
+        image_source_offset = image_type_offset + image_type_list_size
+
+        station_data = packet_data[station_offset:image_type_offset]
+        image_type_data = packet_data[image_type_offset:image_source_offset]
+        image_source_data = packet_data[image_source_offset:]
 
         while len(station_data) > 0:
             if len(station_data) < station_size:
@@ -238,14 +277,40 @@ class StationInfoTCPPacket(TcpPacket):
             rec.decode(station)
             self._stations.append(rec)
 
-            if len(station_data) < station_size:
+            if 0 < len(station_data) < station_size:
                 log.msg("*** ERROR: Malformed station record - "
                         "insufficient data")
+
+        self._image_types = self._unpack_code_map(image_type_data)
+        self._image_sources = self._unpack_code_map(image_source_data)
+
+    def _unpack_code_map(self, code_map_data):
+        results = []
+        code_map_size = struct.calcsize(self._FMT_CODE_MAP)
+
+        while len(code_map_data) > 0:
+            if len(code_map_data) < code_map_size:
+                log.msg("Station Info Response Packet is malformed - "
+                        "insufficient data for code map record")
+                return None
+
+            code_map = code_map_data[:code_map_size]
+            code_map_data = code_map_data[code_map_size:]
+
+            code, value_id = struct.unpack(self._FMT_CODE_MAP, code_map)
+
+            results.append((code.split("\x00")[0], value_id))
+
+            if 0 < len(code_map_data) < code_map_size:
+                log.msg("*** ERROR: Malformed code map record - "
+                        "insufficient data")
+
+        return results
 
     @staticmethod
     def packet_size_bytes_required():
         return StationInfoTCPPacket._get_header_size() + \
-               struct.calcsize(StationInfoTCPPacket._FMT_STATION_COUNT)
+               struct.calcsize(StationInfoTCPPacket._FMT_PAYLOAD)
 
     @staticmethod
     def packet_size(packet_header):
@@ -257,17 +322,23 @@ class StationInfoTCPPacket(TcpPacket):
         header_size = StationInfoTCPPacket._get_header_size()
         interesting_data = packet_header[header_size:]
 
-        record_count = struct.unpack_from(
-                StationInfoTCPPacket._FMT_ENDIANNESS +
-                StationInfoTCPPacket._FMT_STATION_COUNT,
-                interesting_data)[0]
+        station_count, image_type_count, image_source_count = \
+            struct.unpack_from(StationInfoTCPPacket._FMT_ENDIANNESS +
+                               StationInfoTCPPacket._FMT_PAYLOAD,
+                               interesting_data)
 
-        record_size = StationInfoRecord.size()
+        station_size = StationInfoRecord.size()
+        code_map_size = struct.calcsize(StationInfoTCPPacket._FMT_CODE_MAP)
+
+        station_list_size = station_size * station_count
+        image_type_list_size = code_map_size * image_type_count
+        image_source_list_size = code_map_size * image_source_count
+
         payload_header_size = struct.calcsize(
-                StationInfoTCPPacket._FMT_STATION_COUNT)
+                StationInfoTCPPacket._FMT_PAYLOAD)
 
         packet_size = header_size + payload_header_size + \
-            record_size * record_count
+            station_list_size + image_type_list_size + image_source_list_size
 
         return packet_size
 
@@ -370,11 +441,9 @@ class WeatherDataTCPPacket(TcpPacket):
         packet_data = ''
 
         if len(self._records) == 1:
-            log.msg("Add single record")###
             packet_data += self._records[0].encode()
         else:
             for record in self._records:
-                log.msg("add record")###
                 packet_data += record.encode()
                 packet_data += '\x1E'
 
@@ -515,7 +584,7 @@ class WeatherDataTCPPacket(TcpPacket):
             # Go around the loop again to add on another chunk of data.
 
 
-class SampleAcknowledgementTCPPacket(Packet):
+class SampleAcknowledgementTCPPacket(TcpPacket):
     """
     This packet contains a list of samples the server has committed to its
     database. It consists of a record count followed by a variable length
@@ -670,3 +739,289 @@ class SampleAcknowledgementTCPPacket(Packet):
                 self._FMT_ACKNOWLEDGEMENT_RECORD, record)
 
             self._acknowledgements.append((station_id, time_stamp))
+
+
+class ImageTCPPacket(TcpPacket):
+    """
+    This packet contains a single image.
+
+    The packets Type ID is 0x10.
+
+    +------+----------------+----------------+----------------+----------------+
+    |Octet |       0        |       1        |       2        |       3        |
+    +------+----------------+----------------+----------------+----------------+
+    |   Bit| 0 1 2 3 4 5 6 7| 0 1 2 3 4 5 6 7| 0 1 2 3 4 5 6 7| 0 1 2 3 4 5 6 7|
+    +------+----------------+----------------+----------------+----------------+
+    | 0   0|  Packet Type   | Reserved       | Length...                       |
+    +------+----------------+----------------+----------------+----------------+
+    | 4  32| ...Length                       | Image Type     | Image Source   |
+    +------+----------------+----------------+----------------+----------------+
+    | 8  64| Timestamp                                                         |
+    +------+----------------+----------------+----------------+----------------+
+    |12  96| Text Length                                                       |
+    +------+----------------+----------------+----------------+----------------+
+    |16 128| Variable length data...                                           |
+    +------+----------------+----------------+----------------+----------------+
+
+    The variable length data field contains the text followed by the image data.
+    The location for the image data within the packet is 16+text_length. The
+    length of the image data is packet_length-(16+text_length).
+
+    The text segment of the variable length data field consists of the following
+    values separated by 0x1E:
+      * Title
+      * Description
+      * MIME Type
+      * Metadata
+    """
+
+    _FMT_PAYLOAD_HEADER = "LBBLL"
+
+    def __init__(self, image_type_id=None, image_source_id=None, timestamp=None,
+                 title=None, description=None, mime_type=None, metadata=None,
+                 image_data=None):
+        super(ImageTCPPacket, self).__init__(0x10)
+
+        if image_type_id is None or image_source_id is None or \
+                timestamp is None or image_data is None:
+            # A packet to encode requires all of these things. So we're probably
+            # creating a blank packet to decode into.
+            return
+
+        if title is None:
+            title = ''
+        if description is None:
+            description = ''
+        if mime_type is None:
+            mime_type = ''
+        if metadata is None:
+            metadata = ''
+
+        self._image_type_id = image_type_id
+        self._image_source_id = image_source_id
+        self._timestamp = timestamp_encode(timestamp)
+        self._title = title
+        self._description = description
+        self._mime_type = mime_type
+        self._metadata = metadata
+        self._image_data = image_data
+
+    @property
+    def image_type_id(self):
+        return self._image_type_id
+
+    @property
+    def image_source_id(self):
+        return self._image_source_id
+
+    @property
+    def timestamp(self):
+        return timestamp_decode(self._timestamp)
+
+    @property
+    def title(self):
+        return self._title
+
+    @property
+    def description(self):
+        return self._description
+
+    @property
+    def mime_type(self):
+        return self._mime_type
+
+    @property
+    def metadata(self):
+        return self._metadata
+
+    @property
+    def image_data(self):
+        return self._image_data
+
+    def encode(self):
+        text_section = self._title + '\x1E' + \
+            self._description + '\x1E' + self._mime_type + '\x1E' + \
+            self._metadata
+
+        text_length = len(text_section)
+
+        total_length = self._get_header_size() + \
+            struct.calcsize(self._FMT_ENDIANNESS + self._FMT_PAYLOAD_HEADER) + text_length + \
+            len(self._image_data)
+
+        packet_data = super(ImageTCPPacket, self).encode()
+
+        packet_data += struct.pack(self._FMT_ENDIANNESS +
+                                   self._FMT_PAYLOAD_HEADER,
+                                   total_length,
+                                   self._image_type_id,
+                                   self._image_source_id,
+                                   self._timestamp,
+                                   text_length)
+
+        packet_data += text_section
+
+        packet_data += self._image_data
+
+        assert(len(packet_data) == total_length)
+
+        return packet_data
+
+    def decode(self, packet_data):
+        data_len = len(packet_data)
+        super(ImageTCPPacket, self).decode(packet_data)
+
+        packet_data = packet_data[self._get_header_size():]
+
+        total_length, self._image_type_id, self._image_source_id, \
+            self._timestamp, text_length = struct.unpack_from(
+                self._FMT_ENDIANNESS + self._FMT_PAYLOAD_HEADER, packet_data)
+
+        if data_len != total_length:
+            log.msg("*** Packet data does not match expected size of packet. "
+                    "Expected {0} bytes, got {1}. Unable to decode.".format(
+                        total_length, data_len))
+            return
+
+        payload_header_size = struct.calcsize(
+            self._FMT_ENDIANNESS + self._FMT_PAYLOAD_HEADER)
+        packet_data = packet_data[payload_header_size:]
+
+        # packet data now contains the vardata section only.
+        text_data = packet_data[:text_length]
+        self._image_data = packet_data[text_length:]
+
+        # text data consists of the following fields separated by 0x1E:
+        #  + title
+        #  + description
+        #  + mime type
+        #  + metadata
+
+        bits = text_data.split('\x1E')
+        self._title = bits[0]
+        self._description = bits[1]
+        self._mime_type = bits[2]
+        self._metadata = bits[3]
+
+    @staticmethod
+    def packet_size_bytes_required():
+        # packet type - 1 byte
+        # reserved    - 1 byte
+        # length      - 4 bytes
+        return 6
+
+    @staticmethod
+    def packet_size(packet_header):
+
+        return struct.unpack_from(ImageTCPPacket._FMT_ENDIANNESS + "L",
+                             packet_header[2:])[0]
+
+
+class ImageAcknowledgementTCPPacket(TcpPacket):
+    """
+    This packet contains a list of images the server has committed to its
+    database. It consists of a record count followed by a variable length
+    list of fixed size records.
+
+    The packets Type ID is 0x11.
+
+    +------+----------------+----------------+----------------+----------------+
+    |Octet |       0        |       1        |       2        |       3        |
+    +------+----------------+----------------+----------------+----------------+
+    |   Bit| 0 1 2 3 4 5 6 7| 0 1 2 3 4 5 6 7| 0 1 2 3 4 5 6 7| 0 1 2 3 4 5 6 7|
+    +------+----------------+----------------+----------------+----------------+
+    | 0   0|  Packet Type   | Reserved       | Record Count   | Record 1       |
+    +------+----------------+----------------+----------------+                +
+    | 4  32|                                                                   |
+    +------+----------------+----------------+----------------+----------------+
+    | 8  64| Record 2...                                                       |
+    +------+----------------+----------------+----------------+----------------+
+
+    One acknowledgement record looks like this:
+    +------+----------------+----------------+----------------+----------------+
+    |Octet |       0        |       1        |       2        |       3        |
+    +------+----------------+----------------+----------------+----------------+
+    |   Bit| 0 1 2 3 4 5 6 7| 0 1 2 3 4 5 6 7| 0 1 2 3 4 5 6 7| 0 1 2 3 4 5 6 7|
+    +------+----------------+----------------+----------------+----------------+
+    | 0   0|  Image timestamp                                                  |
+    +------+----------------+----------------+----------------+----------------+
+    | 4  32| Source ID      | Type ID        |
+    +------+----------------+----------------+
+    """
+
+    _FMT_HEADER = "B"
+    _FMT_RECORD = "LBB"
+
+    def __init__(self):
+        super(ImageAcknowledgementTCPPacket, self).__init__(0x11)
+        self._images = []
+
+    def add_image(self, source_id, type_id, timestamp):
+        self._images.append((source_id, type_id, timestamp))
+
+    @property
+    def images(self):
+        return self._images
+
+    def encode(self):
+        packet_data = super(ImageAcknowledgementTCPPacket, self).encode()
+
+        packet_data += struct.pack(self._FMT_ENDIANNESS +self._FMT_HEADER,
+                                   len(self._images))
+
+        for image in self._images:
+            packet_data += struct.pack(self._FMT_ENDIANNESS + self._FMT_RECORD,
+                                       timestamp_encode(image[2]),  # timestamp
+                                       image[0],  # source
+                                       image[1])  # type
+
+        return packet_data
+
+    def decode(self, packet_data):
+        super(ImageAcknowledgementTCPPacket, self).decode(packet_data)
+
+        packet_data = packet_data[self._get_header_size():]
+
+        record_count, = struct.unpack_from(
+            self._FMT_ENDIANNESS + self._FMT_HEADER,
+            packet_data)
+
+        record_data = packet_data[struct.calcsize(self._FMT_ENDIANNESS +
+                                                  self._FMT_HEADER):]
+
+        record_size = struct.calcsize(self._FMT_ENDIANNESS + self._FMT_RECORD)
+
+        if len(record_data) != record_count * record_size:
+            log.msg("*** ERROR: Record section size is incorrect. "
+                    "Expected {0}, got {1}. Unable to decode packet.".format(
+                        record_count*record_size, len(record_data)))
+
+        while len(record_data) > 0:
+            ts, src, typ = struct.unpack_from(
+                self._FMT_ENDIANNESS + self._FMT_RECORD, record_data)
+            self._images.append((src, typ, timestamp_decode(ts)))
+
+            record_data = record_data[record_size:]
+
+    @staticmethod
+    def packet_size_bytes_required():
+        header_size = struct.calcsize(
+            ImageAcknowledgementTCPPacket._FMT_ENDIANNESS +
+            ImageAcknowledgementTCPPacket._FMT_HEADER)
+        packet_header_size = ImageAcknowledgementTCPPacket._get_header_size()
+        return header_size + packet_header_size
+
+    @staticmethod
+    def packet_size(packet_header):
+        packet_type, reserved, record_count = struct.unpack_from(
+            "!BBB", packet_header)
+
+        record_size = struct.calcsize(
+            ImageAcknowledgementTCPPacket._FMT_ENDIANNESS +
+            ImageAcknowledgementTCPPacket._FMT_RECORD)
+        header_size = struct.calcsize(
+            ImageAcknowledgementTCPPacket._FMT_ENDIANNESS +
+            ImageAcknowledgementTCPPacket._FMT_HEADER)
+        packet_header_size = ImageAcknowledgementTCPPacket._get_header_size()
+
+        return packet_header_size + header_size + record_count * record_size

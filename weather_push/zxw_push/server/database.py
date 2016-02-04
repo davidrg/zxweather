@@ -3,10 +3,14 @@
 Database functionality used by the WeatherPush server.
 """
 from datetime import datetime
+
+import psycopg2
 from psycopg2.extras import DictCursor
 
 from twisted.enterprise import adbapi
 from twisted.internet import defer
+from twisted.python import log
+
 from zxw_push.common.database import wh1080_sample_query
 from zxw_push.common.database import davis_sample_query
 from zxw_push.common.database import generic_sample_query
@@ -58,6 +62,79 @@ class ServerDatabase(object):
             self._station_code_hw_type[code] = hw_type
 
         defer.returnValue(result)
+
+    @defer.inlineCallbacks
+    def get_image_type_codes(self):
+        """
+        Gets a list of all image type codes in the database.
+        """
+        query = """
+        select code
+        from image_type
+        """
+
+        result = yield self._conn.runQuery(query)
+
+        defer.returnValue(result)
+
+    @defer.inlineCallbacks
+    def get_image_sources(self):
+        """
+        Gets a list of all image sources codes in the database and which station
+        code each source code is assocaited with.
+        """
+
+        query = """
+        select src.code as source_code,
+               stn.code as station_code
+        from image_source src
+        inner join station stn on stn.station_id = src.station_id
+        """
+
+        result = yield self._conn.runQuery(query)
+
+        defer.returnValue(result)
+
+    @defer.inlineCallbacks
+    def store_image(self, source_code, type_code, timestamp, title, description,
+                    mime_type, metadata, image_data):
+
+        # Get the type ID
+        # TODO: cache this
+        query = "select image_type_id from image_type where code = %s"
+        result = yield self._conn.runQuery(query, (type_code, ))
+        type_id = result[0][0]
+
+        # Get the source ID
+        # TODO: cache this
+        query = "select image_source_id from image_source where code = %s"
+        result = yield self._conn.runQuery(query, (source_code, ))
+        source_id = result[0][0]
+
+        query = """
+        select image_id
+        from image
+        where image_type_id = %s
+          and image_source_id = %s
+          and date_trunc('second', time_stamp) = %s at time zone 'GMT'
+        """
+        result = yield self._conn.runQuery(query, (type_id, source_id,
+                                                   timestamp))
+        if result is not None and len(result) > 0:
+            log.msg("Image {0}/{1}/{2} already exists as {3}. Ignoring.".format(
+                type_id, source_id, timestamp, result[0][0]
+            ))
+            return
+
+        query = """
+        insert into image(image_type_id, image_source_id, time_stamp, title,
+                          description, image_data, mime_type, metadata)
+                    values(%s, %s, %s  at time zone 'GMT', %s, %s, %s, %s, %s)
+        """
+        yield self._conn.runOperation(query, (type_id, source_id, timestamp,
+                                      title, description,
+                                      psycopg2.Binary(image_data), mime_type,
+                                      metadata))
 
     @defer.inlineCallbacks
     def store_live_data(self, station_code, live_record):

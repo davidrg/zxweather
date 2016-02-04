@@ -4,7 +4,7 @@ from zxw_push.common.packets.common import Packet, WeatherRecord, \
     LiveDataRecord, SampleDataRecord
 from zxw_push.common.packets.tcp_packets import AuthenticateTCPPacket, \
     StationInfoTCPPacket, WeatherDataTCPPacket, SampleAcknowledgementTCPPacket, \
-    AuthenticateFailedTCPPacket
+    AuthenticateFailedTCPPacket, ImageTCPPacket, ImageAcknowledgementTCPPacket
 from zxw_push.common.packets.udp_packets import StationInfoRequestUDPPacket, \
     StationInfoResponseUDPPacket, WeatherDataUDPPacket, \
     SampleAcknowledgementUDPPacket, UDPPacket
@@ -25,7 +25,8 @@ _PACKET_TYPES = {
     0x07: WeatherDataTCPPacket,
     0x08: SampleAcknowledgementTCPPacket,
     0x09: AuthenticateFailedTCPPacket,
-    #0x10: ImagePacket,
+    0x10: ImageTCPPacket,
+    0x11: ImageAcknowledgementTCPPacket,
 }
 
 _TCP_PACKET_TYPES = [
@@ -34,7 +35,8 @@ _TCP_PACKET_TYPES = [
     0x07,   # WeatherDataTCPPacket
     0x08,   # SampleAcknowledgementTCPPacket
     0x09,   # AuthenticateFailedTCPPacket
-    #0x10,   # ImagePacket
+    0x10,   # ImageTCPPacket
+    0x11,   # ImageAcknowledgementTCPPacket
 ]
 
 

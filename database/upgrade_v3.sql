@@ -120,6 +120,8 @@ CREATE INDEX replication_status_status_site_id_idx
   USING btree
   (status, site_id);
 
+-- A table for tracking types of images (eg, a Camera image, a Weather Satellite
+-- image, a Weather Satellite sound recording, etc)
 create table image_type (
   image_type_id serial primary key not null,
   code varchar(5) unique not null,
@@ -133,6 +135,8 @@ comment on column image_type.type_name is 'Descriptive name of the image type';
 -- Only one supported image type for now - Camera pictures
 insert into image_type(code, type_name) values('CAM', 'Camera');
 
+-- Where an image came from (a particular camera, a weather satellite receiving
+-- station, etc)
 create table image_source (
   image_source_id serial primary key not null,
   code varchar(5) unique not null,
@@ -148,6 +152,7 @@ comment on column image_source.station_id is 'Station the source is associated w
 comment on column image_source.source_name is 'Name of the source';
 comment on column image_source.description is 'Description of the source';
 
+-- Images.
 create table image (
   image_id serial primary key not null,
   image_type_id integer not null references image_type(image_type_id),
@@ -169,6 +174,37 @@ comment on column image.image_data is 'The raw image binary data';
 comment on column image.mime_type is 'Image MIME type';
 comment on column image.metadata is 'Any additional data for this image';
 
+ALTER TABLE image
+  ADD CONSTRAINT unq_image_source_timestamp UNIQUE (image_source_id, image_type_id, time_stamp);
+COMMENT ON CONSTRAINT unq_image_source_timestamp ON image
+  IS 'Each image for an image source must have a unique timestamp and type';
+
+
+-- A table for tracking the replication status of images
+create type image_status as enum('pending', 'awaiting_confirmation', 'done', 'done_resize');
+comment on type image_status is 'Image replication status';
+
+create table image_replication_status (
+  image_id integer not null references image(image_id),
+  site_id integer not null references remote_site(site_id),
+  status image_status not null default 'pending',
+  status_time timestamptz default NOW(),
+  retries integer not null default 0,
+  primary key(image_id, site_id)
+);
+
+comment on table image_replication_status is 'Replication status for each image';
+comment on column image_replication_status.image_id is 'ID of the image';
+comment on column image_replication_status.site_id is 'Remote site';
+comment on column image_replication_status.status is 'Status of the sample on the remote site';
+comment on column image_replication_status.status_time is 'Time the status last changed';
+comment on column image_replication_status.retries is 'Number of times the image has been transmitted';
+
+CREATE INDEX image_replication_status_status_site_id_idx
+  ON image_replication_status
+  USING btree
+  (status, site_id);
+
 -- A table for data specific to Davis-compatible hardware.
 create table davis_sample (
   sample_id integer not null primary key references sample(sample_id),
@@ -186,11 +222,9 @@ create table davis_sample (
   high_uv_index numeric(3,1),
   forecast_rule_id int
 
--- These columns are not currently stored as I've no way of testing them with
--- my Vantage Vue and I doubt most people would have any of the extra sensors.
--- I've left UV enabled as not recording that data at all is more likely to
--- affect other potential users. Its still not displayed anywhere as I've
--- no way of testing it.
+  -- These columns are not currently stored as I've no way of testing them with
+  -- my Vantage Vue or Cabled Vantage Pro2 Plus and I doubt most people would
+  -- have any of the extra sensors.
 
 --leaf_temperature_A float,
 --leaf_temperature_B float,
@@ -500,6 +534,39 @@ COMMENT ON FUNCTION add_replication_status() IS 'Adds a new replication status r
 CREATE TRIGGER add_replication_status AFTER INSERT
    ON sample FOR EACH ROW
    EXECUTE PROCEDURE public.add_replication_status();
+
+
+CREATE OR REPLACE FUNCTION add_image_replication_status()
+  RETURNS trigger AS
+  $BODY$
+DECLARE
+
+BEGIN
+    -- If its an insert then add a new replication status record for each remote
+    -- site
+    IF(TG_OP = 'INSERT') THEN
+        insert into image_replication_status(site_id, image_id)
+        select rs.site_id, NEW.image_id
+        from  remote_site rs
+        where rs.site_id not in (
+          select rs.site_id
+          from remote_site rs
+          inner join image_replication_status as repl on repl.site_id = rs.site_id
+                                                     and repl.image_id = NEW.image_id
+        );
+
+        perform pg_notify('new_image', NEW.image_id::varchar);
+    END IF;
+
+    RETURN NEW;
+END;
+$BODY$
+LANGUAGE plpgsql VOLATILE;
+COMMENT ON FUNCTION add_image_replication_status() IS 'Adds a new replication status record for each remote site for a new image.';
+
+CREATE TRIGGER add_image_replication_status AFTER INSERT
+   ON image FOR EACH ROW
+   EXECUTE PROCEDURE public.add_image_replication_status();
 
 
 CREATE OR REPLACE FUNCTION compute_sample_values()

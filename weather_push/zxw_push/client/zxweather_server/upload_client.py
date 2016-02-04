@@ -71,8 +71,6 @@ class ZXDUploadClient(object):
         :param finished_callback: Called when the upload client has
         successfully disconnected from the server
         :type finished_callback: callable
-        :param ready_callback: Called when the upload client is ready.
-        :type ready_callback: callable
         :param client_name: The name of the client application.
         :type client_name: str
         :param client_version: The version string of the client application
