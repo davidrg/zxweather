@@ -18,6 +18,7 @@ from months import month_name
 from ui import get_nav_urls, make_station_switch_urls, build_alternate_ui_urls
 from ui import validate_request, html_file
 from ui.day_page import get_station_day_images
+from ui.images import get_all_station_images
 
 __author__ = 'David Goodwin'
 
@@ -267,6 +268,41 @@ def get_station_reception_standard(ui, station):
     else:
         raise web.NotFound()
 
+def get_station_images(ui, station):
+    station_id = get_station_id(station)
+    current_location = '/*/' + station + '/images.html'
+    day = datetime.now().date()
+    def _switch_func(station_id):
+        return True
+
+    page_data = {
+        "station_name": get_station_name(station_id),
+        "stations": make_station_switch_urls(
+            get_stations(), current_location, _switch_func, (day.year, day.month, day.day))
+    }
+
+    images = get_all_station_images(station_id)
+
+    if ui in ('s', 'm', 'a'):
+        nav_urls = get_nav_urls(station, current_location)
+        msg = get_station_message(station_id)
+        return modern_templates.station_images(
+            nav=nav_urls,
+            sitename=get_site_name(station_id),
+            ui=ui,
+            alt_ui_disabled=config.disable_alt_ui,
+            archive_mode=in_archive_mode(station_id),
+            page_data=page_data,
+            switch_url=build_alternate_ui_urls(current_location),
+            station=station,
+            statno_message=msg[0],
+            station_message_ts=msg[1],
+            basic_ui_available=False,  # TODO: turn this on
+            images=images
+        )
+    else:
+        raise web.NotFound()  # TODO: this
+
 
 class reception(object):
     """
@@ -290,3 +326,19 @@ class reception(object):
         html_file()
 
         return get_station_reception_standard(ui, station)
+
+
+class all_images(object):
+    """
+    Page giving all images for a particular station for all time
+    """
+    def GET(self, ui, station):
+        validate_request(ui, station)
+
+        if ui == 'b':
+            # TODO: basic ui
+            raise web.NotFound()
+
+        html_file()
+
+        return get_station_images(ui, station)

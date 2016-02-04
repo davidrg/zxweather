@@ -791,7 +791,7 @@ def get_image_mime_type(image_id):
     return None
 
 
-def get_images_for_source(source_id, day):
+def get_images_for_source(source_id, day=None):
     query = """
     select i.time_stamp,
            src.code as source,
@@ -802,7 +802,7 @@ def get_images_for_source(source_id, day):
     inner join image_source src on src.image_source_id = i.image_source_id
     inner join station stn on stn.station_id = src.station_id
     where src.image_source_id = $source_id
-      and i.time_stamp::date = $day
+      and (i.time_stamp::date = $day or $day is null)
     order by i.time_stamp
     """
 

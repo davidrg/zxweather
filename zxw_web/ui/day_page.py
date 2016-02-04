@@ -181,7 +181,15 @@ def get_day_page(ui, station, day):
         data.current_data_ts, data.current_data, \
             data.nw_type = get_live_data(station_id)
 
-        data_age = datetime.combine(day, data.current_data_ts)
+        if data.current_data_ts is not None:
+            data_age = datetime.combine(day, data.current_data_ts)
+
+        # Else: Current data (or something like it) is not available from
+        # the database at all. We've no idea what the age of the data on
+        # this page is. Leave data_age as none. The day cache control
+        # function will look up the most recent sample for the day and use
+        # that as the data age instead.
+
 
     data.prev_url, data.next_url = get_day_nav_urls(ui, station, data.date_stamp)
 

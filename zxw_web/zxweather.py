@@ -51,6 +51,7 @@ urls = (
     '/(?:s|b|m|a)/(?:\w*)/(?:\d+)', 'ui.dir_redirect',                        # Redirect: year
     '/(s|b|m|a)/(\w*)/now', 'ui.now',                                         # Go to todays page
     '/(s|b|m|a)/(\w*)/reception\.html', 'ui.station_page.reception',          # Reception page
+    '/(s|b|m|a)/(\w*)/images\.html', 'ui.station_page.all_images',            # All images for a station
     '/(s|b|m|a)/(\w*)/(?:index\.html)?', 'ui.station_page.station',           # Index page
     '/(?:s|b|m|a)/(?:\w+)', 'ui.dir_redirect',                                # Redirect: station
     '/(?:s|m|a)/(\w*)/about.json', 'data.about_nav',                          #
