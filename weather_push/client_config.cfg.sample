@@ -79,7 +79,21 @@ password=password123
 # remote hosts key will not be validated.
 #host_key=
 
+##############################################################################
+### Image Configuration ######################################################
+##############################################################################
+[images]
 
+# Images can only be sent over the TCP Transport. If you're using UDP then
+# the client will need to make a second TCP connection to use for sending
+# images. You can configure the TCP port the server is listening on below:
+tcp_port=4296
+
+# If images should be resized before transmission
+resize_images=False
+
+new_width=640
+new_heigh=368
 
 
 

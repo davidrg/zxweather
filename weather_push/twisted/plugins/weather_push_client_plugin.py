@@ -34,6 +34,7 @@ class ZXWPushClientServiceMaker(object):
         S_RABBITMQ = 'rabbitmq'
         S_TRANSPORT = 'transport'
         S_SSH = 'ssh'
+        S_IMAGES = 'images'
 
         config = ConfigParser.ConfigParser()
         config.read([filename])
@@ -81,9 +82,16 @@ class ZXWPushClientServiceMaker(object):
         elif transport_type == "udp" or transport_type == "tcp":
             authorisation_code = config.getint(S_TRANSPORT, "authorisation_code")
 
+        tcp_port = config.getint(S_IMAGES, "tcp_port")
+        resize_images = config.getboolean(S_IMAGES, "resize_images")
+        new_width = config.getint(S_IMAGES, "new_width")
+        new_height = config.getint(S_IMAGES, "new_height")
+        new_size = (new_width, new_height)
+
         return dsn, mq_host, mq_port, mq_exchange, mq_user, mq_password, \
             mq_vhost, transport_type, hostname, port, ssh_user, \
-            ssh_password, ssh_host_key, authorisation_code
+            ssh_password, ssh_host_key, authorisation_code, resize_images, \
+            new_size, tcp_port
 
     def makeService(self, options):
         """
@@ -94,7 +102,8 @@ class ZXWPushClientServiceMaker(object):
 
         dsn, mq_host, mq_port, mq_exchange, mq_user, mq_password, \
             mq_vhost, transport_type, hostname, port, ssh_user, \
-            ssh_password, ssh_host_key, authorisation_code = self._readConfigFile(
+            ssh_password, ssh_host_key, authorisation_code, resize_images,\
+            new_size, tcp_port = self._readConfigFile(
                 options['config-file'])
 
         # All OK. Go get the service.
@@ -112,7 +121,10 @@ class ZXWPushClientServiceMaker(object):
             mq_user,
             mq_password,
             mq_vhost,
-            authorisation_code
+            authorisation_code,
+            resize_images,
+            new_size,
+            tcp_port
         )
 
 

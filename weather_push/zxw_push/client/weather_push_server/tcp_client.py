@@ -1,8 +1,9 @@
+# coding=utf-8
 """
 Client implementation of Weather Push TCP protocol. It works largely the same
 way as the UDP implementation but with different packet types.
 """
-import datetime
+import json
 
 from twisted.internet import reactor, defer
 from twisted.internet import protocol
@@ -15,9 +16,8 @@ from zxw_push.common.packets import decode_packet, LiveDataRecord, \
     SampleDataRecord, AuthenticateTCPPacket, WeatherDataTCPPacket, \
     StationInfoTCPPacket, SampleAcknowledgementTCPPacket, \
     AuthenticateFailedTCPPacket, get_packet_size, \
-    get_data_required_for_size_calculation
-import csv
-
+    get_data_required_for_size_calculation, ImageTCPPacket, \
+    ImageAcknowledgementTCPPacket
 
 __author__ = 'david'
 
@@ -25,6 +25,21 @@ __author__ = 'david'
 # None to disable statistics logging.
 _PACKET_STATISTICS_FILE = None
 
+def toHexString(string):
+    """
+    Converts the supplied string to hex.
+    :param string: Input string
+    :return:
+    """
+    result = ""
+    for char in string:
+
+        hex_encoded = hex(ord(char))[2:]
+        if len(hex_encoded) == 1:
+            hex_encoded = '0' + hex_encoded
+
+        result += r'\x{0}'.format(hex_encoded)
+    return result
 
 # No control over it being an old-style class
 # noinspection PyClassicStyleClass
@@ -35,13 +50,20 @@ class WeatherPushProtocol(protocol.Protocol):
     _STATION_LIST_TIMEOUT = 60  # seconds to wait for a response
 
     def __init__(self, authorisation_code,
-                 confirmed_sample_func):
+                 confirmed_sample_func, new_image_size):
 
         self._authorisation_code = authorisation_code
         self._confirmed_sample_func = confirmed_sample_func
 
+        self._resize_images = True
+        self._new_image_size = new_image_size
+
+        if new_image_size is None:
+            self._resize_images = False
+
         self.Ready = Event()
         self.ReceiptConfirmation = Event()
+        self.ImageReceiptConfirmation = Event()
 
         # These are all keyed by station id
         self._live_sequence_id = {}  # Sequencers for each station
@@ -50,6 +72,10 @@ class WeatherPushProtocol(protocol.Protocol):
 
         self._stations = None
         self._station_ids = None
+        self._image_type_ids = None
+        self._image_type_codes = None
+        self._image_source_ids = None
+        self._image_source_codes = None
         self._station_codes = None
 
         self._authentication_retries = 0
@@ -58,14 +84,14 @@ class WeatherPushProtocol(protocol.Protocol):
 
         self._receive_buffer = ''
 
-        self._authentication_failed = False
-
         # How many compressed live records we should send before forcing a full
         # (uncompressed) record
         self._max_compressed_live_records = 30
 
         self._compressed_live_records_remaining = \
             self._max_compressed_live_records
+
+        self._authentication_failed = False
 
     def connectionMade(self):
         """
@@ -80,28 +106,34 @@ class WeatherPushProtocol(protocol.Protocol):
         Called whenever a packet arrives.
         :param data: Packet data
         """
-        log.msg("dataReceived")####
-
         self._receive_buffer += data
 
-        if len(self._receive_buffer) < get_data_required_for_size_calculation(
-                self._receive_buffer):
-            return
+        while len(self._receive_buffer) > 0:
+            if len(self._receive_buffer) < \
+                    get_data_required_for_size_calculation(
+                        self._receive_buffer):
+                # Insufficient data in the buffer to calcualte the packet length
+                return
 
-        packet_size = get_packet_size(self._receive_buffer)
+            packet_size = get_packet_size(self._receive_buffer)
 
-        if len(self._receive_buffer) >= packet_size:
-            packet_data = self._receive_buffer[:packet_size]
-            self._receive_buffer = self._receive_buffer[packet_size:]
+            if len(self._receive_buffer) >= packet_size:
+                packet_data = self._receive_buffer[:packet_size]
+                self._receive_buffer = self._receive_buffer[packet_size:]
 
-            packet = decode_packet(packet_data)
+                packet = decode_packet(packet_data)
 
-            if isinstance(packet, StationInfoTCPPacket):
-                self._handle_station_list(packet)
-            elif isinstance(packet, SampleAcknowledgementTCPPacket):
-                self._handle_sample_acknowledgements(packet)
-            elif isinstance(packet, AuthenticateFailedTCPPacket):
-                self._handle_failed_authentication()
+                if isinstance(packet, StationInfoTCPPacket):
+                    self._handle_station_list(packet)
+                elif isinstance(packet, SampleAcknowledgementTCPPacket):
+                    self._handle_sample_acknowledgements(packet)
+                elif isinstance(packet, AuthenticateFailedTCPPacket):
+                    self._handle_failed_authentication()
+                elif isinstance(packet, ImageAcknowledgementTCPPacket):
+                    self._handle_image_acknowledgement(packet)
+            else:
+                # Insufficient data in the buffer to decode the packet
+                return
 
     def _send_packet(self, packet):
         """
@@ -110,19 +142,14 @@ class WeatherPushProtocol(protocol.Protocol):
         :type packet: Packet
         :return:
         """
-        log.msg("sendPacket")####
-        log.msg(type(packet))
         encoded = packet.encode()
-        log.msg("writePacket")###
 
         if isinstance(encoded, bytearray):
-            log.msg("BYTE ARRAY!!!")
             encoded = bytes(encoded)
 
         self.transport.write(encoded)
 
     def _authenticate(self):
-        log.msg("authenticate")####
         packet = AuthenticateTCPPacket(self._authorisation_code)
 
         self._send_packet(packet)
@@ -143,6 +170,7 @@ class WeatherPushProtocol(protocol.Protocol):
     def _handle_failed_authentication(self):
         log.msg("Authentication failed.")
         self._authentication_failed = True
+        self.transport.loseConnection()
 
     def _handle_station_list(self, station_list_packet):
         """
@@ -151,10 +179,13 @@ class WeatherPushProtocol(protocol.Protocol):
                                     submit data for
         :type station_list_packet: StationInfoTCPPacket
         """
-
-        self._stations = {}
-        self._station_ids = {}
-        self._station_codes = {}
+        self._stations = dict()
+        self._station_ids = dict()
+        self._station_codes = dict()
+        self._image_type_ids = dict()
+        self._image_type_codes = dict()
+        self._image_source_ids = dict()
+        self._image_source_codes = dict()
 
         station_codes = []
 
@@ -174,10 +205,26 @@ class WeatherPushProtocol(protocol.Protocol):
             log.msg("\t- station {0} hardware {1} station id {2}".format(
                 station_code, station.hardware_type, station_id))
 
-        log.msg("Now ready.")####
+        for image_type in station_list_packet.image_types:
+            type_code = image_type[0]
+            type_id = image_type[1]
+            self._image_type_ids[type_code] = type_id
+            self._image_type_codes[type_id] = type_code
+            log.msg("\t- image type {0} id {1}".format(type_code, type_id))
+
+        for image_source in station_list_packet.image_sources:
+            source_code = image_source[0]
+            source_id = image_source[1]
+            self._image_source_ids[source_code] = source_id
+            self._image_source_codes[source_id] = source_code
+            log.msg("\t- image source {0} id {1}".format(source_code,
+                                                         source_id))
+
         if not self._ready_event_fired:
             self.Ready.fire(station_codes)
             self._ready_event_fired = True
+
+        log.msg("Client Ready.")
 
     def _handle_sample_acknowledgements(self, packet):
         if self._stations is None:
@@ -201,7 +248,6 @@ class WeatherPushProtocol(protocol.Protocol):
         :param hardware_type: Type of hardware that generated the record
         :type hardware_type: str
         """
-        log.msg("send_live")####
         if self._stations is None:
             return
 
@@ -240,7 +286,7 @@ class WeatherPushProtocol(protocol.Protocol):
         :param hardware_type: Type of hardware that generated the sample
         :param hold: Ignored
         """
-        log.msg("send_sample")####
+
         # To suppress warning about unused parameter
         if hold:
             pass
@@ -260,6 +306,60 @@ class WeatherPushProtocol(protocol.Protocol):
 
         self._outgoing_samples[station_id].append((sample, hardware_type))
 
+    def _handle_image_acknowledgement(self, packet):
+        for image in packet.images:
+            source_id = image[0]
+            type_id = image[1]
+            timestamp = image[2]
+
+            source_code = self._image_source_codes[source_id]
+            type_code = self._image_type_codes[type_id]
+
+            self.ImageReceiptConfirmation.fire(source_code, type_code,
+                                               timestamp, self._resize_images)
+
+    def send_image(self, image):
+        type_code = image['image_type_code']
+        source_code = image['image_source_code']
+        time_stamp = image['time_stamp']
+        title = image['title']
+        description = image['description']
+        mime_type = image['mime_type']
+        metadata = image['metadata']
+        data = image['image_data']
+
+        image_type_id = self._image_type_ids[type_code]
+        image_source_id = self._image_source_ids[source_code]
+
+        if self._resize_images:
+            log.msg("Resizing image...")
+            from io import BytesIO
+            from PIL import Image
+            import mimetypes
+
+            original = BytesIO(data)
+
+            img = Image.open(original)
+
+            img.thumbnail(self._new_image_size, Image.ANTIALIAS)
+
+            ext = mimetypes.guess_extension(mime_type)
+            if ext == ".jpe":
+                ext = ".jpeg"
+            ext = ext[1:]
+
+            out = BytesIO()
+            img.save(out, format=ext)
+            data = out.getvalue()
+            out.close()
+            original.close()
+
+        packet = ImageTCPPacket(image_type_id, image_source_id, time_stamp,
+                                title, description, mime_type, metadata,
+                                str(data))
+
+        self._send_packet(packet)
+
     # Cant be static as we need to stay compatible with other client classes
     # noinspection PyMethodMayBeStatic
     def flush_samples(self):
@@ -274,18 +374,6 @@ class WeatherPushProtocol(protocol.Protocol):
         sendSample) does nothing.
         """
         pass
-
-    @staticmethod
-    def _log_record_statistics(packet_id, record_type, original_size,
-                               reduction_size, algorithm, live_id=None):
-        if _PACKET_STATISTICS_FILE is not None:
-            with open(_PACKET_STATISTICS_FILE, "ab") as csv_file:
-                writer = csv.writer(csv_file)
-                writer.writerow([
-                    datetime.datetime.now(),
-                    packet_id, record_type, original_size, reduction_size,
-                    algorithm, live_id
-                ])
 
     def _make_live_weather_record(self, data, previous_live, previous_sample,
                                   hardware_type, station_id):
@@ -407,8 +495,6 @@ class WeatherPushProtocol(protocol.Protocol):
             previous_live = previous_live_record[0]
             previous_live_seq = previous_live_record[1]
 
-            log.msg("Station {1} Compress live against: {0}".format(
-                    previous_live_seq, station_id)) ###
             live_data["live_diff_sequence"] = previous_live_seq
 
         live_record = self._make_live_weather_record(

@@ -43,6 +43,7 @@ class WeatherDatabase(object):
         """
         """
         self.NewSample = Event()
+        self.NewImage = Event()
         self.EndOfSamples = Event()
         self.LiveUpdate = Event()
 
@@ -86,6 +87,62 @@ class WeatherDatabase(object):
 
         if self._database_ready and not self._processing_confirmations:
             self._process_confirmations()
+
+    @defer.inlineCallbacks
+    def confirm_image_receipt(self, image_source_code, image_type_code,
+                              time_stamp, resized):
+        """
+        Confirms that the remote system has received an image from the specified
+        image source with the specified timestamp.
+
+        Assuming there are never more than 256 image sources and 256 image types
+        identify images by their source, type and timestamp combined takes up
+        6 bytes and already has to be present in the original transmission of
+        the Image:
+          - Cost to send: 0
+          - Cost to receive: 6
+        Identifying them by the image ID would require the image ID to be
+        included in the original transmission where where it previously wasnt
+        required. Assuming there are never more than ~4 billion images:
+          - Cost to send: 4
+          - Cost to receive: 4
+        So identifying by source, type and timestamp is two bytes cheaper.
+
+        :param image_source_code: Source the image came from
+        :param image_type_code: The type of the image
+        :param time_stamp: Timestamp of the image
+        :param resized: If the image was originally transmitted resized instead
+                        of verbatim.
+        """
+        query = """
+            update image_replication_status iars
+            set status = %(status)s,
+            status_time = NOW()
+            from image_replication_status irs
+            inner join image i on i.image_id = irs.image_id
+            inner join image_source isrc on isrc.image_source_id = i.image_source_id
+            inner join image_type it on it.image_type_id = i.image_type_id
+            where date_trunc('second', i.time_stamp) = %(time_stamp)s::timestamp at time zone 'GMT'
+              and isrc.code = %(source_code)s
+              and it.code = %(type_code)s
+              and irs.site_id = %(site_id)s
+              and iars.image_id = irs.image_id
+              and iars.site_id=irs.site_id
+            """
+
+        status = 'done'
+        if resized:
+            status = 'done_resize'
+
+        parameters = {
+            'time_stamp': time_stamp,
+            'source_code': image_source_code,
+            'type_code': image_type_code,
+            'site_id': self._site_id,
+            'status': status
+        }
+
+        yield self._database_pool.runOperation(query, parameters)
 
     @defer.inlineCallbacks
     def get_last_confirmed_sample(self, station_code):
@@ -302,6 +359,17 @@ class WeatherDatabase(object):
 
         self._conn.runOperation(query, (sample_id, self._site_id))
 
+    def _update_image_replication_status(self, image_id):
+        query = """
+        update image_replication_status
+        set status = 'awaiting_confirmation',
+        status_time = NOW(),
+        retries = case when status = 'pending' then 0 else retries + 1 end
+        where image_id = %s and site_id = %s
+        """
+
+        self._conn.runOperation(query, (image_id, self._site_id))
+
     @defer.inlineCallbacks
     def _fetch_samples(self, station_code):
         log.msg("Fetch samples for {0}".format(station_code))
@@ -336,6 +404,56 @@ class WeatherDatabase(object):
 
         self.process_samples_result(result, hw_type)
 
+    @defer.inlineCallbacks
+    def _fetch_station_images(self, station_code):
+        log.msg("Fetching images for {0}...".format(station_code))
+
+        query = """
+        select i.image_id,
+               it.code as image_type_code,
+               isrc.code as image_source_code,
+               i.time_stamp at time zone 'GMT' as time_stamp,
+               i.title,
+               i.description,
+               i.mime_type,
+               i.metadata,
+               i.image_data
+        from image i
+        inner join image_type it on it.image_type_id = i.image_type_id
+        inner join image_source isrc on isrc.image_source_id = i.image_source_id
+        inner join image_replication_status irs on irs.image_id = i.image_id
+        inner join station s on s.station_id = isrc.station_id
+        where s.code = %(station_code)s
+          and irs.site_id = %(site_id)s
+          -- Grab everything that is pending
+          and (irs.status = 'pending' or (
+                  -- And everything that has been waiting for receipt confirmation for
+                  -- more than 5 minutes
+                  irs.status = 'awaiting_confirmation'
+                  and irs.status_time < NOW() - '10 minutes'::interval))
+        limit 5 -- images could take up a lot of ram.
+        """
+
+        parameters = {
+            'station_code': station_code,
+            'site_id': self._site_id,
+        }
+
+        result = yield self._conn.runQuery(query, parameters)
+
+        for data in result:
+            self._update_image_replication_status(data["image_id"])
+            self.NewImage.fire(data)
+
+    @defer.inlineCallbacks
+    def _fetch_images(self):
+        if not self._transmitter_ready:
+            # Client is not connected yet.
+            return
+
+        for station in self._remote_stations:
+            yield self._fetch_station_images(station)
+
     def observer(self, notify):
         """
         Called when ever notifications are received.
@@ -346,6 +464,8 @@ class WeatherDatabase(object):
             self._fetch_live(notify.payload)
         elif notify.channel == "new_sample":
             self._fetch_samples(notify.payload)
+        elif notify.channel == "new_image":
+            self._fetch_images()  # The payload is the ID of the new image
 
     def _store_hardware_types(self, result):
         self.station_code_hardware_type = {}
@@ -361,7 +481,7 @@ class WeatherDatabase(object):
     @defer.inlineCallbacks
     def _prepare_sample_queue(self):
         """
-        Make sure we the replication_status table is appropriately populated
+        Make sure we the replication status tables is appropriately populated
         for the remote site.
         :return:
         """
@@ -377,8 +497,8 @@ class WeatherDatabase(object):
             result = yield self._conn.runQuery(query, (self._hostname,))
 
             self._site_id = result[0][0]
-            log.msg("Rebuilding replication status for site {0}. This may take "
-                    "some time...".format(self._site_id))
+            log.msg("Rebuilding sample replication status for site {0}. This "
+                    "may take some time...".format(self._site_id))
 
             query = """
             insert into replication_status(site_id, sample_id)
@@ -397,6 +517,28 @@ class WeatherDatabase(object):
 
             yield self._conn.runOperation(query, (self._site_id,
                                                   self._site_id,))
+
+            log.msg("Rebuilding image replication status for site {0}. This "
+                    "may take some time...".format(self._site_id))
+
+            query = """
+            insert into image_replication_status(site_id, image_id)
+            select rs.site_id, image.image_id
+            from image, remote_site rs
+            where rs.site_id not in (
+            select rs.site_id
+            from image as image_inr
+            inner join remote_site rs on rs.site_id = %s
+            inner join image_replication_status as repl on repl.site_id = rs.site_id
+                   and repl.image_id = image_inr.image_id
+            where image_inr.image_id = image.image_id
+            )
+            and rs.site_id = %s
+            """
+
+            yield self._conn.runOperation(query, (self._site_id,
+                                                  self._site_id,))
+
             log.msg("Rebuild complete.")
         else:
             self._site_id = result[0][0]
@@ -423,6 +565,8 @@ class WeatherDatabase(object):
             lambda _: self._conn.runOperation("listen live_data_updated"))
         self._conn_d.addCallback(
             lambda _: self._conn.runOperation("listen new_sample"))
+        self._conn_d.addCallback(
+            lambda _: self._conn.runOperation("listen new_image"))
         self._conn_d.addCallback(lambda _: _set_database_ready())
         self._conn_d.addCallback(
             lambda _: log.msg('Connected to database. Now waiting for data.'))

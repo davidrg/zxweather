@@ -39,6 +39,14 @@ class WeatherPushTcpServer(protocol.Protocol):
         self._station_id_code = {}
         self._station_id_hardware_type = {}
 
+        self._image_type_id_seq = Sequencer()
+        self._image_type_code_id = dict()
+        self._image_type_id_code = dict()
+
+        self._image_source_id_seq = Sequencer()
+        self._image_source_code_id = dict()
+        self._image_source_id_code = dict()
+
         self._live_record_cache = {}
         self._live_record_cache_ids = {}
 
@@ -50,6 +58,8 @@ class WeatherPushTcpServer(protocol.Protocol):
         self._receive_buffer = ''
 
         self._authenticated = False
+
+        self._authorisation_code = authorisation_code
 
     def start_protocol(self, dsn):
         """
@@ -76,26 +86,41 @@ class WeatherPushTcpServer(protocol.Protocol):
         if not self._ready:
             reactor.callLater(1, self.dataReceived, "")
 
-        if len(self._receive_buffer) < get_data_required_for_size_calculation(
-                self._receive_buffer):
-            return
+        while len(self._receive_buffer) > 0:
 
-        packet_size = get_packet_size(self._receive_buffer)
+            if len(self._receive_buffer) < \
+                    get_data_required_for_size_calculation(
+                        self._receive_buffer):
+                # insufficient data to determine size of packet
+                return
 
-        if len(self._receive_buffer) >= packet_size:
-            packet_data = self._receive_buffer[:packet_size]
-            self._receive_buffer = self._receive_buffer[packet_size:]
+            packet_size = get_packet_size(self._receive_buffer)
 
-            packet = decode_packet(packet_data)
+            if len(self._receive_buffer) >= packet_size:
+                packet_data = self._receive_buffer[:packet_size]
+                self._receive_buffer = self._receive_buffer[packet_size:]
 
-            if isinstance(packet, AuthenticateTCPPacket):
-                self._send_station_info(packet.authorisation_code)
-            elif self._authenticated:
-                # These packets require authentication before they will be
-                # processed. Until the client has authenticated we'll just
-                # ignore them.
-                if isinstance(packet, WeatherDataTCPPacket):
-                    self._handle_weather_data(packet)
+                packet = decode_packet(packet_data)
+
+                if isinstance(packet, AuthenticateTCPPacket):
+                    self._send_station_info(packet.authorisation_code)
+                elif self._authenticated:
+                    # These packets require authentication before they will be
+                    # processed. Until the client has authenticated we'll just
+                    # ignore them.
+                    if isinstance(packet, WeatherDataTCPPacket):
+                        self._handle_weather_data(packet)
+                    elif isinstance(packet, ImageTCPPacket):
+                        self._handle_image_data(packet)
+                    else:
+                        log.msg("Unsupported packet type {0}".format(
+                            packet.packet_type))
+                else:
+                    log.msg("Ignoring packet of type {0} from unauthenticated "
+                            "client.".format(type(packet)))
+            else:
+                # Insufficient data to decode packet
+                return
 
     def _send_packet(self, packet):
         encoded = packet.encode()
@@ -127,6 +152,53 @@ class WeatherPushTcpServer(protocol.Protocol):
         defer.returnValue(station_set)
 
     @defer.inlineCallbacks
+    def _get_image_types(self):
+        image_types = yield self._db.get_image_type_codes()
+
+        result = []
+
+        for type_row in image_types:
+            type_code = type_row[0]
+
+            if type_code in self._image_type_code_id.keys():
+                type_id = self._image_type_code_id[type_code]
+            else:
+                type_id = self._image_type_id_seq()
+                self._image_type_code_id[type_code] = type_id
+                self._image_type_id_code[type_id] = type_code
+
+            result.append((type_code, type_id))
+
+        defer.returnValue(result)
+
+    @defer.inlineCallbacks
+    def _get_image_sources(self, stations):
+        """
+        Gets all image sources for a list of stations.
+
+        :param stations: A list of station codes to get image sources for
+        """
+        image_sources = yield self._db.get_image_sources()
+
+        result = []
+
+        for source in image_sources:
+            source_code = source[0]
+            station_code = source[1]
+
+            if station_code in stations:
+                if source_code in self._image_source_code_id.keys():
+                    source_id = self._image_source_code_id[source_code]
+                else:
+                    source_id = self._image_source_id_seq()
+                    self._image_source_code_id[source_code] = source_id
+                    self._image_source_id_code[source_id] = source_code
+
+                result.append((source_code, source_id))
+
+        defer.returnValue(result)
+
+    @defer.inlineCallbacks
     def _send_station_info(self, authorisation_code):
 
         if authorisation_code != self._authorisation_code:
@@ -144,9 +216,21 @@ class WeatherPushTcpServer(protocol.Protocol):
         packet = StationInfoTCPPacket()
 
         station_set = yield self._get_stations(authorisation_code)
+        image_type_set = yield self._get_image_types()
+        image_source_set = yield self._get_image_sources(
+            [x[0] for x in station_set])  # x[0] is the station code
 
         for station in station_set:
+            #                  code        hw_type     station_id
             packet.add_station(station[0], station[1], station[2])
+
+        for image_type in image_type_set:
+            #                     code           id
+            packet.add_image_type(image_type[0], image_type[1])
+
+        for image_source in image_source_set:
+            #                       code             id
+            packet.add_image_source(image_source[0], image_source[1])
 
         # Client has probably just reconnected so we'll clear some state so
         # that the client can start sequence IDs from 0, etc.
@@ -339,6 +423,22 @@ class WeatherPushTcpServer(protocol.Protocol):
         # TODO: Broadcast to message bus if configured
 
         defer.returnValue(True)
+
+    @defer.inlineCallbacks
+    def _handle_image_data(self, packet):
+        source_code = self._image_source_id_code[packet.image_source_id]
+        type_code = self._image_type_id_code[packet.image_type_id]
+
+        yield self._db.store_image(source_code, type_code, packet.timestamp,
+                                   packet.title, packet.description,
+                                   packet.mime_type, packet.metadata,
+                                   packet.image_data)
+
+        ack = ImageAcknowledgementTCPPacket()
+        ack.add_image(packet.image_source_id, packet.image_type_id,
+                      packet.timestamp)
+
+        self._send_packet(ack)
 
     @defer.inlineCallbacks
     def _handle_weather_data(self, packet):

@@ -553,6 +553,38 @@ comment on column image.image_data is 'The raw image binary data';
 comment on column image.mime_type is 'Image MIME type';
 comment on column image.metadata is 'Any additional data for this image';
 
+ALTER TABLE image
+  ADD CONSTRAINT unq_image_source_timestamp UNIQUE (image_source_id, image_type_id, time_stamp);
+COMMENT ON CONSTRAINT unq_image_source_timestamp ON image
+  IS 'Each image for an image source must have a unique timestamp and type';
+
+
+-- A table for tracking the replication status of images
+create type image_status as enum('pending', 'awaiting_confirmation', 'done', 'done_resize');
+comment on type image_status is 'Image replication status';
+
+create table image_replication_status (
+  image_id integer not null references image(image_id),
+  site_id integer not null references remote_site(site_id),
+  status image_status not null default 'pending',
+  status_time timestamptz default NOW(),
+  retries integer not null default 0,
+  primary key(image_id, site_id)
+);
+
+comment on table image_replication_status is 'Replication status for each image';
+comment on column image_replication_status.image_id is 'ID of the image';
+comment on column image_replication_status.site_id is 'Remote site';
+comment on column image_replication_status.status is 'Status of the sample on the remote site';
+comment on column image_replication_status.status_time is 'Time the status last changed';
+comment on column image_replication_status.retries is 'Number of times the image has been transmitted';
+
+CREATE INDEX image_replication_status_status_site_id_idx
+  ON image_replication_status
+  USING btree
+  (status, site_id);
+
+
 -- A table to store some basic information about the database (such as schema
 -- version).
 CREATE TABLE db_info
@@ -1412,6 +1444,39 @@ COMMENT ON FUNCTION add_replication_status() IS 'Adds a new replication status r
 CREATE TRIGGER add_replication_status AFTER INSERT
    ON sample FOR EACH ROW
    EXECUTE PROCEDURE public.add_replication_status();
+
+CREATE OR REPLACE FUNCTION add_image_replication_status()
+  RETURNS trigger AS
+  $BODY$
+DECLARE
+
+BEGIN
+    -- If its an insert then add a new replication status record for each remote
+    -- site
+    IF(TG_OP = 'INSERT') THEN
+        insert into image_replication_status(site_id, image_id)
+        select rs.site_id, NEW.image_id
+        from  remote_site rs
+        where rs.site_id not in (
+          select rs.site_id
+          from remote_site rs
+          inner join image_replication_status as repl on repl.site_id = rs.site_id
+                                                     and repl.image_id = NEW.image_id
+        );
+
+        perform pg_notify('new_image', NEW.image_id::varchar);
+    END IF;
+
+    RETURN NEW;
+END;
+$BODY$
+LANGUAGE plpgsql VOLATILE;
+COMMENT ON FUNCTION add_image_replication_status() IS 'Adds a new replication status record for each remote site for a new image.';
+
+CREATE TRIGGER add_image_replication_status AFTER INSERT
+   ON image FOR EACH ROW
+   EXECUTE PROCEDURE public.add_image_replication_status();
+
 
 -- Computes any computed fields when a new sample is inserted (dew point, wind chill, aparent temperature, etc)
 CREATE OR REPLACE FUNCTION compute_sample_values()

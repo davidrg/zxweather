@@ -6,7 +6,7 @@ import socket
 from twisted.application import internet, service
 from twisted.application.service import MultiService
 from twisted.internet import reactor
-from twisted.internet.protocol import ClientCreator, ServerFactory
+from twisted.internet.protocol import ServerFactory, ReconnectingClientFactory
 from twisted.python import log
 
 from client.zxweather_server import ShellClientFactory, ZXDUploadClient
@@ -43,48 +43,112 @@ class DatagramClientService(service.Service):
         return self._port.stopListening()
 
 
+class TcpClientFactory(ReconnectingClientFactory):
+    def __init__(self, authorisation_code, last_confirmed_sample_func,
+                 new_image_size, protocol_setup_func):
+        self._authorisation_code = authorisation_code
+        self._last_confirmed_sample_func = last_confirmed_sample_func
+        self._new_image_size = new_image_size
+        self._setup_protocol = protocol_setup_func
+
+        self.NotReady = Event()
+
+    def buildProtocol(self, addr):
+        self.resetDelay()
+        p = WeatherPushProtocol(self._authorisation_code,
+                                self._last_confirmed_sample_func,
+                                self._new_image_size)
+        self._setup_protocol(p)
+        return p
+
+    def clientConnectionLost(self, connector, unused_reason):
+        log.msg("Connection lost")
+        self.NotReady.fire()
+        ReconnectingClientFactory.clientConnectionLost(self, connector, unused_reason)
+
+    def clientConnectionFailed(self, connector, reason):
+        log.msg("Connection failed")
+        self.NotReady.fire()
+        ReconnectingClientFactory.clientCOnnectionFailed(self, connector, reason)
+
+
 # This wraps up the eventual TCP Client as a service while its still connecting.
 class TcpClientService(service.Service):
     def __init__(self, hostname, port, authorisation_code,
-            last_confirmed_sample_func):
+                 last_confirmed_sample_func, new_image_size):
         self._hostname = hostname
         self._port = port
         self._protocol = None
         self._samples = []
+        self._images = []
         self._authorisation_code = authorisation_code
         self._last_confirmed_sample_func = last_confirmed_sample_func
+        self._new_image_size = new_image_size
 
         # Event subscriptions
         self.Ready = Event()
         self.ReceiptConfirmation = Event()
+        self.ImageReceiptConfirmation = Event()
+
+        self._factory = None
+
+        self._is_ready = False
 
     def startService(self):
-        client_creator = ClientCreator(reactor, WeatherPushProtocol,
-                                       self._authorisation_code,
-                                       self._last_confirmed_sample_func)
+        self._factory = TcpClientFactory(self._authorisation_code,
+                                         self._last_confirmed_sample_func,
+                                         self._new_image_size,
+                                         self._setup_protocol)
+        self._factory.NotReady += self._not_ready
 
-        def _setup_client(client):
-            self._protocol = client
-            for x in self.Ready.handlers:
-                self._protocol.Ready += x
+        reactor.connectTCP(self._hostname, self._port, self._factory)
 
-            for x in self.ReceiptConfirmation.handlers:
-                self._protocol.ReceiptConfirmation += x
+    def _setup_protocol(self, client):
+        self._protocol = client
+        for x in self.Ready.handlers:
+            self._protocol.Ready += x
 
-        client_creator.connectTCP(self._hostname, self._port).addCallback(
-                _setup_client)
+        for x in self.ReceiptConfirmation.handlers:
+            self._protocol.ReceiptConfirmation += x
+
+        for x in self.ImageReceiptConfirmation.handlers:
+            self._protocol.ImageReceiptConfirmation += x
+
+        client.Ready += self._ready
+
+    # noinspection PyUnusedLocal
+    def _ready(self, not_used):
+        self._is_ready = True
+        self._flush_buffers()
+
+    def _not_ready(self):
+        self._is_ready = False
+
+    def _flush_buffers(self):
+        if self._protocol is None or not self._is_ready:
+            return
+
+        while len(self._samples) > 0:
+            s = self._samples.pop(0)
+            self._protocol.send_sample(s[0], s[1], s[2])
+
+        while len(self._images) > 0:
+            i = self._images.pop(0)
+            self._protocol.send_image(i)
 
     def send_live(self, live, hardware_type):
         if self._protocol is not None:
             self._protocol.send_live(live, hardware_type)
 
     def send_sample(self, sample, hardware_type, hold=False):
-        if self._protocol is not None:
-            while len(self._samples) > 0:
-                s = self._samples.pop(0)
-                self._protocol.send_sample(s[0], s[1], s[2])
-        else:
-            self._samples.append((sample, hardware_type, hold))
+        self._samples.append((sample, hardware_type, hold))
+
+        self._flush_buffers()
+
+    def send_image(self, image):
+        self._images.append(image)
+
+        self._flush_buffers()
 
     def flush_samples(self):
         # The TCP ignores this.
@@ -96,7 +160,8 @@ class TcpClientService(service.Service):
 
 def getClientService(hostname, port, username, password, host_key_fingerprint,
                      dsn, transport_type, mq_host, mq_port, mq_exchange,
-                     mq_user, mq_password, mq_vhost, authorisation_code):
+                     mq_user, mq_password, mq_vhost, authorisation_code,
+                     resize_images, new_image_size, tcp_port):
     """
     Connects to a remote WeatherPush server or zxweather daemon
     :param hostname: Remote host to connect to
@@ -128,14 +193,20 @@ def getClientService(hostname, port, username, password, host_key_fingerprint,
     :type mq_vhost: str
     :param authorisation_code: Authorisation code to use for server
     :type authorisation_code: int
+    :param resize_images: If images should be resized before transmission
+    :type resize_images: bool
+    :param new_image_size: New size for images
+    :type new_image_size: (int, int)
+    :param tcp_port: TCP Port to send images over
+    :type tcp_port: int
     """
     global database, mq_client
     log.msg('Connecting...')
 
-    # log.startLogging(DailyLogFile.fromFullPath("log-file"), setStdout=False)
-
     database = WeatherDatabase(hostname, dsn)
-    clientCreator = None
+
+    if not resize_images:
+        new_image_size = None
 
     if transport_type == "ssh":
         # Connecting to a remote zxweather server via SSH
@@ -143,22 +214,43 @@ def getClientService(hostname, port, username, password, host_key_fingerprint,
             client_finished, "weather-push")
     elif transport_type == "udp":
         ip_address = socket.gethostbyname(hostname)
+
+        # This function creates and starts a TCP Client instance for handling
+        # image traffic only. It doesn't hook up any events related to live
+        # or sample data. This function will be called the first time the UDP
+        # client is asked to transmit an image. If this never happens the client
+        # is never created.
+        def _make_tcp_service():
+            tcp_svc = TcpClientService(hostname, tcp_port, authorisation_code,
+                                       database.get_last_confirmed_sample,
+                                       new_image_size)
+            tcp_svc.ImageReceiptConfirmation += \
+                database.confirm_image_receipt
+
+            tcp_svc.startService()
+
+            return tcp_svc
+
         # Connecting to a remote weather push server via UDP
         _upload_client = WeatherPushDatagramClient(
             ip_address, port, authorisation_code,
-            database.get_last_confirmed_sample)
+            database.get_last_confirmed_sample, _make_tcp_service)
     else:
-        # TCP
         _upload_client = TcpClientService(
                 hostname, port, authorisation_code,
-                database.get_last_confirmed_sample)
+                database.get_last_confirmed_sample, new_image_size)
 
     database.LiveUpdate += _upload_client.send_live
     database.NewSample += _upload_client.send_sample
     database.EndOfSamples += _upload_client.flush_samples
 
+    if transport_type != "ssh":
+        # The SSH transport doesn't support sending images at all.
+        database.NewImage += _upload_client.send_image
+
     _upload_client.Ready += database.transmitter_ready
     _upload_client.ReceiptConfirmation += database.confirm_receipt
+    _upload_client.ImageReceiptConfirmation += database.confirm_image_receipt
 
     if mq_host is not None:
         mq_client = RabbitMqReceiver(mq_user, mq_password, mq_vhost,
