@@ -39,7 +39,7 @@ class WeatherPushDatagramServer(DatagramProtocol):
 
         self._previous_live_record_id = 0
         self._live_record_cache = {}
-        self._live_record_cache_ids = []
+        self._live_record_cache_ids = {}
 
         self._sample_record_cache = {}
         self._sample_record_cache_ids = []
@@ -142,24 +142,28 @@ class WeatherPushDatagramServer(DatagramProtocol):
         self._previous_live_record_id = 0
         self._lost_live_records = 0
         self._live_record_cache = {}
-        self._live_record_cache_ids = []
+        self._live_record_cache_ids = {}
 
     def _get_live_record(self, record_id, station_id):
-        rid = (station_id, record_id)
-        if rid in self._live_record_cache.keys():
-            return self._live_record_cache[rid]
+        if station_id not in self._live_record_cache.keys():
+            return None  # We've never seen live data for this station before.
+
+        if record_id in self._live_record_cache[station_id].keys():
+            return self._live_record_cache[station_id][record_id]
 
         return None
 
     def _cache_live_record(self, new_live, record_id, station_id):
-        rid = (station_id, record_id)
+        if station_id not in self._live_record_cache_ids.keys():
+            self._live_record_cache_ids[station_id] = []
+            self._live_record_cache[station_id] = dict()
 
-        self._live_record_cache_ids.append(rid)
-        self._live_record_cache[rid] = new_live
+        self._live_record_cache_ids[station_id].append(record_id)
+        self._live_record_cache[station_id][record_id] = new_live
 
-        while len(self._live_record_cache_ids) > self._MAX_LIVE_RECORD_CACHE:
-            rid = self._live_record_cache_ids.pop(0)
-            del self._live_record_cache[rid]
+        while len(self._live_record_cache_ids[station_id]) > self._MAX_LIVE_RECORD_CACHE:
+            rid = self._live_record_cache_ids[station_id].pop(0)
+            del self._live_record_cache[station_id][rid]
 
     @staticmethod
     def _to_real_dict(value):

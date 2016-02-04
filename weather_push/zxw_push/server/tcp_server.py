@@ -243,6 +243,10 @@ class WeatherPushTcpServer(protocol.Protocol):
         self._live_record_cache_ids = {}
 
     def _get_live_record(self, record_id, station_id):
+
+        if station_id not in self._live_record_cache.keys():
+            return None  # We've never seen live data for this station before.
+
         if record_id in self._live_record_cache[station_id].keys():
             return self._live_record_cache[station_id][record_id]
 
