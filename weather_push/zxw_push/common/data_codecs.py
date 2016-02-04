@@ -757,6 +757,8 @@ def build_field_id_list_for_live_against_sample(sample_record, live_record,
     live_definitions = _live_fields[hardware_type.upper()]
     sample_definitions = _sample_fields[hardware_type.upper()]
 
+    common_sample_fields = common_live_sample_field_ids[hardware_type.upper()]
+
     # We'll check against this list to see what fields *should* be in a sample
     # record instead of just looking at the supplied records keys in case there
     # is other cruft in there not meant for us.
@@ -774,10 +776,15 @@ def build_field_id_list_for_live_against_sample(sample_record, live_record,
         if field_name is None:
             continue  # Unused field
 
-        if field_name not in sample_field_names:
-            # The sample record doesn't contain this field at all. So it must
-            # be sent.
+        if field_name not in sample_field_names or \
+                field_number not in common_sample_fields:
+            # The sample record doesn't contain this field at all or it contains
+            # it but with a different field ID. So it must be sent.
             result.append(field_number)
+
+            # TODO: make the decoder a bit smarter so that the field IDs don't
+            # need to match exactly.
+
             continue
 
         base_value = sample_record[field_name]
