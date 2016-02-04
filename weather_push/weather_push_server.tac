@@ -35,6 +35,16 @@ port = 4295
 # The TCP port to listen on
 tcp_port = 4296
 
+
+##############################################################################
+#   Security Configuration ###################################################
+##############################################################################
+
+# Pick a number between 0 and 18,446,744,073,709,551,615. All clients must
+# use the same authorisation code as the server. This is effectively your
+# password.
+authorisation_code = 3289733128087630387
+
 ##############################################################################
 ##############################################################################
 ##############################################################################
@@ -52,5 +62,5 @@ IProcess(application).processName = "weather_push_server"
 
 # attach the service to its parent application
 service = getServerService(
-    dsn, interface, port, tcp_port)
+    dsn, interface, port, tcp_port, authorisation_code)
 service.setServiceParent(application)

@@ -181,24 +181,25 @@ class TcpServerFactory(ServerFactory):
 
     protocol = WeatherPushTcpServer
 
-    def __init__(self, dsn):
+    def __init__(self, dsn, authorisation_code):
         self._dsn = dsn
+        self._authorisation_code = authorisation_code
 
     def buildProtocol(self, addr):
-        p = WeatherPushTcpServer()
+        p = WeatherPushTcpServer(self._authorisation_code)
         p.factory = self
         p.start_protocol(self._dsn)
         return p
 
 
-def getServerService(dsn, interface, port, tcp_port):
+def getServerService(dsn, interface, port, tcp_port, authorisation_code):
     """
     Starts a WeatherPush server
     :param port: UDP port to listen on
     """
-    datagram_server = WeatherPushDatagramServer(dsn)
+    datagram_server = WeatherPushDatagramServer(dsn, authorisation_code)
 
-    tcp_factory = TcpServerFactory(dsn)
+    tcp_factory = TcpServerFactory(dsn, authorisation_code)
 
     udp_server = internet.UDPServer(port, datagram_server, interface=interface)
 

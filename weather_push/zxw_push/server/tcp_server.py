@@ -10,7 +10,9 @@ from zxw_push.common.data_codecs import decode_live_data, decode_sample_data, \
 from zxw_push.common.packets import decode_packet, LiveDataRecord, \
     SampleDataRecord, get_data_required_for_size_calculation, get_packet_size, \
     AuthenticateTCPPacket, WeatherDataTCPPacket, StationInfoTCPPacket, \
-    SampleAcknowledgementTCPPacket
+    SampleAcknowledgementTCPPacket, AuthenticateFailedTCPPacket, ImageTCPPacket, \
+    ImageAcknowledgementTCPPacket
+from zxw_push.common.util import Sequencer
 from zxw_push.server.database import ServerDatabase
 
 __author__ = 'david'
@@ -30,7 +32,7 @@ class WeatherPushTcpServer(protocol.Protocol):
     _MAX_LIVE_RECORD_CACHE = 5
     _MAX_SAMPLE_RECORD_CACHE = 1
 
-    def __init__(self):
+    def __init__(self, authorisation_code):
         self._dsn = None
         self._db = None
         self._station_code_id = {}
@@ -127,9 +129,13 @@ class WeatherPushTcpServer(protocol.Protocol):
     @defer.inlineCallbacks
     def _send_station_info(self, authorisation_code):
 
-        # TODO: check auth code and respond with bad auth if it doesn't work
-        #if authorisation_code != self._authorisation_code:
-        #    pass
+        if authorisation_code != self._authorisation_code:
+            log.msg("Ignoring packet from unauthorised client with "
+                    "auth code {0}".format(authorisation_code))
+            packet = AuthenticateFailedTCPPacket()
+            self._send_packet(packet)
+            self._authenticated = False
+            return
 
         self._authenticated = True
 
@@ -270,7 +276,7 @@ class WeatherPushTcpServer(protocol.Protocol):
         """
         other_live_id = data["live_diff_sequence"]
         other_live = self._get_live_record(other_live_id, station_id)
-        log.msg("live {0}/{1}".format(station_id, sequence_id))
+
         if other_live is None:
             # base record could not be found. This means that
             # either:
