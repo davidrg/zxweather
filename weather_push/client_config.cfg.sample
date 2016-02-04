@@ -58,9 +58,9 @@ hostname=localhost
 # The remote port to connect to.
 port=4222
 
-# Authorisation code for the UDP transport. This controls which weather stations
-# you can submit data for
-authorisation_code=123
+# Authorisation code for the UDP and TCP transports. The number must match the
+# value used by the server exactly.
+authorisation_code = 3289733128087630387
 
 ##############################################################################
 ### SSH Configuration ########################################################

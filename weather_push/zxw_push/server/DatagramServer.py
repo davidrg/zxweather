@@ -27,7 +27,7 @@ class WeatherPushDatagramServer(DatagramProtocol):
     _MAX_LIVE_RECORD_CACHE = 5
     _MAX_SAMPLE_RECORD_CACHE = 1
 
-    def __init__(self, dsn):
+    def __init__(self, dsn, authorisation_code):
         self._dsn = dsn
         self._sequence_id = Sequencer()
         self._db = None
@@ -45,6 +45,8 @@ class WeatherPushDatagramServer(DatagramProtocol):
         self._sample_record_cache_ids = []
 
         self._ready = False
+
+        self._authorisation_code = authorisation_code
 
     @defer.inlineCallbacks
     def startProtocol(self):
@@ -65,6 +67,11 @@ class WeatherPushDatagramServer(DatagramProtocol):
         :param address: Sending address
         """
         packet = decode_packet(datagram)
+
+        if packet.authorisation_code != self._authorisation_code:
+            log.msg("Ignoring packet from unauthorised client with "
+                    "auth code {0}".format(packet.authorisation_code))
+            return  # Unauthorised client. Ignore it.
 
         if isinstance(packet, StationInfoRequestUDPPacket):
             self._send_station_info(address, packet.authorisation_code)

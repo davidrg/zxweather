@@ -31,19 +31,21 @@ class ZXWPushServerServiceMaker(object):
     def _readConfigFile(self, filename):
         S_DATABASE = 'database'
         S_TRANSPORT = 'transport'
+        S_SECURITY = 'security'
 
         config = ConfigParser.ConfigParser()
         config.read([filename])
 
         dsn = config.get(S_DATABASE, 'dsn')
 
-
         interface = config.get(S_TRANSPORT, "interface")
         port = config.getint(S_TRANSPORT, "port")
 
         tcp_port = config.getint(S_TRANSPORT, "tcp_port")
 
-        return dsn, interface, port, tcp_port
+        auth_code = config.getint(S_SECURITY, "authorisation_code")
+
+        return dsn, interface, port, tcp_port, auth_code
 
     def makeService(self, options):
         """
@@ -52,12 +54,12 @@ class ZXWPushServerServiceMaker(object):
         :type options: dict
         """
 
-        dsn, interface, port, tcp_port = \
+        dsn, interface, port, tcp_port, auth_code = \
             self._readConfigFile(options['config-file'])
 
         # All OK. Go get the service.
         return getServerService(
-            dsn, interface, port, tcp_port
+            dsn, interface, port, tcp_port, auth_code
         )
 
 
