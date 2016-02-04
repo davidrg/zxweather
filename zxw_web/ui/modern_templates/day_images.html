@@ -13,13 +13,29 @@
                 </div>
             </div>
             {% endif -%}
+            {% if data.current_data %}
             <div class="row">
                 <div class="span12">
-                    <ul class="thumbnails">
+                    <img src="{{ source['latest'].url }}" title="{{ source['latest'].time }}" />
+                    <div class="caption">
+                        {{ source['latest'].time_of_day }}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            <div class="row">
+                <div class="span12">
+                    {% if data.current_data %}
+                    <h3>All images</h3>
+                    {% endif %}
+                      <ul class="thumbnails">
                         {% for img in source['images'] -%}
                         <li>
                             <a href="{{ img.url }}" class="thumbnail">
                                 <img src="{{ img.thumbnail_url }}" title="{{ img.time }}"/>
+                                <div class="caption">
+                                    {{img.time_of_day}}
+                                </div>
                             </a>
                         </li>
                         {%- endfor %}

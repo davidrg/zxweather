@@ -52,6 +52,14 @@ class StationImage(object):
     def time(self):
         return self._time_stamp
 
+    @property
+    def time_of_day(self):
+        return self._time_stamp.time().strftime("%H:%M")
+
+    @property
+    def date(self):
+        return self._time_stamp.date()
+
 
 def get_station_day_images(station_id, day):
     # Get images
@@ -67,7 +75,32 @@ def get_station_day_images(station_id, day):
                 source_images = []
                 for image in image_itr:
                     source_images.append(StationImage(image, '../../../../..'))
-            if source_images is not None and not len(source_images):
+            if source_images is not None and (not len(source_images) > 0):
+                source_images = None
+
+            if source_images is not None and len(source_images) > 0:
+                images.append({
+                    'name': source.source_name,
+                    'description': source.description,
+                    'images': source_images,
+                    'latest': source_images[-1:][0]
+                })
+    return images
+
+
+def get_all_station_images(station_id):
+    images = []
+    sources = get_image_sources_for_station(station_id)
+    if sources is not None:
+        # The station has one or more sources. Grab any images.
+        for source in sources:
+            image_itr = get_images_for_source(source.image_source_id)
+            source_images = None
+            if image_itr is not None:
+                source_images = []
+                for image in image_itr:
+                    source_images.append(StationImage(image, '../..'))
+            if source_images is not None and (not len(source_images) > 0):
                 source_images = None
 
             if source_images is not None:
