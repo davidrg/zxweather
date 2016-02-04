@@ -213,6 +213,27 @@
                 <a href="{{ year }}/">{{ year }}</a> {% if i < years|length %}|{% endif %}
             {% endfor %}
         </p>
+
+        {% if image_sources %}
+        <h1>Image Sources</h1>
+        <p>
+            The following image sources are present for this station. To see
+            images for a particular date, browse to that date above.
+        </p>
+
+        <table border="2">
+            <tr bgcolor="lightseagreen">
+                <td><b>Code</b></td>
+                <td><b>Name</b></td>
+            </tr>
+            {%  for source in image_sources %}
+                <tr bgcolor="blanchedalmond">
+                <td><a href="images/{{ source.code.lower() }}/">{{ source.code.lower() }}</a></td>
+                <td>{{ source.source_name }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+        {% endif %}
         <hr>
         <center><a href="../">Up to data index</a></center>
     </body>

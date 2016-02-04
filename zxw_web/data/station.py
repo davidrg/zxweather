@@ -2,6 +2,7 @@
 """
 Data sources at the station level.
 """
+import mimetypes
 from datetime import datetime
 import json
 import web
@@ -14,7 +15,9 @@ from data.daily import get_24hr_samples_data, get_day_rainfall, get_day_dataset,
 from data.util import outdoor_sample_result_to_json, outdoor_sample_result_to_datatable, rainfall_sample_result_to_json, rainfall_to_datatable, \
     reception_result_to_json, reception_result_to_datatable
 from database import get_years, get_live_data, get_station_id, get_latest_sample_timestamp, get_oldest_sample_timestamp, \
-    get_station_type_code, get_station_config
+    get_station_type_code, get_station_config, get_image_sources_for_station, \
+    get_image_source, get_day_images_for_source, \
+    get_most_recent_image_id_for_source
 import os
 
 __author__ = 'David Goodwin'
@@ -45,9 +48,13 @@ class index:
         if hw_type in ['DAVIS']:
             reception_available = True
 
+        # See if we have any images for this station
+        sources = get_image_sources_for_station(station_id)
+
         web.header('Content-Type', 'text/html')
-        return render.station_data_index(years=years,
-                                         reception_available=reception_available)
+        return render.station_data_index(
+            years=years, reception_available=reception_available,
+            image_sources=sources)
 
 
 class data_json:
@@ -283,3 +290,114 @@ def sample_range(station_id):
     result = {"latest": latest, "oldest": oldest}
     web.header('Content-Type', 'application/json')
     return json.dumps(result)
+
+
+class images:
+    """
+    Provides an index of available daily data sources
+    """
+    def GET(self, station, source_code):
+        """
+        Returns an index page containing a list of json files available for
+        the day.
+        :param station: Station to get data for
+        :type station: string
+        :param source_code: Image source code
+        :type source_code: str
+        """
+        template_dir = os.path.join(os.path.dirname(__file__),
+                                    os.path.join('templates'))
+        render = render_jinja(template_dir, encoding='utf-8')
+
+        station_id = get_station_id(station)
+        if station_id is None:
+            raise web.NotFound()
+
+        source = get_image_source(station_id, source_code)
+        if source is None:
+            raise web.NotFound()
+
+        image_list = get_day_images_for_source(source.image_source_id)
+
+        extensions = dict()
+
+        image_set = []
+
+        for image in image_list:
+            image_set.append(image)
+            mime = image.mime_type
+
+            if mime not in extensions.keys():
+                ext = mimetypes.guess_extension(mime, False)
+                if ext == ".jpe":
+                    ext = ".jpeg"
+                extensions[mime] = ext
+
+        web.header('Content-Type', 'text/html')
+        return render.station_image_index(
+                source_name=source.source_name,
+                source_code=source_code,
+                image_list=image_set,
+                extensions=extensions)
+
+class latest_image:
+    """
+    Provides an index of available daily data sources
+    """
+    def GET(self, station, source_code, mode):
+        """
+        Returns an index page containing a list of json files available for
+        the day.
+        :param station: Station to get data for
+        :type station: string
+        :param source_code: Image source code
+        :type source_code: str
+        :param mode: Image mode (full, thumbnail, metadata, etc)
+        :type mode: str
+        """
+
+        station_id = get_station_id(station)
+        if station_id is None:
+            raise web.NotFound()
+
+        source = get_image_source(station_id, source_code)
+        if source is None:
+            raise web.NotFound()
+
+        # The requested URL will be something like this:
+        # /data/sb/images/test/latest/full
+
+        # Figure out what the latest image for the image source is and bounce
+        # the user to:
+        # ../../../{year}/{month}/{day}/images/{source}/{id}/full.jpeg
+
+        most_recent = get_most_recent_image_id_for_source(
+            source.image_source_id)
+        most_recent_id = most_recent.image_id
+        most_recent_ts = most_recent.time_stamp
+        most_recent_mime = most_recent.mime_type
+
+        if mode == "metadata":
+            extension = "json"
+        else:
+            extension = mimetypes.guess_extension(most_recent_mime, False)
+            if extension == ".jpe":
+                extension = ".jpeg"
+
+        if not extension.startswith("."):
+            extension = "." + extension
+
+        parameters = {
+            "year": most_recent_ts.year,
+            "month": most_recent_ts.month,
+            "day": most_recent_ts.day,
+            "source": source_code,
+            "id": most_recent_id,
+            "mode": mode,
+            "extension": extension
+        }
+
+        url = "../../../{year}/{month}/{day}/images/{source}/" \
+              "{id}/{mode}{extension}".format(**parameters)
+
+        raise web.found(url)

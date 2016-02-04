@@ -41,6 +41,8 @@
     <dt>Google DataTable JSON</dt>
     <dd>JSON DataTable data for the Google Visualisation API</dd>
 </dl>
+
+{% if image_sources %}
 <h1>Image Sources</h1>
 <p>
     The following image sources are present for this station
@@ -58,6 +60,7 @@
         </tr>
     {% endfor %}
 </table>
+{% endif %}
 
 <hr>
 <center><a href="../">Up to Monthly data sets</a></center>
