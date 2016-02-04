@@ -337,7 +337,7 @@ class WeatherPushProtocol(protocol.Protocol):
             from PIL import Image
             import mimetypes
 
-            original = BytesIO(data)
+            original = BytesIO(bytes(data))
 
             img = Image.open(original)
 
