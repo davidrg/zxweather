@@ -7,10 +7,10 @@ import mimetypes
 import os
 from datetime import date, datetime, timedelta
 
-from cache import day_cache_control, rfcformat
+from cache import day_cache_control, rfcformat, cache_control_headers
 from database import get_daily_records, get_daily_rainfall, get_latest_sample_timestamp, day_exists, get_station_id, \
     get_davis_max_wireless_packets, image_exists, get_image_metadata, get_image, \
-    get_image_mime_type
+    get_image_mime_type, get_day_data_wp
 import web
 import config
 import json
@@ -948,3 +948,91 @@ class image:
             return thumb_data
 
         raise web.NotFound()
+
+class data_ascii:
+    """
+    Gets data for a particular day in Googles DataTable format.
+    """
+    def GET(self, station, year, month, day, dataset):
+        """
+        Gets plain (non-datatable) JSON data sources.
+        :param station: Station to get data for
+        :type station: str
+        :param year: Year to get data for
+        :type year: str
+        :param month: month to get data for
+        :type month: str
+        :param day: day to get data for
+        :type day: str
+        :param dataset: The dataset (filename) to retrieve
+        :type dataset: str
+        :return: the JSON dataset requested
+        :rtype: str
+        :raise: web.NotFound if an invalid request is made.
+        """
+        this_date = date(int(year), int(month), int(day))
+
+        station_id = get_station_id(station)
+        if station_id is None:
+            raise web.NotFound()
+
+        # Make sure the day actually exists in the database before we go
+        # any further.
+        if not day_exists(this_date, station_id):
+            raise web.NotFound()
+
+        if dataset == "samples":
+            data, age = get_month_samples_tab_delimited(this_date, station_id)
+            cache_control_headers(station_id, age, int(year), int(month),
+                                  int(day))
+        else:
+            raise web.NotFound()
+
+        web.header('Content-Type', "text/plain")
+        return data
+
+
+def get_month_samples_tab_delimited(this_date, station_id):
+    weather_data = get_day_data_wp(this_date, station_id)
+
+    file_data = '# timestamp\ttemperature\tdew point\tapparent temperature\t' \
+                'wind chill\trelative humidity\tabsolute pressure\t' \
+                'indoor temperature\tindoor relative humidity\trainfall\t' \
+                'average wind speed\tgust wind speed\twind direction\t' \
+                'uv index\tsolar radiation\n'
+
+    max_ts = None
+
+    format_string = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t{10}\t' \
+                    '{11}\t{12}\t{13}\t{14}\n'
+    for record in weather_data:
+        # Handle missing data.
+        if record.gap:
+            file_data.append(
+                format_string.format(str(record.prev_sample_time),
+                                     '?', '?', '?', '?', '?', '?', '?', '?',
+                                     '?', '?', '?', '?', '?', '?'))
+
+        if max_ts is None:
+            max_ts = record.time_stamp
+
+        if record.time_stamp > max_ts:
+            max_ts = record.time_stamp
+
+        file_data += format_string.format(str(record.time),
+                                          str(record.temperature),
+                                          str(record.dew_point),
+                                          str(record.apparent_temperature),
+                                          str(record.wind_chill),
+                                          str(record.relative_humidity),
+                                          str(record.absolute_pressure),
+                                          str(record.indoor_temperature),
+                                          str(record.indoor_relative_humidity),
+                                          str(record.rainfall),
+                                          str(record.average_wind_speed),
+                                          str(record.gust_wind_speed),
+                                          str(record.wind_direction),
+                                          str(record.uv_index),
+                                          str(record.solar_radiation))
+
+    return file_data, max_ts
