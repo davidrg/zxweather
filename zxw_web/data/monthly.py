@@ -406,11 +406,14 @@ def get_month_samples_dataset(year,month,output_function, station_id):
           false
        end as gap,
        cur.average_wind_speed,
-       cur.gust_wind_speed
-from sample cur, sample prev
+       cur.gust_wind_speed,
+       ds.average_uv_index as uv_index,
+       ds.solar_radiation
+from sample cur, davis_sample ds, sample prev
 inner join station st on st.station_id = prev.station_id
 where date(date_trunc('month',cur.time_stamp)) = $date
   and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < cur.time_stamp and station_id = $station)
+  and ds.sample_id = cur.sample_id
   and cur.station_id = $station
   and prev.station_id = $station
 order by cur.time_stamp asc""", params)
