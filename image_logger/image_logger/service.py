@@ -141,29 +141,33 @@ class ImageLoggerService(service.Service):
         ts = datetime.now()
         log.msg("Obtaining image...")
 
-        if self._disable_cert_verification:
-            context_factory = NoVerifyWebClientContextFactory()
-        else:
-            context_factory = WebClientContextFactory()
-        agent = Agent(reactor, context_factory)
+        try:
+            if self._disable_cert_verification:
+                context_factory = NoVerifyWebClientContextFactory()
+            else:
+                context_factory = WebClientContextFactory()
+            agent = Agent(reactor, context_factory)
 
-        response = yield agent.request(
-            'GET',
-            self._camera_url,
-            Headers({'User-Agent': ['zxweather image-logger']}),
-            None
-        )
+            response = yield agent.request(
+                'GET',
+                self._camera_url,
+                Headers({'User-Agent': ['zxweather image-logger']}),
+                None
+            )
 
-        response_data = yield readBody(response)
-        content_type = response.headers.getRawHeaders(
-                "Content-Type", ["application/octet-stream"])[0]
+            response_data = yield readBody(response)
+            content_type = response.headers.getRawHeaders(
+                    "Content-Type", ["application/octet-stream"])[0]
 
-        if response_data is None or not len(response_data):
-            raise Exception("Empty repsonse from camera")
+            if response_data is None or not len(response_data):
+                raise Exception("Empty repsonse from camera")
 
-        yield self._database.store_image(ts, response_data, content_type)
+            yield self._database.store_image(ts, response_data, content_type)
 
-        log.msg("Image stored.")
+            log.msg("Image stored.")
+        except Exception as e:
+            log.msg("Failed to capture or store image: {0}".format(e.message))
+
 
     def _schedule_logging_start(self):
         """
