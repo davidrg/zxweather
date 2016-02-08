@@ -3,12 +3,11 @@
 Data sources at the station level.
 """
 import mimetypes
-from datetime import datetime
+from datetime import datetime, timedelta, date
 import json
 import web
 from web.contrib.template import render_jinja
-from cache import live_data_cache_control
-import config
+from cache import live_data_cache_control, rfcformat
 from data import daily, about_nav
 from data.daily import get_24hr_samples_data, get_day_rainfall, get_day_dataset, get_24hr_hourly_rainfall_data, \
     get_24hr_reception, get_168hr_reception
@@ -17,8 +16,15 @@ from data.util import outdoor_sample_result_to_json, outdoor_sample_result_to_da
 from database import get_years, get_live_data, get_station_id, get_latest_sample_timestamp, get_oldest_sample_timestamp, \
     get_station_type_code, get_station_config, get_image_sources_for_station, \
     get_image_source, get_day_images_for_source, \
-    get_most_recent_image_id_for_source
+    get_most_recent_image_id_for_source, get_current_3h_trends, \
+    get_month_rainfall, get_year_rainfall, get_last_hour_rainfall, \
+    get_10m_avg_bearing_max_gust, get_day_wind_run, get_cumulus_dayfile_data
 import os
+
+import math
+from database import get_live_indoor_data, get_latest_sample, \
+    get_day_evapotranspiration, get_daily_records
+from database import get_day_rainfall as get_day_rainfall_data
 
 __author__ = 'David Goodwin'
 
@@ -401,3 +407,337 @@ class latest_image:
               "{id}/{mode}{extension}".format(**parameters)
 
         raise web.found(url)
+
+
+class data_ascii:
+    def GET(self, station, dataset):
+        station_id = get_station_id(station)
+
+        if station_id is None:
+            raise web.NotFound()
+
+        if dataset not in ascii_data.keys():
+            raise web.NotFound
+
+        if dataset == 'dayfile':
+            result = make_cumulus_dayfile(station_id)
+
+            today = date.today()
+            midnight = datetime(year=today.year, month=today.month,
+                                day=today.day)
+            tomorrow_midnight = midnight + timedelta(days=1)
+
+            # This file only changes once a day at midnight.
+            web.header("Expires", rfcformat(tomorrow_midnight))
+            web.header("Last-Modified", rfcformat(midnight))
+            # TODO: expires at midnight. No sooner.
+        else:
+            # This file contains live data. Don't cache it
+            web.header("Cache-Control", "no-cache")
+            web.header("Last-Modified", rfcformat(datetime.now()))
+            result = make_ascii_live(station_id, dataset)
+
+        web.header("Content-Type", "text/plain")
+        return result
+
+ascii_data = {
+    # This is the cumulus realtime.txt format as described here:
+    # http://wiki.sandaysoft.com/a/Realtime.txt
+    "realtime": {
+        "description": "Cumulus realtime.txt format",
+        "datasets": {"sample", "day_records", "ET", "current_trends",
+                     "month_rain", "year_rain", "yesterday_rain",
+                     "last_hour_rain", "10m_wind", "day_windrun"},
+        "format": "{date} {timehhmmss} {temp:.1f} {hum} {dew:.1f} {wspeed:.1f} "
+                  "{wlatest:.1f} {bearing} {rrate:.1f} {rfall:.1f} {press:.1f} "
+                  "{currentwdir} {beaufortnumber} {windunit} {tempunitnodeg} "
+                  "{pressunit} {rainunit} {windrun:.1f} {presstrendval:.1f} "
+                  "{rmonth:.1f} {ryear:.1f} {rfallY:.1f} {intemp:.1f} {inhum} "
+                  "{wchill:.1f} {temptrend:.1f} {tempTH:.1f} {TtempTH} "
+                  "{tempTL:.1f} {TtempTL} {windTM:.1f} {TwindTM} {wgustTM:.1f} "
+                  "{TwgustTM} {pressTH:.1f} {TpressTH} {pressTL:.1f} "
+                  "{TpressTL} {version} {build} {wgust:.1f} {heatindex:.1f} "
+                  "{humidex:.1f} {UV:.1f} {ET:.1f} {SolarRad:.1f} "
+                  "{avgbearing:.1f} {rhour:.1f} {forecastnumber} {isdaylight} "
+                  "{SensorContactLost} {wdir} {cloudbasevalue} {cloudbaseunit} "
+                  "{apptemp:.1f} {SunshineHours} {CurrentSolarMax} {IsSunny}"
+    },
+    "dayfile": None,
+}
+
+bft_max = [0.3, 2, 3, 5.4, 8, 10.7, 13.8, 17.1, 20.6, 24.4, 28.3, 32.5, 9999]
+
+wind_directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S",
+                   "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
+
+def bearing_to_compass(bearing):
+    if bearing is None:
+        return "-"
+
+    index = int(math.floor(((bearing * 100 + 1125) % 36000) / 2250))
+    return wind_directions[index]
+
+def make_ascii_live(station_id, filename):
+    fmt = ascii_data[filename]["format"]
+    sets = ascii_data[filename]["datasets"]
+    # These are values that are currently static because
+    # zxweather only does metric.
+    param = {
+        "windunit": "m/s",
+        "tempunitnodeg": "C",
+        "pressunit": "hPa",
+        "rainunit": "mm",
+
+        # We don't calculate it now but if we ever do we'll do it metric-like
+        "cloudbaseunit": "m",
+
+        # We're not Cumulus. But we'll pretend to be 1.9.4.
+        "version": "1.9.4",
+        "build": "0"  # Still not Cumulus.
+    }
+
+    data_ts, data, hw_type = get_live_data(station_id)
+    data_indoor = get_live_indoor_data(station_id)  # TODO: merge this into above
+
+    ts = data.date_stamp
+    ts = datetime(year=ts.year, month=ts.month, day=ts.day, hour=data_ts.hour, minute=data_ts.minute, second=data_ts.second)
+
+    param["date"] = datetime.strftime(ts, "%d/%m/%y")
+    param["timehhmmss"] = datetime.strftime(ts, "%H:%M:%S")
+
+    bft = -1
+    for i in range(0,13):
+        if i < 1:
+            min_val = 0
+        else:
+            min_val = bft_max[i-1]
+        max_val = bft_max[i]
+
+        if min_val < data.average_wind_speed <= max_val:
+            bft = i
+
+    live_param = {
+        "intemp": data_indoor.indoor_temperature,
+        "inhum": data_indoor.indoor_relative_humidity,
+        "temp": data.temperature,
+        "hum": data.relative_humidity,
+        "dew": data.dew_point,
+        "wchill": data.wind_chill,
+        "apptemp": data.apparent_temperature,
+        "press": data.absolute_pressure,  # TODO: convert to sea level
+        "wlatest": data.average_wind_speed,
+        "beaufortnumber": bft,
+        "bearing": data.wind_direction,
+        "currentwdir": bearing_to_compass(data.wind_direction),
+        "rrate": 0,  # TODO: Calculate for WH1080
+        "UV": 0,
+        "SolarRad": 0,
+    }
+
+    if hw_type == "DAVIS":
+        live_param["rrate"] = data.rain_rate
+
+        hw_config = get_station_config(station_id)
+        if hw_config["has_solar_and_uv"]:
+            live_param["UV"] = data.uv_index
+            live_param["SolarRad"] = data.solar_radiation
+
+    param.update(live_param)
+
+    if "sample" in sets:
+        sample = get_latest_sample(station_id)
+
+        sample_param = {
+            "wspeed": sample.average_wind_speed,
+            "wdir": bearing_to_compass(sample.wind_direction)
+        }
+
+        # This should really only be set for WH1080 hardware but we'll
+        # do it for everything:
+        if sample.lost_sensor_contact:
+            sample_param["SensorContactLost"] = 1
+        else:
+            sample_param["SensorContactLost"] = 0
+
+        param.update(sample_param)
+
+    if "ET" in sets:
+        param["ET"] = 0
+        if hw_type == "DAVIS":
+            param["ET"] = get_day_evapotranspiration(station_id)
+
+    def time_fmt(t):
+        n = datetime.now()
+        t = datetime(year=n.year, month=n.month, day=n.day, hour=t.hour, minute=t.minute, second=t.second)
+        return datetime.strftime(t, "%H:%M")
+
+    if "day_records" in sets:
+        records = get_daily_records(get_latest_sample_timestamp(station_id).date(), station_id)
+        record_param = {
+            "rfall": records.total_rainfall,
+            "tempTH": records.max_temperature,
+            "TtempTH": time_fmt(records.max_temperature_ts),
+            "tempTL": records.min_temperature,
+            "TtempTL": time_fmt(records.min_temperature_ts),
+            "windTM": records.max_average_wind_speed,
+            "TwindTM": time_fmt(records.max_average_wind_speed_ts),
+            "wgustTM": records.max_gust_wind_speed,
+            "TwgustTM": time_fmt(records.max_gust_wind_speed_ts),
+            "pressTH": records.max_absolute_pressure,  # TODO: convert to sea level
+            "TpressTH": time_fmt(records.max_absolute_pressure_ts),
+            "pressTL": records.min_absolute_pressure,  # TODO: convert to sea level
+            "TpressTL": time_fmt(records.min_absolute_pressure_ts),
+            "apptempTH": records.max_apparent_temperature,
+            "TapptempTH": time_fmt(records.max_apparent_temperature_ts),
+            "apptempTL": records.min_apparent_temperature,
+            "TapptempTL": time_fmt(records.min_apparent_temperature_ts),
+            "wchillTL": records.min_wind_chill,
+            "TwchillTL": time_fmt(records.min_wind_chill_ts),
+            "wchillTH": records.max_wind_chill,
+            "TwchillTH": time_fmt(records.max_wind_chill_ts),
+            "dewpointTH": records.max_dew_point,
+            "TdewpointTH": time_fmt(records.max_dew_point_ts),
+            "dewpointTL": records.min_dew_point,
+            "TdewpointTL": time_fmt(records.min_dew_point_ts)
+        }
+        param.update(record_param)
+
+    if "current_trends" in sets:
+        # 3-hour trend values
+        trends = get_current_3h_trends(station_id)
+        param.update(
+            {
+                "presstrendval": trends.absolute_pressure_trend,
+                "temptrend": trends.temperature_trend,
+                "intemptrend": trends.indoor_temperature_trend,
+                "inhumtrend": trends.indoor_humidity_trend,
+                "humtrend": trends.humidity_trend,
+                "dewpointtrend": trends.dew_point_trend,
+                "windchilltrend": trends.wind_chill_trend,
+                "apptemptrend": trends.apparent_temperature_trend
+            }
+        )
+
+    if "yesterday_rain" in sets:
+        yesterday = ts.date() - timedelta(1)
+        param["rfallY"] = get_day_rainfall_data(yesterday, station_id)
+
+    if "month_rain" in sets:
+        param["rmonth"] = get_month_rainfall(ts.year, ts.month, station_id)
+
+    if "year_rain" in sets:
+        param["ryear"] = get_year_rainfall(ts.year, station_id)
+
+    if "last_hour_rain" in sets:
+        param["rhour"] = get_last_hour_rainfall(station_id)
+
+    if "10m_wind" in sets:
+        wind_10m = get_10m_avg_bearing_max_gust(station_id)
+        param["avgbearing"] = wind_10m.avg_bearing
+        param["wgust"] = wind_10m.max_gust
+
+    if "day_windrun" in sets:
+        param["windrun"] = get_day_wind_run(ts.date(), station_id)
+
+    # TODO: calculate all of these - they're used by cumulus realtime.txt
+    param.update({
+        "heatindex": 0,  # Heat index
+        "humidex": 0,  # Humidex
+        "forecastnumber": 0,  # Zambretti forecast string from cumulus strings.ini
+        "isdaylight": 0,  # 1 = daylight, 0 = not daylight (based on sunrise/sunset times)
+        "cloudbasevalue": 0,  # cloud base
+        "SunshineHours": 0,  # Sunshine hours so far today
+        "CurrentSolarMax": 0,  # Current theoretical max solar radiatino
+        "IsSunny": 0,  # 1 = sun shining (>70% of Ryan-Stolzenbach result), 0 = not shining
+    })
+
+    # TODO: wrap in try/catch. Set result to error on missing format key.
+    result = fmt.format(**param)
+
+    return result
+
+
+def make_cumulus_dayfile(station_id):
+    # This is the Cumulus dayfile format:
+    # http://wiki.sandaysoft.com/a/Dayfile.txt
+    data = get_cumulus_dayfile_data(station_id)
+
+    def time_fmt(t):
+        if t is None:
+            return "00:00"
+
+        n = datetime.now()
+        t = datetime(year=n.year, month=n.month, day=n.day, hour=t.hour,
+                     minute=t.minute, second=t.second)
+        return datetime.strftime(t, "%H:%M")
+
+    result = ""
+
+    fmt = "{date},{max_gust_wind_speed},{max_gust_wind_speed_direction}," \
+          "{max_gust_wind_speed_ts},{min_temperature},{min_temperature_ts}," \
+          "{max_temperature},{max_temperature_ts},{min_absolute_pressure}," \
+          "{min_absolute_pressure_ts},{max_absolute_pressure}," \
+          "{max_absolute_pressure_ts},{max_rain_rate},{max_rain_rate_ts}," \
+          "{total_rainfall},{average_temperature},{wind_run}," \
+          "{max_average_wind_speed},{max_average_wind_speed_ts}," \
+          "{min_humidity},{min_humidity_ts},{max_humidity}," \
+          "{max_humidity_ts},{evapotranspiration},{total_sunshine_hours}," \
+          "{high_heat_index},{high_heat_index_ts}," \
+          "{max_apparent_temperature},{max_apparent_temperature_ts}," \
+          "{min_apparent_temperature},{min_apparent_temperature_ts}," \
+          "{max_hour_rain},{max_hour_rain_ts},{min_wind_chill}," \
+          "{min_wind_chill_ts},{max_dew_point},{max_dew_point_ts}," \
+          "{min_dew_point},{min_dew_point_ts},{dominant_wind_direction}," \
+          "{heating_degree_days},{cooling_degree_days}," \
+          "{max_solar_radiation},{max_solar_radiation_ts}," \
+          "{max_uv_index},{max_uv_index_ts}\n"
+    for row in data:
+        result += fmt.format(
+            date=datetime.strftime(row.date_stamp, "%d/%m/%y"),
+            max_gust_wind_speed=row.max_gust_wind_speed,
+            max_gust_wind_speed_direction=row.max_gust_wind_speed_direction,
+            max_gust_wind_speed_ts=time_fmt(row.max_gust_wind_speed_ts),
+            min_temperature=row.min_temperature,
+            min_temperature_ts=time_fmt(row.min_temperature_ts),
+            max_temperature=row.max_temperature,
+            max_temperature_ts=time_fmt(row.max_temperature_ts),
+            min_absolute_pressure=row.min_absolute_pressure,
+            min_absolute_pressure_ts=time_fmt(row.min_absolute_pressure_ts),
+            max_absolute_pressure=row.max_absolute_pressure,
+            max_absolute_pressure_ts=time_fmt(row.max_absolute_pressure_ts),
+            max_rain_rate=row.max_rain_rate,
+            max_rain_rate_ts=time_fmt(row.max_rain_rate_ts),
+            total_rainfall=row.total_rainfall,
+            average_temperature=row.average_temperature,
+            wind_run=row.wind_run,
+            max_average_wind_speed=row.max_average_wind_speed,
+            max_average_wind_speed_ts=time_fmt(row.max_average_wind_speed_ts),
+            min_humidity=row.min_humidity,
+            min_humidity_ts=time_fmt(row.min_humidity_ts),
+            max_humidity=row.max_humidity,
+            max_humidity_ts=time_fmt(row.max_humidity_ts),
+            evapotranspiration=row.evapotranspiration,
+            total_sunshine_hours=0,
+            high_heat_index=0,
+            high_heat_index_ts=time_fmt(None),
+            max_apparent_temperature=row.max_apparent_temperature,
+            max_apparent_temperature_ts=time_fmt(row.max_apparent_temperature_ts),
+            min_apparent_temperature=row.min_apparent_temperature,
+            min_apparent_temperature_ts=time_fmt(row.min_apparent_temperature_ts),
+            max_hour_rain=row.max_hour_rain,
+            max_hour_rain_ts=time_fmt(row.max_hour_rain_ts),
+            min_wind_chill=row.min_wind_chill,
+            min_wind_chill_ts=time_fmt(row.min_wind_chill_ts),
+            max_dew_point=row.max_dew_point,
+            max_dew_point_ts=time_fmt(row.max_dew_point_ts),
+            min_dew_point=row.min_dew_point,
+            min_dew_point_ts=time_fmt(row.min_dew_point_ts),
+            dominant_wind_direction=row.average_wind_direction,
+            heating_degree_days=0,
+            cooling_degree_days=0,
+            max_solar_radiation=row.max_solar_radiation,
+            max_solar_radiation_ts=time_fmt(row.max_solar_radiation_ts),
+            max_uv_index=row.max_uv_index,
+            max_uv_index_ts=time_fmt(row.max_uv_index_ts)
+        )
+    return result
