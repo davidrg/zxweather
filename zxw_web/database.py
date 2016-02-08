@@ -382,6 +382,103 @@ where s.time_stamp <= $time     -- 604800 seconds in a week.
     }
 
 
+def get_last_hour_rainfall(station_id):
+    params = dict(station=station_id)
+
+    query = """
+    select sum(s.rainfall) as total
+from sample s
+where s.time_stamp > (select max(time_stamp) from sample where station_id = $station) - '1 hour'::interval
+  and s.station_id = $station
+group by s.station_id
+  """
+
+    result = db.query(query, params)
+
+    return result[0].total
+
+
+def get_day_rainfall(date, station_id):
+    """
+    Gets rainfall for the specified day and the past seven days
+    :param time: Date or time to get rainfall totals for
+    :type time: date or datetime
+    :param station_id: The ID of the weather station to work with
+    :type station_id: int
+    :param use_24hr_range: If a 24-hour range from the supplied time should be
+        used rather than the exact date
+    :type use_24hr_range: bool
+    :return: dictionary containing rainfall and 7day rainfall
+    :rtype: dict
+    """
+    params = dict(date=date, station=station_id)
+
+    rainfall = db.query("""select s.station_id,
+       s.time_stamp::date as date,
+       sum(rainfall) as total
+from sample s
+where s.time_stamp::date = $date
+  and s.station_id = $station
+group by s.station_id, s.time_stamp::date""", params)
+
+    if rainfall is None or len(rainfall) == 0:
+        return 0
+
+    return rainfall[0].total
+
+
+def get_month_rainfall(year, month, station_id):
+    """
+    Gets rainfall for the specified month
+    """
+    params = dict(year=year, month=month, station=station_id)
+
+    rainfall = db.query("""select s.station_id,
+       extract('year' from s.time_stamp) as year,
+       extract('month' from s.time_stamp) as month,
+       sum(rainfall) as total
+from sample s
+where extract('year' from s.time_stamp) = $year
+  and extract('month' from s.time_stamp) = $month
+  and s.station_id = $station
+group by s.station_id, extract('year' from s.time_stamp),
+extract('month' from s.time_stamp)""", params)
+
+    if rainfall is None or len(rainfall) == 0:
+        return 0
+
+    return rainfall[0].total
+
+
+def get_year_rainfall(year, station_id):
+
+    params = dict(year=year,station=station_id)
+
+    # The inner part of this query is the same as for get_month_rainfall
+    query = """
+    select inr.station_id,
+       inr.year,
+       sum(inr.total) as total
+from (
+select s.station_id,
+       extract('year' from s.time_stamp) as year,
+       extract('month' from s.time_stamp) as month,
+       sum(rainfall) as total
+from sample s
+group by s.station_id, extract('year' from s.time_stamp), extract('month' from s.time_stamp)
+) as inr
+where inr.station_id = $station
+  and inr.year = $year
+group by inr.station_id, inr.year
+    """
+
+    result = db.query(query, params)
+    if result is None or len(result) == 0:
+        return 0
+
+    return result[0].total
+
+
 def get_latest_sample_timestamp(station_id):
     """
     Gets the timestamp of the most recent sample in the database. This just
@@ -445,6 +542,7 @@ def get_live_data(station_id):
         # No need to filter or anything - live_data only contains one record.
         base_query = """
             select ld.download_timestamp::time as time_stamp,
+                   ld.download_timestamp::date as date_stamp,
                    ld.relative_humidity,
                    ld.temperature,
                    ld.dew_point,
@@ -485,23 +583,54 @@ def get_live_data(station_id):
             current_data_ts = current_data.time_stamp
         else:
             return None, None, hw_type
-    elif hw_type == 'DAVIS':
+    #elif hw_type == 'DAVIS':
         # Live data for Davis weather stations can't be faked by taking the
         # most recent sample. This is because most of the davis-specific
         # fields are only available in live data.
-        return None, None, hw_type
+    #    return None, None, hw_type
     else:
         # Fetch the latest data for today
-        current_data = db.query("""select time_stamp::time as time_stamp, relative_humidity,
-                    temperature,dew_point, wind_chill, apparent_temperature,
-                    absolute_pressure, average_wind_speed,
-                    wind_direction,
-                    extract('epoch' from (now() - download_timestamp)) as age
-                from sample
-                where date(time_stamp) = $date
-                and station_id = $station
-                order by time_stamp desc
-                limit 1""", params)[0]
+        query = """
+                select s.time_stamp::time as time_stamp,
+                    s.relative_humidity,
+                    s.temperature,
+                    s.dew_point,
+                    s.wind_chill,
+                    s.apparent_temperature,
+                    s.absolute_pressure,
+                    s.average_wind_speed,
+                    s.wind_direction,
+                    extract('epoch' from (now() - s.download_timestamp)) as age
+                    {ext_columns}
+                from sample s {ext_joins}
+                where date(s.time_stamp) = $date
+                and s.station_id = $station
+                order by s.time_stamp desc
+                limit 1"""
+
+        ext_columns = ""
+        ext_joins = ""
+
+        if hw_type == 'DAVIS':
+            ext_columns = """,
+            0 as bar_trend,
+            ds.high_rain_rate as rain_rate,
+            0 as storm_rain,
+            null as current_storm_start_date,
+            0 as transmitter_battery,
+            0 as console_battery_voltage,
+            0 as forecast_icon,
+            ds.forecast_rule_id,
+            ds.average_uv_index as uv_index,
+            ds.solar_radiation
+            """
+            ext_joins = """
+            inner join davis_sample ds on ds.sample_id = s.sample_id
+            """
+
+        query = query.format(ext_columns=ext_columns, ext_joins=ext_joins)
+
+        current_data = db.query(query, params)[0]
         current_data_ts = current_data.time_stamp
 
     return current_data_ts, current_data, hw_type
@@ -828,3 +957,379 @@ def get_most_recent_image_id_for_source(source_id):
     if len(result):
         return result[0]
     return None
+
+
+def get_latest_sample(station_id):
+    query = """
+    select s.time_stamp,
+           s.indoor_relative_humidity,
+           s.indoor_temperature,
+           s.relative_humidity,
+           s.temperature,
+           s.dew_point,
+           s.wind_chill,
+           s.apparent_temperature,
+           s.absolute_pressure,
+           s.average_wind_speed,
+           s.gust_wind_speed,
+           s.wind_direction,
+           s.rainfall,
+           case when s.temperature is null then true else false end as lost_sensor_contact,
+           ds.high_temperature,
+           ds.low_temperature,
+           ds.high_rain_rate,
+           ds.solar_radiation,
+           ds.wind_sample_count,
+           ds.gust_wind_direction,
+           ds.average_uv_index,
+           ds.high_solar_radiation,
+           ds.high_uv_index
+    from sample s
+    left outer join davis_sample ds on ds.sample_id = s.sample_id
+    where s.station_id = $station
+    limit 1
+    """
+
+    result = db.query(query, dict(station=station_id))
+    if len(result):
+        return result[0]
+    return None
+
+
+def get_day_evapotranspiration(station_id):
+
+    # TODO: bug: The /1000 /1000 is because davis_logger multiplies ET by 1000
+    # instead of dividing it by 1000. The data logger needs to be fixed, a data
+    # fix applied and this corrected.
+
+    # TODO: NOTE: The get_cumulus_dayfile_data function is also affected by this
+
+    query = """
+    select s.time_stamp::date,
+    (sum(ds.evapotranspiration)/1000)/1000 as evapotranspiration
+    from davis_sample ds
+    inner join sample s on s.sample_id = ds.sample_id
+    where s.station_id = $station
+    group by time_stamp::date
+    order by time_stamp::date desc
+    limit 1
+    """
+
+    result = db.query(query, dict(station=station_id))
+    if len(result):
+        return result[0].evapotranspiration
+    return 0
+
+
+def get_current_3h_trends(station_id):
+    query = """
+select s.station_id,
+       (s.indoor_relative_humidity - s3h.indoor_relative_humidity) / 3 as indoor_humidity_trend,
+       (s.indoor_temperature - s3h.indoor_temperature) / 3 as indoor_temperature_trend,
+       (s.relative_humidity - s3h.relative_humidity) /3 as humidity_trend,
+       (s.temperature - s3h.temperature) / 3 as temperature_trend,
+       (s.dew_point - s3h.dew_point) / 3 as dew_point_trend,
+       (s.wind_chill - s3h.wind_chill) / 3 as wind_chill_trend,
+       (s.apparent_temperature - s3h.apparent_temperature) / 3 as apparent_temperature_trend,
+       (s.absolute_pressure - s3h.absolute_pressure) / 3 as absolute_pressure_trend
+from sample s
+left outer join sample s3h on s3h.station_id = s.station_id and s3h.time_stamp = s.time_stamp - '3 hours'::interval
+where s.station_id = $station
+order by s.time_stamp desc
+limit 1
+        """
+
+    result = db.query(query, dict(station=station_id))
+
+    if len(result):
+        return result[0]
+    return None
+
+
+def get_10m_avg_bearing_max_gust(station_id):
+    query = """
+        select avg(s.wind_direction) as avg_bearing,
+       max(s.gust_wind_speed) as max_gust
+from sample s
+where s.station_id = $station
+  and s.time_stamp > (select max(time_stamp) from sample where station_id = $station) - '10 minutes'::interval
+limit 10"""
+
+    return db.query(query, dict(station=station_id))[0]
+
+
+def get_day_wind_run(date, station_id):
+    query = """
+        select s.time_stamp::date, sum(300*average_wind_speed) as wind_run
+from sample s
+where s.station_id = $station
+  and s.time_stamp::date = $date
+group by s.time_stamp::date
+    """
+
+    result = db.query(query, dict(station=station_id, date=date))
+
+    if result is None or len(result) == 0:
+        return 0
+
+    return result[0].wind_run
+
+
+def get_cumulus_dayfile_data(station_id):
+    """
+    This returns the data required for the Cumulus dayfile.txt data file. Its
+     a fairly expensive query to run as it effectively returns aggregate data
+     for the entire weather stations history. The results are effectively the
+     daily records plus additional records for davis stations plus a few other
+     similar details (average temperature, total wind run, total
+     evapotranspiration, etc). It excludes data for the current day.
+    """
+    query = """
+with full_davis_sample as (
+select s.time_stamp,
+       s.station_id,
+       ds.gust_wind_direction,
+       ds.high_rain_rate,
+       (ds.evapotranspiration / 1000) /1000 as evapotranspiration, -- BUG: davis_loger needs to *1000 not /1000
+       ds.solar_radiation,
+       ds.average_uv_index
+from sample s
+inner join davis_sample ds on ds.sample_id = s.sample_id
+)
+select dr.date_stamp,
+       dr.station_id,
+       dr.max_gust_wind_speed,
+       coalesce(ds_hgb.gust_wind_direction, 0) as max_gust_wind_speed_direction,
+       dr.max_gust_wind_speed_ts,
+       dr.min_temperature,
+       dr.min_temperature_ts,
+       dr.max_temperature,
+       dr.max_temperature_ts,
+       dr.min_absolute_pressure,
+       dr.min_absolute_pressure_ts,
+       dr.max_absolute_pressure,
+       dr.max_absolute_pressure_ts,
+       coalesce(ds_rrr.max_rain_rate, 0) as max_rain_rate,
+       ds_rrr.max_rain_rate_ts,
+       dr.total_rainfall,
+       day_avg.average_temperature,
+       day_wind_run.wind_run,
+       dr.max_average_wind_speed,
+       dr.max_average_wind_speed_ts,
+       dr.min_humidity,
+       dr.min_humidity_ts,
+       dr.max_humidity,
+       dr.max_humidity_ts,
+       coalesce(day_et.total, 0) as evapotranspiration,
+       -- total hours of sunshine
+       -- high heat index
+       -- time of high heat index
+       dr.max_apparent_temperature,
+       dr.max_apparent_temperature_ts,
+       dr.min_apparent_temperature,
+       dr.min_apparent_temperature_ts,
+       coalesce(dhrr.max_hour_rain, 0) as max_hour_rain,
+       dhrr.max_hour_rain_ts,
+       dr.min_wind_chill,
+       dr.min_wind_chill_ts,
+       dr.max_dew_point,
+       dr.max_dew_point_ts,
+       dr.min_dew_point,
+       dr.min_dew_point_ts,
+       day_avg.average_wind_direction,
+       coalesce(ds_uv.max_uv_index, 0) as max_uv_index,
+       ds_uv.max_uv_index_ts,
+       coalesce(ds_sr.max_solar_radiation, 0) as max_solar_radiation,
+       ds_sr.max_solar_radiation_ts
+from daily_records dr
+left outer join full_davis_sample ds_hgb on ds_hgb.station_id = dr.station_id and ds_hgb.time_stamp = dr.max_gust_wind_speed_ts
+left outer join (
+   select ds.time_stamp::date as date_stamp,
+       ds.station_id,
+       ds.high_rain_rate as max_rain_rate,
+       max(ds.time_stamp) as max_rain_rate_ts
+    from full_davis_sample ds
+    inner join (select time_stamp::date as date_stamp, station_id, max(high_rain_rate) as max_rain_rate
+    from full_davis_sample
+    group by time_stamp::date, station_id) as mx on mx.date_stamp = ds.time_stamp::date and mx.station_id = ds.station_id and mx.max_rain_rate = ds.high_rain_rate
+    group by ds.high_rain_rate, ds.station_id, ds.time_stamp::date
+    order by ds.time_stamp::date, ds.station_id
+) as ds_rrr on ds_rrr.station_id = dr.station_id and ds_rrr.date_stamp = dr.date_stamp
+left outer join (
+   select ds.time_stamp::date as date_stamp,
+       ds.station_id,
+       ds.average_uv_index as max_uv_index,
+       max(ds.time_stamp) as max_uv_index_ts
+    from full_davis_sample ds
+    inner join (
+        select time_stamp::date as date_stamp,
+               station_id,
+               max(average_uv_index) as max_uv_index
+        from full_davis_sample
+        group by time_stamp::date, station_id
+    ) as mx on mx.date_stamp = ds.time_stamp::date and mx.station_id = ds.station_id and mx.max_uv_index = ds.average_uv_index
+    group by ds.average_uv_index, ds.station_id, ds.time_stamp::date
+    order by ds.time_stamp::date, ds.station_id
+) as ds_uv on ds_uv.station_id = dr.station_id and ds_uv.date_stamp = dr.date_stamp
+left outer join (
+ select ds.time_stamp::date as date_stamp,
+       ds.station_id,
+       ds.solar_radiation as max_solar_radiation,
+       max(ds.time_stamp) as max_solar_radiation_ts
+    from full_davis_sample ds
+    inner join (
+        select time_stamp::date as date_stamp,
+               station_id,
+               max(solar_radiation) as max_solar_radiation
+        from full_davis_sample
+        group by time_stamp::date, station_id
+    ) as mx on mx.date_stamp = ds.time_stamp::date and mx.station_id = ds.station_id and mx.max_solar_radiation = ds.solar_radiation
+    group by ds.solar_radiation, ds.station_id, ds.time_stamp::date
+    order by ds.time_stamp::date, ds.station_id
+) as ds_sr on ds_sr.station_id = dr.station_id and ds_sr.date_stamp = dr.date_stamp
+inner join (
+    select s.time_stamp::date as date_stamp,
+           s.station_id,
+           avg(s.temperature) as average_temperature,
+           avg(s.wind_direction) as average_wind_direction
+      from sample s
+      group by s.time_stamp::date, s.station_id
+) as day_avg on day_avg.date_stamp = dr.date_stamp and day_avg.station_id = dr.station_id
+inner join (
+    select s.time_stamp::date as date_stamp,
+           s.station_id,
+           sum(300*average_wind_speed) as wind_run
+    from sample s
+    group by s.time_stamp::date, s.station_id
+) as day_wind_run on day_wind_run.date_stamp = dr.date_stamp and day_wind_run.station_id = dr.station_id
+left outer join (
+  select time_stamp::date as date_stamp,
+         station_id,
+         sum(evapotranspiration) as total
+  from full_davis_sample
+  group by time_stamp::date, station_id
+) as day_et on day_et.date_stamp = dr.date_stamp and day_et.station_id = dr.station_id
+left outer join (
+  -- So I can't find any description of what 'Hourly Rain' actually is in Cumulus.
+  -- I'm just assuming its the total rainfall for each hour. And as such this will
+  -- give the hour that had the most:
+    with hourly_rain as (
+        select time_stamp::date as date_stamp,
+               date_trunc('hour', time_stamp) as day_hour,
+               station_id,
+               sum(rainfall) as total
+        from sample
+        group by time_stamp::date, date_trunc('hour', time_stamp), station_id
+    )
+    select hr.date_stamp,
+           hr.station_id,
+           hr.total as max_hour_rain,
+           max(hr.day_hour) as max_hour_rain_ts
+    from hourly_rain hr
+    inner join(
+        select date_stamp,
+               station_id,
+               max(total) as max_total
+        from hourly_rain
+        group by date_stamp, station_id
+    ) as mhr on mhr.date_stamp = hr.date_stamp and mhr.station_id = hr.station_id and hr.total = mhr.max_total
+    where total > 0
+    group by hr.date_stamp, hr.station_id, hr.total
+) dhrr on dhrr.date_stamp = dr.date_stamp and dhrr.station_id = dr.station_id
+where dr.station_id = $station
+  -- Cumulus adds a new entry to this file at midnight. So we'll exclude the
+  -- entry for the current date.
+  and dr.date_stamp <> NOW()::Date
+order by dr.date_stamp
+    """
+
+    params = dict(station=station_id)
+
+    result = db.query(query, params)
+
+    return result
+
+
+# Query used by weather_plot for the month data set. Copied here as the desktop
+# client also uses this dataset for over-the-internet operation
+def get_month_data_wp(year, month, station_id):
+    query = """
+select cur.time_stamp,
+       round(cur.temperature::numeric, 2) as temperature,
+       round(cur.dew_point::numeric, 1) as dew_point,
+       round(cur.apparent_temperature::numeric, 1) as apparent_temperature,
+       round(cur.wind_chill::numeric,1) as wind_chill,
+       cur.relative_humidity,
+       round(cur.absolute_pressure::numeric,2) as absolute_pressure,
+       round(cur.indoor_temperature::numeric,2) as indoor_temperature,
+       cur.indoor_relative_humidity,
+       round(cur.rainfall::numeric, 1) as rainfall,
+       round(cur.average_wind_speed::numeric,2) as average_wind_speed,
+       round(cur.gust_wind_speed::numeric,2) as gust_wind_speed,
+       cur.wind_direction,
+       cur.time_stamp::time - (s.sample_interval * '1 minute'::interval) as prev_sample_time,
+       CASE WHEN (cur.time_stamp - prev.time_stamp) > ((s.sample_interval * 2) * '1 minute'::interval) THEN
+          true
+       else
+          false
+       end as gap,
+       ds.average_uv_index as uv_index,
+       ds.solar_radiation
+from sample cur
+inner join sample prev on prev.station_id = cur.station_id
+        and prev.time_stamp = (
+            select max(pm.time_stamp)
+            from sample pm
+            where pm.time_stamp < cur.time_stamp
+            and pm.station_id = cur.station_id)
+inner join station s on s.station_id = cur.station_id
+left outer join davis_sample ds on ds.sample_id = cur.sample_id
+where date(date_trunc('month',cur.time_stamp)) = $date
+  and cur.station_id = $station
+order by cur.time_stamp asc
+        """
+
+    params = dict(station=station_id, date=date(year=year,month=month,day=1))
+
+    return db.query(query, params)
+
+# Query used by weather_plot for the day data set. Copied here as the desktop
+# client also uses this dataset for over-the-internet operation
+def get_day_data_wp(date, station_id):
+    query = """select cur.time_stamp::time as time,
+       cur.time_stamp,
+       round(cur.temperature::numeric,2) as temperature,
+       round(cur.dew_point::numeric, 1) as dew_point,
+       round(cur.apparent_temperature::numeric, 1) as apparent_temperature,
+       round(cur.wind_chill::numeric,1) as wind_chill,
+       cur.relative_humidity,
+       round(cur.absolute_pressure::numeric,2) as absolute_pressure,
+       round(cur.indoor_temperature::numeric,2) as indoor_temperature,
+       cur.indoor_relative_humidity,
+       round(cur.rainfall::numeric, 1) as rainfall,
+       round(cur.average_wind_speed::numeric,2) as average_wind_speed,
+       round(cur.gust_wind_speed::numeric,2) as gust_wind_speed,
+       cur.wind_direction,
+       cur.time_stamp::time - (s.sample_interval * '1 minute'::interval) as prev_sample_time,
+       CASE WHEN (cur.time_stamp - prev.time_stamp) > ((s.sample_interval * 2) * '1 minute'::interval) THEN
+          true
+       else
+          false
+       end as gap,
+       ds.average_uv_index as uv_index,
+       ds.solar_radiation
+from sample cur
+inner join sample prev on prev.time_stamp = (
+        select max(x.time_stamp)
+        from sample x
+        where x.time_stamp < cur.time_stamp
+        and x.station_id = cur.station_id) and prev.station_id = cur.station_id
+inner join station s on s.station_id = cur.station_id
+left outer join davis_sample ds on ds.sample_id = cur.sample_id
+where date(cur.time_stamp) = $date
+  and cur.station_id = $station
+order by cur.time_stamp asc"""
+
+    params = dict(station=station_id, date=date)
+
+    return db.query(query, params)

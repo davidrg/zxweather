@@ -315,6 +315,10 @@ def deserialise_dmp(dmp_string, rainCollectorSize=0.2):
 
     highUVIndex /= 10.0
 
+    # TODO: bug: This should be ET / 1000.
+    #  When this is fixed a data migration for Sandy Bay will be required.
+    #  Also, zxw_web\database.py\get_day_evapotranspiration() will
+    #  need adjusting.
     ET = inch_to_mm(ET * 1000)
 
     unpacked = Dmp(
