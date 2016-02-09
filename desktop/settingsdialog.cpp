@@ -42,6 +42,8 @@ SettingsDialog::SettingsDialog(QWidget *parent) :
     if (!QSqlDatabase::drivers().contains("QPSQL")) {
         ui->rbSampleDatabase->setEnabled(false);
         ui->rbSampleDatabase->setText("Database (driver not found)");
+        ui->rbLiveDatabase->setEnabled(false);
+        ui->rbLiveDatabase->setText("Database (driver not found)");
     }
 
     loadSettings();
