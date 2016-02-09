@@ -26,6 +26,7 @@
 #include <QFile>
 #include <QDir>
 #include <QDesktopServices>
+#include <QDebug>
 
 /** Settings keys.
  */
@@ -115,8 +116,10 @@ Settings::Settings() {
 
     if (QFile::exists(settingsFile)) {
         // Load settings from there
+        qDebug() << "Loading settings from file" << settingsFile;
         settings = new QSettings(settingsFile, QSettings::IniFormat, this);
     } else {
+        qDebug() << "Loading settings from platform default location";
         settings = new QSettings("zxnet", "zxweather", this);
     }
 }

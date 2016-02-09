@@ -5,6 +5,7 @@
 #include <QRadioButton>
 #include <QLabel>
 #include <QVBoxLayout>
+#include <QSqlDatabase>
 
 /****************************************************************************
 ****************************** ACCESS TYPE PAGE *****************************
@@ -40,6 +41,11 @@ AccessTypePage::AccessTypePage(QWidget *parent)
     topLabel->setWordWrap(true);
     optionHeading = new QLabel(tr("Access Type:"));
     rbLocal = new QRadioButton(tr("&Local"));
+
+    if (!QSqlDatabase::drivers().contains("QPSQL")) {
+        rbLocal->setEnabled(false);
+        rbLocal->setText("&Local (PostgreSQL database driver not found)");
+    }
 
     rbLocal->setWhatsThis(tr("Access data from your local weather database. "
                              "You will need the database name, hostname, port,"
