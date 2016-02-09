@@ -918,7 +918,7 @@ class image:
                 from io import BytesIO
                 from PIL import Image
 
-                original = BytesIO(img_info.image_data)
+                original = BytesIO(bytes(img_info.image_data))
 
                 img = Image.open(original)
 
