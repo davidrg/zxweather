@@ -448,19 +448,19 @@ ascii_data = {
         "datasets": {"sample", "day_records", "ET", "current_trends",
                      "month_rain", "year_rain", "yesterday_rain",
                      "last_hour_rain", "10m_wind", "day_windrun"},
-        "format": "{date} {timehhmmss} {temp:.1f} {hum} {dew:.1f} {wspeed:.1f} "
-                  "{wlatest:.1f} {bearing} {rrate:.1f} {rfall:.1f} {press:.1f} "
+        "format": "{date} {timehhmmss} {temp} {hum} {dew} {wspeed} "
+                  "{wlatest} {bearing} {rrate} {rfall:.1f} {press:.1f} "
                   "{currentwdir} {beaufortnumber} {windunit} {tempunitnodeg} "
                   "{pressunit} {rainunit} {windrun:.1f} {presstrendval:.1f} "
                   "{rmonth:.1f} {ryear:.1f} {rfallY:.1f} {intemp:.1f} {inhum} "
                   "{wchill:.1f} {temptrend:.1f} {tempTH:.1f} {TtempTH} "
                   "{tempTL:.1f} {TtempTL} {windTM:.1f} {TwindTM} {wgustTM:.1f} "
                   "{TwgustTM} {pressTH:.1f} {TpressTH} {pressTL:.1f} "
-                  "{TpressTL} {version} {build} {wgust:.1f} {heatindex:.1f} "
-                  "{humidex:.1f} {UV:.1f} {ET:.1f} {SolarRad:.1f} "
-                  "{avgbearing:.1f} {rhour:.1f} {forecastnumber} {isdaylight} "
+                  "{TpressTL} {version} {build} {wgust} {heatindex} "
+                  "{humidex} {UV:.1f} {ET:.1f} {SolarRad:.1f} "
+                  "{avgbearing} {rhour} {forecastnumber} {isdaylight} "
                   "{SensorContactLost} {wdir} {cloudbasevalue} {cloudbaseunit} "
-                  "{apptemp:.1f} {SunshineHours} {CurrentSolarMax} {IsSunny}"
+                  "{apptemp} {SunshineHours} {CurrentSolarMax} {IsSunny}"
     },
     "dayfile": None,
 }
@@ -470,12 +470,26 @@ bft_max = [0.3, 2, 3, 5.4, 8, 10.7, 13.8, 17.1, 20.6, 24.4, 28.3, 32.5, 9999]
 wind_directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S",
                    "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
 
+
 def bearing_to_compass(bearing):
     if bearing is None:
         return "-"
 
     index = int(math.floor(((bearing * 100 + 1125) % 36000) / 2250))
     return wind_directions[index]
+
+
+def coalesce(value):
+    if value is None:
+        return "-"
+    return value
+
+
+def coalesce_float(value):
+    if value is None:
+        return "-"
+    return "{0:.1f}".format(value)
+
 
 def make_ascii_live(station_id, filename):
     fmt = ascii_data[filename]["format"]
@@ -519,15 +533,15 @@ def make_ascii_live(station_id, filename):
     live_param = {
         "intemp": data_indoor.indoor_temperature,
         "inhum": data_indoor.indoor_relative_humidity,
-        "temp": data.temperature,
+        "temp": coalesce_float(data.temperature),
         "hum": data.relative_humidity,
-        "dew": data.dew_point,
+        "dew": coalesce_float(data.dew_point),
         "wchill": data.wind_chill,
-        "apptemp": data.apparent_temperature,
+        "apptemp": coalesce_float(data.apparent_temperature),
         "press": data.absolute_pressure,  # TODO: convert to sea level
-        "wlatest": data.average_wind_speed,
+        "wlatest": coalesce_float(data.average_wind_speed),
         "beaufortnumber": bft,
-        "bearing": data.wind_direction,
+        "bearing": coalesce(data.wind_direction),
         "currentwdir": bearing_to_compass(data.wind_direction),
         "rrate": 0,  # TODO: Calculate for WH1080
         "UV": 0,
@@ -535,7 +549,7 @@ def make_ascii_live(station_id, filename):
     }
 
     if hw_type == "DAVIS":
-        live_param["rrate"] = data.rain_rate
+        live_param["rrate"] = coalesce_float(data.rain_rate)
 
         hw_config = get_station_config(station_id)
         if hw_config["has_solar_and_uv"]:
@@ -548,7 +562,7 @@ def make_ascii_live(station_id, filename):
         sample = get_latest_sample(station_id)
 
         sample_param = {
-            "wspeed": sample.average_wind_speed,
+            "wspeed": coalesce_float(sample.average_wind_speed),
             "wdir": bearing_to_compass(sample.wind_direction)
         }
 
@@ -629,20 +643,20 @@ def make_ascii_live(station_id, filename):
         param["ryear"] = get_year_rainfall(ts.year, station_id)
 
     if "last_hour_rain" in sets:
-        param["rhour"] = get_last_hour_rainfall(station_id)
+        param["rhour"] = coalesce_float(get_last_hour_rainfall(station_id))
 
     if "10m_wind" in sets:
         wind_10m = get_10m_avg_bearing_max_gust(station_id)
-        param["avgbearing"] = wind_10m.avg_bearing
-        param["wgust"] = wind_10m.max_gust
+        param["avgbearing"] = coalesce_float(wind_10m.avg_bearing)
+        param["wgust"] = coalesce_float(wind_10m.max_gust)
 
     if "day_windrun" in sets:
         param["windrun"] = get_day_wind_run(ts.date(), station_id)
 
     # TODO: calculate all of these - they're used by cumulus realtime.txt
     param.update({
-        "heatindex": 0,  # Heat index
-        "humidex": 0,  # Humidex
+        "heatindex": coalesce_float(0),  # Heat index
+        "humidex": coalesce_float(0),  # Humidex
         "forecastnumber": 0,  # Zambretti forecast string from cumulus strings.ini
         "isdaylight": 0,  # 1 = daylight, 0 = not daylight (based on sunrise/sunset times)
         "cloudbasevalue": 0,  # cloud base

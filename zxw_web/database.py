@@ -987,6 +987,7 @@ def get_latest_sample(station_id):
     from sample s
     left outer join davis_sample ds on ds.sample_id = s.sample_id
     where s.station_id = $station
+    order by s.time_stamp desc
     limit 1
     """
 
