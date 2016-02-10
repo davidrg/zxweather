@@ -451,13 +451,13 @@ ascii_data = {
         "format": "{date} {timehhmmss} {temp} {hum} {dew} {wspeed} "
                   "{wlatest} {bearing} {rrate} {rfall:.1f} {press:.1f} "
                   "{currentwdir} {beaufortnumber} {windunit} {tempunitnodeg} "
-                  "{pressunit} {rainunit} {windrun:.1f} {presstrendval:.1f} "
+                  "{pressunit} {rainunit} {windrun:.1f} {presstrendval} "
                   "{rmonth:.1f} {ryear:.1f} {rfallY:.1f} {intemp:.1f} {inhum} "
-                  "{wchill:.1f} {temptrend:.1f} {tempTH:.1f} {TtempTH} "
+                  "{wchill:.1f} {temptrend} {tempTH:.1f} {TtempTH} "
                   "{tempTL:.1f} {TtempTL} {windTM:.1f} {TwindTM} {wgustTM:.1f} "
                   "{TwgustTM} {pressTH:.1f} {TpressTH} {pressTL:.1f} "
                   "{TpressTL} {version} {build} {wgust} {heatindex} "
-                  "{humidex} {UV:.1f} {ET:.1f} {SolarRad:.1f} "
+                  "{humidex} {UV} {ET:.2f} {SolarRad} "
                   "{avgbearing} {rhour} {forecastnumber} {isdaylight} "
                   "{SensorContactLost} {wdir} {cloudbasevalue} {cloudbaseunit} "
                   "{apptemp} {SunshineHours} {CurrentSolarMax} {IsSunny}"
@@ -491,13 +491,31 @@ def coalesce_float(value):
     return "{0:.1f}".format(value)
 
 
+def convert_wind_speed(unit, value):
+    if value is None:
+        return value
+    elif unit == "m/s":
+        return value
+    elif unit == "km/h":
+        return value * 18 / 5
+
+
+def add_pos_symbol(value):
+    if value is None:
+        return "-"
+
+    if value > 0:
+        return "+{0:.1f}".format(value)
+    return "{0:.1f}".format(value)
+
+
 def make_ascii_live(station_id, filename):
     fmt = ascii_data[filename]["format"]
     sets = ascii_data[filename]["datasets"]
     # These are values that are currently static because
     # zxweather only does metric.
     param = {
-        "windunit": "m/s",
+        "windunit": "km/h",  # change to m/s for wind un m/s
         "tempunitnodeg": "C",
         "pressunit": "hPa",
         "rainunit": "mm",
@@ -507,7 +525,7 @@ def make_ascii_live(station_id, filename):
 
         # We're not Cumulus. But we'll pretend to be 1.9.4.
         "version": "1.9.4",
-        "build": "0"  # Still not Cumulus.
+        "build": "1099"  # Still not Cumulus.
     }
 
     data_ts, data, hw_type = get_live_data(station_id)
@@ -539,11 +557,12 @@ def make_ascii_live(station_id, filename):
         "wchill": data.wind_chill,
         "apptemp": coalesce_float(data.apparent_temperature),
         "press": data.absolute_pressure,  # TODO: convert to sea level
-        "wlatest": coalesce_float(data.average_wind_speed),
+        "wlatest": coalesce_float(convert_wind_speed(param["windunit"],
+                                                     data.average_wind_speed)),
         "beaufortnumber": bft,
         "bearing": coalesce(data.wind_direction),
         "currentwdir": bearing_to_compass(data.wind_direction),
-        "rrate": 0,  # TODO: Calculate for WH1080
+        "rrate": 0.0,  # TODO: Calculate for WH1080
         "UV": 0,
         "SolarRad": 0,
     }
@@ -553,8 +572,15 @@ def make_ascii_live(station_id, filename):
 
         hw_config = get_station_config(station_id)
         if hw_config["has_solar_and_uv"]:
-            live_param["UV"] = data.uv_index
-            live_param["SolarRad"] = data.solar_radiation
+            uv = data.uv_index
+            solar_rad = data.solar_radiation
+            if uv is not None:
+                uv = int(round(uv))
+            if solar_rad is not None:
+                solar_rad = int(round(solar_rad))
+
+            live_param["UV"] = uv
+            live_param["SolarRad"] = solar_rad
 
     param.update(live_param)
 
@@ -562,7 +588,8 @@ def make_ascii_live(station_id, filename):
         sample = get_latest_sample(station_id)
 
         sample_param = {
-            "wspeed": coalesce_float(sample.average_wind_speed),
+            "wspeed": coalesce_float(convert_wind_speed(
+                param["windunit"], sample.average_wind_speed)),
             "wdir": bearing_to_compass(sample.wind_direction)
         }
 
@@ -582,20 +609,25 @@ def make_ascii_live(station_id, filename):
 
     def time_fmt(t):
         n = datetime.now()
-        t = datetime(year=n.year, month=n.month, day=n.day, hour=t.hour, minute=t.minute, second=t.second)
+        t = datetime(year=n.year, month=n.month, day=n.day, hour=t.hour,
+                     minute=t.minute, second=t.second)
         return datetime.strftime(t, "%H:%M")
 
     if "day_records" in sets:
-        records = get_daily_records(get_latest_sample_timestamp(station_id).date(), station_id)
+        records = get_daily_records(
+            get_latest_sample_timestamp(station_id).date(), station_id)
+
         record_param = {
             "rfall": records.total_rainfall,
             "tempTH": records.max_temperature,
             "TtempTH": time_fmt(records.max_temperature_ts),
             "tempTL": records.min_temperature,
             "TtempTL": time_fmt(records.min_temperature_ts),
-            "windTM": records.max_average_wind_speed,
+            "windTM": convert_wind_speed(param["windunit"],
+                                         records.max_average_wind_speed),
             "TwindTM": time_fmt(records.max_average_wind_speed_ts),
-            "wgustTM": records.max_gust_wind_speed,
+            "wgustTM": convert_wind_speed(param["windunit"],
+                                          records.max_gust_wind_speed),
             "TwgustTM": time_fmt(records.max_gust_wind_speed_ts),
             "pressTH": records.max_absolute_pressure,  # TODO: convert to sea level
             "TpressTH": time_fmt(records.max_absolute_pressure_ts),
@@ -621,14 +653,15 @@ def make_ascii_live(station_id, filename):
         trends = get_current_3h_trends(station_id)
         param.update(
             {
-                "presstrendval": trends.absolute_pressure_trend,
-                "temptrend": trends.temperature_trend,
-                "intemptrend": trends.indoor_temperature_trend,
-                "inhumtrend": trends.indoor_humidity_trend,
-                "humtrend": trends.humidity_trend,
-                "dewpointtrend": trends.dew_point_trend,
-                "windchilltrend": trends.wind_chill_trend,
-                "apptemptrend": trends.apparent_temperature_trend
+                "presstrendval": add_pos_symbol(trends.absolute_pressure_trend),
+                "temptrend": add_pos_symbol(trends.temperature_trend),
+                "intemptrend": add_pos_symbol(trends.indoor_temperature_trend),
+                "inhumtrend": add_pos_symbol(trends.indoor_humidity_trend),
+                "humtrend": add_pos_symbol(trends.humidity_trend),
+                "dewpointtrend": add_pos_symbol(trends.dew_point_trend),
+                "windchilltrend": add_pos_symbol(trends.wind_chill_trend),
+                "apptemptrend": add_pos_symbol(
+                    trends.apparent_temperature_trend)
             }
         )
 
@@ -647,13 +680,20 @@ def make_ascii_live(station_id, filename):
 
     if "10m_wind" in sets:
         wind_10m = get_10m_avg_bearing_max_gust(station_id)
-        param["avgbearing"] = coalesce_float(wind_10m.avg_bearing)
-        param["wgust"] = coalesce_float(wind_10m.max_gust)
+
+        bearing = wind_10m.avg_bearing
+        if bearing is not None:
+            bearing = int(round(bearing))
+
+        param["avgbearing"] = coalesce(bearing)
+        param["wgust"] = coalesce_float(convert_wind_speed(param["windunit"],
+                                                           wind_10m.max_gust))
 
     if "day_windrun" in sets:
-        param["windrun"] = get_day_wind_run(ts.date(), station_id)
+        # The database will report in meters. Convert to kilometers.
+        param["windrun"] = get_day_wind_run(ts.date(), station_id) / 1000
 
-    # TODO: calculate all of these - they're used by cumulus realtime.txt
+    # TODO: calculate all of these - fthey're used by cumulus realtime.txt
     param.update({
         "heatindex": coalesce_float(0),  # Heat index
         "humidex": coalesce_float(0),  # Humidex
