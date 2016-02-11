@@ -17,6 +17,7 @@ from server.DatagramServer import WeatherPushDatagramServer
 from client.weather_push_server.tcp_client import WeatherPushProtocol
 from server.tcp_server import WeatherPushTcpServer
 from common.util import Event
+from server.database import ServerDatabase
 
 __author__ = 'david'
 
@@ -274,13 +275,13 @@ class TcpServerFactory(ServerFactory):
     protocol = WeatherPushTcpServer
 
     def __init__(self, dsn, authorisation_code):
-        self._dsn = dsn
+        self._db = ServerDatabase(dsn)
         self._authorisation_code = authorisation_code
 
     def buildProtocol(self, addr):
         p = WeatherPushTcpServer(self._authorisation_code)
         p.factory = self
-        p.start_protocol(self._dsn)
+        p.start_protocol(self._db)
         return p
 
 
