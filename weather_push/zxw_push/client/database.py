@@ -430,6 +430,7 @@ class WeatherDatabase(object):
                   -- And everything that has been waiting for receipt confirmation for
                   -- more than 5 minutes
                   irs.status = 'awaiting_confirmation'
+                  and irs.retries < 5
                   and irs.status_time < NOW() - '10 minutes'::interval))
         limit 5 -- images could take up a lot of ram.
         """
