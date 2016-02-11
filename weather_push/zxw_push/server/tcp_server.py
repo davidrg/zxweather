@@ -61,15 +61,14 @@ class WeatherPushTcpServer(protocol.Protocol):
 
         self._authorisation_code = authorisation_code
 
-    def start_protocol(self, dsn):
+    def start_protocol(self, db):
         """
         Called when the protocol has started. Connects to the database, etc.
         """
 
-        self._dsn = dsn
+        self._db = db
 
         log.msg("TCP Server started")
-        self._db = ServerDatabase(self._dsn)
 
         self._get_stations(None)
 
