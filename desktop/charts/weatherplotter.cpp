@@ -27,6 +27,8 @@ void WeatherPlotter::setDataSource(AbstractDataSource *dataSource)
 
 void WeatherPlotter::drawChart(QList<DataSet> dataSets)
 {
+    cacheManager->flushCache();
+
     foreach (DataSet dataSet, dataSets) {
         this->dataSets[dataSet.id] = dataSet;
     }
@@ -142,6 +144,7 @@ QPointer<QCPAxis> WeatherPlotter::createKeyAxis(dataset_id_t dataSetId) {
             axis = chart->axisRect()->addAxis(QCPAxis::atTop);
     }
     axis->setTickLabelType(QCPAxis::ltDateTime);
+
     axis->grid()->setVisible(axisGridVisible());
     configuredKeyAxes.insert(type, axis);
     axisTypes.insert(axis,type);
