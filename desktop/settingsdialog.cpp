@@ -143,6 +143,9 @@ void SettingsDialog::writeSettings() {
     colours.windDirection = ui->qcpWindDirection->color();
     colours.uvIndex = ui->qcpUVIndex->color();
     colours.solarRadiation = ui->qcpSolarRadiation->color();
+    colours.title = ui->qcpTitle->color();
+    colours.background = ui->qcpBackground->color();
+
     settings.setChartColours(colours);
 }
 
@@ -197,6 +200,9 @@ void SettingsDialog::loadSettings() {
     ui->qcpWindDirection->setColor(colours.windDirection);
     ui->qcpUVIndex->setColor(colours.uvIndex);
     ui->qcpSolarRadiation->setColor(colours.solarRadiation);
+
+    ui->qcpTitle->setColor(colours.title);
+    ui->qcpBackground->setColor(colours.background);
 
     dataSourceChanged();
 }

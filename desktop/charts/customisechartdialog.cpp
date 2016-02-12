@@ -5,7 +5,10 @@
 #include <QStringList>
 #include <QtDebug>
 
-CustomiseChartDialog::CustomiseChartDialog(QMap<SampleColumn, GraphStyle> graphStyles, QWidget *parent) :
+CustomiseChartDialog::CustomiseChartDialog(QMap<SampleColumn, GraphStyle> graphStyles,
+                                           bool solarDataAvailable, bool titleEnabled,
+                                           QString currentTitle, QColor titleColour,
+                                           QBrush backgroundBrush, QWidget *parent) :
     QDialog(parent),
     ui(new Ui::CustomiseChartDialog)
 {
@@ -28,6 +31,19 @@ CustomiseChartDialog::CustomiseChartDialog(QMap<SampleColumn, GraphStyle> graphS
     addGraphSettingsForColumn(SC_AverageWindSpeed);
     addGraphSettingsForColumn(SC_GustWindSpeed);
     addGraphSettingsForColumn(SC_WindDirection);
+
+    if (solarDataAvailable) {
+        addGraphSettingsForColumn(SC_UV_Index);
+        addGraphSettingsForColumn(SC_SolarRadiation);
+    }
+
+    if (!currentTitle.isNull()) {
+        ui->leTitle->setText(currentTitle);
+    }
+    ui->clrTitle->setColor(titleColour);
+    ui->gbTitle->setChecked(titleEnabled);
+
+    ui->clrBackground->setColor(backgroundBrush.color());
 }
 
 CustomiseChartDialog::~CustomiseChartDialog()
@@ -242,4 +258,20 @@ void CustomiseChartDialog::AcceptDialog() {
     updateGraphStyle(SC_WindDirection);
 
     accept();
+}
+
+bool CustomiseChartDialog::getTitleEnabled() {
+    return ui->gbTitle->isChecked();
+}
+
+QString CustomiseChartDialog::getTitle() {
+    return ui->leTitle->text();
+}
+
+QColor CustomiseChartDialog::getTitleColour() {
+    return ui->clrTitle->color();
+}
+
+QBrush CustomiseChartDialog::getBackgroundBrush() {
+    return QBrush(ui->clrBackground->color());
 }
