@@ -50,6 +50,7 @@ private slots:
     void removeSelectedGraph();
     void addGraph();
     void customiseChart();
+    void addDataSet();
 
     void refresh();
 
@@ -60,6 +61,8 @@ private:
     void showLegendContextMenu(QPoint point);
 
     QList<QCPAxis*> valueAxes();
+
+    void reloadDataSets();
 
     bool gridVisible;
 
@@ -76,6 +79,8 @@ private:
 
     QScopedPointer<BasicQCPInteractionManager> basicInteractionManager;
     QScopedPointer<WeatherPlotter> plotter;
+
+    QList<DataSet> dataSets;
 
     bool solarDataAvailable;
 };

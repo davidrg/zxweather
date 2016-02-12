@@ -80,14 +80,34 @@ ChartWindow::ChartWindow(QList<DataSet> dataSets, bool solarAvailable,
 
     setWindowTitle("Chart");
 
+    this->dataSets = dataSets;
+
+    reloadDataSets();
+}
+
+ChartWindow::~ChartWindow()
+{
+    delete ui;
+}
+
+void ChartWindow::reloadDataSets() {
     if (dataSets.count() > 1) {
         // If we have multiple datasets then we can't use the simple
         // start/end time boxes.
         ui->startTime->setVisible(false);
+        ui->lblStartTime->setVisible(false);
         ui->endTime->setVisible(false);
+        ui->lblEndTime->setVisible(false);
+        ui->pbRefresh->setVisible(false);
+        ui->divRefresh->setVisible(false);
     } else {
         ui->startTime->setDateTime(dataSets.first().startTime);
         ui->endTime->setDateTime(dataSets.first().endTime);
+        ui->startTime->setVisible(true);
+        ui->endTime->setVisible(true);
+        ui->lblEndTime->setVisible(true);
+        ui->pbRefresh->setVisible(true);
+        ui->divRefresh->setVisible(true);
     }
 
     // Reset the IDs on all incoming datasets to ensure they're unique.
@@ -96,11 +116,6 @@ ChartWindow::ChartWindow(QList<DataSet> dataSets, bool solarAvailable,
     }
 
     plotter->drawChart(dataSets);
-}
-
-ChartWindow::~ChartWindow()
-{
-    delete ui;
 }
 
 void ChartWindow::refresh() {
@@ -200,8 +215,14 @@ void ChartWindow::chartContextMenuRequested(QPoint point)
     }
 
 #ifdef QT_DEBUG
+
+    // The multidataset functionality isn't finished yet.
+    menu->addAction("Add Data Set",
+                    this, SLOT(addDataSet()));
+
     menu->addSeparator();
 
+    // The customise chart window isn't finished yet.
     menu->addAction("Customise",
                     this, SLOT(customiseChart()));
 #endif
@@ -328,7 +349,8 @@ void ChartWindow::removeSelectedGraph()
 
         // Turn off the column so it doesn't come back when the user
         // hits refresh.
-        plotter->removeGraph(DELETE_ME_AND_FIX_ERRORS,(SampleColumn)graph->property(GRAPH_TYPE).toInt());
+        plotter->removeGraph(DELETE_ME_AND_FIX_ERRORS,
+                             (SampleColumn)graph->property(GRAPH_TYPE).toInt());
     }
 }
 
@@ -480,4 +502,27 @@ void ChartWindow::customiseChart() {
         if (replotRequired)
             ui->chart->replot();
     }
+}
+
+void ChartWindow::addDataSet() {
+    ChartOptionsDialog options(solarDataAvailable);
+    options.setWindowTitle("Add Data Set");
+
+    int result = options.exec();
+    if (result != QDialog::Accepted)
+        return; // User canceled. Nothing to do.
+
+    SampleColumns columns = options.getColumns();
+
+    DataSet ds;
+    ds.columns = columns;
+    ds.startTime = options.getStartTime();
+    ds.endTime = options.getEndTime();
+    ds.aggregateFunction = options.getAggregateFunction();
+    ds.groupType = options.getAggregateGroupType();
+    ds.customGroupMinutes = options.getCustomMinutes();
+
+    dataSets.append(ds);
+
+    reloadDataSets();
 }

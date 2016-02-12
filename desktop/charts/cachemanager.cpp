@@ -143,7 +143,8 @@ void CacheManager::samplesReady(SampleSet samples) {
         if ((ds.columns & cachedDataSet.columns) != ds.columns)
             mergeSampleSet(ds.id, samples, ds.columns);
         else
-            qDebug() << "Requested samples already in cache - no merge necessary";
+            qDebug() << "Requested samples for data set" << ds.id
+                     << "already in cache - no merge necessary";
     }
 
     if (dataSetsToFetch.isEmpty()) {
@@ -151,8 +152,8 @@ void CacheManager::samplesReady(SampleSet samples) {
         // No more datasets to fetch. Send all the requested ones back.
         QMap<dataset_id_t, SampleSet> data;
         foreach (dataset_id_t id, requestedDataSets) {
-            qDebug() <<"Dataset" << id << "...";
-            data[id] = sampleCache[ds.id];
+            qDebug() <<"Dataset" << id << "start" << ds.startTime << "...";
+            data[id] = sampleCache[id];
         }
         emit dataSetsReady(data);
 
