@@ -1,12 +1,16 @@
 #include "addgraphdialog.h"
 #include "ui_addgraphdialog.h"
 
-AddGraphDialog::AddGraphDialog(SampleColumns availableColumns,
+AddGraphDialog::AddGraphDialog(SampleColumns availableColumns, bool solarAvailable,
                                QWidget *parent) :
     QDialog(parent),
     ui(new Ui::AddGraphDialog)
 {
     ui->setupUi(this);
+
+    if (!solarAvailable) {
+        ui->gbSolar->setVisible(false);
+    }
 
     connect(ui->buttonBox, SIGNAL(accepted()), this, SLOT(accept()));
 
@@ -53,6 +57,15 @@ AddGraphDialog::AddGraphDialog(SampleColumns availableColumns,
                     availableColumns.testFlag(SC_WindDirection));
     }
 
+    if ((availableColumns & SOLAR_COLUMNS) == 0) {
+        ui->gbSolar->setEnabled(false);
+    } else {
+        ui->cbUVIndex->setEnabled(
+                    availableColumns.testFlag(SC_UV_Index));
+        ui->cbSolarRadiation->setEnabled(
+                    availableColumns.testFlag(SC_SolarRadiation));
+    }
+
 
     // Set all disabled stuff to 'checked' (as its already in the chart)
     ui->cbApparentTemperature->setChecked(
@@ -91,6 +104,12 @@ AddGraphDialog::AddGraphDialog(SampleColumns availableColumns,
     ui->cbWindDirection->setChecked(
                 !ui->cbWindDirection->isEnabled() ||
                 !ui->gbWind->isEnabled());
+    ui->cbUVIndex->setChecked(
+                !ui->cbUVIndex->isEnabled() ||
+                !ui->gbSolar->isEnabled());
+    ui->cbSolarRadiation->setChecked(
+                !ui->cbSolarRadiation->isEnabled() ||
+                !ui->gbSolar->isEnabled());
 }
 
 AddGraphDialog::~AddGraphDialog()
@@ -138,6 +157,12 @@ SampleColumns AddGraphDialog::selectedColumns()
             columns |= SC_Pressure;
         if (COL_CHECKED(ui->cbRainfall))
             columns |= SC_Rainfall;
+    }
+    if (ui->gbSolar->isEnabled()) {
+        if (COL_CHECKED(ui->cbUVIndex))
+            columns |= SC_UV_Index;
+        if (COL_CHECKED(ui->cbSolarRadiation))
+            columns |= SC_SolarRadiation;
     }
 
     return columns;

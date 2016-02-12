@@ -104,10 +104,15 @@ public slots:
     void updateSysTrayText(QString text);
     void updateSysTrayIcon(QIcon icon);
 
+    void setStationName(QString name);
+    void setSolarDataAvailable(bool available);
+
 private slots:
     /** Mostly used to check for late live data.
      */
     void liveDataRefreshed(LiveDataSet lds);
+
+    void reconnectDatabase();
 
 protected:
     /**
@@ -136,8 +141,7 @@ private:
 
     void readSettings();
 
-    void databaseCompatibilityChecks();
-    void reconnectDatabase();
+    bool databaseCompatibilityChecks();
 
     /** Reconnects to the datasource. Call this when ever data source
      * settings are changed.
@@ -153,6 +157,8 @@ private:
     QLayoutItem* statusItem;
     QLayoutItem* forecastItem;
     QLayoutItem* spacerItem;
+
+    bool solarDataAvailable;
 };
 
 #endif // MAINWINDOW_H

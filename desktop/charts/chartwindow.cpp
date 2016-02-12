@@ -18,13 +18,14 @@
 
 #define DELETE_ME_AND_FIX_ERRORS 0
 
-ChartWindow::ChartWindow(QList<DataSet> dataSets,
+ChartWindow::ChartWindow(QList<DataSet> dataSets, bool solarAvailable,
                          QWidget *parent) :
     QWidget(parent),
     ui(new Ui::ChartWindow)
 {
     ui->setupUi(this);       
 
+    solarDataAvailable = solarAvailable;
     gridVisible = true;
 
     basicInteractionManager.reset(
@@ -324,7 +325,9 @@ QList<QCPAxis*> ChartWindow::valueAxes() {
 
 void ChartWindow::addGraph()
 {
-    AddGraphDialog adg(plotter->availableColumns(DELETE_ME_AND_FIX_ERRORS), this);
+    AddGraphDialog adg(plotter->availableColumns(DELETE_ME_AND_FIX_ERRORS),
+                       solarDataAvailable,
+                       this);
     if (adg.exec() == QDialog::Accepted)
         plotter->addGraphs(DELETE_ME_AND_FIX_ERRORS,adg.selectedColumns());
 }

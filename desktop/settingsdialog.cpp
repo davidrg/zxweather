@@ -25,8 +25,9 @@
 #include "settings.h"
 
 #include <QSqlDatabase>
+#include <QDebug>
 
-SettingsDialog::SettingsDialog(QWidget *parent) :
+SettingsDialog::SettingsDialog(bool solarDataAvailable, QWidget *parent) :
     QDialog(parent),
     ui(new Ui::SettingsDialog)
 {
@@ -44,6 +45,15 @@ SettingsDialog::SettingsDialog(QWidget *parent) :
         ui->rbSampleDatabase->setText("Database (driver not found)");
         ui->rbLiveDatabase->setEnabled(false);
         ui->rbLiveDatabase->setText("Database (driver not found)");
+        qDebug() << "PostgreSQL database driver unavailable. Database functionality disabled.";
+        qDebug() << QSqlDatabase::drivers();
+    }
+
+    if (!solarDataAvailable) {
+        ui->lblUVIndex->setVisible(false);
+        ui->qcpUVIndex->setVisible(false);
+        ui->lblSolarRadiation->setVisible(false);
+        ui->qcpSolarRadiation->setVisible(false);
     }
 
     loadSettings();
@@ -131,6 +141,8 @@ void SettingsDialog::writeSettings() {
     colours.averageWindSpeed = ui->qcpAverageWindSpeed->color();
     colours.gustWindSpeed = ui->qcpGustWindSpeed->color();
     colours.windDirection = ui->qcpWindDirection->color();
+    colours.uvIndex = ui->qcpUVIndex->color();
+    colours.solarRadiation = ui->qcpSolarRadiation->color();
     settings.setChartColours(colours);
 }
 
@@ -183,6 +195,8 @@ void SettingsDialog::loadSettings() {
     ui->qcpAverageWindSpeed->setColor(colours.averageWindSpeed);
     ui->qcpGustWindSpeed->setColor(colours.gustWindSpeed);
     ui->qcpWindDirection->setColor(colours.windDirection);
+    ui->qcpUVIndex->setColor(colours.uvIndex);
+    ui->qcpSolarRadiation->setColor(colours.solarRadiation);
 
     dataSourceChanged();
 }

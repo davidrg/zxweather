@@ -4,11 +4,17 @@
 #include <QMessageBox>
 #include <QtDebug>
 
-ChartOptionsDialog::ChartOptionsDialog(QWidget *parent) :
+ChartOptionsDialog::ChartOptionsDialog(bool solarAvailable, QWidget *parent) :
     QDialog(parent),
     ui(new Ui::ChartOptionsDialog)
 {
     ui->setupUi(this);
+
+    if (!solarAvailable) {
+        ui->lblSolar->setVisible(false);
+        ui->cbSolarRadiation->setVisible(false);
+        ui->cbUVIndex->setVisible(false);
+    }
 
     ui->startTime->setDateTime(QDateTime::currentDateTime().addDays(-1));
     ui->endTime->setDateTime(QDateTime::currentDateTime());
@@ -57,6 +63,10 @@ void ChartOptionsDialog::checkAndAccept() {
         columns |= SC_GustWindSpeed;
     if (ui->cbWindDirection->isChecked())
         columns |= SC_WindDirection;
+    if (ui->cbUVIndex->isChecked())
+        columns |= SC_UV_Index;
+    if (ui->cbSolarRadiation->isChecked())
+        columns |= SC_SolarRadiation;
 
     if (columns == SC_NoColumns) {
         QMessageBox::information(this, "Data Sets",

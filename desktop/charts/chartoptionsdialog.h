@@ -17,7 +17,7 @@ class ChartOptionsDialog : public QDialog
     
 public:
 
-    explicit ChartOptionsDialog(QWidget *parent = 0);
+    explicit ChartOptionsDialog(bool solarAvailable, QWidget *parent = 0);
     ~ChartOptionsDialog();
     
     QDateTime getStartTime();

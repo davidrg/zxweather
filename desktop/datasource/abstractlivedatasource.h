@@ -21,6 +21,8 @@ struct _DavisLive {
     int forecastRule;
     int txBatteryStatus;
     float consoleBatteryVoltage;
+    float uvIndex;
+    float solarRadiation;
 };
 
 typedef struct _liveData {
@@ -81,6 +83,19 @@ signals:
      * @param errMsg The error message.
      */
     void error(QString errMsg);
+
+    /** Emitted before the first live data record to indicate if Solar
+     * and UV data are available.
+     *
+     * @param enabled If UV and Solar Radiation are enabled for this station
+     */
+    void isSolarDataEnabled(bool enabled);
+
+    /** Emitted when the data source obtains the stations actual name.
+     *
+     * @param name The name of the station
+     */
+    void stationName(QString name);
 };
 
 #endif // ABSTRACTLIVEDATASOURCE_H

@@ -229,6 +229,26 @@
         </property>
        </widget>
       </item>
+      <item row="3" column="2">
+       <widget class="QCheckBox" name="cbUVIndex">
+        <property name="text">
+         <string>UV Index</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="2">
+       <widget class="QCheckBox" name="cbSolarRadiation">
+        <property name="text">
+         <string>Solar Radiation</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>

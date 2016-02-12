@@ -36,6 +36,9 @@ typedef struct _SampleSet {
     // Wind only has a direction when its blowing - if averageWindSpeed for
     // a given timestamp is 0 then the direction will be undefined.
     QMap<uint,uint> windDirection;
+
+    QVector<double> solarRadiation;
+    QVector<double> uvIndex;
 } SampleSet;
 
 /** Reserve space in the sample sets data structures for the specified number

@@ -43,7 +43,7 @@ public:
      * with the current settings and displays it.
      * @param parent Parent window.
      */
-    explicit SettingsDialog(QWidget *parent = 0);
+    explicit SettingsDialog(bool solarDataAvailable, QWidget *parent = 0);
 
     /** Cleans up.
      */

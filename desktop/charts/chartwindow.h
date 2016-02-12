@@ -23,6 +23,7 @@ class ChartWindow : public QWidget
     
 public:
     explicit ChartWindow(QList<DataSet> dataSets,
+                         bool solarAvailable,
                          QWidget *parent = 0);
     ~ChartWindow();
     
@@ -70,6 +71,8 @@ private:
 
     QScopedPointer<BasicQCPInteractionManager> basicInteractionManager;
     QScopedPointer<WeatherPlotter> plotter;
+
+    bool solarDataAvailable;
 };
 
 #endif // CHARTWINDOW_H

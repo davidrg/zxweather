@@ -45,6 +45,9 @@ typedef struct _chart_colours {
     QColor averageWindSpeed;
     QColor gustWindSpeed;
     QColor windDirection;
+
+    QColor uvIndex;
+    QColor solarRadiation;
 } ChartColours;
 
 /** Provides access to application settings. This is a singleton. Call

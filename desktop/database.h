@@ -40,6 +40,8 @@ struct _davis_extra {
     int forecast_rule; /*!< ID of forecast rule description */
     int tx_battery_status; /*!< Transmitter battery status. Don't know its true meaning */
     float console_battery; /*!< Console battery voltage */
+    float uv_index; /*!< Average UV index */
+    float solar_radiation; /*!< Solar Radiation in W/m^2 */
 };
 
 /** Live data from the database.

@@ -206,6 +206,8 @@ private:
         AT_PRESSURE = 4, /*!< Axis for hPa */
         AT_HUMIDITY = 5, /*!< Axis in % */
         AT_RAINFALL = 6, /*!< Axis in mm */
+        AT_SOLAR_RADIATION = 7, /*!< Axis in W/m^2 */
+        AT_UV_INDEX = 8, //*!< Axis for UV Index - no unit */
         AT_KEY = 100 /*!< X Axis for DataSet 0. AT_KEY+1 for DataSet 1, etc. */
     } AxisType;
 

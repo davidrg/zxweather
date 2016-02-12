@@ -7,16 +7,24 @@
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QProgressDialog>
+#include <QDebug>
 
 #define FILTERS "Data file (*.dat);;Comma separated values (*.csv);;Text file (*.txt)"
 
 
 
-ExportDialog::ExportDialog(QWidget *parent) :
+ExportDialog::ExportDialog(bool solarDataAvailable, QWidget *parent) :
     QDialog(parent),
     ui(new Ui::ExportDialog)
 {
     ui->setupUi(this);
+
+    if (!solarDataAvailable) {
+        ui->cbUVIndex->setChecked(false);
+        ui->cbUVIndex->setVisible(false);
+        ui->cbSolarRadiation->setChecked(false);
+        ui->cbSolarRadiation->setVisible(false);
+    }
 
     ui->startTime->setDateTime(QDateTime::currentDateTime().addDays(-1));
     ui->endTime->setDateTime(QDateTime::currentDateTime());
@@ -174,7 +182,10 @@ SampleColumns ExportDialog::getColumns()
         columns |= SC_GustWindSpeed;
     if (ui->cbWindDirection->isChecked())
         columns |= SC_WindDirection;
-
+    if (ui->cbUVIndex->isChecked() && ui->cbUVIndex->isVisible())
+        columns |= SC_UV_Index;
+    if (ui->cbSolarRadiation->isChecked() && ui->cbSolarRadiation->isVisible())
+        columns |= SC_SolarRadiation;
     return columns;
 }
 
@@ -207,6 +218,7 @@ void ExportDialog::exportData() {
 
 void ExportDialog::samplesReady(SampleSet samples)
 {
+    qDebug() << "Export: samples ready.";
     int sampleCount = samples.timestamp.count();
     QProgressDialog progressDialog(this);
     progressDialog.setWindowTitle("Exporting Data...");
@@ -230,6 +242,7 @@ void ExportDialog::samplesReady(SampleSet samples)
 
     QString delimiter = getDelimiter();
 
+    qDebug() << "Generating delimited text file...";
     for (int i = 0; i < samples.timestamp.count(); i++) {
         QStringList rowData;
 
@@ -269,6 +282,12 @@ void ExportDialog::samplesReady(SampleSet samples)
              else
                  rowData.append("");
         }
+        if (columns.testFlag(SC_UV_Index))
+            rowData.append(QString::number(
+                               samples.uvIndex.at(i), 'f', 1));
+        if (columns.testFlag(SC_SolarRadiation))
+            rowData.append(QString::number(
+                               samples.solarRadiation.at(i)));
 
         QString row = rowData.join(delimiter) + "\n";
         dataFile.write(row.toAscii());
@@ -285,6 +304,7 @@ void ExportDialog::samplesReady(SampleSet samples)
         }
 
     }
+    qDebug() << "Work complete.";
     dataFile.close();
     progressDialog.reset();
     accept();
@@ -329,6 +349,10 @@ QString ExportDialog::getHeaderRow(SampleColumns columns) {
         columnNames.append("Gust Wind Speed");
     if (columns.testFlag(SC_WindDirection))
         columnNames.append("Wind Direction");
+    if (columns.testFlag(SC_UV_Index))
+        columnNames.append("UV Index");
+    if (columns.testFlag(SC_SolarRadiation))
+        columnNames.append("Solar Radiation");
 
     return columnNames.join(getDelimiter()) + "\n";
 }

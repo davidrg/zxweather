@@ -802,7 +802,8 @@ class ShowStationCommand(Command):
             "sample_interval": station_info.sample_interval,
             "live_data_available": station_info.live_data_available,
             "hardware_type_code": station_info.station_type_code,
-            "hardware_type_name": station_info.station_type_title
+            "hardware_type_name": station_info.station_type_title,
+            "config": station_info.station_config
         }
 
         self.writeLine(json.dumps(result))
@@ -817,6 +818,19 @@ class ShowStationCommand(Command):
             station_info.live_data_available))
         self.writeLine("Hardware Type: {0} ({1}) ".format(
             station_info.station_type_code, station_info.station_type_title))
+
+        if station_info.station_type_code == "DAVIS":
+            self.writeLine("Is Wireless: {0}".format(
+                station_info.station_config["is_wireless"]))
+            if station_info.station_config["is_wireless"]:
+                self.writeLine("Broadcast ID: {0}".format(
+                    station_info.station_config["broadcast_id"]
+                ))
+            self.writeLine("Model: {0}".format(
+                station_info.station_config["hardware_type"]))
+            self.writeLine("Has Solar and UV: {0}".format(
+                station_info.station_config["has_solar_and_uv"]
+            ))
 
     def _output_station_info(self, station_info):
         if self.json_mode:

@@ -261,18 +261,19 @@ void WebCacheDB::cacheDataFile(data_file_t dataFile, QString stationUrl) {
     }
 
     // Cool. Data file is all ready - now insert the samples.
-    cacheDataSet(dataFile.samples, stationId, dataFileId);
+    cacheDataSet(dataFile.samples, stationId, dataFileId, dataFile.hasSolarData);
 }
 
 void WebCacheDB::cacheDataSet(SampleSet samples,
                               int stationId,
-                              int dataFileId) {
+                              int dataFileId,
+                              bool hasSolarData) {
     qDebug() << "Caching dataset of" << samples.sampleCount << "samples...";
     // First up, grab the list of samples that are missing from the database.
     QVariantList timestamps, temperature, dewPoint, apparentTemperature,
             windChill, indoorTemperature, humidity, indoorHumidity, pressure,
             rainfall, stationIds, dataFileIds, averageWindSpeeds,
-            gustWindSpeeds, windDirections;
+            gustWindSpeeds, windDirections, solarRadiations, uvIndexes;
 
     qDebug() << "Preparing list of samples to insert...";
 
@@ -307,6 +308,15 @@ void WebCacheDB::cacheDataSet(SampleSet samples,
             windDirections.append(val);
         }
 
+        if (hasSolarData) {
+            solarRadiations.append(samples.solarRadiation.at(i));
+            uvIndexes.append(samples.uvIndex.at(i));
+        } else {
+            // The lists still need to be populated for the query. As we don't
+            // have any real data to put in them we'll use 0.
+            solarRadiations.append(0);
+            uvIndexes.append(0);
+        }
     }
 
     // Wrapping bulk inserts in a transaction cuts total time by orders of
@@ -324,8 +334,8 @@ void WebCacheDB::cacheDataSet(SampleSet samples,
                     "dew_point, apparent_temperature, wind_chill, humidity, "
                     "pressure, indoor_temperature, indoor_humidity, rainfall, "
                     "data_file, average_wind_speed, gust_wind_speed, "
-                    "wind_direction) "
-                    "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+                    "wind_direction, solar_radiation, uv_index) "
+                    "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
         query.addBindValue(stationIds);
         query.addBindValue(timestamps);
         query.addBindValue(temperature);
@@ -341,6 +351,8 @@ void WebCacheDB::cacheDataSet(SampleSet samples,
         query.addBindValue(averageWindSpeeds);
         query.addBindValue(gustWindSpeeds);
         query.addBindValue(windDirections);
+        query.addBindValue(solarRadiations);
+        query.addBindValue(uvIndexes);
         if (!query.execBatch()) {
             qWarning() << "Sample insert failed: " << query.lastError();
         } else {
@@ -385,6 +397,10 @@ QString WebCacheDB::buildColumnList(SampleColumns columns, QString format) {
         query += format.arg("rainfall");
     if (columns.testFlag(SC_WindDirection))
         query += format.arg("wind_direction");
+    if (columns.testFlag(SC_SolarRadiation))
+        query += format.arg("solar_radiation");
+    if (columns.testFlag(SC_UV_Index))
+        query += format.arg("uv_index");
     return query;
 }
 
@@ -685,6 +701,12 @@ SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
                 if (!record.value("wind_direction").isNull())
                     samples.windDirection[timeStamp] =
                             record.value("wind_direction").toUInt();
+
+            if (columns.testFlag(SC_SolarRadiation))
+                samples.solarRadiation.append(record.value("solar_radiation").toDouble());
+
+            if (columns.testFlag(SC_UV_Index))
+                samples.uvIndex.append(record.value("uv_index").toDouble());
 
         } while (query.next());
     } else if (query.lastError().isValid()) {

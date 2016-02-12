@@ -15,7 +15,7 @@ class ExportDialog : public QDialog
     Q_OBJECT
     
 public:
-    explicit ExportDialog(QWidget *parent = 0);
+    explicit ExportDialog(bool solarDataAvailable, QWidget *parent = 0);
     ~ExportDialog();
 
 private slots:

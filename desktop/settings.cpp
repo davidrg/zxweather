@@ -80,10 +80,12 @@ namespace SettingsKey {
             const QString HUMIDITY = "Colours/Charts/humidity";
             const QString INDOOR_HUMIDITY = "Colours/Charts/indoor_humidity";
             const QString PRESSURE = "Colours/Charts/pressure";
-            const QString RAINFALL = "Colors/Charts/rainfall";
-            const QString AVG_WIND_SPEED = "Colors/Charts/average_wind_speed";
-            const QString GUST_WIND_SPEED = "Colors/Charts/gust_wind_speed";
-            const QString WIND_DIRECTION = "Colors/Charts/wind_direction";
+            const QString RAINFALL = "Colours/Charts/rainfall";
+            const QString AVG_WIND_SPEED = "Colours/Charts/average_wind_speed";
+            const QString GUST_WIND_SPEED = "Colours/Charts/gust_wind_speed";
+            const QString WIND_DIRECTION = "Colours/Charts/wind_direction";
+            const QString UV_INDEX = "Colours/Charts/uv_index";
+            const QString SOLAR_RADIATION = "Colours/Charts/solar_radiation";
         }
     }
 
@@ -353,6 +355,10 @@ void Settings::setChartColours(ChartColours colours) {
                        colours.gustWindSpeed);
     settings->setValue(SettingsKey::Colours::Charts::WIND_DIRECTION,
                        colours.windDirection);
+    settings->setValue(SettingsKey::Colours::Charts::UV_INDEX,
+                       colours.uvIndex);
+    settings->setValue(SettingsKey::Colours::Charts::SOLAR_RADIATION,
+                       colours.solarRadiation);
 }
 
 ChartColours Settings::getChartColours() {
@@ -393,10 +399,14 @@ ChartColours Settings::getChartColours() {
     colours.windDirection = settings->value(
                 SettingsKey::Colours::Charts::WIND_DIRECTION,
                 Qt::green).value<QColor>();
+    colours.uvIndex = settings->value(
+                SettingsKey::Colours::Charts::UV_INDEX,
+                Qt::magenta).value<QColor>();
+    colours.solarRadiation = settings->value(
+                SettingsKey::Colours::Charts::SOLAR_RADIATION,
+                Qt::yellow).value<QColor>();
 
     /* Available default colours:
-     *   Qt::magenta
-     *   Qt::yellow
      *   Qt::gray
      *   Qt::lightGray
      *   Qt::white

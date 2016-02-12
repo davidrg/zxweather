@@ -20,7 +20,9 @@ enum SampleColumn {
     SC_Rainfall            = 0x0200,
     SC_AverageWindSpeed    = 0x0400,
     SC_GustWindSpeed       = 0x0800,
-    SC_WindDirection       = 0x1000
+    SC_WindDirection       = 0x1000,
+    SC_SolarRadiation      = 0x2000,
+    SC_UV_Index            = 0x4000
 };
 Q_DECLARE_FLAGS(SampleColumns, SampleColumn)
 
@@ -29,7 +31,8 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(SampleColumns)
 #define ALL_SAMPLE_COLUMNS (SC_Temperature | SC_IndoorTemperature | \
     SC_ApparentTemperature | SC_WindChill | SC_DewPoint | SC_Humidity | \
     SC_IndoorHumidity | SC_Pressure | SC_Rainfall | SC_AverageWindSpeed | \
-    SC_GustWindSpeed | SC_WindDirection | SC_Timestamp)
+    SC_GustWindSpeed | SC_WindDirection | SC_Timestamp | \
+    SC_SolarRadiation | SC_UV_Index)
 
 #define TEMPERATURE_COLUMNS (SC_Temperature | SC_IndoorTemperature | \
     SC_ApparentTemperature | SC_WindChill | SC_DewPoint)
@@ -38,6 +41,8 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(SampleColumns)
 
 #define WIND_COLUMNS (SC_WindDirection | SC_AverageWindSpeed | \
     SC_GustWindSpeed)
+
+#define SOLAR_COLUMNS (SC_SolarRadiation | SC_UV_Index)
 
 #define OTHER_COLUMNS (SC_Pressure | SC_Rainfall)
 

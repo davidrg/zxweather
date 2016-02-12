@@ -14,6 +14,7 @@ typedef struct _data_file_t {
     SampleSet samples;
     bool isValid;
     bool expireExisting;
+    bool hasSolarData;
 } data_file_t;
 
 typedef struct _cache_stats_t {
@@ -191,8 +192,10 @@ private:
      * @param samples The samples to store
      * @param stationId The Station the samples belong to
      * @param dataFileId The data file the samples belong to
+     * @param hasSolarData Is UV Index and Solar Radiation available
      */
-    void cacheDataSet(SampleSet samples, int stationId, int dataFileId);
+    void cacheDataSet(SampleSet samples, int stationId, int dataFileId,
+                      bool hasSolarData);
 
     /** Builds a list of columns for the specified column set using the
      * supplied format string. In the format string, %1 is the column name.
