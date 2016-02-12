@@ -4,8 +4,8 @@ Provides access to zxweather monthly data over HTTP in a number of formats.
 Used for generating charts in JavaScript, etc.
 """
 
-from datetime import date
-from cache import cache_control_headers
+from datetime import date, datetime, timedelta
+from cache import cache_control_headers, rfcformat
 import os
 import web
 from web.contrib.template import render_jinja
@@ -13,7 +13,7 @@ from config import db
 import config
 from data.util import outdoor_sample_result_to_datatable, outdoor_sample_result_to_json, daily_records_result_to_datatable, daily_records_result_to_json
 from database import get_station_id, get_sample_interval, \
-    get_month_data_wp
+    get_month_data_wp, get_month_data_wp_age
 
 __author__ = 'David Goodwin'
 
@@ -508,6 +508,59 @@ class data_ascii:
 
         web.header("Content-Type", "text/plain")
         return result
+
+    def HEAD(self, station, year, month, dataset):
+        """
+        Gets headers for plain text data. Its primarily for the benefit of the
+        desktop UI which checks the cache control headers before trying to
+        download the files.
+
+        :param station: Station to get data for
+        :type station: str
+        :param year: Year to get data for
+        :type year: str
+        :param month: Month to get data for. Unlike in other areas of the site
+                      this is not the month name but rather its number.
+        :type month: str
+        :param dataset: Dataset (file) to fetch.
+        :type dataset: str
+        :return: text file.
+        :raise: web.notfound if the file doesn't exist.
+        """
+
+        station_id = get_station_id(station)
+
+        if station_id is None:
+            raise web.NotFound()
+
+        int_year = int(year)
+        int_month = int(month)
+
+        if dataset == 'samples':
+            # TODO: this really needs to not involve the database in any way.
+            age = get_month_data_wp_age(int_year, int_month, station_id)
+
+            if age is None:
+                raise web.NotFound()
+
+            now = datetime.now()
+
+            web.header('Last-Modified', rfcformat(age))
+            if int_year == now.year and int_month == now.month:
+                # TODO: look up sample interval and use that. Its what
+                # cache_control_headers() does but we can't currently use
+                # that as the sample interval isn't cached and looking it up
+                # on every request is too expensive here.
+                pass
+            else:
+                web.header('Expires', rfcformat(now + timedelta(60, 0)))
+
+            #cache_control_headers(station_id, age, int_year, int_month)
+        else:
+            raise web.NotFound()
+
+        web.header("Content-Type", "text/plain")
+        return
 
 
 # This came from weather_plots month_charts module. It could do with a tidy up.

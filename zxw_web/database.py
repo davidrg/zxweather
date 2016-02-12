@@ -128,6 +128,7 @@ def get_station_type_code(station_id):
         return None
 
 
+
 def get_station_config(station_id):
     """
     Returns the hardware configuration parameters for the specified station.
@@ -1293,6 +1294,23 @@ order by cur.time_stamp asc
     params = dict(station=station_id, date=date(year=year,month=month,day=1))
 
     return db.query(query, params)
+
+
+def get_month_data_wp_age(year, month, station_id):
+    query = """
+select max(cur.time_stamp) as max_ts
+from sample cur
+where date(date_trunc('month',cur.time_stamp)) = $date
+  and cur.station_id = $station
+        """
+
+    params = dict(station=station_id, date=date(year=year,month=month,day=1))
+
+    result = db.query(query, params)
+    if result is None or len(result) == 0:
+        return None
+
+    return result[0].max_ts
 
 # Query used by weather_plot for the day data set. Copied here as the desktop
 # client also uses this dataset for over-the-internet operation
