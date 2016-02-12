@@ -6,6 +6,7 @@
 #include <QList>
 #include <QPointer>
 #include <QDateTime>
+#include <QColor>
 
 #include "chartoptionsdialog.h"
 #include "datasource/webdatasource.h"
@@ -41,7 +42,7 @@ private slots:
     // Context menu related stuff
     void chartContextMenuRequested(QPoint point);
     void addTitle();
-    void removeTitle();
+    void removeTitle(bool replot=true);
     void showLegendToggle();
     void showTitleToggle();
     void showGridToggle();
@@ -68,6 +69,10 @@ private:
     void addTitle(QString title);
     QPointer<QCPPlotTitle> plotTitle;
     QString plotTitleValue;
+    bool plotTitleEnabled;
+    QColor plotTitleColour;
+
+    QBrush plotBackgroundBrush;
 
     QScopedPointer<BasicQCPInteractionManager> basicInteractionManager;
     QScopedPointer<WeatherPlotter> plotter;

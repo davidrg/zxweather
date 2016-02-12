@@ -48,6 +48,9 @@ typedef struct _chart_colours {
 
     QColor uvIndex;
     QColor solarRadiation;
+
+    QColor title;
+    QColor background;
 } ChartColours;
 
 /** Provides access to application settings. This is a singleton. Call

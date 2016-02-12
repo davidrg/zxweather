@@ -27,6 +27,7 @@ ChartWindow::ChartWindow(QList<DataSet> dataSets, bool solarAvailable,
 
     solarDataAvailable = solarAvailable;
     gridVisible = true;
+    plotTitleEnabled = false;
 
     basicInteractionManager.reset(
             new BasicQCPInteractionManager(ui->chart, this));
@@ -39,6 +40,12 @@ ChartWindow::ChartWindow(QList<DataSet> dataSets, bool solarAvailable,
     setYAxisLock();
 
     Settings& settings = Settings::getInstance();
+
+    ChartColours colours = settings.getChartColours();
+    plotTitleColour = colours.title;
+    plotBackgroundBrush = QBrush(colours.background);
+
+    ui->chart->axisRect()->setBackground(plotBackgroundBrush);
 
     if (settings.sampleDataSourceType() == Settings::DS_TYPE_DATABASE)
         plotter->setDataSource(new DatabaseDataSource(this, this));
@@ -251,16 +258,23 @@ void ChartWindow::addTitle()
 }
 
 void ChartWindow::addTitle(QString title) {
+    plotTitleEnabled = true;
+    plotTitleValue = title;
     ui->chart->plotLayout()->insertRow(0);
     plotTitle = new QCPPlotTitle(ui->chart, title);
+    plotTitle->setTextColor(plotTitleColour);
     ui->chart->plotLayout()->addElement(0, 0, plotTitle);
 }
 
-void ChartWindow::removeTitle()
+void ChartWindow::removeTitle(bool replot)
 {
+    plotTitleEnabled = false;
     ui->chart->plotLayout()->remove(plotTitle);
     ui->chart->plotLayout()->simplify();
-    ui->chart->replot();
+
+    if (replot) {
+        ui->chart->replot();
+    }
 }
 
 void ChartWindow::showLegendToggle()
@@ -407,7 +421,9 @@ void ChartWindow::customiseChart() {
 
     QMap<SampleColumn, GraphStyle> originalStyles = plotter->getGraphStyles(DELETE_ME_AND_FIX_ERRORS);
 
-    CustomiseChartDialog ccd(originalStyles, this);
+    CustomiseChartDialog ccd(originalStyles, solarDataAvailable, plotTitleEnabled,
+                             plotTitleValue, plotTitleColour, plotBackgroundBrush,
+                             this);
     if (ccd.exec() == QDialog::Accepted) {
         QMap<SampleColumn, GraphStyle> newStyles = ccd.getGraphStyles();
 
@@ -438,8 +454,28 @@ void ChartWindow::customiseChart() {
         }
         plotter->setGraphStyles(newStyles, DELETE_ME_AND_FIX_ERRORS);
 
+        if (ccd.getTitleEnabled()) {
+            QString title = ccd.getTitle();
+            QColor colour = ccd.getTitleColour();
 
+            if (title != plotTitleValue || colour != plotTitleColour) {
+                if (plotTitleEnabled) {
+                    removeTitle(false);
+                }
+                plotTitleColour = colour;
+                addTitle(title);
+                replotRequired = true;
+            }
+        } else {
+            removeTitle();
+        }
 
+        QBrush newBackgroundBrush = ccd.getBackgroundBrush();
+        if (newBackgroundBrush != plotBackgroundBrush) {
+            plotBackgroundBrush = newBackgroundBrush;
+            ui->chart->axisRect()->setBackground(newBackgroundBrush);
+            replotRequired = true;
+        }
 
         if (replotRequired)
             ui->chart->replot();

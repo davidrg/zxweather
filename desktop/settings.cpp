@@ -86,6 +86,8 @@ namespace SettingsKey {
             const QString WIND_DIRECTION = "Colours/Charts/wind_direction";
             const QString UV_INDEX = "Colours/Charts/uv_index";
             const QString SOLAR_RADIATION = "Colours/Charts/solar_radiation";
+            const QString TITLE = "Colours/Charts/title";
+            const QString BACKGROUND = "Colours/Charts/background";
         }
     }
 
@@ -359,6 +361,10 @@ void Settings::setChartColours(ChartColours colours) {
                        colours.uvIndex);
     settings->setValue(SettingsKey::Colours::Charts::SOLAR_RADIATION,
                        colours.solarRadiation);
+    settings->setValue(SettingsKey::Colours::Charts::TITLE,
+                       colours.title);
+    settings->setValue(SettingsKey::Colours::Charts::BACKGROUND,
+                       colours.background);
 }
 
 ChartColours Settings::getChartColours() {
@@ -412,6 +418,13 @@ ChartColours Settings::getChartColours() {
      *   Qt::white
      * white and light gray may not be real options.
      */
+
+    colours.title = settings->value(
+                SettingsKey::Colours::Charts::TITLE,
+                Qt::black).value<QColor>();
+    colours.background = settings->value(
+                SettingsKey::Colours::Charts::BACKGROUND,
+                Qt::white).value<QColor>();
 
     return colours;
 }

@@ -14,6 +14,16 @@
    <string>Customise Chart</string>
   </property>
   <layout class="QGridLayout" name="gridLayout_5">
+   <item row="2" column="0">
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+     </property>
+    </widget>
+   </item>
    <item row="1" column="0">
     <widget class="QTabWidget" name="tabWidget">
      <property name="currentIndex">
@@ -23,49 +33,11 @@
       <attribute name="title">
        <string>General</string>
       </attribute>
-      <widget class="QtColorButton" name="clrBackground">
+      <widget class="QGroupBox" name="gbTitle">
        <property name="geometry">
         <rect>
-         <x>430</x>
-         <y>40</y>
-         <width>64</width>
-         <height>23</height>
-        </rect>
-       </property>
-       <property name="minimumSize">
-        <size>
-         <width>64</width>
-         <height>23</height>
-        </size>
-       </property>
-       <property name="maximumSize">
-        <size>
-         <width>64</width>
-         <height>23</height>
-        </size>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-      </widget>
-      <widget class="QLabel" name="label_5">
-       <property name="geometry">
-        <rect>
-         <x>320</x>
-         <y>40</y>
-         <width>90</width>
-         <height>16</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Background Colour</string>
-       </property>
-      </widget>
-      <widget class="QGroupBox" name="groupBox_2">
-       <property name="geometry">
-        <rect>
-         <x>9</x>
-         <y>38</y>
+         <x>10</x>
+         <y>10</y>
          <width>223</width>
          <height>56</height>
         </rect>
@@ -78,7 +50,7 @@
        </property>
        <layout class="QHBoxLayout" name="horizontalLayout_2">
         <item>
-         <widget class="QLineEdit" name="lineEdit"/>
+         <widget class="QLineEdit" name="leTitle"/>
         </item>
         <item>
          <widget class="QtColorButton" name="clrTitle">
@@ -104,12 +76,12 @@
         </item>
        </layout>
       </widget>
-      <widget class="QGroupBox" name="groupBox_3">
+      <widget class="QGroupBox" name="gbLegend">
        <property name="geometry">
         <rect>
-         <x>9</x>
-         <y>100</y>
-         <width>205</width>
+         <x>10</x>
+         <y>70</y>
+         <width>221</width>
          <height>133</height>
         </rect>
        </property>
@@ -123,63 +95,63 @@
         <item row="1" column="2">
          <layout class="QGridLayout" name="gridLayout_6">
           <item row="0" column="1">
-           <widget class="QToolButton" name="toolButton_2">
+           <widget class="QToolButton" name="tbLegendTopCenter">
             <property name="text">
              <string>...</string>
             </property>
            </widget>
           </item>
           <item row="0" column="2">
-           <widget class="QToolButton" name="toolButton_3">
+           <widget class="QToolButton" name="tbLegendTopRight">
             <property name="text">
              <string>...</string>
             </property>
            </widget>
           </item>
           <item row="1" column="0">
-           <widget class="QToolButton" name="toolButton_4">
+           <widget class="QToolButton" name="tbLegendCenterLeft">
             <property name="text">
              <string>...</string>
             </property>
            </widget>
           </item>
           <item row="0" column="0">
-           <widget class="QToolButton" name="toolButton">
+           <widget class="QToolButton" name="tbLegendTopLeft">
             <property name="text">
              <string>...</string>
             </property>
            </widget>
           </item>
           <item row="2" column="0">
-           <widget class="QToolButton" name="toolButton_5">
+           <widget class="QToolButton" name="tbLegendBottomLeft">
             <property name="text">
              <string>...</string>
             </property>
            </widget>
           </item>
           <item row="2" column="1">
-           <widget class="QToolButton" name="toolButton_6">
+           <widget class="QToolButton" name="tbLegendBottomCenter">
             <property name="text">
              <string>...</string>
             </property>
            </widget>
           </item>
           <item row="2" column="2">
-           <widget class="QToolButton" name="toolButton_7">
+           <widget class="QToolButton" name="tbLegendBottomRight">
             <property name="text">
              <string>...</string>
             </property>
            </widget>
           </item>
           <item row="1" column="2">
-           <widget class="QToolButton" name="toolButton_8">
+           <widget class="QToolButton" name="tbLegendCenterRight">
             <property name="text">
              <string>...</string>
             </property>
            </widget>
           </item>
           <item row="1" column="1">
-           <widget class="QToolButton" name="toolButton_9">
+           <widget class="QToolButton" name="tbLegendCenter">
             <property name="text">
              <string>...</string>
             </property>
@@ -225,18 +197,70 @@
         </item>
        </layout>
       </widget>
-      <widget class="QCheckBox" name="checkBox">
+      <widget class="QGroupBox" name="groupBox">
        <property name="geometry">
         <rect>
-         <x>9</x>
-         <y>239</y>
-         <width>71</width>
-         <height>17</height>
+         <x>240</x>
+         <y>10</y>
+         <width>331</width>
+         <height>111</height>
         </rect>
        </property>
-       <property name="text">
-        <string>Show Grid</string>
+       <property name="title">
+        <string>Background</string>
        </property>
+       <layout class="QGridLayout" name="gridLayout">
+        <item row="1" column="0">
+         <widget class="QLabel" name="label_5">
+          <property name="text">
+           <string>Background Colour</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QtColorButton" name="clrBackground">
+          <property name="minimumSize">
+           <size>
+            <width>64</width>
+            <height>23</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>64</width>
+            <height>23</height>
+           </size>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="0">
+         <widget class="QLabel" name="label_9">
+          <property name="text">
+           <string>Background Image</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="1">
+         <widget class="QLineEdit" name="leImageFile"/>
+        </item>
+        <item row="2" column="2">
+         <widget class="QToolButton" name="tbBrowseForImage">
+          <property name="text">
+           <string>...</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QCheckBox" name="cbShowGrid">
+          <property name="text">
+           <string>Show Grid</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </widget>
      </widget>
      <widget class="QWidget" name="tab_2">
@@ -326,16 +350,6 @@
       </attribute>
       <layout class="QGridLayout" name="gridLayout_2"/>
      </widget>
-    </widget>
-   </item>
-   <item row="2" column="0">
-    <widget class="QDialogButtonBox" name="buttonBox">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-     <property name="standardButtons">
-      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
-     </property>
     </widget>
    </item>
   </layout>

@@ -5,6 +5,7 @@
 #include <QLineEdit>
 #include <QComboBox>
 #include <QMap>
+#include <QBrush>
 
 #include "qtcolorbutton/qtcolorbutton.h"
 #include "datasource/samplecolumns.h"
@@ -27,11 +28,21 @@ class CustomiseChartDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit CustomiseChartDialog(QMap<SampleColumn, GraphStyle> graphStyles, QWidget *parent = 0);
+    explicit CustomiseChartDialog(QMap<SampleColumn, GraphStyle> graphStyles,
+                                  bool solarDataAvailable,
+                                  bool titleEnabled,
+                                  QString currentTitle,
+                                  QColor titleColour,
+                                  QBrush backgroundBrush,
+                                  QWidget *parent = 0);
     ~CustomiseChartDialog();
 
     void setGraphStyles(QMap<SampleColumn, GraphStyle> graphStyles);
     QMap<SampleColumn, GraphStyle> getGraphStyles();
+    bool getTitleEnabled();
+    QString getTitle();
+    QColor getTitleColour();
+    QBrush getBackgroundBrush();
 
 private slots:
     void AcceptDialog();
