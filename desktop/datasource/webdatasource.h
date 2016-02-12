@@ -11,6 +11,7 @@
 #include <QDateTime>
 #include <QUrl>
 #include <QTimer>
+#include <QByteArray>
 
 typedef struct _data_file_t data_file_t;
 typedef struct _cache_stats_t cache_stats_t;
@@ -32,6 +33,8 @@ public:
     void enableLiveData();
 
     hardware_type_t getHardwareType();
+
+    bool hasUVAndSolarSensors();
 private slots:
     void liveDataReady(QNetworkReply* reply);
     void liveDataPoll();
@@ -107,9 +110,15 @@ private:
 
 
     // for live data stuff
+    void ProcessStationConfig(QNetworkReply *reply);
+    bool LoadStationConfigData(QByteArray data);
     QScopedPointer<QNetworkAccessManager> liveNetAccessManager;
     QUrl liveDataUrl;
     QTimer livePollTimer;
+    bool stationConfigLoaded;
+    bool isSolarDataAvailable;  // also used by sample retrieval
+    hardware_type_t hwType;
+    QString station_name;
 };
 
 #endif // WEBDATASOURCE_H

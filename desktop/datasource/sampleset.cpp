@@ -40,4 +40,10 @@ void ReserveSampleSetSpace(SampleSet& samples, int size, SampleColumns columns)
 
     if (columns.testFlag(SC_GustWindSpeed))
         samples.gustWindSpeed.reserve(size);
+
+    if (columns.testFlag(SC_UV_Index))
+        samples.uvIndex.reserve(size);
+
+    if (columns.testFlag(SC_SolarRadiation))
+        samples.solarRadiation.reserve(size);
 }

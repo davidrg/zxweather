@@ -55,6 +55,14 @@ GraphStyle::GraphStyle(SampleColumn column) {
         colour = colours.windDirection;
         name = "Wind Direction";
         break;
+    case SC_UV_Index:
+        colour = colours.uvIndex;
+        name = "UV Index";
+        break;
+    case SC_SolarRadiation:
+        colour = colours.solarRadiation;
+        name = "Solar Radiation";
+        break;
     case SC_NoColumns:
     case SC_Timestamp:
     default:

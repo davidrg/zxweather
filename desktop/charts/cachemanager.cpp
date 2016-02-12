@@ -204,6 +204,12 @@ void CacheManager::mergeSampleSet(dataset_id_t dataSetId, SampleSet samples, Sam
     if (columns.testFlag(SC_WindDirection))
         sampleCache[dataSetId].windDirection = samples.windDirection;
 
+    if (columns.testFlag(SC_UV_Index))
+        sampleCache[dataSetId].uvIndex = samples.uvIndex;
+
+    if (columns.testFlag(SC_SolarRadiation))
+        sampleCache[dataSetId].solarRadiation = samples.solarRadiation;
+
     datasetCache[dataSetId].columns |= columns;
 }
 

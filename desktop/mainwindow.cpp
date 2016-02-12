@@ -67,8 +67,9 @@ MainWindow::MainWindow(QWidget *parent) :
     // The height is set in main.cpp
 
 
-    // The UI is configured for Davis hardware by default
+    // The UI is configured for a Davis Vantage Pro 2 Plus by default
     last_hw_type = HW_DAVIS;
+    solarDataAvailable = true;
 
     sysTrayIcon.reset(new QSystemTrayIcon(this));
     sysTrayIcon->setIcon(QIcon(":/icons/systray_icon_warning"));
@@ -106,31 +107,40 @@ MainWindow::MainWindow(QWidget *parent) :
             this,
             SLOT(showWarningPopup(QString,QString,QString,bool)));
 
+    Settings& settings = Settings::getInstance();
+
     // Show the configuration wizard on the first run.
-    if (!Settings::getInstance().singleShotFirstRun()) {
+    if (!settings.singleShotFirstRun()) {
         ConfigWizard wiz;
         if (wiz.exec() != QDialog::Accepted) {
             // Config wizard was canceled. Show the settings dialog instead.
             showSettings();
         }
-        Settings::getInstance().setSingleShotFirstRun();
+        settings.setSingleShotFirstRun();
     }
 
     qDebug() << "Read settings and connect...";
     readSettings();
 
-    if (Settings::getInstance().stationCode().isEmpty()) {
+
+
+    if (settings.stationCode().isEmpty()) {
         // We're probably migrating settings from v0.1.
         QMessageBox::information(this, "Bad configuration", "The station name has not been configured. You will now be shown the settings dialog.");
         showSettings();
     }
     else {
-        reconnectDatabase();
-        reconfigureDataSource();
+        // This will call reconfigureDataSource on successful connet if the live
+        // data source is the database.
+        QTimer::singleShot(10, this, SLOT(reconnectDatabase()));
+
+        if (settings.liveDataSourceType() != Settings::DS_TYPE_DATABASE) {
+            reconfigureDataSource();
+        }
     }
 }
 
-void MainWindow::databaseCompatibilityChecks() {
+bool MainWindow::databaseCompatibilityChecks() {
 
     using namespace DbUtil;
 
@@ -145,11 +155,13 @@ void MainWindow::databaseCompatibilityChecks() {
                              "Charting functions will not be available."));
         ui->actionCharts->setEnabled(false);
         QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
+        return false;
     } else if (compatibility == DC_Unknown) {
         QMessageBox::warning(this, tr("Warning"),
                              tr("Unable to determine database compatibility."
                              " This application may not function "
                              "correctly with the configured database."));
+        return false;
     } else if (compatibility == DC_Incompatible) {
         QString version = getMinimumAppVersion(db);
         if (!version.isNull()) {
@@ -165,7 +177,9 @@ void MainWindow::databaseCompatibilityChecks() {
                              " functionality will be disabled."));
         QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
         ui->actionCharts->setEnabled(false);
+        return false;
     }
+    return true;
 }
 
 void MainWindow::reconnectDatabase() {
@@ -205,7 +219,10 @@ void MainWindow::reconnectDatabase() {
             ui->actionCharts->setEnabled(false);
         } else {
             qDebug() << "Connect succeeded. Checking compatibility...";
-            databaseCompatibilityChecks();
+            bool result = databaseCompatibilityChecks();
+            if (result && settings.liveDataSourceType() == Settings::DS_TYPE_DATABASE) {
+                reconfigureDataSource();
+            }
         }
     } else {
         qDebug() << QSqlDatabase::drivers();
@@ -255,7 +272,7 @@ void MainWindow::changeEvent(QEvent *e)
 }
 
 void MainWindow::showSettings() {
-    SettingsDialog sd;
+    SettingsDialog sd(solarDataAvailable);
     int result = sd.exec();
 
     if (result == QDialog::Accepted) {
@@ -263,8 +280,18 @@ void MainWindow::showSettings() {
 
         liveMonitor->reconfigure();
 
-        reconfigureDataSource();
-        reconnectDatabase();
+        Settings& settings = Settings::getInstance();
+
+        if (settings.liveDataSourceType() != Settings::DS_TYPE_DATABASE) {
+            // For the database live data source reconnectDatabase() will handle
+            // calling reconfigureDataSource() once the database is ready.
+            reconfigureDataSource();
+        }
+
+        if (settings.liveDataSourceType() == Settings::DS_TYPE_DATABASE
+                || settings.sampleDataSourceType() == Settings::DS_TYPE_DATABASE) {
+            reconnectDatabase();
+        }
     }
 }
 
@@ -331,7 +358,7 @@ void MainWindow::showAbout() {
 
 void MainWindow::showChartWindow() {
 
-    ChartOptionsDialog options;
+    ChartOptionsDialog options(solarDataAvailable);
     int result = options.exec();
     if (result != QDialog::Accepted)
         return; // User canceled. Nothing to do.
@@ -353,13 +380,13 @@ void MainWindow::showChartWindow() {
     qDebug() << "AGGrp" << ds.groupType;
     qDebug() << "AGMin" << ds.customGroupMinutes;
 
-    ChartWindow *cw = new ChartWindow(dataSets);
+    ChartWindow *cw = new ChartWindow(dataSets, solarDataAvailable);
     cw->setAttribute(Qt::WA_DeleteOnClose);
     cw->show();
 }
 
 void MainWindow::showExportDialog() {
-    ExportDialog dialog;
+    ExportDialog dialog(solarDataAvailable);
     dialog.exec();
 }
 
@@ -405,6 +432,10 @@ void MainWindow::reconfigureDataSource() {
     // This
     connect(dataSource.data(), SIGNAL(liveData(LiveDataSet)),
             this, SLOT(liveDataRefreshed(LiveDataSet)));
+    connect(dataSource.data(), SIGNAL(stationName(QString)),
+            this, SLOT(setStationName(QString)));
+    connect(dataSource.data(), SIGNAL(isSolarDataEnabled(bool)),
+            this, SLOT(setSolarDataAvailable(bool)));
 
     // Error handler
     connect(dataSource.data(), SIGNAL(error(QString)),
@@ -414,6 +445,20 @@ void MainWindow::reconfigureDataSource() {
 
     // Reset late data timer.
     ui->status->reset();
+}
+
+void MainWindow::setStationName(QString name) {
+    if (!name.isEmpty()) {
+        setWindowTitle("zxweather - " + name);
+    }
+}
+
+void MainWindow::setSolarDataAvailable(bool available) {
+    solarDataAvailable = available;
+
+    ui->liveData->setSolarDataAvailable(solarDataAvailable);
+
+    setFixedHeight(minimumHeight());
 }
 
 void MainWindow::liveDataRefreshed(LiveDataSet lds) {

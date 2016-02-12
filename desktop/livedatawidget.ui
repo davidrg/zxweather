@@ -7,19 +7,19 @@
     <x>0</x>
     <y>0</y>
     <width>343</width>
-    <height>233</height>
+    <height>271</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
     <width>343</width>
-    <height>233</height>
+    <height>261</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
     <width>343</width>
-    <height>233</height>
+    <height>271</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -40,6 +40,16 @@
    </property>
    <item row="0" column="0" rowspan="2">
     <layout class="QGridLayout" name="conditionsLayout">
+     <property name="spacing">
+      <number>6</number>
+     </property>
+     <item row="10" column="0">
+      <widget class="QLabel" name="uvIndex">
+       <property name="text">
+        <string>UV Index</string>
+       </property>
+      </widget>
+     </item>
      <item row="7" column="0">
       <widget class="QLabel" name="label_7">
        <property name="text">
@@ -47,8 +57,8 @@
        </property>
       </widget>
      </item>
-     <item row="8" column="1">
-      <widget class="QLabel" name="lblWindSpeed">
+     <item row="4" column="1">
+      <widget class="QLabel" name="lblWindChill">
        <property name="text">
         <string/>
        </property>
@@ -64,8 +74,22 @@
        </property>
       </widget>
      </item>
-     <item row="4" column="1">
-      <widget class="QLabel" name="lblWindChill">
+     <item row="8" column="1">
+      <widget class="QLabel" name="lblWindSpeed">
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="0">
+      <widget class="QLabel" name="label_6">
+       <property name="text">
+        <string>Humidity:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="1">
+      <widget class="QLabel" name="lblHumidity">
        <property name="text">
         <string/>
        </property>
@@ -92,38 +116,10 @@
        </property>
       </widget>
      </item>
-     <item row="6" column="1">
-      <widget class="QLabel" name="lblHumidity">
-       <property name="text">
-        <string/>
-       </property>
-      </widget>
-     </item>
-     <item row="6" column="0">
-      <widget class="QLabel" name="label_6">
-       <property name="text">
-        <string>Humidity:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="1">
-      <widget class="QLabel" name="lblApparentTemperature">
-       <property name="text">
-        <string/>
-       </property>
-      </widget>
-     </item>
      <item row="2" column="0">
       <widget class="QLabel" name="label_2">
        <property name="text">
         <string>Temperature:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="5" column="0">
-      <widget class="QLabel" name="label_5">
-       <property name="text">
-        <string>Dew Point:</string>
        </property>
       </widget>
      </item>
@@ -134,6 +130,20 @@
        </property>
       </widget>
      </item>
+     <item row="3" column="1">
+      <widget class="QLabel" name="lblApparentTemperature">
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="0">
+      <widget class="QLabel" name="label_5">
+       <property name="text">
+        <string>Dew Point:</string>
+       </property>
+      </widget>
+     </item>
      <item row="0" column="0">
       <widget class="QLabel" name="label">
        <property name="text">
@@ -141,14 +151,7 @@
        </property>
       </widget>
      </item>
-     <item row="9" column="0">
-      <widget class="QLabel" name="label_10">
-       <property name="text">
-        <string>Wind Direction:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="10" column="0">
+     <item row="12" column="0">
       <widget class="QLabel" name="label_12">
        <property name="text">
         <string>Rain Rate:</string>
@@ -169,6 +172,20 @@
        </property>
       </widget>
      </item>
+     <item row="9" column="0">
+      <widget class="QLabel" name="label_10">
+       <property name="text">
+        <string>Wind Direction:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="13" column="0">
+      <widget class="QLabel" name="label_14">
+       <property name="text">
+        <string>Current Storm Rain:</string>
+       </property>
+      </widget>
+     </item>
      <item row="8" column="0">
       <widget class="QLabel" name="label_8">
        <property name="text">
@@ -176,36 +193,15 @@
        </property>
       </widget>
      </item>
-     <item row="10" column="1">
+     <item row="12" column="1">
       <widget class="QLabel" name="lblRainRate">
        <property name="text">
         <string/>
        </property>
       </widget>
      </item>
-     <item row="11" column="0">
-      <widget class="QLabel" name="label_14">
-       <property name="text">
-        <string>Current Storm Rain:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="11" column="1">
+     <item row="13" column="1">
       <widget class="QLabel" name="lblCurrentStormRain">
-       <property name="text">
-        <string/>
-       </property>
-      </widget>
-     </item>
-     <item row="12" column="0">
-      <widget class="QLabel" name="label_16">
-       <property name="text">
-        <string>Current Storm Start Date:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="12" column="1">
-      <widget class="QLabel" name="lblCurrentStormStartDate">
        <property name="text">
         <string/>
        </property>
@@ -215,6 +211,41 @@
       <widget class="Line" name="line">
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
+       </property>
+      </widget>
+     </item>
+     <item row="14" column="1">
+      <widget class="QLabel" name="lblCurrentStormStartDate">
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </item>
+     <item row="14" column="0">
+      <widget class="QLabel" name="label_16">
+       <property name="text">
+        <string>Current Storm Start Date:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="11" column="0">
+      <widget class="QLabel" name="solarRadiation">
+       <property name="text">
+        <string>Solar Radiation</string>
+       </property>
+      </widget>
+     </item>
+     <item row="10" column="1">
+      <widget class="QLabel" name="lblUVIndex">
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </item>
+     <item row="11" column="1">
+      <widget class="QLabel" name="lblSolarRadiation">
+       <property name="text">
+        <string/>
        </property>
       </widget>
      </item>

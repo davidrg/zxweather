@@ -41,6 +41,8 @@ void WeatherPlotter::populateAxisLabels() {
     axisLabels.insert(AT_TEMPERATURE, "Temperature (\xB0""C)");
     axisLabels.insert(AT_WIND_SPEED, "Wind speed (m/s)");
     axisLabels.insert(AT_WIND_DIRECTION, "Wind direction (degrees)");
+    axisLabels.insert(AT_SOLAR_RADIATION, "Solar Radiation (W/m\xB2");
+    axisLabels.insert(AT_UV_INDEX, "UV Index");
 }
 
 void WeatherPlotter::reload() {
@@ -194,6 +196,12 @@ WeatherPlotter::AxisType WeatherPlotter::axisTypeForColumn(SampleColumn column) 
     case SC_WindDirection:
         return AT_WIND_DIRECTION;
 
+    case SC_SolarRadiation:
+        return AT_SOLAR_RADIATION;
+
+    case SC_UV_Index:
+        return AT_UV_INDEX;
+
     case SC_NoColumns:
     case SC_Timestamp:
     default:
@@ -231,6 +239,10 @@ QVector<double> WeatherPlotter::samplesForColumn(SampleColumn column, SampleSet 
         return samples.averageWindSpeed;
     case SC_GustWindSpeed:
         return samples.gustWindSpeed;
+    case SC_UV_Index:
+        return samples.uvIndex;
+    case SC_SolarRadiation:
+        return samples.solarRadiation;
 
     case SC_WindDirection:
     case SC_NoColumns:
@@ -382,6 +394,12 @@ void WeatherPlotter::addGraphs(QMap<dataset_id_t, SampleSet> sampleSets)
 
         if (ds.columns.testFlag(SC_WindDirection))
             addWindDirectionGraph(ds, samples); // keep
+
+        if (ds.columns.testFlag(SC_UV_Index))
+            addGenericGraph(ds, SC_UV_Index, samples);
+
+        if (ds.columns.testFlag(SC_SolarRadiation))
+            addGenericGraph(ds, SC_SolarRadiation, samples);
     }
 }
 
@@ -409,6 +427,7 @@ void WeatherPlotter::drawChart(QMap<dataset_id_t, SampleSet> sampleSets)
 void WeatherPlotter::dataSetsReady(QMap<dataset_id_t, SampleSet> samples) {
     qDebug() << "Data received from cache manager. Drawing chart for"
              << samples.keys().count() << "datasets...";
+
     drawChart(samples);
 }
 

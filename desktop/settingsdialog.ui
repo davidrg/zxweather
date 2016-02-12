@@ -522,15 +522,8 @@
         <string>Colours</string>
        </property>
        <layout class="QGridLayout" name="gridLayout_7">
-        <item row="9" column="3">
-         <widget class="QLabel" name="label_19">
-          <property name="text">
-           <string>Gust Wind Speed</string>
-          </property>
-         </widget>
-        </item>
-        <item row="8" column="4">
-         <widget class="QtColorButton" name="qcpWindDirection">
+        <item row="5" column="4">
+         <widget class="QtColorButton" name="qcpIndoorHumidity">
           <property name="minimumSize">
            <size>
             <width>64</width>
@@ -544,118 +537,10 @@
            </size>
           </property>
           <property name="whatsThis">
-           <string>Default colour to draw rainfall lines with in charts.</string>
+           <string>Default colour to draw indoor humidity lines with in charts.</string>
           </property>
           <property name="text">
            <string/>
-          </property>
-         </widget>
-        </item>
-        <item row="9" column="4">
-         <widget class="QtColorButton" name="qcpGustWindSpeed">
-          <property name="minimumSize">
-           <size>
-            <width>64</width>
-            <height>23</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>64</width>
-            <height>23</height>
-           </size>
-          </property>
-          <property name="whatsThis">
-           <string>Default colour to draw rainfall lines with in charts.</string>
-          </property>
-          <property name="text">
-           <string/>
-          </property>
-         </widget>
-        </item>
-        <item row="8" column="3">
-         <widget class="QLabel" name="label_18">
-          <property name="text">
-           <string>Wind Direction</string>
-          </property>
-         </widget>
-        </item>
-        <item row="5" column="1">
-         <widget class="QtColorButton" name="qcpHumidity">
-          <property name="minimumSize">
-           <size>
-            <width>64</width>
-            <height>23</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>64</width>
-            <height>23</height>
-           </size>
-          </property>
-          <property name="whatsThis">
-           <string>Default colour to draw outdoor humidity lines with in charts.</string>
-          </property>
-          <property name="text">
-           <string/>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="3">
-         <widget class="QLabel" name="label_2">
-          <property name="text">
-           <string>Temperature (Indoor)</string>
-          </property>
-         </widget>
-        </item>
-        <item row="4" column="0">
-         <widget class="QLabel" name="label_10">
-          <property name="text">
-           <string>Dew Point</string>
-          </property>
-         </widget>
-        </item>
-        <item row="2" column="0">
-         <widget class="QLabel" name="label_8">
-          <property name="text">
-           <string>Apparent Temperature</string>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="4">
-         <widget class="QtColorButton" name="qcpIndoorTemperature">
-          <property name="minimumSize">
-           <size>
-            <width>64</width>
-            <height>23</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>64</width>
-            <height>23</height>
-           </size>
-          </property>
-          <property name="whatsThis">
-           <string>Default colour to draw indoor temperature lines with in charts.</string>
-          </property>
-          <property name="text">
-           <string/>
-          </property>
-         </widget>
-        </item>
-        <item row="8" column="0">
-         <widget class="QLabel" name="label_14">
-          <property name="text">
-           <string>Rainfall</string>
-          </property>
-         </widget>
-        </item>
-        <item row="5" column="0">
-         <widget class="QLabel" name="label_11">
-          <property name="text">
-           <string>Humidity</string>
           </property>
          </widget>
         </item>
@@ -681,6 +566,13 @@
           </property>
          </widget>
         </item>
+        <item row="2" column="3">
+         <widget class="QLabel" name="label_9">
+          <property name="text">
+           <string>Wind Chill</string>
+          </property>
+         </widget>
+        </item>
         <item row="4" column="4">
          <widget class="QtColorButton" name="qcpPressure">
           <property name="minimumSize">
@@ -703,13 +595,6 @@
           </property>
          </widget>
         </item>
-        <item row="2" column="3">
-         <widget class="QLabel" name="label_9">
-          <property name="text">
-           <string>Wind Chill</string>
-          </property>
-         </widget>
-        </item>
         <item row="9" column="1">
          <widget class="QtColorButton" name="qcpAverageWindSpeed">
           <property name="minimumSize">
@@ -726,79 +611,6 @@
           </property>
           <property name="whatsThis">
            <string>Default colour to draw rainfall lines with in charts.</string>
-          </property>
-          <property name="text">
-           <string/>
-          </property>
-         </widget>
-        </item>
-        <item row="5" column="4">
-         <widget class="QtColorButton" name="qcpIndoorHumidity">
-          <property name="minimumSize">
-           <size>
-            <width>64</width>
-            <height>23</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>64</width>
-            <height>23</height>
-           </size>
-          </property>
-          <property name="whatsThis">
-           <string>Default colour to draw indoor humidity lines with in charts.</string>
-          </property>
-          <property name="text">
-           <string/>
-          </property>
-         </widget>
-        </item>
-        <item row="4" column="1">
-         <widget class="QtColorButton" name="qcpDewPoint">
-          <property name="minimumSize">
-           <size>
-            <width>64</width>
-            <height>23</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>64</width>
-            <height>23</height>
-           </size>
-          </property>
-          <property name="whatsThis">
-           <string>Default colour to draw dew point lines with in charts.</string>
-          </property>
-          <property name="text">
-           <string/>
-          </property>
-         </widget>
-        </item>
-        <item row="4" column="3">
-         <widget class="QLabel" name="label_13">
-          <property name="text">
-           <string>Pressure</string>
-          </property>
-         </widget>
-        </item>
-        <item row="2" column="4">
-         <widget class="QtColorButton" name="qcpWindChill">
-          <property name="minimumSize">
-           <size>
-            <width>64</width>
-            <height>23</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>64</width>
-            <height>23</height>
-           </size>
-          </property>
-          <property name="whatsThis">
-           <string>Default colour to draw wind chill lines with in charts.</string>
           </property>
           <property name="text">
            <string/>
@@ -827,6 +639,94 @@
           </property>
          </widget>
         </item>
+        <item row="4" column="1">
+         <widget class="QtColorButton" name="qcpDewPoint">
+          <property name="minimumSize">
+           <size>
+            <width>64</width>
+            <height>23</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>64</width>
+            <height>23</height>
+           </size>
+          </property>
+          <property name="whatsThis">
+           <string>Default colour to draw dew point lines with in charts.</string>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="4">
+         <widget class="QtColorButton" name="qcpWindChill">
+          <property name="minimumSize">
+           <size>
+            <width>64</width>
+            <height>23</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>64</width>
+            <height>23</height>
+           </size>
+          </property>
+          <property name="whatsThis">
+           <string>Default colour to draw wind chill lines with in charts.</string>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
+        <item row="4" column="3">
+         <widget class="QLabel" name="label_13">
+          <property name="text">
+           <string>Pressure</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="2">
+         <spacer name="horizontalSpacer_3">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeType">
+           <enum>QSizePolicy::Fixed</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item row="9" column="0">
+         <widget class="QLabel" name="label_17">
+          <property name="text">
+           <string>Average Wind Speed</string>
+          </property>
+         </widget>
+        </item>
+        <item row="5" column="3">
+         <widget class="QLabel" name="label_12">
+          <property name="text">
+           <string>Humidity (Indoor)</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="0">
+         <widget class="QLabel" name="label">
+          <property name="text">
+           <string>Temperature</string>
+          </property>
+         </widget>
+        </item>
         <item row="0" column="1">
          <widget class="QtColorButton" name="qcpTemperature">
           <property name="minimumSize">
@@ -849,42 +749,197 @@
           </property>
          </widget>
         </item>
-        <item row="0" column="0">
-         <widget class="QLabel" name="label">
+        <item row="9" column="3">
+         <widget class="QLabel" name="label_19">
           <property name="text">
-           <string>Temperature</string>
+           <string>Gust Wind Speed</string>
           </property>
          </widget>
         </item>
-        <item row="5" column="3">
-         <widget class="QLabel" name="label_12">
-          <property name="text">
-           <string>Humidity (Indoor)</string>
-          </property>
-         </widget>
-        </item>
-        <item row="9" column="0">
-         <widget class="QLabel" name="label_17">
-          <property name="text">
-           <string>Average Wind Speed</string>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="2">
-         <spacer name="horizontalSpacer_3">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeType">
-           <enum>QSizePolicy::Fixed</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
+        <item row="9" column="4">
+         <widget class="QtColorButton" name="qcpGustWindSpeed">
+          <property name="minimumSize">
            <size>
-            <width>40</width>
-            <height>20</height>
+            <width>64</width>
+            <height>23</height>
            </size>
           </property>
-         </spacer>
+          <property name="maximumSize">
+           <size>
+            <width>64</width>
+            <height>23</height>
+           </size>
+          </property>
+          <property name="whatsThis">
+           <string>Default colour to draw rainfall lines with in charts.</string>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="3">
+         <widget class="QLabel" name="label_2">
+          <property name="text">
+           <string>Temperature (Indoor)</string>
+          </property>
+         </widget>
+        </item>
+        <item row="8" column="3">
+         <widget class="QLabel" name="label_18">
+          <property name="text">
+           <string>Wind Direction</string>
+          </property>
+         </widget>
+        </item>
+        <item row="8" column="4">
+         <widget class="QtColorButton" name="qcpWindDirection">
+          <property name="minimumSize">
+           <size>
+            <width>64</width>
+            <height>23</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>64</width>
+            <height>23</height>
+           </size>
+          </property>
+          <property name="whatsThis">
+           <string>Default colour to draw rainfall lines with in charts.</string>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
+        <item row="5" column="1">
+         <widget class="QtColorButton" name="qcpHumidity">
+          <property name="minimumSize">
+           <size>
+            <width>64</width>
+            <height>23</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>64</width>
+            <height>23</height>
+           </size>
+          </property>
+          <property name="whatsThis">
+           <string>Default colour to draw outdoor humidity lines with in charts.</string>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="0">
+         <widget class="QLabel" name="label_8">
+          <property name="text">
+           <string>Apparent Temperature</string>
+          </property>
+         </widget>
+        </item>
+        <item row="8" column="0">
+         <widget class="QLabel" name="label_14">
+          <property name="text">
+           <string>Rainfall</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="4">
+         <widget class="QtColorButton" name="qcpIndoorTemperature">
+          <property name="minimumSize">
+           <size>
+            <width>64</width>
+            <height>23</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>64</width>
+            <height>23</height>
+           </size>
+          </property>
+          <property name="whatsThis">
+           <string>Default colour to draw indoor temperature lines with in charts.</string>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
+        <item row="4" column="0">
+         <widget class="QLabel" name="label_10">
+          <property name="text">
+           <string>Dew Point</string>
+          </property>
+         </widget>
+        </item>
+        <item row="5" column="0">
+         <widget class="QLabel" name="label_11">
+          <property name="text">
+           <string>Humidity</string>
+          </property>
+         </widget>
+        </item>
+        <item row="10" column="0">
+         <widget class="QLabel" name="lblSolarRadiation">
+          <property name="text">
+           <string>Solar Radiation</string>
+          </property>
+         </widget>
+        </item>
+        <item row="10" column="3">
+         <widget class="QLabel" name="lblUVIndex">
+          <property name="text">
+           <string>UV Index</string>
+          </property>
+         </widget>
+        </item>
+        <item row="10" column="1" colspan="2">
+         <widget class="QtColorButton" name="qcpSolarRadiation">
+          <property name="minimumSize">
+           <size>
+            <width>64</width>
+            <height>23</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>64</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="whatsThis">
+           <string>Default colour to draw solar radiation lines with in charts.</string>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
+        <item row="10" column="4">
+         <widget class="QtColorButton" name="qcpUVIndex">
+          <property name="minimumSize">
+           <size>
+            <width>64</width>
+            <height>23</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>64</width>
+            <height>23</height>
+           </size>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
         </item>
        </layout>
       </widget>
@@ -926,13 +981,14 @@
   <tabstop>qcpHumidity</tabstop>
   <tabstop>qcpRainfall</tabstop>
   <tabstop>qcpAverageWindSpeed</tabstop>
+  <tabstop>qcpSolarRadiation</tabstop>
   <tabstop>qcpIndoorTemperature</tabstop>
   <tabstop>qcpWindChill</tabstop>
   <tabstop>qcpPressure</tabstop>
   <tabstop>qcpIndoorHumidity</tabstop>
   <tabstop>qcpWindDirection</tabstop>
   <tabstop>qcpGustWindSpeed</tabstop>
-  <tabstop>buttonBox</tabstop>
+  <tabstop>qcpUVIndex</tabstop>
  </tabstops>
  <resources>
   <include location="resources.qrc"/>

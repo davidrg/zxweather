@@ -18,6 +18,10 @@ LiveDataWidget::LiveDataWidget(QWidget *parent) :
     windDirections << "N" << "NNE" << "NE" << "ENE" << "E" << "ESE" << "SE"
                    << "SSE" << "S" << "SSW" << "SW" << "WSW" << "W" << "WNW"
                    << "NW" << "NNW";
+//    ui->lblUVIndex->hide();
+//    ui->lblSolarRadiation->hide();
+//    ui->solarRadiation->hide();
+//    ui->uvIndex->hide();
 }
 
 LiveDataWidget::~LiveDataWidget()
@@ -105,31 +109,31 @@ void LiveDataWidget::refreshUi(LiveDataSet lds) {
 
     QString bft = "";
     if (lds.windSpeed < 0.3) // 0
-        bft = "Calm";
+        bft = "calm";
     else if (lds.windSpeed < 2) // 1
-        bft = "Light air";
+        bft = "light air";
     else if (lds.windSpeed < 3) // 2
-        bft = "Light breeze";
+        bft = "light breeze";
     else if (lds.windSpeed < 5.4) // 3
-        bft = "Gentle breeze";
+        bft = "gentle breeze";
     else if (lds.windSpeed < 8) // 4
-        bft = "Moderate breeze";
+        bft = "moderate breeze";
     else if (lds.windSpeed < 10.7) // 5
-        bft = "Fresh breeze";
+        bft = "fresh breeze";
     else if (lds.windSpeed < 13.8) // 6
-        bft = "Strong breeze";
+        bft = "strong breeze";
     else if (lds.windSpeed < 17.1) // 7
-        bft = "High wind, near gale";
+        bft = "high wind, near gale";
     else if (lds.windSpeed < 20.6) // 8
-        bft = "Gale, fresh gale";
+        bft = "gale, fresh gale";
     else if (lds.windSpeed < 24.4) // 9
-        bft = "Strong gale";
+        bft = "strong gale";
     else if (lds.windSpeed < 28.3) // 10
-        bft = "Storm, whole gale";
+        bft = "storm, whole gale";
     else if (lds.windSpeed < 32.5) // 11
-        bft = "Violent storm";
+        bft = "violent storm";
     else // 12
-        bft = "Hurricane";
+        bft = "hurricane";
 
     if (!bft.isEmpty())
         bft = " (" + bft + ")";
@@ -183,12 +187,36 @@ void LiveDataWidget::refreshUi(LiveDataSet lds) {
         else
             ui->lblCurrentStormStartDate->setText("--");
 
+        // TODO: check if HW has solar+UV
+        ui->lblUVIndex->setText(QString::number(lds.davisHw.uvIndex, 'f', 1));
+        ui->lblSolarRadiation->setText(QString::number(lds.davisHw.solarRadiation)
+                                       + " W/m\xB2");
+
     } else {
         ui->lblRainRate->setText("not supported");
         ui->lblCurrentStormRain->setText("not supported");
         ui->lblCurrentStormStartDate->setText("not supported");
+        ui->lblUVIndex->setText("not supported");
+        ui->lblSolarRadiation->setText("not supported");
     }
 
     ui->lblBarometer->setText(
                 QString::number(lds.pressure, 'f', 1) + " hPa" + pressureMsg);
+}
+
+void LiveDataWidget::setSolarDataAvailable(bool available) {
+    ui->lblUVIndex->setVisible(available);
+    ui->lblSolarRadiation->setVisible(available);
+    ui->uvIndex->setVisible(available);
+    ui->solarRadiation->setVisible(available);
+
+    // These two numbers will keep the height of the widget correct
+    // when the UV and Solar fields are shown and hidden.
+    if (available) {
+        setMinimumHeight(261);
+        setFixedHeight(261);
+    } else {
+        setMinimumHeight(233);
+        setFixedHeight(233);
+    }
 }

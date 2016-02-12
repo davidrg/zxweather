@@ -1,6 +1,7 @@
 #include "databasedatasource.h"
 #include "settings.h"
 #include "database.h"
+#include "json/json.h"
 
 #include <QMessageBox>
 #include <QSqlQuery>
@@ -88,7 +89,10 @@ QString DatabaseDataSource::getStationHwType() {
     return hardwareType;
 }
 
-QString buildColumnList(SampleColumns columns, QString format) {
+QString buildColumnList(SampleColumns columns, QString format, bool qualifiers=false, QString qualifiedFormat=QString()) {
+    if (qualifiers && qualifiedFormat.isNull()) {
+        qualifiedFormat = format;
+    }
     QString query;
     if (columns.testFlag(SC_Timestamp))
         query += format.arg("time_stamp");
@@ -112,8 +116,24 @@ QString buildColumnList(SampleColumns columns, QString format) {
         query += format.arg("average_wind_speed");
     if (columns.testFlag(SC_GustWindSpeed))
         query += format.arg("gust_wind_speed");
+    if (columns.testFlag(SC_WindDirection))
+        query += format.arg("wind_direction");
     if (columns.testFlag(SC_Rainfall))
         query += format.arg("rainfall");
+    if (columns.testFlag(SC_UV_Index)) {
+        if (qualifiers) {
+            query += qualifiedFormat.arg("ds.average_uv_index");
+        } else {
+            query += format.arg("average_uv_index");
+        }
+    }
+    if (columns.testFlag(SC_SolarRadiation)) {
+        if (qualifiers) {
+            query += qualifiedFormat.arg("ds.solar_radiation");
+        } else {
+            query += format.arg("solar_radiation");
+        }
+    }
     return query;
 }
 
@@ -145,7 +165,7 @@ QString buildGroupedSelect(SampleColumns columns, AggregateFunction function, Ag
     if (columns.testFlag(SC_Timestamp))
         query += ", min(iq.time_stamp) as time_stamp ";
 
-    query += buildColumnList(columns & ~SC_Timestamp, QString(", %1(iq.%2) as %2 ").arg(fn).arg("%1"));
+    query += buildColumnList(columns & ~SC_Timestamp, QString(", %1(iq.%2) as %2 ").arg(fn).arg("%1"), false);
     query += " from (select ";
 
     if (groupType == AGT_Custom)
@@ -155,16 +175,17 @@ QString buildGroupedSelect(SampleColumns columns, AggregateFunction function, Ag
     else // year
         query += "extract(epoch from date_trunc('year', cur.time_stamp))::integer as quadrant ";
 
-    query += buildColumnList(columns, ", cur.%1 ");
+    query += buildColumnList(columns, ", cur.%1 ", true, ", %1 ");
 
-    query += " from sample cur, sample prev, station st"
+    query += " from sample cur "
+             " join sample prev on prev.station_id = cur.station_id "
+             "                 and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < cur.time_stamp"
+                                             "        and station_id = :stationId )"
+             " inner join station st on st.station_id = cur.station_id "
+             " left outer join davis_sample ds on ds.sample_id = cur.sample_id "
              " where cur.time_stamp <= :endTime"
              " and cur.time_stamp >= :startTime"
-             " and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < cur.time_stamp"
-             "        and station_id = :stationId )"
              " and cur.station_id = :stationIdB "
-             " and prev.station_id = :stationIdC "
-             " and st.station_id = cur.station_id "
              " order by cur.time_stamp asc) as iq "
              " group by iq.quadrant "
              " order by iq.quadrant asc ";
@@ -238,7 +259,6 @@ int groupedCountQuery(int stationId, QDateTime startTime, QDateTime endTime,
     query.prepare(qry);
     query.bindValue(":stationId", stationId);
     query.bindValue(":stationIdB", stationId);
-    query.bindValue(":stationIdC", stationId);
     query.bindValue(":startTime", startTime);
     query.bindValue(":endTime", endTime);
 
@@ -267,6 +287,7 @@ QSqlQuery setupBasicQuery(SampleColumns columns, int stationId, QDateTime startT
 
     QString selectPart = buildSelectForColumns(columns);
     selectPart += " from sample "
+            " inner join davis_sample ds on ds.sample_id = sample.sample_id "
             "where station_id = :stationId "
             "  and time_stamp >= :startTime "
             "  and time_stamp <= :endTime";
@@ -295,7 +316,6 @@ QSqlQuery setupGroupedQuery(SampleColumns columns, int stationId,
     query.prepare(qry);
 
     query.bindValue(":stationIdB", stationId);
-    query.bindValue(":stationIdC", stationId);
 
     if (groupType == AGT_Custom)
         query.bindValue(":groupSeconds", minutes * 60);
@@ -361,6 +381,7 @@ void DatabaseDataSource::fetchSamples(SampleColumns columns,
     progressDialog->setLabelText("Process...");
     progressDialog->setValue(3);
 
+    qDebug() << "Processing results...";
     while (query.next()) {
         if (progressDialog->wasCanceled()) return;
 
@@ -368,6 +389,7 @@ void DatabaseDataSource::fetchSamples(SampleColumns columns,
 
         time_t timestamp = record.value("time_stamp").toDateTime().toTime_t();
         samples.timestamp.append(timestamp);
+        samples.timestampUnix.append(timestamp); // Not sure why we need both.
 
         if (columns.testFlag(SC_Temperature))
             samples.temperature.append(record.value("temperature").toDouble());
@@ -414,10 +436,18 @@ void DatabaseDataSource::fetchSamples(SampleColumns columns,
             if (!record.value("wind_direction").isNull())
                 samples.windDirection[timestamp] =
                         record.value("wind_direction").toUInt();
+
+        if (columns.testFlag(SC_UV_Index))
+            samples.uvIndex.append(record.value("average_uv_index").toDouble());
+
+        if (columns.testFlag(SC_SolarRadiation))
+            samples.solarRadiation.append(record.value("solar_radiation").toDouble());
     }
     progressDialog->setLabelText("Draw...");
     progressDialog->setValue(4);
     if (progressDialog->wasCanceled()) return;
+
+    qDebug() << "Data retrieval complete.";
 
     emit samplesReady(samples);
     progressDialog->setValue(5);
@@ -517,6 +547,8 @@ void DatabaseDataSource::notificationPump(bool force) {
                 lds.davisHw.stormStartDate = QDateTime::fromTime_t(rec.davis_data.current_storm_start_date).date();
                 lds.davisHw.txBatteryStatus = rec.davis_data.tx_battery_status;
                 lds.davisHw.stormDateValid = rec.davis_data.current_storm_start_date > 0;
+                lds.davisHw.uvIndex = rec.davis_data.uv_index;
+                lds.davisHw.solarRadiation = rec.davis_data.solar_radiation;
             }
         }
 
@@ -525,7 +557,45 @@ void DatabaseDataSource::notificationPump(bool force) {
 }
 
 void DatabaseDataSource::enableLiveData() {
+    using namespace QtJson;
+
     connectToDB();
+
+    int id = getStationId();
+
+    // A station ID of -1 means we're running on a v0.1 database.
+    if (id != -1) {
+        QSqlQuery query;
+        query.prepare("select s.title, s.station_config "
+                      "from station s "
+                      "where s.station_id = :stationId");
+        query.bindValue(":stationId", id);
+        query.exec();
+
+        if (query.isActive() && query.size() == 1) {
+            query.first();
+            QString title = query.value(0).toString();
+            bool has_solar = false;
+
+            QString config = query.value(1).toString();
+
+            bool ok;
+            QVariantMap result = Json::parse(config, ok).toMap();
+
+            if (!ok) {
+                emit error("JSON parsing failed");
+                return;
+            }
+
+            if (result["has_solar_and_uv"].toBool()) {
+                has_solar = true;
+            }
+
+            emit stationName(title);
+            emit isSolarDataEnabled(has_solar);
+        }
+    }
+
     notificationTimer->start();
 }
 

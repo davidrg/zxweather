@@ -17,13 +17,15 @@ class LiveDataWidget : public QWidget
 public:
     explicit LiveDataWidget(QWidget *parent = 0);
     ~LiveDataWidget();
-    
+
 public slots:
     /** Called when new live data is available.
      *
      * @param data The new live data.
      */
     void refreshLiveData(LiveDataSet lds);
+
+    void setSolarDataAvailable(bool available);
 
 signals:
     void sysTrayTextChanged(QString text);

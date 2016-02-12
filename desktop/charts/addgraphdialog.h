@@ -14,6 +14,7 @@ class AddGraphDialog : public QDialog
     
 public:
     explicit AddGraphDialog(SampleColumns availableColumns,
+                            bool solarAvailable,
                             QWidget *parent = 0);
     ~AddGraphDialog();
     

@@ -381,6 +381,9 @@ live_data_record get_live_data_v2() {
     int forecast_rule = 0;
     int tx_battery_status = 0;
     float console_battery_voltage = 0.0;
+    float uv_index = 0.0;
+    float solar_radiation = 0.0;
+
     EXEC SQL END DECLARE SECTION;
 
     qDebug() << "V2 data load for station id" << station_id_param;
@@ -436,7 +439,9 @@ live_data_record get_live_data_v2() {
                         transmitter_battery,
                         console_battery_voltage,
                         forecast_icon,
-                        forecast_rule_id
+                        forecast_rule_id,
+                        coalesce(uv_index, 0),
+                        coalesce(solar_radiation, 0)
                 INTO :barometer_trend,
                      :rain_rate,
                      :storm_rain,
@@ -444,7 +449,9 @@ live_data_record get_live_data_v2() {
                      :tx_battery_status,
                      :console_battery_voltage,
                      :forecast_icon,
-                     :forecast_rule
+                     :forecast_rule,
+                     :uv_index,
+                     :solar_radiation
                  FROM davis_live_data
                 WHERE station_id = :station_id_param
                 LIMIT 1;
@@ -457,6 +464,8 @@ live_data_record get_live_data_v2() {
         rec.davis_data.forecast_rule = forecast_rule;
         rec.davis_data.tx_battery_status = tx_battery_status;
         rec.davis_data.console_battery = console_battery_voltage;
+        rec.davis_data.uv_index = uv_index;
+        rec.davis_data.solar_radiation = solar_radiation;
     }
 
     return rec;

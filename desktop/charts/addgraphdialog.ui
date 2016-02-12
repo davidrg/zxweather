@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>477</width>
-    <height>223</height>
+    <width>478</width>
+    <height>259</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -18,33 +18,30 @@
     <normaloff>:/icons/chart-add</normaloff>:/icons/chart-add</iconset>
   </property>
   <layout class="QGridLayout" name="gridLayout">
-   <item row="4" column="2">
-    <widget class="QDialogButtonBox" name="buttonBox">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-     <property name="standardButtons">
-      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
-     </property>
-    </widget>
-   </item>
-   <item row="3" column="1">
-    <widget class="QGroupBox" name="gbOther">
+   <item row="1" column="2" rowspan="3">
+    <widget class="QGroupBox" name="gbWind">
      <property name="title">
-      <string>Other</string>
+      <string>Wind</string>
      </property>
-     <layout class="QVBoxLayout" name="verticalLayout_4">
+     <layout class="QVBoxLayout" name="verticalLayout_3">
       <item>
-       <widget class="QCheckBox" name="cbBarometricPressure">
+       <widget class="QCheckBox" name="cbAverageWindSpeed">
         <property name="text">
-         <string>Barometric Pressure</string>
+         <string>Average Wind Speed</string>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QCheckBox" name="cbRainfall">
+       <widget class="QCheckBox" name="cbGustWindSpeed">
         <property name="text">
-         <string>Rainfall</string>
+         <string>Gust Wind Speed</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="cbWindDirection">
+        <property name="text">
+         <string>Wind Direction</string>
         </property>
        </widget>
       </item>
@@ -74,7 +71,86 @@
      </layout>
     </widget>
    </item>
-   <item row="1" column="0" rowspan="3">
+   <item row="5" column="2">
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="0" colspan="3">
+    <widget class="QLabel" name="label">
+     <property name="text">
+      <string>Select the additional graphs you would like to add to the chart. To remove a graph select it in the chart, right click and choose the remove graph option.</string>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="2">
+    <widget class="QGroupBox" name="gbSolar">
+     <property name="title">
+      <string>Solar</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_5">
+      <item>
+       <widget class="QCheckBox" name="cbUVIndex">
+        <property name="text">
+         <string>UV Index</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="cbSolarRadiation">
+        <property name="text">
+         <string>Solar Radiation</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item row="3" column="1" rowspan="2">
+    <widget class="QGroupBox" name="gbOther">
+     <property name="title">
+      <string>Other</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_4">
+      <item>
+       <widget class="QCheckBox" name="cbBarometricPressure">
+        <property name="text">
+         <string>Barometric Pressure</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="cbRainfall">
+        <property name="text">
+         <string>Rainfall</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="verticalSpacer">
+        <property name="orientation">
+         <enum>Qt::Vertical</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>20</width>
+          <height>40</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item row="1" column="0" rowspan="4">
     <widget class="QGroupBox" name="gbTemperature">
      <property name="title">
       <string>Temperature</string>
@@ -115,38 +191,8 @@
         </property>
        </widget>
       </item>
-     </layout>
-    </widget>
-   </item>
-   <item row="1" column="2" rowspan="3">
-    <widget class="QGroupBox" name="gbWind">
-     <property name="title">
-      <string>Wind</string>
-     </property>
-     <layout class="QVBoxLayout" name="verticalLayout_3">
       <item>
-       <widget class="QCheckBox" name="cbAverageWindSpeed">
-        <property name="text">
-         <string>Average Wind Speed</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QCheckBox" name="cbGustWindSpeed">
-        <property name="text">
-         <string>Gust Wind Speed</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QCheckBox" name="cbWindDirection">
-        <property name="text">
-         <string>Wind Direction</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <spacer name="verticalSpacer">
+       <spacer name="verticalSpacer_2">
         <property name="orientation">
          <enum>Qt::Vertical</enum>
         </property>
@@ -159,16 +205,6 @@
        </spacer>
       </item>
      </layout>
-    </widget>
-   </item>
-   <item row="0" column="0" colspan="3">
-    <widget class="QLabel" name="label">
-     <property name="text">
-      <string>Select the additional graphs you would like to add to the chart. To remove a graph select it in the chart, right click and choose the remove graph option.</string>
-     </property>
-     <property name="wordWrap">
-      <bool>true</bool>
-     </property>
     </widget>
    </item>
   </layout>

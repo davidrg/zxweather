@@ -2,6 +2,7 @@
 """
 Functions for querying the database.
 """
+import json
 from collections import namedtuple
 from twisted.enterprise import adbapi
 from twisted.internet import defer
@@ -64,7 +65,7 @@ DavisLiveRecord = namedtuple(
 StationInfoRecord = namedtuple(
     'StationInfoRecord',
     ('title','description','sample_interval','live_data_available',
-     'station_type_code','station_type_title'))
+     'station_type_code','station_type_title', 'station_config'))
 
 def database_connect(conn_str):
     """
@@ -116,13 +117,19 @@ def _get_station_info_dict(result):
 
     first = result[0]
 
+    station_config = first[6]
+    config = dict()
+    if station_config is not None:
+        config = json.loads(station_config)
+
     result = StationInfoRecord(
         title=first[0],
         description=first[1],
         sample_interval=first[2],
         live_data_available=first[3],
         station_type_code=first[4],
-        station_type_title=first[5]
+        station_type_title=first[5],
+        station_config=config
     )
 
     return result
@@ -143,7 +150,8 @@ select s.title,
        s.sample_interval,
        s.live_data_available,
        st.code as station_type_code,
-       st.title as station_type_title
+       st.title as station_type_title,
+       s.station_config
 from station s
 inner join station_type st on st.station_type_id = s.station_type_id
 where s.code = %s

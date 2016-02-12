@@ -150,6 +150,8 @@ void TcpLiveDataSource::processStreamLine(QString line) {
         lds.davisHw.consoleBatteryVoltage = parts.at(16).toFloat();
         lds.davisHw.forecastIcon = parts.at(17).toInt();
         lds.davisHw.forecastRule = parts.at(18).toInt();
+        lds.davisHw.uvIndex = parts.at(19).toFloat();
+        lds.davisHw.solarRadiation = parts.at(20).toFloat();
     }
 
     emit liveData(lds);
@@ -167,19 +169,29 @@ void TcpLiveDataSource::processStationInfo(QString line) {
 
     QVariantMap result = Json::parse(line, ok).toMap();
 
-    if (!ok)
+    if (!ok) {
         qWarning() << "Failed to get station information";
+        return;
+    }
 
     // Lots of other stuff is available in this map too such as station
     // name and description.
     QString hardwareTypeCode = result["hardware_type_code"].toString();
 
-    if (hardwareTypeCode == "DAVIS")
+    bool solar_available = false;
+    QString station_name = result["name"].toString();
+
+    if (hardwareTypeCode == "DAVIS") {
         hw_type = HW_DAVIS;
+        solar_available = result["config"].toMap()["has_solar_and_uv"].toBool();
+    }
     else if (hardwareTypeCode == "FOWH1080")
         hw_type = HW_FINE_OFFSET;
     else
         hw_type = HW_GENERIC;
+
+    emit stationName(station_name);
+    emit isSolarDataEnabled(solar_available);
 }
 
 
