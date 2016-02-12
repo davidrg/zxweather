@@ -6,11 +6,12 @@ from twisted.internet import task, reactor
 from twisted.internet.defer import inlineCallbacks
 from twisted.internet.ssl import ClientContextFactory
 from twisted.python import log
-from twisted.web.client import Agent, readBody, WebClientContextFactory
+from twisted.web.client import Agent, WebClientContextFactory
 from twisted.web.http_headers import Headers
 
 from database import DatabaseReceiver, Database
 from mq_receiver import RabbitMqReceiver
+from readbody import readBody
 
 
 # noinspection PyClassicStyleClass
