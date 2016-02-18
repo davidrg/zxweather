@@ -35,6 +35,7 @@ private:
     bool isAnyYAxisSelected();
     QPointer<QCPAxis> valueAxisWithSelectedParts();
     QList<QCPAxis*> valueAxes();
+    QList<QCPAxis*> keyAxes();
 
     // Axis Lock
     bool yAxisLock;
@@ -43,6 +44,7 @@ private:
     QPoint mDragStart;
     bool mDragging;
     QMap<QCPAxis*, QCPRange> mDragStartVertRange;
+    QMap<QCPAxis*, QCPRange> mDragStartHorizRange;
 
     QPointer<QCustomPlot> plot;
     
