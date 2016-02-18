@@ -116,6 +116,10 @@ public slots:
      */
     void setGraphStyles(QMap<SampleColumn, GraphStyle> styles, dataset_id_t dataSetId);
 
+    void rescaleByTime();
+    void rescaleByTimeOfYear();
+    void rescaleByTimeOfDay();
+
 private slots:    
     /** Called by the CacheManager when its finished obtaining all the
       * requested datasets.
@@ -171,6 +175,22 @@ private:
      * @param samples Samples for the dataset.
      */
     void addWindDirectionGraph(DataSet dataSet, SampleSet samples);
+
+    typedef enum {
+        RS_TIME = 0, /*!< Align on time only ignoring year, month and day */
+        RS_MONTH = 1, /*!< Align on month, day and time ignoring year */
+        RS_YEAR = 2 /*!< Align on exact timestamp match */
+    } RescaleType;
+
+    /** Rescales the plot aligning all x axes with the one that has the
+     * largest timespan and scaling them to the same.
+     *
+     * y axis are scaled normally.
+     *
+     * If only one data set is present, chart->rescaleAxes() will be
+     * called instead.
+     */
+    void multiRescale(RescaleType rs_type = RS_TIME);
 
     /*******************
      * Misc            *
@@ -277,12 +297,15 @@ private:
      */
     QMap<dataset_id_t,DataSet> dataSets;
 
-    /** A cache of all data currently in the chart. This allows the chart
-     * to be quickly redrawn if a single column is removed and then readded.
+    /** The minimum timestamp in each data sets sample set. Populated when
+     * the graphs for each dataset are added.
      */
-    QMap<dataset_id_t,SampleSet> sampleCache;
+    QMap<dataset_id_t, QDateTime> dataSetMinimumTime;
 
-
+    /** The maximum timestamp in each data sets sample set. Populated when
+     * the graphs for each dataset are added.
+     */
+    QMap<dataset_id_t, QDateTime> dataSetMaximumTime;
 
     /** The QCustomPlot instance we're drawing graphs into.
      */

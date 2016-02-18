@@ -219,7 +219,15 @@ void ChartWindow::chartContextMenuRequested(QPoint point)
     // The multidataset functionality isn't finished yet.
     menu->addAction("Add Data Set",
                     this, SLOT(addDataSet()));
-
+    if (dataSets.count() > 1) {
+        QMenu* rescaleMenu = menu->addMenu("&Rescale");
+        rescaleMenu->addAction("By &Time", plotter.data(),
+                               SLOT(rescaleByTime()));
+        rescaleMenu->addAction("By Time of &Year", plotter.data(),
+                               SLOT(rescaleByTimeOfYear()));
+        rescaleMenu->addAction("By Ttime of &Day", plotter.data(),
+                               SLOT(rescaleByTimeOfDay()));
+    }
     menu->addSeparator();
 
     // The customise chart window isn't finished yet.

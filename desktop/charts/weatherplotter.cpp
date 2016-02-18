@@ -350,6 +350,16 @@ void WeatherPlotter::addGraphs(QMap<dataset_id_t, SampleSet> sampleSets)
         DataSet ds = dataSets[dataSetId];
         SampleSet samples = sampleSets[dataSetId];
 
+        if (samples.timestampUnix.isEmpty()) {
+            qDebug() << "Skip data set " << dataSetId << "- no data.";
+            continue;
+        }
+
+        dataSetMinimumTime[dataSetId] = QDateTime::fromTime_t(
+                    samples.timestampUnix.first());
+        dataSetMaximumTime[dataSetId] = QDateTime::fromTime_t(
+                    samples.timestampUnix.last());
+
         qDebug() << "Adding graphs" << (int)ds.columns << "for dataset" << ds.id;
 
         if (ds.columns.testFlag(SC_Temperature))
@@ -423,8 +433,245 @@ void WeatherPlotter::drawChart(QMap<dataset_id_t, SampleSet> sampleSets)
     else
         chart->legend->setVisible(false);
 
-    chart->rescaleAxes();
+    multiRescale();
     chart->replot();
+}
+
+void WeatherPlotter::rescaleByTime() {
+    multiRescale(RS_YEAR); // Align on year/month/day/hour/minute/second
+    chart->replot();
+}
+void WeatherPlotter::rescaleByTimeOfYear() {
+    multiRescale(RS_MONTH); // Align on month/day/hour/minute/second
+    chart->replot();
+}
+
+void WeatherPlotter::rescaleByTimeOfDay() {
+    multiRescale(RS_TIME); // Align on hour/minute/second
+    chart->replot();
+}
+
+void WeatherPlotter::multiRescale(RescaleType rs_type) {
+    qDebug() << "multiRescale" << rs_type;
+    if (dataSets.count() < 2) {
+        chart->rescaleAxes();
+        return;
+    }
+
+    // 1. Find the X axis for the dataset that has the largest range.
+    uint max_delta = 0;
+    dataset_id_t max_range_ds_id;
+    QDateTime max_range_ds_start;
+    QDateTime max_range_ds_end;
+    QDateTime min_start = QDateTime(QDate(3000,12,12));
+    QDateTime max_end = QDateTime(QDate(0,1, 1));
+    QTime min_time = QTime(23,59,59);
+    int min_month = 12;
+    int min_day_of_month = 31;
+
+    foreach (dataset_id_t id, dataSets.keys()) {
+        QDateTime start = dataSetMinimumTime[id];
+        QDateTime end = dataSetMaximumTime[id];
+
+        uint delta = end.toTime_t() - start.toTime_t();
+        if (delta > max_delta) {
+            max_delta = delta;
+            max_range_ds_id = id;
+            max_range_ds_start = start;
+            max_range_ds_end = end;
+        }
+        if (start < min_start) {
+            min_start = start;
+        }
+        if (end > max_end) {
+            max_end = end;
+        }
+
+        // This is used by time of day alignment (RS_TIME)
+        if (start.time() < min_time) {
+            min_time = start.time();
+        }
+
+        int month = start.date().month();
+        int day = start.date().day();
+        if (month < min_month) {
+            min_month = month;
+            min_day_of_month = day;
+        } else if (month == min_month && day < min_day_of_month) {
+            min_day_of_month = day;
+        }
+    }
+
+    QCPRange range;
+    if (rs_type == RS_YEAR) {
+        // Time alignment:
+        // The range needs go from the earliest timestamp in the earliest
+        // data set to the latest timestamp in the latest dataset so as to
+        // include all data in all datasets.
+        range.lower = min_start.toTime_t();
+        range.upper = max_end.toTime_t();
+
+        foreach (dataset_id_t id, dataSets.keys()) {
+            QPointer<QCPAxis> axis = getKeyAxis(id);
+            axis->setRange(range);
+        }
+    } else if (rs_type == RS_MONTH || rs_type == RS_TIME) {
+        // Time of Year alignment (RS_MONTH):
+        // This sets all X axes to have the same size range. Each axis range
+        // is chosen such that at any given point the second, hour, minute,
+        // day of month and day on all axes will be the same - only the year
+        // component will vary.
+        // For example:
+        //  14-JUN-15 5:50  14-JUN-15 5:55  14-JUN-15 6:00  14-JUN-15 6:05
+        //                                  14-JUN-16 6:00  14-JUN-16 6:05
+        //                                                  14-JUN-13 6:05
+        //                  14-JUN-14 5:55  14-JUN-14 6:00  14-JUN-14 6:05
+        //
+        // Time of Day alignment (RS_TIME):
+        // This sets all X axes to have the same size range. Each axis range
+        // is chosen such that the time component of its earliest timestamp
+        // lines up with the earliest matching time component of the axis
+        // with the earliest time component.
+        // For example:
+        //  14-JUN-15 5:50  14-JUN-15 5:55  14-JUN-15 6:00  14-JUN-15 6:05
+        //                                  18-MAY-16 6:00  18-MAY-16 6:05
+        //                                                  20-DEC-13 6:05
+        //                  19-FEB-15 5:55  19-FEB-15 6:00  19-FEB-15 6:05
+
+        // Line up the starting point for all axes
+        foreach (dataset_id_t id, dataSets.keys()) {
+            QPointer<QCPAxis> axis = getKeyAxis(id);
+
+            // Rescale the axis so we can get its min and max values
+            axis->rescale();
+            QCPRange axisRange = axis->range();
+            QDateTime min_ts = QDateTime::fromTime_t(axisRange.lower);
+
+            QDateTime start_time;
+
+            if (rs_type == RS_MONTH) {
+                start_time = QDateTime(QDate(min_ts.date().year(),
+                                             min_month,
+                                             min_day_of_month),
+                                       min_time);
+            } else if (rs_type == RS_TIME) {
+                // Work out the start of the range. To do this we'll use
+                // our start date and the minimum start time of any axis.
+                start_time = QDateTime(min_ts.date(),
+                                                 min_time);
+            }
+
+            axisRange.lower = start_time.toTime_t();
+            axis->setRange(axisRange);
+        }
+
+        double max_range = 0;
+        // Find the max range delta
+        foreach (dataset_id_t id, dataSets.keys()) {
+            QPointer<QCPAxis> axis = getKeyAxis(id);
+            QCPRange range = axis->range();
+
+            double r = range.upper - range.lower;
+            if (r > max_range) {
+                max_range = r;
+            }
+        }
+
+        // Line up the ending point for all axes
+        foreach (dataset_id_t id, dataSets.keys()) {
+            QPointer<QCPAxis> axis = getKeyAxis(id);
+
+            QCPRange axisRange = axis->range();
+            QDateTime end_time = QDateTime::fromTime_t(
+                        axisRange.lower + max_range);
+
+
+            axisRange.upper = end_time.toTime_t();
+            axis->setRange(axisRange);
+        }
+    }
+
+    // Rescale all Y axes
+    QList<QCPAxis*> yAxes = chart->axisRect()->axes(
+                QCPAxis::atLeft | QCPAxis::atRight);
+    foreach (QCPAxis* axis, yAxes) {
+        axis->rescale();
+    }
+
+
+    ///////////////
+
+//    foreach (dataset_id_t id, dataSets.keys()) {
+//        DataSet ds = dataSets[id];
+//        qDebug() << "Fetch ts";
+//        QDateTime  = dataSetMinimumTime[id];
+//        QDateTime maxTs = dataSetMaximumTime[id];
+
+//        qDebug() << "id start" << minTs << "end" << maxTs;
+
+//        uint delta = maxTs.toTime_t() - minTs.toTime_t();
+//        qDebug() << "id" << id << "delta" << delta;
+//        if (delta > max_delta) {
+//            max_delta = delta;
+//            max_ds = id;
+//            min_ts = minTs;
+
+//            qDebug() << "Max DS now " << max_ds;
+//        }
+
+//    }
+//    QPointer<QCPAxis> maxRangeAxis = getKeyAxis(max_ds);
+
+//    // 2. Rescale the X axis found in (1)
+//    maxRangeAxis->rescale();
+//    QCPRange range = maxRangeAxis->range();
+//    double tickStep = maxRangeAxis->tickStep();
+//    QDateTime maxTs = QDateTime::fromTime_t(range.upper);
+//    QDateTime minTs = QDateTime::fromTime_t(range.lower);
+//    qDebug() << "Base range: " << minTs << maxTs;
+
+//    // 3. Set all other X axis scale to match the X Axis found in (1)
+//    // 4. Set tick interval for all other X axis to match the X axis found in (1)
+//    foreach (dataset_id_t id, dataSets.keys()) {
+//        if (id != max_ds) {
+//            QPointer<QCPAxis> axis = getKeyAxis(id);
+//            axis->rescale();
+//            QCPRange axisRange = axis->range();
+//            QDateTime rangeMin = QDateTime::fromTime_t(axisRange.lower);
+//            QDateTime rangeMax = QDateTime::fromTime_t(axisRange.upper);
+
+//            qDebug() << "New range for DS" << id << "is" << rangeMin << rangeMax;
+//            QCPRange newRange;
+
+//            newRange.lower = QDateTime(rangeMin.date(), minTs.time()).toTime_t();
+//            newRange.upper = QDateTime(rangeMax.date(), maxTs.time()).toTime_t();
+
+//            axis->setRange(newRange);
+//            axis->setTickStep(tickStep);
+
+//            /* The above currently aligns all axes with the primary axis start
+//             * time. The following changes need to be made:
+//             *   -> Align start if start times are the same, else:
+//             *   -> Align end time if end times are the same, else:
+//             *   -> Find a time that exists on both axes as close to the start
+//             *      of the primary as possible
+//             *   -> Ensure multi-day data sets are handled properly
+//             *   -> Ensure data sets that don't overlap at all are handled
+//             *      properly. Need to decide what this even means really given
+//             *      we're specifically lining them up irrespective of date. I
+//             *      guess non-over-lapping would be one data set of 2am-3am and
+//             *      another of 5am-6am. What do we do then? Align by minute?
+//             *      Ask the user? Probably we should ask the user.
+//             *   -> Add a UI for aligning data sets? What would the options be?
+//             *
+//             */
+//        }
+//    }
+
+    // 5. Try to line up X axis somehow.
+
+    // 6. Rescale all Y axis normally.
+
 }
 
 void WeatherPlotter::dataSetsReady(QMap<dataset_id_t, SampleSet> samples) {

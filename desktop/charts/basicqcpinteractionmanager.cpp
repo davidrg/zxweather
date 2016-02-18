@@ -116,6 +116,12 @@ void BasicQCPInteractionManager::mousePress(QMouseEvent *event) {
                 QCPRange range = axis->range();
                 mDragStartVertRange[axis] = range;
             }
+
+            mDragStartHorizRange.clear();
+            foreach (QCPAxis* axis, keyAxes()) {
+                QCPRange range = axis->range();
+                mDragStartHorizRange[axis] = range;
+            }
         }
     }
 }
@@ -149,6 +155,33 @@ void BasicQCPInteractionManager::mouseMove(QMouseEvent *event){
                           mDragStartVertRange[axis].upper * diff);
             }
         }
+        foreach(QCPAxis* axis, keyAxes()) {
+
+            // QCustomPlot will handle RangeDrag for x1. We only need to do
+            // all the others.
+            if (axis == plot->xAxis)
+                continue;
+
+            // This logic is exactly the same as what can be found in
+            // QCPAxisRect::mouseMoveEvent(QMouseEvent*) from QCustomPlot 1.0.0
+
+            if (axis->scaleType() == QCPAxis::stLinear) {
+
+              double diff = axis->pixelToCoord(mDragStart.x())
+                      - axis->pixelToCoord(event->pos().x());
+
+              axis->setRange(
+                          mDragStartHorizRange[axis].lower + diff,
+                          mDragStartHorizRange[axis].upper + diff);
+
+            } else if (axis->scaleType() == QCPAxis::stLogarithmic) {
+              double diff = axis->pixelToCoord(mDragStart.x())
+                      / axis->pixelToCoord(event->pos().x());
+              axis->setRange(
+                          mDragStartHorizRange[axis].lower * diff,
+                          mDragStartHorizRange[axis].upper * diff);
+            }
+        }
         // We shouldn't need to do a replot -
         // QCPAxisRect::mouseMoveEvent(QMouseEvent*) should fire next and
         // handle it for us.
@@ -171,6 +204,8 @@ void BasicQCPInteractionManager::mouseWheel(QWheelEvent* event) {
         QPointer<QCPAxis> axis = valueAxisWithSelectedParts();
         plot->axisRect()->setRangeZoom(axis->orientation());
         plot->axisRect()->setRangeZoomAxes(plot->xAxis, axis);
+
+
     } else {
         /* No specific axis selected. Zoom all the axes!
          *
@@ -196,7 +231,10 @@ void BasicQCPInteractionManager::mouseWheel(QWheelEvent* event) {
         double wheelSteps = event->delta()/120.0;
         double verticalRangeZoomFactor =
                 plot->axisRect()->rangeZoomFactor(Qt::Vertical);
+        double horizontalRangeZoomFactor =
+                plot->axisRect()->rangeZoomFactor(Qt::Horizontal);
 
+        // Rescale value axes
         foreach (QCPAxis* axis, valueAxes()) {
             double factor = pow(verticalRangeZoomFactor, wheelSteps);
             // We don't want to scale y1 - QCustomPlot will handle that.
@@ -205,6 +243,20 @@ void BasicQCPInteractionManager::mouseWheel(QWheelEvent* event) {
                                  axis->pixelToCoord(event->pos().y()));
             }
         }
+
+        if (!isAnyYAxisSelected()) {
+            // Rescale key axes. Only do this if we're scaling all axes and
+            // not just a Y axis.
+            foreach (QCPAxis* axis, keyAxes()) {
+                double factor = pow(horizontalRangeZoomFactor, wheelSteps);
+                // We don't want to scale x1 - QCustomPlot will handle that.
+                if (axis != plot->xAxis) {
+                    axis->scaleRange(factor,
+                                     axis->pixelToCoord(event->pos().x()));
+                }
+            }
+        }
+
     }
 }
 
@@ -231,6 +283,10 @@ QPointer<QCPAxis> BasicQCPInteractionManager::valueAxisWithSelectedParts() {
 
 QList<QCPAxis*> BasicQCPInteractionManager::valueAxes() {
     return plot->axisRect()->axes(QCPAxis::atLeft | QCPAxis::atRight);
+}
+
+QList<QCPAxis*> BasicQCPInteractionManager::keyAxes() {
+    return plot->axisRect()->axes(QCPAxis::atTop | QCPAxis::atBottom);
 }
 
 void BasicQCPInteractionManager::axisSelectionChanged() {
