@@ -77,9 +77,11 @@ void BasicQCPInteractionManager::plottableClick(QCPAbstractPlottable* plottable,
 
 void BasicQCPInteractionManager::mousePress(QMouseEvent *event) {
     // Only allow panning in the direction of the selected axis
-    if (plot->xAxis->selectedParts().testFlag(QCPAxis::spAxis))
-        plot->axisRect()->setRangeDrag(plot->xAxis->orientation());
-    else if (isAnyYAxisSelected() && !isYAxisLockEnabled()) {
+    if (isAnyXAxisSelected() && !isXAxisLockEnabled()) {
+        QPointer<QCPAxis> axis = keyAxisWithSelectedParts();
+        plot->axisRect()->setRangeDrag(axis->orientation());
+        plot->axisRect()->setRangeDragAxes(axis, plot->yAxis);
+    } else if (isAnyYAxisSelected() && !isYAxisLockEnabled()) {
         QPointer<QCPAxis> axis = valueAxisWithSelectedParts();
         plot->axisRect()->setRangeDrag(axis->orientation());
         plot->axisRect()->setRangeDragAxes(plot->xAxis, axis);
@@ -98,6 +100,8 @@ void BasicQCPInteractionManager::mousePress(QMouseEvent *event) {
             // A Y axis is selected. If we got in here then Y Axis Lock must
             // be on. We'll only pan vertically.
             plot->axisRect()->setRangeDrag(Qt::Vertical);
+        } else if (isAnyXAxisSelected()) {
+            plot->axisRect()->setRangeDrag(Qt::Horizontal);
         } else {
             plot->axisRect()->setRangeDrag(Qt::Horizontal|Qt::Vertical);
         }
@@ -196,16 +200,19 @@ void BasicQCPInteractionManager::mouseRelease() {
 
 void BasicQCPInteractionManager::mouseWheel(QWheelEvent* event) {
     // Zoom on what ever axis is selected (if one is selected)
-    if (plot->xAxis->selectedParts().testFlag(QCPAxis::spAxis))
-        plot->axisRect()->setRangeZoom(plot->xAxis->orientation());
-    else if (isAnyYAxisSelected() && !isYAxisLockEnabled()) {
+    //if (plot->xAxis->selectedParts().testFlag(QCPAxis::spAxis))
+    if (isAnyXAxisSelected() && !isXAxisLockEnabled()) {
+        // A X axis is selected and axis lock is not on. So we'll just scale
+        // that one axis.
+        QPointer<QCPAxis> axis = keyAxisWithSelectedParts();
+        plot->axisRect()->setRangeZoom(axis->orientation());
+        plot->axisRect()->setRangeZoomAxes(axis, plot->yAxis);
+    } else if (isAnyYAxisSelected() && !isYAxisLockEnabled()) {
         // A Y axis is selected and axis lock is not on. So we'll just scale
         // that one axis.
         QPointer<QCPAxis> axis = valueAxisWithSelectedParts();
         plot->axisRect()->setRangeZoom(axis->orientation());
         plot->axisRect()->setRangeZoomAxes(plot->xAxis, axis);
-
-
     } else {
         /* No specific axis selected. Zoom all the axes!
          *
@@ -220,6 +227,8 @@ void BasicQCPInteractionManager::mouseWheel(QWheelEvent* event) {
             // A Y axis is selected. If we got in here then Y axis lock must
             // be on. We'll only scale vertically.
             plot->axisRect()->setRangeZoom(Qt::Vertical);
+        } else if (isAnyXAxisSelected()) {
+            plot->axisRect()->setRangeZoom(Qt::Horizontal);
         } else {
             plot->axisRect()->setRangeZoom(Qt::Horizontal|Qt::Vertical);
         }
@@ -271,6 +280,17 @@ bool BasicQCPInteractionManager::isAnyYAxisSelected() {
     return yAxisPartSelected;
 }
 
+bool BasicQCPInteractionManager::isAnyXAxisSelected() {
+    bool xAxisPartSelected = false;
+    foreach(QCPAxis* axis, keyAxes()) {
+        if (axis->selectedParts().testFlag(QCPAxis::spAxis) ||
+                axis->selectedParts().testFlag(QCPAxis::spTickLabels))
+            xAxisPartSelected = true;
+    }
+
+    return xAxisPartSelected;
+}
+
 QPointer<QCPAxis> BasicQCPInteractionManager::valueAxisWithSelectedParts() {
 
     foreach(QCPAxis* axis, valueAxes()) {
@@ -281,6 +301,17 @@ QPointer<QCPAxis> BasicQCPInteractionManager::valueAxisWithSelectedParts() {
     return 0;
 }
 
+QPointer<QCPAxis> BasicQCPInteractionManager::keyAxisWithSelectedParts() {
+
+    foreach(QCPAxis* axis, keyAxes()) {
+        if (axis->selectedParts().testFlag(QCPAxis::spAxis) ||
+                axis->selectedParts().testFlag(QCPAxis::spTickLabels))
+            return axis;
+    }
+    return 0;
+}
+
+
 QList<QCPAxis*> BasicQCPInteractionManager::valueAxes() {
     return plot->axisRect()->axes(QCPAxis::atLeft | QCPAxis::atRight);
 }
@@ -290,15 +321,22 @@ QList<QCPAxis*> BasicQCPInteractionManager::keyAxes() {
 }
 
 void BasicQCPInteractionManager::axisSelectionChanged() {
-    // If either x axis or its tick labels is selected, select both axes
-    // TODO: This probably needs to go now that the X axes are independent
-    if (plot->xAxis->selectedParts().testFlag(QCPAxis::spAxis) ||
-            plot->xAxis->selectedParts().testFlag(QCPAxis::spTickLabels) ||
-            plot->xAxis2->selectedParts().testFlag(QCPAxis::spAxis) ||
-            plot->xAxis2->selectedParts().testFlag(QCPAxis::spTickLabels)) {
+    // If either x axis or its tick labels are selected, select both axes
+    if (isAnyXAxisSelected()) {
+        // If one part (tick labels or the actual axis) is selected, ensure
+        // both are.
 
-        plot->xAxis->setSelectedParts(QCPAxis::spAxis | QCPAxis::spTickLabels);
-        plot->xAxis2->setSelectedParts(QCPAxis::spAxis | QCPAxis::spTickLabels);
+        if (isXAxisLockEnabled()) {
+            // ALL axes should be selected
+            foreach (QCPAxis* axis, keyAxes()) {
+                axis->setSelectedParts(QCPAxis::spAxis |
+                                       QCPAxis::spTickLabels);
+            }
+        } else {
+            // Just ensure the axis is fully selected.
+            QPointer<QCPAxis> axis = keyAxisWithSelectedParts();
+            axis->setSelectedParts(QCPAxis::spAxis | QCPAxis::spTickLabels);
+        }
     }
 
     // If either y axis or its tick labels are selected, select both axes
