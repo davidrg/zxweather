@@ -38,6 +38,7 @@ ChartWindow::ChartWindow(QList<DataSet> dataSets, bool solarAvailable,
     ui->cbYLock->setVisible(false);
     ui->YLockDiv->setVisible(false);
     setYAxisLock();
+    setXAxisLock();
 
     Settings& settings = Settings::getInstance();
 
@@ -55,6 +56,7 @@ ChartWindow::ChartWindow(QList<DataSet> dataSets, bool solarAvailable,
     connect(ui->pbRefresh, SIGNAL(clicked()), this, SLOT(refresh()));
     connect(ui->saveButton, SIGNAL(clicked()), this, SLOT(save()));
     connect(ui->cbYLock, SIGNAL(toggled(bool)), this, SLOT(setYAxisLock()));
+    connect(ui->cbXLock, SIGNAL(toggled(bool)), this, SLOT(setXAxisLock()));
 
     // WeatherPlotter events
     connect(plotter.data(), SIGNAL(axisCountChanged(int)),
@@ -140,6 +142,13 @@ void ChartWindow::chartAxisCountChanged(int count) {
 void ChartWindow::setYAxisLock() {
     basicInteractionManager->setYAxisLockEnabled(ui->cbYLock->isEnabled()
                                    && ui->cbYLock->isChecked());
+    ui->chart->deselectAll();
+    ui->chart->replot();
+}
+
+void ChartWindow::setXAxisLock() {
+    basicInteractionManager->setXAxisLockEnabled(ui->cbXLock->isEnabled()
+                                                 && ui->cbXLock->isChecked());
     ui->chart->deselectAll();
     ui->chart->replot();
 }

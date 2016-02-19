@@ -38,6 +38,7 @@ private slots:
     void titleDoubleClick(QMouseEvent*event, QCPPlotTitle*title);
 
     void setYAxisLock();
+    void setXAxisLock();
 
     // Context menu related stuff
     void chartContextMenuRequested(QPoint point);

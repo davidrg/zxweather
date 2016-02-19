@@ -14,9 +14,11 @@ public:
     explicit BasicQCPInteractionManager(QCustomPlot* plot, QObject *parent = 0);
     
     bool isYAxisLockEnabled() const { return yAxisLock; }
+    bool isXAxisLockEnabled() const { return xAxisLock; }
 
 public slots:
     void setYAxisLockEnabled(bool enabled) { yAxisLock = enabled;}
+    void setXAxisLockEnabled(bool enabled) { xAxisLock = enabled;}
 
 private slots:
     void mousePress(QMouseEvent* event);
@@ -33,12 +35,15 @@ private slots:
 
 private:
     bool isAnyYAxisSelected();
+    bool isAnyXAxisSelected();
     QPointer<QCPAxis> valueAxisWithSelectedParts();
+    QPointer<QCPAxis> keyAxisWithSelectedParts();
     QList<QCPAxis*> valueAxes();
     QList<QCPAxis*> keyAxes();
 
     // Axis Lock
     bool yAxisLock;
+    bool xAxisLock;
 
     // Handles panning
     QPoint mDragStart;
