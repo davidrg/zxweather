@@ -2,6 +2,7 @@
 """
 Data sources at the station level.
 """
+import hashlib
 import mimetypes
 from datetime import datetime, timedelta, date
 import json
@@ -435,7 +436,13 @@ class data_ascii:
             # This file contains live data. Don't cache it
             web.header("Cache-Control", "no-cache")
             web.header("Last-Modified", rfcformat(datetime.now()))
+
             result = make_ascii_live(station_id, dataset)
+
+            # One particular client appears to require an ETag
+            m = hashlib.md5()
+            m.update(result)
+            web.header("ETag", '"' + m.hexdigest() + '"')
 
         web.header("Content-Type", "text/plain")
         return result
@@ -460,7 +467,7 @@ ascii_data = {
                   "{humidex} {UV} {ET:.2f} {SolarRad} "
                   "{avgbearing} {rhour} {forecastnumber} {isdaylight} "
                   "{SensorContactLost} {wdir} {cloudbasevalue} {cloudbaseunit} "
-                  "{apptemp} {SunshineHours} {CurrentSolarMax} {IsSunny}"
+                  "{apptemp} {SunshineHours} {CurrentSolarMax} {IsSunny}\r\n"
     },
     "dayfile": None,
 }
@@ -515,7 +522,7 @@ def make_ascii_live(station_id, filename):
     # These are values that are currently static because
     # zxweather only does metric.
     param = {
-        "windunit": "km/h",  # change to m/s for wind un m/s
+        "windunit": "km/h",  # change to m/s for wind in m/s
         "tempunitnodeg": "C",
         "pressunit": "hPa",
         "rainunit": "mm",
@@ -538,9 +545,9 @@ def make_ascii_live(station_id, filename):
     param["timehhmmss"] = datetime.strftime(ts, "%H:%M:%S")
 
     bft = -1
-    for i in range(0,13):
+    for i in range(0, 13):
         if i < 1:
-            min_val = 0
+            min_val = -1
         else:
             min_val = bft_max[i-1]
         max_val = bft_max[i]
