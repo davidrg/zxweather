@@ -480,7 +480,7 @@ wind_directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S",
 
 def bearing_to_compass(bearing):
     if bearing is None:
-        return "-"
+        return "---"
 
     index = int(math.floor(((bearing * 100 + 1125) % 36000) / 2250))
     return wind_directions[index]
