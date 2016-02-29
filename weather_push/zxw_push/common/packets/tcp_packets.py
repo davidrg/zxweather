@@ -674,7 +674,7 @@ class SampleAcknowledgementTCPPacket(TcpPacket):
         if not (0 <= station_id <= 255):
             raise ValueError("Station ID must be between 0 and 255")
 
-        if len(self._acknowledgements) > 255:
+        if len(self._acknowledgements) >= 255:
             return False
 
         self._acknowledgements.append((station_id,
