@@ -32,9 +32,11 @@ urls = (
     '/data/(\w*)/(\d+)/(\d+)/(\d+)/images/(\w*)/(\d+)/(\w*).(\w*)', 'data.daily.image', # Daily, image
     '/data/(\w*)/(\d+)/(\d+)/(\d+)/datatable/(\w*).json', 'data.daily.dt_json',     # Daily, DT
     '/data/(\w*)/(\d+)/(\d+)/(\d+)/(\w*).txt', 'data.daily.data_ascii',             # Daily
+    '/data/(\w*)/(\d+)/(\d+)/(\d+)/(\w*).dat', 'data.daily.data_dat',               # Daily
     '/data/(\w*)/(\d+)/(\d+)/(\d+)/(\w*).json', 'data.daily.data_json',             # Daily
     '/data/(\w*)/(\d+)/(\d+)/datatable/(\w*).json', 'data.monthly.datatable_json',  # Monthly, DT
     '/data/(\w*)/(\d+)/(\d+)/(\w*).txt', 'data.monthly.data_ascii',                 # Monthly,
+    '/data/(\w*)/(\d+)/(\d+)/(\w*).dat', 'data.monthly.data_dat',                   # Monthly,
     '/data/(\w*)/(\d+)/(\d+)/(\w*).json', 'data.monthly.data_json',                 # Monthly,
     '/data/(\w*)/(\d+)/datatable/(\w*).json', 'data.yearly.datatable_json',         # Yearly, DT
     '/data/(\w*)/(\w*).txt', 'data.station.data_ascii',                             # Station
