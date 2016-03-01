@@ -20,6 +20,7 @@ def print_station_list(cur):
 select s.code, st.code as type_code, s.title
 from station s
 inner join station_type st on st.station_type_id = s.station_type_id
+order by sort_order ASC
     """)
 
     results = cur.fetchall()
