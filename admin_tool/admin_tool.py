@@ -3,6 +3,7 @@
 zxweather admin tool.
 """
 from about_mgr import upgrade_about
+from image_sources import manage_image_sources
 from database_mgr import  create_db, connect_to_db, db_info
 from station_mgr import  manage_stations
 from ui import menu
@@ -111,6 +112,11 @@ def main():
         },
         {
             "key": "2",
+            "name": "Manage image sources",
+            "type": "return"
+        },
+        {
+            "key": "3",
             "name": "Upgrade about.html",
             "type": "return"
         },
@@ -127,6 +133,8 @@ def main():
         if result == "1":
             manage_stations(db)
         elif result == "2":
+            manage_image_sources(db)
+        elif result == "3":
             upgrade_about(db.cursor())
 
 if __name__ == "__main__": main()
