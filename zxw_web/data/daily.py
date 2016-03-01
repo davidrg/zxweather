@@ -951,7 +951,53 @@ class image:
 
 class data_ascii:
     """
-    Gets data for a particular day in Googles DataTable format.
+    Gets data for a particular day in plain text (.txt) format
+    """
+    def GET(self, station, year, month, day, dataset):
+        """
+        Gets plain (non-datatable) JSON data sources.
+        :param station: Station to get data for
+        :type station: str
+        :param year: Year to get data for
+        :type year: str
+        :param month: month to get data for
+        :type month: str
+        :param day: day to get data for
+        :type day: str
+        :param dataset: The dataset (filename) to retrieve
+        :type dataset: str
+        :return: the JSON dataset requested
+        :rtype: str
+        :raise: web.NotFound if an invalid request is made.
+        """
+        this_date = date(int(year), int(month), int(day))
+
+        station_id = get_station_id(station)
+        if station_id is None:
+            raise web.NotFound()
+
+        # Make sure the day actually exists in the database before we go
+        # any further.
+        if not day_exists(this_date, station_id):
+            raise web.NotFound()
+
+        # No plain-text formats currently supported.
+        raise web.NotFound()
+
+        # if dataset == "samples":
+        #     data, age = get_day_samples_tab_delimited(this_date, station_id)
+        #     cache_control_headers(station_id, age, int(year), int(month),
+        #                           int(day))
+        # else:
+        #     raise web.NotFound()
+
+        # web.header('Content-Type', "text/plain")
+        # return data
+
+
+class data_dat:
+    """
+    Gets data for a particular day in plain text (.dat) format
     """
     def GET(self, station, year, month, day, dataset):
         """
@@ -982,7 +1028,7 @@ class data_ascii:
             raise web.NotFound()
 
         if dataset == "samples":
-            data, age = get_month_samples_tab_delimited(this_date, station_id)
+            data, age = get_day_samples_tab_delimited(this_date, station_id)
             cache_control_headers(station_id, age, int(year), int(month),
                                   int(day))
         else:
@@ -992,7 +1038,7 @@ class data_ascii:
         return data
 
 
-def get_month_samples_tab_delimited(this_date, station_id):
+def get_day_samples_tab_delimited(this_date, station_id):
     weather_data = get_day_data_wp(this_date, station_id)
 
     file_data = '# timestamp\ttemperature\tdew point\tapparent temperature\t' \

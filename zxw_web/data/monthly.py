@@ -499,6 +499,56 @@ class data_ascii:
         if recs is None or len(recs) == 0:
             raise web.NotFound()
 
+        # No .txt files currently supported.
+        raise web.NotFound()
+
+        # if dataset == 'samples':
+        #     result, age = get_month_samples_tab_delimited(int_year, int_month,
+        #                                                   station_id)
+        #     cache_control_headers(station_id, age, int_year, int_month)
+        # else:
+        #     raise web.NotFound()
+        #
+        # web.header("Content-Type", "text/plain")
+        # return result
+
+
+class data_dat:
+    def GET(self, station, year, month, dataset):
+        """
+        Gets plain text data.
+
+        :param station: Station to get data for
+        :type station: str
+        :param year: Year to get data for
+        :type year: str
+        :param month: Month to get data for. Unlike in other areas of the site
+                      this is not the month name but rather its number.
+        :type month: str
+        :param dataset: Dataset (file) to fetch.
+        :type dataset: str
+        :return: text file.
+        :raise: web.notfound if the file doesn't exist.
+        """
+
+        station_id = get_station_id(station)
+
+        if station_id is None:
+            raise web.NotFound()
+
+        int_year = int(year)
+        int_month = int(month)
+
+        # Make sure the month actually exists in the database before we go
+        # any further.
+        params = dict(date=date(int(year),int(month),1), station=station_id)
+        recs = db.query("""select 42 from sample
+        where date(date_trunc('month',time_stamp)) = $date
+        and station_id = $station
+        limit 1""", params)
+        if recs is None or len(recs) == 0:
+            raise web.NotFound()
+
         if dataset == 'samples':
             result, age = get_month_samples_tab_delimited(int_year, int_month,
                                                           station_id)
