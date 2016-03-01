@@ -3,6 +3,7 @@
 TCP implementation of the WeatherPush server. Much the same as the UDP version
 but slightly different packets.
 """
+import time
 from twisted.internet import defer, reactor, protocol
 from twisted.python import log
 from zxw_push.common.data_codecs import decode_live_data, decode_sample_data, \
@@ -279,7 +280,7 @@ class WeatherPushTcpServer(protocol.Protocol):
         :type station_id: int
         :type time_stamp: datetime.datetime
         """
-        rid = (station_id, time_stamp)
+        rid = "{0}:{1}".format(station_id, time.mktime(time_stamp.timetuple()))
 
         if rid in self._sample_record_cache.keys():
             defer.returnValue(self._sample_record_cache[rid])
@@ -299,8 +300,8 @@ class WeatherPushTcpServer(protocol.Protocol):
 
         defer.returnValue(None)
 
-    def _cache_sample_record(self, station_id, sample_id, sample):
-        rid = (station_id, sample_id)
+    def _cache_sample_record(self, station_id, time_stamp, sample):
+        rid = "{0}:{1}".format(station_id, time.mktime(time_stamp.timetuple()))
 
         self._sample_record_cache_ids.append(rid)
         self._sample_record_cache[rid] = sample
@@ -308,7 +309,8 @@ class WeatherPushTcpServer(protocol.Protocol):
         while len(self._sample_record_cache_ids) > \
                 self._MAX_SAMPLE_RECORD_CACHE:
             rid = self._sample_record_cache_ids.pop(0)
-            del self._sample_record_cache[rid]
+            if rid in self._sample_record_cache.keys():
+                del self._sample_record_cache[rid]
 
     @defer.inlineCallbacks
     def _build_live_from_sample_diff(self, data, station_id, fields, hw_type):
