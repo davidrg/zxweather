@@ -1002,7 +1002,7 @@ def get_day_evapotranspiration(station_id):
 
     query = """
     select s.time_stamp::date,
-    sum(ds.evapotranspiration)/1000 as evapotranspiration
+    sum(ds.evapotranspiration) as evapotranspiration
     from davis_sample ds
     inner join sample s on s.sample_id = ds.sample_id
     where s.station_id = $station
@@ -1086,7 +1086,7 @@ select s.time_stamp,
        s.station_id,
        ds.gust_wind_direction,
        ds.high_rain_rate,
-       ds.evapotranspiration / 1000 as evapotranspiration,
+       ds.evapotranspiration,
        ds.solar_radiation,
        ds.average_uv_index
 from sample s
