@@ -166,7 +166,7 @@ def build_alternate_ui_urls(current_url):
     return switch_urls
 
 
-def validate_request(ui=None,station=None, year=None, month=None, day=None):
+def validate_request(ui=None, station=None, year=None, month=None, day=None):
     """
     Validates request parameters. All parameters are optional. It also stores
     the UI (if supplied) in the last_ui cookie used in redirects.
@@ -178,29 +178,48 @@ def validate_request(ui=None,station=None, year=None, month=None, day=None):
     :raise: web.NotFound if the request is invalid.
     """
 
+    # Check valid UI
     if ui is not None and ui not in uis:
         raise web.NotFound()
 
     if ui is not None:
         web.setcookie('last_ui', ui)
 
+    # Check station exists
+    station_id = None
     if station is not None:
         station_id = get_station_id(station)
 
-        if station_id is None:
-            raise web.NotFound()
+    if station_id is None:
+        raise web.NotFound()
+
+    # Check month name is valid
+    if month is not None and month not in month_number.keys():
+        raise web.NotFound()
+
+    # Check year and day are integers
+    year_int = None
+    day_int = None
+    try:
+        if year is not None:
+            year_int = int(year)
+        if day is not None:
+            day_int = int(day)
+    except ValueError:
+        raise web.NotFound()
 
     # Check the date.
-    if year is not None and month is not None and day is not None:
-        result = day_exists(date(int(year),month_number[month],int(day)), station_id)
+    if year_int is not None and month is not None and day_int is not None:
+        result = day_exists(date(year_int, month_number[month], day_int),
+                            station_id)
         if not result:
             raise web.NotFound()
     elif year is not None and month is not None:
-        result = month_exists(int(year),month_number[month], station_id)
+        result = month_exists(year_int, month_number[month], station_id)
         if not result:
             raise web.NotFound()
     elif year is not None:
-        result = year_exists(int(year), station_id)
+        result = year_exists(year_int, station_id)
         if not result:
             raise web.NotFound()
 
