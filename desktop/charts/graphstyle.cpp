@@ -1,7 +1,11 @@
 #include "graphstyle.h"
 #include "settings.h"
 
+#include <QtDebug>
+
 GraphStyle::GraphStyle(SampleColumn column) {
+    this->column = column;
+
     ChartColours colours = Settings::getInstance().getChartColours();
 
     QColor colour;
@@ -71,18 +75,29 @@ GraphStyle::GraphStyle(SampleColumn column) {
         name = "Invalid Graph";
     }
 
+    columnName = name;
+    defaultColour = colour;
+
     pen = QPen(colour);
     scatterStyle = QCPScatterStyle::ssNone;
     brush = QBrush();
     lineStyle = QCPGraph::lsLine;
+
+    qDebug() << "Created graph style for" << name;
 }
 
 void GraphStyle::applyStyle(QCPGraph *graph) {
+    qDebug() << "Applying style for" << getName();
     graph->setName(getName());
     graph->setPen(getPen());
     graph->setScatterStyle(getScatterStyle());
     graph->setBrush(getBrush());
     graph->setLineStyle(getLineStyle());
+}
+
+void GraphStyle::setName(QString name) {
+    qDebug() << "GraphStyle" << this->name << "is now" << name;
+    this->name = name;
 }
 
 bool GraphStyle::operator==(GraphStyle& rhs) const {

@@ -266,7 +266,7 @@ void WeatherPlotter::addGenericGraph(DataSet dataSet, SampleColumn column, Sampl
     graph->setData(samples.timestamp, samplesForColumn(column,samples));
 
     GraphStyle gs;
-    if (graphStyles.contains(column))
+    if (graphStyles[dataSet.id].contains(column))
         gs = graphStyles[dataSet.id][column];
     else {
         gs = column;
@@ -290,7 +290,7 @@ void WeatherPlotter::addRainfallGraph(DataSet dataSet, SampleSet samples)
 
     SampleColumn column = SC_Rainfall;
     GraphStyle gs;
-    if (graphStyles.contains(column))
+    if (graphStyles[dataSet.id].contains(column))
         gs = graphStyles[dataSet.id][column];
     else {
         gs = column;
@@ -331,7 +331,7 @@ void WeatherPlotter::addWindDirectionGraph(DataSet dataSet, SampleSet samples)
 
     SampleColumn column = SC_WindDirection;
     GraphStyle gs;
-    if (graphStyles.contains(column))
+    if (graphStyles[dataSet.id].contains(column))
         gs = graphStyles[dataSet.id][column];
     else {
         gs = column;
@@ -798,6 +798,17 @@ QString WeatherPlotter::defaultLabelForAxis(QCPAxis *axis) {
 
 QMap<SampleColumn, GraphStyle> WeatherPlotter::getGraphStyles(dataset_id_t dataSetId) {
     return graphStyles[dataSetId];
+}
+
+GraphStyle& WeatherPlotter::getStyleForGraph(dataset_id_t dataSetId, SampleColumn column) {
+    return graphStyles[dataSetId][column];
+}
+
+GraphStyle& WeatherPlotter::getStyleForGraph(QCPGraph* graph) {
+    dataset_id_t dataset = graph->property(GRAPH_DATASET).toInt();
+    SampleColumn col = (SampleColumn)graph->property(GRAPH_TYPE).toInt();
+
+    return getStyleForGraph(dataset, col);
 }
 
 void WeatherPlotter::setGraphStyles(QMap<SampleColumn, GraphStyle> styles, dataset_id_t dataSetId) {

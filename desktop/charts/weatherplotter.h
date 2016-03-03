@@ -87,6 +87,10 @@ public:
      */
     QMap<SampleColumn, GraphStyle> getGraphStyles(dataset_id_t dataSetId);
 
+    GraphStyle& getStyleForGraph(dataset_id_t dataSetId, SampleColumn column);
+
+    GraphStyle& getStyleForGraph(QCPGraph* graph);
+
 signals:
     void axisCountChanged(int count);
 

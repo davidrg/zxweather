@@ -73,7 +73,8 @@ SOURCES += main.cpp\
     charts/customisechartdialog.cpp \
     charts/graphstyle.cpp \
     charts/cachemanager.cpp \
-    datasource/samplecolumns.cpp
+    datasource/samplecolumns.cpp \
+    charts/graphstyledialog.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
@@ -119,7 +120,8 @@ HEADERS  += mainwindow.h \
     charts/graphstyle.h \
     charts/chartsettings.h \
     charts/cachemanager.h \
-    datasource/aggregate.h
+    datasource/aggregate.h \
+    charts/graphstyledialog.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \
@@ -131,7 +133,8 @@ FORMS    += mainwindow.ui \
     forecastwidget.ui \
     exportdialog.ui \
     charts/addgraphdialog.ui \
-    charts/customisechartdialog.ui
+    charts/customisechartdialog.ui \
+    charts/graphstyledialog.ui
 
 OTHER_FILES += \
     database.pgc \

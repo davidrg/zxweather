@@ -3,6 +3,7 @@
 #include "settings.h"
 #include "addgraphdialog.h"
 #include "customisechartdialog.h"
+#include "graphstyledialog.h"
 
 #include "datasource/webdatasource.h"
 #include "datasource/databasedatasource.h"
@@ -17,6 +18,16 @@
 #include <QIcon>
 
 #define DELETE_ME_AND_FIX_ERRORS 0
+
+#ifdef QT_DEBUG
+
+// Not quite finished yet. Disabled in release builds.
+#define MULTI_DATA_SET
+
+// This isn't finished yet. So disabled in release builds.
+#define CUSTOMISE_CHART
+#endif
+
 
 ChartWindow::ChartWindow(QList<DataSet> dataSets, bool solarAvailable,
                          QWidget *parent) :
@@ -84,7 +95,7 @@ ChartWindow::ChartWindow(QList<DataSet> dataSets, bool solarAvailable,
 
     this->dataSets = dataSets;
 
-    reloadDataSets();
+    reloadDataSets(true);
 }
 
 ChartWindow::~ChartWindow()
@@ -92,7 +103,7 @@ ChartWindow::~ChartWindow()
     delete ui;
 }
 
-void ChartWindow::reloadDataSets() {
+void ChartWindow::reloadDataSets(bool rebuildChart) {
     if (dataSets.count() > 1) {
         // If we have multiple datasets then we can't use the simple
         // start/end time boxes.
@@ -112,12 +123,14 @@ void ChartWindow::reloadDataSets() {
         ui->divRefresh->setVisible(true);
     }
 
-    // Reset the IDs on all incoming datasets to ensure they're unique.
-    for (int i = 0; i < dataSets.count(); i++) {
-        dataSets[i].id = i;
-    }
+    if (rebuildChart) {
+        // Reset the IDs on all incoming datasets to ensure they're unique.
+        for (int i = 0; i < dataSets.count(); i++) {
+            dataSets[i].id = i;
+        }
 
-    plotter->drawChart(dataSets);
+        plotter->drawChart(dataSets);
+    }
 }
 
 void ChartWindow::refresh() {
@@ -137,7 +150,6 @@ void ChartWindow::chartAxisCountChanged(int count) {
         setYAxisLock();
     }
 }
-
 
 void ChartWindow::setYAxisLock() {
     basicInteractionManager->setYAxisLockEnabled(ui->cbYLock->isEnabled()
@@ -197,55 +209,104 @@ void ChartWindow::titleDoubleClick(QMouseEvent *event, QCPPlotTitle *title)
 
 void ChartWindow::chartContextMenuRequested(QPoint point)
 {
-
+    // Check to see if the legend was right-clicked on
     if (ui->chart->legend->selectTest(point, false) >= 0
             && ui->chart->legend->visible()) {
         showLegendContextMenu(point);
         return;
     }
 
+    // Check if an X axis was right-clicked on
+    QList<QCPAxis*> keyAxes = ui->chart->axisRect()->axes(QCPAxis::atTop |
+                                                          QCPAxis::atBottom);
+    foreach (QCPAxis* keyAxis, keyAxes) {
+        if (keyAxis->selectTest(point, false) >= 0) {
+            showKeyAxisContextMenu(point);
+            return;
+        }
+    }
+
+    // Check if a Y axis was right-clicked on
+    QList<QCPAxis*> valueAxes = ui->chart->axisRect()->axes(QCPAxis::atLeft |
+                                                          QCPAxis::atRight);
+    foreach (QCPAxis* valueAxis, valueAxes) {
+        if (valueAxis->selectTest(point, false) >= 0) {
+            showValueAxisContextMenu(point);
+            return;
+        }
+    }
+
+    showChartContextMenu(point);
+}
+
+void ChartWindow::showChartContextMenu(QPoint point) {
     QMenu* menu = new QMenu(this);
     menu->setAttribute(Qt::WA_DeleteOnClose);
 
-    /******** Graph add/remove ********/
+    QAction *action;
+
+#ifdef MULTI_DATA_SET
+    menu->addAction("Add Data Set",
+                    this, SLOT(addDataSet()));
+
+    // If a graph is currently selected show some extra options.
+    if (!ui->chart->selectedGraphs().isEmpty()) {
+        QMenu* graphMenu = menu->addMenu("&Selected Graph");
+        graphMenu->addAction("&Rename", this, SLOT(renameSelectedGraph()));
+        graphMenu->addAction("&Change Style", this,
+                             SLOT(changeSelectedGraphStyle()));
+        graphMenu->addSeparator();
+        graphMenu->addAction("R&emove", this, SLOT(removeSelectedGraph()));
+    }
+
+#else
+    /******** Graph remove ********/
 
     // If a graph is currently selected let it be removed.
     if (!ui->chart->selectedGraphs().isEmpty()) {
         menu->addAction("Remove selected graph",
                         this, SLOT(removeSelectedGraph()));
     }
+#endif
 
-    QAction *action = menu->addAction(QIcon(":/icons/chart-add"), "Add Graph",
+    menu->addSeparator();
+    menu->addAction(QIcon(":/icons/save"), "&Save...", this, SLOT(save()));
+
+#ifndef MULTI_DATA_SET
+    /******** Graph add ********/
+    action = menu->addAction(QIcon(":/icons/chart-add"), "Add Graph",
                                       this, SLOT(addGraph()));
 
-    if (plotter->availableColumns(DELETE_ME_AND_FIX_ERRORS) == 0) {
+    if (plotter->availableColumns(0) == 0) {
         // All graphs are already in the chart. No more to add.
         action->setEnabled(false);
     }
 
-#ifdef QT_DEBUG
+#ifdef CUSTOMISE_CHART
+    menu->addSeparator();
+    // The customise chart window isn't finished yet.
+    menu->addAction("Customise",
+                    this, SLOT(customiseChart()));
+#endif
+#endif // MULTI_DATA_SET
 
-    // The multidataset functionality isn't finished yet.
-    menu->addAction("Add Data Set",
-                    this, SLOT(addDataSet()));
+    /******** Plot feature visibility & layout ********/
+    menu->addSeparator();
+
+#ifdef MULTI_DATA_SET
     if (dataSets.count() > 1) {
         QMenu* rescaleMenu = menu->addMenu("&Rescale");
         rescaleMenu->addAction("By &Time", plotter.data(),
                                SLOT(rescaleByTime()));
         rescaleMenu->addAction("By Time of &Year", plotter.data(),
                                SLOT(rescaleByTimeOfYear()));
-        rescaleMenu->addAction("By Ttime of &Day", plotter.data(),
+        rescaleMenu->addAction("By Time of &Day", plotter.data(),
                                SLOT(rescaleByTimeOfDay()));
     }
-    menu->addSeparator();
-
-    // The customise chart window isn't finished yet.
-    menu->addAction("Customise",
-                    this, SLOT(customiseChart()));
+#else
+    action = menu->addAction("&Rescale", plotter.data(),
+                             SLOT(rescaleByTime()));
 #endif
-
-    /******** Plot feature visibility ********/
-    menu->addSeparator();
 
     // Title visibility option.
     action = menu->addAction("Show Title",
@@ -268,8 +329,67 @@ void ChartWindow::chartContextMenuRequested(QPoint point)
     action->setChecked(gridVisible);
 
 
+    // TODO: separator
+#ifdef MULTI_DATA_SET
+    // TODO: lock X axis
+#endif
+    // TODO: lock Y axis
+
+
     /******** Finished ********/
     menu->popup(ui->chart->mapToGlobal(point));
+}
+
+void ChartWindow::showLegendContextMenu(QPoint point)
+{
+    QMenu *menu = new QMenu(this);
+    menu->setAttribute(Qt::WA_DeleteOnClose);
+
+    // Options to re-position the legend
+    menu->addAction("Move to top left",
+                    this,
+                    SLOT(moveLegend()))->setData((int)(Qt::AlignTop
+                                                       | Qt::AlignLeft));
+    menu->addAction("Move to top center",
+                    this,
+                    SLOT(moveLegend()))->setData((int)(Qt::AlignTop
+                                                       | Qt::AlignHCenter));
+    menu->addAction("Move to top right",
+                    this,
+                    SLOT(moveLegend()))->setData((int)(Qt::AlignTop
+                                                       | Qt::AlignRight));
+    menu->addAction("Move to bottom right",
+                    this,
+                    SLOT(moveLegend()))->setData((int)(Qt::AlignBottom
+                                                       | Qt::AlignRight));
+    menu->addAction("Move to bottom center",
+                    this,
+                    SLOT(moveLegend()))->setData((int)(Qt::AlignBottom
+                                                       | Qt::AlignHCenter));
+    menu->addAction("Move to bottom left",
+                    this,
+                    SLOT(moveLegend()))->setData((int)(Qt::AlignBottom
+                                                       | Qt::AlignLeft));
+
+    // And an option to get rid of it entirely.
+    menu->addSeparator();
+    menu->addAction("Hide", this, SLOT(showLegendToggle()));
+
+    menu->popup(ui->chart->mapToGlobal(point));
+}
+
+void ChartWindow::showKeyAxisContextMenu(QPoint point) {
+    // TODO: Rename
+    // TODO: Add Graph
+    // TODO: Change Time Span
+    // TODO: Move to Opposite
+    // TODO: ------------------
+    // TODO: Remove Data Set
+}
+
+void ChartWindow::showValueAxisContextMenu(QPoint point) {
+    // TODO: Rename
+    // TODO: Move to Opposite
 }
 
 void ChartWindow::addTitle()
@@ -366,10 +486,53 @@ void ChartWindow::removeSelectedGraph()
 
         // Turn off the column so it doesn't come back when the user
         // hits refresh.
-        plotter->removeGraph(DELETE_ME_AND_FIX_ERRORS,
+        plotter->removeGraph(graph->property(GRAPH_DATASET).toInt(),
                              (SampleColumn)graph->property(GRAPH_TYPE).toInt());
     }
 }
+
+void ChartWindow::renameSelectedGraph()
+{
+    if (!ui->chart->selectedGraphs().isEmpty()) {
+        QCPGraph* graph = ui->chart->selectedGraphs().first();
+
+        bool ok;
+        QString title = QInputDialog::getText(
+                    this,
+                    "Rename Graph",
+                    "New graph name:",
+                    QLineEdit::Normal,
+                    graph->name(),
+                    &ok);
+
+        if (!title.isNull() && ok) {
+            graph->setName(title);
+
+            // Save the new name in in the graph style settings so it survives
+            // reloads
+            plotter->getStyleForGraph(graph).setName(title);
+
+            ui->chart->replot();
+        }
+    }
+}
+
+void ChartWindow::changeSelectedGraphStyle()
+{
+    if (!ui->chart->selectedGraphs().isEmpty()) {
+        QCPGraph* graph = ui->chart->selectedGraphs().first();
+        GraphStyle& style = plotter->getStyleForGraph(graph);
+
+        // The Graph Style Dialog updates the style directly on accept.
+        GraphStyleDialog gsd(style, this);
+        int result = gsd.exec();
+        if (result == QDialog::Accepted) {
+            style.applyStyle(graph);
+            ui->chart->replot();
+        }
+    }
+}
+
 
 
 QList<QCPAxis*> ChartWindow::valueAxes() {
@@ -383,44 +546,6 @@ void ChartWindow::addGraph()
                        this);
     if (adg.exec() == QDialog::Accepted)
         plotter->addGraphs(DELETE_ME_AND_FIX_ERRORS,adg.selectedColumns());
-}
-
-void ChartWindow::showLegendContextMenu(QPoint point)
-{
-    QMenu *menu = new QMenu(this);
-    menu->setAttribute(Qt::WA_DeleteOnClose);
-
-    // Options to re-position the legend
-    menu->addAction("Move to top left",
-                    this,
-                    SLOT(moveLegend()))->setData((int)(Qt::AlignTop
-                                                       | Qt::AlignLeft));
-    menu->addAction("Move to top center",
-                    this,
-                    SLOT(moveLegend()))->setData((int)(Qt::AlignTop
-                                                       | Qt::AlignHCenter));
-    menu->addAction("Move to top right",
-                    this,
-                    SLOT(moveLegend()))->setData((int)(Qt::AlignTop
-                                                       | Qt::AlignRight));
-    menu->addAction("Move to bottom right",
-                    this,
-                    SLOT(moveLegend()))->setData((int)(Qt::AlignBottom
-                                                       | Qt::AlignRight));
-    menu->addAction("Move to bottom center",
-                    this,
-                    SLOT(moveLegend()))->setData((int)(Qt::AlignBottom
-                                                       | Qt::AlignHCenter));
-    menu->addAction("Move to bottom left",
-                    this,
-                    SLOT(moveLegend()))->setData((int)(Qt::AlignBottom
-                                                       | Qt::AlignLeft));
-
-    // And an option to get rid of it entirely.
-    menu->addSeparator();
-    menu->addAction("Hide", this, SLOT(showLegendToggle()));
-
-    menu->popup(ui->chart->mapToGlobal(point));
 }
 
 void ChartWindow::save() {
@@ -538,8 +663,11 @@ void ChartWindow::addDataSet() {
     ds.aggregateFunction = options.getAggregateFunction();
     ds.groupType = options.getAggregateGroupType();
     ds.customGroupMinutes = options.getCustomMinutes();
-
+    ds.id = dataSets.count();
     dataSets.append(ds);
 
-    reloadDataSets();
+
+    // This will resuilt in the chart being redrawn completely.
+    // TODO: don't rebuild the entire chart. Just add the new data set.
+    reloadDataSets(true);
 }
