@@ -49,6 +49,8 @@ private slots:
     void showGridToggle();
     void moveLegend();
     void removeSelectedGraph();
+    void renameSelectedGraph();
+    void changeSelectedGraphStyle();
     void addGraph();
     void customiseChart();
     void addDataSet();
@@ -60,10 +62,13 @@ private slots:
 
 private:
     void showLegendContextMenu(QPoint point);
+    void showChartContextMenu(QPoint point);
+    void showKeyAxisContextMenu(QPoint point);
+    void showValueAxisContextMenu(QPoint point);
 
     QList<QCPAxis*> valueAxes();
 
-    void reloadDataSets();
+    void reloadDataSets(bool rebuildChart);
 
     bool gridVisible;
 

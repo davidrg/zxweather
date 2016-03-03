@@ -17,8 +17,11 @@ public:
     QCPScatterStyle getScatterStyle() const { return scatterStyle; }
     QBrush getBrush() const { return brush; }
     QCPGraph::LineStyle getLineStyle() const { return lineStyle; }
+    SampleColumn getColumnType() const {return column; }
+    QString getColumnName() const {return columnName; }
+    QColor getDefaultColour() const {return defaultColour; }
 
-    void setName(QString name) { this->name = name; }
+    void setName(QString name);
     void setLineColour(QColor colour) { pen = QPen(colour); }
     void setScatterStyle(QCPScatterStyle style) { scatterStyle = style; }
     void setLineStyle(QCPGraph::LineStyle style) { lineStyle = style; }
@@ -34,6 +37,9 @@ private:
     QCPScatterStyle scatterStyle;
     QBrush brush;
     QCPGraph::LineStyle lineStyle;
+    SampleColumn column;
+    QString columnName;
+    QColor defaultColour;
 };
 
 #endif // GRAPHSTYLE_H
