@@ -74,7 +74,8 @@ SOURCES += main.cpp\
     charts/graphstyle.cpp \
     charts/cachemanager.cpp \
     datasource/samplecolumns.cpp \
-    charts/graphstyledialog.cpp
+    charts/graphstyledialog.cpp \
+    charts/datasettimespandialog.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
@@ -121,7 +122,8 @@ HEADERS  += mainwindow.h \
     charts/chartsettings.h \
     charts/cachemanager.h \
     datasource/aggregate.h \
-    charts/graphstyledialog.h
+    charts/graphstyledialog.h \
+    charts/datasettimespandialog.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \
@@ -134,7 +136,8 @@ FORMS    += mainwindow.ui \
     exportdialog.ui \
     charts/addgraphdialog.ui \
     charts/customisechartdialog.ui \
-    charts/graphstyledialog.ui
+    charts/graphstyledialog.ui \
+    charts/datasettimespandialog.ui
 
 OTHER_FILES += \
     database.pgc \

@@ -30,15 +30,22 @@ public:
     
 private slots:
     void chartAxisCountChanged(int count);
+    void dataSetRemoved(dataset_id_t dataSetId);
 
     // chart slots
     void axisDoubleClick(QCPAxis* axis,
                          QCPAxis::SelectablePart part,
                          QMouseEvent* event);
     void titleDoubleClick(QMouseEvent*event, QCPPlotTitle*title);
+    void plottableDoubleClick(QCPAbstractPlottable* plottable,
+                              QMouseEvent* event);
+    void legendDoubleClick(QCPLegend* /*legend*/, QCPAbstractLegendItem* item,
+                           QMouseEvent* /*event*/);
 
     void setYAxisLock();
+    void toggleYAxisLock();
     void setXAxisLock();
+    void toggleXAxisLock();
 
     // Context menu related stuff
     void chartContextMenuRequested(QPoint point);
@@ -54,6 +61,9 @@ private slots:
     void addGraph();
     void customiseChart();
     void addDataSet();
+    void renameSelectedKeyAxis();
+    void changeSelectedKeyAxisTimespan();
+    void removeSelectedKeyAxis();
 
     void refresh();
 
@@ -63,8 +73,10 @@ private slots:
 private:
     void showLegendContextMenu(QPoint point);
     void showChartContextMenu(QPoint point);
-    void showKeyAxisContextMenu(QPoint point);
-    void showValueAxisContextMenu(QPoint point);
+    void showKeyAxisContextMenu(QPoint point, QCPAxis* axis);
+    void showValueAxisContextMenu(QPoint point, QCPAxis* axis);
+
+    void changeGraphStyle(QCPGraph* graph);
 
     QList<QCPAxis*> valueAxes();
 

@@ -53,7 +53,7 @@ typedef uint16_t dataset_id_t;
  * set by the ChartWindow to a unique value for use as a key in hashtables,
  * etc.
  */
-typedef struct {
+struct DataSet {
     dataset_id_t id;    /*!< Unique identifier for the dataset */
     SampleColumns columns;  /*!< Columns that should be displayed for the dataset */
     QDateTime startTime;    /*!< Start of the timespan */
@@ -62,15 +62,16 @@ typedef struct {
     AggregateFunction aggregateFunction;    /*!< Function to be used for grouping (if any) */
     AggregateGroupType groupType; /*!< Grouping type to use (if any) */
     uint32_t customGroupMinutes;  /*!< Number of minutes to group by if group type is AGT_Custom */
-} DataSet;
 
-/** Compares two DataSets to see if they're equal for data caching purposes.
- * Note that this only includes start time, end time, column set and id.
- *
- * @param lhs First dataset
- * @param rhs Second dataset
- * @return true if the two datasets are equal.
- */
-bool operator==(const DataSet& lhs, const DataSet& rhs);
+    /** Compares two DataSets to see if they're equal for data caching purposes.
+     *
+     * @param other The other dataset
+     * @return true if the two datasets are equal.
+     */
+    bool operator==(const DataSet& other);
+};
+
+
+
 
 #endif // SAMPLECOLUMNS_H
