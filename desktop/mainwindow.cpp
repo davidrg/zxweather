@@ -425,9 +425,13 @@ void MainWindow::reconfigureDataSource() {
             ui->status, SLOT(refreshLiveData(LiveDataSet)));
 
     // Live data timeout monitor
-    connect(dataSource.data(), SIGNAL(liveData(LiveDataSet)),
-            liveMonitor.data(), SLOT(LiveDataRefreshed()));
-    liveMonitor->enable();
+    if (settings.liveTimeoutEnabled()) {
+        connect(dataSource.data(), SIGNAL(liveData(LiveDataSet)),
+                liveMonitor.data(), SLOT(LiveDataRefreshed()));
+        liveMonitor->enable();
+    } else {
+        liveMonitor->disable();
+    }
 
     // This
     connect(dataSource.data(), SIGNAL(liveData(LiveDataSet)),

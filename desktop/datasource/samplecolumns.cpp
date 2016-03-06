@@ -1,12 +1,12 @@
 #include "samplecolumns.h"
 
-bool operator==(const DataSet& lhs, const DataSet& rhs)
+bool DataSet::operator==(const DataSet& other)
 {
-    return (lhs.columns == rhs.columns)
-            && (lhs.startTime == lhs.startTime)
-            && (lhs.endTime == rhs.endTime)
-            && (lhs.id == rhs.id)
-            && (lhs.aggregateFunction == rhs.aggregateFunction)
-            && (lhs.groupType == rhs.groupType)
-            && (lhs.customGroupMinutes == rhs.customGroupMinutes);
+    return (other.columns == columns)
+            && (other.startTime == startTime)
+            && (other.endTime == endTime)
+            && (other.id == id)
+            && (other.aggregateFunction == aggregateFunction)
+            && (other.groupType == groupType)
+            && (other.customGroupMinutes == customGroupMinutes);
 }

@@ -11,6 +11,7 @@
 #define GRAPH_TYPE "GraphType"
 #define GRAPH_AXIS "GraphAxisType"
 #define GRAPH_DATASET "GraphDataSet"
+#define AXIS_DATASET "AxisDataSet"
 
 /** WeatherPlotter is responsible for plotting weather data in a QCustomPlot widget.
  *
@@ -59,6 +60,13 @@ public:
      */
     void removeGraph(dataset_id_t dataSetId, SampleColumn column);
 
+    /** Removes multiple graphs from the chart
+     *
+     * @param dataSetId Dataset to remove graphs for
+     * @param columns Graphs to remove
+     */
+    void removeGraphs(dataset_id_t dataSetId, SampleColumns columns);
+
     /** Returns the default label for the specified axis.
      *
      * @param axis Axis to get the default label for.
@@ -93,6 +101,7 @@ public:
 
 signals:
     void axisCountChanged(int count);
+    void dataSetRemoved(dataset_id_t dataSetId);
 
 public slots:
     /** Changes the timespan for the specified dataset and replots the chart.
@@ -196,6 +205,10 @@ private:
      */
     void multiRescale(RescaleType rs_type = RS_TIME);
 
+    QCPGraph* getGraph(dataset_id_t dataSetId, SampleColumn column);
+
+    void removeGraph(QCPGraph* graph, dataset_id_t dataSetId, SampleColumn column);
+
     /*******************
      * Misc            *
      *******************/
@@ -249,6 +262,8 @@ private:
      */
     void removeUnusedAxes();
 
+    void removeDataSet(dataset_id_t dataset_id);
+
     /** Labels for the different axis types
      */
     QMap<AxisType, QString> axisLabels;
@@ -277,9 +292,13 @@ private:
 
     /** Gets the X axis for the specified dataset. If it does not exist
      * it will be created.
+     *
+     * @param dataSetId the ID of the dataset to get the key axis for
+     * @param referenceCount If a reference should be counted
      * @return X axis for the specified dataset.
      */
-    QPointer<QCPAxis> getKeyAxis(dataset_id_t dataSetId);
+    QPointer<QCPAxis> getKeyAxis(dataset_id_t dataSetId,
+                                 bool referenceCount=true);
 
     /** Returns the type of axis to use for a particular column type.
      * For example, the AT_TEMPERATURE axis for the SC_IndoorTemperature

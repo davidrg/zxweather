@@ -4,6 +4,7 @@
 #include "addgraphdialog.h"
 #include "customisechartdialog.h"
 #include "graphstyledialog.h"
+#include "datasettimespandialog.h"
 
 #include "datasource/webdatasource.h"
 #include "datasource/databasedatasource.h"
@@ -17,15 +18,21 @@
 #include <QMenu>
 #include <QIcon>
 
-#define DELETE_ME_AND_FIX_ERRORS 0
+// single-data-set functionality needs to know which the first (and only) data
+// set is.
+#define FIRST_DATA_SET 0
 
-#ifdef QT_DEBUG
-
-// Not quite finished yet. Disabled in release builds.
+// This enables multi-data-set support in the UI,
 #define MULTI_DATA_SET
 
+#ifdef QT_DEBUG
 // This isn't finished yet. So disabled in release builds.
 #define CUSTOMISE_CHART
+#endif
+
+#ifdef MULTI_DATA_SET
+// Uncomment to hide the controls at the top of the window
+//#define NO_FORM_CONTROLS
 #endif
 
 
@@ -72,10 +79,10 @@ ChartWindow::ChartWindow(QList<DataSet> dataSets, bool solarAvailable,
     // WeatherPlotter events
     connect(plotter.data(), SIGNAL(axisCountChanged(int)),
             this, SLOT(chartAxisCountChanged(int)));
+    connect(plotter.data(), SIGNAL(dataSetRemoved(dataset_id_t)),
+            this, SLOT(dataSetRemoved(dataset_id_t)));
 
     // Chart events
-
-
     connect(ui->chart, SIGNAL(titleDoubleClick(QMouseEvent*,QCPPlotTitle*)),
             this, SLOT(titleDoubleClick(QMouseEvent*, QCPPlotTitle*)));
     connect(ui->chart,
@@ -88,8 +95,28 @@ ChartWindow::ChartWindow(QList<DataSet> dataSets, bool solarAvailable,
                                  QMouseEvent*)));
     connect(ui->chart, SIGNAL(customContextMenuRequested(QPoint)),
             this, SLOT(chartContextMenuRequested(QPoint)));
+    connect(ui->chart, SIGNAL(plottableDoubleClick(QCPAbstractPlottable*,QMouseEvent*)),
+            this, SLOT(plottableDoubleClick(QCPAbstractPlottable*,QMouseEvent*)));
+    connect(ui->chart,
+            SIGNAL(legendDoubleClick(QCPLegend*,QCPAbstractLegendItem*,
+                                     QMouseEvent*)),
+            this,
+            SLOT(legendDoubleClick(QCPLegend*,QCPAbstractLegendItem*,
+                                   QMouseEvent*)));
 
 
+#ifdef NO_FORM_CONTROLS
+    ui->startTime->setVisible(false);
+    ui->lblStartTime->setVisible(false);
+    ui->endTime->setVisible(false);
+    ui->lblEndTime->setVisible(false);
+    ui->pbRefresh->setVisible(false);
+    ui->divRefresh->setVisible(false);
+    ui->cbXLock->setVisible(false);
+    ui->cbYLock->setVisible(false);
+    ui->YLockDiv->setVisible(false);
+    ui->saveButton->setVisible(false);
+#endif
 
     setWindowTitle("Chart");
 
@@ -104,6 +131,7 @@ ChartWindow::~ChartWindow()
 }
 
 void ChartWindow::reloadDataSets(bool rebuildChart) {
+#ifndef NO_FORM_CONTROLS
     if (dataSets.count() > 1) {
         // If we have multiple datasets then we can't use the simple
         // start/end time boxes.
@@ -122,6 +150,7 @@ void ChartWindow::reloadDataSets(bool rebuildChart) {
         ui->pbRefresh->setVisible(true);
         ui->divRefresh->setVisible(true);
     }
+#endif
 
     if (rebuildChart) {
         // Reset the IDs on all incoming datasets to ensure they're unique.
@@ -133,22 +162,35 @@ void ChartWindow::reloadDataSets(bool rebuildChart) {
     }
 }
 
+void ChartWindow::dataSetRemoved(dataset_id_t dataSetId) {
+    for(int i = 0; i < dataSets.count(); i++) {
+        if (dataSets[i].id == dataSetId) {
+            dataSets.removeAt(i);
+            return;
+        }
+    }
+    qWarning() << "Could not find removed data set" << dataSetId;
+}
+
 void ChartWindow::refresh() {
     // Update the first dataset only
-    plotter->changeDataSetTimespan(DELETE_ME_AND_FIX_ERRORS, ui->startTime->dateTime(), ui->endTime->dateTime());
+    plotter->changeDataSetTimespan(FIRST_DATA_SET,
+                                   ui->startTime->dateTime(),
+                                   ui->endTime->dateTime());
 }
 
 void ChartWindow::chartAxisCountChanged(int count) {
+#ifndef NO_FORM_CONTROLS
     if (count > 1) {
         // Now that we have multiple axes the Y Lock option becomes available.
         ui->YLockDiv->setVisible(true);
         ui->cbYLock->setVisible(true);
-        setYAxisLock();
     } else {
         ui->YLockDiv->setVisible(false);
         ui->cbYLock->setVisible(false);
-        setYAxisLock();
     }
+#endif
+    setYAxisLock();
 }
 
 void ChartWindow::setYAxisLock() {
@@ -158,11 +200,21 @@ void ChartWindow::setYAxisLock() {
     ui->chart->replot();
 }
 
+void ChartWindow::toggleYAxisLock() {
+    ui->cbYLock->setChecked(!ui->cbYLock->isChecked());
+    setYAxisLock();
+}
+
 void ChartWindow::setXAxisLock() {
     basicInteractionManager->setXAxisLockEnabled(ui->cbXLock->isEnabled()
                                                  && ui->cbXLock->isChecked());
     ui->chart->deselectAll();
     ui->chart->replot();
+}
+
+void ChartWindow::toggleXAxisLock() {
+    ui->cbXLock->setChecked(!ui->cbXLock->isChecked());
+    setXAxisLock();
 }
 
 void ChartWindow::axisDoubleClick(QCPAxis *axis, QCPAxis::SelectablePart part,
@@ -221,23 +273,26 @@ void ChartWindow::chartContextMenuRequested(QPoint point)
                                                           QCPAxis::atBottom);
     foreach (QCPAxis* keyAxis, keyAxes) {
         if (keyAxis->selectTest(point, false) >= 0) {
-            showKeyAxisContextMenu(point);
+            showKeyAxisContextMenu(point, keyAxis);
             return;
         }
     }
 
-    // Check if a Y axis was right-clicked on
-    QList<QCPAxis*> valueAxes = ui->chart->axisRect()->axes(QCPAxis::atLeft |
-                                                          QCPAxis::atRight);
-    foreach (QCPAxis* valueAxis, valueAxes) {
-        if (valueAxis->selectTest(point, false) >= 0) {
-            showValueAxisContextMenu(point);
-            return;
-        }
-    }
+    // Commented out: Intended functions were rename and move to opposite. Turns
+    // out only one of those is possbile and the other probably not so useful.
+//    // Check if a Y axis was right-clicked on
+//    QList<QCPAxis*> valueAxes = ui->chart->axisRect()->axes(QCPAxis::atLeft |
+//                                                          QCPAxis::atRight);
+//    foreach (QCPAxis* valueAxis, valueAxes) {
+//        if (valueAxis->selectTest(point, false) >= 0) {
+//            showValueAxisContextMenu(point, valueAxis);
+//            return;
+//        }
+//    }
 
     showChartContextMenu(point);
 }
+
 
 void ChartWindow::showChartContextMenu(QPoint point) {
     QMenu* menu = new QMenu(this);
@@ -246,14 +301,14 @@ void ChartWindow::showChartContextMenu(QPoint point) {
     QAction *action;
 
 #ifdef MULTI_DATA_SET
-    menu->addAction("Add Data Set",
+    menu->addAction("Add Data Set...",
                     this, SLOT(addDataSet()));
 
     // If a graph is currently selected show some extra options.
     if (!ui->chart->selectedGraphs().isEmpty()) {
         QMenu* graphMenu = menu->addMenu("&Selected Graph");
-        graphMenu->addAction("&Rename", this, SLOT(renameSelectedGraph()));
-        graphMenu->addAction("&Change Style", this,
+        graphMenu->addAction("&Rename...", this, SLOT(renameSelectedGraph()));
+        graphMenu->addAction("&Change Style...", this,
                              SLOT(changeSelectedGraphStyle()));
         graphMenu->addSeparator();
         graphMenu->addAction("R&emove", this, SLOT(removeSelectedGraph()));
@@ -306,7 +361,7 @@ void ChartWindow::showChartContextMenu(QPoint point) {
 #else
     action = menu->addAction("&Rescale", plotter.data(),
                              SLOT(rescaleByTime()));
-#endif
+#endif // MULTI_DATA_SET
 
     // Title visibility option.
     action = menu->addAction("Show Title",
@@ -328,12 +383,18 @@ void ChartWindow::showChartContextMenu(QPoint point) {
     action->setCheckable(true);
     action->setChecked(gridVisible);
 
+    menu->addSeparator();
 
-    // TODO: separator
 #ifdef MULTI_DATA_SET
-    // TODO: lock X axis
+    // X Axis lock
+    action = menu->addAction("Lock &X Axis", this, SLOT(toggleXAxisLock()));
+    action->setCheckable(true);
+    action->setChecked(ui->cbXLock->isChecked());
 #endif
-    // TODO: lock Y axis
+    // Y Axis lock
+    action = menu->addAction("Lock &Y Axis", this, SLOT(toggleYAxisLock()));
+    action->setCheckable(true);
+    action->setChecked(ui->cbYLock->isChecked());
 
 
     /******** Finished ********/
@@ -378,19 +439,169 @@ void ChartWindow::showLegendContextMenu(QPoint point)
     menu->popup(ui->chart->mapToGlobal(point));
 }
 
-void ChartWindow::showKeyAxisContextMenu(QPoint point) {
-    // TODO: Rename
-    // TODO: Add Graph
-    // TODO: Change Time Span
-    // TODO: Move to Opposite
-    // TODO: ------------------
-    // TODO: Remove Data Set
+void ChartWindow::showKeyAxisContextMenu(QPoint point, QCPAxis *axis) {
+
+    // Deselect all X axis
+    foreach(QCPAxis* axis, ui->chart->axisRect()->axes(QCPAxis::atTop | QCPAxis::atBottom)) {
+        axis->setSelectedParts(QCPAxis::spNone);
+    }
+
+    // Select the axis that was right clicked on
+    axis->setSelectedParts(QCPAxis::spAxis | QCPAxis::spTickLabels |
+                           QCPAxis::spAxisLabel);
+    ui->chart->replot();
+
+    QMenu* menu = new QMenu(this);
+    menu->setAttribute(Qt::WA_DeleteOnClose);
+
+    menu->addAction("&Rename...",
+                    this, SLOT(renameSelectedKeyAxis()));
+
+    menu->addAction("&Add Graph...", this, SLOT(addGraph()));
+
+    menu->addAction("&Change Timespan...",
+                    this, SLOT(changeSelectedKeyAxisTimespan()));
+
+    menu->addSeparator();
+
+    QAction* action = menu->addAction("Remove &Data Set",
+                                      this, SLOT(removeSelectedKeyAxis()));
+
+    if (dataSets.count() == 1) {
+        // Don't allow the last dataset to be removed.
+        action->setEnabled(false);
+    }
+
+    menu->popup(ui->chart->mapToGlobal(point));
 }
 
-void ChartWindow::showValueAxisContextMenu(QPoint point) {
-    // TODO: Rename
-    // TODO: Move to Opposite
+void ChartWindow::renameSelectedKeyAxis() {    
+    QCPAxis* keyAxis = 0;
+
+    foreach(QCPAxis* axis, ui->chart->axisRect()->axes(QCPAxis::atTop | QCPAxis::atBottom)) {
+        if (axis->selectedParts().testFlag(QCPAxis::spAxis) ||
+                axis->selectedParts().testFlag(QCPAxis::spTickLabels))
+            keyAxis = axis;
+    }
+
+    if (keyAxis == 0) {
+        return;
+    }
+
+    bool ok;
+    QString name = QInputDialog::getText(
+                this,
+                "Rename Axis",
+                "New Axis Label:",
+                QLineEdit::Normal,
+                keyAxis->label(),
+                &ok);
+    if (ok) {
+        keyAxis->setLabel(name);
+        ui->chart->replot();
+    }
 }
+
+void ChartWindow::changeSelectedKeyAxisTimespan() {
+    QCPAxis* keyAxis = 0;
+
+    foreach(QCPAxis* axis, ui->chart->axisRect()->axes(QCPAxis::atTop | QCPAxis::atBottom)) {
+        if (axis->selectedParts().testFlag(QCPAxis::spAxis) ||
+                axis->selectedParts().testFlag(QCPAxis::spTickLabels))
+            keyAxis = axis;
+    }
+
+    if (keyAxis == 0) {
+        return;
+    }
+
+    dataset_id_t dataset = keyAxis->property(AXIS_DATASET).toInt();
+
+    int index = -1;
+    for (int i = 0; i < dataSets.count(); i++) {
+        if (dataSets[i].id == dataset) {
+            index = i;
+        }
+    }
+    if (index < 0) {
+        return;
+    }
+
+    DataSetTimespanDialog dlg(this);
+    dlg.setTime(dataSets[index].startTime, dataSets[index].endTime);
+    int result = dlg.exec();
+
+    if (result == QDialog::Accepted) {
+        QDateTime start = dlg.getStartTime();
+        QDateTime end = dlg.getEndTime();
+
+        qDebug() << "Changing timespan for dataset" << dataset
+                 << "to:" << start << "-" << end;
+
+        dataSets[index].startTime = start;
+        dataSets[index].endTime = end;
+        plotter->changeDataSetTimespan(dataset, start, end);
+    }
+}
+
+void ChartWindow::removeSelectedKeyAxis() {
+    QCPAxis* keyAxis = 0;
+
+    foreach(QCPAxis* axis, ui->chart->axisRect()->axes(QCPAxis::atTop | QCPAxis::atBottom)) {
+        if (axis->selectedParts().testFlag(QCPAxis::spAxis) ||
+                axis->selectedParts().testFlag(QCPAxis::spTickLabels))
+            keyAxis = axis;
+    }
+
+    if (keyAxis == 0) {
+        return;
+    }
+
+    dataset_id_t dataset = keyAxis->property(AXIS_DATASET).toInt();
+
+    plotter->removeGraphs(dataset, ALL_SAMPLE_COLUMNS);
+
+    int index = -1;
+    for (int i = 0; i < dataSets.count(); i++) {
+        if (dataSets[i].id == dataset) {
+            index = i;
+        }
+    }
+    if (index > -1) {
+        dataSets.removeAt(index);
+    }
+}
+
+//void ChartWindow::showValueAxisContextMenu(QPoint point, QCPAxis *axis) {
+
+//    axis->setSelectedParts(QCPAxis::spAxis | QCPAxis::spTickLabels |
+//                           QCPAxis::spAxisLabel);
+//    ui->chart->replot();
+
+//    QMenu* menu = new QMenu(this);
+//    menu->setAttribute(Qt::WA_DeleteOnClose);
+
+//    menu->addAction("&Rename",
+//                    this, SLOT(renameSelectedValueAxis()));
+//    menu->addAction("&Move to Opposite",
+//                    this, SLOT(moveSelectedValueAxisToOpposite()));
+
+//    menu->popup(ui->chart->mapToGlobal(point));
+//}
+
+
+
+//void ChartWindow::moveSelectedValueAxisToOpposite() {
+//    QList<QCPAxis*> valueAxes = ui->chart->axisRect()->axes(QCPAxis::atLeft |
+//                                                          QCPAxis::atRight);
+//    foreach (QCPAxis* valueAxis, valueAxes) {
+//        if (valueAxis->selectTest(point, false) >= 0) {
+//            valueAxis->axisType()
+//            return;
+//        }
+//    }
+//}
+
 
 void ChartWindow::addTitle()
 {
@@ -484,10 +695,20 @@ void ChartWindow::removeSelectedGraph()
     if (!ui->chart->selectedGraphs().isEmpty()) {
         QCPGraph* graph = ui->chart->selectedGraphs().first();
 
+        dataset_id_t dataset = graph->property(GRAPH_DATASET).toInt();
+        SampleColumn column = (SampleColumn)graph->property(GRAPH_TYPE).toInt();
+
         // Turn off the column so it doesn't come back when the user
         // hits refresh.
-        plotter->removeGraph(graph->property(GRAPH_DATASET).toInt(),
-                             (SampleColumn)graph->property(GRAPH_TYPE).toInt());
+        plotter->removeGraph(dataset, column);
+
+        // Turn the column off in the dataset itself so it doesn't come back
+        // later.
+        for (int i = 0; i < dataSets.count(); i++) {
+            if (dataSets[i].id == dataset) {
+                dataSets[i].columns &= ~column;
+            }
+        }
     }
 }
 
@@ -517,22 +738,71 @@ void ChartWindow::renameSelectedGraph()
     }
 }
 
+void ChartWindow::changeGraphStyle(QCPGraph* graph) {
+    if (graph == NULL) {
+        qWarning() << "NULL graph while attempting to change style";
+        return;
+    }
+
+    GraphStyle& style = plotter->getStyleForGraph(graph);
+
+    // The Graph Style Dialog updates the style directly on accept.
+    GraphStyleDialog gsd(style, this);
+    int result = gsd.exec();
+    if (result == QDialog::Accepted) {
+        style.applyStyle(graph);
+        ui->chart->replot();
+    }
+}
+
 void ChartWindow::changeSelectedGraphStyle()
 {
     if (!ui->chart->selectedGraphs().isEmpty()) {
         QCPGraph* graph = ui->chart->selectedGraphs().first();
-        GraphStyle& style = plotter->getStyleForGraph(graph);
-
-        // The Graph Style Dialog updates the style directly on accept.
-        GraphStyleDialog gsd(style, this);
-        int result = gsd.exec();
-        if (result == QDialog::Accepted) {
-            style.applyStyle(graph);
-            ui->chart->replot();
-        }
+        changeGraphStyle(graph);
     }
 }
 
+
+void ChartWindow::plottableDoubleClick(QCPAbstractPlottable* plottable,
+                                       QMouseEvent* event) {
+
+    QCPGraph *graph = qobject_cast<QCPGraph *>(plottable);
+
+    if (graph == 0) {
+        // Its not a QCPGraph. Whatever it is we don't currently support
+        // customising its style
+    }
+
+    changeGraphStyle(graph);
+}
+
+void ChartWindow::legendDoubleClick(QCPLegend* /*legend*/,
+                                    QCPAbstractLegendItem* item,
+                                    QMouseEvent* /*event*/) {
+    if (item == NULL)  {
+        // The legend itself was double-clicked. Don't care.
+        return;
+    }
+
+    QCPPlottableLegendItem  *plottableItem =
+            qobject_cast<QCPPlottableLegendItem *>(item);
+    if (plottableItem == NULL) {
+        // Some other legend item we don't care about.
+        return;
+    }
+
+    QCPAbstractPlottable *plottable = plottableItem->plottable();
+
+    QCPGraph* graph = qobject_cast<QCPGraph *>(plottable);
+
+    if (graph == NULL) {
+        // Sorry, we only support customising graphs.
+        return;
+    }
+
+    changeGraphStyle(graph);
+}
 
 
 QList<QCPAxis*> ChartWindow::valueAxes() {
@@ -541,11 +811,32 @@ QList<QCPAxis*> ChartWindow::valueAxes() {
 
 void ChartWindow::addGraph()
 {
-    AddGraphDialog adg(plotter->availableColumns(DELETE_ME_AND_FIX_ERRORS),
+    dataset_id_t dataset = FIRST_DATA_SET;
+
+#ifdef MULTI_DATA_SET
+    // Find the axis that was right-clicked on and grab the data set id.
+    QCPAxis* keyAxis = 0;
+
+    foreach(QCPAxis* axis, ui->chart->axisRect()->axes(QCPAxis::atTop | QCPAxis::atBottom)) {
+        if (axis->selectedParts().testFlag(QCPAxis::spAxis) ||
+                axis->selectedParts().testFlag(QCPAxis::spTickLabels))
+            keyAxis = axis;
+    }
+
+    if (keyAxis == 0) {
+        return;
+    }
+
+    dataset = keyAxis->property(AXIS_DATASET).toInt();
+
+#endif
+
+    AddGraphDialog adg(plotter->availableColumns(dataset),
                        solarDataAvailable,
                        this);
-    if (adg.exec() == QDialog::Accepted)
-        plotter->addGraphs(DELETE_ME_AND_FIX_ERRORS,adg.selectedColumns());
+    if (adg.exec() == QDialog::Accepted) {
+        plotter->addGraphs(dataset, adg.selectedColumns());
+    }
 }
 
 void ChartWindow::save() {
@@ -583,7 +874,7 @@ void ChartWindow::save() {
 
 void ChartWindow::customiseChart() {
 
-    QMap<SampleColumn, GraphStyle> originalStyles = plotter->getGraphStyles(DELETE_ME_AND_FIX_ERRORS);
+    QMap<SampleColumn, GraphStyle> originalStyles = plotter->getGraphStyles(FIRST_DATA_SET);
 
     CustomiseChartDialog ccd(originalStyles, solarDataAvailable, plotTitleEnabled,
                              plotTitleValue, plotTitleColour, plotBackgroundBrush,
@@ -616,7 +907,7 @@ void ChartWindow::customiseChart() {
                 replotRequired = true;
             }
         }
-        plotter->setGraphStyles(newStyles, DELETE_ME_AND_FIX_ERRORS);
+        plotter->setGraphStyles(newStyles, FIRST_DATA_SET);
 
         if (ccd.getTitleEnabled()) {
             QString title = ccd.getTitle();

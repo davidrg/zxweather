@@ -150,12 +150,15 @@ QPointer<QCPAxis> WeatherPlotter::createKeyAxis(dataset_id_t dataSetId) {
     axisTypes.insert(axis,type);
     axis->setLabel(axisLabels[type]);
 
+    axis->setProperty(AXIS_DATASET, dataSetId);
+
     emit axisCountChanged(configuredKeyAxes.count() + configuredValueAxes.count());
 
     return axis;
 }
 
-QPointer<QCPAxis> WeatherPlotter::getKeyAxis(dataset_id_t dataSetId) {
+QPointer<QCPAxis> WeatherPlotter::getKeyAxis(dataset_id_t dataSetId,
+                                             bool referenceCount) {
     AxisType axisType = (AxisType)(AT_KEY + dataSetId);
 
     QPointer<QCPAxis> axis = NULL;
@@ -166,9 +169,11 @@ QPointer<QCPAxis> WeatherPlotter::getKeyAxis(dataset_id_t dataSetId) {
         // Axis already exists
         axis = configuredKeyAxes[axisType];
 
-    if (!axisReferences.contains(axisType))
-        axisReferences.insert(axisType,0);
-    axisReferences[axisType]++;
+    if (referenceCount) {
+        if (!axisReferences.contains(axisType))
+            axisReferences.insert(axisType,0);
+        axisReferences[axisType]++;
+    }
 
     return axis;
 }
@@ -512,7 +517,7 @@ void WeatherPlotter::multiRescale(RescaleType rs_type) {
         range.upper = max_end.toTime_t();
 
         foreach (dataset_id_t id, dataSets.keys()) {
-            QPointer<QCPAxis> axis = getKeyAxis(id);
+            QPointer<QCPAxis> axis = getKeyAxis(id, false);
             axis->setRange(range);
         }
     } else if (rs_type == RS_MONTH || rs_type == RS_TIME) {
@@ -540,7 +545,7 @@ void WeatherPlotter::multiRescale(RescaleType rs_type) {
 
         // Line up the starting point for all axes
         foreach (dataset_id_t id, dataSets.keys()) {
-            QPointer<QCPAxis> axis = getKeyAxis(id);
+            QPointer<QCPAxis> axis = getKeyAxis(id, false);
 
             // Rescale the axis so we can get its min and max values
             axis->rescale();
@@ -568,7 +573,7 @@ void WeatherPlotter::multiRescale(RescaleType rs_type) {
         double max_range = 0;
         // Find the max range delta
         foreach (dataset_id_t id, dataSets.keys()) {
-            QPointer<QCPAxis> axis = getKeyAxis(id);
+            QPointer<QCPAxis> axis = getKeyAxis(id, false);
             QCPRange range = axis->range();
 
             double r = range.upper - range.lower;
@@ -579,7 +584,7 @@ void WeatherPlotter::multiRescale(RescaleType rs_type) {
 
         // Line up the ending point for all axes
         foreach (dataset_id_t id, dataSets.keys()) {
-            QPointer<QCPAxis> axis = getKeyAxis(id);
+            QPointer<QCPAxis> axis = getKeyAxis(id, false);
 
             QCPRange axisRange = axis->range();
             QDateTime end_time = QDateTime::fromTime_t(
@@ -597,81 +602,6 @@ void WeatherPlotter::multiRescale(RescaleType rs_type) {
     foreach (QCPAxis* axis, yAxes) {
         axis->rescale();
     }
-
-
-    ///////////////
-
-//    foreach (dataset_id_t id, dataSets.keys()) {
-//        DataSet ds = dataSets[id];
-//        qDebug() << "Fetch ts";
-//        QDateTime  = dataSetMinimumTime[id];
-//        QDateTime maxTs = dataSetMaximumTime[id];
-
-//        qDebug() << "id start" << minTs << "end" << maxTs;
-
-//        uint delta = maxTs.toTime_t() - minTs.toTime_t();
-//        qDebug() << "id" << id << "delta" << delta;
-//        if (delta > max_delta) {
-//            max_delta = delta;
-//            max_ds = id;
-//            min_ts = minTs;
-
-//            qDebug() << "Max DS now " << max_ds;
-//        }
-
-//    }
-//    QPointer<QCPAxis> maxRangeAxis = getKeyAxis(max_ds);
-
-//    // 2. Rescale the X axis found in (1)
-//    maxRangeAxis->rescale();
-//    QCPRange range = maxRangeAxis->range();
-//    double tickStep = maxRangeAxis->tickStep();
-//    QDateTime maxTs = QDateTime::fromTime_t(range.upper);
-//    QDateTime minTs = QDateTime::fromTime_t(range.lower);
-//    qDebug() << "Base range: " << minTs << maxTs;
-
-//    // 3. Set all other X axis scale to match the X Axis found in (1)
-//    // 4. Set tick interval for all other X axis to match the X axis found in (1)
-//    foreach (dataset_id_t id, dataSets.keys()) {
-//        if (id != max_ds) {
-//            QPointer<QCPAxis> axis = getKeyAxis(id);
-//            axis->rescale();
-//            QCPRange axisRange = axis->range();
-//            QDateTime rangeMin = QDateTime::fromTime_t(axisRange.lower);
-//            QDateTime rangeMax = QDateTime::fromTime_t(axisRange.upper);
-
-//            qDebug() << "New range for DS" << id << "is" << rangeMin << rangeMax;
-//            QCPRange newRange;
-
-//            newRange.lower = QDateTime(rangeMin.date(), minTs.time()).toTime_t();
-//            newRange.upper = QDateTime(rangeMax.date(), maxTs.time()).toTime_t();
-
-//            axis->setRange(newRange);
-//            axis->setTickStep(tickStep);
-
-//            /* The above currently aligns all axes with the primary axis start
-//             * time. The following changes need to be made:
-//             *   -> Align start if start times are the same, else:
-//             *   -> Align end time if end times are the same, else:
-//             *   -> Find a time that exists on both axes as close to the start
-//             *      of the primary as possible
-//             *   -> Ensure multi-day data sets are handled properly
-//             *   -> Ensure data sets that don't overlap at all are handled
-//             *      properly. Need to decide what this even means really given
-//             *      we're specifically lining them up irrespective of date. I
-//             *      guess non-over-lapping would be one data set of 2am-3am and
-//             *      another of 5am-6am. What do we do then? Align by minute?
-//             *      Ask the user? Probably we should ask the user.
-//             *   -> Add a UI for aligning data sets? What would the options be?
-//             *
-//             */
-//        }
-//    }
-
-    // 5. Try to line up X axis somehow.
-
-    // 6. Rescale all Y axis normally.
-
 }
 
 void WeatherPlotter::dataSetsReady(QMap<dataset_id_t, SampleSet> samples) {
@@ -687,24 +617,37 @@ void WeatherPlotter::dataSourceError(QString message)
     QMessageBox::critical(0, "Error", message);
 }
 
+void WeatherPlotter::removeDataSet(dataset_id_t dataset_id) {
+    dataSets.remove(dataset_id);
+    dataSetMinimumTime.remove(dataset_id);
+    dataSetMaximumTime.remove(dataset_id);
+    emit dataSetRemoved(dataset_id);
+}
+
 void WeatherPlotter::removeUnusedAxes()
 {
+    qDebug() << "Removing unused axes...";
     foreach(AxisType type, axisReferences.keys()) {
+        qDebug() << "Axis type" << type << "has" << axisReferences[type] << "references.";
         if (axisReferences[type] == 0) {
             // Axis is now unused. Remove it.
             QPointer<QCPAxis> axis;
 
             if (type >= AT_KEY) {
-                axis = configuredKeyAxes[type];
-                configuredKeyAxes.remove(type);
+                if (dataSets.count() == 1) {
+                    qDebug() << "Leaving Key Axis" << type << " - final data set";
+                } else {
+                    qDebug() << "Removing Key Axis" << type;
+                    axis = configuredKeyAxes[type];
+                    configuredKeyAxes.remove(type);
+                }
             } else {
-                axis = configuredValueAxes[type];
+                qDebug() << "Removing Value Axis" << type;
+                axis = configuredValueAxes[type];                
                 configuredValueAxes.remove(type);
             }
 
             // Remove all the tracking information.
-
-            qDebug() << "Removing axis type" << type;
 
             axisTypes.remove(axis);
             axisReferences.remove(type);
@@ -752,9 +695,7 @@ void WeatherPlotter::addGraphs(dataset_id_t dataSetId, SampleColumns columns) {
     cacheManager->getDataSets(dataSets.values());
 }
 
-void WeatherPlotter::removeGraph(dataset_id_t dataSetId, SampleColumn column) {
-
-    // Try to find the graph that goes with this column.
+QCPGraph* WeatherPlotter::getGraph(dataset_id_t dataSetId, SampleColumn column) {
     QCPGraph* graph = 0;
     for (int i = 0; i < chart->graphCount(); i++) {
         SampleColumn graphColumn =
@@ -768,18 +709,124 @@ void WeatherPlotter::removeGraph(dataset_id_t dataSetId, SampleColumn column) {
 
     if (graph == 0) {
         qWarning() << "Couldn't find graph to remove for column" << column;
-        return;
     }
+    return graph;
+}
 
+void WeatherPlotter::removeGraph(QCPGraph* graph, dataset_id_t dataSetId,
+                                 SampleColumn column) {
+    // Remove the graph from the dataset so it doesn't magically come back later
     dataSets[dataSetId].columns &= ~column;
 
     // One less use of this particular axis.
     AxisType axisType = (AxisType)graph->property(GRAPH_AXIS).toInt();
     axisReferences[axisType]--;
+    qDebug() << "Value axis now has" << axisReferences[axisType] << "references";
+
+    // And one less use of the key axis for the data set too
+    AxisType keyType = (AxisType)(AT_KEY + dataSetId);
+    axisReferences[keyType]--;
+    qDebug() << "Key axis now has" << axisReferences[keyType] << "references";
+
+    chart->removeGraph(graph);
+}
+
+void WeatherPlotter::removeGraph(dataset_id_t dataSetId, SampleColumn column) {
+    qDebug() << "Removing graph" << column << "for data set" << dataSetId;
+    // Try to find the graph that goes with this column.
+
+    QCPGraph *graph = getGraph(dataSetId, column);
+    if (graph == NULL) {
+        return;
+    }
+
+    removeGraph(graph, dataSetId, column);
 
     removeUnusedAxes();
 
-    chart->removeGraph(graph);
+    if (dataSets[dataSetId].columns == SC_NoColumns) {
+        // The dataset doesn't have any graphs left in the chart. Remove the
+        // dataset itself if its not the last one remaining.
+        if (dataSets.count() > 1) {
+            removeDataSet(dataSetId);
+        }
+    }
+
+    chart->replot();
+}
+
+void WeatherPlotter::removeGraphs(dataset_id_t dataSetId, SampleColumns columns) {
+
+    SampleColumns dsColumns = dataSets[dataSetId].columns;
+
+    columns &= dsColumns;
+
+    QList<SampleColumn> columnList;
+
+    if (columns.testFlag(SC_Temperature))
+        columnList << SC_Temperature;
+
+    if (columns.testFlag(SC_IndoorTemperature))
+        columnList << SC_IndoorTemperature;
+
+    if (columns.testFlag(SC_ApparentTemperature))
+        columnList << SC_ApparentTemperature;
+
+    if (columns.testFlag(SC_DewPoint))
+        columnList << SC_DewPoint;
+
+    if (columns.testFlag(SC_WindChill))
+        columnList << SC_WindChill;
+
+    if (columns.testFlag(SC_Humidity))
+        columnList << SC_Humidity;
+
+    if (columns.testFlag(SC_IndoorHumidity))
+        columnList << SC_IndoorHumidity;
+
+    if (columns.testFlag(SC_Pressure))
+        columnList << SC_Pressure;
+
+    if (columns.testFlag(SC_Rainfall))
+        columnList << SC_Rainfall;
+
+    if (columns.testFlag(SC_AverageWindSpeed))
+        columnList << SC_AverageWindSpeed;
+
+    if (columns.testFlag(SC_GustWindSpeed))
+        columnList << SC_GustWindSpeed;
+
+    if (columns.testFlag(SC_WindDirection))
+        columnList << SC_WindDirection;
+
+    if (columns.testFlag(SC_UV_Index))
+        columnList << SC_UV_Index;
+
+    if (columns.testFlag(SC_SolarRadiation))
+        columnList << SC_SolarRadiation;
+
+    for(int i = 0; i < columnList.count(); i++) {
+        SampleColumn column = columnList[i];
+
+        QCPGraph *graph = getGraph(dataSetId, column);
+        if (graph == NULL) {
+            // Graph is already missing?
+            continue;
+        }
+
+        removeGraph(graph, dataSetId, column);
+    }
+
+    removeUnusedAxes();
+
+    if (dataSets[dataSetId].columns == SC_NoColumns) {
+        // The dataset doesn't have any graphs left in the chart. Remove the
+        // dataset itself if its not the last remaining.
+        if (dataSets.count() > 1) {
+            removeDataSet(dataSetId);
+        }
+    }
+
     chart->replot();
 }
 

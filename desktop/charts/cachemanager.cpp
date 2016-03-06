@@ -32,6 +32,10 @@ void CacheManager::getDataSets(QList<DataSet> dataSets) {
 
     dataSetsToFetch = dataSets;
     foreach(DataSet ds, dataSets) {
+        qDebug() << "Queueing dataset" << ds.id
+                 << "for fetch with timespan" << ds.startTime
+                 << "-" << ds.endTime;
+
         requestedDataSets.append(ds.id);
     }
 
@@ -53,7 +57,12 @@ void CacheManager::getNextDataSet() {
                  << ds.endTime << ", columns" << ds.columns << ", function"
                  << ds.aggregateFunction << ", grouping" << ds.groupType
                  << ", minutes" << ds.customGroupMinutes
-                 << ") - already cached";
+                 << ") - cached data set is identical";
+
+        Q_ASSERT_X(ds.startTime == cachedDataSet.startTime,
+                   "getNextDataSet", "cached start time matches");
+        Q_ASSERT_X(ds.endTime == cachedDataSet.endTime,
+                   "getNextDataSet", "cached endsdffdf time matches");
 
         // Pull the data from cache
         samplesReady(sampleCache[ds.id]);
@@ -152,7 +161,8 @@ void CacheManager::samplesReady(SampleSet samples) {
         // No more datasets to fetch. Send all the requested ones back.
         QMap<dataset_id_t, SampleSet> data;
         foreach (dataset_id_t id, requestedDataSets) {
-            qDebug() <<"Dataset" << id << "start" << ds.startTime << "...";
+            qDebug() <<"Dataset" << id << "span" << ds.startTime
+                    << "-" << ds.endTime << "...";
             data[id] = sampleCache[id];
         }
         emit dataSetsReady(data);
