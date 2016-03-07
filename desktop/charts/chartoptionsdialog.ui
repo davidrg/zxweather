@@ -208,7 +208,7 @@
       <bool>false</bool>
      </property>
      <layout class="QGridLayout" name="gridLayout">
-      <item row="0" column="0" colspan="7">
+      <item row="0" column="0" colspan="2">
        <widget class="QLabel" name="label_9">
         <property name="text">
          <string>This allows you to plot hourly averages, daily rainfall totals, monthly highs, etc.</string>
@@ -218,121 +218,8 @@
         </property>
        </widget>
       </item>
-      <item row="2" column="1">
-       <widget class="QRadioButton" name="rbHourly">
-        <property name="toolTip">
-         <string>60 minutes</string>
-        </property>
-        <property name="text">
-         <string>Hourly</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_7">
-        <property name="text">
-         <string>Method:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="4">
-       <widget class="QRadioButton" name="rbMonthly">
-        <property name="text">
-         <string>Monthly</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="0">
-       <widget class="QLabel" name="label_8">
-        <property name="text">
-         <string>Grouping:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="1">
-       <widget class="QRadioButton" name="rbCustom">
-        <property name="text">
-         <string>Custom:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="2">
-       <widget class="QRadioButton" name="rbDaily">
-        <property name="toolTip">
-         <string>1440 minutes</string>
-        </property>
-        <property name="text">
-         <string>Daily</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="5">
-       <widget class="QRadioButton" name="rbYearly">
-        <property name="toolTip">
-         <string/>
-        </property>
-        <property name="text">
-         <string>Yearly</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="3">
-       <widget class="QRadioButton" name="rbWeekly">
-        <property name="toolTip">
-         <string>10080 minutes</string>
-        </property>
-        <property name="text">
-         <string>Weekly</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="2" colspan="2">
-       <widget class="QSpinBox" name="sbCustomMinutes">
-        <property name="suffix">
-         <string> minutes</string>
-        </property>
-        <property name="minimum">
-         <number>0</number>
-        </property>
-        <property name="maximum">
-         <number>9999999</number>
-        </property>
-        <property name="value">
-         <number>1051898</number>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1" colspan="2">
-       <widget class="QComboBox" name="cbMethod">
-        <item>
-         <property name="text">
-          <string>Average</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Minimum</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Maximum</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Sum</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Running Total</string>
-         </property>
-        </item>
-       </widget>
+      <item row="1" column="0" colspan="2">
+       <widget class="AggregateOptionsWidget" name="aggregateWidget" native="true"/>
       </item>
      </layout>
     </widget>
@@ -356,6 +243,12 @@
    <header>timespanwidget.h</header>
    <container>1</container>
   </customwidget>
+  <customwidget>
+   <class>AggregateOptionsWidget</class>
+   <extends>QWidget</extends>
+   <header>aggregateoptionswidget.h</header>
+   <container>1</container>
+  </customwidget>
  </customwidgets>
  <tabstops>
   <tabstop>cbTemperature</tabstop>
@@ -373,14 +266,6 @@
   <tabstop>cbPressure</tabstop>
   <tabstop>cbRainfall</tabstop>
   <tabstop>gbAggregate</tabstop>
-  <tabstop>cbMethod</tabstop>
-  <tabstop>rbHourly</tabstop>
-  <tabstop>rbDaily</tabstop>
-  <tabstop>rbWeekly</tabstop>
-  <tabstop>rbMonthly</tabstop>
-  <tabstop>rbYearly</tabstop>
-  <tabstop>rbCustom</tabstop>
-  <tabstop>sbCustomMinutes</tabstop>
  </tabstops>
  <resources>
   <include location="../resources.qrc"/>
