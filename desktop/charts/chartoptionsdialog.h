@@ -28,7 +28,6 @@ public:
     uint32_t getCustomMinutes();
 
 private slots:
-    void dateChanged();
     void checkAndAccept();
 
 private:
