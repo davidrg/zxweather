@@ -20,7 +20,6 @@ public:
 
 private slots:
     void exportData();
-    void dateChanged();
     void delimiterTypeChanged();
     void samplesReady(SampleSet samples);
     void samplesFailed(QString message);
