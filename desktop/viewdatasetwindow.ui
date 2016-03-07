@@ -33,8 +33,14 @@
     </property>
     <item row="0" column="0">
      <widget class="QTableView" name="tableView">
+      <property name="sortingEnabled">
+       <bool>true</bool>
+      </property>
       <attribute name="horizontalHeaderCascadingSectionResizes">
        <bool>false</bool>
+      </attribute>
+      <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
+       <bool>true</bool>
       </attribute>
       <attribute name="horizontalHeaderStretchLastSection">
        <bool>false</bool>
