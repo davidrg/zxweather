@@ -30,6 +30,8 @@
 #include "charts/chartwindow.h"
 #include "charts/chartoptionsdialog.h"
 #include "exportdialog.h"
+#include "viewdataoptionsdialog.h"
+#include "viewdatasetwindow.h"
 
 #include "dbutil.h"
 
@@ -91,6 +93,7 @@ MainWindow::MainWindow(QWidget *parent) :
     // Toolbar
     connect(ui->actionCharts, SIGNAL(triggered()), this, SLOT(showChartWindow()));
     connect(ui->actionExport_Data, SIGNAL(triggered()), this, SLOT(showExportDialog()));
+    connect(ui->actionView_Data, SIGNAL(triggered(bool)), this, SLOT(viewData()));
     connect(ui->actionSettings, SIGNAL(triggered()), this, SLOT(showSettings()));
     connect(ui->actionAbout, SIGNAL(triggered()), this, SLOT(showAbout()));
 
@@ -388,6 +391,34 @@ void MainWindow::showChartWindow() {
 void MainWindow::showExportDialog() {
     ExportDialog dialog(solarDataAvailable);
     dialog.exec();
+}
+
+void MainWindow::viewData() {
+    ViewDataOptionsDialog options(this);
+    int result = options.exec();
+
+    if (result != QDialog::Accepted)
+        return; // User canceled. Nothing to do.
+
+    // Always show all columns in the view data screen.
+    SampleColumns columns = ALL_SAMPLE_COLUMNS;
+
+    if (!solarDataAvailable) {
+        // Except the solar ones if the current station doesn't support it
+        columns = ~SOLAR_COLUMNS;
+    }
+
+    DataSet dataSource;
+    dataSource.columns = columns;
+    dataSource.startTime = options.getStartTime();
+    dataSource.endTime = options.getEndTime();
+    dataSource.aggregateFunction = options.getAggregateFunction();
+    dataSource.groupType = options.getAggregateGroupType();
+    dataSource.customGroupMinutes = options.getCustomMinutes();
+
+    ViewDataSetWindow *window = new ViewDataSetWindow(dataSource, this);
+    window->setAttribute(Qt::WA_DeleteOnClose, true);
+    window->show();
 }
 
 void MainWindow::updateSysTrayText(QString text) {

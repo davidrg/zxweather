@@ -77,7 +77,10 @@ SOURCES += main.cpp\
     charts/graphstyledialog.cpp \
     charts/datasettimespandialog.cpp \
     timespanwidget.cpp \
-    aggregateoptionswidget.cpp
+    aggregateoptionswidget.cpp \
+    viewdataoptionsdialog.cpp \
+    viewdatasetwindow.cpp \
+    datasetmodel.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
@@ -127,7 +130,10 @@ HEADERS  += mainwindow.h \
     charts/graphstyledialog.h \
     charts/datasettimespandialog.h \
     timespanwidget.h \
-    aggregateoptionswidget.h
+    aggregateoptionswidget.h \
+    viewdataoptionsdialog.h \
+    viewdatasetwindow.h \
+    datasetmodel.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \
@@ -143,7 +149,9 @@ FORMS    += mainwindow.ui \
     charts/graphstyledialog.ui \
     charts/datasettimespandialog.ui \
     timespanwidget.ui \
-    aggregateoptionswidget.ui
+    aggregateoptionswidget.ui \
+    viewdataoptionsdialog.ui \
+    viewdatasetwindow.ui
 
 OTHER_FILES += \
     database.pgc \

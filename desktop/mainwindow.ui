@@ -102,6 +102,7 @@
    </attribute>
    <addaction name="actionCharts"/>
    <addaction name="actionExport_Data"/>
+   <addaction name="actionView_Data"/>
    <addaction name="separator"/>
    <addaction name="actionSettings"/>
    <addaction name="actionAbout"/>
@@ -146,13 +147,28 @@
      <normaloff>:/icons/export-data</normaloff>:/icons/export-data</iconset>
    </property>
    <property name="text">
-    <string>Export Data...</string>
+    <string>Export...</string>
    </property>
    <property name="iconText">
     <string>Export Data...</string>
    </property>
    <property name="toolTip">
     <string>Save data as a csv file...</string>
+   </property>
+  </action>
+  <action name="actionView_Data">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/icons/table</normaloff>:/icons/table</iconset>
+   </property>
+   <property name="text">
+    <string>View Data...</string>
+   </property>
+   <property name="iconText">
+    <string>View Data...</string>
+   </property>
+   <property name="toolTip">
+    <string>View Data in a table</string>
    </property>
   </action>
  </widget>

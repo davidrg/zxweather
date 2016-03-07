@@ -32,6 +32,8 @@ public:
             AggregateGroupType groupType = AGT_None,
             uint32_t groupMinutes = 0) = 0;
 
+    virtual void fetchSamples(DataSet dataSet);
+
     virtual hardware_type_t getHardwareType() = 0;
 
 signals:

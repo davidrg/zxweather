@@ -114,6 +114,8 @@ private slots:
 
     void reconnectDatabase();
 
+    void viewData();
+
 protected:
     /**
      * @brief changeEvent handles minimising the window to the system tray if
