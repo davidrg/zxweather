@@ -21,9 +21,6 @@ public:
 
     void setTime(QDateTime start, QDateTime end);
 
-private slots:
-    void dateChanged();
-
 private:
     Ui::DataSetTimespanDialog *ui;
 };
