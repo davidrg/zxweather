@@ -1,4 +1,5 @@
 #include <QMessageBox>
+#include <QSortFilterProxyModel>
 
 #include "viewdatasetwindow.h"
 #include "ui_viewdatasetwindow.h"
@@ -43,9 +44,12 @@ void ViewDataSetWindow::show() {
 
 void ViewDataSetWindow::samplesReady(SampleSet samples)
 {
-    DataSetModel *model = new DataSetModel(dataSet, samples, ui->tableView);
-    ui->tableView->setModel(model);
-    //ui->tableView->horizontalHeader()->setStretchLastSection(true);
+
+    DataSetModel *model = new DataSetModel(dataSet, samples, this);
+    QSortFilterProxyModel *sortableModel = new QSortFilterProxyModel(ui->tableView);
+    sortableModel->setSourceModel(model);
+
+    ui->tableView->setModel(sortableModel);
     ui->tableView->horizontalHeader()->setResizeMode(QHeaderView::ResizeToContents);
 }
 
