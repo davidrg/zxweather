@@ -26,17 +26,6 @@ ExportDialog::ExportDialog(bool solarDataAvailable, QWidget *parent) :
         ui->cbSolarRadiation->setVisible(false);
     }
 
-    ui->startTime->setDateTime(QDateTime::currentDateTime().addDays(-1));
-    ui->endTime->setDateTime(QDateTime::currentDateTime());
-
-    // Time ranges
-    connect(ui->rbTCustom, SIGNAL(clicked()), this, SLOT(dateChanged()));
-    connect(ui->rbTThisMonth, SIGNAL(clicked()), this, SLOT(dateChanged()));
-    connect(ui->rbTThisWeek, SIGNAL(clicked()), this, SLOT(dateChanged()));
-    connect(ui->rbTThisYear, SIGNAL(clicked()), this, SLOT(dateChanged()));
-    connect(ui->rbTToday, SIGNAL(clicked()), this, SLOT(dateChanged()));
-    connect(ui->rbTYesterday, SIGNAL(clicked()), this, SLOT(dateChanged()));
-
     // Delimiter types
     connect(ui->rbCommaDelimited, SIGNAL(clicked()),
             this, SLOT(delimiterTypeChanged()));
@@ -67,15 +56,6 @@ ExportDialog::~ExportDialog()
     delete ui;
 }
 
-void ExportDialog::dateChanged() {
-    if (ui->rbTCustom->isChecked()) {
-        ui->startTime->setEnabled(true);
-        ui->endTime->setEnabled(true);
-    } else {
-        ui->startTime->setEnabled(false);
-        ui->endTime->setEnabled(false);
-    }
-}
 
 void ExportDialog::delimiterTypeChanged() {
     if (ui->rbOtherDelimiter->isChecked())
@@ -97,58 +77,11 @@ QString ExportDialog::getDelimiter() {
 }
 
 QDateTime ExportDialog::getStartTime() {
-    QDateTime time = QDateTime::currentDateTime();
-    time.setTime(QTime(0,0));
-
-    int year = time.date().year();
-    int month = time.date().month();
-
-    if (ui->rbTToday->isChecked())
-        return time;
-    else if (ui->rbTYesterday->isChecked()) {
-        time.setDate(time.date().addDays(-1));
-        return time;
-    } else if (ui->rbTThisWeek->isChecked()) {
-        int subtractDays = 1 - time.date().dayOfWeek();
-        time.setDate(time.date().addDays(subtractDays));
-        return time;
-    } else if (ui->rbTThisMonth->isChecked()) {
-        time.setDate(QDate(year, month, 1));
-        return time;
-    } else if (ui->rbTThisYear->isChecked()) {
-        time.setDate(QDate(year,1,1));
-        return time;
-    } else
-        return ui->startTime->dateTime();
+    return ui->timespan->getStartTime();
 }
 
 QDateTime ExportDialog::getEndTime() {
-    QDateTime time = QDateTime::currentDateTime();
-    time.setTime(QTime(23,59,59));
-
-    int year = time.date().year();
-    int month = time.date().month();
-
-    if (ui->rbTToday->isChecked()) {
-        return time;
-    } else if (ui->rbTYesterday->isChecked()) {
-        time.setDate(time.date().addDays(-1));
-        return time;
-    } else if (ui->rbTThisWeek->isChecked()) {
-        int addDays = 7 - time.date().dayOfWeek();
-        time.setDate(time.date().addDays(addDays));
-        return time;
-    } else if (ui->rbTThisMonth->isChecked()) {
-        QDate date(year,month,1);
-        date = date.addMonths(1);
-        date = date.addDays(-1);
-        time.setDate(date);
-        return time;
-    } else if (ui->rbTThisYear->isChecked()) {
-        time.setDate(QDate(year,12,31));
-        return time;
-    } else
-        return ui->endTime->dateTime();
+    return ui->timespan->getEndTime();
 }
 
 SampleColumns ExportDialog::getColumns()
