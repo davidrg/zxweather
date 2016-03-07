@@ -11,6 +11,7 @@
         <file alias="chart-edit">resources/chart--pencil.png</file>
         <file alias="export-data">resources/document-table.png</file>
         <file alias="chart-add">resources/chart--plus.png</file>
+        <file alias="table">resources/table.png</file>
     </qresource>
     <qresource prefix="/icons/weather">
         <file alias="mostly_cloudy">resources/weather-cloud.png</file>
