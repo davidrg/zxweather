@@ -1,5 +1,6 @@
 #include <QMessageBox>
 #include <QSortFilterProxyModel>
+#include <QClipboard>
 
 #include "viewdatasetwindow.h"
 #include "ui_viewdatasetwindow.h"
@@ -16,6 +17,9 @@ ViewDataSetWindow::ViewDataSetWindow(DataSet dataSet, QWidget *parent) :
     ui->setupUi(this);
 
     this->dataSet = dataSet;
+
+    copy = new QShortcut(QKeySequence::Copy, this);
+    connect(copy, SIGNAL(activated()), this, SLOT(copySelection()));
 
     // Setup data source
     Settings& settings = Settings::getInstance();
@@ -40,6 +44,46 @@ void ViewDataSetWindow::show() {
     QMainWindow::show();
 
     dataSource->fetchSamples(dataSet);
+}
+
+void ViewDataSetWindow::copySelection() {
+    // Copies selected datain the table to tab-delimited data on the clipboard
+    QAbstractItemModel *tableModel = ui->tableView->model();
+    QItemSelectionModel * selectionModel = ui->tableView->selectionModel();
+    QModelIndexList selectedIndexes = selectionModel->selectedIndexes();
+
+    qSort(selectedIndexes);
+
+    if(selectedIndexes.size() < 1) {
+        return;
+    }
+
+    QString clipboardData;
+
+    QModelIndex previous = selectedIndexes.first();
+
+    selectedIndexes.removeFirst();
+
+    for(int i = 0; i < selectedIndexes.size(); i++) {
+        QVariant data = tableModel->data(previous);
+        QString text = data.toString();
+
+        QModelIndex index = selectedIndexes.at(i);
+        clipboardData.append(text);
+
+        if(index.row() != previous.row()) {
+            clipboardData.append('\n');
+        }
+        else {
+            clipboardData.append('\t');
+        }
+        previous = index;
+    }
+
+    clipboardData.append(tableModel->data(selectedIndexes.last()).toString());
+    clipboardData.append('\n');
+
+    QApplication::clipboard()->setText(clipboardData);
 }
 
 void ViewDataSetWindow::samplesReady(SampleSet samples)

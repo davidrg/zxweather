@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <QScopedPointer>
+#include <QShortcut>
 #include "datasource/samplecolumns.h"
 
 #include "datasource/abstractdatasource.h"
@@ -21,6 +22,7 @@ public:
 
 public slots:
     virtual void show();
+    void copySelection();
 
 private slots:
     void samplesReady(SampleSet samples);
@@ -30,7 +32,7 @@ private:
     Ui::ViewDataSetWindow *ui;
 
     DataSet dataSet;
-
+    QShortcut *copy;
     QScopedPointer<AbstractDataSource> dataSource;
 };
 
