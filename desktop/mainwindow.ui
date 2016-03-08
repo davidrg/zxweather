@@ -150,7 +150,7 @@
     <string>Export...</string>
    </property>
    <property name="iconText">
-    <string>Export Data...</string>
+    <string>Export...</string>
    </property>
    <property name="toolTip">
     <string>Save data as a csv file...</string>
