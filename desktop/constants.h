@@ -3,10 +3,12 @@
 
 #include <QByteArray>
 
+#include "version.h"
+
 namespace Constants {
 
-    const QByteArray USER_AGENT = "zxweather-desktop/1.0";
-    const QByteArray VERSION_STR = "1.0.0";
+    const QByteArray USER_AGENT = "zxweather-desktop/" APP_VERSION_MAJ_MIN;
+    const QByteArray VERSION_STR = APP_VERSION_STR;
 
     /** Document number for the zxweather installation manual for *this*
      * release of zxweather.
@@ -16,6 +18,6 @@ namespace Constants {
     /** The version of zxweather that first included this particular version
      * of the desktop client.
      */
-    const QString ZXWEATHER_VERSION = VERSION_STR;
+    const QString ZXWEATHER_VERSION = APP_VERSION_STR;
 }
 #endif // CONSTANTS_H

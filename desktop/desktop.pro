@@ -133,7 +133,8 @@ HEADERS  += mainwindow.h \
     aggregateoptionswidget.h \
     viewdataoptionsdialog.h \
     viewdatasetwindow.h \
-    datasetmodel.h
+    datasetmodel.h \
+    version.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \

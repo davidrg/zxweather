@@ -1,3 +1,5 @@
+#include "version.h"
+
 /////////////////////////////////////////////////////////////////////////////
 // It seems we have to do this otherwise the version information wont work
 // properly on Windows vista/7 (it will work on XP though)
@@ -12,8 +14,8 @@ IDI_APP_DEFAULT           ICON      DISCARDABLE      "icon.ico"
 /////////////////////////////////////////////////////////////////////////////
 // Application Version Information
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,0,0
- PRODUCTVERSION 1,0,0,0
+ FILEVERSION RC_FILE_VERSION
+ PRODUCTVERSION RC_PROD_VERSION
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -31,13 +33,13 @@ BEGIN
             VALUE "Comments", "zxweather Desktop Client\0"
             VALUE "CompanyName", "David Goodwin"
             VALUE "FileDescription", "zxweather Desktop Client\0"
-            VALUE "FileVersion", "1, 0, 0, 0\0"
+            VALUE "FileVersion", RC_FILE_VERSION_STR
             VALUE "InternalName", "zxweather-desktop\0"
-            VALUE "LegalCopyright", "© Copyright David Goodwin, 2012, 2013\0"
+            VALUE "LegalCopyright", "© Copyright David Goodwin, 2012-2016\0"
 //            VALUE "LegalTrademarks", "none\0"
             VALUE "OriginalFilename", "zxweather_client.exe\0"
             VALUE "ProductName", "zxweather\0"
-            VALUE "ProductVersion", "1.0\0"
+            VALUE "ProductVersion", RC_PROD_VERSION_STR
         END
     END
     BLOCK "VarFileInfo"
