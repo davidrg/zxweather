@@ -21,8 +21,14 @@ void WebCacheDB::openDatabase() {
 
     // Try to open the database. If it doesn't exist then create it.
     QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", SAMPLE_CACHE);
+
+#if QT_VERSION >= 0x050000
+    QString filename = QStandardPaths::writableLocation(
+                QStandardPaths::CacheLocation);
+#else
     QString filename = QDesktopServices::storageLocation(
                 QDesktopServices::CacheLocation);
+#endif
 
     // Make sure the target directory actually exists.
     if (!QDir(filename).exists())

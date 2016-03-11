@@ -1,7 +1,7 @@
 #ifndef GRAPHSTYLE_H
 #define GRAPHSTYLE_H
 
-#include <Qstring>
+#include <QString>
 #include <QPen>
 #include <QBrush>
 #include "charts/qcp/qcustomplot.h"

@@ -104,7 +104,11 @@ void ViewDataSetWindow::samplesReady(SampleSet samples)
      * Details: https://bugreports.qt.io/browse/QTBUG-14234
      */
 #if QT_VERSION >= 0x050000
-    ui->tableView->horizontalHeader()->setResizeMode(QHeaderView::ResizeToContents);
+    for (int c = 0; c < ui->tableView->horizontalHeader()->count(); ++c)
+    {
+        ui->tableView->horizontalHeader()->setSectionResizeMode(
+            c, QHeaderView::ResizeToContents);
+    }
 #endif
 
     ui->tableView->setModel(sortableModel);

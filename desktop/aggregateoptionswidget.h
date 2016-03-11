@@ -2,6 +2,7 @@
 #define AGGREGATEOPTIONSWIDGET_H
 
 #include <QWidget>
+#include <stdint.h>
 
 #include "datasource/aggregate.h"
 

@@ -371,46 +371,46 @@ ChartColours Settings::getChartColours() {
     ChartColours colours;
     colours.apparentTemperature = settings->value(
                 SettingsKey::Colours::Charts::APPARENT_TEMPERATURE,
-                Qt::darkRed).value<QColor>();
+                QColor(Qt::darkRed)).value<QColor>();
     colours.dewPoint = settings->value(
                 SettingsKey::Colours::Charts::DEW_POINT,
-                Qt::darkCyan).value<QColor>();
+                QColor(Qt::darkCyan)).value<QColor>();
     colours.humidity = settings->value(
                 SettingsKey::Colours::Charts::HUMIDITY,
-                Qt::darkMagenta).value<QColor>();
+                QColor(Qt::darkMagenta)).value<QColor>();
     colours.indoorHumidity = settings->value(
                 SettingsKey::Colours::Charts::INDOOR_HUMIDITY,
-                Qt::darkYellow).value<QColor>();
+                QColor(Qt::darkYellow)).value<QColor>();
     colours.indoorTemperature = settings->value(
                 SettingsKey::Colours::Charts::INDOOR_TEMPERATURE,
-                Qt::darkGreen).value<QColor>();
+                QColor(Qt::darkGreen)).value<QColor>();
     colours.pressure = settings->value(
                 SettingsKey::Colours::Charts::PRESSURE,
-                Qt::black).value<QColor>();
+                QColor(Qt::black)).value<QColor>();
     colours.temperature = settings->value(
                 SettingsKey::Colours::Charts::TEMPERATURE,
-                Qt::darkBlue).value<QColor>();
+                QColor(Qt::darkBlue)).value<QColor>();
     colours.windChill = settings->value(
                 SettingsKey::Colours::Charts::WIND_CHILL,
-                Qt::darkGray).value<QColor>();
+                QColor(Qt::darkGray)).value<QColor>();
     colours.rainfall = settings->value(
                 SettingsKey::Colours::Charts::RAINFALL,
-                Qt::blue).value<QColor>();
+                QColor(Qt::blue)).value<QColor>();
     colours.averageWindSpeed = settings->value(
                 SettingsKey::Colours::Charts::AVG_WIND_SPEED,
-                Qt::cyan).value<QColor>();
+                QColor(Qt::cyan)).value<QColor>();
     colours.gustWindSpeed = settings->value(
                 SettingsKey::Colours::Charts::GUST_WIND_SPEED,
-                Qt::red).value<QColor>();
+                QColor(Qt::red)).value<QColor>();
     colours.windDirection = settings->value(
                 SettingsKey::Colours::Charts::WIND_DIRECTION,
-                Qt::green).value<QColor>();
+                QColor(Qt::green)).value<QColor>();
     colours.uvIndex = settings->value(
                 SettingsKey::Colours::Charts::UV_INDEX,
-                Qt::magenta).value<QColor>();
+                QColor(Qt::magenta)).value<QColor>();
     colours.solarRadiation = settings->value(
                 SettingsKey::Colours::Charts::SOLAR_RADIATION,
-                Qt::yellow).value<QColor>();
+                QColor(Qt::yellow)).value<QColor>();
 
     /* Available default colours:
      *   Qt::gray
@@ -421,10 +421,10 @@ ChartColours Settings::getChartColours() {
 
     colours.title = settings->value(
                 SettingsKey::Colours::Charts::TITLE,
-                Qt::black).value<QColor>();
+                QColor(Qt::black)).value<QColor>();
     colours.background = settings->value(
                 SettingsKey::Colours::Charts::BACKGROUND,
-                Qt::white).value<QColor>();
+                QColor(Qt::white)).value<QColor>();
 
     return colours;
 }

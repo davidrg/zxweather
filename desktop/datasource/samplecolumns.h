@@ -3,6 +3,7 @@
 
 #include <QFlags>
 #include <QDateTime>
+#include <stdint.h>
 
 #include "aggregate.h"
 
