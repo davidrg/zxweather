@@ -473,10 +473,10 @@ void DatabaseDataSource::connectToDB() {
 
     qDebug() << "Connecting to target" << target << "as user" << username;
 
-    if (wdb_connect(target.toAscii().constData(),
-                     username.toAscii().constData(),
-                     password.toAscii().constData(),
-                     station.toAscii().constData())) {
+    if (wdb_connect(target.toLatin1().constData(),
+                     username.toLatin1().constData(),
+                     password.toLatin1().constData(),
+                     station.toLatin1().constData())) {
         notificationTimer->start();
         notificationPump(true);
     }

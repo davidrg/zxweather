@@ -171,7 +171,7 @@ void ExportDialog::samplesReady(SampleSet samples)
 
     QString headerRow = getHeaderRow(columns);
     if (!headerRow.isEmpty())
-        dataFile.write(headerRow.toAscii());
+        dataFile.write(headerRow.toLatin1());
 
     QString delimiter = getDelimiter();
 
@@ -223,7 +223,7 @@ void ExportDialog::samplesReady(SampleSet samples)
                                samples.solarRadiation.at(i)));
 
         QString row = rowData.join(delimiter) + "\n";
-        dataFile.write(row.toAscii());
+        dataFile.write(row.toLatin1());
 
         // Only update on every 25th row
         if (i % 25 == 0) {

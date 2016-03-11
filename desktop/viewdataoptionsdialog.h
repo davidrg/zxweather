@@ -3,6 +3,8 @@
 
 #include <QDialog>
 #include <QDateTime>
+#include <stdint.h>
+
 #include "datasource/aggregate.h"
 
 namespace Ui {
