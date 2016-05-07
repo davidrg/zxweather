@@ -5,6 +5,9 @@
 #include <QIcon>
 #include <QTimer>
 #include <QtDebug>
+#include <QMimeData>
+#include <QTemporaryFile>
+#include <QUrl>
 
 typedef enum {
     IT_ROOT,
@@ -19,7 +22,8 @@ typedef enum {
 
 class TreeItem{
 public:
-    TreeItem(ItemType type, QDate date, QString sourceCode, QString text = "", TreeItem *parent = 0, int imageId = -1);
+    TreeItem(ItemType type, QDate date, QString sourceCode, QString text = "",
+             TreeItem *parent = 0, int imageId = -1);
     ~TreeItem();
     ItemType itemType() const;
     QString text() const;
@@ -30,6 +34,8 @@ public:
     int row() const;
     bool childrenLoaded() const;
     QIcon icon() const;
+    QImage image() const;
+    QFile* imageFile() const;
     void setLoadRequested();
     bool loadRequested() const;
     QDate date() const;
@@ -37,6 +43,7 @@ public:
     void deleteChildren();
     void setThumbnail(QImage thumbnailImage);
     int id() const;
+    void setImage(QImage image);
 
 private:
     TreeItem *parentNode;
@@ -49,6 +56,7 @@ private:
     QString mSourceCode;
     QImage thumbnail;
     int imageId;
+    QTemporaryFile* temporaryImageFile;
 };
 
 TreeItem::TreeItem(ItemType type, QDate date, QString sourceCode, QString text,
@@ -60,6 +68,7 @@ TreeItem::TreeItem(ItemType type, QDate date, QString sourceCode, QString text,
     mDate = date;
     mSourceCode = sourceCode;
     this->imageId = imageId;
+    temporaryImageFile = NULL;
 
     if (type == IT_DAY || type == IT_IMAGE_SOURCE) {
         // Add a place-holder "Loading..." item. This will be removed
@@ -76,6 +85,10 @@ TreeItem::TreeItem(ItemType type, QDate date, QString sourceCode, QString text,
 TreeItem::~TreeItem() {
     qDeleteAll(childItems);
     childItems.clear();
+
+    if (temporaryImageFile) {
+        delete temporaryImageFile;
+    }
 }
 
 void TreeItem::deleteChildren() {
@@ -166,6 +179,22 @@ QIcon TreeItem::icon() const {
     return icon;
 }
 
+void TreeItem::setImage(QImage image) {
+    temporaryImageFile = new QTemporaryFile(
+                date().toString(Qt::ISODate) +
+                " "+ text().replace(":","_") + " XXXXXX.jpeg");
+    image.save(temporaryImageFile);
+    temporaryImageFile->flush();
+}
+
+QFile* TreeItem::imageFile() const {
+    return temporaryImageFile;
+}
+
+QImage TreeItem::image() const {
+    return QImage::fromData(temporaryImageFile->readAll());
+}
+
 void TreeItem::setLoadRequested() {
     mLoadRequested = true;
 }
@@ -181,6 +210,9 @@ QDate TreeItem::date() const {
 QString TreeItem::sourceCode() const {
     return mSourceCode;
 }
+
+
+
 
 ImageModel::ImageModel(AbstractDataSource *dataSource, QObject *parent)
     : QAbstractItemModel(parent)
@@ -203,6 +235,10 @@ ImageModel::ImageModel(AbstractDataSource *dataSource, QObject *parent)
             SIGNAL(thumbnailReady(int,QImage)),
             this,
             SLOT(thumbnailReady(int,QImage)));
+    connect(dataSource,
+            SIGNAL(imageReady(int,QImage)),
+            this,
+            SLOT(imageReady(int,QImage)));
 
     // Launch a query to populate the tree
     dataSource->fetchImageDateList();
@@ -399,36 +435,6 @@ QVariant ImageModel::data(const QModelIndex &index, int role) const {
     default:
         return QVariant();
     }
-
-//    if (role == Qt::DisplayRole) {
-//        return item->text();
-//    } else if (role == Qt::DecorationRole) {
-//        return item->icon();
-//    } else if (role == Qt::ToolTipRole) {
-//        return item->date().toString();
-//    } else if (role == Qt::WhatsThisRole) {
-//        switch (item->itemType()) {
-//        case IT_DAY:
-//            return tr("Day");
-//        case IT_IMAGE:
-//            return tr("Image");
-//        case IT_IMAGE_SOURCE:
-//            return tr("Image source");
-//        case IT_LOADING:
-//            return tr("Loading...");
-//        case IT_MONTH:
-//            return tr("Month");
-//        case IT_ROOT:
-//            return tr("Images");
-//        case IT_YEAR:
-//            return tr("Year");
-//        default:
-//            return QVariant();
-//        }
-//    }
-
-//    qDebug() << "Unsupported data request";
-//    return QVariant();
 }
 
 //QVariant ImageModel::headerData(int section, Qt::Orientation orientation,
@@ -591,6 +597,8 @@ void ImageModel::imageListReady(QList<ImageInfo> imageList) {
         ThumbnailRequest thumbReq;
         thumbReq.index = index(i, 0, req.index);
         thumbReq.treeItem = item;
+        thumbReq.imageLoaded = false;
+        thumbReq.thumbnailLoaded = false;
 
         pendingThumbnails[img.id] = thumbReq;
         thumbnailIds.append(img.id);
@@ -607,11 +615,89 @@ void ImageModel::imageListReady(QList<ImageInfo> imageList) {
 
 void ImageModel::thumbnailReady(int imageId, QImage thumbnail) {
     if (pendingThumbnails.contains(imageId)) {
+
+        pendingThumbnails[imageId].thumbnailLoaded = true;
         ThumbnailRequest req = pendingThumbnails[imageId];
-        pendingThumbnails.remove(imageId);
+
+        if (req.imageLoaded && req.thumbnailLoaded) {
+            pendingThumbnails.remove(imageId);
+        }
 
         req.treeItem->setThumbnail(thumbnail);
 
         emit dataChanged(req.index, req.index);
     }
+}
+
+void ImageModel::imageReady(int imageId, QImage image) {
+    // Cache the image here. We can use this later for drag-drop operations, etc.
+    if (pendingThumbnails.contains(imageId)) {
+
+        pendingThumbnails[imageId].imageLoaded = true;
+        ThumbnailRequest req = pendingThumbnails[imageId];
+
+        if (req.imageLoaded && req.thumbnailLoaded) {
+            pendingThumbnails.remove(imageId);
+        }
+
+        req.treeItem->setImage(image);
+
+        // We don't need to emit a model changed here as we're not
+        // changing anything exposed to the view. Note that if the
+        // raw image is ever exposed as a column or something we'll
+        // need to reverse this.
+    }
+}
+
+Qt::ItemFlags ImageModel::flags(const QModelIndex &index) const
+{
+    Qt::ItemFlags defaultFlags = QAbstractItemModel::flags(index);
+
+    if (index.isValid()) {
+        if (isImage(index)) {
+            return Qt::ItemIsDragEnabled | defaultFlags;
+        }
+    }
+
+    return defaultFlags;
+}
+
+Qt::DropActions ImageModel::supportedDragActions () const {
+    return Qt::CopyAction;
+}
+
+
+Qt::DropActions ImageModel::supportedDropActions () const {
+    return Qt::CopyAction; // We don't support drops.
+}
+
+QStringList ImageModel::mimeTypes() const {
+    QStringList types;
+    types << "text/uri-list";
+    return types;
+}
+
+QMimeData* ImageModel::mimeData(const QModelIndexList &indexes) const {
+    QMimeData *mimeData = new QMimeData();
+
+    QList<QUrl> urls;
+
+    foreach (const QModelIndex &index, indexes) {
+        if (index.isValid()) {
+            TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
+
+            QString path = item->imageFile()->fileName();
+            qDebug() << path;
+
+            urls.append(QUrl::fromLocalFile(path));
+
+        }
+    }
+
+    mimeData->setUrls(urls);
+
+    qDebug() << mimeData->formats();
+
+
+    return mimeData;
 }
