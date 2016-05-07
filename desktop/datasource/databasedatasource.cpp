@@ -611,3 +611,254 @@ hardware_type_t DatabaseDataSource::getHardwareType() {
 
     return HW_GENERIC;
 }
+
+QList<ImageDate> DatabaseDataSource::getImageDates(int stationId,
+                                                   int progressOffset) {
+    /*
+     * Our job here is to fetch a list of dates for which there is one or more
+     * images.
+     */
+
+    progressDialog->setLabelText("Query...");
+    progressDialog->setValue(progressOffset + 1);
+    if (progressDialog->wasCanceled()) return QList<ImageDate>();
+
+    QString qry = "select inr.date_stamp as date_stamp, \n\
+            string_agg(inr.mime_type, '|') as mime_types, \n\
+            string_agg(inr.src_code, '|') as image_source_codes \n\
+     from ( \n\
+         select distinct \n\
+                img.time_stamp::date as date_stamp, \n\
+                img.mime_type, \n\
+                img_src.code as src_code, \n\
+                img_src.source_name as src_name \n\
+         from image img \n\
+         inner join image_source img_src on img_src.image_source_id = img.image_source_id \n\
+         where img_src.station_id = :stationId) as inr \n\
+     group by inr.date_stamp";
+
+    QSqlQuery query;
+    query.prepare(qry);
+    query.bindValue(":stationId", stationId);
+    query.setForwardOnly(true);
+    bool result = query.exec();
+    if (!result || !query.isActive()) {
+        QMessageBox::warning(NULL, "Database Error",
+                             query.lastError().driverText());
+        return QList<ImageDate>();
+    }
+
+    progressDialog->setLabelText("Process...");
+    progressDialog->setValue(progressOffset + 2);
+
+    qDebug() << "Processing results...";
+    QList<ImageDate> results;
+    while (query.next()) {
+        if (progressDialog->wasCanceled()) return QList<ImageDate>();
+
+        QSqlRecord record = query.record();
+
+        ImageDate result;
+
+        result.date = record.value("date_stamp").toDate();
+        result.mimeTypes = record.value("mime_types").toString().split('|');
+        result.sourceCodes = record.value("image_source_codes")
+                .toString().split('|');
+        results << result;
+    }
+
+    return results;
+}
+
+QList<ImageSource> DatabaseDataSource::getImageSources(int stationId,
+                                                       int progressOffset) {
+    /*
+     * Our job here is to fetch a list of dates for which there is one or more
+     * images.
+     */
+
+    progressDialog->setLabelText("Query...");
+    progressDialog->setValue(progressOffset + 1);
+    if (progressDialog->wasCanceled()) return QList<ImageSource>();
+
+    QString qry = "select code, source_name, description from image_source "
+                    "where station_id = :stationId";
+
+    QSqlQuery query;
+    query.prepare(qry);
+    query.bindValue(":stationId", stationId);
+    query.setForwardOnly(true);
+    bool result = query.exec();
+    if (!result || !query.isActive()) {
+        QMessageBox::warning(NULL, "Database Error",
+                             query.lastError().driverText());
+        return QList<ImageSource>();
+    }
+
+    progressDialog->setLabelText("Process...");
+    progressDialog->setValue(progressOffset + 2);
+
+    qDebug() << "Processing results...";
+    QList<ImageSource> results;
+    while (query.next()) {
+        if (progressDialog->wasCanceled()) return QList<ImageSource>();
+
+        QSqlRecord record = query.record();
+
+        ImageSource result;
+
+        result.code = record.value("code").toString();
+        result.name = record.value("source_name").toString();
+        result.description = record.value("description").toString();
+        results << result;
+    }
+
+    return results;
+}
+
+void DatabaseDataSource::fetchImageDateList() {
+
+    progressDialog->setWindowTitle("Loading...");
+    progressDialog->setLabelText("Initialise...");
+
+    // 1 step in this function
+    // 2 steps in getImageDates
+    // 2 steps in getImageSources
+    progressDialog->setRange(0,5);
+    progressDialog->setValue(0);
+
+    int stationId = getStationId();
+    if (stationId == -1) return; // Bad station code.
+
+    QList<ImageDate> imageDates = getImageDates(stationId,
+                                                progressDialog->value());
+    if (imageDates.isEmpty()) return;
+
+    QList<ImageSource> imageSources = getImageSources(stationId,
+                                                      progressDialog->value());
+    if (imageSources.isEmpty()) return;
+    qDebug() << "Data retrieval complete.";
+
+    emit imageDatesReady(imageDates, imageSources);
+    progressDialog->close();
+}
+
+void DatabaseDataSource::fetchImageList(QDate date, QString imageSourceCode) {
+    qDebug() << "Fetching list of images for" << imageSourceCode << "on" << date;
+    progressDialog->reset();
+    progressDialog->setWindowTitle("Loading...");
+    progressDialog->setLabelText("Initialise...");
+    progressDialog->setRange(0, 5);
+    progressDialog->setValue(0);
+
+    // Get the
+    QString qry = "select i.image_id as id, \n\
+            it.code as image_type_code, \n\
+            i.time_stamp, \n\
+            i.title, \n\
+            i.description, \n\
+            i.mime_type \n\
+     from image i \n\
+     inner join image_type it on it.image_type_id = i.image_type_id \n\
+     inner join image_source img_src on img_src.image_source_id = i.image_source_id \n\
+     where i.time_stamp::date = :date \n\
+       and upper(img_src.code) = upper(:imageSourceCode)";
+
+    progressDialog->setLabelText("Query...");
+    progressDialog->setValue(1);
+    QSqlQuery query;
+    query.prepare(qry);
+    query.bindValue(":date", date);
+    query.bindValue(":imageSourceCode", imageSourceCode);
+    query.setForwardOnly(true);
+    bool result = query.exec();
+    if (!result || !query.isActive()) {
+        QMessageBox::warning(NULL, "Database Error",
+                             query.lastError().driverText());
+        return;
+    }
+
+    progressDialog->setLabelText("Process...");
+    progressDialog->setValue(2);
+
+    qDebug() << "Processing results...";
+    QList<ImageInfo> results;
+    while (query.next()) {
+        if (progressDialog->wasCanceled()) {
+            qDebug() << "Canceled";
+            return;
+        }
+
+        QSqlRecord record = query.record();
+
+        ImageInfo result;
+
+        result.id = record.value("id").toInt();
+        result.timeStamp = record.value("time_stamp").toDateTime();
+        result.imageTypeCode = record.value("image_type_code").toString();
+        result.title = record.value("title").toString();
+        result.description = record.value("descrption").toString();
+        result.mimeType = record.value("mime_type").toString();
+
+        results << result;
+    }
+    qDebug() << "Loaded" << results.count() << "results.";
+
+    emit imageListReady(results);
+    progressDialog->close();
+}
+
+void DatabaseDataSource::fetchImages(QList<int> imageIds, bool thumbnail) {
+    QStringList idList;
+    foreach (int id, imageIds) {
+        idList << QString::number(id);
+    }
+    QString idArray = "{" + idList.join(",") + "}";
+
+    QString qry = "select image_id, image_data from image "
+                    "where image_id = any(:idArray)";
+
+    QSqlQuery query;
+    query.prepare(qry);
+    query.bindValue(":idArray", idArray);
+    query.setForwardOnly(true);
+    bool result = query.exec();
+    if (!result || !query.isActive()) {
+        QMessageBox::warning(NULL, "Database Error",
+                             query.lastError().driverText());
+        return;
+    }
+
+
+    qDebug() << "Processing results...";
+    while (query.next()) {
+        QSqlRecord record = query.record();
+
+        QImage srcImage = QImage::fromData(
+                    record.value("image_data").toByteArray());
+        int imageId = record.value("image_id").toInt();
+
+        if (thumbnail) {
+            qDebug() << "Thumbnailing image" << imageId;
+            // Resize the image
+            QImage thumbnailImage = srcImage.scaled(THUMBNAIL_WIDTH,
+                                                    THUMBNAIL_HEIGHT,
+                                                    Qt::KeepAspectRatio);
+
+            emit thumbnailReady(imageId, thumbnailImage);
+        } else {
+            emit imageReady(imageId, srcImage);
+        }
+    }
+}
+
+void DatabaseDataSource::fetchImage(int imageId) {
+    QList<int> imageIds;
+    imageIds << imageId;
+    fetchImages(imageIds, false);
+}
+
+void DatabaseDataSource::fetchThumbnails(QList<int> imageIds) {
+    qDebug() << "Fetching thumbnails for" << imageIds;
+    fetchImages(imageIds, true);
+}

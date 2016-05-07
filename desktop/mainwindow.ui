@@ -103,6 +103,7 @@
    <addaction name="actionCharts"/>
    <addaction name="actionExport_Data"/>
    <addaction name="actionView_Data"/>
+   <addaction name="actionImages"/>
    <addaction name="separator"/>
    <addaction name="actionSettings"/>
    <addaction name="actionAbout"/>
@@ -169,6 +170,21 @@
    </property>
    <property name="toolTip">
     <string>View Data in a table</string>
+   </property>
+  </action>
+  <action name="actionImages">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/icons/image</normaloff>:/icons/image</iconset>
+   </property>
+   <property name="text">
+    <string>Images...</string>
+   </property>
+   <property name="iconText">
+    <string>Images...</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+I</string>
    </property>
   </action>
  </widget>

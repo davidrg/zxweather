@@ -80,7 +80,9 @@ SOURCES += main.cpp\
     aggregateoptionswidget.cpp \
     viewdataoptionsdialog.cpp \
     viewdatasetwindow.cpp \
-    datasetmodel.cpp
+    datasetmodel.cpp \
+    viewimageswindow.cpp \
+    imagemodel.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
@@ -134,7 +136,9 @@ HEADERS  += mainwindow.h \
     viewdataoptionsdialog.h \
     viewdatasetwindow.h \
     datasetmodel.h \
-    version.h
+    viewimageswindow.h \
+    version.h \
+    imagemodel.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \
@@ -152,7 +156,8 @@ FORMS    += mainwindow.ui \
     timespanwidget.ui \
     aggregateoptionswidget.ui \
     viewdataoptionsdialog.ui \
-    viewdatasetwindow.ui
+    viewdatasetwindow.ui \
+    viewimageswindow.ui
 
 OTHER_FILES += \
     database.pgc \

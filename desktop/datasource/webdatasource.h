@@ -35,6 +35,14 @@ public:
     hardware_type_t getHardwareType();
 
     bool hasUVAndSolarSensors();
+
+    // Stubs to allow the app to build while other related functionality is
+    // implemented.
+    void fetchImageDateList() {}
+    void fetchImageList(QDate date, QString imageSourceCode) {}
+    void fetchImage(int imageId) {}
+    void fetchThumbnails(QList<int> imageIds) {}
+
 private slots:
     void liveDataReady(QNetworkReply* reply);
     void liveDataPoll();

@@ -27,6 +27,14 @@ public:
 
     hardware_type_t getHardwareType();
 
+    void fetchImageDateList();
+
+    void fetchImageList(QDate date, QString imageSourceCode);
+
+    void fetchImage(int imageId);
+
+    void fetchThumbnails(QList<int> imageIds);
+
 private slots:
     void notificationPump(bool force = false);
     void dbError(QString message);
@@ -34,6 +42,10 @@ private slots:
 private:
     int getStationId();
     QString getStationHwType();
+    void fetchImages(QList<int> imageIds, bool thumbnail);
+
+    QList<ImageDate> getImageDates(int stationId, int progressOffset);
+    QList<ImageSource> getImageSources(int stationId, int progressOffset);
 
     //QString buildSelectForColumns(SampleColumns columns);
 
