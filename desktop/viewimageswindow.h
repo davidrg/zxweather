@@ -21,8 +21,6 @@ public:
     ~ViewImagesWindow();
 
 private slots:
-//    void treeItemClicked(QModelIndex index);
-//    void listItemClicked(QModelIndex index);
     void listItemDoubleClicked(QModelIndex index);
     void imageReady(int imageId,QImage image);
     void listItemSelectionChanged(QItemSelection selected, QItemSelection deselected);
