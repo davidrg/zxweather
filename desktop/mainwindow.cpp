@@ -32,6 +32,7 @@
 #include "exportdialog.h"
 #include "viewdataoptionsdialog.h"
 #include "viewdatasetwindow.h"
+#include "viewimageswindow.h"
 
 #include "dbutil.h"
 
@@ -93,6 +94,7 @@ MainWindow::MainWindow(QWidget *parent) :
     // Toolbar
     connect(ui->actionCharts, SIGNAL(triggered()), this, SLOT(showChartWindow()));
     connect(ui->actionExport_Data, SIGNAL(triggered()), this, SLOT(showExportDialog()));
+    connect(ui->actionImages, SIGNAL(triggered(bool)), this, SLOT(showImagesWindow()));
     connect(ui->actionView_Data, SIGNAL(triggered(bool)), this, SLOT(viewData()));
     connect(ui->actionSettings, SIGNAL(triggered()), this, SLOT(showSettings()));
     connect(ui->actionAbout, SIGNAL(triggered()), this, SLOT(showAbout()));
@@ -141,6 +143,10 @@ MainWindow::MainWindow(QWidget *parent) :
             reconfigureDataSource();
         }
     }
+
+#ifndef QT_DEBUG
+    ui->actionImages->setVisible(false);
+#endif
 }
 
 bool MainWindow::databaseCompatibilityChecks() {
@@ -391,6 +397,12 @@ void MainWindow::showChartWindow() {
 void MainWindow::showExportDialog() {
     ExportDialog dialog(solarDataAvailable);
     dialog.exec();
+}
+
+void MainWindow::showImagesWindow() {
+    ViewImagesWindow *imagesWindow = new ViewImagesWindow();
+    imagesWindow->setAttribute(Qt::WA_DeleteOnClose);
+    imagesWindow->show();
 }
 
 void MainWindow::viewData() {

@@ -79,6 +79,8 @@ public slots:
      */
     void showExportDialog();
 
+    void showImagesWindow();
+
     // System tray
     /**
      * @brief trayIconActivated is called when the user clicks on the system

@@ -12,6 +12,11 @@
         <file alias="export-data">resources/document-table.png</file>
         <file alias="chart-add">resources/chart--plus.png</file>
         <file alias="table">resources/table.png</file>
+        <file alias="folder-horizontal">resources/folder-horizontal.png</file>
+        <file alias="folder-horizontal-32">resources/folder-horizontal-32.png</file>
+        <file alias="folder-horizontal-open">resources/folder-horizontal-open.png</file>
+        <file alias="image">resources/image.png</file>
+        <file alias="image-32">resources/image-32.png</file>
     </qresource>
     <qresource prefix="/icons/weather">
         <file alias="mostly_cloudy">resources/weather-cloud.png</file>
