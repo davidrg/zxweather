@@ -20,11 +20,17 @@ public:
     explicit ViewImagesWindow(QWidget *parent = 0);
     ~ViewImagesWindow();
 
+protected:
+    void closeEvent(QCloseEvent *event);
+
 private slots:
     void listItemDoubleClicked(QModelIndex index);
     void imageReady(int imageId,QImage image);
     void listItemSelectionChanged(QItemSelection selected, QItemSelection deselected);
     void treeItemSelectionChanged(QItemSelection selected, QItemSelection deselected);
+    void hSplitterMoved(int, int);
+    void vSplitterMoved(int, int);
+
 private:
     Ui::ViewImagesWindow *ui;
     QScopedPointer<AbstractDataSource> dataSource;

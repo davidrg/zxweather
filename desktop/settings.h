@@ -127,6 +127,16 @@ public:
 
     void setLiveTimeoutInterval(uint interval);
     uint liveTimeoutInterval();
+
+    /* Images window */
+    void setImagesWindowHSplitterLayout(QByteArray data);
+    QByteArray getImagesWindowHSplitterLayout();
+
+    void setImagesWindowVSplitterLayout(QByteArray data);
+    QByteArray getImagesWindowVSplitterLayout();
+
+    void setImagesWindowLayout(QByteArray data);
+    QByteArray getImagesWindowLayout();
 private:
     Settings();
     ~Settings();

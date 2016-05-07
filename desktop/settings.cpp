@@ -41,6 +41,13 @@ namespace SettingsKey {
             const QString ENABLED = "General/live_mon/enabled";
             const QString INTERVAL = "General/live_mon/interval";
         }
+
+        namespace ImagesWindow {
+            // This is the state of the two splitter layouts
+            const QString HLAYOUT = "General/images_window/horizontal_layout";
+            const QString VLAYOUT = "General/images_window/vertical_layout";
+            const QString WLAYOUT = "General/images_window/window_layout";
+        }
     }
 
     /** Settings about where to get data from.
@@ -491,4 +498,37 @@ void Settings::setLiveTimeoutInterval(uint interval) {
 uint Settings::liveTimeoutInterval() {
     return settings->value(SettingsKey::General::LiveMon::INTERVAL,
                            60000).toUInt();
+}
+
+void Settings::setImagesWindowHSplitterLayout(QByteArray data) {
+    settings->setValue(SettingsKey::General::ImagesWindow::HLAYOUT,
+                       data);
+}
+
+QByteArray Settings::getImagesWindowHSplitterLayout() {
+    return settings->value(SettingsKey::General::ImagesWindow::HLAYOUT,
+                           QByteArray()).toByteArray();
+
+}
+
+void Settings::setImagesWindowVSplitterLayout(QByteArray data) {
+    settings->setValue(SettingsKey::General::ImagesWindow::VLAYOUT,
+                       data);
+}
+
+QByteArray Settings::getImagesWindowVSplitterLayout() {
+    return settings->value(SettingsKey::General::ImagesWindow::VLAYOUT,
+                           QByteArray()).toByteArray();
+
+}
+
+void Settings::setImagesWindowLayout(QByteArray data) {
+    settings->setValue(SettingsKey::General::ImagesWindow::WLAYOUT,
+                       data);
+}
+
+QByteArray Settings::getImagesWindowLayout() {
+    return settings->value(SettingsKey::General::ImagesWindow::WLAYOUT,
+                           QByteArray()).toByteArray();
+
 }
