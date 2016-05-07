@@ -13,12 +13,13 @@ ViewImagesWindow::ViewImagesWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
+
     connect(ui->lvImageList, SIGNAL(doubleClicked(QModelIndex)),
             this, SLOT(listItemDoubleClicked(QModelIndex)));
 
-
     // Setup data source
     Settings& settings = Settings::getInstance();
+    restoreState(settings.getImagesWindowLayout());
 
     if (settings.sampleDataSourceType() == Settings::DS_TYPE_DATABASE)
         dataSource.reset(new DatabaseDataSource(this, this));
@@ -43,6 +44,14 @@ ViewImagesWindow::ViewImagesWindow(QWidget *parent) :
             SIGNAL(selectionChanged(QItemSelection,QItemSelection)),
             this,
             SLOT(treeItemSelectionChanged(QItemSelection,QItemSelection)));
+
+    connect(ui->splitter_2, SIGNAL(splitterMoved(int,int)),
+            this, SLOT(hSplitterMoved(int,int)));
+    connect(ui->splitter, SIGNAL(splitterMoved(int,int)),
+            this, SLOT(vSplitterMoved(int,int)));
+
+    ui->splitter->restoreState(settings.getImagesWindowVSplitterLayout());
+    ui->splitter_2->restoreState(settings.getImagesWindowHSplitterLayout());
 }
 
 ViewImagesWindow::~ViewImagesWindow()
@@ -110,4 +119,18 @@ void ViewImagesWindow::listItemSelectionChanged(QItemSelection selected,
     }
 
     loadImageForIndex(selected.indexes().first());
+}
+
+void ViewImagesWindow::hSplitterMoved(int, int) {
+    Settings::getInstance().setImagesWindowHSplitterLayout(ui->splitter_2->saveState());
+}
+
+void ViewImagesWindow::vSplitterMoved(int, int) {
+    Settings::getInstance().setImagesWindowVSplitterLayout(ui->splitter->saveState());
+}
+
+void ViewImagesWindow::closeEvent(QCloseEvent *event)
+{
+    Settings::getInstance().setImagesWindowLayout(saveState());
+    QMainWindow::closeEvent(event);
 }
