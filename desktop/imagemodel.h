@@ -9,6 +9,7 @@
 
 
 class TreeItem;
+class QMimeData;
 
 struct ImageLoadRequest {
     QDate date;
@@ -20,6 +21,8 @@ struct ImageLoadRequest {
 struct ThumbnailRequest {
     QModelIndex index;
     TreeItem *treeItem;
+    bool thumbnailLoaded;
+    bool imageLoaded;
 };
 
 class ImageModel : public QAbstractItemModel
@@ -42,6 +45,13 @@ public:
     bool isImage(const QModelIndex &index) const;
     int imageId(const QModelIndex &index) const;
 
+    // Drag-drop functionality
+    Qt::ItemFlags flags(const QModelIndex &index) const;
+    Qt::DropActions supportedDragActions () const;
+    Qt::DropActions supportedDropActions () const;
+    QMimeData * mimeData(const QModelIndexList &indexes) const;
+    QStringList mimeTypes() const;
+
 signals:
 
 public slots:
@@ -51,6 +61,7 @@ private slots:
     void processImageLoadRequestQueue();
     void imageListReady(QList<ImageInfo> imageList);
     void thumbnailReady(int imageId, QImage thumbnail);
+    void imageReady(int imageId, QImage image);
 
 private:
     void resetTree();
@@ -58,7 +69,6 @@ private:
     QList<ImageLoadRequest> imageLoadRequestQueue;
     QMap<int, ThumbnailRequest> pendingThumbnails;
     bool loadingImages;
-
 
     AbstractDataSource *dataSource;
 

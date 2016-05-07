@@ -846,6 +846,7 @@ void DatabaseDataSource::fetchImages(QList<int> imageIds, bool thumbnail) {
                                                     Qt::KeepAspectRatio);
 
             emit thumbnailReady(imageId, thumbnailImage);
+            emit imageReady(imageId, srcImage);
         } else {
             emit imageReady(imageId, srcImage);
         }
