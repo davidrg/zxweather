@@ -157,6 +157,8 @@ private:
 
     bool databaseCompatibilityChecks();
 
+    void hideImagery();
+
     /** Reconnects to the datasource. Call this when ever data source
      * settings are changed.
      */
