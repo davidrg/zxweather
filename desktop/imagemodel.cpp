@@ -584,7 +584,7 @@ bool ImageModel::hasChildren(const QModelIndex &parent) const {
 }
 
 void ImageModel::processImageLoadRequestQueue() {
-    if (loadingImages) {
+    if (loadingImages || imageLoadRequestQueue.isEmpty()) {
         return;
     }
     loadingImages = true;
@@ -710,7 +710,6 @@ QMimeData* ImageModel::mimeData(const QModelIndexList &indexes) const {
             TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
 
             QString path = item->imageFile()->fileName();
-            qDebug() << path;
 
             urls.append(QUrl::fromLocalFile(path));
 
@@ -718,9 +717,6 @@ QMimeData* ImageModel::mimeData(const QModelIndexList &indexes) const {
     }
 
     mimeData->setUrls(urls);
-
-    qDebug() << mimeData->formats();
-
 
     return mimeData;
 }
