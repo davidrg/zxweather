@@ -762,7 +762,8 @@ void DatabaseDataSource::fetchImageList(QDate date, QString imageSourceCode) {
      inner join image_type it on it.image_type_id = i.image_type_id \n\
      inner join image_source img_src on img_src.image_source_id = i.image_source_id \n\
      where i.time_stamp::date = :date \n\
-       and upper(img_src.code) = upper(:imageSourceCode)";
+       and upper(img_src.code) = upper(:imageSourceCode) \
+     order by i.time_stamp";
 
     progressDialog->setLabelText("Query...");
     progressDialog->setValue(1);
@@ -816,7 +817,7 @@ void DatabaseDataSource::fetchImages(QList<int> imageIds, bool thumbnail) {
     QString idArray = "{" + idList.join(",") + "}";
 
     QString qry = "select image_id, image_data from image "
-                    "where image_id = any(:idArray)";
+                    "where image_id = any(:idArray) order by time_stamp";
 
     QSqlQuery query;
     query.prepare(qry);
