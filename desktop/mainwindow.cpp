@@ -144,9 +144,9 @@ MainWindow::MainWindow(QWidget *parent) :
         }
     }
 
-#ifndef QT_DEBUG
+    // This will be turned on later if the data source reports there are archived
+    // images available.
     ui->actionImages->setVisible(false);
-#endif
 }
 
 bool MainWindow::databaseCompatibilityChecks() {
