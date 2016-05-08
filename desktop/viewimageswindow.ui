@@ -25,6 +25,15 @@
        <enum>Qt::Horizontal</enum>
       </property>
       <widget class="QTreeView" name="tvImageSet">
+       <property name="editTriggers">
+        <set>QAbstractItemView::NoEditTriggers</set>
+       </property>
+       <property name="dragEnabled">
+        <bool>true</bool>
+       </property>
+       <property name="dragDropMode">
+        <enum>QAbstractItemView::DragOnly</enum>
+       </property>
        <property name="rootIsDecorated">
         <bool>true</bool>
        </property>
