@@ -82,7 +82,8 @@ SOURCES += main.cpp\
     viewdatasetwindow.cpp \
     datasetmodel.cpp \
     viewimageswindow.cpp \
-    imagemodel.cpp
+    imagemodel.cpp \
+    imagewidget.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
@@ -138,7 +139,8 @@ HEADERS  += mainwindow.h \
     datasetmodel.h \
     viewimageswindow.h \
     version.h \
-    imagemodel.h
+    imagemodel.h \
+    imagewidget.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \

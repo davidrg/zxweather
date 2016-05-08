@@ -25,7 +25,6 @@ protected:
 
 private slots:
     void listItemDoubleClicked(QModelIndex index);
-    void imageReady(int imageId,QImage image);
     void listItemSelectionChanged(QItemSelection selected, QItemSelection deselected);
     void treeItemSelectionChanged(QItemSelection selected, QItemSelection deselected);
     void hSplitterMoved(int, int);
@@ -35,7 +34,6 @@ private:
     Ui::ViewImagesWindow *ui;
     QScopedPointer<AbstractDataSource> dataSource;
     QScopedPointer<ImageModel> model;
-    int requestedImageId;
 
     void loadImageForIndex(QModelIndex index);
 };

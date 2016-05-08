@@ -13,7 +13,6 @@ ViewImagesWindow::ViewImagesWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
-
     connect(ui->lvImageList, SIGNAL(doubleClicked(QModelIndex)),
             this, SLOT(listItemDoubleClicked(QModelIndex)));
 
@@ -25,9 +24,6 @@ ViewImagesWindow::ViewImagesWindow(QWidget *parent) :
         dataSource.reset(new DatabaseDataSource(this, this));
     else
         dataSource.reset(new WebDataSource(this, this));
-
-    connect(dataSource.data(), SIGNAL(imageReady(int,QImage)),
-            this, SLOT(imageReady(int,QImage)));
 
     model.reset(new ImageModel(dataSource.data(), this));
 
@@ -68,14 +64,9 @@ void ViewImagesWindow::listItemDoubleClicked(QModelIndex index) {
 
 void ViewImagesWindow::loadImageForIndex(QModelIndex index) {
     if (model->isImage(index)) {
-        // Fetch the image from the data source
-        requestedImageId = model->imageId(index);
 
-        Q_ASSERT_X(requestedImageId >= 0, "loadImageForIndex", "Invalid image ID");
-
-        qDebug() << "Requesting image" << requestedImageId << "from the data source";
-
-        dataSource->fetchImage(requestedImageId);
+        ui->lImage->setImage(model->image(index),
+                             model->imageTemporaryFileName(index));
     } else {
         // Just show the icon.
         QVariant icon = index.data(Qt::DecorationRole);
@@ -83,17 +74,6 @@ void ViewImagesWindow::loadImageForIndex(QModelIndex index) {
             ui->lImage->setPixmap(icon.value<QIcon>().pixmap(ui->lImage->size()));
         }
     }
-}
-
-void ViewImagesWindow::imageReady(int imageId, QImage image) {
-    qDebug() << "Received image" << imageId << "expecting id" << requestedImageId;
-    if (imageId != requestedImageId) {
-        // Its an image someone else asked for. Not interested in it.
-        return;
-    }
-
-    ui->lImage->setPixmap(QPixmap::fromImage(image));
-    requestedImageId = -1;
 }
 
 void ViewImagesWindow::treeItemSelectionChanged(QItemSelection selected,
