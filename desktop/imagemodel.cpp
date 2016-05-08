@@ -241,9 +241,9 @@ ImageModel::ImageModel(AbstractDataSource *dataSource, QObject *parent)
             this,
             SLOT(thumbnailReady(int,QImage)));
     connect(dataSource,
-            SIGNAL(imageReady(int,QImage)),
+            SIGNAL(imageReady(ImageInfo,QImage)),
             this,
-            SLOT(imageReady(int,QImage)));
+            SLOT(imageReady(ImageInfo,QImage)));
 
     // Launch a query to populate the tree
     dataSource->fetchImageDateList();
@@ -652,7 +652,10 @@ void ImageModel::thumbnailReady(int imageId, QImage thumbnail) {
     }
 }
 
-void ImageModel::imageReady(int imageId, QImage image) {
+void ImageModel::imageReady(ImageInfo info, QImage image) {
+
+    int imageId = info.id;
+
     // Cache the image here. We can use this later for drag-drop operations, etc.
     if (pendingThumbnails.contains(imageId)) {
 

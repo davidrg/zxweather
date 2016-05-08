@@ -746,3 +746,11 @@ hardware_type_t WebDataSource::getHardwareType() {
     // for samples.
     return HW_GENERIC;
 }
+
+void WebDataSource::hasActiveImageSources() {
+    // TODO
+}
+
+void WebDataSource::fetchLatestImages() {
+    // TODO
+}

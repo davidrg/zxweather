@@ -35,6 +35,7 @@
 #include <QtDebug>
 
 #define LIVE_DATA_UPDATE_CHANNEL "live_data_updated"
+#define NEW_IMAGE_CHANNEL "new_image"
 
 /* Globals */
 static DBSignalAdapter* signalAdapter = NULL;
@@ -145,6 +146,12 @@ void subscribe_to_notifications(PGconn* conn) {
         qDebug() << "LISTEN failed. Live data notifications will not be processed.\n";
     }
     PQclear(res);
+
+    res = PQexec(conn, "LISTEN " NEW_IMAGE_CHANNEL);
+    if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+        qDebug() << "LISTEN failed. New image notifications will not be processed.\n";
+    }
+    PQclear(res);
 }
 
 bool wdb_connect(const char *target, const char *username, const char* password,
@@ -239,14 +246,20 @@ void wdb_disconnect() {
     free(station_code);
 }
 
-bool wdb_live_data_available() {
+notifications wdb_live_data_available() {
     //qDebug() << "Checking for live data";
-    if (!connected) return false;
+
+    notifications n;
+    n.live_data = false;
+    n.new_image = false;
+    n.image_id = -1;
+
+    if (!connected) return n;
 
     PGconn* conn = ECPGget_PGconn("notification_connection");
     if (conn == NULL) {
         qDebug() << "ERROR: NULL connection (secondary)";
-        return false;
+        return n;
     }
 
     if (PQstatus(conn) == CONNECTION_BAD) {
@@ -259,9 +272,6 @@ bool wdb_live_data_available() {
             subscribe_to_notifications(conn);
         }
     }
-
-    bool live_data_available = false;
-
     PGnotify* notification;
     PQconsumeInput(conn);
     while ((notification = PQnotifies(conn)) != NULL) {
@@ -270,25 +280,29 @@ bool wdb_live_data_available() {
         if (strcmp(notification->relname, LIVE_DATA_UPDATE_CHANNEL) == 0) {
             if (db_version <= 1) {
                 /* the v1 schema doesn't use the payload to indicate station */
-                live_data_available = true;
+                n.live_data = true;
             }
             /* For v2+ schema we need to check the payload to ensure this is
              * for the station we're interested in */
             else if (strncmp(station_code, notification->extra, station_code_len) == 0) {
                 // Live data is available for the station we are subscribed to.
-                live_data_available = true;
+                n.live_data = true;
             } else {
                 /* It's a notification on a v2+ database for a station other
                  * than the one we're interested in. */
-                live_data_available = false;
+                n.live_data = false;
             }
+        } else if (strcmp(notification->relname, NEW_IMAGE_CHANNEL) == 0) {
+            /* A new image is available! The payload is the Image ID*/
+            n.new_image = true;
+            n.image_id = atoi(notification->extra);
         } else {
             qDebug() << "Ignore: Unknown channel";
         }
         PQfreemem(notification);
     }
 
-    return live_data_available;
+    return n;
 }
 
 /* For zxweather v0.1 databases */

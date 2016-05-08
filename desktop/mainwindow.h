@@ -34,6 +34,7 @@
 #include "livemonitor.h"
 
 #include "datasource/abstractlivedatasource.h"
+#include "datasource/abstractdatasource.h"
 
 namespace Ui {
 class MainWindow;
@@ -118,6 +119,12 @@ private slots:
 
     void viewData();
 
+    void activeImageSourcesAvailable();
+
+    void archivedImagesAvailable();
+
+    void imageReady(ImageInfo info, QImage image);
+
 protected:
     /**
      * @brief changeEvent handles minimising the window to the system tray if
@@ -153,6 +160,7 @@ private:
     void reconfigureDataSource();
 
     QScopedPointer<AbstractLiveDataSource> dataSource;
+    QScopedPointer<AbstractDataSource> imageDataSource;
 
     QScopedPointer<LiveMonitor> liveMonitor;
     QIcon normalSysTrayIcon;

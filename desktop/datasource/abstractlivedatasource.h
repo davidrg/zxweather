@@ -49,6 +49,13 @@ typedef struct _liveData {
     struct _DavisLive davisHw;
 } LiveDataSet;
 
+typedef struct _newImageInfo {
+    QString imageSourceCode;
+    QString stationCode;
+    QDateTime timestamp;
+    int imageId;
+} NewImageInfo;
+
 /** This is an interface for all data sources that can provide live data.
  * Data sources that can also provide samples should inherit from
  * AbstractDataSource instead.
@@ -96,6 +103,10 @@ signals:
      * @param name The name of the station
      */
     void stationName(QString name);
+
+    /** Emitted when a new image is available
+     */
+    void newImage(NewImageInfo imageInfo);
 };
 
 #endif // ABSTRACTLIVEDATASOURCE_H
