@@ -35,6 +35,10 @@ public:
 
     void fetchThumbnails(QList<int> imageIds);
 
+    void fetchLatestImages();
+
+    void hasActiveImageSources();
+
 private slots:
     void notificationPump(bool force = false);
     void dbError(QString message);
@@ -43,6 +47,8 @@ private:
     int getStationId();
     QString getStationHwType();
     void fetchImages(QList<int> imageIds, bool thumbnail);
+    void processLiveData();
+    void processNewImage(int imageId);
 
     QList<ImageDate> getImageDates(int stationId, int progressOffset);
     QList<ImageSource> getImageSources(int stationId, int progressOffset);

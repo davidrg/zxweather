@@ -487,72 +487,113 @@ void DatabaseDataSource::dbError(QString message) {
 }
 
 void DatabaseDataSource::notificationPump(bool force) {
-    if (wdb_live_data_available() || force) {
-        live_data_record rec = wdb_get_live_data();
 
-        LiveDataSet lds;
-        lds.indoorTemperature = rec.indoor_temperature;
-        lds.indoorHumidity = rec.indoor_relative_humidity;
-        lds.temperature = rec.temperature;
-        lds.humidity = rec.relative_humidity;
-        lds.dewPoint = rec.dew_point;
-        lds.windChill = rec.wind_chill;
-        lds.apparentTemperature = rec.apparent_temperature;
-        lds.pressure = rec.absolute_pressure;
-        lds.windSpeed = rec.average_wind_speed;
-        lds.windDirection = rec.wind_direction;
-        lds.timestamp = QDateTime::fromTime_t(rec.download_timestamp);
-        lds.indoorDataAvailable = true;
+    notifications n = wdb_live_data_available();
 
-        if (rec.v1) {
-            // The V1 schema stores wind direction as a string :(
-            QString strd(rec.wind_direction_str);
-            if (strd == "N") lds.windDirection = 0;
-            else if (strd == "NNE") lds.windDirection = 22.5;
-            else if (strd == "NE") lds.windDirection = 45;
-            else if (strd == "ENE") lds.windDirection = 67.5;
-            else if (strd == "E") lds.windDirection = 90;
-            else if (strd == "ESE") lds.windDirection = 112.5;
-            else if (strd == "SE") lds.windDirection = 135;
-            else if (strd == "SSE") lds.windDirection = 157.5;
-            else if (strd == "S") lds.windDirection = 180;
-            else if (strd == "SSW") lds.windDirection = 202.5;
-            else if (strd == "SW") lds.windDirection = 225;
-            else if (strd == "WSW") lds.windDirection = 247.5;
-            else if (strd == "W") lds.windDirection = 270;
-            else if (strd == "WNW") lds.windDirection = 292.5;
-            else if (strd == "NW") lds.windDirection = 315;
-            else if (strd == "NNW") lds.windDirection = 337.5;
-        } else {
+    if (n.live_data || force) {
+        processLiveData();
+    }
 
-            switch (rec.station_type) {
-            case ST_DAVIS:
-                lds.hw_type = HW_DAVIS;
-                break;
-            case ST_FINE_OFFSET:
-                lds.hw_type = HW_FINE_OFFSET;
-                break;
-            case ST_GENERIC:
-            default:
-                lds.hw_type = HW_GENERIC;
-            }
+    if (n.new_image) {
+        processNewImage(n.image_id);
+    }
+}
 
-            if (lds.hw_type == HW_DAVIS) {
-                lds.davisHw.barometerTrend = rec.davis_data.barometer_trend;
-                lds.davisHw.consoleBatteryVoltage = rec.davis_data.console_battery;
-                lds.davisHw.forecastIcon = rec.davis_data.forecast_icon;
-                lds.davisHw.forecastRule = rec.davis_data.forecast_rule;
-                lds.davisHw.rainRate = rec.davis_data.rain_rate;
-                lds.davisHw.stormRain = rec.davis_data.storm_rain;
-                lds.davisHw.stormStartDate = QDateTime::fromTime_t(rec.davis_data.current_storm_start_date).date();
-                lds.davisHw.txBatteryStatus = rec.davis_data.tx_battery_status;
-                lds.davisHw.stormDateValid = rec.davis_data.current_storm_start_date > 0;
-                lds.davisHw.uvIndex = rec.davis_data.uv_index;
-                lds.davisHw.solarRadiation = rec.davis_data.solar_radiation;
-            }
+void DatabaseDataSource::processLiveData() {
+    live_data_record rec = wdb_get_live_data();
+
+    LiveDataSet lds;
+    lds.indoorTemperature = rec.indoor_temperature;
+    lds.indoorHumidity = rec.indoor_relative_humidity;
+    lds.temperature = rec.temperature;
+    lds.humidity = rec.relative_humidity;
+    lds.dewPoint = rec.dew_point;
+    lds.windChill = rec.wind_chill;
+    lds.apparentTemperature = rec.apparent_temperature;
+    lds.pressure = rec.absolute_pressure;
+    lds.windSpeed = rec.average_wind_speed;
+    lds.windDirection = rec.wind_direction;
+    lds.timestamp = QDateTime::fromTime_t(rec.download_timestamp);
+    lds.indoorDataAvailable = true;
+
+    if (rec.v1) {
+        // The V1 schema stores wind direction as a string :(
+        QString strd(rec.wind_direction_str);
+        if (strd == "N") lds.windDirection = 0;
+        else if (strd == "NNE") lds.windDirection = 22.5;
+        else if (strd == "NE") lds.windDirection = 45;
+        else if (strd == "ENE") lds.windDirection = 67.5;
+        else if (strd == "E") lds.windDirection = 90;
+        else if (strd == "ESE") lds.windDirection = 112.5;
+        else if (strd == "SE") lds.windDirection = 135;
+        else if (strd == "SSE") lds.windDirection = 157.5;
+        else if (strd == "S") lds.windDirection = 180;
+        else if (strd == "SSW") lds.windDirection = 202.5;
+        else if (strd == "SW") lds.windDirection = 225;
+        else if (strd == "WSW") lds.windDirection = 247.5;
+        else if (strd == "W") lds.windDirection = 270;
+        else if (strd == "WNW") lds.windDirection = 292.5;
+        else if (strd == "NW") lds.windDirection = 315;
+        else if (strd == "NNW") lds.windDirection = 337.5;
+    } else {
+
+        switch (rec.station_type) {
+        case ST_DAVIS:
+            lds.hw_type = HW_DAVIS;
+            break;
+        case ST_FINE_OFFSET:
+            lds.hw_type = HW_FINE_OFFSET;
+            break;
+        case ST_GENERIC:
+        default:
+            lds.hw_type = HW_GENERIC;
         }
 
-        emit liveData(lds);
+        if (lds.hw_type == HW_DAVIS) {
+            lds.davisHw.barometerTrend = rec.davis_data.barometer_trend;
+            lds.davisHw.consoleBatteryVoltage = rec.davis_data.console_battery;
+            lds.davisHw.forecastIcon = rec.davis_data.forecast_icon;
+            lds.davisHw.forecastRule = rec.davis_data.forecast_rule;
+            lds.davisHw.rainRate = rec.davis_data.rain_rate;
+            lds.davisHw.stormRain = rec.davis_data.storm_rain;
+            lds.davisHw.stormStartDate = QDateTime::fromTime_t(rec.davis_data.current_storm_start_date).date();
+            lds.davisHw.txBatteryStatus = rec.davis_data.tx_battery_status;
+            lds.davisHw.stormDateValid = rec.davis_data.current_storm_start_date > 0;
+            lds.davisHw.uvIndex = rec.davis_data.uv_index;
+            lds.davisHw.solarRadiation = rec.davis_data.solar_radiation;
+        }
+    }
+
+    emit liveData(lds);
+}
+
+void DatabaseDataSource::processNewImage(int imageId) {
+    // Firstly, is it an image we care about?
+    if (imageId < 0) {
+        return; // Error
+    }
+
+    QSqlQuery query;
+    query.prepare("select s.code, imgs.code, i.time_stamp \
+                  from image i \
+                  inner join image_source imgs on imgs.image_source_id = i.image_source_id \
+                  inner join station s on s.station_id = imgs.station_id \
+                  where i.image_id = :imageId ");
+    query.bindValue(":imageId", imageId);
+    query.exec();
+
+    if (query.isActive() && query.size() == 1) {
+        NewImageInfo info;
+        info.stationCode = query.value(0).toString().toUpper();
+        info.imageSourceCode = query.value(1).toString().toUpper();
+        info.timestamp = query.value(2).toDateTime();
+        info.imageId = imageId;
+
+        if (info.stationCode != Settings::getInstance().stationCode().toUpper()) {
+            return; // Image is for some other station we don't care about
+        }
+
+        emit newImage(info);
     }
 }
 
@@ -816,8 +857,12 @@ void DatabaseDataSource::fetchImages(QList<int> imageIds, bool thumbnail) {
     }
     QString idArray = "{" + idList.join(",") + "}";
 
-    QString qry = "select image_id, image_data from image "
-                    "where image_id = any(:idArray) order by time_stamp";
+    QString qry = "select i.image_id, i.image_data, i.time_stamp, \
+                          i.title, i.description, i.mime_type, \
+                          upper(imgs.code) as src_code, imgs.source_name \
+                   from image i \
+                   inner join image_source imgs on imgs.image_source_id = i.image_source_id \
+                   where i.image_id = any(:idArray) order by time_stamp";
 
     QSqlQuery query;
     query.prepare(qry);
@@ -839,6 +884,15 @@ void DatabaseDataSource::fetchImages(QList<int> imageIds, bool thumbnail) {
                     record.value("image_data").toByteArray());
         int imageId = record.value("image_id").toInt();
 
+        ImageInfo info;
+        info.id = imageId;
+        info.timeStamp = record.value("time_stamp").toDateTime();
+        info.title = record.value("title").toString();
+        info.description = record.value("description").toString();
+        info.mimeType = record.value("mime_type").toString();
+        info.imageSource.code = record.value("src_code").toString();
+        info.imageSource.name = record.value("source_name").toString();
+
         if (thumbnail) {
             qDebug() << "Thumbnailing image" << imageId;
             // Resize the image
@@ -847,9 +901,9 @@ void DatabaseDataSource::fetchImages(QList<int> imageIds, bool thumbnail) {
                                                     Qt::KeepAspectRatio);
 
             emit thumbnailReady(imageId, thumbnailImage);
-            emit imageReady(imageId, srcImage);
+            emit imageReady(info, srcImage);
         } else {
-            emit imageReady(imageId, srcImage);
+            emit imageReady(info, srcImage);
         }
     }
 }
@@ -863,4 +917,66 @@ void DatabaseDataSource::fetchImage(int imageId) {
 void DatabaseDataSource::fetchThumbnails(QList<int> imageIds) {
     qDebug() << "Fetching thumbnails for" << imageIds;
     fetchImages(imageIds, true);
+}
+
+void DatabaseDataSource::hasActiveImageSources() {
+    // Check to see if there are any active image sources
+    QSqlQuery query;
+    query.prepare("select i.image_id \
+                  from image i \
+                  inner join image_source imgs on imgs.image_source_id = i.image_source_id \
+                  where imgs.station_id = :stationId \
+                    and i.time_stamp >= NOW() - '24 hours'::interval \
+                  limit 1; ");
+    query.bindValue(":stationId", getStationId());
+    query.exec();
+
+    if (query.isActive() && query.size() == 1) {
+        emit activeImageSourcesAvailable();
+        emit archivedImagesAvailable();
+    } else {
+        // No recent images but there could still be old ones...
+        query.prepare("select i.image_id \
+                      from image i \
+                      inner join image_source imgs on imgs.image_source_id = i.image_source_id \
+                      where imgs.station_id = :stationId \
+                      limit 1; ");
+        query.bindValue(":stationId", getStationId());
+        query.exec();
+
+
+        if (query.isActive() && query.size() == 1) {
+            emit archivedImagesAvailable();
+        }
+    }
+}
+
+void DatabaseDataSource::fetchLatestImages() {
+    QSqlQuery query;
+    query.prepare("select i.image_id \
+                  from image i \
+                  inner join ( \
+                      select i.image_source_id, max(i.time_stamp) as max_ts \
+                      from image_source imgs \
+                      inner join image i on i.image_source_id = imgs.image_source_id \
+                      where imgs.station_id = :stationId \
+                      group by i.image_source_id \
+                  ) as x on x.image_source_id = i.image_source_id and x.max_ts = i.time_stamp");
+    query.bindValue(":stationId", getStationId());
+    query.setForwardOnly(true);
+    bool result = query.exec();
+    if (!result || !query.isActive()) {
+        QMessageBox::warning(NULL, "Database Error",
+                             query.lastError().driverText());
+        return;
+    }
+
+    QList<int> imageIds;
+
+    while (query.next()) {
+        QSqlRecord record = query.record();
+        imageIds << record.value("image_id").toInt();
+    }
+
+    fetchImages(imageIds, false);
 }

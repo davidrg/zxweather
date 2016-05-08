@@ -63,7 +63,7 @@ private slots:
     void processImageLoadRequestQueue();
     void imageListReady(QList<ImageInfo> imageList);
     void thumbnailReady(int imageId, QImage thumbnail);
-    void imageReady(int imageId, QImage image);
+    void imageReady(ImageInfo info, QImage image);
 
 private:
     void resetTree();

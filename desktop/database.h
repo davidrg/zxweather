@@ -65,6 +65,14 @@ typedef struct _live_data_record {
     struct _davis_extra davis_data; /*!< Additional fields for Davis hardware */
 } live_data_record;
 
+/* What sort of new data is available
+ */
+typedef struct _notifications {
+    bool live_data; /*!< New live data */
+    bool new_image; /*!< New image */
+    int image_id; /*!< ID of the new image */
+} notifications;
+
 /**
  * @brief wdb_set_signal_adapter sets the signal adapter to be used for
  * converting database errors into Qt Signals.
@@ -111,7 +119,7 @@ live_data_record wdb_get_live_data();
  * @return True if another system has updated the live data since the last time
  * this function was called.
  */
-bool wdb_live_data_available();
+notifications wdb_live_data_available();
 
 /** Gets the type of station currently connected to.
  * @return Station type. One of the ST_ constants.

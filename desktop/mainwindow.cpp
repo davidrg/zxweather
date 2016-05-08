@@ -226,6 +226,7 @@ void MainWindow::reconnectDatabase() {
                                  "functions will not be available. The error "
                                  "was: " + db.lastError().driverText());
             ui->actionCharts->setEnabled(false);
+            ui->actionImages->setEnabled(false);
         } else {
             qDebug() << "Connect succeeded. Checking compatibility...";
             bool result = databaseCompatibilityChecks();
@@ -240,6 +241,7 @@ void MainWindow::reconnectDatabase() {
                              " Unable to connect to database. Charting "
                              " functions will not be available.");
         ui->actionCharts->setEnabled(false);
+        ui->actionImages->setEnabled(false);
     }
 }
 
@@ -447,15 +449,24 @@ void MainWindow::dataSourceError(QString message) {
 }
 
 void MainWindow::reconfigureDataSource() {
+
+    ui->actionImages->setVisible(false);
+
     Settings& settings = Settings::getInstance();
 
     setWindowTitle("zxweather - " + settings.stationCode());
 
-    if (settings.liveDataSourceType() == Settings::DS_TYPE_DATABASE) {
+    Settings::data_source_type_t live_ds_type = settings.liveDataSourceType();
+
+    switch (live_ds_type) {
+    case Settings::DS_TYPE_DATABASE:
         dataSource.reset(new DatabaseDataSource(this,this));
-    } else if (settings.liveDataSourceType() == Settings::DS_TYPE_WEB_INTERFACE){
+        break;
+    case Settings::DS_TYPE_WEB_INTERFACE:
         dataSource.reset(new WebDataSource(this,this));
-    } else {
+        break;
+    case Settings::DS_TYPE_SERVER:
+    default:
         dataSource.reset(new TcpLiveDataSource(this));
     }
 
@@ -489,6 +500,27 @@ void MainWindow::reconfigureDataSource() {
             this, SLOT(dataSourceError(QString)));
 
     dataSource->enableLiveData();
+
+    // Setup a data source for image data
+    switch (settings.sampleDataSourceType()) {
+    case Settings::DS_TYPE_DATABASE:
+        imageDataSource.reset(new DatabaseDataSource(this,this));
+        break;
+    case Settings::DS_TYPE_WEB_INTERFACE:
+        imageDataSource.reset(new WebDataSource(this,this));
+        break;
+    case Settings::DS_TYPE_SERVER:
+    default:
+        qWarning() << "Unexpected sample data source type";
+    }
+
+    connect(imageDataSource.data(), SIGNAL(activeImageSourcesAvailable()),
+            this, SLOT(activeImageSourcesAvailable()));
+    connect(imageDataSource.data(), SIGNAL(archivedImagesAvailable()),
+            this, SLOT(archivedImagesAvailable()));
+    connect(imageDataSource.data(), SIGNAL(imageReady(ImageInfo,QImage)),
+            this, SLOT(imageReady(ImageInfo,QImage)));
+    imageDataSource->hasActiveImageSources();
 
     // Reset late data timer.
     ui->status->reset();
@@ -550,3 +582,14 @@ void MainWindow::liveDataRefreshed(LiveDataSet lds) {
     setFixedWidth(widgetWidth);
 }
 
+void MainWindow::activeImageSourcesAvailable() {
+    imageDataSource->fetchLatestImages();
+}
+
+void MainWindow::archivedImagesAvailable() {
+    ui->actionImages->setVisible(true);
+}
+
+void MainWindow::imageReady(ImageInfo info, QImage image) {
+    // TODO: turn on image tabs and display the images
+}

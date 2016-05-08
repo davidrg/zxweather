@@ -43,6 +43,10 @@ public:
     void fetchImage(int imageId) {}
     void fetchThumbnails(QList<int> imageIds) {}
 
+    void fetchLatestImages();
+
+    void hasActiveImageSources();
+
 private slots:
     void liveDataReady(QNetworkReply* reply);
     void liveDataPoll();
