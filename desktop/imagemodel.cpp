@@ -185,6 +185,7 @@ void TreeItem::setImage(QImage image) {
                 " "+ text().replace(":","_") + " XXXXXX.jpeg");
     image.save(temporaryImageFile);
     temporaryImageFile->flush();
+    temporaryImageFile->close();
 }
 
 QFile* TreeItem::imageFile() const {
@@ -192,7 +193,11 @@ QFile* TreeItem::imageFile() const {
 }
 
 QImage TreeItem::image() const {
-    return QImage::fromData(temporaryImageFile->readAll());
+    temporaryImageFile->open();
+    QImage image = QImage::fromData(temporaryImageFile->readAll());
+    temporaryImageFile->close();
+
+    return image;
 }
 
 void TreeItem::setLoadRequested() {
@@ -510,6 +515,24 @@ int ImageModel::imageId(const QModelIndex &index) const {
     TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
 
     return item->id();
+}
+
+QImage ImageModel::image(const QModelIndex &index) const {
+    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
+
+    if (item->itemType() == IT_IMAGE) {
+        return item->image();
+    }
+    return QImage();
+}
+
+QString ImageModel::imageTemporaryFileName(const QModelIndex &index) const {
+    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
+
+    if (item->itemType() == IT_IMAGE) {
+        return item->imageFile()->fileName();
+    }
+    return "";
 }
 
 int ImageModel::rowCount(const QModelIndex &parent) const {
