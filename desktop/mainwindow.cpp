@@ -50,6 +50,8 @@
 
 #include "config_wizard/configwizard.h"
 
+#include "imagewidget.h"
+
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
@@ -522,6 +524,8 @@ void MainWindow::reconfigureDataSource() {
             this, SLOT(imageReady(ImageInfo,QImage)));
     imageDataSource->hasActiveImageSources();
 
+    // TODO: hide image tabs
+
     // Reset late data timer.
     ui->status->reset();
 }
@@ -591,5 +595,32 @@ void MainWindow::archivedImagesAvailable() {
 }
 
 void MainWindow::imageReady(ImageInfo info, QImage image) {
-    // TODO: turn on image tabs and display the images
+    int tabId;
+
+    QString sourceCode = info.imageSource.code.toUpper();
+    if (!stationCodeTabs.contains(sourceCode)) {
+        // We'll need to add a tab. That tabs ID will be...
+        tabId = ui->imageTabs->count();
+
+        if (!tabWidgets.contains(tabId)) {
+            // Create a widget for the tab
+            tabWidgets[tabId] = new ImageWidget(this);
+            tabWidgets[tabId]->setScaledContents(true);
+        }
+
+        ui->imageTabs->addTab(tabWidgets[tabId], info.imageSource.name);
+    }
+
+    tabWidgets[tabId]->setImage(image, info);
+
+    // Figure out how high the image tab thing should be
+    //                   720            / 1280           * 714
+    float extraHeight = ((float)image.height() / (float)image.width()) * (float)width();
+    //ui->imageTabs->resize(width(), extraHeight); // TODO: width should be less than window.
+
+    int correctHeight = ui->liveData->height() + extraHeight;
+
+    setMaximumHeight(correctHeight);
+    resize(width(), correctHeight);
+    adjustSize();
 }

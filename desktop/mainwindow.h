@@ -30,6 +30,7 @@
 #include <QCloseEvent>
 #include <QScopedPointer>
 #include <QLayoutItem>
+#include <QHash>
 
 #include "livemonitor.h"
 
@@ -39,6 +40,8 @@
 namespace Ui {
 class MainWindow;
 }
+
+class ImageWidget;
 
 /**
  * @brief zxweather Main Window. Displays current conditions and allows the
@@ -171,6 +174,9 @@ private:
     QLayoutItem* spacerItem;
 
     bool solarDataAvailable;
+
+    QHash<int, ImageWidget*> tabWidgets;
+    QHash<QString, int> stationCodeTabs;
 };
 
 #endif // MAINWINDOW_H
