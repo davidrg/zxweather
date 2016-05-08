@@ -291,6 +291,8 @@ void MainWindow::showSettings() {
     if (result == QDialog::Accepted) {
         readSettings();
 
+        hideImagery();
+
         liveMonitor->reconfigure();
 
         Settings& settings = Settings::getInstance();
@@ -622,5 +624,17 @@ void MainWindow::imageReady(ImageInfo info, QImage image) {
 
     setMaximumHeight(correctHeight);
     resize(width(), correctHeight);
+    adjustSize();
+}
+
+void MainWindow::hideImagery() {
+    // Trash the tabs
+    while (ui->imageTabs->count() > 0) {
+        ui->imageTabs->removeTab(0);
+    }
+
+    // Resize the window
+    setMaximumHeight(ui->liveData->height());
+    resize(width(), ui->liveData->height());
     adjustSize();
 }
