@@ -604,7 +604,9 @@ void MainWindow::imageReady(ImageInfo info, QImage image) {
     int tabId;
 
     QString sourceCode = info.imageSource.code.toUpper();
-    if (!stationCodeTabs.contains(sourceCode)) {
+    if (stationCodeTabs.contains(sourceCode)) {
+        tabId = stationCodeTabs[sourceCode];
+    } else {
 
         // We'll need to add a tab. That tabs ID will be...
         tabId = ui->imageTabs->count();
@@ -618,8 +620,6 @@ void MainWindow::imageReady(ImageInfo info, QImage image) {
         ui->imageTabs->addTab(tabWidgets[tabId], info.imageSource.name);
 
         stationCodeTabs[sourceCode] = tabId;
-    } else {
-        tabId = stationCodeTabs[sourceCode];
     }
 
     tabWidgets[tabId]->setImage(image, info);

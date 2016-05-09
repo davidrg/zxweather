@@ -4,6 +4,9 @@
 #include <QUrl>
 #include <QDrag>
 #include <QMimeData>
+#include <QtDebug>
+#include <QMouseEvent>
+#include <QApplication>
 
 ImageWidget::ImageWidget(QWidget *parent) : QLabel(parent)
 {
@@ -30,6 +33,7 @@ void ImageWidget::setImage(QImage image, QString filename) {
         this->filename = filename;
     }
 
+    this->image = image;
     setPixmap(QPixmap::fromImage(image));
     imageSet = true;
 }
@@ -46,6 +50,25 @@ void ImageWidget::mousePressEvent(QMouseEvent *event)
         return;
     }
 
+    if (event->button() == Qt::LeftButton) {
+        dragStartPos = event->pos();
+    }
+
+    QLabel::mousePressEvent(event);
+}
+
+void ImageWidget::mouseMoveEvent(QMouseEvent *event) {
+    if (event->buttons() & Qt::LeftButton) {
+        int distance = (event->pos() - dragStartPos).manhattanLength();
+        if (distance >= QApplication::startDragDistance()) {
+            startDrag();
+        }
+    }
+
+    QLabel::mouseMoveEvent(event);
+}
+
+void ImageWidget::startDrag() {
     QList<QUrl> urls;
     urls << QUrl::fromLocalFile(this->filename);
 
@@ -56,4 +79,28 @@ void ImageWidget::mousePressEvent(QMouseEvent *event)
     drag->setMimeData(mimeData);
 
     drag->exec(Qt::CopyAction, Qt::CopyAction);
+}
+
+void ImageWidget::mouseDoubleClickEvent(QMouseEvent *event) {
+    if (!imageSet) {
+        return; // Nothing to do
+    }
+
+    ImageWidget *w = new ImageWidget();
+    w->setAttribute(Qt::WA_DeleteOnClose);
+    w->setImage(image, info, filename);
+    w->setScaledContents(true);
+
+    QString title = info.title;
+    if (title.isEmpty()){
+        title = info.timeStamp.toString();
+    } else {
+        w->setToolTip(info.timeStamp.toString());
+    }
+
+    title += " - " + info.imageSource.name;
+
+    w->setWindowTitle(title);
+
+    w->show();
 }
