@@ -338,7 +338,7 @@ void ImageModel::imageDatesReady(QList<ImageDate> dates,
                 QStringList imageSourceCodes = sourceTree[year][month][day];
 
                 QString srcCode = "";
-                if (imageSources.count() == 1) {
+                if (imageSourceCodes.count() == 1) {
                     srcCode = imageSourceCodes.first();
                 }
 
@@ -354,7 +354,7 @@ void ImageModel::imageDatesReady(QList<ImageDate> dates,
 
                 // Only bother adding image source nodes if there is more than
                 // one for this particular date.
-                if (imageSources.count() > 1) {
+                if (imageSourceCodes.count() > 1) {
                     foreach (QString imageSourceCode, imageSourceCodes) {
 
                         TreeItem *src = new TreeItem(
