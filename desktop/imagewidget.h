@@ -22,13 +22,20 @@ public:
 
 protected:
     void mousePressEvent(QMouseEvent *event);
+    void mouseMoveEvent(QMouseEvent *event);
+    void mouseDoubleClickEvent(QMouseEvent *event);
 
 private:
     QString filename;
     bool imageSet;
     ImageInfo info;
+    QImage image;
+
+    QPoint dragStartPos;
 
     QScopedPointer<QTemporaryFile> imageFile;
+
+    void startDrag();
 };
 
 #endif // IMAGEWIDGET_H
