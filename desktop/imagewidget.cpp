@@ -88,7 +88,7 @@ void ImageWidget::mouseDoubleClickEvent(QMouseEvent *event) {
 
     ImageWidget *w = new ImageWidget();
     w->setAttribute(Qt::WA_DeleteOnClose);
-    w->setImage(image, info, filename);
+    w->setImage(image, info);
     w->setScaledContents(true);
 
     QString title = info.title;
