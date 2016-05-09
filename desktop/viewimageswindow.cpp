@@ -57,7 +57,9 @@ ViewImagesWindow::~ViewImagesWindow()
 
 void ViewImagesWindow::listItemDoubleClicked(QModelIndex index) {
     // Double click to open folders
+
     if (!model->isImage(index)){
+        ui->tvImageSet->expand(index);
         ui->lvImageList->setRootIndex(index);
     }
 }
@@ -84,7 +86,9 @@ void ViewImagesWindow::treeItemSelectionChanged(QItemSelection selected,
 
     QModelIndex index = selected.indexes().first();
 
-    if (!model.data()->isImage(index)) {
+    if (model.data()->isImage(index)) {
+        ui->lvImageList->setRootIndex(selected.indexes().first().parent());
+    } else {
         ui->lvImageList->setRootIndex(selected.indexes().first());
     }
 
