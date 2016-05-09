@@ -247,7 +247,6 @@ void MainWindow::reconnectDatabase() {
     }
 }
 
-
 MainWindow::~MainWindow()
 {
     sysTrayIcon->hide();
@@ -503,6 +502,9 @@ void MainWindow::reconfigureDataSource() {
     connect(dataSource.data(), SIGNAL(error(QString)),
             this, SLOT(dataSourceError(QString)));
 
+    connect(dataSource.data(), SIGNAL(newImage(NewImageInfo)),
+            this, SLOT(newImage(NewImageInfo)));
+
     dataSource->enableLiveData();
 
     // Setup a data source for image data
@@ -597,10 +599,13 @@ void MainWindow::archivedImagesAvailable() {
 }
 
 void MainWindow::imageReady(ImageInfo info, QImage image) {
+    qDebug() << "Processing image" << info.id << "for image source" << info.imageSource.code;
+
     int tabId;
 
     QString sourceCode = info.imageSource.code.toUpper();
     if (!stationCodeTabs.contains(sourceCode)) {
+
         // We'll need to add a tab. That tabs ID will be...
         tabId = ui->imageTabs->count();
 
@@ -611,6 +616,10 @@ void MainWindow::imageReady(ImageInfo info, QImage image) {
         }
 
         ui->imageTabs->addTab(tabWidgets[tabId], info.imageSource.name);
+
+        stationCodeTabs[sourceCode] = tabId;
+    } else {
+        tabId = stationCodeTabs[sourceCode];
     }
 
     tabWidgets[tabId]->setImage(image, info);
@@ -637,4 +646,9 @@ void MainWindow::hideImagery() {
     setMaximumHeight(ui->liveData->height());
     resize(width(), ui->liveData->height());
     adjustSize();
+}
+
+void MainWindow::newImage(NewImageInfo imageInfo) {
+    qDebug() << "newImage available" << imageInfo.imageId;
+    imageDataSource->fetchImage(imageInfo.imageId);
 }

@@ -570,9 +570,11 @@ void DatabaseDataSource::processLiveData() {
 void DatabaseDataSource::processNewImage(int imageId) {
     // Firstly, is it an image we care about?
     if (imageId < 0) {
+        qWarning() << "Invalid image id" << imageId;
         return; // Error
     }
 
+    qDebug() << "Fetching new image...";
     QSqlQuery query;
     query.prepare("select s.code, imgs.code, i.time_stamp \
                   from image i \
@@ -582,7 +584,9 @@ void DatabaseDataSource::processNewImage(int imageId) {
     query.bindValue(":imageId", imageId);
     query.exec();
 
+
     if (query.isActive() && query.size() == 1) {
+        query.first();
         NewImageInfo info;
         info.stationCode = query.value(0).toString().toUpper();
         info.imageSourceCode = query.value(1).toString().toUpper();
@@ -590,9 +594,11 @@ void DatabaseDataSource::processNewImage(int imageId) {
         info.imageId = imageId;
 
         if (info.stationCode != Settings::getInstance().stationCode().toUpper()) {
+            qDebug() << "Image is for uninteresting station";
             return; // Image is for some other station we don't care about
         }
 
+        qDebug() << "Got image.";
         emit newImage(info);
     }
 }
@@ -961,7 +967,8 @@ void DatabaseDataSource::fetchLatestImages() {
                       inner join image i on i.image_source_id = imgs.image_source_id \
                       where imgs.station_id = :stationId \
                       group by i.image_source_id \
-                  ) as x on x.image_source_id = i.image_source_id and x.max_ts = i.time_stamp");
+                  ) as x on x.image_source_id = i.image_source_id and x.max_ts = i.time_stamp \
+                  where i.time_stamp >= NOW() - '24 hours'::interval ");
     query.bindValue(":stationId", getStationId());
     query.setForwardOnly(true);
     bool result = query.exec();
