@@ -94,7 +94,8 @@ public:
     virtual void fetchThumbnails(QList<int> imageIds) = 0;
 
     /** Fetches the latest image for each image source associated with
-     * this station.
+     * this station. Only images taken in the last 24 hours will be included
+     * so that no longer active image sources get excluded.
      */
     virtual void fetchLatestImages() = 0;
 
