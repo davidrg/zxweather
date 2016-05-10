@@ -59,19 +59,6 @@ MainWindow::MainWindow(QWidget *parent) :
     qDebug() << "MainWindow::MainWindow...";
     ui->setupUi(this);
 
-    // Make the window a fixed size.
-    ui->statusBar->setSizeGripEnabled(false);
-    ui->statusBar->hide();
-
-    // Setup window size.
-    int widgetWidth = ui->liveData->width();
-    widgetWidth += ui->gridLayout->margin() * 2;
-    widgetWidth += ui->forecast->width();
-    widgetWidth += ui->gridLayout->verticalSpacing();
-    setFixedWidth(widgetWidth);
-    // The height is set in main.cpp
-
-
     // The UI is configured for a Davis Vantage Pro 2 Plus by default
     last_hw_type = HW_DAVIS;
     solarDataAvailable = true;
@@ -544,8 +531,7 @@ void MainWindow::setSolarDataAvailable(bool available) {
     solarDataAvailable = available;
 
     ui->liveData->setSolarDataAvailable(solarDataAvailable);
-
-    setFixedHeight(minimumHeight());
+    adjustSize();
 }
 
 void MainWindow::liveDataRefreshed(LiveDataSet lds) {
@@ -601,6 +587,9 @@ void MainWindow::archivedImagesAvailable() {
 void MainWindow::imageReady(ImageInfo info, QImage image) {
     qDebug() << "Processing image" << info.id << "for image source" << info.imageSource.code;
 
+    // Fix its width so that the image doesn't cause the parent window to resize horizontally.
+    ui->imageTabs->setFixedWidth(width() - layout()->margin() * 2);
+
     int tabId;
 
     QString sourceCode = info.imageSource.code.toUpper();
@@ -614,6 +603,7 @@ void MainWindow::imageReady(ImageInfo info, QImage image) {
         if (!tabWidgets.contains(tabId)) {
             // Create a widget for the tab
             tabWidgets[tabId] = new ImageWidget(this);
+            tabWidgets[tabId]->setFixedWidth(width());
             tabWidgets[tabId]->setScaledContents(true);
         }
 
@@ -623,17 +613,17 @@ void MainWindow::imageReady(ImageInfo info, QImage image) {
     }
 
     tabWidgets[tabId]->setImage(image, info);
+    tabWidgets[tabId]->adjustSize();
 
-    // Figure out how high the image tab thing should be
-    //                   720            / 1280           * 714
-    float extraHeight = ((float)image.height() / (float)image.width()) * (float)width();
-    //ui->imageTabs->resize(width(), extraHeight); // TODO: width should be less than window.
+//    // Figure out how high the image tab thing should be
+//    //                   720            / 1280           * 714
+    float extraHeight = ((float)image.height() / (float)image.width()) * (float)tabWidgets[tabId]->width();
+    tabWidgets[tabId]->setFixedHeight(extraHeight);
 
-    int correctHeight = ui->liveData->height() + extraHeight;
-
-    setMaximumHeight(correctHeight);
-    resize(width(), correctHeight);
-    adjustSize();
+    if (!ui->imageTabs->isVisible()) {
+        ui->imageTabs->show();
+        adjustSize();
+    }
 }
 
 void MainWindow::hideImagery() {
@@ -641,10 +631,12 @@ void MainWindow::hideImagery() {
     while (ui->imageTabs->count() > 0) {
         ui->imageTabs->removeTab(0);
     }
+    ui->imageTabs->hide();
 
-    // Resize the window
-    setMaximumHeight(ui->liveData->height());
-    resize(width(), ui->liveData->height());
+    QTimer::singleShot(0,this, SLOT(adjustSizeSlot()));
+}
+
+void MainWindow::adjustSizeSlot() {
     adjustSize();
 }
 
