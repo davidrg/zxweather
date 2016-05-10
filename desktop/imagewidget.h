@@ -20,6 +20,7 @@ public:
 
     void setPixmap(const QPixmap &pixmap);
 
+    int heightForWidth(int width ) const;
 protected:
     void mousePressEvent(QMouseEvent *event);
     void mouseMoveEvent(QMouseEvent *event);

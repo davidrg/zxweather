@@ -7,12 +7,18 @@
 #include <QtDebug>
 #include <QMouseEvent>
 #include <QApplication>
+#include <QGridLayout>
 
 ImageWidget::ImageWidget(QWidget *parent) : QLabel(parent)
 {
     setText("");
     setAcceptDrops(true);
     imageSet = false;
+
+    // Try to maintain aspect ratio for whatever our dimensions are
+    QSizePolicy policy(QSizePolicy::Preferred, QSizePolicy::Preferred);
+    policy.setHeightForWidth(true);
+    setSizePolicy(policy);
 }
 
 void ImageWidget::setPixmap(const QPixmap &pixmap) {
@@ -86,16 +92,28 @@ void ImageWidget::mouseDoubleClickEvent(QMouseEvent *event) {
         return; // Nothing to do
     }
 
-    ImageWidget *w = new ImageWidget();
+    QWidget *w = new QWidget();
     w->setAttribute(Qt::WA_DeleteOnClose);
-    w->setImage(image, info);
-    w->setScaledContents(true);
+    w->setPalette(QPalette(QColor(Qt::black)));
+
+    QGridLayout *l = new QGridLayout(w);
+    l->setMargin(0);
+
+    ImageWidget *iw = new ImageWidget(w);
+    iw->setImage(image, info);
+    iw->setScaledContents(true);
+
+    l->addItem(new QSpacerItem(1,1,QSizePolicy::Expanding, QSizePolicy::Expanding),0,0);
+    l->addWidget(iw,1,0);
+    l->addItem(new QSpacerItem(1,1,QSizePolicy::Expanding, QSizePolicy::Expanding),2,0);
+
+    w->setLayout(l);
 
     QString title = info.title;
     if (title.isEmpty()){
         title = info.timeStamp.toString();
     } else {
-        w->setToolTip(info.timeStamp.toString());
+        iw->setToolTip(info.timeStamp.toString());
     }
 
     title += " - " + info.imageSource.name;
@@ -103,4 +121,9 @@ void ImageWidget::mouseDoubleClickEvent(QMouseEvent *event) {
     w->setWindowTitle(title);
 
     w->show();
+}
+
+// To maintain aspect ratio
+int ImageWidget::heightForWidth(int width) const {
+    return (int)(((float)image.height() / (float)image.width()) * (float)width);
 }
