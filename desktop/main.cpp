@@ -32,8 +32,8 @@ int main(int argc, char *argv[])
     QCoreApplication::setApplicationName("zxweather-desktop");
 
     MainWindow w;
+    w.adjustSize();
     w.show();
-    w.setFixedHeight(w.minimumHeight());
 
     return a.exec();
 }
