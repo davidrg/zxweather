@@ -1,0 +1,4 @@
+web.py
+Jinja2
+Pillow
+psycopg2

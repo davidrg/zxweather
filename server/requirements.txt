@@ -1,0 +1,9 @@
+psycopg2
+twisted
+txpostgres
+autobahn==0.5.14
+pytz
+python-dateutil
+pyOpenSSL
+pika
+txaio
