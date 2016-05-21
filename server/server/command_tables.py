@@ -327,6 +327,7 @@ base_syntaxes = [
         qualifiers=[
             qualifier(name="live"),
             qualifier(name="samples"),
+            qualifier(name="images"),
             qualifier(name="from_timestamp", type="string"),
         ]
     ),

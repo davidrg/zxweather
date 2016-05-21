@@ -6,7 +6,8 @@ from datetime import datetime, timedelta
 
 import math
 import pytz
-from server.database import get_live_csv, get_sample_csv, get_station_hw_type
+from server.database import get_live_csv, get_sample_csv, get_station_hw_type, \
+    get_image_csv
 
 __author__ = 'david'
 
@@ -14,7 +15,9 @@ subscriptions = {}
 _last_sample_ts = {}
 _latest_live = {}
 
-def subscribe(subscriber, station, include_live, include_samples):
+
+def subscribe(subscriber, station, include_live, include_samples,
+              include_images):
     """
     Adds a new station data subscription
     :param subscriber: The object that data should be delivered to
@@ -24,11 +27,15 @@ def subscribe(subscriber, station, include_live, include_samples):
     :type include_live: bool
     :param include_samples: If samples are wanted
     :type include_samples: bool
+    :param include_images: If images are wanted. Image subscriptions only
+                           contain enough data to find the image, they don't
+                           include the images themselves.
+    :type include_images: bool
     """
     global subscriptions, _latest_live
 
     if station not in subscriptions:
-        subscriptions[station] = {"s":[],"l":[]}
+        subscriptions[station] = {"s": [], "l": [], "i": []}
 
     if include_live:
         subscriptions[station]["l"].append(subscriber)
@@ -38,6 +45,9 @@ def subscribe(subscriber, station, include_live, include_samples):
             subscriber.live_data(_latest_live[station])
     if include_samples:
         subscriptions[station]["s"].append(subscriber)
+    if include_images:
+        subscriptions[station]["i"].append(subscriber)
+
 
 def unsubscribe(subscriber, station):
     """
@@ -53,6 +63,10 @@ def unsubscribe(subscriber, station):
 
     if subscriber in subscriptions[station]["l"]:
         subscriptions[station]["l"].remove(subscriber)
+
+    if subscriber in subscriptions[station]["i"]:
+        subscriptions[station]["i"].remove(subscriber)
+
 
 def deliver_live_data(station, data):
     """
@@ -74,6 +88,26 @@ def deliver_live_data(station, data):
     for subscriber in subscribers:
         subscriber.live_data(data)
 
+
+def deliver_image_data(station, data):
+    """
+    delivers image data to all subscribers
+    :param station: The station this image is for
+    :type station: str
+    :param data: Image data
+    :type data: str
+    """
+    global subscriptions
+
+    if station not in subscriptions:
+        return
+
+    subscribers = subscriptions[station]["i"]
+
+    for subscriber in subscribers:
+        subscriber.live_data(data)
+
+
 def deliver_sample_data(station, data):
     """
     delivers sample data to all subscribers
@@ -92,12 +126,30 @@ def deliver_sample_data(station, data):
     for subscriber in subscribers:
         subscriber.sample_data(data)
 
+
 def _station_live_updated_callback(data, code):
 
     row = data[0]
 
     dat = "l,{0}".format(row[0])
     deliver_live_data(code, dat)
+
+
+def _new_image_callback(data):
+    row = data[0]
+    station_code = row[0]
+    source_code = row[1]
+    type_code = row[2]
+    time_stamp = row[3]  # Timzone is at original local time
+
+    dat = "i,{station_code},{source_code},{type_code},{timestamp}".format(
+        station_code=station_code,
+        source_code=source_code,
+        type_code=type_code,
+        timestamp = time_stamp.isoformat()
+    )
+
+    deliver_image_data(station_code, dat)
 
 
 # Format strings for live data broadcast over RabbitMQ.
@@ -267,6 +319,13 @@ def station_live_updated(station_code, data=None):
         # query - one row with one column.
         val = [[val, ], ]
         _station_live_updated_callback(val, station_code)
+
+
+def new_image(image_id):
+    # We have the ID of a new image. We need to fetch that images metadata
+    # (including the station its source is associated with) then push the
+    # notification out.
+    get_image_csv(image_id).addCallback(_new_image_callback)
 
 
 def _station_samples_updated_callback(data, code):
