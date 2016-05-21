@@ -408,6 +408,21 @@ class StreamCommand(Command):
     arrive either in the database or from other clients.
     """
 
+    def __init__(self, output_callback, finished_callback, halt_input_callback,
+                 resume_input_callback, environment, parameters, qualifiers):
+
+        super(StreamCommand, self).__init__(output_callback, finished_callback,
+                                            halt_input_callback,
+                                            resume_input_callback, environment,
+                                            parameters, qualifiers)
+        self.subscribed_station = None
+        self.current_live = None
+        self.sample_buffer = []
+        self.buffer_data = False
+        self.subscribe_live = False
+        self.subscribe_samples = False
+        self.subscribe_images = False
+
     def _send_catchup(self, data):
         for row in data:
             # We use ISO 8601 date formatting for output.
@@ -433,22 +448,28 @@ class StreamCommand(Command):
         get_sample_csv(station, start_timestamp, end_timestamp).addCallback(
             self._send_catchup)
 
-
-    def subscribe(self, station, live, samples):
+    def subscribe(self, station, live, samples, images):
         """
         Subscribes to a data feed for the specified station
-        :param station:
-        :param live:
-        :param samples:
-        :return:
+        :param station: Station to subscribe to data for
+        :type station: str
+        :param live: If live data should be included in the subscription
+        :type live: bool
+        :param samples: If samples should be include in the subscription
+        :type samples: bool
+        :param images: If images should be included in the subscription
+        ;type images: bool
+        :return: Current time at UTC
+        :rtype: datetime
         """
         self.subscribed_station = station
         self.subscribe_live = live
         self.subscribe_samples = samples
+        self.subscribe_images = images
 
-        subscriptions.subscribe(self, station, live, samples)
+        subscriptions.subscribe(self, station, live, samples, images)
 
-        return datetime.utcnow().replace(tzinfo = pytz.utc)
+        return datetime.utcnow().replace(tzinfo=pytz.utc)
 
     def unsubscribe(self):
         """
@@ -456,7 +477,6 @@ class StreamCommand(Command):
         """
         if self.subscribed_station is not None:
             subscriptions.unsubscribe(self, self.subscribed_station)
-
 
     def live_data(self, data):
         """
@@ -483,56 +503,67 @@ class StreamCommand(Command):
         else:
             self.sample_buffer.append(data)
 
+    def image_data(self, data):
+        """
+        Called by the subscription stuff when ever new images are available.
+        :param data: The new data
+        :type data: str
+        """
+        self.writeLine(data)
+
     def main(self):
         """
         Sets up subscriptions.
         """
-        self.subscribed_station = None
-        self.current_live = None
-        self.sample_buffer = []
-        self.haltInput() # This doesn't take any user input.
+        self.haltInput()  # This doesn't take any user input.
 
         station_code = self.parameters[0]
         stream_live = "live" in self.qualifiers
         stream_samples = "samples" in self.qualifiers
+        stream_images = "images" in self.qualifiers
         from_timestamp = None
-        if stream_live is False and stream_samples is False:
+        if stream_live is False and stream_samples is False \
+                and stream_images is False:
             self.writeLine("Nothing to stream.")
             return
 
         if "from_timestamp" in self.qualifiers:
 
             try:
-                from_timestamp = dateutil.parser.parse(self.qualifiers["from_timestamp"])
+                from_timestamp = dateutil.parser.parse(
+                        self.qualifiers["from_timestamp"])
             except Exception as e:
                 self.writeLine("Error: {0}".format(e.message))
                 return
 
-            now = datetime.utcnow().replace(tzinfo = pytz.utc)
+            now = datetime.utcnow().replace(tzinfo=pytz.utc)
             if from_timestamp < now - timedelta(hours=2):
                 self.writeLine("Error: Catchup only allows a maximum of "
                                "2 hours of data.")
                 return
 
-        subset = "live and sample"
+        components = []
+        if stream_live:
+            components.append("live")
+        if stream_samples:
+            components.append("samples")
+        if stream_images:
+            components.append("images")
+        subset = " and ".join(components)
+
         catchup = ""
-        if stream_live is True and stream_samples is False:
-            subset = "live"
-        elif stream_live is False and stream_samples is True:
-            subset = "sample"
         if from_timestamp is not None:
             catchup = " catching up from {0}".format(from_timestamp)
 
-        self.writeLine("# Streaming {0} data for station '{1}'{2}. Send ^C to stop.".format(subset,
-            station_code, catchup))
-
+        self.writeLine("# Streaming {0} data for station '{1}'{2}. "
+                       "Send ^C to stop.".format(subset, station_code, catchup))
 
         # Turn on data buffering (in case we need to catchup first) and
         # subscribe to the data feed. This will return the time when our
         # subscription started.
         self.buffer_data = True
         subscription_start = self.subscribe(station_code, stream_live,
-            stream_samples)
+                                            stream_samples, stream_images)
 
         # If we're supposed to catchup then grab all data for the station
         # from the catchup time through to when we started our subscription.
@@ -540,15 +571,14 @@ class StreamCommand(Command):
         # as the catchup has finished and data buffering gets disabled again.
         if from_timestamp is not None:
             self.perform_catchup(station_code, from_timestamp,
-                subscription_start)
+                                 subscription_start)
         else:
             # We're not doing a catchup. No need to buffer data.
             self.buffer_data = False
 
-
         # Turn it off here so that early returns above will terminate the
         # command automatically. If we get this far then everything is OK and
-        # we don't want to autoterminate.
+        # we don't want to auto-terminate.
         self.auto_exit = False
 
     def cleanUp(self):
@@ -728,7 +758,6 @@ class ShowLiveCommand(Command):
         #
         self.ready = True
 
-
     def main(self):
         """
         Sets up subscriptions.
@@ -744,15 +773,15 @@ class ShowLiveCommand(Command):
         self.haltInput() # This doesn't take any user input.
         self.terminal = self.environment["terminal"]
 
-
         self.ready = False
-        subscriptions.subscribe(self, self.subscribed_station, True, False)
+        subscriptions.subscribe(self, self.subscribed_station, True, False,
+                                False)
 
         get_station_info(self.subscribed_station).addCallback(self._setup)
 
         # Turn it off here so that early returns above will terminate the
         # command automatically. If we get this far then everything is OK and
-        # we don't want to autoterminate.
+        # we don't want to auto-terminate.
         self.auto_exit = False
 
 

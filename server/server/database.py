@@ -270,6 +270,40 @@ fetch first 1 rows only
         return database_pool.runQuery(query_cols + query_top,
             (station_code_id[station_code], ))
 
+
+def get_image_csv(image_id):
+    """
+    Fetches metadata for the specified image that could be used to locate the
+    image in other databases where the image may go by a different ID.
+    :param image_id:
+    :return:
+    """
+
+    # This data needs to be sufficient to either:
+    #   - Fetch the image from the database without knowing its ID
+    #   - Fetch the image by generating a URL for the Web interface
+    #
+    # The data to uniquely identify the image would be:
+    #   - The station Code
+    #   - Image source code
+    #   - The image type code
+    #   - Timestamp
+
+    query = """
+    select stn.code as station_code,
+           src.code as source_code,
+           typ.code as image_type_code,
+           img.time_stamp as image_timestamp
+    from image img
+    inner join image_type typ on typ.image_type_id = img.image_type_id
+    inner join image_source src on src.image_source_id = img.image_source_id
+    inner join station stn on stn.station_id = src.station_id
+    where img.image_id = %s
+    """
+
+    return database_pool.runQuery(query, (image_id,))
+
+
 def get_station_hw_type(code):
     """
     Gets the hardware type for the specified station
