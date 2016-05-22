@@ -637,7 +637,6 @@ function check_for_new_records(sample) {
     if (new_records.length > 0) {
         // records changed, update the UI
         update_records_table();
-        console.log(new_records);
     }
 }
 
