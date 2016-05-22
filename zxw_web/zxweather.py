@@ -29,7 +29,8 @@ urls = (
     # Data sources (mostly JSON)
     # /data/station/year/month/day/... (month is in number format here)
     # All code resides in the data package.
-    '/data/(\w*)/(\d+)/(\d+)/(\d+)/images/(\w*)/(\d+)/(\w*).(\w*)', 'data.daily.image', # Daily, image
+    '/data/(\w*)/(\d+)/(\d+)/(\d+)/images/(\w*)/(\d+)/(\w*).(\w*)', 'data.daily.image_old', # Daily, image (obsolete - redirects to route below)
+    '/data/(\w*)/(\d+)/(\d+)/(\d+)/images/(\w*)/(\w*)/(\w*).(\w*)', 'data.daily.image', # Daily, image
     '/data/(\w*)/(\d+)/(\d+)/(\d+)/datatable/(\w*).json', 'data.daily.dt_json',     # Daily, DT
     '/data/(\w*)/(\d+)/(\d+)/(\d+)/(\w*).txt', 'data.daily.data_ascii',             # Daily
     '/data/(\w*)/(\d+)/(\d+)/(\d+)/(\w*).dat', 'data.daily.data_dat',               # Daily

@@ -19,7 +19,8 @@ from database import get_years, get_live_data, get_station_id, get_latest_sample
     get_image_source, get_day_images_for_source, \
     get_most_recent_image_id_for_source, get_current_3h_trends, \
     get_month_rainfall, get_year_rainfall, get_last_hour_rainfall, \
-    get_10m_avg_bearing_max_gust, get_day_wind_run, get_cumulus_dayfile_data
+    get_10m_avg_bearing_max_gust, get_day_wind_run, get_cumulus_dayfile_data, \
+    get_image_source_info
 import os
 
 import math
@@ -145,6 +146,8 @@ class data_json:
             return live_data(station_id)
         elif dataset == 'samplerange':
             return sample_range(station_id)
+        elif dataset == 'image_sources':
+            return image_sources(station_id)
         elif dataset == 'about':
             nav = about_nav()
             return nav.GET(station)
@@ -299,6 +302,32 @@ def sample_range(station_id):
     return json.dumps(result)
 
 
+def image_sources(station_id):
+    """
+    Returns some basic information about each image source present for a given
+    station id. This includes name, description, dates for first and last image
+    and if the source is currently active (has images taken in the last 24
+    hours)
+    :param station_id: Station to get image sources for
+    :type station_id: int
+    """
+    result = {}
+
+    data = get_image_source_info(station_id)
+    if data is not None:
+        for row in data:
+            result[row.code] = {
+                'name': row.source_name,
+                'description': row.description,
+                'first_image': row.first_image.isoformat(),
+                'last_image': row.last_image.isoformat(),
+                'is_active': row.is_active
+            }
+
+    web.header('Content-Type', 'application/json')
+    return json.dumps(result)
+
+
 class images:
     """
     Provides an index of available daily data sources
@@ -346,6 +375,7 @@ class images:
                 source_code=source_code,
                 image_list=image_set,
                 extensions=extensions)
+
 
 class latest_image:
     """

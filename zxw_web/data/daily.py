@@ -5,12 +5,13 @@ Used for generating charts in JavaScript, etc.
 """
 import mimetypes
 import os
-from datetime import date, datetime, timedelta
+from datetime import date, time, datetime, timedelta
 
 from cache import day_cache_control, rfcformat, cache_control_headers
 from database import get_daily_records, get_daily_rainfall, get_latest_sample_timestamp, day_exists, get_station_id, \
     get_davis_max_wireless_packets, image_exists, get_image_metadata, get_image, \
-    get_image_mime_type, get_day_data_wp
+    get_image_mime_type, get_day_data_wp, get_image_id, \
+    get_image_type_and_ts_info
 import web
 import config
 import json
@@ -820,12 +821,57 @@ class dt_json:
         this_date = date(int(year),int(month),int(day))
         return dt_json_dispatch(station, dataset, this_date)
 
+
+class image_old:
+    """
+    Handles the old URL scheme that includes the local image id. This is just
+    to handle any existing bookmarked links, etc.
+    """
+
+    def GET(self, station, year, month, day, source, image_id, mode, extension):
+
+        # The URL to get here is:
+        # /data/station_code/year/month/day/images/source/image_id/mode.extension
+        # We need to redirect to here:
+        # /data/station_code/year/month/day/images/source/image_time/type_mode.extension
+        # which can be done relatively:
+        # ../image_time/type_mode.extension
+        #
+        # To build this URL we need:
+        #  -> Timestamp
+        #  -> Image type
+        # We have the rest of the details from the existing URL.
+
+        details = get_image_type_and_ts_info(image_id)
+        if details is None:
+            raise web.NotFound()
+
+        url = "/data/{station}/{year}/{month}/{day}/images/{src}/{h}_{m}_{s}/" \
+              "{typ}_{mode}.{ext}".format(
+                station=station,
+                year=year,
+                month=month,
+                day=day,
+                src=source,
+                h=details.time_stamp.hour,
+                m=details.time_stamp.minute,
+                s=details.time_stamp.second,
+                typ=details.code.lower(),
+                mode=mode,
+                ext=extension
+        )
+
+        # Permanent (301) redirect
+        raise web.redirect(url)
+
+
 class image:
     """
     Gets an image
     """
 
-    def GET(self, station, year, month, day, source, image_id, mode, extension):
+    def GET(self, station, year, month, day, source, image_time, type_mode,
+            extension):
         """
         Fetches an image from the database.
 
@@ -839,10 +885,10 @@ class image:
         :type day: str
         :param source: Image source code
         :type source: str
-        :param image_id: Image id
-        :type image_id: int
-        :param mode: image mode - full, thumbnail or metadata
-        :type mode: str
+        :param image_time: Image time string (eg 15_10_00)
+        :type image_time: str
+        :param type_mode: image type (eg, cam) and mode - full, thumbnail or metadata
+        :type type_mode: str
         :param extension: Image file extension.
         :type extension: str
         :return: The image
@@ -850,7 +896,15 @@ class image:
 
         this_date = date(int(year), int(month), int(day))
 
-        image_id = int(image_id)
+        type_mode_bits = type_mode.split('_')
+        image_type = type_mode_bits[0].lower()
+        mode = type_mode_bits[1]
+
+        t = datetime.strptime(image_time, "%H_%M_%S")
+        time_stamp = datetime(this_date.year, this_date.month, this_date.day,
+                              t.hour, t.minute, t.second)
+
+        image_id = get_image_id(source, image_type, time_stamp)
 
         if not image_exists(station, this_date, source, image_id):
             raise web.NotFound()
