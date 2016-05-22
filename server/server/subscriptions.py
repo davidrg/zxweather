@@ -141,13 +141,15 @@ def _new_image_callback(data):
     source_code = row[1]
     type_code = row[2]
     time_stamp = row[3]  # Timzone is at original local time
+    mime_type = row[4]
 
-    dat = "i,{station_code},{source_code},{type_code},{timestamp}".format(
-        station_code=station_code,
-        source_code=source_code,
-        type_code=type_code,
-        timestamp = time_stamp.isoformat()
-    )
+    dat = "i,{station_code},{source_code},{type_code},{timestamp}," \
+          "{mime_type}".format(
+            station_code=station_code,
+            source_code=source_code,
+            type_code=type_code,
+            timestamp=time_stamp.isoformat(),
+            mime_type=mime_type)
 
     deliver_image_data(station_code, dat)
 

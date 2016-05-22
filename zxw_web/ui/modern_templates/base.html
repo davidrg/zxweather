@@ -41,9 +41,9 @@
  -#}
 {%- macro navli(id, name) -%}
     {% if nav[id] == "#" or nav[id] == "./" -%}
-    <li class="active">
+    <li class="active" id="nav_{{ id }}">
     {%- else -%}
-    <li>
+    <li id="nav_{{ id }}">
     {%- endif -%}
     <a href="{{ nav[id] }}">{{ name }}</a></li>
 {%- endmacro %}

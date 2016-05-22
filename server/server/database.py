@@ -236,30 +236,37 @@ def get_sample_csv(station_code, start_time, end_time=None):
     :rtype: Deferred
     """
 
+    # TODO: add in davis data (uv, solar rad)
+
     query_cols = """
 select time_stamp,
-       coalesce(round(temperature::numeric, 2)::varchar, 'None') || ',' ||
-       coalesce(round(dew_point::numeric, 2)::varchar, 'None') || ',' ||
-       coalesce(round(apparent_temperature::numeric, 2)::varchar, 'None')||','||
-       coalesce(round(wind_chill::numeric, 2)::varchar, 'None') || ',' ||
-       coalesce(relative_humidity::varchar, 'None') || ',' ||
-       coalesce(round(indoor_temperature::numeric, 2)::varchar, 'None') ||','||
-       coalesce(indoor_relative_humidity::varchar, 'None') || ',' ||
-       coalesce(absolute_pressure::varchar, 'None') || ',' ||
-       coalesce(round(average_wind_speed::numeric, 2)::varchar, 'None') || ','||
-       coalesce(round(gust_wind_speed::numeric, 2)::varchar, 'None') || ',' ||
-       coalesce(wind_direction::varchar, 'None') || ',' ||
-       coalesce(rainfall::varchar, 'None')
-from sample
-where station_id = %s
+       coalesce(round(s.temperature::numeric, 2)::varchar, 'None') || ',' ||
+       coalesce(round(s.dew_point::numeric, 2)::varchar, 'None') || ',' ||
+       coalesce(round(s.apparent_temperature::numeric, 2)::varchar, 'None')||','||
+       coalesce(round(s.wind_chill::numeric, 2)::varchar, 'None') || ',' ||
+       coalesce(s.relative_humidity::varchar, 'None') || ',' ||
+       coalesce(round(s.indoor_temperature::numeric, 2)::varchar, 'None') ||','||
+       coalesce(s.indoor_relative_humidity::varchar, 'None') || ',' ||
+       coalesce(s.absolute_pressure::varchar, 'None') || ',' ||
+       coalesce(round(s.average_wind_speed::numeric, 2)::varchar, 'None') || ','||
+       coalesce(round(s.gust_wind_speed::numeric, 2)::varchar, 'None') || ',' ||
+       coalesce(s.wind_direction::varchar, 'None') || ',' ||
+       coalesce(s.rainfall::varchar, 'None') ||
+
+       coalesce(round(ds.average_uv_index::numeric, 2)::varchar || ',' ||
+                round(ds.solar_radiation, 2)::varchar,
+                '')
+from sample s
+left outer join davis_sample ds on ds.sample_id = s.sample_id
+where s.station_id = %s
         """
     query_date = """
-and time_stamp > %s
-and (%s is null OR time_stamp < %s)
-order by time_stamp asc
+and s.time_stamp > %s
+and (%s is null OR s.time_stamp < %s)
+order by s.time_stamp asc
         """
     query_top = """
-order by time_stamp desc
+order by s.time_stamp desc
 fetch first 1 rows only
     """
 
@@ -293,7 +300,8 @@ def get_image_csv(image_id):
     select stn.code as station_code,
            src.code as source_code,
            typ.code as image_type_code,
-           img.time_stamp as image_timestamp
+           img.time_stamp as image_timestamp,
+           img.mime_type as mime_type
     from image img
     inner join image_type typ on typ.image_type_id = img.image_type_id
     inner join image_source src on src.image_source_id = img.image_source_id

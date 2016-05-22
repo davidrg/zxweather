@@ -879,7 +879,7 @@ def get_image_type_and_ts_info(image_id):
 
 def get_image_source_info(station_id):
     query = """
-    select x.code,
+    select lower(x.code) as code,
            x.source_name,
            x.description,
            x.first_image,
