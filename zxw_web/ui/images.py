@@ -6,7 +6,7 @@ from database import get_image_sources_for_station, get_images_for_source
 
 class StationImage(object):
     _img_url_fmt = '/data/{station_code}/{year}/{month}/{day}/images/' \
-                   '{source_code}/{image_id}/{type}{extension}'
+                   '{source_code}/{time}/{type}_{mode}{extension}'
 
     def __init__(self, img_data, url_prefix=""):
         self._time_stamp = img_data.time_stamp
@@ -15,6 +15,7 @@ class StationImage(object):
         self._src = img_data.source
         self._station = img_data.station
         self._url_prefix = url_prefix
+        self._type = img_data.type_code.lower()
 
         self._extension = mimetypes.guess_extension(self._mime)
         if self._extension == ".jpe":
@@ -30,8 +31,9 @@ class StationImage(object):
             month=self._day.month,
             day=self._day.day,
             source_code=self._src.lower(),
-            image_id=self._id,
-            type="thumbnail",
+            time=self._time_stamp.strftime("%H_%M_%S"),
+            type=self._type,
+            mode="thumbnail",
             extension=self._extension
         )
 
@@ -43,8 +45,9 @@ class StationImage(object):
             month=self._day.month,
             day=self._day.day,
             source_code=self._src.lower(),
-            image_id=self._id,
-            type="full",
+            time=self._time_stamp.strftime("%H_%M_%S"),
+            type=self._type,
+            mode="full",
             extension=self._extension
         )
 
@@ -82,6 +85,7 @@ def get_station_day_images(station_id, day):
                 images.append({
                     'name': source.source_name,
                     'description': source.description,
+                    'code': source.code,
                     'images': source_images,
                     'latest': source_images[-1:][0]
                 })

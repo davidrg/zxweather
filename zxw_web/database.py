@@ -836,6 +836,89 @@ def get_image_sources_for_station(station_id):
     return result
 
 
+def get_image_id(source, type, time_stamp):
+    query = """
+    select img.image_id
+    from image img
+    inner join image_source img_src on img.image_source_id = img_src.image_source_id
+    inner join image_type img_typ on img.image_type_id = img_typ.image_type_id
+    where img.time_stamp = $ts
+      and LOWER(img_typ.code) = LOWER($type_code)
+      and LOWER(img_src.code) = LOWER($source_code)
+    """
+
+    result = db.query(query, dict(ts=time_stamp, type_code=type,
+                                  source_code=source))
+    if len(result):
+        return result[0].image_id
+    return None
+
+
+
+def get_image_type_and_ts_info(image_id):
+    """
+    Gets the image type and timestamp for the specified image. This is used
+    to redirect from an old data route to the new one.
+
+    :param image_id: ID to get the image data for
+    """
+
+    query = """
+    select img.time_stamp,
+           img_typ.code
+    from image img
+    inner join image_type img_typ on img_typ.image_type_id = img.image_type_id
+    where image_id = $image_id
+    """
+
+    result = db.query(query, dict(image_id=image_id))
+    if len(result):
+        return result[0]
+    return None
+
+
+def get_image_source_info(station_id):
+    query = """
+    select x.code,
+           x.source_name,
+           x.description,
+           x.first_image,
+           x.last_image,
+           -- An image source is considered active if it has images taken
+           -- within the last 24 hours.
+           case when NOW() - coalesce(x.last_image,
+                                      NOW() - '1 week'::interval)
+                     > '24 hours'::interval
+                then FALSE
+                else TRUE
+                end as is_active
+    from (
+        select img_src.code,
+               img_src.source_name,
+               img_src.description,
+               (
+                   select min(i.time_stamp) as min_ts
+                   from image as i
+                   where i.image_source_id = img_src.image_source_id
+               ) as first_image,
+               (
+                   select max(i.time_stamp) as max_ts
+                   from image as i
+                   where i.image_source_id = img_src.image_source_id
+               ) as last_image,
+               img_src.station_id
+        from image_source img_src
+    ) as x
+    where x.station_id = $station
+    """
+
+    result = db.query(query, dict(station=station_id))
+
+    if len(result) == 0:
+        return None
+
+    return result
+
 def get_image_source(station_id, source_code):
 
     result = db.query("""select image_source_id, source_name
@@ -861,6 +944,7 @@ def get_day_images_for_source(source_id, image_date=None):
            i.time_stamp,
            i.mime_type,
            it.type_name as type_name,
+           it.code as type_code,
            i.title,
            i.description,
            case when i.metadata is null then False else True end as has_metadata
@@ -928,9 +1012,11 @@ def get_images_for_source(source_id, day=None):
            src.code as source,
            i.image_id as id,
            i.mime_type,
-           stn.code as station
+           stn.code as station,
+           it.code as type_code
     from image i
     inner join image_source src on src.image_source_id = i.image_source_id
+    inner join image_type it on it.image_type_id = i.image_type_id
     inner join station stn on stn.station_id = src.station_id
     where src.image_source_id = $source_id
       and (i.time_stamp::date = $day or $day is null)

@@ -32,11 +32,11 @@
         <td>{{ image.title }}</td>
         <td>{{ image.description }}</td>
         <td>
-            <a href="{{ url_base }}{{ image.id }}/full{{ extensions[image.mime_type] }}">Full size</a>
-            <a href="{{ url_base }}{{ image.id }}/thumbnail{{ extensions[image.mime_type] }}">Thumbnail</a>
+            <a href="{{ url_base }}{{ image.time_stamp.time().strftime("%H_%M_%S") }}/{{ image.type_code|lower }}_full{{ extensions[image.mime_type] }}">Full size</a>
+            <a href="{{ url_base }}{{ image.time_stamp.time().strftime("%H_%M_%S") }}/{{ image.type_code|lower }}_thumbnail{{ extensions[image.mime_type] }}">Thumbnail</a>
 
             {% if image.has_metadata %}
-                <a href="{{ url_base }}{{ image.id }}/metadata.json">Metadata</a>
+                <a href="{{ url_base }}{{ image.time_stamp.time().strftime("%H_%M_%S") }}/{{ image.type_code|lower }}_metadata.json">Metadata</a>
             {% endif %}
         </td>
     </tr>
