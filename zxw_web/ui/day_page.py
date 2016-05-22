@@ -68,14 +68,18 @@ def get_day_nav_urls(ui, station, day):
     next_date = day + timedelta(1)
 
     if day_exists(next_date, station_id):
-        abs_url = url_format_string.format(ui,
-                                           station,
-                                           next_date.year,
-                                           month_name[next_date.month],
-                                           next_date.day)
-        next_url = relative_url(current_location, abs_url)
+        next_url_valid = True
+    else:
+        next_url_valid = False
 
-    return prev_url, next_url
+    abs_url = url_format_string.format(ui,
+                                       station,
+                                       next_date.year,
+                                       month_name[next_date.month],
+                                       next_date.day)
+    next_url = relative_url(current_location, abs_url)
+
+    return prev_url, next_url, next_url_valid
 
 def get_day_data_urls(station, day, ui, overview_page=False):
     """
@@ -166,6 +170,7 @@ def get_day_page(ui, station, day):
 
         prev_url = None
         next_url = None
+        next_url_valid = False
         prev_date = date_stamp - timedelta(1)
         next_date = date_stamp + timedelta(1)
         this_month = month_name[day.month].capitalize()
@@ -191,7 +196,8 @@ def get_day_page(ui, station, day):
         # that as the data age instead.
 
 
-    data.prev_url, data.next_url = get_day_nav_urls(ui, station, data.date_stamp)
+    data.prev_url, data.next_url, data.next_url_valid =\
+        get_day_nav_urls(ui, station, data.date_stamp)
 
     day_cache_control(data_age, day, station_id)
 

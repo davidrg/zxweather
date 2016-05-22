@@ -34,31 +34,31 @@
                             <tbody>
                                 <tr>
                                     <td>Temperature</td>
-                                    <td id="live_temperature">{{ data.current_data.temperature }}°C</td>
+                                    <td id="live_temperature">{% if data.current_data.temperature %}{{ data.current_data.temperature|round(1)  }}°C{% else %}--{% endif %}</td>
                                 </tr>
                                 <tr>
                                     <td>Apparent Temperature</td>
-                                    <td id="live_apparent_temperature">{{ data.current_data.apparent_temperature }}°C</td>
+                                    <td id="live_apparent_temperature">{% if data.current_data.apparent_temperature%}{{ data.current_data.apparent_temperature|round(1)  }}°C{% else %}--{% endif %}</td>
                                 </tr>
                                 <tr>
                                     <td>Wind Chill</td>
-                                    <td id="live_wind_chill">{{ data.current_data.wind_chill }}°C</td>
+                                    <td id="live_wind_chill">{% if data.current_data.wind_chill%}{{ data.current_data.wind_chill|round(1)  }}°C{% else %}--{% endif %}</td>
                                 </tr>
                                 <tr>
                                     <td>Dew Point</td>
-                                    <td id="live_dew_point">{{ data.current_data.dew_point }}°C</td>
+                                    <td id="live_dew_point">{% if data.current_data.dew_point%}{{ data.current_data.dew_point|round(1)  }}°C{% else %}--{% endif %}</td>
                                 </tr>
                                 <tr>
                                     <td>Humidity</td>
-                                    <td id="live_relative_humidity">{{ data.current_data.relative_humidity }}%</td>
+                                    <td id="live_relative_humidity">{% if data.current_data.relative_humidity%}{{ data.current_data.relative_humidity|round(1)  }}%{% else %}--{% endif %}</td>
                                 </tr>
                                 <tr>
                                     <td>Barometer</td>
-                                    <td id="live_absolute_pressure">{{ data.current_data.absolute_pressure }} hPa</td>
+                                    <td id="live_absolute_pressure">{% if data.current_data.absolute_pressure%}{{ data.current_data.absolute_pressure|round(1)  }} hPa{% else %}--{% endif %}</td>
                                 </tr>
                                 <tr>
                                     <td>Wind Speed</td>
-                                    <td id="live_avg_wind_speed">{{ data.current_data.average_wind_speed }} m/s</td>
+                                    <td id="live_avg_wind_speed">{% if data.current_data.average_wind_speed%}{{ data.current_data.average_wind_speed|round(1)  }} m/s{% else %}--{% endif %}</td>
                                 </tr>
                                 <tr>
                                     <td>Wind Direction</td>
@@ -72,20 +72,20 @@
                                 {%- if solar_uv_available %}
                                 <tr>
                                     <td>UV Index</td>
-                                    <td id="uv_index">{{ data.current_data.uv_index }}</td>
+                                    <td id="uv_index">{% if data.current_data.uv_index %}{{ data.current_data.uv_index|round(1)  }}{% else %}--{% endif %}</td>
                                 </tr>
                                 <tr>
                                     <td>Solar Radiation</td>
-                                    <td id="solar_radiation">{{ data.current_data.solar_radiation }} W/m&sup2;</td>
+                                    <td id="solar_radiation">{% if data.current_data.solar_radiation %}{{ data.current_data.solar_radiation|round(1) }} W/m&sup2;{% else %}--{% endif %}</td>
                                 </tr>
                                 {%- endif %}
                                 <tr>
                                     <td>Rain Rate</td>
-                                    <td id="rain_rate">{{ data.current_data.rain_rate }} mm/h</td>
+                                    <td id="rain_rate">{% if data.current_data.rain_rate %}{{ data.current_data.rain_rate|round(1)  }} mm/h{% else %}--{% endif %}</td>
                                 </tr>
                                 <tr>
                                     <td>Current Storm Rain</td>
-                                    <td id="storm_rain">{{ data.current_data.storm_rain }} mm</td>
+                                    <td id="storm_rain">{% if data.current_data.storm_rain %}{{ data.current_data.storm_rain|round(1)  }} mm{% else %}--{% endif %}</td>
                                 </tr>
                                 {%- endif %}
                             </tbody>
@@ -121,8 +121,8 @@
                         <div style="padding-top: 10px;">
                             <button id="btn_records_refresh"
                                     class="btn refreshbutton"
-                                    style="float: right;"
-                                    onclick="refresh_records()"
+                                    style="float: right; display: none"
+                                    onclick="reload_records()"
                                     data-loading-text="loading...">
                                 <i class="icon-refresh"></i> Refresh
                             </button>
