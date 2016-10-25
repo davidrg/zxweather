@@ -842,7 +842,7 @@ def get_image_id(source, type, time_stamp):
     from image img
     inner join image_source img_src on img.image_source_id = img_src.image_source_id
     inner join image_type img_typ on img.image_type_id = img_typ.image_type_id
-    where img.time_stamp = $ts
+    where date_trunc('second', img.time_stamp) = $ts
       and LOWER(img_typ.code) = LOWER($type_code)
       and LOWER(img_src.code) = LOWER($source_code)
     """
