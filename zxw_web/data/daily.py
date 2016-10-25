@@ -420,7 +420,7 @@ def get_24hr_hourly_rainfall_data(time, station_id):
            sum(rainfall) as rainfall
     from sample
     where date_trunc('hour', time_stamp) <= date_trunc('hour', $time)
-      and date_trunc('hour', time_stamp) > date_trunc('hour', $time - '1 hour'::interval * 25)
+      and date_trunc('hour', time_stamp) > date_trunc('hour', $time) - '1 hour'::interval * 25
     and station_id = $station
     group by date_trunc('hour',time_stamp)
     order by date_trunc('hour',time_stamp) asc""", params)
@@ -513,8 +513,8 @@ def get_168hr_hourly_rainfall_data(day, station_id):
     result = config.db.query("""select date_trunc('hour',time_stamp) as time_stamp,
            sum(rainfall) as rainfall
     from sample
-    where time_stamp <= $time
-      and time_stamp >= ($time - (604800 * '1 second'::interval))
+    where date_trunc('hour', time_stamp) <= date_trunc('hour', $time)
+      and date_trunc('hour', time_stamp) > date_trunc('hour', $time) - '1 hour'::interval * 169
       and station_id = $station
     group by date_trunc('hour',time_stamp)
     order by date_trunc('hour',time_stamp) asc""", params)
