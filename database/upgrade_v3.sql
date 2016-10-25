@@ -132,8 +132,9 @@ comment on column image_type.image_type_id is 'Primary key';
 comment on column image_type.code is 'Unique code for image type';
 comment on column image_type.type_name is 'Descriptive name of the image type';
 
--- Only one supported image type for now - Camera pictures
+-- Only two supported image types for now - Camera pictures and time-lapse videos
 insert into image_type(code, type_name) values('CAM', 'Camera');
+insert into image_type(code, type_name) values('TLVID', 'Time-lapse video');
 
 -- Where an image came from (a particular camera, a weather satellite receiving
 -- station, etc)
