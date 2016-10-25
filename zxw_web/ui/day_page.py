@@ -10,7 +10,7 @@ from months import month_name
 
 from cache import day_cache_control
 from database import get_live_data, get_daily_records, total_rainfall_in_last_7_days, day_exists, get_live_indoor_data, get_station_id, in_archive_mode, get_station_type_code, get_station_name, get_stations, get_station_message, \
-    get_station_config, get_site_name
+    get_station_config, get_site_name, get_sample_interval
 from ui import get_nav_urls, make_station_switch_urls, build_alternate_ui_urls
 import os
 from ui import html_file, month_number, validate_request
@@ -175,6 +175,7 @@ def get_day_page(ui, station, day):
         next_date = date_stamp + timedelta(1)
         this_month = month_name[day.month].capitalize()
         records = get_daily_records(date_stamp, station_id)
+        sample_interval = get_sample_interval(station_id)
 
         if ui in ('s', 'm', 'a'):
             rainfall_7days_total = total_rainfall_in_last_7_days(date_stamp,
