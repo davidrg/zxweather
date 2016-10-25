@@ -331,7 +331,7 @@ class WeatherPushProtocol(protocol.Protocol):
         image_type_id = self._image_type_ids[type_code]
         image_source_id = self._image_source_ids[source_code]
 
-        if self._resize_images:
+        if self._resize_images and type_code == 'CAM':
             log.msg("Resizing image...")
             from io import BytesIO
             from PIL import Image
