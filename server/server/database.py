@@ -236,8 +236,6 @@ def get_sample_csv(station_code, start_time, end_time=None):
     :rtype: Deferred
     """
 
-    # TODO: add in davis data (uv, solar rad)
-
     query_cols = """
 select time_stamp,
        coalesce(round(s.temperature::numeric, 2)::varchar, 'None') || ',' ||
@@ -253,8 +251,8 @@ select time_stamp,
        coalesce(s.wind_direction::varchar, 'None') || ',' ||
        coalesce(s.rainfall::varchar, 'None') ||
 
-       coalesce(round(ds.average_uv_index::numeric, 2)::varchar || ',' ||
-                round(ds.solar_radiation, 2)::varchar,
+       coalesce(',' || round(ds.average_uv_index::numeric, 2)::varchar || ',' ||
+                round(ds.solar_radiation::numeric, 2)::varchar,
                 '')
 from sample s
 left outer join davis_sample ds on ds.sample_id = s.sample_id
