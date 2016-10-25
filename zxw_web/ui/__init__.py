@@ -4,7 +4,7 @@ This package contains code for producing the user interface (HTML pages for
 human consumption rather than JSON data for use by other systems)
 """
 
-from datetime import timedelta, datetime, date
+from datetime import timedelta, datetime, date, time
 from months import month_name, month_number
 from url_util import relative_url
 import config
@@ -208,12 +208,27 @@ def validate_request(ui=None, station=None, year=None, month=None, day=None):
     except ValueError:
         raise web.NotFound()
 
+    month_int = None
+    if month is not None:
+        month_int = month_number[month]
+
     # Check the date.
     if year_int is not None and month is not None and day_int is not None:
-        result = day_exists(date(year_int, month_number[month], day_int),
-                            station_id)
+        requested_date = date(year_int, month_int, day_int)
+        result = day_exists(requested_date, station_id)
         if not result:
-            raise web.NotFound()
+            # The requested date isn't valid. Yet.
+            if requested_date == datetime.now().date():
+                # The requested date is today. Today should be valid if the
+                # weather station is still operating. Probably we're just
+                # waiting for the data logger to catch up. If we're only
+                # 30 minutes into the day (that is, its just past midnight)
+                # we'll let it pass.
+                if datetime.now().time() >= time(0, 30, 0):
+                    raise web.NotFound()
+                # else pass
+            else:
+                raise web.NotFound()
     elif year is not None and month is not None:
         result = month_exists(year_int, month_number[month], station_id)
         if not result:
