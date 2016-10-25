@@ -1,4 +1,6 @@
 psycopg2
 twisted
 txpostgres
+
+# optional - only used if RabbitMQ is configured:
 pika
