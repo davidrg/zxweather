@@ -1,0 +1,9 @@
+twisted
+psycopg2
+txpostgres
+
+# optional - only used by the client if image resizing is enabled
+Pillow
+
+# optional - only used by the client if RabbitMQ is configured
+pika
