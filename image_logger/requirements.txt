@@ -1,0 +1,4 @@
+psycopg2
+twisted
+txpostgres
+pika
