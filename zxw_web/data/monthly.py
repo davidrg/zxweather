@@ -285,7 +285,8 @@ def get_30m_avg_month_samples_data(year,month, station_id):
        avg(iq.solar_radiation)::real as solar_radiation
 from (
         select cur.time_stamp,
-               (extract(epoch from cur.time_stamp) / 1800)::integer AS quadrant,
+               --(extract(epoch from cur.time_stamp) / 1800)::integer AS quadrant,
+               (extract(epoch from cur.time_stamp::date) + date_part('hour', cur.time_stamp)::int) * 10 + date_part('minute', cur.time_stamp)::int / 30 as quadrant,
                cur.temperature,
                cur.dew_point,
                cur.apparent_temperature,

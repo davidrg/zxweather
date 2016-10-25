@@ -274,7 +274,8 @@ def get_7day_30mavg_samples_data(day, station_id):
        avg(iq.solar_radiation)::real as solar_radiation
 from (
         select cur.time_stamp,
-               (extract(epoch from cur.time_stamp) / 1800)::integer AS quadrant,
+               --(extract(epoch from cur.time_stamp) / 1800)::integer AS quadrant,
+               (extract(epoch from cur.time_stamp::date) + date_part('hour', cur.time_stamp)::int) * 10 + date_part('minute', cur.time_stamp)::int / 30 as quadrant,
                cur.temperature,
                cur.dew_point,
                cur.apparent_temperature,
@@ -330,7 +331,8 @@ def get_168hr_30mavg_samples_data(day, station_id):
        avg(iq.solar_radiation)::real as solar_radiation
 from (
         select cur.time_stamp,
-               (extract(epoch from cur.time_stamp) / 1800)::integer AS quadrant,
+               --(extract(epoch from cur.time_stamp) / 1800)::integer AS quadrant,
+               (extract(epoch from cur.time_stamp::date) + date_part('hour', cur.time_stamp)::int) * 10 + date_part('minute', cur.time_stamp)::int / 30 as quadrant,
                cur.temperature,
                cur.dew_point,
                cur.apparent_temperature,
@@ -611,7 +613,8 @@ def get_7day_30mavg_indoor_samples_data(day, station_id):
        bool_or(gap) as gap
 from (
         select cur.time_stamp,
-               (extract(epoch from cur.time_stamp) / 1800)::integer AS quadrant,
+               --(extract(epoch from cur.time_stamp) / 1800)::integer AS quadrant,
+               (extract(epoch from cur.time_stamp::date) + date_part('hour', cur.time_stamp)::int) * 10 + date_part('minute', cur.time_stamp)::int / 30 as quadrant,
                cur.indoor_temperature,
                cur.indoor_relative_humidity,
                cur.time_stamp - (st.sample_interval * '1 second'::interval) as prev_sample_time,
