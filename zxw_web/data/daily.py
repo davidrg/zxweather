@@ -384,6 +384,27 @@ def get_days_hourly_rainfall_data(day, station_id):
 
     return result
 
+def get_24hr_rainfall_data(time, station_id):
+    """
+    Gets rainfall data for the last 24 hours.
+    :param time: Time to get rainfall data for from.
+    :param station_id: The ID of the weather station to work with
+    :type station_id: int
+    :return: Rainfall data query result
+    """
+
+    params = dict(time = time, station = station_id)
+
+    result = config.db.query("""select time_stamp,
+           rainfall
+    from sample
+    where time_stamp <= $time
+      and time_stamp > $time - '1 hour'::interval * 24
+    and station_id = $station
+    order by date_trunc('hour',time_stamp) asc""", params)
+
+    return result
+
 def get_24hr_hourly_rainfall_data(time, station_id):
     """
     Gets the days hourly rainfall data.
