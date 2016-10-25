@@ -11,7 +11,7 @@ from web.contrib.template import render_jinja
 from cache import live_data_cache_control, rfcformat
 from data import daily, about_nav
 from data.daily import get_24hr_samples_data, get_day_rainfall, get_day_dataset, get_24hr_hourly_rainfall_data, \
-    get_24hr_reception, get_168hr_reception
+    get_24hr_reception, get_168hr_reception, get_24hr_rainfall_data
 from data.util import outdoor_sample_result_to_json, outdoor_sample_result_to_datatable, rainfall_sample_result_to_json, rainfall_to_datatable, \
     reception_result_to_json, reception_result_to_datatable
 from database import get_years, get_live_data, get_station_id, get_latest_sample_timestamp, get_oldest_sample_timestamp, \
@@ -107,6 +107,11 @@ class data_json:
                                          station_id)
         elif dataset == '24hr_rainfall_totals':
             return get_day_rainfall(datetime.now(), station_id, True)
+        elif dataset == '24hr_rainfall':
+            return get_day_dataset(datetime.now(),
+                                   get_24hr_rainfall_data,
+                                   rainfall_sample_result_to_json,
+                                   station_id)
         elif dataset == '24hr_hourly_rainfall':
             return get_day_dataset(datetime.now(),
                                    get_24hr_hourly_rainfall_data,
