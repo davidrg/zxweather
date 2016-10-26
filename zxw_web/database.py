@@ -1013,7 +1013,9 @@ def get_images_for_source(source_id, day=None):
            i.image_id as id,
            i.mime_type,
            stn.code as station,
-           it.code as type_code
+           it.code as type_code,
+           i.title as title,
+           i.description as description
     from image i
     inner join image_source src on src.image_source_id = i.image_source_id
     inner join image_type it on it.image_type_id = i.image_type_id
