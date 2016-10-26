@@ -117,6 +117,7 @@ def get_station_standard(ui, station):
                                     reception_available=reception_available,
                                     solar_uv_available=uv_and_solar_available,
                                     images=images,
+                                    thumbnail_width=config.thumbnail_size[0],
                                     tracking_id=config.google_analytics_id)
 
 def get_station_basic(station):
@@ -299,7 +300,8 @@ def get_station_images(ui, station):
             statno_message=msg[0],
             station_message_ts=msg[1],
             basic_ui_available=False,  # TODO: turn this on
-            images=images
+            images=images,
+            thumbnail_width=config.thumbnail_size[0],
         )
     else:
         raise web.NotFound()  # TODO: this

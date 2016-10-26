@@ -961,14 +961,18 @@ class image:
             is_cached = False
 
             thumb_data = None
-            mime_type = None
             time_stamp = None
 
             cache_file = ""
 
+            mime_type_and_ts = get_image_mime_type(image_id)
+            mime_type = mime_type_and_ts.mime_type
+
+            # Videos can't be thumbnailed
+            if mime_type.startswith("video/"):
+                raise web.NotFound()
+
             if config.cache_thumbnails:
-                mime_type_and_ts = get_image_mime_type(image_id)
-                mime_type = mime_type_and_ts.mime_type
                 time_stamp = mime_type_and_ts.time_stamp
 
                 ext = mimetypes.guess_extension(mime_type)

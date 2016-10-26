@@ -16,6 +16,8 @@ class StationImage(object):
         self._station = img_data.station
         self._url_prefix = url_prefix
         self._type = img_data.type_code.lower()
+        self._title = img_data.title
+        self._description = img_data.description
 
         self._extension = mimetypes.guess_extension(self._mime)
         if self._extension == ".jpe":
@@ -24,7 +26,23 @@ class StationImage(object):
         self._day = self._time_stamp.date()
 
     @property
+    def is_video(self):
+        return self._mime.startswith("video/")
+
+    @property
+    def title(self):
+        return self._title
+
+    @property
+    def description(self):
+        return self._description
+
+    @property
     def thumbnail_url(self):
+
+        if self.is_video:
+            return None
+
         return self._url_prefix + self._img_url_fmt.format(
             station_code=self._station.lower(),
             year=self._day.year,

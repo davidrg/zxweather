@@ -245,6 +245,7 @@ def get_day_page(ui, station, day):
                                     station_message_ts=msg[1],
                                     solar_uv_available=uv_and_solar_available,
                                     images=images,
+                                    thumbnail_width=config.thumbnail_size[0],
                                     tracking_id=config.google_analytics_id)
     else:
         return basic_templates.day(data=data,

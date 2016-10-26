@@ -40,12 +40,26 @@
 				<ul class="thumbnails">
 				{%endif%}
 				<li>
-				    <a href="{{ img.url }}" class="thumbnail">
-				        <img src="{{ img.thumbnail_url }}" title="{{ img.time }}" />
+                    {% if img.is_video %}
+                    <div class="thumbnail">
+                        <video src="{{ img.url }}" title="{{ img.title }}"
+                               width="{{ thumbnail_width }}" controls>
+                            Your browser doesn't appear to support embedded videos. Try
+                            <a href="{{ img.url }}">downloading</a> the video and watching it in a
+                            player like <a href="http://www.videolan.org/vlc/index.html">VLC</a>.
+                        </video>
+                        <div class="caption" style="width: {{ thumbnail_width - 20 }}px;">
+                            {{img.description}}
+                        </div>
+                    </div>
+                    {% else %}
+                    <a href="{{ img.url }}" class="thumbnail">
+                        <img src="{{ img.thumbnail_url }}" title="{{ img.time }}"/>
                         <div class="caption">
                             {{img.time_of_day}}
                         </div>
-				    </a>
+                    </a>
+                    {% endif %}
 				</li>
 				{% endfor %}
 			    </ul>
