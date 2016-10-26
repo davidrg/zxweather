@@ -1,0 +1,7 @@
+psycopg2
+twisted
+txpostgres
+python-dateutil
+
+# optional - only used if RabbitMQ is configured:
+pika
