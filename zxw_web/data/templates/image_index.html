@@ -28,7 +28,10 @@
         <td>{{ image.description }}</td>
         <td>
             <a href="{{ image.time_stamp.time().strftime("%H_%M_%S") }}/{{ image.type_code|lower }}_full{{ extensions[image.mime_type] }}">Full size</a>
+
+            {% if image.mime_type.startswith("image/") %}
             <a href="{{ image.time_stamp.time().strftime("%H_%M_%S") }}/{{ image.type_code|lower }}_thumbnail{{ extensions[image.mime_type] }}">Thumbnail</a>
+            {% endif %}
 
             {% if image.has_metadata %}
                 <a href="{{ image.time_stamp.time().strftime("%H_%M_%S") }}/{{ image.type_code|lower }}_metadata.json">Metadata</a>
