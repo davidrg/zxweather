@@ -988,6 +988,15 @@ def get_image_metadata(image_id):
     return None
 
 
+def get_image_details(image_id):
+    result = db.query("select title, description, time_stamp "
+                      "from image where image_id = $id",
+                      dict(id=image_id))
+    if len(result):
+        return result[0]
+    return None
+
+
 def get_image(image_id):
     result = db.query("select image_data, mime_type, time_stamp "
                       "from image where image_id = $id",

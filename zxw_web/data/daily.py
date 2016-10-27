@@ -11,7 +11,7 @@ from cache import day_cache_control, rfcformat, cache_control_headers
 from database import get_daily_records, get_daily_rainfall, get_latest_sample_timestamp, day_exists, get_station_id, \
     get_davis_max_wireless_packets, image_exists, get_image_metadata, get_image, \
     get_image_mime_type, get_day_data_wp, get_image_id, \
-    get_image_type_and_ts_info
+    get_image_type_and_ts_info, get_image_details
 import web
 import config
 import json
@@ -945,6 +945,20 @@ class image:
             web.header('Expires', rfcformat(metadata.time_stamp +
                                             timedelta(days=30)))
             web.header('Last-Modified', rfcformat(metadata.time_stamp))
+
+            return result
+        elif mode == "description":
+
+            image = get_image_details(image_id)
+
+            result = json.dumps({"title": image.title,
+                                 "description": image.description})
+
+            web.header('Content-Type', 'application/json')
+            web.header('Content-Length', str(len(result)))
+            web.header('Expires', rfcformat(image.time_stamp +
+                                            timedelta(days=30)))
+            web.header('Last-Modified', rfcformat(image.time_stamp))
 
             return result
         elif mode == "full":
