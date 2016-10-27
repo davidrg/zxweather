@@ -947,7 +947,7 @@ def get_day_images_for_source(source_id, image_date=None):
            it.code as type_code,
            i.title,
            i.description,
-           case when i.metadata is null then False else True end as has_metadata
+           case when i.metadata is null or i.metadata = '' then False else True end as has_metadata
     from image i
     inner join image_type it on it.image_type_id = i.image_type_id
     where i.image_source_id = $source_id
