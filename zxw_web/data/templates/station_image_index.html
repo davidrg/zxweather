@@ -38,6 +38,7 @@
             <a href="{{ url_base }}{{ image.time_stamp.time().strftime("%H_%M_%S") }}/{{ image.type_code|lower }}_thumbnail{{ extensions[image.mime_type] }}">Thumbnail</a>
             {% endif %}
 
+            <a href="{{ url_base }}{{ image.time_stamp.time().strftime("%H_%M_%S") }}/{{ image.type_code|lower }}_description{{ extensions[image.mime_type] }}">Description</a>
             {% if image.has_metadata %}
                 <a href="{{ url_base }}{{ image.time_stamp.time().strftime("%H_%M_%S") }}/{{ image.type_code|lower }}_metadata.json">Metadata</a>
             {% endif %}
