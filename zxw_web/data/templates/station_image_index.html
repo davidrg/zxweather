@@ -31,7 +31,7 @@
         <td>{{ image.type_name }}</td>
         <td>{{ image.title }}</td>
         <td>{{ image.description }}</td>
-        <td>
+        <td nowrap>
             <a href="{{ url_base }}{{ image.time_stamp.time().strftime("%H_%M_%S") }}/{{ image.type_code|lower }}_full{{ extensions[image.mime_type] }}">Full size</a>
 
             {% if image.mime_type.startswith("image/") %}
