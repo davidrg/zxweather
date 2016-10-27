@@ -57,11 +57,13 @@
     <tr bgcolor="lightseagreen">
         <td><b>Code</b></td>
         <td><b>Name</b></td>
+        <td><b>Data</b></td>
     </tr>
     {%  for source in image_sources %}
         <tr bgcolor="blanchedalmond">
         <td><a href="images/{{ source.code.lower() }}/">{{ source.code.lower() }}</a></td>
         <td>{{ source.source_name }}</td>
+        <td><a href="images/{{ source.code.lower() }}/index.json">JSON Index</a></td>
         </tr>
     {% endfor %}
 </table>

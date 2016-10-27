@@ -382,6 +382,90 @@ class images:
                 extensions=extensions)
 
 
+class images_json:
+    """
+    Provides an index of available daily data sources
+    """
+    def GET(self, station, source_code):
+        """
+        Returns an index page containing a list of json files available for
+        the day.
+        :param station: Station to get data for
+        :type station: string
+        :param source_code: Image source code
+        :type source_code: str
+        """
+        template_dir = os.path.join(os.path.dirname(__file__),
+                                    os.path.join('templates'))
+        render = render_jinja(template_dir, encoding='utf-8')
+
+        station_id = get_station_id(station)
+        if station_id is None:
+            raise web.NotFound()
+
+        source = get_image_source(station_id, source_code)
+        if source is None:
+            raise web.NotFound()
+
+        image_list = get_day_images_for_source(source.image_source_id)
+
+        extensions = dict()
+        latest_ts = None
+        image_set = []
+
+        for image in image_list:
+            if latest_ts is None or image.time_stamp > latest_ts:
+                latest_ts = image.time_stamp
+
+            mime = image.mime_type
+
+            if mime not in extensions.keys():
+                ext = mimetypes.guess_extension(mime, False)
+                if ext == ".jpe":
+                    ext = ".jpeg"
+                extensions[mime] = ext
+
+            url_prefix = str(image.time_stamp.year) + "/" \
+                + str(image.time_stamp.month) + "/" \
+                + str(image.time_stamp.day) + "/images/" + source_code + "/" \
+                + image.time_stamp.time().strftime("%H_%M_%S") \
+                + '/' + image.type_code.lower()
+
+            image_url = url_prefix + '_full' + extensions[image.mime_type]
+
+            thumb_url = None
+            if image.mime_type.startswith("image/"):
+                thumb_url = url_prefix + '_thumbnail' + \
+                            extensions[image.mime_type]
+
+            metadata_url = None
+            if image.has_metadata:
+                metadata_url = url_prefix + '_metadata.json'
+
+            img = {
+                "id": image.id,
+                "time_stamp": image.time_stamp.isoformat(),
+                "mime_type": image.mime_type,
+                "type_name": image.type_name,
+                "type_code": image.type_code,
+                "title": image.title,
+                "description": image.description,
+                "has_metadata": image.has_metadata,
+                "image_url": image_url,
+                "thumb_url": thumb_url,
+                "metadata_url": metadata_url
+            }
+
+            image_set.append(img)
+
+        result = json.dumps(image_set)
+
+        web.header('Content-Type', 'application/json')
+        web.header('Content-Length', str(len(result)))
+        web.header('Last-Modified', rfcformat(latest_ts))
+        return result
+
+
 class latest_image:
     """
     Provides an index of available daily data sources
