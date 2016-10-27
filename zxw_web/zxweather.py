@@ -19,10 +19,12 @@ urls = (
     # Data Index
     # Provides a list of available data sourcesd at the various levels.
     '/data/(\w*)/(\d+)/(\d+)/(\d+)/images/(\w*)/(?:index\.html)?', 'data.daily_index.images',
+    '/data/(\w*)/(\d+)/(\d+)/(\d+)/images/(\w*)/index\.json', 'data.daily_index.images_json',
     '/data/(\w*)/(\d+)/(\d+)/(\d+)/(?:index\.html)?', 'data.daily_index.index',
     '/data/(\w*)/(\d+)/(\d+)/(?:index\.html)?', 'data.monthly.index',
     '/data/(\w*)/(\d+)/(?:index\.html)?', 'data.yearly.index',
     '/data/(\w*)/images/(\w*)/(?:index\.html)?', 'data.station.images',
+    '/data/(\w*)/images/(\w*)/index\.json', 'data.station.images_json',
     '/data/(\w*)/(?:index\.html)?', 'data.station.index',
     '/data/(?:index\.html)?', 'data.data_index',
 
