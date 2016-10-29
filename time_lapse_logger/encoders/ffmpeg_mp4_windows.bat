@@ -1,3 +1,5 @@
+@echo off
+
 REM zxweather time lapse service
 REM ffmpeg encoder script for Windows
 REM --------------------------------------------------------------------------
@@ -13,7 +15,7 @@ REM  3 - Title for the video
 REM  4 - Comments/description for the video
 
 REM change into the working directory
-cd %1
+cd /D %1
 
 REM Generate the video at 30fps
 ffmpeg -r 30 -start_number 000000 -i %%06d.jpg -s 1280x720 -vcodec libx264 -metadata title=%3 -metadata description=%4 -metadata comment=%4 -y %2
