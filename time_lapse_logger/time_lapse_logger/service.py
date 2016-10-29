@@ -326,8 +326,12 @@ class TSLoggerService(service.Service):
 
         start = timer()
 
+        command = '{0} "{1}" "{2}" "{3}" "{4}"'.format(
+            self._mp4_script, self._working_dir, dest_file, title, description)
+        log.msg("Encoding video with command: {0}".format(command))
+
         # generate the video file using the generator script
-        result = subprocess.call(['{0} "{1}" "{2}" "{3}" "{4}"'.format(self._mp4_script, self._working_dir, dest_file, title, description)], shell=True)
+        result = subprocess.call(command, shell=True)
 
         processing_time = timer() - start
 
@@ -345,11 +349,12 @@ class TSLoggerService(service.Service):
         }
 
         with open(os.path.join(self._working_dir, dest_file), 'rb') as f:
-            video_data = f.readall()
+            video_data = f.read()
 
         # Store video in the database
         yield self._database.store_video(datetime.now(), video_data, 'video/mp4', json.dumps(metadata), title,
                                          description)
+        log.msg("Video stored.")
 
     def _recover_run(self):
 
