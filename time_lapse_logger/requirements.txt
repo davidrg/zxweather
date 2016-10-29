@@ -2,6 +2,8 @@ psycopg2
 twisted
 txpostgres
 python-dateutil
+pyOpenSSL
+service_identity
 
 # optional - only used if RabbitMQ is configured:
 pika
