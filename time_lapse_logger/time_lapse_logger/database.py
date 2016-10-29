@@ -179,7 +179,7 @@ class Database(object):
 
         query = """
         insert into image(image_type_id, image_source_id, time_stamp,
-                          image_data, mime_type, metadata)
+                          image_data, mime_type, metadata, title, description)
         values(%(type_id)s, %(source_id)s, %(time_stamp)s, %(data)s, %(mime)s, %(metadata)s, %(title)s, %(description)s)
         returning image_id
                 """
