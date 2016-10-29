@@ -33,28 +33,59 @@ dsn=host=localhost port=5432 user=zxweather password=password dbname=weather
 ##############################################################################
 [schedule]
 
+# Here you need to configure two things:
+#   -> How often photos should be taken (the capture interval). Each photo forms
+#      one frame of video. A capture interval of 60 seconds would mean 30
+#      minutes of real time would make 1 second of video at 30fps.
+#   -> The schedule: what time capturing should start, and what time capturing
+#      should finish. The video is assembled and stored in the database when
+#      capturing stops.
+#
+# There are three schedule options:
+#  -> Fixed: you specify the sunrise and sunset times. They do not vary during
+#     the year unless you change them.
+#  -> Automatic based on solar sensors: If you've got a Davis Vantage Pro 2 Plus
+#     weather station its Solar Radiation sensor can be used to detect sunrise
+#     and sunset. In practice the schedule will likely start a little while
+#     after civil dawn and a little while before civil dusk.
+#  -> Automatic based on location: Calculate sunrise and sunset based on your
+#     coordinates (longitude, latitude, elevation) and time zone. The schedule
+#     will begin at civil dawn and end at civil dusk.
+
+
 # How often images should be captured in seconds
 capture_interval=60
 
-# Set this to true if you'd rather not capture images of the night sky. If your
-# camera just produces black images at night you may as well turn this on to
-# prevent those from being captured. When turned off images will be captured
-# through the night and the other settings in this section will be ignored.
-capture_during_daylight_only=true
-
-# What time the sun rises and sets. If the above setting is turned on images
-# will only be captured between these times. The first image will be taken
-# at sunrise.
+# What time the sun rises and sets. The time lapse logger will start taking
+# pictures at the specified capture interval at sunrise_time every day and stop
+# capturing to build the video at sunset_time.
 sunrise_time=6:00
 sunset_time=20:00
 
 # If your weather station is a Davis Vantage Pro2 Plus you can turn this setting
 # on and use the weather stations solar sensors to automatically detect sunrise
 # and sunset. This overrides the sunrise_time/sunset_time settings above.
-use_solar_sensors=True
+use_solar_sensors=False
 
 # The station that should be used for sunrise detection
 station_code=stn
+
+# Alternatively, sunrise and sunset can be calculated based on your location.
+# This setting overrides solar sensors and the fixed sunrise/sunset time:
+calculate_schedule=True
+
+# These values are required when calculating sunrise and sunset based on your
+# location.
+latitude = -36.860790
+longitude = 174.777887
+timezone = Pacific/Auckland
+elevation = 0
+
+# You can optionally apply an offset (in minutes) to the calculated sunrise
+# and sunset times.
+sunrise_offset = 0
+sunset_offset = 0
+
 
 ##############################################################################
 #   Camera Configuration #####################################################
