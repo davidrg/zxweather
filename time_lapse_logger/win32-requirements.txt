@@ -1,0 +1,6 @@
+-r requirements.txt
+pywin32
+
+# Note: To install pywin32 in a virtualenv you'll likely have to download the
+# .exe installer, activate your venv and run
+# easy_install \path\to\pywin32-220.win-amd64-py2.7.exe
