@@ -360,20 +360,26 @@ class TSLoggerService(service.Service):
 
         try:
             with open(os.path.join(self._working_dir, "info.json"), "r") as f:
-                info = json.loads(f.readall())
+                info = json.loads(f.read())
 
             folder_date = dateutil.parser.parse(info["date"])
             folder_time = dateutil.parser.parse(info["started"])
             next_image = info["next_image"]
 
-            if folder_date != self._logging_start_time.date():
-                # The working directory contains data left over from a previous run
+            log.msg("Found data for {0}".format(folder_date.date()))
+
+            if folder_date.date() != self._logging_start_time.date():
+                # The working directory contains data left over from a previous
+                # run
                 self._empty_working_dir()
             else:
-                # The previous run was interrupted before it was supposed to finish. We'll recover from it
-                log.msg("Working directory contains data for current date. Recovering.")
+                # The previous run was interrupted before it was supposed to
+                # finish. We'll recover from it
+                log.msg("Working directory contains data for current date. Recovering...")
                 self._current_image_number = next_image
                 self._logging_start_time = folder_time
+                log.msg("Now at image {0}, logging from {1}".format(
+                    self._current_image_number, self._logging_start_time))
 
         except:
             self._empty_working_dir()
