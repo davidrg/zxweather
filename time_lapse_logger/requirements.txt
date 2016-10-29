@@ -4,6 +4,7 @@ txpostgres
 python-dateutil
 pyOpenSSL
 service_identity
+astral
 
 # optional - only used if RabbitMQ is configured:
 pika

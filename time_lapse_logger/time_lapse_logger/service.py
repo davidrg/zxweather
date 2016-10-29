@@ -5,6 +5,8 @@ from datetime import datetime, time, timedelta
 import subprocess
 from timeit import default_timer as timer
 
+import pytz
+from astral import Location
 from twisted.application import service
 from twisted.internet import task, reactor
 from twisted.internet.defer import inlineCallbacks
@@ -19,22 +21,18 @@ from mq_receiver import RabbitMqReceiver
 from readbody import readBody
 
 
+# License: GPLv3 (Astral incompatible with GPLv2)
+
+
 # TODO:
 #  - Target file size option? Calculate a bit rate based on the number of frames and pass to the encoder
-#  - Support calculated sunrise time with an optional offset (to, eg, start capturing 10 minutes before sunrise
-#    and 10 minutes after sunset)
 #  - option to store generated video on disk as well as database
-#  - Come up with another encoder script that doesn't require a Pi
 #  - Handle restarting the database or message broker
 #  - Optionally generate subtitle overlay with weather data
 #  - Adjust weatherpush client:
 #       - Don't throw exceptions if the video type code doesn't exist on the server
-#  - Adjust web UI:
-#       - Use video tags for videos
 
 # Stuff to test
-#  - Run recovery
-#  - Database storage
 #  - Recovery from broker restart
 #  - Recovery from database restart
 
@@ -53,7 +51,9 @@ class TSLoggerService(service.Service):
                  mq_username, mq_password, mq_vhost, capture_interval,
                  sunrise_time, sunset_time,
                  use_solar_sensors, camera_url, image_source_code,
-                 disable_cert_verification, video_script, working_dir):
+                 disable_cert_verification, video_script, working_dir,
+                 calculate_schedule, latitude, longitude, timezone, elevation,
+                 sunrise_offset, sunset_offset):
         """
 
         :param dsn: Database connection string
@@ -93,52 +93,135 @@ class TSLoggerService(service.Service):
         :type video_script: str
         :param working_dir: Directory to store captured images and the generated video in
         :type working_dir: str
+        :param calculate_schedule: If sunrise and sunset times should be
+            calculated based on location instead of using the solar sensors or
+            a fixed schedule
+        :type calculate_schedule: bool
+        :param latitude: Latitude used for sunrise & sunset calculation
+        :type latitude: float
+        :param longitude: Longitude used for sunrise & sunset calculation
+        :type longitude: float
+        :param timezone: Timezone used for sunrise & sunset calculation
+        :type timezone: str
+        :param elevation: Elevation used for sunrise & sunset calculation
+        :type elevation: float
+        :param sunrise_offset: Time offset in minutes for calculated sunrise
+        :type sunrise_offset: int
+        :param sunset_offset: Time offset in minutes for calculated sunset
+        :type sunset_offset: int
         """
 
-        self._mq_receiver = RabbitMqReceiver(mq_username, mq_password, mq_vhost,
-                                             mq_hostname, mq_port, mq_exchange,
-                                             station_code)
-
-        self._db_receiver = DatabaseReceiver(dsn, station_code)
-
+        # Database connection for storing videos
         self._database = Database(dsn, image_source_code)
 
-        self._mq_receiver.LiveUpdate += self._live_data_received
-        self._db_receiver.LiveUpdate += self._live_data_received
-
-        self._sunrise = sunrise_time
-        self._sunset = sunset_time
-        self._daylight_trigger = use_solar_sensors
+        # How often pictures should be taken
         self._interval = capture_interval
+
+        # Fixed schedule
+        self._fixed_sunrise = sunrise_time
+        self._fixed_sunset = sunset_time
+
+        self._daylight_trigger = use_solar_sensors
+        self._calculated_schedule = calculate_schedule
+
+        if calculate_schedule:
+            # Schedule based on location
+            self._location = Location()
+            self._location.latitude = latitude
+            self._location.longitude = longitude
+            self._location.elevation = elevation
+            self._location.timezone = timezone
+            self._sunrise_offset = timedelta(minutes=sunrise_offset)
+            self._sunset_offset = timedelta(minutes=sunset_offset)
+            self._time_zone = pytz.timezone(timezone)
+        elif use_solar_sensors:
+            # Schedule trigger by weather station sensors
+            if mq_username is None:
+                self._enable_mq = False
+                self._db_receiver = DatabaseReceiver(dsn, station_code)
+                self._db_receiver.LiveUpdate += self._live_data_received
+            else:
+                self._enable_mq = True
+                self._mq_receiver = RabbitMqReceiver(mq_username, mq_password,
+                                                     mq_vhost,
+                                                     mq_hostname, mq_port,
+                                                     mq_exchange,
+                                                     station_code)
+                self._mq_receiver.LiveUpdate += self._live_data_received
+
+        # Camera settings
+        self._camera_url = camera_url
         self._disable_cert_verification = disable_cert_verification
 
-        self._enable_mq = True
-        if mq_username is None:
-            self._enable_mq = False
-
-        self._logging = False
-
-        self._looper = task.LoopingCall(self._get_image)
-
-        self._camera_url = camera_url
-
-        self._logging_start_time = None
-
+        # Location to store captured pictures until we can assemble them into
+        # a video
         self._working_dir = working_dir
-
         if not os.path.exists(self._working_dir):
             os.makedirs(self._working_dir)
 
+        # Script to build the video
+        self._mp4_script = video_script
+
+        # Initialise other members
+        self._logging = False
+        self._looper = task.LoopingCall(self._get_image)
+        self._logging_start_time = None
         self._current_image_number = 0
 
-        self._mp4_script = video_script
+    @property
+    def current_time(self):
+        # When we're running on a calculated schedule all timestamps need
+        # timezone information so we can compare them with the calculated
+        # sunrise and sunset (which also include timezone information)
+        if self._calculated_schedule:
+            return self._time_zone.localize(datetime.now())
+
+        # When running on a fixed schedule or using daylight sensor triggering
+        # we don't need timezone info.
+        return datetime.now()
+
+    @property
+    def sunrise(self):
+        if self._calculated_schedule:
+            return self._location.sunrise() + self._sunrise_offset
+
+        current_time = self.current_time
+
+        return datetime(current_time.year,
+                        current_time.month,
+                        current_time.day,
+                        self._fixed_sunrise.hour,
+                        self._fixed_sunrise.minute,
+                        self._fixed_sunrise.second)
+
+    @property
+    def sunrise_tomorrow(self):
+        if self._calculated_schedule:
+            tomorrow = (self.current_time + timedelta(days=1)).date()
+            return self._location.sunrise(tomorrow) + self._sunrise_offset
+
+        return self.sunrise + timedelta(days=1)
+
+    @property
+    def sunset(self):
+        if self._calculated_schedule:
+            return self._location.sunset() + self._sunset_offset
+
+        current_time = self.current_time
+
+        return datetime(current_time.year,
+                        current_time.month,
+                        current_time.day,
+                        self._fixed_sunset.hour,
+                        self._fixed_sunset.minute,
+                        self._fixed_sunset.second)
 
     def startService(self):
         service.Service.startService(self)
 
         self._database.connect()
 
-        if self._daylight_trigger:
+        if self._daylight_trigger and not self._calculated_schedule:
             # The schedule will be started and stopped by the presence or
             # absence of UV or Solar Radiation received by the linked
             # station.
@@ -155,10 +238,8 @@ class TSLoggerService(service.Service):
             # logging immediately, otherwise schedule the logger to start
             # at the next sunrise.
 
-            current_time = datetime.now().time()
-            if self._sunrise <= current_time <= self._sunset:
-                self._start_logging(
-                        "service start during configured daytime")
+            if self.sunrise <= self.current_time <= self.sunset:
+                self._start_logging("service start during daytime")
             else:
                 log.msg("Logger will start at scheduled sunrise time.")
                 self._schedule_logging_start()
@@ -202,7 +283,7 @@ class TSLoggerService(service.Service):
             # Update the record so we can recover from where we left off should the logger restart
             with open(os.path.join(self._working_dir, "info.json"), "w") as f:
                 f.write(json.dumps({
-                    "date": datetime.now().date().isoformat(),
+                    "date": self.current_time.date().isoformat(),
                     "started": self._logging_start_time.isoformat(),
                     "next_image": self._current_image_number
                 }))
@@ -213,15 +294,10 @@ class TSLoggerService(service.Service):
         """
         Schedules the logger to start at the next configured sunrise time.
         """
-        current_time = datetime.now()
+        current_time = self.current_time
 
         # The sunrise time for the current *date*
-        sunrise_time = datetime(current_time.year,
-                                current_time.month,
-                                current_time.day,
-                                self._sunrise.hour,
-                                self._sunrise.minute,
-                                self._sunrise.second)
+        sunrise_time = self.sunrise
 
         if current_time < sunrise_time:
             # And the sunrise for the current date is in the future. That means
@@ -230,7 +306,9 @@ class TSLoggerService(service.Service):
         else:
             # The sunrise for the current date has already been. Move onto the
             # one tomorrow
-            sunrise_time += timedelta(days=1)
+
+            sunrise_time = self.sunrise_tomorrow
+
             seconds_until_sunrise = (sunrise_time - current_time).seconds
 
         reactor.callLater(seconds_until_sunrise,
@@ -245,14 +323,9 @@ class TSLoggerService(service.Service):
         Schedules the logger to stop at the next scheduled sunset time.
         """
 
-        current_time = datetime.now()
+        current_time = self.current_time
 
-        sunset_time = datetime(current_time.year,
-                               current_time.month,
-                               current_time.day,
-                               self._sunset.hour,
-                               self._sunset.minute,
-                               self._sunset.second)
+        sunset_time = self.sunset
 
         seconds_until_sunset = (sunset_time - current_time).seconds
 
@@ -271,7 +344,7 @@ class TSLoggerService(service.Service):
         log.msg("Starting logger: {0}".format(trigger))
         self._logging = True
 
-        self._logging_start_time = datetime.now()
+        self._logging_start_time = self.current_time
 
         self._current_image_number = 0
 
@@ -291,10 +364,10 @@ class TSLoggerService(service.Service):
 
         if self._logging_start_time is not None:
             t = self._logging_start_time + timedelta(minutes=60)
-            if t >= datetime.now():
+            if t >= self.current_time:
                 # The logger started less than an hour ago - this is probably
                 # just a cloud passing across the sunrise. Ignore it.
-                log.msg("Ignoring false sunset at {0}".format(datetime.now()))
+                log.msg("Ignoring false sunset at {0}".format(self.current_time))
                 return
 
         log.msg("Stopping logger: {0}".format(trigger))
@@ -303,7 +376,7 @@ class TSLoggerService(service.Service):
         if self._looper.running:
             self._looper.stop()
 
-        if not self._daylight_trigger:
+        if self._calculated_schedule or not self._daylight_trigger:
             self._schedule_logging_start()
         # else the logger will be started when the associated weather station
         # detects sunlight
@@ -312,7 +385,7 @@ class TSLoggerService(service.Service):
 
     @inlineCallbacks
     def _build_and_store_video(self):
-        finish_time = datetime.now()
+        finish_time = self.current_time
 
         title = "Time-lapse for {0}".format(self._logging_start_time.date())
         description = "Time-lapse from {0} to {1}".format(
@@ -352,8 +425,9 @@ class TSLoggerService(service.Service):
             video_data = f.read()
 
         # Store video in the database
-        yield self._database.store_video(datetime.now(), video_data, 'video/mp4', json.dumps(metadata), title,
-                                         description)
+        yield self._database.store_video(self.current_time, video_data,
+                                         'video/mp4', json.dumps(metadata),
+                                         title, description)
         log.msg("Video stored.")
 
     def _recover_run(self):

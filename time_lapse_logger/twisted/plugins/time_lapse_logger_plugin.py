@@ -65,6 +65,13 @@ class TSLoggerServiceMaker(object):
         sunset_time = config.get(S_SCHEDULE, "sunset_time")
         use_solar_sensors = config.getboolean(S_SCHEDULE, "use_solar_sensors")
         station_code = config.get(S_SCHEDULE, "station_code")
+        calculate_schedule = config.getboolean(S_SCHEDULE, "calculate_schedule")
+        latitude = config.getfloat(S_SCHEDULE, "latitude")
+        longitude = config.getfloat(S_SCHEDULE, "longitude")
+        timezone = config.get(S_SCHEDULE, "timezone")
+        elevation = config.getfloat(S_SCHEDULE, "elevation")
+        sunrise_offset = config.getint(S_SCHEDULE, "sunrise_offset")
+        sunset_offset = config.getint(S_SCHEDULE, "sunset_offset")
 
         sunrise_time_t = datetime.strptime(sunrise_time, "%H:%M").time()
         sunset_time_t = datetime.strptime(sunset_time, "%H:%M").time()
@@ -81,7 +88,8 @@ class TSLoggerServiceMaker(object):
             mq_vhost, capture_interval, sunrise_time_t, \
             sunset_time_t, use_solar_sensors, station_code, camera_url, \
             image_source_code, disable_cert_verification, working_dir, \
-            encoder_script
+            encoder_script, calculate_schedule, latitude, longitude, timezone, \
+               elevation, sunrise_offset, sunset_offset
 
     def makeService(self, options):
         """
@@ -94,15 +102,18 @@ class TSLoggerServiceMaker(object):
             mq_vhost, capture_interval, sunrise_time, \
             sunset_time, use_solar_sensors, station_code, camera_url, \
             image_source_code, disable_cert_verification,\
-            working_dir, encoder_script = self._readConfigFile(
-                options['config-file'])
+            working_dir, encoder_script, calculate_schedule, latitude, \
+            longitude, timezone, elevation, sunrise_offset, \
+            sunset_offset = self._readConfigFile(options['config-file'])
 
         svc = TSLoggerService(dsn, station_code, mq_host, mq_port,
                               mq_exchange, mq_user, mq_password, mq_vhost,
                               capture_interval, sunrise_time,
                               sunset_time, use_solar_sensors, camera_url,
                               image_source_code, disable_cert_verification,
-                              encoder_script, working_dir)
+                              encoder_script, working_dir, calculate_schedule,
+                              latitude, longitude, timezone, elevation,
+                              sunrise_offset, sunset_offset)
 
         # All OK. Go get the service.
         return svc
