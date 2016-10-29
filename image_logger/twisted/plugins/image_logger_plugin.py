@@ -1,6 +1,7 @@
 # coding=utf-8
 import ConfigParser
 from zope.interface import implements
+from datetime import datetime
 
 from twisted.python import usage
 from twisted.plugin import IPlugin
@@ -65,14 +66,17 @@ class ZXWPushClientServiceMaker(object):
         use_solar_sensors = config.getboolean(S_SCHEDULE, "use_solar_sensors")
         station_code = config.get(S_SCHEDULE, "station_code")
 
+        sunrise_time_t = datetime.strptime(sunrise_time, "%H:%M").time()
+        sunset_time_t = datetime.strptime(sunset_time, "%H:%M").time()
+
         camera_url = config.get(S_CAMERA, "camera_url")
         image_source_code = config.get(S_CAMERA, "image_source")
         disable_cert_verification = config.getboolean(
                 S_CAMERA, "disable_ssl_certificate_verification")
 
         return dsn, mq_host, mq_port, mq_exchange, mq_user, mq_password, \
-            mq_vhost, capture_interval, daylight_only, sunrise_time, \
-            sunset_time, use_solar_sensors, station_code, camera_url, \
+            mq_vhost, capture_interval, daylight_only, sunrise_time_t, \
+            sunset_time_t, use_solar_sensors, station_code, camera_url, \
             image_source_code, disable_cert_verification
 
     def makeService(self, options):
