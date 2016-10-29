@@ -315,8 +315,9 @@ class TSLoggerService(service.Service):
         finish_time = datetime.now()
 
         title = "Time-lapse for {0}".format(self._logging_start_time.date())
-        description = "Start time: {0}, Finish time: {1}, Total frames: {2}, Interval: {3} seconds".format(
-            self._logging_start_time.time(), finish_time.time(), self._current_image_number - 1, self._interval
+        description = "Time-lapse from {0} to {1}".format(
+            self._logging_start_time.time().strftime("%H:%M"),
+            finish_time.time().strftime("%H:%M")
         )
 
         input_size = sum(os.path.getsize(f) for f in os.listdir(self._working_dir) if os.path.isfile(f))
