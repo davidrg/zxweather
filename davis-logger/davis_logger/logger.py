@@ -419,6 +419,7 @@ by a change in time zone due to daylight savings.""".format(e.pgerror))
             self.station.reset()
         elif self._watchdog_reset:
             log.msg('Watchdog: data logger restart was successful. ')
+            self._watchdog_reset = False
 
         self._reschedule_watchdog()
 
