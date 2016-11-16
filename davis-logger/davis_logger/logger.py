@@ -200,6 +200,16 @@ class DavisLoggerProtocol(Protocol):
                 'Last record: {0} {1}'.format(last.dateStamp, last.timeStamp))
         log.msg('Received {0} archive records'.format(len(adjusted_samples)))
 
+        # We must keep track of the last timestamp saved to the database so we
+        # can correctly reinitialise the DstSwitcher after a watchdog timer
+        # initiated logger restart. If we initialise it with some very old
+        # timestamp on the other side of a DST Start transition it could result
+        # in the station clock being incorrectly put forward an hour every time
+        # the watchdog timer restarts the logger.
+        last_sample = adjusted_samples[-1]
+        self._latest_ts = datetime.combine(last_sample.dateStamp,
+                                           last_sample.timeStamp)
+
         if loop:
             self._start_loop()
 
