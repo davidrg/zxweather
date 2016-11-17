@@ -72,6 +72,10 @@ class TcpClientFactory(ReconnectingClientFactory):
         self.NotReady.fire()
         ReconnectingClientFactory.clientConnectionFailed(self, connector, reason)
 
+    def stopFactory(self):
+        log.msg("TCP Client Factory stopping...")
+        # TODO: Disconnect databases, message brokers and kill the protocol?
+
 
 # This wraps up the eventual TCP Client as a service while its still connecting.
 class TcpClientService(service.Service):
@@ -105,6 +109,10 @@ class TcpClientService(service.Service):
         reactor.connectTCP(self._hostname, self._port, self._factory)
 
     def _setup_protocol(self, client):
+
+        if self._protocol is not None:
+            self._protocol.ConnectionLost.removeHandlers(self)
+
         self._protocol = client
         for x in self.Ready.handlers:
             self._protocol.Ready += x
@@ -115,7 +123,15 @@ class TcpClientService(service.Service):
         for x in self.ImageReceiptConfirmation.handlers:
             self._protocol.ImageReceiptConfirmation += x
 
+        client.ConnectionLost += self._protocol_connection_lost
+
         client.Ready += self._ready
+
+    def _protocol_connection_lost(self):
+        # The protocol we were using has just lost its connection to the outside
+        # world and will be disposed of shortly. We need to drop any references
+        # to it so we don't accidentally keep it alive.
+        self._protocol = None
 
     # noinspection PyUnusedLocal
     def _ready(self, not_used):

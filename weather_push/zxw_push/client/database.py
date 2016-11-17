@@ -550,6 +550,10 @@ class WeatherDatabase(object):
         the supplied upload client.
         """
 
+        if self._database_ready:
+            # We're already connected. Nothing to do.
+            return
+
         def _set_database_ready():
             self._database_ready = True
 

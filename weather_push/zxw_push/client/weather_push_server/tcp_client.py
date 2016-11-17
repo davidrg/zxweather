@@ -7,6 +7,7 @@ import json
 
 from twisted.internet import reactor, defer
 from twisted.internet import protocol
+from twisted.internet.protocol import connectionDone
 from twisted.python import log
 
 from zxw_push.common.data_codecs import encode_live_record, \
@@ -64,6 +65,7 @@ class WeatherPushProtocol(protocol.Protocol):
         self.Ready = Event()
         self.ReceiptConfirmation = Event()
         self.ImageReceiptConfirmation = Event()
+        self.ConnectionLost = Event()
 
         # These are all keyed by station id
         self._live_sequence_id = {}  # Sequencers for each station
@@ -100,6 +102,18 @@ class WeatherPushProtocol(protocol.Protocol):
 
         log.msg("Authenticating...")
         self._authenticate()
+
+    def connectionLost(self, reason=connectionDone):
+        # We need to break all references to the outside world here so we don't
+        # end up being kept alive accidentally.
+
+        self._confirmed_sample_func = None
+        self.Ready.clearHandlers()
+        self.ReceiptConfirmation.clearHandlers()
+        self.ImageReceiptConfirmation.clearHandlers()
+
+        self.ConnectionLost.fire()
+        self.ConnectionLost.clearHandlers()
 
     def dataReceived(self, data):
         """

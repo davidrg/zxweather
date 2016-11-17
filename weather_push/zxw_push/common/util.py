@@ -31,6 +31,12 @@ class Event(object):
         for handler in self._handlers:
             handler(*args, **kwargs)
 
+    def clearHandlers(self):
+        """
+        Removes all handlers from the event
+        """
+        self._handlers = []
+
     def removeHandlers(self, parent_object):
         """
         Clears all handlers that belong to the supplied parent object.
