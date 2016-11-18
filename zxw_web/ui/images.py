@@ -35,6 +35,8 @@ class StationImage(object):
 
     @property
     def description(self):
+        if self._description is None:
+            return ""
         return self._description
 
     @property
