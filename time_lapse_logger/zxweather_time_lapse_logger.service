@@ -1,0 +1,18 @@
+# Edit this file with the location of the configuration file and service.
+# To install, copy into /etc/systemd/system and:
+# systemctl daemon-reload
+# systemctl start zxweather_time_lapse_logger.service
+# systemctl enable zxweather_time_lapse_logger.service
+
+[Unit]
+Description=zxweather time lapse video daemon
+
+[Service]
+ExecStart=/usr/bin/twistd --nodaemon --pidfile= time_lapse_logger -f /etc/zxweather/time_lapse_logger.cfg
+WorkingDirectory=/opt/zxweather/time_lapse_logger
+User=root
+Group=root
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
