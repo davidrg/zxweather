@@ -179,7 +179,7 @@ def deserialise_16bit_temp(temp, minDashed=False):
 
     if temp == 32767 and not minDashed:
         return None
-    elif temp == -32767 and minDashed:
+    elif temp == -32768 and minDashed:
         return None
     else:
         return f_to_c(temp / 10.0)
@@ -197,7 +197,7 @@ def serialise_16bit_temp(temp, minDashed=False):
     """
 
     if temp is None and minDashed:
-        return -32767
+        return -32768
     elif temp is None:
         return 32767
 
