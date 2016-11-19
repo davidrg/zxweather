@@ -4,6 +4,8 @@
  * Time: 6:31 PM
  */
 
+var video_support = !!document.createElement('video').canPlayType;
+
 var socket = null;
 var ws_connected = false;
 var ws_state = 'conn';
@@ -42,6 +44,16 @@ var months = {
   12: 'december'
 };
 
+
+if (!String.prototype.trim) {
+    (function() {
+        // Make sure we trim BOM and NBSP
+        var rtrim = /^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g;
+        String.prototype.trim = function() {
+            return this.replace(rtrim, '');
+        };
+    })();
+}
 
 // Code for managing an images section client-side
 function ImageSection(el) {
@@ -99,6 +111,7 @@ ImageSection.prototype._create_images_row = function() {
 
 ImageSection.prototype._create_image = function(thumb_url, full_url, title, caption) {
     var li = $("<li/>");
+
     var a = $("<a class='thumbnail'/>");
     a.attr('href', full_url);
     var img = $("<img/>");
@@ -112,19 +125,68 @@ ImageSection.prototype._create_image = function(thumb_url, full_url, title, capt
     return li;
 };
 
-ImageSection.prototype._add_image_to_list = function(thumb_url, full_url, title, caption) {
-    var image = this._create_image(thumb_url, full_url, title, caption);
-    var ul = this.element.find("ul");
-    ul.append(image);
+ImageSection.prototype._create_video = function(full_url, title, caption) {
+    var li = $("<li/>");
+console.log(thumbnail_width);
+    var div = $("<div class='thumbnail'/>");
+    var video = $("<video controls></video>");
+    video.attr('src', full_url);
+    video.attr('title', title);
+    video.attr('width', thumbnail_width);
+
+    var caption_width = thumbnail_width - 20; // todo: remove magic number
+
+    var caption_div = $("<div class='caption'></div>");
+    caption_div.attr('style', 'width: ' + caption_width.toString() + 'px;');
+    caption_div.text(caption);
+
+    div.append(video);
+    div.append(caption_div);
+
+    li.append(div);
+
+    return li;
 };
 
-ImageSection.prototype._update_current_image = function(full_url, title, caption) {
+ImageSection.prototype._add_image_to_list = function(thumb_url, full_url, title, caption, is_video) {
+    var ul = this.element.find("ul");
+
+    if (is_video) {
+        var video = this._create_video(full_url, title, caption);
+        ul.append(video);
+    } else {
+        var image = this._create_image(thumb_url, full_url, title, caption);
+        ul.append(image);
+    }
+};
+
+ImageSection.prototype._update_current_image = function(full_url, title, caption, is_video) {
     var current_image_row = this.element.find("div.row.current_image");
     var img = current_image_row.find("img");
+    var video = current_image_row.find("video");
     var caption_element = current_image_row.find("div.caption");
 
-    img.attr('src', full_url);
-    img.attr('title', title);
+    if (is_video) {
+        if (video.length == 0) {
+            // We're currently displaying an image. Swap out the img element
+            // with a video one.
+            video = $('<video width="100%" controls></video>');
+            img.replaceWith(video);
+        }
+
+        video.attr('src', full_url);
+        video.attr('title', title);
+    } else {
+        if (img.length == 0) {
+            // We're currently displaying a video. Swap out the video element
+            // with an image one.
+            img = $('<img />');
+            video.replaceWith(img);
+        }
+
+        img.attr('src', full_url);
+        img.attr('title', title);
+    }
 
     caption_element.text(caption);
 };
@@ -149,9 +211,10 @@ ImageSection.prototype.create_element = function(code, title, description) {
     this.element = el;
 };
 
-ImageSection.prototype.addImage = function(thumb_url, full_url, title, caption) {
-    this._add_image_to_list(thumb_url, full_url, title, caption);
-    this._update_current_image(full_url, title, caption);
+ImageSection.prototype.addImage = function(thumb_url, full_url, title, caption,
+                                           is_video) {
+    this._add_image_to_list(thumb_url, full_url, title, caption, is_video);
+    this._update_current_image(full_url, title, caption, is_video);
 };
 
 function discover_image_sections() {
@@ -171,29 +234,45 @@ function add_image(parsed) {
     var station_code = parsed['station_code'];
     var src_code = parsed['source_code'];
 
-    if (src_code in image_sections) {
-        var section = image_sections[src_code];
-        section.addImage(parsed['thumb_url'], parsed['full_url'], parsed['time_stamp'].replace('T', ' '),
-            parsed['time']);
-    } else {
+    $.getJSON(parsed['description_url'], function(description_data) {
+        var title = description_data.title;
+        var description = description_data.description;
 
-        // In order to create a new section we have to go and look up its title and description.
-        $.getJSON(data_root + station_code + "/image_sources.json", function(data) {
-            if (src_code in data) {
-                var title = data[src_code]['name'];
-                var description = data[src_code]['description'];
+        if (title == null || title == '') {
+            title = parsed['time_stamp'].replace('T', ' ');
+        }
 
-                var section = new ImageSection(null);
-                section.create_element(src_code, title, description);
+        if (description == null || description == '') {
+            description = parsed['time'];
+        }
 
-                section.addImage(parsed['thumb_url'], parsed['full_url'],
-                    parsed['time_stamp'], parsed['time']);
+        if (src_code in image_sections) {
+            var section = image_sections[src_code];
 
-                image_sections[src_code] = section;
-            }
+            section.addImage(parsed['thumb_url'], parsed['full_url'], title,
+                description, parsed['is_video']);
+        } else {
 
-        });
-    }
+            // In order to create a new section we have to go and look up its title and description.
+            $.getJSON(data_root + station_code + "/image_sources.json", function(data) {
+                if (src_code in data) {
+                    var title = data[src_code]['name'];
+                    var description = data[src_code]['description'];
+
+                    var section = new ImageSection(null);
+                    section.create_element(src_code, title, description);
+
+                    section.addImage(parsed['thumb_url'], parsed['full_url'],
+                        title, description, parsed['is_video']);
+
+                    image_sections[src_code] = section;
+                }
+
+            });
+        }
+    });
+
+
 }
 
 function year_url(year) {
@@ -426,9 +505,10 @@ function parse_image_data(parts) {
     var station_code = parts[1].toLowerCase();
     var source_code = parts[2].toLowerCase();
     var type_code = parts[3].toLowerCase();
-    var mime_type = parts[4].toLowerCase();
+    var mime_type = parts[5].trim().toLowerCase();
 
     var extension = "jpeg";
+    var is_video = false;
 
     if (mime_type == "image/jpeg") {
         extension = "jpeg";
@@ -438,8 +518,10 @@ function parse_image_data(parts) {
         extension = "gif";
     } else if (mime_type == "video/mp4") {
         extension = "mp4";
+        is_video = true;
     }else if (mime_type == "video/webm") {
         extension = "webm";
+        is_video = true;
     }
 
     var h_s = hour.toString();
@@ -464,6 +546,7 @@ function parse_image_data(parts) {
 
     var full_url = url_base + "full." + extension;
     var thumbnail_url = url_base + "thumbnail." + extension;
+    var description_url = url_base + "description.json";
 
     return {
         'station_code': station_code,
@@ -472,7 +555,9 @@ function parse_image_data(parts) {
         'time_stamp': parts[4],
         'time': h_s + ":" + m_s,
         'full_url': full_url,
-        'thumb_url': thumbnail_url
+        'thumb_url': thumbnail_url,
+        'description_url': description_url,
+        'is_video': is_video
     };
 }
 
