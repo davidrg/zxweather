@@ -76,6 +76,7 @@ comment on column station.site_title is 'Title for weather station. Displayed at
 
 -- Adjust comment for wind direction.
 COMMENT ON COLUMN sample.wind_direction IS 'Prevailing wind direction in degrees.';
+COMMENT ON COLUMN sample.rainfall IS 'Rainfall in mm.';
 
 -- Index over station ID and timestamp to improve performance of chart queries.
 CREATE INDEX idx_station_timestamp
@@ -596,6 +597,7 @@ BEGIN
         from station s where s.station_id = NEW.station_id;
 
         perform pg_notify('new_sample', station_code);
+        perform pg_notify('new_sample_id', station_code || ':' || NEW.sample_id::character varying);
     END IF;
 
     RETURN NEW;

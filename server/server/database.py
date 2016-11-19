@@ -221,7 +221,8 @@ inner join davis_live_data dd on dd.station_id = ld.station_id"""
 
     return database_pool.runQuery(query, (station_code_id[station_code],))
 
-def get_sample_csv(station_code, start_time, end_time=None):
+
+def get_sample_csv(station_code, start_time, end_time=None, sample_id=None):
     """
     Gets live data for the specified station in CSV format.
     :param station_code: The station code
@@ -232,6 +233,8 @@ def get_sample_csv(station_code, start_time, end_time=None):
     :param end_time: Don't get any samples from this point onwards. If None
     then this parameter is ignored.
     :type end_time: datetime or None
+    :param sample_id: The sample to fetch
+    :type sample_id: int or None
     :returns: A deferred which will supply the data
     :rtype: Deferred
     """
@@ -263,6 +266,7 @@ and s.time_stamp > %s
 and (%s is null OR s.time_stamp < %s)
 order by s.time_stamp asc
         """
+    query_ts = " and s.sample_id = %s"
     query_top = """
 order by s.time_stamp desc
 fetch first 1 rows only
@@ -271,9 +275,14 @@ fetch first 1 rows only
     if start_time is not None:
         return database_pool.runQuery(query_cols + query_date,
             (station_code_id[station_code], start_time, end_time, end_time))
+    elif sample_id is not None:
+        return database_pool.runQuery(query_cols + query_ts,
+                                      (station_code_id[station_code],
+                                       sample_id))
     else:
         return database_pool.runQuery(query_cols + query_top,
             (station_code_id[station_code], ))
+
 
 
 def get_image_csv(image_id):

@@ -448,7 +448,7 @@ class StreamCommand(Command):
         get_sample_csv(station, start_timestamp, end_timestamp).addCallback(
             self._send_catchup)
 
-    def subscribe(self, station, live, samples, images):
+    def subscribe(self, station, live, samples, images, any_order):
         """
         Subscribes to a data feed for the specified station
         :param station: Station to subscribe to data for
@@ -458,7 +458,9 @@ class StreamCommand(Command):
         :param samples: If samples should be include in the subscription
         :type samples: bool
         :param images: If images should be included in the subscription
-        ;type images: bool
+        :type images: bool
+        :param any_order: Samples can be streamed in any order
+        :type any_order: bool
         :return: Current time at UTC
         :rtype: datetime
         """
@@ -467,7 +469,7 @@ class StreamCommand(Command):
         self.subscribe_samples = samples
         self.subscribe_images = images
 
-        subscriptions.subscribe(self, station, live, samples, images)
+        subscriptions.subscribe(self, station, live, samples, images, any_order)
 
         return datetime.utcnow().replace(tzinfo=pytz.utc)
 
@@ -521,6 +523,7 @@ class StreamCommand(Command):
         stream_live = "live" in self.qualifiers
         stream_samples = "samples" in self.qualifiers
         stream_images = "images" in self.qualifiers
+        stream_samples_in_any_order = "any_order" in self.qualifiers
         from_timestamp = None
         if stream_live is False and stream_samples is False \
                 and stream_images is False:
@@ -563,7 +566,8 @@ class StreamCommand(Command):
         # subscription started.
         self.buffer_data = True
         subscription_start = self.subscribe(station_code, stream_live,
-                                            stream_samples, stream_images)
+                                            stream_samples, stream_images,
+                                            stream_samples_in_any_order)
 
         # If we're supposed to catchup then grab all data for the station
         # from the catchup time through to when we started our subscription.
