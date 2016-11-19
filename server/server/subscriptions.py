@@ -17,7 +17,7 @@ _latest_live = {}
 
 
 def subscribe(subscriber, station, include_live, include_samples,
-              include_images):
+              include_images, any_order=False):
     """
     Adds a new station data subscription
     :param subscriber: The object that data should be delivered to
@@ -31,11 +31,15 @@ def subscribe(subscriber, station, include_live, include_samples,
                            contain enough data to find the image, they don't
                            include the images themselves.
     :type include_images: bool
+    :param any_order: If samples should be streamed as they're inserted into
+                      the database. When OFF out-of-order samples will be
+                      ignored entirely
+    :type any_order: bool
     """
     global subscriptions, _latest_live
 
     if station not in subscriptions:
-        subscriptions[station] = {"s": [], "l": [], "i": []}
+        subscriptions[station] = {"s": [], "sa": [], "l": [], "i": []}
 
     if include_live:
         subscriptions[station]["l"].append(subscriber)
@@ -44,7 +48,10 @@ def subscribe(subscriber, station, include_live, include_samples,
         if station in _latest_live:
             subscriber.live_data(_latest_live[station])
     if include_samples:
-        subscriptions[station]["s"].append(subscriber)
+        if any_order:
+            subscriptions[station]["sa"].append(subscriber)
+        else:
+            subscriptions[station]["s"].append(subscriber)
     if include_images:
         subscriptions[station]["i"].append(subscriber)
 
@@ -60,6 +67,9 @@ def unsubscribe(subscriber, station):
 
     if subscriber in subscriptions[station]["s"]:
         subscriptions[station]["s"].remove(subscriber)
+
+    if subscriber in subscriptions[station]["sa"]:
+        subscriptions[station]["sa"].remove(subscriber)
 
     if subscriber in subscriptions[station]["l"]:
         subscriptions[station]["l"].remove(subscriber)
@@ -122,6 +132,25 @@ def deliver_sample_data(station, data):
         return
 
     subscribers = subscriptions[station]["s"]
+
+    for subscriber in subscribers:
+        subscriber.sample_data(data)
+
+
+def deliver_unordered_sample_data(station, data):
+    """
+    delivers potentially unordered sample data to all subscribers
+    :param station: The station this data is for
+    :type station: str
+    :param data: Sample data
+    :type data: str
+    """
+    global subscriptions
+
+    if station not in subscriptions:
+        return
+
+    subscribers = subscriptions[station]["sa"]
 
     for subscriber in subscribers:
         subscriber.sample_data(data)
@@ -334,28 +363,41 @@ def _station_samples_updated_callback(data, code):
     global _last_sample_ts
 
     for row in data:
-        _last_sample_ts[code] = row[0]
+        prev_ts = _last_sample_ts[code]
+
         # We use ISO 8601 date formatting for output.
-        csv_data = 's,{0},{1}'.format(
-            row[0].strftime("%Y-%m-%d %H:%M:%S"), row[1])
-        deliver_sample_data(code, csv_data)
+        csv_data = 's,{0},{1}'.format(row[0], row[1])
+
+        # These subscribers don't care if they get the occasional sample
+        # out-of-order as long as they get all the samples.
+        deliver_unordered_sample_data(code, csv_data)
+
+        if prev_ts is None or row[0] > prev_ts:
+            _last_sample_ts[code] = row[0]
+
+            # These subscribers only want sampled where the timestamp is greater
+            # than the timestamp on the previous sample they received.
+            deliver_sample_data(code, csv_data)
 
 
-def new_station_samples(station_code):
+def new_station_sample(station_code, sample_id):
     """
-    Called when new samples are available for the specified station. This will
-    retrieve all new records since last time and broadcast them out to all
-    subscribers.
-    :param station_code:
+    Called when a new sample with the specified id is available for the
+    specified station. This will fetch the sample and broadcast it.
+    :param station_code: Station the sample is for
+    :type station_code: str
+    :param sample_id: ID of the sample
+    :type sample_id: int
     :return:
     """
+
     global _last_sample_ts
 
     if station_code not in _last_sample_ts:
         _last_sample_ts[station_code] = None
 
     if _last_sample_ts[station_code] is not None:
-        now = datetime.utcnow().replace(tzinfo = pytz.utc)
+        now = datetime.utcnow().replace(tzinfo=pytz.utc)
 
         # If we've not broadcast anything for the last few hours we don't want
         # to suddenly spam all clients with a hundred records because someone
@@ -364,7 +406,7 @@ def new_station_samples(station_code):
         if _last_sample_ts[station_code] < now - timedelta(hours=4):
             _last_sample_ts[station_code] = now - timedelta(minutes=20)
 
-    get_sample_csv(station_code, _last_sample_ts[station_code]).addCallback(
+    get_sample_csv(station_code, None, None, sample_id).addCallback(
         _station_samples_updated_callback, station_code)
 
 
