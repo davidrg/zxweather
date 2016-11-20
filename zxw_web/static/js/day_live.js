@@ -256,11 +256,11 @@ function add_image(parsed) {
             // In order to create a new section we have to go and look up its title and description.
             $.getJSON(data_root + station_code + "/image_sources.json", function(data) {
                 if (src_code in data) {
-                    var title = data[src_code]['name'];
-                    var description = data[src_code]['description'];
+                    var img_src_title = data[src_code]['name'];
+                    var img_src_description = data[src_code]['description'];
 
                     var section = new ImageSection(null);
-                    section.create_element(src_code, title, description);
+                    section.create_element(src_code, img_src_title, img_src_description);
 
                     section.addImage(parsed['thumb_url'], parsed['full_url'],
                         title, description, parsed['is_video']);
@@ -293,6 +293,11 @@ function yesterday_url() {
     return day_url(yesterday.getFullYear(),
                    yesterday.getMonth()+1,
                    yesterday.getDate());
+}
+
+function drop_images_section() {
+    image_sections = null;
+    $("section.images").remove();
 }
 
 // This function handles keeping pages with a live data feed up-to-date when the date changes.
@@ -384,8 +389,7 @@ function change_page_date() {
         // Date has changed on the station overview page. Update navigation URLs and drop all
         // image sections (they'll be recreated as image sources take their first images for the day)
 
-        image_sections = null;
-        $("section.images").remove();
+        drop_images_section();
 
         var today = new Date();
 
