@@ -95,6 +95,8 @@ class ImageLoggerService(service.Service):
 
         self._looper = task.LoopingCall(self._get_image)
 
+        self._sunrise_image_taken = False
+
         self._camera_url = camera_url
 
     def startService(self):
@@ -169,7 +171,6 @@ class ImageLoggerService(service.Service):
         except Exception as e:
             log.msg("Failed to capture or store image: {0}".format(e.message))
 
-
     def _schedule_logging_start(self):
         """
         Schedules the logger to start at the next configured sunrise time.
@@ -227,6 +228,13 @@ class ImageLoggerService(service.Service):
     def _start_logging(self, trigger):
 
         if self._logging:
+            # If we're not using daylight to start the logger we want to take
+            # one picture when daylight is first detected by the weather
+            # stations solar sensors:
+            if not self._sunrise_image_taken and not self._daylight_trigger:
+                self._sunrise_image_taken = True
+                self._get_image()
+
             return  # Nothing to do
 
         log.msg("Starting logger: {0}".format(trigger))
@@ -249,8 +257,12 @@ class ImageLoggerService(service.Service):
         if not self._logging:
             return
 
+        # Fetch one last image before we stop for the night
+        self._get_image()
+
         log.msg("Stopping logger: {0}".format(trigger))
         self._logging = False
+        self._sunrise_image_taken = False
 
         if self._looper.running:
             self._looper.stop()
@@ -273,6 +285,7 @@ class ImageLoggerService(service.Service):
                                 station
         :type solar_radiation: float
         """
+
         if uv_index is None and solar_radiation is None:
             # Lost communication with the ISS? Ignore it.
             return
