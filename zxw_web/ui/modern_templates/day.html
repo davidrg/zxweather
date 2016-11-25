@@ -125,6 +125,7 @@
         var live_auto_refresh;
         var hw_type = '{{ hw_type }}';
         var solar_and_uv_available = {% if solar_uv_available %}true{% else %}false{% endif %};
+        var ui = '{{ ui }}';
         {% if data.current_data -%}
 
         $('#live_status_cont').tooltip();
@@ -133,7 +134,6 @@
         var station_code = '{{ station }}';
         var sample_interval = {{ data.sample_interval }};
         var thumbnail_width = {{ thumbnail_width }};
-        var ui = '{{ ui }}';
 
         var ws_uri = null;
         var wss_uri = null;

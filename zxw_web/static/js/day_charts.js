@@ -9,6 +9,13 @@ var rainfall_loading = true;
 var samples_7_loading = true;
 var rainfall_7_loading = true;
 
+var data_sets = {
+    day: null,
+    week: null,
+    rainfall_day: null,
+    rainfall_week: null
+};
+
 function refresh_day_charts() {
     var chart_temperature_tdp_div = $("#chart_temperature_tdp_div");
     var chart_temperature_awc_div = $("#chart_temperature_awc_div");
@@ -121,6 +128,10 @@ function show_hide_rainfall_charts(chart) {
 function drawCharts() {
     load_day_charts();
     load_7day_charts();
-    show_hide_rainfall_charts(0); // 0 = both charts
+
+    if (ui != 's') {
+        // The dygraphs charts auto-hide
+        show_hide_rainfall_charts(0); // 0 = both charts
+    }
 }
 

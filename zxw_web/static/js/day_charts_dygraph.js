@@ -5,6 +5,20 @@
  * Time: 9:02 PM
  */
 
+if (!window.console) console = {log: function() {}};
+
+function maybe_start_live_data() {
+    if (!samples_loading && !samples_7_loading
+        && !rainfall_loading && !rainfall_7_loading && live_auto_refresh) {
+        console.log('Graph loading complete.');
+
+        // On the standard UI the live data subscription waits for graphs to
+        // finish loading so its able to auto-update them. Now that we've
+        // finished loading let it know it can get started.
+        start_day_live();
+    }
+}
+
 /* This function is stolen from the custom plotters exmaple:
  * http://dygraphs.com/tests/plotters.html
  */
@@ -45,21 +59,63 @@ function barChartPlotter(e) {
 
 /** Draws a rainfall chart.
  *
- * @param jsondata Data to plot.
+ * @param jsondata *ordered* data to plot.
  * @param element Element to plot in.
+ * @param labels_element the element to hold chart labels
+ * @param is_hourly if the supplied data is hourly or 5-minutely
  */
 function drawRainfallChart(jsondata,
                            element,
-                           labels_element) {
+                           labels_element,
+                           is_hourly) {
 
     var labels = jsondata['labels'];
-    var data = jsondata['data'];
+    var raw_data = jsondata['data'];
 
     /* Make sure the first column is Date objects, not strings */
-    data = convertToDates(data);
+    raw_data = convertToDates(raw_data);
+
+    var hourly_totals = [];
+
+    var current_ts = null;
+    var current_total = 0;
+
+    if (is_hourly) {
+        // The data is an hourly total already.
+        hourly_totals = raw_data;
+    } else {
+        // We need to compute an hourly total. We also need to retain the data
+        // used to do this so we can update the 24h rainfall total client-side.
+        for(var i = 0; i < raw_data.length; i++) {
+            var record = raw_data[i];
+            var ts = new Date(record[0].getTime());
+            var rainfall = record[1];
+
+            ts.setMinutes(0);
+            ts.setSeconds(0);
+            ts.setMilliseconds(0);
+
+            if (current_ts == null) {
+                current_ts = ts;
+            }
+
+            if (current_ts.getTime() != ts.getTime()) {
+                hourly_totals.push([current_ts, current_total]);
+                current_ts = ts;
+                current_total = 0;
+            }
+
+            current_total += rainfall;
+        }
+    }
+
+    // Store the final hourly total
+    if (current_ts != null) {
+        hourly_totals.push([current_ts, current_total]);
+    }
 
     var chart = new Dygraph(element,
-                            data,
+                            hourly_totals,
                             {
                                 plotter: barChartPlotter,
                                 labels: labels,
@@ -76,6 +132,39 @@ function drawRainfallChart(jsondata,
                                 // to have any effect.
                                 //,animatedZooms: true
                             });
+
+    return {
+        raw_data: raw_data,
+        data: hourly_totals,
+        _graph: chart,
+        _element: $(element),
+        _labels_element: $(labels_element),
+        _hide: function() {
+            this._element.hide();
+            this._labels_element.hide();
+        },
+        _show: function() {
+            this._element.show();
+            this._labels_element.show();
+        },
+        update_graph: function() {
+            this._graph.updateOptions({ 'file': this.data } );
+
+            // Automatically show or hide the graph depending on if it contains
+            // any data.
+            var total = 0;
+            for (var i = 0; i < this.data.length; i++) {
+                total += this.data[i][1]; // 0 is the timestamp, 1 is the data
+            }
+
+            if (total > 0) {
+                this._show();
+            } else {
+                console.log('Hiding rainfall chart (no data to show)');
+                this._hide();
+            }
+        }
+    }
 }
 
 function load_day_charts() {
@@ -88,9 +177,9 @@ function load_day_charts() {
     /***************************************************************
      * Fetch the days samples and draw the 1-day charts
      */
-    $.getJSON(samples_url, function(data) {
+    $.getJSON(samples_url,  function(data) {
 
-        drawSampleLineCharts(data,
+        data_sets.day = drawSampleLineCharts(data,
             document.getElementById('chart_temperature_tdp_div'),
             document.getElementById('chart_temperature_tdp_key'),
             document.getElementById('chart_temperature_awc_div'),
@@ -108,6 +197,7 @@ function load_day_charts() {
         );
 
         samples_loading = false;
+        maybe_start_live_data();
 
         // Turn the refresh button back on if we're finished loading
         if (!samples_loading && !rainfall_loading)
@@ -124,12 +214,21 @@ function load_day_charts() {
      */
     $.getJSON(rainfall_url, function(data) {
 
-        drawRainfallChart(
+        data_sets.rainfall_day = drawRainfallChart(
             data,
             document.getElementById('chart_hourly_rainfall_div'),
-            document.getElementById('chart_hourly_rainfall_key'));
+            document.getElementById('chart_hourly_rainfall_key'),
+            !live_auto_refresh); // 24h data set is every 5 minutes on live day pages
+
+        // Set 24h total rainfall thing:
+        var total = 0;
+        for (var i = 0; i < data_sets.rainfall_day.data.length; i++) {
+            total += data_sets.rainfall_day.data[i][1];
+        }
+        $("#tot_rainfall").text(total.toFixed(1));
 
         rainfall_loading = false;
+        maybe_start_live_data();
 
         // Turn the refresh button back on if we're finished loading
         if (!samples_loading && !rainfall_loading)
@@ -153,7 +252,7 @@ function load_7day_charts() {
      */
     $.getJSON(samples_7day_url, function(data) {
 
-        drawSampleLineCharts(data,
+        data_sets.week = drawSampleLineCharts(data,
             document.getElementById('chart_7_temperature_tdp_div'),
             document.getElementById('chart_7_temperature_tdp_key'),
             document.getElementById('chart_7_temperature_awc_div'),
@@ -171,6 +270,7 @@ function load_7day_charts() {
         );
 
         samples_7_loading = false;
+        maybe_start_live_data();
 
         // Turn the refresh button back on if we're finished loading
         if (!samples_7_loading && !rainfall_7_loading)
@@ -186,12 +286,14 @@ function load_7day_charts() {
      */
     $.getJSON(rainfall_7day_url, function(data) {
 
-        drawRainfallChart(
+        data_sets.rainfall_week = drawRainfallChart(
             data,
             document.getElementById('chart_7_hourly_rainfall_div'),
-            document.getElementById('chart_7_hourly_rainfall_key'));
+            document.getElementById('chart_7_hourly_rainfall_key'),
+            true); // 168h data set is hourly
 
         rainfall_7_loading = false;
+        maybe_start_live_data();
 
         // Turn the refresh button back on if we're finished loading
         if (!samples_7_loading && !rainfall_7_loading)

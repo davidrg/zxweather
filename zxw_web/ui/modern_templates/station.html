@@ -96,7 +96,10 @@
         var live_url = '../../data/{{ station }}/live.json';
         var data_root = "../../data/";
         var samples_url = '../../data/{{ station }}/{{ subdir }}24hr_samples.json';
-        var rainfall_url = '../../data/{{ station }}/{{ subdir }}24hr_hourly_rainfall.json';
+        var rainfall_url = '../../data/{{ station }}/{{ subdir }}24hr_rainfall.json';
+        {% if ui != 's' %}
+        rainfall_url = '../../data/{{ station }}/{{ subdir }}24hr_hourly_rainfall.json';
+        {% endif %}
         var samples_7day_url = '../../data/{{ station }}/{{ subdir }}168hr_30m_avg_samples.json';
         var rainfall_7day_url = '../../data/{{ station }}/{{ subdir }}168hr_rainfall.json';
         var records_url = '../../data/{{ station }}/current_day_records.json';
@@ -116,6 +119,8 @@
         var forecast_rules_uri = '../../data/davis_forecast_rules.json';
         var solar_and_uv_available = {% if solar_uv_available %}true{% else %}false{% endif %};
         {% endif %}
+
+
     </script>
 
     <script type="text/javascript" src="../../js/day_live.js"></script>
