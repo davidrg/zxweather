@@ -1658,8 +1658,7 @@ function connect_live() {
     }
 
     if(window.WebSocket) {
-
-        if (data_sets != null && data_sets.day != null) {
+        if (window.data_sets && data_sets != null && data_sets.day != null) {
             // If the latest point in the graphs is >2h ago we can't catchup
             // from the websocket - we've got to rebuild the graphs using the
             // JSON data sources.
