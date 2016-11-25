@@ -118,6 +118,8 @@ class overlay_file:
             content_type = "image/png"
         elif filename.endswith(".dat"):
             content_type = "text/plain"
+        elif filename.endswith(".json"):
+            content_type = "application/json"
         else:
             content_type = guess_type(filename)[0]
 
