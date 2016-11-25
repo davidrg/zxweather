@@ -426,8 +426,7 @@ class StreamCommand(Command):
     def _send_catchup(self, data):
         for row in data:
             # We use ISO 8601 date formatting for output.
-            csv_data = 's,"{0}",{1}'.format(
-                row[0].strftime("%Y-%m-%d %H:%M:%S"), row[1])
+            csv_data = 's,{0},{1}'.format(row[0], row[1])
             self.writeLine(csv_data)
 
         # Turn data buffering back off so streaming will resume.
