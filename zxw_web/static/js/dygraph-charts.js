@@ -113,18 +113,45 @@ function drawSampleLineCharts(jsondata,
      *  6 - Absolute Pressure
      *  7 - Average Wind Speed
      *  8 - Gust Wind Speed
+     *  9 - UV Index
+     *  10 - Solar Radiation
      */
-    var tdp_data = selectColumns(data, [0,1,2]);
-    var awc_data = selectColumns(data, [0,3,4]);
-    var humidity_data = selectColumns(data, [0,5]);
-    var pressure_data = selectColumns(data, [0,6]);
-    var wind_speed_data = selectColumns(data, [0,7,8]);
-    var uv_index_data = null;
-    var solar_radiation_data = null;
+
+    var data_set = {
+        tdp_data : selectColumns(data, [0,1,2]),
+        awc_data : selectColumns(data, [0,3,4]),
+        humidity_data : selectColumns(data, [0,5]),
+        pressure_data : selectColumns(data, [0,6]),
+        wind_speed_data : selectColumns(data, [0,7,8]),
+        uv_index_data : null,
+        solar_radiation_data : null,
+        _graphs: {
+            tdp_chart: null,
+            awc_chart: null,
+            humidity_chart: null,
+            pressure_chart: null,
+            uv_index_chart: null,
+            solar_radiation_chart: null,
+            wind_speed_chart: null
+        },
+        update_graphs: function() {
+            this._graphs.tdp_chart.updateOptions({ 'file': this.tdp_data } );
+            this._graphs.awc_chart.updateOptions({ 'file': this.awc_data } );
+            this._graphs.humidity_chart.updateOptions({ 'file': this.humidity_data } );
+            this._graphs.pressure_chart.updateOptions({ 'file': this.pressure_data } );
+            if (this._graphs.uv_index_chart != null) {
+                this._graphs.uv_index_chart.updateOptions({'file': this.uv_index_data});
+            }
+            if (this._graphs.solar_radiation_chart != null) {
+                this._graphs.solar_radiation_chart.updateOptions({'file': this.solar_radiation_data});
+            }
+            this._graphs.wind_speed_chart.updateOptions({ 'file': this.wind_speed_data } );
+        }
+    };
 
     if (hw_type == "DAVIS" && solar_and_uv_available) {
-        uv_index_data = selectColumns(data, [0, 9]);
-        solar_radiation_data = selectColumns(data, [0, 10]);
+        data_set.uv_index_data = selectColumns(data, [0, 9]);
+        data_set.solar_radiation_data = selectColumns(data, [0, 10]);
     }
 
     /* And the labels */
@@ -137,9 +164,9 @@ function drawSampleLineCharts(jsondata,
     var solar_radiation_labels = [labels[0], labels[10]];
 
     /* Now chart it all */
-    var tdp_chart = new Dygraph(
+    data_set._graphs.tdp_chart = new Dygraph(
         tdp_element,
-        tdp_data,
+        data_set.tdp_data,
         {
             labels: tdp_labels,
             labelsDiv: tdp_key,
@@ -153,9 +180,9 @@ function drawSampleLineCharts(jsondata,
             },
             legend: 'always'
         });
-    var awc_chart = new Dygraph(
+    data_set._graphs.awc_chart = new Dygraph(
         awc_element,
-        awc_data,
+        data_set.awc_data,
         {
             labels: awc_labels,
             labelsDiv: awc_key,
@@ -169,9 +196,9 @@ function drawSampleLineCharts(jsondata,
             },
             legend: 'always'
         });
-    var humidity_chart = new Dygraph(
+    data_set._graphs.humidity_chart = new Dygraph(
         humidity_element,
-        humidity_data,
+        data_set.humidity_data,
         {
             labels: humidity_labels,
             labelsDiv: humidity_key,
@@ -185,9 +212,9 @@ function drawSampleLineCharts(jsondata,
             },
             legend: 'always'
         });
-    var pressure_chart = new Dygraph(
+    data_set._graphs.pressure_chart = new Dygraph(
         pressure_element,
-        pressure_data,
+        data_set.pressure_data,
         {
             labels: pressure_labels,
             labelsDiv: pressure_key,
@@ -202,10 +229,10 @@ function drawSampleLineCharts(jsondata,
             legend: 'always'
         });
 
-    if (uv_index_data != null) {
-        var uv_index_chart = new Dygraph(
+    if (data_set.uv_index_data != null) {
+        data_set._graphs.uv_index_chart = new Dygraph(
             uv_index_element,
-            uv_index_data,
+            data_set.uv_index_data,
             {
                 labels: uv_index_labels,
                 labelsDiv: uv_index_key,
@@ -217,10 +244,10 @@ function drawSampleLineCharts(jsondata,
         )
     }
 
-    if (solar_radiation_data != null) {
-        var solar_radiation_chart = new Dygraph(
+    if (data_set.solar_radiation_data != null) {
+        data_set._graphs.solar_radiation_chart = new Dygraph(
             solar_radiation_element,
-            solar_radiation_data,
+            data_set.solar_radiation_data,
             {
                 labels: solar_radiation_labels,
                 labelsDiv: solar_radiation_key,
@@ -237,9 +264,9 @@ function drawSampleLineCharts(jsondata,
         )
     }
 
-    var wind_speed_chart = new Dygraph(
+    data_set._graphs.wind_speed_chart = new Dygraph(
         wind_speed_element,
-        wind_speed_data,
+        data_set.wind_speed_data,
         {
             labels: wind_speed_labels,
             labelsDiv: wind_speed_key,
@@ -253,6 +280,8 @@ function drawSampleLineCharts(jsondata,
             },
             legend: 'always'
         });
+
+    return data_set;
 }
 
 /** Draws the daily records line charts used on the year- and month-level

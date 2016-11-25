@@ -2,7 +2,15 @@
  * User: David Goodwin
  * Date: 21/05/12
  * Time: 6:31 PM
+ *
+ * Back when this script was originally written it was only polling a JSON
+ * file every 48 seconds to update the current conditions table. When complexity
+ * first appeared with the websocket-based current conditions updating it really
+ * ought to have been restructured. Now that records, chart and image
+ * auto-updating has been bodged in its really just a mess.
  */
+
+if (!window.console) console = {log: function() {}};
 
 var video_support = !!document.createElement('video').canPlayType;
 
@@ -12,6 +20,7 @@ var ws_state = 'conn';
 var ws_lost_connection = false;
 
 var live_enabled = true;
+var live_started = false;
 
 var e_live_status = $('#live_status');
 var e_live_status_cont = $('#live_status_cont');
@@ -42,6 +51,153 @@ var months = {
   10: 'october',
   11: 'november',
   12: 'december'
+};
+
+var current_168h_point = null;
+var incomplete_168h_points = [];
+
+function list_avg(items) {
+    var sum = 0;
+    for (var i = 0; i < items.length; i++) {
+        sum += items[i];
+    }
+
+    return sum/items.length;
+}
+
+/*
+ * AveragePoint is used for building points in the 168h line graphs.
+ */
+function AveragePoint(time_stamp) {
+    this.time_stamp = time_stamp;
+    // Next point is 30 minutes after this one:
+    this.next_point_timestamp = new Date(time_stamp.getTime() + (30 * 60 * 1000));
+    this._temperature = [];
+    this._dew_point = [];
+    this._apparent_temperature = [];
+    this._wind_chill = [];
+    this._humidity = [];
+    this._pressure = [];
+    this._wind_speed = [];
+    this._gust_wind_speed = [];
+    this._uv_index = [];
+    this._solar_radiation = [];
+    this.is_empty = true;
+}
+
+AveragePoint.prototype.contains_sample = function(sample) {
+    var sample_ts = sample.time_stamp;
+
+    return this.contains_timestamp(sample_ts);
+};
+
+AveragePoint.prototype.contains_timestamp = function(time_stamp) {
+    return time_stamp >= this.time_stamp &&
+        time_stamp < this.next_point_timestamp;
+};
+
+AveragePoint.prototype.add_sample = function(sample) {
+    if (!this.contains_sample(sample)) {
+        // We should never get here.
+        return;
+    }
+
+    if (this.is_full()) {
+        // This data should already be in the point.
+        return;
+    }
+
+    this._temperature.push(sample.temperature);
+    this._dew_point.push(sample.dew_point);
+    this._apparent_temperature.push(sample.apparent_temperature);
+    this._wind_chill.push(sample.wind_chill);
+    this._humidity.push(sample.humidity);
+    this._pressure.push(sample.pressure);
+    this._wind_speed.push(sample.wind_speed);
+    this._gust_wind_speed.push(sample.gust_wind_speed);
+
+    // Conditionally putting the samples in the buffers here is ok as the point
+    // timestamps are pre-determined so it won't really affect anything but the
+    // value if a few samples go missing for whatever reason.
+    if (sample.uv_index != null) {
+        this._uv_index.push(sample.uv_index);
+    }
+
+    if (sample.solar_radiation != null) {
+        this._solar_radiation.push(sample.solar_radiation);
+    }
+
+    this.is_empty = false;
+};
+
+AveragePoint.prototype.is_full = function() {
+    var max_samples = 1800 / sample_interval;
+
+    if (this.is_empty) {
+        return false;
+    }
+
+    return this._temperature.length >= max_samples;
+};
+
+AveragePoint.prototype.temperature = function() {
+    if (this.is_empty) return null;
+
+    return list_avg(this._temperature);
+};
+
+AveragePoint.prototype.dew_point = function() {
+    if (this.is_empty) return null;
+
+    return list_avg(this._dew_point);
+};
+
+AveragePoint.prototype.apparent_temperature = function() {
+    if (this.is_empty) return null;
+
+    return list_avg(this._apparent_temperature);
+};
+
+AveragePoint.prototype.wind_chill = function() {
+    if (this.is_empty) return null;
+
+    return list_avg(this._wind_chill);
+};
+
+AveragePoint.prototype.humidity = function() {
+    if (this.is_empty) return null;
+
+    return list_avg(this._humidity);
+};
+
+AveragePoint.prototype.pressure = function() {
+    if (this.is_empty) return null;
+
+    return list_avg(this._pressure);
+};
+
+AveragePoint.prototype.wind_speed = function() {
+    if (this.is_empty) return null;
+
+    return list_avg(this._wind_speed);
+};
+
+AveragePoint.prototype.gust_wind_speed = function() {
+    if (this.is_empty) return null;
+
+    return list_avg(this._gust_wind_speed);
+};
+
+AveragePoint.prototype.uv_index = function() {
+    if (this.is_empty || this._solar_radiation.length == 0) return null;
+
+    return list_avg(this._uv_index);
+};
+
+AveragePoint.prototype.solar_radiation = function() {
+    if (this.is_empty || this._solar_radiation.length == 0) return null;
+
+    return list_avg(this._solar_radiation);
 };
 
 
@@ -127,7 +283,7 @@ ImageSection.prototype._create_image = function(thumb_url, full_url, title, capt
 
 ImageSection.prototype._create_video = function(full_url, title, caption) {
     var li = $("<li/>");
-console.log(thumbnail_width);
+
     var div = $("<div class='thumbnail'/>");
     var video = $("<video controls></video>");
     video.attr('src', full_url);
@@ -589,7 +745,7 @@ function parse_sample(parts) {
     // TODO: find a library to parse all this (moment.js probably)
     // need to review browser support, etc, first. May have to wait
     // for the big v2.0 refactoring/upgrade.
-    var time_string = parts[1];
+    var time_string = parts[1].replace("T", " ").split("+")[0];
     var date_string = time_string.split(' ')[0];
     time_string = time_string.split(' ')[1];
 
@@ -605,16 +761,17 @@ function parse_sample(parts) {
 
     var time_stamp = new Date();
     time_stamp.setYear(year);
-    time_stamp.setMonth(month);
+    time_stamp.setMonth(month-1);
     time_stamp.setDate(day);
     time_stamp.setHours(hour);
     time_stamp.setMinutes(minute);
     time_stamp.setSeconds(second);
 
-
+    // Note - samples are also constructed in build_average_point_for_ts()
     var sample = {
         // record type  // 0
         time_stamp: time_stamp,
+        full_time_stamp: parts[1],
         temperature: parseNoneableFloat(parts[2]),
         dew_point: parseNoneableFloat(parts[3]),
         apparent_temperature: parseNoneableFloat(parts[4]),
@@ -626,7 +783,9 @@ function parse_sample(parts) {
         wind_speed: parseNoneableFloat(parts[10]),
         gust_wind_speed: parseNoneableFloat(parts[11]),
         wind_direction: parseNoneableInt(parts[12]),
-        rainfall: parseNoneableFloat(parts[13])
+        rainfall: parseNoneableFloat(parts[13]),
+        uv_index: null,
+        solar_radiation: null
     };
 
     if (hw_type == 'DAVIS' && parts.length > 14) {
@@ -643,84 +802,86 @@ function check_for_new_records(sample) {
         return;  // No records to compare with
     }
 
+    var time_stamp = sample.time_stamp;
+
     var new_records = [];
 
     if (sample.temperature > records.max_temp) {
         records.max_temp = sample.temperature;
-        records.max_temp_ts = sample.time_stamp;
-        new_records.push(['day', 'max_temp', sample.temperature, sample.time_stamp]);
+        records.max_temp_ts = time_stamp;
+        new_records.push(['day', 'max_temp', sample.temperature, time_stamp]);
     }
     if (sample.temperature < records.min_temp) {
         records.min_temp = sample.temperature;
-        records.min_temp_ts = sample.time_stamp;
-        new_records.push(['day', 'min_temp', sample.temperature, sample.time_stamp]);
+        records.min_temp_ts = time_stamp;
+        new_records.push(['day', 'min_temp', sample.temperature, time_stamp]);
     }
 
     if (sample.wind_chill > records.max_wind_chill) {
         records.max_wind_chill = sample.wind_chill;
-        records.max_wind_chill_ts = sample.time_stamp;
-        new_records.push(['day', 'max_wind_chill', sample.wind_chill, sample.time_stamp]);
+        records.max_wind_chill_ts = time_stamp;
+        new_records.push(['day', 'max_wind_chill', sample.wind_chill, time_stamp]);
     }
     if (sample.wind_chill < records.min_wind_chill) {
         records.min_wind_chill = sample.wind_chill;
-        records.min_wind_chill_ts = sample.time_stamp;
-        new_records.push(['day', 'min_wind_chill', sample.wind_chill, sample.time_stamp]);
+        records.min_wind_chill_ts = time_stamp;
+        new_records.push(['day', 'min_wind_chill', sample.wind_chill, time_stamp]);
     }
 
     if (sample.apparent_temperature > records.max_apparent_temp) {
         records.max_apparent_temp = sample.apparent_temperature;
-        records.max_apparent_temp_ts = sample.time_stamp;
-        new_records.push(['day', 'max_apparent_temp', sample.apparent_temperature, sample.time_stamp]);
+        records.max_apparent_temp_ts = time_stamp;
+        new_records.push(['day', 'max_apparent_temp', sample.apparent_temperature, time_stamp]);
     }
     if (sample.apparent_temperature < records.min_apparent_temp) {
         records.min_apparent_temp = sample.apparent_temperature;
-        records.min_apparent_temp_ts = sample.time_stamp;
-        new_records.push(['day', 'min_apparent_temp', sample.apparent_temperature, sample.time_stamp]);
+        records.min_apparent_temp_ts = time_stamp;
+        new_records.push(['day', 'min_apparent_temp', sample.apparent_temperature, time_stamp]);
     }
 
     if (sample.dew_point > records.max_dew_point) {
         records.max_dew_point = sample.dew_point;
-        records.max_dew_point_ts = sample.time_stamp;
-        new_records.push(['day', 'max_dew_point', sample.dew_point, sample.time_stamp]);
+        records.max_dew_point_ts = time_stamp;
+        new_records.push(['day', 'max_dew_point', sample.dew_point, time_stamp]);
     }
     if (sample.dew_point < records.min_dew_point) {
         records.min_dew_point = sample.dew_point;
-        records.min_dew_point_ts = sample.time_stamp;
-        new_records.push(['day', 'min_dew_point', sample.dew_point, sample.time_stamp]);
+        records.min_dew_point_ts = time_stamp;
+        new_records.push(['day', 'min_dew_point', sample.dew_point, time_stamp]);
     }
 
     if (sample.pressure > records.max_pressure) {
         records.max_pressure = sample.pressure;
-        records.max_pressure_ts = sample.time_stamp;
-        new_records.push(['day', 'max_pressure', sample.pressure, sample.time_stamp]);
+        records.max_pressure_ts = time_stamp;
+        new_records.push(['day', 'max_pressure', sample.pressure, time_stamp]);
     }
     if (sample.pressure < records.min_pressure) {
         records.min_pressure = sample.pressure;
-        records.min_pressure_ts = sample.time_stamp;
-        new_records.push(['day', 'min_pressure', sample.pressure, sample.time_stamp]);
+        records.min_pressure_ts = time_stamp;
+        new_records.push(['day', 'min_pressure', sample.pressure, time_stamp]);
     }
 
     if (sample.humidity > records.max_humidity) {
         records.max_humidity = sample.humidity;
-        records.max_humidity_ts = sample.time_stamp;
-        new_records.push(['day', 'max_humidity', sample.humidity, sample.time_stamp]);
+        records.max_humidity_ts = time_stamp;
+        new_records.push(['day', 'max_humidity', sample.humidity, time_stamp]);
     }
     if (sample.humidity < records.min_humidity) {
         records.min_humidity = sample.humidity;
-        records.min_humidity_ts = sample.time_stamp;
-        new_records.push(['day', 'min_humidity', sample.humidity, sample.time_stamp]);
+        records.min_humidity_ts = time_stamp;
+        new_records.push(['day', 'min_humidity', sample.humidity, time_stamp]);
     }
 
     if (sample.gust_wind_speed > records.max_gust_wind) {
         records.max_gust_wind = sample.gust_wind_speed;
-        records.max_gust_wind_ts = sample.time_stamp;
-        new_records.push(['day', 'max_gust_wind', sample.gust_wind_speed, sample.time_stamp]);
+        records.max_gust_wind_ts = time_stamp;
+        new_records.push(['day', 'max_gust_wind', sample.gust_wind_speed, time_stamp]);
     }
 
     if (sample.wind_speed > records.max_wind) {
         records.max_wind = sample.wind_speed;
-        records.max_wind_ts = sample.time_stamp;
-        new_records.push(['day', 'max_wind', sample.wind_speed, sample.time_stamp]);
+        records.max_wind_ts = time_stamp;
+        new_records.push(['day', 'max_wind', sample.wind_speed, time_stamp]);
     }
 
     if (new_records.length > 0) {
@@ -729,46 +890,547 @@ function check_for_new_records(sample) {
     }
 }
 
+function graph_data_sort(a,b) {
+    var date_a = a[0];
+    var date_b = b[0];
+    return date_b>date_a ? -1 : date_b<date_a ? 1 : 0;
+}
+
+function add_sample_to_day_graphs(sample) {
+    if (data_sets.day == null) {
+        return; // Graphs haven't been initialised yet.
+    }
+
+    var ts = sample.time_stamp;
+    var last_ts = data_sets.day.tdp_data[data_sets.day.tdp_data.length-1][0];
+    var earliest_ts = data_sets.day.tdp_data[0][0];
+
+    // If the timestamp on the sample we've just received is earlier than the
+    // most recent sample in the graphs, we'll need to sort the graph data to
+    // ensure the new sample ends up in the right place.
+    var sort_required = ts < last_ts;
+
+    if (ts.getTime() <= earliest_ts.getTime()) {
+        console.log('Sample too old for graph');
+        return; // Sample doesn't belong in this graph (its more than 24h old)
+    }
+    // todo: Check the graph doesn't already contain this sample?
+    // Its pretty unlikely we'd get a duplicate notification though
+
+    // For 1-day graphs we just add it on to the end.
+    // For 24 hour graphs we add it on to the end and remove the first item.
+
+    // TDP is Timestamp, Temperature and Dew Point
+    data_sets.day.tdp_data.push([ts, sample.temperature, sample.dew_point]);
+
+    // AWC is Timestamp, Apparent Temperature and Wind Chill
+    data_sets.day.awc_data.push([ts, sample.apparent_temperature, sample.wind_chill]);
+
+    // Humidity is Timestamp and Humidity
+    data_sets.day.humidity_data.push([ts, sample.humidity]);
+
+    // Pressure is Timestamp and Pressure
+    data_sets.day.pressure_data.push([ts, sample.pressure]);
+
+    // Wind Speed is Timestamp, Average wind Speed and Gust Wind Speed
+    data_sets.day.wind_speed_data.push([ts, sample.wind_speed, sample.gust_wind_speed]);
+
+    if (data_sets.day.uv_index_data != null) {
+        // UV Index is Timestamp and UV Index
+        data_sets.day.uv_index_data.push([ts, sample.uv_index]);
+    }
+
+    if (data_sets.day.solar_radiation_data != null) {
+        // UV Index is Timestamp and Solar Radiation
+        data_sets.day.solar_radiation_data.push([ts, sample.solar_radiation]);
+    }
+
+    if (sort_required) {
+        console.log("sort required.");
+        data_sets.day.tdp_data.sort(graph_data_sort);
+        data_sets.day.awc_data.sort(graph_data_sort);
+        data_sets.day.humidity_data.sort(graph_data_sort);
+        data_sets.day.pressure_data.sort(graph_data_sort);
+        data_sets.day.wind_speed_data.sort(graph_data_sort);
+
+        if (data_sets.day.uv_index_data != null) {
+            data_sets.day.uv_index_data.sort(graph_data_sort);
+        }
+
+        if (data_sets.day.solar_radiation_data != null) {
+            data_sets.day.solar_radiation_data.sort(graph_data_sort);
+        }
+    }
+
+    if (!is_day_page) {
+        // For the 24 hour graphs we need to remove the oldest item if the graph is full.
+
+        // 86400 seconds in 24 hours. Sample interval is in seconds.
+        var sample_count = 86400 / sample_interval;
+
+        if (data_sets.day.tdp_data.length > sample_count) {
+            data_sets.day.tdp_data.shift();
+            data_sets.day.awc_data.shift();
+            data_sets.day.humidity_data.shift();
+            data_sets.day.pressure_data.shift();
+            data_sets.day.wind_speed_data.shift();
+
+            if (data_sets.day.uv_index_data != null) {
+                data_sets.day.uv_index_data.shift();
+            }
+
+            if (data_sets.day.solar_radiation_data != null) {
+                data_sets.day.solar_radiation_data.shift();
+            }
+        }
+    }
+
+    // Now update the graphs to display the new data.
+    data_sets.day.update_graphs();
+}
+
+function add_point_to_168h_graph(point) {
+    var ts = point.time_stamp;
+
+    console.log('Adding new point to 168h graph with timestamp ' + ts);
+
+    // add new point with above timestamp
+
+    // TDP is Timestamp, Temperature and Dew Point
+    data_sets.week.tdp_data.push([ts, point.temperature(), point.dew_point()]);
+
+    // AWC is Timestamp, Apparent Temperature and Wind Chill
+    data_sets.week.awc_data.push([ts, point.apparent_temperature(),
+        point.wind_chill()]);
+
+    // Humidity is Timestamp and Humidity
+    data_sets.week.humidity_data.push([ts, point.humidity()]);
+
+    // Pressure is Timestamp and Pressure
+    data_sets.week.pressure_data.push([ts, point.pressure()]);
+
+    // Wind Speed is Timestamp, Average wind Speed and Gust Wind Speed
+    data_sets.week.wind_speed_data.push([ts, point.wind_speed(),
+        point.gust_wind_speed()]);
+
+    if (data_sets.week.uv_index_data != null) {
+        // UV Index is Timestamp and UV Index
+        data_sets.week.uv_index_data.push([ts, point.uv_index()]);
+    }
+
+    if (data_sets.week.solar_radiation_data != null) {
+        // UV Index is Timestamp and Solar Radiation
+        data_sets.week.solar_radiation_data.push([ts, point.solar_radiation()]);
+    }
+
+    if (data_sets.week.tdp_data.length > 336) {
+        // The graph is full. Remove the oldest item
+        data_sets.week.tdp_data.shift();
+        data_sets.week.awc_data.shift();
+        data_sets.week.humidity_data.shift();
+        data_sets.week.pressure_data.shift();
+        data_sets.week.wind_speed_data.shift();
+
+        if (data_sets.week.uv_index_data != null) {
+            data_sets.week.uv_index_data.shift();
+        }
+
+        if (data_sets.week.solar_radiation_data != null) {
+            data_sets.week.solar_radiation_data.shift();
+        }
+    }
+
+    data_sets.week.update_graphs();
+}
+
+function get_point_index_in_168h_graph(point) {
+    var id = data_sets.week.tdp_data.length - 1;
+
+    for (var i = id; i >= 0; i--) {
+        var point_ts = data_sets.week.tdp_data[i][0];
+        if (point_ts.getTime() == point.time_stamp.getTime()) {
+            return i;
+        }
+    }
+
+    return null;
+}
+
+function update_point_in_168h_graph(point) {
+    var id = get_point_index_in_168h_graph(point);
+
+    // TDP is Timestamp, Temperature and Dew Point
+    data_sets.week.tdp_data[id][1] = point.temperature();
+    data_sets.week.tdp_data[id][2] = point.dew_point();
+
+    // AWC is Timestamp, Apparent Temperature and Wind Chill
+    data_sets.week.awc_data[id][1] = point.apparent_temperature();
+    data_sets.week.awc_data[id][1] = point.wind_chill();
+
+    // Humidity is Timestamp and Humidity
+    data_sets.week.humidity_data[id][1] = point.humidity();
+
+    // Pressure is Timestamp and Pressure
+    data_sets.week.pressure_data[id][1] = point.pressure();
+
+    // Wind Speed is Timestamp, Average wind Speed and Gust Wind Speed
+    data_sets.week.wind_speed_data[id][1] = point.wind_speed();
+    data_sets.week.wind_speed_data[id][2] = point.gust_wind_speed();
+
+    if (data_sets.week.uv_index_data != null) {
+        // UV Index is Timestamp and UV Index
+        data_sets.week.uv_index_data[id][1] = point.uv_index();
+    }
+
+    if (data_sets.week.solar_radiation_data != null) {
+        // Solar Radiation is Timestamp and Solar Radiation
+        data_sets.week.solar_radiation_data[id][1] = point.solar_radiation();
+    }
+    data_sets.week.update_graphs();
+}
+
+function build_average_point_for_ts(time_stamp) {
+    var point = new AveragePoint(time_stamp);
+
+    console.log('Building average point from 24h data for: ' + time_stamp);
+
+    // Grab any values in the 24h chart that belong in this 30-minute averaged
+    // point.
+    for(var i = 0; i < data_sets.day.tdp_data.length - 1; i++) {
+        var sample_ts = data_sets.day.tdp_data[i][0];
+        if (point.contains_timestamp(sample_ts)) {
+
+            var sample = {
+                time_stamp: sample_ts,
+                full_time_stamp: null,
+                temperature: data_sets.day.tdp_data[i][1],
+                dew_point: data_sets.day.tdp_data[i][2],
+                apparent_temperature: data_sets.day.awc_data[i][1],
+                wind_chill: data_sets.day.awc_data[i][2],
+                humidity: data_sets.day.humidity_data[i][1],
+                indoor_temperature: null,
+                indoor_humidity: null,
+                pressure: data_sets.day.pressure_data[i][1],
+                wind_speed: data_sets.day.wind_speed_data[i][1],
+                gust_wind_speed: data_sets.day.wind_speed_data[i][2],
+                wind_direction: null,
+                rainfall: null,
+                uv_index: null,
+                solar_radiation: null
+            };
+
+            if (data_sets.day.uv_index_data != null) {
+                sample.uv_index = data_sets.day.uv_index_data[i][1];
+            }
+
+            if (data_sets.day.solar_radiation_data != null) {
+                sample.solar_radiation = data_sets.day.solar_radiation_data[i][1];
+            }
+
+            point.add_sample(sample);
+        }
+    }
+
+    return point;
+}
+
+function prune_incomplete_168h_points() {
+    // This discards any incomplete points that either no longer exist in the
+    // graph or are no longer incomplete.
+
+    var min_ts = data_sets.week.tdp_data[0][0];
+
+    var i = incomplete_168h_points.length;
+    while (i--) {
+        if (incomplete_168h_points[i].is_full()) {
+            // Its full - no more samples to add to it so throw it away
+            console.log('Discarding incomplete point ' + incomplete_168h_points[i].time_stamp + ': full');
+            incomplete_168h_points.splice(i, 1);
+        } else if (incomplete_168h_points[i].time_stamp < min_ts) {
+            // Its too old.
+            console.log('Discarding incomplete point ' + incomplete_168h_points[i].time_stamp + ': too old');
+            incomplete_168h_points.splice(i, 1);
+        }
+    }
+}
+
+function get_point_ts_for_sample_ts(ts) {
+    // Note: this function will never (and must never) be called with a
+    // timestamp earlier than the earliest timestamp in the graph.
+
+    var start_ts = data_sets.week.tdp_data[0][0];
+
+    if (ts < start_ts) {
+        // Too old
+        return null;
+    }
+
+    // We'll only look forward two weeks ((168h * 2 = 336 points) * 2) to find
+    // a period to slot this timestamp into.
+    for (var i = 0; i <= 168 * 4; i++) {
+        var next_ts = new Date(start_ts.getTime() + (30 * 60 * 1000));
+
+        if (ts >= start_ts && ts < next_ts) {
+            return start_ts;
+        }
+
+        start_ts = next_ts; // Move forward 30 minutes
+    }
+
+    // If the timestamp doesn't fall within two weeks of the oldest point
+    // currently in the graph, we'll just start the graphs 30-minute intervals
+    // over again with this sample
+    return ts;
+}
+
+function add_sample_to_168hr_graphs(sample) {
+
+    if (sample.time_stamp < data_sets.week.tdp_data[0][0]) {
+        // Sample is too old to be displayed in this graph.
+        console.log('Sample too old for graph - ignoring');
+        return
+    }
+
+    if (current_168h_point == null) {
+        // First time updating the 168h graph. Initialise the current point with
+        // data from the 24h graph.
+        console.log('Building initial current point from 24h data...');
+        var latest_point_ts = data_sets.week.tdp_data[data_sets.week.tdp_data.length-1][0];
+        current_168h_point = build_average_point_for_ts(latest_point_ts);
+    }
+
+    var sample_point_ts = get_point_ts_for_sample_ts(sample.time_stamp);
+
+    if (current_168h_point.contains_sample(sample)) {
+        current_168h_point.add_sample(sample);
+        update_point_in_168h_graph(current_168h_point);
+    } else if (sample.time_stamp >= current_168h_point.next_point_timestamp) {
+        // Sample is for a future point.
+
+        if (!current_168h_point.is_full()) {
+            // Not finished with current point yet. Chuck it in the list of
+            // incomplete points in case more samples for it come through later.
+            incomplete_168h_points.push(current_168h_point);
+            prune_incomplete_168h_points();
+        }
+
+        var previous_point = current_168h_point;
+        current_168h_point = new AveragePoint(sample_point_ts);
+        current_168h_point.add_sample(sample);
+
+        if (current_168h_point.time_stamp > previous_point.next_point_timestamp) {
+            // We've skipped a few points forward. We need to create these
+            // (currently empty) points and chuck them in the incomplete points
+            // list in case we receive data for them later. Until data for them
+            // comes through they'll at least appear as a gap in the graph.
+
+            console.log('New point is a long way in the future! Creating filler...');
+
+            var new_ts = previous_point.next_point_timestamp;
+            while (new_ts < current_168h_point.time_stamp) {
+                console.log('Blank point at: ' + new_ts);
+                var empty_point = new AveragePoint(new_ts);
+                add_point_to_168h_graph(empty_point);
+                incomplete_168h_points.push(empty_point);
+                new_ts = empty_point.next_point_timestamp;
+            }
+        }
+
+        add_point_to_168h_graph(current_168h_point);
+    } else {
+        // Sample is not for the current point and its not for a future point.
+        // See if it belongs in any of the incomplete points we've got lying
+        // around.
+
+        console.log('Sample is for a past point.');
+
+        // Now see if it belongs in a point we're still interested in seeing
+        // more data for.
+        for (var i = 0; i < incomplete_168h_points.length; i++) {
+            if (incomplete_168h_points[i].contains_sample(sample)) {
+                console.log('Found point in incomplete points list!');
+
+                if (!incomplete_168h_points[i].is_full()) {
+                    // We've found a point the sample belongs in!
+                    incomplete_168h_points[i].add_sample(sample);
+                    update_point_in_168h_graph(incomplete_168h_points[i]);
+                }
+
+                prune_incomplete_168h_points();
+
+                return; // done!
+            }
+        }
+
+        console.log("Point isn't in incomplete points list...");
+
+        // Not in the above list. The sample could be for a point that already
+        // existed in the data set the page started out with...
+
+        // If the point is 23 hours or less we should still have all the other
+        // data for its 30 minute block sitting in the 24h chart. So we could
+        // still update the existing point in the 168h chart
+
+        var d = new Date();
+        d.setHours(d.getHours() - 23);
+
+        if (sample_point_ts > d) {
+            var point = build_average_point_for_ts(sample_point_ts);
+            if (point.is_full()) {
+                // The point is already full! Ignore this sample - its of no use.
+                console.log("Constructed point is full. Ignoring extra sample.");
+                return;
+            }
+            point.add_sample(sample);
+            update_point_in_168h_graph(point);
+
+            if (!point.is_full()) {
+                // Still missing some samples from this point. Put it aside
+                // in case more come through.
+                console.log("constructed point isn't full yet - putting on incomplete list");
+                incomplete_168h_points.push(point);
+            }
+        } else {
+            console.log('No data for point is available. Sample ignored.');
+        }
+
+        prune_incomplete_168h_points();
+    }
+}
+
+function add_rain_to_hourly_rainfall_graph(timestamp, rainfall, graph, hours) {
+    if (graph == null) {
+        return; // Graph not initialised yet.
+    }
+
+    var truncated_ts = new Date(timestamp.getTime());
+
+    truncated_ts.setMinutes(0);
+    truncated_ts.setSeconds(0);
+    truncated_ts.setMilliseconds(0);
+
+    var found = false;
+
+    // We search in reverse as the point we're looking to update will probably
+    // be at the end if its in the graph at all.
+    for(var i = graph.data.length - 1; i >= 0; i--) {
+        var point_ts = graph.data[i][0];
+        if (truncated_ts.getTime() == point_ts.getTime()) {
+            graph.data[i][1] = graph.data[i][1] + rainfall;
+            found = true;
+            break;
+        }
+    }
+
+    if (!found) {
+        // Couldn't find the point in the graph. Add a new one.
+
+        var latest_timestamp = graph.data[graph.data.length - 1][0];
+
+        var next_ts = new Date(latest_timestamp.getTime() + (60 * 60 * 1000));
+        while (next_ts < truncated_ts) {
+            graph.data.push([next_ts, 0]);
+            next_ts = new Date(next_ts.getTime() + (60 * 60 * 1000));
+        }
+
+        // Couldn't find the time in the graph. Either we've just started a new
+        // hour or the graph is missing a point. Either way, this data needs to be
+        // added to the graph
+        graph.data.push([truncated_ts, rainfall]);
+
+        if (truncated_ts < latest_timestamp) {
+            // The point we just added was older than the most recent point in the
+            // graph. We need to sort the data.
+            graph.data.sort(graph_data_sort);
+        }
+
+        // On day pages we're only adding new points until the end of the day.
+        if (!is_day_page) {
+            // Each point represents one hour. Throw away points until we only have
+            // as many as should be in the graph.
+            while (graph.data.length > hours+1) {
+                graph.data.shift();
+            }
+        }
+    }
+
+    graph.update_graph();
+}
+
+function add_rain_to_24h_rainfall_graph(timestamp, rainfall, graph) {
+
+    if (graph == null) {
+        return; // Graph not initialised yet.
+    }
+
+    var latest_ts = graph.raw_data[graph.raw_data.length - 1][0];
+
+    graph.raw_data.push([timestamp, rainfall]);
+
+    if (timestamp < latest_ts) {
+        // Data point we just added was older than the most recent. Sort the
+        // data set to make throwing away the oldest points easy.
+        graph.raw_data.sort(graph_data_sort);
+    }
+
+    latest_ts = graph.raw_data[graph.raw_data.length - 1][0];
+
+    // Earliest timestamp we'll keep is 24 hours ago.
+    var earliest_ts = new Date(latest_ts.getTime() - (24 * 60 * 60 * 1000));
+
+    // Compute total rainfall for the last 24 hours throwing away any points
+    // that are too old.
+    var total = 0;
+    var i = graph.raw_data.length;
+    while (i--) {
+        var ts = graph.raw_data[i][0];
+
+        if (ts < earliest_ts) {
+            // Point is too old - discard!
+            graph.raw_data.splice(i, 1);
+        } else {
+            // Point is ok! Add it to the total
+            total += graph.raw_data[i][1];
+        }
+    }
+
+    // Update total rainfall value
+    $("#tot_rainfall").text(total.toFixed(1));
+
+    add_rain_to_hourly_rainfall_graph(timestamp, rainfall, graph, 24);
+}
+
+function add_sample_to_rainfall_graphs(sample) {
+    var ts = sample.time_stamp;
+    var rain = sample.rainfall;
+
+    add_rain_to_24h_rainfall_graph(ts, rain, data_sets.rainfall_day);
+    add_rain_to_hourly_rainfall_graph(ts, rain, data_sets.rainfall_week, 168);
+}
+
 function add_sample_to_graphs(sample) {
-    // TODO: update all the graphs somehow.
 
-    // For 24 hour graphs we just remove the oldest sample and insert the new one onto the end.
+    if (ui != 's') {
+        // Only the standard UI supports auto-refreshing graphs.
+        return;
+    }
 
-
-    /*
-    The 168 hour graphs present a bit of a challenge as they're a 30 minute average. So the first time
-    we have to do anything with them we've got to go on a bit of a discovery process to gather all
-    the data that makes up the most recent 30 minute average. From there we'll just keep a buffer
-    which we'll average every time a new sample comes in and reset every 30 minutes.
-
-    So the basic procedure for 168 hour graphs is:
-
-    (1) When a new sample comes in and our buffer is null:
-      * A 168h sample consists of (30/sample_interval) samples
-      * Get the timestamp for the current (latest) 168h sample in the graphs
-      * Next 168h sample is due at (last_sample_ts) + 30 minutes
-      * IF (last_sample_ts) + 30 minutes == NOW() then SKIP to (2)
-      * Current 168h sample is made of ((now - last_sample_ts) / sample_interval) samples.
-      * Grab the ((now - last_sample_ts) / sample_interval) most recent samples from the end
-        of the 24h graphs and store these in the buffer
-      * SKIP to (3)
-    (2) When a new sample comes in and we've already got 30 minutes of data in our buffer we'll:
-      * Clear the buffer
-      * Insert the new sample into the buffer
-      * Remove the earliest sample from all 168 hour graphs
-      * Recompute 30 minute average
-      * Insert new sample at the end of the graph
-     (3) When a new sample comes in and we've got less than 30 minutes of data in our buffer we'll:
-       * Insert the new sample into the buffer
-       * Recompute 30 minute average
-       * Update most recent sample in the graphs
-     */
+    add_sample_to_day_graphs(sample);
+    add_sample_to_168hr_graphs(sample);
+    add_sample_to_rainfall_graphs(sample);
 }
 
 function disable_refresh_buttons() {
     if (!loading_buttons_disabled) {
-        //var buttons = $(".refreshbutton");
-        var buttons = $("#btn_records_refresh");
+        var buttons = null;
+
+        if (ui == 's') {
+            buttons = $(".refreshbutton");
+        } else {
+            // The alternate UI doesn't support auto-refreshing graphs so we'll
+            // only disable the records refresh button.
+            buttons = $("#btn_records_refresh");
+        }
         buttons.hide();
         loading_buttons_disabled = true;
     }
@@ -776,8 +1438,13 @@ function disable_refresh_buttons() {
 
 function enable_refresh_buttons() {
     if (loading_buttons_disabled) {
-        //var buttons = $(".refreshbutton");
-        var buttons = $("#btn_records_refresh");
+        if (ui == 's') {
+            buttons = $(".refreshbutton");
+        } else {
+            // The alternate UI doesn't support auto-refreshing graphs so only
+            // the records refresh button is ever hidden
+            buttons = $("#btn_records_refresh");
+        }
         buttons.show();
         buttons.button('reset');
         loading_buttons_disabled = false;
@@ -804,18 +1471,14 @@ function data_arrived(data) {
         // Sample
         parsed = parse_sample(parts);
         if (parsed != null) {
-            disable_refresh_buttons();
             check_for_new_records(parsed);
             add_sample_to_graphs(parsed);
-            // TODO: update rainfall somehow
-            // This will probably be a fourth data type:
-            // r,hour,hour-rain,24h-rain,day-rain
-            // triggered from the database whenever a sample is inserted with non-zero rain data
         }
     } else if (parts[0] === "i") {
         // Image
         parsed = parse_image_data(parts);
-        if (parsed != null) {
+
+        if (parsed != null && video_support) {
             add_image(parsed);
         }
     }
@@ -833,8 +1496,23 @@ function poll_live_data() {
 
 function ws_data_arrived(evt) {
     if (evt.data == '_ok\r\n' && ws_state == 'conn') {
-        socket.send('subscribe "' + station_code + '"/live/samples/images\r\n');
+        var catchup = '';
+
+        if (data_sets != null && data_sets.day != null) {
+            // Fetch any new samples that have arrived between the graphs being loaded (potentially
+            // from cache) and when the subscribe command is run.
+            var last_record = data_sets.day.tdp_data[data_sets.day.tdp_data.length - 1];
+
+            if (last_record[0].toISOString) {
+                var ts = last_record[0].toISOString();
+                catchup = '/from_timestamp="' + ts + '"';
+            }
+        }
+
+        socket.send('subscribe "' + station_code + '"/live/samples/any_order/images' + catchup + '\r\n');
+
         ws_state = 'sub';
+        console.log('Subscription started.');
 
     } else if (ws_state == 'sub') {
         if (evt.data[0] != '#') {
@@ -849,6 +1527,7 @@ function finish_connection() {
         window.clearInterval(poll_interval);
         poll_interval = null;
     }
+    disable_refresh_buttons();
     ws_state = 'conn';
     ws_connected = true;
     ws_lost_connection = false;
@@ -873,7 +1552,17 @@ function wss_connect(evt) {
     finish_connection();
 }
 
-function ws_error(evt) { }
+function ws_error(evt) {
+    console.log('Websocket connection error.');
+    console.log('Switching to polling and scheduling reconnect attempt for 1 minute.');
+
+    // Something went wrong trying to connect the websocket. Switch
+    // to polling and try again in a minute.
+    update_live_status('yellow',
+    'Updating automatically every 30 seconds.');
+    start_polling();
+    setTimeout(function(){attempt_reconnect()},60000);
+}
 
 function start_polling() {
 
@@ -889,6 +1578,10 @@ function start_polling() {
 }
 
 function attempt_ws_connect() {
+    if (!live_started) {
+        return; // We're not supposed to be here.
+    }
+
     socket = new WebSocket(ws_uri);
     socket.onmessage = ws_data_arrived;
     socket.onopen = ws_connect;
@@ -926,6 +1619,11 @@ function attempt_reconnect() {
 }
 
 function attempt_wss_connect() {
+
+    if (!live_started) {
+        return; // We're not supposed to be here.
+    }
+
     socket = new WebSocket(wss_uri);
     socket.onmessage = ws_data_arrived;
     socket.onopen = wss_connect;
@@ -960,12 +1658,45 @@ function connect_live() {
     }
 
     if(window.WebSocket) {
+
+        if (data_sets != null && data_sets.day != null) {
+            // If the latest point in the graphs is >2h ago we can't catchup
+            // from the websocket - we've got to rebuild the graphs using the
+            // JSON data sources.
+            var last_record = data_sets.day.tdp_data[data_sets.day.tdp_data.length - 1][0];
+            var max_age = new Date(new Date().getTime() - (110*60*1000)); // 1h50m ago
+            if (last_record < max_age) {
+                console.log("Chart data too old - reload datasets from server...");
+
+                // Live data hasn't started yet. Turn this off so we can retry
+                // once the charts have finished loading.
+                live_started = false;
+
+                // This will start live data again once all charts have loaded.
+                samples_loading = false;
+                rainfall_loading = false;
+                samples_7_loading = false;
+                rainfall_7_loading = false;
+                refresh_day_charts();
+                refresh_7day_charts();
+
+                return;
+            }
+        }
+
         // Browser seems to support websockets. Try that if we can.
-        if (wss_uri != null)
-            attempt_wss_connect();
-        else if (ws_uri != null)
-            attempt_ws_connect();
-        else {
+        if (wss_uri != null || ws_uri != null) {
+            try {
+                if (wss_uri != null) {
+                    attempt_wss_connect();
+                } else if (ws_uri != null) {
+                    attempt_ws_connect();
+                }
+            } catch (ex) {
+                console.log('Connect failed:' + ex);
+                ws_error()
+            }
+        }else {
             update_live_status('green',
                 'Updating automatically every 30 seconds.');
             start_polling();
@@ -1281,19 +2012,31 @@ function reload_records() {
         });
 }
 
-if (live_auto_refresh) {
-    if (hw_type == 'DAVIS') {
-        // Load Davis forecast rules
-        $.getJSON(forecast_rules_uri, function (data) {
-            davis_forecast_rules = data;
-        });
+function start_day_live() {
+    if (live_auto_refresh && !live_started) {
+        console.log('Starting data subscription...');
+
+        live_started = true;
+
+        if (hw_type == 'DAVIS') {
+            // Load Davis forecast rules
+            $.getJSON(forecast_rules_uri, function (data) {
+                davis_forecast_rules = data;
+            });
+        }
+
+        disable_refresh_buttons();
+
+        // Trigger a refresh so we have a copy of the records in JS land
+        // which we can keep up-to-date.
+        reload_records();
+
+        connect_live();
     }
+}
 
-    disable_refresh_buttons();
-
-    // Trigger a refresh so we have a copy of the records in JS land
-    // which we can keep up-to-date.
-    reload_records();
-
-    connect_live();
+if (ui != 's') {
+    // On the standard UI we auto-update the graphs so we've got to wait for
+    // them to finish loading before starting the live subscription.
+    start_day_live();
 }
