@@ -128,6 +128,29 @@
         {%- endif %}
         <script type="text/javascript">{% if ui == 'a' %}var auto_plot=false;{% endif %}var ie8=true;</script>
         <![endif]-->
+        {%- if ui and ui == 'a' %}
+        <div class="alert alert-info" id="modern_browser" style="display:none">
+            <button type="button" class="close" data-dismiss="alert">×</button>
+            <strong>Modern browser!</strong>
+            <p>
+                You're currently looking at the Alternate Interface for old web
+                browsers. The good news is your browser appears to be new enough
+                to use the Standard Interface! This has better faster more
+                interactive (click and drag to zoom, double click to unzoom)
+                graphs that automatically update.
+            </p>
+
+            <p>
+                If you choose to stay on the Alternate Interface by clicking the
+                button below this message won't appear again but you can always
+                switch to another interface with the links at the bottom of this
+                page.
+            </p>
+
+            <a class="btn" href="{{ switch_url['s'] }}">Switch to the Standard Interface for Modern Web Browsers</a>
+            <button class="btn" onclick="mb_close()" data-dismiss="alert">Stay on the Alternate Interface for Older Web Browsers</button>
+        </div>
+        {%- endif %}
         {%- if station_message %}
         <div class="alert alert-info" style="display:none;" id="stn_msg">
             <button type="button" class="close" data-dismiss="alert"
@@ -249,6 +272,25 @@
     function switch_to_station(station_code) {
         window.location = switch_url(station_code);
     }
+
+    {% if ui and ui == 'a' %}
+    // Detect browsers with web-socket support and suggest use of standard UI
+    // unless the user has previously said to stay on alternate.
+    function mb_close() {
+        $.cookie("modern-browser-switch", "ignore", {path: '/'});
+    }
+
+    $(document).ready(function() {
+       var cookie = $.cookie("modern-browser-switch");
+       if (cookie == null || cookie != "ignore" ) {
+           //noinspection JSUnresolvedVariable
+           if (window.MozWebSocket || window.WebSocket) {
+               // Browser supports websockets. Show modern browser note.
+               $("#modern_browser").show()
+           }
+       }
+    });
+    {% endif %}
 
     {% if station_message %}
     function msg_close() {
