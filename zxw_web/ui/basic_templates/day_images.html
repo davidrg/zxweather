@@ -5,9 +5,11 @@
     <p>{{ source['description'] }}</p>
     {% endif -%}
     {% for img in source['images'] -%}
+    {% if not img.is_video -%}
     <a href="{{ img.url }}" class="thumbnail">
         <img src="{{ img.thumbnail_url }}" title="{{ img.time }}"/>
     </a>
+    {% endif %}
     {%- endfor %}
     {%- endfor %}
     {%- endif %}
