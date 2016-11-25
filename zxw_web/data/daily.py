@@ -401,7 +401,7 @@ def get_24hr_rainfall_data(time, station_id):
     where time_stamp <= $time
       and time_stamp > $time - '1 hour'::interval * 24
     and station_id = $station
-    order by date_trunc('hour',time_stamp) asc""", params)
+    order by time_stamp asc""", params)
 
     return result
 
