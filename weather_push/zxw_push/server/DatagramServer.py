@@ -209,7 +209,13 @@ class WeatherPushDatagramServer(DatagramProtocol):
         while len(self._sample_record_cache_ids) > \
                 self._MAX_SAMPLE_RECORD_CACHE:
             rid = self._sample_record_cache_ids.pop(0)
-            del self._sample_record_cache[rid]
+            if rid in self._sample_record_cache.keys():
+                try:
+                    del self._sample_record_cache[rid]
+                except KeyError:
+                    # Don't care. We wanted it gone and apparently someone beat
+                    # us to it.
+                    pass
 
     @defer.inlineCallbacks
     def _build_live_from_sample_diff(self, data, station_id, fields, hw_type):
