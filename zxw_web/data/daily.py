@@ -961,6 +961,42 @@ class image:
             web.header('Last-Modified', rfcformat(image.time_stamp))
 
             return result
+        elif config.cache_videos and mode == "full" and \
+                        extension.lower() == "mp4":
+            is_cached = False
+            video_data = None
+            cache_file = "{0}{1}.{2}".format(
+                config.video_cache_directory, image_id, extension
+            )
+            mime_type = None
+
+            if os.path.isfile(cache_file):
+                with open(cache_file, "r+b") as f:
+                    video_data = f.read()
+                is_cached = True
+
+                mime_type_and_ts = get_image_mime_type(image_id)
+                mime_type = mime_type_and_ts.mime_type
+
+            if not is_cached:
+                # Not in cache. Load it from the database.
+                img = get_image(image_id)
+                if img is None or img.image_data is None or img.mime_type is None:
+                    raise web.NotFound()
+                video_data = img.image_data
+
+                with open(cache_file, 'w+b') as f:
+                    f.write(video_data)
+
+                mime_type = img.mime_type
+
+            web.header('Content-Type', mime_type)
+            web.header('Content-Length', str(len(video_data)))
+            web.header('Expires', rfcformat(time_stamp +
+                                            timedelta(days=30)))
+            web.header('Last-Modified', rfcformat(time_stamp))
+            return video_data
+
         elif mode == "full":
             img = get_image(image_id)
             if img is None or img.image_data is None or img.mime_type is None:

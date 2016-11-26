@@ -68,3 +68,9 @@ site_name: zxweather
 cache_thumbnails: False
 #cache_directory: Z:/opt/zxweather/zxw_web/thumb_cache/
 thumbnail_size: 304x171
+
+# Turn this on to cache videos on disk as well. This will reduce database server
+# load and improve response times for video files but has the potential to use
+# a fair bit of disk space. You might want to setup a cron job to clear them out
+# every so often.
+cache_videos: False
