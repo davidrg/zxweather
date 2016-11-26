@@ -88,6 +88,38 @@ class Config(object):
 
     def getDatabaseConnection(self):
         con = psycopg2.connect(self._dsn)
+
+        db_version = 0
+
+        cur = con.cursor()
+        cur.execute("select 1 from INFORMATION_SCHEMA.tables where table_name = 'db_info'")
+        result = cur.fetchone()
+
+        if result is None:
+            db_version = 1
+        else:
+            cur.execute("select v::integer from db_info where k = 'DB_VERSION'")
+            db_version = cur.fetchone()[0]
+
+        if db_version < 3:
+            print("*** ERROR: WOW updater requires at least database "
+                  "version 3 (zxweather 1.0.0). Please upgrade your "
+                  "database.")
+            exit(1)
+
+        cur.execute("select version_check('WOWUPD',1,0,0)")
+        result = cur.fetchone()
+        if not result[0]:
+            cur.execute("select minimum_version_string('WOWUPD')")
+            result = cur.fetchone()
+
+            print("*** ERROR: This version of the WOW updater is "
+                  "incompatible with the configured database. The "
+                  "minimum WOW updater (or zxweather) version "
+                  "supported by this database is: {0}.".format(
+                    result[0]))
+            exit(1)
+
         return con
 
 
