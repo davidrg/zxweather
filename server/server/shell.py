@@ -131,7 +131,7 @@ class BaseShell(object):
             # off.
             self.dispatcher.environment["term_mode"] = TERM_BASIC
             self.dispatcher.environment["term_echo"] = False
-            self.dispatcher.environment["prompt"][0] = "_ok\r\n"
+            self.dispatcher.environment["prompt"][0] = "_ok\n"
 
         self.dispatcher.environment["protocol"] = protocol
 
@@ -215,7 +215,6 @@ class BaseShell(object):
         if self.current_command is not None:
             self.current_command.terminate()
 
-
     def processLine(self, line):
         if self.input_mode == INPUT_SHELL:
             self.executeCommand(line)
@@ -252,6 +251,7 @@ class ZxweatherShellProtocol(BaseShell, recvline.HistoricRecvLine):
 
     def __init__(self, user, protocol):
         super(ZxweatherShellProtocol, self).__init__(user, protocol)
+        self.ps = (self.prompt[0], self.prompt[1])
 
     def connectionMade(self):
         """
