@@ -4,6 +4,8 @@ Client-side database functionality
 """
 from twisted.enterprise import adbapi
 from twisted.internet import defer
+from twisted.internet import reactor
+from twisted.internet.defer import returnValue
 from twisted.python import log
 from ..common.util import Event
 from zxw_push.common.database import wh1080_sample_query, davis_sample_query, \
@@ -544,6 +546,56 @@ class WeatherDatabase(object):
         else:
             self._site_id = result[0][0]
 
+    @defer.inlineCallbacks
+    def _get_schema_version(self):
+        result = yield self._conn.runQuery(
+            "select 1 from INFORMATION_SCHEMA.tables where table_name = 'db_info'")
+
+        if len(result) == 0:
+            returnValue(1)
+
+        result = yield self._conn.runQuery(
+            "select v::integer from db_info where k = 'DB_VERSION'")
+
+        returnValue(result[0][0])
+
+    @defer.inlineCallbacks
+    def _check_db(self):
+        """
+        Checks the database is compatible
+        :return:
+        """
+        schema_version = yield self._get_schema_version()
+        log.msg("Database schema version: {0}".format(schema_version))
+
+        if schema_version < 3:
+            log.msg("*** ERROR: WeatherPush requires at least database version "
+                    "3 (zxweather 1.0.0). Please upgrade your database.")
+            reactor.stop()
+
+        result = yield self._conn.runQuery(
+            "select version_check('WPUSHC',1,0,0)")
+        if not result[0][0]:
+            result = yield self._conn.runQuery(
+                "select minimum_version_string('WPUSHC')")
+
+            log.msg("*** ERROR: This version of WeatherPush is incompatible"
+                    " with the configured database. The minimum WeatherPush "
+                    "(or zxweather) version supported by this database is: "
+                    "{0}.".format(
+                result[0][0]))
+            reactor.stop()
+
+        # Database checks ok.
+
+        self._cache_hardware_types()
+        self._prepare_sample_queue()
+        yield self._conn.runOperation("listen live_data_updated")
+        yield self._conn.runOperation("listen new_sample")
+        yield self._conn.runOperation("listen new_image")
+        self._database_ready = True
+        log.msg('Connected to database. Now waiting for data.')
+
     def _connect(self):
         """
         Connects to the database and starts sending live data and new samples to
@@ -554,9 +606,6 @@ class WeatherDatabase(object):
             # We're already connected. Nothing to do.
             return
 
-        def _set_database_ready():
-            self._database_ready = True
-
         log.msg('Connect: {0}'.format(self._connection_string))
         self._conn = DictConnection()
         self._conn_d = self._conn.connect(self._connection_string)
@@ -564,17 +613,7 @@ class WeatherDatabase(object):
         # add a NOTIFY observer
         self._conn.addNotifyObserver(self.observer)
 
-        self._conn_d.addCallback(lambda _: self._cache_hardware_types())
-        self._conn_d.addCallback(lambda _: self._prepare_sample_queue())
-        self._conn_d.addCallback(
-            lambda _: self._conn.runOperation("listen live_data_updated"))
-        self._conn_d.addCallback(
-            lambda _: self._conn.runOperation("listen new_sample"))
-        self._conn_d.addCallback(
-            lambda _: self._conn.runOperation("listen new_image"))
-        self._conn_d.addCallback(lambda _: _set_database_ready())
-        self._conn_d.addCallback(
-            lambda _: log.msg('Connected to database. Now waiting for data.'))
+        self._conn_d.addCallback(lambda _: self._check_db())
 
         self._database_pool = adbapi.ConnectionPool("psycopg2",
                                                     self._connection_string)
