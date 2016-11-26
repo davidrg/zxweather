@@ -6,6 +6,9 @@ import json
 from collections import namedtuple
 from twisted.enterprise import adbapi
 from twisted.internet import defer
+from twisted.internet import reactor
+from twisted.internet.defer import returnValue
+from twisted.internet.error import ReactorNotRunning
 from twisted.python import log
 
 __author__ = 'david'
@@ -67,6 +70,9 @@ StationInfoRecord = namedtuple(
     ('title','description','sample_interval','live_data_available',
      'station_type_code','station_type_title', 'station_config'))
 
+database_pool = None
+
+
 def database_connect(conn_str):
     """
     Connects to the database.
@@ -76,6 +82,65 @@ def database_connect(conn_str):
     global database_pool
     database_pool = adbapi.ConnectionPool("psycopg2", conn_str)
 
+    _check_db()
+
+
+@defer.inlineCallbacks
+def _get_schema_version():
+    result = yield database_pool.runQuery(
+        "select 1 from INFORMATION_SCHEMA.tables where table_name = 'db_info'")
+
+    if len(result) == 0:
+        returnValue(1)
+
+    result = yield database_pool.runQuery(
+        "select v::integer from db_info where k = 'DB_VERSION'")
+
+    returnValue(result[0][0])
+
+
+@defer.inlineCallbacks
+def _check_db():
+    """
+    Checks the database is compatible
+    :return:
+    """
+    schema_version = yield _get_schema_version()
+    log.msg("Database schema version: {0}".format(schema_version))
+
+    if schema_version < 3:
+        log.msg("*** ERROR: zxweatherd requires at least database version "
+                "3 (zxweather 1.0.0). Please upgrade your database.")
+        try:
+            reactor.stop()
+            return
+        except ReactorNotRunning:
+            # Don't care. We wanted it stopped, turns out it already is
+            # that or its not yet started in which case there isn't
+            # anything much we can do to terminate yet.
+            return
+    else:
+        result = yield database_pool.runQuery(
+            "select version_check('WSERVER',1,0,0)")
+        if not result[0][0]:
+            result = yield database_pool.runQuery(
+                "select minimum_version_string('WSERVER')")
+
+            log.msg("*** ERROR: This version of zxweatherd is incompatible"
+                    " with the configured database. The minimum zxweatherd "
+                    "(or zxweather) version supported by this database is: "
+                    "{0}.".format(
+                result[0][0]))
+            try:
+                reactor.stop()
+                return
+            except ReactorNotRunning:
+                # Don't care. We wanted it stopped, turns out it already is
+                # that or its not yet started in which case there isn't
+                # anything much we can do to terminate yet.
+                return
+
+    # Database checks ok.
     _prepare_caches()
 
 
