@@ -29,6 +29,8 @@ default_ui = 's'
 # on a private network with no internet access.
 disable_alt_ui = False
 
+hide_coordinates = False
+
 # Name displayed in the navigation thing
 site_name = 'zxweather'
 
@@ -55,7 +57,7 @@ def load_settings():
     global db, default_station_name
     global static_data_dir, site_root, default_ui, site_name, ws_uri, wss_uri
     global zxweatherd_hostname, zxweatherd_raw_port, disable_alt_ui
-    global google_analytics_id
+    global hide_coordinates, google_analytics_id
     global cache_thumbnails, cache_directory, thumbnail_size
 
     import ConfigParser
@@ -99,6 +101,9 @@ def load_settings():
 
     if config.has_option(S_S, 'disable_alt_ui'):
         disable_alt_ui = config.getboolean(S_S, 'disable_alt_ui')
+
+    if config.has_option(S_S, 'hide_coordinates'):
+        hide_coordinates = config.getboolean(S_S, 'hide_coordinates')
 
     if config.has_option(S_S, "google_analytics_id"):
         google_analytics_id = config.get(S_S, "google_analytics_id")

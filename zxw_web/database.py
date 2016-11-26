@@ -706,10 +706,12 @@ def get_station_name(station_id):
         return None
 
 
-def get_full_station_info():
+def get_full_station_info(include_coordinates=True):
     """
     Gets full information for all stations in the database - code, name,
     description, hardware type and date ranges.
+    :param include_coordinates: If station coordinates should be included
+    :type include_coordinates: bool
     :return:
     """
 
@@ -717,7 +719,8 @@ def get_full_station_info():
         select s.code, s.title, s.description, s.sort_order,
            st.code as hw_type_code, st.title as hw_type_name,
            sr.min_ts, sr.max_ts, s.message,
-           s.message_timestamp, s.station_config, s.site_title
+           s.message_timestamp, s.station_config, s.site_title, s.latitude,
+           s.longitude, s.altitude
         from station s
         inner join station_type st on st.station_type_id = s.station_type_id
         left outer join (
@@ -750,8 +753,17 @@ def get_full_station_info():
                 'max': None
             },
             'hw_config': hw_config,
-            'site_title': record.site_title
+            'site_title': record.site_title,
+            'coordinates': {
+                'latitude': None,
+                'longitude': None,
+                'altitude': record.altitude
+            }
         }
+
+        if include_coordinates:
+            station['coordinates']['latitude'] = record.latitude
+            station['coordinates']['longitude'] = record.longitude
 
         if record.message_timestamp is not None:
             station['msg_ts'] = record.message_timestamp.isoformat()

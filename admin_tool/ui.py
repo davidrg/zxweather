@@ -263,6 +263,80 @@ def get_number(prompt, default=None, required=False):
         return __get_number_optional(prompt,default)
 
 
+def __get_float_required(prompt):
+    """
+    Gets a required float
+    :param prompt: The prompt for the user
+    :type prompt: string
+    :return: An float.
+    :rtype: float
+    """
+
+    response = None
+
+    while response is None:
+        response = get_string(prompt, None, True)
+
+        if response == '':
+            print("Please enter a number.")
+        else:
+            try:
+                return float(response)
+            except ValueError:
+                print("Please enter a number.")
+                response = None
+
+
+def __get_float_optional(prompt, default):
+    """
+    Gets an optional float
+    :param prompt: The prompt for the user
+    :type prompt: string
+    :param default: The default value for if the user hits enter without
+    typing anything.
+    :type default: float or None
+    :return: An float.
+    :rtype: float
+    """
+
+    response = None
+
+    if default is None:
+        disp_default = ''
+    else:
+        disp_default = str(default)
+
+    while response is None:
+        response = get_string(prompt, disp_default)
+
+        if response == '':
+            return default
+
+        try:
+            return float(response)
+        except ValueError:
+            print("Please enter a number.")
+            response = None
+
+
+def get_float(prompt, default=None, required=False):
+    """
+    Gets a float from the user. If there is no default and the user does
+    not enter anything None is returned.
+    :param prompt: User prompt
+    :type prompt: string
+    :param default: Default value if not required
+    :type default: float or None
+    :param required: If it is required or not
+    :type required: bool
+    """
+
+    if required:
+        return __get_float_required(prompt)
+    else:
+        return __get_float_optional(prompt,default)
+
+
 def __get_code_required(prompt, valid_codes):
 
     while True:
