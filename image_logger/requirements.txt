@@ -1,6 +1,8 @@
 psycopg2
 twisted
 txpostgres
+pyOpenSSL
+service_identity
 
 # optional - only used if RabbitMQ is configured:
 pika
