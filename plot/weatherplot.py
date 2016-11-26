@@ -381,6 +381,35 @@ def main():
     data = cur.fetchone()
     print("Server version: {0}".format(data[0]))
 
+    cur.execute(
+        "select 1 from INFORMATION_SCHEMA.tables where table_name = 'db_info'")
+    result = cur.fetchone()
+
+    if result is None:
+        db_version = 1
+    else:
+        cur.execute("select v::integer from db_info where k = 'DB_VERSION'")
+        db_version = cur.fetchone()[0]
+
+    if db_version < 3:
+        print("*** ERROR: Plot requires at least database "
+              "version 3 (zxweather 1.0.0). Please upgrade your "
+              "database.")
+        exit(1)
+
+    cur.execute("select version_check('PLOT',1,0,0)")
+    result = cur.fetchone()
+    if not result[0]:
+        cur.execute("select minimum_version_string('PLOT')")
+        result = cur.fetchone()
+
+        print("*** ERROR: This version of Plot is "
+              "incompatible with the configured database. The "
+              "minimum Plot (or zxweather) version "
+              "supported by this database is: {0}.".format(
+                result[0]))
+        exit(1)
+
     print("Generating plots in {0} for stations {1}".format(
         options.directory, options.station_codes))
 
