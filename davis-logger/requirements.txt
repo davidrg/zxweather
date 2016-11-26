@@ -1,0 +1,7 @@
+psycopg2
+twisted
+pytz
+pyserial
+
+# only required if using RabbitMQ
+pika

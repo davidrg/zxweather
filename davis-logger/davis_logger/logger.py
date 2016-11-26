@@ -11,6 +11,8 @@ import psycopg2
 from twisted.application import service
 from twisted.enterprise import adbapi
 from twisted.internet import reactor, protocol, defer
+from twisted.internet.defer import returnValue
+from twisted.internet.error import ReactorNotRunning
 from twisted.internet.protocol import Protocol
 from twisted.internet.serialport import SerialPort
 from twisted.python import log
@@ -602,10 +604,66 @@ class DavisService(service.Service):
         self.database_pool.runQuery(query, (self._station_id,)).addCallback(
             self._store_latest_rec, self._station_id)
 
-    def _database_connect(self, ):
-        self.database_pool = adbapi.ConnectionPool("psycopg2", self.dbc)
+    @defer.inlineCallbacks
+    def _get_schema_version(self):
+        result = yield self.database_pool.runQuery(
+            "select 1 from INFORMATION_SCHEMA.tables where table_name = 'db_info'")
+
+        if len(result) == 0:
+            returnValue(1)
+
+        result = yield self.database_pool.runQuery(
+            "select v::integer from db_info where k = 'DB_VERSION'")
+
+        returnValue(result[0][0])
+
+    @defer.inlineCallbacks
+    def _check_db(self):
+        """
+        Checks the database is compatible
+        :return:
+        """
+        schema_version = yield self._get_schema_version()
+        log.msg("Database schema version: {0}".format(schema_version))
+
+        if schema_version < 3:
+            log.msg("*** ERROR: davis-logger requires at least database "
+                    "version 3 (zxweather 1.0.0). Please upgrade your "
+                    "database.")
+            try:
+                reactor.stop()
+            except ReactorNotRunning:
+                # Don't care. We wanted it stopped, turns out it already is
+                # that or its not yet started in which case there isn't
+                # anything much we can do to terminate yet.
+                pass
+        else:
+            result = yield self.database_pool.runQuery(
+                "select version_check('DAVIS',1,0,0)")
+            if not result[0][0]:
+                result = yield self.database_pool.runQuery(
+                    "select minimum_version_string('DAVIS')")
+
+                log.msg("*** ERROR: This version of davis-logger is "
+                        "incompatible with the configured database. The "
+                        "minimum davis-logger (or zxweather) version supported "
+                        "by this database is: {0}.".format(
+                    result[0][0]))
+                try:
+                    reactor.stop()
+                except ReactorNotRunning:
+                    # Don't care. We wanted it stopped, turns out it already is
+                    # that or its not yet started in which case there isn't
+                    # anything much we can do to terminate yet.
+                    pass
+
         self.database_pool.runQuery(
             "select station_id, live_data_available "
             "from station where code = %s",
             (self.station_code,)).addCallback(self._store_station_id)
+
+    def _database_connect(self, ):
+        self.database_pool = adbapi.ConnectionPool("psycopg2", self.dbc)
+
+        self._check_db()
 
