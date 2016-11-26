@@ -43,6 +43,25 @@ dsn = "host=localhost port=5432 user=zxweather password=password dbname=weather"
 #   Schedule Configuration ###################################################
 ##############################################################################
 
+# Here you need to configure two things:
+#   -> How often photos should be taken (the capture interval). Each photo forms
+#      one frame of video. A capture interval of 60 seconds would mean 30
+#      minutes of real time would make 1 second of video at 30fps.
+#   -> The schedule: what time capturing should start, and what time capturing
+#      should finish. The video is assembled and stored in the database when
+#      capturing stops.
+#
+# There are three schedule options:
+#  -> Fixed: you specify the sunrise and sunset times. They do not vary during
+#     the year unless you change them.
+#  -> Automatic based on solar sensors: If you've got a Davis Vantage Pro 2 Plus
+#     weather station its Solar Radiation sensor can be used to detect sunrise
+#     and sunset. In practice the schedule will likely start a little while
+#     after civil dawn and a little while before civil dusk.
+#  -> Automatic based on location: Calculate sunrise and sunset based on your
+#     coordinates (longitude, latitude, elevation) and time zone. The schedule
+#     will begin at civil dawn and end at civil dusk.
+
 # How often a new frame should be captured in seconds
 capture_interval = 60
 
@@ -59,6 +78,22 @@ use_solar_sensors = False
 
 # The station that should be used for sunrise detection
 station_code = "abc"
+
+# Alternatively, sunrise and sunset can be calculated based on your location.
+# This setting overrides solar sensors and the fixed sunrise/sunset time:
+calculate_schedule=True
+
+# These values are required when calculating sunrise and sunset based on your
+# location.
+latitude = -36.860790
+longitude = 174.777887
+timezone = "Pacific/Auckland"
+elevation = 0
+
+# You can optionally apply an offset (in minutes) to the calculated sunrise
+# and sunset times.
+sunrise_offset = 0
+sunset_offset = 0
 
 
 ##############################################################################
@@ -94,7 +129,7 @@ encoder_script="/opt/zxweather/time_lapse_logger/encoders/omx_mp4.sh"
 ##############################################################################
 ##############################################################################
 # Don't change anything below this point.
-from image_logger.service import ImageLoggerService
+from time_lapse_logger.service import TSLoggerService
 from twisted.application.service import Application, IProcess
 from datetime import datetime
 
@@ -118,15 +153,17 @@ except NameError:
 sunrise_time_t = datetime.strptime(sunrise_time, "%H:%M").time()
 sunset_time_t = datetime.strptime(sunset_time, "%H:%M").time()
 
-application = Application("imagelogger")
-IProcess(application).processName = "imagelogger"
+application = Application("time-lapse-logger")
+IProcess(application).processName = "time-lapse-logger"
 
-service = ImageLoggerService(dsn, station_code, x_mq_hostname, x_mq_port,
-                             x_mq_exchange, x_mq_username, x_mq_password,
-                             x_mq_vhost, capture_interval, sunrise_time_t,
-                             sunset_time_t, use_solar_sensors, camera_url,
-                             image_source_code,
-                             disable_ssl_certificate_verification,
-                             encoder_script, working_directory)
+service = TSLoggerService(dsn, station_code, x_mq_hostname, x_mq_port,
+                          x_mq_exchange, x_mq_username, x_mq_password,
+                          x_mq_vhost, capture_interval, sunrise_time_t,
+                          sunset_time_t, use_solar_sensors, camera_url,
+                          image_source_code,
+                          disable_ssl_certificate_verification,
+                          encoder_script, working_directory, calculate_schedule,
+                          latitude, longitude, timezone, elevation,
+                          sunrise_offset, sunset_offset)
 
 service.setServiceParent(application)
