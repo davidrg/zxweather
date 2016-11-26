@@ -35,6 +35,11 @@ site_name: zxweather
 #station_name: somewhere
 # disable_alt_ui: True
 
+# Set this to True if you don't want the stations coordinates appearing in
+# some data files. This may result in some features in the Desktop Client being
+# unavailable.
+# hide_coordinates: False
+
 # Uncomment and add your Tracking ID to enable Google Analytics on the standard
 # and alternate UIs (not supported on the basic HTML one)
 # google_analytics_id: your-google-analytics-tracking-id-here

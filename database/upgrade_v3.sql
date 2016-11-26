@@ -74,6 +74,16 @@ comment on column station.station_config is 'JSON document containing extra conf
 alter table station add column site_title character varying;
 comment on column station.site_title is 'Title for weather station. Displayed at the top of pages in the web UI.';
 
+-- Add columns for storing station coordinates
+alter table station add column latitude real;
+comment on column station.latitude is 'Coordinates - latitude';
+
+alter table station add column longitude real;
+comment on column station.longitude is 'Coordinates - longitude';
+
+alter table station add column altitude real not null default 0;
+comment on column station.altitude is 'Barometer/pressure sensor altitude. Used for relative pressure calculation.';
+
 -- Adjust comment for wind direction.
 COMMENT ON COLUMN sample.wind_direction IS 'Prevailing wind direction in degrees.';
 COMMENT ON COLUMN sample.rainfall IS 'Rainfall in mm.';

@@ -4,7 +4,7 @@ Menus and routines for managing weather stations in the database.
 """
 import json
 from ui import pause, get_string_with_length_indicator, get_string, get_code, \
-    get_boolean, menu, get_number
+    get_boolean, menu, get_number, get_float
 
 __author__ = 'david'
 
@@ -112,6 +112,17 @@ users.""")
 
     station_name = get_string("Name", default, required)
 
+    print("""
+Station Coordinates:
+Altitude (in meters) is required as its used for relative barometric pressure
+calculation. Latitude and Longitude are optional and are used for sunrise
+calculation, etc.
+""")
+    latitude = get_float("Latitude", defaults["latitude"])
+    longitude = get_float("Longitude", defaults["longitude"])
+    altitude = get_float("Altitude", defaults["altitude"],
+                         defaults["altitude"] is None)
+
     print("\nThe Website Title is displayed at the top of all pages for this "
           "weather station in the web UI. If not set then the default value "
           "from the configuration file will be used.")
@@ -218,6 +229,9 @@ VUE      Vantage Vue
     return {
         "code": station_code,
         "name": station_name,
+        "latitude": latitude,
+        "longitude": longitude,
+        "altitude": altitude,
         "description": station_description,
         "type": hardware_code,
         "interval": sample_interval,
@@ -246,6 +260,7 @@ you are uncertain about anything.
 You will now be prompted for some information about your weather station:
   - Station Code
   - Station Name
+  - Coordinates (latitude and longitude in decimal degrees, altitude in meters)
   - Title for website
   - Description
   - Hardware Type
@@ -257,6 +272,9 @@ review your responses and either edit them, create the station or cancel.""")
     station_info = {
         "code": None,
         "name": None,
+        "latitude": None,
+        "longitude": None,
+        "altitude": None,
         "description": "",
         "type": None,
         "interval": 300,
@@ -276,6 +294,9 @@ You entered the following details:
 ----------------------------------
 Code: {code}
 Name: {name}
+Latitude: {latitude}
+Longitude: {longitude}
+Altitude: {altitude}
 Website Title: {site_title}
 Sample interval: {interval}
 Live data available: {live}
@@ -313,13 +334,15 @@ Station ID: {broadcast_id}
             cur.execute("""
 insert into station(code, title, description, station_type_id,
                     sample_interval, live_data_available, sort_order,
-                    station_config, site_title)
-values(%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                    station_config, site_title, latitude, longitude, altitude)
+values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
 returning station_id""", (
                 station_info["code"], station_info["name"],
                 station_info["description"], type_id, station_info["interval"],
                 station_info["live"], station_info["sort_order"],
-                station_config, station_info["site_title"]))
+                station_config, station_info["site_title"],
+                station_info["latitude"], station_info["longitude"],
+                station_info["altitude"]))
             result = cur.fetchone()
             station_id = result[0]
 
@@ -354,6 +377,9 @@ def get_updated_station_info(defaults):
     station_name = get_string("Name", defaults["name"])
     station_description = get_string("Description", defaults["description"])
     site_title = get_string("Website Title", defaults["site_title"])
+    latitude = get_float("Latitude", defaults["latitude"])
+    longitude = get_float("Longitude", defaults["longitude"])
+    altitude = get_float("Altitude", defaults["altitude"], defaults["altitude"] is None)
     sample_interval = get_number("Sample interval", defaults["interval"])
     live_data = get_boolean("Is live data available for this station",
                             defaults["live"])
@@ -409,6 +435,9 @@ def get_updated_station_info(defaults):
         "id": defaults["id"],
         "code": defaults["code"],
         "name": station_name,
+        "latitude": latitude,
+        "longitude": longitude,
+        "altitude": altitude,
         "description": station_description,
         "interval": sample_interval,
         "live": live_data,
@@ -440,7 +469,10 @@ select stn.station_id,
        coalesce(stn.sort_order,0),
        ht.code as hardware_type,
        station_config,
-       site_title
+       site_title,
+       latitude,
+       longitude,
+       altitude
 from station stn
 inner join station_type ht on ht.station_type_id = stn.station_type_id
 where stn.code = %s
@@ -457,7 +489,10 @@ where stn.code = %s
         "sort_order": result[5],
         "hw_type": result[6],
         "davis_settings": None,
-        "site_title": result[8]
+        "site_title": result[8],
+        "latitude": result[9],
+        "longitude": result[10],
+        "altitude": result[11]
     }
 
     hw_config = result[7]
@@ -478,6 +513,9 @@ where stn.code = %s
 You entered the following details:
 ----------------------------------
 Name: {name}
+Latitude: {latitude}
+Longitude: {longitude}
+Altitude: {altitude}
 Website Title: {site_title}
 Sample interval: {interval}
 Live data available: {live}
@@ -507,13 +545,15 @@ Description:
             cur.execute("""
         update station set title=%s, description=%s, sample_interval=%s,
                            live_data_available=%s, sort_order=%s,
-                           station_config = %s, site_title = %s
+                           station_config = %s, site_title = %s, latitude=%s,
+                           longitude=%s, altitude=%s
         where station_id = %s""", (
                 station_info["name"],
                 station_info["description"], station_info["interval"],
                 station_info["live"], station_info["sort_order"],
                 station_config, station_info["site_title"],
-                station_info["id"]))
+                station_info["latitude"], station_info["longitude"],
+                station_info["altitude"], station_info["id"]))
             con.commit()
             cur.close()
             print("Station updated.")
