@@ -44,6 +44,8 @@ zxweatherd_raw_port = None
 cache_thumbnails = False
 cache_directory = None
 thumbnail_size = (304, 171)
+cache_videos = False
+video_cache_directory = None
 
 # Google analyics tracking ID. Set to a value to enable.
 google_analytics_id = None
@@ -58,7 +60,8 @@ def load_settings():
     global static_data_dir, site_root, default_ui, site_name, ws_uri, wss_uri
     global zxweatherd_hostname, zxweatherd_raw_port, disable_alt_ui
     global hide_coordinates, google_analytics_id
-    global cache_thumbnails, cache_directory, thumbnail_size
+    global cache_thumbnails, cache_directory, thumbnail_size, cache_videos
+    global video_cache_directory
 
     import ConfigParser
     config = ConfigParser.ConfigParser()
@@ -152,6 +155,21 @@ def load_settings():
             raise Exception("Invalid thumbnail dimensions. "
                             "Expected WIDTHxHEIGHT.")
         thumbnail_size = (int(bits[0]), int(bits[1]))
+
+    if config.has_option(S_T, "cache_videos"):
+        cache_videos = config.getboolean(S_T, "cache_thumbnails")
+
+        if config.has_option(S_T, "cache_directory"):
+            video_cache_directory = config.get(S_T, "cache_directory")
+
+            if not video_cache_directory.endswith(os.path.sep):
+                video_cache_directory += os.path.sep
+                video_cache_directory += "videos" + os.path.sep
+
+            if not os.path.exists(video_cache_directory):
+                os.makedirs(video_cache_directory)
+        else:
+            raise Exception("Thumbnail cache directory not set")
 
 
 
