@@ -5,7 +5,6 @@ from twisted.python import log
 
 __author__ = 'david'
 
-# TODO: this entire class
 class DstInfo(object):
     """
     Provides access to daylight savings transition times for a particular
