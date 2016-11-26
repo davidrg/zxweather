@@ -28,6 +28,15 @@ insert into db_info(k,v) values('ADMIN_TOOL_MIN_VER_MAJ','1');
 insert into db_info(k,v) values('ADMIN_TOOL_MIN_VER_MIN','0');
 insert into db_info(k,v) values('ADMIN_TOOL_MIN_VER_REV','0');
 
+-- Versions of the Desktop Client before v1.0.0 don't properly support multiple
+-- weather stations in one database due to a few bugs. Sadly, earlier versions
+-- don't actually check for version blacklisting so this doesn't really
+-- achieve much.
+insert into db_info(k,v) values('DESKTOP_MIN_VER_MAJ','1');
+insert into db_info(k,v) values('DESKTOP_MIN_VER_MIN','0');
+insert into db_info(k,v) values('DESKTOP_MIN_VER_REV','0');
+
+
 ----------------------------------------------------------------------
 -- TABLES ------------------------------------------------------------
 ----------------------------------------------------------------------
