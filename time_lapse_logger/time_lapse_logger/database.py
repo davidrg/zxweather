@@ -3,6 +3,9 @@
 Database listener for live data
 """
 from twisted.enterprise import adbapi
+from twisted.internet import defer
+from twisted.internet import reactor
+from twisted.internet.error import ReactorNotRunning
 from twisted.python import log
 from twisted.internet.defer import inlineCallbacks, returnValue
 from util import Event
@@ -147,6 +150,62 @@ class Database(object):
     def connect(self):
         self._database_pool = adbapi.ConnectionPool("psycopg2",
                                                     self._dsn)
+        self._check_db()
+
+    @defer.inlineCallbacks
+    def _get_schema_version(self):
+        result = yield self._database_pool.runQuery(
+            "select 1 from INFORMATION_SCHEMA.tables where table_name = 'db_info'")
+
+        if len(result) == 0:
+            returnValue(1)
+
+        result = yield self._database_pool.runQuery(
+            "select v::integer from db_info where k = 'DB_VERSION'")
+
+        returnValue(result[0][0])
+
+    @defer.inlineCallbacks
+    def _check_db(self):
+        """
+        Checks the database is compatible
+        :return:
+        """
+        schema_version = yield self._get_schema_version()
+        log.msg("Database schema version: {0}".format(schema_version))
+
+        if schema_version < 3:
+            log.msg("*** ERROR: time-lapse-logger requires at least database "
+                    "version 3 (zxweather 1.0.0). Please upgrade your "
+                    "database.")
+            try:
+                reactor.stop()
+            except ReactorNotRunning:
+                # Don't care. We wanted it stopped, turns out it already is
+                # that or its not yet started in which case there isn't
+                # anything much we can do to terminate yet.
+                pass
+        else:
+            result = yield self._database_pool.runQuery(
+                "select version_check('TLLOG',1,0,0)")
+            if not result[0][0]:
+                result = yield self._database_pool.runQuery(
+                    "select minimum_version_string('TLLOG')")
+
+                log.msg("*** ERROR: This version of time-lapse-logger is "
+                        "incompatible with the configured database. The "
+                        "minimum time-lapse-logger (or zxweather) version "
+                        "supported by this database is: {0}.".format(
+                            result[0][0]))
+                try:
+                    reactor.stop()
+                except ReactorNotRunning:
+                    # Don't care. We wanted it stopped, turns out it already is
+                    # that or its not yet started in which case there isn't
+                    # anything much we can do to terminate yet.
+                    pass
+
+        # Database checks ok.
 
     @inlineCallbacks
     def _get_camera_image_type_id(self):
