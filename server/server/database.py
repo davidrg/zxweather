@@ -349,7 +349,6 @@ fetch first 1 rows only
             (station_code_id[station_code], ))
 
 
-
 def get_image_csv(image_id):
     """
     Fetches metadata for the specified image that could be used to locate the
@@ -373,7 +372,8 @@ def get_image_csv(image_id):
            src.code as source_code,
            typ.code as image_type_code,
            img.time_stamp as image_timestamp,
-           img.mime_type as mime_type
+           img.mime_type as mime_type,
+           img.image_id as id
     from image img
     inner join image_type typ on typ.image_type_id = img.image_type_id
     inner join image_source src on src.image_source_id = img.image_source_id
