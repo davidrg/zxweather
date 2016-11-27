@@ -3,6 +3,7 @@
 zxweather web frontend. Allows weather data to be viewed in a web browser in
 various ways.
 """
+import web
 
 __author__ = 'David Goodwin'
 
@@ -10,6 +11,8 @@ import os,sys
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 import config
 from web.application import application as web_application
+
+version = "1.0.0-dev"
 
 # Load settings.
 config.load_settings()
@@ -84,5 +87,17 @@ if __name__ == "__main__":
 else:
     # No auto-reloading for production
     app = web_application(urls, globals(), autoreload=False)
+
+
+def notfound():
+    template_dir = os.path.join(os.path.dirname(__file__),
+                                os.path.join('ui', 'basic_templates'))
+    from web.contrib.template import render_jinja
+    render = render_jinja(template_dir, encoding='utf-8')
+
+    return web.notfound(render.http404(version=version))
+
+app.notfound = notfound
+
 
 application = app.wsgifunc()
