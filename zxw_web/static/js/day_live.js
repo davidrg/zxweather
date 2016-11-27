@@ -1495,7 +1495,7 @@ function poll_live_data() {
 }
 
 function ws_data_arrived(evt) {
-    if (evt.data == '_ok\r\n' && ws_state == 'conn') {
+    if (evt.data == '_ok\n' && ws_state == 'conn') {
         var catchup = '';
 
         if (data_sets != null && data_sets.day != null) {
@@ -1509,7 +1509,7 @@ function ws_data_arrived(evt) {
             }
         }
 
-        socket.send('subscribe "' + station_code + '"/live/samples/any_order/images' + catchup + '\r\n');
+        socket.send('subscribe "' + station_code + '"/live/samples/any_order/images' + catchup + '\n');
 
         ws_state = 'sub';
         console.log('Subscription started.');
@@ -1531,9 +1531,9 @@ function finish_connection() {
     ws_state = 'conn';
     ws_connected = true;
     ws_lost_connection = false;
-    socket.send('set client "zxw_web"/version="1.0.0"\r\n');
+    socket.send('set client "zxw_web"/version="1.0.0"\n');
     socket.send('set environment "browser_UserAgent" "' +
-        navigator.userAgent.replace('"', '\\"') + '"\r\n');
+        navigator.userAgent.replace('"', '\\"') + '"\n');
 }
 
 function update_live_status(icon, message) {
