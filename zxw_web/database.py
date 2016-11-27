@@ -480,6 +480,42 @@ group by inr.station_id, inr.year
     return result[0].total
 
 
+def get_rain_summary(station_id):
+    """
+    Gets a summary of rainfall over five relative periods: today, yesterday,
+    this week, this month and this year. Any periods that lack rainfall are
+    omitted from the results.
+
+    :param station_id: Station to get rainfall summary data for
+     :type station_id: int
+    """
+    params = dict(station=station_id)
+
+    query = """
+select periods.period,
+       periods.start_time,
+       periods.end_time,
+       sum(sample.rainfall) as rainfall
+from sample
+join (
+select 'today'      as period, date_trunc('day', NOW())                                                     as start_time, NOW() as end_time union all
+select 'yesterday'  as period, date_trunc('day', NOW() - '1 day'::interval)                                 as start_time, date_trunc('day', NOW()) - '1 microsecond'::interval as end_time union all
+select 'this_week'  as period, current_date - ((extract(dow from current_date))::text || ' days')::interval as start_time, NOW() as end_time union all
+select 'this_month' as period, date_trunc('month', NOW())                                                   as start_time, NOW() as end_time union all
+select 'this_year'  as period, date_trunc('year', NOW())                                                    as start_time, NOW() as end_time
+    ) as periods on sample.time_stamp between periods.start_time and periods.end_time
+where sample.station_id = $station
+group by periods.period, periods.start_time, periods.end_time
+    """
+
+    result = db.query(query, params)
+
+    if result is None or len(result) == 0:
+        return None
+
+    return result
+
+
 def get_latest_sample_timestamp(station_id):
     """
     Gets the timestamp of the most recent sample in the database. This just

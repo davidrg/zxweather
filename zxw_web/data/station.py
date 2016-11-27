@@ -21,7 +21,7 @@ from database import get_years, get_live_data, get_station_id, get_latest_sample
     get_most_recent_image_id_for_source, get_current_3h_trends, \
     get_month_rainfall, get_year_rainfall, get_last_hour_rainfall, \
     get_10m_avg_bearing_max_gust, get_day_wind_run, get_cumulus_dayfile_data, \
-    get_image_source_info, get_image_sources_by_date
+    get_image_source_info, get_image_sources_by_date, get_rain_summary
 import os
 
 import math
@@ -156,6 +156,8 @@ class data_json:
             return image_sources(station_id, station)
         elif dataset == 'image_sources_by_date':
             return image_sources_by_date(station_id)
+        elif dataset == 'rain_summary':
+            return rain_summary(station_id)
         elif dataset == 'about':
             nav = about_nav()
             return nav.GET(station)
@@ -376,6 +378,23 @@ def image_sources_by_date(station_id):
 
     for row in rows:
         result[row.date_stamp.isoformat()] = row.image_source_codes.split(',')
+
+    # TODO: cache control?
+    web.header('Content-Type', 'application/json')
+    return json.dumps(result)
+
+
+def rain_summary(station_id):
+    result = {}
+
+    rows = get_rain_summary(station_id)
+
+    for row in rows:
+        result[row.period] = {
+            'total': row.rainfall,
+            'start': row.start_time.isoformat(),
+            'end': row.end_time.isoformat()
+        }
 
     # TODO: cache control?
     web.header('Content-Type', 'application/json')
