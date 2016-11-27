@@ -15,6 +15,7 @@ from database import DatabaseReceiver, Database
 from mq_receiver import RabbitMqReceiver
 from readbody import readBody
 
+# License: GPLv3 (Astral incompatible with GPLv2)
 
 # noinspection PyClassicStyleClass
 class NoVerifyWebClientContextFactory(ClientContextFactory):
