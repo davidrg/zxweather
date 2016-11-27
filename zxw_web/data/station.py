@@ -55,7 +55,8 @@ class index:
         reception_available = False
         hw_type = get_station_type_code(station_id)
         if hw_type in ['DAVIS']:
-            reception_available = True
+            hw_config = get_station_config(station_id)
+            reception_available = hw_config['is_wireless']
 
         # See if we have any images for this station
         sources = get_image_sources_for_station(station_id)
