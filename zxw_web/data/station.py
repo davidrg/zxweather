@@ -9,6 +9,7 @@ import json
 import web
 from web.contrib.template import render_jinja
 from cache import live_data_cache_control, rfcformat
+from config import site_root
 from data import daily, about_nav
 from data.daily import get_24hr_samples_data, get_day_rainfall, get_day_dataset, get_24hr_hourly_rainfall_data, \
     get_24hr_reception, get_168hr_reception, get_24hr_rainfall_data
@@ -152,7 +153,7 @@ class data_json:
         elif dataset == 'samplerange':
             return sample_range(station_id)
         elif dataset == 'image_sources':
-            return image_sources(station_id)
+            return image_sources(station_id, station)
         elif dataset == 'about':
             nav = about_nav()
             return nav.GET(station)
@@ -307,7 +308,7 @@ def sample_range(station_id):
     return json.dumps(result)
 
 
-def image_sources(station_id):
+def image_sources(station_id, station_code):
     """
     Returns some basic information about each image source present for a given
     station id. This includes name, description, dates for first and last image
@@ -318,15 +319,47 @@ def image_sources(station_id):
     """
     result = {}
 
+    url_base = site_root + "data/{0}/".format(station_code)
+    url_template = url_base + "{year}/{month}/{day}/images/{source_code}/" \
+                              "{hour:02d}_{minute:02d}_{second:02d}/" \
+                              "{type_code}_{size}{extension}"
+
     data = get_image_source_info(station_id)
     if data is not None:
         for row in data:
+            ext = mimetypes.guess_extension(row.last_image_mime_type, False)
+            if ext == ".jpe":
+                ext = ".jpeg"
+
+            url = url_template.format(
+                year=row.last_image_time_stamp.year,
+                month=row.last_image_time_stamp.month,
+                day=row.last_image_time_stamp.day,
+                source_code=row.code.lower(),
+                hour=row.last_image_time_stamp.hour,
+                minute=row.last_image_time_stamp.minute,
+                second=row.last_image_time_stamp.second,
+                type_code=row.last_image_type_code.lower(),
+                size="full",
+                extension=ext
+            )
+
             result[row.code] = {
                 'name': row.source_name,
                 'description': row.description,
                 'first_image': row.first_image.isoformat(),
                 'last_image': row.last_image.isoformat(),
-                'is_active': row.is_active
+                'is_active': row.is_active,
+                'last_image_info': {
+                    'timestamp': row.last_image_time_stamp.isoformat(),
+                    'type_code': row.last_image_type_code,
+                    'title': row.last_image_title,
+                    'description': row.last_image_description,
+                    'mime_type': row.last_image_mime_type,
+                    'urls': {
+                        'full': url
+                    }
+                }
             }
 
     web.header('Content-Type', 'application/json')

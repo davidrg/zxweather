@@ -891,37 +891,47 @@ def get_image_type_and_ts_info(image_id):
 
 def get_image_source_info(station_id):
     query = """
-    select lower(x.code) as code,
-           x.source_name,
-           x.description,
-           x.first_image,
-           x.last_image,
-           -- An image source is considered active if it has images taken
-           -- within the last 24 hours.
-           case when NOW() - coalesce(x.last_image,
-                                      NOW() - '1 week'::interval)
-                     > '24 hours'::interval
-                then FALSE
-                else TRUE
-                end as is_active
-    from (
-        select img_src.code,
-               img_src.source_name,
-               img_src.description,
-               (
-                   select min(i.time_stamp) as min_ts
-                   from image as i
-                   where i.image_source_id = img_src.image_source_id
-               ) as first_image,
-               (
-                   select max(i.time_stamp) as max_ts
-                   from image as i
-                   where i.image_source_id = img_src.image_source_id
-               ) as last_image,
-               img_src.station_id
-        from image_source img_src
-    ) as x
-    where x.station_id = $station
+select lower(x.code) as code,
+       x.source_name,
+       x.description,
+       x.first_image,
+       last_image.time_stamp as last_image,
+       -- An image source is considered active if it has images taken
+       -- within the last 24 hours.
+       case when NOW() - coalesce(last_image.time_stamp,
+                                  NOW() - '1 week'::interval)
+                 > '24 hours'::interval
+            then FALSE
+            else TRUE
+            end as is_active,
+       x.last_image_id,
+       last_image.time_stamp as last_image_time_stamp,
+       last_image_type.code as last_image_type_code,
+       last_image.title as last_image_title,
+       last_image.description as last_image_description,
+       last_image.mime_type as last_image_mime_type
+from (
+    select img_src.code,
+           img_src.source_name,
+           img_src.description,
+           (
+               select min(i.time_stamp) as min_ts
+               from image as i
+               where i.image_source_id = img_src.image_source_id
+           ) as first_image,
+           (
+               select i.image_id
+               from image as i
+               where i.image_source_id = img_src.image_source_id
+               order by time_stamp desc
+               limit 1
+           ) as last_image_id,
+           img_src.station_id
+    from image_source img_src
+) as x
+inner join image last_image on last_image.image_id = x.last_image_id
+inner join image_type last_image_type on last_image_type.image_type_id = last_image.image_type_id
+where x.station_id = $station
     """
 
     result = db.query(query, dict(station=station_id))
