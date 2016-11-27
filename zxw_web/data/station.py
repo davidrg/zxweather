@@ -353,6 +353,7 @@ def image_sources(station_id, station_code):
                 'last_image': row.last_image.isoformat(),
                 'is_active': row.is_active,
                 'last_image_info': {
+                    'id': row.last_image_id,
                     'timestamp': row.last_image_time_stamp.isoformat(),
                     'type_code': row.last_image_type_code,
                     'title': row.last_image_title,
