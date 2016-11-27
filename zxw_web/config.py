@@ -98,6 +98,10 @@ def load_settings():
     # Site
     default_station_name = config.get(S_S, 'station_name')
     site_root = config.get(S_S, 'site_root')
+
+    if not site_root.endswith("/"):
+        site_root += "/"
+
     default_ui = config.get(S_S, 'default_ui')
     site_name = config.get(S_S, 'site_name')
     static_data_dir = config.get(S_S, 'static_data_dir')
