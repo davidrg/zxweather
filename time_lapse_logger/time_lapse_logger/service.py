@@ -25,12 +25,11 @@ from readbody import readBody
 
 
 # TODO:
-#  - Target file size option? Calculate a bit rate based on the number of frames and pass to the encoder
+#  - Target file size option? Calculate a bit rate based on the number of
+#    frames and pass to the encoder
 #  - option to store generated video on disk as well as database
 #  - Handle restarting the database or message broker
 #  - Optionally generate subtitle overlay with weather data
-#  - Adjust weatherpush client:
-#       - Don't throw exceptions if the video type code doesn't exist on the server
 
 # Stuff to test
 #  - Recovery from broker restart
@@ -91,7 +90,8 @@ class TSLoggerService(service.Service):
         :type disable_cert_verification: bool
         :param video_script: Script to generate the video file
         :type video_script: str
-        :param working_dir: Directory to store captured images and the generated video in
+        :param working_dir: Directory to store captured images and the generated
+        video in
         :type working_dir: str
         :param calculate_schedule: If sunrise and sunset times should be
             calculated based on location instead of using the solar sensors or
@@ -367,7 +367,8 @@ class TSLoggerService(service.Service):
             if t >= self.current_time:
                 # The logger started less than an hour ago - this is probably
                 # just a cloud passing across the sunrise. Ignore it.
-                log.msg("Ignoring false sunset at {0}".format(self.current_time))
+                log.msg("Ignoring false sunset at {0}".format(
+                    self.current_time))
                 return
 
         log.msg("Stopping logger: {0}".format(trigger))
@@ -393,7 +394,9 @@ class TSLoggerService(service.Service):
             finish_time.time().strftime("%H:%M")
         )
 
-        input_size = sum(os.path.getsize(f) for f in os.listdir(self._working_dir) if os.path.isfile(f))
+        input_size = sum(os.path.getsize(os.path.join(self._working_dir, f))
+                         for f in os.listdir(self._working_dir)
+                         if os.path.isfile(os.path.join(self._working_dir, f)))
 
         dest_file = "output.mp4"
 
@@ -449,13 +452,17 @@ class TSLoggerService(service.Service):
             else:
                 # The previous run was interrupted before it was supposed to
                 # finish. We'll recover from it
-                log.msg("Working directory contains data for current date. Recovering...")
+                log.msg("Working directory contains data for current date. "
+                        "Recovering...")
                 self._current_image_number = next_image
                 self._logging_start_time = folder_time
                 log.msg("Now at image {0}, logging from {1}".format(
                     self._current_image_number, self._logging_start_time))
 
-        except:
+        except Exception as e:
+            # Something went wrong trying to recover the run. Abandon it and
+            # start again.
+            log.msg(e)
             self._empty_working_dir()
 
     def _empty_working_dir(self):
