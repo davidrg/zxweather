@@ -941,6 +941,40 @@ where x.station_id = $station
 
     return result
 
+
+def get_image_sources_by_date(station_id):
+    """
+    Gets a list of dates that have images available. For each date a list of
+    image sources with images for that date .
+
+    :param station_id: ID of the station to look up image dates for
+     :type station_id: int
+    :return:
+    """
+    query = """
+select inr.date_stamp as date_stamp,
+		-- string_agg(inr.mime_type, ',') as mime_types,
+		string_agg(inr.src_code, ',') as image_source_codes
+from (
+	select distinct
+			img.time_stamp::date as date_stamp,
+			-- img.mime_type,
+			img_src.code as src_code,
+			img_src.source_name as src_name
+	from image img
+	inner join image_source img_src on img_src.image_source_id = img.image_source_id
+	where img_src.station_id = $station) as inr
+group by inr.date_stamp
+    """
+
+    result = db.query(query, dict(station=station_id))
+
+    if len(result) == 0:
+        return None
+
+    return result
+
+
 def get_image_source(station_id, source_code):
 
     result = db.query("""select image_source_id, source_name
