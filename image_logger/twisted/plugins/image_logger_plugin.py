@@ -60,11 +60,22 @@ class ZXWPushClientServiceMaker(object):
                 mq_vhost = config.get(S_RABBITMQ, "virtual_host")
 
         capture_interval = config.getint(S_SCHEDULE, "capture_interval")
-        daylight_only = config.getboolean(S_SCHEDULE, "capture_during_daylight_only")
+        daylight_only = config.getboolean(S_SCHEDULE,
+                                          "capture_during_daylight_only")
         sunrise_time = config.get(S_SCHEDULE, "sunrise_time")
         sunset_time = config.get(S_SCHEDULE, "sunset_time")
         use_solar_sensors = config.getboolean(S_SCHEDULE, "use_solar_sensors")
         station_code = config.get(S_SCHEDULE, "station_code")
+        take_detected_sunrise_picture = config.getboolean(
+            S_SCHEDULE, "take_detected_sunrise_picture")
+
+        calculate_schedule = config.getboolean(S_SCHEDULE, "calculate_schedule")
+        latitude = config.getfloat(S_SCHEDULE, "latitude")
+        longitude = config.getfloat(S_SCHEDULE, "longitude")
+        timezone = config.get(S_SCHEDULE, "timezone")
+        elevation = config.getfloat(S_SCHEDULE, "elevation")
+        sunrise_offset = config.getint(S_SCHEDULE, "sunrise_offset")
+        sunset_offset = config.getint(S_SCHEDULE, "sunset_offset")
 
         sunrise_time_t = datetime.strptime(sunrise_time, "%H:%M").time()
         sunset_time_t = datetime.strptime(sunset_time, "%H:%M").time()
@@ -77,7 +88,9 @@ class ZXWPushClientServiceMaker(object):
         return dsn, mq_host, mq_port, mq_exchange, mq_user, mq_password, \
             mq_vhost, capture_interval, daylight_only, sunrise_time_t, \
             sunset_time_t, use_solar_sensors, station_code, camera_url, \
-            image_source_code, disable_cert_verification
+            image_source_code, disable_cert_verification, calculate_schedule, \
+            latitude, longitude, timezone,  elevation, sunrise_offset, \
+            sunset_offset, take_detected_sunrise_picture
 
     def makeService(self, options):
         """
@@ -89,14 +102,19 @@ class ZXWPushClientServiceMaker(object):
         dsn, mq_host, mq_port, mq_exchange, mq_user, mq_password, \
             mq_vhost, capture_interval, daylight_only, sunrise_time, \
             sunset_time, use_solar_sensors, station_code, camera_url, \
-            image_source_code, disable_cert_verification = self._readConfigFile(
-                options['config-file'])
+            image_source_code, disable_cert_verification, calculate_schedule, \
+            latitude, longitude, timezone,  elevation, sunrise_offset, \
+            sunset_offset, take_detected_sunrise_picture\
+            = self._readConfigFile(options['config-file'])
 
         svc = ImageLoggerService(dsn, station_code, mq_host, mq_port,
                                  mq_exchange, mq_user, mq_password, mq_vhost,
                                  capture_interval, daylight_only, sunrise_time,
                                  sunset_time, use_solar_sensors, camera_url,
-                                 image_source_code, disable_cert_verification)
+                                 image_source_code, disable_cert_verification,
+                                 calculate_schedule, latitude,  longitude,
+                                 timezone, elevation, sunrise_offset,
+                                 sunset_offset, take_detected_sunrise_picture)
 
         # All OK. Go get the service.
         return svc
