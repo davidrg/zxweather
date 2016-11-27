@@ -43,6 +43,22 @@ dsn = "host=localhost port=5432 user=zxweather password=password dbname=weather"
 #   Schedule Configuration ###################################################
 ##############################################################################
 
+# Here you need to configure two things:
+#   -> How often photos should be taken (the capture interval).
+#   -> The schedule: what time capturing should start, and what time capturing
+#      should finish.
+#
+# There are three schedule options:
+#  -> Fixed: you specify the sunrise and sunset times. They do not vary during
+#     the year unless you change them.
+#  -> Automatic based on solar sensors: If you've got a Davis Vantage Pro 2 Plus
+#     weather station its Solar Radiation sensor can be used to detect sunrise
+#     and sunset. In practice the schedule will likely start a little while
+#     after civil dawn and a little while before civil dusk.
+#  -> Automatic based on location: Calculate sunrise and sunset based on your
+#     coordinates (longitude, latitude, elevation) and time zone. The schedule
+#     will begin at civil dawn and end at civil dusk.
+
 # How often images should be captured in minutes
 capture_interval = 60
 
@@ -65,6 +81,28 @@ use_solar_sensors = False
 
 # The station that should be used for sunrise detection
 station_code = "abc"
+
+# When running off a fixed or calculated schedule (rather than triggered by
+# solar sensors) set this option to take an extra picture when the specified
+# weather stations detect sunlight for the first time in the morning. This
+# setting has no effect when use_solar_sensors is True
+take_detected_sunrise_picture = False
+
+# Alternatively, sunrise and sunset can be calculated based on your location.
+# This setting overrides solar sensors and the fixed sunrise/sunset time:
+calculate_schedule = True
+
+# These values are required when calculating sunrise and sunset based on your
+# location.
+latitude = -36.860790
+longitude = 174.777887
+timezone = "Pacific/Auckland"
+elevation = 0
+
+# You can optionally apply an offset (in minutes) to the calculated sunrise
+# and sunset times.
+sunrise_offset = 0
+sunset_offset = 0
 
 
 ##############################################################################
@@ -116,9 +154,13 @@ IProcess(application).processName = "imagelogger"
 service = ImageLoggerService(dsn, station_code, x_mq_hostname, x_mq_port,
                              x_mq_exchange, x_mq_username, x_mq_password,
                              x_mq_vhost, capture_interval,
-                             capture_during_daylight_only,  sunrise_time_t,
+                             capture_during_daylight_only,
+                             sunrise_time_t,
                              sunset_time_t, use_solar_sensors, camera_url,
                              image_source_code,
-                             disable_ssl_certificate_verification)
+                             disable_ssl_certificate_verification,
+                             calculate_schedule, latitude,
+                             longitude, timezone, elevation, sunrise_offset,
+                             sunset_offset, take_detected_sunrise_picture)
 
 service.setServiceParent(application)
