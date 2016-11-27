@@ -938,7 +938,7 @@ class image:
             if metadata is None:
                 raise web.NotFound()
 
-            result = json.dumps(metadata.metadata)
+            result = metadata.metadata
 
             web.header('Content-Type', 'application/json')
             web.header('Content-Length', str(len(result)))
