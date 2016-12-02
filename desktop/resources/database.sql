@@ -51,6 +51,29 @@ create table sample (
 
 create index sample_stn_ts on sample(station, timestamp asc);
 
+-- Information about cameras, etc
+create table image_source (
+  station integer not null,
+  code text not null,
+  name text not null,
+  description text
+);
+
+-- An image (or other media) captured by an image source
+create table image (
+  id integer not null,
+  source integer not null,
+  timestamp integer not null,
+  date text not null,
+  type_code text not null,
+  title text,
+  description text,
+  mime_type text
+);
+
+create index image_id on image(id);
+create index image_date on image(date);
+
 -- Database metadata - version number, etc.
 create table db_metadata (
   k text not null primary key,
