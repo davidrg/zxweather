@@ -17,7 +17,7 @@
 struct ImageDate {
     QDate date;
     QStringList sourceCodes;
-    QStringList mimeTypes;
+    //QStringList mimeTypes;
 };
 
 struct ImageSource {
@@ -121,10 +121,26 @@ signals:
     void imageDatesReady(QList<ImageDate> imageDates,
                          QList<ImageSource> imageSources);
 
+    /** Raised in response to fetchImageList(). Contains details for all
+     * images from a particular image source on a particular date.
+     *
+     * @param images Image metadata records
+     */
     void imageListReady(QList<ImageInfo> images);
 
+    /** Raised in response to a call to fetchImage, fetchThumbnails or
+     * fetchLatestImages.
+     *
+     * @param imageInfo Metadata for the image
+     * @param image The full size image
+     */
     void imageReady(ImageInfo imageInfo, QImage image);
 
+    /** Raised in response to a call to fetchThumbnails.
+     *
+     * @param imageId ID for the image that was thumbnailed
+     * @param thumbnail A thumbnail for the image
+     */
     void thumbnailReady(int imageId, QImage thumbnail);
 
     /** Emitted when an error occurs during sample retrieval which forced the

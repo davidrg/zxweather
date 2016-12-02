@@ -83,7 +83,13 @@ SOURCES += main.cpp\
     datasetmodel.cpp \
     viewimageswindow.cpp \
     imagemodel.cpp \
-    imagewidget.cpp
+    imagewidget.cpp \
+    datasource/webtasks/fetchsampleswebtask.cpp \
+    datasource/webtasks/activeimagesourceswebtask.cpp \
+    datasource/webtasks/abstractwebtask.cpp \
+    datasource/webtasks/rangerequestwebtask.cpp \
+    datasource/webtasks/datafilewebtask.cpp \
+    datasource/webtasks/selectsampleswebtask.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
@@ -140,7 +146,14 @@ HEADERS  += mainwindow.h \
     viewimageswindow.h \
     version.h \
     imagemodel.h \
-    imagewidget.h
+    imagewidget.h \
+    datasource/webtasks/activeimagesourceswebtask.h \
+    datasource/webtasks/abstractwebtask.h \
+    datasource/webtasks/fetchsampleswebtask.h \
+    datasource/webtasks/rangerequestwebtask.h \
+    datasource/webtasks/request_data.h \
+    datasource/webtasks/datafilewebtask.h \
+    datasource/webtasks/selectsampleswebtask.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \

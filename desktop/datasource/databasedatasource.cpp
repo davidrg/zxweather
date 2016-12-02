@@ -671,12 +671,12 @@ QList<ImageDate> DatabaseDataSource::getImageDates(int stationId,
     if (progressDialog->wasCanceled()) return QList<ImageDate>();
 
     QString qry = "select inr.date_stamp as date_stamp, \n\
-            string_agg(inr.mime_type, '|') as mime_types, \n\
+            -- string_agg(inr.mime_type, '|') as mime_types, \n\
             string_agg(inr.src_code, '|') as image_source_codes \n\
      from ( \n\
          select distinct \n\
                 img.time_stamp::date as date_stamp, \n\
-                img.mime_type, \n\
+                -- img.mime_type, \n\
                 img_src.code as src_code, \n\
                 img_src.source_name as src_name \n\
          from image img \n\
@@ -708,7 +708,7 @@ QList<ImageDate> DatabaseDataSource::getImageDates(int stationId,
         ImageDate result;
 
         result.date = record.value("date_stamp").toDate();
-        result.mimeTypes = record.value("mime_types").toString().split('|');
+        //result.mimeTypes = record.value("mime_types").toString().split('|');
         result.sourceCodes = record.value("image_source_codes")
                 .toString().split('|');
         results << result;
