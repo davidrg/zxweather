@@ -85,7 +85,7 @@ private:
     void fireSamplesReady(SampleSet samples);
 
     // Called by GetImageWebTask
-    void fireImageReady(ImageInfo imageInfo, QImage image);
+    void fireImageReady(ImageInfo imageInfo, QImage image, QString cacheFile);
     void fireThumbnailReady(int imageId, QImage thumbnail);
 
     // Task queue processing

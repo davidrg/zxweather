@@ -907,9 +907,9 @@ void DatabaseDataSource::fetchImages(QList<int> imageIds, bool thumbnail) {
                                                     Qt::KeepAspectRatio);
 
             emit thumbnailReady(imageId, thumbnailImage);
-            emit imageReady(info, srcImage);
+            emit imageReady(info, srcImage, QString());
         } else {
-            emit imageReady(info, srcImage);
+            emit imageReady(info, srcImage, QString());
         }
     }
 }

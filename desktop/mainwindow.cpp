@@ -511,8 +511,8 @@ void MainWindow::reconfigureDataSource() {
             this, SLOT(activeImageSourcesAvailable()));
     connect(imageDataSource.data(), SIGNAL(archivedImagesAvailable()),
             this, SLOT(archivedImagesAvailable()));
-    connect(imageDataSource.data(), SIGNAL(imageReady(ImageInfo,QImage)),
-            this, SLOT(imageReady(ImageInfo,QImage)));
+    connect(imageDataSource.data(), SIGNAL(imageReady(ImageInfo,QImage,QString)),
+            this, SLOT(imageReady(ImageInfo,QImage,QString)));
     imageDataSource->hasActiveImageSources();
 
     // TODO: hide image tabs
@@ -584,7 +584,7 @@ void MainWindow::archivedImagesAvailable() {
     ui->actionImages->setVisible(true);
 }
 
-void MainWindow::imageReady(ImageInfo info, QImage image) {
+void MainWindow::imageReady(ImageInfo info, QImage image, QString cacheFile) {
     qDebug() << "Processing image" << info.id << "for image source" << info.imageSource.code;
 
     // Fix its width so that the image doesn't cause the parent window to resize horizontally.
@@ -612,7 +612,7 @@ void MainWindow::imageReady(ImageInfo info, QImage image) {
         stationCodeTabs[sourceCode] = tabId;
     }
 
-    tabWidgets[tabId]->setImage(image, info);
+    tabWidgets[tabId]->setImage(image, info, cacheFile);
     tabWidgets[tabId]->adjustSize();
 
 //    // Figure out how high the image tab thing should be

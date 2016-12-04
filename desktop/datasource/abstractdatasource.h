@@ -109,8 +109,9 @@ signals:
      *
      * @param imageInfo Metadata for the image
      * @param image The full size image
+     * @param filename Name of cached copy on disk (if it exists)
      */
-    void imageReady(ImageInfo imageInfo, QImage image);
+    void imageReady(ImageInfo imageInfo, QImage image, QString filename);
 
     /** Raised in response to a call to fetchThumbnails.
      *
