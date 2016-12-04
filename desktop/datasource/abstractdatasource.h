@@ -10,31 +10,7 @@
 
 #include "abstractlivedatasource.h"
 #include "sampleset.h"
-
-#define THUMBNAIL_WIDTH 304
-#define THUMBNAIL_HEIGHT 171
-
-struct ImageDate {
-    QDate date;
-    QStringList sourceCodes;
-    //QStringList mimeTypes;
-};
-
-struct ImageSource {
-    QString code;
-    QString name;
-    QString description;
-};
-
-struct ImageInfo {
-    int id;
-    QDateTime timeStamp;
-    QString imageTypeCode;
-    QString title;
-    QString description;
-    QString mimeType;
-    ImageSource imageSource;
-};
+#include "imageset.h"
 
 class AbstractDataSource : public AbstractLiveDataSource
 {

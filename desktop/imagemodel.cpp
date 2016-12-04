@@ -193,6 +193,10 @@ QFile* TreeItem::imageFile() const {
 }
 
 QImage TreeItem::image() const {
+    if (temporaryImageFile == NULL) {
+        return QImage();
+    }
+
     temporaryImageFile->open();
     QImage image = QImage::fromData(temporaryImageFile->readAll());
     temporaryImageFile->close();
@@ -530,7 +534,11 @@ QString ImageModel::imageTemporaryFileName(const QModelIndex &index) const {
     TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
 
     if (item->itemType() == IT_IMAGE) {
-        return item->imageFile()->fileName();
+        QFile* file = item->imageFile();
+        if (file == NULL) {
+            return "";
+        }
+        return file->fileName();
     }
     return "";
 }
@@ -595,6 +603,11 @@ void ImageModel::processImageLoadRequestQueue() {
 }
 
 void ImageModel::imageListReady(QList<ImageInfo> imageList) {
+
+    if (imageList.count() == 0) {
+        return; // No images
+    }
+
     ImageLoadRequest req = imageLoadRequestQueue.takeFirst();
     loadingImages = false;
 
@@ -638,6 +651,7 @@ void ImageModel::imageListReady(QList<ImageInfo> imageList) {
 
 void ImageModel::thumbnailReady(int imageId, QImage thumbnail) {
     if (pendingThumbnails.contains(imageId)) {
+        emit layoutAboutToBeChanged();
 
         pendingThumbnails[imageId].thumbnailLoaded = true;
         ThumbnailRequest req = pendingThumbnails[imageId];
@@ -649,6 +663,8 @@ void ImageModel::thumbnailReady(int imageId, QImage thumbnail) {
         req.treeItem->setThumbnail(thumbnail);
 
         emit dataChanged(req.index, req.index);
+
+        emit layoutChanged();
     }
 }
 

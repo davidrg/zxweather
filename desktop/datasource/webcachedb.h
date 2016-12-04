@@ -3,8 +3,10 @@
 
 #include <QObject>
 #include <QDateTime>
+#include <QVector>
 
 #include "datasource/sampleset.h"
+#include "datasource/imageset.h"
 #include "datasource/aggregate.h"
 
 typedef struct _data_file_t {
@@ -16,6 +18,16 @@ typedef struct _data_file_t {
     bool expireExisting;
     bool hasSolarData;
 } data_file_t;
+
+typedef struct _image_set_t {
+    QString filename;
+    int size;
+    QDateTime last_modified;
+    QString station_url;
+    ImageSource source;
+    QVector<ImageInfo> images;
+    bool is_valid;
+} image_set_t;
 
 typedef struct _cache_stats_t {
     int count;
@@ -118,6 +130,40 @@ public:
      */
     cache_stats_t getCacheStats(QString dataFileUrl);
 
+    /** Stores the specified image set in the cache database. If the image set
+     * does not exist it will be created, otherwise it will be updated. All
+     * new images will be inserted.
+     *
+     * @param imageSet The image set to cache
+     * @param stationUrl The weather station the image set came from
+     */
+    void cacheImageSet(image_set_t imageSet);
+
+    /** Get information about the specified image.
+     *
+     * @param stationUrl URL for the weather station the image is assocaited with
+     * @param id Image ID to get metadata for
+     * @return Metadata for the specified image
+     */
+    ImageInfo getImageInfo(QString stationUrl, int id);
+
+    /** Gets imagse by date, station and image source code
+     *
+     * @param date Image set date
+     * @param stationUrl Station the image set is for
+     * @param imageSourceCode Image source the image set is for
+     * @return Requested images
+     */
+    QVector<ImageInfo> getImagesForDate(QDate date, QString stationUrl,
+                                        QString imageSourceCode);
+
+    /** Gets cache statistics for an image set by its URL
+     *
+     * @param imageSetUrl URL of the image set to get cache info for
+     * @return Cache info for the specified image set
+     */
+    image_set_t getImageSetCacheInformation(QString imageSetUrl);
+
 signals:
     /** Emitted when an error occurs which would prevent the cache database
      * from operating.
@@ -153,6 +199,65 @@ private:
      *         tables.
      */
     int getStationId(QString stationUrl);
+
+    /** Gets the ID for the specified image source in the specified station
+     *
+     * @param stationId Weather station ID
+     * @param code Image source code
+     * @return Image source ID or -1 if it was not found
+     */
+    int getImageSourceId(int stationId, QString code);
+
+    /** Creates the specified image source if it doesn't exist and returns its
+     * Id
+     *
+     * @param stationId Station the image source is assocaited with
+     * @param source Image source to create
+     * @return ID of the created (or existing) image source
+     */
+    int createImageSource(int stationId, ImageSource source);
+
+    /** Updates the cached name and description for the specified image source
+     *
+     * @param imageSourceId Image source to update
+     * @param name New name
+     * @param description New description
+     */
+    void updateImageSourceInfo(int imageSourceId, QString name, QString description);
+
+    /** Returns true if the specified image set exists
+     *
+     * @param url Image set URL
+     * @return true if the set exists
+     */
+    int getImageSetId(QString url);
+
+    /** Updates stored information about the supplied image set
+     *
+     * @param imageSet The image set to update
+     */
+    void updateImageSetInfo(image_set_t imageSet);
+
+    /** Stores the specified image set in the database
+     *
+     * @param imageSet The image set to store
+     */
+    int storeImageSetInfo(image_set_t imageSet, int imageSourceId);
+
+    /** Returns true if the specified image exists within the specified station
+     *
+     * @param stationUrl Station to check for the image in
+     * @param id Image ID
+     * @return True if the image exists
+     */
+    bool imageExists(int stationId, int id);
+
+    /** Stores image metadata
+     *
+     * @param image Image metadata
+     * @param imageSetId ID of the image set to store the image metadata against
+     */
+    void storeImage(ImageInfo image, int imageSetId, int stationId, int imageSourceId);
 
     /** Gets the cache file ID in the cache database. If the file does not
      * already exist then -1 is returned.

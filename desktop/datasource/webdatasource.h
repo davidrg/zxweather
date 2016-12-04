@@ -23,6 +23,8 @@ class SelectSamplesWebTask;
 class WebDataSource : public AbstractDataSource
 {
     friend class SelectSamplesWebTask;
+    friend class FetchImageWebTask;
+    friend class FetchThumbnailWebTask;
     Q_OBJECT
 
 public:
@@ -61,10 +63,15 @@ private slots:
     void foundActiveImageSource();
     void foundArchivedImages();
 
+    void fetchImageDateListComplete(QList<ImageDate> imageDates,
+                                    QList<ImageSource> imageSources);
+
+    void imageListComplete(QList<ImageInfo> images);
 
     // Task queue slots
 
     void queueTask(AbstractWebTask* task);
+    void queueTask(AbstractWebTask *task, bool startProcessing);
 
     void subtaskChanged(QString name);
     void httpGet(QNetworkRequest request);
@@ -77,6 +84,10 @@ private:
     // Called by SelectSamplesWebTask
     void fireSamplesReady(SampleSet samples);
 
+    // Called by GetImageWebTask
+    void fireImageReady(ImageInfo imageInfo, QImage image);
+    void fireThumbnailReady(int imageId, QImage thumbnail);
+
     // Task queue processing
     void startQueueProcessing();
     void processNextTask();
@@ -87,7 +98,6 @@ private:
     void moveGoalpost(int,QString);
 
     QString baseURL;
-    QString stationUrl; // Used as a key in the cache DB.
     QString stationCode;
 
     // for live data stuff

@@ -375,6 +375,319 @@ void WebCacheDB::cacheDataSet(SampleSet samples,
     qDebug() << "Cache insert completed.";
 }
 
+int WebCacheDB::getImageSourceId(int stationId, QString code) {
+    QSqlQuery query(sampleCacheDb);
+    query.prepare("select id from image_source where station = :station "
+                  "and code = :code");
+    query.bindValue(":station", stationId);
+    query.bindValue(":code", code);
+    query.exec();
+    if (query.first()) {
+        return query.record().field(0).value().toInt();
+    } else {
+        return -1; // doesn't exist
+    }
+}
+
+int WebCacheDB::createImageSource(int stationId, ImageSource source) {
+    int imageSourceId = getImageSourceId(stationId, source.code);
+
+    // Image source doesn't exist? Create it and try again
+    if (imageSourceId == -1) {
+        QSqlQuery query(sampleCacheDb);
+        query.prepare("insert into image_source(station, code, name, description) "
+                      "values(:station, :code, :name, :description)");
+        query.bindValue(":station", stationId);
+        query.bindValue(":code", source.code);
+        query.bindValue(":name", source.name);
+        query.bindValue(":description", source.description);
+        query.exec();
+        if (!query.lastError().isValid()) {
+            return getImageSourceId(stationId, source.code);
+        } else {
+            qDebug() << "Failed to insert image source record. ImageSet will "
+                        "not be cached.";
+            qDebug() << query.lastError().databaseText();
+            return -1;
+        }
+    }
+    return imageSourceId;
+}
+
+void WebCacheDB::updateImageSourceInfo(int imageSourceId, QString name,
+                                       QString description) {
+    QSqlQuery query(sampleCacheDb);
+    query.prepare("update image_source set name = :name, "
+                  "description = :description "
+                  "where id = :id");
+    query.bindValue(":id", imageSourceId);
+    query.bindValue(":name", name);
+    query.bindValue(":description", description);
+    query.exec();
+
+    if (query.lastError().isValid()) {
+        qDebug() << "Failed to update image source: " << query.lastError().databaseText();
+    }
+}
+
+int WebCacheDB::getImageSetId(QString url) {
+    QSqlQuery query(sampleCacheDb);
+    query.prepare("select id from image_set where url = :url");
+    query.bindValue(":url", url);
+    query.exec();
+    if (query.first()) {
+        return query.record().field(0).value().toInt();
+    } else {
+        qDebug() << "No stored image set data for url " << url;
+        return -1;
+    }
+}
+
+void WebCacheDB::updateImageSetInfo(image_set_t imageSet) {
+    int imageSetId = getImageSetId(imageSet.filename);
+
+    QSqlQuery query(sampleCacheDb);
+
+    qDebug() << "Updating image set...";
+
+    if (imageSet.is_valid) {
+        query.prepare("update image_set set last_modified = :last_modified, "
+                      "size = :size, is_valid = :is_valid where id = :id");
+        query.bindValue(":id", imageSetId);
+        query.bindValue(":last_modified", imageSet.last_modified);
+        query.bindValue(":size", imageSet.size);
+        query.bindValue(":is_valid", true);
+    } else {
+        query.prepare("update image_set set is_valid = :is_valid "
+                      "where id = :id");
+        query.bindValue(":id", imageSetId);
+        query.bindValue(":is_valid", false);
+    }
+
+    query.exec();
+
+    if (query.lastError().isValid()) {
+        qDebug() << "Failed to update image set: " << query.lastError().databaseText();
+    } else {
+        qDebug() << "Image set updated.";
+    }
+}
+
+int WebCacheDB::storeImageSetInfo(image_set_t imageSet, int imageSourceId) {
+    int imageSetId = getImageSetId(imageSet.filename);
+
+
+    // Image source doesn't exist? Create it and try again
+    if (imageSetId == -1) {
+        QSqlQuery query(sampleCacheDb);
+        query.prepare("insert into image_set(image_source, url, last_modified, "
+                      "size, is_valid) "
+                      "values(:image_source, :url, :last_modified, "
+                      ":size, :is_valid)");
+        query.bindValue(":image_source", imageSourceId);
+        query.bindValue(":url", imageSet.filename);
+        query.bindValue(":last_modified", imageSet.last_modified);
+        query.bindValue(":size", imageSet.size);
+        query.bindValue(":is_valid", imageSet.is_valid);
+        query.exec();
+        if (!query.lastError().isValid()) {
+            return getImageSetId(imageSet.filename);
+        } else {
+            qDebug() << "Failed to insert image set record. ImageSet will "
+                        "not be cached.";
+            qDebug() << query.lastError().databaseText();
+            return -1;
+        }
+    }
+    return imageSetId;
+}
+
+bool WebCacheDB::imageExists(int stationId, int id) {
+    QSqlQuery query(sampleCacheDb);
+    query.prepare("select i.id "
+                  "from image i "
+                  "inner join image_source src on src.id = i.source "
+                  "where src.station = :station "
+                  "and i.id = :id");
+    query.bindValue(":station", stationId);
+    query.bindValue(":id", id);
+    query.exec();
+    if (query.first()) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+void WebCacheDB::storeImage(ImageInfo image, int imageSetId, int stationId,
+                            int imageSourceId) {
+    if (imageExists(stationId, image.id)) {
+        qDebug() << "Skip image - already exists: " << image.fullUrl;
+        return; // Nothing to do - image already exists
+    }
+
+    QSqlQuery query(sampleCacheDb);
+    query.prepare("insert into image(id, image_set, source, timestamp, date, "
+                  "type_code, title, description, mime_type, url) "
+                  "values(:id, :image_set, :source, :timestamp, :date, "
+                  ":type_code, :title, :description, :mime_type, :url)");
+    query.bindValue(":id", image.id);
+    query.bindValue(":image_set", imageSetId);
+    query.bindValue(":source", imageSourceId);
+    query.bindValue(":timestamp", image.timeStamp);
+    query.bindValue(":date", image.timeStamp.date());
+    query.bindValue(":type_code", image.imageTypeCode);
+    query.bindValue(":title", image.title);
+    query.bindValue(":description", image.description);
+    query.bindValue(":mime_type", image.mimeType);
+    query.bindValue(":url", image.fullUrl);
+    query.exec();
+    if (query.lastError().isValid()) {
+        qDebug() << "Failed to isnert image " << image.fullUrl
+                 << ", database error: " << query.lastError().databaseText();
+    }
+}
+
+void WebCacheDB::cacheImageSet(image_set_t imageSet) {
+    // Grab station ID (this will create the station if it doesn't exist)
+    int stationId = getStationId(imageSet.station_url);
+
+    // This will just return the sources ID if it already exists
+    int imageSourceId = createImageSource(stationId, imageSet.source);
+
+    if (imageSourceId < 0 || stationId < 0) {
+        qDebug() << "Image source or station not stored. StationId: "
+                 << stationId << ", sourceId: " << imageSourceId;
+        return; // can't cache if the above inserts failed.
+    }
+
+    // Update image source details
+    updateImageSourceInfo(imageSourceId, imageSet.source.name,
+                          imageSet.source.description);
+
+    // Make sure the image set exists in the database with current details
+    int imageSetId = getImageSetId(imageSet.filename);
+    if (imageSetId == -1) {
+        imageSetId = storeImageSetInfo(imageSet, imageSourceId);
+        if (imageSetId < 0) {
+            qDebug() << "Failed to store image set information";
+            return;
+        }
+
+    } else {
+        // Create the image set
+        updateImageSetInfo(imageSet);
+    }
+
+    // Insert all the image info records
+    foreach (ImageInfo image, imageSet.images) {
+        storeImage(image, imageSetId, stationId, imageSourceId);
+    }
+}
+
+ImageInfo RecordToImageInfo(QSqlRecord record) {
+    ImageInfo result;
+    result.id = record.field(0).value().toInt();
+    result.timeStamp = record.field(1).value().toDateTime();
+    result.imageTypeCode = record.field(2).value().toString();
+    result.title = record.field(3).value().toString();
+    result.description = record.field(4).value().toString();
+    result.mimeType = record.field(5).value().toString();
+    result.fullUrl = record.field(6).value().toString();
+
+    result.imageSource.code = record.field(7).value().toString();
+    result.imageSource.name = record.field(8).value().toString();
+    result.imageSource.description = record.field(9).value().toString();
+    return result;
+}
+
+ImageInfo WebCacheDB::getImageInfo(QString stationUrl, int id) {
+    int stationId = getStationId(stationUrl);
+
+    QSqlQuery query(sampleCacheDb);
+    query.prepare("select i.id, i.timestamp, i.type_code, i.title, "
+                  "i.description, i.mime_type, i.url, src.code, src.name, "
+                  "src.description "
+                  "from image i "
+                  "inner join image_source src on src.id = i.source "
+                  "where src.station = :station "
+                  "  and i.id = :id");
+    query.bindValue(":id", id);
+    query.bindValue(":station", stationId);
+    query.exec();
+    if (query.first()) {
+        return RecordToImageInfo(query.record());
+    } else {
+        qDebug() << "Metadata for iamge not found: " << id << stationUrl;
+        ImageInfo fail;
+        return fail;
+    }
+}
+
+QVector<ImageInfo> WebCacheDB::getImagesForDate(QDate date, QString stationUrl,
+                                         QString imageSourceCode) {
+    int stationId = getStationId(stationUrl);
+
+    qDebug() << "Station Id: " << stationId;
+
+    QSqlQuery query(sampleCacheDb);
+    query.prepare("select i.id, i.timestamp, i.type_code, i.title, "
+                  "i.description, i.mime_type, i.url, src.code, src.name, "
+                  "src.description "
+                  "from image i "
+                  "inner join image_source src on src.id = i.source "
+                  "where src.station = :station "
+                  "  and src.code = :src_code "
+                  "  and i.date = :date "
+                  "order by date asc");
+    query.bindValue(":station", stationId);
+    query.bindValue(":src_code", imageSourceCode.toLower());
+    query.bindValue(":date", date);
+    query.exec();
+
+    qDebug() << query.executedQuery();
+
+    QVector<ImageInfo> images;
+
+    if (query.first()) {
+        do {
+            QSqlRecord record = query.record();
+            images.append(RecordToImageInfo(record));
+        } while (query.next());
+    } else {
+        qDebug() << "No cached image metadata for " << date << stationUrl << imageSourceCode;
+    }
+
+    return images;
+}
+
+image_set_t WebCacheDB::getImageSetCacheInformation(QString imageSetUrl) {
+    QSqlQuery query(sampleCacheDb);
+    query.prepare("select last_modified, size, is_valid "
+                  "from image_set "
+                  "where url = :url ");
+    query.bindValue(":url", imageSetUrl);
+    query.exec();
+
+    image_set_t setinfo;
+    setinfo.is_valid = false;
+
+    if (query.first()) {
+        QSqlRecord record = query.record();
+
+        setinfo.last_modified = record.field(0).value().toDateTime();
+        setinfo.size = record.field(0).value().toInt();
+        setinfo.is_valid = record.field(0).value().toBool();
+        return setinfo;
+    } else {
+        qDebug() << "Failed to load image set information.";
+        if (query.lastError().isValid()) {
+            qDebug() << "Database error: " << query.lastError().databaseText();
+        }
+        return setinfo;
+    }
+}
+
 QString WebCacheDB::buildColumnList(SampleColumns columns, QString format) {
     QString query;
     if (columns.testFlag(SC_Timestamp))
