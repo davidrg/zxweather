@@ -8,6 +8,7 @@
 #include <QMouseEvent>
 #include <QApplication>
 #include <QGridLayout>
+#include <QIcon>
 
 ImageWidget::ImageWidget(QWidget *parent) : QLabel(parent)
 {
@@ -92,9 +93,21 @@ void ImageWidget::mouseDoubleClickEvent(QMouseEvent *event) {
         return; // Nothing to do
     }
 
+    // If we're already a pop-up window, instead of opening another popup,
+    // switch between maximized and normal.
+    if (parentWidget()->isWindow()) {
+        if (parentWidget()->isMaximized()) {
+            parentWidget()->showNormal();
+        } else {
+            parentWidget()->showMaximized();
+        }
+        return;
+    }
+
     QWidget *w = new QWidget();
     w->setAttribute(Qt::WA_DeleteOnClose);
     w->setPalette(QPalette(QColor(Qt::black)));
+    w->setWindowIcon(QIcon(":/icons/image"));
 
     QGridLayout *l = new QGridLayout(w);
     l->setMargin(0);
