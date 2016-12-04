@@ -380,7 +380,7 @@ int WebCacheDB::getImageSourceId(int stationId, QString code) {
     query.prepare("select id from image_source where station = :station "
                   "and code = :code");
     query.bindValue(":station", stationId);
-    query.bindValue(":code", code);
+    query.bindValue(":code", code.toLower());
     query.exec();
     if (query.first()) {
         return query.record().field(0).value().toInt();
@@ -398,7 +398,7 @@ int WebCacheDB::createImageSource(int stationId, ImageSource source) {
         query.prepare("insert into image_source(station, code, name, description) "
                       "values(:station, :code, :name, :description)");
         query.bindValue(":station", stationId);
-        query.bindValue(":code", source.code);
+        query.bindValue(":code", source.code.toLower());
         query.bindValue(":name", source.name);
         query.bindValue(":description", source.description);
         query.exec();
@@ -622,6 +622,30 @@ ImageInfo WebCacheDB::getImageInfo(QString stationUrl, int id) {
         ImageInfo fail;
         return fail;
     }
+}
+
+ImageSource WebCacheDB::getImageSource(QString stationUrl, QString sourceCode) {
+    int stationId = getStationId(stationUrl);
+    QSqlQuery query(sampleCacheDb);
+    query.prepare("select code, name, description "
+                  "from image_source "
+                  "where station = :station "
+                  "and code = :code");
+    query.bindValue(":station", stationId);
+    query.bindValue(":code", sourceCode.toLower());
+    query.exec();
+
+    ImageSource src;
+
+    if (query.first()) {
+        QSqlRecord record = query.record();
+
+        src.code = record.field(0).value().toString();
+        src.name = record.field(1).value().toString();
+        src.description = record.field(2).value().toString();
+    }
+
+    return src;
 }
 
 QVector<ImageInfo> WebCacheDB::getImagesForDate(QDate date, QString stationUrl,

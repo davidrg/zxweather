@@ -147,6 +147,15 @@ public:
      */
     ImageInfo getImageInfo(QString stationUrl, int id);
 
+    /** Gets the specified image source.
+     *
+     * @param stationUrl Station the image source is associated with
+     * @param sourceCode Image sources identifying code
+     * @return Image source information. If code field is not populated, the
+     *  image source could not be found in the cache database.
+     */
+    ImageSource getImageSource(QString stationUrl, QString sourceCode);
+
     /** Gets imagse by date, station and image source code
      *
      * @param date Image set date
