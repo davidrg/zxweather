@@ -10,6 +10,8 @@
 #include <QGridLayout>
 #include <QIcon>
 #include <QFileInfo>
+#include <QDesktopServices>
+#include <QDir>
 
 ImageWidget::ImageWidget(QWidget *parent) : QLabel(parent)
 {
@@ -46,8 +48,23 @@ void ImageWidget::setImage(QImage image, QString filename) {
         this->filename = filename;
         usingCacheFile = true;
     } else {
+#if QT_VERSION >= 0x050000
+        QString tempFileName = QStandardPaths::writableLocation(
+                    QStandardPaths::CacheLocation);
+#else
+        QString tempFileName = QDesktopServices::storageLocation(
+                    QDesktopServices::TempLocation);
+#endif
+
+        tempFileName += "/zxweather/";
+
+        if (!QDir(tempFileName).exists())
+            QDir().mkpath(tempFileName);
+
+        tempFileName += "XXXXXX.jpeg";
+
         // Save the image somewhere temporarily to enable drag-drop operations
-        imageFile.reset(new QTemporaryFile("XXXXXX.jpeg"));
+        imageFile.reset(new QTemporaryFile(tempFileName));
         image.save(imageFile.data());
         imageFile->close();
         this->filename = imageFile->fileName();

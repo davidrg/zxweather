@@ -10,6 +10,7 @@
 #include <QUrl>
 #include <QFileInfo>
 #include <QDesktopServices>
+#include <QDir>
 
 typedef enum {
     IT_ROOT,
@@ -209,7 +210,12 @@ void TreeItem::setImage(QImage image, QString cacheFile) {
                     QDesktopServices::TempLocation);
 #endif
 
-        temporaryImageFile = new QTemporaryFile(
+        filename += "/zxweather/";
+
+        if (!QDir(filename).exists())
+            QDir().mkpath(filename);
+
+        temporaryImageFile = new QTemporaryFile(filename +
                     date().toString(Qt::ISODate) +
                     " "+ text().replace(":","_") + " XXXXXX.jpeg");
         image.save(temporaryImageFile);
