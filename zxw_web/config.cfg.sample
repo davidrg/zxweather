@@ -33,6 +33,13 @@ site_name: zxweather
 #site_root: http://weather.example.com/
 #static_data_dir: /opt/zxweather/zxw_web/static/
 #station_name: somewhere
+
+# The alternate UI (/a) uses the Google Visualisation API to produce its charts.
+# This API is only available online (google doesn't allow self-hosting it). This
+# means the alternate UI *requires* an internet connection and be able to access
+# https://www.google.com/jsapi. If the web interface is being hosted somewhere
+# without internet access (or very expensive internet) its probably best to
+# disable this UI by uncommenting the following line.
 # disable_alt_ui: True
 
 # Set this to True if you don't want the stations coordinates appearing in
