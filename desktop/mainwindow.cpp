@@ -603,7 +603,7 @@ void MainWindow::imageReady(ImageInfo info, QImage image) {
         if (!tabWidgets.contains(tabId)) {
             // Create a widget for the tab
             tabWidgets[tabId] = new ImageWidget(this);
-            tabWidgets[tabId]->setFixedWidth(width());
+            tabWidgets[tabId]->setFixedWidth(ui->imageTabs->width());
             tabWidgets[tabId]->setScaledContents(true);
         }
 

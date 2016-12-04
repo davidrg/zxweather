@@ -129,7 +129,8 @@ int ImageWidget::heightForWidth(int width) const {
 
     // Don't issue a height larger than the set image (it would just end up as
     // blank space anyway).
-    if (imageSet && !image.isNull() && result > image.height()) {
+    if (imageSet && !image.isNull() && !hasScaledContents()
+            && result > image.height()) {
         return this->image.height();
     }
 
