@@ -28,8 +28,20 @@ ListDayImagesWebTask::ListDayImagesWebTask(QString baseUrl, QString stationCode,
 }
 
 void ListDayImagesWebTask::beginTask() {
-    // 1: Get image source details
-    emit httpGet(QNetworkRequest(_stationBaseUrl + DATASET_IMAGE_SOURCES));
+
+    imageSource = WebCacheDB::getInstance().getImageSource(
+                _stationBaseUrl, _imageSourceCode);
+
+    if (imageSource.code.isNull()) {
+        // 1: Get image source details
+        emit httpGet(QNetworkRequest(_stationBaseUrl + DATASET_IMAGE_SOURCES));
+    } else {
+        // Skip 1 & 2, move onto 3: Get image list cache status
+        _gotImageSourceInfo = true;
+        emit subtaskChanged("Checking image list cache status for " +
+                            _date.toString(Qt::SystemLocaleShortDate));
+        emit httpHead(QNetworkRequest(_url));
+    }
 }
 
 void ListDayImagesWebTask::networkReplyReceived(QNetworkReply *reply) {
