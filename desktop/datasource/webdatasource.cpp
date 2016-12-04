@@ -6,6 +6,11 @@
 
 #include "webtasks/fetchsampleswebtask.h"
 #include "webtasks/activeimagesourceswebtask.h"
+#include "webtasks/latestimageswebtask.h"
+#include "webtasks/fetchimagewebtask.h"
+#include "webtasks/fetchthumbnailwebtask.h"
+#include "webtasks/fetchimagedatelistwebtask.h"
+#include "webtasks/listdayimageswebtask.h"
 
 #include <QStringList>
 #include <QNetworkRequest>
@@ -16,10 +21,6 @@
 #include <QDateTime>
 #include <QNetworkProxyFactory>
 
-
-void getURLList(
-        QString baseURL, QDateTime startTime, QDateTime endTime,
-        QStringList& urlList, QStringList& nameList);
 
 // TODO: make the progress dialog cancel button work.
 
@@ -49,12 +50,6 @@ WebDataSource::WebDataSource(QWidget *parentWidget, QObject *parent) :
     stationCode = settings.stationCode();
     liveDataUrl = QUrl(baseURL + "data/" + stationCode + "/live.json");
 
-#ifdef USE_GNUPLOT_DATA
-    stationUrl = baseURL + "b/" + stationCode + "/";
-#else
-    stationUrl = baseURL + "data/" + stationCode + "/";
-#endif
-
     QNetworkProxyFactory::setUseSystemConfiguration(true);
 
     // Setup live data functionality
@@ -77,9 +72,7 @@ WebDataSource::WebDataSource(QWidget *parentWidget, QObject *parent) :
     currentSubtask = 0;
 }
 
-void WebDataSource::fireSamplesReady(SampleSet samples) {
-    emit samplesReady(samples);
-}
+
 
 void WebDataSource::makeProgress(QString message) {
     progressDialog->setLabelText(message);
@@ -88,6 +81,18 @@ void WebDataSource::makeProgress(QString message) {
     progressDialog->setValue(value);
     qDebug() << "Progress [" << value << "/" << maxValue << "]:" << message;
 }
+
+void WebDataSource::moveGoalpost(int distance, QString reason) {
+
+    int curVal = progressDialog->value();
+    int curMax = progressDialog->maximum();
+
+    qDebug() << "Antiprogress: [" << curVal << "/" << curMax << "] to ["
+             << curVal << "/" << curMax + distance << "] - " << reason;
+
+    progressDialog->setMaximum(curMax + distance);
+}
+
 
 
 /*****************************************************************************
@@ -121,6 +126,10 @@ void WebDataSource::fetchSamples(SampleColumns columns,
     );
 
     queueTask(task);
+}
+
+void WebDataSource::fireSamplesReady(SampleSet samples) {
+    emit samplesReady(samples);
 }
 
 /*****************************************************************************
@@ -287,19 +296,62 @@ hardware_type_t WebDataSource::getHardwareType() {
 
 
 void WebDataSource::fetchImageDateList() {
-    // TODO
+    FetchImageDateListWebTask *task = new FetchImageDateListWebTask(
+                baseURL, stationCode, this);
+    connect(task, SIGNAL(dateListReady(QList<ImageDate>,QList<ImageSource>)),
+            this, SLOT(fetchImageDateListComplete(QList<ImageDate>,QList<ImageSource>)));
+    queueTask(task);
+}
+
+void WebDataSource::fetchImageDateListComplete(QList<ImageDate> imageDates,
+                   QList<ImageSource> imageSources) {
+    emit imageDatesReady(imageDates, imageSources);
 }
 
 void WebDataSource::fetchImageList(QDate date, QString imageSourceCode) {
-    // TODO
+    ListDayImagesWebTask *task = new ListDayImagesWebTask(
+                baseURL, stationCode, this, date, imageSourceCode);
+    connect(task, SIGNAL(imageListReady(QList<ImageInfo>)),
+            this, SLOT(imageListComplete(QList<ImageInfo>)));
+    queueTask(task);
 }
+
+void WebDataSource::imageListComplete(QList<ImageInfo> images) {
+    emit imageListReady(images);
+}
+
+/*
+ * NOTE:
+ *   fetchImage(int) and fetchThumbnails(QList<int>) will only work for images
+ *   that have previously had their MetaData retrieved via
+ *   fetchImageList(QDate,QString). Images obtained through fetchLatestImages()
+ *   or any other 'live' source don't have their metadata stored in the cache
+ *   database and so aren't able to be looked up by id. Actual image data for
+ *   these 'live' images *will* be cached however - all thats missing is a row
+ *   in the cache DB.
+ */
 
 void WebDataSource::fetchImage(int imageId) {
-    // TODO
+    FetchImageWebTask *task = new FetchImageWebTask(
+                baseURL,
+                stationCode,
+                this,
+                imageId);
+
+    queueTask(task);
 }
 
-void WebDataSource::fetchThumbnails(QList<int> imageIds) {
-    // TODO
+void WebDataSource::fetchThumbnails(QList<int> imageIds) {    
+    foreach (int imageId, imageIds) {
+        FetchThumbnailWebTask *task = new FetchThumbnailWebTask(
+                    baseURL,
+                    stationCode,
+                    this,
+                    imageId);
+        queueTask(task, false);
+    }
+
+    startQueueProcessing();
 }
 
 
@@ -340,21 +392,27 @@ void WebDataSource::foundArchivedImages() {
 }
 
 void WebDataSource::fetchLatestImages() {
-    // TODO
+    LatestImagesWebTask* task = new LatestImagesWebTask(
+                baseURL,
+                stationCode,
+                this);
+
+    queueTask(task);
 }
 
-void WebDataSource::moveGoalpost(int distance, QString reason) {
+void WebDataSource::fireImageReady(ImageInfo imageInfo, QImage image) {
+    emit imageReady(imageInfo, image);
+}
 
-    int curVal = progressDialog->value();
-    int curMax = progressDialog->maximum();
-
-    qDebug() << "Antiprogress: [" << curVal << "/" << curMax << "] to ["
-             << curVal << "/" << curMax + distance << "] - " << reason;
-
-    progressDialog->setMaximum(curMax + distance);
+void WebDataSource::fireThumbnailReady(int imageId, QImage thumbnail) {
+    emit thumbnailReady(imageId, thumbnail);
 }
 
 void WebDataSource::queueTask(AbstractWebTask *task) {
+    queueTask(task, true);
+}
+
+void WebDataSource::queueTask(AbstractWebTask *task, bool startProcessing) {
 
     if (!processingQueue) {
         progressDialog->reset();
@@ -384,7 +442,9 @@ void WebDataSource::queueTask(AbstractWebTask *task) {
 
     qDebug() << ":: Queue Length now: " << taskQueue.length();
 
-    startQueueProcessing();
+    if (startProcessing) {
+        startQueueProcessing();
+    }
 }
 
 void WebDataSource::startQueueProcessing() {
@@ -425,6 +485,7 @@ void WebDataSource::httpGet(QNetworkRequest request)  {
     request.setRawHeader("User-Agent", Constants::USER_AGENT);
     taskQueueNetworkAccessManager->get(request);
 }
+
 void WebDataSource::httpHead(QNetworkRequest request) {
     qDebug() << ":: Issuing HTTP HEAD for task - URL: " << request.url();
     request.setRawHeader("User-Agent", Constants::USER_AGENT);

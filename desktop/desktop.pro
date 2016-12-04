@@ -89,7 +89,12 @@ SOURCES += main.cpp\
     datasource/webtasks/abstractwebtask.cpp \
     datasource/webtasks/rangerequestwebtask.cpp \
     datasource/webtasks/datafilewebtask.cpp \
-    datasource/webtasks/selectsampleswebtask.cpp
+    datasource/webtasks/selectsampleswebtask.cpp \
+    datasource/webtasks/latestimageswebtask.cpp \
+    datasource/webtasks/fetchimagewebtask.cpp \
+    datasource/webtasks/fetchthumbnailwebtask.cpp \
+    datasource/webtasks/fetchimagedatelistwebtask.cpp \
+    datasource/webtasks/listdayimageswebtask.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
@@ -153,7 +158,13 @@ HEADERS  += mainwindow.h \
     datasource/webtasks/rangerequestwebtask.h \
     datasource/webtasks/request_data.h \
     datasource/webtasks/datafilewebtask.h \
-    datasource/webtasks/selectsampleswebtask.h
+    datasource/webtasks/selectsampleswebtask.h \
+    datasource/webtasks/latestimageswebtask.h \
+    datasource/imageset.h \
+    datasource/webtasks/fetchimagewebtask.h \
+    datasource/webtasks/fetchthumbnailwebtask.h \
+    datasource/webtasks/fetchimagedatelistwebtask.h \
+    datasource/webtasks/listdayimageswebtask.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \

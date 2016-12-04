@@ -12,7 +12,8 @@ from web.contrib.template import render_jinja
 from cache import rfcformat
 from data.daily import datasources, datatable_datasources
 from database import day_exists, get_station_id, get_image_sources_for_station, \
-    get_image_source, get_day_images_for_source
+    get_image_source, get_day_images_for_source, \
+    get_most_recent_image_ts_for_source_and_date
 
 __author__ = 'David Goodwin'
 
@@ -122,6 +123,30 @@ class images_json:
     """
     Provides a list of images available for a particular day and image source
     """
+
+    def HEAD(self, station, year, month, day, source):
+        dt = date(int(year),int(month),int(day))
+
+        station_id = get_station_id(station)
+        if station_id is None:
+            raise web.NotFound()
+
+        # Make sure the day actually exists in the database before we go
+        # any further.
+        if not day_exists(dt, station_id):
+            raise web.NotFound()
+
+        source = get_image_source(station_id, source)
+        if source is None:
+            raise web.NotFound()
+
+        ts = get_most_recent_image_ts_for_source_and_date(
+            source.image_source_id, dt)
+
+        web.header('Content-Type', 'application/json')
+        web.header('Last-Modified', rfcformat(ts))
+        return
+
     def GET(self, station, year, month, day, source):
         """
         Returns an index page containing a list of json files available for

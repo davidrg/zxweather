@@ -32,6 +32,10 @@ ViewImagesWindow::ViewImagesWindow(QWidget *parent) :
     ui->tvImageSet->setModel(model.data());
     ui->lvImageList->setModel(model.data());
 
+    // Update layout of image list as items come in
+    connect(model.data(), SIGNAL(layoutChanged()),
+            ui->lvImageList, SLOT(doItemsLayout()));
+
     connect(ui->lvImageList->selectionModel(),
             SIGNAL(selectionChanged(QItemSelection,QItemSelection)),
             this,
@@ -67,14 +71,20 @@ void ViewImagesWindow::listItemDoubleClicked(QModelIndex index) {
 void ViewImagesWindow::loadImageForIndex(QModelIndex index) {
     if (model->isImage(index)) {
 
-        ui->lImage->setImage(model->image(index),
-                             model->imageTemporaryFileName(index));
-    } else {
-        // Just show the icon.
-        QVariant icon = index.data(Qt::DecorationRole);
-        if (icon.isValid()) {
-            ui->lImage->setPixmap(icon.value<QIcon>().pixmap(ui->lImage->size()));
+        QImage image = model->image(index);
+        QString filename = model->imageTemporaryFileName(index);
+
+        if (!image.isNull()) {
+            ui->lImage->setImage(image, filename);
+            return;
         }
+    }
+
+
+    // No image? Not an image? Just show the icon.
+    QVariant icon = index.data(Qt::DecorationRole);
+    if (icon.isValid()) {
+        ui->lImage->setPixmap(icon.value<QIcon>().pixmap(ui->lImage->size()));
     }
 }
 

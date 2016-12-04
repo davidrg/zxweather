@@ -53,25 +53,43 @@ create index sample_stn_ts on sample(station, timestamp asc);
 
 -- Information about cameras, etc
 create table image_source (
+  id integer not null primary key,
   station integer not null,
   code text not null,
   name text not null,
   description text
 );
 
+create index image_source_code_and_station on image_source(station, code);
+
+-- This is the image sources equivalent of the data_file table.
+create table image_set (
+    id integer not null primary key,
+    image_source integer not null,
+    url text not null,
+    last_modified integer not null,
+    size integer not null,
+    is_valid integer not null -- 0 = invalid, 1 = valid
+);
+
+create index image_set_url on image_set(url);
+
 -- An image (or other media) captured by an image source
+-- Note that IDs in this table are only unique for a particular image source.
 create table image (
   id integer not null,
+  image_set integer not null,
   source integer not null,
   timestamp integer not null,
   date text not null,
   type_code text not null,
   title text,
   description text,
-  mime_type text
+  mime_type text,
+  url text
 );
 
-create index image_id on image(id);
+create index image_id on image(id, source);
 create index image_date on image(date);
 
 -- Database metadata - version number, etc.

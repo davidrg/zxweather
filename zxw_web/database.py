@@ -1051,6 +1051,30 @@ def get_day_images_for_source(source_id, image_date=None):
     return result
 
 
+def get_most_recent_image_ts_for_source_and_date(source_id, image_date):
+    """
+    Returns the timestamp for the most recent image on the specified date for
+    the specified source. Used for cache control purposes.
+
+    :param source_id: Image source
+    :type source_id: int
+    :param image_date: Date to find the most recent timestamp for
+    :type image_date: date
+    :return: Time of most recent image for the date and source
+    """
+
+    query = """
+    select max(i.time_stamp) as ts
+    from image i
+    inner join image_type it on it.image_type_id = i.image_type_id
+    where i.image_source_id = $source_id
+      and i.time_stamp::date = $date
+    """
+
+    result = db.query(query, dict(source_id=source_id, date=image_date))
+    return result[0].ts
+
+
 def image_exists(station, image_date, source_code, image_id):
     query = """
     select image_id
