@@ -125,5 +125,13 @@ void ImageWidget::mouseDoubleClickEvent(QMouseEvent *event) {
 
 // To maintain aspect ratio
 int ImageWidget::heightForWidth(int width) const {
-    return (int)(((float)image.height() / (float)image.width()) * (float)width);
+    int result = (int)(((float)image.height() / (float)image.width()) * (float)width);
+
+    // Don't issue a height larger than the set image (it would just end up as
+    // blank space anyway).
+    if (imageSet && !image.isNull() && result > image.height()) {
+        return this->image.height();
+    }
+
+    return result;
 }
