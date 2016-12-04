@@ -95,7 +95,7 @@ void FetchImageWebTask::dealWithImage(QString filename) {
     qDebug() << "Dealing with image: " << filename;
     if (_imageInfo.mimeType.startsWith("image/")) {
         QImage image(filename);
-        _dataSource->fireImageReady(_imageInfo, image);
+        _dataSource->fireImageReady(_imageInfo, image, filename);
     } else if (_imageInfo.mimeType.startsWith("video/")) {
         // TODO: ??
     }

@@ -400,8 +400,9 @@ void WebDataSource::fetchLatestImages() {
     queueTask(task);
 }
 
-void WebDataSource::fireImageReady(ImageInfo imageInfo, QImage image) {
-    emit imageReady(imageInfo, image);
+void WebDataSource::fireImageReady(ImageInfo imageInfo, QImage image,
+                                   QString cacheFile) {
+    emit imageReady(imageInfo, image, cacheFile);
 }
 
 void WebDataSource::fireThumbnailReady(int imageId, QImage thumbnail) {

@@ -9,12 +9,14 @@
 #include <QApplication>
 #include <QGridLayout>
 #include <QIcon>
+#include <QFileInfo>
 
 ImageWidget::ImageWidget(QWidget *parent) : QLabel(parent)
 {
     setText("");
     setAcceptDrops(true);
     imageSet = false;
+    usingCacheFile = false;
 
     // Try to maintain aspect ratio for whatever our dimensions are
     QSizePolicy policy(QSizePolicy::Preferred, QSizePolicy::Preferred);
@@ -29,15 +31,26 @@ void ImageWidget::setPixmap(const QPixmap &pixmap) {
 
 
 void ImageWidget::setImage(QImage image, QString filename) {
-
+    bool fileOk = true;
     if (filename.isNull() || filename.isEmpty()) {
+        fileOk = false; // No filename specified
+    }
+
+    QFileInfo fi(filename);
+    if (!fi.exists() || !fi.isFile()) {
+        fileOk = false; // File missing or not a file
+    }
+
+    if (fileOk) {
+        // Use the supplied filename.
+        this->filename = filename;
+        usingCacheFile = true;
+    } else {
         // Save the image somewhere temporarily to enable drag-drop operations
         imageFile.reset(new QTemporaryFile("XXXXXX.jpeg"));
         image.save(imageFile.data());
         imageFile->close();
         this->filename = imageFile->fileName();
-    } else {
-        this->filename = filename;
     }
 
     this->image = image;
@@ -113,7 +126,11 @@ void ImageWidget::mouseDoubleClickEvent(QMouseEvent *event) {
     l->setMargin(0);
 
     ImageWidget *iw = new ImageWidget(w);
-    iw->setImage(image, info);
+    if (usingCacheFile) {
+        iw->setImage(image, info, filename);
+    } else {
+        iw->setImage(image, info);
+    }
     iw->setScaledContents(true);
 
     l->addItem(new QSpacerItem(1,1,QSizePolicy::Expanding, QSizePolicy::Expanding),0,0);

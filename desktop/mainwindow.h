@@ -126,7 +126,7 @@ private slots:
 
     void archivedImagesAvailable();
 
-    void imageReady(ImageInfo info, QImage image);
+    void imageReady(ImageInfo info, QImage image, QString cacheFile);
 
     void newImage(NewImageInfo imageInfo);
 

@@ -29,6 +29,7 @@ protected:
 private:
     QString filename;
     bool imageSet;
+    bool usingCacheFile;
     ImageInfo info;
     QImage image;
 

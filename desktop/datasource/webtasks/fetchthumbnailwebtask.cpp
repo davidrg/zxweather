@@ -26,7 +26,7 @@ void FetchThumbnailWebTask::dealWithImage(QString filename) {
                                              Qt::KeepAspectRatio);
 
         _dataSource->fireThumbnailReady(_imageInfo.id, thumbnailImage);
-        _dataSource->fireImageReady(_imageInfo, image);
+        _dataSource->fireImageReady(_imageInfo, image, filename);
     } else if (_imageInfo.mimeType.startsWith("video/")) {
         // TODO: ??
         // We can't exactly thumbnail videos. Do we pull out the first frame

@@ -8,6 +8,8 @@
 #include <QMimeData>
 #include <QTemporaryFile>
 #include <QUrl>
+#include <QFileInfo>
+#include <QDesktopServices>
 
 typedef enum {
     IT_ROOT,
@@ -43,7 +45,7 @@ public:
     void deleteChildren();
     void setThumbnail(QImage thumbnailImage);
     int id() const;
-    void setImage(QImage image);
+    void setImage(QImage image, QString cacheFile);
 
 private:
     TreeItem *parentNode;
@@ -56,7 +58,7 @@ private:
     QString mSourceCode;
     QImage thumbnail;
     int imageId;
-    QTemporaryFile* temporaryImageFile;
+    QFile* temporaryImageFile;
 };
 
 TreeItem::TreeItem(ItemType type, QDate date, QString sourceCode, QString text,
@@ -179,13 +181,41 @@ QIcon TreeItem::icon() const {
     return icon;
 }
 
-void TreeItem::setImage(QImage image) {
-    temporaryImageFile = new QTemporaryFile(
-                date().toString(Qt::ISODate) +
-                " "+ text().replace(":","_") + " XXXXXX.jpeg");
-    image.save(temporaryImageFile);
-    temporaryImageFile->flush();
-    temporaryImageFile->close();
+void TreeItem::setImage(QImage image, QString cacheFile) {
+    bool fileOk = true;
+    if (cacheFile.isNull() || cacheFile.isEmpty()) {
+        fileOk = false; // No filename specified
+    }
+
+    QFileInfo fi(cacheFile);
+    if (!fi.exists() || !fi.isFile()) {
+        fileOk = false; // File missing or not a file
+    }
+
+    if (fileOk) {
+        // The supplied cache file exists on disk! We'll just re-use that
+        temporaryImageFile = new QFile(cacheFile);
+    } else {
+        // Cache file doesn't exist (or isn't a file or wasn't specified).
+        // We'll dump the supplied image to a temporary file somewhere rather
+        // than holding it in RAM. We'll do this as a temporary file so it will
+        // be cleaned up later.
+
+#if QT_VERSION >= 0x050000
+        QString filename = QStandardPaths::writableLocation(
+                    QStandardPaths::CacheLocation);
+#else
+        QString filename = QDesktopServices::storageLocation(
+                    QDesktopServices::TempLocation);
+#endif
+
+        temporaryImageFile = new QTemporaryFile(
+                    date().toString(Qt::ISODate) +
+                    " "+ text().replace(":","_") + " XXXXXX.jpeg");
+        image.save(temporaryImageFile);
+        temporaryImageFile->flush();
+        temporaryImageFile->close();
+    }
 }
 
 QFile* TreeItem::imageFile() const {
@@ -197,7 +227,7 @@ QImage TreeItem::image() const {
         return QImage();
     }
 
-    temporaryImageFile->open();
+    temporaryImageFile->open(QIODevice::ReadOnly);
     QImage image = QImage::fromData(temporaryImageFile->readAll());
     temporaryImageFile->close();
 
@@ -245,9 +275,9 @@ ImageModel::ImageModel(AbstractDataSource *dataSource, QObject *parent)
             this,
             SLOT(thumbnailReady(int,QImage)));
     connect(dataSource,
-            SIGNAL(imageReady(ImageInfo,QImage)),
+            SIGNAL(imageReady(ImageInfo,QImage,QString)),
             this,
-            SLOT(imageReady(ImageInfo,QImage)));
+            SLOT(imageReady(ImageInfo,QImage,QString)));
 
     // Launch a query to populate the tree
     dataSource->fetchImageDateList();
@@ -668,7 +698,7 @@ void ImageModel::thumbnailReady(int imageId, QImage thumbnail) {
     }
 }
 
-void ImageModel::imageReady(ImageInfo info, QImage image) {
+void ImageModel::imageReady(ImageInfo info, QImage image, QString cacheFile) {
 
     int imageId = info.id;
 
@@ -682,7 +712,7 @@ void ImageModel::imageReady(ImageInfo info, QImage image) {
             pendingThumbnails.remove(imageId);
         }
 
-        req.treeItem->setImage(image);
+        req.treeItem->setImage(image, cacheFile);
 
         // We don't need to emit a model changed here as we're not
         // changing anything exposed to the view. Note that if the
