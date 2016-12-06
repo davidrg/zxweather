@@ -42,3 +42,9 @@ desktop-debug-libs/*
 desktop-release-libs/*
 zxw_web/static/rua2/*
 desktop-build-Desktop_4_8_0_MinGW-Release/*
+build-desktop-Desktop_Qt_5_5_0_MinGW_32bit-Debug/*
+zxw_web/static/img_cache/*
+zxw_web/static/sb/*
+build-desktop-Qt_4_8-Debug/*
+desktop-build-Desktop_4_8_0_MinGW-Debug-old/*
+desktop-build-Desktop_4_8_0_MinGW-Release-old/*

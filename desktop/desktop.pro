@@ -6,7 +6,9 @@
 
 QT       += core gui network sql
 
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets printsupport
+greaterThan(QT_MAJOR_VERSION, 4): QT += widgets printsupport multimedia multimediawidgets
+
+lessThan(QT_MAJOR_VERSION, 5): QT += phonon
 
 TARGET = desktop
 TEMPLATE = app
@@ -94,7 +96,8 @@ SOURCES += main.cpp\
     datasource/webtasks/fetchimagewebtask.cpp \
     datasource/webtasks/fetchthumbnailwebtask.cpp \
     datasource/webtasks/fetchimagedatelistwebtask.cpp \
-    datasource/webtasks/listdayimageswebtask.cpp
+    datasource/webtasks/listdayimageswebtask.cpp \
+    video/abstractvideoplayer.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
@@ -164,7 +167,8 @@ HEADERS  += mainwindow.h \
     datasource/webtasks/fetchimagewebtask.h \
     datasource/webtasks/fetchthumbnailwebtask.h \
     datasource/webtasks/fetchimagedatelistwebtask.h \
-    datasource/webtasks/listdayimageswebtask.h
+    datasource/webtasks/listdayimageswebtask.h \
+    video/abstractvideoplayer.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \
@@ -184,6 +188,21 @@ FORMS    += mainwindow.ui \
     viewdataoptionsdialog.ui \
     viewdatasetwindow.ui \
     viewimageswindow.ui
+
+# On Qt 4 we've got to use Phonon for video playback.
+lessThan(QT_MAJOR_VERSION, 5) {
+    HEADERS += video/phononvideoplayer.h
+    SOURCES += video/phononvideoplayer.cpp
+    FORMS += video/phononvideoplayer.ui
+}
+
+# Qt 5 doesn't ship with Phonon - We've got to use QtMultimedia instead.
+greaterThan(QT_MAJOR_VERSION, 4) {
+    HEADERS += video/videoplayer.h
+    SOURCES += video/videoplayer.cpp
+    FORMS += video/videoplayer.ui
+}
+
 
 OTHER_FILES += \
     database.pgc \

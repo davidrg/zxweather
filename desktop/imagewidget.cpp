@@ -24,15 +24,21 @@ ImageWidget::ImageWidget(QWidget *parent) : QLabel(parent)
     QSizePolicy policy(QSizePolicy::Preferred, QSizePolicy::Preferred);
     policy.setHeightForWidth(true);
     setSizePolicy(policy);
+
+    videoPlayer = NULL;
 }
 
 void ImageWidget::setPixmap(const QPixmap &pixmap) {
-    imageSet = false;
+    imageSet = true;
     QLabel::setPixmap(pixmap);
+    repaint();
 }
 
 
 void ImageWidget::setImage(QImage image, QString filename) {
+    imageSet = false;
+    videoSet = false;
+
     bool fileOk = true;
     if (filename.isNull() || filename.isEmpty()) {
         fileOk = false; // No filename specified
@@ -47,6 +53,41 @@ void ImageWidget::setImage(QImage image, QString filename) {
         // Use the supplied filename.
         this->filename = filename;
         usingCacheFile = true;
+
+        if (image.isNull()) {
+            // Perhaps this isn't an image? We'll need ImageInfo to know more
+            // about this not-an-image image.
+
+            if (!info.mimeType.isNull()) {
+                // We have a MIME type!
+                if (info.mimeType.startsWith("video/")) {
+                    setPixmap(QPixmap(":/icons/film-32"));
+
+                    // We have video! Thats sort of an image I guess.
+                    qDebug() << "File is video, not image: " << filename;
+
+                    if (videoPlayer == NULL) {
+                        videoPlayer = AbstractVideoPlayer::createVideoPlayer(this);
+                        this->setLayout(new QGridLayout());
+                        this->layout()->setMargin(0);
+                        this->layout()->addWidget(videoPlayer);
+                    }
+                    connect(videoPlayer, SIGNAL(sizeChanged(QSize)),
+                            this, SLOT(videoSizeChanged(QSize)));
+
+                    videoPlayer->setFilename(filename);
+                    videoPlayer->show();
+                    videoSet = true;
+
+                }
+            }
+        } else {
+            if (videoPlayer != NULL) {
+                videoPlayer->stop();
+                videoPlayer->hide();
+            }
+        }
+
     } else {
 #if QT_VERSION >= 0x050000
         QString tempFileName = QStandardPaths::writableLocation(
@@ -72,12 +113,11 @@ void ImageWidget::setImage(QImage image, QString filename) {
 
     this->image = image;
     setPixmap(QPixmap::fromImage(image));
-    imageSet = true;
 }
 
 void ImageWidget::setImage(QImage image, ImageInfo info, QString filename) {
-    setImage(image, filename);
     this->info = info;
+    setImage(image, filename);
     this->setToolTip(info.timeStamp.toString());
 }
 
@@ -123,6 +163,11 @@ void ImageWidget::mouseDoubleClickEvent(QMouseEvent *event) {
         return; // Nothing to do
     }
 
+    popOut();
+}
+
+void ImageWidget::popOut() {
+
     // If we're already a pop-up window, instead of opening another popup,
     // switch between maximized and normal.
     if (parentWidget()->isWindow()) {
@@ -137,7 +182,12 @@ void ImageWidget::mouseDoubleClickEvent(QMouseEvent *event) {
     QWidget *w = new QWidget();
     w->setAttribute(Qt::WA_DeleteOnClose);
     w->setPalette(QPalette(QColor(Qt::black)));
-    w->setWindowIcon(QIcon(":/icons/image"));
+
+    if (info.mimeType.startsWith("video/")) {
+        w->setWindowIcon(QIcon(":/icons/film"));
+    } else {
+        w->setWindowIcon(QIcon(":/icons/image"));
+    }
 
     QGridLayout *l = new QGridLayout(w);
     l->setMargin(0);
@@ -150,14 +200,20 @@ void ImageWidget::mouseDoubleClickEvent(QMouseEvent *event) {
     }
     iw->setScaledContents(true);
 
-    l->addItem(new QSpacerItem(1,1,QSizePolicy::Expanding, QSizePolicy::Expanding),0,0);
+    // When displaying video we don't need the spacers - the video player
+    // scales the display area as appropriate while maintaining aspect ratio
+    if (!videoSet) {
+        l->addItem(new QSpacerItem(1,1,QSizePolicy::Expanding, QSizePolicy::Expanding),0,0);
+    }
     l->addWidget(iw,1,0);
-    l->addItem(new QSpacerItem(1,1,QSizePolicy::Expanding, QSizePolicy::Expanding),2,0);
+    if (!videoSet) {
+        l->addItem(new QSpacerItem(1,1,QSizePolicy::Expanding, QSizePolicy::Expanding),2,0);
+    }
 
     w->setLayout(l);
 
     QString title = info.title;
-    if (title.isEmpty()){
+    if (title.isEmpty() || title.isNull()){
         title = info.timeStamp.toString();
     } else {
         iw->setToolTip(info.timeStamp.toString());
@@ -168,18 +224,49 @@ void ImageWidget::mouseDoubleClickEvent(QMouseEvent *event) {
     w->setWindowTitle(title);
 
     w->show();
+    w->repaint();
+}
+
+void ImageWidget::videoSizeChanged(QSize size) {
+    videoSize = size;
+    emit sizeHintChanged(sizeHint());
+    updateGeometry();
 }
 
 // To maintain aspect ratio
 int ImageWidget::heightForWidth(int width) const {
-    int result = (int)(((float)image.height() / (float)image.width()) * (float)width);
+    if (videoSet) {
+        QSize videoSizeHint = videoPlayer->sizeHint();
 
-    // Don't issue a height larger than the set image (it would just end up as
-    // blank space anyway).
-    if (imageSet && !image.isNull() && !hasScaledContents()
-            && result > image.height()) {
-        return this->image.height();
+        int result = (int)(((float)videoSizeHint.height() /
+                            (float)videoSizeHint.width()) * (float)width);
+
+        // Don't issue a height larger than the set video (it would just end up as
+        // blank space anyway).
+        if (videoSet && !hasScaledContents() && result > videoSizeHint.height()) {
+            return videoSizeHint.height();
+        }
+
+        // TODO: Extra padding for the controls, etc.
+
+        return result;
+    } else {
+        int result = (int)(((float)image.height() / (float)image.width()) * (float)width);
+
+        // Don't issue a height larger than the set image (it would just end up as
+        // blank space anyway).
+        if (imageSet && !image.isNull() && !hasScaledContents()
+                && result > image.height()) {
+            return this->image.height();
+        }
+
+        return result;
     }
+}
 
-    return result;
+QSize ImageWidget::sizeHint() const {
+    if (videoSet) {
+        return videoPlayer->sizeHint();
+    }
+    return QLabel::sizeHint();
 }
