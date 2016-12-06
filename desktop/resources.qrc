@@ -17,6 +17,8 @@
         <file alias="folder-horizontal-open">resources/folder-horizontal-open.png</file>
         <file alias="image">resources/image.png</file>
         <file alias="image-32">resources/image-32.png</file>
+        <file alias="film-32">resources/film-32.png</file>
+        <file alias="film">resources/film.png</file>
     </qresource>
     <qresource prefix="/icons/weather">
         <file alias="mostly_cloudy">resources/weather-cloud.png</file>

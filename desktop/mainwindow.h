@@ -113,6 +113,8 @@ public slots:
     void setStationName(QString name);
     void setSolarDataAvailable(bool available);
 
+    void imageSizeHintChanged(QSize size);
+
 private slots:
     /** Mostly used to check for late live data.
      */

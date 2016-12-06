@@ -46,7 +46,8 @@ public:
     void deleteChildren();
     void setThumbnail(QImage thumbnailImage);
     int id() const;
-    void setImage(QImage image, QString cacheFile);
+    void setImage(ImageInfo info, QImage image, QString cacheFile);
+    ImageInfo imageInfo() const;
 
 private:
     TreeItem *parentNode;
@@ -60,6 +61,7 @@ private:
     QImage thumbnail;
     int imageId;
     QFile* temporaryImageFile;
+    ImageInfo info;
 };
 
 TreeItem::TreeItem(ItemType type, QDate date, QString sourceCode, QString text,
@@ -166,8 +168,13 @@ QIcon TreeItem::icon() const {
         //icon.addFile(":/icons/folder-horizontal-open", QSize(16, 16), QIcon::Selected);
         break;
     case IT_IMAGE:
-        icon.addFile(":/icons/image", QSize(16,16));
-        icon.addFile(":/icons/image-32", QSize(32, 32));
+        if (info.mimeType.startsWith("video/")) {
+            icon.addFile(":/icons/film", QSize(16, 16));
+            icon.addFile(":/icons/film-32", QSize(32, 32));
+        } else {
+            icon.addFile(":/icons/image", QSize(16,16));
+            icon.addFile(":/icons/image-32", QSize(32, 32));
+        }
 
         if (!thumbnail.isNull()) {
             icon.addPixmap(QPixmap::fromImage(thumbnail));
@@ -182,7 +189,9 @@ QIcon TreeItem::icon() const {
     return icon;
 }
 
-void TreeItem::setImage(QImage image, QString cacheFile) {
+void TreeItem::setImage(ImageInfo info, QImage image, QString cacheFile) {
+    this->info = info;
+
     bool fileOk = true;
     if (cacheFile.isNull() || cacheFile.isEmpty()) {
         fileOk = false; // No filename specified
@@ -222,6 +231,10 @@ void TreeItem::setImage(QImage image, QString cacheFile) {
         temporaryImageFile->flush();
         temporaryImageFile->close();
     }
+}
+
+ImageInfo TreeItem::imageInfo() const {
+    return this->info;
 }
 
 QFile* TreeItem::imageFile() const {
@@ -566,6 +579,21 @@ QImage ImageModel::image(const QModelIndex &index) const {
     return QImage();
 }
 
+ImageInfo ImageModel::imageInfo(const QModelIndex &index) const {
+    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
+
+    if (item->itemType() == IT_IMAGE) {
+        return item->imageInfo();
+    }
+
+    qDebug() << "ImageModel: supplied index isn't an image - can't get ImageInfo";
+
+    ImageInfo nullInfo;
+
+    return nullInfo;
+}
+
+
 QString ImageModel::imageTemporaryFileName(const QModelIndex &index) const {
     TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
 
@@ -708,6 +736,8 @@ void ImageModel::imageReady(ImageInfo info, QImage image, QString cacheFile) {
 
     int imageId = info.id;
 
+    qDebug() << "Id: " << info.id << " FN: " << cacheFile;
+
     // Cache the image here. We can use this later for drag-drop operations, etc.
     if (pendingThumbnails.contains(imageId)) {
 
@@ -718,12 +748,14 @@ void ImageModel::imageReady(ImageInfo info, QImage image, QString cacheFile) {
             pendingThumbnails.remove(imageId);
         }
 
-        req.treeItem->setImage(image, cacheFile);
+        req.treeItem->setImage(info, image, cacheFile);
 
         // We don't need to emit a model changed here as we're not
         // changing anything exposed to the view. Note that if the
         // raw image is ever exposed as a column or something we'll
         // need to reverse this.
+    } else {
+        qDebug() << "Image not in thumbnail queue: " << cacheFile;
     }
 }
 

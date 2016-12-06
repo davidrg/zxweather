@@ -97,6 +97,9 @@ void FetchImageWebTask::dealWithImage(QString filename) {
         QImage image(filename);
         _dataSource->fireImageReady(_imageInfo, image, filename);
     } else if (_imageInfo.mimeType.startsWith("video/")) {
-        // TODO: ??
+        QImage nullImage;
+        // The ImageWidget will delegate display to a video widget passing in
+        // the filename when it detects no image and a video/ mime type.
+        _dataSource->fireImageReady(_imageInfo, nullImage, filename);
     }
 }

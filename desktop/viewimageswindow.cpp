@@ -65,6 +65,9 @@ void ViewImagesWindow::listItemDoubleClicked(QModelIndex index) {
     if (!model->isImage(index)){
         ui->tvImageSet->expand(index);
         ui->lvImageList->setRootIndex(index);
+    } else {
+        loadImageForIndex(index);
+        ui->lImage->popOut();
     }
 }
 
@@ -76,6 +79,15 @@ void ViewImagesWindow::loadImageForIndex(QModelIndex index) {
 
         if (!image.isNull()) {
             ui->lImage->setImage(image, filename);
+            return;
+        }
+
+        ImageInfo info = model->imageInfo(index);
+        qDebug() << info.mimeType;
+        if (info.mimeType.startsWith("video/")) {
+            // Video file. Send it to the Image Widget - it should be able to
+            // handle it provided the right codec is available
+            ui->lImage->setImage(image, info, filename);
             return;
         }
     }

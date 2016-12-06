@@ -28,9 +28,14 @@ void FetchThumbnailWebTask::dealWithImage(QString filename) {
         _dataSource->fireThumbnailReady(_imageInfo.id, thumbnailImage);
         _dataSource->fireImageReady(_imageInfo, image, filename);
     } else if (_imageInfo.mimeType.startsWith("video/")) {
-        // TODO: ??
-        // We can't exactly thumbnail videos. Do we pull out the first frame
-        // and thumbnail that?
+        // TODO: Generate a thumbnail for the video somehow. Pull out the first
+        // frame perhaps?
+
+
+        QImage nullImage;
+        // The ImageWidget will delegate display to a video widget passing in
+        // the filename when it detects no image and a video/ mime type.
+        _dataSource->fireImageReady(_imageInfo, nullImage, filename);
     }
 }
 

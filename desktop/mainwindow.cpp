@@ -605,6 +605,8 @@ void MainWindow::imageReady(ImageInfo info, QImage image, QString cacheFile) {
             tabWidgets[tabId] = new ImageWidget(this);
             tabWidgets[tabId]->setFixedWidth(ui->imageTabs->width());
             tabWidgets[tabId]->setScaledContents(true);
+            connect(tabWidgets[tabId], SIGNAL(sizeHintChanged(QSize)),
+                    this, SLOT(imageSizeHintChanged(QSize)));
         }
 
         ui->imageTabs->addTab(tabWidgets[tabId], info.imageSource.name);
@@ -612,17 +614,31 @@ void MainWindow::imageReady(ImageInfo info, QImage image, QString cacheFile) {
         stationCodeTabs[sourceCode] = tabId;
     }
 
+
     tabWidgets[tabId]->setImage(image, info, cacheFile);
     tabWidgets[tabId]->adjustSize();
 
-//    // Figure out how high the image tab thing should be
-//    //                   720            / 1280           * 714
-    float extraHeight = ((float)image.height() / (float)image.width()) * (float)tabWidgets[tabId]->width();
-    tabWidgets[tabId]->setFixedHeight(extraHeight);
+    if (image.isNull()) {
+        // Probably a video. Give the widget a bit of height so the video
+        // players status is at least visible.
+        tabWidgets[tabId]->setFixedHeight(50);
+    } else {
+    //    // Figure out how high the image tab thing should be
+    //    //                   720            / 1280           * 714
+        float extraHeight = ((float)image.height() / (float)image.width()) * (float)tabWidgets[tabId]->width();
+        tabWidgets[tabId]->setFixedHeight(extraHeight);
+    }
+
 
     if (!ui->imageTabs->isVisible()) {
         ui->imageTabs->show();
         adjustSize();
+    }
+}
+
+void MainWindow::imageSizeHintChanged(QSize size) {
+    foreach (ImageWidget* widget, tabWidgets.values()) {
+        widget->setFixedHeight(widget->heightForWidth(widget->width()));
     }
 }
 
