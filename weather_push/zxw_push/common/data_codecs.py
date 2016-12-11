@@ -327,7 +327,7 @@ _davis_live_fields = [
 
 _live_fields = {
     "GENERIC": _generic_live_fields,
-    "WH1080": _generic_live_fields,
+    "FOWH1080": _generic_live_fields,
     "DAVIS": _davis_live_fields
 }
 
@@ -335,7 +335,7 @@ _live_fields = {
 # id fields.
 all_live_field_ids = {
     "GENERIC": range(2, 10),
-    "WH1080": range(2, 10),
+    "FOWH1080": range(2, 10),
     "DAVIS": range(2, 20)
 }
 
@@ -392,7 +392,7 @@ _wh1080_sample_fields = [
     (12, "record_number", _U_INT_16, None, None, _U_INT_16_NULL),
     (13, "last_in_batch", _BOOL, None, None, None),
     (14, "invalid_data", _BOOL, None, None, None),
-    (15, "wind_direction", "3s", None, None, '\xFF\xFF\xFF'),
+    (15, "wh080_wind_direction", "3s", None, None, '\xFF\xFF\xFF'),
     (16, "total_rain", _U_INT_32, _float_encode, _float_decode, _U_INT_32_NULL),
     (17, "rain_overflow", _BOOL, None, None, None),
     (18, None, None, None, None, None),
@@ -455,7 +455,7 @@ _davis_sample_fields = [
 
 _sample_fields = {
     "GENERIC": _generic_sample_fields,
-    "WH1080": _wh1080_sample_fields,
+    "FOWH1080": _wh1080_sample_fields,
     "DAVIS": _davis_sample_fields
 }
 
@@ -463,7 +463,7 @@ _sample_fields = {
 # the diff id field
 all_sample_field_ids = {
     "GENERIC": range(2, 11),
-    "WH1080": range(2, 18),
+    "FOWH1080": range(2, 18),
     "DAVIS": range(2, 24)
 }
 
@@ -471,7 +471,7 @@ all_sample_field_ids = {
 # field ID, same field name, same data type, etc
 common_live_sample_field_ids = {
     "GENERIC": range(1, 10),
-    "WH1080": range(1, 10),
+    "FOWH1080": range(1, 10),
     "DAVIS": range(1, 10)
 }
 

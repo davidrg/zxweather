@@ -207,7 +207,7 @@ class ServerDatabase(object):
         hardware_type = self._station_code_hw_type[station_code]
         station_id = self._station_code_id[station_code]
 
-        if hardware_type == "GENERIC" or hardware_type == "WH1080":
+        if hardware_type == "GENERIC" or hardware_type == "FOWH1080":
             yield self._store_generic_live(station_id, live_record)
         elif hardware_type == "DAVIS":
             yield self._store_davis_live(station_id, live_record)
@@ -232,7 +232,7 @@ class ServerDatabase(object):
                 ServerDatabase._store_generic_sample_interaction,
                 station_id,
                 sample)
-        elif hardware_type == "WH1080":
+        elif hardware_type == "FOWH1080":
             yield self._conn.runInteraction(
                 ServerDatabase._store_wh1080_sample_interaction,
                 station_id,
