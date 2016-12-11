@@ -176,7 +176,7 @@ class WeatherDataPacketTests(unittest.TestCase):
 
         hardware_types = {
             1: "DAVIS",
-            2: "WH1080",
+            2: "FOWH1080",
             3: "GENERIC"
         }
 
@@ -290,7 +290,7 @@ class WeatherDataPacketTests(unittest.TestCase):
 
         hardware_types = {
             1: "DAVIS",
-            2: "WH1080",
+            2: "FOWH1080",
             3: "GENERIC"
         }
 
@@ -343,7 +343,7 @@ class WeatherDataPacketTests(unittest.TestCase):
 
         hardware_types = {
             1: "DAVIS",
-            2: "WH1080",
+            2: "FOWH1080",
             3: "GENERIC"
         }
 

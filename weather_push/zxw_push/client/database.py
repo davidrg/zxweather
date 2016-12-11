@@ -268,7 +268,14 @@ class WeatherDatabase(object):
 
         def _process_result(result):
             station_data = result[0]
-            self.LiveUpdate.fire(station_data, 'GENERIC')
+
+            # While the live record may just be generic, the station hardware
+            # type may not be and as such it could have extra data for samples
+            # which will be encoded based on whatever hardware type we report
+            # here.
+            self.LiveUpdate.fire(
+                station_data,
+                self.station_code_hardware_type[station_data["station_code"]])
 
         self._conn.runQuery(query, (station_code,)).addCallback(
             _process_result)
