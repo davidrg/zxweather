@@ -35,7 +35,7 @@ QString FetchImageWebTask::getCacheFilename() {
 
     filename += "/images/" +
             _stationCode + "/" +
-            _imageInfo.imageSource.code + "/" +
+            _imageInfo.imageSource.code.toLower() + "/" +
             _imageInfo.imageTypeCode.toLower() + "/" +
             QString::number(_imageInfo.timeStamp.date().year()) + "/" +
             QString::number(_imageInfo.timeStamp.date().month()) + "/";
