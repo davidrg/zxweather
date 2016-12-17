@@ -10,6 +10,9 @@
 #include <QProgressDialog>
 #include <QtDebug>
 #include <QSqlRecord>
+#include <QDesktopServices>
+#include <QFile>
+#include <QDir>
 
 DatabaseDataSource::DatabaseDataSource(QWidget* parentWidget, QObject *parent) :
     AbstractDataSource(parentWidget, parent)
@@ -856,6 +859,42 @@ void DatabaseDataSource::fetchImageList(QDate date, QString imageSourceCode) {
     progressDialog->close();
 }
 
+QString cacheFilename(ImageInfo imageInfo, QString stationCode) {
+#if QT_VERSION >= 0x050000
+    QString filename = QStandardPaths::writableLocation(
+                QStandardPaths::CacheLocation);
+#else
+    QString filename = QDesktopServices::storageLocation(
+                QDesktopServices::CacheLocation);
+#endif
+
+    filename += "/images/" +
+            stationCode + "/" +
+            imageInfo.imageSource.code.toLower() + "/" +
+            imageInfo.imageTypeCode.toLower() + "/" +
+            QString::number(imageInfo.timeStamp.date().year()) + "/" +
+            QString::number(imageInfo.timeStamp.date().month()) + "/";
+
+    // Make sure the target directory actually exists.
+    if (!QDir(filename).exists())
+        QDir().mkpath(filename);
+
+    filename += QString::number(imageInfo.timeStamp.date().day()) + "_" +
+            QString::number(imageInfo.timeStamp.time().hour()) + "_" +
+            QString::number(imageInfo.timeStamp.time().minute()) + "_" +
+            QString::number(imageInfo.timeStamp.time().second()) + "_full.";
+
+    // Extension doesn't really matter too much
+    if (imageInfo.mimeType == "image/jpeg")
+        filename += "jpeg";
+    else if (imageInfo.mimeType == "video/mp4")
+        filename += "mp4";
+    else
+        filename += "dat";
+
+    return filename;
+}
+
 void DatabaseDataSource::fetchImages(QList<int> imageIds, bool thumbnail) {
     QStringList idList;
     foreach (int id, imageIds) {
@@ -865,9 +904,11 @@ void DatabaseDataSource::fetchImages(QList<int> imageIds, bool thumbnail) {
 
     QString qry = "select i.image_id, i.image_data, i.time_stamp, \
                           i.title, i.description, i.mime_type, \
-                          upper(imgs.code) as src_code, imgs.source_name \
+                          upper(imgs.code) as src_code, imgs.source_name, \
+                          upper(it.code) as image_type_code \
                    from image i \
                    inner join image_source imgs on imgs.image_source_id = i.image_source_id \
+                   inner join image_type it on it.image_type_id = i.image_type_id \
                    where i.image_id = any(:idArray) order by time_stamp";
 
     QSqlQuery query;
@@ -881,13 +922,13 @@ void DatabaseDataSource::fetchImages(QList<int> imageIds, bool thumbnail) {
         return;
     }
 
+    // TODO: Not this
+    QString stationCode = Settings::getInstance().stationCode();
 
     qDebug() << "Processing results...";
     while (query.next()) {
         QSqlRecord record = query.record();
 
-        QImage srcImage = QImage::fromData(
-                    record.value("image_data").toByteArray());
         int imageId = record.value("image_id").toInt();
 
         ImageInfo info;
@@ -898,18 +939,48 @@ void DatabaseDataSource::fetchImages(QList<int> imageIds, bool thumbnail) {
         info.mimeType = record.value("mime_type").toString();
         info.imageSource.code = record.value("src_code").toString();
         info.imageSource.name = record.value("source_name").toString();
+        info.imageTypeCode = record.value("image_type_code").toString();
+        QByteArray imageData = record.value("image_data").toByteArray();
+
+        QImage srcImage;
+        if (!info.mimeType.startsWith("video/")) {
+            srcImage = QImage::fromData(imageData);
+        }
+
+        /*
+         * Videos are passed to clients on disk rather than in memory. So we'll
+         * cache the video in the usual cache location and pass out that file
+         * name. The video will persist on disk until the caches are cleared by
+         * the same mechanism used to manage the web data source cache.
+         */
+        QString filename;
+        if (info.mimeType.startsWith("video/")) {
+            filename = cacheFilename(info, stationCode);
+
+            QFile file(filename);
+
+            if (!file.exists()) {
+                if (file.open(QIODevice::WriteOnly)) {
+                    file.write(imageData);
+                    file.close();
+                }
+            }
+        }
 
         if (thumbnail) {
-            qDebug() << "Thumbnailing image" << imageId;
-            // Resize the image
-            QImage thumbnailImage = srcImage.scaled(THUMBNAIL_WIDTH,
-                                                    THUMBNAIL_HEIGHT,
-                                                    Qt::KeepAspectRatio);
+            // Don't try to thumbnail videos
+            if (!info.mimeType.startsWith("video/")) {
+                qDebug() << "Thumbnailing image" << imageId;
+                // Resize the image
+                QImage thumbnailImage = srcImage.scaled(THUMBNAIL_WIDTH,
+                                                        THUMBNAIL_HEIGHT,
+                                                        Qt::KeepAspectRatio);
 
-            emit thumbnailReady(imageId, thumbnailImage);
-            emit imageReady(info, srcImage, QString());
+                emit thumbnailReady(imageId, thumbnailImage);
+            }
+            emit imageReady(info, srcImage, filename);
         } else {
-            emit imageReady(info, srcImage, QString());
+            emit imageReady(info, srcImage, filename);
         }
     }
 }
