@@ -40,6 +40,8 @@ private:
 
     void sendNextCommand();
     void processStreamLine(QString line);
+    void processLiveData(QStringList parts);
+    void processImageData(QStringList parts);
     void processStationInfo(QString line);
 };
 

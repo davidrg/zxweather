@@ -176,6 +176,7 @@ void ImageWidget::popOut() {
         } else {
             parentWidget()->showMaximized();
         }
+        parentWidget()->repaint();
         return;
     }
 
