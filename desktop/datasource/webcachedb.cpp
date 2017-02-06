@@ -7,6 +7,8 @@
 #define SAMPLE_CACHE "sample-cache"
 #define sampleCacheDb QSqlDatabase::database(SAMPLE_CACHE)
 
+#define TEMPORARY_IMAGE_SET "::temporary_image_set:"
+
 WebCacheDB::WebCacheDB()
 {
     openDatabase();
@@ -519,11 +521,75 @@ bool WebCacheDB::imageExists(int stationId, int id) {
     }
 }
 
+void WebCacheDB::storeImageInfo(QString stationUrl, ImageInfo image) {
+
+    qDebug() << "Store single image against temporary image set...";
+
+    // Grab station ID (this will create the station if it doesn't exist)
+    int stationId = getStationId(stationUrl);
+
+    // This will just return the sources ID if it already exists
+    int imageSourceId = createImageSource(stationId, image.imageSource);
+
+    if (imageSourceId < 0 || stationId < 0) {
+        qDebug() << "Image source or station not stored. StationId: "
+                 << stationId << ", sourceId: " << imageSourceId;
+        return; // can't cache if the above inserts failed.
+    }
+
+    // We don't update the image source information here as we don't really
+    // care all that much about it and we probably don't have the full details
+    // anyway.
+
+    // We don't know what image set this random image belongs in so we'll
+    // assign it to a temporary image set for station. The image may later be
+    // moved to the correct image set.
+    int imageSetId = getImageSetId(TEMPORARY_IMAGE_SET + stationUrl);
+    if (imageSetId == -1) {
+
+        image_set_t imageSet;
+        imageSet.filename = TEMPORARY_IMAGE_SET + stationUrl;
+        imageSet.size = 1;
+        imageSet.station_url = stationUrl;
+        imageSet.source = image.imageSource;
+        imageSet.is_valid = true;
+        imageSet.last_modified = QDateTime::currentDateTime();
+
+
+        imageSetId = storeImageSetInfo(imageSet, imageSourceId);
+        if (imageSetId < 0) {
+            qDebug() << "Failed to store image set information";
+            return;
+        }
+
+    }
+
+    // Store the image metadata.
+    storeImage(image, imageSetId, stationId, imageSourceId);
+}
+
 void WebCacheDB::storeImage(ImageInfo image, int imageSetId, int stationId,
                             int imageSourceId) {
     if (imageExists(stationId, image.id)) {
-        qDebug() << "Skip image - already exists: " << image.fullUrl;
-        return; // Nothing to do - image already exists
+        // If the image already exists it might exist against some other
+        // (temporary) image set. Delete it so that it can be inserted properly
+        // for the specified set.
+
+        qDebug() << "Image " << stationId << ":" << image.id << " already exists. Deleting...";
+        QSqlQuery query(sampleCacheDb);
+        query.prepare("delete from image "
+                      "where id = :id "
+                      "and source in (select id from image_source "
+                      "               where station = :station)");
+        query.bindValue(":id", image.id);
+        query.bindValue(":station", stationId);
+        query.exec();
+        if (query.lastError().isValid()) {
+            qDebug() << "Failed to delete image. Insert will be skipped. "
+                        "Database error: "
+                     << query.lastError().driverText();
+            return;
+        }
     }
 
     QSqlQuery query(sampleCacheDb);
@@ -543,7 +609,7 @@ void WebCacheDB::storeImage(ImageInfo image, int imageSetId, int stationId,
     query.bindValue(":url", image.fullUrl);
     query.exec();
     if (query.lastError().isValid()) {
-        qDebug() << "Failed to isnert image " << image.fullUrl
+        qDebug() << "Failed to insert image " << image.fullUrl
                  << ", database error: " << query.lastError().databaseText();
     }
 }
@@ -578,6 +644,8 @@ void WebCacheDB::cacheImageSet(image_set_t imageSet) {
         // Create the image set
         updateImageSetInfo(imageSet);
     }
+
+    qDebug() << "Caching images for set " << imageSetId;
 
     // Insert all the image info records
     foreach (ImageInfo image, imageSet.images) {

@@ -2,6 +2,7 @@
 #include "settings.h"
 #include "constants.h"
 #include "json/json.h"
+#include "webcachedb.h"
 
 #include <QVariantMap>
 
@@ -88,7 +89,7 @@ void TcpLiveDataSource::sendNextCommand() {
         // We've sent client details. Now to start streaming.
         QByteArray data("subscribe \"");
         data.append(stationCode);
-        data.append("\"/live\r\n");
+        data.append("\"/live/samples/any_order/images\r\n");
         qDebug() << "SND:" << data;
         socket->write(data.constData(), data.length());
         state = STATE_STREAMING;
@@ -108,18 +109,31 @@ void TcpLiveDataSource::processStreamLine(QString line) {
 
     QStringList parts = line.split(",");
 
-    int expectedLength = 11;
+    if (parts[0] == "l") {
+        processLiveData(parts);
+    } else if (parts[0] == "i") {
+        processImageData(parts);
+    } else {
+        qDebug() << "Unexpected data type: " << parts[0];
+    }
+}
 
-    if (hw_type == HW_DAVIS)
-        expectedLength = 19;
 
-    if (parts.length() < expectedLength) {
-        qDebug() << "Invalid live data line:" << line;
+void TcpLiveDataSource::processLiveData(QStringList parts) {
+    if (parts.at(0) != "l") {
+        qDebug() << "Not a live update. Type:" << parts.at(0);
         return;
     }
 
-    if (parts.at(0) != "l") {
-        qDebug() << "Not a sample. Type:" << parts.at(0);
+    int expectedLength = 11;
+
+    if (hw_type == HW_DAVIS) {
+        expectedLength = 19;
+    }
+
+    if (parts.length() < expectedLength) {
+        qDebug() << "Invalid live data line:" << parts.join(",");
+        return;
     }
 
     LiveDataSet lds;
@@ -155,6 +169,77 @@ void TcpLiveDataSource::processStreamLine(QString line) {
     }
 
     emit liveData(lds);
+}
+
+void TcpLiveDataSource::processImageData(QStringList parts) {
+    if (parts.at(0) != "i") {
+        qDebug() << "Not an image. Type: " << parts.at(0);
+        return;
+    }
+
+    if (parts.length() < 7) {
+        qDebug() << "Unexpected image data format: fewer than 6 parameters: "
+                 << parts.join(",");
+        return;
+    }
+
+    QString stationCode = parts[1];
+    QString stationUrl = Settings::getInstance().webInterfaceUrl() +
+            "data/" + stationCode + "/";
+
+    // Minimal metadata for storage in the WebCacheDB. This is enough for the
+    // WebDataSource to go off and fetch it from on-disk cache or download it
+    // from the internet. The missing bits may be filled out later if the image
+    // browser is opened later.
+    ImageInfo image;
+    image.id = parts[6].toInt();
+    image.timeStamp = QDateTime::fromString(parts[4], Qt::ISODate);
+    image.imageTypeCode = parts[3];
+    image.title = "<unknown>";
+    image.description = "<partial metadata received via TCPLiveDataSource>";
+    image.mimeType = parts[5];
+    image.imageSource.code = parts[2];
+    image.imageSource.name = "<unknown>";
+    image.imageSource.description = "<partial metadata received via TCPLiveDataSource>";
+
+    QString extension = "jpeg";
+    if (image.mimeType == "image/jpeg")
+        extension = "jpeg";
+    else if (image.mimeType == "image/png")
+        extension = "png";
+    else if (image.mimeType == "image/gif")
+        extension = "gif";
+    else if (image.mimeType == "video/mp4")
+        extension = "mp4";
+    else if (image.mimeType == "video/webm")
+        extension = "webm";
+
+    // This is fairly nasty :(
+    image.fullUrl = (stationUrl +
+            QString::number(image.timeStamp.date().year()) + "/" +
+            QString::number(image.timeStamp.date().month()) + "/" +
+            QString::number(image.timeStamp.date().day()) + "/" +
+            "images/" +
+            image.imageSource.code + "/" +
+            image.timeStamp.time().toString("HH_mm_ss") + "/" +
+            image.imageTypeCode + "_full." + extension).toLower();
+
+
+    // Store the image metadata somewhere so other parts of the application can
+    // grab the metadata by image ID only (this is something that could have
+    // been designed better).
+    WebCacheDB::getInstance().storeImageInfo(stationUrl, image);
+
+    // Prepare the minimal new-image-info data for broadcast to the rest of the
+    // application. Most of the app is really only interested in the image ID
+    // which will be looked up in either the WebCacheDB or the main database.
+    NewImageInfo nii;
+    nii.stationCode = stationCode;
+    nii.imageSourceCode = image.imageSource.code;
+    nii.timestamp = image.timeStamp;
+    nii.imageId = image.id;
+
+    emit newImage(nii);
 }
 
 void TcpLiveDataSource::processStationInfo(QString line) {

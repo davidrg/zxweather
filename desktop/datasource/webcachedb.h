@@ -139,6 +139,15 @@ public:
      */
     void cacheImageSet(image_set_t imageSet);
 
+
+    /** Stores a single image against a temporary image set. The image may be
+     * re-parented into the appropriate image set later on.
+     *
+     * @param stationUrl URL for the weather station the image came from
+     * @param image Image information to store
+     */
+    void storeImageInfo(QString stationUrl, ImageInfo image);
+
     /** Get information about the specified image.
      *
      * @param stationUrl URL for the weather station the image is assocaited with
