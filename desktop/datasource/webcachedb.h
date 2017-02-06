@@ -182,6 +182,14 @@ public:
      */
     image_set_t getImageSetCacheInformation(QString imageSetUrl);
 
+    /** Gets the most recent image for each image source attached to the
+     * specified station.
+     *
+     * @param stationUrl Station to get most recent images for
+     * @return List of most recent images
+     */
+    QVector<ImageInfo> getMostRecentImages(QString stationUrl);
+
 signals:
     /** Emitted when an error occurs which would prevent the cache database
      * from operating.

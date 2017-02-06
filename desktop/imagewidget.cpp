@@ -50,6 +50,12 @@ void ImageWidget::setImage(QImage image, QString filename) {
     }
 
     if (fileOk) {
+
+        if (this->filename == filename) {
+            // Same file. No need to reload
+            return;
+        }
+
         // Use the supplied filename.
         this->filename = filename;
         usingCacheFile = true;

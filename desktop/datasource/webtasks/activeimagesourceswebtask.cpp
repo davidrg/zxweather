@@ -1,9 +1,11 @@
 #include <QNetworkRequest>
 #include <QNetworkReply>
 #include <QtDebug>
+#include <QVector>
 
 #include "json/json.h"
 #include "activeimagesourceswebtask.h"
+#include "datasource/webcachedb.h"
 
 #define DATASET_IMAGE_SOURCES "image_sources.json"
 
@@ -47,6 +49,8 @@ void ActiveImageSourcesWebTask::processResponse(QByteArray data) {
     bool activeSources = false;
     bool anySources = false;
 
+    WebCacheDB &db = WebCacheDB::getInstance();
+
     foreach (QString key, result.keys()) {
         qDebug() << "Image source: " << key;
         anySources = true;
@@ -54,8 +58,23 @@ void ActiveImageSourcesWebTask::processResponse(QByteArray data) {
 
         if (imageSource["is_active"].toBool()) {
             activeSources = true;
-            break;
         }
+
+        // Cache the metadata for the most recent image from this source.
+        // This will be ignored if its already been cached via some other means
+        QVariantMap latestImage = imageSource["latest_image_info"].toMap();
+        ImageInfo info;
+        info.id = latestImage["id"].toInt();
+        info.timeStamp = latestImage["timestamp"].toDateTime();
+        info.imageTypeCode = latestImage["type_code"].toString();
+        info.title = latestImage["title"].toString();
+        info.description = latestImage["description"].toString();
+        info.mimeType = latestImage["mime_type"].toString();
+        info.imageSource.code = key;
+        info.imageSource.name = imageSource["name"].toString();
+        info.imageSource.description = imageSource["description"].toString();
+        info.fullUrl = latestImage["urls"].toMap()["full"].toString();
+        db.storeImageInfo(_stationBaseUrl, info);
     }
 
     if (anySources) {
