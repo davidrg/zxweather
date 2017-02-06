@@ -67,28 +67,33 @@ void LatestImagesWebTask::processResponse(QByteArray data) {
         info.imageSource.description = imageSource["description"].toString();
         info.fullUrl = latestImage["urls"].toMap()["full"].toString();
 
-//        image_set_t imageSet;
+        // Store this metadata in the cache DB so other parts of the system
+        // can get at it
+        image_set_t imageSet;
 
-//        imageSet.filename = _stationBaseUrl +
-//                QString::number(info.timeStamp.date().year()) + "/" +
-//                QString::number(info.timeStamp.date().month()) + "/" +
-//                QString::number(info.timeStamp.date().day()) + "/images/" +
-//                info.imageSource.code.toLower() +
-//                "/index.json";
+        imageSet.filename = _stationBaseUrl +
+                QString::number(info.timeStamp.date().year()) + "/" +
+                QString::number(info.timeStamp.date().month()) + "/" +
+                QString::number(info.timeStamp.date().day()) + "/images/" +
+                info.imageSource.code.toLower() +
+                "/index.json";
 
-//        imageSet.images.append(info);
+        imageSet.images.append(info);
 
-//        // We don't really know when the dataset was last modified so we'll pick
-//        // an early time on the same date as its most recent image
-//        imageSet.last_modified = QDateTime(info.timeStamp).setTime(QTime(0,0,0));
-//        imageSet.size = 0;
-//        imageSet.source.code = info.imageSource.code;
-//        imageSet.source.name = info.imageSource.name;
-//        imageSet.source.description = info.imageSource.description;
-//        imageSet.station_url = _stationBaseUrl;
-//        imageSet.is_valid = false;
+        QDateTime ts = QDateTime(info.timeStamp);
+        ts.setTime(QTime(0,0,0));
 
-//        WebCacheDB::getInstance().cacheImageSet(imageSet);
+        // We don't really know when the dataset was last modified so we'll pick
+        // an early time on the same date as its most recent image
+        imageSet.last_modified = ts;
+        imageSet.size = 0;
+        imageSet.source.code = info.imageSource.code;
+        imageSet.source.name = info.imageSource.name;
+        imageSet.source.description = info.imageSource.description;
+        imageSet.station_url = _stationBaseUrl;
+        imageSet.is_valid = false;
+
+        WebCacheDB::getInstance().cacheImageSet(imageSet);
 
         // Queue task to fetch the image
         FetchImageWebTask *task = new FetchImageWebTask(_baseUrl, _stationCode,

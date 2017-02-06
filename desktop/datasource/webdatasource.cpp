@@ -57,8 +57,11 @@ WebDataSource::WebDataSource(QWidget *parentWidget, QObject *parent) :
     connect(liveNetAccessManager.data(), SIGNAL(finished(QNetworkReply*)),
             this, SLOT(liveDataReady(QNetworkReply*)));
     livePollTimer.setInterval(30000);
-    stationConfigLoaded = false;
     connect(&livePollTimer, SIGNAL(timeout()), this, SLOT(liveDataPoll()));
+    imagePollTimer.setInterval(3600000);
+    connect(&imagePollTimer, SIGNAL(timeout()), this, SLOT(imagesPoll()));
+    stationConfigLoaded = false;
+    lastImageId = 0;
 
     /*******************
      * Task Queue Stuff
@@ -262,12 +265,15 @@ void WebDataSource::liveDataReady(QNetworkReply *reply) {
 
 void WebDataSource::liveDataPoll() {
 
-    if (!stationConfigLoaded) {
+    if (!stationConfigLoaded) {        
         QNetworkRequest request;
         request.setUrl(baseURL + "data/sysconfig.json");
         request.setRawHeader("User-Agent", Constants::USER_AGENT);
 
         liveNetAccessManager->get(request);
+
+        // Figure out if the station also has active image sources.
+        hasActiveImageSources();
     } else {
         QNetworkRequest request;
         request.setUrl(liveDataUrl);
@@ -275,6 +281,35 @@ void WebDataSource::liveDataPoll() {
 
         liveNetAccessManager->get(request);
     }
+
+    if (!imagePollTimer.isActive()) {
+        // Polling for new images is currently disabled because we don't know
+        // about any active image sources. On startup the application will
+        // grab a list of all the latest images and use this to decide if there
+        // are any. Metadata for those images is stored in the cache DB so we
+        // can look them up there and make that same decision.
+        QString url = baseURL + "data/" + stationCode + "/";
+        QVector<ImageInfo> latestImages = WebCacheDB::getInstance().getMostRecentImages(url);
+
+        QDateTime minTs = QDateTime();
+        minTs.addDays(-1);
+
+        // Look through the latest images in the cache database. If any are
+        // less than 24 hours old we'll assume there are active image sources
+        // and start polling for new images.
+        foreach (ImageInfo img, latestImages) {
+            if (img.timeStamp > minTs) {
+                imagePollTimer.start();
+                qDebug() << "Found active image source in cache DB. Starting image poll timer.";
+                return;
+            }
+        }
+    }
+}
+
+void WebDataSource::imagesPoll() {
+    qDebug() << QDateTime().toString() << "Poll for latest images...";
+    fetchLatestImages();
 }
 
 void WebDataSource::enableLiveData() {
@@ -403,6 +438,22 @@ void WebDataSource::fetchLatestImages() {
 void WebDataSource::fireImageReady(ImageInfo imageInfo, QImage image,
                                    QString cacheFile) {
     emit imageReady(imageInfo, image, cacheFile);
+
+    if (imagePollTimer.isActive()) {
+        // This data source is being used for live data. If the supplied image
+        // is new, say so
+        if (imageInfo.id != lastImageId) {
+            lastImageId = imageInfo.id;
+
+            NewImageInfo info;
+            info.imageId = imageInfo.id;
+            info.stationCode = stationCode;
+            info.timestamp = imageInfo.timeStamp;
+            info.imageSourceCode = imageInfo.imageSource.code;
+
+            emit newImage(info);
+        }
+    }
 }
 
 void WebDataSource::fireThumbnailReady(int imageId, QImage thumbnail) {

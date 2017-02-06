@@ -528,6 +528,11 @@ void WebCacheDB::storeImageInfo(QString stationUrl, ImageInfo image) {
     // Grab station ID (this will create the station if it doesn't exist)
     int stationId = getStationId(stationUrl);
 
+    if (imageExists(stationId, image.id)) {
+        qDebug() << "Skip: Image metadata already exists - not caching against temporary set";
+        return;
+    }
+
     // This will just return the sources ID if it already exists
     int imageSourceId = createImageSource(stationId, image.imageSource);
 
@@ -751,6 +756,45 @@ QVector<ImageInfo> WebCacheDB::getImagesForDate(QDate date, QString stationUrl,
     }
 
     return images;
+}
+
+QVector<ImageInfo> WebCacheDB::getMostRecentImages(QString stationUrl) {
+    int stationId = getStationId(stationUrl);
+
+    qDebug() << "Station Id: " << stationId;
+
+    QSqlQuery query(sampleCacheDb);
+    query.prepare("select i.id, i.timestamp, i.type_code, i.title, "
+           "       i.description, i.mime_type, i.url, src.code, src.name, "
+           "       src.description "
+           "from image i "
+           "inner join image_source src on src.id = i.source "
+           "inner join (select max(timestamp) as max_ts, src.id as src_id "
+           "    from image i "
+           "    inner join image_source src on src.id = i.source "
+           "    where src.station = :station_a "
+           "    group by src.code) as mx "
+           "  on mx.max_ts = i.timestamp and mx.src_id = i.source "
+           "where src.station = :station_b");
+    query.bindValue(":station_a", stationId);
+    query.bindValue(":station_b", stationId);
+    query.exec();
+
+    qDebug() << query.executedQuery();
+
+    QVector<ImageInfo> images;
+
+    if (query.first()) {
+        do {
+            QSqlRecord record = query.record();
+            images.append(RecordToImageInfo(record));
+        } while (query.next());
+    } else {
+        qDebug() << "No cached image metadata for " << stationUrl;
+    }
+
+    return images;
+
 }
 
 image_set_t WebCacheDB::getImageSetCacheInformation(QString imageSetUrl) {
