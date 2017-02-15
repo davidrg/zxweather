@@ -529,9 +529,10 @@ class images_json:
 
         result = json.dumps(image_set)
 
+        if latest_ts is not None:
+            web.header('Last-Modified', rfcformat(latest_ts))
         web.header('Content-Type', 'application/json')
         web.header('Content-Length', str(len(result)))
-        web.header('Last-Modified', rfcformat(latest_ts))
         return result
 
 
