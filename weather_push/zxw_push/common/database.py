@@ -20,7 +20,7 @@ where rs.site_id = %(site_id)s
 """
 
 _TIMESTAMP_CLAUSE = """
-where (s.time_stamp at time zone 'GMT') = %(timestamp)s
+where s.time_stamp = (%(timestamp)s at time zone 'GMT')
 """
 
 _WHERE_CLAUSES = {
@@ -64,7 +64,7 @@ def wh1080_sample_query(ascending, where_clause="pending"):
        wh.rain_overflow
 from sample s
 inner join station st on st.station_id = s.station_id
-                         and st.code = %(station_code)s
+                         and upper(st.code) = upper(%(station_code)s)
 inner join wh1080_sample wh on wh.sample_id = s.sample_id
 {where_clause}
 order by s.time_stamp {sort_order}
@@ -123,7 +123,7 @@ select s.sample_id as sample_id,
        ds.forecast_rule_id as forecast_rule_id
 from sample s
 inner join station st on st.station_id = s.station_id
-                         and st.code = %(station_code)s
+                         and upper(st.code) = upper(%(station_code)s)
 inner join davis_sample ds on ds.sample_id = s.sample_id
 {where_clause}
 order by s.time_stamp {sort_order}
@@ -169,7 +169,7 @@ select s.sample_id as sample_id,
        s.time_stamp at time zone 'GMT' as time_stamp
 from sample s
 inner join station st on st.station_id = s.station_id
-                         and st.code = %(station_code)s
+                         and upper(st.code) = upper(%(station_code)s)
 {where_clause}
 order by s.time_stamp {sort_order}
 limit %(limit)s
