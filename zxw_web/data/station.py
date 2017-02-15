@@ -569,6 +569,10 @@ class latest_image:
 
         most_recent = get_most_recent_image_id_for_source(
             source.image_source_id)
+
+        if most_recent is None:
+            raise web.NotFound()
+
         most_recent_id = most_recent.image_id
         most_recent_ts = most_recent.time_stamp
         most_recent_mime = most_recent.mime_type
