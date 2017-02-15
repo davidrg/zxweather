@@ -392,7 +392,7 @@ _wh1080_sample_fields = [
     (12, "record_number", _U_INT_16, None, None, _U_INT_16_NULL),
     (13, "last_in_batch", _BOOL, None, None, None),
     (14, "invalid_data", _BOOL, None, None, None),
-    (15, "wh080_wind_direction", "3s", None, None, '\xFF\xFF\xFF'),
+    (15, "wh1080_wind_direction", "3s", None, None, '\xFF\xFF\xFF'),
     (16, "total_rain", _U_INT_32, _float_encode, _float_decode, _U_INT_32_NULL),
     (17, "rain_overflow", _BOOL, None, None, None),
     (18, None, None, None, None, None),
