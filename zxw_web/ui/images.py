@@ -18,6 +18,7 @@ class StationImage(object):
         self._type = img_data.type_code.lower()
         self._title = img_data.title
         self._description = img_data.description
+        self._sort_order = img_data.sort_order
 
         self._extension = mimetypes.guess_extension(self._mime)
         if self._extension == ".jpe":
@@ -28,6 +29,10 @@ class StationImage(object):
     @property
     def is_video(self):
         return self._mime.startswith("video/")
+
+    @property
+    def is_audio(self):
+        return self._mime.startswith("audio/")
 
     @property
     def title(self):
@@ -83,6 +88,19 @@ class StationImage(object):
     def date(self):
         return self._time_stamp.date()
 
+    @property
+    def js_date(self):
+        return self._time_stamp.isoformat()
+        #return self._time_stamp.strftime("%Y/%m/%d %H:%M:%S")
+
+    @property
+    def image_id(self):
+        return self._id
+
+    @property
+    def sort_order(self):
+        return self._sort_order
+
 
 def get_station_day_images(station_id, day):
     # Get images
@@ -102,12 +120,16 @@ def get_station_day_images(station_id, day):
                 source_images = None
 
             if source_images is not None and len(source_images) > 0:
+
+                latest_image = [x for x in source_images
+                                if x.image_id == source.last_image_id][0]
+
                 images.append({
                     'name': source.source_name,
                     'description': source.description,
                     'code': source.code,
                     'images': source_images,
-                    'latest': source_images[-1:][0]
+                    'latest': latest_image
                 })
     return images
 

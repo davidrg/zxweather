@@ -50,6 +50,7 @@ video_cache_directory = None
 # Google analyics tracking ID. Set to a value to enable.
 google_analytics_id = None
 
+image_type_sort = None
 
 def load_settings():
     """
@@ -59,7 +60,7 @@ def load_settings():
     global db, default_station_name
     global static_data_dir, site_root, default_ui, site_name, ws_uri, wss_uri
     global zxweatherd_hostname, zxweatherd_raw_port, disable_alt_ui
-    global hide_coordinates, google_analytics_id
+    global hide_coordinates, google_analytics_id, image_type_sort
     global cache_thumbnails, cache_directory, thumbnail_size, cache_videos
     global video_cache_directory
 
@@ -115,6 +116,14 @@ def load_settings():
     if config.has_option(S_S, "google_analytics_id"):
         google_analytics_id = config.get(S_S, "google_analytics_id")
 
+    if config.has_option(S_S, "image_type_sort"):
+        image_type_sort = config.get(S_S, "image_type_sort").strip()
+        # remove any padding or empty items from the list
+        if len(image_type_sort) > 0:
+            bits = image_type_sort.split(",")
+            bits = [x.strip() for x in bits if len(x.strip()) > 0]
+            image_type_sort = ",".join(bits)
+
     if config.has_option(S_D, 'hostname'):
         zxweatherd_hostname = config.get(S_D, 'hostname')
         if config.has_option(S_D, 'ws_port'):
@@ -128,7 +137,7 @@ def load_settings():
         if config.has_option(S_D, 'raw_port'):
             zxweatherd_raw_port = config.getint(S_D, 'raw_port')
 
-    if len(default_station_name) > 5:
+    if len(default_station_name) > 5 or default_station_name is None:
         raise Exception('ConfigurationError: Default station name can not be '
                         'longer than five characters. Consult installation '
                         'reference manual.')

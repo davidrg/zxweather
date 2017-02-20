@@ -118,9 +118,25 @@
         {%- if hw_type == 'DAVIS' %}
         var forecast_rules_uri = '../../data/davis_forecast_rules.json';
         var solar_and_uv_available = {% if solar_uv_available %}true{% else %}false{% endif %};
+        var image_type_sort = '{{ image_type_sort }}';
         {% endif %}
 
+        // Set all image thumbnail containers to the same height so they layout
+        // properly
+        $(window).on('load', function() {
+            $('.thumbnails').each(function() {
+                var maxHeight = 0;
 
+                $("li", this).each(function() {
+                    var h = $(this).height();
+                    if (h > maxHeight) {
+                        maxHeight = h;
+                    }
+                });
+
+                $("li", this).height(maxHeight);
+            })
+        });
     </script>
 
     <script type="text/javascript" src="../../js/day_live.js"></script>

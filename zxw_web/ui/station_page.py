@@ -118,7 +118,8 @@ def get_station_standard(ui, station):
                                     solar_uv_available=uv_and_solar_available,
                                     images=images,
                                     thumbnail_width=config.thumbnail_size[0],
-                                    tracking_id=config.google_analytics_id)
+                                    tracking_id=config.google_analytics_id,
+                                    image_type_sort=config.image_type_sort)
 
 def get_station_basic(station):
     """

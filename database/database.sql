@@ -517,9 +517,48 @@ comment on column image_type.image_type_id is 'Primary key';
 comment on column image_type.code is 'Unique code for image type';
 comment on column image_type.type_name is 'Descriptive name of the image type';
 
--- Only two supported image types for now - Camera pictures and time-lapse videos
+-- Image (and video/audio) Types --
+-- Camera pictures and time-lapse videos
 insert into image_type(code, type_name) values('CAM', 'Camera');
 insert into image_type(code, type_name) values('TLVID', 'Time-lapse video');
+
+-- Misc
+insert into image_type(code, type_name) values('SPEC', 'Spectrogram');
+
+-- APT broadcasts
+insert into image_type(code, type_name) values('APT', 'APT Recording');
+insert into image_type(code, type_name) values('APTD', 'APT Unenhanced');
+insert into image_type(code, type_name) values('APTN', 'APT Normal');
+insert into image_type(code, type_name) values('AEZA', 'APT ZA Enhancement');
+insert into image_type(code, type_name) values('AEMB', 'APT MB Enhancement');
+insert into image_type(code, type_name) values('AEMD', 'APT MD Enhancement');
+insert into image_type(code, type_name) values('AEBD', 'APT BD Enhancement');
+insert into image_type(code, type_name) values('AECC', 'APT CC Enhancement');
+insert into image_type(code, type_name) values('AEEC', 'APT EC Enhancement');
+insert into image_type(code, type_name) values('AEHE', 'APT HE Enhancement');
+insert into image_type(code, type_name) values('AEHF', 'APT HF Enhancement');
+insert into image_type(code, type_name) values('AEJF', 'APT JF Enhancement');
+insert into image_type(code, type_name) values('AEJJ', 'APT JJ Enhancement');
+insert into image_type(code, type_name) values('AETA', 'APT TA Enhancement');
+insert into image_type(code, type_name) values('AENO', 'APT NO Enhancement');
+insert into image_type(code, type_name) values('AEMCI', 'APT MCIR Enhancement');
+insert into image_type(code, type_name) values('AEMSA', 'APT MSA Enhancement');
+insert into image_type(code, type_name) values('AEMSP', 'APT MSA-precip Enhancement');
+insert into image_type(code, type_name) values('AEMAA', 'APT MSA-anaglyph Enhancement');
+insert into image_type(code, type_name) values('AEHVC', 'APT HVC Enhancement');
+insert into image_type(code, type_name) values('AEHVT', 'APT HVCT Enhancement');
+insert into image_type(code, type_name) values('AEHVP', 'APT HVCT-precip Enhancement');
+insert into image_type(code, type_name) values('AEHCP', 'APT HVC-precip Enhancement');
+insert into image_type(code, type_name) values('AESEA', 'APT sea Enhancement');
+insert into image_type(code, type_name) values('AETHE', 'APT therm Enhancement');
+insert into image_type(code, type_name) values('AEVEG', 'APT veg Enhancement');
+insert into image_type(code, type_name) values('AEANA', 'APT anaglyph Enhancement');
+insert into image_type(code, type_name) values('AECAN', 'APT canaglyph Enhancement');
+insert into image_type(code, type_name) values('AECLS', 'APT class Enhancement');
+insert into image_type(code, type_name) values('AEHIS', 'APT histeq Enhancement');
+insert into image_type(code, type_name) values('AECNT', 'APT contrast Enhancement');
+insert into image_type(code, type_name) values('AEINV', 'APT invert Enhancement');
+insert into image_type(code, type_name) values('AEBW', 'APT bw Enhancement');
 
 -- Where an image came from (a particular camera, a weather satellite receiving
 -- station, etc)
