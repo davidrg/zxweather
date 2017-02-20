@@ -14,7 +14,10 @@
             </div>
             {% endif -%}
             {% if data.current_data %}
-            <div class="row current_image">
+            <div class="row current_image"
+                 data-title="{{ source['latest'].title }}"
+                 data-time-stamp="{{ source['latest'].js_date }}"
+                 data-sort-order="{{ source['latest'].sort_order }}">
                 <div class="span12">
                     {% if source['latest'].is_video %}
                     <video src="{{ source['latest'].url }}" width="100%" controls>
@@ -28,7 +31,11 @@
                     {% else %}
                     <img src="{{ source['latest'].url }}" title="{{ source['latest'].time }}" />
                     <div class="caption">
-                        {{ source['latest'].time_of_day }}
+                        {% if source['latest'].title %}
+                            {{ source['latest'].title }}
+                        {% else %}
+                            {{ source['latest'].time_of_day }}
+                        {% endif %}
                     </div>
                     {% endif %}
                 </div>
@@ -41,7 +48,9 @@
                     {% endif %}
                       <ul class="thumbnails">
                         {% for img in source['images'] -%}
-                        <li>
+                        <li data-title="{{ img.title }}"
+                            data-time-stamp="{{ img.js_date }}"
+                            data-sort-order="{{ img.sort_order }}">
                             {% if img.is_video %}
                             <div class="thumbnail">
                                 <video src="{{ img.url }}" title="{{ img.title }}"
@@ -54,11 +63,27 @@
                                     {{img.description}}
                                 </div>
                             </div>
+                            {% elif img.is_audio %}
+                                <div class="thumbnail">
+                                    <audio src="{{ img.url }}" title="{{ img.title }}"
+                                           controls preload="none">
+                                        Your browser doesn't appear to support embedded audio. Try
+                                        <a href="{{ img.url }}">downloading</a> the audio and playing it in a
+                                        player like <a href="http://www.videolan.org/vlc/index.html">VLC</a>.
+                                    </audio>
+                                    <div class="caption" style="width: {{ thumbnail_width - 20 }}px;">
+                                        {{img.description}}
+                                    </div>
+                                </div>
                             {% else %}
                             <a href="{{ img.url }}" class="thumbnail">
-                                <img src="{{ img.thumbnail_url }}" title="{{ img.time }}"/>
-                                <div class="caption">
-                                    {{img.time_of_day}}
+                                <img src="{{ img.thumbnail_url }}" title="{% if img.title %}{{ img.title }}{% else %}{{ img.time }}{% endif %}"/>
+                                <div class="caption" style="width: {{ thumbnail_width - 20 }}px;">
+                                    {% if img.title %}
+                                        {{ img.title }}
+                                    {% else %}
+                                        {{img.time_of_day}}
+                                    {% endif %}
                                 </div>
                             </a>
                             {% endif %}

@@ -29,10 +29,8 @@
 		    {% endif %}
 		    <div class="row">
 		        <div class="span12">
-			     
-		
-			        {% set last_dt = None %}
-			        {% for img in source['images'] %}
+                {% set last_dt = None %}
+                {% for img in source['images'] %}
 				{% if not last_dt or last_dt != img.date %}
 				{% if last_dt %}</ul>{% endif %}
 				<h3>{{img.date}}</h3>
@@ -52,11 +50,27 @@
                             {{img.description}}
                         </div>
                     </div>
+                    {% elif img.is_audio %}
+                    <div class="thumbnail">
+                        <audio src="{{ img.url }}" title="{{ img.title }}"
+                               controls preload="none">
+                            Your browser doesn't appear to support embedded audio. Try
+                            <a href="{{ img.url }}">downloading</a> the audio and playing it in a
+                            player like <a href="http://www.videolan.org/vlc/index.html">VLC</a>.
+                        </audio>
+                        <div class="caption" style="width: {{ thumbnail_width - 20 }}px;">
+                            {{img.description}}
+                        </div>
+                    </div>
                     {% else %}
                     <a href="{{ img.url }}" class="thumbnail">
-                        <img src="{{ img.thumbnail_url }}" title="{{ img.time }}"/>
-                        <div class="caption">
-                            {{img.time_of_day}}
+                        <img src="{{ img.thumbnail_url }}" title="{% if img.title %}{{ img.title }}{% else %}{{ img.time }}{% endif %}"/>
+                        <div class="caption" style="width: {{ thumbnail_width - 20 }}px;">
+                            {% if img.title %}
+                                {{ img.title }}
+                            {% else %}
+                                {{img.time_of_day}}
+                            {% endif %}
                         </div>
                     </a>
                     {% endif %}
@@ -72,4 +86,22 @@
 {% endblock %}
 {% block footer_left %}<a href="index.html">Back to station overview</a>{% endblock %}
 {% block scripts %}
+    <script>
+        // Set all image thumbnail containers to the same height so they layout
+        // properly
+        $(window).on('load', function() {
+            $('.thumbnails').each(function() {
+                var maxHeight = 0;
+
+                $("li", this).each(function() {
+                    var h = $(this).height();
+                    if (h > maxHeight) {
+                        maxHeight = h;
+                    }
+                });
+
+                $("li", this).height(maxHeight);
+            })
+        });
+    </script>
 {% endblock %}

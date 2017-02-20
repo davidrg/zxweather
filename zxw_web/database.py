@@ -875,9 +875,29 @@ def get_image_sources_for_station(station_id):
     :return: List of image sources
     """
 
-    result = db.query("select image_source_id, code, source_name, description "
-                      "from image_source where station_id = $station",
-                      dict(station=station_id))
+    items = [
+        x.upper()
+        for x in map(str.strip, config.image_type_sort.split(","))
+        if x != ""
+    ]
+
+    sort_list = "{" + ",".join(items) + "}"
+
+    result = db.query("""select src.image_source_id, src.code, src.source_name,
+                                src.description, ( select i.image_id
+                                   from image as i
+                                   inner join (
+                                        select it2.image_type_id,
+                                               it2.code,
+                                               coalesce(array_position(($sort_list)::character varying[], upper(it2.code)::character varying), 1000) as sort_order
+                                        from image_type it2
+                                   ) as it on it.image_type_id = i.image_type_id
+                                   where i.image_source_id = src.image_source_id
+                                   order by i.time_stamp desc, it.sort_order asc, i.title desc
+                                   limit 1
+                               ) as last_image_id
+                      from image_source src where src.station_id = $station""",
+                      dict(station=station_id, sort_list=sort_list))
     if len(result) == 0:
         return None
 
@@ -900,7 +920,6 @@ def get_image_id(source, type, time_stamp):
     if len(result):
         return result[0].image_id
     return None
-
 
 
 def get_image_type_and_ts_info(image_id):
@@ -926,8 +945,16 @@ def get_image_type_and_ts_info(image_id):
 
 
 def get_image_source_info(station_id):
+    items = [
+        x.upper()
+        for x in map(str.strip, config.image_type_sort.split(","))
+        if x != ""
+    ]
+
+    sort_list = "{" + ",".join(items) + "}"
+
     query = """
-select lower(x.code) as code,
+ select lower(x.code) as code,
        x.source_name,
        x.description,
        x.first_image,
@@ -958,8 +985,14 @@ from (
            (
                select i.image_id
                from image as i
+               inner join (
+                    select it2.image_type_id,
+                           it2.code,
+                           coalesce(array_position(($sort_list)::character varying[], upper(it2.code)::character varying), 1000) as sort_order
+                    from image_type it2
+               ) as it on it.image_type_id = i.image_type_id
                where i.image_source_id = img_src.image_source_id
-               order by time_stamp desc
+               order by i.time_stamp desc, it.sort_order asc, i.title desc
                limit 1
            ) as last_image_id,
            img_src.station_id
@@ -970,7 +1003,7 @@ inner join image_type last_image_type on last_image_type.image_type_id = last_im
 where x.station_id = $station
     """
 
-    result = db.query(query, dict(station=station_id))
+    result = db.query(query, dict(station=station_id, sort_list=sort_list))
 
     if len(result) == 0:
         return None
@@ -1132,6 +1165,15 @@ def get_image_mime_type(image_id):
 
 
 def get_images_for_source(source_id, day=None):
+
+    items = [
+        x.upper()
+        for x in map(str.strip, config.image_type_sort.split(","))
+        if x != ""
+    ]
+
+    sort_list = "{" + ",".join(items) + "}"
+
     query = """
     select i.time_stamp,
            src.code as source,
@@ -1140,17 +1182,24 @@ def get_images_for_source(source_id, day=None):
            stn.code as station,
            it.code as type_code,
            i.title as title,
-           i.description as description
+           i.description as description,
+           it.sort_order as sort_order
     from image i
     inner join image_source src on src.image_source_id = i.image_source_id
-    inner join image_type it on it.image_type_id = i.image_type_id
+    inner join (
+        select image_type_id,
+               code,
+               coalesce(array_position(($sort_list)::character varying[], upper(code)::character varying), 1000) as sort_order
+        from image_type
+    ) as it on it.image_type_id = i.image_type_id
     inner join station stn on stn.station_id = src.station_id
     where src.image_source_id = $source_id
       and (i.time_stamp::date = $day or $day is null)
-    order by i.time_stamp
+    order by i.time_stamp, it.sort_order, i.title
     """
 
-    result = db.query(query, dict(source_id=source_id, day=day))
+    result = db.query(query, dict(source_id=source_id, day=day,
+                                  sort_list=sort_list))
 
     if len(result):
         return result
@@ -1158,15 +1207,29 @@ def get_images_for_source(source_id, day=None):
 
 
 def get_most_recent_image_id_for_source(source_id):
+    items = [
+        x.upper()
+        for x in map(str.strip, config.image_type_sort.split(","))
+        if x != ""
+    ]
+
+    sort_list = "{" + ",".join(items) + "}"
+
     query = """
     select image_id, time_stamp, mime_type
     from image i
+    inner join (
+        select image_type_id,
+               code,
+               coalesce(array_position(($sort_list)::character varying[], upper(code)::character varying), 1000) as sort_order
+        from image_type
+    ) as it on it.image_type_id = i.image_type_id
     where i.image_source_id = $source_id
-    order by time_stamp DESC
+    order by i.time_stamp, it.sort_order, i.title DESC
     limit 1
     """
 
-    result = db.query(query, dict(source_id=source_id))
+    result = db.query(query, dict(source_id=source_id, sort_list=sort_list))
 
     if len(result):
         return result[0]

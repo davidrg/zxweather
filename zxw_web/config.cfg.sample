@@ -47,6 +47,16 @@ site_name: zxweather
 # unavailable.
 # hide_coordinates: False
 
+# Images are identified by timestamp, type and source. Each image in the
+# database must have a unique combination of these three values. Images for an
+# image source are sorted first by timestamp, then by type, then by title. This
+# list controls how image types are sorted. Image type codes not in this list
+# are all given the same sort order. An empty list results in images being
+# sorted by timestamp and title only. If 5 images all have the same timestamp
+# (perhaps they're different enhancements of a satellite image) they'll be
+# sorted according to this list and then by their titles.
+image_type_sort: TLVID,CAM,AEMSA,AEHVT,AEMCI,AEZA,AEMSP,EHVP,AEHCP,AESEA,AETHE,AENO,AEHVC,APTD,SPEC
+
 # Uncomment and add your Tracking ID to enable Google Analytics on the standard
 # and alternate UIs (not supported on the basic HTML one)
 # google_analytics_id: your-google-analytics-tracking-id-here

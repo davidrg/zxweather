@@ -211,6 +211,47 @@ if (!String.prototype.trim) {
     })();
 }
 
+// This converts a date to a form that is parseable by Date.parse (for some
+// reason Date doesn't seem to have any built-in methods that are guaranteed
+// to do this across browsers. Another opportunity for moment.js
+function dateToString(dt) {
+
+    // format: 2017-02-19T07:47:48+13:00
+
+    var hours = dt.getHours();
+    var hoursString = hours.toString();
+    if (hours < 10) {
+        hoursString = "0" + hoursString;
+    }
+
+    return dt.getFullYear().toString() + "-" +
+            dt.getMonth().toString() + "-" +
+            dt.getDate().toString() + "T" +
+            hoursString + ":" +
+            dt.getMinutes().toString() + ":" +
+            dt.getSeconds().toString() + "+xx:xx";
+}
+
+function stringToDate(str) {
+    var ts_parts = str.split("T");
+    var date = ts_parts[0];
+    var time = ts_parts[1];
+
+    var date_parts = date.split("-");
+    var year = parseInt(date_parts[0]);
+    var month = parseInt(date_parts[1]);
+    var day = parseInt(date_parts[2]);
+
+    // Toss away the timezone. The WebUI assumes all parts of the system are running in the
+    // same timezone :(
+    var time_parts = time.split("+")[0].split(":");
+    var hour = parseInt(time_parts[0]);
+    var minute = parseInt(time_parts[1]);
+    var second = parseInt(time_parts[2]);
+
+    return new Date(year, month, day, hour, minute, second);
+}
+
 // Code for managing an images section client-side
 function ImageSection(el) {
     if (el != null) {
@@ -237,7 +278,7 @@ ImageSection.prototype._create_description_row = function(description) {
     var row = $("<div class='row'/>");
     var span = $("<div class='span12'/>");
     var p = $("<p/>");
-    p.text(description);
+    p.html(description);
     span.append(p);
     row.append(span);
 
@@ -265,8 +306,50 @@ ImageSection.prototype._create_images_row = function() {
     return row;
 };
 
-ImageSection.prototype._create_image = function(thumb_url, full_url, title, caption) {
+ImageSection.prototype._compare_element = function(element, time_stamp, sort_order, title) {
+    var other_time_stamp = stringToDate($(element).attr("data-time-stamp"));
+    var other_sort_order = parseInt($(element).attr("data-sort-order"));
+    var other_title = $(element).attr("data-title");
+
+    // console.log("-----------------");
+    // console.log("TS existing [" + other_time_stamp + "], new [" + time_stamp + "]");
+    // console.log("SO existing [" + other_sort_order + "], new [" + sort_order + "]");
+    // console.log("T existing [" + other_title + "], new [" + title + "]");
+
+    if (time_stamp > other_time_stamp) {
+        // console.log("New element is greater than (" + other_time_stamp + ", " +
+        //     sort_order + "," + title + ") by timestamp");
+        return 1;
+    } else if (time_stamp < other_time_stamp) {
+        // console.log("New element is less than (" + other_time_stamp + ", " +
+        //     sort_order + "," + title + ") by timestamp");
+        return -1;
+    } else {
+        if (sort_order > other_sort_order) {
+            // console.log("New element is greater than (" + other_time_stamp + ", " +
+            //     sort_order + "," + title + ") by sort order");
+            return 1;
+        } else if (sort_order == other_sort_order) {
+            // console.log("New element is equal tp (" + other_time_stamp + ", " +
+            //     sort_order + "," + title + ") by timestamp and sort order, " +
+            //     "falling back to title");
+            return title > other_title;
+        } else {
+            // console.log("New element is less than (" + time_stamp + ", " +
+            //     sort_order + "," + title + ") by sort order");
+            return -1;
+        }
+    }
+};
+
+ImageSection.prototype._create_image = function(thumb_url, full_url, title,
+                                                caption, time_stamp, sort_order) {
     var li = $("<li/>");
+    li.attr("data-time-stamp", dateToString(time_stamp));
+    li.attr("data-sort-order", sort_order);
+    li.attr("data-title", title);
+
+    var caption_width = thumbnail_width - 20; // todo: remove magic number
 
     var a = $("<a class='thumbnail'/>");
     a.attr('href', full_url);
@@ -274,6 +357,7 @@ ImageSection.prototype._create_image = function(thumb_url, full_url, title, capt
     img.attr('src', thumb_url);
     img.attr('title', title);
     var div = $("<div class='caption'/>");
+    div.attr('style', 'width: ' + caption_width.toString() + 'px;');
     div.text(caption);
     a.append(img);
     a.append(div);
@@ -281,8 +365,12 @@ ImageSection.prototype._create_image = function(thumb_url, full_url, title, capt
     return li;
 };
 
-ImageSection.prototype._create_video = function(full_url, title, caption) {
+ImageSection.prototype._create_video = function(full_url, title, caption,
+                                                time_stamp, sort_order) {
     var li = $("<li/>");
+    li.attr("time_stamp", dateToString(time_stamp));
+    li.attr("sort_order", sort_order);
+    li.attr("title", title);
 
     var div = $("<div class='thumbnail'/>");
     var video = $("<video controls></video>");
@@ -304,20 +392,90 @@ ImageSection.prototype._create_video = function(full_url, title, caption) {
     return li;
 };
 
-ImageSection.prototype._add_image_to_list = function(thumb_url, full_url, title, caption, is_video) {
-    var ul = this.element.find("ul");
+ImageSection.prototype._create_audio = function(full_url, title, caption,
+                                                time_stamp, sort_order) {
+    var li = $("<li/>");
+    li.attr("time_stamp", dateToString(time_stamp));
+    li.attr("sort_order", sort_order);
+    li.attr("title", title);
 
-    if (is_video) {
-        var video = this._create_video(full_url, title, caption);
-        ul.append(video);
-    } else {
-        var image = this._create_image(thumb_url, full_url, title, caption);
-        ul.append(image);
-    }
+    var div = $("<div class='thumbnail'/>");
+    var audio = $("<audio controls></audio>");
+    audio.attr('src', full_url);
+    audio.attr('title', title);
+    audio.attr('preload', 'none');
+
+    var caption_width = thumbnail_width - 20; // todo: remove magic number
+
+    var caption_div = $("<div class='caption'></div>");
+    caption_div.attr('style', 'width: ' + caption_width.toString() + 'px;');
+    caption_div.text(caption);
+
+    div.append(audio);
+    div.append(caption_div);
+
+    li.append(div);
+
+    return li;
 };
 
-ImageSection.prototype._update_current_image = function(full_url, title, caption, is_video) {
+ImageSection.prototype._add_image_to_list = function(
+    thumb_url, full_url, title, caption, is_video, is_audio, time_stamp,
+    sort_order) {
+    var ul = this.element.find("ul");
+
+    var li= null;
+
+    if (is_video) {
+        li = this._create_video(full_url, title, caption, time_stamp, sort_order);
+    } else if (is_audio) {
+        li = this._create_audio(full_url, title, caption, time_stamp, sort_order);
+    } else {
+        li = this._create_image(thumb_url, full_url, title, caption, time_stamp, sort_order);
+    }
+
+    // Now we've got the new list item we've got to slot it into the list in the
+    // right location.
+    var sect = this;
+    var inserted = false;
+    $("li", ul).each(function() {
+        if (inserted) {
+            return;
+        }
+
+        var cmp = sect._compare_element(this, time_stamp, sort_order, title);
+
+        if (cmp < 0) {
+            // console.log("Inserting before:");
+            // console.log(this);
+
+            // belongs before the current one.
+            li.insertBefore(this);
+            inserted = true;
+        }
+    });
+
+    // Belongs at the end of the list
+    if (!inserted) {
+        // console.log("Appending to list");
+        ul.append(li);
+    }
+
+    //adjust_thumbnail_heights();
+};
+
+ImageSection.prototype._update_current_image = function(full_url, title,
+                                                        caption, is_video,
+                                                        time_stamp, sort_order) {
     var current_image_row = this.element.find("div.row.current_image");
+
+    var cmp = this._compare_element(current_image_row, time_stamp, sort_order,
+        title);
+
+    if (cmp <= 0) {
+        return;  // Image has a lower sort index than the current one. Ignore it.
+    }
+
     var img = current_image_row.find("img");
     var video = current_image_row.find("video");
     var caption_element = current_image_row.find("div.caption");
@@ -368,10 +526,29 @@ ImageSection.prototype.create_element = function(code, title, description) {
 };
 
 ImageSection.prototype.addImage = function(thumb_url, full_url, title, caption,
-                                           is_video) {
-    this._add_image_to_list(thumb_url, full_url, title, caption, is_video);
-    this._update_current_image(full_url, title, caption, is_video);
+                                           is_video, is_audio, time_stamp,
+                                           sort_order) {
+    this._add_image_to_list(thumb_url, full_url, title, caption, is_video,
+        is_audio, time_stamp, sort_order);
+    this._update_current_image(full_url, title, caption, is_video, time_stamp,
+         sort_order);
 };
+
+function adjust_thumbnail_heights() {
+    $('.thumbnails').each(function() {
+        var maxHeight = 0;
+
+        $("li", this).each(function() {
+            var h = $(this).height();
+            if (h > maxHeight) {
+                maxHeight = h;
+            }
+        });
+
+        $("li", this).height(maxHeight);
+    })
+}
+
 
 function discover_image_sections() {
     image_sections = {};
@@ -406,7 +583,8 @@ function add_image(parsed) {
             var section = image_sections[src_code];
 
             section.addImage(parsed['thumb_url'], parsed['full_url'], title,
-                description, parsed['is_video']);
+                description, parsed['is_video'], parsed['is_audio'],
+                parsed['date'], parsed['sort_order']);
         } else {
 
             // In order to create a new section we have to go and look up its title and description.
@@ -419,7 +597,9 @@ function add_image(parsed) {
                     section.create_element(src_code, img_src_title, img_src_description);
 
                     section.addImage(parsed['thumb_url'], parsed['full_url'],
-                        title, description, parsed['is_video']);
+                        title, description, parsed['is_video'],
+                        parsed['is_audio'], parsed['date'],
+                        parsed['sort_order']);
 
                     image_sections[src_code] = section;
                 }
@@ -669,6 +849,7 @@ function parse_image_data(parts) {
 
     var extension = "jpeg";
     var is_video = false;
+    var is_audio = false;
 
     if (mime_type == "image/jpeg") {
         extension = "jpeg";
@@ -682,6 +863,15 @@ function parse_image_data(parts) {
     }else if (mime_type == "video/webm") {
         extension = "webm";
         is_video = true;
+    } else if (mime_type == "audio/wav") {
+        extension = "wav";
+        is_audio = true;
+    } else if (mime_type == "audio/mp3") {
+        extension = "mp3";
+        is_audio = true
+    } else if (mime_type == "audio/flac") {
+        extension = "flac";
+        is_audio = true
     }
 
     var h_s = hour.toString();
@@ -708,6 +898,14 @@ function parse_image_data(parts) {
     var thumbnail_url = url_base + "thumbnail." + extension;
     var description_url = url_base + "description.json";
 
+    var sort_order = image_type_sort.split(",").indexOf(type_code.toUpperCase());
+
+    if (sort_order == -1) {
+        sort_order = 1000;
+    }
+
+    var dt = new Date(year, month, day, hour, minute, second);
+
     return {
         'station_code': station_code,
         'source_code': source_code,
@@ -717,7 +915,10 @@ function parse_image_data(parts) {
         'full_url': full_url,
         'thumb_url': thumbnail_url,
         'description_url': description_url,
-        'is_video': is_video
+        'is_video': is_video,
+        'is_audio': is_audio,
+        'sort_order': sort_order,
+        'date': dt
     };
 }
 
@@ -1664,7 +1865,12 @@ function connect_live() {
             // JSON data sources.
             var last_record = data_sets.day.tdp_data[data_sets.day.tdp_data.length - 1][0];
             var max_age = new Date(new Date().getTime() - (110*60*1000)); // 1h50m ago
-            if (last_record < max_age) {
+
+            // TODO: the charts on the server may themselves be too old.
+            // This can result in an infinite loop of chart reloading because
+            // the reloaded ones are still too old. This needs to be smarter or
+            // gone.
+            if (last_record < max_age && false) {
                 console.log("Chart data too old - reload datasets from server...");
 
                 // Live data hasn't started yet. Turn this off so we can retry

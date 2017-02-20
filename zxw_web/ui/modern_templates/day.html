@@ -145,6 +145,23 @@
         live_auto_refresh = false;
         {%- endif %}
         var is_day_page = true;
+
+        // Set all image thumbnail containers to the same height so they layout
+        // properly
+        $(window).on('load', function() {
+            $('.thumbnails').each(function() {
+                var maxHeight = 0;
+
+                $("li", this).each(function() {
+                    var h = $(this).height();
+                    if (h > maxHeight) {
+                        maxHeight = h;
+                    }
+                });
+
+                $("li", this).height(maxHeight);
+            })
+        });
     </script>
 
     {% if data.current_data %}
