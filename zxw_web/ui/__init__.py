@@ -295,7 +295,8 @@ class stationlist:
             web.seeother(config.site_root + 's' + '/')
             return
 
-        validate_request(ui)
+        if ui is not None and ui not in uis:
+            raise web.NotFound()
 
         # Just redirect straight to the default station. There should be a menu
         # on that page where the user can navigate to a different one if
