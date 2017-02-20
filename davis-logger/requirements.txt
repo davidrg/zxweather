@@ -1,7 +1,9 @@
-psycopg2
-twisted
+psycopg2==2.6.2
+twisted==16.4.1
 pytz
 pyserial
+pyopenssl==16.2.0
+service_identity
 
 # only required if using RabbitMQ
 pika
