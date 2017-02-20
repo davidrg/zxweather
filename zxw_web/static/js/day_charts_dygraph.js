@@ -147,15 +147,15 @@ function drawRainfallChart(jsondata,
             this._element.show();
             this._labels_element.show();
         },
-        update_graph: function() {
-            this._graph.updateOptions({ 'file': this.data } );
-
-            // Automatically show or hide the graph depending on if it contains
+        _show_hide: function() {
+                        // Automatically show or hide the graph depending on if it contains
             // any data.
             var total = 0;
             for (var i = 0; i < this.data.length; i++) {
                 total += this.data[i][1]; // 0 is the timestamp, 1 is the data
             }
+
+            console.log("Chart rain total " + total.toString());
 
             if (total > 0) {
                 this._show();
@@ -163,6 +163,11 @@ function drawRainfallChart(jsondata,
                 console.log('Hiding rainfall chart (no data to show)');
                 this._hide();
             }
+        },
+        update_graph: function() {
+            this._graph.updateOptions({ 'file': this.data } );
+
+            this._show_hide()
         }
     }
 }
@@ -219,6 +224,8 @@ function load_day_charts() {
             document.getElementById('chart_hourly_rainfall_div'),
             document.getElementById('chart_hourly_rainfall_key'),
             !live_auto_refresh); // 24h data set is every 5 minutes on live day pages
+
+        data_sets.rainfall_day._show_hide();
 
         // Set 24h total rainfall thing:
         var total = 0;
@@ -291,6 +298,8 @@ function load_7day_charts() {
             document.getElementById('chart_7_hourly_rainfall_div'),
             document.getElementById('chart_7_hourly_rainfall_key'),
             true); // 168h data set is hourly
+
+        data_sets.rainfall_week._show_hide();
 
         rainfall_7_loading = false;
         maybe_start_live_data();
