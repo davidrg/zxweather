@@ -1084,6 +1084,21 @@ def get_day_images_for_source(source_id, image_date=None):
     return result
 
 
+def get_latest_image_ts_for_source(source_id, image_date=None):
+    query = """
+    select max(time_stamp) as ts
+    from image i
+    where i.image_source_id = $source_id
+      and (i.time_stamp::date = $date or $date is null)
+    """
+
+    result = db.query(query, dict(source_id=source_id, date=image_date))
+
+    if result is None:
+        return None
+    return result[0].ts
+
+
 def get_most_recent_image_ts_for_source_and_date(source_id, image_date):
     """
     Returns the timestamp for the most recent image on the specified date for
