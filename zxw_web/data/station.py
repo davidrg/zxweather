@@ -21,7 +21,8 @@ from database import get_years, get_live_data, get_station_id, get_latest_sample
     get_most_recent_image_id_for_source, get_current_3h_trends, \
     get_month_rainfall, get_year_rainfall, get_last_hour_rainfall, \
     get_10m_avg_bearing_max_gust, get_day_wind_run, get_cumulus_dayfile_data, \
-    get_image_source_info, get_image_sources_by_date, get_rain_summary
+    get_image_source_info, get_image_sources_by_date, get_rain_summary, \
+    get_latest_image_ts_for_source
 import os
 
 import math
@@ -464,9 +465,6 @@ class images_json:
         :param source_code: Image source code
         :type source_code: str
         """
-        template_dir = os.path.join(os.path.dirname(__file__),
-                                    os.path.join('templates'))
-        render = render_jinja(template_dir, encoding='utf-8')
 
         station_id = get_station_id(station)
         if station_id is None:
@@ -534,6 +532,31 @@ class images_json:
         web.header('Content-Type', 'application/json')
         web.header('Content-Length', str(len(result)))
         return result
+
+
+    def HEAD(self, station, source_code):
+        """
+        Returns an index page containing a list of json files available for
+        the day.
+        :param station: Station to get data for
+        :type station: string
+        :param source_code: Image source code
+        :type source_code: str
+        """
+
+        station_id = get_station_id(station)
+        if station_id is None:
+            raise web.NotFound()
+
+        source = get_image_source(station_id, source_code)
+        if source is None:
+            raise web.NotFound()
+
+        latest_ts = get_latest_image_ts_for_source(source.image_source_id)
+
+        if latest_ts is not None:
+            web.header('Last-Modified', rfcformat(latest_ts))
+        web.header('Content-Type', 'application/json')
 
 
 class latest_image:
