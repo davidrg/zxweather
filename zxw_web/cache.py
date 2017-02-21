@@ -46,16 +46,23 @@ def cache_control_headers(station_id, data_age, year, month=None, day=None):
         return
 
     now = datetime.now()
+    yesterday = (now.date() - timedelta(days=1))
 
     sample_interval = get_sample_interval(station_id)
 
     # HTTP-1.1 Cache Control
     if year == now.year and (month is None or month == now.month)\
-    and (day is None or day == now.day):
+            and (day is None or day == now.day):
         # We should be getting a new sample every sample_interval seconds if
         # the requested day is today.
         web.header('Cache-Control', 'max-age=' + str(sample_interval))
         web.header('Expires', rfcformat(data_age + timedelta(0, sample_interval)))
+    elif month is not None and day is not None and \
+            date(year, month, day) == yesterday:
+        # We're on a page for yesterday. Its possible data might still come in
+        # for this page if some other systems are running behind.
+        web.header('Expires',
+                   rfcformat(now + timedelta(minutes=30)))
     else:
         # Old data. Never expires.
         web.header('Expires',rfcformat(now + timedelta(60,0)))
