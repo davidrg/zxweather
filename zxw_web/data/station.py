@@ -561,13 +561,13 @@ class images_json:
 
 class latest_image:
     """
-    Provides an index of available daily data sources
+    Returns the most recent image (not video or audio)
     """
     def GET(self, station, source_code, mode):
         """
-        Returns an index page containing a list of json files available for
-        the day.
-        :param station: Station to get data for
+        Redirects to the most recent image
+
+        :param station: Station to get the most recent image for
         :type station: string
         :param source_code: Image source code
         :type source_code: str
