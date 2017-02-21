@@ -307,6 +307,13 @@ ImageSection.prototype._create_images_row = function() {
 };
 
 ImageSection.prototype._compare_element = function(element, time_stamp, sort_order, title) {
+
+
+    var a = $(element).attr("data-time-stamp");
+    if (typeof a == typeof undefined || a == false) {
+        return 1; // No image loaded.
+    }
+
     var other_time_stamp = stringToDate($(element).attr("data-time-stamp"));
     var other_sort_order = parseInt($(element).attr("data-sort-order"));
     var other_title = $(element).attr("data-title");
