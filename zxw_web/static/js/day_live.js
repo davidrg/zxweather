@@ -2262,6 +2262,10 @@ function reload_records() {
 }
 
 function start_day_live() {
+    if (s_mode_live_start_interval != null) {
+        window.clearInterval(s_mode_live_start_interval);
+    }
+
     if (live_auto_refresh && !live_started) {
         console.log('Starting data subscription...');
 
@@ -2284,8 +2288,18 @@ function start_day_live() {
     }
 }
 
+var s_mode_live_start_interval = null;
+
 if (ui != 's') {
     // On the standard UI we auto-update the graphs so we've got to wait for
     // them to finish loading before starting the live subscription.
     start_day_live();
+} else if (ui == 's') {
+    // Sometimes the charts don't start live data properly (possibly due to
+    // browser caching). This will wait 30 seconds after page load and start
+    // live data if it hasn't already been started.
+    s_mode_live_start_interval = window.setInterval(function() {
+        console.log('Live data not started after 30 seconds. Starting.');
+        start_day_live();
+    }, 30000);
 }
