@@ -1240,7 +1240,8 @@ def get_most_recent_image_id_for_source(source_id):
         from image_type
     ) as it on it.image_type_id = i.image_type_id
     where i.image_source_id = $source_id
-    order by i.time_stamp, it.sort_order, i.title DESC
+      and i.mime_type ilike 'image/%'
+    order by i.time_stamp desc, it.sort_order asc, i.title desc
     limit 1
     """
 
