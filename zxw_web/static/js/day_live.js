@@ -38,6 +38,10 @@ var records = null;
 
 var loading_buttons_disabled = false;
 
+// Set in connect_live() to prevent an infinite loop of server reloading when
+// data on the server is old
+var server_reload = false;
+
 var months = {
   1 : 'january',
   2 : 'february',
@@ -1901,8 +1905,13 @@ function connect_live() {
             // This can result in an infinite loop of chart reloading because
             // the reloaded ones are still too old. This needs to be smarter or
             // gone.
-            if (last_record < max_age && false) {
+            if (last_record < max_age && !server_reload) {
                 console.log("Chart data too old - reload datasets from server...");
+
+                // Note that we're reloading charts from the server. Setting
+                // this prevents an infinite loop of server reloading when the
+                // latest data on the server is older than max age
+                server_reload = true;
 
                 // Live data hasn't started yet. Turn this off so we can retry
                 // once the charts have finished loading.
@@ -1916,6 +1925,10 @@ function connect_live() {
                 refresh_day_charts();
                 refresh_7day_charts();
 
+                return;
+            } else if (server_reload) {
+                // Data on the server is too old to load the charts.
+                server_reload = false;
                 return;
             }
         }
