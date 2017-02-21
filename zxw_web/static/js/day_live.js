@@ -1686,8 +1686,32 @@ function data_arrived(data) {
         // Image
         parsed = parse_image_data(parts);
 
-        if (parsed != null && video_support) {
-            add_image(parsed);
+        if (parsed != null) {
+
+            var today = new Date();
+            today.setHours(0);
+            today.setMinutes(0);
+            today.setSeconds(0);
+            today.setMilliseconds(0);
+
+            console.log("now");
+            console.log(today);
+            console.log("img");
+            console.log(parsed['date']);
+
+            if (parsed['date'] > today) {
+                console.log("Image too old for this page. Ignoring");
+                return; // Image is for a previous day. Ignore it
+            }
+
+            if (parsed['is_video'] || parsed['is_audio']) {
+                if (video_support) {
+                    add_image(parsed);
+                }
+                // Else browser doesn't support audio/video. Ignore the image
+            } else {
+                add_image(parsed);
+            }
         }
     }
 }
