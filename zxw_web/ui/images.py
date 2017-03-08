@@ -121,8 +121,11 @@ def get_station_day_images(station_id, day):
 
             if source_images is not None and len(source_images) > 0:
 
-                latest_image = [x for x in source_images
-                                if x.image_id == source.last_image_id][0]
+                latest_images = [x for x in source_images
+                                if x.image_id == source.last_image_id]
+                latest_image = None
+                if len(latest_images) > 0:
+                    latest_image = latest_images[0]
 
                 images.append({
                     'name': source.source_name,
