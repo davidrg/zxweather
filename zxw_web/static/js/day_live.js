@@ -1703,7 +1703,7 @@ function data_arrived(data) {
             console.log("img");
             console.log(parsed['date']);
 
-            if (parsed['date'] > today) {
+            if (parsed['date'] < today) {
                 console.log("Image too old for this page. Ignoring");
                 return; // Image is for a previous day. Ignore it
             }
