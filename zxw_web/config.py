@@ -52,12 +52,14 @@ google_analytics_id = None
 
 image_type_sort = None
 
+array_position_available = True
+
 def load_settings():
     """
     Loads settings from the configuration file.
     """
 
-    global db, default_station_name
+    global db, default_station_name, array_position_available
     global static_data_dir, site_root, default_ui, site_name, ws_uri, wss_uri
     global zxweatherd_hostname, zxweatherd_raw_port, disable_alt_ui
     global hide_coordinates, google_analytics_id, image_type_sort
@@ -95,6 +97,7 @@ def load_settings():
                       db=database,
                       host=hostname,
                       port=port)
+    array_position_available = config.getboolean(S_DB, "array_position_available")
 
     # Site
     default_station_name = config.get(S_S, 'station_name')

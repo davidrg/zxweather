@@ -12,6 +12,13 @@ database: weather
 user: weatheruser
 password: password
 
+# Set this to false if you're using a version of PostgreSQL older than 9.5.
+# This setting (and support for releases older than 9.5) will be removed in
+# a future version of zxweather.
+# If set to false you'll have to install the array_idx function into your
+# database.
+array_position_available: true
+
 # Site configuration
 # default_ui      - The default user interface to use if someone requests the
 #                   root directory (that is, / instead of /s/station/)

@@ -883,21 +883,27 @@ def get_image_sources_for_station(station_id):
 
     sort_list = "{" + ",".join(items) + "}"
 
-    result = db.query("""select src.image_source_id, src.code, src.source_name,
-                                src.description, ( select i.image_id
-                                   from image as i
-                                   inner join (
-                                        select it2.image_type_id,
-                                               it2.code,
-                                               coalesce(array_position(($sort_list)::character varying[], upper(it2.code)::character varying), 1000) as sort_order
-                                        from image_type it2
-                                   ) as it on it.image_type_id = i.image_type_id
-                                   where i.image_source_id = src.image_source_id
-                                   order by i.time_stamp desc, it.sort_order asc, i.title desc
-                                   limit 1
-                               ) as last_image_id
-                      from image_source src where src.station_id = $station""",
-                      dict(station=station_id, sort_list=sort_list))
+    qry = """
+select src.image_source_id, src.code, src.source_name,
+        src.description, ( select i.image_id
+           from image as i
+           inner join (
+                select it2.image_type_id,
+                       it2.code,
+                       coalesce(array_position(($sort_list)::character varying[], upper(it2.code)::character varying), 1000) as sort_order
+                from image_type it2
+           ) as it on it.image_type_id = i.image_type_id
+           where i.image_source_id = src.image_source_id
+           order by i.time_stamp desc, it.sort_order asc, i.title desc
+           limit 1
+       ) as last_image_id
+from image_source src where src.station_id = $station"""
+
+    # Ugh. At least this can disappear when support for Postgres 9.1-9.4 does.
+    if not config.array_position_available:
+        qry = qry.replace("array_position", "array_idx")
+
+    result = db.query(qry, dict(station=station_id, sort_list=sort_list,))
     if len(result) == 0:
         return None
 
@@ -1002,6 +1008,10 @@ inner join image last_image on last_image.image_id = x.last_image_id
 inner join image_type last_image_type on last_image_type.image_type_id = last_image.image_type_id
 where x.station_id = $station
     """
+
+    # Ugh. At least this can disappear when support for Postgres 9.1-9.4 does.
+    if not config.array_position_available:
+        query = query.replace("array_position", "array_idx")
 
     result = db.query(query, dict(station=station_id, sort_list=sort_list))
 
@@ -1213,6 +1223,10 @@ def get_images_for_source(source_id, day=None):
     order by i.time_stamp, it.sort_order, i.title
     """
 
+    # Ugh. At least this can disappear when support for Postgres 9.1-9.4 does.
+    if not config.array_position_available:
+        query = query.replace("array_position", "array_idx")
+
     result = db.query(query, dict(source_id=source_id, day=day,
                                   sort_list=sort_list))
 
@@ -1244,6 +1258,10 @@ def get_most_recent_image_id_for_source(source_id):
     order by i.time_stamp desc, it.sort_order asc, i.title desc
     limit 1
     """
+
+    # Ugh. At least this can disappear when support for Postgres 9.1-9.4 does.
+    if not config.array_position_available:
+        query = query.replace("array_position", "array_idx")
 
     result = db.query(query, dict(source_id=source_id, sort_list=sort_list))
 
