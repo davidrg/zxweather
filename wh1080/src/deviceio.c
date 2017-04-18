@@ -61,7 +61,7 @@ void close_device() {
  */
 void read_block(long memory_address, unsigned char *buffer) {
     unsigned char command_buffer[9];
-    int result;
+    /*int result;*/
     unsigned char address_high = memory_address / 256;
     unsigned char address_low = memory_address % 256;
     unsigned char read_buffer[9];
@@ -79,9 +79,10 @@ void read_block(long memory_address, unsigned char *buffer) {
     command_buffer[7] = address_low;
     command_buffer[8] = END_MARK;
 
-    result = hid_write(handle,          /* HID Device handle */
-                       command_buffer,  /* Buffer to write */
-                       sizeof(command_buffer));              /* Buffer length */
+    /*result =*/
+    hid_write(handle,          /* HID Device handle */
+              command_buffer,  /* Buffer to write */
+              sizeof(command_buffer));              /* Buffer length */
 
     /* And then read the 32 bytes of data back in */
     memset(read_buffer, 0, 9);

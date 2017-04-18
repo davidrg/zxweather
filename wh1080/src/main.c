@@ -113,13 +113,13 @@ int db_update(char* server,
     /* Check that the database is valid */
     if (pgo_get_db_version() < 2) {
         fprintf(stderr, "Fatal Error: database needs upgrading");
-        return;
+        return FALSE;
     }
 
     if (!pgo_check_min_version()) {
         fprintf(stderr, "Fatal Error: This application is not compatible "
                 "with the database. Please obtain a newer version.");
-        return;
+        return FALSE;
     }
 
     /* Check the station is valid */
@@ -404,8 +404,8 @@ int main(int argc, char *argv[])
     printf("arg_error: %s\n", arg_error ? "TRUE" : "FALSE");
 **/
 
-    printf("WH1080 Update Tool v2.0\n");
-    printf("\t(C) Copyright David Goodwin, 2012, 2013\n\n");
+    printf("WH1080 Update Tool v2.0.1\n");
+    printf("\t(C) Copyright David Goodwin, 2012, 2013, 2017\n\n");
 
     if (arg_error) {
         usage(argv[0]);

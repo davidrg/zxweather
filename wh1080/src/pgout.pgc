@@ -152,7 +152,7 @@ int pgo_check_min_version() {
             when version_check = false then 0
             end as vc
             into :compatible
-            from version_check('',0,2,0);
+            from version_check('wh1080',:major,:minor,:revision);
 
 
     return compatible;
