@@ -23,8 +23,23 @@
 #ifndef VERSION_H
 #define VERSION_H
 
+/* Version of the WH1080 tools. These applications are versioned separately
+ * from zxweather as they only tend to be updated when the database schema
+ * changes or to fix issues arising from newer library/compiler versions. */
 #define VERSION_MAJOR 2
 #define VERSION_MINOR 0
-#define VERSION_REV 0
+#define VERSION_REV 1
+
+/* REMEMBER: update the version string in main.c */
+
+
+/* v2.0.1 - shipped with zxweather v1.0.0.
+ *        -> Fix compile warnings
+ * v2.0.0 - shipped with zxweather v0.2.x.
+ *        -> Added muli-station support
+ *        -> Database version checking. Checks application '' version 0.2.0.
+ * v1.0.0 - shipped with zxweather v0.1.x.
+ *        -> First release.
+ */
 
 #endif // VERSION_H
