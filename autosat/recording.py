@@ -80,14 +80,25 @@ def resample(input_filename, output_filename, bandwidth, output_sample_rate):
     subprocess.call(cmdlinetouch)
 
 
-def spectrogram(wav_file, satellite_name, timestamp, output_directory):
-    log('Creating flight spectrum')
+def spectrogram(wav_file, satellite_name, timestamp, output_directory, crush):
+    log('Creating flight spectrogram')
 
+    # The file we're going to return
     filename = os.path.join(output_directory,
                             "{0}-{1}.png".format(
                                satellite_name.replace(" ", ""),
                                timestamp
                             ))
+
+    # Figure out the name of the file to generate.
+    if crush:
+        input_filename = os.path.join(output_directory,
+                                      "{0}-{1}-original.png".format(
+                                          satellite_name.replace(" ", ""),
+                                          timestamp
+                                      ))
+    else:
+        input_filename = filename
 
     cmdline = [
         'sox',
@@ -97,12 +108,21 @@ def spectrogram(wav_file, satellite_name, timestamp, output_directory):
     ]
     subprocess.call(cmdline)
 
+    if crush:
+        cmdline = [
+            'pngcrush',
+            input_filename,
+            filename
+        ]
+        subprocess.call(cmdline)
+        os.remove(input_filename)
+
     return filename
 
 
 def record_wav(output_directory, satellite_name, time_stamp, freq, duration,
                bandwidth, output_sample_rate, remove_raw,
-               create_spectro, spectro_output_directory):
+               create_spectro, spectro_output_directory, crush_spectro):
     base_name = os.path.join(output_directory,
                              satellite_name.replace(" ", "") + '-' + time_stamp)
     raw_filename = base_name + ".raw"
@@ -130,6 +150,6 @@ def record_wav(output_directory, satellite_name, time_stamp, freq, duration,
 
     if create_spectro:
         spectro_file = spectrogram(wav_filename, satellite_name, time_stamp,
-                                   spectro_output_directory)
+                                   spectro_output_directory, crush_spectro)
 
     return wav_filename, metadata_filename, spectro_file

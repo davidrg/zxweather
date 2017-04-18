@@ -43,6 +43,11 @@ keep_raw_recording=False
 
 create_spectrogram=True
 
+# Run spectrogram through pngcrush. This can shave of over 50K from the file
+# size - handy if they're being stored in the database. Requires pngcrush to
+# be installed.
+crush_spectrogram=True
+
 [apt_decoder]
 
 # Where are wxtoimg and associated binaries located?

@@ -272,7 +272,8 @@ def main():
             settings.wav_sample_rate,
             not settings.keep_raw_recording,
             settings.make_spectrogram,
-            settings.spectrogram_dir)
+            settings.spectrogram_dir,
+            settings.crush_spectrogram)
 
 
         # Decode NOAA APT transmissions

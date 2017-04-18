@@ -104,6 +104,8 @@ class Settings(object):
                                                     "keep_raw_recording")
         self.make_spectrogram = parser.getboolean(Settings.RECORDING,
                                                   "create_spectrogram")
+        self.crush_spectrogram = parser.getboolean(Settings.RECORDING,
+                                                   "crush_spectrogram")
 
         #
         # zxweather config
