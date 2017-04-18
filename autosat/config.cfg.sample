@@ -1,0 +1,144 @@
+[station]
+latitude=-37.78
+longitude=175.31
+
+# In meters
+altitude=42
+
+# Adjust this to eliminate satellite passes outside the range of your radio
+# equipment so you don't record and decode noise.
+minimum_elevation=14
+
+[output]
+images=/var/lib/autosat/images
+recordings=/var/lib/autosat/recordings
+spectrogram=/var/lib/autosat/spectro
+
+[tle]
+directory=/var/lib/autosat/tle
+file=weather.txt
+update_url=http://www.celestrak.com/NORAD/elements/weather.txt
+
+[logging]
+enable=True
+filename=/var/log/autosat.log
+
+pid_file=/run/autosat.pid
+
+status_file=/var/lib/autosat/status
+
+[recording]
+
+# SDR Gain setting
+gain=44.0
+
+# SDR PPM shift
+ppm_error=36
+
+# Sample rate converted wav file
+wav_sample_rate=11025
+
+# Should the original raw recording be kept?
+keep_raw_recording=False
+
+create_spectrogram=True
+
+[apt_decoder]
+
+# Where are wxtoimg and associated binaries located?
+wxtoimg_path=/usr/local/bin/
+
+# Turn this on to generate empty log files
+quiet=False
+
+# Enable a text overlay on generated images?
+text_overlay_enabled=False
+overlay_text=autosat
+
+# Quality setting for generated images
+jpeg_quality=75
+
+# Try to decode entire image (including noise at start and end)
+decode_all=False
+
+# Shift the map overlay from default location. Negative pushes left/up,
+map_overlay_offset_x=0
+map_overlay_offset_y=0
+
+# Where to write generated maps to
+map_output_dir=/var/lib/autosat/maps
+
+# Turn on the map overlay? (you probably want this)
+map_enabled=True
+
+# Generate enhanced images? (you want this)
+enable_enhancements=True
+
+# Enhancements to generate (comma-separated)
+# Consult the wxtoimg man page for options. Add 'pristine' to generate pristine
+# output (not a wxtoimg enhancement but this program will detect it and add the
+# right command line parameters to generate it)
+# Commons options are: MCIR, MSA, MSA-precip, HVC, HVC-precip, HVCT, HVCT-precip, therm
+enhancements=MCIR,ZA,NO,therm,HVCT,MSA,MSA-precip,HVC,sea,pristine,HVCT-precip,HVC-precip
+
+
+[zxweather]
+
+# Store generated images (normal and all enhanced versions) in the weather DB?
+store_images=False
+
+# This is the list of versions of the image to store. Use 'normal' to store
+# the unenhanced/raw version. For a non-false-colour version the ZA or pristine
+# options are likely better than normal which tends to include a lot of noise
+# at the top and bottom due to it including the entire pass.
+store_enhancements=MCIR,ZA,NO,therm,HVCT,MSA,MSA-precip,HVC,sea,pristine,HVCT-precip,HVC-precip
+
+# Store the original signal recording (wav file) in the database? You probably
+# don't want this long term as they're fairly large and not terrbily useful
+# unless you expect to reprocess the signal later.
+store_recording=False
+
+# Store the signal recording spectrogram in the weather DB?
+store_spectrogram=True
+
+# Image source all items are stored against.
+image_source_code=RSGS
+
+# Database connection string
+dsn=host=localhost port=5432 user=postgres password=password dbname=weather
+
+
+# This is a list of satellites to listen to. Each satellite has a name,
+# radio frequency, recording bandwidth/sample rate and a decoder option.
+# Each satellite section must start with "satellite " followed by a unique
+# label. The label is not used by anything but having it the same as the
+# satellite name is probably a good idea.
+# Valid decode options are:
+#    apt    Decode APT signal with wxtoimg
+#    none   Don't try to decode, only record it
+# Currently only NOAA-15, NOAA-18 and NOAA-19 are supported.
+[satellite NOAA-15]
+
+# Name of the satellite. Should match the TLE file
+name=NOAA 15
+
+# Frequency to record
+frequency=137620000
+
+# Sample rate, width of recorded signal - should include few kHz for doppler shift
+bandwidth=48800
+
+# How to decode the recording
+decode=apt
+
+[satellite NOAA-18]
+name=NOAA 18
+frequency=137912500
+bandwidth=48800
+decode=apt
+
+[satellite NOAA-19]
+name=NOAA 19
+frequency=137100000
+bandwidth=48800
+decode=apt
