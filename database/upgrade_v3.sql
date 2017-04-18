@@ -36,6 +36,17 @@ insert into db_info(k,v) values('DESKTOP_MIN_VER_MAJ','1');
 insert into db_info(k,v) values('DESKTOP_MIN_VER_MIN','0');
 insert into db_info(k,v) values('DESKTOP_MIN_VER_REV','0');
 
+-- Note: The WH1080 tools are a bit of a special case as they're currently
+-- versioned separately from zxweather. Releases at this time are:
+--   v2.0.0  - shipped with zxweather v0.2.x. Only checks minimum zxweather
+--             version (doesn't supply an app name) so only way to blacklist it
+--             is to blacklist all of zxweather v0.2.0
+--   v2.0.1  - minor bugfix release shipping with zxweather 1.0.0. Checks full
+--             application version (wh1080 v2.0.1).
+-- Both versions are fully compatible with zxweather v0.2.0 and v1.0.0.
+insert into db_info(k,v) values('WH1080_MIN_VER_MAJ', '2');
+insert into db_info(k,v) values('WH1080_MIN_VER_MIN', '0');
+insert into db_info(k,v) values('WH1080_MIN_VER_REV', '0');
 
 ----------------------------------------------------------------------
 -- TABLES ------------------------------------------------------------
