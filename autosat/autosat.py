@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python -u
 # -*- coding: utf-8 -*-
 
 """
@@ -43,6 +43,10 @@ settings = Settings()
 
 
 def write_pid_file():
+
+    if settings.pid_file is None or settings.pid_file == "":
+        return  # No PID file
+
     pid = str(os.getpid())
     if os.path.isfile(settings.pid_file):
         os.unlink(settings.pid_file)
