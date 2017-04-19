@@ -105,7 +105,7 @@
         var records_url = '../../data/{{ station }}/current_day_records.json';
         var rainfall_totals_url = '../../data/{{ station }}/24hr_rainfall_totals.json';
         var live_auto_refresh = true;
-        var station_code = '{{ station }}';
+        var station_code = '{{ station|lower }}';
         var sample_interval = {{ data.sample_interval }};
         var thumbnail_width = {{ thumbnail_width }};
         var hw_type = '{{ hw_type }}';

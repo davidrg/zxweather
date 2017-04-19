@@ -76,7 +76,7 @@
                             <a href="#" class="dropdown-toggle" data-toggle="dropdown">{{ page_data["station_name"] }}<b class="caret"></b></a>
                             <ul class="dropdown-menu" id="station_switch_menu">
                                 {%- for station in page_data["stations"] %}
-                                <li><a href="{{ station[0] }}" data-station-code="{{ station[2] }}">{{ station[1] }}</a></li>
+                                <li><a href="{{ station[0]|lower }}" data-station-code="{{ station[2]|lower }}">{{ station[1] }}</a></li>
                                 {%- endfor %}
                             </ul>
                         </li>
