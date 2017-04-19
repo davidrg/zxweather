@@ -21,6 +21,16 @@
 #include <QDateTime>
 #include <QNetworkProxyFactory>
 
+/*
+ * A note on CODES
+ * ---------------
+ * Codes throughout zxweather (station, image source, hardware type, etc)
+ * should always be treated case-insensitively. Unlikle the database data source
+ * which converts all codes it encounters to UPPERCASE, here in the web data
+ * source we convert them to lowercase. This is because they often end up in
+ * URLs to the web interface where lowercase is expected for filesystem reasons.
+ */
+
 
 // TODO: make the progress dialog cancel button work.
 
@@ -47,7 +57,7 @@ WebDataSource::WebDataSource(QWidget *parentWidget, QObject *parent) :
 {
     Settings& settings = Settings::getInstance();
     baseURL = settings.webInterfaceUrl();
-    stationCode = settings.stationCode();
+    stationCode = settings.stationCode().toLower();
     liveDataUrl = QUrl(baseURL + "data/" + stationCode + "/live.json");
 
     QNetworkProxyFactory::setUseSystemConfiguration(true);
@@ -156,11 +166,11 @@ bool WebDataSource::LoadStationConfigData(QByteArray data) {
     foreach (QVariant station, stations) {
         QVariantMap stationData = station.toMap();
 
-        if (stationData["code"].toString() == stationCode) {
+        if (stationData["code"].toString().toLower() == stationCode) {
             station_name = stationData["name"].toString();
             isSolarDataAvailable = false;
 
-            QString hw = stationData["hw_type"].toMap()["code"].toString();
+            QString hw = stationData["hw_type"].toMap()["code"].toString().toLower();
 
             if (hw == "DAVIS") {
                 isSolarDataAvailable = stationData["hw_config"].toMap()["has_solar_and_uv"].toBool();

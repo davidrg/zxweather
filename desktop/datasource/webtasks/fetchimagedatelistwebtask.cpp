@@ -52,7 +52,7 @@ void FetchImageDateListWebTask::processStationList(QString data) {
         QVariantMap imageSourceData = result[key].toMap();
 
         ImageSource imageSource;
-        imageSource.code = key;
+        imageSource.code = key.toLower();
         imageSource.name = imageSourceData["name"].toString();
         imageSource.description = imageSourceData["description"].toString();
 
@@ -83,6 +83,10 @@ void FetchImageDateListWebTask::processDateList(QString data) {
 
         imageDate.date = QDate::fromString(key, Qt::ISODate);
         imageDate.sourceCodes = result[key].toStringList();
+
+        for (int i = 0; i < imageDate.sourceCodes.count(); i++) {
+            imageDate.sourceCodes[i] = imageDate.sourceCodes[i].toLower();
+        }
 
         imageDates.append(imageDate);
     }

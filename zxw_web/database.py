@@ -21,7 +21,7 @@ def get_station_id(station):
 
     # TODO: Cache me
 
-    result = db.query("select station_id from station where code = $code",
+    result = db.query("select station_id from station where upper(code) = upper($code)",
                       dict(code=station))
     if len(result):
         return result[0].station_id
@@ -39,7 +39,7 @@ def get_station_code(station):
 
     # TODO: Cache me
 
-    result = db.query("select code from station where station_id = $station",
+    result = db.query("select upper(code) as code from station where station_id = $station",
                       dict(station=station))
     if len(result):
         return result[0].code
@@ -95,7 +95,7 @@ def get_davis_max_wireless_packets(station_id):
 	((41+$id-1)::float
 	   /16.0
 	) as max_packets
-    from station stn where stn.code = $station
+    from station stn where upper(stn.code) = upper($station)
     """
 
     result = db.query(query, dict(id=broadcast_id,
@@ -116,7 +116,7 @@ def get_station_type_code(station_id):
 
     # TODO: Cache me. This can be done by get_station_id()
 
-    query = """select st.code
+    query = """select upper(st.code) as code
         from station s
         inner join station_type st on st.station_type_id = s.station_type_id
         where s.station_id = $station"""
@@ -752,8 +752,8 @@ def get_full_station_info(include_coordinates=True):
     """
 
     result = db.query("""
-        select s.code, s.title, s.description, s.sort_order,
-           st.code as hw_type_code, st.title as hw_type_name,
+        select upper(s.code) as code, s.title, s.description, s.sort_order,
+           upper(st.code) as hw_type_code, st.title as hw_type_name,
            sr.min_ts, sr.max_ts, s.message,
            s.message_timestamp, s.station_config, s.site_title, s.latitude,
            s.longitude, s.altitude
@@ -817,8 +817,8 @@ def get_stations():
     Gets a list of station code,name pairs for all stations in the database.
     :return:
     """
-    result = db.query("select code, title from station order by sort_order asc,"
-                      " title desc")
+    result = db.query("select upper(code) as code, title "
+                      "from station order by sort_order asc, title desc")
 
     stations = []
 
@@ -884,12 +884,12 @@ def get_image_sources_for_station(station_id):
     sort_list = "{" + ",".join(items) + "}"
 
     qry = """
-select src.image_source_id, src.code, src.source_name,
+select src.image_source_id, upper(src.code) as code, src.source_name,
         src.description, ( select i.image_id
            from image as i
            inner join (
                 select it2.image_type_id,
-                       it2.code,
+                       upper(it2.code) as code,
                        coalesce(array_position(($sort_list)::character varying[], upper(it2.code)::character varying), 1000) as sort_order
                 from image_type it2
            ) as it on it.image_type_id = i.image_type_id
@@ -917,8 +917,8 @@ def get_image_id(source, type, time_stamp):
     inner join image_source img_src on img.image_source_id = img_src.image_source_id
     inner join image_type img_typ on img.image_type_id = img_typ.image_type_id
     where date_trunc('second', img.time_stamp) = $ts
-      and LOWER(img_typ.code) = LOWER($type_code)
-      and LOWER(img_src.code) = LOWER($source_code)
+      and upper(img_typ.code) = upper($type_code)
+      and upper(img_src.code) = upper($source_code)
     """
 
     result = db.query(query, dict(ts=time_stamp, type_code=type,
@@ -938,7 +938,7 @@ def get_image_type_and_ts_info(image_id):
 
     query = """
     select img.time_stamp,
-           img_typ.code
+           upper(img_typ.code) as code
     from image img
     inner join image_type img_typ on img_typ.image_type_id = img.image_type_id
     where image_id = $image_id
@@ -960,7 +960,7 @@ def get_image_source_info(station_id):
     sort_list = "{" + ",".join(items) + "}"
 
     query = """
- select lower(x.code) as code,
+ select upper(x.code) as code,
        x.source_name,
        x.description,
        x.first_image,
@@ -975,12 +975,12 @@ def get_image_source_info(station_id):
             end as is_active,
        x.last_image_id,
        last_image.time_stamp as last_image_time_stamp,
-       last_image_type.code as last_image_type_code,
+       upper(last_image_type.code) as last_image_type_code,
        last_image.title as last_image_title,
        last_image.description as last_image_description,
        last_image.mime_type as last_image_mime_type
 from (
-    select img_src.code,
+    select upper(img_src.code) as code,
            img_src.source_name,
            img_src.description,
            (
@@ -993,7 +993,7 @@ from (
                from image as i
                inner join (
                     select it2.image_type_id,
-                           it2.code,
+                           upper(it2.code) as code,
                            coalesce(array_position(($sort_list)::character varying[], upper(it2.code)::character varying), 1000) as sort_order
                     from image_type it2
                ) as it on it.image_type_id = i.image_type_id
@@ -1033,12 +1033,12 @@ def get_image_sources_by_date(station_id):
     query = """
 select inr.date_stamp as date_stamp,
 		-- string_agg(inr.mime_type, ',') as mime_types,
-		string_agg(inr.src_code, ',') as image_source_codes
+		string_agg(upper(inr.src_code), ',') as image_source_codes
 from (
 	select distinct
 			img.time_stamp::date as date_stamp,
 			-- img.mime_type,
-			img_src.code as src_code,
+			upper(img_src.code) as src_code,
 			img_src.source_name as src_name
 	from image img
 	inner join image_source img_src on img_src.image_source_id = img.image_source_id
@@ -1057,8 +1057,8 @@ group by inr.date_stamp
 def get_image_source(station_id, source_code):
 
     result = db.query("""select image_source_id, source_name
-from image_source where code = $source and station_id = $station""",
-                      dict(source=source_code.upper(), station=station_id))
+from image_source where upper(code) = upper($source) and station_id = $station""",
+                      dict(source=source_code, station=station_id))
     if len(result):
         return result[0]
     return None
@@ -1079,7 +1079,7 @@ def get_day_images_for_source(source_id, image_date=None):
            i.time_stamp,
            i.mime_type,
            it.type_name as type_name,
-           it.code as type_code,
+           upper(it.code) as type_code,
            i.title,
            i.description,
            case when i.metadata is null or i.metadata = '' then False else True end as has_metadata
@@ -1139,14 +1139,14 @@ def image_exists(station, image_date, source_code, image_id):
     from image i
     inner join image_source src on src.image_source_id = i.image_source_id
     inner join station stn on stn.station_id = src.station_id
-    where stn.code = $station_code
+    where upper(stn.code) = upper($station_code)
       and i.time_stamp::date = $image_date
-      and src.code = $source_code
+      and upper(src.code) = upper($source_code)
       and i.image_id = $image_id
         """
 
     result = db.query(query, dict(station_code=station, image_date=image_date,
-                                  source_code=source_code.upper(),
+                                  source_code=source_code,
                                   image_id=image_id))
     if len(result):
         return True
@@ -1201,11 +1201,11 @@ def get_images_for_source(source_id, day=None):
 
     query = """
     select i.time_stamp,
-           src.code as source,
+           upper(src.code) as source,
            i.image_id as id,
            i.mime_type,
-           stn.code as station,
-           it.code as type_code,
+           upper(stn.code) as station,
+           upper(it.code) as type_code,
            i.title as title,
            i.description as description,
            it.sort_order as sort_order
@@ -1213,7 +1213,7 @@ def get_images_for_source(source_id, day=None):
     inner join image_source src on src.image_source_id = i.image_source_id
     inner join (
         select image_type_id,
-               code,
+               upper(code) as code,
                coalesce(array_position(($sort_list)::character varying[], upper(code)::character varying), 1000) as sort_order
         from image_type
     ) as it on it.image_type_id = i.image_type_id
@@ -1249,7 +1249,7 @@ def get_most_recent_image_id_for_source(source_id):
     from image i
     inner join (
         select image_type_id,
-               code,
+               upper(code) as code,
                coalesce(array_position(($sort_list)::character varying[], upper(code)::character varying), 1000) as sort_order
         from image_type
     ) as it on it.image_type_id = i.image_type_id

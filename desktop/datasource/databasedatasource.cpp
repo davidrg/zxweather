@@ -40,7 +40,7 @@ int DatabaseDataSource::getStationId() {
     static int stationId = -1;
     static QString stationCode = "";
 
-    QString code = Settings::getInstance().stationCode();
+    QString code = Settings::getInstance().stationCode().toUpper();
 
     if (code == stationCode) return stationId;
 
@@ -48,7 +48,7 @@ int DatabaseDataSource::getStationId() {
     stationCode = "";
 
     QSqlQuery query;
-    query.prepare("select station_id from station where code = :code");
+    query.prepare("select station_id from station where upper(code) = :code");
     query.bindValue(":code", code);
     query.exec();
 
@@ -75,7 +75,7 @@ QString DatabaseDataSource::getStationHwType() {
 
     if (id != stationId && id != -1) {
         QSqlQuery query;
-        query.prepare("select t.code "
+        query.prepare("select upper(t.code) as code "
                       "from station s "
                       "inner join station_type t "
                       "  on t.station_type_id = s.station_type_id "
@@ -464,7 +464,7 @@ void DatabaseDataSource::connectToDB() {
     QString dbPort = QString::number(settings.databasePort());
     QString username = settings.databaseUsername();
     QString password = settings.databasePassword();
-    QString station = settings.stationCode();
+    QString station = settings.stationCode().toUpper();
 
     QString target = settings.databaseName();
     if (!dbHostname.isEmpty()) {
@@ -675,12 +675,12 @@ QList<ImageDate> DatabaseDataSource::getImageDates(int stationId,
 
     QString qry = "select inr.date_stamp as date_stamp, \n\
             -- string_agg(inr.mime_type, '|') as mime_types, \n\
-            string_agg(inr.src_code, '|') as image_source_codes \n\
+            string_agg(upper(inr.src_code), '|') as image_source_codes \n\
      from ( \n\
          select distinct \n\
                 img.time_stamp::date as date_stamp, \n\
                 -- img.mime_type, \n\
-                img_src.code as src_code, \n\
+                upper(img_src.code) as src_code, \n\
                 img_src.source_name as src_name \n\
          from image img \n\
          inner join image_source img_src on img_src.image_source_id = img.image_source_id \n\
@@ -731,7 +731,7 @@ QList<ImageSource> DatabaseDataSource::getImageSources(int stationId,
     progressDialog->setValue(progressOffset + 1);
     if (progressDialog->wasCanceled()) return QList<ImageSource>();
 
-    QString qry = "select code, source_name, description from image_source "
+    QString qry = "select upper(code) as code, source_name, description from image_source "
                     "where station_id = :stationId";
 
     QSqlQuery query;
@@ -803,7 +803,7 @@ void DatabaseDataSource::fetchImageList(QDate date, QString imageSourceCode) {
 
     // Get the
     QString qry = "select i.image_id as id, \n\
-            it.code as image_type_code, \n\
+            upper(it.code) as image_type_code, \n\
             i.time_stamp, \n\
             i.title, \n\
             i.description, \n\
@@ -1039,7 +1039,7 @@ void DatabaseDataSource::fetchLatestImages() {
                       where imgs.station_id = :stationId \
                       group by i.image_source_id \
                   ) as x on x.image_source_id = i.image_source_id and x.max_ts = i.time_stamp \
-                  where i.time_stamp >= NOW() - '24 hours'::interval ");
+                  where i.time_stamp >= NOW() - '24 hours'::interval1");
     query.bindValue(":stationId", getStationId());
     query.setForwardOnly(true);
     bool result = query.exec();

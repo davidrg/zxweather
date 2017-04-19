@@ -200,9 +200,9 @@ bool wdb_connect(const char *target, const char *username, const char* password,
 
     /* Figure out what sort of hardware this station has */
     stat_id = station_id;
-    EXEC SQL SELECT CASE WHEN st.code = 'GENERIC' THEN 0
-                         WHEN st.code = 'FOWH1080' THEN 1
-                         WHEN st.code = 'DAVIS' THEN 2
+    EXEC SQL SELECT CASE WHEN upper(st.code) = 'GENERIC' THEN 0
+                         WHEN upper(st.code) = 'FOWH1080' THEN 1
+                         WHEN upper(st.code) = 'DAVIS' THEN 2
                          ELSE 0
                     END
              INTO :hw_type
@@ -231,7 +231,7 @@ int wdb_get_station_id(const char* station) {
         EXEC SQL SELECT station_id
                  INTO :station_id_param
                  FROM station
-                 WHERE code = :station_code;
+                 WHERE upper(code) = upper(:station_code);
     } else {
         qDebug() << "V1 DB: skip";
         station_id_param = 0;
@@ -284,7 +284,7 @@ notifications wdb_live_data_available() {
             }
             /* For v2+ schema we need to check the payload to ensure this is
              * for the station we're interested in */
-            else if (strncmp(station_code, notification->extra, station_code_len) == 0) {
+            else if (strncasecmp(station_code, notification->extra, station_code_len) == 0) {
                 // Live data is available for the station we are subscribed to.
                 n.live_data = true;
             } else {
