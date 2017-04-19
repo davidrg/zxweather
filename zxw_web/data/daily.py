@@ -66,20 +66,47 @@ def get_day_records(day, station_id):
         }
 
     # Find the most recent timestamp (used for Last-Modified header)
-    age = records.max_gust_wind_speed_ts
-    if records.max_average_wind_speed_ts > age: age = records.max_average_wind_speed_ts
-    if records.min_absolute_pressure_ts > age: age = records.min_absolute_pressure_ts
-    if records.max_absolute_pressure_ts > age: age = records.max_absolute_pressure_ts
-    if records.min_apparent_temperature_ts > age: age = records.min_apparent_temperature_ts
-    if records.max_apparent_temperature_ts > age: age = records.max_apparent_temperature_ts
-    if records.min_wind_chill_ts > age: age = records.min_wind_chill_ts
-    if records.max_wind_chill_ts > age: age = records.max_wind_chill_ts
-    if records.min_dew_point_ts > age: age = records.min_dew_point_ts
-    if records.max_dew_point_ts > age: age = records.max_dew_point_ts
-    if records.min_temperature_ts > age: age = records.min_temperature_ts
-    if records.max_temperature_ts > age: age = records.max_temperature_ts
-    if records.min_humidity_ts > age: age = records.min_humidity_ts
-    if records.max_humidity_ts > age: age = records.max_humidity_ts
+    age = records.min_absolute_pressure_ts
+    if records.max_average_wind_speed_ts is not None and \
+                    records.max_average_wind_speed_ts > age:
+        age = records.max_average_wind_speed_ts
+
+    if records.min_absolute_pressure_ts is not None and \
+                    records.min_absolute_pressure_ts > age:
+        age = records.min_absolute_pressure_ts
+    if records.max_absolute_pressure_ts is not None and \
+                    records.max_absolute_pressure_ts > age:
+        age = records.max_absolute_pressure_ts
+    if records.min_apparent_temperature_ts is not None and \
+                    records.min_apparent_temperature_ts > age:
+        age = records.min_apparent_temperature_ts
+    if records.max_apparent_temperature_ts is not None and \
+                    records.max_apparent_temperature_ts > age:
+        age = records.max_apparent_temperature_ts
+    if records.min_wind_chill_ts is not None and \
+                    records.min_wind_chill_ts > age:
+        age = records.min_wind_chill_ts
+    if records.max_wind_chill_ts is not None and \
+                    records.max_wind_chill_ts > age:
+        age = records.max_wind_chill_ts
+    if records.min_dew_point_ts is not None and \
+                    records.min_dew_point_ts > age:
+        age = records.min_dew_point_ts
+    if records.max_dew_point_ts is not None and \
+                    records.max_dew_point_ts > age:
+        age = records.max_dew_point_ts
+    if records.min_temperature_ts is not None and \
+                    records.min_temperature_ts > age:
+        age = records.min_temperature_ts
+    if records.max_temperature_ts is not None and \
+                    records.max_temperature_ts > age:
+        age = records.max_temperature_ts
+    if records.min_humidity_ts is not None and \
+                    records.min_humidity_ts > age:
+        age = records.min_humidity_ts
+    if records.max_humidity_ts is not None and \
+                    records.max_humidity_ts > age:
+        age = records.max_humidity_ts
 
     age = datetime.combine(day,age)
 
