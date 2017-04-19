@@ -192,7 +192,12 @@ class images_json:
 
             if mime not in extensions.keys():
                 ext = mimetypes.guess_extension(mime, False)
-                if ext == ".jpe":
+                if ext is None:
+                    # Mime types DB doesn't know. This is known to happen for
+                    # at least audio/wav so lets check that...
+                    if mime == 'audio/wav':
+                        ext = '.wav'
+                elif ext == ".jpe":
                     ext = ".jpeg"
                 extensions[mime] = ext
 
