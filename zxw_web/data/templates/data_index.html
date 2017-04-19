@@ -44,7 +44,7 @@
         <p>This system has data for the following weather stations:</p>
         <ul>
             {% for station in stations %}
-                <li><a href="{{ station[0] }}/">{{ station[1] }}</a></li>
+                <li><a href="{{ station[0]|lower }}/">{{ station[1] }}</a></li>
             {% endfor %}
         </ul>
         <hr>
