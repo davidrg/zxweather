@@ -104,7 +104,7 @@ def spectrogram(wav_file, satellite_name, timestamp, output_directory, crush):
         'sox',
         wav_file,
         '-n', 'spectrogram',
-        '-o', filename
+        '-o', input_filename
     ]
     subprocess.call(cmdline)
 
