@@ -13,9 +13,12 @@ template_start = """<!DOCTYPE html>
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
     <title>About</title>
+    <meta name="HandheldFriendly" content="true" />
+    <meta name="viewport" content="width=device-width, height=device-height, user-scalable=no" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" >
     <link rel="stylesheet" href="/css/bootstrap.css" type="text/css"/>
-    <link rel="stylesheet" href="/css/bootstrap-responsive.css" type="text/css" />
     <link rel="stylesheet" href="/css/zxweather.css" type="text/css"/>
+    <link rel="stylesheet" href="/css/bootstrap-responsive.css" type="text/css" />
 </head>
 <!-- TEMPLATE_V3 -->
 <body>
@@ -28,7 +31,7 @@ template_start = """<!DOCTYPE html>
                     <span class="icon-bar"></span>
                 </a>
                 <a id="nav_brand" class="brand" href="#"></a>
-                <div class="nav-collapse" id="main_nav">
+                <div class="nav-collapse collapse" id="main_nav">
                     <ul class="nav">
                         <li><a href="index.html">Now</a></li>
                         <li><a id="nav_lnk_yesterday" href="">Yesterday</a></li>
