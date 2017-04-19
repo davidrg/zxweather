@@ -1,0 +1,19 @@
+# Mark autosat.py as executable and edit this file to set the installed
+# location of autosat
+# To install this file, copy into /etc/systemd/system and:
+# systemctl daemon-reload
+# systemctl start autosat.service
+# systemctl enable autosat.service
+
+[Unit]
+Description=zxweather weather satellite daemon
+
+[Service]
+ExecStart=/opt/zxweather/autosat/autosat.py
+WorkingDirectory=/opt/zxweather/autosat
+User=root
+Group=root
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
