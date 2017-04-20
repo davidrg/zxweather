@@ -26,12 +26,20 @@
                         player like <a href="http://www.videolan.org/vlc/index.html">VLC</a>.
                     </video>
                     <div class="caption">
-                        {{ source['latest'].title }}
+                        {% if source['latest'].description %}
+                            {{ source['latest'].description }}
+                        {% elif source['latest'].title %}
+                            {{ source['latest'].title }}
+                        {% else %}
+                            {{ source['latest'].time_of_day }}
+                        {% endif %}
                     </div>
                     {% else %}
                     <img src="{{ source['latest'].url }}" title="{{ source['latest'].time }}" />
                     <div class="caption">
-                        {% if source['latest'].title %}
+                        {% if source['latest'].description %}
+                            {{ source['latest'].description }}
+                        {% elif source['latest'].title %}
                             {{ source['latest'].title }}
                         {% else %}
                             {{ source['latest'].time_of_day }}
@@ -79,7 +87,9 @@
                             <a href="{{ img.url }}" class="thumbnail">
                                 <img src="{{ img.thumbnail_url }}" title="{% if img.title %}{{ img.title }}{% else %}{{ img.time }}{% endif %}"/>
                                 <div class="caption" style="width: {{ thumbnail_width - 20 }}px;">
-                                    {% if img.title %}
+                                    {% if img.description %}
+                                        {{ img.description }}
+                                    {% elif img.title %}
                                         {{ img.title }}
                                     {% else %}
                                         {{img.time_of_day}}

@@ -66,7 +66,9 @@
                     <a href="{{ img.url }}" class="thumbnail">
                         <img src="{{ img.thumbnail_url }}" title="{% if img.title %}{{ img.title }}{% else %}{{ img.time }}{% endif %}"/>
                         <div class="caption" style="width: {{ thumbnail_width - 20 }}px;">
-                            {% if img.title %}
+                            {% if img.description %}
+                                {{ img.description }}
+                            {% elif img.title %}
                                 {{ img.title }}
                             {% else %}
                                 {{img.time_of_day}}
