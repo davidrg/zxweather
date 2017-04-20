@@ -11,6 +11,7 @@ License: GNU GPL v2+
 import imghdr
 import json
 import mimetypes
+import os
 import time
 from datetime import datetime
 from time import strftime
@@ -60,6 +61,9 @@ _spectrogram_image_type_code = "SPEC"
 
 
 def handle_apt_image(image_file, log_file, metadata_filename):
+
+    if not os.path.isfile(image_file):
+        return  # File doesn't exist. Nothing to store.
 
     settings = Settings()
 
