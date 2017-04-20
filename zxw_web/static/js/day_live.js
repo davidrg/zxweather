@@ -915,7 +915,12 @@ function parse_image_data(parts) {
         sort_order = 1000;
     }
 
-    var dt = new Date(year, month, day, hour, minute, second);
+    var dt = new Date(year,
+        month - 1, // Because january is 0 in javascript for some stupid reason
+        day,
+        hour,
+        minute,
+        second);
 
     return {
         'station_code': station_code,
@@ -1697,11 +1702,6 @@ function data_arrived(data) {
             today.setMinutes(0);
             today.setSeconds(0);
             today.setMilliseconds(0);
-
-            console.log("now");
-            console.log(today);
-            console.log("img");
-            console.log(parsed['date']);
 
             if (parsed['date'] < today) {
                 console.log("Image too old for this page. Ignoring");
