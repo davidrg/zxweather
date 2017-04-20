@@ -243,7 +243,7 @@ function stringToDate(str) {
 
     var date_parts = date.split("-");
     var year = parseInt(date_parts[0]);
-    var month = parseInt(date_parts[1]);
+    var month = parseInt(date_parts[1] - 1);  // JS months are 0-based
     var day = parseInt(date_parts[2]);
 
     // Toss away the timezone. The WebUI assumes all parts of the system are running in the
@@ -310,7 +310,8 @@ ImageSection.prototype._create_images_row = function() {
     return row;
 };
 
-ImageSection.prototype._compare_element = function(element, time_stamp, sort_order, title) {
+ImageSection.prototype._compare_element = function(
+    element, time_stamp, sort_order, title, ascending) {
 
 
     var a = $(element).attr("data-time-stamp");
@@ -336,7 +337,11 @@ ImageSection.prototype._compare_element = function(element, time_stamp, sort_ord
         //     sort_order + "," + title + ") by timestamp");
         return -1;
     } else {
-        if (sort_order > other_sort_order) {
+        // Note: Ascending: Bigger number is lower priority! 5 vs 10? 5 wins.
+        // Descending: Bigger number is higher priority.
+        // Promoted image uses ascending, image list uses descending.
+        if ((ascending && sort_order < other_sort_order) ||
+            (!ascending && sort_order > other_sort_order)) {
             // console.log("New element is greater than (" + other_time_stamp + ", " +
             //     sort_order + "," + title + ") by sort order");
             return 1;
@@ -454,7 +459,7 @@ ImageSection.prototype._add_image_to_list = function(
             return;
         }
 
-        var cmp = sect._compare_element(this, time_stamp, sort_order, title);
+        var cmp = sect._compare_element(this, time_stamp, sort_order, title, false);
 
         if (cmp < 0) {
             // console.log("Inserting before:");
@@ -481,7 +486,7 @@ ImageSection.prototype._update_current_image = function(full_url, title,
     var current_image_row = this.element.find("div.row.current_image");
 
     var cmp = this._compare_element(current_image_row, time_stamp, sort_order,
-        title);
+        title, true /* ascending sort */);
 
     if (cmp <= 0) {
         return;  // Image has a lower sort index than the current one. Ignore it.
