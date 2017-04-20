@@ -587,12 +587,16 @@ function add_image(parsed) {
         var title = description_data.title;
         var description = description_data.description;
 
-        if (title == null || title == '') {
-            title = parsed['time_stamp'].replace('T', ' ');
+        if (description === null || description === '') {
+            if (title === null) {
+                description = parsed['time'];
+            } else {
+                description = title;
+            }
         }
 
-        if (description == null || description == '') {
-            description = parsed['time'];
+        if (title === null || title === '') {
+            title = parsed['time_stamp'].replace('T', ' ');
         }
 
         if (src_code in image_sections) {
