@@ -519,6 +519,10 @@ ImageSection.prototype._update_current_image = function(full_url, title,
     }
 
     caption_element.text(caption);
+
+    current_image_row.attr("data-time-stamp", dateToString(time_stamp));
+    current_image_row.attr("data-sort-order", sort_order);
+    current_image_row.attr("data-title", title);
 };
 
 ImageSection.prototype.create_element = function(code, title, description) {
