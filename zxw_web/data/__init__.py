@@ -142,7 +142,8 @@ def get_sys_config_json():
         'zxweatherd_host': config.zxweatherd_hostname,
         'zxweatherd_raw_port': config.zxweatherd_raw_port,
         'site_name': get_site_name(None),
-        'stations': get_full_station_info(not config.hide_coordinates)
+        'stations': get_full_station_info(not config.hide_coordinates),
+        'image_type_sort': config.image_type_sort
     }
 
     return json.dumps(sys_config)
