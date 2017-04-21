@@ -63,6 +63,13 @@ section:first-of-type {
   margin-left: auto;
 }
 
+/* center-align images in the carousel */
+.carousel-inner div.item img {
+    margin-left: auto;
+    margin-right: auto;
+    display: block;
+}
+
 /*
  * Icons
  */

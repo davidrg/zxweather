@@ -1,6 +1,6 @@
         {% if images  -%}
         {% for source in images -%}
-        <section class="images" data-src="{{ source['code'] }}">
+        <section class="images" data-src="{{ source['code']|lower }}">
             <div class="row">
                 <div class="span6">
                     <h2>{{ source['name'] }}</h2>
@@ -19,33 +19,65 @@
                  data-time-stamp="{{ source['latest'].js_date }}"
                  data-sort-order="{{ source['latest'].sort_order }}">
                 <div class="span12">
-                    {% if source['latest'].is_video %}
+                    {%- if source['latest'].is_video -%}
                     <video src="{{ source['latest'].url }}" width="100%" controls>
                         Your browser doesn't appear to support embedded videos. Try
                         <a href="{{ source['latest'].url }}">downloading</a> the video and watching it in a
                         player like <a href="http://www.videolan.org/vlc/index.html">VLC</a>.
                     </video>
                     <div class="caption">
-                        {% if source['latest'].description %}
+                        {%- if source['latest'].description -%}
                             {{ source['latest'].description }}
-                        {% elif source['latest'].title %}
+                        {%- elif source['latest'].title -%}
                             {{ source['latest'].title }}
-                        {% else %}
+                        {%- else -%}
                             {{ source['latest'].time_of_day }}
-                        {% endif %}
+                        {%- endif -%}
+                    </div>
+                    {%- else -%}
+                        {# Its (one or more) images #}
+                        {%- if source['latest_set'] -%}
+                            {# Multiple images! #}
+                    <div id="{{source['code']|lower}}_promoted" class="carousel slide">
+                      <img src="{{ source['latest'].url }}" style="display: none;">
+                      <div class="carousel-inner">
+                        {% for i in source['latest_set'] %}
+                        <div class="{% if loop.index0 == 0 %}active{% endif %} item"
+                             data-title="{{ i.title }}"
+                             data-time-stamp="{{ i.js_date }}"
+                             data-sort-order="{{ i.sort_order }}">
+                          <img src="{{ i.url }}" alt="">
+                          <div class="carousel-caption">
+                              <p>
+                                {%- if i.description -%}
+                                    {{ i.description }}
+                                {%- elif i.title -%}
+                                    {{ i.title }}
+                                {%- else -%}
+                                    {{ i.time_of_day }}
+                                {%- endif -%}
+                              </p>
+                          </div>
+                        </div>
+                        {% endfor %}
+                      </div>
+                      <!-- Carousel nav -->
+                      <a class="carousel-control left" href="#{{source['code']|lower}}_promoted" data-slide="prev">&lsaquo;</a>
+                      <a class="carousel-control right" href="#{{source['code']|lower}}_promoted" data-slide="next">&rsaquo;</a>
                     </div>
                     {% else %}
                     <img src="{{ source['latest'].url }}" title="{{ source['latest'].time }}" />
                     <div class="caption">
-                        {% if source['latest'].description %}
+                        {%- if source['latest'].description -%}
                             {{ source['latest'].description }}
-                        {% elif source['latest'].title %}
+                        {%- elif source['latest'].title -%}
                             {{ source['latest'].title }}
-                        {% else %}
+                        {%- else -%}
                             {{ source['latest'].time_of_day }}
-                        {% endif %}
+                        {%- endif -%}
                     </div>
-                    {% endif %}
+                        {% endif %}
+                    {%- endif %}
                 </div>
             </div>
             {% endif %}
@@ -87,13 +119,13 @@
                             <a href="{{ img.url }}" class="thumbnail">
                                 <img src="{{ img.thumbnail_url }}" title="{% if img.title %}{{ img.title }}{% else %}{{ img.time }}{% endif %}"/>
                                 <div class="caption" style="width: {{ thumbnail_width - 20 }}px;">
-                                    {% if img.description %}
+                                    {%- if img.description -%}
                                         {{ img.description }}
-                                    {% elif img.title %}
+                                    {%- elif img.title -%}
                                         {{ img.title }}
-                                    {% else %}
+                                    {%- else -%}
                                         {{img.time_of_day}}
-                                    {% endif %}
+                                    {%- endif -%}
                                 </div>
                             </a>
                             {% endif %}

@@ -101,6 +101,10 @@ class StationImage(object):
     def sort_order(self):
         return self._sort_order
 
+    @property
+    def type_code(self):
+        return self._type
+
 
 def get_station_day_images(station_id, day):
     # Get images
@@ -127,12 +131,28 @@ def get_station_day_images(station_id, day):
                 if len(latest_images) > 0:
                     latest_image = latest_images[0]
 
+                latest_ts = latest_image.time
+                latest_image_set = []
+                for i in source_images:
+                    # Group together all the regular images with the same
+                    # timestamp. We'll exclude unenhanced APT images,
+                    # spectrograms and APT recordings as they're not really
+                    # worthy of being the promoted image and certainly shouldn't
+                    # be in a carousel of all other images from that APT
+                    # broadcast.
+                    if i.time == latest_ts \
+                            and i.type_code not in ('aptd', 'spec', 'apt'):
+                        latest_image_set.append(i)
+                if len(latest_image_set) == 0:
+                    latest_image_set = None  # No set.
+
                 images.append({
                     'name': source.source_name,
                     'description': source.description,
                     'code': source.code,
                     'images': source_images,
-                    'latest': latest_image
+                    'latest': latest_image,
+                    'latest_set': latest_image_set
                 })
     return images
 

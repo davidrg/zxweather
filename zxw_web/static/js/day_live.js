@@ -229,7 +229,7 @@ function dateToString(dt) {
     }
 
     return dt.getFullYear().toString() + "-" +
-            dt.getMonth().toString() + "-" +
+            (dt.getMonth() + 1).toString() + "-" +  // 0-based month strikes again
             dt.getDate().toString() + "T" +
             hoursString + ":" +
             dt.getMinutes().toString() + ":" +
@@ -257,10 +257,11 @@ function stringToDate(str) {
 }
 
 // Code for managing an images section client-side
-function ImageSection(el) {
+function ImageSection(el, src_code) {
     if (el != null) {
         this.element = el;
     }
+    this.src_code = src_code
 }
 
 ImageSection.prototype._create_title_row = function(title) {
@@ -310,18 +311,38 @@ ImageSection.prototype._create_images_row = function() {
     return row;
 };
 
+ImageSection.prototype._element_time_stamp = function(element) {
+    var a = $(element).attr("data-time-stamp");
+    if (typeof a === typeof undefined || a === false) {
+        return null; // No image loaded?
+    }
+
+    return stringToDate(a);
+};
+
+ImageSection.prototype._element_sort_order = function(element) {
+    var a = $(element).attr("data-sort-order");
+    if (typeof a === typeof undefined || a === false) {
+        return null; // No image loaded?
+    }
+    return parseInt(a);
+};
+
+ImageSection.prototype._element_title = function(element) {
+    return $(element).attr("data-title");
+};
+
 ImageSection.prototype._compare_element = function(
     element, time_stamp, sort_order, title, ascending) {
 
+    var other_time_stamp = this._element_time_stamp(element);
 
-    var a = $(element).attr("data-time-stamp");
-    if (typeof a == typeof undefined || a == false) {
-        return 1; // No image loaded.
+    if (other_time_stamp === null) {
+        return 1; // No image loaded
     }
 
-    var other_time_stamp = stringToDate($(element).attr("data-time-stamp"));
-    var other_sort_order = parseInt($(element).attr("data-sort-order"));
-    var other_title = $(element).attr("data-title");
+    var other_sort_order = this._element_sort_order(element);
+    var other_title = this._element_title(element);
 
     // console.log("-----------------");
     // console.log("TS existing [" + other_time_stamp + "], new [" + time_stamp + "]");
@@ -345,7 +366,7 @@ ImageSection.prototype._compare_element = function(
             // console.log("New element is greater than (" + other_time_stamp + ", " +
             //     sort_order + "," + title + ") by sort order");
             return 1;
-        } else if (sort_order == other_sort_order) {
+        } else if (sort_order === other_sort_order) {
             // console.log("New element is equal tp (" + other_time_stamp + ", " +
             //     sort_order + "," + title + ") by timestamp and sort order, " +
             //     "falling back to title");
@@ -480,10 +501,168 @@ ImageSection.prototype._add_image_to_list = function(
     //adjust_thumbnail_heights();
 };
 
+ImageSection.prototype._make_carousel_image = function(full_url, title, caption,
+        time_stamp, sort_order, active) {
+    var div = $("<div />");
+    div.addClass("item");
+    if (active) {
+        div.addClass("active");
+    }
+    div.attr("data-title", title);
+    div.attr("data-sort-order", sort_order);
+    div.attr("data-time-stamp", dateToString(time_stamp));
+
+    var img = $("<img />");
+    img.attr("src", full_url);
+    img.attr("alt", title);
+    img.attr("title", title);
+    div.append(img);
+
+    var captionEl = $("<div />");
+    captionEl.addClass("carousel-caption");
+
+    var p = $("<p />");
+    p.text(caption);
+    captionEl.append(p);
+    div.append(captionEl);
+    return div;
+};
+
+ImageSection.prototype._switch_to_carousel = function(current_image_row) {
+    // We are switching to a carousel with two images
+
+    // Pull out the details for the currently promoted image. This will be the
+    // first image in the carousel
+    var full_url = current_image_row.find("img").attr("src");
+    var title = this._element_title(current_image_row);
+    var caption = current_image_row.find("div.caption").text();
+    var time_stamp = this._element_time_stamp(current_image_row);
+    var sort_order = this._element_sort_order(current_image_row);
+
+    var elId = this.src_code + "_promoted";
+
+    // Main div
+    var div = $("<div />");
+    div.attr("id", elId);
+    div.addClass("carousel");
+    div.addClass("slide");
+
+    // List of images
+    var imageList = $("<div />");
+    imageList.addClass("carousel-inner");
+
+    if (time_stamp !== null) {
+        // If we have a current image, add it to the carousel.
+        imageList.append(this._make_carousel_image(full_url, title, caption,
+            time_stamp, sort_order, true));
+    }
+    div.append(imageList);
+
+    // Nav buttons
+    var left = $("<a />");
+    left.addClass("carousel-control");
+    left.addClass("left");
+    left.attr("href", "#" + elId);
+    left.attr("data-slide", "prev");
+    left.html("&lsaquo;");
+    div.append(left);
+
+    var right = $("<a />");
+    right.addClass("carousel-control");
+    right.addClass("right");
+    right.attr("href", "#" + elId);
+    right.attr("data-slide", "next");
+    right.html("&rsaquo;");
+    div.append(right);
+
+    // Hide the existing elements
+    current_image_row.find("img").hide();
+    current_image_row.find("video").hide();
+    current_image_row.find("div.caption").hide();
+
+    // Update sorting attributes on the image row
+    current_image_row.attr("data-time-stamp", dateToString(time_stamp));
+    current_image_row.attr("data-sort-order", sort_order);
+    current_image_row.attr("data-title", title);
+
+    // And slot in the carousel
+    current_image_row.append(div);
+
+    div.carousel();
+};
+
+ImageSection.prototype._add_image_to_carousel = function(current_image_row,
+                                                         full_url, title,
+                                                         caption, time_stamp,
+                                                         sort_order) {
+
+    var item = this._make_carousel_image(full_url, title, caption, time_stamp,
+        sort_order, false);
+
+    var carousel_inner = current_image_row.find("div.carousel-inner");
+
+    // Now we've got the new list item we've got to slot it into the list in the
+    // right location.
+    var sect = this;
+    var inserted = false;
+    carousel_inner.find(".item").each(function() {
+        if (inserted) {
+            return;
+        }
+
+        var cmp = sect._compare_element(this, time_stamp, sort_order, title, false);
+
+        if (cmp < 0) {
+            // belongs before the current one.
+            item.insertBefore(this);
+            inserted = true;
+        }
+    });
+
+    // Belongs at the end of the list
+    if (!inserted) {
+        // console.log("Appending to list");
+        carousel_inner.append(item);
+    }
+
+    $('.carousel-inner').each(function() {
+        var maxHeight = 0;
+
+        $(".item", this).each(function() {
+            var h = $(this).height();
+            if (h > maxHeight) {
+                maxHeight = h;
+            }
+        });
+
+        $(this).find(".item", this).height(maxHeight);
+    });
+};
+
 ImageSection.prototype._update_current_image = function(full_url, title,
                                                         caption, is_video,
                                                         time_stamp, sort_order) {
     var current_image_row = this.element.find("div.row.current_image");
+
+    var current_ts = this._element_time_stamp(current_image_row);
+    var current_sort = this._element_sort_order(current_image_row);
+
+    var carousel_mode = current_image_row.find(".carousel").length > 0;
+
+    if (current_ts !== null && current_ts.getTime() === time_stamp.getTime()
+        && current_sort !== sort_order && !is_video) {
+        // Another image with the same timestamp but a different sort order!
+
+        if (!carousel_mode) {
+            // Deploy Carousel Mode!
+            this._switch_to_carousel(current_image_row);
+        }
+
+        this._add_image_to_carousel(current_image_row, full_url, title,
+                                    caption, time_stamp, sort_order);
+
+        return;
+    }
 
     var cmp = this._compare_element(current_image_row, time_stamp, sort_order,
         title, true /* ascending sort */);
@@ -496,8 +675,21 @@ ImageSection.prototype._update_current_image = function(full_url, title,
     var video = current_image_row.find("video");
     var caption_element = current_image_row.find("div.caption");
 
+    // Get rid of the carousel - were showing a single image or video now.
+    if (carousel_mode) {
+        current_image_row.find("div.carousel").remove();
+        if (video.length !== 0) {
+            console.log("found video el");
+            video.show();
+        } else if (img.length !== 0) {
+            console.log("found img el");
+            img.show();
+        }
+        caption_element.show();
+    }
+
     if (is_video) {
-        if (video.length == 0) {
+        if (video.length === 0) {
             // We're currently displaying an image. Swap out the img element
             // with a video one.
             video = $('<video width="100%" controls></video>');
@@ -507,7 +699,7 @@ ImageSection.prototype._update_current_image = function(full_url, title,
         video.attr('src', full_url);
         video.attr('title', title);
     } else {
-        if (img.length == 0) {
+        if (img.length === 0) {
             // We're currently displaying a video. Swap out the video element
             // with an image one.
             img = $('<img />');
@@ -547,9 +739,17 @@ ImageSection.prototype.create_element = function(code, title, description) {
 
 ImageSection.prototype.addImage = function(thumb_url, full_url, title, caption,
                                            is_video, is_audio, time_stamp,
-                                           sort_order) {
+                                           sort_order, type_code) {
     this._add_image_to_list(thumb_url, full_url, title, caption, is_video,
         is_audio, time_stamp, sort_order);
+
+    type_code = type_code.toLowerCase();
+
+    if (type_code === "aptd" || type_code === "spec" || type_code === "apt" || is_audio) {
+        // Not worthy of being a promoted image.
+        return;
+    }
+
     this._update_current_image(full_url, title, caption, is_video, time_stamp,
          sort_order);
 };
@@ -575,7 +775,7 @@ function discover_image_sections() {
     $("section.images").each(function(i,s) {
         var el = $(s);
         var src_code = el.attr('data-src').toLowerCase();
-        image_sections[src_code] = new ImageSection(el);
+        image_sections[src_code] = new ImageSection(el, src_code);
     });
 }
 
@@ -608,22 +808,26 @@ function add_image(parsed) {
 
             section.addImage(parsed['thumb_url'], parsed['full_url'], title,
                 description, parsed['is_video'], parsed['is_audio'],
-                parsed['date'], parsed['sort_order']);
+                parsed['date'], parsed['sort_order'], parsed['type_code']);
         } else {
 
             // In order to create a new section we have to go and look up its title and description.
             $.getJSON(data_root + station_code + "/image_sources.json", function(data) {
-                if (src_code in data) {
-                    var img_src_title = data[src_code]['name'];
-                    var img_src_description = data[src_code]['description'];
+                // Image source codes are in UPPERCASE. We use lowercase here in
+                // JS land, so...
+                var upperSrcCode = src_code.toUpperCase();
 
-                    var section = new ImageSection(null);
+                if (upperSrcCode in data) {
+                    var img_src_title = data[upperSrcCode]['name'];
+                    var img_src_description = data[upperSrcCode]['description'];
+
+                    var section = new ImageSection(null, src_code);
                     section.create_element(src_code, img_src_title, img_src_description);
 
                     section.addImage(parsed['thumb_url'], parsed['full_url'],
                         title, description, parsed['is_video'],
                         parsed['is_audio'], parsed['date'],
-                        parsed['sort_order']);
+                        parsed['sort_order'], parsed['type_code']);
 
                     image_sections[src_code] = section;
                 }
