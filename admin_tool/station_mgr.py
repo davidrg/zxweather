@@ -17,7 +17,7 @@ def print_station_list(cur):
     :rtype: list
     """
     cur.execute("""
-select s.code, st.code as type_code, s.title
+select lower(s.code) as code, lower(st.code) as type_code, s.title
 from station s
 inner join station_type st on st.station_type_id = s.station_type_id
 order by sort_order ASC
@@ -50,7 +50,7 @@ def get_station_codes(cur):
     """
 
     cur.execute("""
-select s.code
+select lower(s.code)
 from station s
     """)
 
@@ -323,7 +323,7 @@ Station ID: {broadcast_id}
             print("Creating station...")
 
             cur.execute("select station_type_id from station_type "
-                        "where code = %s", (station_info["type"],))
+                        "where lower(code) = lower(%s)", (station_info["type"],))
             type_id = cur.fetchone()[0]
 
             station_config = None
@@ -335,7 +335,7 @@ Station ID: {broadcast_id}
 insert into station(code, title, description, station_type_id,
                     sample_interval, live_data_available, sort_order,
                     station_config, site_title, latitude, longitude, altitude)
-values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+values(upper(%s),%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
 returning station_id""", (
                 station_info["code"], station_info["name"],
                 station_info["description"], type_id, station_info["interval"],
@@ -467,7 +467,7 @@ select stn.station_id,
        stn.sample_interval,
        stn.live_data_available,
        coalesce(stn.sort_order,0),
-       ht.code as hardware_type,
+       upper(ht.code) as hardware_type,
        station_config,
        site_title,
        latitude,
@@ -475,7 +475,7 @@ select stn.station_id,
        altitude
 from station stn
 inner join station_type ht on ht.station_type_id = stn.station_type_id
-where stn.code = %s
+where lower(stn.code) = lower(%s)
     """, (selected_station_code,))
     result = cur.fetchone()
 
@@ -576,7 +576,7 @@ def set_station_message(con):
     selected_station_code = get_code("Station to edit", codes, required=True)
 
     cur.execute("select station_id, message, message_timestamp "
-                "from station where code = %s",
+                "from station where lower(code) = lower(%s)",
                 (selected_station_code,))
     result = cur.fetchone()
 

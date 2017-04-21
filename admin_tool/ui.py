@@ -339,17 +339,20 @@ def get_float(prompt, default=None, required=False):
 
 def __get_code_required(prompt, valid_codes):
 
+    valid_codes = [x.upper() for x in valid_codes]
+
     while True:
         val = get_string(prompt, required=True)
 
-        if val.upper() in valid_codes:
-            return val.upper()
-        elif val in valid_codes:
+        val = val.upper()
+
+        if val in valid_codes:
             return val
         else:
             print("Please enter a valid code.")
 
 def __get_code_optional(prompt, valid_codes, default):
+    valid_codes = [x.upper() for x in valid_codes]
 
     while True:
         val = get_string(prompt, default)
