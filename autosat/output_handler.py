@@ -103,7 +103,7 @@ def handle_apt_image(image_file, log_file, metadata_filename):
     else:
         enhancement = "{0} false colour enhancement".format(enhancement)
 
-    caption = "{0}, {1} {2} @ {3} elevation, {4}".format(
+    caption = "{0}, {1} {2} @ {3}° elevation, {4}".format(
         enhancement,
         satellite,
         direction,
