@@ -69,7 +69,7 @@ class DatabaseReceiver(object):
     from live_data ld
     inner join station s on s.station_id = ld.station_id
     inner join davis_live_data dd on dd.station_id = ld.station_id
-    where s.code = %s
+    where upper(s.code) = upper(%s)
         """
 
         def _process_result(result):
@@ -90,7 +90,8 @@ class DatabaseReceiver(object):
         if station_code != self._station_code:
             return  # Not the station we're looking for.
 
-        hw_type = self.station_code_hardware_type[station_code]
+
+        hw_type = self.station_code_hardware_type[station_code.upper()]
 
         if hw_type == 'DAVIS':  # Davis hardware has extra data to send.
             self._fetch_davis_live(station_code)
@@ -113,7 +114,8 @@ class DatabaseReceiver(object):
             self.station_code_hardware_type[row[0]] = row[1]
 
     def _cache_hardware_types(self):
-        query = "select s.code, st.code as hw_code from station s inner join "\
+        query = "select upper(s.code) as code, " \
+                "upper(st.code) as hw_code from station s inner join "\
                 "station_type st on st.station_type_id = s.station_type_id "
         self._conn.runQuery(query).addCallback(self._store_hardware_types)
 
@@ -213,7 +215,8 @@ class Database(object):
             returnValue(self._camera_image_type_id)
         else:
             result = yield self._database_pool.runQuery(
-                    "select image_type_id from image_type where code = 'TLVID'")
+                    "select image_type_id from image_type "
+                    "where upper(code) = 'TLVID'")
             self._camera_image_type_id = result[0][0]
             returnValue(self._camera_image_type_id)
 
@@ -223,7 +226,8 @@ class Database(object):
             returnValue(self._image_source_id)
         else:
             result = yield self._database_pool.runQuery(
-                    "select image_source_id from image_source where code = %s",
+                    "select image_source_id from image_source "
+                    "where upper(code) = upper(%s)",
                     (self._image_source_code.upper(),))
             if len(result):
                 self._image_source_id = result[0][0]
@@ -239,7 +243,8 @@ class Database(object):
         query = """
         insert into image(image_type_id, image_source_id, time_stamp,
                           image_data, mime_type, metadata, title, description)
-        values(%(type_id)s, %(source_id)s, %(time_stamp)s, %(data)s, %(mime)s, %(metadata)s, %(title)s, %(description)s)
+        values(%(type_id)s, %(source_id)s, %(time_stamp)s, %(data)s, %(mime)s, 
+        %(metadata)s, %(title)s, %(description)s)
         returning image_id
                 """
 

@@ -72,7 +72,7 @@ class DatabaseReceiver(object):
     from live_data ld
     inner join station s on s.station_id = ld.station_id
     inner join davis_live_data dd on dd.station_id = ld.station_id
-    where s.code = %s
+    where upper(s.code) = upper(%s)
         """
 
         def _process_result(result):
@@ -93,7 +93,7 @@ class DatabaseReceiver(object):
         if station_code != self._station_code:
             return  # Not the station we're looking for.
 
-        hw_type = self.station_code_hardware_type[station_code]
+        hw_type = self.station_code_hardware_type[station_code.upper()]
 
         if hw_type == 'DAVIS':  # Davis hardware has extra data to send.
             self._fetch_davis_live(station_code)
@@ -116,8 +116,9 @@ class DatabaseReceiver(object):
             self.station_code_hardware_type[row[0]] = row[1]
 
     def _cache_hardware_types(self):
-        query = "select s.code, st.code as hw_code from station s inner join "\
-                "station_type st on st.station_type_id = s.station_type_id "
+        query = "SELECT upper(s.code) AS code, " \
+                "upper(st.code) AS hw_code FROM station s INNER JOIN " \
+                "station_type st ON st.station_type_id = s.station_type_id "
         self._conn.runQuery(query).addCallback(self._store_hardware_types)
 
     def connect(self):
@@ -215,7 +216,7 @@ class Database(object):
             returnValue(self._camera_image_type_id)
         else:
             result = yield self._database_pool.runQuery(
-                    "select image_type_id from image_type where code = 'CAM'")
+                    "select image_type_id from image_type where upper(code) = 'CAM'")
             self._camera_image_type_id = result[0][0]
             returnValue(self._camera_image_type_id)
 
@@ -225,8 +226,9 @@ class Database(object):
             returnValue(self._image_source_id)
         else:
             result = yield self._database_pool.runQuery(
-                    "select image_source_id from image_source where code = %s",
-                    (self._image_source_code.upper(),))
+                    "select image_source_id from image_source "
+                    "where upper(code) = upper(%s)",
+                    (self._image_source_code,))
             if len(result):
                 self._image_source_id = result[0][0]
             else:
