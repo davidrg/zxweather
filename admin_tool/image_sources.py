@@ -1,3 +1,4 @@
+from replication_mgr import retry_failed_images
 from station_mgr import print_station_list
 from ui import get_string_with_length_indicator, get_string, get_code, \
     get_boolean, menu
@@ -260,6 +261,12 @@ def manage_image_sources(con):
             "name": "Edit image source",
             "type": "func",
             "func": lambda: edit_image_source(con)
+        },
+        {
+            "key": "4",
+            "name": "Reset replication retry counts",
+            "type": "func",
+            "func": lambda: retry_failed_images(con)
         },
         {
             "key": "0",
