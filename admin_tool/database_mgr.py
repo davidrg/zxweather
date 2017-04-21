@@ -162,7 +162,7 @@ You may now enter an optional short description for your weather station.""")
         #
         # We will just overwrite these default values with those chosen by the
         # user.
-        cur.execute("UPDATE station SET code = %s, title = %s, description = %s;",
+        cur.execute("UPDATE station SET code = upper(%s), title = %s, description = %s;",
             (station_code, station_name, station_description))
         con.commit()
 

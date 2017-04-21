@@ -35,8 +35,9 @@ def get_edit_image_source_info(defaults):
 
 def get_new_image_source_info(cur, defaults):
     print("""
-The Image Source Code is a short (up to 5 characters) unique identifier for
-your new image source. As it appears in URLs it can not be changed later.
+The Image Source Code is a short (up to 5 characters) case-insensitive 
+unique identifier for your new image source. As it appears in URLs it can not 
+be changed later.
     """)
 
     if defaults["code"] is None:
@@ -123,7 +124,8 @@ Description: {description}
             print("Creating image source...")
 
             cur.execute("insert into image_source(code, station_id, "
-                        "source_name, description) values(%s,%s,%s,%s)", (
+                        "source_name, description) values(upper(%s),%s,%s,%s)",
+                        (
                             source_info['code'],
                             source_info['station_id'],
                             source_info['name'],
