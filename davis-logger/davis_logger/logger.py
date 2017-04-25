@@ -447,7 +447,7 @@ class MQPublisher(object):
         """
         import pika
         self._channel = channel
-        self._key_prefix = station_code + "."
+        self._key_prefix = station_code.lower() + "."
         self._properties = pika.BasicProperties(
             app_id='DavisLogger',
             content_type='application/json',
@@ -659,7 +659,7 @@ class DavisService(service.Service):
 
         self.database_pool.runQuery(
             "select station_id, live_data_available "
-            "from station where code = %s",
+            "from station where upper(code) = upper(%s)",
             (self.station_code,)).addCallback(self._store_station_id)
 
     def _database_connect(self, ):
