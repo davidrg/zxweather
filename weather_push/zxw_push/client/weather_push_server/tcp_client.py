@@ -123,10 +123,10 @@ class WeatherPushProtocol(protocol.Protocol):
         self._receive_buffer += data
 
         while len(self._receive_buffer) > 0:
-            if len(self._receive_buffer) < \
+            if len(self._receive_buffer) < 2 or len(self._receive_buffer) < \
                     get_data_required_for_size_calculation(
                         self._receive_buffer):
-                # Insufficient data in the buffer to calcualte the packet length
+                # Insufficient data in the buffer to calculate the packet length
                 return
 
             packet_size = get_packet_size(self._receive_buffer)

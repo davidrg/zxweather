@@ -88,7 +88,7 @@ class WeatherPushTcpServer(protocol.Protocol):
 
         while len(self._receive_buffer) > 0:
 
-            if len(self._receive_buffer) < \
+            if len(self._receive_buffer) < 2 or len(self._receive_buffer) < \
                     get_data_required_for_size_calculation(
                         self._receive_buffer):
                 # insufficient data to determine size of packet
