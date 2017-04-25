@@ -97,8 +97,8 @@ class ServerDatabase(object):
         # TODO: filter list of stations to only those the auth code works on
 
         query = """
-        select s.code as code,
-               st.code as hw_type,
+        select upper(s.code) as code,
+               upper(st.code) as hw_type,
                s.station_id as station_id,
                row_number() OVER () as sid
         from station s
@@ -127,7 +127,7 @@ class ServerDatabase(object):
         Gets a list of all image type codes in the database.
         """
         query = """
-        select code
+        select upper(code) as code
         from image_type
         """
 
@@ -143,8 +143,8 @@ class ServerDatabase(object):
         """
 
         query = """
-        select src.code as source_code,
-               stn.code as station_code
+        select upper(src.code) as source_code,
+               upper(stn.code) as station_code
         from image_source src
         inner join station stn on stn.station_id = src.station_id
         """
@@ -159,13 +159,15 @@ class ServerDatabase(object):
 
         # Get the type ID
         # TODO: cache this
-        query = "select image_type_id from image_type where code = %s"
+        query = "select image_type_id from image_type " \
+                "where upper(code) = upper(%s)"
         result = yield self._conn.runQuery(query, (type_code, ))
         type_id = result[0][0]
 
         # Get the source ID
         # TODO: cache this
-        query = "select image_source_id from image_source where code = %s"
+        query = "select image_source_id from image_source " \
+                "where upper(code) = upper(%s)"
         result = yield self._conn.runQuery(query, (source_code, ))
         source_id = result[0][0]
 

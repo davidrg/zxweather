@@ -43,7 +43,7 @@ def wh1080_sample_query(ascending, where_clause="pending"):
     """
     query = """
        select s.sample_id as sample_id,
-       st.code as station_code,
+       upper(st.code) as station_code,
        s.indoor_relative_humidity as indoor_humidity,
        s.indoor_temperature as indoor_temperature,
        s.temperature as temperature,
@@ -95,7 +95,7 @@ def davis_sample_query(ascending, where_clause="pending"):
     """
     query = """
 select s.sample_id as sample_id,
-       st.code as station_code,
+       upper(st.code) as station_code,
        s.indoor_relative_humidity as indoor_humidity,
        s.indoor_temperature as indoor_temperature,
        s.temperature as temperature,
@@ -155,7 +155,7 @@ def generic_sample_query(ascending, where_clause="pending"):
     """
     query = """
 select s.sample_id as sample_id,
-       st.code as station_code,
+       upper(st.code) as station_code,
        s.indoor_relative_humidity as indoor_humidity,
        s.indoor_temperature as indoor_temperature,
        s.temperature as temperature,
