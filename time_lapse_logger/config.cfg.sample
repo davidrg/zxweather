@@ -120,5 +120,6 @@ encoder_script=/opt/zxweather/time_lapse_logger/encoders/omx_mp4.sh
 
 # Where to store videos on disk that couldn't be loaded into the database for
 # whatever reason. Make sure this directory exists and is writable by the
-# service.
+# service. You can load videos in this file by passing the *_info.json files to
+# store_video.py along with a database connection string.
 backup_location=/var/lib/zxweather/time_lapse_logger/failed_videos/

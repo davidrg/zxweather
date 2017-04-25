@@ -1,6 +1,6 @@
 # coding=utf-8
 """
-A simple program to store an image in the database
+A simple program to store an image in the database.
 """
 import argparse
 import imghdr
@@ -80,13 +80,14 @@ def main():
 
     # Get data source ID
     cur.execute("select image_source_id from image_source "
-                "where code = upper(%s)",
+                "where upper(code) = upper(%s)",
                 (args.image_source,))
     result = cur.fetchone()
     source_id = result[0]
 
     # Get data type ID
-    cur.execute("select image_type_id from image_type where code = upper(%s)",
+    cur.execute("select image_type_id from image_type "
+                "where upper(code) = upper(%s)",
                 (args.image_type_code,))
     result = cur.fetchone()
     type_id = result[0]
