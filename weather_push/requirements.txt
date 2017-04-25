@@ -1,6 +1,6 @@
-twisted
+twisted==16.4.1
 psycopg2
-txpostgres
+txpostgres==1.5.0
 
 # optional - only used by the client if image resizing is enabled
 Pillow
