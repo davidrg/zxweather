@@ -93,13 +93,13 @@ int pgo_check_station_type(char* station_code) {
     const char* station_code_param = station_code;
     EXEC SQL END DECLARE SECTION;
 
-    EXEC SQL select case when st.code = 'FOWH1080' then 1
+    EXEC SQL select case when upper(st.code) = 'FOWH1080' then 1
                          else 0
                     end as hc
                     into :ret_val
              from station s
              inner join station_type st on st.station_type_id = s.station_type_id
-             where s.code = :station_code_param;
+             where upper(s.code) = upper(:station_code_param);
 
     return ret_val;
 }
@@ -168,7 +168,7 @@ long pgo_get_station_id(const char* station_code) {
     EXEC SQL SELECT station_id
              INTO :ret_val
              FROM station
-             WHERE code = :station_code_param;
+             WHERE upper(code) = upper(:station_code_param);
 
     return ret_val;
 }
