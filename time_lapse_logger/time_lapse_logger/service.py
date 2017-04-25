@@ -116,6 +116,7 @@ class TSLoggerService(service.Service):
 
         # Database connection for storing videos
         self._database = Database(dsn, image_source_code)
+        self._image_source_code = image_source_code
 
         # How often pictures should be taken
         self._interval = capture_interval
@@ -397,6 +398,7 @@ class TSLoggerService(service.Service):
     @inlineCallbacks
     def _build_and_store_video(self):
         finish_time = self.current_time
+        mime_type = "video/mp4"
 
         title = "Time-lapse for {0}".format(self._logging_start_time.date())
         description = "Time-lapse from {0} to {1}".format(
@@ -451,8 +453,8 @@ class TSLoggerService(service.Service):
                 if self._db_receiver is not None:
                     self._db_receiver.reconnect()
 
-                yield self._database.store_video(self.current_time, video_data,
-                                                 'video/mp4',
+                yield self._database.store_video(finish_time, video_data,
+                                                 mime_type,
                                                  json.dumps(metadata),
                                                  title, description)
                 log.msg("Database reconnected and video stored.")
@@ -466,12 +468,27 @@ class TSLoggerService(service.Service):
 
                 metadata_file = os.path.join(self._backup_location,
                                              filename_part + ".json")
+                db_info_file = os.path.join(self._backup_location,
+                                            filename_part + "_info.json")
                 video_file = os.path.join(self._backup_location,
                                           filename_part + ".mp4")
                 with open(metadata_file, 'w') as f:
                     f.write(json.dumps(metadata))
                 with open(video_file, 'wb') as f:
                     f.write(video_data)
+                with open(db_info_file, 'w') as f:
+                    info = {
+                        "time": finish_time.isoformat(),
+                        "mime": mime_type,
+                        "title": title,
+                        "description": description,
+                        "source": self._image_source_code,
+                        "type": "TLVID",
+                        "metadata": metadata_file,
+                        "video": video_file
+                    }
+                    f.write(json.dumps(info))
+                    f.flush()
 
                 log.msg("Video copied to backup location.\n"
                         "Video file: {0}\nMetadata file: {1}\nTitle: {2}\n"
