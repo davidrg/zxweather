@@ -471,9 +471,9 @@ class WeatherDatabase(object):
         """
 
         if notify.channel == "live_data_updated":
-            self._fetch_live(notify.payload)
+            self._fetch_live(notify.payload.upper())
         elif notify.channel == "new_sample":
-            self._fetch_samples(notify.payload)
+            self._fetch_samples(notify.payload.upper())
         elif notify.channel == "new_image":
             self._fetch_images()  # The payload is the ID of the new image
 
