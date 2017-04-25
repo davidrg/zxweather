@@ -1,9 +1,9 @@
 psycopg2
-twisted
-txpostgres
+twisted==16.4.1
+txpostgres==1.5.0
 autobahn==0.5.14
 pytz
 python-dateutil
-pyOpenSSL
+pyOpenSSL==0.13.1
 pika
 txaio
