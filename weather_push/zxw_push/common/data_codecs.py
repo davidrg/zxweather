@@ -6,6 +6,8 @@ import calendar
 import struct
 import datetime
 
+from twisted.python import log
+
 __author__ = 'david'
 
 
@@ -532,7 +534,14 @@ def _encode_dict(data_dict, field_definitions, field_ids):
         else:
             field_value = encode_function(unencoded_value)
 
-        encoded_value = struct.pack(field_type, field_value)
+        try:
+            encoded_value = struct.pack(field_type, field_value)
+        except struct.error as e:
+            log.msg("Failed to encode value {0} for field {1} (type {2}) - {3}".format(
+                field_name, field_value, field_type, e.message
+            ))
+            log.msg(repr(dict))
+            raise e
 
         result += encoded_value
 
