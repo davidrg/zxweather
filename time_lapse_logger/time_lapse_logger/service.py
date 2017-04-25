@@ -28,12 +28,11 @@ from readbody import readBody
 #  - Target file size option? Calculate a bit rate based on the number of
 #    frames and pass to the encoder
 #  - option to store generated video on disk as well as database
-#  - Handle restarting the database or message broker
+#  - Handle restarting the message broker
 #  - Optionally generate subtitle overlay with weather data
 
 # Stuff to test
 #  - Recovery from broker restart
-#  - Recovery from database restart
 
 
 # noinspection PyClassicStyleClass
@@ -52,7 +51,7 @@ class TSLoggerService(service.Service):
                  use_solar_sensors, camera_url, image_source_code,
                  disable_cert_verification, video_script, working_dir,
                  calculate_schedule, latitude, longitude, timezone, elevation,
-                 sunrise_offset, sunset_offset):
+                 sunrise_offset, sunset_offset, backup_location):
         """
 
         :param dsn: Database connection string
@@ -109,7 +108,11 @@ class TSLoggerService(service.Service):
         :type sunrise_offset: int
         :param sunset_offset: Time offset in minutes for calculated sunset
         :type sunset_offset: int
+        :param backup_location: Where to store failed videos on disk
+        :type backup_location: str
         """
+
+        self._backup_location = backup_location
 
         # Database connection for storing videos
         self._database = Database(dsn, image_source_code)
@@ -123,6 +126,8 @@ class TSLoggerService(service.Service):
 
         self._daylight_trigger = use_solar_sensors
         self._calculated_schedule = calculate_schedule
+
+        self._db_receiver = None
 
         if calculate_schedule:
             # Schedule based on location
@@ -362,7 +367,12 @@ class TSLoggerService(service.Service):
         if not self._logging:
             return
 
-        if self._logging_start_time is not None:
+        # If we're triggered by daylight don't stop logging within 60 minutes
+        # of starting logging. This should prevent clouds in the early morning
+        # or late evening from triggering a stop before actual sunset.
+        # For other scheduling modes (calculated or fixed) we'll follow the
+        # schedule.
+        if self._logging_start_time is not None and self._daylight_trigger:
             t = self._logging_start_time + timedelta(minutes=60)
             if t >= self.current_time:
                 # The logger started less than an hour ago - this is probably
@@ -428,10 +438,47 @@ class TSLoggerService(service.Service):
             video_data = f.read()
 
         # Store video in the database
-        yield self._database.store_video(self.current_time, video_data,
-                                         'video/mp4', json.dumps(metadata),
-                                         title, description)
-        log.msg("Video stored.")
+        try:
+            yield self._database.store_video(self.current_time, video_data,
+                                             'video/mp4', json.dumps(metadata),
+                                             title, description)
+            log.msg("Video stored.")
+        except:
+            log.msg("Possible database connection problem. "
+                    "Attempting to reconnect...")
+            try:
+                self._database.reconnect()
+                if self._db_receiver is not None:
+                    self._db_receiver.reconnect()
+
+                yield self._database.store_video(self.current_time, video_data,
+                                                 'video/mp4',
+                                                 json.dumps(metadata),
+                                                 title, description)
+                log.msg("Database reconnected and video stored.")
+            except Exception as e:
+                log.msg("Reconnect failed or other problem storing video.")
+
+                if not os.path.exists(self._backup_location):
+                    os.makedirs(self._backup_location)
+
+                filename_part = finish_time.strftime("%Y_%m_%d_%H_%M_%S")
+
+                metadata_file = os.path.join(self._backup_location,
+                                             filename_part + ".json")
+                video_file = os.path.join(self._backup_location,
+                                          filename_part + ".mp4")
+                with open(metadata_file, 'w') as f:
+                    f.write(json.dumps(metadata))
+                with open(video_file, 'wb') as f:
+                    f.write(video_data)
+
+                log.msg("Video copied to backup location.\n"
+                        "Video file: {0}\nMetadata file: {1}\nTitle: {2}\n"
+                        "Description: {3}".format(
+                            video_file, metadata_file, title, description))
+                log.msg("Rethrowing exception...")
+                raise e
 
     def _recover_run(self):
 

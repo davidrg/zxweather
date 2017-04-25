@@ -83,13 +83,14 @@ class TSLoggerServiceMaker(object):
 
         working_dir = config.get(S_PROCESSING, "working_directory")
         encoder_script = config.get(S_PROCESSING, "encoder_script")
+        backup_location = config.get(S_PROCESSING, "backup_location")
 
         return dsn, mq_host, mq_port, mq_exchange, mq_user, mq_password, \
             mq_vhost, capture_interval, sunrise_time_t, \
             sunset_time_t, use_solar_sensors, station_code, camera_url, \
             image_source_code, disable_cert_verification, working_dir, \
             encoder_script, calculate_schedule, latitude, longitude, timezone, \
-               elevation, sunrise_offset, sunset_offset
+               elevation, sunrise_offset, sunset_offset, backup_location
 
     def makeService(self, options):
         """
@@ -104,7 +105,8 @@ class TSLoggerServiceMaker(object):
             image_source_code, disable_cert_verification,\
             working_dir, encoder_script, calculate_schedule, latitude, \
             longitude, timezone, elevation, sunrise_offset, \
-            sunset_offset = self._readConfigFile(options['config-file'])
+            sunset_offset, backup_location \
+            = self._readConfigFile(options['config-file'])
 
         svc = TSLoggerService(dsn, station_code, mq_host, mq_port,
                               mq_exchange, mq_user, mq_password, mq_vhost,
@@ -113,7 +115,7 @@ class TSLoggerServiceMaker(object):
                               image_source_code, disable_cert_verification,
                               encoder_script, working_dir, calculate_schedule,
                               latitude, longitude, timezone, elevation,
-                              sunrise_offset, sunset_offset)
+                              sunrise_offset, sunset_offset, backup_location)
 
         # All OK. Go get the service.
         return svc

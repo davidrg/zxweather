@@ -125,6 +125,10 @@ working_directory="/tmp/tlvlogger"
 # on other platforms.
 encoder_script="/opt/zxweather/time_lapse_logger/encoders/omx_mp4.sh"
 
+# Where to store videos on disk that couldn't be loaded into the database for
+# whatever reason.
+backup_location="/var/lib/zxweather/time_lapse_logger/failed_videos/"
+
 ##############################################################################
 ##############################################################################
 ##############################################################################
@@ -164,6 +168,6 @@ service = TSLoggerService(dsn, station_code, x_mq_hostname, x_mq_port,
                           disable_ssl_certificate_verification,
                           encoder_script, working_directory, calculate_schedule,
                           latitude, longitude, timezone, elevation,
-                          sunrise_offset, sunset_offset)
+                          sunrise_offset, sunset_offset, backup_location)
 
 service.setServiceParent(application)

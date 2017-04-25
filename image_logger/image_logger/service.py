@@ -108,6 +108,7 @@ class ImageLoggerService(service.Service):
         self._calculated_schedule = calculate_schedule
 
         self._take_detected_sunrise_picture = take_detected_sunrise_picture
+        self._db_receiver = None
 
         if calculate_schedule:
             # Schedule based on location
@@ -265,9 +266,22 @@ class ImageLoggerService(service.Service):
             if response_data is None or not len(response_data):
                 raise Exception("Empty repsonse from camera")
 
-            yield self._database.store_image(ts, response_data, content_type)
+            # noinspection PyBroadException
+            try:
+                yield self._database.store_image(ts, response_data, content_type)
+                log.msg("Image stored.")
+            except:
+                # Lost database connection perhaps? Try reconnecting.
+                log.msg("Possible database connection problem. "
+                        "Attempting reconnect...")
+                self._database.reconnect()
 
-            log.msg("Image stored.")
+                if self._db_receiver is not None:
+                    self._db_receiver.reconnect()
+
+                yield self._database.store_image(ts, response_data,
+                                                 content_type)
+                log.msg("Database reconnected and image stored")
         except Exception as e:
             log.msg("Failed to capture or store image: {0}".format(e.message))
 
