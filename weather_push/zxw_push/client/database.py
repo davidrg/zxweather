@@ -125,8 +125,8 @@ class WeatherDatabase(object):
             inner join image_source isrc on isrc.image_source_id = i.image_source_id
             inner join image_type it on it.image_type_id = i.image_type_id
             where date_trunc('second', i.time_stamp) = %(time_stamp)s::timestamp at time zone 'GMT'
-              and isrc.code = %(source_code)s
-              and it.code = %(type_code)s
+              and upper(isrc.code) = upper(%(source_code)s)
+              and upper(it.code) = upper(%(type_code)s)
               and irs.site_id = %(site_id)s
               and iars.image_id = irs.image_id
               and iars.site_id=irs.site_id
@@ -219,7 +219,7 @@ class WeatherDatabase(object):
             inner join sample s on s.sample_id = rs.sample_id
             inner join station st on st.station_id = s.station_id
             where s.time_stamp = (%(time_stamp)s::timestamp at time zone 'GMT')
-              and st.code = %(code)s
+              and upper(st.code) = upper(%(code)s)
               and rs.site_id = %(site_id)s
               and ars.sample_id = rs.sample_id
               and ars.site_id=rs.site_id
@@ -251,7 +251,7 @@ class WeatherDatabase(object):
             return
 
         query = """
-        select s.code as station_code,
+        select upper(s.code) as station_code,
            ld.download_timestamp at time zone 'GMT',
            ld.indoor_relative_humidity as indoor_humidity,
            ld.indoor_temperature,
@@ -263,7 +263,7 @@ class WeatherDatabase(object):
            ld.wind_direction
     from live_data ld
     inner join station s on s.station_id = ld.station_id
-    where s.code = %s
+    where upper(s.code) = upper(%s)
         """
 
         def _process_result(result):
@@ -297,7 +297,7 @@ class WeatherDatabase(object):
             return
 
         query = """
-        select s.code as station_code,
+        select upper(s.code) as station_code,
            ld.download_timestamp at time zone 'GMT',
            ld.indoor_relative_humidity as indoor_humidity,
            ld.indoor_temperature,
@@ -320,7 +320,7 @@ class WeatherDatabase(object):
     from live_data ld
     inner join station s on s.station_id = ld.station_id
     inner join davis_live_data dd on dd.station_id = ld.station_id
-    where s.code = %s
+    where upper(s.code) = upper(%s)
         """
 
         def _process_result(result):
@@ -419,8 +419,8 @@ class WeatherDatabase(object):
 
         query = """
         select i.image_id,
-               it.code as image_type_code,
-               isrc.code as image_source_code,
+               upper(it.code) as image_type_code,
+               upper(isrc.code) as image_source_code,
                i.time_stamp at time zone 'GMT' as time_stamp,
                i.title,
                i.description,
@@ -432,7 +432,7 @@ class WeatherDatabase(object):
         inner join image_source isrc on isrc.image_source_id = i.image_source_id
         inner join image_replication_status irs on irs.image_id = i.image_id
         inner join station s on s.station_id = isrc.station_id
-        where s.code = %(station_code)s
+        where upper(s.code) = upper(%(station_code)s)
           and irs.site_id = %(site_id)s
           -- Grab everything that is pending
           and (irs.status = 'pending' or (
@@ -484,7 +484,8 @@ class WeatherDatabase(object):
             self.station_code_hardware_type[row[0]] = row[1]
 
     def _cache_hardware_types(self):
-        query = "select s.code, st.code as hw_code from station s inner join "\
+        query = "select upper(s.code) as code, upper(st.code) as hw_code " \
+                "from station s inner join "\
                 "station_type st on st.station_type_id = s.station_type_id "
         self._conn.runQuery(query).addCallback(self._store_hardware_types)
 
