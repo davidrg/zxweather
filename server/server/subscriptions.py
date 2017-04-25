@@ -38,6 +38,8 @@ def subscribe(subscriber, station, include_live, include_samples,
     """
     global subscriptions, _latest_live
 
+    station = station.lower()
+
     if station not in subscriptions:
         subscriptions[station] = {"s": [], "sa": [], "l": [], "i": []}
 
@@ -65,6 +67,8 @@ def unsubscribe(subscriber, station):
     """
     global subscriptions
 
+    station = station.lower()
+
     if subscriber in subscriptions[station]["s"]:
         subscriptions[station]["s"].remove(subscriber)
 
@@ -88,6 +92,8 @@ def deliver_live_data(station, data):
     """
     global subscriptions, _latest_live
 
+    station = station.lower()
+
     _latest_live[station] = data
 
     if station not in subscriptions:
@@ -109,6 +115,8 @@ def deliver_image_data(station, data):
     """
     global subscriptions
 
+    station = station.lower()
+
     if station not in subscriptions:
         return
 
@@ -127,6 +135,8 @@ def deliver_sample_data(station, data):
     :type data: str
     """
     global subscriptions
+
+    station = station.lower()
 
     if station not in subscriptions:
         return
@@ -147,6 +157,8 @@ def deliver_unordered_sample_data(station, data):
     """
     global subscriptions
 
+    station = station.lower()
+
     if station not in subscriptions:
         return
 
@@ -158,6 +170,8 @@ def deliver_unordered_sample_data(station, data):
 
 def _station_live_updated_callback(data, code):
 
+    code = code.lower()
+
     row = data[0]
 
     dat = "l,{0}".format(row[0])
@@ -166,9 +180,9 @@ def _station_live_updated_callback(data, code):
 
 def _new_image_callback(data):
     row = data[0]
-    station_code = row[0]
-    source_code = row[1]
-    type_code = row[2]
+    station_code = row[0].lower()
+    source_code = row[1].lower()
+    type_code = row[2].lower()
     time_stamp = row[3]  # Timzone is at original local time
     mime_type = row[4]
     id = row[5]
@@ -291,6 +305,8 @@ def station_live_updated(station_code, data=None):
     :type data: dict
     """
 
+    station_code = station_code.lower()
+
     if data is None:
         get_live_csv(station_code).addCallback(_station_live_updated_callback,
                                                station_code)
@@ -364,6 +380,8 @@ def new_image(image_id):
 def _station_samples_updated_callback(data, code):
     global _last_sample_ts
 
+    code = code.lower()
+
     for row in data:
         prev_ts = _last_sample_ts[code]
 
@@ -394,6 +412,8 @@ def new_station_sample(station_code, sample_id):
     """
 
     global _last_sample_ts
+
+    station_code = station_code.lower()
 
     if station_code not in _last_sample_ts:
         _last_sample_ts[station_code] = None

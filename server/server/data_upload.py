@@ -194,7 +194,7 @@ def _get_base_live_record(values):
 
     rec = BaseLiveRecord(
         # l for live
-        station_code = values[1],
+        station_code = values[1].lower(),
         download_timestamp = values[2], # We'll let postgres parse this.
         indoor_humidity = _int_or_none(values[3]),
         indoor_temperature = _float_or_none(values[4]),
