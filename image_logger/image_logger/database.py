@@ -142,6 +142,10 @@ class DatabaseReceiver(object):
         self._database_pool = adbapi.ConnectionPool("psycopg2",
                                                     self._connection_string)
 
+    def reconnect(self):
+        self._conn.close()
+        self.connect()
+
 
 class Database(object):
     def __init__(self, dsn, image_source_code):
@@ -155,6 +159,10 @@ class Database(object):
         self._database_pool = adbapi.ConnectionPool("psycopg2",
                                                     self._dsn)
         self._check_db()
+
+    def reconnect(self):
+        self._database_pool.close()
+        self.connect()
 
     @defer.inlineCallbacks
     def _get_schema_version(self):
