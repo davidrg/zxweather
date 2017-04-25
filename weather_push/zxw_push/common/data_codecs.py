@@ -540,7 +540,7 @@ def _encode_dict(data_dict, field_definitions, field_ids):
             log.msg("Failed to encode value {0} for field {1} (type {2}) - {3}".format(
                 field_name, field_value, field_type, e.message
             ))
-            log.msg(repr(dict))
+            log.msg(repr(data_dict))
             raise e
 
         result += encoded_value
