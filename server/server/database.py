@@ -150,7 +150,7 @@ def _init_station_id_cache(data):
     station_code_id = {}
 
     for row in data:
-        station_code_id[row[0]] = row[1]
+        station_code_id[row[0].lower()] = row[1]
 
 
 def _init_hw_cache(data):
@@ -159,7 +159,7 @@ def _init_hw_cache(data):
     station_code_hardware_type = {}
 
     for row in data:
-        station_code_hardware_type[row[0]] = row[1]
+        station_code_hardware_type[row[0].lower()] = row[1].upper()
 
 def _prepare_caches():
     """
@@ -168,10 +168,11 @@ def _prepare_caches():
     """
     global database_pool
 
-    query = "select code, station_id from station"
+    query = "select lower(code), station_id from station"
     database_pool.runQuery(query).addCallback(_init_station_id_cache)
 
-    query = "select s.code, st.code as hw_code from station s inner join " \
+    # Hardware type codes are always expected to be uppercase.
+    query = "select lower(s.code) as code, upper(st.code) as hw_code from station s inner join " \
             "station_type st on st.station_type_id = s.station_type_id "
     database_pool.runQuery(query).addCallback(_init_hw_cache)
 
@@ -214,12 +215,12 @@ select s.title,
        s.description,
        s.sample_interval,
        s.live_data_available,
-       st.code as station_type_code,
+       upper(st.code) as station_type_code,
        st.title as station_type_title,
        s.station_config
 from station s
 inner join station_type st on st.station_type_id = s.station_type_id
-where s.code = %s
+where upper(s.code) = upper(%s)
         """
 
     deferred = database_pool.runQuery(query,(station_code,))
@@ -233,7 +234,7 @@ def get_station_list():
     :rtype: Deferred
     """
 
-    query = """select s.code, s.title from station s"""
+    query = """select lower(s.code) as code, s.title from station s"""
     deferred = database_pool.runQuery(query)
     return deferred
 
@@ -284,7 +285,7 @@ inner join davis_live_data dd on dd.station_id = ld.station_id"""
 
     query = base_query.format(ext_columns=ext_columns, ext_joins=ext_joins)
 
-    return database_pool.runQuery(query, (station_code_id[station_code],))
+    return database_pool.runQuery(query, (station_code_id[station_code.lower()],))
 
 
 def get_sample_csv(station_code, start_time, end_time=None, sample_id=None):
@@ -339,14 +340,14 @@ fetch first 1 rows only
 
     if start_time is not None:
         return database_pool.runQuery(query_cols + query_date,
-            (station_code_id[station_code], start_time, end_time, end_time))
+            (station_code_id[station_code.lower()], start_time, end_time, end_time))
     elif sample_id is not None:
         return database_pool.runQuery(query_cols + query_ts,
-                                      (station_code_id[station_code],
+                                      (station_code_id[station_code.lower()],
                                        sample_id))
     else:
         return database_pool.runQuery(query_cols + query_top,
-            (station_code_id[station_code], ))
+            (station_code_id[station_code.lower()], ))
 
 
 def get_image_csv(image_id):
@@ -368,9 +369,9 @@ def get_image_csv(image_id):
     #   - Timestamp
 
     query = """
-    select stn.code as station_code,
-           src.code as source_code,
-           typ.code as image_type_code,
+    select lower(stn.code) as station_code,
+           lower(src.code) as source_code,
+           lower(typ.code) as image_type_code,
            img.time_stamp as image_timestamp,
            img.mime_type as mime_type,
            img.image_id as id
@@ -393,7 +394,7 @@ def get_station_hw_type(code):
     :rtype: str
     """
     global station_code_hardware_type
-    return station_code_hardware_type[code]
+    return station_code_hardware_type[code.lower()].upper()
 
 def get_station_id(code):
     """
@@ -404,7 +405,7 @@ def get_station_id(code):
     :rtype: int
     """
     global station_code_id
-    return station_code_id[code]
+    return station_code_id[code.lower()]
 
 def _sample_exists(txn, station_id, time_stamp):
     query = "select sample_id from sample " \
@@ -615,7 +616,7 @@ def _insert_samples_int(txn, samples):
         if _sample_exists(txn, station_id, base.time_stamp):
             # Sample already exists. Don't bother trying to insert - it will
             # just fail.
-            results.append("# WARN-001: Duplicate sample {0} {1}".format(station_code,
+            results.append("# WARN-001: Duplicate sample {0} {1}".format(station_code.lower(),
                                                                time_stamp))
         else:
             if hw_type == 'FOWH1080':
@@ -625,7 +626,7 @@ def _insert_samples_int(txn, samples):
             elif hw_type == 'GENERIC':
                 _insert_generic_sample_int(txn, base, station_id)
 
-        results.append("CONFIRM {0}\t{1}".format(station_code, time_stamp))
+        results.append("CONFIRM {0}\t{1}".format(station_code.lower(), time_stamp))
 
     return results
 
@@ -656,7 +657,7 @@ def insert_wh1080_sample(base_data, wh1080_data):
     """
     return database_pool.runInteraction(
         _insert_wh1080_sample_int, base_data, wh1080_data,
-        station_code_id[base_data.station_code])
+        station_code_id[base_data.station_code.lower()])
 
 def insert_davis_sample(base_data, davis_data):
     """
@@ -670,12 +671,12 @@ def insert_davis_sample(base_data, davis_data):
     """
     return database_pool.runInteraction(
         _insert_davis_sample_int, base_data, davis_data,
-        station_code_id[base_data.station_code])
+        station_code_id[base_data.station_code.lower()])
 
 def insert_generic_sample(sample):
     return database_pool.runInteraction(
         _insert_generic_sample_int, sample,
-        station_code_id[sample.station_code]
+        station_code_id[sample.station_code.lower()]
     )
 
 
@@ -703,7 +704,7 @@ def update_base_live(base_data):
                 where station_id = %s
                 """
 
-    station_id = station_code_id[base_data.station_code]
+    station_id = station_code_id[base_data.station_code.lower()]
 
     try:
         return database_pool.runOperation(
@@ -807,7 +808,7 @@ def update_davis_live(base_data, davis_data):
     """
     return database_pool.runInteraction(
         _update_davis_live_int, base_data, davis_data,
-        station_code_id[base_data.station_code]
+        station_code_id[base_data.station_code.lower()]
     )
 
 def station_exists(station_code):
@@ -821,7 +822,7 @@ def station_exists(station_code):
     """
 
     global station_code_id
-    return station_code in station_code_id
+    return station_code.lower() in station_code_id
 
 
 def get_latest_sample_info():
@@ -854,10 +855,10 @@ def get_latest_sample_info():
         return result
 
     query = """
-select st.code, latest.time_stamp, latest.record_number
+select lower(st.code) as code, latest.time_stamp, latest.record_number
 from station st
 left outer join (
-select st.code,
+select lower(st.code) as code,
        s.time_stamp::varchar,
        w.record_number
 from sample s
@@ -869,7 +870,7 @@ inner join (
     group by station_id
 ) as latest on latest.station_id = s.station_id and latest.max_ts = s.time_stamp
 left outer join wh1080_sample w on w.sample_id = s.sample_id
-order by s.time_stamp desc) latest on latest.code = st.code
+order by s.time_stamp desc) latest on lower(latest.code) = lower(st.code)
     """
 
     deferred = database_pool.runQuery(query)

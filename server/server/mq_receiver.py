@@ -100,7 +100,7 @@ class RabbitMqReceiver(object):
 
         ch, method, properties, body = yield queue_object.get()
 
-        station_code = method.routing_key.split(".")[0]
+        station_code = method.routing_key.split(".")[0].lower()
 
         if properties.content_type.lower() != "application/json":
             log.msg("Unsupported content type {0} (source app_id is {1})".format(
