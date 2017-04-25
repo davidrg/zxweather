@@ -375,6 +375,9 @@ class WeatherPushDatagramClient(DatagramProtocol):
         encoded, field_ids, compression = encode_sample_record(
             data, previous_sample, hardware_type)
 
+        if encoded is None:
+            return None
+
         record = SampleDataRecord()
         record.station_id = station_id
         record.field_list = field_ids
@@ -442,6 +445,10 @@ class WeatherPushDatagramClient(DatagramProtocol):
                                                           hardware_type,
                                                           station_id,
                                                           packet_id)
+
+                if record is None:
+                    continue  # Bad record.
+
                 weather_records.append(record)
 
                 # While we haven't confirmed the server has received this sample
