@@ -32,6 +32,7 @@ class ServerDatabase(object):
         self._station_code_id = {}
         self._station_code_hw_type = {}
         self._check_db()
+        self.schema_version = None
 
     @defer.inlineCallbacks
     def _get_schema_version(self):
@@ -44,6 +45,8 @@ class ServerDatabase(object):
         result = yield self._conn.runQuery(
             "select v::integer from db_info where k = 'DB_VERSION'")
 
+        self.schema_version = result[0][0]
+
         returnValue(result[0][0])
 
     @defer.inlineCallbacks
@@ -55,9 +58,9 @@ class ServerDatabase(object):
         schema_version = yield self._get_schema_version()
         log.msg("Database schema version: {0}".format(schema_version))
 
-        if schema_version < 3:
+        if schema_version < 2:
             log.msg("*** ERROR: WeatherPush requires at least database version "
-                    "3 (zxweather 1.0.0). Please upgrade your database.")
+                    "2 (zxweather 0.2.0). Please upgrade your database.")
             try:
                 reactor.stop()
             except ReactorNotRunning:
@@ -66,6 +69,14 @@ class ServerDatabase(object):
                 # anything much we can do to terminate yet.
                 pass
         else:
+            if schema_version == 2:
+                log.msg("*** WARNING: Schema version 2 database (zxweather "
+                        "v0.2.x) detected. This configuration is not tested "
+                        "often and will be desupported in a future release. You"
+                        " may run into issues if you proceed. It is recommended"
+                        " you upgrade your database to level 3 (zxweather "
+                        "v1.0.0).")
+
             result = yield self._conn.runQuery(
                 "select version_check('WPUSHS',1,0,0)")
             if not result[0][0]:

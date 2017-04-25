@@ -216,9 +216,14 @@ class WeatherPushTcpServer(protocol.Protocol):
         packet = StationInfoTCPPacket()
 
         station_set = yield self._get_stations(authorisation_code)
-        image_type_set = yield self._get_image_types()
-        image_source_set = yield self._get_image_sources(
-            [x[0] for x in station_set])  # x[0] is the station code
+
+        # image support was added in schema level 3 (zxweather 1.0.0)
+        image_type_set = []
+        image_source_set = []
+        if self._db.schema_version >= 3:
+            image_type_set = yield self._get_image_types()
+            image_source_set = yield self._get_image_sources(
+                [x[0] for x in station_set])  # x[0] is the station code
 
         for station in station_set:
             #                  code        hw_type     station_id
@@ -436,6 +441,13 @@ class WeatherPushTcpServer(protocol.Protocol):
 
     @defer.inlineCallbacks
     def _handle_image_data(self, packet):
+
+        if self._db.schema_version < 3:
+            log.msg("*** ERROR: Received image when no image sources were "
+                    "advertised due to incompatible database schema level. "
+                    "Image will not be stored or acknowledged.")
+            return
+
         source_code = self._image_source_id_code[packet.image_source_id]
         type_code = self._image_type_id_code[packet.image_type_id]
 
