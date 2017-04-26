@@ -92,10 +92,12 @@ tcp_port=4296
 # If images should be resized before transmission
 resize_images=False
 
+# List of image source codes to resize images for, comma separated
+# eg: sb, rsgs, sc
+# If an image source is not in this list the resize_images setting will be
+# ignored for all images coming from that source
+resize_image_sources=test
+
+# Maximum size for the resized image. Aspect ratio is preserved.
 new_width=640
 new_height=368
-
-
-
-
-

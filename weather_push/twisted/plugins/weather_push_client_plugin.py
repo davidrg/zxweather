@@ -87,11 +87,19 @@ class ZXWPushClientServiceMaker(object):
         new_width = config.getint(S_IMAGES, "new_width")
         new_height = config.getint(S_IMAGES, "new_height")
         new_size = (new_width, new_height)
+        resize_source_str = config.get(S_IMAGES, "resize_image_sources")
+        resize_sources = []
+        if len(resize_source_str) > 0:
+            if "," in resize_source_str:
+                resize_sources = resize_source_str.split(",")
+                resize_sources = [x.strip().upper() for x in resize_sources if len(x.strip()) > 0]
+            else:
+                resize_sources = [resize_source_str.strip().upper(),]
 
         return dsn, mq_host, mq_port, mq_exchange, mq_user, mq_password, \
             mq_vhost, transport_type, hostname, port, ssh_user, \
             ssh_password, ssh_host_key, authorisation_code, resize_images, \
-            new_size, tcp_port
+            new_size, tcp_port, resize_sources
 
     def makeService(self, options):
         """
@@ -103,7 +111,7 @@ class ZXWPushClientServiceMaker(object):
         dsn, mq_host, mq_port, mq_exchange, mq_user, mq_password, \
             mq_vhost, transport_type, hostname, port, ssh_user, \
             ssh_password, ssh_host_key, authorisation_code, resize_images,\
-            new_size, tcp_port = self._readConfigFile(
+            new_size, tcp_port, resize_sources = self._readConfigFile(
                 options['config-file'])
 
         # All OK. Go get the service.
@@ -124,7 +132,8 @@ class ZXWPushClientServiceMaker(object):
             authorisation_code,
             resize_images,
             new_size,
-            tcp_port
+            tcp_port,
+            resize_sources
         )
 
 
