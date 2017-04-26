@@ -46,11 +46,12 @@ class DatagramClientService(service.Service):
 
 class TcpClientFactory(ReconnectingClientFactory):
     def __init__(self, authorisation_code, last_confirmed_sample_func,
-                 new_image_size, protocol_setup_func):
+                 new_image_size, protocol_setup_func, resize_sources):
         self._authorisation_code = authorisation_code
         self._last_confirmed_sample_func = last_confirmed_sample_func
         self._new_image_size = new_image_size
         self._setup_protocol = protocol_setup_func
+        self._resize_sources = resize_sources
 
         self.NotReady = Event()
 
@@ -58,7 +59,8 @@ class TcpClientFactory(ReconnectingClientFactory):
         self.resetDelay()
         p = WeatherPushProtocol(self._authorisation_code,
                                 self._last_confirmed_sample_func,
-                                self._new_image_size)
+                                self._new_image_size,
+                                self._resize_sources)
         self._setup_protocol(p)
         return p
 
@@ -80,7 +82,7 @@ class TcpClientFactory(ReconnectingClientFactory):
 # This wraps up the eventual TCP Client as a service while its still connecting.
 class TcpClientService(service.Service):
     def __init__(self, hostname, port, authorisation_code,
-                 last_confirmed_sample_func, new_image_size):
+                 last_confirmed_sample_func, new_image_size, resize_sources):
         self._hostname = hostname
         self._port = port
         self._protocol = None
@@ -89,6 +91,7 @@ class TcpClientService(service.Service):
         self._authorisation_code = authorisation_code
         self._last_confirmed_sample_func = last_confirmed_sample_func
         self._new_image_size = new_image_size
+        self._resize_sources = resize_sources
 
         # Event subscriptions
         self.Ready = Event()
@@ -103,7 +106,8 @@ class TcpClientService(service.Service):
         self._factory = TcpClientFactory(self._authorisation_code,
                                          self._last_confirmed_sample_func,
                                          self._new_image_size,
-                                         self._setup_protocol)
+                                         self._setup_protocol,
+                                         self._resize_sources)
         self._factory.NotReady += self._not_ready
 
         reactor.connectTCP(self._hostname, self._port, self._factory)
@@ -178,7 +182,7 @@ class TcpClientService(service.Service):
 def getClientService(hostname, port, username, password, host_key_fingerprint,
                      dsn, transport_type, mq_host, mq_port, mq_exchange,
                      mq_user, mq_password, mq_vhost, authorisation_code,
-                     resize_images, new_image_size, tcp_port):
+                     resize_images, new_image_size, tcp_port, resize_sources):
     """
     Connects to a remote WeatherPush server or zxweather daemon
     :param hostname: Remote host to connect to
@@ -216,6 +220,8 @@ def getClientService(hostname, port, username, password, host_key_fingerprint,
     :type new_image_size: (int, int)
     :param tcp_port: TCP Port to send images over
     :type tcp_port: int
+    :param resize_sources: Image sources to resize images for
+    :type resize_sources: [str]
     """
     global database, mq_client
     log.msg('Connecting...')
@@ -224,6 +230,7 @@ def getClientService(hostname, port, username, password, host_key_fingerprint,
 
     if not resize_images:
         new_image_size = None
+        resize_sources = []
 
     if transport_type == "ssh":
         # Connecting to a remote zxweather server via SSH
@@ -240,7 +247,7 @@ def getClientService(hostname, port, username, password, host_key_fingerprint,
         def _make_tcp_service():
             tcp_svc = TcpClientService(hostname, tcp_port, authorisation_code,
                                        database.get_last_confirmed_sample,
-                                       new_image_size)
+                                       new_image_size, resize_sources)
             tcp_svc.ImageReceiptConfirmation += \
                 database.confirm_image_receipt
 
@@ -255,7 +262,8 @@ def getClientService(hostname, port, username, password, host_key_fingerprint,
     else:
         _upload_client = TcpClientService(
                 hostname, port, authorisation_code,
-                database.get_last_confirmed_sample, new_image_size)
+                database.get_last_confirmed_sample, new_image_size,
+                resize_sources)
 
     database.LiveUpdate += _upload_client.send_live
     database.NewSample += _upload_client.send_sample

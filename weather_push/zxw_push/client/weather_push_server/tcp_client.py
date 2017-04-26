@@ -51,13 +51,14 @@ class WeatherPushProtocol(protocol.Protocol):
     _STATION_LIST_TIMEOUT = 60  # seconds to wait for a response
 
     def __init__(self, authorisation_code,
-                 confirmed_sample_func, new_image_size):
+                 confirmed_sample_func, new_image_size, resize_sources):
 
         self._authorisation_code = authorisation_code
         self._confirmed_sample_func = confirmed_sample_func
 
         self._resize_images = True
         self._new_image_size = new_image_size
+        self._resize_sources = resize_sources
 
         if new_image_size is None:
             self._resize_images = False
@@ -329,8 +330,12 @@ class WeatherPushProtocol(protocol.Protocol):
             source_code = self._image_source_codes[source_id]
             type_code = self._image_type_codes[type_id]
 
+            resized = self._resize_images
+            if source_code.upper() not in self._resize_sources:
+                resized = False
+
             self.ImageReceiptConfirmation.fire(source_code, type_code,
-                                               timestamp, self._resize_images)
+                                               timestamp, resized)
 
     def send_image(self, image):
         type_code = image['image_type_code']
@@ -345,7 +350,12 @@ class WeatherPushProtocol(protocol.Protocol):
         image_type_id = self._image_type_ids[type_code]
         image_source_id = self._image_source_ids[source_code]
 
-        if self._resize_images and type_code == 'CAM':
+        # Only resize the image if:
+        #   -> Image resizing is returned on
+        #   -> The image source is in the list of image sources to resize for
+        #   -> The image is actually an image (rather than a video, etc)
+        if self._resize_images and source_code.upper() in self._resize_sources \
+                and mime_type.startswith("image/"):
             log.msg("Resizing image...")
             from io import BytesIO
             from PIL import Image
@@ -355,7 +365,7 @@ class WeatherPushProtocol(protocol.Protocol):
 
             img = Image.open(original)
 
-            img.thumbnail(self._new_image_size, Image.ANTIALIAS)
+            img.thumbnail(self._new_image_size, Image.ANTIALIAS)  # AKA LANCZOS
 
             ext = mimetypes.guess_extension(mime_type)
             if ext == ".jpe":
