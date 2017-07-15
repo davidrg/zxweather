@@ -90,7 +90,7 @@ class about_nav(object):
             'archive_mode': archive_mode,
             'station_code': station_code,
             'station_name': get_station_name(station_id),
-            'station_list': get_stations(),
+            'station_list': [(x[0].lower(), x[1]) for x in get_stations()],
         }
 
         tomorrow = now + timedelta(1)
