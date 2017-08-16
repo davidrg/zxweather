@@ -44,7 +44,7 @@ SOURCES += main.cpp\
     aboutdialog.cpp \
     json/json.cpp \
     settings.cpp \
-    livedatawidget.cpp \
+    dash_widgets/livedatawidget.cpp \
     charts/qcp/qcustomplot.cpp \
     charts/chartwindow.cpp \
     datasource/abstractdatasource.cpp \
@@ -53,8 +53,8 @@ SOURCES += main.cpp\
     qtcolorbutton/qtcolorbutton.cpp \
     datasource/databasedatasource.cpp \
     datasource/tcplivedatasource.cpp \
-    statuswidget.cpp \
-    forecastwidget.cpp \
+    dash_widgets/statuswidget.cpp \
+    dash_widgets/forecastwidget.cpp \
     livemonitor.cpp \
     datasource/webcachedb.cpp \
     datasource/sampleset.cpp \
@@ -106,7 +106,7 @@ HEADERS  += mainwindow.h \
     aboutdialog.h \
     json/json.h \
     settings.h \
-    livedatawidget.h \
+    dash_widgets/livedatawidget.h \
     charts/qcp/qcustomplot.h \
     charts/chartwindow.h \
     datasource/abstractdatasource.h \
@@ -118,8 +118,8 @@ HEADERS  += mainwindow.h \
     datasource/databasedatasource.h \
     datasource/abstractlivedatasource.h \
     datasource/tcplivedatasource.h \
-    statuswidget.h \
-    forecastwidget.h \
+    dash_widgets/statuswidget.h \
+    dash_widgets/forecastwidget.h \
     livemonitor.h \
     datasource/webcachedb.h \
     datasource/sampleset.h \
@@ -175,9 +175,9 @@ FORMS    += mainwindow.ui \
     aboutdialog.ui \
     charts/chartwindow.ui \
     charts/chartoptionsdialog.ui \
-    livedatawidget.ui \
-    statuswidget.ui \
-    forecastwidget.ui \
+    dash_widgets/livedatawidget.ui \
+    dash_widgets/statuswidget.ui \
+    dash_widgets/forecastwidget.ui \
     exportdialog.ui \
     charts/addgraphdialog.ui \
     charts/customisechartdialog.ui \
