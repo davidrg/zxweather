@@ -27,7 +27,7 @@ ServerDetailsPage::ServerDetailsPage(QWidget *parent)
         "The weather server provides instant updates when ever current conditions "
         "change. Without one you will only get updated weather data once every 30 "
         "seconds regardless of how fast the weather station updates. If you know "
-        "of a weather server that caries data for your chosen weather station you "
+        "of a weather server that carries data for your chosen weather station you "
         "can configure it here."));
     infoLabel->setWordWrap(true);
 

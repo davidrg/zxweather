@@ -104,11 +104,11 @@ bool FetchSamplesWebTask::processResponse(QByteArray responseData) {
     foreach (QVariant station, stations) {
         QVariantMap stationData = station.toMap();
 
-        if (stationData["code"].toString() == _stationCode) {
+        if (stationData["code"].toString().toLower() == _stationCode) {
             _stationName = stationData["name"].toString();
             _isSolarAvailable = false;
 
-            QString hw = stationData["hw_type"].toMap()["code"].toString();
+            QString hw = stationData["hw_type"].toMap()["code"].toString().toUpper();
 
             if (hw == "DAVIS") {
                 _isSolarAvailable = stationData["hw_config"]

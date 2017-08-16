@@ -127,7 +127,7 @@ void ServerStationLister::processStationList(QString jsonData) {
 
     foreach(QVariant station, stations) {
         QVariantMap stationMap = station.toMap();
-        availableStations.append(stationMap.value("code").toString());
+        availableStations.append(stationMap.value("code").toString().toUpper());
     }
 
     qDebug() << "Stations available on server:" << availableStations;
