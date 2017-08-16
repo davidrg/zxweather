@@ -41,7 +41,7 @@ void TcpLiveDataSource::enableLiveData() {
     Settings& settings = Settings::getInstance();
     qDebug() << "Connect....";
 
-    stationCode = settings.stationCode();
+    stationCode = settings.stationCode().toLower();
     hostName = settings.serverHostname();
     port = settings.serverPort();
 
