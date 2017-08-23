@@ -70,7 +70,9 @@ typedef struct _live_data_record {
 typedef struct _notifications {
     bool live_data; /*!< New live data */
     bool new_image; /*!< New image */
+    bool new_sample; /*!< If there was a new sample */
     int image_id; /*!< ID of the new image */
+    int sample_id; /*!< ID of the new sample */
 } notifications;
 
 /**

@@ -5,6 +5,8 @@
 #include <QDateTime>
 #include <QDate>
 
+#include "sampleset.h"
+
 enum hardware_type_t {
     HW_GENERIC,
     HW_FINE_OFFSET,
@@ -107,6 +109,10 @@ signals:
     /** Emitted when a new image is available
      */
     void newImage(NewImageInfo imageInfo);
+
+    /** Emitted when a new sample is available
+     */
+    void newSample(Sample sample);
 };
 
 #endif // ABSTRACTLIVEDATASOURCE_H

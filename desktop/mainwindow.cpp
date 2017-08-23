@@ -44,9 +44,7 @@
 #include <QSqlError>
 #include <QSqlQuery>
 
-#include "datasource/databasedatasource.h"
-#include "datasource/tcplivedatasource.h"
-#include "datasource/webdatasource.h"
+#include "datasource/datasourceproxy.h"
 
 #include "config_wizard/configwizard.h"
 
@@ -62,6 +60,8 @@ MainWindow::MainWindow(QWidget *parent) :
     // The UI is configured for a Davis Vantage Pro 2 Plus by default
     last_hw_type = HW_DAVIS;
     solarDataAvailable = true;
+
+    setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 
     sysTrayIcon.reset(new QSystemTrayIcon(this));
     sysTrayIcon->setIcon(QIcon(":/icons/systray_icon_warning"));
@@ -101,6 +101,39 @@ MainWindow::MainWindow(QWidget *parent) :
             this,
             SLOT(showWarningPopup(QString,QString,QString,bool)));
 
+    // Data Source
+    dataSource = new DataSourceProxy(this, this);
+    connect(dataSource, SIGNAL(newSample(Sample)),
+            ui->rainfall, SLOT(newSample(Sample)));
+    connect(dataSource, SIGNAL(rainTotalsReady(QDate,double,double,double)),
+            ui->rainfall, SLOT(setRain(QDate,double,double,double)));
+    connect(dataSource, SIGNAL(liveData(LiveDataSet)),
+            ui->liveData, SLOT(refreshLiveData(LiveDataSet)));
+    connect(dataSource, SIGNAL(liveData(LiveDataSet)),
+            ui->rainfall, SLOT(liveData(LiveDataSet)));
+    connect(dataSource, SIGNAL(liveData(LiveDataSet)),
+            ui->forecast, SLOT(refreshLiveData(LiveDataSet)));
+    connect(dataSource, SIGNAL(liveData(LiveDataSet)),
+            ui->status, SLOT(refreshLiveData(LiveDataSet)));
+    connect(dataSource, SIGNAL(liveData(LiveDataSet)),
+            liveMonitor.data(), SLOT(LiveDataRefreshed()));
+    connect(dataSource, SIGNAL(liveData(LiveDataSet)),
+            this, SLOT(liveDataRefreshed(LiveDataSet)));
+    connect(dataSource, SIGNAL(stationName(QString)),
+            this, SLOT(setStationName(QString)));
+    connect(dataSource, SIGNAL(isSolarDataEnabled(bool)),
+            this, SLOT(setSolarDataAvailable(bool)));
+    connect(dataSource, SIGNAL(error(QString)),
+            this, SLOT(dataSourceError(QString)));
+    connect(dataSource, SIGNAL(newImage(NewImageInfo)),
+            this, SLOT(newImage(NewImageInfo)));
+    connect(dataSource, SIGNAL(activeImageSourcesAvailable()),
+            this, SLOT(activeImageSourcesAvailable()));
+    connect(dataSource, SIGNAL(archivedImagesAvailable()),
+            this, SLOT(archivedImagesAvailable()));
+    connect(dataSource, SIGNAL(imageReady(ImageInfo,QImage,QString)),
+            ui->latestImages, SLOT(imageReady(ImageInfo,QImage,QString)));
+
     Settings& settings = Settings::getInstance();
 
     // Show the configuration wizard on the first run.
@@ -124,7 +157,7 @@ MainWindow::MainWindow(QWidget *parent) :
         showSettings();
     }
     else {
-        // This will call reconfigureDataSource on successful connet if the live
+        // This will call reconfigureDataSource on successful connect if the live
         // data source is the database.
         QTimer::singleShot(10, this, SLOT(reconnectDatabase()));
 
@@ -276,8 +309,6 @@ void MainWindow::showSettings() {
 
     if (result == QDialog::Accepted) {
         readSettings();
-
-        hideImagery();
 
         liveMonitor->reconfigure();
 
@@ -441,84 +472,52 @@ void MainWindow::dataSourceError(QString message) {
 void MainWindow::reconfigureDataSource() {
 
     ui->actionImages->setVisible(false);
-
     Settings& settings = Settings::getInstance();
-
     setWindowTitle("zxweather - " + settings.stationCode());
 
-    Settings::data_source_type_t live_ds_type = settings.liveDataSourceType();
+    // hide image tabs
+    ui->latestImages->hideImagery();
+    adjustSize();
 
-    switch (live_ds_type) {
+    // Reset late data timer.
+    ui->status->reset();
+
+    DataSourceProxy::LiveDataSourceType liveType;
+    switch(settings.liveDataSourceType()) {
     case Settings::DS_TYPE_DATABASE:
-        dataSource.reset(new DatabaseDataSource(this,this));
-        break;
-    case Settings::DS_TYPE_WEB_INTERFACE:
-        dataSource.reset(new WebDataSource(this,this));
+        liveType = DataSourceProxy::LDST_DATABASE;
         break;
     case Settings::DS_TYPE_SERVER:
+        liveType = DataSourceProxy::LDST_TCP;
+        break;
+    case Settings::DS_TYPE_WEB_INTERFACE:
     default:
-        dataSource.reset(new TcpLiveDataSource(this));
+        liveType = DataSourceProxy::LDST_WEB;
+        break;
     }
 
-    // Data Widgets
-    connect(dataSource.data(), SIGNAL(liveData(LiveDataSet)),
-            ui->liveData, SLOT(refreshLiveData(LiveDataSet)));
-    connect(dataSource.data(), SIGNAL(liveData(LiveDataSet)),
-            ui->forecast, SLOT(refreshLiveData(LiveDataSet)));
-    connect(dataSource.data(), SIGNAL(liveData(LiveDataSet)),
-            ui->status, SLOT(refreshLiveData(LiveDataSet)));
+    DataSourceProxy::DataSourceType samplesType;
+    switch(settings.sampleDataSourceType()) {
+    case Settings::DS_TYPE_DATABASE:
+        samplesType = DataSourceProxy::DST_DATABASE;
+        break;
+    case Settings::DS_TYPE_WEB_INTERFACE:
+    default:
+        samplesType = DataSourceProxy::DST_WEB;
+        break;
+    }
+    dataSource->setDataSourceTypes(liveType, samplesType);
+    dataSource->connectDataSources();
 
-    // Live data timeout monitor
+    dataSource->enableLiveData();
+    dataSource->fetchRainTotals();
+    dataSource->hasActiveImageSources();
+
     if (settings.liveTimeoutEnabled()) {
-        connect(dataSource.data(), SIGNAL(liveData(LiveDataSet)),
-                liveMonitor.data(), SLOT(LiveDataRefreshed()));
         liveMonitor->enable();
     } else {
         liveMonitor->disable();
     }
-
-    // This
-    connect(dataSource.data(), SIGNAL(liveData(LiveDataSet)),
-            this, SLOT(liveDataRefreshed(LiveDataSet)));
-    connect(dataSource.data(), SIGNAL(stationName(QString)),
-            this, SLOT(setStationName(QString)));
-    connect(dataSource.data(), SIGNAL(isSolarDataEnabled(bool)),
-            this, SLOT(setSolarDataAvailable(bool)));
-
-    // Error handler
-    connect(dataSource.data(), SIGNAL(error(QString)),
-            this, SLOT(dataSourceError(QString)));
-
-    connect(dataSource.data(), SIGNAL(newImage(NewImageInfo)),
-            this, SLOT(newImage(NewImageInfo)));
-
-    dataSource->enableLiveData();
-
-    // Setup a data source for image data
-    switch (settings.sampleDataSourceType()) {
-    case Settings::DS_TYPE_DATABASE:
-        imageDataSource.reset(new DatabaseDataSource(this,this));
-        break;
-    case Settings::DS_TYPE_WEB_INTERFACE:
-        imageDataSource.reset(new WebDataSource(this,this));
-        break;
-    case Settings::DS_TYPE_SERVER:
-    default:
-        qWarning() << "Unexpected sample data source type";
-    }
-
-    connect(imageDataSource.data(), SIGNAL(activeImageSourcesAvailable()),
-            this, SLOT(activeImageSourcesAvailable()));
-    connect(imageDataSource.data(), SIGNAL(archivedImagesAvailable()),
-            this, SLOT(archivedImagesAvailable()));
-    connect(imageDataSource.data(), SIGNAL(imageReady(ImageInfo,QImage,QString)),
-            this, SLOT(imageReady(ImageInfo,QImage,QString)));
-    imageDataSource->hasActiveImageSources();
-
-    // TODO: hide image tabs
-
-    // Reset late data timer.
-    ui->status->reset();
 }
 
 void MainWindow::setStationName(QString name) {
@@ -531,7 +530,7 @@ void MainWindow::setSolarDataAvailable(bool available) {
     solarDataAvailable = available;
 
     ui->liveData->setSolarDataAvailable(solarDataAvailable);
-    adjustSize();
+    QTimer::singleShot(10, this, SLOT(adjustSizeSlot()));
 }
 
 void MainWindow::liveDataRefreshed(LiveDataSet lds) {
@@ -541,122 +540,32 @@ void MainWindow::liveDataRefreshed(LiveDataSet lds) {
     // If the hardware type hasn't changed then there isn't anything to do.
     if (lds.hw_type == last_hw_type) return;
 
-    if (last_hw_type == HW_DAVIS) {
-        // We're switching from Davis to something else. Switch off all the
-        // Davis-specific panels.
-        ui->forecast->hide();
-        ui->status->hide();
+    ui->forecast->setVisible(lds.hw_type == HW_DAVIS);
+    ui->status->setVisible(lds.hw_type == HW_DAVIS);
+    ui->latestImages->setFixedWidth(width());
 
-        spacerItem = ui->gridLayout->itemAtPosition(2,1);
-        ui->gridLayout->removeItem(spacerItem);
-
-
-        forecastItem = ui->gridLayout->takeAt(
-                    ui->gridLayout->indexOf(ui->forecast));
-
-        statusItem = ui->gridLayout->takeAt(
-                    ui->gridLayout->indexOf(ui->status));
-    }
-
-    int widgetWidth = ui->liveData->width();
-    widgetWidth += ui->gridLayout->margin() * 2;
-
-    if (lds.hw_type == HW_DAVIS) {
-        ui->gridLayout->addItem(forecastItem, 0, 1);
-        ui->gridLayout->addItem(statusItem, 1, 1);
-        ui->gridLayout->addItem(spacerItem, 2, 1);
-
-        ui->forecast->show();
-        ui->status->show();
-        widgetWidth += ui->forecast->width();
-        widgetWidth += ui->gridLayout->verticalSpacing();
-    }
+    // Adjust the size after a short delay to give the other widgets time to
+    // adjust their size
+    QTimer::singleShot(500, this, SLOT(adjustSizeSlot()));
 
     last_hw_type = lds.hw_type;
-    setFixedWidth(widgetWidth);
 }
 
 void MainWindow::activeImageSourcesAvailable() {
-    imageDataSource->fetchLatestImages();
+    dataSource->fetchLatestImages();
 }
 
 void MainWindow::archivedImagesAvailable() {
     ui->actionImages->setVisible(true);
 }
 
-void MainWindow::imageReady(ImageInfo info, QImage image, QString cacheFile) {
-    qDebug() << "Processing image" << info.id << "for image source" << info.imageSource.code;
-
-    // Fix its width so that the image doesn't cause the parent window to resize horizontally.
-    ui->imageTabs->setFixedWidth(width() - layout()->margin() * 2);
-
-    int tabId;
-
-    QString sourceCode = info.imageSource.code.toUpper();
-    if (stationCodeTabs.contains(sourceCode)) {
-        tabId = stationCodeTabs[sourceCode];
-    } else {
-
-        // We'll need to add a tab. That tabs ID will be...
-        tabId = ui->imageTabs->count();
-
-        if (!tabWidgets.contains(tabId)) {
-            // Create a widget for the tab
-            tabWidgets[tabId] = new ImageWidget(this);
-            tabWidgets[tabId]->setFixedWidth(ui->imageTabs->width());
-            tabWidgets[tabId]->setScaledContents(true);
-            connect(tabWidgets[tabId], SIGNAL(sizeHintChanged(QSize)),
-                    this, SLOT(imageSizeHintChanged(QSize)));
-        }
-
-        ui->imageTabs->addTab(tabWidgets[tabId], info.imageSource.name);
-
-        stationCodeTabs[sourceCode] = tabId;
-    }
-
-
-    tabWidgets[tabId]->setImage(image, info, cacheFile);
-    tabWidgets[tabId]->adjustSize();
-
-    if (image.isNull()) {
-        // Probably a video. Give the widget a bit of height so the video
-        // players status is at least visible.
-        tabWidgets[tabId]->setFixedHeight(50);
-    } else {
-    //    // Figure out how high the image tab thing should be
-    //    //                   720            / 1280           * 714
-        float extraHeight = ((float)image.height() / (float)image.width()) * (float)tabWidgets[tabId]->width();
-        tabWidgets[tabId]->setFixedHeight(extraHeight);
-    }
-
-
-    if (!ui->imageTabs->isVisible()) {
-        ui->imageTabs->show();
-        adjustSize();
-    }
-}
-
-void MainWindow::imageSizeHintChanged(QSize size) {
-    foreach (ImageWidget* widget, tabWidgets.values()) {
-        widget->setFixedHeight(widget->heightForWidth(widget->width()));
-    }
-}
-
-void MainWindow::hideImagery() {
-    // Trash the tabs
-    while (ui->imageTabs->count() > 0) {
-        ui->imageTabs->removeTab(0);
-    }
-    ui->imageTabs->hide();
-
-    QTimer::singleShot(0,this, SLOT(adjustSizeSlot()));
-}
-
 void MainWindow::adjustSizeSlot() {
+    ui->latestImages->updateGeometry();
+    ui->latestImages->adjustSize();
     adjustSize();
 }
 
 void MainWindow::newImage(NewImageInfo imageInfo) {
     qDebug() << "newImage available" << imageInfo.imageId;
-    imageDataSource->fetchImage(imageInfo.imageId);
+    dataSource->fetchImage(imageInfo.imageId);
 }

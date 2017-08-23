@@ -85,12 +85,26 @@ public:
      * will be emitted.
      */
     virtual void hasActiveImageSources() = 0;
+
+    /** Obtains the total rainfall for the day, month and year. Results will
+     * come from the rainTotalsReady signal.
+     */
+    virtual void fetchRainTotals() = 0;
 signals:
     /** Emitted when samples have been retrieved and are ready for processing.
      *
      * @param samples Requested samples.
      */
     void samplesReady(SampleSet samples);
+
+    /** Emitted in response to the fetchRainTotals() method.
+     *
+     * @param date Date the rain totals are for
+     * @param day Day total
+     * @param month Month total
+     * @param year Year total
+     */
+    void rainTotalsReady(QDate date, double day, double month, double year);
 
     /** Emitted with the results of fetchImageDateList().
      */

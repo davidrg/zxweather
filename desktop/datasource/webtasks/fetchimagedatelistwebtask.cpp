@@ -84,6 +84,7 @@ void FetchImageDateListWebTask::processDateList(QString data) {
         imageDate.date = QDate::fromString(key, Qt::ISODate);
         imageDate.sourceCodes = result[key].toStringList();
 
+        // Convert source codes to lowercase
         for (int i = 0; i < imageDate.sourceCodes.count(); i++) {
             imageDate.sourceCodes[i] = imageDate.sourceCodes[i].toLower();
         }

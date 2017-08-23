@@ -12,6 +12,7 @@ ViewImagesWindow::ViewImagesWindow(QWidget *parent) :
     ui(new Ui::ViewImagesWindow)
 {
     ui->setupUi(this);
+    ui->lImage->setScaled(false);
 
     connect(ui->lvImageList, SIGNAL(doubleClicked(QModelIndex)),
             this, SLOT(listItemDoubleClicked(QModelIndex)));
@@ -72,6 +73,7 @@ void ViewImagesWindow::listItemDoubleClicked(QModelIndex index) {
 }
 
 void ViewImagesWindow::loadImageForIndex(QModelIndex index) {
+    ui->lImage->setScaled(true);
     if (model->isImage(index)) {
 
         QImage image = model->image(index);
@@ -96,6 +98,7 @@ void ViewImagesWindow::loadImageForIndex(QModelIndex index) {
     // No image? Not an image? Just show the icon.
     QVariant icon = index.data(Qt::DecorationRole);
     if (icon.isValid()) {
+        ui->lImage->setScaled(false); // don't scale the icon
         ui->lImage->setPixmap(icon.value<QIcon>().pixmap(ui->lImage->size()));
     }
 }

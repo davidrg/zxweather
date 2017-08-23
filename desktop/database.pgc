@@ -36,6 +36,7 @@
 
 #define LIVE_DATA_UPDATE_CHANNEL "live_data_updated"
 #define NEW_IMAGE_CHANNEL "new_image"
+#define NEW_SAMPLE_CHANNEL "new_sample_id"
 
 /* Globals */
 static DBSignalAdapter* signalAdapter = NULL;
@@ -147,9 +148,17 @@ void subscribe_to_notifications(PGconn* conn) {
     }
     PQclear(res);
 
+    // This only works on v1.x
     res = PQexec(conn, "LISTEN " NEW_IMAGE_CHANNEL);
     if (PQresultStatus(res) != PGRES_COMMAND_OK) {
         qDebug() << "LISTEN failed. New image notifications will not be processed.\n";
+    }
+    PQclear(res);
+
+    // This probably only works on v1.x
+    res = PQexec(conn, "LISTEN " NEW_SAMPLE_CHANNEL);
+    if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+        qDebug() << "LISTEN failed. New sample notifications will not be processed.\n";
     }
     PQclear(res);
 }
@@ -253,6 +262,8 @@ notifications wdb_live_data_available() {
     n.live_data = false;
     n.new_image = false;
     n.image_id = -1;
+    n.new_sample = false;
+    n.sample_id = -1;
 
     if (!connected) return n;
 
@@ -275,7 +286,7 @@ notifications wdb_live_data_available() {
     PGnotify* notification;
     PQconsumeInput(conn);
     while ((notification = PQnotifies(conn)) != NULL) {
-        qDebug() << "Received notification:" << notification->relname << notification->extra;
+/*        qDebug() << "Received notification:" << notification->relname << notification->extra;*/
 
         if (strcmp(notification->relname, LIVE_DATA_UPDATE_CHANNEL) == 0) {
             if (db_version <= 1) {
@@ -296,6 +307,17 @@ notifications wdb_live_data_available() {
             /* A new image is available! The payload is the Image ID*/
             n.new_image = true;
             n.image_id = atoi(notification->extra);
+        } else if (strcmp(notification->relname, NEW_SAMPLE_CHANNEL) == 0) {
+            /* A new sample is available! The payload is station_code:sample_id */
+            char* part = strtok(notification->extra, ":");
+            /* First bit should be station code */
+            if (part && strncasecmp(station_code, part, station_code_len)) {
+                part = strtok(notification->extra, ":");
+                if (part) {
+                    n.sample_id = atoi(part);
+                    n.new_sample = true;
+                }
+            }
         } else {
             qDebug() << "Ignore: Unknown channel";
         }

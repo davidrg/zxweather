@@ -12,13 +12,16 @@
 #include <QFileInfo>
 #include <QDesktopServices>
 #include <QDir>
+#include <QPainter>
 
-ImageWidget::ImageWidget(QWidget *parent) : QLabel(parent)
+ImageWidget::ImageWidget(QWidget *parent) : QWidget(parent)
 {
-    setText("");
+    //setText("");
     setAcceptDrops(true);
     imageSet = false;
+    videoSet = false;
     usingCacheFile = false;
+    scaled = false;
 
     // Try to maintain aspect ratio for whatever our dimensions are
     QSizePolicy policy(QSizePolicy::Preferred, QSizePolicy::Preferred);
@@ -28,9 +31,49 @@ ImageWidget::ImageWidget(QWidget *parent) : QLabel(parent)
     videoPlayer = NULL;
 }
 
+void ImageWidget::setScaled(bool) {
+    scaled = true;
+}
+
+void ImageWidget::paintEvent(QPaintEvent *event) {
+
+    // Set the background to black
+    QPainter painter(this);
+    painter.setBrush(QBrush(Qt::black));
+    painter.drawRect(0, 0, width(), height());
+
+    if (image.isNull()) return; // Nothing to paint
+
+    QPixmap p = QPixmap::fromImage(image);
+    if (scaled) {
+        QPixmap scaled = p.scaled(width(), height(), Qt::KeepAspectRatio,
+                                  Qt::SmoothTransformation);
+
+        // Figure out how we're aligning the pixmap.
+        if (scaled.width() < width()) {
+            // horiztonal align
+            int delta = width() - scaled.width();
+            int offset = delta/2;
+            painter.drawPixmap(offset, 0, scaled);
+        } else if (scaled.height() < height()){
+            // vertical align
+            int delta = height() - scaled.height();
+            int offset = delta/2;
+            painter.drawPixmap(0, offset, scaled);
+        } else {
+            painter.drawPixmap(0,0,scaled);
+        }
+    } else {
+        painter.drawPixmap(0,0,p);
+    }
+}
+
+
 void ImageWidget::setPixmap(const QPixmap &pixmap) {
     imageSet = true;
-    QLabel::setPixmap(pixmap);
+    //QLabel::setPixmap(pixmap);
+    image = pixmap.toImage();
+    updateGeometry();
     repaint();
 }
 
@@ -118,7 +161,10 @@ void ImageWidget::setImage(QImage image, QString filename) {
     }
 
     this->image = image;
-    setPixmap(QPixmap::fromImage(image));
+    imageSet = true;
+    updateGeometry();
+    repaint();
+    //setPixmap(QPixmap::fromImage(image));
 }
 
 void ImageWidget::setImage(QImage image, ImageInfo info, QString filename) {
@@ -129,7 +175,7 @@ void ImageWidget::setImage(QImage image, ImageInfo info, QString filename) {
 
 void ImageWidget::mousePressEvent(QMouseEvent *event)
 {
-    if (!imageSet) {
+    if (!imageSet || event == NULL) {
         return;
     }
 
@@ -137,7 +183,7 @@ void ImageWidget::mousePressEvent(QMouseEvent *event)
         dragStartPos = event->pos();
     }
 
-    QLabel::mousePressEvent(event);
+    QWidget::mousePressEvent(event);
 }
 
 void ImageWidget::mouseMoveEvent(QMouseEvent *event) {
@@ -148,7 +194,7 @@ void ImageWidget::mouseMoveEvent(QMouseEvent *event) {
         }
     }
 
-    QLabel::mouseMoveEvent(event);
+    QWidget::mouseMoveEvent(event);
 }
 
 void ImageWidget::startDrag() {
@@ -176,48 +222,32 @@ void ImageWidget::popOut() {
 
     // If we're already a pop-up window, instead of opening another popup,
     // switch between maximized and normal.
-    if (parentWidget()->isWindow()) {
-        if (parentWidget()->isMaximized()) {
-            parentWidget()->showNormal();
+    if (parentWidget() == NULL) {
+        if (isMaximized()) {
+            showNormal();
         } else {
-            parentWidget()->showMaximized();
+           showMaximized();
         }
-        parentWidget()->repaint();
+        repaint();
         return;
     }
 
-    QWidget *w = new QWidget();
-    w->setAttribute(Qt::WA_DeleteOnClose);
-    w->setPalette(QPalette(QColor(Qt::black)));
+    ImageWidget *iw = new ImageWidget();
 
+
+    iw->setAttribute(Qt::WA_DeleteOnClose);
     if (info.mimeType.startsWith("video/")) {
-        w->setWindowIcon(QIcon(":/icons/film"));
+        iw->setWindowIcon(QIcon(":/icons/film"));
     } else {
-        w->setWindowIcon(QIcon(":/icons/image"));
+        iw->setWindowIcon(QIcon(":/icons/image"));
     }
 
-    QGridLayout *l = new QGridLayout(w);
-    l->setMargin(0);
-
-    ImageWidget *iw = new ImageWidget(w);
     if (usingCacheFile) {
         iw->setImage(image, info, filename);
     } else {
         iw->setImage(image, info);
     }
-    iw->setScaledContents(true);
-
-    // When displaying video we don't need the spacers - the video player
-    // scales the display area as appropriate while maintaining aspect ratio
-    if (!videoSet) {
-        l->addItem(new QSpacerItem(1,1,QSizePolicy::Expanding, QSizePolicy::Expanding),0,0);
-    }
-    l->addWidget(iw,1,0);
-    if (!videoSet) {
-        l->addItem(new QSpacerItem(1,1,QSizePolicy::Expanding, QSizePolicy::Expanding),2,0);
-    }
-
-    w->setLayout(l);
+    iw->setScaled(true);
 
     QString title = info.title;
     if (title.isEmpty() || title.isNull()){
@@ -228,20 +258,21 @@ void ImageWidget::popOut() {
 
     title += " - " + info.imageSource.name;
 
-    w->setWindowTitle(title);
+    iw->setWindowTitle(title);
 
-    w->show();
-    w->repaint();
+    iw->show();
 }
 
 void ImageWidget::videoSizeChanged(QSize size) {
+    qDebug() << "Video size changed!";
     videoSize = size;
-    emit sizeHintChanged(sizeHint());
+    //emit sizeHintChanged(sizeHint());
     updateGeometry();
+    adjustSize();
 }
 
 // To maintain aspect ratio
-int ImageWidget::heightForWidth(int width) const {
+int ImageWidget::aspectRatioHeightForWidth(int width) const {
     if (videoSet) {
         QSize videoSizeHint = videoPlayer->sizeHint();
 
@@ -250,9 +281,9 @@ int ImageWidget::heightForWidth(int width) const {
 
         // Don't issue a height larger than the set video (it would just end up as
         // blank space anyway).
-        if (videoSet && !hasScaledContents() && result > videoSizeHint.height()) {
-            return videoSizeHint.height();
-        }
+//        if (videoSet && !hasScaledContents() && result > videoSizeHint.height()) {
+//            return videoSizeHint.height();
+//        }
 
         // TODO: Extra padding for the controls, etc.
 
@@ -262,18 +293,27 @@ int ImageWidget::heightForWidth(int width) const {
 
         // Don't issue a height larger than the set image (it would just end up as
         // blank space anyway).
-        if (imageSet && !image.isNull() && !hasScaledContents()
-                && result > image.height()) {
-            return this->image.height();
-        }
+//        if (imageSet && !image.isNull() && !hasScaledContents()
+//                && result > image.height()) {
+//            return this->image.height();
+//        }
 
         return result;
     }
 }
 
 QSize ImageWidget::sizeHint() const {
-    if (videoSet) {
+    if (videoSet && videoPlayer != NULL) {
         return videoPlayer->sizeHint();
     }
-    return QLabel::sizeHint();
+    //return QLabel::sizeHint();
+
+    if (scaled) {
+        QSize s;
+        s.setWidth(width());
+        s.setHeight(aspectRatioHeightForWidth(width()));
+        return s;
+    } else {
+        return image.size();
+    }
 }

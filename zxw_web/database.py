@@ -559,6 +559,60 @@ def get_sample_range(station_id):
     return record.min_ts, record.max_ts
 
 
+
+# def get_latest_sample(station_id):
+#     """
+#     Returns the most recent sample for the specified station
+#     :param station_id: ID of the station to get the most recent sample for
+#     :return: Sample data
+#     """
+#     query = """
+# select s.sample_id,
+#        s.time_stamp,
+#        s.indoor_relative_humidity as indoor_humidity,
+#        s.indoor_temperature,
+#        s.relative_humidity as humidity,
+#        s.temperature,
+#        s.dew_point,
+#        s.wind_chill,
+#        s.apparent_temperature,
+#        s.absolute_pressure as pressure,
+#        s.average_wind_speed,
+#        s.gust_wind_speed,
+#        s.rainfall,
+#        ds.solar_radiation,
+#        ds.average_uv_index as uv_index
+# from sample s
+# left outer join davis_sample ds on ds.sample_id = s.sample_id
+# where s.station_id = $station_id
+#   and s.time_stamp = (select max(time_stamp) from sample where station_id = $station_id)
+#     """
+#     result = db.query(query, station_id=station_id)[0]
+#     if len(result):
+#         return result[0]
+#     else:
+#         return None
+
+
+def get_images_in_last_minute(station_id):
+    query = """
+select i.image_id,
+       i.time_stamp,
+       i.title,
+       i.description,
+       it.code as type_code,
+       i.mime_type,
+       src.code as source_code
+from image i
+inner join image_type it on it.image_type_id = i.image_type_id
+inner join image_source src on src.image_source_id = i.image_source_id
+where src.station_id = $station
+  and time_stamp >= NOW() - '1 minute'::interval
+    """
+
+    result = db.query(query, dict(station=station_id))
+    return result
+
 def get_live_data(station_id):
     """
     Gets live data from the database. If config.live_data_available is set
@@ -1294,7 +1348,8 @@ def get_latest_sample(station_id):
            ds.gust_wind_direction,
            ds.average_uv_index,
            ds.high_solar_radiation,
-           ds.high_uv_index
+           ds.high_uv_index,
+           s.sample_id
     from sample s
     left outer join davis_sample ds on ds.sample_id = s.sample_id
     where s.station_id = $station

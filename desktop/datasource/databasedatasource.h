@@ -6,6 +6,7 @@
 #include <QScopedPointer>
 #include "abstractdatasource.h"
 #include "dbsignaladapter.h"
+#include <QSqlError>
 
 class DatabaseDataSource : public AbstractDataSource
 {
@@ -39,6 +40,8 @@ public:
 
     void hasActiveImageSources();
 
+    void fetchRainTotals();
+
 private slots:
     void notificationPump(bool force = false);
     void dbError(QString message);
@@ -49,6 +52,14 @@ private:
     void fetchImages(QList<int> imageIds, bool thumbnail);
     void processLiveData();
     void processNewImage(int imageId);
+    void processNewSample(int sampleId);
+
+    int basicCountQuery(int stationId, QDateTime startTime, QDateTime endTime);
+    int groupedCountQuery(int stationId, QDateTime startTime, QDateTime endTime,
+                          AggregateFunction function,
+                          AggregateGroupType groupType, uint32_t minutes);
+
+    void databaseError(QString source, QSqlError error, QString sql);
 
     QList<ImageDate> getImageDates(int stationId, int progressOffset);
     QList<ImageSource> getImageSources(int stationId, int progressOffset);

@@ -87,7 +87,7 @@ void LatestImagesWebTask::processResponse(QByteArray data) {
         // an early time on the same date as its most recent image
         imageSet.last_modified = ts;
         imageSet.size = 0;
-        imageSet.source.code = info.imageSource.code;
+        imageSet.source.code = info.imageSource.code.toLower();
         imageSet.source.name = info.imageSource.name;
         imageSet.source.description = info.imageSource.description;
         imageSet.station_url = _stationBaseUrl;

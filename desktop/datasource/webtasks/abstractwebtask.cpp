@@ -23,7 +23,7 @@ AbstractWebTask::AbstractWebTask(QString baseUrl, QString stationCode,
     : QObject(ds)
 {
     _baseUrl = baseUrl;
-    _stationCode = stationCode;
+    _stationCode = stationCode.toLower();
     _dataRootUrl = _baseUrl + "data/";
     _stationBaseUrl = _dataRootUrl + stationCode + "/";
 #ifdef USE_GNUPLOT_DATA

@@ -52,4 +52,36 @@ void ReserveSampleSetSpace(SampleSet& samples,
                            int size,
                            SampleColumns columns);
 
+typedef struct _Sample {
+    // Timestamp
+    QDateTime timestamp;
+
+    // Temperature
+    double temperature;
+    double dewPoint;
+    double apparentTemperature;
+    double windChill;
+    double indoorTemperature;
+
+    // Humidity
+    double humidity;
+    double indoorHumidity;
+
+    // Pressure / rain
+    double pressure;
+    double rainfall;
+
+    // Wind
+    double averageWindSpeed;
+    double gustWindSpeed;
+    bool windDirectionValid;
+    uint windDirection;
+
+    // Sun
+    bool solarRadiationValid;
+    double solarRadiation;
+    bool uvIndexValid;
+    double uvIndex;
+} Sample;
+
 #endif // SAMPLESET_H

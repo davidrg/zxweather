@@ -11,6 +11,7 @@
 #include "webtasks/fetchthumbnailwebtask.h"
 #include "webtasks/fetchimagedatelistwebtask.h"
 #include "webtasks/listdayimageswebtask.h"
+#include "webtasks/fetchraintotalswebtask.h"
 
 #include <QStringList>
 #include <QNetworkRequest>
@@ -68,10 +69,10 @@ WebDataSource::WebDataSource(QWidget *parentWidget, QObject *parent) :
             this, SLOT(liveDataReady(QNetworkReply*)));
     livePollTimer.setInterval(30000);
     connect(&livePollTimer, SIGNAL(timeout()), this, SLOT(liveDataPoll()));
-    imagePollTimer.setInterval(3600000);
-    connect(&imagePollTimer, SIGNAL(timeout()), this, SLOT(imagesPoll()));
+//    imagePollTimer.setInterval(3600000);
+//    connect(&imagePollTimer, SIGNAL(timeout()), this, SLOT(imagesPoll()));
     stationConfigLoaded = false;
-    lastImageId = 0;
+    //lastImageId = 0;
 
     /*******************
      * Task Queue Stuff
@@ -143,6 +144,15 @@ void WebDataSource::fetchSamples(SampleColumns columns,
 
 void WebDataSource::fireSamplesReady(SampleSet samples) {
     emit samplesReady(samples);
+}
+
+void WebDataSource::fetchRainTotals() {
+    queueTask(new FetchRainTotalsWebTask(baseURL, stationCode, this));
+}
+
+void WebDataSource::fireRainTotals(QDate date, double day, double month,
+                                   double year) {
+    emit rainTotalsReady(date, day, month, year);
 }
 
 /*****************************************************************************
@@ -270,6 +280,61 @@ void WebDataSource::liveDataReady(QNetworkReply *reply) {
         lds.indoorDataAvailable = false;
 
         emit liveData(lds);
+
+        // now for samples!
+        if (result.contains("sample") && !result["sample"].isNull()) {
+            QVariantMap s = result["sample"].toMap();
+            if (s["id"] != lastSampleId) {
+                Sample sample;
+                lastSampleId = s["id"].toInt();
+                sample.timestamp = s["time_stamp"].toDateTime();
+                sample.dewPoint = s["dew_point"].toDouble();
+                sample.apparentTemperature = s["apparent_temperature"].toDouble();
+                sample.windChill = s["wind_chill"].toDouble();
+                sample.indoorTemperature = s["indoor_temperature"].toDouble();
+                sample.humidity = s["humidity"].toInt();
+                sample.indoorHumidity = s["indoor_humidity"].toInt();
+                sample.pressure = s["pressure"].toDouble();
+                sample.rainfall = s["rainfall"].toDouble();
+                sample.averageWindSpeed = s["average_wind_speed"].toDouble();
+                sample.gustWindSpeed = s["gust_wind_speed"].toDouble();
+                sample.windDirectionValid = !s["wind_direction"].isNull();
+                sample.windDirection = s["wind_direction"].toInt();
+                sample.solarRadiationValid = !s["solar_radiation"].isNull();
+                sample.solarRadiation = s["solar_radiation"].toDouble();
+                sample.uvIndexValid = !s["uv_index"].isNull();
+                sample.uvIndex = s["uv_index"].toDouble();
+                emit newSample(sample);
+            }
+        }
+
+        // And images...
+        if (result.contains("images") && !result["images"].isNull()) {
+            QVariantList images = result["images"].toList();
+            foreach (QVariant imageData, images) {
+                QVariantMap imageMap = imageData.toMap();
+                NewImageInfo i;
+                i.imageId = imageMap["id"].toInt();
+                i.timestamp = imageMap["time_stamp"].toDateTime();
+                i.stationCode = stationCode;
+                i.imageSourceCode = imageMap["source"].toString();
+
+                bool isNew = false;
+
+                if (lastImageIds.contains(i.imageSourceCode)) {
+                    if (lastImageIds[i.imageSourceCode] != i.imageId) {
+                        lastImageIds[i.imageSourceCode] = i.imageId;
+                        isNew = true;
+                    }
+                } else {
+                    isNew = true;
+                }
+
+                if (isNew) {
+                    emit newImage(i);
+                }
+            }
+        }
     }
 }
 
@@ -292,35 +357,35 @@ void WebDataSource::liveDataPoll() {
         liveNetAccessManager->get(request);
     }
 
-    if (!imagePollTimer.isActive()) {
-        // Polling for new images is currently disabled because we don't know
-        // about any active image sources. On startup the application will
-        // grab a list of all the latest images and use this to decide if there
-        // are any. Metadata for those images is stored in the cache DB so we
-        // can look them up there and make that same decision.
-        QString url = baseURL + "data/" + stationCode + "/";
-        QVector<ImageInfo> latestImages = WebCacheDB::getInstance().getMostRecentImages(url);
+//    if (!imagePollTimer.isActive()) {
+//        // Polling for new images is currently disabled because we don't know
+//        // about any active image sources. On startup the application will
+//        // grab a list of all the latest images and use this to decide if there
+//        // are any. Metadata for those images is stored in the cache DB so we
+//        // can look them up there and make that same decision.
+//        QString url = baseURL + "data/" + stationCode + "/";
+//        QVector<ImageInfo> latestImages = WebCacheDB::getInstance().getMostRecentImages(url);
 
-        QDateTime minTs = QDateTime();
-        minTs.addDays(-1);
+//        QDateTime minTs = QDateTime();
+//        minTs.addDays(-1);
 
-        // Look through the latest images in the cache database. If any are
-        // less than 24 hours old we'll assume there are active image sources
-        // and start polling for new images.
-        foreach (ImageInfo img, latestImages) {
-            if (img.timeStamp > minTs) {
-                imagePollTimer.start();
-                qDebug() << "Found active image source in cache DB. Starting image poll timer.";
-                return;
-            }
-        }
-    }
+//        // Look through the latest images in the cache database. If any are
+//        // less than 24 hours old we'll assume there are active image sources
+//        // and start polling for new images.
+//        foreach (ImageInfo img, latestImages) {
+//            if (img.timeStamp > minTs) {
+//                imagePollTimer.start();
+//                qDebug() << "Found active image source in cache DB. Starting image poll timer.";
+//                return;
+//            }
+//        }
+//    }
 }
 
-void WebDataSource::imagesPoll() {
-    qDebug() << QDateTime().toString() << "Poll for latest images...";
-    fetchLatestImages();
-}
+//void WebDataSource::imagesPoll() {
+//    qDebug() << QDateTime().toString() << "Poll for latest images...";
+//    fetchLatestImages();
+//}
 
 void WebDataSource::enableLiveData() {
     liveDataPoll();
@@ -449,21 +514,21 @@ void WebDataSource::fireImageReady(ImageInfo imageInfo, QImage image,
                                    QString cacheFile) {
     emit imageReady(imageInfo, image, cacheFile);
 
-    if (imagePollTimer.isActive()) {
-        // This data source is being used for live data. If the supplied image
-        // is new, say so
-        if (imageInfo.id != lastImageId) {
-            lastImageId = imageInfo.id;
+//    if (imagePollTimer.isActive()) {
+//        // This data source is being used for live data. If the supplied image
+//        // is new, say so
+//        if (imageInfo.id != lastImageId) {
+//            lastImageId = imageInfo.id;
 
-            NewImageInfo info;
-            info.imageId = imageInfo.id;
-            info.stationCode = stationCode;
-            info.timestamp = imageInfo.timeStamp;
-            info.imageSourceCode = imageInfo.imageSource.code;
+//            NewImageInfo info;
+//            info.imageId = imageInfo.id;
+//            info.stationCode = stationCode;
+//            info.timestamp = imageInfo.timeStamp;
+//            info.imageSourceCode = imageInfo.imageSource.code;
 
-            emit newImage(info);
-        }
-    }
+//            emit newImage(info);
+//        }
+//    }
 }
 
 void WebDataSource::fireThumbnailReady(int imageId, QImage thumbnail) {

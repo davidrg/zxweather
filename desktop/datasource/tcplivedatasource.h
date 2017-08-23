@@ -19,8 +19,6 @@ public:
 
     hardware_type_t getHardwareType();
 
-signals:
-
 private slots:
     void connected();
     void disconnected();
@@ -42,6 +40,7 @@ private:
     void processStreamLine(QString line);
     void processLiveData(QStringList parts);
     void processImageData(QStringList parts);
+    void processSample(QStringList parts);
     void processStationInfo(QString line);
 };
 

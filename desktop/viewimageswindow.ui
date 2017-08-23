@@ -508,17 +508,7 @@
            <number>0</number>
           </property>
           <item row="0" column="0">
-           <widget class="ImageWidget" name="lImage">
-            <property name="text">
-             <string/>
-            </property>
-            <property name="scaledContents">
-             <bool>false</bool>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignCenter</set>
-            </property>
-           </widget>
+           <widget class="ImageWidget" name="lImage" native="true"/>
           </item>
          </layout>
         </widget>
@@ -567,8 +557,9 @@
  <customwidgets>
   <customwidget>
    <class>ImageWidget</class>
-   <extends>QLabel</extends>
+   <extends>QWidget</extends>
    <header>imagewidget.h</header>
+   <container>1</container>
   </customwidget>
  </customwidgets>
  <resources>

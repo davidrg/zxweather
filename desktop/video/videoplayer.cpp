@@ -153,7 +153,7 @@ void VideoPlayer::mediaError(QMediaPlayer::Error /*error*/) {
     setStatus("Error: " + mediaObject.errorString());
 }
 
-QSize PhononVideoPlayer::sizeHint() const {
+QSize VideoPlayer::sizeHint() const {
     int frameHeight = ui->frame->height();
     int statusHeight = ui->statusPanel->height();
 
