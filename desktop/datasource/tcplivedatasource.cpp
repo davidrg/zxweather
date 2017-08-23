@@ -113,6 +113,8 @@ void TcpLiveDataSource::processStreamLine(QString line) {
         processLiveData(parts);
     } else if (parts[0] == "i") {
         processImageData(parts);
+    } else if (parts[0] == "s") {
+        processSample(parts);
     } else {
         qDebug() << "Unexpected data type: " << parts[0];
     }
@@ -156,9 +158,9 @@ void TcpLiveDataSource::processLiveData(QStringList parts) {
         lds.davisHw.barometerTrend = parts.at(11).toInt();
         lds.davisHw.rainRate = parts.at(12).toFloat();
         lds.davisHw.stormRain = parts.at(13).toFloat();
-        lds.davisHw.stormDateValid = (parts.at(14) != "None");
+        lds.davisHw.stormDateValid = !(parts.at(14) == "None");
         if (lds.davisHw.stormDateValid)
-            lds.davisHw.stormStartDate = QDate::fromString(parts.at(15),
+            lds.davisHw.stormStartDate = QDate::fromString(parts.at(14),
                                                            "yyyy-MM-dd");
         lds.davisHw.txBatteryStatus = parts.at(15).toInt();
         lds.davisHw.consoleBatteryVoltage = parts.at(16).toFloat();
@@ -169,6 +171,49 @@ void TcpLiveDataSource::processLiveData(QStringList parts) {
     }
 
     emit liveData(lds);
+}
+
+
+
+void TcpLiveDataSource::processSample(QStringList parts) {
+    if (parts.at(0) != "s") {
+        qDebug() << "Not a sample. Type:" << parts.at(0);
+        return;
+    }
+
+    int expectedLength = 14;
+
+    if (parts.length() < expectedLength) {
+        qDebug() << "Invalid sample data line:" << parts.join(",");
+        return;
+    }
+
+    Sample s;
+    s.timestamp = QDateTime::fromString(parts.at(1), Qt::ISODate);
+    // TODO: these values could all be 'None' if there station is having trouble
+    // receiving data
+    s.temperature = parts.at(2).toDouble();
+    s.dewPoint = parts.at(3).toDouble();
+    s.apparentTemperature = parts.at(4).toDouble();
+    s.windChill = parts.at(5).toDouble();
+    s.humidity = parts.at(6).toDouble();
+    s.indoorTemperature = parts.at(7).toDouble();
+    s.indoorHumidity = parts.at(8).toDouble();
+    s.pressure = parts.at(9).toDouble();
+    s.averageWindSpeed = parts.at(10).toDouble();
+    s.gustWindSpeed = parts.at(11).toDouble();
+    s.windDirectionValid = parts.at(12) != "None";
+    s.windDirection = parts.at(12).toUInt();
+    s.rainfall = parts.at(13).toDouble();
+
+    if (hw_type == HW_DAVIS && parts.length() >= 16) {
+        s.solarRadiationValid = true;
+        s.uvIndexValid = true;
+        s.uvIndex = parts.at(14).toDouble();
+        s.solarRadiation = parts.at(15).toDouble();
+    }
+
+    emit newSample(s);
 }
 
 void TcpLiveDataSource::processImageData(QStringList parts) {

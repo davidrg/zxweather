@@ -15,14 +15,15 @@ from data.daily import get_24hr_samples_data, get_day_rainfall, get_day_dataset,
     get_24hr_reception, get_168hr_reception, get_24hr_rainfall_data
 from data.util import outdoor_sample_result_to_json, outdoor_sample_result_to_datatable, rainfall_sample_result_to_json, rainfall_to_datatable, \
     reception_result_to_json, reception_result_to_datatable
-from database import get_years, get_live_data, get_station_id, get_latest_sample_timestamp, get_oldest_sample_timestamp, \
+from database import get_years, get_live_data, get_station_id, \
+    get_latest_sample_timestamp, get_oldest_sample_timestamp, \
     get_station_type_code, get_station_config, get_image_sources_for_station, \
     get_image_source, get_day_images_for_source, \
     get_most_recent_image_id_for_source, get_current_3h_trends, \
     get_month_rainfall, get_year_rainfall, get_last_hour_rainfall, \
     get_10m_avg_bearing_max_gust, get_day_wind_run, get_cumulus_dayfile_data, \
     get_image_source_info, get_image_sources_by_date, get_rain_summary, \
-    get_latest_image_ts_for_source
+    get_latest_image_ts_for_source, get_images_in_last_minute
 import os
 
 import math
@@ -249,8 +250,21 @@ def live_data(station_id):
     :return: JSON data.
     """
     data_ts, data, hw_type = get_live_data(station_id)
+    sample = get_latest_sample(station_id)
+    image_src = get_images_in_last_minute(station_id)
 
-
+    images = []
+    for i in image_src:
+        image = {
+            'id': i.image_id,
+            'time_stamp': i.time_stamp.isoformat(),
+            #'title': i.title,
+            #'description': i.description,
+            #'type': i.type_code,
+            #'mime_type': i.mime_type,
+            'source': i.source_code
+        }
+        images.append(image)
 
     if data is not None:
         result = {'relative_humidity': data.relative_humidity,
@@ -265,8 +279,26 @@ def live_data(station_id):
                   'age': data.age,
                   's': 'ok',
                   'hw_type': hw_type,
-                  'davis': None
-                  }
+                  'davis': None,
+                  'sample': {
+                      'id': sample.sample_id,
+                      'time_stamp': sample.time_stamp.isoformat(),
+                      'indoor_humidity': sample.indoor_relative_humidity,
+                      'indoor_temperature': sample.indoor_temperature,
+                      'humidity': sample.relative_humidity,
+                      'temperature': sample.temperature,
+                      'dew_point': sample.dew_point,
+                      'wind_chill': sample.wind_chill,
+                      'apparent_temperature': sample.apparent_temperature,
+                      'pressure': sample.absolute_pressure,
+                      'average_wind_speed': sample.average_wind_speed,
+                      'gust_wind_speed': sample.gust_wind_speed,
+                      'rainfall': sample.rainfall,
+                      'solar_radiation': sample.solar_radiation,
+                      'uv_index': float(sample.average_uv_index)
+                  },
+                  'images': images
+              }
 
         if hw_type == 'DAVIS':
 

@@ -66,11 +66,11 @@ void ActiveImageSourcesWebTask::processResponse(QByteArray data) {
         ImageInfo info;
         info.id = latestImage["id"].toInt();
         info.timeStamp = latestImage["timestamp"].toDateTime();
-        info.imageTypeCode = latestImage["type_code"].toString();
+        info.imageTypeCode = latestImage["type_code"].toString().toLower();
         info.title = latestImage["title"].toString();
         info.description = latestImage["description"].toString();
         info.mimeType = latestImage["mime_type"].toString();
-        info.imageSource.code = key;
+        info.imageSource.code = key.toLower();
         info.imageSource.name = imageSource["name"].toString();
         info.imageSource.description = imageSource["description"].toString();
         info.fullUrl = latestImage["urls"].toMap()["full"].toString();

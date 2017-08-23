@@ -191,6 +191,12 @@ void LiveDataWidget::refreshUi(LiveDataSet lds) {
         ui->lblUVIndex->setText(QString::number(lds.davisHw.uvIndex, 'f', 1));
         ui->lblSolarRadiation->setText(QString::number(lds.davisHw.solarRadiation)
                                        + " W/m\xB2");
+        ui->lblRainRate->show();
+        ui->lblCurrentStormRain->show();
+        ui->lblCurrentStormStartDate->show();
+        ui->rainRate->show();
+        ui->currentStormRain->show();
+        ui->currentStormStart->show();
 
     } else {
         ui->lblRainRate->setText("not supported");
@@ -198,6 +204,15 @@ void LiveDataWidget::refreshUi(LiveDataSet lds) {
         ui->lblCurrentStormStartDate->setText("not supported");
         ui->lblUVIndex->setText("not supported");
         ui->lblSolarRadiation->setText("not supported");
+
+        ui->lblRainRate->hide();
+        ui->lblCurrentStormRain->hide();
+        ui->lblCurrentStormStartDate->hide();
+        ui->lblUVIndex->hide();
+        ui->lblSolarRadiation->hide();
+        ui->rainRate->hide();
+        ui->currentStormRain->hide();
+        ui->currentStormStart->hide();
     }
 
     ui->lblBarometer->setText(
@@ -212,11 +227,13 @@ void LiveDataWidget::setSolarDataAvailable(bool available) {
 
     // These two numbers will keep the height of the widget correct
     // when the UV and Solar fields are shown and hidden.
-    if (available) {
-        setMinimumHeight(261);
-        setFixedHeight(261);
-    } else {
-        setMinimumHeight(233);
-        setFixedHeight(233);
-    }
+//    if (available) {
+//        setMinimumHeight(265);
+//        setFixedHeight(265);
+//    } else {
+//        setMinimumHeight(232);
+//        setFixedHeight(232);
+//    }
+    updateGeometry();
+    adjustSize();
 }

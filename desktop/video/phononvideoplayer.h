@@ -32,6 +32,9 @@ public slots:
     void pause();
     void stop();
 
+protected:
+    void resizeEvent(QResizeEvent * event);
+
 private slots:
     void finished();
     void updateTime();
@@ -42,6 +45,7 @@ private:
     Ui::PhononVideoPlayer *ui;
     Phonon::MediaObject mediaObject;
     QSize oldSize;
+    bool resized;
 };
 
 #endif // PHONONVIDEOPLAYER_H

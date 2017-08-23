@@ -33,8 +33,6 @@
 #include <QHash>
 
 #include "livemonitor.h"
-
-#include "datasource/abstractlivedatasource.h"
 #include "datasource/abstractdatasource.h"
 
 namespace Ui {
@@ -42,6 +40,7 @@ class MainWindow;
 }
 
 class ImageWidget;
+class DataSourceProxy;
 
 /**
  * @brief zxweather Main Window. Displays current conditions and allows the
@@ -111,9 +110,7 @@ public slots:
     void updateSysTrayIcon(QIcon icon);
 
     void setStationName(QString name);
-    void setSolarDataAvailable(bool available);
-
-    void imageSizeHintChanged(QSize size);
+    void setSolarDataAvailable(bool available);   
 
 private slots:
     /** Mostly used to check for late live data.
@@ -128,7 +125,7 @@ private slots:
 
     void archivedImagesAvailable();
 
-    void imageReady(ImageInfo info, QImage image, QString cacheFile);
+
 
     void newImage(NewImageInfo imageInfo);
 
@@ -162,15 +159,12 @@ private:
 
     bool databaseCompatibilityChecks();
 
-    void hideImagery();
-
     /** Reconnects to the datasource. Call this when ever data source
      * settings are changed.
      */
     void reconfigureDataSource();
 
-    QScopedPointer<AbstractLiveDataSource> dataSource;
-    QScopedPointer<AbstractDataSource> imageDataSource;
+    DataSourceProxy* dataSource;
 
     QScopedPointer<LiveMonitor> liveMonitor;
     QIcon normalSysTrayIcon;
@@ -181,9 +175,6 @@ private:
     QLayoutItem* spacerItem;
 
     bool solarDataAvailable;
-
-    QHash<int, ImageWidget*> tabWidgets;
-    QHash<QString, int> stationCodeTabs;
 };
 
 #endif // MAINWINDOW_H

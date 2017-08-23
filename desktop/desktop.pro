@@ -97,7 +97,11 @@ SOURCES += main.cpp\
     datasource/webtasks/fetchthumbnailwebtask.cpp \
     datasource/webtasks/fetchimagedatelistwebtask.cpp \
     datasource/webtasks/listdayimageswebtask.cpp \
-    video/abstractvideoplayer.cpp
+    video/abstractvideoplayer.cpp \
+    dash_widgets/imagestabwidget.cpp \
+    dash_widgets/rainfallwidget.cpp \
+    datasource/webtasks/fetchraintotalswebtask.cpp \
+    datasource/datasourceproxy.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
@@ -168,7 +172,11 @@ HEADERS  += mainwindow.h \
     datasource/webtasks/fetchthumbnailwebtask.h \
     datasource/webtasks/fetchimagedatelistwebtask.h \
     datasource/webtasks/listdayimageswebtask.h \
-    video/abstractvideoplayer.h
+    video/abstractvideoplayer.h \
+    dash_widgets/imagestabwidget.h \
+    dash_widgets/rainfallwidget.h \
+    datasource/webtasks/fetchraintotalswebtask.h \
+    datasource/datasourceproxy.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \

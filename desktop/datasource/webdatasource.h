@@ -13,6 +13,7 @@
 #include <QTimer>
 #include <QByteArray>
 #include <QQueue>
+#include <QMap>
 
 typedef struct _data_file_t data_file_t;
 typedef struct _cache_stats_t cache_stats_t;
@@ -25,6 +26,7 @@ class WebDataSource : public AbstractDataSource
     friend class SelectSamplesWebTask;
     friend class FetchImageWebTask;
     friend class FetchThumbnailWebTask;
+    friend class FetchRainTotalsWebTask;
     Q_OBJECT
 
 public:
@@ -55,10 +57,11 @@ public:
 
     void hasActiveImageSources();
 
+    void fetchRainTotals();
 private slots:
     void liveDataReady(QNetworkReply* reply);
     void liveDataPoll();
-    void imagesPoll();
+    //void imagesPoll();
 
     // Called by ActiveImageSourcesWebTask
     void foundActiveImageSource();
@@ -89,6 +92,9 @@ private:
     void fireImageReady(ImageInfo imageInfo, QImage image, QString cacheFile);
     void fireThumbnailReady(int imageId, QImage thumbnail);
 
+    // called by FetchRainTotalsWebTask
+    void fireRainTotals(QDate date, double day, double month, double year);
+
     // Task queue processing
     void startQueueProcessing();
     void processNextTask();
@@ -107,12 +113,14 @@ private:
     QScopedPointer<QNetworkAccessManager> liveNetAccessManager;
     QUrl liveDataUrl;
     QTimer livePollTimer;
-    QTimer imagePollTimer;
+    //QTimer imagePollTimer;
     bool stationConfigLoaded;
     bool isSolarDataAvailable;  // also used by sample retrieval
     hardware_type_t hwType;
     QString station_name;
-    int lastImageId;
+   // int lastImageId;
+    int lastSampleId;
+    QMap<QString, int> lastImageIds;
 
 
     // Task queue state

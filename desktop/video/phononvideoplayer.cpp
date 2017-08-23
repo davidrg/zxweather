@@ -40,6 +40,8 @@ PhononVideoPlayer::PhononVideoPlayer(QWidget *parent) :
 
     setControlsEnabled(false);
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+
+    resized = false;
 }
 
 PhononVideoPlayer::~PhononVideoPlayer()
@@ -78,7 +80,7 @@ void PhononVideoPlayer::updateTime() {
 
 QSize PhononVideoPlayer::videoSize() {
     if (mediaObject.state() == Phonon::LoadingState) {
-        return QSize();
+        return QSize(0,0);
     }
     return ui->player->sizeHint();
 }
@@ -95,6 +97,7 @@ void PhononVideoPlayer::stateChanged(Phonon::State newState) {
     case Phonon::LoadingState:
         ui->lStatus->setText("Loading...");
         setControlsEnabled(false);
+        resized = false;
         break;
     case Phonon::StoppedState:
         ui->lStatus->setText("Stopped");
@@ -116,20 +119,28 @@ void PhononVideoPlayer::stateChanged(Phonon::State newState) {
         ui->lStatus->setText("");
     }
 
-    if (newState != Phonon::LoadingState) {
+    //if (newState != Phonon::LoadingState) {
+    if (newState == Phonon::StoppedState && !resized) {
+        resized = true;
         QSize size = videoSize();
         if (oldSize.width() != size.width() ||
                 oldSize.height() != size.height()) {
             oldSize = size;
             qDebug() << "Size changed: " << size;
-            emit sizeChanged(size);
             updateGeometry();
+            emit sizeChanged(size);
+
         }
 
         if (newState != Phonon::ErrorState) {
             setControlsEnabled(true);
         }
     }
+}
+
+void PhononVideoPlayer::resizeEvent(QResizeEvent * event) {
+    repaint();
+    ui->player->repaint();
 }
 
 QSize PhononVideoPlayer::sizeHint() const {

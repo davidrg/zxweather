@@ -1,0 +1,218 @@
+#include "rainfallwidget.h"
+
+#include <QLabel>
+#include <QFrame>
+#include <QGridLayout>
+
+#include "charts/qcp/qcustomplot.h"
+
+
+
+RainfallWidget::RainfallWidget(QWidget *parent) : QWidget(parent)
+{
+    // Create the basic UI
+    plot = new QCustomPlot(this);
+    plot->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    label = new QLabel("<b>Rainfall</b>", this);
+    line = new QFrame(this);
+    line->setFrameShape(QFrame::HLine);
+    line->setFrameShadow(QFrame::Sunken);
+
+    QGridLayout *l = new QGridLayout();
+    l->addWidget(label, 0, 0);
+    l->addWidget(line, 1, 0);
+    l->addWidget(plot, 2, 0);
+
+    l->setMargin(0);
+
+    setLayout(l);
+
+    // Configure the Plot widget
+    plot->plotLayout()->clear(); // Throw away default axis rect
+
+    // First the axis rect for day/storm/rate
+    QCPAxisRect *smallRect = new QCPAxisRect(plot);
+    smallRect->setupFullAxesBox(true);
+    smallRect->axis(QCPAxis::atTop)->setVisible(true);
+    smallRect->axis(QCPAxis::atRight)->setTickLabels(true);
+    smallRect->axis(QCPAxis::atBottom)->grid()->setVisible(false);
+    smallRect->axis(QCPAxis::atLeft)->grid()->setVisible(false);
+    plot->plotLayout()->addElement(0,0, smallRect);
+
+    // Configure ticks
+    QVector<double> smallTicks;
+    smallTicks << 1 << 2 << 3;
+    QVector<QString> smallTickTopLabels;
+    smallTickTopLabels << "Day" << "Storm" << "Rate";
+    QVector<QString> smallTickBottomLabels;
+    smallTickBottomLabels << "0" << "0" << "0";
+
+    smallRect->axis(QCPAxis::atBottom)->setAutoTicks(false);
+    smallRect->axis(QCPAxis::atBottom)->setAutoTickLabels(false);
+    smallRect->axis(QCPAxis::atBottom)->setTickVector(smallTicks);
+    smallRect->axis(QCPAxis::atBottom)->setTickVectorLabels(smallTickBottomLabels);
+    smallRect->axis(QCPAxis::atBottom)->setSubTickLength(0,0); // hide subticks
+
+    smallRect->axis(QCPAxis::atTop)->setTickLabels(true);
+    smallRect->axis(QCPAxis::atTop)->setAutoTicks(false);
+    smallRect->axis(QCPAxis::atTop)->setAutoTickLabels(false);
+    smallRect->axis(QCPAxis::atTop)->setTickVector(smallTicks);
+    smallRect->axis(QCPAxis::atTop)->setTickVectorLabels(smallTickTopLabels);
+    smallRect->axis(QCPAxis::atTop)->setTickLength(0,0); // hide ticks
+    smallRect->axis(QCPAxis::atTop)->setSubTickLength(0,0); // as above
+
+    smallRect->axis(QCPAxis::atLeft)->setTickLength(0,4);
+    smallRect->axis(QCPAxis::atLeft)->setSubTickLength(0,2);
+    smallRect->axis(QCPAxis::atRight)->setTickLength(0,4);
+    smallRect->axis(QCPAxis::atRight)->setSubTickLength(0,2);
+
+    // Then the larger-ranged axis for month/year
+    QCPAxisRect *largeRect = new QCPAxisRect(plot);
+    largeRect->setupFullAxesBox(true);
+    largeRect->axis(QCPAxis::atTop)->setVisible(true);
+    largeRect->axis(QCPAxis::atRight)->setTickLabels(true);
+    largeRect->axis(QCPAxis::atBottom)->grid()->setVisible(false);
+    largeRect->axis(QCPAxis::atLeft)->grid()->setVisible(false);
+    plot->plotLayout()->addElement(0,1, largeRect);
+
+    // Configure ticks
+    QVector<double> largeTicks;
+    largeTicks << 1 << 2;
+    QVector<QString> largeTickTopLabels;
+    largeTickTopLabels << "Month" << "Year";
+    QVector<QString> largeTickBottomLabels;
+    largeTickBottomLabels << "0" << "0";
+
+    largeRect->axis(QCPAxis::atBottom)->setAutoTicks(false);
+    largeRect->axis(QCPAxis::atBottom)->setAutoTickLabels(false);
+    largeRect->axis(QCPAxis::atBottom)->setTickVector(largeTicks);
+    largeRect->axis(QCPAxis::atBottom)->setTickVectorLabels(largeTickBottomLabels);
+    largeRect->axis(QCPAxis::atBottom)->setSubTickLength(0,0); // hide subticks
+
+    largeRect->axis(QCPAxis::atTop)->setTickLabels(true);
+    largeRect->axis(QCPAxis::atTop)->setAutoTicks(false);
+    largeRect->axis(QCPAxis::atTop)->setAutoTickLabels(false);
+    largeRect->axis(QCPAxis::atTop)->setTickVector(largeTicks);
+    largeRect->axis(QCPAxis::atTop)->setTickVectorLabels(largeTickTopLabels);
+    largeRect->axis(QCPAxis::atTop)->setTickLength(0,0); // hide ticks
+    largeRect->axis(QCPAxis::atTop)->setSubTickLength(0,0); // as above
+
+    largeRect->axis(QCPAxis::atLeft)->setTickLength(0,4);
+    largeRect->axis(QCPAxis::atLeft)->setSubTickLength(0,2);
+    largeRect->axis(QCPAxis::atRight)->setTickLength(0,4);
+    largeRect->axis(QCPAxis::atRight)->setSubTickLength(0,2);
+
+
+    // Now the bars. First again, the day/storm/rate bars
+    shortRange = new QCPBars(smallRect->axis(QCPAxis::atBottom),
+                             smallRect->axis(QCPAxis::atLeft));
+    shortRange->setBrush(QBrush(Qt::blue));
+    shortRange->setWidthType(QCPBars::wtAxisRectRatio);
+    shortRange->setWidth(1.0/3.3); // 3 bars + padding
+    shortRange->keyAxis()->setRange(0.5,3.5);
+    shortRange->valueAxis()->setRange(0, 5.0);
+
+
+    // Month/year
+    longRange = new QCPBars(largeRect->axis(QCPAxis::atBottom),
+                            largeRect->axis(QCPAxis::atLeft));
+    longRange->setBrush(QBrush(Qt::blue));
+    longRange->setWidthType(QCPBars::wtAxisRectRatio);
+    longRange->setWidth(1.0/2.15); // 2 bars + padding
+    longRange->keyAxis()->setRange(0.5,2.5);
+    longRange->valueAxis()->setRange(0, 5.0);
+
+
+    setRain(QDate::currentDate(), 0, 0, 0); // initalise variables
+
+    shortRange->rescaleKeyAxis();
+    longRange->rescaleKeyAxis();
+
+    plot->replot();
+}
+
+void RainfallWidget::liveData(LiveDataSet lds) {
+    storm = lds.davisHw.stormRain;
+    rate = lds.davisHw.rainRate;
+
+    updatePlot();
+}
+
+void RainfallWidget::newSample(Sample sample) {
+    QDate today = lastUpdate; // QDate::currentDate();
+    QDate date = sample.timestamp.date();
+
+    if (date.year() < today.year()) {
+        return; // Data too old
+    }
+
+    if (date.year() > today.year()) {
+        // New year. Reset all totals.
+        day = 0;
+        month = 0;
+        year = 0;
+    } else if (date.month() > today.month()) {
+        // New month.
+        day = 0;
+        month = 0;
+    } else if (date.day() > today.day()) {
+        // New day
+        day = 0;
+    }
+
+    day += sample.rainfall;
+    month += sample.rainfall;
+    year += sample.rainfall;
+
+    updatePlot();
+}
+
+void RainfallWidget::setRain(QDate date, double day, double month, double year) {
+    this->lastUpdate = date;
+    this->day = day;
+    this->month = month;
+    this->year = year;
+
+    updatePlot();
+}
+
+void RainfallWidget::updatePlot() {
+    QVector<double> shortRangeValues, shortRangeTicks,
+            longRangeValues, longRangeTicks;
+    QVector<QString> shortRangeTickLabels, longRangeTickLabels;
+
+    shortRangeValues << day << storm << rate;
+    shortRangeTicks << 1 << 2 << 3;
+    shortRangeTickLabels.append(QString::number(day));
+    shortRangeTickLabels.append(QString::number(storm));
+    shortRangeTickLabels.append(QString::number(rate));
+
+    longRangeValues << month << year;
+    longRangeTicks << 1 << 2;
+    longRangeTickLabels << QString::number(month, 'f', 1)
+                        << QString::number(year, 'f', 1);
+
+    shortRange->keyAxis()->setTickVectorLabels(shortRangeTickLabels);
+    shortRange->setData(shortRangeTicks, shortRangeValues);
+
+    longRange->keyAxis()->setTickVectorLabels(longRangeTickLabels);
+    longRange->setData(longRangeTicks, longRangeValues);
+
+    shortRange->rescaleValueAxis();
+    longRange->rescaleValueAxis();
+
+    // Round the value axis upper bound up a bit
+    int shortStep = 10;
+    int shortUpper = shortRange->valueAxis()->range().upper;
+    shortUpper = shortUpper + shortStep/2.0;
+    shortUpper -= shortUpper % shortStep;
+    shortRange->valueAxis()->setRange(0, shortUpper);
+
+    int longStep = 100;
+    int longUpper = longRange->valueAxis()->range().upper;
+    longUpper = longUpper + longStep/2.0;
+    longUpper -= longUpper % longStep;
+    longRange->valueAxis()->setRange(0, longUpper);
+
+    plot->replot();
+}

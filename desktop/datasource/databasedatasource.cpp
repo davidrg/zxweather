@@ -53,7 +53,7 @@ int DatabaseDataSource::getStationId() {
     query.exec();
 
     if (!query.isActive()) {
-        QMessageBox::warning(0, "Database Error", query.lastError().databaseText());
+        databaseError("getStationId", query.lastError(), query.lastQuery());
     }
     else if (query.size() == 1) {
         query.first();
@@ -225,7 +225,7 @@ QString buildGroupedCount(AggregateFunction function, AggregateGroupType groupTy
     return query;
 }
 
-int basicCountQuery(int stationId, QDateTime startTime, QDateTime endTime) {
+int DatabaseDataSource::basicCountQuery(int stationId, QDateTime startTime, QDateTime endTime) {
     QSqlQuery query;
 
     // TODO: this is not compatible with the v1 schema (station_id column)
@@ -239,16 +239,18 @@ int basicCountQuery(int stationId, QDateTime startTime, QDateTime endTime) {
     query.bindValue(":endTs", endTime);
     bool result = query.exec();
     if (!result || !query.isActive()) {
-        QMessageBox::warning(NULL, "Database Error",
-                             query.lastError().driverText());
+        databaseError("basicCountQuery", query.lastError(), query.lastQuery());
         return -1;
     }
     query.first();
     return query.value(0).toInt();
 }
 
-int groupedCountQuery(int stationId, QDateTime startTime, QDateTime endTime,
-                      AggregateFunction function, AggregateGroupType groupType, uint32_t minutes) {
+int DatabaseDataSource::groupedCountQuery(int stationId, QDateTime startTime,
+                                          QDateTime endTime,
+                                          AggregateFunction function,
+                                          AggregateGroupType groupType,
+                                          uint32_t minutes) {
     QSqlQuery query;
 
     QString qry = buildGroupedCount(function, groupType, minutes);
@@ -271,8 +273,7 @@ int groupedCountQuery(int stationId, QDateTime startTime, QDateTime endTime,
     bool result = query.exec();
     if (!result || !query.isActive()) {
         qWarning() << "DB ERROR";
-        QMessageBox::warning(NULL, "Database Error",
-                             query.lastError().driverText());
+        databaseError("groupedCountQuery", query.lastError(), query.lastQuery());
         return -1;
     }
     result = query.first();
@@ -376,8 +377,7 @@ void DatabaseDataSource::fetchSamples(SampleColumns columns,
     query.setForwardOnly(true);
     bool result = query.exec();
     if (!result || !query.isActive()) {
-        QMessageBox::warning(NULL, "Database Error",
-                             query.lastError().driverText());
+        databaseError("fetchSamples", query.lastError(), query.lastQuery());
         return;
     }
 
@@ -500,6 +500,10 @@ void DatabaseDataSource::notificationPump(bool force) {
     if (n.new_image) {
         processNewImage(n.image_id);
     }
+
+    if (n.new_sample) {
+        processNewSample(n.sample_id);
+    }
 }
 
 void DatabaseDataSource::processLiveData() {
@@ -606,6 +610,98 @@ void DatabaseDataSource::processNewImage(int imageId) {
     }
 }
 
+void DatabaseDataSource::processNewSample(int sampleId) {
+    if (sampleId < 0) {
+        qWarning() << "Invalid sample id" << sampleId;
+        return; // Error
+    }
+
+    qDebug() << "Fetching new sample...";
+    QSqlQuery query;
+    query.prepare("\
+select s.time_stamp, s.indoor_relative_humidity, s.indoor_temperature, \
+       s.relative_humidity, s.temperature, s.dew_point, s.wind_chill, \
+       s.apparent_temperature, s.absolute_pressure, s.average_wind_speed, \
+       s.gust_wind_speed, s.wind_direction, s.rainfall, ds.average_uv_index, \
+       ds.solar_radiation \
+from sample s \
+left outer join davis_sample ds on ds.sample_id = s.sample_id \
+where s.sample_id = :sampleId");
+    query.bindValue(":sampleId", sampleId);
+    query.exec();
+
+    if (query.isActive() && query.size() == 1) {
+        query.first();
+        Sample s;
+        s.timestamp = query.value(0).toDateTime();
+        s.indoorHumidity = query.value(1).toDouble();
+        s.indoorTemperature = query.value(2).toDouble();
+        s.humidity = query.value(3).toDouble();
+        s.temperature = query.value(4).toDouble();
+        s.dewPoint = query.value(5).toDouble();
+        s.windChill = query.value(6).toDouble();
+        s.apparentTemperature = query.value(7).toDouble();
+        s.pressure = query.value(8).toDouble();
+        s.averageWindSpeed = query.value(9).toDouble();
+        s.gustWindSpeed = query.value(10).toDouble();
+        s.windDirectionValid = !query.value(11).isNull();
+        if (s.windDirectionValid)
+            s.windDirection = query.value(11).toUInt();
+        s.rainfall = query.value(12).toDouble();
+        s.solarRadiationValid = !query.value(13).isNull();
+        if (s.solarRadiationValid)
+            s.solarRadiation = query.value(13).toDouble();
+        s.uvIndexValid = !query.value(14).isNull();
+        if (s.uvIndexValid)
+            s.uvIndex = query.value(14).toDouble();
+
+        emit newSample(s);
+    }
+}
+
+void DatabaseDataSource::fetchRainTotals() {
+    QSqlQuery query;
+    query.prepare(
+"select day_total.day as date, day_total.total as day, \
+        month_total.total as month, year_total.total as year \
+from ( \
+    select station_id, \
+           sum(rainfall) as total, \
+           date_trunc('day', time_stamp)::date as day \
+     from sample \
+    group by station_id, date_trunc('day', time_stamp)) as day_total \
+inner join ( \
+  select station_id, \
+         sum(rainfall) as total, \
+         date_trunc('month', time_stamp)::date as month \
+   from sample \
+  group by station_id, date_trunc('month', time_stamp)) as month_total \
+            on month_total.station_id = day_total.station_id \
+           and month_total.month = date_trunc('month', day_total.day) \
+inner join ( \
+  select station_id, \
+         sum(rainfall) as total, \
+         date_trunc('year', time_stamp)::date as year \
+   from sample \
+  group by station_id, date_trunc('year', time_stamp)) as year_total \
+            on year_total.station_id = day_total.station_id \
+           and year_total.year = date_trunc('year', day_total.day) \
+where day_total.station_id = :stationId \
+  and day_total.day = :date");
+    query.bindValue(":stationId", getStationId());
+    query.bindValue(":date", QDate::currentDate());
+    query.exec();
+
+    if (query.isActive() && query.size() == 1) {
+        query.first();
+        QDate date = query.value(0).toDate();
+        double day = query.value(1).toDouble();
+        double month = query.value(2).toDouble();
+        double year = query.value(3).toDouble();
+        emit rainTotalsReady(date, day, month, year);
+    }
+}
+
 void DatabaseDataSource::enableLiveData() {
     using namespace QtJson;
 
@@ -693,8 +789,7 @@ QList<ImageDate> DatabaseDataSource::getImageDates(int stationId,
     query.setForwardOnly(true);
     bool result = query.exec();
     if (!result || !query.isActive()) {
-        QMessageBox::warning(NULL, "Database Error",
-                             query.lastError().driverText());
+        databaseError("getImageDates", query.lastError(), query.lastQuery());
         return QList<ImageDate>();
     }
 
@@ -740,8 +835,7 @@ QList<ImageSource> DatabaseDataSource::getImageSources(int stationId,
     query.setForwardOnly(true);
     bool result = query.exec();
     if (!result || !query.isActive()) {
-        QMessageBox::warning(NULL, "Database Error",
-                             query.lastError().driverText());
+        databaseError("getImageSources", query.lastError(), query.lastQuery());
         return QList<ImageSource>();
     }
 
@@ -824,8 +918,7 @@ void DatabaseDataSource::fetchImageList(QDate date, QString imageSourceCode) {
     query.setForwardOnly(true);
     bool result = query.exec();
     if (!result || !query.isActive()) {
-        QMessageBox::warning(NULL, "Database Error",
-                             query.lastError().driverText());
+        databaseError("fetchImageList", query.lastError(), query.lastQuery());
         return;
     }
 
@@ -869,7 +962,7 @@ QString cacheFilename(ImageInfo imageInfo, QString stationCode) {
 #endif
 
     filename += "/images/" +
-            stationCode + "/" +
+            stationCode.toLower() + "/" +
             imageInfo.imageSource.code.toLower() + "/" +
             imageInfo.imageTypeCode.toLower() + "/" +
             QString::number(imageInfo.timeStamp.date().year()) + "/" +
@@ -917,13 +1010,12 @@ void DatabaseDataSource::fetchImages(QList<int> imageIds, bool thumbnail) {
     query.setForwardOnly(true);
     bool result = query.exec();
     if (!result || !query.isActive()) {
-        QMessageBox::warning(NULL, "Database Error",
-                             query.lastError().driverText());
+        databaseError("fetchImages", query.lastError(), query.lastQuery());
         return;
     }
 
     // TODO: Not this
-    QString stationCode = Settings::getInstance().stationCode();
+    QString stationCode = Settings::getInstance().stationCode().toUpper();
 
     qDebug() << "Processing results...";
     while (query.next()) {
@@ -1039,13 +1131,12 @@ void DatabaseDataSource::fetchLatestImages() {
                       where imgs.station_id = :stationId \
                       group by i.image_source_id \
                   ) as x on x.image_source_id = i.image_source_id and x.max_ts = i.time_stamp \
-                  where i.time_stamp >= NOW() - '24 hours'::interval1");
+                  where i.time_stamp >= NOW() - '24 hours'::interval");
     query.bindValue(":stationId", getStationId());
     query.setForwardOnly(true);
     bool result = query.exec();
     if (!result || !query.isActive()) {
-        QMessageBox::warning(NULL, "Database Error",
-                             query.lastError().driverText());
+        databaseError("fetchLatestImages", query.lastError(), query.lastQuery());
         return;
     }
 
@@ -1057,4 +1148,18 @@ void DatabaseDataSource::fetchLatestImages() {
     }
 
     fetchImages(imageIds, false);
+}
+
+void DatabaseDataSource::databaseError(QString source, QSqlError error,
+                                       QString sql) {
+    qDebug() << "Database Error in" << source;
+    qDebug() << error.databaseText();
+    qDebug() << error.driverText();
+    qDebug() << error.number() << error.text() << error.type();
+    qDebug() << sql;
+    QString message = QString("Source: %1, Driver: %2, Database: %3").arg(
+                source, error.driverText(), error.databaseText());
+    QMessageBox::warning(NULL, "Database Error",
+                         message);
+
 }
