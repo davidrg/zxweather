@@ -52,6 +52,8 @@ QString FetchImageWebTask::getCacheFilename() {
     // Extension doesn't really matter too much
     if (_imageInfo.mimeType == "image/jpeg")
         filename += "jpeg";
+    else if (_imageInfo.mimeType == "image/png")
+        filename += "png";
     else if (_imageInfo.mimeType == "video/mp4")
         filename += "mp4";
     else

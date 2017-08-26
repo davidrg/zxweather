@@ -1003,7 +1003,8 @@ void DatabaseDataSource::fetchImages(QList<int> imageIds, bool thumbnail) {
     QString qry = "select i.image_id, i.image_data, i.time_stamp, \
                           i.title, i.description, i.mime_type, \
                           upper(imgs.code) as src_code, imgs.source_name, \
-                          upper(it.code) as image_type_code, i.metadata \
+                          upper(it.code) as image_type_code, i.metadata, \
+                          it.type_name as image_type_name \
                    from image i \
                    inner join image_source imgs on imgs.image_source_id = i.image_source_id \
                    inner join image_type it on it.image_type_id = i.image_type_id \
@@ -1038,6 +1039,8 @@ void DatabaseDataSource::fetchImages(QList<int> imageIds, bool thumbnail) {
         info.imageSource.name = record.value("source_name").toString();
         info.imageTypeCode = record.value("image_type_code").toString();
         info.hasMetadata = !record.value("metadata").isNull();
+        info.imageTypeName = record.value("image_type_name").toString();
+
         if (info.hasMetadata) {
             info.metadata = record.value("metadata").toByteArray();
         }

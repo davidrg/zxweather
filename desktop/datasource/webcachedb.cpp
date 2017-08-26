@@ -586,7 +586,8 @@ void WebCacheDB::updateImageInfo(QString stationUrl, ImageInfo imageInfo) {
     query.prepare("update image set timestamp = :timestamp, date = :date, "
                   "type_code = :type_code, title = :title, "
                   "description = :description, mime_type = :mime_type, "
-                  "url = :url, metadata = :metadata, meta_url = :meta_url "
+                  "url = :url, metadata = :metadata, meta_url = :meta_url,"
+                  "type_name = :type_name "
                   "where id = :id");
 
     query.bindValue(":id", imageInfo.id);
@@ -599,6 +600,7 @@ void WebCacheDB::updateImageInfo(QString stationUrl, ImageInfo imageInfo) {
     query.bindValue(":url", imageInfo.fullUrl);
     query.bindValue(":metadata", imageInfo.metadata);
     query.bindValue(":meta_url", imageInfo.metaUrl);
+    query.bindValue(":type_name", imageInfo.imageTypeName);
 
     query.exec();
     if (query.lastError().isValid()) {
@@ -635,10 +637,10 @@ void WebCacheDB::storeImage(ImageInfo image, int imageSetId, int stationId,
     QSqlQuery query(sampleCacheDb);
     query.prepare("insert into image(id, image_set, source, timestamp, date, "
                   "type_code, title, description, mime_type, url, metadata, "
-                  "meta_url) "
+                  "meta_url, type_name) "
                   "values(:id, :image_set, :source, :timestamp, :date, "
                   ":type_code, :title, :description, :mime_type, :url,"
-                  ":metadata, :meta_url)");
+                  ":metadata, :meta_url, :type_name)");
     query.bindValue(":id", image.id);
     query.bindValue(":image_set", imageSetId);
     query.bindValue(":source", imageSourceId);
@@ -651,6 +653,7 @@ void WebCacheDB::storeImage(ImageInfo image, int imageSetId, int stationId,
     query.bindValue(":url", image.fullUrl);
     query.bindValue(":metadata", image.metadata);
     query.bindValue(":meta_url", image.metaUrl);
+    query.bindValue(":type_name", image.imageTypeName);
     query.exec();
     if (query.lastError().isValid()) {
         qDebug() << "Failed to insert image " << image.fullUrl
@@ -713,6 +716,7 @@ ImageInfo RecordToImageInfo(QSqlRecord record) {
     result.hasMetadata = !record.field(10).isNull();
     result.metadata = record.field(10).value().toString();
     result.metaUrl = record.field(11).value().toString();
+    result.imageTypeName = record.field(12).value().toString();
     return result;
 }
 
@@ -722,7 +726,7 @@ ImageInfo WebCacheDB::getImageInfo(QString stationUrl, int id) {
     QSqlQuery query(sampleCacheDb);
     query.prepare("select i.id, i.timestamp, i.type_code, i.title, "
                   "i.description, i.mime_type, i.url, src.code, src.name, "
-                  "src.description, i.metadata, i.meta_url "
+                  "src.description, i.metadata, i.meta_url, i.type_name "
                   "from image i "
                   "inner join image_source src on src.id = i.source "
                   "where src.station = :station "
@@ -772,7 +776,7 @@ QVector<ImageInfo> WebCacheDB::getImagesForDate(QDate date, QString stationUrl,
     QSqlQuery query(sampleCacheDb);
     query.prepare("select i.id, i.timestamp, i.type_code, i.title, "
                   "i.description, i.mime_type, i.url, src.code, src.name, "
-                  "src.description "
+                  "src.description, i.metadata, i.meta_url, i.type_name "
                   "from image i "
                   "inner join image_source src on src.id = i.source "
                   "where src.station = :station "
@@ -807,8 +811,8 @@ QVector<ImageInfo> WebCacheDB::getMostRecentImages(QString stationUrl) {
 
     QSqlQuery query(sampleCacheDb);
     query.prepare("select i.id, i.timestamp, i.type_code, i.title, "
-           "       i.description, i.mime_type, i.url, src.code, src.name, "
-           "       src.description "
+                  "i.description, i.mime_type, i.url, src.code, src.name, "
+                  "src.description, i.metadata, i.meta_url, i.type_name "
            "from image i "
            "inner join image_source src on src.id = i.source "
            "inner join (select max(timestamp) as max_ts, src.id as src_id "
