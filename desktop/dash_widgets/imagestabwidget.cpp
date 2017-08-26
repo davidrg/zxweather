@@ -50,6 +50,17 @@ void ImagesTabWidget::imageReady(ImageInfo info, QImage image, QString cacheFile
 
     addTab(tabWidgets[tabId], info.imageSource.name);
 
+    ImageInfo current = tabWidgets[tabId]->currentImage();
+    if (current.id != -1) {
+        if (imageLessThan(info, current)) {
+            // new image has lower sort order than the image currently being
+            // displayed - either its older or it has a lower ordered image
+            // type. Most likely a less interesting APT enhancement than the
+            // one currently displayed.
+            return;
+        }
+    }
+
     tabWidgets[tabId]->setImage(image, info, cacheFile);
     tabWidgets[tabId]->adjustSize();
 

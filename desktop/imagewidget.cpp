@@ -24,6 +24,7 @@ ImageWidget::ImageWidget(QWidget *parent) : QWidget(parent)
     scaled = false;
     videoTickInterval = 1000;
     videoControlsLocked = false;
+    this->info.id = -1;
 
     // Try to maintain aspect ratio for whatever our dimensions are
     QSizePolicy policy(QSizePolicy::Preferred, QSizePolicy::Preferred);
@@ -214,6 +215,10 @@ void ImageWidget::setVideoControlsLocked(bool locked) {
 
 void ImageWidget::videoPlayerReady() {
     emit videoReady();
+}
+
+ImageInfo ImageWidget::currentImage() {
+    return this->info;
 }
 
 void ImageWidget::setImage(QImage image, ImageInfo info, QString filename) {

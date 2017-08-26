@@ -38,5 +38,7 @@ struct ImageInfo {
     QString metaUrl; /*!< Only used by the WebDataSource caching system */
 };
 
+bool imageLessThan(const ImageInfo &i1, const ImageInfo &i2);
+
 #endif // IMAGESET_H
 

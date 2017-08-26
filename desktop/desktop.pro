@@ -103,7 +103,8 @@ SOURCES += main.cpp\
     datasource/webtasks/fetchraintotalswebtask.cpp \
     datasource/datasourceproxy.cpp \
     weatherimagewindow.cpp \
-    imagepropertiesdialog.cpp
+    imagepropertiesdialog.cpp \
+    datasource/imageset.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
