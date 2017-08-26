@@ -17,6 +17,7 @@ RainfallWidget::RainfallWidget(QWidget *parent) : QWidget(parent)
     line = new QFrame(this);
     line->setFrameShape(QFrame::HLine);
     line->setFrameShadow(QFrame::Sunken);
+    stormRateEnabled = true;
 
     QGridLayout *l = new QGridLayout();
     l->addWidget(label, 0, 0);
@@ -131,11 +132,53 @@ RainfallWidget::RainfallWidget(QWidget *parent) : QWidget(parent)
     plot->replot();
 }
 
-void RainfallWidget::liveData(LiveDataSet lds) {
-    storm = lds.davisHw.stormRain;
-    rate = lds.davisHw.rainRate;
+void RainfallWidget::reset() {
+    setStormRateEnabled(true);
+    day = 0;
+    storm = 0;
+    rate = 0;
+    month = 0;
+    year = 0;
+    lastUpdate = QDate::currentDate();
+
+    shortRange->valueAxis()->setRange(0, 10);
+    longRange->valueAxis()->setRange(0, 100);
 
     updatePlot();
+}
+
+void RainfallWidget::setStormRateEnabled(bool enabled) {
+    if (enabled == stormRateEnabled) {
+        return; // no change.
+    }
+
+    stormRateEnabled = enabled;
+
+    QVector<QString> smallTickTopLabels;
+    smallTickTopLabels << "Day";
+
+    if (enabled) {
+        smallTickTopLabels  << "Storm" << "Rate";
+    }
+
+    shortRange->valueAxis()->axisRect()->axis(QCPAxis::atTop)->setTickVectorLabels(smallTickTopLabels);
+
+    if (enabled) {
+        shortRange->keyAxis()->setRange(0.5,3.5);
+    } else {
+        shortRange->keyAxis()->setRange(0.5,1.5);
+    }
+
+    updatePlot();
+}
+
+void RainfallWidget::liveData(LiveDataSet lds) {
+    if (stormRateEnabled) {
+        storm = lds.davisHw.stormRain;
+        rate = lds.davisHw.rainRate;
+
+        updatePlot();
+    }
 }
 
 void RainfallWidget::newSample(Sample sample) {
@@ -181,11 +224,23 @@ void RainfallWidget::updatePlot() {
             longRangeValues, longRangeTicks;
     QVector<QString> shortRangeTickLabels, longRangeTickLabels;
 
-    shortRangeValues << day << storm << rate;
-    shortRangeTicks << 1 << 2 << 3;
+    shortRangeValues << day;
+
+    if (stormRateEnabled) {
+        shortRangeValues << storm << rate;
+    }
+
+    shortRangeTicks << 1;
+    if (stormRateEnabled) {
+        shortRangeTicks << 2 << 3;
+    }
+
     shortRangeTickLabels.append(QString::number(day));
-    shortRangeTickLabels.append(QString::number(storm));
-    shortRangeTickLabels.append(QString::number(rate));
+
+    if (stormRateEnabled) {
+        shortRangeTickLabels.append(QString::number(storm));
+        shortRangeTickLabels.append(QString::number(rate));
+    }
 
     longRangeValues << month << year;
     longRangeTicks << 1 << 2;
@@ -201,12 +256,16 @@ void RainfallWidget::updatePlot() {
     shortRange->rescaleValueAxis();
     longRange->rescaleValueAxis();
 
-    // Round the value axis upper bound up a bit
-    int shortStep = 10;
-    int shortUpper = shortRange->valueAxis()->range().upper;
-    shortUpper = shortUpper + shortStep/2.0;
-    shortUpper -= shortUpper % shortStep;
-    shortRange->valueAxis()->setRange(0, shortUpper);
+    if (storm == 0 && rate == 0 && day == 0) {
+        shortRange->valueAxis()->setRange(0, 10);
+    } else {
+        // Round the value axis upper bound up a bit
+        int shortStep = 10;
+        int shortUpper = shortRange->valueAxis()->range().upper;
+        shortUpper = shortUpper + shortStep/2.0;
+        shortUpper -= shortUpper % shortStep;
+        shortRange->valueAxis()->setRange(0, shortUpper);
+    }
 
     int longStep = 100;
     int longUpper = longRange->valueAxis()->range().upper;
