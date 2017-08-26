@@ -13,6 +13,16 @@ RainfallWidget::RainfallWidget(QWidget *parent) : QWidget(parent)
     // Create the basic UI
     plot = new QCustomPlot(this);
     plot->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+
+    QFrame *plotFrame = new QFrame(this);
+    plotFrame->setFrameShape(QFrame::StyledPanel);
+    plotFrame->setFrameShadow(QFrame::Plain);
+
+    QGridLayout *fL = new QGridLayout();
+    fL->addWidget(plot, 0, 0);
+    fL->setMargin(0);
+    plotFrame->setLayout(fL);
+
     label = new QLabel("<b>Rainfall</b>", this);
     line = new QFrame(this);
     line->setFrameShape(QFrame::HLine);
@@ -22,7 +32,8 @@ RainfallWidget::RainfallWidget(QWidget *parent) : QWidget(parent)
     QGridLayout *l = new QGridLayout();
     l->addWidget(label, 0, 0);
     l->addWidget(line, 1, 0);
-    l->addWidget(plot, 2, 0);
+    //l->addWidget(plot, 2, 0);
+    l->addWidget(plotFrame, 2, 0);
 
     l->setMargin(0);
 
