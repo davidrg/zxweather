@@ -423,7 +423,12 @@ void WebDataSource::fetchImageList(QDate date, QString imageSourceCode) {
                 baseURL, stationCode, this, date, imageSourceCode);
     connect(task, SIGNAL(imageListReady(QList<ImageInfo>)),
             this, SLOT(imageListComplete(QList<ImageInfo>)));
-    queueTask(task);
+
+    // Queue as a high priority task to ensure if multiple image lists are
+    // requested they're processed before any resulting image requests.
+    // We do this to prevent weird behaviour in the progress dialog where the
+    // bar just jumps backwards and fowards until the entire job is done.
+    queueTask(task, true, true);
 }
 
 void WebDataSource::imageListComplete(QList<ImageInfo> images) {
@@ -539,7 +544,8 @@ void WebDataSource::queueTask(AbstractWebTask *task) {
     queueTask(task, true);
 }
 
-void WebDataSource::queueTask(AbstractWebTask *task, bool startProcessing) {
+void WebDataSource::queueTask(AbstractWebTask *task, bool startProcessing,
+                              bool priority) {
 
     if (!processingQueue) {
         progressDialog->reset();
@@ -565,7 +571,12 @@ void WebDataSource::queueTask(AbstractWebTask *task, bool startProcessing) {
     connect(task, SIGNAL(failed(QString)), this, SLOT(taskFailed(QString)));
 
     // Put the task in the queue
-    taskQueue.enqueue(task);
+    if (priority) {
+        // High priority - do before anything else
+        taskQueue.insert(0, task);
+    } else {
+        taskQueue.enqueue(task);
+    }
 
     qDebug() << ":: Queue Length now: " << taskQueue.length();
 
