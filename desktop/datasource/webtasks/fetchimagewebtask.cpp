@@ -64,7 +64,8 @@ QString FetchImageWebTask::getCacheFilename() {
 
 void FetchImageWebTask::beginTask() {
     // Firstly, see if the image exists on disk.
-    QString filename = getCacheFilename();
+    filename = getCacheFilename();
+    qDebug() << "Cache filename:" << filename;
     QFile file(filename);
 
     needMetadata = !_imageInfo.hasMetadata && !_imageInfo.metaUrl.isNull()
