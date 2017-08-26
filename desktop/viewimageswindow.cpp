@@ -169,6 +169,10 @@ void ViewImagesWindow::treeItemContextMenu(const QPoint& point) {
 }
 
 void ViewImagesWindow::contextMenu(QPoint point, QModelIndex idx, bool isList) {
+    if (!idx.isValid()) {
+        return;
+    }
+
     if(model.data()->isImage(idx)) {
         // Image node
         QMenu* menu = new QMenu(this);
