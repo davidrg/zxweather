@@ -211,6 +211,10 @@ void TreeItem::setImage(ImageInfo info, QImage image, QString cacheFile) {
         // than holding it in RAM. We'll do this as a temporary file so it will
         // be cleaned up later.
 
+        if (image.isNull()) {
+            qWarning() << "No cache file or image data for: " << cacheFile;
+        }
+
 #if QT_VERSION >= 0x050000
         QString filename = QStandardPaths::writableLocation(
                     QStandardPaths::CacheLocation);
