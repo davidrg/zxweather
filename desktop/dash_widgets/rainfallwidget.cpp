@@ -3,16 +3,24 @@
 #include <QLabel>
 #include <QFrame>
 #include <QGridLayout>
+#include <QTemporaryFile>
+#include <QApplication>
+#include <QUrl>
+#include <QDesktopServices>
+#include <QDir>
 
 #include "charts/qcp/qcustomplot.h"
-
-
 
 RainfallWidget::RainfallWidget(QWidget *parent) : QWidget(parent)
 {
     // Create the basic UI
     plot = new QCustomPlot(this);
     plot->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+
+    connect(plot, SIGNAL(mousePress(QMouseEvent*)),
+            this, SLOT(mousePressEventSlot(QMouseEvent*)));
+    connect(plot, SIGNAL(mouseMove(QMouseEvent*)),
+            this, SLOT(mouseMoveEventSlot(QMouseEvent*)));
 
     QFrame *plotFrame = new QFrame(this);
     plotFrame->setFrameShape(QFrame::StyledPanel);
@@ -141,6 +149,75 @@ RainfallWidget::RainfallWidget(QWidget *parent) : QWidget(parent)
     longRange->rescaleKeyAxis();
 
     plot->replot();
+
+    // Create a temporary filename for use in drag&drop operations
+#if QT_VERSION >= 0x050000
+        QString filename = QStandardPaths::writableLocation(
+                    QStandardPaths::CacheLocation);
+#else
+        QString filename = QDesktopServices::storageLocation(
+                    QDesktopServices::TempLocation);
+#endif
+
+    QTemporaryFile f(filename + QDir::separator() + "XXXXXX.png");
+    f.setAutoRemove(false);
+    f.open();
+    tempFileName = f.fileName();
+}
+
+RainfallWidget::~RainfallWidget() {
+    QFile(tempFileName).remove();
+}
+
+void RainfallWidget::mousePressEvent(QMouseEvent *event)
+{
+    if (event == NULL) {
+        return;
+    }
+
+    if (event->button() == Qt::LeftButton) {
+        dragStartPos = event->pos();
+    }
+
+    QWidget::mousePressEvent(event);
+}
+
+void RainfallWidget::mouseMoveEvent(QMouseEvent *event) {
+    if (event->buttons() & Qt::LeftButton) {
+        int distance = (event->pos() - dragStartPos).manhattanLength();
+        if (distance >= QApplication::startDragDistance()) {
+            startDrag();
+        }
+    }
+
+    QWidget::mouseMoveEvent(event);
+}
+
+void RainfallWidget::mousePressEventSlot(QMouseEvent *event) {
+    mousePressEvent(event);
+}
+
+void RainfallWidget::mouseMoveEventSlot(QMouseEvent *event) {
+    mouseMoveEvent(event);
+}
+
+void RainfallWidget::startDrag() {
+    qDebug() << "Start drag";
+    QPixmap pix = plot->toPixmap();
+
+    pix.save(tempFileName);
+    qDebug() << tempFileName;
+
+    QList<QUrl> urls;
+    urls << QUrl::fromLocalFile(tempFileName);
+
+    QMimeData *mimeData = new QMimeData;
+    mimeData->setUrls(urls);
+
+    QDrag *drag = new QDrag(this);
+    drag->setMimeData(mimeData);
+
+    drag->exec(Qt::CopyAction, Qt::CopyAction);
 }
 
 void RainfallWidget::reset() {
@@ -230,6 +307,20 @@ void RainfallWidget::setRain(QDate date, double day, double month, double year) 
     updatePlot();
 }
 
+int roundToMultiple(int num, int multiple) {
+    if (num == 0) {
+        return multiple;
+    }
+
+    int remainder = num % multiple;
+
+    if (remainder == 0) {
+        return num;
+    }
+
+    return num + multiple - remainder;
+}
+
 void RainfallWidget::updatePlot() {
     QVector<double> shortRangeValues, shortRangeTicks,
             longRangeValues, longRangeTicks;
@@ -267,22 +358,10 @@ void RainfallWidget::updatePlot() {
     shortRange->rescaleValueAxis();
     longRange->rescaleValueAxis();
 
-    if (storm == 0 && rate == 0 && day == 0) {
-        shortRange->valueAxis()->setRange(0, 10);
-    } else {
-        // Round the value axis upper bound up a bit
-        int shortStep = 10;
-        int shortUpper = shortRange->valueAxis()->range().upper;
-        shortUpper = shortUpper + shortStep/2.0;
-        shortUpper -= shortUpper % shortStep;
-        shortRange->valueAxis()->setRange(0, shortUpper);
-    }
-
-    int longStep = 100;
-    int longUpper = longRange->valueAxis()->range().upper;
-    longUpper = longUpper + longStep/2.0;
-    longUpper -= longUpper % longStep;
-    longRange->valueAxis()->setRange(0, longUpper);
+    shortRange->valueAxis()->setRange(
+                0, roundToMultiple(shortRange->valueAxis()->range().upper, 10));
+    longRange->valueAxis()->setRange(
+                0, roundToMultiple(longRange->valueAxis()->range().upper, 100));
 
     plot->replot();
 }
