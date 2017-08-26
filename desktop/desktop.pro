@@ -101,7 +101,8 @@ SOURCES += main.cpp\
     dash_widgets/imagestabwidget.cpp \
     dash_widgets/rainfallwidget.cpp \
     datasource/webtasks/fetchraintotalswebtask.cpp \
-    datasource/datasourceproxy.cpp
+    datasource/datasourceproxy.cpp \
+    weatherimagewindow.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
@@ -176,7 +177,8 @@ HEADERS  += mainwindow.h \
     dash_widgets/imagestabwidget.h \
     dash_widgets/rainfallwidget.h \
     datasource/webtasks/fetchraintotalswebtask.h \
-    datasource/datasourceproxy.h
+    datasource/datasourceproxy.h \
+    weatherimagewindow.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \
@@ -195,7 +197,8 @@ FORMS    += mainwindow.ui \
     aggregateoptionswidget.ui \
     viewdataoptionsdialog.ui \
     viewdatasetwindow.ui \
-    viewimageswindow.ui
+    viewimageswindow.ui \
+    weatherimagewindow.ui
 
 # On Qt 4 we've got to use Phonon for video playback.
 lessThan(QT_MAJOR_VERSION, 5) {

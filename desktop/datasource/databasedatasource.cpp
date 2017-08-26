@@ -902,6 +902,7 @@ void DatabaseDataSource::fetchImageList(QDate date, QString imageSourceCode) {
             i.title, \n\
             i.description, \n\
             i.mime_type \n\
+            i.metadata \n\
      from image i \n\
      inner join image_type it on it.image_type_id = i.image_type_id \n\
      inner join image_source img_src on img_src.image_source_id = i.image_source_id \n\
@@ -943,6 +944,10 @@ void DatabaseDataSource::fetchImageList(QDate date, QString imageSourceCode) {
         result.title = record.value("title").toString();
         result.description = record.value("descrption").toString();
         result.mimeType = record.value("mime_type").toString();
+        result.hasMetadata = !record.value("metadata").isNull();
+        if (result.hasMetadata) {
+            result.metadata = record.value("metadata").toByteArray();
+        }
 
         results << result;
     }
@@ -998,7 +1003,7 @@ void DatabaseDataSource::fetchImages(QList<int> imageIds, bool thumbnail) {
     QString qry = "select i.image_id, i.image_data, i.time_stamp, \
                           i.title, i.description, i.mime_type, \
                           upper(imgs.code) as src_code, imgs.source_name, \
-                          upper(it.code) as image_type_code \
+                          upper(it.code) as image_type_code, i.metadata \
                    from image i \
                    inner join image_source imgs on imgs.image_source_id = i.image_source_id \
                    inner join image_type it on it.image_type_id = i.image_type_id \
@@ -1032,6 +1037,10 @@ void DatabaseDataSource::fetchImages(QList<int> imageIds, bool thumbnail) {
         info.imageSource.code = record.value("src_code").toString();
         info.imageSource.name = record.value("source_name").toString();
         info.imageTypeCode = record.value("image_type_code").toString();
+        info.hasMetadata = !record.value("metadata").isNull();
+        if (info.hasMetadata) {
+            info.metadata = record.value("metadata").toByteArray();
+        }
         QByteArray imageData = record.value("image_data").toByteArray();
 
         QImage srcImage;

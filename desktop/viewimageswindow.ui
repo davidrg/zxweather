@@ -37,6 +37,9 @@
        <enum>Qt::Horizontal</enum>
       </property>
       <widget class="QTreeView" name="tvImageSet">
+       <property name="contextMenuPolicy">
+        <enum>Qt::CustomContextMenu</enum>
+       </property>
        <property name="frameShadow">
         <enum>QFrame::Plain</enum>
        </property>
@@ -514,6 +517,9 @@
         </widget>
        </widget>
        <widget class="QListView" name="lvImageList">
+        <property name="contextMenuPolicy">
+         <enum>Qt::CustomContextMenu</enum>
+        </property>
         <property name="acceptDrops">
          <bool>false</bool>
         </property>

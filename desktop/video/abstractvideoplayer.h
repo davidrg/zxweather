@@ -24,16 +24,26 @@ public:
     static AbstractVideoPlayer * createVideoPlayer(QWidget *parent);
 
     virtual QSize videoSize() = 0;
+
+    virtual bool controlsEnabled() = 0;
+
 signals:
     void sizeChanged(QSize size);
+    void positionChanged(qint64 time); /*!< emitted as the video plays to indicate time */
+    void ready(); /*!< Emitted when ready for playback */
 
 public slots:
     virtual void play() = 0;
     virtual void pause() = 0;
     virtual void stop() = 0;
+    virtual void setTickInterval(qint32 interval) = 0;
+    virtual void setControlsEnabled(bool enabled) = 0;
+    virtual void setControlsLocked(bool locked);
 
 protected:
     QString timeString(qint64 length, qint64 position) const;
+
+    bool controlsLocked;
 };
 
 #endif // ABSTRACTVIDEOPLAYER_H

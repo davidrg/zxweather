@@ -27,10 +27,15 @@ public:
 
     QSize sizeHint() const;
 
+    bool controlsEnabled();
+
 public slots:
     void play();
     void pause();
     void stop();
+    void mediaTick(qint64 time);
+    void setTickInterval(qint32 interval);
+    void setControlsEnabled(bool enabled);
 
 protected:
     void resizeEvent(QResizeEvent * event);
@@ -39,13 +44,13 @@ private slots:
     void finished();
     void updateTime();
     void stateChanged(Phonon::State newState);
-    void setControlsEnabled(bool enabled);
 
 private:
     Ui::PhononVideoPlayer *ui;
     Phonon::MediaObject mediaObject;
     QSize oldSize;
     bool resized;
+    bool controlsLocked;
 };
 
 #endif // PHONONVIDEOPLAYER_H

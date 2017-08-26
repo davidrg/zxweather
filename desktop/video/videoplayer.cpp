@@ -27,6 +27,8 @@ VideoPlayer::VideoPlayer(QWidget *parent) :
 
     mediaObject.setVideoOutput(ui->player);
 
+    setTickInterval(1000);
+
     connect(&mediaObject, SIGNAL(durationChanged(qint64)),
             this, SLOT(updateTime()));
     connect(&mediaObject, SIGNAL(positionChanged(qint64)),
@@ -37,6 +39,8 @@ VideoPlayer::VideoPlayer(QWidget *parent) :
             this, SLOT(stateChanged(QMediaPlayer::State)));
     connect(&mediaObject, SIGNAL(error(QMediaPlayer::Error)),
             this, SLOT(mediaError(QMediaPlayer::Error)));
+    connect(&mediaObject, SIGNAL(positionChanged(qint64)),
+            this, SLOT(mediaPositionChanged(qint64)));
 
     setControlsEnabled(false);
 }
@@ -44,6 +48,10 @@ VideoPlayer::VideoPlayer(QWidget *parent) :
 VideoPlayer::~VideoPlayer()
 {
     delete ui;
+}
+
+void VideoPlayer::setTickInterval(qint32 interval) {
+    mediaObject.setNotifyInterval(interval);
 }
 
 void VideoPlayer::play() {
@@ -75,7 +83,15 @@ void VideoPlayer::updateTime() {
                                   mediaObject.position()));
 }
 
+void PhononVideoPlayer::controlsEnabled() {
+    return ui->tbPause->isEnabled();
+}
+
 void VideoPlayer::setControlsEnabled(bool enabled) {
+    if (mediaObject.mediaStatus() != QMediaPlayer::LoadedMedia) {
+        return; // Not valid to enable controls yet.
+    }
+
     ui->tbPause->setEnabled(enabled);
     ui->tbPlay->setEnabled(enabled);
     ui->tbStop->setEnabled(enabled);
@@ -101,7 +117,10 @@ void VideoPlayer::mediaStatusChanged(QMediaPlayer::MediaStatus newStatus) {
     case QMediaPlayer::EndOfMedia:
     case QMediaPlayer::LoadedMedia:
         setStatus("Stopped");
-        setControlsEnabled(true);
+        if (!controlsLocked) {
+            setControlsEnabled(true);
+        }
+        emit ready();
         break;
     case QMediaPlayer::BufferingMedia:
 //        setStatus("Buffering");
@@ -129,8 +148,8 @@ void VideoPlayer::mediaStatusChanged(QMediaPlayer::MediaStatus newStatus) {
                 oldSize.height() != size.height()) {
             oldSize = size;
             qDebug() << "Size changed: " << size;
-            emit sizeChanged(size);
             updateGeometry();
+            emit sizeChanged(size);
         }
     }
 }
@@ -164,4 +183,8 @@ QSize VideoPlayer::sizeHint() const {
     qDebug() << statusHeight;
 
     return QSize(size.width(), size.height() + frameHeight + statusHeight);
+}
+
+void VideoPlayer::mediaPositionChanged(qint64 pos) {
+    emit positionChanged(pos);
 }

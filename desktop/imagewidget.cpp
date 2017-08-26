@@ -22,6 +22,8 @@ ImageWidget::ImageWidget(QWidget *parent) : QWidget(parent)
     videoSet = false;
     usingCacheFile = false;
     scaled = false;
+    videoTickInterval = 1000;
+    videoControlsLocked = false;
 
     // Try to maintain aspect ratio for whatever our dimensions are
     QSizePolicy policy(QSizePolicy::Preferred, QSizePolicy::Preferred);
@@ -45,7 +47,7 @@ void ImageWidget::paintEvent(QPaintEvent *event) {
     if (image.isNull()) return; // Nothing to paint
 
     QPixmap p = QPixmap::fromImage(image);
-    if (scaled) {
+    if (scaled && !isIcon) {
         QPixmap scaled = p.scaled(width(), height(), Qt::KeepAspectRatio,
                                   Qt::SmoothTransformation);
 
@@ -64,7 +66,15 @@ void ImageWidget::paintEvent(QPaintEvent *event) {
             painter.drawPixmap(0,0,scaled);
         }
     } else {
-        painter.drawPixmap(0,0,p);
+        // horiztonal align
+        int xdelta = width() - p.width();
+        int xoffset = xdelta/2;
+
+        // vertical align
+        int ydelta = height() - p.height();
+        int yoffset = ydelta/2;
+
+        painter.drawPixmap(xoffset, yoffset, p);
     }
 }
 
@@ -77,10 +87,16 @@ void ImageWidget::setPixmap(const QPixmap &pixmap) {
     repaint();
 }
 
+void ImageWidget::setIcon(QIcon icon) {
+    isIcon = true;
+    setPixmap(icon.pixmap(32,32));
+}
+
 
 void ImageWidget::setImage(QImage image, QString filename) {
     imageSet = false;
     videoSet = false;
+    isIcon = false;
 
     bool fileOk = true;
     if (filename.isNull() || filename.isEmpty()) {
@@ -110,13 +126,17 @@ void ImageWidget::setImage(QImage image, QString filename) {
             if (!info.mimeType.isNull()) {
                 // We have a MIME type!
                 if (info.mimeType.startsWith("video/")) {
-                    setPixmap(QPixmap(":/icons/film-32"));
+                    setIcon(QIcon(":/icons/film-32"));
 
                     // We have video! Thats sort of an image I guess.
                     qDebug() << "File is video, not image: " << filename;
 
                     if (videoPlayer == NULL) {
                         videoPlayer = AbstractVideoPlayer::createVideoPlayer(this);
+                        connect(videoPlayer, SIGNAL(positionChanged(qint64)),
+                                this, SLOT(mediaPositionChanged(qint64)));
+                        connect(videoPlayer, SIGNAL(ready()),
+                                this, SLOT(videoPlayerReady()));
                         this->setLayout(new QGridLayout());
                         this->layout()->setMargin(0);
                         this->layout()->addWidget(videoPlayer);
@@ -124,7 +144,9 @@ void ImageWidget::setImage(QImage image, QString filename) {
                     connect(videoPlayer, SIGNAL(sizeChanged(QSize)),
                             this, SLOT(videoSizeChanged(QSize)));
 
+                    videoPlayer->setControlsLocked(videoControlsLocked);
                     videoPlayer->setFilename(filename);
+                    videoPlayer->setTickInterval(videoTickInterval);
                     videoPlayer->show();
                     videoSet = true;
 
@@ -165,6 +187,33 @@ void ImageWidget::setImage(QImage image, QString filename) {
     updateGeometry();
     repaint();
     //setPixmap(QPixmap::fromImage(image));
+}
+
+void ImageWidget::setVideoTickInterval(qint32 interval) {
+    if (videoPlayer != NULL) {
+        videoPlayer->setTickInterval(interval);
+    }
+    videoTickInterval = interval;
+}
+
+void ImageWidget::setVideoControlsEnabled(bool enabled) {
+    if (enabled) {
+        setVideoControlsLocked(false);
+    }
+    if (videoPlayer != NULL) {
+        videoPlayer->setControlsEnabled(enabled);
+    }
+}
+
+void ImageWidget::setVideoControlsLocked(bool locked) {
+    if (videoPlayer != NULL) {
+        videoPlayer->setControlsLocked(locked);
+    }
+    videoControlsLocked = locked;
+}
+
+void ImageWidget::videoPlayerReady() {
+    emit videoReady();
 }
 
 void ImageWidget::setImage(QImage image, ImageInfo info, QString filename) {
@@ -232,8 +281,41 @@ void ImageWidget::popOut() {
         return;
     }
 
-    ImageWidget *iw = new ImageWidget();
+//    ImageWidget *iw = new ImageWidget();
 
+
+//    iw->setAttribute(Qt::WA_DeleteOnClose);
+//    if (info.mimeType.startsWith("video/")) {
+//        iw->setWindowIcon(QIcon(":/icons/film"));
+//    } else {
+//        iw->setWindowIcon(QIcon(":/icons/image"));
+//    }
+
+//    if (usingCacheFile) {
+//        iw->setImage(image, info, filename);
+//    } else {
+//        iw->setImage(image, info);
+//    }
+//    iw->setScaled(true);
+
+//    QString title = info.title;
+//    if (title.isEmpty() || title.isNull()){
+//        title = info.timeStamp.toString();
+//    } else {
+//        iw->setToolTip(info.timeStamp.toString());
+//    }
+
+//    title += " - " + info.imageSource.name;
+
+//    iw->setWindowTitle(title);
+
+//    iw->show();
+
+    popOut(info, image, filename);
+}
+
+void ImageWidget::popOut(ImageInfo info, QImage image, QString filename) {
+    ImageWidget *iw = new ImageWidget();
 
     iw->setAttribute(Qt::WA_DeleteOnClose);
     if (info.mimeType.startsWith("video/")) {
@@ -242,7 +324,8 @@ void ImageWidget::popOut() {
         iw->setWindowIcon(QIcon(":/icons/image"));
     }
 
-    if (usingCacheFile) {
+    QFileInfo fi(filename);
+    if (!fi.exists() || !fi.isFile()) {
         iw->setImage(image, info, filename);
     } else {
         iw->setImage(image, info);
@@ -316,4 +399,8 @@ QSize ImageWidget::sizeHint() const {
     } else {
         return image.size();
     }
+}
+
+void ImageWidget::mediaPositionChanged(qint64 time) {
+    emit videoPositionChanged(time);
 }

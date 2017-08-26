@@ -65,7 +65,14 @@ void LatestImagesWebTask::processResponse(QByteArray data) {
         info.imageSource.code = key;
         info.imageSource.name = imageSource["name"].toString();
         info.imageSource.description = imageSource["description"].toString();
-        info.fullUrl = latestImage["urls"].toMap()["full"].toString();
+
+        QVariantMap urls = latestImage["urls"].toMap();
+
+        info.fullUrl = urls["full"].toString();
+        if (urls.contains("metadata")) {
+            info.metaUrl = urls["metadata"].toString();
+            info.hasMetadata = true;
+        }
 
         // Store this metadata in the cache DB so other parts of the system
         // can get at it

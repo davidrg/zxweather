@@ -59,7 +59,11 @@ protected:
     QString getCacheFilename();
     virtual void dealWithImage(QString filename);
 
+    bool needImage;
+
     ImageInfo _imageInfo;
+    QString filename;
+    bool needMetadata;
 };
 
 #endif // FETCHIMAGEWEBTASK_H
