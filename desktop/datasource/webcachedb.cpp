@@ -529,6 +529,7 @@ void WebCacheDB::storeImageInfo(QString stationUrl, ImageInfo image) {
     int stationId = getStationId(stationUrl);
 
     if (imageExists(stationId, image.id)) {
+
         qDebug() << "Skip: Image metadata already exists - not caching against temporary set";
         return;
     }
@@ -573,6 +574,40 @@ void WebCacheDB::storeImageInfo(QString stationUrl, ImageInfo image) {
     storeImage(image, imageSetId, stationId, imageSourceId);
 }
 
+void WebCacheDB::updateImageInfo(QString stationUrl, ImageInfo imageInfo) {
+    int stationId = getStationId(stationUrl);
+
+    if (!imageExists(stationId, imageInfo.id)) {
+        qDebug() << "Cant update image: no record of image exists";
+        return;
+    }
+
+    QSqlQuery query(sampleCacheDb);
+    query.prepare("update image set timestamp = :timestamp, date = :date, "
+                  "type_code = :type_code, title = :title, "
+                  "description = :description, mime_type = :mime_type, "
+                  "url = :url, metadata = :metadata, meta_url = :meta_url "
+                  "where id = :id");
+
+    query.bindValue(":id", imageInfo.id);
+    query.bindValue(":timestamp", imageInfo.timeStamp);
+    query.bindValue(":date", imageInfo.timeStamp.date());
+    query.bindValue(":type_code", imageInfo.imageTypeCode);
+    query.bindValue(":title", imageInfo.title);
+    query.bindValue(":description", imageInfo.description);
+    query.bindValue(":mime_type", imageInfo.mimeType);
+    query.bindValue(":url", imageInfo.fullUrl);
+    query.bindValue(":metadata", imageInfo.metadata);
+    query.bindValue(":meta_url", imageInfo.metaUrl);
+
+    query.exec();
+    if (query.lastError().isValid()) {
+        qDebug() << "Failed to update image " << imageInfo.fullUrl
+                 << ", database error: " << query.lastError().databaseText()
+                 << ", driver error: " << query.lastError().driverText();
+    }
+}
+
 void WebCacheDB::storeImage(ImageInfo image, int imageSetId, int stationId,
                             int imageSourceId) {
     if (imageExists(stationId, image.id)) {
@@ -599,9 +634,11 @@ void WebCacheDB::storeImage(ImageInfo image, int imageSetId, int stationId,
 
     QSqlQuery query(sampleCacheDb);
     query.prepare("insert into image(id, image_set, source, timestamp, date, "
-                  "type_code, title, description, mime_type, url) "
+                  "type_code, title, description, mime_type, url, metadata, "
+                  "meta_url) "
                   "values(:id, :image_set, :source, :timestamp, :date, "
-                  ":type_code, :title, :description, :mime_type, :url)");
+                  ":type_code, :title, :description, :mime_type, :url,"
+                  ":metadata, :meta_url)");
     query.bindValue(":id", image.id);
     query.bindValue(":image_set", imageSetId);
     query.bindValue(":source", imageSourceId);
@@ -612,6 +649,8 @@ void WebCacheDB::storeImage(ImageInfo image, int imageSetId, int stationId,
     query.bindValue(":description", image.description);
     query.bindValue(":mime_type", image.mimeType);
     query.bindValue(":url", image.fullUrl);
+    query.bindValue(":metadata", image.metadata);
+    query.bindValue(":meta_url", image.metaUrl);
     query.exec();
     if (query.lastError().isValid()) {
         qDebug() << "Failed to insert image " << image.fullUrl
@@ -671,6 +710,9 @@ ImageInfo RecordToImageInfo(QSqlRecord record) {
     result.imageSource.code = record.field(7).value().toString();
     result.imageSource.name = record.field(8).value().toString();
     result.imageSource.description = record.field(9).value().toString();
+    result.hasMetadata = !record.field(10).isNull();
+    result.metadata = record.field(10).value().toString();
+    result.metaUrl = record.field(11).value().toString();
     return result;
 }
 
@@ -680,7 +722,7 @@ ImageInfo WebCacheDB::getImageInfo(QString stationUrl, int id) {
     QSqlQuery query(sampleCacheDb);
     query.prepare("select i.id, i.timestamp, i.type_code, i.title, "
                   "i.description, i.mime_type, i.url, src.code, src.name, "
-                  "src.description "
+                  "src.description, i.metadata, i.meta_url "
                   "from image i "
                   "inner join image_source src on src.id = i.source "
                   "where src.station = :station "

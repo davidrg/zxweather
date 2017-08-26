@@ -31,16 +31,18 @@ public slots:
     void play();
     void pause();
     void stop();
+    void setTickInterval(qint32 interval);
+    void setControlsEnabled(bool enabled);
 
 private slots:
     void finished();
     void updateTime();
     void mediaStatusChanged(QMediaPlayer::MediaStatus newStatus);
     void stateChanged(QMediaPlayer::State newState);
-    void setControlsEnabled(bool enabled);
 
     void setStatus(QString status);
     void mediaError(QMediaPlayer::Error error);
+    void mediaPositionChanged(qint64 pos);
 
 private:
     Ui::VideoPlayer *ui;

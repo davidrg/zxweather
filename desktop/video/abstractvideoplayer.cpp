@@ -10,6 +10,7 @@
 
 AbstractVideoPlayer::AbstractVideoPlayer(QWidget *parent) : QWidget(parent)
 {
+    controlsLocked = false;
 }
 
 AbstractVideoPlayer* AbstractVideoPlayer::createVideoPlayer(QWidget *parent) {
@@ -45,4 +46,8 @@ QString AbstractVideoPlayer::timeString(qint64 length, qint64 position) const {
     }
 
     return timeString;
+}
+
+void AbstractVideoPlayer::setControlsLocked(bool locked) {
+    controlsLocked = locked;
 }

@@ -65,30 +65,58 @@ void FetchImageWebTask::beginTask() {
     QString filename = getCacheFilename();
     QFile file(filename);
 
-    if (file.exists()) {
+    needMetadata = !_imageInfo.hasMetadata && !_imageInfo.metaUrl.isNull()
+            && _imageInfo.metadata.isNull();
+    needImage = !file.exists();
+
+    if (needImage) {
+        qDebug() << "Fetch image:" << _imageInfo.fullUrl;
+        emit httpGet(QNetworkRequest(_imageInfo.fullUrl));
+    }
+
+    if (needMetadata) {
+        qDebug() << "Fetch metadata:" << _imageInfo.metaUrl;
+        emit httpGet(QNetworkRequest(_imageInfo.metaUrl));
+    }
+
+    if (!needImage && !needMetadata) {
+        qDebug() << "All data is cached - nothing to do";
         dealWithImage(filename);
         emit finished();
-    } else {
-        // File isn't cached. Ask the internet for a copy.
-        emit httpGet(QNetworkRequest(_imageInfo.fullUrl));
     }
 }
 
 
 void FetchImageWebTask::networkReplyReceived(QNetworkReply *reply) {
     reply->deleteLater();
-    QString filename = getCacheFilename();
-    QFile file(filename);
-    if (file.open(QIODevice::WriteOnly)) {
-        file.write(reply->readAll());
-        file.close();
-        dealWithImage(filename);
-        emit finished();
-        return;
+    if (reply->request().url() == _imageInfo.fullUrl) {
+        qDebug() << "Got image";
+
+        filename = getCacheFilename();
+        QFile file(filename);
+        if (file.open(QIODevice::WriteOnly)) {
+            file.write(reply->readAll());
+            file.close();
+            needImage = false;
+        } else {
+            // Error?
+            emit failed("Failed to open cache file " + filename);
+        }
+    } else if (reply->request().url() == _imageInfo.metaUrl) {
+        qDebug() << "Got metadata";
+
+        needMetadata = false;
+        _imageInfo.hasMetadata = true;
+        _imageInfo.metadata = reply->readAll();
+
+        // Update the database with metadata
+        WebCacheDB::getInstance().updateImageInfo(_stationBaseUrl, _imageInfo);
     }
 
-    // Error?
-    emit failed("Failed to open cache file " + filename);
+    if (!needMetadata && !needImage) {
+        dealWithImage(filename);
+        emit finished();
+    }
 }
 
 void FetchImageWebTask::dealWithImage(QString filename) {

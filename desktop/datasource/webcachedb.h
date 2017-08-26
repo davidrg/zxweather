@@ -156,6 +156,12 @@ public:
      */
     ImageInfo getImageInfo(QString stationUrl, int id);
 
+    /** Updates the stored image information with the supplied values
+     *
+     * @param imageInfo ID of the image to update
+     */
+    void updateImageInfo(QString stationUrl, ImageInfo imageInfo);
+
     /** Gets the specified image source.
      *
      * @param stationUrl Station the image source is associated with

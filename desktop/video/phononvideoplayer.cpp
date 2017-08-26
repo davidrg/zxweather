@@ -35,8 +35,9 @@ PhononVideoPlayer::PhononVideoPlayer(QWidget *parent) :
             this, SLOT(updateTime()));
     connect(&mediaObject, SIGNAL(stateChanged(Phonon::State,Phonon::State)),
             this, SLOT(stateChanged(Phonon::State)));
+    connect(&mediaObject, SIGNAL(tick(qint64)), this, SLOT(mediaTick(qint64)));
 
-    mediaObject.setTickInterval(1000);
+    setTickInterval(1000);
 
     setControlsEnabled(false);
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -47,6 +48,10 @@ PhononVideoPlayer::PhononVideoPlayer(QWidget *parent) :
 PhononVideoPlayer::~PhononVideoPlayer()
 {
     delete ui;
+}
+
+void PhononVideoPlayer::setTickInterval(qint32 interval) {
+    mediaObject.setTickInterval(interval);
 }
 
 void PhononVideoPlayer::play() {
@@ -85,7 +90,28 @@ QSize PhononVideoPlayer::videoSize() {
     return ui->player->sizeHint();
 }
 
+bool PhononVideoPlayer::controlsEnabled() {
+    return ui->tbPause->isEnabled();
+}
+
 void PhononVideoPlayer::setControlsEnabled(bool enabled) {
+    if (enabled) {
+        // Check the player is actually ready for playback before enabling
+        // the controls.
+
+        switch(mediaObject.state()) {
+        case Phonon::StoppedState:
+        case Phonon::PlayingState:
+        case Phonon::PausedState:
+            break;
+        case Phonon::LoadingState:
+        case Phonon::ErrorState:
+        case Phonon::BufferingState:
+        default:
+            return; // Not valid to enable controls yet
+        }
+    }
+
     ui->tbPause->setEnabled(enabled);
     ui->tbPlay->setEnabled(enabled);
     ui->tbStop->setEnabled(enabled);
@@ -133,7 +159,10 @@ void PhononVideoPlayer::stateChanged(Phonon::State newState) {
         }
 
         if (newState != Phonon::ErrorState) {
-            setControlsEnabled(true);
+            if (!controlsLocked) {
+                setControlsEnabled(true);
+            }
+            emit ready();
         }
     }
 }
@@ -150,4 +179,8 @@ QSize PhononVideoPlayer::sizeHint() const {
     QSize size = ui->player->sizeHint();
 
     return QSize(size.width(), size.height() + frameHeight + statusHeight);
+}
+
+void PhononVideoPlayer::mediaTick(qint64 time) {
+    emit positionChanged(time);
 }

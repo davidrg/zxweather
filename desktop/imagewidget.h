@@ -18,6 +18,7 @@ public:
 
     void setImage(QImage image, QString filename=QString());
     void setImage(QImage image, ImageInfo info, QString filename=QString());
+    void setIcon(QIcon icon);
 
     void setPixmap(const QPixmap &pixmap);
 
@@ -25,10 +26,20 @@ public:
 
     void popOut();
 
+    static void popOut(ImageInfo info, QImage image, QString filename);
+
     void setScaled(bool);
 
-//signals:
+signals:
+    void videoPositionChanged(qint64 time);
+    void videoReady();
 //    void sizeHintChanged(QSize);
+
+public slots:
+    void setVideoTickInterval(qint32 interval);
+    void setVideoControlsEnabled(bool enabled);
+    void setVideoControlsLocked(bool locked);
+
 protected:
     void mousePressEvent(QMouseEvent *event);
     void mouseMoveEvent(QMouseEvent *event);
@@ -37,15 +48,20 @@ protected:
 
 private slots:
     void videoSizeChanged(QSize size);
+    void mediaPositionChanged(qint64 time);
+    void videoPlayerReady();
 
 private:
     QString filename;
     bool imageSet;
     bool videoSet;
+    bool isIcon;
     bool usingCacheFile;
     ImageInfo info;
     QImage image;
     bool scaled;
+    qint32 videoTickInterval;
+    bool videoControlsLocked;
 
     QSize videoSize;
 

@@ -4,8 +4,13 @@
 #include "settings.h"
 #include "datasource/databasedatasource.h"
 #include "datasource/webdatasource.h"
+#include "weatherimagewindow.h"
 
 #include <QtDebug>
+#include <QMenu>
+#include <QFileDialog>
+#include <QFileInfo>
+#include <QFile>
 
 ViewImagesWindow::ViewImagesWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -50,6 +55,13 @@ ViewImagesWindow::ViewImagesWindow(QWidget *parent) :
             this, SLOT(hSplitterMoved(int,int)));
     connect(ui->splitter, SIGNAL(splitterMoved(int,int)),
             this, SLOT(vSplitterMoved(int,int)));
+
+    ui->lvImageList->setContextMenuPolicy(Qt::CustomContextMenu);
+    ui->tvImageSet->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(ui->lvImageList, SIGNAL(customContextMenuRequested(QPoint)),
+            this, SLOT(listItemContextMenu(QPoint)));
+    connect(ui->tvImageSet, SIGNAL(customContextMenuRequested(QPoint)),
+            this, SLOT(treeItemContextMenu(QPoint)));
 
     ui->splitter->restoreState(settings.getImagesWindowVSplitterLayout());
     ui->splitter_2->restoreState(settings.getImagesWindowHSplitterLayout());
@@ -99,7 +111,8 @@ void ViewImagesWindow::loadImageForIndex(QModelIndex index) {
     QVariant icon = index.data(Qt::DecorationRole);
     if (icon.isValid()) {
         ui->lImage->setScaled(false); // don't scale the icon
-        ui->lImage->setPixmap(icon.value<QIcon>().pixmap(ui->lImage->size()));
+        //ui->lImage->setPixmap(icon.value<QIcon>().pixmap(ui->lImage->size()));
+        ui->lImage->setIcon(icon.value<QIcon>());
     }
 }
 
@@ -142,4 +155,123 @@ void ViewImagesWindow::closeEvent(QCloseEvent *event)
 {
     Settings::getInstance().setImagesWindowLayout(saveState());
     QMainWindow::closeEvent(event);
+}
+
+void ViewImagesWindow::listItemContextMenu(const QPoint& point) {
+    qDebug() << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! List ctx";
+    QPoint pt = ui->lvImageList->mapToGlobal(point);
+    contextMenu(pt, ui->lvImageList->indexAt(point), true);
+}
+
+void ViewImagesWindow::treeItemContextMenu(const QPoint& point) {
+    QPoint pt = ui->tvImageSet->mapToGlobal(point);
+    contextMenu(pt, ui->tvImageSet->indexAt(point), false);
+}
+
+void ViewImagesWindow::contextMenu(QPoint point, QModelIndex idx, bool isList) {
+    if(model.data()->isImage(idx)) {
+        // Image node
+        QMenu* menu = new QMenu(this);
+        menu->setAttribute(Qt::WA_DeleteOnClose);
+        QAction *act = menu->addAction("&Open in new window",
+                                           this, SLOT(openImageInWindow()));
+        QFont f = act->font();
+        f.setBold(true);
+        act->setFont(f);
+        act->setData(isList);
+
+        act = menu->addAction("&View weather at time",
+                              this, SLOT(viewWeather()));
+        act->setData(isList);
+
+        menu->addSeparator();
+
+        act = menu->addAction("&Save As...",
+                        this, SLOT(saveImageAs()));
+        act->setData(isList);
+
+        menu->popup(point);
+    } else {
+        // Its a folder node
+        qDebug() << "TODO: folder context menu";
+    }
+}
+
+void ViewImagesWindow::openImageInWindow() {
+    if (QAction* menuAction = qobject_cast<QAction*>(sender())) {
+        bool isList = menuAction->data().toBool();
+        QModelIndex index;
+        if (isList) {
+            index = ui->lvImageList->currentIndex();
+        } else {
+            index = ui->tvImageSet->currentIndex();
+        }
+
+        if (model->isImage(index)) {
+
+            QImage image = model->image(index);
+            QString filename = model->imageTemporaryFileName(index);
+            ImageInfo info = model->imageInfo(index);
+
+            ImageWidget::popOut(info, image, filename);
+        }
+    }
+}
+
+void ViewImagesWindow::saveImageAs() {
+    if (QAction* menuAction = qobject_cast<QAction*>(sender())) {
+        bool isList = menuAction->data().toBool();
+        QModelIndex index;
+        if (isList) {
+            index = ui->lvImageList->currentIndex();
+        } else {
+            index = ui->tvImageSet->currentIndex();
+        }
+
+        if (index.isValid() && model->isImage(index)) {
+
+            QImage image = model->image(index);
+            QString filename = model->imageTemporaryFileName(index);
+            ImageInfo info = model->imageInfo(index);
+            QFileInfo fileInfo(filename);
+
+
+            QString filter;
+            if (info.mimeType.startsWith("video/")) {
+                filter = "Video files (*." + fileInfo.completeSuffix() + ")";
+            } else {
+                filter = "Image files (*." + fileInfo.completeSuffix() + ")";
+            }
+
+            QString fn = QFileDialog::getSaveFileName(this, tr("Save As..."),
+                QString(), filter);
+
+            if (info.mimeType.startsWith("image/")) {
+                image.save(fn);
+            } else {
+                QFile::copy(filename, fn);
+            }
+        }
+    }
+}
+
+void ViewImagesWindow::viewWeather() {
+    if (QAction* menuAction = qobject_cast<QAction*>(sender())) {
+        bool isList = menuAction->data().toBool();
+        QModelIndex index;
+        if (isList) {
+            index = ui->lvImageList->currentIndex();
+        } else {
+            index = ui->tvImageSet->currentIndex();
+        }
+
+        if (index.isValid() && model->isImage(index)) {
+            ImageInfo info = model->imageInfo(index);
+
+            WeatherImageWindow *wnd = new WeatherImageWindow();
+            wnd->setAttribute(Qt::WA_DeleteOnClose);
+            wnd->show();
+            wnd->setImage(info.id);
+        }
+    }
 }

@@ -30,12 +30,21 @@ private slots:
     void hSplitterMoved(int, int);
     void vSplitterMoved(int, int);
 
+    void listItemContextMenu(const QPoint& point);
+    void treeItemContextMenu(const QPoint& point);
+
+    // Context menu
+    void openImageInWindow();
+    void saveImageAs();
+    void viewWeather();
+
 private:
     Ui::ViewImagesWindow *ui;
     QScopedPointer<AbstractDataSource> dataSource;
     QScopedPointer<ImageModel> model;
 
     void loadImageForIndex(QModelIndex index);
+    void contextMenu(QPoint point, QModelIndex idx, bool isList);
 };
 
 #endif // VIEWIMAGESWINDOW_H

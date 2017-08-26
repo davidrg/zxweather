@@ -183,6 +183,11 @@ void ListDayImagesWebTask::downloadRequestFinished(QNetworkReply *reply) {
         image.mimeType = imageData["mime_type"].toString();
         image.imageSource = imageSource;
         image.fullUrl = _imagesRoot + imageData["image_url"].toString();
+        image.hasMetadata = imageData["has_metadata"].toBool();
+
+        if (image.hasMetadata) {
+            image.metaUrl = _imagesRoot + imageData["metadata_url"].toString();
+        }
 
         qDebug() << "Image: " << image.fullUrl;
 

@@ -86,7 +86,9 @@ create table image (
   title text,
   description text,
   mime_type text,
-  url text
+  url text,
+  metadata text,
+  meta_url text
 );
 
 create index image_id on image(id, source);

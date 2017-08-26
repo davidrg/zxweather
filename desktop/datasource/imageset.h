@@ -30,6 +30,10 @@ struct ImageInfo {
     QString mimeType;
     ImageSource imageSource;
     QString fullUrl; /*!< Only used by the WebDataSource caching system */
+
+    bool hasMetadata;
+    QString metadata;
+    QString metaUrl; /*!< Only used by the WebDataSource caching system */
 };
 
 #endif // IMAGESET_H

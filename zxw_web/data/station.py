@@ -401,6 +401,21 @@ def image_sources(station_id, station_code):
                 }
             }
 
+            if row.last_image_has_metadata:
+                result[row.code]['last_image_info']['urls']['metadata'] = \
+                    url_template.format(
+                        year=row.last_image_time_stamp.year,
+                        month=row.last_image_time_stamp.month,
+                        day=row.last_image_time_stamp.day,
+                        source_code=row.code.lower(),
+                        hour=row.last_image_time_stamp.hour,
+                        minute=row.last_image_time_stamp.minute,
+                        second=row.last_image_time_stamp.second,
+                        type_code=row.last_image_type_code.lower(),
+                        size="metadata",
+                        extension="json"
+                    )
+
     web.header('Content-Type', 'application/json')
     return json.dumps(result)
 

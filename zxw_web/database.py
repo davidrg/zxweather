@@ -1032,7 +1032,8 @@ def get_image_source_info(station_id):
        upper(last_image_type.code) as last_image_type_code,
        last_image.title as last_image_title,
        last_image.description as last_image_description,
-       last_image.mime_type as last_image_mime_type
+       last_image.mime_type as last_image_mime_type,
+       last_image.metadata is not null as last_image_has_metadata
 from (
     select upper(img_src.code) as code,
            img_src.source_name,
