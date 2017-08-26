@@ -23,6 +23,8 @@ public slots:
     void liveData(LiveDataSet lds);
     void newSample(Sample sample);
     void setRain(QDate date, double day, double month, double year);
+    void setStormRateEnabled(bool enabled);
+    void reset();
 
 private:
     // UI
@@ -35,6 +37,7 @@ private:
     QDate lastUpdate;
     double day, storm, rate;
     double month, year;
+    bool stormRateEnabled;
 
     void updatePlot();
 };

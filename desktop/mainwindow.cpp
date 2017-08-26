@@ -479,6 +479,8 @@ void MainWindow::reconfigureDataSource() {
     ui->latestImages->hideImagery();
     adjustSize();
 
+    ui->rainfall->reset();
+
     // Reset late data timer.
     ui->status->reset();
 
@@ -542,6 +544,7 @@ void MainWindow::liveDataRefreshed(LiveDataSet lds) {
 
     ui->forecast->setVisible(lds.hw_type == HW_DAVIS);
     ui->status->setVisible(lds.hw_type == HW_DAVIS);
+    ui->rainfall->setStormRateEnabled(lds.hw_type == HW_DAVIS);
     ui->latestImages->setFixedWidth(width());
 
     // Adjust the size after a short delay to give the other widgets time to
