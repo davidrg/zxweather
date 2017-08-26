@@ -315,7 +315,7 @@ def deserialise_dmp(dmp_string, rainCollectorSize=0.2):
 
     highUVIndex /= 10.0
 
-    ET = inch_to_mm(ET / 1000)
+    ET = inch_to_mm(ET / 1000.0)
 
     unpacked = Dmp(
         dateStamp=decode_date(dateStamp),
