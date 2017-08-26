@@ -83,6 +83,7 @@ create table image (
   timestamp integer not null,
   date text not null,
   type_code text not null,
+  type_name text,
   title text,
   description text,
   mime_type text,

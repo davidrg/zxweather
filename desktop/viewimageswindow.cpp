@@ -5,6 +5,7 @@
 #include "datasource/databasedatasource.h"
 #include "datasource/webdatasource.h"
 #include "weatherimagewindow.h"
+#include "imagepropertiesdialog.h"
 
 #include <QtDebug>
 #include <QMenu>
@@ -101,7 +102,12 @@ void ViewImagesWindow::loadImageForIndex(QModelIndex index) {
         if (info.mimeType.startsWith("video/")) {
             // Video file. Send it to the Image Widget - it should be able to
             // handle it provided the right codec is available
-            ui->lImage->setImage(image, info, filename);
+            if (filename == "") {
+                // Not available yet (still downloading?)
+                ui->lImage->setIcon(QIcon(":/icons/film-32"));
+            } else {
+                ui->lImage->setImage(image, info, filename);
+            }
             return;
         }
     }
@@ -194,9 +200,23 @@ void ViewImagesWindow::contextMenu(QPoint point, QModelIndex idx, bool isList) {
                         this, SLOT(saveImageAs()));
         act->setData(isList);
 
+        menu->addSeparator();
+
+        act = menu->addAction("&Properties",
+                        this, SLOT(properties()));
+        act->setData(isList);
+
         menu->popup(point);
     } else {
         // Its a folder node
+        // options should be:
+        // <b>Expand</b>
+        // Download all (only if using web data source)
+        // ---
+        // Save As...
+        // ---
+        // Properties
+
         qDebug() << "TODO: folder context menu";
     }
 }
@@ -276,6 +296,33 @@ void ViewImagesWindow::viewWeather() {
             wnd->setAttribute(Qt::WA_DeleteOnClose);
             wnd->show();
             wnd->setImage(info.id);
+        }
+    }
+}
+
+void ViewImagesWindow::properties() {
+    if (QAction* menuAction = qobject_cast<QAction*>(sender())) {
+        bool isList = menuAction->data().toBool();
+        QModelIndex index;
+        if (isList) {
+            index = ui->lvImageList->currentIndex();
+        } else {
+            index = ui->tvImageSet->currentIndex();
+        }
+
+        if (index.isValid() && model->isImage(index)) {
+
+            QImage image = model->image(index);
+            QString filename = model->imageTemporaryFileName(index);
+            ImageInfo info = model->imageInfo(index);
+            QFileInfo fileInfo(filename);
+
+
+            ImagePropertiesDialog *dlg =
+                    new ImagePropertiesDialog(info, fileInfo.size(),
+                                              image);
+            dlg->setAttribute(Qt::WA_DeleteOnClose);
+            dlg->show();
         }
     }
 }

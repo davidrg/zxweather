@@ -37,6 +37,7 @@ private slots:
     void openImageInWindow();
     void saveImageAs();
     void viewWeather();
+    void properties();
 
 private:
     Ui::ViewImagesWindow *ui;

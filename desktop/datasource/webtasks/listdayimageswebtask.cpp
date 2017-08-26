@@ -178,6 +178,7 @@ void ListDayImagesWebTask::downloadRequestFinished(QNetworkReply *reply) {
         image.id = imageData["id"].toInt();
         image.timeStamp = imageData["time_stamp"].toDateTime();
         image.imageTypeCode = imageData["type_code"].toString().toLower();
+        image.imageTypeName = imageData["type_name"].toString();
         image.title = imageData["title"].toString();
         image.description = imageData["description"].toString();
         image.mimeType = imageData["mime_type"].toString();

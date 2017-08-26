@@ -25,6 +25,8 @@ struct ImageInfo {
     int id;
     QDateTime timeStamp;
     QString imageTypeCode;
+    QString imageTypeName;
+
     QString title;
     QString description;
     QString mimeType;
