@@ -12,6 +12,7 @@
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QFile>
+#include <QMessageBox>
 
 ViewImagesWindow::ViewImagesWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -210,14 +211,41 @@ void ViewImagesWindow::contextMenu(QPoint point, QModelIndex idx, bool isList) {
     } else {
         // Its a folder node
         // options should be:
-        // <b>Expand</b>
+        // <b>Open</b>
         // Download all (only if using web data source)
         // ---
         // Save As...
         // ---
         // Properties
 
-        qDebug() << "TODO: folder context menu";
+        QMenu* menu = new QMenu(this);
+        menu->setAttribute(Qt::WA_DeleteOnClose);
+        QAction *act = menu->addAction("&Open",
+                                           this, SLOT(openItem()));
+        QFont f = act->font();
+        f.setBold(true);
+        act->setFont(f);
+        act->setData(isList);
+
+#ifdef QT_DEBUG
+        // In Qt 4.8 at least this crashes sometime (looks like Qt bug). Its
+        // also very slow via the web data source.
+        if (!isList){
+            // Tree only!
+            menu->addSeparator();
+
+            act = menu->addAction("&Expand all",
+                                  this, SLOT(expandRecursively()));
+            act->setData(isList);
+            act = menu->addAction("&Collapse all",
+                                  this, SLOT(collapseRecursively()));
+            act->setData(isList);
+        }
+#endif
+
+        //menu->addSeparator();
+
+        menu->popup(point);
     }
 }
 
@@ -323,6 +351,104 @@ void ViewImagesWindow::properties() {
                                               image);
             dlg->setAttribute(Qt::WA_DeleteOnClose);
             dlg->show();
+        }
+    }
+}
+
+void ViewImagesWindow::openItem() {
+    if (QAction* menuAction = qobject_cast<QAction*>(sender())) {
+        bool isList = menuAction->data().toBool();
+        QModelIndex index;
+        if (isList) {
+            index = ui->lvImageList->currentIndex();
+        } else {
+            index = ui->tvImageSet->currentIndex();
+        }
+
+        if (index.isValid() && !model->isImage(index)) {
+            ui->tvImageSet->expand(index);
+            ui->lvImageList->setRootIndex(index);
+        }
+    }
+}
+
+void ViewImagesWindow::expandRecursively() {
+    if (QAction* menuAction = qobject_cast<QAction*>(sender())) {
+        bool isList = menuAction->data().toBool();
+        QModelIndex index;
+
+        // Tree only!
+        if (isList) {
+            return;
+        } else {
+            index = ui->tvImageSet->currentIndex();
+        }
+
+        if (!index.isValid()) {
+            return;
+        }
+
+        if (Settings::getInstance().sampleDataSourceType() != Settings::DS_TYPE_DATABASE) {
+            int ret = QMessageBox::question(
+                        this, tr("Expand"),
+                        tr("This will cause all images in this folder to be "
+                           "downloaded which may take a while. Do you want "
+                           "to continue and expand all folders?"),
+                        QMessageBox::Yes | QMessageBox::No,
+                        QMessageBox::No);
+            if (ret == QMessageBox::No) {
+                return;
+            }
+        }
+
+        QModelIndexList children;
+        children << index;
+        for ( int i = 0; i < children.size(); ++i ) {
+            for ( int j = 0; j < model.data()->rowCount( children[i] ); ++j ) {
+                children << children[i].child( j, 0 );
+            }
+        }
+        qDebug() << "Found" << children.size() << "children";
+
+        // The model normally lazy-loads. Here we need to be less lazy.
+        foreach (QModelIndex idx, children) {
+            model.data()->loadItem(idx);
+        }
+
+        // Now that load requests are queued for everything, expand it all.
+        foreach (QModelIndex idx, children) {
+            ui->tvImageSet->expand(idx);
+        }
+    }
+}
+
+void ViewImagesWindow::collapseRecursively() {
+    if (QAction* menuAction = qobject_cast<QAction*>(sender())) {
+        bool isList = menuAction->data().toBool();
+        QModelIndex index;
+
+        // Tree only!
+        if (isList) {
+            return;
+        } else {
+            index = ui->tvImageSet->currentIndex();
+        }
+
+        if (!index.isValid()) {
+            return;
+        }
+
+        QModelIndexList children;
+        children << index;
+        for ( int i = 0; i < children.size(); ++i ) {
+            for ( int j = 0; j < model.data()->rowCount( children[i] ); ++j ) {
+                children << children[i].child( j, 0 );
+            }
+        }
+        qDebug() << "Found" << children.size() << "children";
+
+        foreach (QModelIndex idx, children) {
+            ui->tvImageSet->collapse(idx);
         }
     }
 }

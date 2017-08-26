@@ -38,6 +38,9 @@ private slots:
     void saveImageAs();
     void viewWeather();
     void properties();
+    void openItem();
+    void expandRecursively();
+    void collapseRecursively();
 
 private:
     Ui::ViewImagesWindow *ui;

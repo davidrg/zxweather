@@ -75,7 +75,7 @@ private slots:
     // Task queue slots
 
     void queueTask(AbstractWebTask* task);
-    void queueTask(AbstractWebTask *task, bool startProcessing);
+    void queueTask(AbstractWebTask *task, bool startProcessing, bool priority=false);
 
     void subtaskChanged(QString name);
     void httpGet(QNetworkRequest request);

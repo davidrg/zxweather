@@ -55,6 +55,9 @@ public:
     QMimeData * mimeData(const QModelIndexList &indexes) const;
     QStringList mimeTypes() const;
 
+    // Pass in a "Loading..." item to cause immediate loading of that node.
+    void loadItem(const QModelIndex &index) const;
+
 signals:
 
 public slots:

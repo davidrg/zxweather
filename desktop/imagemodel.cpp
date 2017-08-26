@@ -432,10 +432,9 @@ ImageModel::~ImageModel() {
     }
 }
 
-QVariant ImageModel::data(const QModelIndex &index, int role) const {
-
+void ImageModel::loadItem(const QModelIndex &index) const {
     if (!index.isValid() || index.model() != this) {
-        return QVariant();
+        return;
     }
 
     TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
@@ -459,6 +458,17 @@ QVariant ImageModel::data(const QModelIndex &index, int role) const {
 
         item->setLoadRequested();
     }
+}
+
+QVariant ImageModel::data(const QModelIndex &index, int role) const {
+
+    if (!index.isValid() || index.model() != this) {
+        return QVariant();
+    }
+
+    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
+
+    loadItem(index);
 
     // If we supported multiple values we'd do something like this instead:
     // return item->data(index.column());
