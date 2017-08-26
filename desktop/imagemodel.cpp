@@ -12,6 +12,8 @@
 #include <QDesktopServices>
 #include <QDir>
 
+#include "settings.h"
+
 typedef enum {
     IT_ROOT,
     IT_YEAR,
@@ -229,7 +231,7 @@ void TreeItem::setImage(ImageInfo info, QImage image, QString cacheFile) {
             QDir().mkpath(filename);
 
         temporaryImageFile = new QTemporaryFile(filename +
-                    date().toString(Qt::ISODate) +
+                    QDir::separator() + date().toString(Qt::ISODate) +
                     " "+ text().replace(":","_") + " XXXXXX.jpeg");
         image.save(temporaryImageFile);
         temporaryImageFile->flush();
@@ -685,6 +687,9 @@ void ImageModel::imageListReady(QList<ImageInfo> imageList) {
     if (imageList.count() == 0) {
         return; // No images
     }
+
+    // Sort the image list by time and type
+    qSort(imageList.begin(), imageList.end(), imageLessThan);
 
     ImageLoadRequest req = imageLoadRequestQueue.takeFirst();
     loadingImages = false;

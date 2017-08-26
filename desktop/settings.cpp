@@ -47,6 +47,7 @@ namespace SettingsKey {
             const QString HLAYOUT = "General/images_window/horizontal_layout";
             const QString VLAYOUT = "General/images_window/vertical_layout";
             const QString WLAYOUT = "General/images_window/window_layout";
+            const QString TYPE_SORT = "General/images_window/image_type_sort_order";
         }
     }
 
@@ -531,4 +532,18 @@ QByteArray Settings::getImagesWindowLayout() {
     return settings->value(SettingsKey::General::ImagesWindow::WLAYOUT,
                            QByteArray()).toByteArray();
 
+}
+
+QStringList Settings::imageTypeSortOrder() {
+    // This setting is cached as this function is called repeatedly by some
+    // sort comparison functions
+
+    if (!imageTypePriority.isEmpty()) {
+        return imageTypePriority;
+    }
+
+    QString def = "TLVID,CAM,AEMSA,AEHVT,AEMCI,AEZA,AEMSP,EHVP,AEHCP,AESEA,AETHE,AENO,AEHVC,APTD,SPEC";
+    imageTypePriority = settings->value(SettingsKey::General::ImagesWindow::TYPE_SORT,
+                           def).toString().split(",");
+    return imageTypePriority;
 }

@@ -25,6 +25,7 @@
 
 #include <QObject>
 #include <QColor>
+#include <QStringList>
 
 class QSettings;
 
@@ -137,6 +138,8 @@ public:
 
     void setImagesWindowLayout(QByteArray data);
     QByteArray getImagesWindowLayout();
+
+    QStringList imageTypeSortOrder();
 private:
     Settings();
     ~Settings();
@@ -145,6 +148,8 @@ private:
     void operator=(Settings const&); /* Not implemented. Don't use it. */
 
     QSettings *settings;
+
+    QStringList imageTypePriority;
 };
 
 #endif // SETTINGS_H

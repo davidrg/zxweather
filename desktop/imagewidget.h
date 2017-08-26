@@ -16,6 +16,8 @@ class ImageWidget : public QWidget
 public:
     explicit ImageWidget(QWidget *parent = 0);
 
+    ImageInfo currentImage();
+
     void setImage(QImage image, QString filename=QString());
     void setImage(QImage image, ImageInfo info, QString filename=QString());
     void setIcon(QIcon icon);
