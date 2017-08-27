@@ -622,10 +622,13 @@ def get_month_samples_tab_delimited(int_year, int_month, station_id):
                 'wind chill\trelative humidity\tabsolute pressure\t' \
                 'indoor temperature\tindoor relative humidity\trainfall\t' \
                 'average wind speed\tgust wind speed\twind direction\t' \
-                'uv index\tsolar radiation\n'
+                'uv index\tsolar radiation\treception\thigh_temp\tlow_temp\t' \
+                'high_rain_rate\tgust_direction\tevapotranspiration\t' \
+                'high_solar_radiation\thigh_uv_index\tforecast_rule_id\n'
 
     format_string = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t{10}' \
-                    '\t{11}\t{12}\t{13}\t{14}\n'
+                    '\t{11}\t{12}\t{13}\t{14}\t{15}\t{16}\t{17}\t{18}\t{19}\t' \
+                    '{20}\t{21}\t{22}\t{23}\n'
 
     max_ts = None
 
@@ -635,7 +638,8 @@ def get_month_samples_tab_delimited(int_year, int_month, station_id):
             file_data.append(
                 format_string.format(str(record[record.prev_sample_time]),
                                      '?', '?', '?', '?', '?', '?', '?', '?',
-                                     '?', '?', '?', '?', '?', '?'))
+                                     '?', '?', '?', '?', '?', '?', '?', '?',
+                                     '?', '?', '?', '?', '?', '?', '?'))
         if max_ts is None:
             max_ts = record.time_stamp
 
@@ -656,6 +660,15 @@ def get_month_samples_tab_delimited(int_year, int_month, station_id):
                                           str(record.gust_wind_speed),
                                           str(record.wind_direction),
                                           str(record.uv_index),
-                                          str(record.solar_radiation))
+                                          str(record.solar_radiation),
+                                          str(record.reception),
+                                          str(record.high_temperature),
+                                          str(record.low_temperature),
+                                          str(record.high_rain_rate),
+                                          str(record.gust_wind_direction),
+                                          str(record.evapotranspiration),
+                                          str(record.high_solar_radiation),
+                                          str(record.high_uv_index),
+                                          str(record.forecast_rule_id))
 
     return file_data, max_ts

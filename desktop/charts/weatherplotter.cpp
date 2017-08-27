@@ -45,6 +45,9 @@ void WeatherPlotter::populateAxisLabels() {
     axisLabels.insert(AT_WIND_DIRECTION, "Wind direction (degrees)");
     axisLabels.insert(AT_SOLAR_RADIATION, "Solar Radiation (W/m\xB2");
     axisLabels.insert(AT_UV_INDEX, "UV Index");
+    axisLabels.insert(AT_RAIN_RATE, "Rain rate (mm/h)");
+    axisLabels.insert(AT_RECEPTION, "Wireless Reception (%)");
+    axisLabels.insert(AT_EVAPOTRANSPIRATION, "Evapotranspiration (mm)");
 }
 
 void WeatherPlotter::reload() {
@@ -185,6 +188,8 @@ WeatherPlotter::AxisType WeatherPlotter::axisTypeForColumn(SampleColumn column) 
     case SC_ApparentTemperature:
     case SC_WindChill:
     case SC_DewPoint:
+    case SC_HighTemperature:
+    case SC_LowTemperature:
         return AT_TEMPERATURE;
 
     case SC_Humidity:
@@ -202,16 +207,29 @@ WeatherPlotter::AxisType WeatherPlotter::axisTypeForColumn(SampleColumn column) 
         return AT_WIND_SPEED;
 
     case SC_WindDirection:
+    case SC_GustWindDirection:
         return AT_WIND_DIRECTION;
 
     case SC_SolarRadiation:
+    case SC_HighSolarRadiation:
         return AT_SOLAR_RADIATION;
 
     case SC_UV_Index:
+    case SC_HighUVIndex:
         return AT_UV_INDEX;
+
+    case SC_HighRainRate:
+        return AT_RAIN_RATE;
+
+    case SC_Reception:
+        return AT_RECEPTION;
+
+    case SC_Evapotranspiration:
+        return AT_EVAPOTRANSPIRATION;
 
     case SC_NoColumns:
     case SC_Timestamp:
+    case SC_ForecastRuleId:
     default:
         // This should never happen.
         return AT_NONE;
@@ -221,8 +239,11 @@ WeatherPlotter::AxisType WeatherPlotter::axisTypeForColumn(SampleColumn column) 
 QVector<double> WeatherPlotter::samplesForColumn(SampleColumn column, SampleSet samples) {
 
     Q_ASSERT_X(column != SC_WindDirection, "samplesForColumn", "WindDirection is unsupported");
+    Q_ASSERT_X(column != SC_GustWindDirection, "samplesForColumn", "GustWindDirection is unsupported");
     Q_ASSERT_X(column != SC_NoColumns, "samplesForColumn", "Invalid column SC_NoColumns");
     Q_ASSERT_X(column != SC_Timestamp, "samplesForColumn", "Invalid column SC_Timestamp");
+    Q_ASSERT_X(column != SC_ForecastRuleId, "samplesForColumn", "Invalid column ForecastRuleId");
+
 
     switch (column) {
     case SC_Temperature:
@@ -251,8 +272,24 @@ QVector<double> WeatherPlotter::samplesForColumn(SampleColumn column, SampleSet 
         return samples.uvIndex;
     case SC_SolarRadiation:
         return samples.solarRadiation;
+    case SC_HighTemperature:
+        return samples.highTemperature;
+    case SC_LowTemperature:
+        return samples.lowTemperature;
+    case SC_HighSolarRadiation:
+        return samples.highSolarRadiation;
+    case SC_HighUVIndex:
+        return samples.highUVIndex;
+    case SC_HighRainRate:
+        return samples.highRainRate;
+    case SC_Reception:
+        return samples.reception;
+    case SC_Evapotranspiration:
+        return samples.evapotranspiration;
 
     case SC_WindDirection:
+    case SC_GustWindDirection:
+    case SC_ForecastRuleId:
     case SC_NoColumns:
     case SC_Timestamp:
     default:
@@ -284,16 +321,26 @@ void WeatherPlotter::addGenericGraph(DataSet dataSet, SampleColumn column, Sampl
     graph->setProperty(GRAPH_DATASET, dataSet.id);
 }
 
-void WeatherPlotter::addRainfallGraph(DataSet dataSet, SampleSet samples)
+void WeatherPlotter::addRainfallGraph(DataSet dataSet, SampleSet samples, SampleColumn column)
 {
+    Q_ASSERT_X(column == SC_Rainfall || column == SC_HighRainRate,
+               "addRainfallGraph", "Unsupported column type (must be rainfall or high rain rate)");
+
+    WeatherPlotter::AxisType axisType = AT_RAINFALL;
+    if (column == SC_HighRainRate) {
+        axisType = AT_RAIN_RATE;
+    }
+
     QCPGraph * graph = chart->addGraph();
-    graph->setValueAxis(getValueAxis(AT_RAINFALL));
+    graph->setValueAxis(getValueAxis(axisType));
     graph->setKeyAxis(getKeyAxis(dataSet.id));
     // How do you plot rainfall data so it doesn't look stupid?
     // I don't know. Needs to be lower resolution I guess.
-    graph->setData(samples.timestamp, samples.rainfall);
+    if (column == SC_Rainfall)
+        graph->setData(samples.timestamp, samples.rainfall);
+    else
+        graph->setData(samples.timestamp, samples.highRainRate);
 
-    SampleColumn column = SC_Rainfall;
     GraphStyle gs;
     if (graphStyles[dataSet.id].contains(column))
         gs = graphStyles[dataSet.id][column];
@@ -313,28 +360,39 @@ void WeatherPlotter::addRainfallGraph(DataSet dataSet, SampleSet samples)
 //            bars->setBrush(QBrush(Qt::green));
 //            bars->setWidth(1000);
     // set pen
-    graph->setProperty(GRAPH_TYPE, SC_Rainfall);
-    graph->setProperty(GRAPH_AXIS, AT_RAINFALL);
+    graph->setProperty(GRAPH_TYPE, column);
+    graph->setProperty(GRAPH_AXIS, axisType);
     graph->setProperty(GRAPH_DATASET, dataSet.id);
 }
 
-void WeatherPlotter::addWindDirectionGraph(DataSet dataSet, SampleSet samples)
+void WeatherPlotter::addWindDirectionGraph(DataSet dataSet, SampleSet samples, SampleColumn column)
 {
     QCPGraph * graph = chart->addGraph();
     graph->setValueAxis(getValueAxis(AT_WIND_DIRECTION));
     graph->setKeyAxis(getKeyAxis(dataSet.id));
 
-    QList<uint> keys = samples.windDirection.keys();
-    qSort(keys.begin(), keys.end());
-    QVector<double> timestamps;
-    QVector<double> values;
-    foreach(uint key, keys) {
-        timestamps.append(key);
-        values.append(samples.windDirection[key]);
+    if (column == SC_WindDirection) {
+        QList<uint> keys = samples.windDirection.keys();
+        qSort(keys.begin(), keys.end());
+        QVector<double> timestamps;
+        QVector<double> values;
+        foreach(uint key, keys) {
+            timestamps.append(key);
+            values.append(samples.windDirection[key]);
+        }
+        graph->setData(timestamps,values);
+    } else { // SC_GustWindDirection
+        QList<uint> keys = samples.gustWindDirection.keys();
+        qSort(keys.begin(), keys.end());
+        QVector<double> timestamps;
+        QVector<double> values;
+        foreach(uint key, keys) {
+            timestamps.append(key);
+            values.append(samples.gustWindDirection[key]);
+        }
+        graph->setData(timestamps,values);
     }
-    graph->setData(timestamps,values);
 
-    SampleColumn column = SC_WindDirection;
     GraphStyle gs;
     if (graphStyles[dataSet.id].contains(column))
         gs = graphStyles[dataSet.id][column];
@@ -344,7 +402,7 @@ void WeatherPlotter::addWindDirectionGraph(DataSet dataSet, SampleSet samples)
     }
     gs.applyStyle(graph);
 
-    graph->setProperty(GRAPH_TYPE, SC_WindDirection);
+    graph->setProperty(GRAPH_TYPE, column);
     graph->setProperty(GRAPH_AXIS, AT_WIND_DIRECTION);
     graph->setProperty(GRAPH_DATASET, dataSet.id);
 }
@@ -400,7 +458,10 @@ void WeatherPlotter::addGraphs(QMap<dataset_id_t, SampleSet> sampleSets)
             //addPressureGraph(samples);
 
         if (ds.columns.testFlag(SC_Rainfall))
-            addRainfallGraph(ds, samples); // keep
+            addRainfallGraph(ds, samples, SC_Rainfall); // keep
+
+        if (ds.columns.testFlag(SC_HighRainRate))
+            addRainfallGraph(ds, samples, SC_HighRainRate);
 
         if (ds.columns.testFlag(SC_AverageWindSpeed))
             addGenericGraph(ds, SC_AverageWindSpeed, samples);
@@ -411,13 +472,34 @@ void WeatherPlotter::addGraphs(QMap<dataset_id_t, SampleSet> sampleSets)
             //addGustWindSpeedGraph(samples);
 
         if (ds.columns.testFlag(SC_WindDirection))
-            addWindDirectionGraph(ds, samples); // keep
+            addWindDirectionGraph(ds, samples, SC_WindDirection); // keep
+
+        if (ds.columns.testFlag(SC_GustWindDirection))
+            addWindDirectionGraph(ds, samples, SC_GustWindDirection); // keep
 
         if (ds.columns.testFlag(SC_UV_Index))
             addGenericGraph(ds, SC_UV_Index, samples);
 
         if (ds.columns.testFlag(SC_SolarRadiation))
             addGenericGraph(ds, SC_SolarRadiation, samples);
+
+        if (ds.columns.testFlag(SC_HighTemperature))
+            addGenericGraph(ds, SC_HighTemperature, samples);
+
+        if (ds.columns.testFlag(SC_LowTemperature))
+            addGenericGraph(ds, SC_LowTemperature, samples);
+
+        if (ds.columns.testFlag(SC_HighSolarRadiation))
+            addGenericGraph(ds, SC_HighSolarRadiation, samples);
+
+        if (ds.columns.testFlag(SC_HighUVIndex))
+            addGenericGraph(ds, SC_HighUVIndex, samples);
+
+        if (ds.columns.testFlag(SC_Reception))
+            addGenericGraph(ds, SC_Reception, samples);
+
+        if (ds.columns.testFlag(SC_Evapotranspiration))
+            addGenericGraph(ds, SC_Evapotranspiration, samples);
     }
 }
 
@@ -804,6 +886,30 @@ void WeatherPlotter::removeGraphs(dataset_id_t dataSetId, SampleColumns columns)
 
     if (columns.testFlag(SC_SolarRadiation))
         columnList << SC_SolarRadiation;
+
+    if (columns.testFlag(SC_HighTemperature))
+        columnList << SC_HighTemperature;
+
+    if (columns.testFlag(SC_LowTemperature))
+        columnList << SC_LowTemperature;
+
+    if (columns.testFlag(SC_HighSolarRadiation))
+        columnList << SC_HighSolarRadiation;
+
+    if (columns.testFlag(SC_HighUVIndex))
+        columnList << SC_HighUVIndex;
+
+    if (columns.testFlag(SC_GustWindDirection))
+        columnList << SC_GustWindDirection;
+
+    if (columns.testFlag(SC_HighRainRate))
+        columnList << SC_HighRainRate;
+
+    if (columns.testFlag(SC_Reception))
+        columnList << SC_Reception;
+
+    if (columns.testFlag(SC_Evapotranspiration))
+        columnList << SC_Evapotranspiration;
 
     for(int i = 0; i < columnList.count(); i++) {
         SampleColumn column = columnList[i];

@@ -46,4 +46,28 @@ void ReserveSampleSetSpace(SampleSet& samples, int size, SampleColumns columns)
 
     if (columns.testFlag(SC_SolarRadiation))
         samples.solarRadiation.reserve(size);
+
+    if (columns.testFlag(SC_Evapotranspiration))
+        samples.evapotranspiration.reserve(size);
+
+    if (columns.testFlag(SC_HighTemperature))
+        samples.highTemperature.reserve(size);
+
+    if (columns.testFlag(SC_LowTemperature))
+        samples.lowTemperature.reserve(size);
+
+    if (columns.testFlag(SC_HighRainRate))
+        samples.highRainRate.reserve(size);
+
+    if (columns.testFlag(SC_HighSolarRadiation))
+        samples.highSolarRadiation.reserve(size);
+
+    if (columns.testFlag(SC_HighUVIndex))
+        samples.highUVIndex.reserve(size);
+
+    if (columns.testFlag(SC_Reception))
+        samples.reception.reserve(size);
+
+    if (columns.testFlag(SC_ForecastRuleId))
+        samples.forecastRuleId.reserve(size);
 }

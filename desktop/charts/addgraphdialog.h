@@ -4,6 +4,9 @@
 #include <QDialog>
 #include "datasource/samplecolumns.h"
 
+// For hardware_type_t
+#include "datasource/abstractlivedatasource.h"
+
 namespace Ui {
 class AddGraphDialog;
 }
@@ -15,6 +18,7 @@ class AddGraphDialog : public QDialog
 public:
     explicit AddGraphDialog(SampleColumns availableColumns,
                             bool solarAvailable,
+                            hardware_type_t hw_type,
                             QWidget *parent = 0);
     ~AddGraphDialog();
     

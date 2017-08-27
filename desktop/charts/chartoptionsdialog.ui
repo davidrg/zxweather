@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>469</width>
-    <height>419</height>
+    <width>536</width>
+    <height>371</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -18,16 +18,52 @@
     <normaloff>:/icons/chart-edit</normaloff>:/icons/chart-edit</iconset>
   </property>
   <layout class="QGridLayout" name="gridLayout_4">
+   <property name="sizeConstraint">
+    <enum>QLayout::SetFixedSize</enum>
+   </property>
    <item row="0" column="0" colspan="2">
     <widget class="QGroupBox" name="groupBox_2">
      <property name="title">
       <string>Graphs</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_2">
-      <item row="2" column="2">
-       <widget class="QCheckBox" name="cbGustWindSpeed">
+      <item row="7" column="0">
+       <widget class="QCheckBox" name="cbLowTemperature">
+        <property name="whatsThis">
+         <string>Minimum recorded outside temperature over the archive period</string>
+        </property>
         <property name="text">
-         <string>Gust</string>
+         <string>Low Temperature</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="3">
+       <widget class="QCheckBox" name="cbHighRainRate">
+        <property name="whatsThis">
+         <string>Maximum recorded rain rate over the archive period</string>
+        </property>
+        <property name="text">
+         <string>High Rain Rate</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="3">
+       <widget class="QCheckBox" name="cbWirelessReception">
+        <property name="whatsThis">
+         <string>Average wireless reception quality over the archive period</string>
+        </property>
+        <property name="text">
+         <string>Wireless Reception</string>
+        </property>
+       </widget>
+      </item>
+      <item row="6" column="0">
+       <widget class="QCheckBox" name="cbHighTemperature">
+        <property name="whatsThis">
+         <string>Maximum recorded outside temperature over the archive period</string>
+        </property>
+        <property name="text">
+         <string>High Temperature</string>
         </property>
        </widget>
       </item>
@@ -35,6 +71,9 @@
        <widget class="QCheckBox" name="cbPressure">
         <property name="enabled">
          <bool>true</bool>
+        </property>
+        <property name="whatsThis">
+         <string>Average barometric pressure over the archive period</string>
         </property>
         <property name="text">
          <string>Barometric Pressure</string>
@@ -53,6 +92,9 @@
       </item>
       <item row="1" column="0">
        <widget class="QCheckBox" name="cbTemperature">
+        <property name="whatsThis">
+         <string>Average outside temperature over the archive period</string>
+        </property>
         <property name="text">
          <string>Temperature</string>
         </property>
@@ -61,45 +103,26 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="2">
-       <widget class="QCheckBox" name="cbAverageWindSpeed">
-        <property name="text">
-         <string>Average</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="2">
-       <widget class="QLabel" name="label_5">
-        <property name="text">
-         <string>Wind:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="2">
-       <widget class="QCheckBox" name="cbWindDirection">
-        <property name="text">
-         <string>Direction</string>
-        </property>
-       </widget>
-      </item>
       <item row="5" column="0">
        <widget class="QCheckBox" name="cbDewPoint">
+        <property name="whatsThis">
+         <string>Average dew point over the archive period</string>
+        </property>
         <property name="text">
          <string>Dew Point</string>
         </property>
        </widget>
       </item>
-      <item row="0" column="3">
-       <widget class="QLabel" name="label_4">
-        <property name="text">
-         <string>Other:</string>
+      <item row="2" column="1">
+       <widget class="QCheckBox" name="cbIndoorHumidity">
+        <property name="enabled">
+         <bool>true</bool>
         </property>
-       </widget>
-      </item>
-      <item row="2" column="0">
-       <widget class="QCheckBox" name="cbIndoorTemperature">
+        <property name="whatsThis">
+         <string>Average inside relative humidity over the archive period</string>
+        </property>
         <property name="text">
-         <string>Inside Temperature</string>
+         <string>Inside Humidity</string>
         </property>
        </widget>
       </item>
@@ -107,6 +130,9 @@
        <widget class="QCheckBox" name="cbHumidity">
         <property name="enabled">
          <bool>true</bool>
+        </property>
+        <property name="whatsThis">
+         <string>Average outside relative humidity over the archive period</string>
         </property>
         <property name="text">
          <string>Humidity</string>
@@ -118,25 +144,38 @@
       </item>
       <item row="4" column="0">
        <widget class="QCheckBox" name="cbWindChill">
+        <property name="whatsThis">
+         <string>Average wind chill over the archive period</string>
+        </property>
         <property name="text">
          <string>Wind Chill</string>
         </property>
        </widget>
       </item>
-      <item row="2" column="1">
-       <widget class="QCheckBox" name="cbIndoorHumidity">
-        <property name="enabled">
-         <bool>true</bool>
+      <item row="3" column="0">
+       <widget class="QCheckBox" name="cbApparentTemperature">
+        <property name="whatsThis">
+         <string>Average apparent temperature over the archive period</string>
         </property>
         <property name="text">
-         <string>Inside Humidity</string>
+         <string>Apparent Temperature</string>
         </property>
        </widget>
       </item>
-      <item row="3" column="0">
-       <widget class="QCheckBox" name="cbApparentTemperature">
+      <item row="2" column="0">
+       <widget class="QCheckBox" name="cbIndoorTemperature">
+        <property name="whatsThis">
+         <string>Average inside temperature over the archive period</string>
+        </property>
         <property name="text">
-         <string>Apparent Temperature</string>
+         <string>Inside Temperature</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="3">
+       <widget class="QLabel" name="label_4">
+        <property name="text">
+         <string>Other:</string>
         </property>
        </widget>
       </item>
@@ -152,6 +191,9 @@
         <property name="enabled">
          <bool>true</bool>
         </property>
+        <property name="whatsThis">
+         <string>Total rainfall over the archive period</string>
+        </property>
         <property name="text">
          <string>Rainfall</string>
         </property>
@@ -160,24 +202,107 @@
         </property>
        </widget>
       </item>
-      <item row="3" column="1">
+      <item row="0" column="2">
        <widget class="QLabel" name="lblSolar">
         <property name="text">
          <string>Solar:</string>
         </property>
        </widget>
       </item>
-      <item row="4" column="1">
+      <item row="1" column="2">
        <widget class="QCheckBox" name="cbUVIndex">
+        <property name="whatsThis">
+         <string>Average UV Index over the archive period</string>
+        </property>
         <property name="text">
          <string>UV Index</string>
         </property>
        </widget>
       </item>
-      <item row="5" column="1">
+      <item row="2" column="2">
        <widget class="QCheckBox" name="cbSolarRadiation">
+        <property name="whatsThis">
+         <string>Average Solar Radiation over the archive period</string>
+        </property>
         <property name="text">
          <string>Solar Radiation</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="2">
+       <widget class="QCheckBox" name="cbEvapotranspiration">
+        <property name="whatsThis">
+         <string>Evapotranspiration - present only in the first sample of every hour.</string>
+        </property>
+        <property name="text">
+         <string>Evapotranspiration</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="1">
+       <widget class="QLabel" name="label_5">
+        <property name="text">
+         <string>Wind:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="1">
+       <widget class="QCheckBox" name="cbAverageWindSpeed">
+        <property name="whatsThis">
+         <string>Average wind speed over the archive period</string>
+        </property>
+        <property name="text">
+         <string>Average</string>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="1">
+       <widget class="QCheckBox" name="cbGustWindSpeed">
+        <property name="whatsThis">
+         <string>Maximum recorded wind speed over the archive period</string>
+        </property>
+        <property name="text">
+         <string>Gust</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="2">
+       <widget class="QCheckBox" name="cbHighSolarRadiation">
+        <property name="whatsThis">
+         <string>Maximum recorded solar radiation over the archive period</string>
+        </property>
+        <property name="text">
+         <string>High Solar Radiation</string>
+        </property>
+       </widget>
+      </item>
+      <item row="6" column="1">
+       <widget class="QCheckBox" name="cbWindDirection">
+        <property name="whatsThis">
+         <string>Average wind direction over the archive period</string>
+        </property>
+        <property name="text">
+         <string>Average Direction</string>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="2">
+       <widget class="QCheckBox" name="cbHighUVIndex">
+        <property name="whatsThis">
+         <string>Maximum recorded UV Index over the archive period</string>
+        </property>
+        <property name="text">
+         <string>High UV Index</string>
+        </property>
+       </widget>
+      </item>
+      <item row="7" column="1">
+       <widget class="QCheckBox" name="cbGustDirection">
+        <property name="whatsThis">
+         <string>Direction of maximum recorded wind speed over the archive period</string>
+        </property>
+        <property name="text">
+         <string>Gust Direction</string>
         </property>
        </widget>
       </item>
@@ -191,13 +316,20 @@
      </property>
      <layout class="QGridLayout" name="gridLayout_3">
       <item row="0" column="0">
-       <widget class="TimespanWidget" name="timespan" native="true"/>
+       <widget class="TimespanWidget" name="timespan" native="true">
+        <property name="focusPolicy">
+         <enum>Qt::TabFocus</enum>
+        </property>
+       </widget>
       </item>
      </layout>
     </widget>
    </item>
    <item row="2" column="0" colspan="2">
     <widget class="QGroupBox" name="gbAggregate">
+     <property name="whatsThis">
+      <string>Aggregate data by time for computing highs, lows, averages, etc</string>
+     </property>
      <property name="title">
       <string>Aggregate</string>
      </property>
@@ -256,15 +388,24 @@
   <tabstop>cbApparentTemperature</tabstop>
   <tabstop>cbWindChill</tabstop>
   <tabstop>cbDewPoint</tabstop>
+  <tabstop>cbHighTemperature</tabstop>
+  <tabstop>cbLowTemperature</tabstop>
   <tabstop>cbHumidity</tabstop>
   <tabstop>cbIndoorHumidity</tabstop>
-  <tabstop>cbUVIndex</tabstop>
-  <tabstop>cbSolarRadiation</tabstop>
   <tabstop>cbAverageWindSpeed</tabstop>
   <tabstop>cbGustWindSpeed</tabstop>
   <tabstop>cbWindDirection</tabstop>
+  <tabstop>cbGustDirection</tabstop>
+  <tabstop>cbUVIndex</tabstop>
+  <tabstop>cbSolarRadiation</tabstop>
+  <tabstop>cbEvapotranspiration</tabstop>
+  <tabstop>cbHighSolarRadiation</tabstop>
+  <tabstop>cbHighUVIndex</tabstop>
   <tabstop>cbPressure</tabstop>
   <tabstop>cbRainfall</tabstop>
+  <tabstop>cbHighRainRate</tabstop>
+  <tabstop>cbWirelessReception</tabstop>
+  <tabstop>timespan</tabstop>
   <tabstop>gbAggregate</tabstop>
  </tabstops>
  <resources>

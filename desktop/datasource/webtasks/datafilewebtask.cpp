@@ -208,7 +208,30 @@ data_file_t DataFileWebTask::loadDataFile(QStringList fileData,
         if (_requestData.isSolarAvailable) {
             samples.uvIndex.append(values.takeFirst().toDouble());
             samples.solarRadiation.append(values.takeFirst().toDouble());
+        } else {
+            // Throw away solar values
+            values.takeFirst();
+            values.takeFirst();
         }
+
+        samples.reception.append(values.takeFirst().toDouble());
+        samples.highTemperature.append(values.takeFirst().toDouble());
+        samples.lowTemperature.append(values.takeFirst().toDouble());
+        samples.highRainRate.append(values.takeFirst().toDouble());
+
+        val = values.takeFirst();
+        if (val != "None")
+            samples.gustWindDirection[timestamp] = val.toUInt();
+
+        samples.evapotranspiration.append(values.takeFirst().toDouble());
+        if (_requestData.isSolarAvailable) {
+            samples.highSolarRadiation.append(values.takeFirst().toDouble());
+            samples.highUVIndex.append(values.takeFirst().toDouble());
+        } else {
+            values.takeFirst();
+            values.takeFirst();
+        }
+        samples.forecastRuleId.append(values.takeFirst().toInt());
     }
 
     data_file_t dataFile;

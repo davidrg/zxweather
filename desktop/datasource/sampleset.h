@@ -36,9 +36,24 @@ typedef struct _SampleSet {
     // Wind only has a direction when its blowing - if averageWindSpeed for
     // a given timestamp is 0 then the direction will be undefined.
     QMap<uint,uint> windDirection;
+    QMap<uint,uint> gustWindDirection; // Davis only
 
+    // Solar columns (Vantage Pro2 Plus only)
     QVector<double> solarRadiation;
     QVector<double> uvIndex;
+    QVector<double> evapotranspiration;
+
+    // Records columns (Davis only)
+    QVector<double> highTemperature;
+    QVector<double> lowTemperature;
+    QVector<double> highRainRate;
+    QVector<double> highSolarRadiation; // Pro2 plus only
+    QVector<double> highUVIndex; // Pro2 plus only
+
+    // Misc
+    QVector<double> reception; // wireless davis only
+    QVector<int> forecastRuleId;
+
 } SampleSet;
 
 /** Reserve space in the sample sets data structures for the specified number

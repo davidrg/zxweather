@@ -10,6 +10,7 @@
 
 #include "chartoptionsdialog.h"
 #include "datasource/webdatasource.h"
+#include "datasource/abstractlivedatasource.h"
 #include "qcp/qcustomplot.h"
 #include "basicqcpinteractionmanager.h"
 #include "weatherplotter.h"
@@ -101,6 +102,7 @@ private:
     QList<DataSet> dataSets;
 
     bool solarDataAvailable;
+    hardware_type_t hw_type;
 };
 
 #endif // CHARTWINDOW_H

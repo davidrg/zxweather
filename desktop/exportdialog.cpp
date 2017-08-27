@@ -11,19 +11,35 @@
 
 #define FILTERS "Data file (*.dat);;Comma separated values (*.csv);;Text file (*.txt)"
 
+void disableCheckbox(QCheckBox *cb) {
+    cb->setVisible(false);
+    cb->setChecked(false);
+}
 
 
-ExportDialog::ExportDialog(bool solarDataAvailable, QWidget *parent) :
+ExportDialog::ExportDialog(bool solarDataAvailable, hardware_type_t hw_type,
+                           QWidget *parent) :
     QDialog(parent),
     ui(new Ui::ExportDialog)
 {
     ui->setupUi(this);
 
+    if (hw_type != HW_DAVIS) {
+        solarDataAvailable = false;
+        disableCheckbox(ui->cbHighTemperature);
+        disableCheckbox(ui->cbLowTemperature);
+        disableCheckbox(ui->cbHighRainRate);
+        disableCheckbox(ui->cbWirelessReception);
+        disableCheckbox(ui->cbForecastRuleID);
+        disableCheckbox(ui->cbGustWindDirection);
+    }
+
     if (!solarDataAvailable) {
-        ui->cbUVIndex->setChecked(false);
-        ui->cbUVIndex->setVisible(false);
-        ui->cbSolarRadiation->setChecked(false);
-        ui->cbSolarRadiation->setVisible(false);
+        disableCheckbox(ui->cbUVIndex);
+        disableCheckbox(ui->cbSolarRadiation);
+        disableCheckbox(ui->cbHighSolarRadiation);
+        disableCheckbox(ui->cbHighUVIndex);
+        disableCheckbox(ui->cbEvapotranspiration);
     }
 
     // Delimiter types
@@ -119,6 +135,24 @@ SampleColumns ExportDialog::getColumns()
         columns |= SC_UV_Index;
     if (ui->cbSolarRadiation->isChecked() && ui->cbSolarRadiation->isVisible())
         columns |= SC_SolarRadiation;
+    if (ui->cbWirelessReception->isChecked() && ui->cbWirelessReception->isVisible())
+        columns |= SC_Reception;
+    if (ui->cbHighTemperature->isChecked() && ui->cbHighTemperature->isVisible())
+        columns |= SC_HighTemperature;
+    if (ui->cbLowTemperature->isChecked() && ui->cbLowTemperature->isVisible())
+        columns |= SC_LowTemperature;
+    if (ui->cbHighRainRate->isChecked() && ui->cbHighRainRate->isVisible())
+        columns |= SC_HighRainRate;
+    if (ui->cbGustWindDirection->isChecked() && ui->cbGustWindDirection->isVisible())
+        columns |= SC_GustWindDirection;
+    if (ui->cbEvapotranspiration->isChecked() && ui->cbEvapotranspiration->isVisible())
+        columns |= SC_Evapotranspiration;
+    if (ui->cbHighSolarRadiation->isChecked() && ui->cbHighSolarRadiation->isVisible())
+        columns |= SC_HighSolarRadiation;
+    if (ui->cbHighUVIndex->isChecked() && ui->cbHighUVIndex->isVisible())
+        columns |= SC_HighUVIndex;
+    if (ui->cbForecastRuleID->isChecked() && ui->cbForecastRuleID->isVisible())
+        columns |= SC_ForecastRuleId;
     return columns;
 }
 
@@ -206,12 +240,19 @@ void ExportDialog::samplesReady(SampleSet samples)
         if (columns.testFlag(SC_AverageWindSpeed))
             rowData.append(QString::number(
                                samples.averageWindSpeed.at(i),'f',1));
-        if (columns.testFlag(SC_GustWindSpeed))
-            rowData.append(QString::number(samples.gustWindSpeed.at(i),'f',1));
         if (columns.testFlag(SC_WindDirection)) {
             time_t ts = samples.timestampUnix.at(i);
             if (samples.windDirection.contains(ts))
                 rowData.append(QString::number(samples.windDirection[ts]));
+             else
+                 rowData.append("");
+        }
+        if (columns.testFlag(SC_GustWindSpeed))
+            rowData.append(QString::number(samples.gustWindSpeed.at(i),'f',1));
+        if (columns.testFlag(SC_GustWindDirection)) {
+            time_t ts = samples.timestampUnix.at(i);
+            if (samples.gustWindDirection.contains(ts))
+                rowData.append(QString::number(samples.gustWindDirection[ts]));
              else
                  rowData.append("");
         }
@@ -221,6 +262,23 @@ void ExportDialog::samplesReady(SampleSet samples)
         if (columns.testFlag(SC_SolarRadiation))
             rowData.append(QString::number(
                                samples.solarRadiation.at(i)));
+
+        if (columns.testFlag(SC_Evapotranspiration))
+            rowData.append(QString::number(samples.evapotranspiration.at(i)));
+        if (columns.testFlag(SC_HighTemperature))
+            rowData.append(QString::number(samples.highTemperature.at(i),'f', 1));
+        if (columns.testFlag(SC_LowTemperature))
+            rowData.append(QString::number(samples.lowTemperature.at(i),'f', 1));
+        if (columns.testFlag(SC_HighRainRate))
+            rowData.append(QString::number(samples.highRainRate.at(i),'f', 1));
+        if (columns.testFlag(SC_HighSolarRadiation))
+            rowData.append(QString::number(samples.highSolarRadiation.at(i),'f', 1));
+        if (columns.testFlag(SC_HighUVIndex))
+            rowData.append(QString::number(samples.highUVIndex.at(i),'f', 1));
+        if (columns.testFlag(SC_Reception))
+            rowData.append(QString::number(samples.reception.at(i),'f', 1));
+        if (columns.testFlag(SC_ForecastRuleId))
+            rowData.append(QString::number(samples.forecastRuleId.at(i)));
 
         QString row = rowData.join(delimiter) + "\n";
         dataFile.write(row.toLatin1());
@@ -278,14 +336,32 @@ QString ExportDialog::getHeaderRow(SampleColumns columns) {
         columnNames.append("Rainfall");
     if (columns.testFlag(SC_AverageWindSpeed))
         columnNames.append("Average Wind Speed");
-    if (columns.testFlag(SC_GustWindSpeed))
-        columnNames.append("Gust Wind Speed");
     if (columns.testFlag(SC_WindDirection))
         columnNames.append("Wind Direction");
+    if (columns.testFlag(SC_GustWindSpeed))
+        columnNames.append("Gust Wind Speed");
+    if (columns.testFlag(SC_GustWindDirection))
+        columnNames.append("Gust Wind Direction");
     if (columns.testFlag(SC_UV_Index))
         columnNames.append("UV Index");
     if (columns.testFlag(SC_SolarRadiation))
         columnNames.append("Solar Radiation");
+    if (columns.testFlag(SC_Evapotranspiration))
+        columnNames.append("Evapotranspiration");
+    if (columns.testFlag(SC_HighTemperature))
+        columnNames.append("High Temperature");
+    if (columns.testFlag(SC_LowTemperature))
+        columnNames.append("Low Temperature");
+    if (columns.testFlag(SC_HighRainRate))
+        columnNames.append("High Rain Rate");
+    if (columns.testFlag(SC_HighSolarRadiation))
+        columnNames.append("High Solar Radiation");
+    if (columns.testFlag(SC_HighUVIndex))
+        columnNames.append("High UV Index");
+    if (columns.testFlag(SC_Reception))
+        columnNames.append("Wireless Reception");
+    if (columns.testFlag(SC_ForecastRuleId))
+        columnNames.append("Forecast Rule ID");
 
     return columnNames.join(getDelimiter()) + "\n";
 }

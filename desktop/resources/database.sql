@@ -46,7 +46,16 @@ create table sample (
   gust_wind_speed real,
   wind_direction integer,
   solar_radiation real,
-  uv_index real
+  uv_index real,
+  reception real,
+  high_temperature real,
+  low_temperature real,
+  high_rain_rate real,
+  gust_wind_direction integer,
+  evapotranspiration real,
+  high_solar_radiation real,
+  high_uv_index real,
+  forecast_rule_id integer
 );
 
 create index sample_stn_ts on sample(station, timestamp asc);

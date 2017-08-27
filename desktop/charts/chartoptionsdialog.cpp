@@ -4,7 +4,8 @@
 #include <QMessageBox>
 #include <QtDebug>
 
-ChartOptionsDialog::ChartOptionsDialog(bool solarAvailable, QWidget *parent) :
+ChartOptionsDialog::ChartOptionsDialog(bool solarAvailable,
+                                       hardware_type_t hw_type, QWidget *parent) :
     QDialog(parent),
     ui(new Ui::ChartOptionsDialog)
 {
@@ -14,6 +15,17 @@ ChartOptionsDialog::ChartOptionsDialog(bool solarAvailable, QWidget *parent) :
         ui->lblSolar->setVisible(false);
         ui->cbSolarRadiation->setVisible(false);
         ui->cbUVIndex->setVisible(false);
+        ui->cbEvapotranspiration->setVisible(false);
+        ui->cbHighSolarRadiation->setVisible(false);
+        ui->cbHighUVIndex->setVisible(false);
+    }
+
+    if (hw_type != HW_DAVIS) {
+        ui->cbHighTemperature->setVisible(false);
+        ui->cbLowTemperature->setVisible(false);
+        ui->cbWirelessReception->setVisible(false);
+        ui->cbHighRainRate->setVisible(false);
+        ui->cbGustDirection->setVisible(false);
     }
 
     // Buttons
@@ -56,6 +68,22 @@ void ChartOptionsDialog::checkAndAccept() {
         columns |= SC_UV_Index;
     if (ui->cbSolarRadiation->isChecked())
         columns |= SC_SolarRadiation;
+    if (ui->cbHighTemperature->isChecked())
+        columns |= SC_HighTemperature;
+    if (ui->cbLowTemperature->isChecked())
+        columns |= SC_LowTemperature;
+    if (ui->cbHighSolarRadiation->isChecked())
+        columns |= SC_HighSolarRadiation;
+    if (ui->cbHighUVIndex->isChecked())
+        columns |= SC_HighUVIndex;
+    if (ui->cbWirelessReception->isChecked())
+        columns |= SC_Reception;
+    if (ui->cbHighRainRate->isChecked())
+        columns |= SC_HighRainRate;
+    if (ui->cbEvapotranspiration->isChecked())
+        columns |= SC_Evapotranspiration;
+    if (ui->cbGustDirection->isChecked())
+        columns |= SC_GustWindDirection;
 
     if (columns == SC_NoColumns) {
         QMessageBox::information(this, "Data Sets",

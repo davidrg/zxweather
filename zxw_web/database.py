@@ -1636,7 +1636,20 @@ select cur.time_stamp,
           false
        end as gap,
        ds.average_uv_index as uv_index,
-       ds.solar_radiation
+       ds.solar_radiation,
+       
+       case when $broadcast_id is null then null
+       --                                  |----- Max wireless packets calculation -----------------------|
+       else round((ds.wind_sample_count / ((s.sample_interval::float) /((41+$broadcast_id-1)::float /16.0 )) * 100)::numeric,1)::float 
+       end as reception,
+       round(ds.high_temperature::numeric, 2) as high_temperature,
+       round(ds.low_temperature::numeric, 2) as low_temperature,
+       round(ds.high_rain_rate::numeric, 2) as high_rain_rate,
+       ds.gust_wind_direction,
+       ds.evapotranspiration,
+       ds.high_solar_radiation,
+       ds.high_uv_index,
+       ds.forecast_rule_id
 from sample cur
 inner join sample prev on prev.station_id = cur.station_id
         and prev.time_stamp = (
@@ -1651,7 +1664,14 @@ where date(date_trunc('month',cur.time_stamp)) = $date
 order by cur.time_stamp asc
         """
 
-    params = dict(station=station_id, date=date(year=year,month=month,day=1))
+    # TODO: Integrate this get_station_config call into the query when our
+    # minimum PostgreSQL version supports JSON
+    broadcast_id = get_station_config(station_id)['broadcast_id']
+
+    print("Broadcast Id: {0}".format(broadcast_id))
+
+    params = dict(station=station_id, date=date(year=year,month=month,day=1),
+                  broadcast_id=broadcast_id)
 
     return db.query(query, params)
 
@@ -1696,7 +1716,20 @@ def get_day_data_wp(date, station_id):
           false
        end as gap,
        ds.average_uv_index as uv_index,
-       ds.solar_radiation
+       ds.solar_radiation,
+       
+       case when $broadcast_id is null then null
+       --                                  |----- Max wireless packets calculation -----------------------|
+       else round((ds.wind_sample_count / ((s.sample_interval::float) /((41+$broadcast_id-1)::float /16.0 )) * 100)::numeric,1)::float 
+       end as reception,
+       round(ds.high_temperature::numeric, 2) as high_temperature,
+       round(ds.low_temperature::numeric, 2) as low_temperature,
+       round(ds.high_rain_rate::numeric, 2) as high_rain_rate,
+       ds.gust_wind_direction,
+       ds.evapotranspiration,
+       ds.high_solar_radiation,
+       ds.high_uv_index,
+       ds.forecast_rule_id
 from sample cur
 inner join sample prev on prev.time_stamp = (
         select max(x.time_stamp)
@@ -1709,6 +1742,10 @@ where date(cur.time_stamp) = $date
   and cur.station_id = $station
 order by cur.time_stamp asc"""
 
-    params = dict(station=station_id, date=date)
+    # TODO: Integrate this get_station_config call into the query when our
+    # minimum PostgreSQL version supports JSON
+    broadcast_id = get_station_config(station_id)['broadcast_id']
+
+    params = dict(station=station_id, date=date, broadcast_id=broadcast_id)
 
     return db.query(query, params)

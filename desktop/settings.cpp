@@ -94,6 +94,8 @@ namespace SettingsKey {
             const QString WIND_DIRECTION = "Colours/Charts/wind_direction";
             const QString UV_INDEX = "Colours/Charts/uv_index";
             const QString SOLAR_RADIATION = "Colours/Charts/solar_radiation";
+            const QString EVAPOTRANSPIRATION = "Colours/Charts/evapotranspiration";
+            const QString RECEPTION = "Colours/Charts/reception";
             const QString TITLE = "Colours/Charts/title";
             const QString BACKGROUND = "Colours/Charts/background";
         }
@@ -373,6 +375,10 @@ void Settings::setChartColours(ChartColours colours) {
                        colours.title);
     settings->setValue(SettingsKey::Colours::Charts::BACKGROUND,
                        colours.background);
+    settings->setValue(SettingsKey::Colours::Charts::EVAPOTRANSPIRATION,
+                       colours.evapotranspiration);
+    settings->setValue(SettingsKey::Colours::Charts::RECEPTION,
+                       colours.reception);
 }
 
 ChartColours Settings::getChartColours() {
@@ -419,10 +425,14 @@ ChartColours Settings::getChartColours() {
     colours.solarRadiation = settings->value(
                 SettingsKey::Colours::Charts::SOLAR_RADIATION,
                 QColor(Qt::yellow)).value<QColor>();
+    colours.evapotranspiration = settings->value(
+                SettingsKey::Colours::Charts::EVAPOTRANSPIRATION,
+                QColor(Qt::gray)).value<QColor>();
+    colours.reception = settings->value(
+                SettingsKey::Colours::Charts::RECEPTION,
+                QColor(Qt::lightGray)).value<QColor>();
 
     /* Available default colours:
-     *   Qt::gray
-     *   Qt::lightGray
      *   Qt::white
      * white and light gray may not be real options.
      */

@@ -47,7 +47,7 @@ void ViewDataSetWindow::show() {
 }
 
 void ViewDataSetWindow::copySelection() {
-    // Copies selected datain the table to tab-delimited data on the clipboard
+    // Copies selected data in the table to tab-delimited data on the clipboard
     QAbstractItemModel *tableModel = ui->tableView->model();
     QItemSelectionModel * selectionModel = ui->tableView->selectionModel();
     QModelIndexList selectedIndexes = selectionModel->selectedIndexes();
@@ -112,7 +112,6 @@ void ViewDataSetWindow::samplesReady(SampleSet samples)
 #endif
 
     ui->tableView->setModel(sortableModel);
-
 }
 
 void ViewDataSetWindow::samplesFailed(QString message)
