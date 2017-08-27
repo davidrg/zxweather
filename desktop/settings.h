@@ -50,6 +50,9 @@ typedef struct _chart_colours {
     QColor uvIndex;
     QColor solarRadiation;
 
+    QColor evapotranspiration;
+    QColor reception;
+
     QColor title;
     QColor background;
 } ChartColours;

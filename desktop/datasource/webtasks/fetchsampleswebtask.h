@@ -79,6 +79,7 @@ private:
     // Sysconfig data
     QString _stationName;
     bool _isSolarAvailable;
+    bool _isWireless;
     hardware_type_t _hwType;
 
 

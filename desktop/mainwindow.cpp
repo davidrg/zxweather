@@ -159,9 +159,10 @@ MainWindow::MainWindow(QWidget *parent) :
     else {
         // This will call reconfigureDataSource on successful connect if the live
         // data source is the database.
-        QTimer::singleShot(10, this, SLOT(reconnectDatabase()));
+        QTimer::singleShot(1, this, SLOT(reconnectDatabase()));
 
-        if (settings.liveDataSourceType() != Settings::DS_TYPE_DATABASE) {
+        if (settings.liveDataSourceType() != Settings::DS_TYPE_DATABASE &&
+                settings.sampleDataSourceType() != Settings::DS_TYPE_DATABASE) {
             reconfigureDataSource();
         }
     }
@@ -183,8 +184,11 @@ bool MainWindow::databaseCompatibilityChecks() {
         qDebug() << "Bad schema version.";
         QMessageBox::warning(this, tr("Database Error"),
                              tr("Unable to determine database version. "
-                             "Charting functions will not be available."));
+                             "Archive functions will not be available."));
         ui->actionCharts->setEnabled(false);
+        ui->actionExport_Data->setEnabled(false);
+        ui->actionView_Data->setEnabled(false);
+        ui->actionImages->setEnabled(false);
         QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
         return false;
     } else if (compatibility == DC_Unknown) {
@@ -221,7 +225,8 @@ void MainWindow::reconnectDatabase() {
     ui->actionCharts->setEnabled(true);
 
     // Now check if we actually need to connect to a database.
-    if (settings.sampleDataSourceType() != Settings::DS_TYPE_DATABASE) {
+    if (settings.sampleDataSourceType() != Settings::DS_TYPE_DATABASE &&
+            settings.liveDataSourceType() != Settings::DS_TYPE_DATABASE) {
         qDebug() << "Database disabled.";
 
         // Disconnect from the database if it was connected.
@@ -248,11 +253,13 @@ void MainWindow::reconnectDatabase() {
                                  "functions will not be available. The error "
                                  "was: " + db.lastError().driverText());
             ui->actionCharts->setEnabled(false);
+            ui->actionExport_Data->setEnabled(false);
+            ui->actionView_Data->setEnabled(false);
             ui->actionImages->setEnabled(false);
         } else {
             qDebug() << "Connect succeeded. Checking compatibility...";
             bool result = databaseCompatibilityChecks();
-            if (result && settings.liveDataSourceType() == Settings::DS_TYPE_DATABASE) {
+            if (result) {
                 reconfigureDataSource();
             }
         }
@@ -263,6 +270,8 @@ void MainWindow::reconnectDatabase() {
                              " Unable to connect to database. Charting "
                              " functions will not be available.");
         ui->actionCharts->setEnabled(false);
+        ui->actionExport_Data->setEnabled(false);
+        ui->actionView_Data->setEnabled(false);
         ui->actionImages->setEnabled(false);
     }
 }
@@ -390,7 +399,7 @@ void MainWindow::showAbout() {
 
 void MainWindow::showChartWindow() {
 
-    ChartOptionsDialog options(solarDataAvailable);
+    ChartOptionsDialog options(solarDataAvailable, last_hw_type);
     int result = options.exec();
     if (result != QDialog::Accepted)
         return; // User canceled. Nothing to do.
@@ -418,7 +427,7 @@ void MainWindow::showChartWindow() {
 }
 
 void MainWindow::showExportDialog() {
-    ExportDialog dialog(solarDataAvailable);
+    ExportDialog dialog(solarDataAvailable, last_hw_type);
     dialog.exec();
 }
 
@@ -438,9 +447,13 @@ void MainWindow::viewData() {
     // Always show all columns in the view data screen.
     SampleColumns columns = ALL_SAMPLE_COLUMNS;
 
+    if (last_hw_type != HW_DAVIS) {
+        columns = columns & ~DAVIS_COLUMNS;
+    }
+
     if (!solarDataAvailable) {
         // Except the solar ones if the current station doesn't support it
-        columns = ~SOLAR_COLUMNS;
+        columns = columns & ~SOLAR_COLUMNS;
     }
 
     DataSet dataSource;

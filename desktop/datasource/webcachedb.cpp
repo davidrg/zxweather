@@ -281,7 +281,10 @@ void WebCacheDB::cacheDataSet(SampleSet samples,
     QVariantList timestamps, temperature, dewPoint, apparentTemperature,
             windChill, indoorTemperature, humidity, indoorHumidity, pressure,
             rainfall, stationIds, dataFileIds, averageWindSpeeds,
-            gustWindSpeeds, windDirections, solarRadiations, uvIndexes;
+            gustWindSpeeds, windDirections, solarRadiations, uvIndexes,
+            receptions, highTemperatures, lowTemperatures, highRainRates,
+            gustWindDirections, evapotranspirations, highSolarRadiations,
+            highUVIndexes, forecastRuleIds;
 
     qDebug() << "Preparing list of samples to insert...";
 
@@ -306,6 +309,11 @@ void WebCacheDB::cacheDataSet(SampleSet samples,
         rainfall.append(samples.rainfall.at(i));
         averageWindSpeeds.append(samples.averageWindSpeed.at(i));
         gustWindSpeeds.append(samples.gustWindSpeed.at(i));
+        receptions.append(samples.reception.at(i));
+        highTemperatures.append(samples.highTemperature.at(i));
+        lowTemperatures.append(samples.lowTemperature.at(i));
+        highRainRates.append(samples.highRainRate.at(i));
+        forecastRuleIds.append(samples.forecastRuleId.at(i));
 
         if (samples.windDirection.contains(timestamp))
             windDirections.append(samples.windDirection[timestamp]);
@@ -316,14 +324,28 @@ void WebCacheDB::cacheDataSet(SampleSet samples,
             windDirections.append(val);
         }
 
+        if (samples.gustWindDirection.contains(timestamp)) {
+            gustWindDirections.append(samples.gustWindDirection[timestamp]);
+        } else {
+            QVariant val;
+            val.convert(QVariant::Int);
+            gustWindDirections.append(val);
+        }
+
         if (hasSolarData) {
             solarRadiations.append(samples.solarRadiation.at(i));
             uvIndexes.append(samples.uvIndex.at(i));
+            highSolarRadiations.append(samples.highSolarRadiation.at(i));
+            highUVIndexes.append(samples.highUVIndex.at(i));
+            evapotranspirations.append(samples.evapotranspiration.at(i));
         } else {
             // The lists still need to be populated for the query. As we don't
             // have any real data to put in them we'll use 0.
             solarRadiations.append(0);
             uvIndexes.append(0);
+            highSolarRadiations.append(0);
+            highUVIndexes.append(0);
+            evapotranspirations.append(0);
         }
     }
 
@@ -342,8 +364,12 @@ void WebCacheDB::cacheDataSet(SampleSet samples,
                     "dew_point, apparent_temperature, wind_chill, humidity, "
                     "pressure, indoor_temperature, indoor_humidity, rainfall, "
                     "data_file, average_wind_speed, gust_wind_speed, "
-                    "wind_direction, solar_radiation, uv_index) "
-                    "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+                    "wind_direction, solar_radiation, uv_index,reception, "
+                    "high_temperature, low_temperature, high_rain_rate, "
+                    "gust_wind_direction, evapotranspiration, "
+                    "high_solar_radiation, high_uv_index, forecast_rule_id) "
+                    "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
+                    "?, ?, ?, ?, ?, ?, ?, ?, ?);");
         query.addBindValue(stationIds);
         query.addBindValue(timestamps);
         query.addBindValue(temperature);
@@ -361,6 +387,15 @@ void WebCacheDB::cacheDataSet(SampleSet samples,
         query.addBindValue(windDirections);
         query.addBindValue(solarRadiations);
         query.addBindValue(uvIndexes);
+        query.addBindValue(receptions);
+        query.addBindValue(highTemperatures);
+        query.addBindValue(lowTemperatures);
+        query.addBindValue(highRainRates);
+        query.addBindValue(gustWindDirections);
+        query.addBindValue(evapotranspirations);
+        query.addBindValue(highSolarRadiations);
+        query.addBindValue(highUVIndexes);
+        query.addBindValue(forecastRuleIds);
         if (!query.execBatch()) {
             qWarning() << "Sample insert failed: " << query.lastError();
         } else {
@@ -902,6 +937,25 @@ QString WebCacheDB::buildColumnList(SampleColumns columns, QString format) {
         query += format.arg("solar_radiation");
     if (columns.testFlag(SC_UV_Index))
         query += format.arg("uv_index");
+    if (columns.testFlag(SC_GustWindDirection))
+        query += format.arg("gust_wind_direction");
+    if (columns.testFlag(SC_Evapotranspiration))
+        query += format.arg("evapotranspiration");
+    if (columns.testFlag(SC_HighTemperature))
+        query += format.arg("high_temperature");
+    if (columns.testFlag(SC_LowTemperature))
+        query += format.arg("low_temperature");
+    if (columns.testFlag(SC_HighRainRate))
+        query += format.arg("high_rain_rate");
+    if (columns.testFlag(SC_HighSolarRadiation))
+        query += format.arg("high_solar_radiation");
+    if (columns.testFlag(SC_HighUVIndex))
+        query += format.arg("high_uv_index");
+    if (columns.testFlag(SC_ForecastRuleId))
+        query += format.arg("forecast_rule_id");
+    if (columns.testFlag(SC_Reception))
+        query += format.arg("reception");
+
     return query;
 }
 
@@ -1203,11 +1257,41 @@ SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
                     samples.windDirection[timeStamp] =
                             record.value("wind_direction").toUInt();
 
+            if (columns.testFlag(SC_GustWindDirection))
+                // Wind direction can be null.
+                if (!record.value("gust_wind_direction").isNull())
+                    samples.gustWindDirection[timeStamp] =
+                            record.value("gust_wind_direction").toUInt();
+
             if (columns.testFlag(SC_SolarRadiation))
                 samples.solarRadiation.append(record.value("solar_radiation").toDouble());
 
             if (columns.testFlag(SC_UV_Index))
                 samples.uvIndex.append(record.value("uv_index").toDouble());
+
+            if (columns.testFlag(SC_Reception))
+                samples.reception.append(record.value("reception").toDouble());
+
+            if (columns.testFlag(SC_HighTemperature))
+                samples.highTemperature.append(record.value("high_temperature").toDouble());
+
+            if (columns.testFlag(SC_LowTemperature))
+                samples.lowTemperature.append(record.value("low_temperature").toDouble());
+
+            if (columns.testFlag(SC_HighRainRate))
+                samples.highRainRate.append(record.value("high_rain_rate").toDouble());
+
+            if (columns.testFlag(SC_Evapotranspiration))
+                samples.evapotranspiration.append(record.value("evapotranspiration").toDouble());
+
+            if (columns.testFlag(SC_HighSolarRadiation))
+                samples.highSolarRadiation.append(record.value("high_solar_radiation").toDouble());
+
+            if (columns.testFlag(SC_HighUVIndex))
+                samples.highUVIndex.append(record.value("high_uv_index").toDouble());
+
+            if (columns.testFlag(SC_ForecastRuleId))
+                samples.forecastRuleId.append(record.value("forecast_rule_id").toInt());
 
         } while (query.next());
     } else if (query.lastError().isValid()) {

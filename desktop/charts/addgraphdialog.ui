@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>478</width>
-    <height>259</height>
+    <width>486</width>
+    <height>500</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,71 +17,11 @@
    <iconset resource="../resources.qrc">
     <normaloff>:/icons/chart-add</normaloff>:/icons/chart-add</iconset>
   </property>
-  <layout class="QGridLayout" name="gridLayout">
-   <item row="1" column="2" rowspan="3">
-    <widget class="QGroupBox" name="gbWind">
-     <property name="title">
-      <string>Wind</string>
-     </property>
-     <layout class="QVBoxLayout" name="verticalLayout_3">
-      <item>
-       <widget class="QCheckBox" name="cbAverageWindSpeed">
-        <property name="text">
-         <string>Average Wind Speed</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QCheckBox" name="cbGustWindSpeed">
-        <property name="text">
-         <string>Gust Wind Speed</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QCheckBox" name="cbWindDirection">
-        <property name="text">
-         <string>Wind Direction</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item row="1" column="1" rowspan="2">
-    <widget class="QGroupBox" name="gbHumidity">
-     <property name="title">
-      <string>Humidity</string>
-     </property>
-     <layout class="QVBoxLayout" name="verticalLayout_2">
-      <item>
-       <widget class="QCheckBox" name="cbHumidity">
-        <property name="text">
-         <string>Humidity</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QCheckBox" name="cbInsideHumidity">
-        <property name="text">
-         <string>Inside Humidity</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item row="5" column="2">
-    <widget class="QDialogButtonBox" name="buttonBox">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-     <property name="standardButtons">
-      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
-     </property>
-    </widget>
-   </item>
-   <item row="0" column="0" colspan="3">
+  <layout class="QVBoxLayout" name="verticalLayout_9">
+   <property name="sizeConstraint">
+    <enum>QLayout::SetFixedSize</enum>
+   </property>
+   <item>
     <widget class="QLabel" name="label">
      <property name="text">
       <string>Select the additional graphs you would like to add to the chart. To remove a graph select it in the chart, right click and choose the remove graph option.</string>
@@ -91,120 +31,261 @@
      </property>
     </widget>
    </item>
-   <item row="4" column="2">
-    <widget class="QGroupBox" name="gbSolar">
-     <property name="title">
-      <string>Solar</string>
-     </property>
-     <layout class="QVBoxLayout" name="verticalLayout_5">
-      <item>
-       <widget class="QCheckBox" name="cbUVIndex">
-        <property name="text">
-         <string>UV Index</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QCheckBox" name="cbSolarRadiation">
-        <property name="text">
-         <string>Solar Radiation</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout">
+     <item>
+      <layout class="QVBoxLayout" name="verticalLayout_6">
+       <item>
+        <widget class="QGroupBox" name="gbTemperature">
+         <property name="title">
+          <string>Temperature</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout">
+          <item>
+           <widget class="QCheckBox" name="cbTemperature">
+            <property name="text">
+             <string>Temperature</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="cbInsideTemperature">
+            <property name="text">
+             <string>Inside Temperature</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="cbApparentTemperature">
+            <property name="text">
+             <string>Apparent Temperature</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="cbWindChill">
+            <property name="text">
+             <string>Wind Chill</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="cbDewPoint">
+            <property name="text">
+             <string>Dew Point</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="cbHighTemperature">
+            <property name="text">
+             <string>High Temperature</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="cbLowTemperature">
+            <property name="text">
+             <string>Low Temperature</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="gbHumidity">
+         <property name="title">
+          <string>Humidity</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_2">
+          <item>
+           <widget class="QCheckBox" name="cbHumidity">
+            <property name="text">
+             <string>Humidity</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="cbInsideHumidity">
+            <property name="text">
+             <string>Inside Humidity</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <layout class="QVBoxLayout" name="verticalLayout_7">
+       <property name="sizeConstraint">
+        <enum>QLayout::SetFixedSize</enum>
+       </property>
+       <item>
+        <widget class="QGroupBox" name="gbWind">
+         <property name="title">
+          <string>Wind</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_3">
+          <item>
+           <widget class="QCheckBox" name="cbAverageWindSpeed">
+            <property name="text">
+             <string>Average Wind Speed</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="cbGustWindSpeed">
+            <property name="text">
+             <string>Gust Wind Speed</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="cbWindDirection">
+            <property name="text">
+             <string>Average Wind Direction</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="cbGustDirection">
+            <property name="text">
+             <string>Gust Wind Direction</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="gbOther">
+         <property name="title">
+          <string>Other</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_4">
+          <item>
+           <widget class="QCheckBox" name="cbBarometricPressure">
+            <property name="text">
+             <string>Barometric Pressure</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="cbRainfall">
+            <property name="text">
+             <string>Rainfall</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="cbHighRainRate">
+            <property name="text">
+             <string>High Rain Rate</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="cbReception">
+            <property name="text">
+             <string>Wireless Reception</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_3">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <layout class="QVBoxLayout" name="verticalLayout_8">
+       <property name="sizeConstraint">
+        <enum>QLayout::SetFixedSize</enum>
+       </property>
+       <item>
+        <widget class="QGroupBox" name="gbSolar">
+         <property name="title">
+          <string>Solar</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_5">
+          <item>
+           <widget class="QCheckBox" name="cbUVIndex">
+            <property name="text">
+             <string>UV Index</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="cbSolarRadiation">
+            <property name="text">
+             <string>Solar Radiation</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="cbEvapotranspiration">
+            <property name="text">
+             <string>Evapotranspiration</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="cbHighSolarRadiation">
+            <property name="text">
+             <string>High Solar Radiation</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="cbHighUVIndex">
+            <property name="text">
+             <string>High UV Index</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_2">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </item>
+    </layout>
    </item>
-   <item row="3" column="1" rowspan="2">
-    <widget class="QGroupBox" name="gbOther">
-     <property name="title">
-      <string>Other</string>
+   <item>
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
      </property>
-     <layout class="QVBoxLayout" name="verticalLayout_4">
-      <item>
-       <widget class="QCheckBox" name="cbBarometricPressure">
-        <property name="text">
-         <string>Barometric Pressure</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QCheckBox" name="cbRainfall">
-        <property name="text">
-         <string>Rainfall</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <spacer name="verticalSpacer">
-        <property name="orientation">
-         <enum>Qt::Vertical</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>20</width>
-          <height>40</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item row="1" column="0" rowspan="4">
-    <widget class="QGroupBox" name="gbTemperature">
-     <property name="title">
-      <string>Temperature</string>
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
      </property>
-     <layout class="QVBoxLayout" name="verticalLayout">
-      <item>
-       <widget class="QCheckBox" name="cbTemperature">
-        <property name="text">
-         <string>Temperature</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QCheckBox" name="cbInsideTemperature">
-        <property name="text">
-         <string>Inside Temperature</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QCheckBox" name="cbApparentTemperature">
-        <property name="text">
-         <string>Apparent Temperature</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QCheckBox" name="cbWindChill">
-        <property name="text">
-         <string>Wind Chill</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QCheckBox" name="cbDewPoint">
-        <property name="text">
-         <string>Dew Point</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <spacer name="verticalSpacer_2">
-        <property name="orientation">
-         <enum>Qt::Vertical</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>20</width>
-          <height>40</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-     </layout>
     </widget>
    </item>
   </layout>
@@ -215,14 +296,23 @@
   <tabstop>cbApparentTemperature</tabstop>
   <tabstop>cbWindChill</tabstop>
   <tabstop>cbDewPoint</tabstop>
+  <tabstop>cbHighTemperature</tabstop>
+  <tabstop>cbLowTemperature</tabstop>
   <tabstop>cbHumidity</tabstop>
   <tabstop>cbInsideHumidity</tabstop>
-  <tabstop>cbBarometricPressure</tabstop>
-  <tabstop>cbRainfall</tabstop>
   <tabstop>cbAverageWindSpeed</tabstop>
   <tabstop>cbGustWindSpeed</tabstop>
   <tabstop>cbWindDirection</tabstop>
-  <tabstop>buttonBox</tabstop>
+  <tabstop>cbGustDirection</tabstop>
+  <tabstop>cbBarometricPressure</tabstop>
+  <tabstop>cbRainfall</tabstop>
+  <tabstop>cbHighRainRate</tabstop>
+  <tabstop>cbReception</tabstop>
+  <tabstop>cbUVIndex</tabstop>
+  <tabstop>cbSolarRadiation</tabstop>
+  <tabstop>cbEvapotranspiration</tabstop>
+  <tabstop>cbHighSolarRadiation</tabstop>
+  <tabstop>cbHighUVIndex</tabstop>
  </tabstops>
  <resources>
   <include location="../resources.qrc"/>

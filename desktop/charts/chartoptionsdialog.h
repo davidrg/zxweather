@@ -5,6 +5,8 @@
 #include <QDateTime>
 #include <QList>
 
+// AbstractLiveDatasource for hardware_type_t
+#include "datasource/abstractlivedatasource.h"
 #include "datasource/samplecolumns.h"
 
 namespace Ui {
@@ -17,7 +19,7 @@ class ChartOptionsDialog : public QDialog
     
 public:
 
-    explicit ChartOptionsDialog(bool solarAvailable, QWidget *parent = 0);
+    explicit ChartOptionsDialog(bool solarAvailable, hardware_type_t hw_type, QWidget *parent = 0);
     ~ChartOptionsDialog();
     
     QDateTime getStartTime();

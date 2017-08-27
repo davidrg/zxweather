@@ -180,14 +180,14 @@ private:
      * @param dataSet Dataset the rainfall graph is for.
      * @param samples Samples for the dataset.
      */
-    void addRainfallGraph(DataSet dataSet, SampleSet samples);
+    void addRainfallGraph(DataSet dataSet, SampleSet samples, SampleColumn column);
 
     /** Adds a wind direction graph to the plot.
      *
      * @param dataSet Dataset the wind direction graph is for.
      * @param samples Samples for the dataset.
      */
-    void addWindDirectionGraph(DataSet dataSet, SampleSet samples);
+    void addWindDirectionGraph(DataSet dataSet, SampleSet samples, SampleColumn column);
 
     typedef enum {
         RS_TIME = 0, /*!< Align on time only ignoring year, month and day */
@@ -244,7 +244,10 @@ private:
         AT_HUMIDITY = 5, /*!< Axis in % */
         AT_RAINFALL = 6, /*!< Axis in mm */
         AT_SOLAR_RADIATION = 7, /*!< Axis in W/m^2 */
-        AT_UV_INDEX = 8, //*!< Axis for UV Index - no unit */
+        AT_UV_INDEX = 8, /*!< Axis for UV Index - no unit */
+        AT_RAIN_RATE = 9, /*!< Axis for Rain rate in mm/h */
+        AT_RECEPTION = 10, /*!< Axis for wireless reception (%) */
+        AT_EVAPOTRANSPIRATION = 11, /*!< Axis for Evapotrainspiration in mm */
         AT_KEY = 100 /*!< X Axis for DataSet 0. AT_KEY+1 for DataSet 1, etc. */
     } AxisType;
 

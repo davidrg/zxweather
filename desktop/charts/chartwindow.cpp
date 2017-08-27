@@ -66,10 +66,14 @@ ChartWindow::ChartWindow(QList<DataSet> dataSets, bool solarAvailable,
 
     ui->chart->axisRect()->setBackground(plotBackgroundBrush);
 
+    AbstractDataSource *ds;
     if (settings.sampleDataSourceType() == Settings::DS_TYPE_DATABASE)
-        plotter->setDataSource(new DatabaseDataSource(this, this));
+        ds = new DatabaseDataSource(this, this);
     else
-        plotter->setDataSource(new WebDataSource(this, this));
+        ds = new WebDataSource(this, this);
+
+    hw_type = ds->getHardwareType();
+    plotter->setDataSource(ds);
 
     connect(ui->pbRefresh, SIGNAL(clicked()), this, SLOT(refresh()));
     connect(ui->saveButton, SIGNAL(clicked()), this, SLOT(save()));
@@ -833,6 +837,7 @@ void ChartWindow::addGraph()
 
     AddGraphDialog adg(plotter->availableColumns(dataset),
                        solarDataAvailable,
+                       hw_type,
                        this);
     if (adg.exec() == QDialog::Accepted) {
         plotter->addGraphs(dataset, adg.selectedColumns());
@@ -938,7 +943,7 @@ void ChartWindow::customiseChart() {
 }
 
 void ChartWindow::addDataSet() {
-    ChartOptionsDialog options(solarDataAvailable);
+    ChartOptionsDialog options(solarDataAvailable, hw_type);
     options.setWindowTitle("Add Data Set");
 
     int result = options.exec();

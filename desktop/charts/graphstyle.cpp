@@ -10,6 +10,12 @@ GraphStyle::GraphStyle(SampleColumn column) {
 
     QColor colour;
 
+    pen = QPen(colour);
+    scatterStyle = QCPScatterStyle::ssNone;
+    brush = QBrush();
+    lineStyle = QCPGraph::lsLine;
+
+
     switch (column) {
     case SC_Temperature:
         colour = colours.temperature;
@@ -46,6 +52,7 @@ GraphStyle::GraphStyle(SampleColumn column) {
     case SC_Rainfall:
         colour = colours.rainfall;
         name = "Rainfall";
+        lineStyle = QCPGraph::lsStepLeft;
         break;
     case SC_AverageWindSpeed:
         colour = colours.averageWindSpeed;
@@ -67,6 +74,39 @@ GraphStyle::GraphStyle(SampleColumn column) {
         colour = colours.solarRadiation;
         name = "Solar Radiation";
         break;
+    case SC_HighTemperature:
+        colour = colours.temperature;
+        name = "High Temperature";
+        break;
+    case SC_LowTemperature:
+        colour = colours.temperature;
+        name = "Low Temperature";
+        break;
+    case SC_HighSolarRadiation:
+        colour = colours.solarRadiation;
+        name = "High Solar Radiation";
+        break;
+    case SC_HighUVIndex:
+        colour = colours.uvIndex;
+        name = "High UV Index";
+        break;
+    case SC_GustWindDirection:
+        colour = colours.windDirection;
+        name = "Gust Wind Direction";
+        break;
+    case SC_HighRainRate:
+        colour = colours.rainfall;
+        name = "High Rain Rate";
+        lineStyle = QCPGraph::lsStepLeft;
+        break;
+    case SC_Reception:
+        colour = colours.reception;
+        name = "Reception";
+        break;
+    case SC_Evapotranspiration:
+        colour = colours.evapotranspiration;
+        name = "Evapotranspiration";
+    case SC_ForecastRuleId: // Not supported in graphs
     case SC_NoColumns:
     case SC_Timestamp:
     default:
@@ -77,11 +117,6 @@ GraphStyle::GraphStyle(SampleColumn column) {
 
     columnName = name;
     defaultColour = colour;
-
-    pen = QPen(colour);
-    scatterStyle = QCPScatterStyle::ssNone;
-    brush = QBrush();
-    lineStyle = QCPGraph::lsLine;
 
     qDebug() << "Created graph style for" << name;
 }

@@ -221,6 +221,33 @@ void CacheManager::mergeSampleSet(dataset_id_t dataSetId, SampleSet samples, Sam
     if (columns.testFlag(SC_SolarRadiation))
         sampleCache[dataSetId].solarRadiation = samples.solarRadiation;
 
+    if (columns.testFlag(SC_HighTemperature))
+        sampleCache[dataSetId].highTemperature = samples.highTemperature;
+
+    if (columns.testFlag(SC_LowTemperature))
+        sampleCache[dataSetId].lowTemperature = samples.lowTemperature;
+
+    if (columns.testFlag(SC_HighSolarRadiation))
+        sampleCache[dataSetId].highSolarRadiation = samples.highSolarRadiation;
+
+    if (columns.testFlag(SC_HighUVIndex))
+        sampleCache[dataSetId].highUVIndex = samples.highUVIndex;
+
+    if (columns.testFlag(SC_GustWindDirection))
+        sampleCache[dataSetId].gustWindDirection = samples.gustWindDirection;
+
+    if (columns.testFlag(SC_HighRainRate))
+        sampleCache[dataSetId].highRainRate = samples.highRainRate;
+
+    if (columns.testFlag(SC_Reception))
+        sampleCache[dataSetId].reception = samples.reception;
+
+    if (columns.testFlag(SC_Evapotranspiration))
+        sampleCache[dataSetId].evapotranspiration = samples.evapotranspiration;
+
+    // Not supported: SC_ForecastRuleId
+
+
     datasetCache[dataSetId].columns |= columns;
 }
 
