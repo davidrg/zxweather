@@ -203,6 +203,11 @@ void ExportDialog::samplesReady(SampleSet samples)
 
     SampleColumns columns = getColumns();
 
+    if (samples.reception.size() < samples.timestampUnix.size()) {
+        // Reception not available in the data set (not valid for this station?
+        columns = columns & ~SC_Reception;
+    }
+
     QString headerRow = getHeaderRow(columns);
     if (!headerRow.isEmpty())
         dataFile.write(headerRow.toLatin1());

@@ -4,6 +4,11 @@ DataSetModel::DataSetModel(DataSet dataSet, SampleSet sampleSet,
                            QObject *parent)
     : QAbstractTableModel(parent)
 {
+    if (sampleSet.reception.size() < sampleSet.timestampUnix.size()) {
+        // Reception not available in the data set (not valid for this station?
+        dataSet.columns = dataSet.columns & ~SC_Reception;
+    }
+
     this->dataSet = dataSet;
     this->sampleSet = sampleSet;
     this->columns = getColumns();
