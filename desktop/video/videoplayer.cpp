@@ -83,7 +83,7 @@ void VideoPlayer::updateTime() {
                                   mediaObject.position()));
 }
 
-void VideoPlayer::controlsEnabled() {
+bool VideoPlayer::controlsEnabled() {
     return ui->tbPause->isEnabled();
 }
 

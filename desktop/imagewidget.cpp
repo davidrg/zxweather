@@ -169,12 +169,12 @@ void ImageWidget::setImage(QImage image, QString filename) {
                     QDesktopServices::TempLocation);
 #endif
 
-        tempFileName += "/zxweather/";
+        tempFileName += QDir::cleanPath(QDir::separator() + QString("zxweather") + QDir::separator());
 
         if (!QDir(tempFileName).exists())
             QDir().mkpath(tempFileName);
 
-        tempFileName += "XXXXXX.jpeg";
+        tempFileName = QDir::cleanPath(tempFileName + QDir::separator() + "XXXXXX.jpeg");
 
         // Save the image somewhere temporarily to enable drag-drop operations
         imageFile.reset(new QTemporaryFile(tempFileName));
@@ -330,9 +330,10 @@ void ImageWidget::popOut(ImageInfo info, QImage image, QString filename) {
     }
 
     QFileInfo fi(filename);
-    if (!fi.exists() || !fi.isFile()) {
+    if (fi.exists() && fi.isFile()) {
         iw->setImage(image, info, filename);
     } else {
+        qDebug() << "Pop-out: No cache file" << filename;
         iw->setImage(image, info);
     }
     iw->setScaled(true);

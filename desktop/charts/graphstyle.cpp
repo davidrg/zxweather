@@ -10,7 +10,6 @@ GraphStyle::GraphStyle(SampleColumn column) {
 
     QColor colour;
 
-    pen = QPen(colour);
     scatterStyle = QCPScatterStyle::ssNone;
     brush = QBrush();
     lineStyle = QCPGraph::lsLine;
@@ -114,6 +113,8 @@ GraphStyle::GraphStyle(SampleColumn column) {
         colour = Qt::black;
         name = "Invalid Graph";
     }
+
+    pen = QPen(colour);
 
     columnName = name;
     defaultColour = colour;

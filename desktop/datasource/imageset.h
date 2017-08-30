@@ -39,6 +39,7 @@ struct ImageInfo {
 };
 
 bool imageLessThan(const ImageInfo &i1, const ImageInfo &i2);
+bool imageGreaterThan(const ImageInfo &i1, const ImageInfo &i2);
 
 #endif // IMAGESET_H
 

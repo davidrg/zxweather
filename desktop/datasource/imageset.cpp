@@ -17,9 +17,11 @@ bool imageLessThan(const ImageInfo &i1, const ImageInfo &i2) {
     int type2 = order.contains(i2.imageTypeCode.toUpper()) ?
                 order.indexOf(i2.imageTypeCode.toUpper()) : INT_MAX;
 
-    if (type1 < type2) {
+    // The later the image type appears in the list the higher its index. And the
+    // higher its index the lower its priority
+    if (type1 > type2) {
         return true;
-    } else if (type1 > type2) {
+    } else if (type1 < type2) {
         return false;
     }
 
@@ -42,4 +44,9 @@ bool imageLessThan(const ImageInfo &i1, const ImageInfo &i2) {
 
     // ID then
     return i1.id < i2.id;
+}
+
+
+bool imageGreaterThan(const ImageInfo &i1, const ImageInfo &i2) {
+    return !imageLessThan(i1, i2);
 }
