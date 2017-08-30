@@ -52,7 +52,7 @@ void ImagesTabWidget::imageReady(ImageInfo info, QImage image, QString cacheFile
 
     ImageInfo current = tabWidgets[tabId]->currentImage();
     if (!current.timeStamp.isNull()) {
-        if (imageLessThan(current, info)) {
+        if (imageLessThan(info, current)) {
             // new image has lower sort order than the image currently being
             // displayed - either its older or it has a lower ordered image
             // type. Most likely a less interesting APT enhancement than the

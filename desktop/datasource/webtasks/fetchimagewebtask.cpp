@@ -33,12 +33,12 @@ QString FetchImageWebTask::getCacheFilename() {
                 QDesktopServices::CacheLocation);
 #endif
 
-    filename += "/images/" +
-            _stationCode + "/" +
-            _imageInfo.imageSource.code.toLower() + "/" +
-            _imageInfo.imageTypeCode.toLower() + "/" +
-            QString::number(_imageInfo.timeStamp.date().year()) + "/" +
-            QString::number(_imageInfo.timeStamp.date().month()) + "/";
+    filename +=  QDir::separator() + QString("images") +  QDir::separator() +
+            _stationCode + QDir::separator() +
+            _imageInfo.imageSource.code.toLower() + QDir::separator() +
+            _imageInfo.imageTypeCode.toLower() + QDir::separator() +
+            QString::number(_imageInfo.timeStamp.date().year()) + QDir::separator() +
+            QString::number(_imageInfo.timeStamp.date().month()) + QDir::separator();
 
     // Make sure the target directory actually exists.
     if (!QDir(filename).exists())
@@ -59,7 +59,9 @@ QString FetchImageWebTask::getCacheFilename() {
     else
         filename += "dat";
 
-    return filename;
+
+
+    return QDir::cleanPath(filename);
 }
 
 void FetchImageWebTask::beginTask() {
