@@ -358,7 +358,6 @@ def main():
     if not dest_dir.endswith('/'):
         dest_dir += '/'
 
-
     if options.gnuplot_bin is not None:
         gnuplot.gnuplot_binary = options.gnuplot_bin
 
@@ -467,7 +466,6 @@ def main():
             time.sleep(float(options.replot_pause))
 
     print("Finished.")
-
 
 
 if __name__ == "__main__": main()

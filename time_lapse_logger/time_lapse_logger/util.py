@@ -1,4 +1,4 @@
-from twisted.internet.protocol import Protocol, connectionDone
+# coding=utf-8
 
 
 class Event(object):
