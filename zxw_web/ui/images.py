@@ -143,7 +143,7 @@ def get_station_day_images(station_id, day):
                     if i.time == latest_ts \
                             and i.type_code not in ('aptd', 'spec', 'apt'):
                         latest_image_set.append(i)
-                if len(latest_image_set) == 0:
+                if len(latest_image_set) < 2:
                     latest_image_set = None  # No set.
 
                 images.append({
