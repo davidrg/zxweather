@@ -170,6 +170,10 @@ void WeatherImageWindow::samplesReady(SampleSet samples) {
 }
 
 void WeatherImageWindow::mediaPositionChanged(qint64 time) {
+    // If we didn't have enough metadata for the video don't bother looking up
+    // samples for the video as it plays
+    if (!videoSync) return;
+
     // time is in milliseconds
     qint64 seconds = (time / msPerSample) * (5*60); //(time / 1000) * frameInterval * 30;
     qDebug() << "seconds: " << seconds
