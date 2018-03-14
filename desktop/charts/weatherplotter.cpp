@@ -1,5 +1,6 @@
 #include "weatherplotter.h"
 #include "settings.h"
+#include "constants.h"
 
 #include <QtDebug>
 #include <QMessageBox>
@@ -40,10 +41,10 @@ void WeatherPlotter::populateAxisLabels() {
     axisLabels.insert(AT_HUMIDITY, "Humidity (%)");
     axisLabels.insert(AT_PRESSURE, "Pressure (hPa)");
     axisLabels.insert(AT_RAINFALL, "Rainfall (mm)");
-    axisLabels.insert(AT_TEMPERATURE, "Temperature (\xB0""C)");
+    axisLabels.insert(AT_TEMPERATURE, "Temperature (" TEMPERATURE_SYMBOL ")");
     axisLabels.insert(AT_WIND_SPEED, "Wind speed (m/s)");
     axisLabels.insert(AT_WIND_DIRECTION, "Wind direction (degrees)");
-    axisLabels.insert(AT_SOLAR_RADIATION, "Solar Radiation (W/m\xB2");
+    axisLabels.insert(AT_SOLAR_RADIATION, "Solar Radiation (W/m" SQUARED_SYMBOL ")");
     axisLabels.insert(AT_UV_INDEX, "UV Index");
     axisLabels.insert(AT_RAIN_RATE, "Rain rate (mm/h)");
     axisLabels.insert(AT_RECEPTION, "Wireless Reception (%)");

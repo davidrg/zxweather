@@ -5,6 +5,14 @@
 
 #include "version.h"
 
+//#define DEGREE_SYMBOL "\xB0"
+//#define SQUARED_SYMBOL "\xB2"
+
+#define SQUARED_SYMBOL "²"
+#define DEGREE_SYMBOL "°"
+
+#define TEMPERATURE_SYMBOL DEGREE_SYMBOL "C"
+
 namespace Constants {
 
     const QByteArray USER_AGENT = "zxweather-desktop/" APP_VERSION_MAJ_MIN;

@@ -4,12 +4,12 @@
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
 
-#define VERSION_MAJOR 1
-#define VERSION_MINOR 0
+#define VERSION_MAJOR 0
+#define VERSION_MINOR 9
 #define VERSION_REVISION 0
 #define VERSION_BUILD 0
 
-#define COPYRIGHT_YEAR 2016
+#define COPYRIGHT_YEAR 2018
 
 /* Version number with just the major and minor numbers */
 #define APP_VERSION_MAJ_MIN STR(VERSION_MAJOR) "." STR(VERSION_MINOR)

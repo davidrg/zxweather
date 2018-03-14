@@ -4,6 +4,8 @@
 #include "datasource/databasedatasource.h"
 #include "datasource/webdatasource.h"
 #include "datasource/tcplivedatasource.h"
+#include "constants.h"
+
 
 #include <QTimer>
 
@@ -40,14 +42,14 @@ void LiveDataWidget::refreshSysTrayText(LiveDataSet lds) {
 
     // Tool Tip Text
     if (lds.indoorDataAvailable) {
-        formatString = "Temperature: %1\xB0" "C (%2\xB0" "C inside)\nHumidity: %3% (%4% inside)";
+        formatString = "Temperature: %1" TEMPERATURE_SYMBOL " (%2" TEMPERATURE_SYMBOL " inside)\nHumidity: %3% (%4% inside)";
         iconText = formatString
                 .arg(QString::number(lds.temperature, 'f', 1),
                      QString::number(lds.indoorTemperature, 'f', 1),
                      QString::number(lds.humidity, 'f', 1),
                      QString::number(lds.indoorHumidity, 'f', 1));
     } else {
-        formatString = "Temperature: %1\xB0" "C\nHumidity: %3%";
+        formatString = "Temperature: %1" TEMPERATURE_SYMBOL "\nHumidity: %3%";
         iconText = formatString
                 .arg(QString::number(lds.temperature, 'f', 1),
                      QString::number(lds.humidity, 'f', 1));
@@ -91,21 +93,21 @@ void LiveDataWidget::refreshUi(LiveDataSet lds) {
 
     // Temperature
     if (lds.indoorDataAvailable) {
-        formatString = "%1\xB0" "C (%2\xB0" "C inside)";
+        formatString = "%1" TEMPERATURE_SYMBOL " (%2" TEMPERATURE_SYMBOL " inside)";
         temp = formatString
                 .arg(QString::number(lds.temperature,'f',1))
                 .arg(QString::number(lds.indoorTemperature, 'f', 1));
     } else {
-        formatString = "%1\xB0" "C";
+        formatString = "%1" TEMPERATURE_SYMBOL;
         temp = formatString
                 .arg(QString::number(lds.temperature,'f',1));
     }
     ui->lblTemperature->setText(temp);
 
-    ui->lblDewPoint->setText(QString::number(lds.dewPoint, 'f', 1) + "\xB0" "C");
-    ui->lblWindChill->setText(QString::number(lds.windChill, 'f', 1) + "\xB0" "C");
+    ui->lblDewPoint->setText(QString::number(lds.dewPoint, 'f', 1) + TEMPERATURE_SYMBOL);
+    ui->lblWindChill->setText(QString::number(lds.windChill, 'f', 1) + TEMPERATURE_SYMBOL);
     ui->lblApparentTemperature->setText(
-                QString::number(lds.apparentTemperature, 'f', 1) + "\xB0" "C");
+                QString::number(lds.apparentTemperature, 'f', 1) + TEMPERATURE_SYMBOL);
 
     QString bft = "";
     if (lds.windSpeed < 0.3) // 0
@@ -149,7 +151,7 @@ void LiveDataWidget::refreshUi(LiveDataSet lds) {
         QString direction = windDirections.at(idx);
 
         ui->lblWindDirection->setText(QString::number(lds.windDirection) +
-                                      "\xB0 " + direction);
+                                      DEGREE_SYMBOL " " + direction);
     }
 
     QString pressureMsg = "";
@@ -190,7 +192,7 @@ void LiveDataWidget::refreshUi(LiveDataSet lds) {
         // TODO: check if HW has solar+UV
         ui->lblUVIndex->setText(QString::number(lds.davisHw.uvIndex, 'f', 1));
         ui->lblSolarRadiation->setText(QString::number(lds.davisHw.solarRadiation)
-                                       + " W/m\xB2");
+                                       + " W/m" SQUARED_SYMBOL);
         ui->lblRainRate->show();
         ui->lblCurrentStormRain->show();
         ui->lblCurrentStormStartDate->show();
