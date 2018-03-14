@@ -4,6 +4,7 @@
 #include "datasource/webdatasource.h"
 #include "datasource/databasedatasource.h"
 #include "json/json.h"
+#include "constants.h"
 
 #include <QtDebug>
 
@@ -145,7 +146,7 @@ void WeatherImageWindow::imageReady(ImageInfo imageInfo, QImage image, QString f
 }
 
 QString tempString(double temp) {
-    QString formatString = "%1\xB0" "C";
+    QString formatString = "%1" TEMPERATURE_SYMBOL;
     return QString(formatString).arg(QString::number(temp, 'f', 1));
 }
 
@@ -259,7 +260,7 @@ void WeatherImageWindow::displaySample(SampleSet samples, int i) {
         int idx = (((direction * 100) + 1125) % 36000) / 2250;
         QString point = windDirections.at(idx);
 
-        ui->windDirection->setText(QString("%1\xB0 %2").arg(
+        ui->windDirection->setText(QString("%1" DEGREE_SYMBOL " %2").arg(
                                        direction).arg(point));
     } else {
         ui->windDirection->setText("--");
@@ -267,7 +268,7 @@ void WeatherImageWindow::displaySample(SampleSet samples, int i) {
 
     ui->uvIndex->setText(QString::number(samples.uvIndex[i], 'f', 1));
     ui->solarRadiation->setText(QString::number(samples.solarRadiation[i])
-                                   + " W/m\xB2");
+                                   + " W/m" SQUARED_SYMBOL);
 
     rainTotal += samples.rainfall[i];
     ui->rain->setText(QString::number(rainTotal, 'f', 1) + " mm");

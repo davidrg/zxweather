@@ -25,7 +25,7 @@ public:
 
     virtual QSize videoSize() = 0;
 
-    virtual bool controlsEnabled() = 0;
+    virtual bool controlsEnabled() const = 0;
 
 signals:
     void sizeChanged(QSize size);

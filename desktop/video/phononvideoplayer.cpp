@@ -90,7 +90,7 @@ QSize PhononVideoPlayer::videoSize() {
     return ui->player->sizeHint();
 }
 
-bool PhononVideoPlayer::controlsEnabled() {
+bool PhononVideoPlayer::controlsEnabled() const {
     return ui->tbPause->isEnabled();
 }
 

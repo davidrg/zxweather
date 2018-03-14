@@ -27,6 +27,8 @@ public:
 
     QSize sizeHint() const;
 
+    bool controlsEnabled() const;
+
 public slots:
     void play();
     void pause();
