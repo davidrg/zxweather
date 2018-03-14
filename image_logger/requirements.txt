@@ -1,7 +1,12 @@
 psycopg2
 twisted==16.4.1
 txpostgres==1.5.0
+
+# This will need openssl installed.
+# For Py2.7 on windows use 1.0.2n: http://slproweb.com/products/Win32OpenSSL.html
+# (both openssl.exe and ssleay.dll will need to be in the path)
 pyOpenSSL==0.13.1
+
 service_identity
 astral==1.3
 
