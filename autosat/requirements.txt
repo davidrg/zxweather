@@ -1,0 +1,5 @@
+psycopg2
+
+# predict is pypredict from https://github.com/nsat/pypredict
+# Not available on windows at this time.
+pypredict==1.2
