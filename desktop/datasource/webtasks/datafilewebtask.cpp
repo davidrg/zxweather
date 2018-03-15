@@ -203,7 +203,7 @@ data_file_t DataFileWebTask::loadDataFile(QStringList fileData,
 
         QVariant val = values.takeFirst();
         if (val != "None")
-            samples.windDirection[timestamp] = val.toUInt();
+            samples.windDirection[timestamp] = val.toDouble();
 
         if (_requestData.isSolarAvailable) {
             samples.uvIndex.append(values.takeFirst().toDouble());
@@ -219,9 +219,10 @@ data_file_t DataFileWebTask::loadDataFile(QStringList fileData,
         samples.lowTemperature.append(values.takeFirst().toDouble());
         samples.highRainRate.append(values.takeFirst().toDouble());
 
-        val = values.takeFirst();
-        if (val != "None")
-            samples.gustWindDirection[timestamp] = val.toUInt();
+        QVariant gustDirection = values.takeFirst();
+        if (gustDirection != "None") {
+            samples.gustWindDirection[timestamp] = gustDirection.toDouble();
+        }
 
         samples.evapotranspiration.append(values.takeFirst().toDouble());
         if (_requestData.isSolarAvailable) {
