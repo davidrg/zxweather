@@ -48,3 +48,11 @@ zxw_web/static/sb/*
 build-desktop-Qt_4_8-Debug/*
 desktop-build-Desktop_4_8_0_MinGW-Debug-old/*
 desktop-build-Desktop_4_8_0_MinGW-Release-old/*
+.venv/*
+build-desktop-Desktop_Qt_*
+dist/*
+mkdist-55-release.bat
+known_issues.html
+zxweather-desktop.ini
+auto_dist.bat
+clean.bat
