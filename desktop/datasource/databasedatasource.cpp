@@ -425,10 +425,10 @@ void DatabaseDataSource::fetchSamples(SampleColumns columns,
                                       AggregateFunction aggregateFunction,
                                       AggregateGroupType groupType,
                                       uint32_t groupMinutes) {
-    progressDialog->setWindowTitle("Loading...");
-    progressDialog->setLabelText("Initialise...");
-    progressDialog->setRange(0,5);
-    progressDialog->setValue(0);
+    progressListener->setTaskName("Loading...");
+    progressListener->setSubtaskName("Initialise...");
+    progressListener->setRange(0,5);
+    progressListener->setValue(0);
 
     int stationId = getStationId();
     if (stationId == -1) return; // Bad station code.
@@ -441,9 +441,9 @@ void DatabaseDataSource::fetchSamples(SampleColumns columns,
     // ##TODO: RECEPTION
     // TODO: also filter out reception if not wireless and solar if not Pro2Plus
 
-    progressDialog->setLabelText("Count...");
-    progressDialog->setValue(1);
-    if (progressDialog->wasCanceled()) return;
+    progressListener->setSubtaskName("Count...");
+    progressListener->setValue(1);
+    if (progressListener->wasCanceled()) return;
 
     int size;
     if (aggregateFunction == AF_None || groupType == AGT_None)
@@ -453,9 +453,9 @@ void DatabaseDataSource::fetchSamples(SampleColumns columns,
                                  aggregateFunction, groupType, groupMinutes);
     if (size == -1) return; // error
 
-    progressDialog->setLabelText("Query...");
-    progressDialog->setValue(2);
-    if (progressDialog->wasCanceled()) return;
+    progressListener->setSubtaskName("Query...");
+    progressListener->setValue(2);
+    if (progressListener->wasCanceled()) return;
 
     SampleSet samples;
     ReserveSampleSetSpace(samples, size, columns);
@@ -526,12 +526,12 @@ void DatabaseDataSource::fetchSamples(SampleColumns columns,
         return;
     }
 
-    progressDialog->setLabelText("Process...");
-    progressDialog->setValue(3);
+    progressListener->setSubtaskName("Process...");
+    progressListener->setValue(3);
 
     qDebug() << "Processing results...";
     while (query.next()) {
-        if (progressDialog->wasCanceled()) return;
+        if (progressListener->wasCanceled()) return;
 
         QSqlRecord record = query.record();
 
@@ -621,14 +621,14 @@ void DatabaseDataSource::fetchSamples(SampleColumns columns,
         if (columns.testFlag(SC_ForecastRuleId))
             samples.forecastRuleId.append(record.value("forecast_rule_id").toInt());
     }
-    progressDialog->setLabelText("Draw...");
-    progressDialog->setValue(4);
-    if (progressDialog->wasCanceled()) return;
+    progressListener->setSubtaskName("Draw...");
+    progressListener->setValue(4);
+    if (progressListener->wasCanceled()) return;
 
     qDebug() << "Data retrieval complete.";
 
     emit samplesReady(samples);
-    progressDialog->setValue(5);
+    progressListener->setValue(5);
 }
 
 
@@ -970,9 +970,9 @@ QList<ImageDate> DatabaseDataSource::getImageDates(int stationId,
      * images.
      */
 
-    progressDialog->setLabelText("Query...");
-    progressDialog->setValue(progressOffset + 1);
-    if (progressDialog->wasCanceled()) return QList<ImageDate>();
+    progressListener->setSubtaskName("Query...");
+    progressListener->setValue(progressOffset + 1);
+    if (progressListener->wasCanceled()) return QList<ImageDate>();
 
     QString qry = "select inr.date_stamp as date_stamp, \n\
             -- string_agg(inr.mime_type, '|') as mime_types, \n\
@@ -998,13 +998,13 @@ QList<ImageDate> DatabaseDataSource::getImageDates(int stationId,
         return QList<ImageDate>();
     }
 
-    progressDialog->setLabelText("Process...");
-    progressDialog->setValue(progressOffset + 2);
+    progressListener->setSubtaskName("Process...");
+    progressListener->setValue(progressOffset + 2);
 
     qDebug() << "Processing results...";
     QList<ImageDate> results;
     while (query.next()) {
-        if (progressDialog->wasCanceled()) return QList<ImageDate>();
+        if (progressListener->wasCanceled()) return QList<ImageDate>();
 
         QSqlRecord record = query.record();
 
@@ -1027,9 +1027,9 @@ QList<ImageSource> DatabaseDataSource::getImageSources(int stationId,
      * images.
      */
 
-    progressDialog->setLabelText("Query...");
-    progressDialog->setValue(progressOffset + 1);
-    if (progressDialog->wasCanceled()) return QList<ImageSource>();
+    progressListener->setSubtaskName("Query...");
+    progressListener->setValue(progressOffset + 1);
+    if (progressListener->wasCanceled()) return QList<ImageSource>();
 
     QString qry = "select upper(code) as code, source_name, description from image_source "
                     "where station_id = :stationId";
@@ -1044,13 +1044,13 @@ QList<ImageSource> DatabaseDataSource::getImageSources(int stationId,
         return QList<ImageSource>();
     }
 
-    progressDialog->setLabelText("Process...");
-    progressDialog->setValue(progressOffset + 2);
+    progressListener->setSubtaskName("Process...");
+    progressListener->setValue(progressOffset + 2);
 
     qDebug() << "Processing results...";
     QList<ImageSource> results;
     while (query.next()) {
-        if (progressDialog->wasCanceled()) return QList<ImageSource>();
+        if (progressListener->wasCanceled()) return QList<ImageSource>();
 
         QSqlRecord record = query.record();
 
@@ -1067,38 +1067,38 @@ QList<ImageSource> DatabaseDataSource::getImageSources(int stationId,
 
 void DatabaseDataSource::fetchImageDateList() {
 
-    progressDialog->setWindowTitle("Loading...");
-    progressDialog->setLabelText("Initialise...");
+    progressListener->setTaskName("Loading...");
+    progressListener->setSubtaskName("Initialise...");
 
     // 1 step in this function
     // 2 steps in getImageDates
     // 2 steps in getImageSources
-    progressDialog->setRange(0,5);
-    progressDialog->setValue(0);
+    progressListener->setRange(0,5);
+    progressListener->setValue(0);
 
     int stationId = getStationId();
     if (stationId == -1) return; // Bad station code.
 
     QList<ImageDate> imageDates = getImageDates(stationId,
-                                                progressDialog->value());
+                                                progressListener->value());
     if (imageDates.isEmpty()) return;
 
     QList<ImageSource> imageSources = getImageSources(stationId,
-                                                      progressDialog->value());
+                                                      progressListener->value());
     if (imageSources.isEmpty()) return;
     qDebug() << "Data retrieval complete.";
 
     emit imageDatesReady(imageDates, imageSources);
-    progressDialog->close();
+    progressListener->close();
 }
 
 void DatabaseDataSource::fetchImageList(QDate date, QString imageSourceCode) {
     qDebug() << "Fetching list of images for" << imageSourceCode << "on" << date;
-    progressDialog->reset();
-    progressDialog->setWindowTitle("Loading...");
-    progressDialog->setLabelText("Initialise...");
-    progressDialog->setRange(0, 5);
-    progressDialog->setValue(0);
+    progressListener->reset();
+    progressListener->setTaskName("Loading...");
+    progressListener->setSubtaskName("Initialise...");
+    progressListener->setRange(0, 5);
+    progressListener->setValue(0);
 
     // Get the
     QString qry = "select i.image_id as id, \n\
@@ -1115,8 +1115,8 @@ void DatabaseDataSource::fetchImageList(QDate date, QString imageSourceCode) {
        and upper(img_src.code) = upper(:imageSourceCode) \
      order by i.time_stamp";
 
-    progressDialog->setLabelText("Query...");
-    progressDialog->setValue(1);
+    progressListener->setSubtaskName("Query...");
+    progressListener->setValue(1);
     QSqlQuery query;
     query.prepare(qry);
     query.bindValue(":date", date);
@@ -1128,13 +1128,13 @@ void DatabaseDataSource::fetchImageList(QDate date, QString imageSourceCode) {
         return;
     }
 
-    progressDialog->setLabelText("Process...");
-    progressDialog->setValue(2);
+    progressListener->setSubtaskName("Process...");
+    progressListener->setValue(2);
 
     qDebug() << "Processing results...";
     QList<ImageInfo> results;
     while (query.next()) {
-        if (progressDialog->wasCanceled()) {
+        if (progressListener->wasCanceled()) {
             qDebug() << "Canceled";
             return;
         }
@@ -1159,7 +1159,7 @@ void DatabaseDataSource::fetchImageList(QDate date, QString imageSourceCode) {
     qDebug() << "Loaded" << results.count() << "results.";
 
     emit imageListReady(results);
-    progressDialog->close();
+    progressListener->close();
 }
 
 QString cacheFilename(ImageInfo imageInfo, QString stationCode) {

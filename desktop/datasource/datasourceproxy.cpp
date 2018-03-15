@@ -7,7 +7,6 @@
 DataSourceProxy::DataSourceProxy(AbstractProgressListener* progressListener, QObject *parent)
     : AbstractDataSource(progressListener, parent)
 {
-    this->progressListener = progressListener;
     sampleSource = 0;
     liveSource = 0;
 }

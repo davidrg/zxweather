@@ -15,8 +15,8 @@ public:
 
 
 public slots:
-    virtual void setWindowTitle(QString title) = 0;
-    virtual void setLabelText(QString label) = 0;
+    virtual void setTaskName(QString title) = 0;
+    virtual void setSubtaskName(QString label) = 0;
 
     virtual void setMaximum(int max) = 0;
     virtual void setRange(int min, int max) = 0;

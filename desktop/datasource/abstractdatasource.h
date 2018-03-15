@@ -154,7 +154,7 @@ signals:
      */
     void archivedImagesAvailable();
 protected:
-    QPointer<AbstractProgressListener> progressDialog;
+    QPointer<AbstractProgressListener> progressListener;
 };
 
 

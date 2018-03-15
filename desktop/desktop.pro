@@ -106,7 +106,8 @@ SOURCES += main.cpp\
     imagepropertiesdialog.cpp \
     datasource/imageset.cpp \
     datasource/abstractprogresslistener.cpp \
-    datasource/dialogprogresslistener.cpp
+    datasource/dialogprogresslistener.cpp \
+    datasource/nullprogresslistener.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
@@ -185,7 +186,8 @@ HEADERS  += mainwindow.h \
     weatherimagewindow.h \
     imagepropertiesdialog.h \
     datasource/abstractprogresslistener.h \
-    datasource/dialogprogresslistener.h
+    datasource/dialogprogresslistener.h \
+    datasource/nullprogresslistener.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \

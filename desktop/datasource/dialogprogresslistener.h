@@ -19,10 +19,10 @@ public:
 
 
 public slots:
-    void setLabelText(QString label);
+    void setSubtaskName(QString label);
     void setMaximum(int max);
     void setValue(int value);
-    void setWindowTitle(QString title);
+    void setTaskName(QString title);
     void setRange(int min, int max);
 
     void reset();
