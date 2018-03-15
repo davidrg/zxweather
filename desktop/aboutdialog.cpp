@@ -32,7 +32,8 @@ AboutDialog::AboutDialog(QWidget *parent) :
     this->setWindowFlags(this->windowFlags() & ~Qt::WindowContextHelpButtonHint);
     ui->textBrowser->setHtml(
                 ui->textBrowser->document()->toHtml().replace(
-                    "{version_str}", Constants::VERSION_STR));
+                    "{version_str}", Constants::VERSION_STR)
+                .replace("{copyright_year}", QString::number(COPYRIGHT_YEAR)));
 }
 
 AboutDialog::~AboutDialog()
