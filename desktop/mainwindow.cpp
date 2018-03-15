@@ -45,6 +45,7 @@
 #include <QSqlQuery>
 
 #include "datasource/datasourceproxy.h"
+#include "datasource/dialogprogresslistener.h"
 
 #include "config_wizard/configwizard.h"
 
@@ -102,7 +103,7 @@ MainWindow::MainWindow(QWidget *parent) :
             SLOT(showWarningPopup(QString,QString,QString,bool)));
 
     // Data Source
-    dataSource = new DataSourceProxy(this, this);
+    dataSource = new DataSourceProxy(new DialogProgressListener(this), this);
     connect(dataSource, SIGNAL(newSample(Sample)),
             ui->rainfall, SLOT(newSample(Sample)));
     connect(dataSource, SIGNAL(rainTotalsReady(QDate,double,double,double)),

@@ -7,15 +7,14 @@
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QVariant>
-#include <QProgressDialog>
 #include <QtDebug>
 #include <QSqlRecord>
 #include <QDesktopServices>
 #include <QFile>
 #include <QDir>
 
-DatabaseDataSource::DatabaseDataSource(QWidget* parentWidget, QObject *parent) :
-    AbstractDataSource(parentWidget, parent)
+DatabaseDataSource::DatabaseDataSource(AbstractProgressListener *progressListener, QObject *parent) :
+    AbstractDataSource(progressListener, parent)
 {
     signalAdapter.reset(new DBSignalAdapter(this));
     wdb_set_signal_adapter(signalAdapter.data());

@@ -8,6 +8,7 @@
 
 #include "datasource/webdatasource.h"
 #include "datasource/databasedatasource.h"
+#include "datasource/dialogprogresslistener.h"
 
 #include <QFileDialog>
 #include <QtDebug>
@@ -68,9 +69,9 @@ ChartWindow::ChartWindow(QList<DataSet> dataSets, bool solarAvailable,
 
     AbstractDataSource *ds;
     if (settings.sampleDataSourceType() == Settings::DS_TYPE_DATABASE)
-        ds = new DatabaseDataSource(this, this);
+        ds = new DatabaseDataSource(new DialogProgressListener(this), this);
     else
-        ds = new WebDataSource(this, this);
+        ds = new WebDataSource(new DialogProgressListener(this), this);
 
     hw_type = ds->getHardwareType();
     plotter->setDataSource(ds);

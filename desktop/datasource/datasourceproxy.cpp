@@ -4,10 +4,10 @@
 #include "databasedatasource.h"
 #include "tcplivedatasource.h"
 
-DataSourceProxy::DataSourceProxy(QWidget* parentWidget, QObject *parent)
-    : AbstractDataSource(parentWidget, parent)
+DataSourceProxy::DataSourceProxy(AbstractProgressListener* progressListener, QObject *parent)
+    : AbstractDataSource(progressListener, parent)
 {
-    this->parentWidget = parentWidget;
+    this->progressListener = progressListener;
     sampleSource = 0;
     liveSource = 0;
 }
@@ -30,9 +30,9 @@ void DataSourceProxy::connectDataSources() {
 
     // Create sample data source
     if (sampleType == DST_DATABASE) {
-        sampleSource = new DatabaseDataSource(parentWidget, this);
+        sampleSource = new DatabaseDataSource(progressListener, this);
     } else if (sampleType == DST_WEB) {
-        sampleSource = new WebDataSource(parentWidget, this);
+        sampleSource = new WebDataSource(progressListener, this);
     }
 
     // Create live data source
@@ -40,9 +40,9 @@ void DataSourceProxy::connectDataSources() {
             (liveType == LDST_WEB && sampleType == DST_WEB)) {
         liveSource = sampleSource;
     } else if (liveType == LDST_DATABASE) {
-        liveSource = new DatabaseDataSource(parentWidget, this);
+        liveSource = new DatabaseDataSource(progressListener, this);
     } else if (liveType == LDST_WEB) {
-        liveSource = new DatabaseDataSource(parentWidget, this);
+        liveSource = new DatabaseDataSource(progressListener, this);
     } else if (liveType == LDST_TCP) {
         liveSource = new TcpLiveDataSource(this);
     }

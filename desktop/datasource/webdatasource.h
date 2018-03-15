@@ -2,8 +2,6 @@
 #define WEBDATASOURCE_H
 
 #include "abstractdatasource.h"
-
-#include <QProgressDialog>
 #include <QScopedPointer>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
@@ -30,7 +28,7 @@ class WebDataSource : public AbstractDataSource
     Q_OBJECT
 
 public:
-    explicit WebDataSource(QWidget* parentWidget = 0, QObject *parent = 0);
+    explicit WebDataSource(AbstractProgressListener *progressListener = 0, QObject *parent = 0);
     
     void fetchSamples(
             SampleColumns columns,

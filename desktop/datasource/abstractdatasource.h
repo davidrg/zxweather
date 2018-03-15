@@ -3,20 +3,21 @@
 
 #include <QObject>
 #include <QDateTime>
-#include <QProgressDialog>
 #include <QWidget>
 #include <QList>
 #include <QImage>
+#include <QPointer>
 
 #include "abstractlivedatasource.h"
 #include "sampleset.h"
 #include "imageset.h"
+#include "abstractprogresslistener.h"
 
 class AbstractDataSource : public AbstractLiveDataSource
 {
     Q_OBJECT
 public:
-    explicit AbstractDataSource(QWidget* parentWidget = 0, QObject *parent = 0);
+    explicit AbstractDataSource(AbstractProgressListener* progressListener = 0, QObject *parent = 0);
 
     /** Gets all samples for the supplied time range. When the samples have
      * finished downloading the samplesReady signal will be emitted with the
@@ -153,7 +154,7 @@ signals:
      */
     void archivedImagesAvailable();
 protected:
-    QScopedPointer<QProgressDialog> progressDialog;
+    QPointer<AbstractProgressListener> progressDialog;
 };
 
 
