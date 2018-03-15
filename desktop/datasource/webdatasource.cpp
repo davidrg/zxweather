@@ -89,22 +89,22 @@ WebDataSource::WebDataSource(AbstractProgressListener *progressListener, QObject
 
 
 void WebDataSource::makeProgress(QString message) {
-    progressDialog->setLabelText(message);
-    int value = progressDialog->value() + 1;
-    int maxValue = progressDialog->maximum();
-    progressDialog->setValue(value);
+    progressListener->setSubtaskName(message);
+    int value = progressListener->value() + 1;
+    int maxValue = progressListener->maximum();
+    progressListener->setValue(value);
     qDebug() << "Progress [" << value << "/" << maxValue << "]:" << message;
 }
 
 void WebDataSource::moveGoalpost(int distance, QString reason) {
 
-    int curVal = progressDialog->value();
-    int curMax = progressDialog->maximum();
+    int curVal = progressListener->value();
+    int curMax = progressListener->maximum();
 
     qDebug() << "Antiprogress: [" << curVal << "/" << curMax << "] to ["
              << curVal << "/" << curMax + distance << "] - " << reason;
 
-    progressDialog->setMaximum(curMax + distance);
+    progressListener->setMaximum(curMax + distance);
 }
 
 
@@ -548,8 +548,8 @@ void WebDataSource::queueTask(AbstractWebTask *task, bool startProcessing,
                               bool priority) {
 
     if (!processingQueue) {
-        progressDialog->reset();
-        progressDialog->setMaximum(task->subtasks() + 1);
+        progressListener->reset();
+        progressListener->setMaximum(task->subtasks() + 1);
     } else {
         // Move the goalposts - +1 for the task itself
         qDebug() << "Task " << task->taskName() << " worth " << task->subtasks() + 1 << "points!";
@@ -590,7 +590,7 @@ void WebDataSource::startQueueProcessing() {
         return;
     }
 
-    progressDialog->show();
+    progressListener->show();
     processingQueue = true;
 
 
@@ -605,7 +605,7 @@ void WebDataSource::processNextTask() {
     qDebug() << ":::: Processing task: " << currentTask->taskName();
 
     if (!currentTask->supertaskName().isNull()) {
-        progressDialog->setWindowTitle(currentTask->supertaskName());
+        progressListener->setTaskName(currentTask->supertaskName());
     }
 
     makeProgress(currentTask->taskName());
@@ -638,9 +638,9 @@ void WebDataSource::taskFinished() {
     int remainingSubtasks = currentTask->subtasks() - currentSubtask;
 
     qDebug() << "Progress jump: " << remainingSubtasks;
-    progressDialog->setValue(progressDialog->value() + remainingSubtasks);
-    qDebug() << "Progress [" << progressDialog->value() << "/"
-             << progressDialog->maximum() << "]:" << "Skipping subtasks";
+    progressListener->setValue(progressListener->value() + remainingSubtasks);
+    qDebug() << "Progress [" << progressListener->value() << "/"
+             << progressListener->maximum() << "]:" << "Skipping subtasks";
 
     // Stop processing the queue
     currentTask->deleteLater();
@@ -650,7 +650,7 @@ void WebDataSource::taskFinished() {
 
     if (taskQueue.isEmpty()) {
         // And we're finished!
-        progressDialog->reset();
+        progressListener->reset();
         processingQueue = false;
 
         qDebug() << "******* Queue processing complete!";
@@ -662,7 +662,7 @@ void WebDataSource::taskFinished() {
 
 void WebDataSource::taskFailed(QString error) {
     qDebug() << ":: Task failed: " << error;
-    progressDialog->hide();
+    progressListener->hide();
 
     // Clear the queue - we're canceling
     while (!taskQueue.isEmpty()) {

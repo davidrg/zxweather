@@ -87,7 +87,6 @@ private:
     LiveDataSourceType liveType;
     DataSourceType sampleType;
 
-    AbstractProgressListener *progressListener;
     AbstractDataSource *sampleSource;
     AbstractLiveDataSource *liveSource;
 };

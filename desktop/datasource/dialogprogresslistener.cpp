@@ -14,7 +14,7 @@ int DialogProgressListener::maximum() const {
     return dialog->maximum();
 }
 
-void DialogProgressListener::setLabelText(QString label) {
+void DialogProgressListener::setSubtaskName(QString label) {
     dialog->setLabelText(label);
 }
 
@@ -26,7 +26,7 @@ void DialogProgressListener::setValue(int value) {
     dialog->setValue(value);
 }
 
-void DialogProgressListener::setWindowTitle(QString title) {
+void DialogProgressListener::setTaskName(QString title) {
     dialog->setWindowTitle(title);
 }
 
