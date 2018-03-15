@@ -12,7 +12,7 @@ class DatabaseDataSource : public AbstractDataSource
 {
     Q_OBJECT
 public:
-    explicit DatabaseDataSource(QWidget* parentWidget = 0, QObject *parent = 0);
+    explicit DatabaseDataSource(AbstractProgressListener* progressListener = 0, QObject *parent = 0);
     
     ~DatabaseDataSource();
 

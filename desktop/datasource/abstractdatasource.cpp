@@ -1,9 +1,10 @@
 #include "abstractdatasource.h"
 
-AbstractDataSource::AbstractDataSource(QWidget *parentWidget, QObject *parent) :
+AbstractDataSource::AbstractDataSource(AbstractProgressListener *progressListener, QObject *parent) :
     AbstractLiveDataSource(parent)
 {
-    progressDialog.reset(new QProgressDialog(parentWidget));
+    //progressDialog.reset(new QProgressDialog(parentWidget));
+    progressDialog = progressListener;
 }
 
 void AbstractDataSource::fetchSamples(DataSet dataSet) {

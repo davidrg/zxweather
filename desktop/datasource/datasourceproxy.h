@@ -19,7 +19,7 @@ class DataSourceProxy : public AbstractDataSource
     Q_OBJECT
 
 public:
-    DataSourceProxy(QWidget* parentWidget = 0, QObject *parent = 0);
+    DataSourceProxy(AbstractProgressListener *progressListener = 0, QObject *parent = 0);
 
     typedef enum {
         LDST_DATABASE,
@@ -87,7 +87,7 @@ private:
     LiveDataSourceType liveType;
     DataSourceType sampleType;
 
-    QWidget* parentWidget;
+    AbstractProgressListener *progressListener;
     AbstractDataSource *sampleSource;
     AbstractLiveDataSource *liveSource;
 };

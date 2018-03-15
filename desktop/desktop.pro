@@ -104,7 +104,9 @@ SOURCES += main.cpp\
     datasource/datasourceproxy.cpp \
     weatherimagewindow.cpp \
     imagepropertiesdialog.cpp \
-    datasource/imageset.cpp
+    datasource/imageset.cpp \
+    datasource/abstractprogresslistener.cpp \
+    datasource/dialogprogresslistener.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
@@ -181,7 +183,9 @@ HEADERS  += mainwindow.h \
     datasource/webtasks/fetchraintotalswebtask.h \
     datasource/datasourceproxy.h \
     weatherimagewindow.h \
-    imagepropertiesdialog.h
+    imagepropertiesdialog.h \
+    datasource/abstractprogresslistener.h \
+    datasource/dialogprogresslistener.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \

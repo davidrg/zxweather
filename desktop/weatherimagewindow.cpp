@@ -3,6 +3,7 @@
 #include "settings.h"
 #include "datasource/webdatasource.h"
 #include "datasource/databasedatasource.h"
+#include "datasource/dialogprogresslistener.h"
 #include "json/json.h"
 #include "constants.h"
 
@@ -17,9 +18,9 @@ WeatherImageWindow::WeatherImageWindow(QWidget *parent) :
     Settings& settings = Settings::getInstance();
 
     if (settings.sampleDataSourceType() == Settings::DS_TYPE_DATABASE)
-        dataSource.reset(new DatabaseDataSource(this, this));
+        dataSource.reset(new DatabaseDataSource(new DialogProgressListener(this), this));
     else
-        dataSource.reset(new WebDataSource(this, this));
+        dataSource.reset(new WebDataSource(new DialogProgressListener(this), this));
 
     connect(dataSource.data(), SIGNAL(imageReady(ImageInfo,QImage,QString)),
             this, SLOT(imageReady(ImageInfo,QImage,QString)));

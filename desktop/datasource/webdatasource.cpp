@@ -53,8 +53,8 @@
 /*****************************************************************************
  **** CONSTRUCTOR ************************************************************
  *****************************************************************************/
-WebDataSource::WebDataSource(QWidget *parentWidget, QObject *parent) :
-    AbstractDataSource(parentWidget, parent)
+WebDataSource::WebDataSource(AbstractProgressListener *progressListener, QObject *parent) :
+    AbstractDataSource(progressListener, parent)
 {
     Settings& settings = Settings::getInstance();
     baseURL = settings.webInterfaceUrl();
