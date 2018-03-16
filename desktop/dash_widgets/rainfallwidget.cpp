@@ -291,6 +291,7 @@ void RainfallWidget::newSample(Sample sample) {
         day = 0;
     }
 
+    lastUpdate = date;
     day += sample.rainfall;
     month += sample.rainfall;
     year += sample.rainfall;
