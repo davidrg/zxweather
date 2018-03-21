@@ -6,10 +6,127 @@
 #include "datasource/tcplivedatasource.h"
 #include "constants.h"
 
+#include "unit_conversions.h"
+
 
 #include <QTimer>
 
-QStringList windDirections;
+
+/*
+ * TODO: replace unit_t with a real object:
+ *  -> Implicit type conversions for int, float and QString
+ *  -> Implicit constructors from floats and ints (should remember which value
+ *     was assigned and so as to preserve accuracy for ints.
+ */
+
+typedef struct _liveDataWithUnits {
+    UnitConversions::UnitValue temperature;
+    UnitConversions::UnitValue indoorTemperature;
+    UnitConversions::UnitValue apparentTemperature;
+    UnitConversions::UnitValue windChill;
+    UnitConversions::UnitValue dewPoint;
+    UnitConversions::UnitValue humidity;
+    UnitConversions::UnitValue indoorHumidity;
+    UnitConversions::UnitValue pressure;
+    UnitConversions::UnitValue windSpeed;
+    UnitConversions::UnitValue windSpeedBft;
+    UnitConversions::UnitValue windDirection;
+    UnitConversions::UnitValue windDirectionPoint;
+
+    QDateTime timestamp;
+
+    bool indoorDataAvailable;
+
+    hardware_type_t hw_type;
+
+    // Davis stuff
+    UnitConversions::UnitValue stormRain;
+    UnitConversions::UnitValue rainRate;
+    QDate stormStartDate;
+    bool stormDateValid;
+
+    // int
+    UnitConversions::UnitValue barometerTrend;
+
+    int forecastIcon;
+    int forecastRule;
+    int txBatteryStatus;
+
+    UnitConversions::UnitValue consoleBatteryVoltage;
+    UnitConversions::UnitValue uvIndex;
+    UnitConversions::UnitValue solarRadiation;
+} LiveDataU;
+
+LiveDataU unitifyLiveData(LiveDataSet lds) {
+    LiveDataU ldu;
+    ldu.temperature = lds.temperature;
+    ldu.temperature.unit = UnitConversions::U_CELSIUS;
+
+    ldu.indoorTemperature = lds.indoorTemperature;
+    ldu.indoorTemperature.unit = UnitConversions::U_CELSIUS;
+
+    ldu.apparentTemperature = lds.apparentTemperature;
+    ldu.apparentTemperature.unit = UnitConversions::U_CELSIUS;
+
+    ldu.windChill = lds.windChill;
+    ldu.windChill.unit = UnitConversions::U_CELSIUS;
+
+    ldu.dewPoint = lds.dewPoint;
+    ldu.dewPoint.unit = UnitConversions::U_CELSIUS;
+
+    ldu.humidity = lds.humidity;
+    ldu.humidity.unit = UnitConversions::U_HUMIDITY;
+
+    ldu.indoorHumidity = lds.indoorHumidity;
+    ldu.indoorHumidity.unit = UnitConversions::U_HUMIDITY;
+
+    ldu.pressure = lds.pressure;
+    ldu.pressure.unit = UnitConversions::U_HECTOPASCALS;
+
+    ldu.windSpeed = lds.windSpeed;
+    ldu.windSpeed.unit = UnitConversions::U_METERS_PER_SECOND;
+
+    ldu.windSpeedBft = UnitConversions::metersPerSecondtoBFT(lds.windSpeed);
+    ldu.windSpeedBft.unit = UnitConversions::U_BFT;
+
+    ldu.windDirection = lds.windDirection;
+    ldu.windDirection.unit = UnitConversions::U_DEGREES;
+
+    ldu.windDirectionPoint = lds.windDirection;
+    ldu.windDirectionPoint.unit = UnitConversions::U_COMPASS_POINT;
+
+    ldu.stormRain = lds.davisHw.stormRain;
+    ldu.stormRain.unit = UnitConversions::U_MILLIMETERS;
+
+    ldu.rainRate = lds.davisHw.rainRate;
+    ldu.rainRate.unit = UnitConversions::U_MILLIMETERS_PER_HOUR;
+
+    ldu.stormDateValid = lds.davisHw.stormDateValid;
+    ldu.stormStartDate = lds.davisHw.stormStartDate;
+
+    ldu.barometerTrend = lds.davisHw.barometerTrend;
+    ldu.barometerTrend.unit = UnitConversions::U_DAVIS_BAROMETER_TREND;
+
+    ldu.forecastIcon = lds.davisHw.forecastIcon;
+    ldu.forecastRule = lds.davisHw.forecastRule;
+    ldu.txBatteryStatus = lds.davisHw.txBatteryStatus;
+
+    ldu.consoleBatteryVoltage = lds.davisHw.consoleBatteryVoltage;
+    ldu.consoleBatteryVoltage.unit = UnitConversions::U_VOLTAGE;
+
+    ldu.uvIndex = lds.davisHw.uvIndex;
+    ldu.uvIndex.unit = UnitConversions::U_UV_INDEX;
+
+    ldu.solarRadiation = lds.davisHw.solarRadiation;
+    ldu.solarRadiation.unit = UnitConversions::U_WATTS_PER_SQUARE_METER;
+
+    ldu.timestamp = lds.timestamp;
+    ldu.indoorDataAvailable = lds.indoorDataAvailable;
+    ldu.hw_type = lds.hw_type;
+
+    return ldu;
+}
+
 
 LiveDataWidget::LiveDataWidget(QWidget *parent) :
     QWidget(parent),
@@ -17,9 +134,6 @@ LiveDataWidget::LiveDataWidget(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    windDirections << "N" << "NNE" << "NE" << "ENE" << "E" << "ESE" << "SE"
-                   << "SSE" << "S" << "SSW" << "SW" << "WSW" << "W" << "WNW"
-                   << "NW" << "NNW";
 //    ui->lblUVIndex->hide();
 //    ui->lblSolarRadiation->hide();
 //    ui->solarRadiation->hide();
@@ -75,113 +189,55 @@ void LiveDataWidget::refreshSysTrayIcon(LiveDataSet lds) {
 }
 
 void LiveDataWidget::refreshUi(LiveDataSet lds) {
-
-    QString formatString, temp;
+    LiveDataU ldu = unitifyLiveData(lds);
 
     // Relative Humidity
-    if (lds.indoorDataAvailable) {
-        formatString = "%1% (%2% inside)";
-        temp = formatString
-                .arg(QString::number(lds.humidity))
-                .arg(QString::number(lds.indoorHumidity));
+    if (ldu.indoorDataAvailable) {
+        ui->lblHumidity->setText(QString("%0 (%1 inside)")
+                                 .arg(QString(ldu.indoorHumidity))
+                                 .arg(QString(ldu.humidity)));
     } else {
-        formatString = "%1%";
-        temp = formatString
-                .arg(QString::number(lds.humidity));
+        ui->lblHumidity->setText(ldu.humidity);
     }
-    ui->lblHumidity->setText(temp);
 
     // Temperature
-    if (lds.indoorDataAvailable) {
-        formatString = "%1" TEMPERATURE_SYMBOL " (%2" TEMPERATURE_SYMBOL " inside)";
-        temp = formatString
-                .arg(QString::number(lds.temperature,'f',1))
-                .arg(QString::number(lds.indoorTemperature, 'f', 1));
+    if (ldu.indoorDataAvailable) {
+        ui->lblTemperature->setText(QString("%0 (%1 inside)")
+                                .arg(QString(ldu.temperature))
+                                .arg(QString(ldu.indoorTemperature)));
     } else {
-        formatString = "%1" TEMPERATURE_SYMBOL;
-        temp = formatString
-                .arg(QString::number(lds.temperature,'f',1));
+        ui->lblTemperature->setText(ldu.temperature);
     }
-    ui->lblTemperature->setText(temp);
 
-    ui->lblDewPoint->setText(QString::number(lds.dewPoint, 'f', 1) + TEMPERATURE_SYMBOL);
-    ui->lblWindChill->setText(QString::number(lds.windChill, 'f', 1) + TEMPERATURE_SYMBOL);
-    ui->lblApparentTemperature->setText(
-                QString::number(lds.apparentTemperature, 'f', 1) + TEMPERATURE_SYMBOL);
+    ui->lblDewPoint->setText(ldu.dewPoint);
+    ui->lblWindChill->setText(ldu.windChill);
+    ui->lblApparentTemperature->setText(ldu.apparentTemperature);
 
-    QString bft = "";
-    if (lds.windSpeed < 0.3) // 0
-        bft = "calm";
-    else if (lds.windSpeed < 2) // 1
-        bft = "light air";
-    else if (lds.windSpeed < 3) // 2
-        bft = "light breeze";
-    else if (lds.windSpeed < 5.4) // 3
-        bft = "gentle breeze";
-    else if (lds.windSpeed < 8) // 4
-        bft = "moderate breeze";
-    else if (lds.windSpeed < 10.7) // 5
-        bft = "fresh breeze";
-    else if (lds.windSpeed < 13.8) // 6
-        bft = "strong breeze";
-    else if (lds.windSpeed < 17.1) // 7
-        bft = "high wind, near gale";
-    else if (lds.windSpeed < 20.6) // 8
-        bft = "gale, fresh gale";
-    else if (lds.windSpeed < 24.4) // 9
-        bft = "strong gale";
-    else if (lds.windSpeed < 28.3) // 10
-        bft = "storm, whole gale";
-    else if (lds.windSpeed < 32.5) // 11
-        bft = "violent storm";
-    else // 12
-        bft = "hurricane";
 
+    QString bft = ldu.windSpeedBft;
     if (!bft.isEmpty())
         bft = " (" + bft + ")";
 
-    ui->lblWindSpeed->setText(
-                QString::number(lds.windSpeed, 'f', 1) + " m/s" + bft);
+    ui->lblWindSpeed->setText(QString(ldu.windSpeed) + bft);
     ui->lblTimestamp->setText(lds.timestamp.toString("h:mm AP"));
 
-    if (lds.windSpeed == 0.0)
+    if ((float)ldu.windSpeed == 0.0)
         ui->lblWindDirection->setText("--");
     else {
-        int idx = (((lds.windDirection * 100) + 1125) % 36000) / 2250;
-        QString direction = windDirections.at(idx);
+        QString direction = ldu.windDirectionPoint;
 
-        ui->lblWindDirection->setText(QString::number(lds.windDirection) +
-                                      DEGREE_SYMBOL " " + direction);
+        ui->lblWindDirection->setText(QString(ldu.windDirection) + " " + direction);
     }
 
     QString pressureMsg = "";
     if (lds.hw_type == HW_DAVIS) {
-        switch (lds.davisHw.barometerTrend) {
-        case -60:
-            pressureMsg = "falling rapidly";
-            break;
-        case -20:
-            pressureMsg = "falling slowly";
-            break;
-        case 0:
-            pressureMsg = "steady";
-            break;
-        case 20:
-            pressureMsg = "rising slowly";
-            break;
-        case 60:
-            pressureMsg = "rising rapidly";
-            break;
-        default:
-            pressureMsg = "";
-        }
+        pressureMsg = QString(ldu.barometerTrend);
+
         if (!pressureMsg.isEmpty())
             pressureMsg = " (" + pressureMsg + ")";
 
-        ui->lblRainRate->setText(
-                    QString::number(lds.davisHw.rainRate, 'f', 1) + " mm/hr");
-        ui->lblCurrentStormRain->setText(
-                    QString::number(lds.davisHw.stormRain, 'f', 1) + " mm");
+        ui->lblRainRate->setText(ldu.rainRate);
+        ui->lblCurrentStormRain->setText(ldu.stormRain);
 
         if (lds.davisHw.stormDateValid)
             ui->lblCurrentStormStartDate->setText(
@@ -190,9 +246,8 @@ void LiveDataWidget::refreshUi(LiveDataSet lds) {
             ui->lblCurrentStormStartDate->setText("--");
 
         // TODO: check if HW has solar+UV
-        ui->lblUVIndex->setText(QString::number(lds.davisHw.uvIndex, 'f', 1));
-        ui->lblSolarRadiation->setText(QString::number(lds.davisHw.solarRadiation)
-                                       + " W/m" SQUARED_SYMBOL);
+        ui->lblUVIndex->setText(ldu.uvIndex);
+        ui->lblSolarRadiation->setText(ldu.solarRadiation);
         ui->lblRainRate->show();
         ui->lblCurrentStormRain->show();
         ui->lblCurrentStormStartDate->show();
