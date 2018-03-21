@@ -50,9 +50,9 @@ UnitConversions::UnitValue::operator QString() const {
     case U_MILES_PER_HOUR:
         return val + " mph";
     case U_CELSIUS:
-        return val + " " + DEGREE_SYMBOL + "C";
+        return val + DEGREE_SYMBOL + "C";
     case U_FAHRENHEIT:
-        return val + " " + DEGREE_SYMBOL + "F";
+        return val + DEGREE_SYMBOL + "F";
     case U_HECTOPASCALS:
         return val + " hPa";
     case U_INCHES_OF_MERCURY:
@@ -74,7 +74,7 @@ UnitConversions::UnitValue::operator QString() const {
     case U_UV_INDEX:
         return val;
     case U_HUMIDITY:
-        return val + " %";
+        return val + "%";
     case U_DEGREES:
         return val + DEGREE_SYMBOL;
     case U_VOLTAGE:
