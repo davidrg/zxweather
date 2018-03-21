@@ -191,53 +191,43 @@ void LiveDataWidget::refreshSysTrayIcon(LiveDataSet lds) {
 void LiveDataWidget::refreshUi(LiveDataSet lds) {
     LiveDataU ldu = unitifyLiveData(lds);
 
-    // Relative Humidity
     if (ldu.indoorDataAvailable) {
-        ui->lblHumidity->setText(QString("%0 (%1 inside)")
-                                 .arg(QString(ldu.indoorHumidity))
-                                 .arg(QString(ldu.humidity)));
+        ui->lblTemperature->setOutdoorIndoorValue(ldu.temperature, SC_Temperature,
+                                                  ldu.indoorTemperature, SC_IndoorTemperature);
+        ui->lblHumidity->setOutdoorIndoorValue(ldu.humidity, SC_Humidity,
+                                               ldu.indoorHumidity, SC_IndoorHumidity);
     } else {
-        ui->lblHumidity->setText(ldu.humidity);
+        ui->lblTemperature->setValue(ldu.temperature, SC_Temperature);
+        ui->lblHumidity->setValue(ldu.humidity, SC_Humidity);
     }
 
-    // Temperature
-    if (ldu.indoorDataAvailable) {
-        ui->lblTemperature->setText(QString("%0 (%1 inside)")
-                                .arg(QString(ldu.temperature))
-                                .arg(QString(ldu.indoorTemperature)));
+    ui->lblApparentTemperature->setValue(ldu.apparentTemperature, SC_ApparentTemperature);
+    ui->lblWindChill->setValue(ldu.windChill, SC_WindChill);
+    ui->lblDewPoint->setValue(ldu.dewPoint, SC_DewPoint);
+
+    if (ldu.hw_type == HW_DAVIS) {
+        ui->lblBarometer->setDoubleValue(ldu.pressure, SC_Pressure,
+                                         ldu.barometerTrend, SC_Pressure);
     } else {
-        ui->lblTemperature->setText(ldu.temperature);
+        ui->lblBarometer->setValue(ldu.barometerTrend, SC_Pressure);
     }
 
-    ui->lblDewPoint->setText(ldu.dewPoint);
-    ui->lblWindChill->setText(ldu.windChill);
-    ui->lblApparentTemperature->setText(ldu.apparentTemperature);
-
-
-    QString bft = ldu.windSpeedBft;
-    if (!bft.isEmpty())
-        bft = " (" + bft + ")";
-
-    ui->lblWindSpeed->setText(QString(ldu.windSpeed) + bft);
-    ui->lblTimestamp->setText(lds.timestamp.toString("h:mm AP"));
+    ui->lblWindSpeed->setDoubleValue(ldu.windSpeed, SC_AverageWindSpeed,
+                                     ldu.windSpeedBft, SC_AverageWindSpeed);
+    ui->lblTimestamp->setText(ldu.timestamp.toString("h:mm AP"));
 
     if ((float)ldu.windSpeed == 0.0)
-        ui->lblWindDirection->setText("--");
+        ui->lblWindDirection->clear();
     else {
-        QString direction = ldu.windDirectionPoint;
-
-        ui->lblWindDirection->setText(QString(ldu.windDirection) + " " + direction);
+        ui->lblWindDirection->setDoubleValue(
+                    ldu.windDirection, SC_WindDirection,
+                    ldu.windDirectionPoint, SC_WindDirection);
     }
 
-    QString pressureMsg = "";
+
     if (lds.hw_type == HW_DAVIS) {
-        pressureMsg = QString(ldu.barometerTrend);
-
-        if (!pressureMsg.isEmpty())
-            pressureMsg = " (" + pressureMsg + ")";
-
-        ui->lblRainRate->setText(ldu.rainRate);
-        ui->lblCurrentStormRain->setText(ldu.stormRain);
+        ui->lblRainRate->setValue(ldu.rainRate, SC_Rainfall);
+        ui->lblStormRain->setValue(ldu.stormRain, SC_Rainfall);
 
         if (lds.davisHw.stormDateValid)
             ui->lblCurrentStormStartDate->setText(
@@ -246,24 +236,19 @@ void LiveDataWidget::refreshUi(LiveDataSet lds) {
             ui->lblCurrentStormStartDate->setText("--");
 
         // TODO: check if HW has solar+UV
-        ui->lblUVIndex->setText(ldu.uvIndex);
-        ui->lblSolarRadiation->setText(ldu.solarRadiation);
+        ui->lblUVIndex->setValue(ldu.uvIndex, SC_UV_Index);
+        ui->lblSolarRadiation->setValue(ldu.solarRadiation, SC_SolarRadiation);
+
         ui->lblRainRate->show();
-        ui->lblCurrentStormRain->show();
+        ui->lblStormRain->show();
         ui->lblCurrentStormStartDate->show();
         ui->rainRate->show();
         ui->currentStormRain->show();
         ui->currentStormStart->show();
 
     } else {
-        ui->lblRainRate->setText("not supported");
-        ui->lblCurrentStormRain->setText("not supported");
-        ui->lblCurrentStormStartDate->setText("not supported");
-        ui->lblUVIndex->setText("not supported");
-        ui->lblSolarRadiation->setText("not supported");
-
         ui->lblRainRate->hide();
-        ui->lblCurrentStormRain->hide();
+        ui->lblStormRain->hide();
         ui->lblCurrentStormStartDate->hide();
         ui->lblUVIndex->hide();
         ui->lblSolarRadiation->hide();
@@ -271,9 +256,6 @@ void LiveDataWidget::refreshUi(LiveDataSet lds) {
         ui->currentStormRain->hide();
         ui->currentStormStart->hide();
     }
-
-    ui->lblBarometer->setText(
-                QString::number(lds.pressure, 'f', 1) + " hPa" + pressureMsg);
 }
 
 void LiveDataWidget::setSolarDataAvailable(bool available) {

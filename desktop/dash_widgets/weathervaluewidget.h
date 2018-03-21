@@ -18,18 +18,24 @@ public:
     void setOutdoorIndoorValue(
             UnitConversions::UnitValue outdoor, SampleColumn outdoorColumn,
             UnitConversions::UnitValue indoor, SampleColumn indoorColumn);
+    void setDoubleValue(UnitConversions::UnitValue value1,
+                        SampleColumn column1,
+                        UnitConversions::UnitValue value2,
+                        SampleColumn column2);
+    void clear();
 
 signals:
 
 public slots:
 
 private:
-    UnitConversions::UnitValue outdoorValue;
-    SampleColumn outdoorColumn;
+    UnitConversions::UnitValue value1;
+    SampleColumn column1;
 
-    UnitConversions::UnitValue indoorValue;
-    SampleColumn indoorColumn;
+    UnitConversions::UnitValue value2;
+    SampleColumn column2;
     bool insideOutside;
+    bool doubleValue;
 
     void updateDisplay();
     QLabel *label;
