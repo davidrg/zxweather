@@ -3,6 +3,7 @@
 DialogProgressListener::DialogProgressListener(QWidget *parent) : AbstractProgressListener(parent)
 {
     dialog.reset(new QProgressDialog(parent));
+    dialog->reset();
 }
 
 
