@@ -165,6 +165,10 @@ void ChartWindow::reloadDataSets(bool rebuildChart) {
 
         plotter->drawChart(dataSets);
     }
+
+    if (dataSets.count() == 1 && !dataSets.first().title.isEmpty()) {
+        addTitle(dataSets.first().title);
+    }
 }
 
 void ChartWindow::dataSetRemoved(dataset_id_t dataSetId) {
