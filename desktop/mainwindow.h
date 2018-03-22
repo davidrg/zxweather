@@ -125,7 +125,7 @@ private slots:
 
     void archivedImagesAvailable();
 
-
+    void chartRequested(DataSet dataSet);
 
     void newImage(NewImageInfo imageInfo);
 

@@ -95,6 +95,10 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->liveData, SIGNAL(sysTrayTextChanged(QString)),
             this, SLOT(updateSysTrayText(QString)));
 
+    // Rainfall widget
+    connect(ui->rainfall, SIGNAL(chartRequested(DataSet)),
+            this, SLOT(chartRequested(DataSet)));
+
     // Live data monitor.
     liveMonitor.reset(new LiveMonitor());
     connect(liveMonitor.data(),
@@ -423,6 +427,15 @@ void MainWindow::showChartWindow() {
     qDebug() << "AGMin" << ds.customGroupMinutes;
 
     ChartWindow *cw = new ChartWindow(dataSets, solarDataAvailable);
+    cw->setAttribute(Qt::WA_DeleteOnClose);
+    cw->show();
+}
+
+void MainWindow::chartRequested(DataSet dataSet) {
+    QList<DataSet> ds;
+    ds << dataSet;
+
+    ChartWindow *cw = new ChartWindow(ds, solarDataAvailable);
     cw->setAttribute(Qt::WA_DeleteOnClose);
     cw->show();
 }

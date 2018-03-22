@@ -103,6 +103,8 @@ struct DataSet {
     AggregateGroupType groupType; /*!< Grouping type to use (if any) */
     uint32_t customGroupMinutes;  /*!< Number of minutes to group by if group type is AGT_Custom */
 
+    QString title;
+
     /** Compares two DataSets to see if they're equal for data caching purposes.
      *
      * @param other The other dataset

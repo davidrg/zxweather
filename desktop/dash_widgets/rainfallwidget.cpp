@@ -11,6 +11,12 @@
 
 #include "charts/qcp/qcustomplot.h"
 
+#define K_DAY 1
+#define K_STORM 2
+#define K_RATE 3
+#define K_MONTH 1
+#define K_YEAR 2
+
 RainfallWidget::RainfallWidget(QWidget *parent) : QWidget(parent)
 {
     // Create the basic UI
@@ -21,6 +27,12 @@ RainfallWidget::RainfallWidget(QWidget *parent) : QWidget(parent)
             this, SLOT(mousePressEventSlot(QMouseEvent*)));
     connect(plot, SIGNAL(mouseMove(QMouseEvent*)),
             this, SLOT(mouseMoveEventSlot(QMouseEvent*)));
+    connect(plot, SIGNAL(plottableDoubleClick(QCPAbstractPlottable*,QMouseEvent*)),
+            this, SLOT(plottableDoubleClick(QCPAbstractPlottable*,QMouseEvent*)));
+    connect(plot, SIGNAL(customContextMenuRequested(QPoint)),
+            this, SLOT(showContextMenu(QPoint)));
+
+    plot->setContextMenuPolicy(Qt::CustomContextMenu);
 
     QFrame *plotFrame = new QFrame(this);
     plotFrame->setFrameShape(QFrame::StyledPanel);
@@ -61,7 +73,7 @@ RainfallWidget::RainfallWidget(QWidget *parent) : QWidget(parent)
 
     // Configure ticks
     QVector<double> smallTicks;
-    smallTicks << 1 << 2 << 3;
+    smallTicks << K_DAY << K_STORM << K_RATE;
     QVector<QString> smallTickTopLabels;
     smallTickTopLabels << "Day" << "Storm" << "Rate";
     QVector<QString> smallTickBottomLabels;
@@ -97,7 +109,7 @@ RainfallWidget::RainfallWidget(QWidget *parent) : QWidget(parent)
 
     // Configure ticks
     QVector<double> largeTicks;
-    largeTicks << 1 << 2;
+    largeTicks << K_MONTH << K_YEAR;
     QVector<QString> largeTickTopLabels;
     largeTickTopLabels << "Month" << "Year";
     QVector<QString> largeTickBottomLabels;
@@ -265,6 +277,9 @@ void RainfallWidget::liveData(LiveDataSet lds) {
         storm = lds.davisHw.stormRain;
         rate = lds.davisHw.rainRate;
 
+        stormStart = lds.davisHw.stormStartDate;
+        stormValid = lds.davisHw.stormDateValid;
+
         updatePlot();
     }
 }
@@ -333,9 +348,9 @@ void RainfallWidget::updatePlot() {
         shortRangeValues << storm << rate;
     }
 
-    shortRangeTicks << 1;
+    shortRangeTicks << K_DAY;
     if (stormRateEnabled) {
-        shortRangeTicks << 2 << 3;
+        shortRangeTicks << K_STORM << K_RATE;
     }
 
     shortRangeTickLabels.append(QString::number(day));
@@ -346,7 +361,7 @@ void RainfallWidget::updatePlot() {
     }
 
     longRangeValues << month << year;
-    longRangeTicks << 1 << 2;
+    longRangeTicks << K_MONTH << K_YEAR;
     longRangeTickLabels << QString::number(month, 'f', 1)
                         << QString::number(year, 'f', 1);
 
@@ -365,4 +380,198 @@ void RainfallWidget::updatePlot() {
                 0, roundToMultiple(longRange->valueAxis()->range().upper, 100));
 
     plot->replot();
+}
+
+void RainfallWidget::plottableDoubleClick(QCPAbstractPlottable* plottable,
+                                          QMouseEvent* event) {
+
+    QCPBars *bar = qobject_cast<QCPBars*>(plottable);
+    if (bar) {
+        qDebug() << "bar!";
+
+        if (bar == shortRange) {
+            qDebug() << "short range";
+            float key = shortRange->keyAxis()->pixelToCoord(event->localPos().x());
+            qDebug() << key;
+            if (key < K_DAY + 0.5) {
+                qDebug() << "Day";
+                doPlot(true, K_DAY);
+            } else if (key < K_STORM + 0.5 && stormRateEnabled) {
+                qDebug() << "Storm";
+                doPlot(true, K_STORM);
+            } else if (key < K_RATE + 0.5 && stormRateEnabled) {
+                qDebug() << "Rate";
+                doPlot(true, K_RATE);
+            }
+        } else {
+            qDebug() << "long range";
+            float key = longRange->keyAxis()->pixelToCoord(event->localPos().x());
+            qDebug() << key;
+            if (key < K_MONTH + 0.5) {
+                qDebug() << "Month";
+                doPlot(false, K_MONTH);
+            } else if (key < K_YEAR + 0.5) {
+                qDebug() << "Year";
+                doPlot(false, K_YEAR);
+            }
+
+        }
+    }
+}
+
+void RainfallWidget::doPlot(bool shortRange, int type, bool runningTotal) {
+    DataSet ds;
+    ds.columns = SC_Rainfall;
+
+    QTime startTime = QTime(0,0,0,0);
+    QTime endTime = QTime(23,59,59,59);
+
+    if (shortRange) {
+        if (type == K_DAY || type == K_RATE) {
+            ds.startTime = QDateTime::currentDateTime();
+            ds.startTime.setTime(startTime);
+            ds.endTime = QDateTime::currentDateTime();
+            ds.endTime.setTime(endTime);
+
+            if (type == K_RATE) {
+                ds.title = QString(tr("High rain rate for %0")).arg(ds.startTime.date().toString());
+            } else {
+                ds.title = QString(tr("Rainfall for %0")).arg(ds.startTime.date().toString());
+            }
+        } else if (type == K_STORM) {
+            if (!stormValid) {
+                return; // No storm to plot.
+            }
+
+            ds.startTime = QDateTime(stormStart, startTime);
+            ds.endTime = QDateTime::currentDateTime();
+            ds.title = QString(tr("Storm starting %0")).arg(stormStart.toString());
+        }
+
+        if (type == K_RATE) {
+            ds.columns = SC_HighRainRate;
+            ds.aggregateFunction = AF_Maximum;
+        } else {
+            ds.aggregateFunction = runningTotal ? AF_RunningTotal : AF_Sum;
+
+            // Short-ranged plots are grouped hourly
+            ds.groupType = AGT_Custom;
+            ds.customGroupMinutes = runningTotal ? 5 : 60;
+        }
+    } else {
+        if (type == K_MONTH) {
+            QDate today = QDateTime::currentDateTime().date();
+
+            ds.startTime = QDateTime(QDate(today.year(), today.month(), 1), startTime);
+            ds.endTime = QDateTime(today, endTime);
+            ds.endTime.addMonths(1);
+            ds.endTime.addDays(-1);
+            ds.title = QString(tr("Rain for %0").arg(ds.startTime.date().toString("MMMM yyyy")));
+        } else if (type == K_YEAR) {
+            int year = QDateTime::currentDateTime().date().year();
+            ds.startTime = QDateTime(QDate(year, 1, 1), startTime);
+            ds.endTime = QDateTime(QDate(year, 12, 31), endTime);
+            ds.title = QString(tr("Rain for %0")).arg(year);
+        }
+
+        ds.aggregateFunction = runningTotal ? AF_RunningTotal : AF_Sum;
+        ds.groupType = AGT_Custom;
+        ds.customGroupMinutes = 60;
+    }
+
+    emit chartRequested(ds);
+}
+
+void RainfallWidget::showContextMenu(QPoint point) {
+    QMenu *menu = new QMenu(this);
+    menu->setAcceptDrops(Qt::WA_DeleteOnClose);
+
+    QAction *action;
+
+    menu->addAction(tr("Copy"), this, SLOT(copy()));
+    menu->addAction(tr("Save As..."), this, SLOT(save()));
+    menu->addSeparator();
+
+    QMenu *rain = menu->addMenu(tr("Plot"));
+    action = rain->addAction(tr("Today"), this, SLOT(plotRain()));
+    action->setData("today,s");
+
+    if (stormRateEnabled) {
+        if (stormValid) {
+            action = rain->addAction(tr("Storm"), this, SLOT(plotRain()));
+            action->setData("storm,s");
+        }
+        action = rain->addAction(tr("High Rain Rate"), this, SLOT(plotRain()));
+        action->setData("rate,s");
+    }
+    action = rain->addAction(tr("This Month"), this, SLOT(plotRain()));
+    action->setData("month,s");
+    action = rain->addAction(tr("This Year"), this, SLOT(plotRain()));
+    action->setData("year,s");
+
+    QMenu *runningTotals = menu->addMenu(tr("Plot Cumulative"));
+    action = runningTotals->addAction(tr("Today"), this, SLOT(plotRain()));
+    action->setData("today,c");
+    if (stormValid && stormRateEnabled) {
+        action = runningTotals->addAction(tr("Storm"), this, SLOT(plotRain()));
+        action->setData("storm,c");
+    }
+    action = runningTotals->addAction(tr("This Month"), this, SLOT(plotRain()));
+    action->setData("month,c");
+    action = runningTotals->addAction(tr("This Year"), this, SLOT(plotRain()));
+    action->setData("year,c");
+
+    menu->popup(plot->mapToGlobal(point));
+}
+
+void RainfallWidget::plotRain() {
+    if (QAction* menuAction = qobject_cast<QAction*>(sender())) {
+        QString data = menuAction->data().toString();
+
+        QStringList bits = data.split(",");
+
+        QString period = bits.first();
+        bool running_total = bits.last() == "c";
+
+        if (period == "today") {
+            doPlot(true, K_DAY, running_total);
+        } else if (period == "storm") {
+            doPlot(true, K_STORM, running_total);
+        } else if (period == "rate") {
+            doPlot(true, K_RATE, running_total);
+        } else if (period == "month") {
+            doPlot(false, K_MONTH, running_total);
+        } else if (period == "year") {
+            doPlot(false, K_YEAR, running_total);
+        }
+    }
+}
+
+void RainfallWidget::save() {
+    QString pdfFilter = "Adobe Portable Document Format (*.pdf)";
+    QString pngFilter = "Portable Network Graphics (*.png)";
+    QString jpgFilter = "JPEG (*.jpg)";
+    QString bmpFilter = "Windows Bitmap (*.bmp)";
+
+    QString filter = pngFilter + ";;" + pdfFilter + ";;" +
+            jpgFilter + ";;" + bmpFilter;
+
+    QString selectedFilter;
+
+    QString fileName = QFileDialog::getSaveFileName(
+                this, "Save As" ,"", filter, &selectedFilter);
+
+    if (selectedFilter == pdfFilter)
+        plot->savePdf(fileName);
+    else if (selectedFilter == pngFilter)
+        plot->savePng(fileName);
+    else if (selectedFilter == jpgFilter)
+        plot->saveJpg(fileName);
+    else if (selectedFilter == bmpFilter)
+        plot->saveBmp(fileName);
+}
+
+void RainfallWidget::copy() {
+    QClipboard * clipboard = QApplication::clipboard();
+    clipboard->setPixmap(plot->toPixmap());
 }
