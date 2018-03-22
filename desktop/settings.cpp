@@ -37,6 +37,8 @@ namespace SettingsKey {
         const QString MINIMISE_TO_SYSTRAY = "General/minimise_to_systray";
         const QString CLOSE_TO_SYSTRAY = "General/close_to_systray";
 
+        const QString IMPERIAL = "General/imperial";
+
         namespace LiveMon {
             const QString ENABLED = "General/live_mon/enabled";
             const QString INTERVAL = "General/live_mon/interval";
@@ -49,6 +51,10 @@ namespace SettingsKey {
             const QString WLAYOUT = "General/images_window/window_layout";
             const QString TYPE_SORT = "General/images_window/image_type_sort_order";
         }
+    }
+
+    namespace WeatherValueWidgets {
+        const QString ROOT = "WeatherValueWidget";
     }
 
     /** Settings about where to get data from.
@@ -556,4 +562,23 @@ QStringList Settings::imageTypeSortOrder() {
     imageTypePriority = settings->value(SettingsKey::General::ImagesWindow::TYPE_SORT,
                            def).toString().split(",");
     return imageTypePriority;
+}
+
+QVariant Settings::weatherValueWidgetSetting(QString name, QString setting, QVariant defaultValue) {
+    QString s = SettingsKey::WeatherValueWidgets::ROOT + "/" + name + "/" + setting;
+    return settings->value(s, defaultValue);
+}
+
+void Settings::setWeatherValueWidgetSetting(QString name, QString setting, QVariant value) {
+    QString s = SettingsKey::WeatherValueWidgets::ROOT + "/" + name + "/" + setting;
+    settings->setValue(s, value);
+}
+
+
+bool Settings::imperial() const {
+    return settings->value(SettingsKey::General::IMPERIAL, false).toBool();
+}
+
+void Settings::setImperial(bool enabled) {
+    settings->setValue(SettingsKey::General::IMPERIAL, enabled);
 }

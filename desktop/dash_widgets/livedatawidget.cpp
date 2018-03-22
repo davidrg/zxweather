@@ -134,6 +134,33 @@ LiveDataWidget::LiveDataWidget(QWidget *parent) :
 {
     ui->setupUi(this);
 
+    connect(ui->lblApparentTemperature, SIGNAL(plotRequested(DataSet)),
+            this, SLOT(childPlotRequested(DataSet)));
+    connect(ui->lblBarometer, SIGNAL(plotRequested(DataSet)),
+            this, SLOT(childPlotRequested(DataSet)));
+    connect(ui->lblDewPoint, SIGNAL(plotRequested(DataSet)),
+            this, SLOT(childPlotRequested(DataSet)));
+    connect(ui->lblHumidity, SIGNAL(plotRequested(DataSet)),
+            this, SLOT(childPlotRequested(DataSet)));
+    connect(ui->lblRainRate, SIGNAL(plotRequested(DataSet)),
+            this, SLOT(childPlotRequested(DataSet)));
+    connect(ui->lblSolarRadiation, SIGNAL(plotRequested(DataSet)),
+            this, SLOT(childPlotRequested(DataSet)));
+    connect(ui->lblStormRain, SIGNAL(plotRequested(DataSet)),
+            this, SLOT(childPlotRequested(DataSet)));
+    connect(ui->lblTemperature, SIGNAL(plotRequested(DataSet)),
+            this, SLOT(childPlotRequested(DataSet)));
+    connect(ui->lblUVIndex, SIGNAL(plotRequested(DataSet)),
+            this, SLOT(childPlotRequested(DataSet)));
+    connect(ui->lblWindChill, SIGNAL(plotRequested(DataSet)),
+            this, SLOT(childPlotRequested(DataSet)));
+    connect(ui->lblWindDirection, SIGNAL(plotRequested(DataSet)),
+            this, SLOT(childPlotRequested(DataSet)));
+    connect(ui->lblWindSpeed, SIGNAL(plotRequested(DataSet)),
+            this, SLOT(childPlotRequested(DataSet)));
+
+    ui->lblWindSpeed->setName("ldw_wind_speed");
+
 //    ui->lblUVIndex->hide();
 //    ui->lblSolarRadiation->hide();
 //    ui->solarRadiation->hide();
@@ -226,8 +253,8 @@ void LiveDataWidget::refreshUi(LiveDataSet lds) {
 
 
     if (lds.hw_type == HW_DAVIS) {
-        ui->lblRainRate->setValue(ldu.rainRate, SC_Rainfall);
-        ui->lblStormRain->setValue(ldu.stormRain, SC_Rainfall);
+        ui->lblRainRate->setValue(ldu.rainRate, SC_HighRainRate);
+        ui->lblStormRain->setValue(ldu.stormRain, SC_NoColumns);
 
         if (lds.davisHw.stormDateValid)
             ui->lblCurrentStormStartDate->setText(
@@ -275,4 +302,8 @@ void LiveDataWidget::setSolarDataAvailable(bool available) {
 //    }
     updateGeometry();
     adjustSize();
+}
+
+void LiveDataWidget::childPlotRequested(DataSet ds) {
+    emit plotRequested(ds);
 }

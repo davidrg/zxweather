@@ -143,6 +143,14 @@ public:
     QByteArray getImagesWindowLayout();
 
     QStringList imageTypeSortOrder();
+
+    bool imperial() const;
+
+    // NOTE: calling this will require notifying all the WeatherValueWidgets.
+    void setImperial(bool enabled);
+
+    QVariant weatherValueWidgetSetting(QString name, QString setting, QVariant defaultValue);
+    void setWeatherValueWidgetSetting(QString name, QString setting, QVariant value);
 private:
     Settings();
     ~Settings();

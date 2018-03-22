@@ -94,6 +94,8 @@ MainWindow::MainWindow(QWidget *parent) :
             this, SLOT(updateSysTrayIcon(QIcon)));
     connect(ui->liveData, SIGNAL(sysTrayTextChanged(QString)),
             this, SLOT(updateSysTrayText(QString)));
+    connect(ui->liveData, SIGNAL(plotRequested(DataSet)),
+            this, SLOT(chartRequested(DataSet)));
 
     // Rainfall widget
     connect(ui->rainfall, SIGNAL(chartRequested(DataSet)),

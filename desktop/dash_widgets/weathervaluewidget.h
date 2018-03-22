@@ -22,11 +22,17 @@ public:
                         SampleColumn column1,
                         UnitConversions::UnitValue value2,
                         SampleColumn column2);
+    void setName(QString name);
     void clear();
 
 signals:
+    void plotRequested(DataSet ds);
 
-public slots:
+private slots:
+    void showContextMenu(QPoint point);
+    void plot();
+    void copy();
+    void toggle_kmh();
 
 private:
     UnitConversions::UnitValue value1;
@@ -39,6 +45,11 @@ private:
 
     void updateDisplay();
     QLabel *label;
+
+    // Settings
+    QString name;
+    bool kmh;
+    bool imperial;
 };
 
 #endif // WEATHERVALUEWIDGET_H
