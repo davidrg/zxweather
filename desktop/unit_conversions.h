@@ -50,7 +50,9 @@ namespace UnitConversions {
     class UnitValue {
 
     public:
+        UnitValue(const UnitValue &other);
         UnitValue(float v);
+        UnitValue(double v);
         UnitValue(int v);
         UnitValue() : UnitValue(0) {}
 
@@ -77,6 +79,9 @@ namespace UnitConversions {
     int metersPerSecondtoBFT(double ms);
     double metersPerSecondToKilometersPerHour(double ms);
     double metersPerSecondToMilesPerHour(double ms);
+
+    UnitValue metersPerSecondToKilometersPerHour(const UnitValue &v);
+    UnitValue toImperial(const UnitValue &v);
 
     double celsiusToFahrenheit(double c);
 

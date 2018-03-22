@@ -5,10 +5,25 @@
 #include <QObject>
 
 
+UnitConversions::UnitValue::UnitValue(const UnitValue &other) {
+    isInt = other.isInt;
+    if (isInt) {
+        value.intValue = other.value.intValue;
+    } else {
+        value.floatValue = other.value.floatValue;
+    }
+    unit = other.unit;
+}
+
 UnitConversions::UnitValue::UnitValue(float v) {
     value.floatValue = v;
     isInt = false;
     unit = U_UNKNOWN;
+}
+
+UnitConversions::UnitValue::UnitValue(double v)
+    : UnitValue((float)v) {
+
 }
 
 UnitConversions::UnitValue::UnitValue(int32_t v) {
@@ -203,3 +218,45 @@ double UnitConversions::millimetersToCentimeters(double mm) {
     return mm * 0.1;
 }
 
+UnitConversions::UnitValue UnitConversions::metersPerSecondToKilometersPerHour(const UnitValue &v) {
+    if (v.unit != UnitConversions::U_METERS_PER_SECOND) {
+        return v;
+    }
+
+    UnitConversions::UnitValue kmh = UnitConversions::metersPerSecondToKilometersPerHour((double)v);
+    kmh.unit = UnitConversions::U_KILOMETERS_PER_HOUR;
+
+    return kmh;
+}
+
+UnitConversions::UnitValue UnitConversions::toImperial(const UnitValue &v) {
+    switch(v.unit) {
+    case UnitConversions::U_METERS_PER_SECOND: {
+        UnitConversions::UnitValue result = UnitConversions::metersPerSecondToMilesPerHour(v);
+        result.unit = UnitConversions::U_MILES_PER_HOUR;
+        return result;
+    }
+    case UnitConversions::U_CELSIUS: {
+        UnitConversions::UnitValue result = UnitConversions::celsiusToFahrenheit(v);
+        result.unit = UnitConversions::U_FAHRENHEIT;
+        return result;
+    }
+    case UnitConversions::U_HECTOPASCALS: {
+        UnitConversions::UnitValue result = UnitConversions::hectopascalsToInchesOfMercury(v);
+        result.unit = UnitConversions::U_INCHES_OF_MERCURY;
+        return result;
+    }
+    case UnitConversions::U_MILLIMETERS: {
+        UnitConversions::UnitValue result = UnitConversions::millimetersToInches(v);
+        result.unit = UnitConversions::U_INCHES;
+        return result;
+    }
+    case UnitConversions::U_MILLIMETERS_PER_HOUR: {
+        UnitConversions::UnitValue result = UnitConversions::millimetersToInches(v);
+        result.unit = UnitConversions::U_INCHES_PER_HOUR;
+        return result;
+    }
+    default:
+        return v;
+    }
+}

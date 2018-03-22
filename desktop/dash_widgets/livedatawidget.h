@@ -30,6 +30,10 @@ public slots:
 signals:
     void sysTrayTextChanged(QString text);
     void sysTrayIconChanged(QIcon icon);
+    void plotRequested(DataSet ds);
+
+private slots:
+    void childPlotRequested(DataSet ds);
 
 private:
     Ui::LiveDataWidget *ui;

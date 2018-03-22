@@ -464,8 +464,8 @@ void RainfallWidget::doPlot(bool shortRange, int type, bool runningTotal) {
 
             ds.startTime = QDateTime(QDate(today.year(), today.month(), 1), startTime);
             ds.endTime = QDateTime(today, endTime);
-            ds.endTime.addMonths(1);
-            ds.endTime.addDays(-1);
+            ds.endTime = ds.endTime.addMonths(1);
+            ds.endTime = ds.endTime.addDays(-1);
             ds.title = QString(tr("Rain for %0").arg(ds.startTime.date().toString("MMMM yyyy")));
         } else if (type == K_YEAR) {
             int year = QDateTime::currentDateTime().date().year();
