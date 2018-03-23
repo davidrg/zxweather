@@ -70,6 +70,7 @@ private slots:
 
     // Save As slot
     void save();
+    void copy();
 
 private:
     void showLegendContextMenu(QPoint point);

@@ -335,7 +335,7 @@ void ChartWindow::showChartContextMenu(QPoint point) {
 
     menu->addSeparator();
     menu->addAction(QIcon(":/icons/save"), "&Save...", this, SLOT(save()));
-
+    menu->addAction("&Copy", this, SLOT(copy()));
 #ifndef MULTI_DATA_SET
     /******** Graph add ********/
     action = menu->addAction(QIcon(":/icons/chart-add"), "Add Graph",
@@ -847,6 +847,10 @@ void ChartWindow::addGraph()
     if (adg.exec() == QDialog::Accepted) {
         plotter->addGraphs(dataset, adg.selectedColumns());
     }
+}
+
+void ChartWindow::copy() {
+    QApplication::clipboard()->setPixmap(ui->chart->toPixmap());
 }
 
 void ChartWindow::save() {
