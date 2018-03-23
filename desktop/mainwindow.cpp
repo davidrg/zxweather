@@ -423,7 +423,9 @@ void MainWindow::showChartWindow() {
     QList<DataSet> dataSets;
     dataSets << ds;
 
-    qDebug() <<"DS Columns:"<< (int)ds.columns;
+    qDebug() << "DS Columns:"<< (int)ds.columns;
+    qDebug() << "Start" << ds.startTime;
+    qDebug() << "End" << ds.endTime;
     qDebug() << "AGFunc" << ds.aggregateFunction;
     qDebug() << "AGGrp" << ds.groupType;
     qDebug() << "AGMin" << ds.customGroupMinutes;
@@ -436,6 +438,13 @@ void MainWindow::showChartWindow() {
 void MainWindow::chartRequested(DataSet dataSet) {
     QList<DataSet> ds;
     ds << dataSet;
+
+    qDebug() << "DS Columns:"<< (int)dataSet.columns;
+    qDebug() << "Start" << dataSet.startTime;
+    qDebug() << "End" << dataSet.endTime;
+    qDebug() << "AGFunc" << dataSet.aggregateFunction;
+    qDebug() << "AGGrp" << dataSet.groupType;
+    qDebug() << "AGMin" << dataSet.customGroupMinutes;
 
     ChartWindow *cw = new ChartWindow(ds, solarDataAvailable);
     cw->setAttribute(Qt::WA_DeleteOnClose);
