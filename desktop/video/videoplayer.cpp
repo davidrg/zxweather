@@ -178,10 +178,6 @@ QSize VideoPlayer::sizeHint() const {
 
     QSize size = ui->player->sizeHint();
 
-    qDebug() << size;
-    qDebug() << frameHeight;
-    qDebug() << statusHeight;
-
     return QSize(size.width(), size.height() + frameHeight + statusHeight);
 }
 
