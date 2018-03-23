@@ -450,7 +450,9 @@ void RainfallWidget::doPlot(bool shortRange, int type, bool runningTotal) {
 
         if (type == K_RATE) {
             ds.columns = SC_HighRainRate;
-            ds.aggregateFunction = AF_Maximum;
+            ds.aggregateFunction = AF_None;
+            ds.groupType = AGT_None;
+            ds.customGroupMinutes = 0;
         } else {
             ds.aggregateFunction = runningTotal ? AF_RunningTotal : AF_Sum;
 
