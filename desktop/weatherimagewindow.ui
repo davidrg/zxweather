@@ -97,20 +97,6 @@
             </property>
            </widget>
           </item>
-          <item row="7" column="1">
-           <widget class="QLabel" name="barometer">
-            <property name="text">
-             <string/>
-            </property>
-           </widget>
-          </item>
-          <item row="8" column="1">
-           <widget class="QLabel" name="windSpeed">
-            <property name="text">
-             <string/>
-            </property>
-           </widget>
-          </item>
           <item row="9" column="0">
            <widget class="QLabel" name="label_17">
             <property name="text">
@@ -122,20 +108,6 @@
            <widget class="QLabel" name="label_3">
             <property name="text">
              <string>Temperature:</string>
-            </property>
-           </widget>
-          </item>
-          <item row="11" column="1">
-           <widget class="QLabel" name="solarRadiation">
-            <property name="text">
-             <string/>
-            </property>
-           </widget>
-          </item>
-          <item row="9" column="1">
-           <widget class="QLabel" name="windDirection">
-            <property name="text">
-             <string/>
             </property>
            </widget>
           </item>
@@ -153,27 +125,6 @@
             </property>
            </widget>
           </item>
-          <item row="10" column="1">
-           <widget class="QLabel" name="uvIndex">
-            <property name="text">
-             <string/>
-            </property>
-           </widget>
-          </item>
-          <item row="12" column="1">
-           <widget class="QLabel" name="rain">
-            <property name="text">
-             <string/>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="1">
-           <widget class="QLabel" name="temperature">
-            <property name="text">
-             <string/>
-            </property>
-           </widget>
-          </item>
           <item row="11" column="0">
            <widget class="QLabel" name="label_21">
             <property name="text">
@@ -188,31 +139,10 @@
             </property>
            </widget>
           </item>
-          <item row="5" column="1">
-           <widget class="QLabel" name="dewPoint">
-            <property name="text">
-             <string/>
-            </property>
-           </widget>
-          </item>
-          <item row="3" column="1">
-           <widget class="QLabel" name="apparentTemperature">
-            <property name="text">
-             <string/>
-            </property>
-           </widget>
-          </item>
           <item row="5" column="0">
            <widget class="QLabel" name="label_9">
             <property name="text">
              <string>Dew Point:</string>
-            </property>
-           </widget>
-          </item>
-          <item row="4" column="1">
-           <widget class="QLabel" name="windChill">
-            <property name="text">
-             <string/>
             </property>
            </widget>
           </item>
@@ -250,13 +180,6 @@
             </property>
            </widget>
           </item>
-          <item row="6" column="1">
-           <widget class="QLabel" name="humidity">
-            <property name="text">
-             <string/>
-            </property>
-           </widget>
-          </item>
           <item row="7" column="0">
            <widget class="QLabel" name="label_13">
             <property name="text">
@@ -277,6 +200,39 @@
              <string/>
             </property>
            </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="WeatherValueWidget" name="temperature" native="true"/>
+          </item>
+          <item row="3" column="1">
+           <widget class="WeatherValueWidget" name="apparentTemperature" native="true"/>
+          </item>
+          <item row="4" column="1">
+           <widget class="WeatherValueWidget" name="windChill" native="true"/>
+          </item>
+          <item row="5" column="1">
+           <widget class="WeatherValueWidget" name="dewPoint" native="true"/>
+          </item>
+          <item row="6" column="1">
+           <widget class="WeatherValueWidget" name="humidity" native="true"/>
+          </item>
+          <item row="7" column="1">
+           <widget class="WeatherValueWidget" name="barometer" native="true"/>
+          </item>
+          <item row="8" column="1">
+           <widget class="WeatherValueWidget" name="windSpeed" native="true"/>
+          </item>
+          <item row="9" column="1">
+           <widget class="WeatherValueWidget" name="windDirection" native="true"/>
+          </item>
+          <item row="10" column="1">
+           <widget class="WeatherValueWidget" name="uvIndex" native="true"/>
+          </item>
+          <item row="11" column="1">
+           <widget class="WeatherValueWidget" name="solarRadiation" native="true"/>
+          </item>
+          <item row="12" column="1">
+           <widget class="WeatherValueWidget" name="rain" native="true"/>
           </item>
          </layout>
         </item>
@@ -302,6 +258,12 @@
    <class>ImageWidget</class>
    <extends>QWidget</extends>
    <header>imagewidget.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>WeatherValueWidget</class>
+   <extends>QWidget</extends>
+   <header>dash_widgets/weathervaluewidget.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

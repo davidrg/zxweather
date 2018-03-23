@@ -6,8 +6,11 @@
 #include "datasource/dialogprogresslistener.h"
 #include "json/json.h"
 #include "constants.h"
+#include "unit_conversions.h"
+#include "charts/chartwindow.h"
 
 #include <QtDebug>
+#include <QList>
 
 WeatherImageWindow::WeatherImageWindow(QWidget *parent) :
     QWidget(parent),
@@ -29,9 +32,29 @@ WeatherImageWindow::WeatherImageWindow(QWidget *parent) :
     connect(ui->image, SIGNAL(videoPositionChanged(qint64)),
             this, SLOT(mediaPositionChanged(qint64)));
 
-    windDirections << "N" << "NNE" << "NE" << "ENE" << "E" << "ESE" << "SE"
-                   << "SSE" << "S" << "SSW" << "SW" << "WSW" << "W" << "WNW"
-                   << "NW" << "NNW";
+    connect(ui->temperature, SIGNAL(plotRequested(DataSet)),
+            this, SLOT(plotRequested(DataSet)));
+    connect(ui->apparentTemperature, SIGNAL(plotRequested(DataSet)),
+            this, SLOT(plotRequested(DataSet)));
+    connect(ui->windChill, SIGNAL(plotRequested(DataSet)),
+            this, SLOT(plotRequested(DataSet)));
+    connect(ui->dewPoint, SIGNAL(plotRequested(DataSet)),
+            this, SLOT(plotRequested(DataSet)));
+    connect(ui->humidity, SIGNAL(plotRequested(DataSet)),
+            this, SLOT(plotRequested(DataSet)));
+    connect(ui->barometer, SIGNAL(plotRequested(DataSet)),
+            this, SLOT(plotRequested(DataSet)));
+    connect(ui->windSpeed, SIGNAL(plotRequested(DataSet)),
+            this, SLOT(plotRequested(DataSet)));
+    ui->windSpeed->setName("ldw_wind_speed");
+    connect(ui->windDirection, SIGNAL(plotRequested(DataSet)),
+            this, SLOT(plotRequested(DataSet)));
+    connect(ui->uvIndex, SIGNAL(plotRequested(DataSet)),
+            this, SLOT(plotRequested(DataSet)));
+    connect(ui->solarRadiation, SIGNAL(plotRequested(DataSet)),
+            this, SLOT(plotRequested(DataSet)));
+    connect(ui->rain, SIGNAL(plotRequested(DataSet)),
+            this, SLOT(plotRequested(DataSet)));
 }
 
 WeatherImageWindow::~WeatherImageWindow()
@@ -203,74 +226,104 @@ void WeatherImageWindow::mediaPositionChanged(qint64 time) {
 }
 
 void WeatherImageWindow::displaySample(SampleSet samples, int i) {
+    using namespace UnitConversions;
+
     QDateTime dateTime = QDateTime::fromTime_t(samples.timestampUnix[i]);
     ui->date->setText(dateTime.date().toString());
     ui->time->setText(dateTime.time().toString());
-    QString formatString = "%1 (%2 inside)";
-    ui->temperature->setText(formatString
-            .arg(tempString(samples.temperature[i]))
-            .arg(tempString(samples.indoorTemperature[i])));
-    ui->apparentTemperature->setText(tempString(samples.apparentTemperature[i]));
-    ui->windChill->setText(tempString(samples.windChill[i]));
-    ui->dewPoint->setText(tempString(samples.dewPoint[i]));
-    ui->humidity->setText(QString("%1% (%2% inside)").arg(
-                              samples.humidity[i]).arg(samples.indoorHumidity[i]));
-    ui->barometer->setText(QString("%1 hPa").arg(samples.pressure[i]));
 
-    double windSpeed = samples.averageWindSpeed[i];
+    UnitValue temperature = samples.temperature[i];
+    temperature.unit = U_CELSIUS;
 
-    QString bft = "";
-    if (windSpeed < 0.3) // 0
-        bft = "calm";
-    else if (windSpeed < 2) // 1
-        bft = "light air";
-    else if (windSpeed < 3) // 2
-        bft = "light breeze";
-    else if (windSpeed < 5.4) // 3
-        bft = "gentle breeze";
-    else if (windSpeed < 8) // 4
-        bft = "moderate breeze";
-    else if (windSpeed < 10.7) // 5
-        bft = "fresh breeze";
-    else if (windSpeed < 13.8) // 6
-        bft = "strong breeze";
-    else if (windSpeed < 17.1) // 7
-        bft = "high wind, near gale";
-    else if (windSpeed < 20.6) // 8
-        bft = "gale, fresh gale";
-    else if (windSpeed < 24.4) // 9
-        bft = "strong gale";
-    else if (windSpeed < 28.3) // 10
-        bft = "storm, whole gale";
-    else if (windSpeed < 32.5) // 11
-        bft = "violent storm";
-    else // 12
-        bft = "hurricane";
+    UnitValue indoorTemperature = samples.indoorTemperature[i];
+    indoorTemperature.unit = U_CELSIUS;
 
-    if (!bft.isEmpty())
-        bft = " (" + bft + ")";
+    ui->temperature->setOutdoorIndoorValue(temperature, SC_Temperature,
+                                           indoorTemperature, SC_IndoorTemperature);
 
-    ui->windSpeed->setText(
-                QString::number(windSpeed, 'f', 1) + " m/s" + bft);
+    UnitValue apparentTemperature = samples.apparentTemperature[i];
+    apparentTemperature.unit = U_CELSIUS;
+    ui->apparentTemperature->setValue(apparentTemperature, SC_ApparentTemperature);
+
+    UnitValue windChill = samples.windChill[i];
+    windChill.unit = U_CELSIUS;
+    ui->windChill->setValue(windChill, SC_WindChill);
+
+    UnitValue dewPoint = samples.dewPoint[i];
+    dewPoint.unit = U_CELSIUS;
+    ui->dewPoint->setValue(dewPoint, SC_DewPoint);
+
+    UnitValue humidity = samples.humidity[i];
+    humidity.unit = U_HUMIDITY;
+
+    UnitValue indoorHumidiy = samples.indoorHumidity[i];
+    indoorHumidiy.unit = U_HUMIDITY;
+
+    ui->humidity->setOutdoorIndoorValue(humidity, SC_Humidity,
+                                        indoorHumidiy, SC_IndoorHumidity);
+
+    UnitValue barometer = samples.pressure[i];
+    barometer.unit = U_HECTOPASCALS;
+    ui->barometer->setValue(barometer, SC_Pressure);
+
+    UnitValue windSpeed = samples.averageWindSpeed[i];
+    windSpeed.unit = U_METERS_PER_SECOND;
+
+    UnitValue bft = metersPerSecondtoBFT(windSpeed);
+    bft.unit = U_BFT;
+
+    ui->windSpeed->setDoubleValue(windSpeed, SC_AverageWindSpeed,
+                                  bft, SC_AverageWindSpeed);
 
     uint dirIdx = samples.timestampUnix[i];
 
     if (samples.windDirection.contains(dirIdx)) {
-        uint direction = samples.windDirection[dirIdx];
+        int direction = samples.windDirection[dirIdx];
 
-        int idx = (((direction * 100) + 1125) % 36000) / 2250;
-        QString point = windDirections.at(idx);
+        UnitValue windDirections = direction;
+        windDirections.unit = U_DEGREES;
 
-        ui->windDirection->setText(QString("%1" DEGREE_SYMBOL " %2").arg(
-                                       direction).arg(point));
+        UnitValue compassPoint = direction;
+        compassPoint.unit = U_COMPASS_POINT;
+
+        ui->windDirection->setDoubleValue(windDirections, SC_WindDirection,
+                                          compassPoint, SC_WindDirection);
     } else {
-        ui->windDirection->setText("--");
+        ui->windDirection->clear();
     }
 
-    ui->uvIndex->setText(QString::number(samples.uvIndex[i], 'f', 1));
-    ui->solarRadiation->setText(QString::number(samples.solarRadiation[i])
-                                   + " W/m" SQUARED_SYMBOL);
+    UnitValue uvIndex = samples.uvIndex[i];
+    uvIndex.unit = U_UV_INDEX;
+
+    ui->uvIndex->setValue(uvIndex, SC_UV_Index);
+
+    UnitValue solarRadiation = samples.solarRadiation[i];
+    solarRadiation.unit = U_WATTS_PER_SQUARE_METER;
+
+    ui->solarRadiation->setValue(solarRadiation, SC_SolarRadiation);
 
     rainTotal += samples.rainfall[i];
-    ui->rain->setText(QString::number(rainTotal, 'f', 1) + " mm");
+
+    UnitValue rain = rainTotal;
+    rain.unit = U_MILLIMETERS;
+
+    ui->rain->setValue(rain, SC_Rainfall);
+}
+
+void WeatherImageWindow::plotRequested(DataSet ds) {
+    QList<DataSet> datasets;
+    datasets << ds;
+
+    qDebug() << "DS Columns:"<< (int)ds.columns;
+    qDebug() << "Start" << ds.startTime;
+    qDebug() << "End" << ds.endTime;
+    qDebug() << "AGFunc" << ds.aggregateFunction;
+    qDebug() << "AGGrp" << ds.groupType;
+    qDebug() << "AGMin" << ds.customGroupMinutes;
+
+    // TODO: we don't actually know solar data is available. Replace
+    // the true below with the actual value.
+    ChartWindow *cw = new ChartWindow(datasets, true);
+    cw->setAttribute(Qt::WA_DeleteOnClose);
+    cw->show();
 }

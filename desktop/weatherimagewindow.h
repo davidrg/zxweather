@@ -24,12 +24,12 @@ private slots:
     void imageReady(ImageInfo imageInfo, QImage image, QString filename);
     void samplesReady(SampleSet samples);
     void mediaPositionChanged(qint64 time);
+    void plotRequested(DataSet ds);
 
 private:
     Ui::WeatherImageWindow *ui;
     QScopedPointer<AbstractDataSource> dataSource;
     bool isImage;
-    QStringList windDirections;
     double rainTotal;
 
     void displaySample(SampleSet samples, int i);
