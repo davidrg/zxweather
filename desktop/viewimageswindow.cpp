@@ -65,6 +65,8 @@ ViewImagesWindow::ViewImagesWindow(QWidget *parent) :
             this, SLOT(listItemContextMenu(QPoint)));
     connect(ui->tvImageSet, SIGNAL(customContextMenuRequested(QPoint)),
             this, SLOT(treeItemContextMenu(QPoint)));
+    connect(ui->tvImageSet, SIGNAL(doubleClicked(QModelIndex)),
+            this, SLOT(treeItemDoubleClicked(QModelIndex)));
 
     ui->splitter->restoreState(settings.getImagesWindowVSplitterLayout());
     ui->splitter_2->restoreState(settings.getImagesWindowHSplitterLayout());
@@ -80,6 +82,15 @@ void ViewImagesWindow::listItemDoubleClicked(QModelIndex index) {
 
     if (!model->isImage(index)){
         ui->tvImageSet->expand(index);
+        ui->lvImageList->setRootIndex(index);
+    } else {
+        loadImageForIndex(index);
+        ui->lImage->popOut();
+    }
+}
+
+void ViewImagesWindow::treeItemDoubleClicked(QModelIndex index) {
+    if (!model->isImage(index)){
         ui->lvImageList->setRootIndex(index);
     } else {
         loadImageForIndex(index);
