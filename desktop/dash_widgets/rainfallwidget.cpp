@@ -423,8 +423,8 @@ void RainfallWidget::doPlot(bool shortRange, int type, bool runningTotal) {
     DataSet ds;
     ds.columns = SC_Rainfall;
 
-    QTime startTime = QTime(0,0,0,0);
-    QTime endTime = QTime(23,59,59,59);
+    QTime startTime = QTime(0,0,0);
+    QTime endTime = QTime(23,59,59);
 
     if (shortRange) {
         if (type == K_DAY || type == K_RATE) {

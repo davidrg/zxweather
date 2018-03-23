@@ -156,8 +156,8 @@ void WeatherValueWidget::plot() {
     if (QAction* menuAction = qobject_cast<QAction*>(sender())) {
         int range = menuAction->data().toInt();
 
-        QTime start(0,0,0,0);
-        QTime end(23,59,59,59);
+        QTime start(0,0,0);
+        QTime end(23,59,59);
         QDate today = QDate::currentDate();
 
         DataSet ds;
