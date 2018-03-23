@@ -148,6 +148,8 @@ void TimespanWidget::setTimeSpan(QDateTime start, QDateTime end) {
         ui->rbTThisYear->setChecked(true);
     } else {
         ui->rbTCustom->setChecked(true);
+        ui->startTime->setEnabled(true);
+        ui->endTime->setEnabled(true);
     }
 
     ui->startTime->setDateTime(start);
