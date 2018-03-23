@@ -25,6 +25,7 @@ protected:
 
 private slots:
     void listItemDoubleClicked(QModelIndex index);
+    void treeItemDoubleClicked(QModelIndex index);
     void listItemSelectionChanged(QItemSelection selected, QItemSelection deselected);
     void treeItemSelectionChanged(QItemSelection selected, QItemSelection deselected);
     void hSplitterMoved(int, int);
