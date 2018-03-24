@@ -31,7 +31,7 @@ private slots:
     void legendClick(QCPLegend* legend,
                      QCPAbstractLegendItem* item,
                      QMouseEvent* event);
-    void plottableClick(QCPAbstractPlottable* plottable, QMouseEvent* event);
+    void plottableClick(QCPAbstractPlottable* plottable, int dataIndex, QMouseEvent* event);
 
 private:
     bool isAnyYAxisSelected();

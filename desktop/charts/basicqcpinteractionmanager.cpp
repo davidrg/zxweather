@@ -17,8 +17,8 @@ BasicQCPInteractionManager::BasicQCPInteractionManager(QCustomPlot *plot, QObjec
             this, SLOT(axisSelectionChanged()));
     connect(plot, SIGNAL(legendClick(QCPLegend*,QCPAbstractLegendItem*,QMouseEvent*)),
             this, SLOT(legendClick(QCPLegend*,QCPAbstractLegendItem*,QMouseEvent*)));
-    connect(plot, SIGNAL(plottableClick(QCPAbstractPlottable*,QMouseEvent*)),
-            this, SLOT(plottableClick(QCPAbstractPlottable*,QMouseEvent*)));
+    connect(plot, SIGNAL(plottableClick(QCPAbstractPlottable*,int,QMouseEvent*)),
+            this, SLOT(plottableClick(QCPAbstractPlottable*,int,QMouseEvent*)));
 
     plot->setInteractions(QCP::iRangeZoom |
                           QCP::iSelectAxes |
@@ -52,15 +52,24 @@ void BasicQCPInteractionManager::legendClick(QCPLegend *legend,
     // Deselect any other selected plottables.
     QCustomPlot* plot = plottable->parentPlot();
     for (int i = 0; i < plot->plottableCount(); i++) {
-        plot->plottable(i)->setSelected(false);
+        // This will deselect everything.
+        plot->plottable(i)->setSelection(QCPDataSelection(QCPDataRange(0, 0)));
     }
 
     // Then select the plottable associated with this legend item.
-    plottable->setSelected(plotItem->selected());
+    if (plotItem->selected()) {
+        // Any arbitrary selection range will select the whole lot plottable
+        // when the selection mode is Whole
+        plottable->setSelection(QCPDataSelection(QCPDataRange(0,1)));
+    }
 }
 
 void BasicQCPInteractionManager::plottableClick(QCPAbstractPlottable* plottable,
+                                                int dataIndex,
                                                 QMouseEvent* event) {
+    Q_UNUSED(dataIndex);
+    Q_UNUSED(event);
+
     if (plottable->selected()) {
         QCustomPlot* plot = plottable->parentPlot();
 

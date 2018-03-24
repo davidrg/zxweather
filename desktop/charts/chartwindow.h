@@ -37,8 +37,9 @@ private slots:
     void axisDoubleClick(QCPAxis* axis,
                          QCPAxis::SelectablePart part,
                          QMouseEvent* event);
-    void titleDoubleClick(QMouseEvent*event, QCPPlotTitle*title);
+    void textElementDoubleClick(QMouseEvent*event);
     void plottableDoubleClick(QCPAbstractPlottable* plottable,
+                              int dataIndex,
                               QMouseEvent* event);
     void legendDoubleClick(QCPLegend* /*legend*/, QCPAbstractLegendItem* item,
                            QMouseEvent* /*event*/);
@@ -90,7 +91,7 @@ private:
     Ui::ChartWindow *ui;
 
     void addTitle(QString title);
-    QPointer<QCPPlotTitle> plotTitle;
+    QPointer<QCPTextElement> plotTitle;
     QString plotTitleValue;
     bool plotTitleEnabled;
     QColor plotTitleColour;
