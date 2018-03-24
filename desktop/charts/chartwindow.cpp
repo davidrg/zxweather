@@ -88,8 +88,6 @@ ChartWindow::ChartWindow(QList<DataSet> dataSets, bool solarAvailable,
             this, SLOT(dataSetRemoved(dataset_id_t)));
 
     // Chart events
-    connect(ui->chart, SIGNAL(titleDoubleClick(QMouseEvent*,QCPPlotTitle*)),
-            this, SLOT(titleDoubleClick(QMouseEvent*, QCPPlotTitle*)));
     connect(ui->chart,
             SIGNAL(axisDoubleClick(QCPAxis*,
                                    QCPAxis::SelectablePart,
@@ -100,8 +98,8 @@ ChartWindow::ChartWindow(QList<DataSet> dataSets, bool solarAvailable,
                                  QMouseEvent*)));
     connect(ui->chart, SIGNAL(customContextMenuRequested(QPoint)),
             this, SLOT(chartContextMenuRequested(QPoint)));
-    connect(ui->chart, SIGNAL(plottableDoubleClick(QCPAbstractPlottable*,QMouseEvent*)),
-            this, SLOT(plottableDoubleClick(QCPAbstractPlottable*,QMouseEvent*)));
+    connect(ui->chart, SIGNAL(plottableDoubleClick(QCPAbstractPlottable*,int,QMouseEvent*)),
+            this, SLOT(plottableDoubleClick(QCPAbstractPlottable*,int,QMouseEvent*)));
     connect(ui->chart,
             SIGNAL(legendDoubleClick(QCPLegend*,QCPAbstractLegendItem*,
                                      QMouseEvent*)),
@@ -249,22 +247,23 @@ void ChartWindow::axisDoubleClick(QCPAxis *axis, QCPAxis::SelectablePart part,
     }
 }
 
-void ChartWindow::titleDoubleClick(QMouseEvent *event, QCPPlotTitle *title)
+void ChartWindow::textElementDoubleClick(QMouseEvent *event)
 {
     Q_UNUSED(event)
+    if (QCPTextElement *element = qobject_cast<QCPTextElement*>(sender())) {
+        bool ok;
+        QString newTitle = QInputDialog::getText(
+                    this,
+                    tr("Change Text"),
+                    tr("Change text:"),
+                    QLineEdit::Normal,
+                    element->text(),
+                    &ok);
 
-    // Allow the graph title to be changed.
-    bool ok;
-    plotTitleValue = QInputDialog::getText(
-                this,
-                "Chart Title",
-                "New chart title:",
-                QLineEdit::Normal,
-                title->text(),
-                &ok);
-    if (ok) {
-        title->setText(plotTitleValue);
-        ui->chart->replot();
+        if (ok) {
+            element->setText(newTitle);
+            ui->chart->replot();
+        }
     }
 }
 
@@ -636,11 +635,18 @@ void ChartWindow::addTitle()
 }
 
 void ChartWindow::addTitle(QString title) {
+    if (plotTitleEnabled) {
+        removeTitle(false);
+    }
     plotTitleEnabled = true;
     plotTitleValue = title;
-    ui->chart->plotLayout()->insertRow(0);
-    plotTitle = new QCPPlotTitle(ui->chart, title);
+
+    plotTitle = new QCPTextElement(ui->chart, title, QFont("sans", 12, QFont::Bold));
+
+    connect(plotTitle, SIGNAL(doubleClicked(QMouseEvent*)), this, SLOT(textElementDoubleClick(QMouseEvent*)));
+
     plotTitle->setTextColor(plotTitleColour);
+    ui->chart->plotLayout()->insertRow(0);
     ui->chart->plotLayout()->addElement(0, 0, plotTitle);
 }
 
@@ -773,7 +779,7 @@ void ChartWindow::changeSelectedGraphStyle()
 }
 
 
-void ChartWindow::plottableDoubleClick(QCPAbstractPlottable* plottable,
+void ChartWindow::plottableDoubleClick(QCPAbstractPlottable* plottable, int dataIndex,
                                        QMouseEvent* event) {
 
     QCPGraph *graph = qobject_cast<QCPGraph *>(plottable);

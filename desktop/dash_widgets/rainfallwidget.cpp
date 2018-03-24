@@ -27,8 +27,8 @@ RainfallWidget::RainfallWidget(QWidget *parent) : QWidget(parent)
             this, SLOT(mousePressEventSlot(QMouseEvent*)));
     connect(plot, SIGNAL(mouseMove(QMouseEvent*)),
             this, SLOT(mouseMoveEventSlot(QMouseEvent*)));
-    connect(plot, SIGNAL(plottableDoubleClick(QCPAbstractPlottable*,QMouseEvent*)),
-            this, SLOT(plottableDoubleClick(QCPAbstractPlottable*,QMouseEvent*)));
+    connect(plot, SIGNAL(plottableDoubleClick(QCPAbstractPlottable*,int,QMouseEvent*)),
+            this, SLOT(plottableDoubleClick(QCPAbstractPlottable*,int,QMouseEvent*)));
     connect(plot, SIGNAL(customContextMenuRequested(QPoint)),
             this, SLOT(showContextMenu(QPoint)));
 
@@ -52,7 +52,6 @@ RainfallWidget::RainfallWidget(QWidget *parent) : QWidget(parent)
     QGridLayout *l = new QGridLayout();
     l->addWidget(label, 0, 0);
     l->addWidget(line, 1, 0);
-    //l->addWidget(plot, 2, 0);
     l->addWidget(plotFrame, 2, 0);
 
     l->setMargin(0);
@@ -72,26 +71,18 @@ RainfallWidget::RainfallWidget(QWidget *parent) : QWidget(parent)
     plot->plotLayout()->addElement(0,0, smallRect);
 
     // Configure ticks
-    QVector<double> smallTicks;
-    smallTicks << K_DAY << K_STORM << K_RATE;
-    QVector<QString> smallTickTopLabels;
-    smallTickTopLabels << "Day" << "Storm" << "Rate";
-    QVector<QString> smallTickBottomLabels;
-    smallTickBottomLabels << "0" << "0" << "0";
-
-    smallRect->axis(QCPAxis::atBottom)->setAutoTicks(false);
-    smallRect->axis(QCPAxis::atBottom)->setAutoTickLabels(false);
-    smallRect->axis(QCPAxis::atBottom)->setTickVector(smallTicks);
-    smallRect->axis(QCPAxis::atBottom)->setTickVectorLabels(smallTickBottomLabels);
-    smallRect->axis(QCPAxis::atBottom)->setSubTickLength(0,0); // hide subticks
-
+    QSharedPointer<QCPAxisTickerText> shortRangeTopTicker(new QCPAxisTickerText());
+    shortRangeTopTicker->addTick(K_DAY, tr("Day"));
+    shortRangeTopTicker->addTick(K_STORM, tr("Storm"));
+    shortRangeTopTicker->addTick(K_RATE, tr("Rate"));
+    smallRect->axis(QCPAxis::atTop)->setTicker(shortRangeTopTicker);
     smallRect->axis(QCPAxis::atTop)->setTickLabels(true);
-    smallRect->axis(QCPAxis::atTop)->setAutoTicks(false);
-    smallRect->axis(QCPAxis::atTop)->setAutoTickLabels(false);
-    smallRect->axis(QCPAxis::atTop)->setTickVector(smallTicks);
-    smallRect->axis(QCPAxis::atTop)->setTickVectorLabels(smallTickTopLabels);
-    smallRect->axis(QCPAxis::atTop)->setTickLength(0,0); // hide ticks
-    smallRect->axis(QCPAxis::atTop)->setSubTickLength(0,0); // as above
+
+    shortRangeBottomTicker = QSharedPointer<QCPAxisTickerText>(new QCPAxisTickerText());
+    shortRangeBottomTicker->addTick(K_DAY, "0");
+    shortRangeBottomTicker->addTick(K_STORM, "0");
+    shortRangeBottomTicker->addTick(K_RATE, "0");
+    smallRect->axis(QCPAxis::atBottom)->setTicker(shortRangeBottomTicker);
 
     smallRect->axis(QCPAxis::atLeft)->setTickLength(0,4);
     smallRect->axis(QCPAxis::atLeft)->setSubTickLength(0,2);
@@ -107,33 +98,22 @@ RainfallWidget::RainfallWidget(QWidget *parent) : QWidget(parent)
     largeRect->axis(QCPAxis::atLeft)->grid()->setVisible(false);
     plot->plotLayout()->addElement(0,1, largeRect);
 
-    // Configure ticks
-    QVector<double> largeTicks;
-    largeTicks << K_MONTH << K_YEAR;
-    QVector<QString> largeTickTopLabels;
-    largeTickTopLabels << "Month" << "Year";
-    QVector<QString> largeTickBottomLabels;
-    largeTickBottomLabels << "0" << "0";
-
-    largeRect->axis(QCPAxis::atBottom)->setAutoTicks(false);
-    largeRect->axis(QCPAxis::atBottom)->setAutoTickLabels(false);
-    largeRect->axis(QCPAxis::atBottom)->setTickVector(largeTicks);
-    largeRect->axis(QCPAxis::atBottom)->setTickVectorLabels(largeTickBottomLabels);
-    largeRect->axis(QCPAxis::atBottom)->setSubTickLength(0,0); // hide subticks
-
+    // Configure ticks   
+    QSharedPointer<QCPAxisTickerText> longRangeTopTicker(new QCPAxisTickerText());
+    longRangeTopTicker->addTick(K_MONTH, tr("Month"));
+    longRangeTopTicker->addTick(K_YEAR, tr("Year"));
+    largeRect->axis(QCPAxis::atTop)->setTicker(longRangeTopTicker);
     largeRect->axis(QCPAxis::atTop)->setTickLabels(true);
-    largeRect->axis(QCPAxis::atTop)->setAutoTicks(false);
-    largeRect->axis(QCPAxis::atTop)->setAutoTickLabels(false);
-    largeRect->axis(QCPAxis::atTop)->setTickVector(largeTicks);
-    largeRect->axis(QCPAxis::atTop)->setTickVectorLabels(largeTickTopLabels);
-    largeRect->axis(QCPAxis::atTop)->setTickLength(0,0); // hide ticks
-    largeRect->axis(QCPAxis::atTop)->setSubTickLength(0,0); // as above
+
+    longRangeBottomTicker = QSharedPointer<QCPAxisTickerText>(new QCPAxisTickerText());
+    longRangeBottomTicker->addTick(K_MONTH, "0");
+    longRangeBottomTicker->addTick(K_YEAR, "0");
+    largeRect->axis(QCPAxis::atBottom)->setTicker(longRangeBottomTicker);
 
     largeRect->axis(QCPAxis::atLeft)->setTickLength(0,4);
     largeRect->axis(QCPAxis::atLeft)->setSubTickLength(0,2);
     largeRect->axis(QCPAxis::atRight)->setTickLength(0,4);
     largeRect->axis(QCPAxis::atRight)->setSubTickLength(0,2);
-
 
     // Now the bars. First again, the day/storm/rate bars
     shortRange = new QCPBars(smallRect->axis(QCPAxis::atBottom),
@@ -254,14 +234,14 @@ void RainfallWidget::setStormRateEnabled(bool enabled) {
 
     stormRateEnabled = enabled;
 
-    QVector<QString> smallTickTopLabels;
+    /*QVector<QString> smallTickTopLabels;
     smallTickTopLabels << "Day";
 
     if (enabled) {
         smallTickTopLabels  << "Storm" << "Rate";
-    }
+    }*/
 
-    shortRange->valueAxis()->axisRect()->axis(QCPAxis::atTop)->setTickVectorLabels(smallTickTopLabels);
+    //shortRange->valueAxis()->axisRect()->axis(QCPAxis::atTop)->setTickVectorLabels(smallTickTopLabels);
 
     if (enabled) {
         shortRange->keyAxis()->setRange(0.5,3.5);
@@ -340,7 +320,6 @@ int roundToMultiple(int num, int multiple) {
 void RainfallWidget::updatePlot() {
     QVector<double> shortRangeValues, shortRangeTicks,
             longRangeValues, longRangeTicks;
-    QVector<QString> shortRangeTickLabels, longRangeTickLabels;
 
     shortRangeValues << day;
 
@@ -353,22 +332,16 @@ void RainfallWidget::updatePlot() {
         shortRangeTicks << K_STORM << K_RATE;
     }
 
-    shortRangeTickLabels.append(QString::number(day));
-
-    if (stormRateEnabled) {
-        shortRangeTickLabels.append(QString::number(storm));
-        shortRangeTickLabels.append(QString::number(rate));
-    }
-
     longRangeValues << month << year;
     longRangeTicks << K_MONTH << K_YEAR;
-    longRangeTickLabels << QString::number(month, 'f', 1)
-                        << QString::number(year, 'f', 1);
 
-    shortRange->keyAxis()->setTickVectorLabels(shortRangeTickLabels);
+    shortRangeBottomTicker->addTick(K_DAY, QString::number(day, 'f', 1));
+    shortRangeBottomTicker->addTick(K_STORM, QString::number(storm, 'f', 1));
+    shortRangeBottomTicker->addTick(K_RATE, QString::number(rate, 'f', 1));
+    longRangeBottomTicker->addTick(K_MONTH, QString::number(month, 'f', 1));
+    longRangeBottomTicker->addTick(K_YEAR, QString::number(year, 'f', 1));
+
     shortRange->setData(shortRangeTicks, shortRangeValues);
-
-    longRange->keyAxis()->setTickVectorLabels(longRangeTickLabels);
     longRange->setData(longRangeTicks, longRangeValues);
 
     shortRange->rescaleValueAxis();
@@ -383,39 +356,13 @@ void RainfallWidget::updatePlot() {
 }
 
 void RainfallWidget::plottableDoubleClick(QCPAbstractPlottable* plottable,
+                                          int dataIndex,
                                           QMouseEvent* event) {
+    Q_UNUSED(event);
 
     QCPBars *bar = qobject_cast<QCPBars*>(plottable);
     if (bar) {
-        qDebug() << "bar!";
-
-        if (bar == shortRange) {
-            qDebug() << "short range";
-            float key = shortRange->keyAxis()->pixelToCoord(event->localPos().x());
-            qDebug() << key;
-            if (key < K_DAY + 0.5) {
-                qDebug() << "Day";
-                doPlot(true, K_DAY);
-            } else if (key < K_STORM + 0.5 && stormRateEnabled) {
-                qDebug() << "Storm";
-                doPlot(true, K_STORM);
-            } else if (key < K_RATE + 0.5 && stormRateEnabled) {
-                qDebug() << "Rate";
-                doPlot(true, K_RATE);
-            }
-        } else {
-            qDebug() << "long range";
-            float key = longRange->keyAxis()->pixelToCoord(event->localPos().x());
-            qDebug() << key;
-            if (key < K_MONTH + 0.5) {
-                qDebug() << "Month";
-                doPlot(false, K_MONTH);
-            } else if (key < K_YEAR + 0.5) {
-                qDebug() << "Year";
-                doPlot(false, K_YEAR);
-            }
-
-        }
+        doPlot(bar == shortRange, plottable->interface1D()->dataMainKey(dataIndex));
     }
 }
 

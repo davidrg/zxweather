@@ -147,7 +147,9 @@ QPointer<QCPAxis> WeatherPlotter::createKeyAxis(dataset_id_t dataSetId) {
         else
             axis = chart->axisRect()->addAxis(QCPAxis::atTop);
     }
-    axis->setTickLabelType(QCPAxis::ltDateTime);
+    QSharedPointer<QCPAxisTickerDateTime> ticker(new QCPAxisTickerDateTime());
+    ticker->setTickStepStrategy(QCPAxisTicker::tssReadability);
+    axis->setTicker(ticker);
 
     axis->grid()->setVisible(axisGridVisible());
     configuredKeyAxes.insert(type, axis);

@@ -6,6 +6,7 @@
 #include "datasource/abstractlivedatasource.h"
 #include "datasource/sampleset.h"
 #include "datasource/samplecolumns.h"
+#include "charts/qcp/qcustomplot.h"
 
 class QCustomPlot;
 class QLabel;
@@ -37,7 +38,7 @@ protected:
 private slots:
     void mousePressEventSlot(QMouseEvent *event);
     void mouseMoveEventSlot(QMouseEvent *event);
-    void plottableDoubleClick(QCPAbstractPlottable* plottable, QMouseEvent* event);
+    void plottableDoubleClick(QCPAbstractPlottable* plottable, int dataIndex, QMouseEvent* event);
     void showContextMenu(QPoint point);
     void plotRain();
     void save();
@@ -49,6 +50,10 @@ private:
     QLabel *label;
     QFrame *line;
     QCPBars *shortRange, *longRange;
+
+    // Tickers
+    QSharedPointer<QCPAxisTickerText> shortRangeBottomTicker;
+    QSharedPointer<QCPAxisTickerText> longRangeBottomTicker;
 
     // Chart data
     QDate lastUpdate;
