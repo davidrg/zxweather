@@ -18,6 +18,7 @@ class LivePlotWindow;
 
 class QCPGraph;
 class QCPAxis;
+class AxisTag;
 
 class LivePlotWindow : public QMainWindow
 {
@@ -54,6 +55,8 @@ private:
 
     QMap<LiveValue, QCPGraph*> graphs;
     QMap<LiveValue, QCPGraph*> points;
+    QMap<LiveValue, AxisTag*> tags;
+
     QMap<UnitConversions::unit_t, QCPAxis*> axis;
 
     QMap<LiveValue, UnitConversions::unit_t> units;
@@ -67,6 +70,7 @@ private:
     QScopedPointer<LiveDataRepeater> repeater;
     QScopedPointer<AbstractLiveAggregator> aggregator;
 
+    bool axisTags;
 };
 
 #endif // LIVEPLOTWINDOW_H

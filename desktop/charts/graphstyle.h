@@ -20,6 +20,8 @@ public:
     QBrush getBrush() const { return brush; }
     QCPGraph::LineStyle getLineStyle() const { return lineStyle; }
     SampleColumn getColumnType() const {return column; }
+    LiveValue getLiveColumnType() const {return liveColumn; }
+    bool isLive() const { return isLiveColumn; }
     QString getColumnName() const {return columnName; }
     QColor getDefaultColour() const {return defaultColour; }
 
@@ -41,6 +43,7 @@ private:
     QCPGraph::LineStyle lineStyle;
     SampleColumn column;
     LiveValue liveColumn;
+    bool isLiveColumn;
     QString columnName;
     QColor defaultColour;
 };

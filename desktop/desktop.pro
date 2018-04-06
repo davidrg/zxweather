@@ -117,7 +117,8 @@ SOURCES += main.cpp\
     charts/nonaggregatingliveaggregator.cpp \
     charts/averagedliveaggregator.cpp \
     charts/livechartoptionsdialog.cpp \
-    charts/livedatarepeater.cpp
+    charts/livedatarepeater.cpp \
+    charts/axistag.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
@@ -207,7 +208,8 @@ HEADERS  += mainwindow.h \
     charts/nonaggregatingliveaggregator.h \
     charts/averagedliveaggregator.h \
     charts/livechartoptionsdialog.h \
-    charts/livedatarepeater.h
+    charts/livedatarepeater.h \
+    charts/axistag.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \
