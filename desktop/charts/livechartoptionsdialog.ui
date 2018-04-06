@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>381</width>
-    <height>191</height>
+    <width>410</width>
+    <height>214</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -25,6 +25,13 @@
      </property>
      <property name="checked">
       <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="cbAxisTags">
+     <property name="text">
+      <string>Show axis tags (changing this clears the chart  and shifts all axis to the right)</string>
      </property>
     </widget>
    </item>
@@ -104,6 +111,7 @@
  </widget>
  <tabstops>
   <tabstop>cbStormRain</tabstop>
+  <tabstop>cbAxisTags</tabstop>
   <tabstop>sbTimespan</tabstop>
   <tabstop>cbAverageUpdates</tabstop>
   <tabstop>sbPeriod</tabstop>

@@ -45,6 +45,7 @@ private slots:
 
 private:
     void updateGraph(LiveValue type, double key, double range, double value);
+    void addLiveValues(LiveValues columns);
 
     Ui::LivePlotWindow *ui;
     AbstractLiveDataSource *ds;

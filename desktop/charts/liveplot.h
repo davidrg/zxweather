@@ -56,6 +56,7 @@ public slots:
     void toggleLegend();
     void toggleTitle();
     void setAddGraphsEnabled(bool enabled);
+    void removeAllGraphs();
 
 private slots:
     // This is implemented in BasicQCPInteractionManager for the ChartWindow stuff

@@ -160,12 +160,14 @@ public:
     bool liveAggregate() const;
     bool liveMaxRainRate() const;
     bool liveStormRain() const;
+    bool liveTagsEnabled() const;
 
     void setLiveAggregateSeconds(int value);
     void setLiveTimespanMinutes(int value);
     void setLiveAggregate(bool value);
     void setLiveMaxRainRate(bool value);
     void setLiveStormRain(bool value);
+    void setLiveTagsEnabled(bool value);
 
 private:
     Settings();

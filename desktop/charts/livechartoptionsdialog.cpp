@@ -1,7 +1,7 @@
 #include "livechartoptionsdialog.h"
 #include "ui_livechartoptionsdialog.h"
 
-LiveChartOptionsDialog::LiveChartOptionsDialog(bool aggregate, int period, bool maxRainRate, bool stormRain, bool stormRainEnabled, int rangeMinutes, QWidget *parent) :
+LiveChartOptionsDialog::LiveChartOptionsDialog(bool aggregate, int period, bool maxRainRate, bool stormRain, bool stormRainEnabled, int rangeMinutes, bool tags, QWidget *parent) :
     QDialog(parent),
     ui(new Ui::LiveChartOptionsDialog)
 {
@@ -13,6 +13,7 @@ LiveChartOptionsDialog::LiveChartOptionsDialog(bool aggregate, int period, bool 
     ui->cbStormRain->setChecked(stormRain);
     ui->cbStormRain->setEnabled(stormRainEnabled);
     ui->sbTimespan->setValue(rangeMinutes);
+    ui->cbAxisTags->setChecked(tags);
 }
 
 LiveChartOptionsDialog::~LiveChartOptionsDialog()
@@ -38,4 +39,8 @@ bool LiveChartOptionsDialog::stormRain() const {
 
 int LiveChartOptionsDialog::rangeMinutes() const {
     return ui->sbTimespan->value();
+}
+
+bool LiveChartOptionsDialog::tagsEnabled() const {
+    return ui->cbAxisTags->isChecked();
 }
