@@ -59,6 +59,7 @@ namespace SettingsKey {
         const QString MAX_RAIN_RATE = "LiveChart/max_rain_rate";
         const QString STORM_RAIN = "LiveChart/storm_rain";
         const QString TIMESPAN_MINUTES = "LiveChart/timespan_minutes";
+        const QString LIVE_TAGS = "LiveChart/live_tags";
     }
 
     namespace WeatherValueWidgets {
@@ -623,6 +624,10 @@ bool Settings::liveStormRain() const {
     return settings->value(SettingsKey::LiveChart::STORM_RAIN, true).toBool();
 }
 
+bool Settings::liveTagsEnabled() const {
+    return settings->value(SettingsKey::LiveChart::LIVE_TAGS, false).toBool();
+}
+
 void Settings::setLiveAggregateSeconds(int value) {
     settings->setValue(SettingsKey::LiveChart::AGGREGATE_SECONDS, value);
 }
@@ -641,4 +646,8 @@ void Settings::setLiveMaxRainRate(bool value) {
 
 void Settings::setLiveStormRain(bool value) {
     settings->setValue(SettingsKey::LiveChart::STORM_RAIN, value);
+}
+
+void Settings::setLiveTagsEnabled(bool value) {
+    settings->setValue(SettingsKey::LiveChart::LIVE_TAGS, value);
 }

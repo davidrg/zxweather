@@ -28,8 +28,6 @@ LivePlotWindow::LivePlotWindow(bool solarAvailalble, hardware_type_t hardwareTyp
     this->hwType = hardwareType;
     this->solarAvailable = solarAvailalble;
 
-    axisTags = false;
-
     // All the possible axis types
     units[LV_Temperature] = UnitConversions::U_CELSIUS;
     units[LV_IndoorTemperature] = UnitConversions::U_CELSIUS;
@@ -84,6 +82,7 @@ LivePlotWindow::LivePlotWindow(bool solarAvailalble, hardware_type_t hardwareTyp
     maxRainRate = settings.liveMaxRainRate();
     stormRain = settings.liveStormRain();
     timespanMinutes = settings.liveTimespanMinutes();
+    axisTags = settings.liveTagsEnabled();
 
     if (aggregate) {
         aggregator.reset(new AveragedLiveAggregator(aggregateSeconds, maxRainRate, stormRain, this));
@@ -343,6 +342,32 @@ void LivePlotWindow::updateGraph(LiveValue type, double key, double range, doubl
 
 #define TEST_ADD_COL(col) if(columns.testFlag(col)) addLiveValue(col)
 
+void LivePlotWindow::addLiveValues(LiveValues columns) {
+    TEST_ADD_COL(LV_Temperature);
+    TEST_ADD_COL(LV_ApparentTemperature);
+    TEST_ADD_COL(LV_IndoorTemperature);
+    TEST_ADD_COL(LV_WindChill);
+    TEST_ADD_COL(LV_DewPoint);
+    TEST_ADD_COL(LV_Humidity);
+    TEST_ADD_COL(LV_IndoorHumidity);
+    TEST_ADD_COL(LV_Pressure);
+    TEST_ADD_COL(LV_BatteryVoltage);
+    TEST_ADD_COL(LV_WindSpeed);
+    TEST_ADD_COL(LV_WindDirection);
+    TEST_ADD_COL(LV_RainRate);
+    TEST_ADD_COL(LV_StormRain);
+    TEST_ADD_COL(LV_UVIndex);
+    TEST_ADD_COL(LV_SolarRadiation);
+
+    ui->plot->replot();
+
+    // If all possible values are now in the plot, disable the option to
+    // add more (all the options will be greyed out if the user brings up
+    // that dialog)
+    ui->actionAdd_Graph->setEnabled(valuesToShow != ALL_LIVE_COLUMNS);
+    ui->plot->setAddGraphsEnabled(valuesToShow != ALL_LIVE_COLUMNS);
+}
+
 void LivePlotWindow::showAddGraphDialog(QString message, QString title) {
     AddLiveGraphDialog algd(~valuesToShow,
                             solarAvailable,
@@ -352,31 +377,7 @@ void LivePlotWindow::showAddGraphDialog(QString message, QString title) {
     algd.setWindowTitle(title);
 
     if (algd.exec() == QDialog::Accepted) {
-        LiveValues columns = algd.selectedColumns();
-
-        TEST_ADD_COL(LV_Temperature);
-        TEST_ADD_COL(LV_ApparentTemperature);
-        TEST_ADD_COL(LV_IndoorTemperature);
-        TEST_ADD_COL(LV_WindChill);
-        TEST_ADD_COL(LV_DewPoint);
-        TEST_ADD_COL(LV_Humidity);
-        TEST_ADD_COL(LV_IndoorHumidity);
-        TEST_ADD_COL(LV_Pressure);
-        TEST_ADD_COL(LV_BatteryVoltage);
-        TEST_ADD_COL(LV_WindSpeed);
-        TEST_ADD_COL(LV_WindDirection);
-        TEST_ADD_COL(LV_RainRate);
-        TEST_ADD_COL(LV_StormRain);
-        TEST_ADD_COL(LV_UVIndex);
-        TEST_ADD_COL(LV_SolarRadiation);
-
-        ui->plot->replot();
-
-        // If all possible values are now in the plot, disable the option to
-        // add more (all the options will be greyed out if the user brings up
-        // that dialog)
-        ui->actionAdd_Graph->setEnabled(valuesToShow != ALL_LIVE_COLUMNS);
-        ui->plot->setAddGraphsEnabled(valuesToShow != ALL_LIVE_COLUMNS);
+        addLiveValues(algd.selectedColumns());
     }
 }
 
@@ -393,6 +394,11 @@ void LivePlotWindow::graphRemoving(QCPGraph *graph) {
     graphs.remove(graphType);
     ui->plot->removeGraph(points[graphType]);
     points.remove(graphType);
+
+    if (tags.contains(graphType)) {
+        delete tags[graphType];
+        tags.remove(graphType);
+    }
 
     UnitConversions::unit_t axisType = units[graphType];
     if (axis[axisType]->graphs().count() == 1) {
@@ -415,7 +421,7 @@ void LivePlotWindow::selectionChanged() {
 
 void LivePlotWindow::showOptions() {
     LiveChartOptionsDialog lcod(aggregate, aggregateSeconds, maxRainRate, stormRain,
-                                hwType == HW_DAVIS, timespanMinutes, this);
+                                hwType == HW_DAVIS, timespanMinutes, axisTags, this);
 
     if (lcod.exec() == QDialog::Accepted) {
         if (aggregate != lcod.aggregate() || maxRainRate != lcod.maxRainRate() ||
@@ -443,10 +449,18 @@ void LivePlotWindow::showOptions() {
         timespanMinutes = lcod.rangeMinutes();
     }
 
+    if (lcod.tagsEnabled() != axisTags) {
+        axisTags = lcod.tagsEnabled();
+        LiveValues currentValues = valuesToShow;
+        ui->plot->removeAllGraphs();
+        addLiveValues(currentValues);
+    }
+
     Settings &settings = Settings::getInstance();
     settings.setLiveAggregate(aggregate);
     settings.setLiveMaxRainRate(maxRainRate);
     settings.setLiveStormRain(stormRain);
     settings.setLiveAggregateSeconds(aggregateSeconds);
     settings.setLiveTimespanMinutes(timespanMinutes);
+    settings.setLiveTagsEnabled(axisTags);
 }

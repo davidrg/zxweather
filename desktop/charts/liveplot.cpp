@@ -416,6 +416,14 @@ void LivePlot::removeSelectedGraph()
     }
 }
 
+void LivePlot::removeAllGraphs() {
+    QList<QCPGraph*> graphs = axisRect()->graphs();
+    foreach (QCPGraph* graph, graphs) {
+        graph->setSelection(QCPDataSelection(QCPDataRange(0,1)));
+        removeSelectedGraph();
+    }
+}
+
 void LivePlot::showChartContextMenu(QPoint point) {
     QMenu* menu = new QMenu(this);
     menu->setAttribute(Qt::WA_DeleteOnClose);
