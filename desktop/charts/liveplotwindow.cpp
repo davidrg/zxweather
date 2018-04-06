@@ -15,7 +15,7 @@
 #include "nonaggregatingliveaggregator.h"
 #include "averagedliveaggregator.h"
 #include "livechartoptionsdialog.h"
-
+#include "axistag.h"
 
 #define PROP_GRAPH_TYPE "graph_type"
 
@@ -28,10 +28,7 @@ LivePlotWindow::LivePlotWindow(bool solarAvailalble, hardware_type_t hardwareTyp
     this->hwType = hardwareType;
     this->solarAvailable = solarAvailalble;
 
-    showAddGraphDialog(
-                tr("Select the values to display in the live chart. More can be added "
-                   "later."),
-                tr("Choose graphs"));
+    axisTags = false;
 
     // All the possible axis types
     units[LV_Temperature] = UnitConversions::U_CELSIUS;
@@ -136,6 +133,12 @@ LivePlotWindow::LivePlotWindow(bool solarAvailalble, hardware_type_t hardwareTyp
             ui->actionTitle, SLOT(setChecked(bool)));
     connect(ui->plot, SIGNAL(legendVisibilityChanged(bool)),
             ui->actionLegend, SLOT(setChecked(bool)));
+
+
+    showAddGraphDialog(
+                tr("Select the values to display in the live chart. More can be added "
+                   "later."),
+                tr("Choose graphs"));
 }
 
 LivePlotWindow::~LivePlotWindow()
@@ -153,9 +156,9 @@ void LivePlotWindow::addLiveValue(LiveValue v) {
     UnitConversions::unit_t axisType = units[v];
 
     if (!axis.contains(axisType)) {
-        bool isLeft = axis.count() % 2 == 0;
+        bool isLeft = (axis.count() % 2 == 0) && !axisTags;
 
-        if(!ui->plot->yAxis->visible()) {
+        if(!ui->plot->yAxis->visible() && !axisTags) {
             qDebug() << "Using Y1";
             axis[axisType] = ui->plot->yAxis;
             ui->plot->yAxis->setVisible(true);
@@ -170,6 +173,11 @@ void LivePlotWindow::addLiveValue(LiveValue v) {
         axis[axisType]->setVisible(true);
         axis[axisType]->setTickLabels(true);
         axis[axisType]->setLabel(axisLabels[axisType]);
+
+        if (axisTags) {
+            axis[axisType]->setPadding(10);
+            axis[axisType]->setLabelPadding(30);
+        }
     }
 
     if (!graphs.contains(v)) {
@@ -184,6 +192,11 @@ void LivePlotWindow::addLiveValue(LiveValue v) {
         points[v]->setLineStyle(QCPGraph::lsNone);
         points[v]->setScatterStyle(QCPScatterStyle::ssDisc);
         points[v]->removeFromLegend();
+
+        if (axisTags) {
+            tags[v] = new AxisTag(axis[axisType], this);
+            tags[v]->setStyle(GraphStyle(v));
+        }
 
         switch(v) {
         case LV_Temperature:
@@ -297,6 +310,10 @@ void LivePlotWindow::updateGraph(LiveValue type, double key, double range, doubl
         graphs[type]->addData(key, value);
         points[type]->data()->clear();
         points[type]->addData(key, value);
+
+        if (tags.contains(type)) {
+            tags[type]->setValue(value);
+        }
 
         QCPRange oldRange = graphs[type]->valueAxis()->range();
         graphs[type]->rescaleValueAxis();

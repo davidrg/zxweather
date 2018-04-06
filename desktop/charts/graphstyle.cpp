@@ -5,6 +5,7 @@
 
 GraphStyle::GraphStyle(SampleColumn column) {
     this->column = column;
+    isLiveColumn = false;
 
     ChartColours colours = Settings::getInstance().getChartColours();
 
@@ -124,6 +125,7 @@ GraphStyle::GraphStyle(SampleColumn column) {
 
 GraphStyle::GraphStyle(LiveValue column) {
     this->liveColumn = column;
+    isLiveColumn = true;
 
     ChartColours colours = Settings::getInstance().getChartColours();
 
