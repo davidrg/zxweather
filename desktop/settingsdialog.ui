@@ -1098,42 +1098,42 @@
  </customwidgets>
  <tabstops>
   <tabstop>tabWidget</tabstop>
-  <tabstop>qcpTemperature</tabstop>
-  <tabstop>qcpIndoorTemperature</tabstop>
-  <tabstop>qcpApparentTemperature</tabstop>
-  <tabstop>qcpWindChill</tabstop>
-  <tabstop>qcpDewPoint</tabstop>
-  <tabstop>qcpPressure</tabstop>
-  <tabstop>qcpHumidity</tabstop>
-  <tabstop>qcpIndoorHumidity</tabstop>
-  <tabstop>qcpRainfall</tabstop>
-  <tabstop>qcpWindDirection</tabstop>
-  <tabstop>qcpAverageWindSpeed</tabstop>
-  <tabstop>qcpGustWindSpeed</tabstop>
-  <tabstop>qcpReception</tabstop>
-  <tabstop>qcpEvapotranspiration</tabstop>
-  <tabstop>qcpSolarRadiation</tabstop>
-  <tabstop>qcpUVIndex</tabstop>
-  <tabstop>qcpTitle</tabstop>
-  <tabstop>qcpBackground</tabstop>
   <tabstop>stationNameLineEdit</tabstop>
-  <tabstop>chkCloseToSystemTray</tabstop>
-  <tabstop>sbLiveDataWarningInterval</tabstop>
-  <tabstop>rbLiveWeb</tabstop>
-  <tabstop>rbSampleDatabase</tabstop>
-  <tabstop>databaseLineEdit</tabstop>
-  <tabstop>passwordLineEdit</tabstop>
   <tabstop>chkMinimiseToSystemTray</tabstop>
+  <tabstop>chkCloseToSystemTray</tabstop>
   <tabstop>gbLiveDataWarning</tabstop>
+  <tabstop>sbLiveDataWarningInterval</tabstop>
   <tabstop>rbLiveDatabase</tabstop>
+  <tabstop>rbLiveWeb</tabstop>
   <tabstop>rbLiveServer</tabstop>
+  <tabstop>rbSampleDatabase</tabstop>
   <tabstop>rbSampleWeb</tabstop>
+  <tabstop>databaseLineEdit</tabstop>
   <tabstop>hostnameLineEdit</tabstop>
+  <tabstop>portSpinBox</tabstop>
+  <tabstop>usernameLineEdit</tabstop>
+  <tabstop>passwordLineEdit</tabstop>
   <tabstop>UrlLineEdit</tabstop>
   <tabstop>serverHostnameLineEdit</tabstop>
   <tabstop>serverPortSpinBox</tabstop>
-  <tabstop>portSpinBox</tabstop>
-  <tabstop>usernameLineEdit</tabstop>
+  <tabstop>qcpTemperature</tabstop>
+  <tabstop>qcpApparentTemperature</tabstop>
+  <tabstop>qcpDewPoint</tabstop>
+  <tabstop>qcpHumidity</tabstop>
+  <tabstop>qcpRainfall</tabstop>
+  <tabstop>qcpAverageWindSpeed</tabstop>
+  <tabstop>qcpReception</tabstop>
+  <tabstop>qcpSolarRadiation</tabstop>
+  <tabstop>qcpIndoorTemperature</tabstop>
+  <tabstop>qcpWindChill</tabstop>
+  <tabstop>qcpPressure</tabstop>
+  <tabstop>qcpIndoorHumidity</tabstop>
+  <tabstop>qcpWindDirection</tabstop>
+  <tabstop>qcpGustWindSpeed</tabstop>
+  <tabstop>qcpEvapotranspiration</tabstop>
+  <tabstop>qcpUVIndex</tabstop>
+  <tabstop>qcpTitle</tabstop>
+  <tabstop>qcpBackground</tabstop>
  </tabstops>
  <resources>
   <include location="resources.qrc"/>
