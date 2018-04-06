@@ -78,6 +78,8 @@ public slots:
      */
     void showChartWindow();
 
+    void showLiveChartWindow();
+
     /** Shows the data export dialog.
      */
     void showExportDialog();

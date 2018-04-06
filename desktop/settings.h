@@ -41,17 +41,19 @@ typedef struct _chart_colours {
 
     QColor pressure;
 
-    QColor rainfall;
+    QColor rainfall; // also storm rain (for live)
+    QColor rainRate; // live only
 
     QColor averageWindSpeed;
-    QColor gustWindSpeed;
+    QColor gustWindSpeed;       // shares default with rainrate
     QColor windDirection;
 
     QColor uvIndex;
     QColor solarRadiation;
 
-    QColor evapotranspiration;
+    QColor evapotranspiration;  // shares default with console battery voltage
     QColor reception;
+    QColor consoleBatteryVoltage; // live only
 
     QColor title;
     QColor background;
@@ -151,6 +153,20 @@ public:
 
     QVariant weatherValueWidgetSetting(QString name, QString setting, QVariant defaultValue);
     void setWeatherValueWidgetSetting(QString name, QString setting, QVariant value);
+
+    // These are the last-used settings for the live chart window.
+    int liveAggregateSeconds() const;
+    int liveTimespanMinutes() const;
+    bool liveAggregate() const;
+    bool liveMaxRainRate() const;
+    bool liveStormRain() const;
+
+    void setLiveAggregateSeconds(int value);
+    void setLiveTimespanMinutes(int value);
+    void setLiveAggregate(bool value);
+    void setLiveMaxRainRate(bool value);
+    void setLiveStormRain(bool value);
+
 private:
     Settings();
     ~Settings();

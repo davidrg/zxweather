@@ -109,7 +109,15 @@ SOURCES += main.cpp\
     datasource/dialogprogresslistener.cpp \
     datasource/nullprogresslistener.cpp \
     dash_widgets/weathervaluewidget.cpp \
-    unit_conversions.cpp
+    unit_conversions.cpp \
+    charts/liveplot.cpp \
+    charts/liveplotwindow.cpp \
+    charts/addlivegraphdialog.cpp \
+    charts/abstractliveaggregator.cpp \
+    charts/nonaggregatingliveaggregator.cpp \
+    charts/averagedliveaggregator.cpp \
+    charts/livechartoptionsdialog.cpp \
+    charts/livedatarepeater.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
@@ -191,7 +199,15 @@ HEADERS  += mainwindow.h \
     datasource/dialogprogresslistener.h \
     datasource/nullprogresslistener.h \
     dash_widgets/weathervaluewidget.h \
-    unit_conversions.h
+    unit_conversions.h \
+    charts/liveplot.h \
+    charts/liveplotwindow.h \
+    charts/addlivegraphdialog.h \
+    charts/abstractliveaggregator.h \
+    charts/nonaggregatingliveaggregator.h \
+    charts/averagedliveaggregator.h \
+    charts/livechartoptionsdialog.h \
+    charts/livedatarepeater.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \
@@ -212,7 +228,10 @@ FORMS    += mainwindow.ui \
     viewdatasetwindow.ui \
     viewimageswindow.ui \
     weatherimagewindow.ui \
-    imagepropertiesdialog.ui
+    imagepropertiesdialog.ui \
+    charts/liveplotwindow.ui \
+    charts/addlivegraphdialog.ui \
+    charts/livechartoptionsdialog.ui
 
 # On Qt 4 we've got to use Phonon for video playback.
 lessThan(QT_MAJOR_VERSION, 5) {

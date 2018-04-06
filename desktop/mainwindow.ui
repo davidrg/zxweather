@@ -159,6 +159,7 @@
     <bool>false</bool>
    </attribute>
    <addaction name="actionCharts"/>
+   <addaction name="actionLive_Chart"/>
    <addaction name="actionExport_Data"/>
    <addaction name="actionView_Data"/>
    <addaction name="actionImages"/>
@@ -242,6 +243,18 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+I</string>
+   </property>
+  </action>
+  <action name="actionLive_Chart">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/icons/chart</normaloff>:/icons/chart</iconset>
+   </property>
+   <property name="text">
+    <string>Live Chart...</string>
+   </property>
+   <property name="iconText">
+    <string>Live Chart...</string>
    </property>
   </action>
  </widget>
