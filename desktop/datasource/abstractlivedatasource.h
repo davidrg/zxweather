@@ -58,6 +58,46 @@ typedef struct _newImageInfo {
     int imageId;
 } NewImageInfo;
 
+enum LiveValue {
+    LV_NoColumns                = 0x00000000,
+    LV_Temperature              = 0x00000001,
+    LV_IndoorTemperature        = 0x00000002,
+    LV_ApparentTemperature      = 0x00000004,
+    LV_WindChill                = 0x00000008,
+    LV_DewPoint                 = 0x00000010,
+    LV_Humidity                 = 0x00000020,
+    LV_IndoorHumidity           = 0x00000040,
+    LV_Pressure                 = 0x00000080,
+    LV_WindSpeed                = 0x00000100,
+    LV_WindDirection            = 0x00000200,
+    LV_StormRain                = 0x00000400,
+    LV_RainRate                 = 0x00000800,
+    LV_BatteryVoltage           = 0x00001000,
+    LV_UVIndex                  = 0x00002000,
+    LV_SolarRadiation           = 0x00004000
+
+};
+Q_DECLARE_FLAGS(LiveValues, LiveValue)
+
+#define ALL_LIVE_COLUMNS (LV_Temperature | LV_IndoorTemperature | \
+    LV_ApparentTemperature | LV_WindChill | LV_DewPoint | LV_Humidity | \
+    LV_IndoorHumidity | LV_Pressure | LV_WindSpeed | LV_WindDirection | \
+    LV_StormRain | LV_RainRate | LV_BatteryVoltage | LV_UVIndex | \
+    LV_SolarRadiation)
+
+#define LIVE_TEMPERATURE_COLUMNS (LV_Temperature | LV_IndoorTemperature | \
+    LV_ApparentTemperature | LV_WindChill | LV_DewPoint)
+
+#define LIVE_HUMIDITY_COLUMNS (LV_Humidity | LV_IndoorHumidity)
+
+#define LIVE_WIND_COLUMNS (LV_WindDirection | LV_WindSpeed)
+
+#define LIVE_SOLAR_COLUMNS (LV_SolarRadiation | LV_UVIndex)
+
+#define LIVE_RAIN_COLUMNS (LV_StormRain | LV_RainRate)
+
+#define LIVE_OTHER_COLUNS (LV_BatteryVoltage | LV_Pressure)
+
 /** This is an interface for all data sources that can provide live data.
  * Data sources that can also provide samples should inherit from
  * AbstractDataSource instead.

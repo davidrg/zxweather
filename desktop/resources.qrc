@@ -19,6 +19,11 @@
         <file alias="image-32">resources/image-32.png</file>
         <file alias="film-32">resources/film-32.png</file>
         <file alias="film">resources/film.png</file>
+        <file alias="copy">resources/document-copy.png</file>
+        <file alias="chart-remove">resources/chart--minus.png</file>
+        <file alias="title">resources/edit.png</file>
+        <file alias="legend">resources/category.png</file>
+        <file alias="options">resources/ui-check-boxes.png</file>
     </qresource>
     <qresource prefix="/icons/weather">
         <file alias="mostly_cloudy">resources/weather-cloud.png</file>
@@ -56,4 +61,5 @@
         <file alias="ssTriangle">resources/scatter_style/ssTriangle.png</file>
         <file alias="ssTriangleInverted">resources/scatter_style/ssTriangleInverted.png</file>
     </qresource>
+    <qresource prefix="/"/>
 </RCC>

@@ -122,6 +122,92 @@ GraphStyle::GraphStyle(SampleColumn column) {
     qDebug() << "Created graph style for" << name;
 }
 
+GraphStyle::GraphStyle(LiveValue column) {
+    this->liveColumn = column;
+
+    ChartColours colours = Settings::getInstance().getChartColours();
+
+    QColor colour;
+
+    scatterStyle = QCPScatterStyle::ssNone;
+    brush = QBrush();
+    lineStyle = QCPGraph::lsLine;
+
+    switch (column) {
+    case LV_Temperature:
+        colour = colours.temperature;
+        name = "Temperature";
+        break;
+    case LV_IndoorTemperature:
+        colour = colours.indoorTemperature;
+        name = "Indoor Temperature";
+        break;
+    case LV_ApparentTemperature:
+        colour = colours.apparentTemperature;
+        name = "Apparent Temperature";
+        break;
+    case LV_WindChill:
+        colour = colours.windChill;
+        name = "Wind Chill";
+        break;
+    case LV_DewPoint:
+        colour = colours.dewPoint;
+        name = "Dew Point";
+        break;
+    case LV_Humidity:
+        colour = colours.humidity;
+        name = "Humidity";
+        break;
+    case LV_IndoorHumidity:
+        colour = colours.indoorHumidity;
+        name = "Indoor Humidity";
+        break;
+    case LV_Pressure:
+        colour = colours.pressure;
+        name = "Pressure";
+        break;
+    case LV_StormRain:
+        colour = colours.rainfall;
+        name = "Storm Rain";
+        lineStyle = QCPGraph::lsStepLeft;
+        break;
+    case LV_RainRate:
+        colour = colours.rainRate;
+        name = "Rain Rate";
+        lineStyle = QCPGraph::lsStepLeft;
+    case LV_WindSpeed:
+        colour = colours.averageWindSpeed;
+        name = "Average Wind Speed";
+        break;
+    case LV_WindDirection:
+        colour = colours.windDirection;
+        name = "Wind Direction";
+        break;
+    case LV_UVIndex:
+        colour = colours.uvIndex;
+        name = "UV Index";
+        break;
+    case LV_SolarRadiation:
+        colour = colours.solarRadiation;
+        name = "Solar Radiation";
+        break;
+    case LV_BatteryVoltage:
+        colour = colours.consoleBatteryVoltage;
+        name = "Console Battery Voltage";
+    default:
+        // This should never happen.
+        colour = Qt::black;
+        name = "Invalid Graph";
+    }
+
+    pen = QPen(colour);
+
+    columnName = name;
+    defaultColour = colour;
+
+    qDebug() << "Created graph style for" << name;
+}
+
 void GraphStyle::applyStyle(QCPGraph *graph) {
     qDebug() << "Applying style for" << getName();
     graph->setName(getName());

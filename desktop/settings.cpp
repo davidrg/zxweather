@@ -53,6 +53,14 @@ namespace SettingsKey {
         }
     }
 
+    namespace LiveChart {
+        const QString AGGERGATE  = "LiveChart/aggregate";
+        const QString AGGREGATE_SECONDS = "LiveChart/aggregate_seconds";
+        const QString MAX_RAIN_RATE = "LiveChart/max_rain_rate";
+        const QString STORM_RAIN = "LiveChart/storm_rain";
+        const QString TIMESPAN_MINUTES = "LiveChart/timespan_minutes";
+    }
+
     namespace WeatherValueWidgets {
         const QString ROOT = "WeatherValueWidget";
     }
@@ -95,6 +103,7 @@ namespace SettingsKey {
             const QString INDOOR_HUMIDITY = "Colours/Charts/indoor_humidity";
             const QString PRESSURE = "Colours/Charts/pressure";
             const QString RAINFALL = "Colours/Charts/rainfall";
+            const QString RAINRATE = "Colours/charts/rainrate";
             const QString AVG_WIND_SPEED = "Colours/Charts/average_wind_speed";
             const QString GUST_WIND_SPEED = "Colours/Charts/gust_wind_speed";
             const QString WIND_DIRECTION = "Colours/Charts/wind_direction";
@@ -102,6 +111,7 @@ namespace SettingsKey {
             const QString SOLAR_RADIATION = "Colours/Charts/solar_radiation";
             const QString EVAPOTRANSPIRATION = "Colours/Charts/evapotranspiration";
             const QString RECEPTION = "Colours/Charts/reception";
+            const QString CONSOLE_BATTERY_VOLTAGE = "Colours/Charts/console_battery_voltage";
             const QString TITLE = "Colours/Charts/title";
             const QString BACKGROUND = "Colours/Charts/background";
         }
@@ -238,9 +248,6 @@ Settings::data_source_type_t Settings::sampleDataSourceType() {
     }
 }
 
-
-
-
 void Settings::setWebInterfaceUrl(QString url) {
     settings->setValue(SettingsKey::DataSource::URL, url);
 }
@@ -343,7 +350,6 @@ int Settings::serverPort() {
     return settings->value(SettingsKey::DataSource::Server::PORT, 0).toInt();
 }
 
-
 void Settings::setStationCode(QString name) {
     settings->setValue(SettingsKey::DataSource::STATION_NAME, name);
 }
@@ -367,6 +373,8 @@ void Settings::setChartColours(ChartColours colours) {
                        colours.windChill);
     settings->setValue(SettingsKey::Colours::Charts::RAINFALL,
                        colours.rainfall);
+    settings->setValue(SettingsKey::Colours::Charts::RAINRATE,
+                       colours.rainRate);
     settings->setValue(SettingsKey::Colours::Charts::AVG_WIND_SPEED,
                        colours.averageWindSpeed);
     settings->setValue(SettingsKey::Colours::Charts::GUST_WIND_SPEED,
@@ -385,6 +393,8 @@ void Settings::setChartColours(ChartColours colours) {
                        colours.evapotranspiration);
     settings->setValue(SettingsKey::Colours::Charts::RECEPTION,
                        colours.reception);
+    settings->setValue(SettingsKey::Colours::Charts::CONSOLE_BATTERY_VOLTAGE,
+                       colours.consoleBatteryVoltage);
 }
 
 ChartColours Settings::getChartColours() {
@@ -416,6 +426,9 @@ ChartColours Settings::getChartColours() {
     colours.rainfall = settings->value(
                 SettingsKey::Colours::Charts::RAINFALL,
                 QColor(Qt::blue)).value<QColor>();
+    colours.rainRate = settings->value(
+                SettingsKey::Colours::Charts::RAINRATE,
+                QColor(Qt::red)).value<QColor>();
     colours.averageWindSpeed = settings->value(
                 SettingsKey::Colours::Charts::AVG_WIND_SPEED,
                 QColor(Qt::cyan)).value<QColor>();
@@ -437,10 +450,16 @@ ChartColours Settings::getChartColours() {
     colours.reception = settings->value(
                 SettingsKey::Colours::Charts::RECEPTION,
                 QColor(Qt::lightGray)).value<QColor>();
+    colours.consoleBatteryVoltage = settings->value(
+                SettingsKey::Colours::Charts::CONSOLE_BATTERY_VOLTAGE,
+                QColor(Qt::gray)).value<QColor>();
 
     /* Available default colours:
      *   Qt::white
      * white and light gray may not be real options.
+     *
+     * rain rate and gust wind speed share default colours
+     * evapotranspiration and console battery voltage share default colours
      */
 
     colours.title = settings->value(
@@ -581,4 +600,45 @@ bool Settings::imperial() const {
 
 void Settings::setImperial(bool enabled) {
     settings->setValue(SettingsKey::General::IMPERIAL, enabled);
+}
+
+
+int Settings::liveAggregateSeconds() const {
+    return settings->value(SettingsKey::LiveChart::AGGREGATE_SECONDS, 60).toInt();
+}
+
+int Settings::liveTimespanMinutes() const {
+    return settings->value(SettingsKey::LiveChart::TIMESPAN_MINUTES, 2).toInt();
+}
+
+bool Settings::liveAggregate() const {
+    return settings->value(SettingsKey::LiveChart::AGGERGATE, false).toBool();
+}
+
+bool Settings::liveMaxRainRate() const {
+    return settings->value(SettingsKey::LiveChart::MAX_RAIN_RATE, true).toBool();
+}
+
+bool Settings::liveStormRain() const {
+    return settings->value(SettingsKey::LiveChart::STORM_RAIN, true).toBool();
+}
+
+void Settings::setLiveAggregateSeconds(int value) {
+    settings->setValue(SettingsKey::LiveChart::AGGREGATE_SECONDS, value);
+}
+
+void Settings::setLiveTimespanMinutes(int value){
+    settings->setValue(SettingsKey::LiveChart::TIMESPAN_MINUTES, value);
+}
+
+void Settings::setLiveAggregate(bool value) {
+    settings->setValue(SettingsKey::LiveChart::AGGERGATE, value);
+}
+
+void Settings::setLiveMaxRainRate(bool value) {
+    settings->setValue(SettingsKey::LiveChart::MAX_RAIN_RATE, value);
+}
+
+void Settings::setLiveStormRain(bool value) {
+    settings->setValue(SettingsKey::LiveChart::STORM_RAIN, value);
 }

@@ -6,11 +6,13 @@
 #include <QBrush>
 #include "charts/qcp/qcustomplot.h"
 #include "datasource/samplecolumns.h"
+#include "datasource/abstractlivedatasource.h"
 
 class GraphStyle {
 public:
     GraphStyle() {}
     GraphStyle(SampleColumn column);
+    GraphStyle(LiveValue column);
 
     QString getName() const { return name; }
     QPen getPen() const { return pen; }
@@ -38,6 +40,7 @@ private:
     QBrush brush;
     QCPGraph::LineStyle lineStyle;
     SampleColumn column;
+    LiveValue liveColumn;
     QString columnName;
     QColor defaultColour;
 };

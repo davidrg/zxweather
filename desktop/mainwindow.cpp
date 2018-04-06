@@ -29,6 +29,7 @@
 #include "settings.h"
 #include "charts/chartwindow.h"
 #include "charts/chartoptionsdialog.h"
+#include "charts/liveplotwindow.h"
 #include "exportdialog.h"
 #include "viewdataoptionsdialog.h"
 #include "viewdatasetwindow.h"
@@ -83,6 +84,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     // Toolbar
     connect(ui->actionCharts, SIGNAL(triggered()), this, SLOT(showChartWindow()));
+    connect(ui->actionLive_Chart, SIGNAL(triggered()), this, SLOT(showLiveChartWindow()));
     connect(ui->actionExport_Data, SIGNAL(triggered()), this, SLOT(showExportDialog()));
     connect(ui->actionImages, SIGNAL(triggered(bool)), this, SLOT(showImagesWindow()));
     connect(ui->actionView_Data, SIGNAL(triggered(bool)), this, SLOT(viewData()));
@@ -433,6 +435,14 @@ void MainWindow::showChartWindow() {
     ChartWindow *cw = new ChartWindow(dataSets, solarDataAvailable);
     cw->setAttribute(Qt::WA_DeleteOnClose);
     cw->show();
+}
+
+void MainWindow::showLiveChartWindow() {
+    LivePlotWindow *lpt = new LivePlotWindow(solarDataAvailable,
+                                             last_hw_type,
+                                             this);
+    lpt->setAttribute(Qt::WA_DeleteOnClose);
+    lpt->show();
 }
 
 void MainWindow::chartRequested(DataSet dataSet) {
