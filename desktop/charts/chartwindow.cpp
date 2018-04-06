@@ -337,7 +337,7 @@ void ChartWindow::showChartContextMenu(QPoint point) {
     menu->addAction("&Copy", this, SLOT(copy()));
 #ifndef MULTI_DATA_SET
     /******** Graph add ********/
-    action = menu->addAction(QIcon(":/icons/chart-add"), "Add Graph",
+    action = menu->addAction(QIcon(":/icons/chart-add"), "Add Graph...",
                                       this, SLOT(addGraph()));
 
     if (plotter->availableColumns(0) == 0) {
