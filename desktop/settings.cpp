@@ -39,6 +39,9 @@ namespace SettingsKey {
 
         const QString IMPERIAL = "General/imperial";
 
+        const QString MAIN_WINDOW_STATE ="General/mw_state";
+        const QString MAIN_WINDOW_GEOMETRY = "General/mw_geom";
+
         namespace LiveMon {
             const QString ENABLED = "General/live_mon/enabled";
             const QString INTERVAL = "General/live_mon/interval";
@@ -650,4 +653,20 @@ void Settings::setLiveStormRain(bool value) {
 
 void Settings::setLiveTagsEnabled(bool value) {
     settings->setValue(SettingsKey::LiveChart::LIVE_TAGS, value);
+}
+
+void Settings::saveMainWindowState(QByteArray state) {
+    settings->setValue(SettingsKey::General::MAIN_WINDOW_STATE, state);
+}
+
+QByteArray Settings::mainWindowState() const {
+    return settings->value(SettingsKey::General::MAIN_WINDOW_STATE, QByteArray()).toByteArray();
+}
+
+void Settings::saveMainWindowGeometry(QByteArray geom) {
+    settings->setValue(SettingsKey::General::MAIN_WINDOW_GEOMETRY, geom);
+}
+
+QByteArray Settings::mainWindowGeometry() const {
+    return settings->value(SettingsKey::General::MAIN_WINDOW_GEOMETRY, QByteArray()).toByteArray();
 }

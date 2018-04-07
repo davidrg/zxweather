@@ -169,6 +169,12 @@ public:
     void setLiveStormRain(bool value);
     void setLiveTagsEnabled(bool value);
 
+    void saveMainWindowState(QByteArray state);
+    QByteArray mainWindowState() const;
+
+    void saveMainWindowGeometry(QByteArray geom);
+    QByteArray mainWindowGeometry() const;
+
 private:
     Settings();
     ~Settings();
