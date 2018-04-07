@@ -179,6 +179,9 @@ MainWindow::MainWindow(QWidget *parent) :
     // This will be turned on later if the data source reports there are archived
     // images available.
     ui->actionImages->setVisible(false);
+
+    restoreState(settings.mainWindowState());
+    restoreGeometry(settings.mainWindowGeometry());
 }
 
 bool MainWindow::databaseCompatibilityChecks() {
@@ -395,6 +398,8 @@ void MainWindow::closeEvent(QCloseEvent *event)
             QCoreApplication::quit();
         }
     }
+    Settings::getInstance().saveMainWindowState(saveState());
+    Settings::getInstance().saveMainWindowGeometry(saveGeometry());
 }
 
 void MainWindow::quit() {
