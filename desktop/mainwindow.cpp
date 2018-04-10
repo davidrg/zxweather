@@ -182,6 +182,14 @@ MainWindow::MainWindow(QWidget *parent) :
 
     restoreState(settings.mainWindowState());
     restoreGeometry(settings.mainWindowGeometry());
+
+    // Ensure the latest images panel resizes correctly and maintains
+    // aspect ratio.
+    QSizePolicy policy(QSizePolicy::MinimumExpanding,
+                       QSizePolicy::MinimumExpanding);
+    policy.setHeightForWidth(true);
+    policy.setVerticalStretch(1);
+    ui->latestImages->setSizePolicy(policy);
 }
 
 bool MainWindow::databaseCompatibilityChecks() {
@@ -585,7 +593,7 @@ void MainWindow::setSolarDataAvailable(bool available) {
     solarDataAvailable = available;
 
     ui->liveData->setSolarDataAvailable(solarDataAvailable);
-    QTimer::singleShot(10, this, SLOT(adjustSizeSlot()));
+    //QTimer::singleShot(10, this, SLOT(adjustSizeSlot()));
 }
 
 void MainWindow::liveDataRefreshed(LiveDataSet lds) {
@@ -602,7 +610,7 @@ void MainWindow::liveDataRefreshed(LiveDataSet lds) {
 
     // Adjust the size after a short delay to give the other widgets time to
     // adjust their size
-    QTimer::singleShot(500, this, SLOT(adjustSizeSlot()));
+    //QTimer::singleShot(500, this, SLOT(adjustSizeSlot()));
 
     last_hw_type = lds.hw_type;
 }
@@ -615,11 +623,14 @@ void MainWindow::archivedImagesAvailable() {
     ui->actionImages->setVisible(true);
 }
 
-void MainWindow::adjustSizeSlot() {
-    ui->latestImages->updateGeometry();
-    ui->latestImages->adjustSize();
+// TODO: Remove this if the resize after liveDataRefreshed() isn't required
+// by WH1080 and other stations with a smaller number of live data values.
+/*void MainWindow::adjustSizeSlot() {
+    //ui->latestImages->updateGeometry();
+    //ui->latestImages->adjustSize();
+    qDebug() << "MW Adjust Size!";
     adjustSize();
-}
+}*/
 
 void MainWindow::newImage(NewImageInfo imageInfo) {
     qDebug() << "newImage available" << imageInfo.imageId;

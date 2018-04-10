@@ -35,7 +35,6 @@ public:
 signals:
     void videoPositionChanged(qint64 time);
     void videoReady();
-//    void sizeHintChanged(QSize);
 
 public slots:
     void setVideoTickInterval(qint32 interval);
@@ -64,8 +63,6 @@ private:
     bool scaled;
     qint32 videoTickInterval;
     bool videoControlsLocked;
-
-    QSize videoSize;
 
     QPoint dragStartPos;
 
