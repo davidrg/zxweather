@@ -20,11 +20,14 @@ public:
     // Removes all image source tabs and hides the widget.
     void hideImagery();
 
+//signals:
+   // void contentsChanged();
+
 public slots:
     void imageReady(ImageInfo info, QImage image, QString cacheFile);
 
 private slots:
-
+    void videoReady();
     void imageSizeHintChanged(QSize size);
 
 private:

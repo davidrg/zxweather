@@ -26,11 +26,6 @@ ImageWidget::ImageWidget(QWidget *parent) : QWidget(parent)
     videoControlsLocked = false;
     this->info.id = -1;
 
-    // Try to maintain aspect ratio for whatever our dimensions are
-    QSizePolicy policy(QSizePolicy::Preferred, QSizePolicy::Preferred);
-    policy.setHeightForWidth(true);
-    setSizePolicy(policy);
-
     videoPlayer = NULL;
 }
 
@@ -39,6 +34,7 @@ void ImageWidget::setScaled(bool) {
 }
 
 void ImageWidget::paintEvent(QPaintEvent *event) {
+    Q_UNUSED(event)
 
     // Set the background to black
     QPainter painter(this);
@@ -111,11 +107,6 @@ void ImageWidget::setImage(QImage image, QString filename) {
 
     if (fileOk) {
 
-        if (this->filename == filename) {
-            // Same file. No need to reload
-            return;
-        }
-
         // Use the supplied filename.
         this->filename = filename;
         usingCacheFile = true;
@@ -148,9 +139,9 @@ void ImageWidget::setImage(QImage image, QString filename) {
                     videoPlayer->setControlsLocked(videoControlsLocked);
                     videoPlayer->setFilename(filename);
                     videoPlayer->setTickInterval(videoTickInterval);
+                    videoPlayer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
                     videoPlayer->show();
                     videoSet = true;
-
                 }
             }
         } else {
@@ -187,7 +178,6 @@ void ImageWidget::setImage(QImage image, QString filename) {
     imageSet = true;
     updateGeometry();
     repaint();
-    //setPixmap(QPixmap::fromImage(image));
 }
 
 void ImageWidget::setVideoTickInterval(qint32 interval) {
@@ -265,6 +255,8 @@ void ImageWidget::startDrag() {
 }
 
 void ImageWidget::mouseDoubleClickEvent(QMouseEvent *event) {
+    Q_UNUSED(event)
+
     if (!imageSet) {
         return; // Nothing to do
     }
@@ -285,36 +277,6 @@ void ImageWidget::popOut() {
         repaint();
         return;
     }
-
-//    ImageWidget *iw = new ImageWidget();
-
-
-//    iw->setAttribute(Qt::WA_DeleteOnClose);
-//    if (info.mimeType.startsWith("video/")) {
-//        iw->setWindowIcon(QIcon(":/icons/film"));
-//    } else {
-//        iw->setWindowIcon(QIcon(":/icons/image"));
-//    }
-
-//    if (usingCacheFile) {
-//        iw->setImage(image, info, filename);
-//    } else {
-//        iw->setImage(image, info);
-//    }
-//    iw->setScaled(true);
-
-//    QString title = info.title;
-//    if (title.isEmpty() || title.isNull()){
-//        title = info.timeStamp.toString();
-//    } else {
-//        iw->setToolTip(info.timeStamp.toString());
-//    }
-
-//    title += " - " + info.imageSource.name;
-
-//    iw->setWindowTitle(title);
-
-//    iw->show();
 
     popOut(info, image, filename);
 }
@@ -353,10 +315,8 @@ void ImageWidget::popOut(ImageInfo info, QImage image, QString filename) {
 }
 
 void ImageWidget::videoSizeChanged(QSize size) {
-    qDebug() << "Video size changed!";
-    videoSize = size;
-    //emit sizeHintChanged(sizeHint());
-    updateGeometry();
+    // This is to ensure poped out windows containing a video get resized to an
+    // appropriate size once the video has loaded.
     adjustSize();
 }
 
@@ -392,19 +352,18 @@ int ImageWidget::aspectRatioHeightForWidth(int width) const {
 }
 
 QSize ImageWidget::sizeHint() const {
-    if (videoSet && videoPlayer != NULL) {
-        return videoPlayer->sizeHint();
-    }
-    //return QLabel::sizeHint();
+    QSize s;
 
     if (scaled) {
-        QSize s;
         s.setWidth(width());
-        s.setHeight(aspectRatioHeightForWidth(width()));
-        return s;
+        s.setHeight(aspectRatioHeightForWidth(s.width()));
+    } else if (videoSet && videoPlayer != NULL) {
+        s = videoPlayer->sizeHint();
     } else {
-        return image.size();
+        s = image.size();
     }
+
+    return s;
 }
 
 void ImageWidget::mediaPositionChanged(qint64 time) {

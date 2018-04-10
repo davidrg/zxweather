@@ -8,6 +8,8 @@
 ImagesTabWidget::ImagesTabWidget(QWidget* parent): QTabWidget(parent)
 {
     setDocumentMode(true);
+
+
 }
 
 void ImagesTabWidget::hideImagery() {
@@ -20,7 +22,9 @@ void ImagesTabWidget::hideImagery() {
 
 void ImagesTabWidget::imageSizeHintChanged(QSize size) {
     qDebug() << "Image size changed!";
+    adjustSize();
     updateGeometry();
+    qDebug() << sizeHint();
 }
 
 void ImagesTabWidget::imageReady(ImageInfo info, QImage image, QString cacheFile) {
@@ -41,8 +45,16 @@ void ImagesTabWidget::imageReady(ImageInfo info, QImage image, QString cacheFile
             tabWidgets[tabId] = new ImageWidget(this);
             tabWidgets[tabId]->setScaled(true);
 
-            tabWidgets[tabId]->setSizePolicy(QSizePolicy::Maximum,
-                                             QSizePolicy::Maximum);
+            QSizePolicy pol(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
+                        pol.setHeightForWidth(true);
+            tabWidgets[tabId]->setSizePolicy(pol);
+
+            tabWidgets[tabId]->setSizePolicy(QSizePolicy::Expanding,
+                                             QSizePolicy::Expanding);
+            //connect(tabWidgets[tabId], SIGNAL(sizeHintChanged(QSize)),
+            //        this, SLOT(imageSizeHintChanged(QSize)));
+            connect(tabWidgets[tabId], SIGNAL(videoReady()),
+                    this, SLOT(videoReady()));
         }
 
         stationCodeTabs[sourceCode] = tabId;
@@ -62,9 +74,15 @@ void ImagesTabWidget::imageReady(ImageInfo info, QImage image, QString cacheFile
     }
 
     tabWidgets[tabId]->setImage(image, info, cacheFile);
-    tabWidgets[tabId]->adjustSize();
+    //tabWidgets[tabId]->adjustSize();
 
     if (!isVisible()) {
         show();
     }
+
+   // emit contentsChanged();
+}
+
+void ImagesTabWidget::videoReady() {
+    //emit contentsChanged();
 }
