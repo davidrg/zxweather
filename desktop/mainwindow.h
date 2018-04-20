@@ -131,7 +131,6 @@ private slots:
 
     void newImage(NewImageInfo imageInfo);
 
-    //void adjustSizeSlot();
 protected:
     /**
      * @brief changeEvent handles minimising the window to the system tray if
