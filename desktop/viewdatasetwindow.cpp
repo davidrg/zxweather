@@ -17,6 +17,12 @@ ViewDataSetWindow::ViewDataSetWindow(DataSet dataSet, QWidget *parent) :
 {
     ui->setupUi(this);
 
+#if QT_VERSION >= 0x050000
+    ui->tableView->horizontalHeader()->setSectionsMovable(true);
+#else
+    ui->tableView->horizontalHeader()->setMovable(true);
+#endif
+
     this->dataSet = dataSet;
 
     copy = new QShortcut(QKeySequence::Copy, this);
