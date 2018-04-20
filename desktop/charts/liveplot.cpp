@@ -101,6 +101,7 @@ void LivePlot::changeGraphStyle(QCPGraph* graph) {
     int result = gsd.exec();
     if (result == QDialog::Accepted) {
         style.applyStyle(graph);
+        emit graphStyleChanged(graph, style);
         replot();
     }
 }

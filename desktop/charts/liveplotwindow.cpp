@@ -132,7 +132,8 @@ LivePlotWindow::LivePlotWindow(bool solarAvailalble, hardware_type_t hardwareTyp
             ui->actionTitle, SLOT(setChecked(bool)));
     connect(ui->plot, SIGNAL(legendVisibilityChanged(bool)),
             ui->actionLegend, SLOT(setChecked(bool)));
-
+    connect(ui->plot, SIGNAL(graphStyleChanged(QCPGraph*,GraphStyle&)),
+            this, SLOT(graphStyleChanged(QCPGraph*,GraphStyle&)));
 
     showAddGraphDialog(
                 tr("Select the values to display in the live chart. More can be added "
@@ -463,4 +464,22 @@ void LivePlotWindow::showOptions() {
     settings.setLiveAggregateSeconds(aggregateSeconds);
     settings.setLiveTimespanMinutes(timespanMinutes);
     settings.setLiveTagsEnabled(axisTags);
+}
+
+void LivePlotWindow::graphStyleChanged(QCPGraph *graph, GraphStyle &newStyle)
+{
+    QVariant prop = graph->property(PROP_GRAPH_TYPE);
+    if (prop.isNull() || !prop.isValid() || prop.type() != QVariant::Int) {
+        return;
+    }
+
+    LiveValue graphType = (LiveValue)prop.toInt();
+
+    if (points.contains(graphType)) {
+        points[graphType]->setPen(newStyle.getPen());
+    }
+
+    if (axisTags && tags.contains(graphType)) {
+        tags[graphType]->setStyle(newStyle);
+    }
 }
