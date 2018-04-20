@@ -45,6 +45,7 @@ signals:
    void addGraphRequested();
    void legendVisibilityChanged(bool visible);
    void titleVisibilityChanged(bool visible);
+   void graphStyleChanged(QCPGraph* graph, GraphStyle& style);
 
 public slots:
     void copy();

@@ -9,6 +9,7 @@
 #include "unit_conversions.h"
 #include "abstractliveaggregator.h"
 #include "livedatarepeater.h"
+#include "graphstyle.h"
 
 #include <QScopedPointer>
 
@@ -38,6 +39,7 @@ private slots:
     void showAddGraphDialog(QString message = QString(), QString title = QString());
 
     void graphRemoving(QCPGraph *graph);
+    void graphStyleChanged(QCPGraph *graph, GraphStyle& newStyle);
 
     void selectionChanged();
 
