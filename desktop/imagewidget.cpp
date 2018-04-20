@@ -351,12 +351,29 @@ int ImageWidget::aspectRatioHeightForWidth(int width) const {
     }
 }
 
+// Set the height based on the images width assuming its 16:9.
+// If the images (or videos) true aspect ratio is something other than 16:9 it
+// will still be drawn correctly, just with black bars. We force a 16:9 ratio
+// onto some images when they're excessively tall and resizing them for their width
+// while maintaining aspect ratio would cause issues.
+QSize ImageWidget::heightFor169Width(int width) const {
+    float ratio = 9.0/16.0;
+
+    QSize result;
+    result.setWidth(width);
+    result.setHeight(width * ratio);
+    return result;
+}
+
 QSize ImageWidget::sizeHint() const {
     QSize s;
 
     if (scaled) {
         s.setWidth(width());
         s.setHeight(aspectRatioHeightForWidth(s.width()));
+        if (s.height() > s.width()) {
+            s = heightFor169Width(width());
+        }
     } else if (videoSet && videoPlayer != NULL) {
         s = videoPlayer->sizeHint();
     } else {
