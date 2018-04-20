@@ -622,15 +622,6 @@ void MainWindow::archivedImagesAvailable() {
     ui->actionImages->setVisible(true);
 }
 
-// TODO: Remove this if the resize after liveDataRefreshed() isn't required
-// by WH1080 and other stations with a smaller number of live data values.
-/*void MainWindow::adjustSizeSlot() {
-    //ui->latestImages->updateGeometry();
-    //ui->latestImages->adjustSize();
-    qDebug() << "MW Adjust Size!";
-    adjustSize();
-}*/
-
 void MainWindow::newImage(NewImageInfo imageInfo) {
     qDebug() << "newImage available" << imageInfo.imageId;
     dataSource->fetchImage(imageInfo.imageId);

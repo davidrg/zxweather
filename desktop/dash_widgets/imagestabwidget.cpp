@@ -17,10 +17,19 @@ void ImagesTabWidget::hideImagery() {
     while (count() > 0) {
         removeTab(0);
     }
+
+    foreach (ImageWidget *w, tabWidgets) {
+        delete w;
+    }
+    tabWidgets.clear();
+    stationCodeTabs.clear();
+
     hide();
 }
 
 void ImagesTabWidget::imageSizeHintChanged(QSize size) {
+    Q_UNUSED(size)
+
     qDebug() << "Image size changed!";
     adjustSize();
     updateGeometry();
@@ -35,54 +44,40 @@ void ImagesTabWidget::imageReady(ImageInfo info, QImage image, QString cacheFile
     QString sourceCode = info.imageSource.code.toUpper();
     if (stationCodeTabs.contains(sourceCode)) {
         tabId = stationCodeTabs[sourceCode];
+
+        ImageInfo current = tabWidgets[tabId]->currentImage();
+        if (!current.timeStamp.isNull()) {
+            if (imageLessThan(info, current)) {
+                // new image has lower sort order than the image currently being
+                // displayed - either its older or it has a lower ordered image
+                // type. Most likely a less interesting APT enhancement than the
+                // one currently displayed.
+                return;
+            }
+        }
     } else {
 
         // We'll need to add a tab. That tabs ID will be...
         tabId = count();
 
-        if (!tabWidgets.contains(tabId)) {
-            // Create a widget for the tab
-            tabWidgets[tabId] = new ImageWidget(this);
-            tabWidgets[tabId]->setScaled(true);
+        // Create a widget for the tab
+        tabWidgets[tabId] = new ImageWidget(this);
+        tabWidgets[tabId]->setScaled(true);
 
-            QSizePolicy pol(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
-                        pol.setHeightForWidth(true);
-            tabWidgets[tabId]->setSizePolicy(pol);
+        QSizePolicy pol(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
+                    pol.setHeightForWidth(true);
+        tabWidgets[tabId]->setSizePolicy(pol);
 
-            tabWidgets[tabId]->setSizePolicy(QSizePolicy::Expanding,
-                                             QSizePolicy::Expanding);
-            //connect(tabWidgets[tabId], SIGNAL(sizeHintChanged(QSize)),
-            //        this, SLOT(imageSizeHintChanged(QSize)));
-            connect(tabWidgets[tabId], SIGNAL(videoReady()),
-                    this, SLOT(videoReady()));
-        }
+        tabWidgets[tabId]->setSizePolicy(QSizePolicy::Expanding,
+                                         QSizePolicy::Expanding);
 
         stationCodeTabs[sourceCode] = tabId;
-    }
 
-    addTab(tabWidgets[tabId], info.imageSource.name);
-
-    ImageInfo current = tabWidgets[tabId]->currentImage();
-    if (!current.timeStamp.isNull()) {
-        if (imageLessThan(info, current)) {
-            // new image has lower sort order than the image currently being
-            // displayed - either its older or it has a lower ordered image
-            // type. Most likely a less interesting APT enhancement than the
-            // one currently displayed.
-            return;
-        }
+        addTab(tabWidgets[tabId], info.imageSource.name);
     }
 
     tabWidgets[tabId]->setImage(image, info, cacheFile);
-    //tabWidgets[tabId]->adjustSize();
 
-    if (!isVisible()) {
-        show();
-    }
-
-   // emit contentsChanged();
-}
-
-void ImagesTabWidget::videoReady() {
-    //emit contentsChanged();
+    // Make sure we're visible now that we've got an image!
+    show();
 }
