@@ -72,6 +72,8 @@ private:
 
     int aspectRatioHeightForWidth(int width) const;
 
+    QSize heightFor169Width(int width) const;
+
     void startDrag();
 };
 
