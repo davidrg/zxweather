@@ -63,6 +63,10 @@ private:
     QDate stormStart;
     bool stormValid;
 
+    // For computing changes in rainfall from changes in storm rain
+    double rainExtra;
+    double lastStormRain;
+
     void updatePlot();
 
     // Drag&drop support
