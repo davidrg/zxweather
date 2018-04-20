@@ -52,7 +52,7 @@ LivePlotWindow::LivePlotWindow(bool solarAvailalble, hardware_type_t hardwareTyp
     axisLabels[UnitConversions::U_METERS_PER_SECOND] = tr("Wind Speed (m/s)");
     axisLabels[UnitConversions::U_DEGREES] = tr("Wind direction (" DEGREE_SYMBOL ")");
     axisLabels[UnitConversions::U_MILLIMETERS] = tr("Rainfall (mm)");
-    axisLabels[UnitConversions::U_MILLIMETERS_PER_HOUR] = tr("Rain Rate (mm/h");
+    axisLabels[UnitConversions::U_MILLIMETERS_PER_HOUR] = tr("Rain Rate (mm/h)");
     axisLabels[UnitConversions::U_VOLTAGE] = tr("Voltage (V)");
     axisLabels[UnitConversions::U_UV_INDEX] = tr("UV Index");
     axisLabels[UnitConversions::U_WATTS_PER_SQUARE_METER] = tr("Solar Radiation (W/m" SQUARED_SYMBOL ")");
