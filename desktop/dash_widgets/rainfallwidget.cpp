@@ -155,6 +155,8 @@ RainfallWidget::RainfallWidget(QWidget *parent) : QWidget(parent)
     f.setAutoRemove(false);
     f.open();
     tempFileName = f.fileName();
+
+    reset(); // initialise state variables
 }
 
 RainfallWidget::~RainfallWidget() {
@@ -219,6 +221,8 @@ void RainfallWidget::reset() {
     rate = 0;
     month = 0;
     year = 0;
+    rainExtra = 0;
+    lastStormRain = -1;
     lastUpdate = QDate::currentDate();
 
     shortRange->valueAxis()->setRange(0, 10);
@@ -260,6 +264,13 @@ void RainfallWidget::liveData(LiveDataSet lds) {
         stormStart = lds.davisHw.stormStartDate;
         stormValid = lds.davisHw.stormDateValid;
 
+        // Compute rainfall since last sample from changes in storm rain
+        if (lastStormRain > -1 && lds.davisHw.stormRain > lastStormRain) {
+            rainExtra += lds.davisHw.stormRain - lastStormRain;
+        }
+
+        lastStormRain = lds.davisHw.stormRain;
+
         updatePlot();
     }
 }
@@ -267,6 +278,7 @@ void RainfallWidget::liveData(LiveDataSet lds) {
 void RainfallWidget::newSample(Sample sample) {
     QDate today = lastUpdate; // QDate::currentDate();
     QDate date = sample.timestamp.date();
+
 
     if (date.year() < today.year()) {
         return; // Data too old
@@ -290,6 +302,10 @@ void RainfallWidget::newSample(Sample sample) {
     day += sample.rainfall;
     month += sample.rainfall;
     year += sample.rainfall;
+
+    // Clear our rainfall guess that we computed from storm rain now that
+    // we have the real data.
+    rainExtra = 0;
 
     updatePlot();
 }
@@ -317,11 +333,24 @@ int roundToMultiple(int num, int multiple) {
     return num + multiple - remainder;
 }
 
+/*
+     - On plot update, add rainExtra to the day, month and year values
+    This avoids any complicated rollback process - just store the storm
+    rain guess separately from the verified data and overwrite the guess
+    whenever verified data arrives.
+    */
+
 void RainfallWidget::updatePlot() {
     QVector<double> shortRangeValues, shortRangeTicks,
             longRangeValues, longRangeTicks;
 
-    shortRangeValues << day;
+    // Add on our guess rainfall based on changes in storm rain since the last
+    // sample
+    double dayValue = day + rainExtra,
+            monthValue = month + rainExtra,
+            yearValue = year + rainExtra;
+
+    shortRangeValues << dayValue;
 
     if (stormRateEnabled) {
         shortRangeValues << storm << rate;
@@ -332,14 +361,14 @@ void RainfallWidget::updatePlot() {
         shortRangeTicks << K_STORM << K_RATE;
     }
 
-    longRangeValues << month << year;
+    longRangeValues << monthValue << yearValue;
     longRangeTicks << K_MONTH << K_YEAR;
 
-    shortRangeBottomTicker->addTick(K_DAY, QString::number(day, 'f', 1));
+    shortRangeBottomTicker->addTick(K_DAY, QString::number(dayValue, 'f', 1));
     shortRangeBottomTicker->addTick(K_STORM, QString::number(storm, 'f', 1));
     shortRangeBottomTicker->addTick(K_RATE, QString::number(rate, 'f', 1));
-    longRangeBottomTicker->addTick(K_MONTH, QString::number(month, 'f', 1));
-    longRangeBottomTicker->addTick(K_YEAR, QString::number(year, 'f', 1));
+    longRangeBottomTicker->addTick(K_MONTH, QString::number(monthValue, 'f', 1));
+    longRangeBottomTicker->addTick(K_YEAR, QString::number(yearValue, 'f', 1));
 
     shortRange->setData(shortRangeTicks, shortRangeValues);
     longRange->setData(longRangeTicks, longRangeValues);
