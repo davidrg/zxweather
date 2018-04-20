@@ -106,6 +106,7 @@ GraphStyle::GraphStyle(SampleColumn column) {
     case SC_Evapotranspiration:
         colour = colours.evapotranspiration;
         name = "Evapotranspiration";
+        break;
     case SC_ForecastRuleId: // Not supported in graphs
     case SC_NoColumns:
     case SC_Timestamp:
@@ -177,6 +178,7 @@ GraphStyle::GraphStyle(LiveValue column) {
         colour = colours.rainRate;
         name = "Rain Rate";
         lineStyle = QCPGraph::lsStepLeft;
+        break;
     case LV_WindSpeed:
         colour = colours.averageWindSpeed;
         name = "Average Wind Speed";
@@ -196,6 +198,7 @@ GraphStyle::GraphStyle(LiveValue column) {
     case LV_BatteryVoltage:
         colour = colours.consoleBatteryVoltage;
         name = "Console Battery Voltage";
+        break;
     default:
         // This should never happen.
         colour = Qt::black;

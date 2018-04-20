@@ -183,8 +183,10 @@ void LivePlotWindow::addLiveValue(LiveValue v) {
     if (!graphs.contains(v)) {
         ChartColours colours = Settings::getInstance().getChartColours();
 
+        GraphStyle style = GraphStyle(v);
+
         graphs[v] = ui->plot->addStyledGraph(ui->plot->xAxis, axis[axisType],
-                                             GraphStyle(v));
+                                             style);
         graphs[v]->setProperty(PROP_GRAPH_TYPE, v);
 
         points[v] = new QCPGraph(ui->plot->xAxis, axis[axisType]);
@@ -195,7 +197,7 @@ void LivePlotWindow::addLiveValue(LiveValue v) {
 
         if (axisTags) {
             tags[v] = new AxisTag(axis[axisType], this);
-            tags[v]->setStyle(GraphStyle(v));
+            tags[v]->setStyle(style);
         }
 
         switch(v) {
