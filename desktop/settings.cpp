@@ -63,6 +63,7 @@ namespace SettingsKey {
         const QString STORM_RAIN = "LiveChart/storm_rain";
         const QString TIMESPAN_MINUTES = "LiveChart/timespan_minutes";
         const QString LIVE_TAGS = "LiveChart/live_tags";
+        const QString MULTI_RECT = "LiveChart/multiple_axis_rects";
     }
 
     namespace WeatherValueWidgets {
@@ -631,6 +632,10 @@ bool Settings::liveTagsEnabled() const {
     return settings->value(SettingsKey::LiveChart::LIVE_TAGS, false).toBool();
 }
 
+bool Settings::liveMultipleAxisRectsEnabled() const {
+    return settings->value(SettingsKey::LiveChart::MULTI_RECT, false).toBool();
+}
+
 void Settings::setLiveAggregateSeconds(int value) {
     settings->setValue(SettingsKey::LiveChart::AGGREGATE_SECONDS, value);
 }
@@ -653,6 +658,10 @@ void Settings::setLiveStormRain(bool value) {
 
 void Settings::setLiveTagsEnabled(bool value) {
     settings->setValue(SettingsKey::LiveChart::LIVE_TAGS, value);
+}
+
+void Settings::setLiveMultipleAxisRectsEnabled(bool value) {
+    settings->setValue(SettingsKey::LiveChart::MULTI_RECT, value);
 }
 
 void Settings::saveMainWindowState(QByteArray state) {

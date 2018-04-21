@@ -48,6 +48,15 @@ private slots:
 private:
     void updateGraph(LiveValue type, double key, double range, double value);
     void addLiveValues(LiveValues columns);
+    void moveLegend();
+    void ensureLegend();
+    void resetPlot();
+
+    bool axisRectExists(LiveValue type);
+    QCPAxisRect* createAxisRectForGraph(LiveValue type);
+    QCPAxisRect* axisRectForGraph(LiveValue type);
+    QCPAxis* keyAxisForGraph(LiveValue type);
+    QCPAxis* valueAxisForGraph(LiveValue type);
 
     Ui::LivePlotWindow *ui;
     AbstractLiveDataSource *ds;
@@ -59,6 +68,9 @@ private:
     QMap<LiveValue, QCPGraph*> graphs;
     QMap<LiveValue, QCPGraph*> points;
     QMap<LiveValue, AxisTag*> tags;
+    QMap<LiveValue, QCPAxisRect*> axisRects;
+    QSharedPointer<QCPAxisTicker> ticker;
+    QCPLayoutGrid *legendLayout;
 
     QMap<UnitConversions::unit_t, QCPAxis*> axis;
 
@@ -74,6 +86,7 @@ private:
     QScopedPointer<AbstractLiveAggregator> aggregator;
 
     bool axisTags;
+    bool multipleAxisRects;
 };
 
 #endif // LIVEPLOTWINDOW_H

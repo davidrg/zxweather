@@ -14,7 +14,8 @@ class LiveChartOptionsDialog : public QDialog
 public:
     explicit LiveChartOptionsDialog(bool aggregate, int period, bool maxRainRate,
                                     bool stormRain, bool stormRainEnabled,
-                                    int rangeMinutes, bool tags, QWidget *parent = 0);
+                                    int rangeMinutes, bool tags, bool multiRect,
+                                    QWidget *parent = 0);
     ~LiveChartOptionsDialog();
 
     bool aggregate() const;
@@ -23,6 +24,7 @@ public:
     bool stormRain() const;
     int rangeMinutes() const;
     bool tagsEnabled() const;
+    bool multipleAxisRectsEnabled() const;
 
 private:
     Ui::LiveChartOptionsDialog *ui;
