@@ -161,6 +161,7 @@ public:
     bool liveMaxRainRate() const;
     bool liveStormRain() const;
     bool liveTagsEnabled() const;
+    bool liveMultipleAxisRectsEnabled() const;
 
     void setLiveAggregateSeconds(int value);
     void setLiveTimespanMinutes(int value);
@@ -168,6 +169,7 @@ public:
     void setLiveMaxRainRate(bool value);
     void setLiveStormRain(bool value);
     void setLiveTagsEnabled(bool value);
+    void setLiveMultipleAxisRectsEnabled(bool value);
 
     void saveMainWindowState(QByteArray state);
     QByteArray mainWindowState() const;

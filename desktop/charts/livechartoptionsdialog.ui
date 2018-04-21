@@ -7,11 +7,11 @@
     <x>0</x>
     <y>0</y>
     <width>410</width>
-    <height>214</height>
+    <height>289</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>Live Chart Options</string>
   </property>
   <property name="windowIcon">
    <iconset resource="../resources.qrc">
@@ -25,13 +25,6 @@
      </property>
      <property name="checked">
       <bool>true</bool>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QCheckBox" name="cbAxisTags">
-     <property name="text">
-      <string>Show axis tags (changing this clears the chart  and shifts all axis to the right)</string>
      </property>
     </widget>
    </item>
@@ -98,6 +91,36 @@
     </widget>
    </item>
    <item>
+    <widget class="QGroupBox" name="groupBox">
+     <property name="title">
+      <string>Layout</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_2">
+      <item>
+       <widget class="QLabel" name="label_3">
+        <property name="text">
+         <string>Changing the charts layout will cause it to be reset</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="cbAxisTags">
+        <property name="text">
+         <string>Show axis tags (shifts all value axis to the right)</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="cbMultiAxisRect">
+        <property name="text">
+         <string>Plot each graph separately</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
     <widget class="QDialogButtonBox" name="buttonBox">
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
@@ -110,10 +133,6 @@
   </layout>
  </widget>
  <tabstops>
-  <tabstop>cbStormRain</tabstop>
-  <tabstop>cbAxisTags</tabstop>
-  <tabstop>sbTimespan</tabstop>
-  <tabstop>cbAverageUpdates</tabstop>
   <tabstop>sbPeriod</tabstop>
   <tabstop>cbMaxRainRate</tabstop>
  </tabstops>

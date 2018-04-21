@@ -11,17 +11,12 @@ LiveDataRepeater::LiveDataRepeater(QObject *parent) : QObject(parent)
 
 
 void LiveDataRepeater::incomingLiveData(LiveDataSet data) {
-    if (timer.remainingTime() <= 500) {
-        qDebug() << "Intercepting retransmission" << timer.remainingTime();
-    }
     timer.stop();
 
     previousTs = lastReceivedTs;
 
     lastReceived = data;
     lastReceivedTs = data.timestamp.toMSecsSinceEpoch();
-
-    qDebug() << "Received transmission" << data.timestamp;
 
     if (data.hw_type == HW_DAVIS) {
         interval = 2500;
@@ -41,6 +36,5 @@ void LiveDataRepeater::incomingLiveData(LiveDataSet data) {
 
 void LiveDataRepeater::repeatLastTransmission() {
     lastReceived.timestamp = lastReceived.timestamp.addMSecs(interval);
-    qDebug() << "Retransmission for ts" << lastReceived.timestamp;
     emit liveData(lastReceived);
 }

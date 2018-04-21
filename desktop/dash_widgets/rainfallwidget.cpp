@@ -333,13 +333,6 @@ int roundToMultiple(int num, int multiple) {
     return num + multiple - remainder;
 }
 
-/*
-     - On plot update, add rainExtra to the day, month and year values
-    This avoids any complicated rollback process - just store the storm
-    rain guess separately from the verified data and overwrite the guess
-    whenever verified data arrives.
-    */
-
 void RainfallWidget::updatePlot() {
     QVector<double> shortRangeValues, shortRangeTicks,
             longRangeValues, longRangeTicks;

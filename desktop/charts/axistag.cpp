@@ -14,7 +14,7 @@ AxisTag::AxisTag(QCPAxis *axis, QObject *parent) : QObject(parent)
 
     arrow = new QCPItemLine(axis->parentPlot());
     arrow->setLayer("overlay");
-    arrow->setClipAxisRect(false);
+    arrow->setClipToAxisRect(false);
     arrow->setHead(QCPLineEnding::esSpikeArrow);
     arrow->end->setParentAnchor(tracer->position);
     arrow->start->setParentAnchor(arrow->end);

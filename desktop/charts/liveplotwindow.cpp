@@ -27,6 +27,7 @@ LivePlotWindow::LivePlotWindow(bool solarAvailalble, hardware_type_t hardwareTyp
 
     this->hwType = hardwareType;
     this->solarAvailable = solarAvailalble;
+    this->valuesToShow = LV_NoColumns;
 
     // All the possible axis types
     units[LV_Temperature] = UnitConversions::U_CELSIUS;
@@ -83,6 +84,7 @@ LivePlotWindow::LivePlotWindow(bool solarAvailalble, hardware_type_t hardwareTyp
     stormRain = settings.liveStormRain();
     timespanMinutes = settings.liveTimespanMinutes();
     axisTags = settings.liveTagsEnabled();
+    multipleAxisRects = settings.liveMultipleAxisRectsEnabled();
 
     if (aggregate) {
         aggregator.reset(new AveragedLiveAggregator(aggregateSeconds, maxRainRate, stormRain, this));
@@ -95,45 +97,16 @@ LivePlotWindow::LivePlotWindow(bool solarAvailalble, hardware_type_t hardwareTyp
     connect(aggregator.data(), SIGNAL(liveData(LiveDataSet)),
             this, SLOT(liveData(LiveDataSet)));
 
-    ds->enableLiveData();
+    ds->enableLiveData();   
 
-    // Configure the plot
-    QSharedPointer<QCPAxisTicker> ticker(new QCPAxisTickerDateTime());
-    ui->plot->xAxis->setTicker(ticker);
-    ui->plot->yAxis->setVisible(false);
-    ui->plot->yAxis->setTickLabels(false);
-
-    ui->plot->setBackground(QBrush(Settings::getInstance().getChartColours().background));
+    resetPlot();
 
     // Hookup toolbar buttons
     connect(ui->actionAdd_Graph, SIGNAL(triggered(bool)),
             this, SLOT(showAddGraphDialog()));
-    connect(ui->actionSave, SIGNAL(triggered(bool)),
-            this->ui->plot, SLOT(save()));
-    connect(ui->actionCopy, SIGNAL(triggered(bool)),
-            this->ui->plot, SLOT(copy()));
-    connect(ui->actionRemove_Graph, SIGNAL(triggered(bool)),
-            ui->plot, SLOT(removeSelectedGraph()));
-    connect(ui->actionLegend, SIGNAL(triggered(bool)),
-            ui->plot, SLOT(toggleLegend()));
-    connect(ui->actionTitle, SIGNAL(triggered(bool)),
-            ui->plot, SLOT(toggleTitle()));
+
     connect(ui->actionOptions, SIGNAL(triggered(bool)),
             this, SLOT(showOptions()));
-
-    // Events from the plotting widget
-    connect(ui->plot, SIGNAL(addGraphRequested()),
-            this, SLOT(showAddGraphDialog()));
-    connect(ui->plot, SIGNAL(removingGraph(QCPGraph*)),
-            this, SLOT(graphRemoving(QCPGraph*)));
-    connect(ui->plot, SIGNAL(selectionChangedByUser()),
-            this, SLOT(selectionChanged()));
-    connect(ui->plot, SIGNAL(titleVisibilityChanged(bool)),
-            ui->actionTitle, SLOT(setChecked(bool)));
-    connect(ui->plot, SIGNAL(legendVisibilityChanged(bool)),
-            ui->actionLegend, SLOT(setChecked(bool)));
-    connect(ui->plot, SIGNAL(graphStyleChanged(QCPGraph*,GraphStyle&)),
-            this, SLOT(graphStyleChanged(QCPGraph*,GraphStyle&)));
 
     showAddGraphDialog(
                 tr("Select the values to display in the live chart. More can be added "
@@ -150,53 +123,217 @@ LiveValues LivePlotWindow::liveValues() {
     return valuesToShow;
 }
 
+/** returns true if the required axis rect for the specified graph exists
+ *
+ * @param type Graph type
+ * @return True if an axis rect for that graph type exists
+ */
+bool LivePlotWindow::axisRectExists(LiveValue type) {
+    if (multipleAxisRects) {
+        return axisRects.contains(type);
+    }
+
+    return ui->plot->axisRectCount() > 0;
+}
+
+/** Creates an axis rect for the specified graph type. If an axis rect already exists
+ * for the graph type it will be removed.
+ *
+ * @param type Type of graph to create an axis rect for
+ * @return A new axis rect
+ */
+QCPAxisRect* LivePlotWindow::createAxisRectForGraph(LiveValue type) {
+    qDebug() << "Creating axis rect for" << type;
+    if (multipleAxisRects) {
+        if (axisRects.contains(type)) {
+            qDebug() << "Rect exists - removing";
+            ui->plot->plotLayout()->remove(axisRects[type]);
+        }
+
+        QCPAxisRect *rect = new QCPAxisRect(ui->plot);
+        rect->setupFullAxesBox(true);
+
+        rect->axis(QCPAxis::atTop)->setVisible(false);
+        rect->axis(axisTags ? QCPAxis::atLeft : QCPAxis::atRight)->setVisible(false);
+        rect->axis(QCPAxis::atBottom)->setTicker(ticker);
+
+        axisRects[type] = rect;
+
+        qDebug() << "Rect created. Adding to layout.";
+        ui->plot->plotLayout()->addElement(rect);
+
+        if (axisRects.count() == 1) {
+            // We've just created the first axis rect. Also create a legend - hidden by
+            // default.
+
+            if (ui->plot->legend == NULL) {
+                qDebug() << "Create legend";
+                ui->plot->legend = new QCPLegend;
+                ui->plot->legend->setVisible(false);
+            }
+
+            if (legendLayout == NULL) {
+                qDebug() << "Create legend layout";
+                legendLayout = new QCPLayoutGrid;
+                legendLayout->setMargins(QMargins(5, 0, 5, 5));
+
+                // Chuck it in the layout to ensure the legend doesn't get separated
+                // from the plot when we reparent it.
+                ui->plot->plotLayout()->addElement(legendLayout);
+            }
+
+            qDebug() << "Reparent legend";
+            legendLayout->addElement(0, 0, ui->plot->legend);
+            ui->plot->legend->setFillOrder(QCPLegend::foColumnsFirst);
+        }
+
+        if (legendLayout != NULL) {
+            qDebug() << "Move legend layout to bottom of plot";
+            // Shift the legend to the bottom
+            ui->plot->plotLayout()->addElement(legendLayout);
+            ui->plot->plotLayout()->simplify();
+            ui->plot->plotLayout()->setRowStretchFactor(
+                        ui->plot->plotLayout()->rowCount() - 1, 0.001);
+        }
+
+        return rect;
+    } else {
+        qDebug() << "Creating default axis rect";
+        ui->plot->recreateDefaultAxisRect();
+        ui->plot->axisRect()->axis(QCPAxis::atLeft)->setVisible(false);
+        ui->plot->axisRect()->axis(QCPAxis::atRight)->setVisible(false);
+        ui->plot->axisRect()->axis(QCPAxis::atBottom)->setTicker(ticker);
+        axis.clear();
+
+        qDebug() << "Default rect created";
+
+        return ui->plot->axisRect();
+    }
+}
+
+
+/** Gets an axis rect for the specified graph type. If one does not exist it will
+ * be created.
+ *
+ * @param type Graph type to get an axis rect for.
+ * @return
+ */
+QCPAxisRect* LivePlotWindow::axisRectForGraph(LiveValue type) {
+    if (axisRectExists(type)) {
+        if (multipleAxisRects) {
+            return axisRects[type];
+        } else {
+            return ui->plot->axisRect();
+        }
+    }
+
+    return createAxisRectForGraph(type);
+}
+
+QCPAxis* LivePlotWindow::keyAxisForGraph(LiveValue type) {
+    bool newAxis = !axisRectExists(type);
+
+    QCPAxisRect *rect = axisRectForGraph(type);
+
+    QCPAxis *axis = rect->axis(QCPAxis::atBottom);
+
+    if (newAxis) {
+        axis->setVisible(true);
+        axis->setTicker(ticker);
+    }
+
+    return axis;
+}
+
+QCPAxis* LivePlotWindow::valueAxisForGraph(LiveValue type) {
+    bool newAxis = !axisRectExists(type);
+
+    QCPAxisRect *rect = axisRectForGraph(type);
+
+    UnitConversions::unit_t axisType = units[type];
+
+    QCPAxis* axis;
+
+    if (multipleAxisRects) {
+        // Axis rect per graph means we only ever have one value axis in each
+        // axis rect. The side it will be on will depend on if axis tags are on or not.
+        axis = rect->axis(axisTags ? QCPAxis::atRight : QCPAxis::atLeft);
+    } else {
+        // Multiple graphs in one axis rect means we'll have a whole bunch of value
+        // axes depending on the units used by the various graphs in the rect.
+
+        if (this->axis.contains(axisType)) {
+            axis = this->axis[axisType];
+            newAxis = false;
+        } else {
+            bool isLeft = (this->axis.count() % 2 == 0) && !axisTags;
+
+            QCPAxis *y1 = ui->plot->axisRect()->axis(QCPAxis::atLeft);
+            QCPAxis *y2 = ui->plot->axisRect()->axis(QCPAxis::atRight);
+
+            // Use one of the initial axes if we're not doing axis tags and have less than
+            // two axes allocated so far
+            if(!y1->visible() && !axisTags) {
+                this->axis[axisType] = y1;
+                y1->setVisible(true);
+            } else if (!y2->visible()) {
+                this->axis[axisType] = y2;
+                y2->setVisible(true);
+            } else {
+                // For more than two axes, create a new one at the opposite side from the
+                // last axis created.
+                this->axis[axisType] = ui->plot->axisRect()->addAxis(
+                            isLeft ? QCPAxis::atLeft : QCPAxis::atRight);
+            }
+
+            axis = this->axis[axisType];
+            newAxis = true;
+        }
+    }
+
+    if (newAxis) {
+        // If the axis rect didn't exist before then we'll need to setup the value
+        // axis.
+        axis->setVisible(true);
+        axis->setTickLabels(true);
+        axis->setLabel(axisLabels[units[type]]);
+
+        if (axisTags) {
+            axis->setPadding(10);
+            axis->setLabelPadding(30);
+        }
+    }
+
+    return axis;
+}
+
 void LivePlotWindow::addLiveValue(LiveValue v) {
     valuesToShow |= v;
 
-    UnitConversions::unit_t axisType = units[v];
+    //UnitConversions::unit_t axisType = units[v];
 
-    if (!axis.contains(axisType)) {
-        bool isLeft = (axis.count() % 2 == 0) && !axisTags;
+    // These will create any axes and axis rects if they don't already exist.
+    QCPAxis *valueAxis = valueAxisForGraph(v);
+    QCPAxis *keyAxis = keyAxisForGraph(v);
 
-        if(!ui->plot->yAxis->visible() && !axisTags) {
-            qDebug() << "Using Y1";
-            axis[axisType] = ui->plot->yAxis;
-            ui->plot->yAxis->setVisible(true);
-        } else if (!ui->plot->yAxis2->visible()) {
-            qDebug() << "Using Y2";
-            axis[axisType] = ui->plot->yAxis2;
-            ui->plot->yAxis2->setVisible(true);
-        } else {
-            axis[axisType] = ui->plot->axisRect()->addAxis(
-                        isLeft ? QCPAxis::atLeft : QCPAxis::atRight);
-        }
-        axis[axisType]->setVisible(true);
-        axis[axisType]->setTickLabels(true);
-        axis[axisType]->setLabel(axisLabels[axisType]);
-
-        if (axisTags) {
-            axis[axisType]->setPadding(10);
-            axis[axisType]->setLabelPadding(30);
-        }
-    }
+    ////////////////////// From here
 
     if (!graphs.contains(v)) {
         ChartColours colours = Settings::getInstance().getChartColours();
 
         GraphStyle style = GraphStyle(v);
 
-        graphs[v] = ui->plot->addStyledGraph(ui->plot->xAxis, axis[axisType],
-                                             style);
+        graphs[v] = ui->plot->addStyledGraph(keyAxis, valueAxis, style);
         graphs[v]->setProperty(PROP_GRAPH_TYPE, v);
 
-        points[v] = new QCPGraph(ui->plot->xAxis, axis[axisType]);
+        points[v] = new QCPGraph(keyAxis, valueAxis);
 
         points[v]->setLineStyle(QCPGraph::lsNone);
         points[v]->setScatterStyle(QCPScatterStyle::ssDisc);
         points[v]->removeFromLegend();
 
         if (axisTags) {
-            tags[v] = new AxisTag(axis[axisType], this);
+            tags[v] = new AxisTag(valueAxis, this);
             tags[v]->setStyle(style);
         }
 
@@ -269,23 +406,36 @@ void LivePlotWindow::addLiveValue(LiveValue v) {
         points[v]->setPen(graphs[v]->pen());
         points[v]->setBrush(graphs[v]->pen().color());
 
-        ui->plot->legend->setVisible(graphs.count() > 1);
-        ui->actionLegend->setChecked(ui->plot->legend->visible());
+        if (ui->plot->legend != NULL) {
+            ui->plot->legend->setVisible(graphs.count() > 1);
+            ui->actionLegend->setChecked(ui->plot->legend->visible());
+        }
     }
 
     ui->plot->replot();
 }
 
 void LivePlotWindow::liveData(LiveDataSet ds) {
+    if (valuesToShow == LV_NoColumns) {
+        return; // Nothing to do.
+    }
+
     double ts = ds.timestamp.toMSecsSinceEpoch() / 1000.0;
 
     qint64 xRange = timespanMinutes * 60; // seconds
     double padding = 0.5 * timespanMinutes; // TempView uses 1.0 for 2 minutes, 100.0 for 2 hours.
 
     // Scroll the key axis
-    ui->plot->xAxis->setRange(ts + padding,
-                              xRange,
-                              Qt::AlignRight);
+    double pos = ts + padding;
+    if (multipleAxisRects) {
+        foreach (QCPAxisRect *rect, axisRects) {
+            rect->axis(QCPAxis::atBottom)->setRange(pos, xRange, Qt::AlignRight);
+        }
+    } else if (ui->plot->axisRectCount() > 0) { // Need at least one rect.
+        ui->plot->axisRect()->axis(QCPAxis::atBottom)->setRange(pos,
+                                                                xRange,
+                                                                Qt::AlignRight);
+    }
 
     updateGraph(LV_Temperature, ts, xRange, ds.temperature);
     updateGraph(LV_IndoorTemperature, ts, xRange, ds.indoorTemperature);
@@ -319,6 +469,7 @@ void LivePlotWindow::updateGraph(LiveValue type, double key, double range, doubl
 
         QCPRange oldRange = graphs[type]->valueAxis()->range();
         graphs[type]->rescaleValueAxis();
+
 
         // Add a bit of padding to the Y axis - the range tends to be relatively small
         // and often you can end up with the line just following the very top and
@@ -403,18 +554,24 @@ void LivePlotWindow::graphRemoving(QCPGraph *graph) {
         tags.remove(graphType);
     }
 
-    UnitConversions::unit_t axisType = units[graphType];
-    if (axis[axisType]->graphs().count() == 1) {
-        // The graph we're about to remove is the last graph using this axis
-        // so the axis will end up being removed too. Remove the axis from our
-        // list of axes so we don't accidentally use it again.
-        axis.remove(axisType);
+    if (axisRects.contains(graphType)) {
+        axisRects.remove(graphType);
+    } else {
+        UnitConversions::unit_t axisType = units[graphType];
+        if (axis[axisType]->graphs().count() == 1) {
+            // The graph we're about to remove is the last graph using this axis
+            // so the axis will end up being removed too. Remove the axis from our
+            // list of axes so we don't accidentally use it again.
+            axis.remove(axisType);
+        }
+
+        // Turn the legend off if we're removing the final graph.
+        if (valuesToShow == LV_NoColumns && ui->plot->legend->visible()) {
+            ui->plot->toggleLegend();
+        }
     }
 
-    // Turn the legend off if we're removing the final graph.
-    if (valuesToShow == LV_NoColumns && ui->plot->legend->visible()) {
-        ui->plot->toggleLegend();
-    }
+    ui->actionAdd_Graph->setEnabled(valuesToShow != ALL_LIVE_COLUMNS);
 }
 
 void LivePlotWindow::selectionChanged() {
@@ -424,7 +581,8 @@ void LivePlotWindow::selectionChanged() {
 
 void LivePlotWindow::showOptions() {
     LiveChartOptionsDialog lcod(aggregate, aggregateSeconds, maxRainRate, stormRain,
-                                hwType == HW_DAVIS, timespanMinutes, axisTags, this);
+                                hwType == HW_DAVIS, timespanMinutes, axisTags,
+                                multipleAxisRects, this);
 
     if (lcod.exec() == QDialog::Accepted) {
         if (aggregate != lcod.aggregate() || maxRainRate != lcod.maxRainRate() ||
@@ -452,10 +610,26 @@ void LivePlotWindow::showOptions() {
         timespanMinutes = lcod.rangeMinutes();
     }
 
+    bool resetPlot = false;
+
     if (lcod.tagsEnabled() != axisTags) {
         axisTags = lcod.tagsEnabled();
+        resetPlot = true;
+    }
+
+    if (lcod.multipleAxisRectsEnabled() != multipleAxisRects) {
+        multipleAxisRects = lcod.multipleAxisRectsEnabled();
+        resetPlot = true;
+    }
+
+    // changing either axis tags or the number of axis rects requires the entire plot
+    // to be reset
+    if (resetPlot) {
+        qDebug() << "Resetting plot...";
         LiveValues currentValues = valuesToShow;
-        ui->plot->removeAllGraphs();
+
+        this->resetPlot();
+
         addLiveValues(currentValues);
     }
 
@@ -466,6 +640,7 @@ void LivePlotWindow::showOptions() {
     settings.setLiveAggregateSeconds(aggregateSeconds);
     settings.setLiveTimespanMinutes(timespanMinutes);
     settings.setLiveTagsEnabled(axisTags);
+    settings.setLiveMultipleAxisRectsEnabled(multipleAxisRects);
 }
 
 void LivePlotWindow::graphStyleChanged(QCPGraph *graph, GraphStyle &newStyle)
@@ -484,4 +659,50 @@ void LivePlotWindow::graphStyleChanged(QCPGraph *graph, GraphStyle &newStyle)
     if (axisTags && tags.contains(graphType)) {
         tags[graphType]->setStyle(newStyle);
     }
+}
+
+void LivePlotWindow::resetPlot() {
+    // Its easier and safer to just trash the plot and start again rather than return it
+    // to its original state manually.
+    delete ui->plot;
+    graphs.clear();
+    points.clear();
+    tags.clear();
+    axisRects.clear();
+    legendLayout = 0;
+
+    ui->plot = new LivePlot(ui->centralwidget);
+    ui->plot->setObjectName(QStringLiteral("plot"));
+    ui->gridLayout->addWidget(ui->plot, 0, 0, 1, 1);
+
+    // Configure the plot
+    ui->plot->setBackground(QBrush(Settings::getInstance().getChartColours().background));
+
+    ticker.reset(new QCPAxisTickerDateTime());
+    ui->plot->plotLayout()->remove(ui->plot->axisRect());
+
+    connect(ui->actionSave, SIGNAL(triggered(bool)),
+            this->ui->plot, SLOT(save()));
+    connect(ui->actionCopy, SIGNAL(triggered(bool)),
+            this->ui->plot, SLOT(copy()));
+    connect(ui->actionRemove_Graph, SIGNAL(triggered(bool)),
+            ui->plot, SLOT(removeSelectedGraph()));
+    connect(ui->actionLegend, SIGNAL(triggered(bool)),
+            ui->plot, SLOT(toggleLegend()));
+    connect(ui->actionTitle, SIGNAL(triggered(bool)),
+            ui->plot, SLOT(toggleTitle()));
+
+    // Events from the plotting widget
+    connect(ui->plot, SIGNAL(addGraphRequested()),
+            this, SLOT(showAddGraphDialog()));
+    connect(ui->plot, SIGNAL(removingGraph(QCPGraph*)),
+            this, SLOT(graphRemoving(QCPGraph*)));
+    connect(ui->plot, SIGNAL(selectionChangedByUser()),
+            this, SLOT(selectionChanged()));
+    connect(ui->plot, SIGNAL(titleVisibilityChanged(bool)),
+            ui->actionTitle, SLOT(setChecked(bool)));
+    connect(ui->plot, SIGNAL(legendVisibilityChanged(bool)),
+            ui->actionLegend, SLOT(setChecked(bool)));
+    connect(ui->plot, SIGNAL(graphStyleChanged(QCPGraph*,GraphStyle&)),
+            this, SLOT(graphStyleChanged(QCPGraph*,GraphStyle&)));
 }

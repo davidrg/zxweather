@@ -59,6 +59,8 @@ public slots:
     void setAddGraphsEnabled(bool enabled);
     void removeAllGraphs();
 
+    void recreateDefaultAxisRect();
+
 private slots:
     // This is implemented in BasicQCPInteractionManager for the ChartWindow stuff
     void plottableClicked(QCPAbstractPlottable* plottableItem,

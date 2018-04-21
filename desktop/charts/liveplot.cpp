@@ -30,6 +30,37 @@ LivePlot::LivePlot(QWidget *parent) : QCustomPlot(parent)
             this, SLOT(axisDoubleClicked(QCPAxis*,QCPAxis::SelectablePart,QMouseEvent*)));
 }
 
+void LivePlot::recreateDefaultAxisRect() {
+    // Recreate the default axis rect and legend as done in the QCustomPlot
+    // constructor. First we'll clear everything else out.
+
+    if (graphCount() > 0) {
+        removeAllGraphs();
+    }
+
+    QCPAxisRect *defaultAxisRect = new QCPAxisRect(this, true);
+    mPlotLayout->addElement(0, 0, defaultAxisRect);
+    xAxis = defaultAxisRect->axis(QCPAxis::atBottom);
+    yAxis = defaultAxisRect->axis(QCPAxis::atLeft);
+    xAxis2 = defaultAxisRect->axis(QCPAxis::atTop);
+    yAxis2 = defaultAxisRect->axis(QCPAxis::atRight);
+    legend = new QCPLegend;
+    legend->setVisible(false);
+    defaultAxisRect->insetLayout()->addElement(legend, Qt::AlignRight|Qt::AlignTop);
+    defaultAxisRect->insetLayout()->setMargins(QMargins(12, 12, 12, 12));
+
+    defaultAxisRect->setLayer(QLatin1String("background"));
+    xAxis->setLayer(QLatin1String("axes"));
+    yAxis->setLayer(QLatin1String("axes"));
+    xAxis2->setLayer(QLatin1String("axes"));
+    yAxis2->setLayer(QLatin1String("axes"));
+    xAxis->grid()->setLayer(QLatin1String("grid"));
+    yAxis->grid()->setLayer(QLatin1String("grid"));
+    xAxis2->grid()->setLayer(QLatin1String("grid"));
+    yAxis2->grid()->setLayer(QLatin1String("grid"));
+    legend->setLayer(QLatin1String("legend"));
+}
+
 void LivePlot::copy() {
     QApplication::clipboard()->setPixmap(toPixmap());
 }
@@ -113,7 +144,7 @@ void LivePlot::plottableClicked(QCPAbstractPlottable* plottableItem,
     Q_UNUSED(dataIndex);
     Q_UNUSED(event);
 
-    if (plottableItem->selected()) {
+    if (plottableItem->selected() && legend != NULL) {
 
         // Clear selected items.
         for (int i = 0; i < legend->itemCount(); i++) {
@@ -122,7 +153,9 @@ void LivePlot::plottableClicked(QCPAbstractPlottable* plottableItem,
         }
 
         QCPPlottableLegendItem *lip = legend->itemWithPlottable(plottableItem);
-        lip->setSelected(true);
+        if (lip != NULL)  {
+            lip->setSelected(true);
+        }
     }
 }
 
@@ -276,6 +309,8 @@ void LivePlot::textElementDoubleClick(QMouseEvent *event)
 
 void LivePlot::toggleLegend()
 {
+    if (legend == NULL) return;
+
     legend->setVisible(!legend->visible());
     emit legendVisibilityChanged(legend->visible());
     replot();
@@ -311,34 +346,49 @@ void LivePlot::showLegendContextMenu(QPoint point)
     QMenu *menu = new QMenu(this);
     menu->setAttribute(Qt::WA_DeleteOnClose);
 
-    // Options to re-position the legend
-    menu->addAction("Move to top left",
-                    this,
-                    SLOT(moveLegend()))->setData((int)(Qt::AlignTop
-                                                       | Qt::AlignLeft));
-    menu->addAction("Move to top center",
-                    this,
-                    SLOT(moveLegend()))->setData((int)(Qt::AlignTop
-                                                       | Qt::AlignHCenter));
-    menu->addAction("Move to top right",
-                    this,
-                    SLOT(moveLegend()))->setData((int)(Qt::AlignTop
-                                                       | Qt::AlignRight));
-    menu->addAction("Move to bottom right",
-                    this,
-                    SLOT(moveLegend()))->setData((int)(Qt::AlignBottom
-                                                       | Qt::AlignRight));
-    menu->addAction("Move to bottom center",
-                    this,
-                    SLOT(moveLegend()))->setData((int)(Qt::AlignBottom
-                                                       | Qt::AlignHCenter));
-    menu->addAction("Move to bottom left",
-                    this,
-                    SLOT(moveLegend()))->setData((int)(Qt::AlignBottom
-                                                       | Qt::AlignLeft));
+    bool inRect = false;
+
+    // Figure out if the legend is currently inside the default axis
+    // rect. If so we'll give some options to reposition it within that
+    // rect.
+    if (axisRectCount() > 0) {
+        if (axisRect()->insetLayout()->children().contains(legend)) {
+            inRect = true;
+        }
+    }
+
+    if (inRect) {
+        // Options to re-position the legend within an axis rect
+        menu->addAction("Move to top left",
+                        this,
+                        SLOT(moveLegend()))->setData((int)(Qt::AlignTop
+                                                           | Qt::AlignLeft));
+        menu->addAction("Move to top center",
+                        this,
+                        SLOT(moveLegend()))->setData((int)(Qt::AlignTop
+                                                           | Qt::AlignHCenter));
+        menu->addAction("Move to top right",
+                        this,
+                        SLOT(moveLegend()))->setData((int)(Qt::AlignTop
+                                                           | Qt::AlignRight));
+        menu->addAction("Move to bottom right",
+                        this,
+                        SLOT(moveLegend()))->setData((int)(Qt::AlignBottom
+                                                           | Qt::AlignRight));
+        menu->addAction("Move to bottom center",
+                        this,
+                        SLOT(moveLegend()))->setData((int)(Qt::AlignBottom
+                                                           | Qt::AlignHCenter));
+        menu->addAction("Move to bottom left",
+                        this,
+                        SLOT(moveLegend()))->setData((int)(Qt::AlignBottom
+                                                           | Qt::AlignLeft));
+
+
+        menu->addSeparator();
+    }
 
     // And an option to get rid of it entirely.
-    menu->addSeparator();
     menu->addAction("Hide", this, SLOT(toggleLegend()));
 
     menu->popup(mapToGlobal(point));
@@ -347,7 +397,7 @@ void LivePlot::showLegendContextMenu(QPoint point)
 void LivePlot::chartContextMenuRequested(QPoint point)
 {
     // Check to see if the legend was right-clicked on
-    if (legend->selectTest(point, false) >= 0
+    if (legend != NULL && legend->selectTest(point, false) >= 0
             && legend->visible()) {
         showLegendContextMenu(point);
         return;
@@ -398,14 +448,21 @@ void LivePlot::removeSelectedGraph()
         removeGraph(graph);
 
         // Prune away any unused value axes
-        QList<QCPAxis*> axes = axisRect()->axes(QCPAxis::atLeft | QCPAxis::atRight);
-        for (int i = 0; i < axes.count(); i++) {
-            QCPAxis *axis = axes.at(i);
-            if (axis->graphs().isEmpty()) {
-                if (axis == yAxis || axis == yAxis2) {
-                    axis->setVisible(false);
-                } else {
-                    axisRect()->removeAxis(axis);
+        foreach (QCPAxisRect *rect, axisRects()) {
+            if (rect->graphs().count() == 0) {
+                qDebug() << "Axis rect now empty. Removing.";
+
+                // Rect is empty. Trash the whole thing.
+                plotLayout()->remove(rect);
+                plotLayout()->simplify();
+            } else {
+                QList<QCPAxis*> axes = rect->axes(QCPAxis::atLeft | QCPAxis::atRight);
+                for (int i = 0; i < axes.count(); i++) {
+                    QCPAxis *axis = axes.at(i);
+                    if (axis->graphs().isEmpty()) {
+                        qDebug() << "Axis " << axis->label() << "has no graphs - removing.";
+                        rect->removeAxis(axis);
+                    }
                 }
             }
         }
@@ -418,10 +475,14 @@ void LivePlot::removeSelectedGraph()
 }
 
 void LivePlot::removeAllGraphs() {
-    QList<QCPGraph*> graphs = axisRect()->graphs();
-    foreach (QCPGraph* graph, graphs) {
-        graph->setSelection(QCPDataSelection(QCPDataRange(0,1)));
-        removeSelectedGraph();
+    qDebug() << "Remove all graphs...";
+    foreach (QCPAxisRect *rect, axisRects()) {
+        QList<QCPGraph*> graphs = rect->graphs();
+        foreach (QCPGraph* graph, graphs) {
+            qDebug() << "Selecting Graph" << graph->name();
+            graph->setSelection(QCPDataSelection(QCPDataRange(0,1)));
+            removeSelectedGraph();
+        }
     }
 }
 
@@ -458,10 +519,12 @@ void LivePlot::showChartContextMenu(QPoint point) {
 
 
     // Legend visibility option.
-    action = menu->addAction("Show Legend",
-                             this, SLOT(toggleLegend()));
-    action->setCheckable(true);
-    action->setChecked(legend->visible());
+    if (legend != NULL) {
+        action = menu->addAction("Show Legend",
+                                 this, SLOT(toggleLegend()));
+        action->setCheckable(true);
+        action->setChecked(legend->visible());
+    }
 
 
     /******** Finished ********/
