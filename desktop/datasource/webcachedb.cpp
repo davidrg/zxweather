@@ -1070,7 +1070,32 @@ QString WebCacheDB::buildAggregatedSelect(SampleColumns columns,
     if (columns.testFlag(SC_Timestamp))
         query += ", min(iq.timestamp) as timestamp ";
 
-    query += buildColumnList(columns & ~SC_Timestamp, QString(", %1(iq.%2) as %2 ").arg(fn).arg("%1"));
+    // It doesn't make sense to sum certain fields (like temperature).
+    // So when AF_Sum or AF_RunningTotal is specified we'll apply that only
+    // to the columns were it makes sense and select an average for all the
+    // others.
+    if (function == AF_Sum || function == AF_RunningTotal) {
+        // Figure out which columns we can sum
+        SampleColumns summables = columns & SUMMABLE_COLUMNS;
+
+        // And which columns we can't
+        SampleColumns nonSummables = columns & ~SUMMABLE_COLUMNS;
+        nonSummables = nonSummables & ~SC_Timestamp; // we don't want timestamp either
+
+        // Sum the summables
+        if (summables != SC_NoColumns) {
+            query += buildColumnList(summables, QString(", %1(iq.%2) as %2 ").arg(fn).arg("%1"));
+        }
+
+        // And just average the nonsummables(we have to apply some sort of
+        // aggregate or the grouping will fail)
+        if (nonSummables != SC_NoColumns) {
+            query += buildColumnList(nonSummables, ", avg(iq.%1) as %1 ");
+        }
+    } else {
+        query += buildColumnList(columns & ~SC_Timestamp, QString(", %1(iq.%2) as %2 ").arg(fn).arg("%1"));
+    }
+
     query += " from (select ";
 
     if (groupType == AGT_Custom) {
@@ -1188,6 +1213,7 @@ SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
     if (query.first()) {
 
         double previousRainfall = 0.0;
+        double previousEvapotranspiration = 0.0;
 
         // At least one record came back. Go pull all of them out and dump
         // them in the SampleSet.
@@ -1232,9 +1258,10 @@ SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
 
                 // Because SQLite doesn't support window functions we have to
                 // calculate the running total manually. We'll only bother doing
-                // it for rainfall as it doesn't really make sense for the rest
-                // (the PostgreSQL backend supports it on everyhing only because
-                // its easier than doing it on one column only).
+                // it for rainfall & evapotranspiration as it doesn't really make
+                // sense for the rest (the PostgreSQL backend supports it on
+                // everyhing only because its easier than doing it on one column
+                // only).
                 if (aggregateFunction == AF_RunningTotal) {
                     previousRainfall += value;
                     samples.rainfall.append(previousRainfall);
@@ -1281,8 +1308,22 @@ SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
             if (columns.testFlag(SC_HighRainRate))
                 samples.highRainRate.append(record.value("high_rain_rate").toDouble());
 
-            if (columns.testFlag(SC_Evapotranspiration))
-                samples.evapotranspiration.append(record.value("evapotranspiration").toDouble());
+            if (columns.testFlag(SC_Evapotranspiration)) {
+                double value = record.value("evapotranspiration").toDouble();
+
+                // Because SQLite doesn't support window functions we have to
+                // calculate the running total manually. We'll only bother doing
+                // it for rainfall & evapotranspiration as it doesn't really make
+                // sense for the rest (the PostgreSQL backend supports it on
+                // everyhing only because its easier than doing it on one column
+                // only).
+                if (aggregateFunction == AF_RunningTotal) {
+                    previousEvapotranspiration += value;
+                    samples.evapotranspiration.append(previousEvapotranspiration);
+                } else {
+                    samples.evapotranspiration.append(value);
+                }
+            }
 
             if (columns.testFlag(SC_HighSolarRadiation))
                 samples.highSolarRadiation.append(record.value("high_solar_radiation").toDouble());

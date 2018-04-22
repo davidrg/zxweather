@@ -238,7 +238,32 @@ QString buildGroupedSelect(SampleColumns columns, AggregateFunction function, Ag
         query += ", min(iq.time_stamp) as time_stamp ";
 
     // Column names in the list get wrapped in the aggregate function
-    query += buildColumnList(columns & ~SC_Timestamp, QString(", %1(iq.%2) as %2 ").arg(fn).arg("%1"), false);
+    // It doesn't make sense to sum certain fields (like temperature).
+    // So when AF_Sum or AF_RunningTotal is specified we'll apply that only
+    // to the columns were it makes sense and select an average for all the
+    // others.
+    if (function == AF_Sum || function == AF_RunningTotal) {
+        // Figure out which columns we can sum
+        SampleColumns summables = columns & SUMMABLE_COLUMNS;
+
+        // And which columns we can't
+        SampleColumns nonSummables = columns & ~SUMMABLE_COLUMNS;
+        nonSummables = nonSummables & ~SC_Timestamp; // we don't want timestamp either
+
+        // Sum the summables
+        if (summables != SC_NoColumns) {
+            query += buildColumnList(summables, QString(", %1(iq.%2) as %2 ").arg(fn).arg("%1"), false);
+        }
+
+        // And just average the nonsummables(we have to apply some sort of
+        // aggregate or the grouping will fail)
+        if (nonSummables != SC_NoColumns) {
+            query += buildColumnList(nonSummables, ", avg(iq.%1) as %1 ", false);
+        }
+
+    } else {
+        query += buildColumnList(columns & ~SC_Timestamp, QString(", %1(iq.%2) as %2 ").arg(fn).arg("%1"), false);
+    }
 
     // Start of subquery 'iq'
     query += " from (select ";
@@ -278,8 +303,24 @@ QString buildGroupedSelect(SampleColumns columns, AggregateFunction function, Ag
         // And that needs to be outside the grouped query.
         QString outer_query = "select grouped.quadrant, grouped.time_stamp ";
 
-        outer_query += buildColumnList(columns & ~SC_Timestamp,
-                                       ", sum(grouped.%1) over (order by grouped.time_stamp) as %1 ");
+        // Figure out which columns we can sum
+        SampleColumns summables = columns & SUMMABLE_COLUMNS;
+
+        // And which columns we can't
+        SampleColumns nonSummables = columns & ~SUMMABLE_COLUMNS;
+        nonSummables = nonSummables & ~SC_Timestamp; // we don't want timestamp either
+
+        // Sum the summables
+        if (summables != SC_NoColumns) {
+            outer_query += buildColumnList(summables,
+                                           ", sum(grouped.%1) over (order by grouped.time_stamp) as %1 ");
+        }
+
+        // And just leave the non-summables alone.
+        if (nonSummables != SC_NoColumns) {
+            outer_query += buildColumnList(nonSummables, ", grouped.%1 as %1 ", false);
+        }
+
         outer_query += " from (" + query + ") as grouped order by grouped.time_stamp asc";
         query = outer_query;
         qDebug() << query;
