@@ -13,7 +13,9 @@ SelectSamplesWebTask::SelectSamplesWebTask(QString baseUrl,
 
 // This task doesn't issue any HTTP requests so we're not expecting to
 // receive any data.
-void SelectSamplesWebTask::networkReplyReceived(QNetworkReply *reply) { }
+void SelectSamplesWebTask::networkReplyReceived(QNetworkReply *reply) {
+    Q_UNUSED(reply)
+}
 
 void SelectSamplesWebTask::beginTask() {
     SampleSet samples = WebCacheDB::getInstance().retrieveDataSet(

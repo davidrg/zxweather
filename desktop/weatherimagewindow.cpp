@@ -73,7 +73,10 @@ void WeatherImageWindow::imageReady(ImageInfo imageInfo, QImage image, QString f
     isImage = imageInfo.mimeType.startsWith("image/");
 
     if (!isImage) {
-        setWindowIcon(QIcon(":/icons/film"));
+        if (imageInfo.mimeType.startsWith("video/"))
+            setWindowIcon(QIcon(":/icons/film"));
+        else if (imageInfo.mimeType.startsWith("audio/"))
+            setWindowIcon(QIcon(":/icons/audio"));
     }
 
     // TODO: confirm all of these are required.
@@ -127,10 +130,14 @@ void WeatherImageWindow::imageReady(ImageInfo imageInfo, QImage image, QString f
                                         imageInfo.timeStamp);
         videoSync = false;
         if (!isImage) {
-            ui->message->setText(tr("Insufficient video metadata"));
+            if (imageInfo.mimeType.startsWith("video/")) {
+                ui->message->setText(tr("Insufficient video metadata"));
+            } else {
+                ui->message->setText(tr("Insufficient metadata"));
+            }
         }
     } else {
-        // A video with metadata!
+        // A video (or audio file) with metadata!
 
         // Lock the controls so the user can't start playback until we've
         // fetched the weather data.
@@ -292,15 +299,23 @@ void WeatherImageWindow::displaySample(SampleSet samples, int i) {
         ui->windDirection->clear();
     }
 
-    UnitValue uvIndex = samples.uvIndex[i];
-    uvIndex.unit = U_UV_INDEX;
+    if (samples.uvIndex.isEmpty()) {
+        ui->uvIndex->clear();
+    } else {
+        UnitValue uvIndex = samples.uvIndex[i];
+        uvIndex.unit = U_UV_INDEX;
 
-    ui->uvIndex->setValue(uvIndex, SC_UV_Index);
+        ui->uvIndex->setValue(uvIndex, SC_UV_Index);
+    }
 
-    UnitValue solarRadiation = samples.solarRadiation[i];
-    solarRadiation.unit = U_WATTS_PER_SQUARE_METER;
+    if (samples.solarRadiation.isEmpty()) {
+        ui->solarRadiation->clear();
+    } else {
+        UnitValue solarRadiation = samples.solarRadiation[i];
+        solarRadiation.unit = U_WATTS_PER_SQUARE_METER;
 
-    ui->solarRadiation->setValue(solarRadiation, SC_SolarRadiation);
+        ui->solarRadiation->setValue(solarRadiation, SC_SolarRadiation);
+    }
 
     rainTotal += samples.rainfall[i];
 

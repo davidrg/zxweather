@@ -1190,8 +1190,18 @@ QString cacheFilename(ImageInfo imageInfo, QString stationCode) {
     // Extension doesn't really matter too much
     if (imageInfo.mimeType == "image/jpeg")
         filename += "jpeg";
+    else if (imageInfo.mimeType == "image/png")
+        filename += "png";
     else if (imageInfo.mimeType == "video/mp4")
         filename += "mp4";
+    else if (imageInfo.mimeType == "audio/wav")
+        filename += "wav";
+    else if (imageInfo.mimeType == "audio/mpeg")
+        filename += "mp3";
+    else if (imageInfo.mimeType == "audio/flac")
+        filename += "flac";
+    else if (imageInfo.mimeType == "audio/ogg")
+        filename += "oga";
     else
         filename += "dat";
 

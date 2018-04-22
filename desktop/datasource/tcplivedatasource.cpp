@@ -258,6 +258,8 @@ void TcpLiveDataSource::processImageData(QStringList parts) {
         extension = "mp4";
     else if (image.mimeType == "video/webm")
         extension = "webm";
+    else if (image.mimeType == "audio/wav")
+        extension = "wav";
 
     // This is fairly nasty :(
     image.fullUrl = (stationUrl +

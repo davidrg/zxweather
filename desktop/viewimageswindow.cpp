@@ -112,12 +112,15 @@ void ViewImagesWindow::loadImageForIndex(QModelIndex index) {
 
         ImageInfo info = model->imageInfo(index);
         qDebug() << info.mimeType;
-        if (info.mimeType.startsWith("video/")) {
+        if (info.mimeType.startsWith("video/") || info.mimeType.startsWith("audio/")) {
             // Video file. Send it to the Image Widget - it should be able to
             // handle it provided the right codec is available
             if (filename == "") {
                 // Not available yet (still downloading?)
-                ui->lImage->setIcon(QIcon(":/icons/film-32"));
+                if (info.mimeType.startsWith("video/"))
+                    ui->lImage->setIcon(QIcon(":/icons/film-32"));
+                else
+                    ui->lImage->setIcon(QIcon(":/icons/audio-32"));
             } else {
                 ui->lImage->setImage(image, info, filename);
             }
@@ -303,6 +306,8 @@ void ViewImagesWindow::saveImageAs() {
             QString filter;
             if (info.mimeType.startsWith("video/")) {
                 filter = "Video files (*." + fileInfo.completeSuffix() + ")";
+            } else if (info.mimeType.startsWith("audio/")) {
+                filter = "Audio files (*." + fileInfo.completeSuffix() + ")";
             } else {
                 filter = "Image files (*." + fileInfo.completeSuffix() + ")";
             }

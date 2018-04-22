@@ -117,8 +117,12 @@ void ImageWidget::setImage(QImage image, QString filename) {
 
             if (!info.mimeType.isNull()) {
                 // We have a MIME type!
-                if (info.mimeType.startsWith("video/")) {
-                    setIcon(QIcon(":/icons/film-32"));
+                if (info.mimeType.startsWith("video/") || info.mimeType.startsWith("audio/")) {
+                    if (info.mimeType.startsWith("video/")) {
+                        setIcon(QIcon(":/icons/film-32"));
+                    } else {
+                        setIcon(QIcon(":/icons/audio-32"));
+                    }
 
                     // We have video! Thats sort of an image I guess.
                     qDebug() << "File is video, not image: " << filename;
@@ -142,6 +146,8 @@ void ImageWidget::setImage(QImage image, QString filename) {
                     videoPlayer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
                     videoPlayer->show();
                     videoSet = true;
+                } else if (info.mimeType.startsWith("audio/")) {
+                    setIcon(QIcon(":/icons/audio-32"));
                 }
             }
         } else {
@@ -287,6 +293,8 @@ void ImageWidget::popOut(ImageInfo info, QImage image, QString filename) {
     iw->setAttribute(Qt::WA_DeleteOnClose);
     if (info.mimeType.startsWith("video/")) {
         iw->setWindowIcon(QIcon(":/icons/film"));
+    } else if (info.mimeType.startsWith("audio")) {
+        iw->setWindowIcon(QIcon(":/icons/audio"));
     } else {
         iw->setWindowIcon(QIcon(":/icons/image"));
     }

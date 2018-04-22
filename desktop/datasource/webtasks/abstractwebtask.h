@@ -124,6 +124,7 @@ public slots:
     /** Called when a network error for a submitted request has occurred.
      */
     virtual void networkError(QNetworkReply::NetworkError code) {
+        Q_UNUSED(code)
         emit failed("Network error");
     }
 

@@ -36,6 +36,10 @@ void FetchThumbnailWebTask::dealWithImage(QString filename) {
         // The ImageWidget will delegate display to a video widget passing in
         // the filename when it detects no image and a video/ mime type.
         _dataSource->fireImageReady(_imageInfo, nullImage, filename);
+    } else if (_imageInfo.mimeType.startsWith("audio/")) {
+        QImage nullImage;
+        // The ImageWidget will just display an icon when it detects an audio/ mime type.
+        _dataSource->fireImageReady(_imageInfo, nullImage, filename);
     }
 }
 
