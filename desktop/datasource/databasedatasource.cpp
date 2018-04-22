@@ -968,6 +968,16 @@ void DatabaseDataSource::enableLiveData() {
         }
     }
 
+    // If we're not connected to a davis hardware force a live update immediately.
+    // We do this because fine offset stations in particular update infrequently
+    // (every 48 seconds) and we don't want to wait around that long to show
+    // data in the UI. The data we end up outputting as a result of this will
+    // correct if the station is currently online and horribly out of date if its
+    // offline. Not much we can really do about that right now.
+    if (getHardwareType() != HW_DAVIS) {
+        processLiveData();
+    }
+
     notificationTimer->start();
 }
 

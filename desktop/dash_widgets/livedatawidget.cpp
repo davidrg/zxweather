@@ -236,7 +236,7 @@ void LiveDataWidget::refreshUi(LiveDataSet lds) {
         ui->lblBarometer->setDoubleValue(ldu.pressure, SC_Pressure,
                                          ldu.barometerTrend, SC_Pressure);
     } else {
-        ui->lblBarometer->setValue(ldu.barometerTrend, SC_Pressure);
+        ui->lblBarometer->setValue(ldu.pressure, SC_Pressure);
     }
 
     ui->lblWindSpeed->setDoubleValue(ldu.windSpeed, SC_AverageWindSpeed,
