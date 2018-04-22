@@ -12,7 +12,13 @@
 #include <QFileInfo>
 #include <QDesktopServices>
 #include <QDir>
+#include <QFile>
 #include <QPainter>
+#include <QFileDialog>
+#include <QMenu>
+
+#include "imagepropertiesdialog.h"
+#include "weatherimagewindow.h"
 
 ImageWidget::ImageWidget(QWidget *parent) : QWidget(parent)
 {
@@ -27,6 +33,10 @@ ImageWidget::ImageWidget(QWidget *parent) : QWidget(parent)
     this->info.id = -1;
 
     videoPlayer = NULL;
+
+    setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(this, SIGNAL(customContextMenuRequested(QPoint)),
+            this, SLOT(contextMenuRequested(QPoint)));
 }
 
 void ImageWidget::setScaled(bool) {
@@ -393,4 +403,79 @@ QSize ImageWidget::sizeHint() const {
 
 void ImageWidget::mediaPositionChanged(qint64 time) {
     emit videoPositionChanged(time);
+}
+
+void ImageWidget::showProperties() {
+    ImageWidget::showProperties(info, image, filename);
+}
+
+void ImageWidget::showProperties(ImageInfo info, QImage image, QString filename) {
+    QFileInfo fileInfo(filename);
+    ImagePropertiesDialog *dlg =
+            new ImagePropertiesDialog(info, fileInfo.size(),
+                                      image);
+    dlg->setAttribute(Qt::WA_DeleteOnClose);
+    dlg->show();
+}
+
+void ImageWidget::saveAs() {
+    ImageWidget::saveAs(this, info, image, filename);
+}
+
+void ImageWidget::saveAs(QWidget *parent, ImageInfo info, QImage image, QString filename) {
+    QFileInfo fileInfo(filename);
+
+    QString filter;
+    if (info.mimeType.startsWith("video/")) {
+        filter = "Video files (*." + fileInfo.completeSuffix() + ")";
+    } else if (info.mimeType.startsWith("audio/")) {
+        filter = "Audio files (*." + fileInfo.completeSuffix() + ")";
+    } else {
+        filter = "Image files (*." + fileInfo.completeSuffix() + ")";
+    }
+
+    QString fn = QFileDialog::getSaveFileName(parent, tr("Save As..."),
+        QString(), filter);
+
+    if (info.mimeType.startsWith("image/")) {
+        image.save(fn);
+    } else {
+        QFile::copy(filename, fn);
+    }
+}
+
+void ImageWidget::weatherDataAtTime() {
+    ImageWidget::weatherDataAtTime(info.id);
+}
+
+void ImageWidget::weatherDataAtTime(int imageId) {
+    WeatherImageWindow *wnd = new WeatherImageWindow();
+    wnd->setAttribute(Qt::WA_DeleteOnClose);
+    wnd->show();
+    wnd->setImage(imageId);
+}
+
+void ImageWidget::contextMenuRequested(QPoint point) {
+    QMenu* menu = new QMenu(this);
+    menu->setAttribute(Qt::WA_DeleteOnClose);
+    QAction *act = menu->addAction("&Open in new window",
+                                       this, SLOT(popOut()));
+    QFont f = act->font();
+    f.setBold(true);
+    act->setFont(f);
+
+    act = menu->addAction("&View weather at time",
+                          this, SLOT(weatherDataAtTime()));
+
+    menu->addSeparator();
+
+    act = menu->addAction("&Save As...",
+                    this, SLOT(saveAs()));
+
+    menu->addSeparator();
+
+    act = menu->addAction("&Properties",
+                    this, SLOT(showProperties()));
+
+    menu->popup(mapToGlobal(point));
 }

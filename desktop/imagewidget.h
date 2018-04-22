@@ -26,11 +26,12 @@ public:
 
     QSize sizeHint() const;
 
-    void popOut();
+    void setScaled(bool);
 
     static void popOut(ImageInfo info, QImage image, QString filename);
-
-    void setScaled(bool);
+    static void showProperties(ImageInfo info, QImage image, QString filename);
+    static void saveAs(QWidget *parent, ImageInfo info, QImage image, QString filename);
+    static void weatherDataAtTime(int imageId);
 
 signals:
     void videoPositionChanged(qint64 time);
@@ -40,6 +41,9 @@ public slots:
     void setVideoTickInterval(qint32 interval);
     void setVideoControlsEnabled(bool enabled);
     void setVideoControlsLocked(bool locked);
+
+    void popOut();
+
 
 protected:
     void mousePressEvent(QMouseEvent *event);
@@ -51,6 +55,10 @@ private slots:
     void videoSizeChanged(QSize size);
     void mediaPositionChanged(qint64 time);
     void videoPlayerReady();
+    void contextMenuRequested(QPoint point);
+    void saveAs();
+    void weatherDataAtTime();
+    void showProperties();
 
 private:
     QString filename;
