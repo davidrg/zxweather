@@ -1163,7 +1163,7 @@ void DatabaseDataSource::fetchImageList(QDate date, QString imageSourceCode) {
             i.time_stamp, \n\
             i.title, \n\
             i.description, \n\
-            i.mime_type \n\
+            i.mime_type, \n\
             i.metadata \n\
      from image i \n\
      inner join image_type it on it.image_type_id = i.image_type_id \n\
