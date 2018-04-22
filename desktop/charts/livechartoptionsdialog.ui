@@ -18,6 +18,9 @@
     <normaloff>:/icons/options</normaloff>:/icons/options</iconset>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="sizeConstraint">
+    <enum>QLayout::SetFixedSize</enum>
+   </property>
    <item>
     <widget class="QCheckBox" name="cbStormRain">
      <property name="text">
