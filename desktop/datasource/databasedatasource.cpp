@@ -415,7 +415,7 @@ QSqlQuery setupBasicQuery(SampleColumns columns, int stationId,
 
     QString selectPart = buildSelectForColumns(columns);    
     selectPart += " from sample "
-            " inner join davis_sample ds on ds.sample_id = sample.sample_id "
+            " left outer join davis_sample ds on ds.sample_id = sample.sample_id "
             " inner join station st on st.station_id = sample.station_id "
             "where st.station_id = :stationId "
             "  and time_stamp >= :startTime "
@@ -667,6 +667,12 @@ void DatabaseDataSource::fetchSamples(SampleColumns columns,
     if (progressListener->wasCanceled()) return;
 
     qDebug() << "Data retrieval complete.";
+
+    qDebug() << "Expected samples:" << samples.sampleCount;
+    qDebug() << "Have samples:" << samples.timestamp.count();
+    if (samples.sampleCount != samples.timestamp.count()) {
+        qWarning() << "Sample count mismatch!";
+    }
 
     emit samplesReady(samples);
     progressListener->setValue(5);
