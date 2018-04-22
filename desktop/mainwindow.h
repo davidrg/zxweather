@@ -73,6 +73,8 @@ public slots:
      */
     void showSettings();
 
+    void adjustSizeSlot();
+
     /**
      * @brief showChartWindow shows the chart selection window.
      */

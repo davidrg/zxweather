@@ -529,7 +529,7 @@ void MainWindow::dataSourceError(QString message) {
     showWarningPopup(message, "Error", "", false);
 }
 
-void MainWindow::reconfigureDataSource() {
+void MainWindow::reconfigureDataSource() {   
 
     ui->actionImages->setVisible(false);
     Settings& settings = Settings::getInstance();
@@ -538,6 +538,7 @@ void MainWindow::reconfigureDataSource() {
     // hide image tabs
     ui->latestImages->hideImagery();
     adjustSize();
+    setFixedSize(size());
 
     ui->rainfall->reset();
 
@@ -608,14 +609,18 @@ void MainWindow::liveDataRefreshed(LiveDataSet lds) {
     ui->latestImages->setFixedWidth(width());
 
     // Adjust the size after a short delay to give the other widgets time to
-    // adjust their size
-    //QTimer::singleShot(500, this, SLOT(adjustSizeSlot()));
+    // adjust their size. This is required otherwise extra blank space in
+    // the main window from widgets being hidden stays around. An immediate
+    // adjustSize() here doesn't do the job.
+    QTimer::singleShot(500, this, SLOT(adjustSizeSlot()));
 
     last_hw_type = lds.hw_type;
 }
 
 void MainWindow::activeImageSourcesAvailable() {
     dataSource->fetchLatestImages();
+    setFixedSize(width(), QWIDGETSIZE_MAX);
+    adjustSize();
 }
 
 void MainWindow::archivedImagesAvailable() {
@@ -625,4 +630,11 @@ void MainWindow::archivedImagesAvailable() {
 void MainWindow::newImage(NewImageInfo imageInfo) {
     qDebug() << "newImage available" << imageInfo.imageId;
     dataSource->fetchImage(imageInfo.imageId);
+}
+
+void MainWindow::adjustSizeSlot() {
+    adjustSize();
+    if (!ui->latestImages->isVisible()) {
+        setFixedSize(size());
+    }
 }
