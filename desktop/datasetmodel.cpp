@@ -182,76 +182,83 @@ QList<SampleColumn> DataSetModel::getColumns() {
 
     QList<SampleColumn> columnList;
 
-    if (columns.testFlag(SC_Timestamp))
+    // Here we'll actually check data is available for the columns too. If, for
+    // some reason there is no data for a column we need to exclude it from the
+    // model.
+
+    if (columns.testFlag(SC_Timestamp) && !sampleSet.timestamp.isEmpty())
         columnList << SC_Timestamp;
 
-    if (columns.testFlag(SC_Temperature))
+    if (columns.testFlag(SC_Temperature) && !sampleSet.temperature.isEmpty())
         columnList << SC_Temperature;
 
-    if (columns.testFlag(SC_ApparentTemperature))
+    if (columns.testFlag(SC_ApparentTemperature) && !sampleSet.apparentTemperature.isEmpty())
         columnList << SC_ApparentTemperature;
 
-    if (columns.testFlag(SC_DewPoint))
+    if (columns.testFlag(SC_DewPoint) && !sampleSet.dewPoint.isEmpty())
         columnList << SC_DewPoint;
 
-    if (columns.testFlag(SC_WindChill))
+    if (columns.testFlag(SC_WindChill) && !sampleSet.windChill.isEmpty())
         columnList << SC_WindChill;
 
-    if (columns.testFlag(SC_Humidity))
+    if (columns.testFlag(SC_Humidity) && !sampleSet.humidity.isEmpty())
         columnList << SC_Humidity;
 
-    if (columns.testFlag(SC_IndoorTemperature))
+    if (columns.testFlag(SC_IndoorTemperature) && !sampleSet.indoorTemperature.isEmpty())
         columnList << SC_IndoorTemperature;
 
-    if (columns.testFlag(SC_IndoorHumidity))
+    if (columns.testFlag(SC_IndoorHumidity) && !sampleSet.indoorHumidity.isEmpty())
         columnList << SC_IndoorHumidity;
 
-    if (columns.testFlag(SC_Pressure))
+    if (columns.testFlag(SC_Pressure) && !sampleSet.pressure.isEmpty())
         columnList << SC_Pressure;
 
-    if (columns.testFlag(SC_Rainfall))
+    if (columns.testFlag(SC_Rainfall) && !sampleSet.rainfall.isEmpty())
         columnList << SC_Rainfall;
 
-    if (columns.testFlag(SC_HighRainRate))
+    if (columns.testFlag(SC_HighRainRate) && !sampleSet.highRainRate.isEmpty())
         columnList << SC_HighRainRate;
 
-    if (columns.testFlag(SC_AverageWindSpeed))
+    if (columns.testFlag(SC_AverageWindSpeed) && !sampleSet.averageWindSpeed.isEmpty())
         columnList << SC_AverageWindSpeed;
 
+    // Wind direction is a dictionary keyed on timestamp rather than a vector. So its ok for
+    // it to be empty.
     if (columns.testFlag(SC_WindDirection))
         columnList << SC_WindDirection;
 
-    if (columns.testFlag(SC_GustWindSpeed))
+    if (columns.testFlag(SC_GustWindSpeed) && !sampleSet.gustWindSpeed.isEmpty())
         columnList << SC_GustWindSpeed;
 
+    // as above - dictionary, not vector
     if (columns.testFlag(SC_GustWindDirection))
         columnList << SC_GustWindDirection;
 
-    if (columns.testFlag(SC_SolarRadiation))
+    if (columns.testFlag(SC_SolarRadiation) && !sampleSet.solarRadiation.isEmpty())
         columnList << SC_SolarRadiation;
 
-    if (columns.testFlag(SC_UV_Index))
+    if (columns.testFlag(SC_UV_Index) && !sampleSet.uvIndex.isEmpty())
         columnList << SC_UV_Index;
 
-    if (columns.testFlag(SC_Reception))
+    if (columns.testFlag(SC_Reception) && !sampleSet.reception.isEmpty())
         columnList << SC_Reception;
 
-    if (columns.testFlag(SC_HighTemperature))
+    if (columns.testFlag(SC_HighTemperature) && !sampleSet.highTemperature.isEmpty())
         columnList << SC_HighTemperature;
 
-    if (columns.testFlag(SC_LowTemperature))
+    if (columns.testFlag(SC_LowTemperature) && !sampleSet.lowTemperature.isEmpty())
         columnList << SC_LowTemperature;
 
-    if (columns.testFlag(SC_Evapotranspiration))
+    if (columns.testFlag(SC_Evapotranspiration) && !sampleSet.evapotranspiration.isEmpty())
         columnList << SC_Evapotranspiration;
 
-    if (columns.testFlag(SC_HighSolarRadiation))
+    if (columns.testFlag(SC_HighSolarRadiation) && !sampleSet.highSolarRadiation.isEmpty())
         columnList << SC_HighSolarRadiation;
 
-    if (columns.testFlag(SC_HighUVIndex))
+    if (columns.testFlag(SC_HighUVIndex) && !sampleSet.highUVIndex.isEmpty())
         columnList << SC_HighUVIndex;
 
-    if (columns.testFlag(SC_ForecastRuleId))
+    if (columns.testFlag(SC_ForecastRuleId) && !sampleSet.forecastRuleId.isEmpty())
         columnList << SC_ForecastRuleId;
 
     return columnList;
