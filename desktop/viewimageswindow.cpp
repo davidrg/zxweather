@@ -5,14 +5,9 @@
 #include "datasource/databasedatasource.h"
 #include "datasource/webdatasource.h"
 #include "datasource/dialogprogresslistener.h"
-#include "weatherimagewindow.h"
-#include "imagepropertiesdialog.h"
 
 #include <QtDebug>
 #include <QMenu>
-#include <QFileDialog>
-#include <QFileInfo>
-#include <QFile>
 #include <QMessageBox>
 
 ViewImagesWindow::ViewImagesWindow(QWidget *parent) :
@@ -180,7 +175,6 @@ void ViewImagesWindow::closeEvent(QCloseEvent *event)
 }
 
 void ViewImagesWindow::listItemContextMenu(const QPoint& point) {
-    qDebug() << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! List ctx";
     QPoint pt = ui->lvImageList->mapToGlobal(point);
     contextMenu(pt, ui->lvImageList->indexAt(point), true);
 }
@@ -300,26 +294,8 @@ void ViewImagesWindow::saveImageAs() {
             QImage image = model->image(index);
             QString filename = model->imageTemporaryFileName(index);
             ImageInfo info = model->imageInfo(index);
-            QFileInfo fileInfo(filename);
 
-
-            QString filter;
-            if (info.mimeType.startsWith("video/")) {
-                filter = "Video files (*." + fileInfo.completeSuffix() + ")";
-            } else if (info.mimeType.startsWith("audio/")) {
-                filter = "Audio files (*." + fileInfo.completeSuffix() + ")";
-            } else {
-                filter = "Image files (*." + fileInfo.completeSuffix() + ")";
-            }
-
-            QString fn = QFileDialog::getSaveFileName(this, tr("Save As..."),
-                QString(), filter);
-
-            if (info.mimeType.startsWith("image/")) {
-                image.save(fn);
-            } else {
-                QFile::copy(filename, fn);
-            }
+            ImageWidget::saveAs(this, info, image, filename);
         }
     }
 }
@@ -337,10 +313,7 @@ void ViewImagesWindow::viewWeather() {
         if (index.isValid() && model->isImage(index)) {
             ImageInfo info = model->imageInfo(index);
 
-            WeatherImageWindow *wnd = new WeatherImageWindow();
-            wnd->setAttribute(Qt::WA_DeleteOnClose);
-            wnd->show();
-            wnd->setImage(info.id);
+            ImageWidget::weatherDataAtTime(info.id);
         }
     }
 }
@@ -360,14 +333,8 @@ void ViewImagesWindow::properties() {
             QImage image = model->image(index);
             QString filename = model->imageTemporaryFileName(index);
             ImageInfo info = model->imageInfo(index);
-            QFileInfo fileInfo(filename);
 
-
-            ImagePropertiesDialog *dlg =
-                    new ImagePropertiesDialog(info, fileInfo.size(),
-                                              image);
-            dlg->setAttribute(Qt::WA_DeleteOnClose);
-            dlg->show();
+            ImageWidget::showProperties(info, image, filename);
         }
     }
 }

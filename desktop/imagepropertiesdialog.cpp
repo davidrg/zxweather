@@ -146,7 +146,9 @@ ImagePropertiesDialog::ImagePropertiesDialog(ImageInfo info, quint64 size,
                 }
             }
         }
-    } else {
+    }
+
+    if (!hasMetadata || ui->metadataTree->topLevelItemCount() == 0) {
         ui->metadataTab->hide();
         ui->tabWidget->removeTab(1);
     }
