@@ -86,6 +86,8 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(SampleColumns)
 #define DAVIS_COLUMNS ( SC_Reception | RECORD_COLUMNS | SC_GustWindDirection | \
     SOLAR_COLUMNS | SC_ForecastRuleId )
 
+#define SUMMABLE_COLUMNS (SC_Rainfall | SC_Evapotranspiration)
+
 typedef uint16_t dataset_id_t;
 
 /** Describes a set of columns to be plotted in a chart along with the
