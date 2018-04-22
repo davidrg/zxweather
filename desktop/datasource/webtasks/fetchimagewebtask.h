@@ -41,10 +41,14 @@ public:
      * @return Name of this task or this tasks first subtask.
      */
     QString taskName() const {
-        return (_imageInfo.mimeType.startsWith("video/") ?
-                    "Downloading video " :
-                    "Downloading image ") +
-                _imageInfo.timeStamp.toString(Qt::SystemLocaleShortDate);
+        QString t = "image";
+        if (_imageInfo.mimeType.startsWith("video/"))
+            t = "video";
+        else if (_imageInfo.mimeType.startsWith("audio/"))
+            t = "recording";
+
+        return ("Downloading " + t + " " +
+                _imageInfo.timeStamp.toString(Qt::SystemLocaleShortDate));
     }
 
 public slots:

@@ -17,6 +17,11 @@ ImagePropertiesDialog::ImagePropertiesDialog(ImageInfo info, quint64 size,
         ui->icon->setPixmap(QPixmap(":/icons/film-32"));
         setWindowIcon(QIcon(":/icons/film"));
         setWindowTitle("Video Properties");
+    } else if (info.mimeType.startsWith("audio/")) {
+        // TODO: get an audio file icon
+        ui->icon->setPixmap(QPixmap(":/icons/audio-32"));
+        setWindowIcon(QIcon(":/icons/audio"));
+        setWindowTitle("Recording Properties");
     } else if (info.mimeType.startsWith("image/")) {
         ui->icon->setPixmap(QPixmap(":/icons/image-32"));
         setWindowIcon(QIcon(":/icons/image"));

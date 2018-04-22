@@ -56,6 +56,14 @@ QString FetchImageWebTask::getCacheFilename() {
         filename += "png";
     else if (_imageInfo.mimeType == "video/mp4")
         filename += "mp4";
+    else if (_imageInfo.mimeType == "audio/wav")
+        filename += "wav";
+    else if (_imageInfo.mimeType == "audio/mpeg")
+        filename += "mp3";
+    else if (_imageInfo.mimeType == "audio/flac")
+        filename += "flac";
+    else if (_imageInfo.mimeType == "audio/ogg")
+        filename += "oga";
     else
         filename += "dat";
 
@@ -129,7 +137,7 @@ void FetchImageWebTask::dealWithImage(QString filename) {
     if (_imageInfo.mimeType.startsWith("image/")) {
         QImage image(filename);
         _dataSource->fireImageReady(_imageInfo, image, filename);
-    } else if (_imageInfo.mimeType.startsWith("video/")) {
+    } else {
         QImage nullImage;
         // The ImageWidget will delegate display to a video widget passing in
         // the filename when it detects no image and a video/ mime type.

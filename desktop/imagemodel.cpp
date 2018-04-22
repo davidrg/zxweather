@@ -173,6 +173,10 @@ QIcon TreeItem::icon() const {
         if (info.mimeType.startsWith("video/")) {
             icon.addFile(":/icons/film", QSize(16, 16));
             icon.addFile(":/icons/film-32", QSize(32, 32));
+        } else if (info.mimeType.startsWith("audio/")) {
+            // TODO: get an audio file icon
+            icon.addFile(":/icons/audio", QSize(16, 16));
+            icon.addFile(":/icons/audio-32", QSize(32, 32));
         } else {
             icon.addFile(":/icons/image", QSize(16,16));
             icon.addFile(":/icons/image-32", QSize(32, 32));
