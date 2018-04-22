@@ -62,10 +62,11 @@ void ActiveImageSourcesWebTask::processResponse(QByteArray data) {
 
         // Cache the metadata for the most recent image from this source.
         // This will be ignored if its already been cached via some other means
-        QVariantMap latestImage = imageSource["latest_image_info"].toMap();
+        QVariantMap latestImage = imageSource["last_image_info"].toMap();
         ImageInfo info;
         info.id = latestImage["id"].toInt();
-        info.timeStamp = latestImage["timestamp"].toDateTime();
+        info.timeStamp = QDateTime::fromString(latestImage["timestamp"].toString(),
+                Qt::ISODate);
         info.imageTypeCode = latestImage["type_code"].toString().toLower();
         info.title = latestImage["title"].toString();
         info.description = latestImage["description"].toString();
@@ -74,6 +75,9 @@ void ActiveImageSourcesWebTask::processResponse(QByteArray data) {
         info.imageSource.name = imageSource["name"].toString();
         info.imageSource.description = imageSource["description"].toString();
         info.fullUrl = latestImage["urls"].toMap()["full"].toString();
+
+        qDebug() << "=====================================";
+        qDebug() << info.timeStamp;
         db.storeImageInfo(_stationBaseUrl, info);
     }
 
