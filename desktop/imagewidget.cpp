@@ -294,6 +294,10 @@ void ImageWidget::popOut() {
         return;
     }
 
+    if ((!imageSet && !videoSet) || (!videoSet && isIcon)) {
+        return; // Don't pop-out an icon.
+    }
+
     popOut(info, image, filename);
 }
 
@@ -456,6 +460,10 @@ void ImageWidget::weatherDataAtTime(int imageId) {
 }
 
 void ImageWidget::contextMenuRequested(QPoint point) {
+    if ((!imageSet && !videoSet) || (!videoSet && isIcon)) {
+        return; // No context menu for no image.
+    }
+
     QMenu* menu = new QMenu(this);
     menu->setAttribute(Qt::WA_DeleteOnClose);
     QAction *act = menu->addAction("&Open in new window",
