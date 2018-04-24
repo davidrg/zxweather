@@ -18,7 +18,6 @@ public:
 
     ImageInfo currentImage();
 
-    void setImage(QImage image, QString filename=QString());
     void setImage(QImage image, ImageInfo info, QString filename=QString());
     void setIcon(QIcon icon);
 
@@ -83,6 +82,8 @@ private:
     QSize heightFor169Width(int width) const;
 
     void startDrag();
+
+    void setImage(QImage image, QString filename=QString());
 };
 
 #endif // IMAGEWIDGET_H

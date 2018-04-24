@@ -99,13 +99,14 @@ void ViewImagesWindow::loadImageForIndex(QModelIndex index) {
 
         QImage image = model->image(index);
         QString filename = model->imageTemporaryFileName(index);
+        ImageInfo info = model->imageInfo(index);
 
         if (!image.isNull()) {
-            ui->lImage->setImage(image, filename);
+            ui->lImage->setImage(image, info, filename);
             return;
         }
 
-        ImageInfo info = model->imageInfo(index);
+
         qDebug() << info.mimeType;
         if (info.mimeType.startsWith("video/") || info.mimeType.startsWith("audio/")) {
             // Video file. Send it to the Image Widget - it should be able to
