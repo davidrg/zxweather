@@ -4,7 +4,7 @@
 
 #include <QStringList>
 
-#define TS_FORMAT "ddd dd MMM yyyy HH:MM:ss"
+#define TS_FORMAT "ddd dd MMM yyyy HH:mm:ss"
 
 ImagePropertiesDialog::ImagePropertiesDialog(ImageInfo info, quint64 size,
                                              QImage image, QWidget *parent) :
