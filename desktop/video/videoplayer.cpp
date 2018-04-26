@@ -115,6 +115,9 @@ void VideoPlayer::mediaStatusChanged(QMediaPlayer::MediaStatus newStatus) {
         setControlsEnabled(false);
         break;
     case QMediaPlayer::EndOfMedia:
+        setStatus("Paused");
+        ui->tbPause->setChecked(true);
+        break;
     case QMediaPlayer::LoadedMedia:
         setStatus("Stopped");
         if (!controlsLocked) {
@@ -137,6 +140,7 @@ void VideoPlayer::mediaStatusChanged(QMediaPlayer::MediaStatus newStatus) {
         break;
     case QMediaPlayer::UnknownMediaStatus:
     case QMediaPlayer::NoMedia:
+
     default:
         setStatus("No Media");
         setControlsEnabled(false);
@@ -156,9 +160,10 @@ void VideoPlayer::mediaStatusChanged(QMediaPlayer::MediaStatus newStatus) {
 
 void VideoPlayer::stateChanged(QMediaPlayer::State newState) {
     switch (newState) {
-    case QMediaPlayer::StoppedState:
-        setStatus("Stopped");
-        break;
+    // We handle this via media status changed so we can handle stopped vs end of media
+//    case QMediaPlayer::StoppedState:
+//        setStatus("Stopped");
+//        break;
     case QMediaPlayer::PlayingState:
         setStatus("Playing");
         break;
