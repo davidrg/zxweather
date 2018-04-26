@@ -59,7 +59,7 @@ public:
 private slots:
     void liveDataReady(QNetworkReply* reply);
     void liveDataPoll();
-    //void imagesPoll();
+    void imagesPoll();
 
     // Called by ActiveImageSourcesWebTask
     void foundActiveImageSource();
@@ -111,12 +111,12 @@ private:
     QScopedPointer<QNetworkAccessManager> liveNetAccessManager;
     QUrl liveDataUrl;
     QTimer livePollTimer;
-    //QTimer imagePollTimer;
+    QTimer imagePollTimer;
     bool stationConfigLoaded;
     bool isSolarDataAvailable;  // also used by sample retrieval
     hardware_type_t hwType;
     QString station_name;
-   // int lastImageId;
+    int lastImageId;
     int lastSampleId;
     QMap<QString, int> lastImageIds;
 
