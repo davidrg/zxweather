@@ -16,6 +16,7 @@ ViewImagesWindow::ViewImagesWindow(QWidget *parent) :
 {
     ui->setupUi(this);
     ui->lImage->setScaled(false);
+    ui->lvImageList->setDragEnabled(true);
 
     connect(ui->lvImageList, SIGNAL(doubleClicked(QModelIndex)),
             this, SLOT(listItemDoubleClicked(QModelIndex)));
