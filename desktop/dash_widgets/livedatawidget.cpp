@@ -134,6 +134,8 @@ LiveDataWidget::LiveDataWidget(QWidget *parent) :
 {
     ui->setupUi(this);
 
+    imperial = Settings::getInstance().imperial();
+
     connect(ui->lblApparentTemperature, SIGNAL(plotRequested(DataSet)),
             this, SLOT(childPlotRequested(DataSet)));
     connect(ui->lblBarometer, SIGNAL(plotRequested(DataSet)),
@@ -181,19 +183,36 @@ void LiveDataWidget::refreshLiveData(LiveDataSet lds) {
 void LiveDataWidget::refreshSysTrayText(LiveDataSet lds) {
     QString iconText, formatString;
 
-    // Tool Tip Text
-    if (lds.indoorDataAvailable) {
-        formatString = "Temperature: %1" TEMPERATURE_SYMBOL " (%2" TEMPERATURE_SYMBOL " inside)\nHumidity: %3% (%4% inside)";
-        iconText = formatString
-                .arg(QString::number(lds.temperature, 'f', 1),
-                     QString::number(lds.indoorTemperature, 'f', 1),
-                     QString::number(lds.humidity, 'f', 1),
-                     QString::number(lds.indoorHumidity, 'f', 1));
+    if (imperial) {
+        // Tool Tip Text
+        if (lds.indoorDataAvailable) {
+            formatString = "Temperature: %1" IMPERIAL_TEMPERATURE_SYMBOL " (%2" IMPERIAL_TEMPERATURE_SYMBOL " inside)\nHumidity: %3% (%4% inside)";
+            iconText = formatString
+                    .arg(QString::number(UnitConversions::celsiusToFahrenheit(lds.temperature), 'f', 1),
+                         QString::number(UnitConversions::celsiusToFahrenheit(lds.indoorTemperature), 'f', 1),
+                         QString::number(lds.humidity, 'f', 1),
+                         QString::number(lds.indoorHumidity, 'f', 1));
+        } else {
+            formatString = "Temperature: %1" IMPERIAL_TEMPERATURE_SYMBOL "\nHumidity: %3%";
+            iconText = formatString
+                    .arg(QString::number(UnitConversions::celsiusToFahrenheit(lds.temperature), 'f', 1),
+                         QString::number(lds.humidity, 'f', 1));
+        }
     } else {
-        formatString = "Temperature: %1" TEMPERATURE_SYMBOL "\nHumidity: %3%";
-        iconText = formatString
-                .arg(QString::number(lds.temperature, 'f', 1),
-                     QString::number(lds.humidity, 'f', 1));
+        // Tool Tip Text
+        if (lds.indoorDataAvailable) {
+            formatString = "Temperature: %1" TEMPERATURE_SYMBOL " (%2" TEMPERATURE_SYMBOL " inside)\nHumidity: %3% (%4% inside)";
+            iconText = formatString
+                    .arg(QString::number(lds.temperature, 'f', 1),
+                         QString::number(lds.indoorTemperature, 'f', 1),
+                         QString::number(lds.humidity, 'f', 1),
+                         QString::number(lds.indoorHumidity, 'f', 1));
+        } else {
+            formatString = "Temperature: %1" TEMPERATURE_SYMBOL "\nHumidity: %3%";
+            iconText = formatString
+                    .arg(QString::number(lds.temperature, 'f', 1),
+                         QString::number(lds.humidity, 'f', 1));
+        }
     }
 
     if (iconText != previousSysTrayText) {

@@ -46,6 +46,8 @@ private:
 
     QString previousSysTrayText;
     QString previousSysTrayIcon;
+
+    bool imperial;
 };
 
 #endif // LIVEDATAWIDGET2_H
