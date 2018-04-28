@@ -170,11 +170,14 @@ void ImageWidget::setImage(QImage image, QString filename) {
     } else {
 #if QT_VERSION >= 0x050000
         QString tempFileName = QStandardPaths::writableLocation(
-                    QStandardPaths::CacheLocation);
+                    QStandardPaths::CacheLocation) + QDir::separator() + "temp";
 #else
         QString tempFileName = QDesktopServices::storageLocation(
                     QDesktopServices::TempLocation);
 #endif
+
+        if (!QDir(tempFileName).exists())
+            QDir().mkpath(tempFileName);
 
         tempFileName += QDir::cleanPath(QDir::separator() + QString("zxweather") + QDir::separator());
 

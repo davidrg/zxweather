@@ -1228,12 +1228,12 @@ QString cacheFilename(ImageInfo imageInfo, QString stationCode) {
                 QDesktopServices::CacheLocation);
 #endif
 
-    filename += "/images/" +
-            stationCode.toLower() + "/" +
-            imageInfo.imageSource.code.toLower() + "/" +
-            imageInfo.imageTypeCode.toLower() + "/" +
-            QString::number(imageInfo.timeStamp.date().year()) + "/" +
-            QString::number(imageInfo.timeStamp.date().month()) + "/";
+    filename += QDir::separator() + QString("images") + QDir::separator() +
+            stationCode.toLower() + QDir::separator() +
+            imageInfo.imageSource.code.toLower() + QDir::separator() +
+            imageInfo.imageTypeCode.toLower() + QDir::separator() +
+            QString::number(imageInfo.timeStamp.date().year()) + QDir::separator() +
+            QString::number(imageInfo.timeStamp.date().month()) + QDir::separator();
 
     // Make sure the target directory actually exists.
     if (!QDir(filename).exists())
@@ -1262,7 +1262,7 @@ QString cacheFilename(ImageInfo imageInfo, QString stationCode) {
     else
         filename += "dat";
 
-    return filename;
+    return QDir::cleanPath(filename);
 }
 
 void DatabaseDataSource::fetchImages(QList<int> imageIds, bool thumbnail) {
@@ -1272,7 +1272,10 @@ void DatabaseDataSource::fetchImages(QList<int> imageIds, bool thumbnail) {
     }
     QString idArray = "{" + idList.join(",") + "}";
 
-    QString qry = "select i.image_id, i.image_data, i.time_stamp, \
+    // TODO: support pulling image data from on-disk cache to make querying
+    // faster. This would likely involve splitting this into two queries.
+
+    QString qry = "select i.image_id, i.time_stamp, \
                           i.title, i.description, i.mime_type, \
                           upper(imgs.code) as src_code, imgs.source_name, \
                           upper(it.code) as image_type_code, i.metadata, \
@@ -1281,7 +1284,7 @@ void DatabaseDataSource::fetchImages(QList<int> imageIds, bool thumbnail) {
                    inner join image_source imgs on imgs.image_source_id = i.image_source_id \
                    inner join image_type it on it.image_type_id = i.image_type_id \
                    where i.image_id = any(:idArray) order by time_stamp";
-
+//i.image_data,
     QSqlQuery query;
     query.prepare(qry);
     query.bindValue(":idArray", idArray);
@@ -1294,6 +1297,10 @@ void DatabaseDataSource::fetchImages(QList<int> imageIds, bool thumbnail) {
 
     // TODO: Not this
     QString stationCode = Settings::getInstance().stationCode().toUpper();
+
+    QMap<int, ImageInfo> imageInfos;
+    QMap<int, QString> cacheFiles;
+    QStringList missingCacheFiles;
 
     qDebug() << "Processing results...";
     while (query.next()) {
@@ -1316,31 +1323,54 @@ void DatabaseDataSource::fetchImages(QList<int> imageIds, bool thumbnail) {
         if (info.hasMetadata) {
             info.metadata = record.value("metadata").toByteArray();
         }
-        QByteArray imageData = record.value("image_data").toByteArray();
+
+        QString filename = cacheFilename(info, stationCode);
+
+        QFile f(filename);
+        if (!f.exists()) {
+            missingCacheFiles.append(QString::number(imageId));
+        }
+
+        imageInfos[imageId] = info;
+        cacheFiles[imageId] = filename;
+    }
+
+    QString dataArray = "{" + missingCacheFiles.join(",") + "}";
+
+    QSqlQuery dataQuery;
+    dataQuery.prepare("select i.image_data, i.image_id from image i where i.image_id = any(:idArray)");
+    dataQuery.bindValue(":idArray", dataArray);
+    dataQuery.setForwardOnly(true);
+    result = dataQuery.exec();
+    if (!result || !dataQuery.isActive()) {
+        databaseError("fetchImages", query.lastError(), query.lastQuery());
+        return;
+    }
+
+    while (dataQuery.next()) {
+        QSqlRecord record = dataQuery.record();
+        int image_id = record.value("image_id").toInt();
+        QByteArray data = record.value("image_data").toByteArray();
+        QFile f(cacheFiles[image_id]);
+        if (f.open(QIODevice::WriteOnly)) {
+            f.write(data);
+            f.close();
+        }
+    }
+
+    foreach (int imageId, imageInfos.keys()) {
+        ImageInfo info = imageInfos[imageId];
+        QString filename = cacheFiles[imageId];
+        QByteArray imageData;
+
+        QFile file(filename);
+        if (file.open(QIODevice::ReadOnly)) {
+            imageData = file.readAll();
+        }
 
         QImage srcImage;
         if (!info.mimeType.startsWith("video/")) {
             srcImage = QImage::fromData(imageData);
-        }
-
-        /*
-         * Videos are passed to clients on disk rather than in memory. So we'll
-         * cache the video in the usual cache location and pass out that file
-         * name. The video will persist on disk until the caches are cleared by
-         * the same mechanism used to manage the web data source cache.
-         */
-        QString filename;
-        if (info.mimeType.startsWith("video/")) {
-            filename = cacheFilename(info, stationCode);
-
-            QFile file(filename);
-
-            if (!file.exists()) {
-                if (file.open(QIODevice::WriteOnly)) {
-                    file.write(imageData);
-                    file.close();
-                }
-            }
         }
 
         if (thumbnail) {
