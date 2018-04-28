@@ -1347,3 +1347,21 @@ SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
 
     return samples;
 }
+
+void WebCacheDB::clearSamples() {
+    QSqlQuery query(sampleCacheDb);
+    query.exec("delete from sample");
+    query.exec("delete from data_file");;
+    sampleCacheDb.close();
+    sampleCacheDb.open();
+    query.exec("vacuum");
+}
+
+void WebCacheDB::clearImages() {
+    QSqlQuery query(sampleCacheDb);
+    query.exec("delete from image");
+    query.exec("delete from image_set");
+    sampleCacheDb.close();
+    sampleCacheDb.open();
+    query.exec("vacuum");
+}

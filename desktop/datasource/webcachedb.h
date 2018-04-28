@@ -196,6 +196,14 @@ public:
      */
     QVector<ImageInfo> getMostRecentImages(QString stationUrl);
 
+    /** Clears all samples from the database.
+     */
+    void clearSamples();
+
+    /** Clears all image metadata from the database.
+     */
+    void clearImages();
+
 signals:
     /** Emitted when an error occurs which would prevent the cache database
      * from operating.

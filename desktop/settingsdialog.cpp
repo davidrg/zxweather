@@ -23,9 +23,14 @@
 #include "settingsdialog.h"
 #include "ui_settingsdialog.h"
 #include "settings.h"
+#include "datasource/webcachedb.h"
 
 #include <QSqlDatabase>
 #include <QDebug>
+#include <QDir>
+#include <QfileInfo>
+#include <QDesktopServices>
+#include <QtConcurrent>
 
 SettingsDialog::SettingsDialog(bool solarDataAvailable, QWidget *parent) :
     QDialog(parent),
@@ -38,6 +43,10 @@ SettingsDialog::SettingsDialog(bool solarDataAvailable, QWidget *parent) :
     connect(ui->rbLiveWeb, SIGNAL(clicked()), this, SLOT(dataSourceChanged()));
     connect(ui->rbSampleDatabase, SIGNAL(clicked()), this, SLOT(dataSourceChanged()));
     connect(ui->rbSampleWeb, SIGNAL(clicked()), this, SLOT(dataSourceChanged()));
+    connect(ui->pbClearData, SIGNAL(clicked()), this, SLOT(clearSamples()));
+    connect(ui->pbClearImages, SIGNAL(clicked()), this, SLOT(clearImages()));
+    connect(&imagesDirWatcher, SIGNAL(finished()), this, SLOT(imagesSizeCalculated()));
+    connect(&clearImagesWatcher, SIGNAL(finished()), this, SLOT(imagesCleared()));
 
     // Disable the samples database option if the Postgres driver isn't present.
     if (!QSqlDatabase::drivers().contains("QPSQL")) {
@@ -57,6 +66,8 @@ SettingsDialog::SettingsDialog(bool solarDataAvailable, QWidget *parent) :
     }
 
     loadSettings();
+
+    getCacheInfo();
 }
 
 SettingsDialog::~SettingsDialog()
@@ -209,4 +220,125 @@ void SettingsDialog::loadSettings() {
     ui->qcpBackground->setColor(colours.background);
 
     dataSourceChanged();
+}
+
+qint64 getDirectorySize(QString dirname) {
+    qint64 size = 0;
+
+    QDir dir(dirname);
+
+    foreach (QString file, dir.entryList(QDir::Files|QDir::System|QDir::Hidden)) {
+        size += QFileInfo(dir, file).size();
+    }
+
+    foreach (QString child, dir.entryList(QDir::Dirs|QDir::NoDotAndDotDot|QDir::System|QDir::Hidden)) {
+        size += getDirectorySize(dirname + QDir::separator() + child);
+    }
+
+    return size;
+}
+
+QString sizeToString(qint64 size) {
+    QStringList units = {"Bytes", "KB", "MB", "GB"};
+
+    int i;
+    double result = size;
+
+    for (i=0; i<units.size()-1; i++) {
+        if (result < 1024) {
+            break;
+        }
+
+        result = result / 1024;
+    }
+
+    return QString("%0 %1").arg(result, 0, 'f', 2).arg(units[i]);
+}
+
+void SettingsDialog::getCacheInfo() {
+#if QT_VERSION >= 0x050000
+    QString cacheDir = QStandardPaths::writableLocation(
+                QStandardPaths::CacheLocation);
+#else
+    QString cacheDir = QDesktopServices::storageLocation(
+                QDesktopServices::CacheLocation);
+#endif
+
+    cacheDir += QDir::separator();
+
+    QString imagesDir = cacheDir + QString("images");
+    QString databaseFile = cacheDir + "sample-cache.db";
+
+    ui->lblImagesSize->setText(tr("calculating..."));
+    ui->lblDataSize->setText(tr("calculating..."));
+
+    imagesDirWatcher.setFuture(QtConcurrent::run(getDirectorySize, imagesDir));
+
+    QFileInfo db(databaseFile);
+
+    if (db.exists()) {
+        ui->lblDataSize->setText(sizeToString(db.size()));
+    } else {
+        ui->lblDataSize->setText("0 Bytes");
+    }
+}
+
+void SettingsDialog::imagesSizeCalculated() {
+    ui->lblImagesSize->setText(sizeToString(imagesDirWatcher.result()));
+}
+
+#if QT_VERSION < 0x050000
+void rmdir(const QString dirName)
+{
+    QDir dir(dirName);
+
+    if (dir.exists(dirName)) {
+        foreach (QFileInfo info, dir.entryInfoList(QDir::NoDotAndDotDot | QDir::System | QDir::Hidden  | QDir::AllDirs | QDir::Files, QDir::DirsFirst)) {
+            if (info.isDir()) {
+                rmdir(info.absoluteFilePath());
+            }
+            else {
+                QFile::remove(info.absoluteFilePath());
+            }
+        }
+        dir.rmdir(dirName);
+    }
+}
+#endif
+
+void clearImagesDir() {
+#if QT_VERSION >= 0x050000
+    QString cacheDir = QStandardPaths::writableLocation(
+                QStandardPaths::CacheLocation);
+#else
+    QString cacheDir = QDesktopServices::storageLocation(
+                QDesktopServices::CacheLocation);
+#endif
+
+    cacheDir += QDir::separator();
+
+    QString imagesDir = cacheDir + QString("images");
+
+#if QT_VERSION >= 0x050000
+    QDir dir(imagesDir);
+    dir.removeRecursively();
+#else
+    rmdir(imagesDir);
+#endif
+}
+
+void SettingsDialog::clearImages() {
+    ui->lblImagesSize->setText(tr("clearing..."));
+
+    clearImagesWatcher.setFuture(QtConcurrent::run(clearImagesDir));
+}
+
+void SettingsDialog::imagesCleared() {
+    WebCacheDB::getInstance().clearImages();
+    getCacheInfo();
+}
+
+void SettingsDialog::clearSamples() {
+    WebCacheDB::getInstance().clearSamples();
+    getCacheInfo();
 }
