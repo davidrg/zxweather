@@ -145,11 +145,14 @@ RainfallWidget::RainfallWidget(QWidget *parent) : QWidget(parent)
     // Create a temporary filename for use in drag&drop operations
 #if QT_VERSION >= 0x050000
         QString filename = QStandardPaths::writableLocation(
-                    QStandardPaths::CacheLocation);
+                    QStandardPaths::CacheLocation) + QDir::separator() + "temp";
 #else
         QString filename = QDesktopServices::storageLocation(
                     QDesktopServices::TempLocation);
 #endif
+
+    if (!QDir(filename).exists())
+        QDir().mkpath(filename);
 
     QTemporaryFile f(filename + QDir::separator() + "XXXXXX.png");
     f.setAutoRemove(false);

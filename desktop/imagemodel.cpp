@@ -223,13 +223,11 @@ void TreeItem::setImage(ImageInfo info, QImage image, QString cacheFile) {
 
 #if QT_VERSION >= 0x050000
         QString filename = QStandardPaths::writableLocation(
-                    QStandardPaths::CacheLocation);
+                    QStandardPaths::CacheLocation) + QDir::separator() + "temp" + QDir::separator();
 #else
         QString filename = QDesktopServices::storageLocation(
-                    QDesktopServices::TempLocation);
+                    QDesktopServices::TempLocation) + QDir::separator() + "zxweather" + QDir::separator();
 #endif
-
-        filename += "/zxweather/";
 
         if (!QDir(filename).exists())
             QDir().mkpath(filename);
