@@ -192,6 +192,13 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->latestImages->setSizePolicy(policy);
 }
 
+
+/* -----------------------------------------------------------------------------------
+ * The following should be in the DatabaseDataSource!
+ * But it isn't because on database connect failure we've got to turn off a bunch of
+ * UI bits. So really we need a connect failed signal on AbstractDataSource. This will
+ * probably be done as part of a larger refactoring of the data sources.
+ */
 bool MainWindow::databaseCompatibilityChecks() {
 
     using namespace DbUtil;
@@ -295,6 +302,8 @@ void MainWindow::reconnectDatabase() {
         ui->actionImages->setEnabled(false);
     }
 }
+// ------------------ ^^^ This should be in DatabaseDataSource ^^^ ------------------
+
 
 MainWindow::~MainWindow()
 {
@@ -343,7 +352,8 @@ void MainWindow::showSettings() {
 
         Settings& settings = Settings::getInstance();
 
-        if (settings.liveDataSourceType() != Settings::DS_TYPE_DATABASE) {
+        if (settings.liveDataSourceType() != Settings::DS_TYPE_DATABASE
+                && settings.sampleDataSourceType() != Settings::DS_TYPE_DATABASE) {
             // For the database live data source reconnectDatabase() will handle
             // calling reconfigureDataSource() once the database is ready.
             reconfigureDataSource();
