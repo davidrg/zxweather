@@ -211,7 +211,7 @@ double UnitConversions::hectopascalsToInchesOfMercury(double hpa) {
 
 
 double UnitConversions::millimetersToInches(double mm) {
-    return mm * 0.0393701;
+    return mm * 1.0/25.4;
 }
 
 double UnitConversions::millimetersToCentimeters(double mm) {
