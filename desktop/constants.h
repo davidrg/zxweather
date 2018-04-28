@@ -12,6 +12,7 @@
 #define DEGREE_SYMBOL "°"
 
 #define TEMPERATURE_SYMBOL DEGREE_SYMBOL "C"
+#define IMPERIAL_TEMPERATURE_SYMBOL DEGREE_SYMBOL "F"
 
 namespace Constants {
 

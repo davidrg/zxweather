@@ -19,11 +19,17 @@
 
 #define PROP_GRAPH_TYPE "graph_type"
 
+UnitConversions::unit_t metricUnitToImperial(UnitConversions::unit_t unit);
+
+#define imperialiseUnitDict(type) units[type] = metricUnitToImperial(units[type])
+
 LivePlotWindow::LivePlotWindow(bool solarAvailalble, hardware_type_t hardwareType, QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::LivePlotWindow)
 {
     ui->setupUi(this);
+
+    imperial = Settings::getInstance().imperial();
 
     this->hwType = hardwareType;
     this->solarAvailable = solarAvailalble;
@@ -46,14 +52,32 @@ LivePlotWindow::LivePlotWindow(bool solarAvailalble, hardware_type_t hardwareTyp
     units[LV_UVIndex] = UnitConversions::U_UV_INDEX;
     units[LV_SolarRadiation] = UnitConversions::U_WATTS_PER_SQUARE_METER;
 
+    if (imperial) {
+        imperialiseUnitDict(LV_Temperature);
+        imperialiseUnitDict(LV_IndoorTemperature);
+        imperialiseUnitDict(LV_ApparentTemperature);
+        imperialiseUnitDict(LV_WindChill);
+        imperialiseUnitDict(LV_DewPoint);
+        imperialiseUnitDict(LV_Pressure);
+        imperialiseUnitDict(LV_WindSpeed);
+        imperialiseUnitDict(LV_StormRain);
+        imperialiseUnitDict(LV_RainRate);
+    }
+
     // And their labels
     axisLabels[UnitConversions::U_CELSIUS] = tr("Temperature (" DEGREE_SYMBOL "C)");
+    axisLabels[UnitConversions::U_FAHRENHEIT] = tr("Fahrenheit (" DEGREE_SYMBOL "F)");
     axisLabels[UnitConversions::U_HUMIDITY] = tr("Humidity (%)");
     axisLabels[UnitConversions::U_HECTOPASCALS] = tr("Pressure (hPa)");
+    axisLabels[UnitConversions::U_INCHES_OF_MERCURY] = tr("Inches of Mercury (InHg)");
     axisLabels[UnitConversions::U_METERS_PER_SECOND] = tr("Wind Speed (m/s)");
+    axisLabels[UnitConversions::U_KILOMETERS_PER_HOUR] = tr("Wind Speed (km/h)");
+    axisLabels[UnitConversions::U_MILES_PER_HOUR] = tr("Wind Speed (mph)");
     axisLabels[UnitConversions::U_DEGREES] = tr("Wind direction (" DEGREE_SYMBOL ")");
     axisLabels[UnitConversions::U_MILLIMETERS] = tr("Rainfall (mm)");
+    axisLabels[UnitConversions::U_INCHES] = tr("Rainfall (in)");
     axisLabels[UnitConversions::U_MILLIMETERS_PER_HOUR] = tr("Rain Rate (mm/h)");
+    axisLabels[UnitConversions::U_INCHES_PER_HOUR] = tr("Rain rate (in/h)");
     axisLabels[UnitConversions::U_VOLTAGE] = tr("Voltage (V)");
     axisLabels[UnitConversions::U_UV_INDEX] = tr("UV Index");
     axisLabels[UnitConversions::U_WATTS_PER_SQUARE_METER] = tr("Solar Radiation (W/m" SQUARED_SYMBOL ")");
@@ -112,6 +136,47 @@ LivePlotWindow::LivePlotWindow(bool solarAvailalble, hardware_type_t hardwareTyp
                 tr("Select the values to display in the live chart. More can be added "
                    "later."),
                 tr("Choose graphs"));
+}
+
+UnitConversions::unit_t metricUnitToImperial(UnitConversions::unit_t unit) {
+    switch(unit) {
+    case UnitConversions::U_METERS_PER_SECOND:
+    case UnitConversions::U_KILOMETERS_PER_HOUR:
+        return UnitConversions::U_MILES_PER_HOUR;
+    case UnitConversions::U_CELSIUS:
+        return UnitConversions::U_FAHRENHEIT;
+    case UnitConversions::U_HECTOPASCALS:
+        return UnitConversions::U_INCHES_OF_MERCURY;
+    case UnitConversions::U_MILLIMETERS:
+    case UnitConversions::U_CENTIMETERS:
+        return UnitConversions::U_INCHES;
+    case UnitConversions::U_MILLIMETERS_PER_HOUR:
+    case UnitConversions::U_CENTIMETERS_PER_HOUR:
+        return UnitConversions::U_INCHES_PER_HOUR;
+    default:
+        return unit;
+    }
+}
+
+double metricToImperial(LiveValue v, double value) {
+    switch(v) {
+    case LV_Temperature:
+    case LV_IndoorTemperature:
+    case LV_ApparentTemperature:
+    case LV_WindChill:
+    case LV_DewPoint:
+        return UnitConversions::celsiusToFahrenheit(value);
+    case LV_Pressure:
+        return UnitConversions::hectopascalsToInchesOfMercury(value);
+    case LV_WindSpeed:
+        return UnitConversions::metersPerSecondToMilesPerHour(value);
+    case LV_StormRain:
+    case LV_RainRate:
+        return UnitConversions::millimetersToInches(value);
+    default:
+    return value;
+
+    }
 }
 
 LivePlotWindow::~LivePlotWindow()
@@ -457,6 +522,11 @@ void LivePlotWindow::liveData(LiveDataSet ds) {
 }
 
 void LivePlotWindow::updateGraph(LiveValue type, double key, double range, double value) {
+
+    if (imperial) {
+        value = metricToImperial(type, value);
+    }
+
     if (graphs.contains(type)) {
         graphs[type]->data()->removeBefore(key - range);
         graphs[type]->addData(key, value);
