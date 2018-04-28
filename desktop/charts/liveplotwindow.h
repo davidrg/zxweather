@@ -65,6 +65,8 @@ private:
     hardware_type_t hwType;
     bool solarAvailable;
 
+    bool imperial;
+
     QMap<LiveValue, QCPGraph*> graphs;
     QMap<LiveValue, QCPGraph*> points;
     QMap<LiveValue, AxisTag*> tags;
