@@ -17,11 +17,11 @@ public:
 
 
 public slots:
-    virtual void setTaskName(QString title) {}
-    virtual void setSubtaskName(QString label) {}
+    virtual void setTaskName(QString /* title */) {}
+    virtual void setSubtaskName(QString /* label */) {}
 
     virtual void setMaximum(int max) {this->max = max;}
-    virtual void setRange(int min, int max) {this->max = max;}
+    virtual void setRange(int /* min */, int max) {this->max = max;}
     virtual void setValue(int value) {this->val = value;}
 
     virtual void reset() {}

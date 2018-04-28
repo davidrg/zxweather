@@ -340,6 +340,8 @@ void ImageWidget::popOut(ImageInfo info, QImage image, QString filename) {
 }
 
 void ImageWidget::videoSizeChanged(QSize size) {
+    Q_UNUSED(size)
+
     // This is to ensure poped out windows containing a video get resized to an
     // appropriate size once the video has loaded.
     adjustSize();

@@ -227,6 +227,8 @@ void ChartWindow::toggleXAxisLock() {
 void ChartWindow::axisDoubleClick(QCPAxis *axis, QCPAxis::SelectablePart part,
                                   QMouseEvent *event)
 {
+    Q_UNUSED(event)
+
     // If the user double-clicked on the axis label then ask for new
     // label text.
     if (part == QCPAxis::spAxisLabel) {
@@ -781,6 +783,9 @@ void ChartWindow::changeSelectedGraphStyle()
 
 void ChartWindow::plottableDoubleClick(QCPAbstractPlottable* plottable, int dataIndex,
                                        QMouseEvent* event) {
+
+    Q_UNUSED(dataIndex)
+    Q_UNUSED(event)
 
     QCPGraph *graph = qobject_cast<QCPGraph *>(plottable);
 

@@ -160,16 +160,17 @@ void VideoPlayer::mediaStatusChanged(QMediaPlayer::MediaStatus newStatus) {
 
 void VideoPlayer::stateChanged(QMediaPlayer::State newState) {
     switch (newState) {
-    // We handle this via media status changed so we can handle stopped vs end of media
-//    case QMediaPlayer::StoppedState:
-//        setStatus("Stopped");
-//        break;
     case QMediaPlayer::PlayingState:
         setStatus("Playing");
         break;
     case QMediaPlayer::PausedState:
         setStatus("Paused");
         break;
+    case QMediaPlayer::StoppedState:
+        // We handle this via media status changed so we can handle
+        // stopped vs end of media.
+    default:
+        break; // do nothing
     }
 }
 
