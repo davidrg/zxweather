@@ -155,6 +155,8 @@ void ViewImagesWindow::treeItemSelectionChanged(QItemSelection selected,
 
 void ViewImagesWindow::listItemSelectionChanged(QItemSelection selected,
                                                 QItemSelection deselected) {
+    Q_UNUSED(deselected)
+
     if (selected.indexes().isEmpty()) {
         return;
     }

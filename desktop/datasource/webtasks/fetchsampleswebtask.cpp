@@ -53,7 +53,7 @@ void FetchSamplesWebTask::networkReplyReceived(QNetworkReply *reply) {
             // Sysconfig data loaded! Queue up the next task!
 
             // Firstly, filter out any columns that aren't valid:
-            if (!_hwType == HW_DAVIS) {
+            if (_hwType != HW_DAVIS) {
                 _columns = _columns & ~DAVIS_COLUMNS;
             } else {
                 // davis hardware. Turn off any columns not applicable for the

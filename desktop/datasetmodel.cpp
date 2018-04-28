@@ -15,11 +15,13 @@ DataSetModel::DataSetModel(DataSet dataSet, SampleSet sampleSet,
 }
 
 int DataSetModel::rowCount(const QModelIndex &parent) const {
+    Q_UNUSED(parent)
     return sampleSet.sampleCount;
 }
 
 int DataSetModel::columnCount(const QModelIndex &parent) const
 {
+    Q_UNUSED(parent)
     return columns.count();
 }
 

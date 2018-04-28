@@ -218,7 +218,7 @@ QString buildSelectForColumns(SampleColumns columns)
     return query;
 }
 
-QString buildGroupedSelect(SampleColumns columns, AggregateFunction function, AggregateGroupType groupType, uint32_t minutes) {
+QString buildGroupedSelect(SampleColumns columns, AggregateFunction function, AggregateGroupType groupType) {
 
     QString fn = "";
     if (function == AF_Average)
@@ -339,9 +339,9 @@ QString buildGroupedSelect(SampleColumns columns, AggregateFunction function, Ag
 
 }
 
-QString buildGroupedCount(AggregateFunction function, AggregateGroupType groupType, uint32_t minutes) {
+QString buildGroupedCount(AggregateFunction function, AggregateGroupType groupType) {
 
-    QString baseQuery = buildGroupedSelect(SC_NoColumns, function, groupType, minutes);
+    QString baseQuery = buildGroupedSelect(SC_NoColumns, function, groupType);
 
     QString query = "select count(*) as cnt from ( " + baseQuery + " ) as x ";
     return query;
@@ -375,7 +375,7 @@ int DatabaseDataSource::groupedCountQuery(int stationId, QDateTime startTime,
                                           uint32_t minutes) {
     QSqlQuery query;
 
-    QString qry = buildGroupedCount(function, groupType, minutes);
+    QString qry = buildGroupedCount(function, groupType);
     qDebug() << "Grouped count";
     qDebug() << "Query:" << qry;
     qDebug() << "Parameters: stationId -" << stationId << ", startTime -" << startTime
@@ -407,9 +407,7 @@ int DatabaseDataSource::groupedCountQuery(int stationId, QDateTime startTime,
     return count;
 }
 
-QSqlQuery setupBasicQuery(SampleColumns columns, int stationId,
-                          QDateTime startTime, QDateTime endTime,
-                          int broadcastId) {
+QSqlQuery setupBasicQuery(SampleColumns columns, int broadcastId) {
 
     qDebug() << "Basic Query";
 
@@ -439,7 +437,7 @@ QSqlQuery setupGroupedQuery(SampleColumns columns, int stationId,
 
     qDebug() << "Grouped Query";
 
-    QString qry = buildGroupedSelect(columns, function, groupType, minutes);
+    QString qry = buildGroupedSelect(columns, function, groupType);
 
     // This can't be a regular query parameter as it appears in the select
     qry = qry.replace(":broadcastId", QString::number(broadcastId));
@@ -540,7 +538,7 @@ void DatabaseDataSource::fetchSamples(SampleColumns columns,
 
     QSqlQuery query;
     if (aggregateFunction == AF_None || groupType == AGT_None)
-        query = setupBasicQuery(columns, stationId, startTime, endTime, broadcastId);
+        query = setupBasicQuery(columns, broadcastId);
     else
         query = setupGroupedQuery(columns | SC_Timestamp, stationId,
                           aggregateFunction, groupType, groupMinutes,
@@ -551,11 +549,6 @@ void DatabaseDataSource::fetchSamples(SampleColumns columns,
     query.bindValue(":stationId", stationId);
     query.bindValue(":startTime", startTime);
     query.bindValue(":endTime", endTime);
-
-//    if (columns.testFlag(SC_Reception)) {
-//        query.bindValue(":broadcastIdA", broadcastId);
-//        query.bindValue(":broadcastIdB", broadcastId);
-//    }
 
     qDebug() << "Running fetch samples query";
     qDebug() << query.boundValues();
@@ -670,7 +663,7 @@ void DatabaseDataSource::fetchSamples(SampleColumns columns,
 
     qDebug() << "Expected samples:" << samples.sampleCount;
     qDebug() << "Have samples:" << samples.timestamp.count();
-    if (samples.sampleCount != samples.timestamp.count()) {
+    if ((int)samples.sampleCount != samples.timestamp.count()) {
         qWarning() << "Sample count mismatch!";
     }
 

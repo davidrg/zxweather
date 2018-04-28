@@ -641,6 +641,8 @@ int ImageModel::rowCount(const QModelIndex &parent) const {
 }
 
 int ImageModel::columnCount(const QModelIndex &parent) const {
+    Q_UNUSED(parent)
+
     return 1; // Only one column: timestamp
 
     // If we were to support more than one column:

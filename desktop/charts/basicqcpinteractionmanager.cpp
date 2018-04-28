@@ -33,7 +33,8 @@ BasicQCPInteractionManager::BasicQCPInteractionManager(QCustomPlot *plot, QObjec
 void BasicQCPInteractionManager::legendClick(QCPLegend *legend,
                                              QCPAbstractLegendItem *item,
                                              QMouseEvent *event) {
-
+    Q_UNUSED(legend)
+    Q_UNUSED(event)
     /*
      * Select the plottable associated with a legend item when the legend
      * item is selected.
