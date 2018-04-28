@@ -24,6 +24,7 @@
 #define SETTINGSDIALOG_H
 
 #include <QDialog>
+#include <QFutureWatcher>
 
 namespace Ui {
 class SettingsDialog;
@@ -81,8 +82,25 @@ protected slots:
      */
     void dataSourceChanged();
 
+    /** For async calculation of the images cache
+     */
+    void imagesSizeCalculated();
+
+    /** Clear image cache
+     */
+    void clearImages();
+
+    /** Clear sample cache
+     */
+    void clearSamples();
+
+    void imagesCleared();
 private:
+    void getCacheInfo();
+
     Ui::SettingsDialog *ui;
+    QFutureWatcher<qint64> imagesDirWatcher;
+    QFutureWatcher<void> clearImagesWatcher;
 };
 
 #endif // SETTINGSDIALOG_H
