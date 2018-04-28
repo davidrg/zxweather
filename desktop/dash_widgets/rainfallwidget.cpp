@@ -10,6 +10,8 @@
 #include <QDir>
 
 #include "charts/qcp/qcustomplot.h"
+#include "settings.h"
+#include "unit_conversions.h"
 
 #define K_DAY 1
 #define K_STORM 2
@@ -19,6 +21,8 @@
 
 RainfallWidget::RainfallWidget(QWidget *parent) : QWidget(parent)
 {
+    imperial = Settings::getInstance().imperial();
+
     // Create the basic UI
     plot = new QCustomPlot(this);
     plot->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -344,12 +348,25 @@ void RainfallWidget::updatePlot() {
     // sample
     double dayValue = day + rainExtra,
             monthValue = month + rainExtra,
-            yearValue = year + rainExtra;
+            yearValue = year + rainExtra,
+            stormValue = storm,
+            rateValue = rate;
+
+    int decimalPlaces = 1;
+
+    if (imperial) {
+        dayValue = UnitConversions::millimetersToInches(dayValue);
+        monthValue = UnitConversions::millimetersToInches(monthValue);
+        yearValue = UnitConversions::millimetersToInches(yearValue);
+        stormValue = UnitConversions::millimetersToInches(stormValue);
+        rateValue = UnitConversions::millimetersToInches(rateValue);
+        decimalPlaces = 2;
+    }
 
     shortRangeValues << dayValue;
 
     if (stormRateEnabled) {
-        shortRangeValues << storm << rate;
+        shortRangeValues << stormValue << rateValue;
     }
 
     shortRangeTicks << K_DAY;
@@ -360,11 +377,11 @@ void RainfallWidget::updatePlot() {
     longRangeValues << monthValue << yearValue;
     longRangeTicks << K_MONTH << K_YEAR;
 
-    shortRangeBottomTicker->addTick(K_DAY, QString::number(dayValue, 'f', 1));
-    shortRangeBottomTicker->addTick(K_STORM, QString::number(storm, 'f', 1));
-    shortRangeBottomTicker->addTick(K_RATE, QString::number(rate, 'f', 1));
-    longRangeBottomTicker->addTick(K_MONTH, QString::number(monthValue, 'f', 1));
-    longRangeBottomTicker->addTick(K_YEAR, QString::number(yearValue, 'f', 1));
+    shortRangeBottomTicker->addTick(K_DAY, QString::number(dayValue, 'f', decimalPlaces));
+    shortRangeBottomTicker->addTick(K_STORM, QString::number(stormValue, 'f', decimalPlaces));
+    shortRangeBottomTicker->addTick(K_RATE, QString::number(rateValue, 'f', decimalPlaces));
+    longRangeBottomTicker->addTick(K_MONTH, QString::number(monthValue, 'f', decimalPlaces));
+    longRangeBottomTicker->addTick(K_YEAR, QString::number(yearValue, 'f', decimalPlaces));
 
     shortRange->setData(shortRangeTicks, shortRangeValues);
     longRange->setData(longRangeTicks, longRangeValues);

@@ -67,6 +67,8 @@ private:
     double rainExtra;
     double lastStormRain;
 
+    bool imperial;
+
     void updatePlot();
 
     // Drag&drop support
