@@ -19,6 +19,7 @@ public:
     explicit RangeRequestWebTask(QString baseUrl,
                                  QString stationCode,
                                  request_data_t requestData,
+                                 bool select,
                                  WebDataSource* ds);
 
     /** Starts processing this task.
@@ -48,6 +49,7 @@ public slots:
 private:
     // Parameters
     request_data_t _requestData;
+    bool _select;
 
     bool processResponse(QString data);
 };

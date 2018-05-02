@@ -75,6 +75,8 @@ public:
         return instance;
     }
 
+    static QSqlQuery query();
+
     /** Retrieves data between the specified times for the specified weather
      * station. If no data is available in the database within the time range
      * for the weather station then no data will be returned.

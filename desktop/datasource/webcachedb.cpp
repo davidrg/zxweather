@@ -9,6 +9,10 @@
 
 #define TEMPORARY_IMAGE_SET "::temporary_image_set:"
 
+QSqlQuery WebCacheDB::query() {
+    return QSqlQuery(QSqlDatabase::database(SAMPLE_CACHE,false));
+}
+
 WebCacheDB::WebCacheDB()
 {
     openDatabase();

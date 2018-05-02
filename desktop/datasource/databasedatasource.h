@@ -24,6 +24,10 @@ public:
             AggregateGroupType groupType = AGT_None,
             uint32_t groupMinutes = 0);
 
+    void fetchSamplesFromCache(DataSet dataSet);
+
+    QSqlQuery query();
+
     void enableLiveData();
 
     hardware_type_t getHardwareType();
@@ -41,6 +45,8 @@ public:
     void hasActiveImageSources();
 
     void fetchRainTotals();
+
+    void primeCache(QDateTime start, QDateTime end);
 
 private slots:
     void notificationPump(bool force = false);

@@ -171,6 +171,27 @@ void DataSourceProxy::fetchRainTotals() {
     sampleSource->fetchRainTotals();
 }
 
+void DataSourceProxy::fetchSamplesFromCache(DataSet dataSet) {
+    if (sampleSource == 0) {
+        return; // ERROR
+    }
+    sampleSource->fetchSamplesFromCache(dataSet);
+}
+
+QSqlQuery DataSourceProxy::query() {
+    if (sampleSource == 0) {
+        return QSqlQuery(); // ERROR
+    }
+    return sampleSource->query();
+}
+
+void DataSourceProxy::primeCache(QDateTime start, QDateTime end) {
+    if (sampleSource == 0) {
+        return; // ERROR
+    }
+    sampleSource->primeCache(start, end);
+}
+
 // Slots
 void DataSourceProxy::liveDataSlot(LiveDataSet data) {
     emit liveData(data);
