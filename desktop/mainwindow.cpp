@@ -37,6 +37,8 @@
 
 #include "dbutil.h"
 
+#include "reporting/runreportdialog.h"
+
 #include <QtDebug>
 #include <QDateTime>
 #include <QMessageBox>
@@ -591,6 +593,10 @@ void MainWindow::reconfigureDataSource() {
     } else {
         liveMonitor->disable();
     }
+
+    RunReportDialog *rrd = new RunReportDialog();
+    rrd->setAttribute(Qt::WA_DeleteOnClose);
+    rrd->show();
 }
 
 void MainWindow::setStationName(QString name) {

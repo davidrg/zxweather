@@ -59,6 +59,9 @@ public:
     void fetchLatestImages();
     void hasActiveImageSources();
     void fetchRainTotals();
+    void fetchSamplesFromCache(DataSet dataSet);
+    QSqlQuery query();
+    void primeCache(QDateTime start, QDateTime end);
 
 private slots:
     // Forward AbstractLiveDataSource signals

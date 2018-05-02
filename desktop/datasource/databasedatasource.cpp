@@ -496,10 +496,6 @@ void DatabaseDataSource::fetchSamples(SampleColumns columns,
     progressListener->setValue(2);
     if (progressListener->wasCanceled()) return;
 
-    SampleSet samples;
-    ReserveSampleSetSpace(samples, size, columns);
-    samples.sampleCount = size;
-
     int broadcastId = -1;
     if (columns.testFlag(SC_Reception)) {
         // We need some extra config data for the reception column.
@@ -562,6 +558,9 @@ void DatabaseDataSource::fetchSamples(SampleColumns columns,
 
     progressListener->setSubtaskName("Process...");
     progressListener->setValue(3);
+
+    SampleSet samples;
+    ReserveSampleSetSpace(samples, size, columns);
 
     qDebug() << "Processing results...";
     while (query.next()) {
@@ -671,6 +670,9 @@ void DatabaseDataSource::fetchSamples(SampleColumns columns,
     progressListener->setValue(5);
 }
 
+QSqlQuery DatabaseDataSource::query() {
+    return QSqlQuery(QSqlDatabase::database());
+}
 
 void DatabaseDataSource::connectToDB() {
     Settings& settings = Settings::getInstance();
@@ -1469,4 +1471,13 @@ void DatabaseDataSource::databaseError(QString source, QSqlError error,
     QMessageBox::warning(NULL, "Database Error",
                          message);
 
+}
+
+void DatabaseDataSource::fetchSamplesFromCache(DataSet dataSet) {
+    AbstractDataSource::fetchSamples(dataSet);
+}
+
+void DatabaseDataSource::primeCache(QDateTime start, QDateTime end) {
+    Q_UNUSED(start);
+    Q_UNUSED(end);
 }

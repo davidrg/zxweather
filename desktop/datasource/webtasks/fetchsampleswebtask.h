@@ -27,7 +27,7 @@ public:
                                  QDateTime endTime,
                                  AggregateFunction aggregateFunction,
                                  AggregateGroupType groupType,
-                                 uint32_t groupMinutes,
+                                 uint32_t groupMinutes, bool select,
                                  WebDataSource* ds);
 
     /** Starts processing this task.
@@ -75,6 +75,7 @@ private:
     AggregateFunction _aggregateFunction;
     AggregateGroupType _groupType;
     uint32_t _groupMinutes;
+    bool _select;
 
     // Sysconfig data
     QString _stationName;

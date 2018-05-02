@@ -118,7 +118,10 @@ SOURCES += main.cpp\
     charts/averagedliveaggregator.cpp \
     charts/livechartoptionsdialog.cpp \
     charts/livedatarepeater.cpp \
-    charts/axistag.cpp
+    charts/axistag.cpp \
+    reporting/report.cpp \
+    reporting/qt-mustache/mustache.cpp \
+    reporting/runreportdialog.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
@@ -209,7 +212,10 @@ HEADERS  += mainwindow.h \
     charts/averagedliveaggregator.h \
     charts/livechartoptionsdialog.h \
     charts/livedatarepeater.h \
-    charts/axistag.h
+    charts/axistag.h \
+    reporting/report.h \
+    reporting/qt-mustache/mustache.h \
+    reporting/runreportdialog.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \
@@ -233,7 +239,8 @@ FORMS    += mainwindow.ui \
     imagepropertiesdialog.ui \
     charts/liveplotwindow.ui \
     charts/addlivegraphdialog.ui \
-    charts/livechartoptionsdialog.ui
+    charts/livechartoptionsdialog.ui \
+    reporting/runreportdialog.ui
 
 # On Qt 4 we've got to use Phonon for video playback.
 lessThan(QT_MAJOR_VERSION, 5) {

@@ -38,6 +38,10 @@ public:
             AggregateGroupType groupType = AGT_None,
             uint32_t groupMinutes = 0);
 
+    void fetchSamplesFromCache(DataSet dataSet);
+
+    QSqlQuery query();
+
     void enableLiveData();
 
     hardware_type_t getHardwareType();
@@ -56,6 +60,9 @@ public:
     void hasActiveImageSources();
 
     void fetchRainTotals();
+
+    void primeCache(QDateTime start, QDateTime end);
+
 private slots:
     void liveDataReady(QNetworkReply* reply);
     void liveDataPoll();
@@ -73,7 +80,8 @@ private slots:
     // Task queue slots
 
     void queueTask(AbstractWebTask* task);
-    void queueTask(AbstractWebTask *task, bool startProcessing, bool priority=false);
+    void queueTask(AbstractWebTask *task, bool startProcessing,
+                   bool priority=false, bool lowPriority=false);
 
     void subtaskChanged(QString name);
     void httpGet(QNetworkRequest request);
@@ -124,7 +132,9 @@ private:
     // Task queue state
     QScopedPointer<QNetworkAccessManager> taskQueueNetworkAccessManager;
     bool processingQueue;
+    QQueue<AbstractWebTask*> highPriorityTaskQueue;
     QQueue<AbstractWebTask*> taskQueue;
+    QQueue<AbstractWebTask*> lowPriorityQueue;
     AbstractWebTask* currentTask;
     int currentSubtask;
 };

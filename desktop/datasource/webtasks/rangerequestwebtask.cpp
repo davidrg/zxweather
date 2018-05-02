@@ -31,9 +31,11 @@
 RangeRequestWebTask::RangeRequestWebTask(QString baseUrl,
                                          QString stationCode,
                                          request_data_t requestData,
+                                         bool select,
                                          WebDataSource* ds)
     : AbstractWebTask(baseUrl, stationCode, ds) {
     _requestData = requestData;
+    _select = select;
 }
 
 void RangeRequestWebTask::beginTask() {
@@ -183,13 +185,15 @@ bool RangeRequestWebTask::processResponse(QString data) {
         emit queueTask(task);
     }
 
-    // Put a task onto the end of the queue to grab the dataset from the cache
-    // database and hand it to the datasource.
-    SelectSamplesWebTask *selectTask = new SelectSamplesWebTask(_baseUrl,
-                                                                _stationCode,
-                                                                _requestData,
-                                                                _dataSource);
-    emit queueTask(selectTask);
+    if (_select) {
+        // Put a task onto the end of the queue to grab the dataset from the cache
+        // database and hand it to the datasource.
+        SelectSamplesWebTask *selectTask = new SelectSamplesWebTask(_baseUrl,
+                                                                    _stationCode,
+                                                                    _requestData,
+                                                                    _dataSource);
+        emit queueTask(selectTask);
+    }
 
     return true;
 }

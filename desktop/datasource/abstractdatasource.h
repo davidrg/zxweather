@@ -7,6 +7,7 @@
 #include <QList>
 #include <QImage>
 #include <QPointer>
+#include <QSqlQuery>
 
 #include "abstractlivedatasource.h"
 #include "sampleset.h"
@@ -41,6 +42,25 @@ public:
      * @param dataSet DataSet describing the samples to fetch
      */
     virtual void fetchSamples(DataSet dataSet);
+
+    /** Creates a query that can used against the backing database.
+     */
+    virtual QSqlQuery query() = 0;
+
+    /** Fetches samples from the cache exclusively. If the cache is missing data
+     * then that data will not be returned. Call primeCache() to ensure the desired
+     * data is available.
+     *
+     * This allows cache to be refreshed once (via primeCache()) for multiple
+     * sample queries rather than having the cache refreshed for every query
+     * as with fetchSamples()
+     *
+     * For the DatabaseDataSource this function just delegates to fetchSamples()
+     * and the primeCache() function does nothing.
+     *
+     * @param dataSet Dataset to fetch.
+     */
+    virtual void fetchSamplesFromCache(DataSet dataSet) = 0;
 
     /** Gets the hardware type for the configured station */
     virtual hardware_type_t getHardwareType() = 0;
@@ -91,6 +111,14 @@ public:
      * come from the rainTotalsReady signal.
      */
     virtual void fetchRainTotals() = 0;
+
+    /** Ensures all samples within the specified timespan are available in the cache.
+     *
+     * @param start Start time
+     * @param end End time
+     */
+    virtual void primeCache(QDateTime start, QDateTime end) = 0;
+
 signals:
     /** Emitted when samples have been retrieved and are ready for processing.
      *

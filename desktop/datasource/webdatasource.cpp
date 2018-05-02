@@ -12,6 +12,8 @@
 #include "webtasks/fetchimagedatelistwebtask.h"
 #include "webtasks/listdayimageswebtask.h"
 #include "webtasks/fetchraintotalswebtask.h"
+#include "webtasks/request_data.h"
+#include "webtasks/selectsampleswebtask.h"
 
 #include <QStringList>
 #include <QNetworkRequest>
@@ -136,10 +138,64 @@ void WebDataSource::fetchSamples(SampleColumns columns,
                 aggregateFunction,
                 groupType,
                 groupMinutes,
+                true,
                 this
     );
 
     queueTask(task);
+}
+
+void WebDataSource::fetchSamplesFromCache(DataSet dataSet) {
+    request_data_t request;
+    request.columns = dataSet.columns;
+    request.startTime = dataSet.startTime;
+    request.endTime = dataSet.endTime;
+    request.aggregateFunction = dataSet.aggregateFunction;
+    request.groupType = dataSet.groupType;
+    request.groupMinutes = dataSet.customGroupMinutes;
+
+    /* These values aren't used by SelectSamplesWebTask
+     *
+     * request.stationName = station_name;
+     * request.isSolarAvailable = isSolarDataAvailable;
+     * request.hwType = hwType;
+     */
+
+    SelectSamplesWebTask *selectTask = new SelectSamplesWebTask(
+                baseURL,
+                stationCode,
+                request,
+                this);
+
+    // Queue the task with low priority to ensure its processed *after* any
+    // primeCache() call.
+    queueTask(selectTask, false, true);
+}
+
+void WebDataSource::primeCache(QDateTime start, QDateTime end) {
+    FetchSamplesWebTask* task = new FetchSamplesWebTask(
+                baseURL,
+                stationCode,
+                ALL_SAMPLE_COLUMNS,
+                start,
+                end,
+                AF_None,
+                AGT_None,
+                0,
+                /* Fetch the samples but don't select them from the cache. This will
+                 * ensure all samples are available within the specified timespan are
+                 * available for future calls to fetchSamplesFromCache(). */
+                false,
+                this
+    );
+
+    // Prime the cache with priority to ensure this is processed before any subsequent
+    // selects
+    queueTask(task, true, true);
+}
+
+QSqlQuery WebDataSource::query() {
+    return WebCacheDB::query();
 }
 
 void WebDataSource::fireSamplesReady(SampleSet samples) {
@@ -545,7 +601,7 @@ void WebDataSource::queueTask(AbstractWebTask *task) {
 }
 
 void WebDataSource::queueTask(AbstractWebTask *task, bool startProcessing,
-                              bool priority) {
+                              bool priority, bool lowPriority) {
 
     if (!processingQueue) {
         progressListener->reset();
@@ -573,7 +629,9 @@ void WebDataSource::queueTask(AbstractWebTask *task, bool startProcessing,
     // Put the task in the queue
     if (priority) {
         // High priority - do before anything else
-        taskQueue.insert(0, task);
+        highPriorityTaskQueue.enqueue(task);
+    } else if (lowPriority) {
+        lowPriorityQueue.enqueue(task);
     } else {
         taskQueue.enqueue(task);
     }
@@ -599,8 +657,15 @@ void WebDataSource::startQueueProcessing() {
 
 void WebDataSource::processNextTask() {
 
-    // One progress item per task in our queue
-    currentTask = taskQueue.dequeue();
+    if (!highPriorityTaskQueue.isEmpty()) {
+        currentTask = highPriorityTaskQueue.dequeue();
+    } else if (!taskQueue.isEmpty()) {
+        currentTask = taskQueue.dequeue();
+    } else if (!lowPriorityQueue.isEmpty()){
+        currentTask = lowPriorityQueue.dequeue();
+    } else {
+        return;
+    }
 
     qDebug() << ":::: Processing task: " << currentTask->taskName();
 
@@ -648,7 +713,7 @@ void WebDataSource::taskFinished() {
     currentSubtask = 0;
 
 
-    if (taskQueue.isEmpty()) {
+    if (taskQueue.isEmpty() && highPriorityTaskQueue.isEmpty() && lowPriorityQueue.isEmpty()) {
         // And we're finished!
         progressListener->reset();
         processingQueue = false;

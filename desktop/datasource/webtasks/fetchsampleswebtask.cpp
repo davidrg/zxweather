@@ -20,6 +20,7 @@ FetchSamplesWebTask::FetchSamplesWebTask(QString baseUrl,
                                          AggregateFunction aggregateFunction,
                                          AggregateGroupType groupType,
                                          uint32_t groupMinutes,
+                                         bool select,
                                          WebDataSource* ds)
     : AbstractWebTask(baseUrl, stationCode, ds)
 {
@@ -29,6 +30,7 @@ FetchSamplesWebTask::FetchSamplesWebTask(QString baseUrl,
     _aggregateFunction = aggregateFunction;
     _groupType = groupType;
     _groupMinutes = groupMinutes;
+    _select = select;
 }
 
 void FetchSamplesWebTask::beginTask() {
@@ -78,7 +80,7 @@ void FetchSamplesWebTask::networkReplyReceived(QNetworkReply *reply) {
             request.hwType = _hwType;
 
             RangeRequestWebTask* task = new RangeRequestWebTask(
-                        _baseUrl, _stationCode, request, _dataSource);
+                        _baseUrl, _stationCode, request, _select, _dataSource);
             emit queueTask(task);
             emit finished();
         }
