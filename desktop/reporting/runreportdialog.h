@@ -36,6 +36,8 @@ private slots:
     void movePreviousPage();
     void cancel();
 
+    void timespanSelected();
+
 private:
     Ui::RunReportDialog *ui;
     Report report;

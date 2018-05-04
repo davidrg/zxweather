@@ -160,6 +160,7 @@
    <addaction name="actionExport_Data"/>
    <addaction name="actionView_Data"/>
    <addaction name="actionImages"/>
+   <addaction name="action_Reports"/>
    <addaction name="separator"/>
    <addaction name="actionSettings"/>
    <addaction name="actionAbout"/>
@@ -170,7 +171,10 @@
      <normaloff>:/icons/settings</normaloff>:/icons/settings</iconset>
    </property>
    <property name="text">
-    <string>Settings</string>
+    <string>&amp;Settings</string>
+   </property>
+   <property name="toolTip">
+    <string>Change settings</string>
    </property>
   </action>
   <action name="actionAbout">
@@ -179,7 +183,10 @@
      <normaloff>:/icons/about</normaloff>:/icons/about</iconset>
    </property>
    <property name="text">
-    <string>About</string>
+    <string>&amp;About</string>
+   </property>
+   <property name="toolTip">
+    <string>View copyright information</string>
    </property>
   </action>
   <action name="actionCharts">
@@ -188,13 +195,16 @@
      <normaloff>:/icons/chart</normaloff>:/icons/chart</iconset>
    </property>
    <property name="text">
-    <string>Create Chart...</string>
+    <string>&amp;Create Chart...</string>
    </property>
    <property name="iconText">
     <string>Create Chart...</string>
    </property>
    <property name="toolTip">
-    <string>Plot custom charts...</string>
+    <string>Plot custom charts</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+P</string>
    </property>
   </action>
   <action name="actionExport_Data">
@@ -203,13 +213,16 @@
      <normaloff>:/icons/export-data</normaloff>:/icons/export-data</iconset>
    </property>
    <property name="text">
-    <string>Export...</string>
+    <string>&amp;Export...</string>
    </property>
    <property name="iconText">
     <string>Export...</string>
    </property>
    <property name="toolTip">
-    <string>Save data as a csv file...</string>
+    <string>Save data as a csv file</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+E</string>
    </property>
   </action>
   <action name="actionView_Data">
@@ -218,13 +231,16 @@
      <normaloff>:/icons/table</normaloff>:/icons/table</iconset>
    </property>
    <property name="text">
-    <string>View Data...</string>
+    <string>&amp;View Data...</string>
    </property>
    <property name="iconText">
     <string>View Data...</string>
    </property>
    <property name="toolTip">
     <string>View Data in a table</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+V</string>
    </property>
   </action>
   <action name="actionImages">
@@ -233,10 +249,13 @@
      <normaloff>:/icons/image</normaloff>:/icons/image</iconset>
    </property>
    <property name="text">
-    <string>Images...</string>
+    <string>&amp;Images...</string>
    </property>
    <property name="iconText">
     <string>Images...</string>
+   </property>
+   <property name="toolTip">
+    <string>View archived images</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+I</string>
@@ -248,10 +267,34 @@
      <normaloff>:/icons/chart</normaloff>:/icons/chart</iconset>
    </property>
    <property name="text">
-    <string>Live Chart...</string>
+    <string>&amp;Live Chart...</string>
    </property>
    <property name="iconText">
     <string>Live Chart...</string>
+   </property>
+   <property name="toolTip">
+    <string>Plot live data</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+L</string>
+   </property>
+  </action>
+  <action name="action_Reports">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/icons/reports</normaloff>:/icons/reports</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;Reports...</string>
+   </property>
+   <property name="iconText">
+    <string>Reports...</string>
+   </property>
+   <property name="toolTip">
+    <string>Run a report</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+R</string>
    </property>
   </action>
  </widget>

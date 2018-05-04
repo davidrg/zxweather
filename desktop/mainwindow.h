@@ -106,6 +106,10 @@ public slots:
      */
     void showAbout();
 
+    /** Shows the run report window.
+     */
+    void showReports();
+
     void showWarningPopup(QString message, QString title, QString tooltip="", bool setWarningIcon=false);
     void clearWarningPopup();
     void dataSourceError(QString message);
