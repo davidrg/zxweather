@@ -26,6 +26,8 @@
         <file alias="options">resources/ui-check-boxes.png</file>
         <file alias="audio">resources/speaker-volume.png</file>
         <file alias="audio-32">resources/audiofile.png</file>
+        <file alias="report">resources/report.png</file>
+        <file alias="reports">resources/reports.png</file>
     </qresource>
     <qresource prefix="/icons/weather">
         <file alias="mostly_cloudy">resources/weather-cloud.png</file>

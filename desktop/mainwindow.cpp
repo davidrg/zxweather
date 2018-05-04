@@ -92,6 +92,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionView_Data, SIGNAL(triggered(bool)), this, SLOT(viewData()));
     connect(ui->actionSettings, SIGNAL(triggered()), this, SLOT(showSettings()));
     connect(ui->actionAbout, SIGNAL(triggered()), this, SLOT(showAbout()));
+    connect(ui->action_Reports, SIGNAL(triggered()), this, SLOT(showReports()));
 
     // Live Data Widget
     connect(ui->liveData, SIGNAL(sysTrayIconChanged(QIcon)),
@@ -593,10 +594,6 @@ void MainWindow::reconfigureDataSource() {
     } else {
         liveMonitor->disable();
     }
-
-    RunReportDialog *rrd = new RunReportDialog();
-    rrd->setAttribute(Qt::WA_DeleteOnClose);
-    rrd->show();
 }
 
 void MainWindow::setStationName(QString name) {
@@ -653,4 +650,10 @@ void MainWindow::adjustSizeSlot() {
     if (!ui->latestImages->isVisible()) {
         setFixedSize(size());
     }
+}
+
+void MainWindow::showReports() {
+    RunReportDialog *rrd = new RunReportDialog();
+    rrd->setAttribute(Qt::WA_DeleteOnClose);
+    rrd->show();
 }

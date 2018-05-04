@@ -11,23 +11,26 @@
 #include <QTreeWidgetItem>
 
 /* TODO:
- *  - Window icon
- *  - Report icons
- *  - Don't allow running the report without a timespan selected
- *  - Filter out reports that don't support the current data source or hardware type
+ *  - Intro page for when no report is selected
+ *  - Double clicking a report in the list should proceed to the next page
+ *  - Filter out reports that don't support the current hardware type
  *  - Add a button to the main window instead of displaying this window on startup
  *  - Custom report criteria UI
  *  - Update copyright info in about dialog (Qt Mustache)
  *
  * Report class TODO:
- *  - Load time picker type from json
+ *  - Load supported weather station
  *  - Load custom criteria UI
- *  - Load icon
- *  - Load output type options
- *      html, text, grid (for named queries)
+ *  - Output to disk
  *  - Output window
- *      - tabbed for output options
  *      - Save buttons - CSV for grid, html or plain for other
+ *      - CSV copy&paste for grid
+ *
+ * DB Data Source TODO:
+ *  - Change column names to match the Postgres schema
+ *  - Make station code available in the DB. Should be full URL with code supplied to
+ *    query as also the full url.
+ *  - make hw-type and other station config details available
  */
 
 RunReportDialog::RunReportDialog(QWidget *parent) :
@@ -38,13 +41,25 @@ RunReportDialog::RunReportDialog(QWidget *parent) :
 
     QList<Report> reports = Report::loadReports();
 
+    bool isWebDs = Settings::getInstance().sampleDataSourceType() == Settings::DS_TYPE_WEB_INTERFACE;
+    bool isDbDs = Settings::getInstance().sampleDataSourceType() == Settings::DS_TYPE_DATABASE;
+
     foreach (Report r, reports) {
         if (r.isNull())
             continue;
 
+        if (isWebDs && !r.supportsWebDS()) {
+            continue; // Report not compatible with the current data source
+        }
+
+        if (isDbDs && !r.supportsDBDS()) {
+            continue; // Report not compatible with the current data source
+        }
+
         QTreeWidgetItem *twi = new QTreeWidgetItem();
         twi->setText(0, r.title());
         twi->setData(0, Qt::UserRole, r.name());
+        twi->setIcon(0, r.icon());
         ui->treeWidget->addTopLevelItem(twi);
     }
 
@@ -53,6 +68,20 @@ RunReportDialog::RunReportDialog(QWidget *parent) :
     connect(ui->pbCancel, SIGNAL(clicked(bool)), this, SLOT(cancel()));
     connect(ui->pbNext, SIGNAL(clicked(bool)), this, SLOT(moveNextPage()));
     connect(ui->pbBack, SIGNAL(clicked(bool)), this, SLOT(movePreviousPage()));
+
+    connect(ui->rbDate, SIGNAL(toggled(bool)), this, SLOT(timespanSelected()));
+    connect(ui->rbDateSpan, SIGNAL(toggled(bool)), this, SLOT(timespanSelected()));
+    connect(ui->rbLastMonth, SIGNAL(toggled(bool)), this, SLOT(timespanSelected()));
+    connect(ui->rbLastWeek, SIGNAL(toggled(bool)), this, SLOT(timespanSelected()));
+    connect(ui->rbLastYear, SIGNAL(toggled(bool)), this, SLOT(timespanSelected()));
+    connect(ui->rbMonth, SIGNAL(toggled(bool)), this, SLOT(timespanSelected()));
+    connect(ui->rbThisMonth, SIGNAL(toggled(bool)), this, SLOT(timespanSelected()));
+    connect(ui->rbThisWeek, SIGNAL(toggled(bool)), this, SLOT(timespanSelected()));
+    connect(ui->rbThisYear, SIGNAL(toggled(bool)), this, SLOT(timespanSelected()));
+    connect(ui->rbTimeSpan, SIGNAL(toggled(bool)), this, SLOT(timespanSelected()));
+    connect(ui->rbToday, SIGNAL(toggled(bool)), this, SLOT(timespanSelected()));
+    connect(ui->rbYear, SIGNAL(toggled(bool)), this, SLOT(timespanSelected()));
+    connect(ui->rbYesterday, SIGNAL(toggled(bool)), this, SLOT(timespanSelected()));
 
     ui->pbNext->setEnabled(false);
     ui->pbBack->setEnabled(false);
@@ -108,6 +137,8 @@ void RunReportDialog::reportSelected(QTreeWidgetItem* twi, QTreeWidgetItem *prev
     ui->rbYear->setEnabled(true);
     ui->rbYesterday->setEnabled(true);
 
+    ui->pbNext->setText(tr("&Next >"));
+
     // The differet time parameters are inherited. Allowing a timespan implies
     // allowing a datespan (morining on start date to evening on end date) or a
     // single date (morning to evening) or a single month (start of month to end), etc.
@@ -136,6 +167,10 @@ void RunReportDialog::reportSelected(QTreeWidgetItem* twi, QTreeWidgetItem *prev
 
         // no timespans
         ui->rbTimeSpan->setEnabled(false);
+
+        if (!report.hasCustomCriteria()) {
+            ui->pbNext->setText(tr("&Finish"));
+        }
         break;
     case Report::TP_Year:
         // years are ok
@@ -353,6 +388,7 @@ void RunReportDialog::switchPage(Page page) {
     switch(page) {
     case Page_Timespan:
         previousPage = Page_ReportSelect;
+        ui->pbNext->setEnabled(false);
         break;
     case Page_Criteria:
         if (report.timePickerType() == Report::TP_None) {
@@ -420,4 +456,22 @@ void RunReportDialog::runReport() {
     } else if (report.timePickerType() == Report::TP_Year) {
         report.run(ds, get_year());
     }
+}
+
+void RunReportDialog::timespanSelected() {
+    bool enabled = ui->rbToday->isChecked()
+            || ui->rbYesterday->isChecked()
+            || ui->rbDate->isChecked()
+            || ui->rbThisMonth->isChecked()
+            || ui->rbLastMonth->isChecked()
+            || ui->rbMonth->isChecked()
+            || ui->rbThisYear->isChecked()
+            || ui->rbLastYear->isChecked()
+            || ui->rbYear->isChecked()
+            || ui->rbThisWeek->isChecked()
+            || ui->rbLastWeek->isChecked()
+            || ui->rbDateSpan->isChecked()
+            || ui->rbTimeSpan->isChecked();
+
+    ui->pbNext->setEnabled(enabled);
 }
