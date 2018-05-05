@@ -168,29 +168,33 @@ void RunReportDialog::reportSelected(QTreeWidgetItem* twi, QTreeWidgetItem *prev
     switch(report.timePickerType()) {
     case Report::TP_None:
     default:
-        // no years
-        ui->rbThisYear->setEnabled(false);
-        ui->rbLastYear->setEnabled(false);
-        ui->rbYear->setEnabled(false);
+        // Only disable the pickers if they'll be shown to the user. If a default
+        // timespan is specified then we'll leave them on so they can be populated
+        // but we'll skip showing the page to the user
+        if (report.defaultTimeSpan() != Report::FTS_None) {
+            // no years
+            ui->rbThisYear->setEnabled(false);
+            ui->rbLastYear->setEnabled(false);
+            ui->rbYear->setEnabled(false);
 
-        // no months
-        ui->rbThisMonth->setEnabled(false);
-        ui->rbLastMonth->setEnabled(false);
-        ui->rbMonth->setEnabled(false);
+            // no months
+            ui->rbThisMonth->setEnabled(false);
+            ui->rbLastMonth->setEnabled(false);
+            ui->rbMonth->setEnabled(false);
 
-        // No dates
-        ui->rbToday->setEnabled(false);
-        ui->rbYesterday->setEnabled(false);
-        ui->rbDate->setEnabled(false);
+            // No dates
+            ui->rbToday->setEnabled(false);
+            ui->rbYesterday->setEnabled(false);
+            ui->rbDate->setEnabled(false);
 
-        // no datespans
-        ui->rbThisWeek->setEnabled(false);
-        ui->rbLastWeek->setEnabled(false);
-        ui->rbDateSpan->setEnabled(false);
+            // no datespans
+            ui->rbThisWeek->setEnabled(false);
+            ui->rbLastWeek->setEnabled(false);
+            ui->rbDateSpan->setEnabled(false);
 
-        // no timespans
-        ui->rbTimeSpan->setEnabled(false);
-
+            // no timespans
+            ui->rbTimeSpan->setEnabled(false);
+        }
         if (!report.hasCustomCriteria()) {
             ui->pbNext->setText(tr("&Finish"));
         }
@@ -273,6 +277,41 @@ void RunReportDialog::reportSelected(QTreeWidgetItem* twi, QTreeWidgetItem *prev
     case Report::TP_Timespan:
         // Disable nothing!
         break;
+    }
+
+    switch (report.defaultTimeSpan()) {
+    case Report::FTS_Today:
+        ui->rbToday->setChecked(ui->rbToday->isEnabled());
+        break;
+    case Report::FTS_Yesterday:
+        ui->rbYesterday->setChecked(ui->rbYesterday->isEnabled());
+        break;
+    case Report::FTS_ThisWeek:
+        ui->rbThisWeek->setChecked(ui->rbThisWeek->isEnabled());
+        break;
+    case Report::FTS_LastWeek:
+        ui->rbLastWeek->setChecked(ui->rbLastWeek->isEnabled());
+        break;
+    case Report::FTS_ThisMonth:
+        ui->rbThisMonth->setChecked(ui->rbThisMonth->isEnabled());
+        break;
+    case Report::FTS_LastMonth:
+        ui->rbLastMonth->setChecked(ui->rbLastMonth->isEnabled());
+        break;
+    case Report::FTS_ThisYear:
+        ui->rbThisYear->setChecked(ui->rbThisYear->isEnabled());
+        break;
+    case Report::FTS_LastYear:
+        ui->rbLastYear->setChecked(ui->rbLastYear->isEnabled());
+        break;
+    case Report::FTS_AllTime:
+        ui->rbTimeSpan->setChecked(ui->rbTimeSpan->isEnabled());
+        ui->teStartTime->setDateTime(QDateTime(QDate(2000,1,1), QTime(0,0,0)));
+        ui->teEndTime->setDateTime(QDateTime(QDate(2100,1,1), QTime(0,0,0)));
+        break;
+    case Report::FTS_None:
+    default:
+        break; // no default
     }
 }
 
@@ -527,7 +566,9 @@ void RunReportDialog::runReport() {
         }
     }
 
-    if (report.timePickerType() == Report::TP_Timespan) {
+    if (report.timePickerType() == Report::TP_Timespan ||
+            (report.timePickerType() == Report::TP_None &&
+             report.defaultTimeSpan() != Report::FTS_None)) {
         time_span_t ts = get_time_span();
         report.run(ds, ts.start, ts.end, params);
     } else if (report.timePickerType() == Report::TP_Datespan) {

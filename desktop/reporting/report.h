@@ -35,6 +35,19 @@ public:
         TP_Year
     } TimePickerType;
 
+    typedef enum {
+        FTS_None,
+        FTS_Today,
+        FTS_Yesterday,
+        FTS_ThisWeek,
+        FTS_LastWeek,
+        FTS_ThisMonth,
+        FTS_LastMonth,
+        FTS_ThisYear,
+        FTS_LastYear,
+        FTS_AllTime
+    } FixedTimeSpan;
+
     bool isNull() const {return _isNull;}
 
     QString name() const {return _name;}
@@ -42,6 +55,7 @@ public:
     QString description() const {return _description;}
     QIcon icon() const {return _icon;}
     TimePickerType timePickerType() const {return _tpType;}
+    FixedTimeSpan defaultTimeSpan() const {return _defaultTimeSpan; }
     bool hasCustomCriteria() const {return _custom_criteria;}
     QByteArray customCriteriaUi() const {return _ui;}
     bool supportsWebDS() const { return _web_ok; }
@@ -69,6 +83,7 @@ private:
     bool _web_ok;
     QIcon _icon;
     TimePickerType _tpType;
+    FixedTimeSpan _defaultTimeSpan;
 
     typedef struct _query {
         QString name;
