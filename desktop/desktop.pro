@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui network sql concurrent
+QT       += core gui network sql concurrent uitools
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets printsupport multimedia multimediawidgets
 
@@ -121,7 +121,8 @@ SOURCES += main.cpp\
     charts/axistag.cpp \
     reporting/report.cpp \
     reporting/qt-mustache/mustache.cpp \
-    reporting/runreportdialog.cpp
+    reporting/runreportdialog.cpp \
+    reporting/reportdisplaywindow.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
@@ -215,7 +216,8 @@ HEADERS  += mainwindow.h \
     charts/axistag.h \
     reporting/report.h \
     reporting/qt-mustache/mustache.h \
-    reporting/runreportdialog.h
+    reporting/runreportdialog.h \
+    reporting/reportdisplaywindow.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \
