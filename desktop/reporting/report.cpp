@@ -7,17 +7,16 @@
 #include <QSqlField>
 #include <QtDebug>
 #include <QSqlError>
-
-#include <QTabWidget>
-#include <QTextBrowser>
-#include <QTableView>
 #include <QSqlQueryModel>
-#include <QGridLayout>
+#include <QFileDialog>
+#include <QDir>
+#include <QMessageBox>
 
 #include "json/json.h"
 #include "datasource/abstractdatasource.h"
 #include "datasource/webdatasource.h"
 #include "reporting/qt-mustache/mustache.h"
+#include "reportdisplaywindow.h"
 #include "settings.h"
 
 QByteArray readFile(QString name) {
@@ -107,6 +106,12 @@ Report::Report(QString name)
         } else {
             qWarning() << "Report" << _name << "has invalid time picker type" << time_picker;
         }
+    }
+
+    _custom_criteria = doc.contains("criteria_ui");
+    if (_custom_criteria) {
+        _ui = readFile(reportDir + doc["criteria_ui"].toString());
+        _custom_criteria = !_ui.isNull();
     }
 
     // Load queries
@@ -252,24 +257,22 @@ QList<Report> Report::loadReports() {
     return reports;
 }
 
-void Report::run(AbstractDataSource *dataSource, QDateTime start, QDateTime end) {
+void Report::run(AbstractDataSource *dataSource, QDateTime start, QDateTime end, QVariantMap parameters) {
     dataSource->primeCache(start, end);
-    QMap<QString, QVariant> parameters;
     parameters["start"] = start;
     parameters["end"] = end;
     run(dataSource, parameters);
 }
 
-void Report::run(AbstractDataSource* dataSource, QDate start, QDate end) {
+void Report::run(AbstractDataSource* dataSource, QDate start, QDate end, QVariantMap parameters) {
     dataSource->primeCache(QDateTime(start, QTime(0,0,0)),
                            QDateTime(end, QTime(23,59,59,59)));
-    QMap<QString, QVariant> parameters;
     parameters["start"] = start;
     parameters["end"] = end;
     run(dataSource, parameters);
 }
 
-void Report::run(AbstractDataSource* dataSource, QDate dayOrMonth, bool month) {
+void Report::run(AbstractDataSource* dataSource, QDate dayOrMonth, bool month, QVariantMap parameters) {
     if (month) {
         QDate end = dayOrMonth.addMonths(1).addDays(-1);
         dataSource->primeCache(QDateTime(dayOrMonth, QTime(0,0,0)),
@@ -278,18 +281,16 @@ void Report::run(AbstractDataSource* dataSource, QDate dayOrMonth, bool month) {
         dataSource->primeCache(QDateTime(dayOrMonth, QTime(0,0,0)),
                                QDateTime(dayOrMonth, QTime(23,59,59,59)));
     }
-    QMap<QString, QVariant> parameters;
     parameters["date"] = dayOrMonth;
     run(dataSource, parameters);
 }
 
-void Report::run(AbstractDataSource* dataSource, int year) {
+void Report::run(AbstractDataSource* dataSource, int year, QVariantMap parameters) {
 
     dataSource->primeCache(QDateTime(QDate(year, 1, 1), QTime(0,0,0)),
                            QDateTime(QDate(year, 1, 1).addYears(1).addDays(-1),
                                      QTime(23,59,59,59)));
 
-    QMap<QString, QVariant> parameters;
     parameters["year"] = year;
     run(dataSource, parameters);
 }
@@ -324,48 +325,180 @@ void Report::run(AbstractDataSource* dataSource, QMap<QString, QVariant> paramet
     }
 }
 
+QString Report::queryToCSV(QSqlQuery query) {
+    QString result;
+
+    bool haveHeader = false;
+    QString header;
+
+    if (query.first()) {
+        do {
+            QSqlRecord record = query.record();
+            QString row;
+
+            for (int i = 0; i < record.count(); i++) {
+                QSqlField f = record.field(i);
+
+                if (!row.isEmpty()) {
+                    row.append(",");
+                }
+                row.append(f.value().toString());
+
+                if (!haveHeader) {
+                    if (!header.isEmpty()) {
+                        header.append(",");
+                    }
+                    header.append(f.name());
+                }
+            }
+
+            row.append("\n");
+            result.append(row);
+            haveHeader = true;
+        } while (query.next());
+    }
+
+    result = header + "\n" + result;
+
+    return result;
+}
+
+void Report::writeFile(report_output_file_t file) {
+    QFile f(file.default_filename);
+
+    if (f.open(QIODevice::WriteOnly)) {
+        if (!file.data.isNull()) {
+            f.write(file.data);
+        } else if (file.query.isActive()) {
+            f.write(Report::queryToCSV(file.query).toUtf8());
+        }
+
+        f.close();
+    }
+}
+
+QString getSaveDirectory(QWidget *parent) {
+    // This will loop until either:
+    // 1) The user selects an empty directory
+    // 2) The user cancels
+    // 3) The user selects a non-empty directory and chooses to continue anyway
+    // 4) The user selects a non-empty directory and cancels
+    while (true) {
+        QString dir = QFileDialog::getExistingDirectory(parent, QObject::tr("Save report to"));
+        if (dir.isEmpty()) {
+            return QString(); // user canceled
+        }
+
+        if (QDir(dir).isEmpty()) {
+            // Directory is empty. Save.
+            return dir;
+        } else {
+            QMessageBox msgBox(QMessageBox::Question,
+                               QObject::tr("Continue?"),
+                               QObject::tr("The selected directory is not empty. Some outputs may not be saved. Continue?"),
+                               QMessageBox::Save, parent);
+            msgBox.addButton(QObject::tr("&Choose Another Directory"),
+                             QMessageBox::ActionRole);
+            msgBox.addButton(QMessageBox::Discard);
+
+            int result = msgBox.exec();
+
+            if (result == QMessageBox::Save) {
+                // Save
+                return dir;
+            } else if (result == QMessageBox::Discard) {
+                return QString();
+            }
+            // else continue around again for the user to pick another directory
+        }
+    }
+}
+
+void Report::saveReport(QList<report_output_file_t> outputs, QWidget *parent) {
+    if (outputs.count() == 0) {
+        return; // Nothing to save.
+    } else if (outputs.count() == 1) {
+        report_output_file_t f = outputs.first();
+        f.default_filename = QFileDialog::getSaveFileName(parent,
+                                                          QObject::tr("Save Report"),
+                                                          QString(),
+                                                          f.dialog_filter);
+        if (f.default_filename.isEmpty()) {
+            return; // User canceled.
+        }
+        Report::writeFile(f);
+    } else {
+        // Multiple outputs. The user needs to pick a directory then we'll save them.
+        QString directory = getSaveDirectory(parent);
+        if (directory.isNull()) {
+            return; // user canceled.
+        }
+
+        foreach (report_output_file_t output, outputs) {
+            output.default_filename = QDir::cleanPath(directory + QDir::separator() + output.default_filename);
+            qDebug() << output.default_filename;
+            QFile f(output.default_filename);
+            if (f.exists()) {
+                continue; // File already exists. Skip it so we don't overwrite anything.
+            }
+            Report::writeFile(output);
+        }
+    }
+}
+
 void Report::outputToUI(QMap<QString, QVariant> reportParameters,
                         QMap<QString, QSqlQuery> queries) {
 
-    QWidget *window = new QWidget();
-    window->setWindowTitle(_name);
-    window->setWindowIcon(_icon);
-    window->resize(800,600);
+    ReportDisplayWindow *window = new ReportDisplayWindow(_name, _icon);
 
-    QGridLayout *layout = new QGridLayout(window);
-
-    QTabWidget *tabs = new QTabWidget(window);
-    layout->addWidget(tabs, 0, 0);
+    QList<report_output_file_t> files;
 
     foreach (output_t output, outputs) {
-        QWidget *tab = new QWidget();
-        QGridLayout *tabLayout = new QGridLayout(tab);
         if (output.format == OF_HTML || output.format == OF_TEXT) {
-            QTextBrowser *browser = new QTextBrowser();
-
+            QString result = renderTemplatedReport(reportParameters, queries,
+                                                   output.output_template);
+            QString filter = "";
+            QString extension = "";
             if (output.format == OF_HTML) {
-                browser->setHtml(renderTemplatedReport(reportParameters, queries,
-                                                       output.output_template));
-            } else {
-                browser->setText(renderTemplatedReport(reportParameters, queries,
-                                                       output.output_template));
+                window->addHtmlTab(output.title, output.icon, result);
+                filter = QObject::tr("HTML Files (*.html *.html)");
+                extension = ".html";
+            } else if (output.format == OF_TEXT) {
+                window->addPlainTab(output.title, output.icon, result);
+                filter = QObject::tr("Text Files (*.txt)");
+                extension = ".txt";
             }
 
-            tabLayout->addWidget(browser, 0, 0);
-        } else {
-            QTableView *table = new QTableView();
-            QSqlQueryModel *model = new QSqlQueryModel(table);
-            model->setQuery(queries[output.query_name]);
-            table->setModel(model);
-            tabLayout->addWidget(table, 0, 0);
-        }
+            report_output_file_t output_file;
+            output_file.default_filename = output.filename;
+            output_file.dialog_filter = filter;
+            output_file.data = result.toUtf8();
 
-        if (output.icon.isNull()) {
-            tabs->addTab(tab, output.title);
-        } else {
-            tabs->addTab(tab, output.icon, output.title);
+            if (output_file.default_filename.isEmpty()) {
+                output_file.default_filename = output.name + extension;
+            }
+
+            files.append(output_file);
+
+        } else if (output.format == OF_TABLE) {
+            QSqlQueryModel *model = new QSqlQueryModel();
+            model->setQuery(queries[output.query_name]);
+            window->addGridTab(output.title, output.icon, model);
+
+            report_output_file_t output_file;
+            output_file.default_filename = output.filename;
+            output_file.dialog_filter = QObject::tr("CSV Files (*.csv)");
+            output_file.query = QSqlQuery(queries[output.query_name]);
+
+            if (output_file.default_filename.isEmpty()) {
+                output_file.default_filename = output.name + ".csv";
+            }
+
+            files.append(output_file);
         }
     }
+
+    window->setSaveOutputs(files);
 
     window->show();
     window->setAttribute(Qt::WA_DeleteOnClose);
@@ -374,7 +507,48 @@ void Report::outputToUI(QMap<QString, QVariant> reportParameters,
 void Report::outputToDisk(QMap<QString, QVariant> reportParameters,
                           QMap<QString, QSqlQuery> queries) {
 
-    // TODO
+    QList<report_output_file_t> files;
+
+    foreach (output_t output, outputs) {
+        if (output.format == OF_HTML || output.format == OF_TEXT) {
+            QString result = renderTemplatedReport(reportParameters, queries,
+                                                   output.output_template);
+            QString filter = "";
+            QString extension = "";
+            if (output.format == OF_HTML) {
+                filter = QObject::tr("HTML Files (*.html *.html)");
+                extension = ".html";
+            } else if (output.format == OF_TEXT) {
+                filter = QObject::tr("Text Files (*.txt)");
+                extension = ".txt";
+            }
+
+            report_output_file_t output_file;
+            output_file.default_filename = output.filename;
+            output_file.dialog_filter = filter;
+            output_file.data = result.toUtf8();
+
+            if (output_file.default_filename.isEmpty()) {
+                output_file.default_filename = output.name + extension;
+            }
+
+            files.append(output_file);
+
+        } else if (output.format == OF_TABLE) {
+            report_output_file_t output_file;
+            output_file.default_filename = output.filename;
+            output_file.dialog_filter = QObject::tr("CSV Files (*.csv)");
+            output_file.query = QSqlQuery(queries[output.query_name]);
+
+            if (output_file.default_filename.isEmpty()) {
+                output_file.default_filename = output.name + ".csv";
+            }
+
+            files.append(output_file);
+        }
+    }
+
+    Report::saveReport(files);
 }
 
 QString Report::renderTemplatedReport(QMap<QString, QVariant> reportParameters,

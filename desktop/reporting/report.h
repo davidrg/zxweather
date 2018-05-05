@@ -5,10 +5,20 @@
 #include <QString>
 #include <QStringList>
 #include <QIcon>
+#include <QSqlQuery>
 
 class AbstractDataSource;
 
 class QSqlQuery;
+
+typedef struct {
+    QString default_filename;
+    QString dialog_filter;
+    QByteArray data;
+    QSqlQuery query;
+} report_output_file_t;
+
+
 
 class Report
 {
@@ -31,25 +41,30 @@ public:
     QString title() const {return _title;}
     QString description() const {return _description;}
     QIcon icon() const {return _icon;}
-    TimePickerType timePickerType() const {return _tpType;} // TODO: from file
-    bool hasCustomCriteria() const {return false;} // TODO: from file
+    TimePickerType timePickerType() const {return _tpType;}
+    bool hasCustomCriteria() const {return _custom_criteria;}
+    QByteArray customCriteriaUi() const {return _ui;}
     bool supportsWebDS() const { return _web_ok; }
     bool supportsDBDS() const { return _db_ok; }
 
-    void run(AbstractDataSource* dataSource, QDateTime start, QDateTime end);
-    void run(AbstractDataSource* dataSource, QDate start, QDate end);
-    void run(AbstractDataSource* dataSource, QDate dayOrMonth, bool month);
-    void run(AbstractDataSource* dataSource, int year);
+    void run(AbstractDataSource* dataSource, QDateTime start, QDateTime end, QVariantMap parameters);
+    void run(AbstractDataSource* dataSource, QDate start, QDate end, QVariantMap parameters);
+    void run(AbstractDataSource* dataSource, QDate dayOrMonth, bool month, QVariantMap parameters);
+    void run(AbstractDataSource* dataSource, int year, QVariantMap parameters);
 
     static QStringList reports();
 
     static QList<Report> loadReports();
+
+    static void saveReport(QList<report_output_file_t> outputs, QWidget *parent=NULL);
 
 private:
     bool _isNull;
     QString _name;
     QString _title;
     QString _description;
+    bool _custom_criteria;
+    QByteArray _ui;
     bool _db_ok;
     bool _web_ok;
     QIcon _icon;
@@ -96,6 +111,9 @@ private:
     } output_type_t;
 
     output_type_t output_type;
+
+    static QString queryToCSV(QSqlQuery query);
+    static void writeFile(report_output_file_t file);
 
     void run(AbstractDataSource*, QMap<QString, QVariant> parameters);
     void outputToUI(QMap<QString, QVariant> reportParameters,

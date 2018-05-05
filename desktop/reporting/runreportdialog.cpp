@@ -9,22 +9,22 @@
 
 #include <QDebug>
 #include <QTreeWidgetItem>
+#include <QtUiTools>
+#include <QBuffer>
 
-/* TODO:
+/* Run report dialog TODO:
  *  - Intro page for when no report is selected
- *  - Double clicking a report in the list should proceed to the next page
  *  - Filter out reports that don't support the current hardware type
- *  - Add a button to the main window instead of displaying this window on startup
- *  - Custom report criteria UI
+ *  - Save custom criteria and reload for next time
+ *
+ * Misc TODO:
  *  - Update copyright info in about dialog (Qt Mustache)
+ *  - Add a licenses tab to the about dialog? That or update the licenses file in source control.
+ *  - Include license file in mkdist script
  *
  * Report class TODO:
- *  - Load supported weather station
- *  - Load custom criteria UI
- *  - Output to disk
- *  - Output window
- *      - Save buttons - CSV for grid, html or plain for other
- *      - CSV copy&paste for grid
+ *  - Load supported weather station types
+ *  - Support for for pre-set timespans so the timespan page can be skipped.
  *
  * DB Data Source TODO:
  *  - Change column names to match the Postgres schema
@@ -65,6 +65,8 @@ RunReportDialog::RunReportDialog(QWidget *parent) :
 
     connect(ui->treeWidget, SIGNAL(currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)),
             this, SLOT(reportSelected(QTreeWidgetItem*,QTreeWidgetItem*)));
+    connect(ui->treeWidget, SIGNAL(doubleClicked(QModelIndex)),
+            this, SLOT(moveNextPage()));
     connect(ui->pbCancel, SIGNAL(clicked(bool)), this, SLOT(cancel()));
     connect(ui->pbNext, SIGNAL(clicked(bool)), this, SLOT(moveNextPage()));
     connect(ui->pbBack, SIGNAL(clicked(bool)), this, SLOT(movePreviousPage()));
@@ -104,6 +106,8 @@ RunReportDialog::RunReportDialog(QWidget *parent) :
 
     ui->splitter->setStretchFactor(0, 1);
     ui->splitter->setStretchFactor(1, 2);
+
+    ui->custom_criteria_page->setLayout(new QGridLayout());
 }
 
 RunReportDialog::~RunReportDialog()
@@ -122,6 +126,25 @@ void RunReportDialog::reportSelected(QTreeWidgetItem* twi, QTreeWidgetItem *prev
     ui->lblReportTitle->setText("<h1>" + report.title() + "</h1>");
     switchPage(Page_ReportSelect);
     ui->pbNext->setEnabled(true);
+
+    // Remove any custom criteria widgets currently in the UI.
+    QList<QWidget*> widgets = ui->custom_criteria_page->findChildren<QWidget*>(QString(), Qt::FindDirectChildrenOnly);
+    foreach (QWidget* w, widgets) {
+        ui->custom_criteria_page->layout()->removeWidget(w);
+        delete w;
+    }
+
+    // Add this reports custom criteria widget if it has one
+    if (report.hasCustomCriteria()) {
+        QUiLoader loader;
+        QByteArray ui_data = report.customCriteriaUi();
+        QBuffer buf(&ui_data);
+        if (buf.open(QIODevice::ReadOnly)) {
+            QWidget *widget = loader.load(&buf, this);
+            buf.close();
+            ui->custom_criteria_page->layout()->addWidget(widget);
+        }
+    }
 
     ui->rbDate->setEnabled(true);
     ui->rbDateSpan->setEnabled(true);
@@ -388,7 +411,7 @@ void RunReportDialog::switchPage(Page page) {
     switch(page) {
     case Page_Timespan:
         previousPage = Page_ReportSelect;
-        ui->pbNext->setEnabled(false);
+        timespanSelected();
         break;
     case Page_Criteria:
         if (report.timePickerType() == Report::TP_None) {
@@ -418,6 +441,7 @@ void RunReportDialog::switchPage(Page page) {
         break;
     case Page_Criteria:
         nextPage = Page_Finish;
+        ui->pbNext->setText(tr("&Finish"));
         break;
     case Page_None:
     case Page_ReportSelect:
@@ -442,19 +466,79 @@ void RunReportDialog::runReport() {
     else
         ds = new WebDataSource(new DialogProgressListener(this), this);
 
-    // TODO: custom criteria
+    QVariantMap params;
+
+    if (report.hasCustomCriteria()) {
+        QList<QLineEdit*> lineEdits = ui->custom_criteria_page->findChildren<QLineEdit*>();
+        QList<QComboBox*> comboBoxes = ui->custom_criteria_page->findChildren<QComboBox*>();
+        QList<QTextEdit*> textEdits = ui->custom_criteria_page->findChildren<QTextEdit*>();
+        QList<QPlainTextEdit*> plainTextEdits = ui->custom_criteria_page->findChildren<QPlainTextEdit*>();
+        QList<QSpinBox*> spinBoxes = ui->custom_criteria_page->findChildren<QSpinBox*>();
+        QList<QDoubleSpinBox*> doubleSpinBoxes = ui->custom_criteria_page->findChildren<QDoubleSpinBox*>();
+        QList<QTimeEdit*> timeEdits = ui->custom_criteria_page->findChildren<QTimeEdit*>();
+        QList<QDateEdit*> dateEdits = ui->custom_criteria_page->findChildren<QDateEdit*>();
+        QList<QDateTimeEdit*> dateTimeEdits = ui->custom_criteria_page->findChildren<QDateTimeEdit*>();
+        QList<QDial*> dials = ui->custom_criteria_page->findChildren<QDial*>();
+        QList<QSlider*> sliders = ui->custom_criteria_page->findChildren<QSlider*>();
+
+        foreach (QLineEdit* ed, lineEdits) {
+            params[ed->objectName()] = ed->text();
+        }
+
+        foreach (QComboBox* comboBox, comboBoxes) {
+            params[comboBox->objectName()] = comboBox->currentText();
+            params[comboBox->objectName() + "_id"] = comboBox->currentIndex();
+        }
+
+        foreach (QTextEdit* ed, textEdits) {
+            params[ed->objectName()] = ed->document()->toHtml();
+        }
+
+        foreach (QPlainTextEdit *ed, plainTextEdits) {
+            params[ed->objectName()] = ed->document()->toPlainText();
+        }
+
+        foreach (QSpinBox* sb, spinBoxes) {
+            params[sb->objectName()] = sb->value();
+        }
+
+        foreach (QDoubleSpinBox *sb, doubleSpinBoxes) {
+            params[sb->objectName()] = sb->value();
+        }
+
+        foreach (QTimeEdit *ed, timeEdits) {
+            params[ed->objectName()] = ed->time();
+        }
+
+        foreach (QDateEdit *ed, dateEdits) {
+            params[ed->objectName()] = ed->date();
+        }
+
+        foreach (QDateTimeEdit *ed, dateTimeEdits) {
+            params[ed->objectName()] = ed->dateTime();
+        }
+
+        foreach (QDial* dial, dials) {
+            params[dial->objectName()] = dial->value();
+        }
+
+        foreach (QSlider* slider, sliders) {
+            params[slider->objectName()] = slider->value();
+        }
+    }
+
     if (report.timePickerType() == Report::TP_Timespan) {
         time_span_t ts = get_time_span();
-        report.run(ds, ts.start, ts.end);
+        report.run(ds, ts.start, ts.end, params);
     } else if (report.timePickerType() == Report::TP_Datespan) {
         date_span_t span = get_date_span();
-        report.run(ds, span.start, span.end);
+        report.run(ds, span.start, span.end, params);
     } else if (report.timePickerType() == Report::TP_Day) {
-        report.run(ds, get_date(), false);
+        report.run(ds, get_date(), false, params);
     } else if (report.timePickerType() == Report::TP_Month) {
-        report.run(ds, get_month(), true);
+        report.run(ds, get_month(), true, params);
     } else if (report.timePickerType() == Report::TP_Year) {
-        report.run(ds, get_year());
+        report.run(ds, get_year(), params);
     }
 }
 
