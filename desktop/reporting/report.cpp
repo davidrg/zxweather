@@ -108,6 +108,32 @@ Report::Report(QString name)
         }
     }
 
+    _defaultTimeSpan = FTS_None;
+    if (doc.contains("default_time_span")) {
+        QString ts = doc["default_time_span"].toString().toLower();
+        if (ts == "none") {
+            _defaultTimeSpan = FTS_None;
+        } else if (ts == "today") {
+            _defaultTimeSpan = FTS_Today;
+        } else if (ts == "yesterday") {
+            _defaultTimeSpan = FTS_Yesterday;
+        } else if (ts == "this_week") {
+            _defaultTimeSpan = FTS_ThisWeek;
+        } else if (ts == "last_week") {
+            _defaultTimeSpan = FTS_LastWeek;
+        } else if (ts == "this_month") {
+            _defaultTimeSpan = FTS_ThisMonth;
+        } else if (ts == "last_month") {
+            _defaultTimeSpan = FTS_LastMonth;
+        } else if (ts == "this_year") {
+            _defaultTimeSpan = FTS_ThisYear;
+        } else if (ts == "last_year") {
+            _defaultTimeSpan = FTS_LastYear;
+        } else if (ts == "all_time") {
+            _defaultTimeSpan = FTS_AllTime;
+        }
+    }
+
     _custom_criteria = doc.contains("criteria_ui");
     if (_custom_criteria) {
         _ui = readFile(reportDir + doc["criteria_ui"].toString());
