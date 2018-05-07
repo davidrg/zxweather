@@ -119,6 +119,11 @@ public:
      */
     virtual void primeCache(QDateTime start, QDateTime end) = 0;
 
+    /** Returns true if solar data is available for this station.
+     *
+     * @return True if UV and Solar Radiation sensors are available.
+     */
+    virtual bool solarAvailable() = 0;
 signals:
     /** Emitted when samples have been retrieved and are ready for processing.
      *

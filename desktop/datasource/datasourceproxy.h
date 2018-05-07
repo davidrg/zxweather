@@ -62,6 +62,7 @@ public:
     void fetchSamplesFromCache(DataSet dataSet);
     QSqlQuery query();
     void primeCache(QDateTime start, QDateTime end);
+    bool solarAvailable();
 
 private slots:
     // Forward AbstractLiveDataSource signals

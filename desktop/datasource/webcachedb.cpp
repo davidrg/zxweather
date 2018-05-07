@@ -3,6 +3,7 @@
 #include <QtSql>
 #include <QtDebug>
 #include <QDesktopServices>
+#include <cfloat>
 
 #define SAMPLE_CACHE "sample-cache"
 #define sampleCacheDb QSqlDatabase::database(SAMPLE_CACHE)
@@ -15,6 +16,7 @@ QSqlQuery WebCacheDB::query() {
 
 WebCacheDB::WebCacheDB()
 {
+    ready = false;
     openDatabase();
 }
 
@@ -24,6 +26,7 @@ void WebCacheDB::openDatabase() {
     if (QSqlDatabase::database(SAMPLE_CACHE,true).isValid())
         return; // Database is already open.
 
+    qDebug() << "Open cache database...";
 
     // Try to open the database. If it doesn't exist then create it.
     QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", SAMPLE_CACHE);
@@ -62,19 +65,61 @@ void WebCacheDB::openDatabase() {
     }
 
     if (!query.next()) {
-        createTableStructure(); // Its a blank database
+        qDebug() << "Creating initial schema...";
+        runDbScript(":/cache_db/create.sql");
+        runDbScript(":/cache_db/trig_lookup.sql");
+    } else {
+        qDebug() << "Checking version...";
+        query.exec("select v from db_metadata where k = 'v'");
+        if (query.first()) {
+            int version = query.value(0).toInt();
+            qDebug() << "Cache DB at version" << version;
+            if (version == 1) {
+                qDebug() << "Cache DB is out of date. Upgrading to v2...";
+                if (!runDbScript(":/cache_db/v2.sql")) {
+                    qWarning() << "V2 upgrade failed.";
+                    emit criticalError("Failed to upgrade cache database. Delete file " + filename + " manually to correct error.");
+                    return;
+                }
+
+                // Reopen the database to clear locks
+                QSqlDatabase db = QSqlDatabase::database(SAMPLE_CACHE,true);
+                db.commit();
+                db.close();
+                db.open();
+
+                QSqlQuery q(db);
+                if (!q.exec("drop table sample_old;")) {
+                    qWarning() << "Failed to drop sample_old";
+                    emit criticalError("Failed to drop obsolete sample_old table");
+                }
+                if (!q.exec("drop table station_old;")) {
+                    qWarning() << "Failed to drop station_old";
+                    emit criticalError("Failed to drop obsolete station_old table");
+                }
+                db.commit();
+
+                if (!runDbScript(":/cache_db/trig_lookup.sql")) {
+                    qWarning() << "Failed to create trig lookup table";
+                    emit criticalError("Failed to upgrade cache database. Delete file " + filename + " manually to correct error.");
+                    return;
+                }
+            }
+        } else {
+            emit criticalError("Failed to determine version of cache database");
+        }
     }
+    ready = true;
 }
 
-void WebCacheDB::createTableStructure() {
-    qDebug() << "Create cache database structure...";
-    QFile createScript(":/cache_db/create.sql");
-    createScript.open(QIODevice::ReadOnly);
+bool WebCacheDB::runDbScript(QString filename) {
+    QFile scriptFile(filename);
+    scriptFile.open(QIODevice::ReadOnly);
 
     QString script;
 
-    while(!createScript.atEnd()) {
-        QString line = createScript.readLine();
+    while(!scriptFile.atEnd()) {
+        QString line = scriptFile.readLine();
         if (!line.startsWith("--"))
             script += line;
     }
@@ -82,9 +127,12 @@ void WebCacheDB::createTableStructure() {
     // This is really nasty.
     QStringList statements = script.split(";");
 
+    QSqlDatabase::database(SAMPLE_CACHE,false).transaction();
+
     QSqlQuery query(sampleCacheDb);
 
     foreach(QString statement, statements) {
+        qDebug() << "-------------------------------------------------------------";
         statement = statement.trimmed();
 
         qDebug() << statement;
@@ -93,22 +141,30 @@ void WebCacheDB::createTableStructure() {
         query.exec(statement);
 
         if (query.lastError().isValid()) {
-            emit criticalError("Failed to create cache structure. Error was: "
+            qWarning() << "Cache DB Upgrade failure:"
+                       << query.lastError().driverText()
+                       << query.lastError().databaseText();
+            emit criticalError("Database error. Error was: "
                                  + query.lastError().driverText());
-            return;
+            QSqlDatabase::database(SAMPLE_CACHE,false).rollback();
+            qDebug() << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^";
+            return false;
         }
     }
+
+    QSqlDatabase::database(SAMPLE_CACHE,false).commit();
+    return true;
 }
 
 int WebCacheDB::getStationId(QString stationUrl) {
     QSqlQuery query(sampleCacheDb);
-    query.prepare("select id from station where url = :url");
+    query.prepare("select station_id from station where code = :url");
     query.bindValue(":url", stationUrl);
     query.exec();
     if (query.first()) {
         return query.record().field(0).value().toInt();
     } else {
-        query.prepare("insert into station(url) values(:url)");
+        query.prepare("insert into station(code) values(:url)");
         query.bindValue(":url", stationUrl);
         query.exec();
         if (!query.lastError().isValid())
@@ -170,6 +226,13 @@ data_file_t WebCacheDB::getDataFileCacheInformation(QString dataFileUrl) {
 
     data_file_t dataFile;
 
+
+    if (!ready) {
+        dataFile.isValid = false;
+        dataFile.size = 0;
+        return dataFile;
+    }
+
     qDebug() << "Querying cache stats for URL" << dataFileUrl;
 
     QSqlQuery query(sampleCacheDb);
@@ -204,6 +267,12 @@ data_file_t WebCacheDB::getDataFileCacheInformation(QString dataFileUrl) {
 cache_stats_t WebCacheDB::getCacheStats(QString dataFileUrl) {
     cache_stats_t cacheStats;
 
+    if (!ready) {
+        cacheStats.count = 0;
+        cacheStats.isValid = false;
+        return cacheStats;
+    }
+
     int fileId = getDataFileId(dataFileUrl);
     if (fileId == -1) {
         // File doesn't exist. No stats for you.
@@ -212,7 +281,7 @@ cache_stats_t WebCacheDB::getCacheStats(QString dataFileUrl) {
     }
 
     QSqlQuery query(sampleCacheDb);
-    query.prepare("select min(timestamp), max(timestamp), count(*) "
+    query.prepare("select min(time_stamp), max(time_stamp), count(*) "
                   "from sample where data_file = :data_file_id "
                   "group by data_file");
     query.bindValue(":data_file_id", fileId);
@@ -245,6 +314,10 @@ void WebCacheDB::truncateFile(int fileId) {
 }
 
 void WebCacheDB::cacheDataFile(data_file_t dataFile, QString stationUrl) {
+
+    if (!ready) {
+        return;
+    }
 
     int stationId = getStationId(stationUrl);
 
@@ -364,9 +437,9 @@ void WebCacheDB::cacheDataSet(SampleSet samples,
         // We have data to store.
         QSqlQuery query(db);
         query.prepare(
-                    "insert into sample(station, timestamp, temperature, "
-                    "dew_point, apparent_temperature, wind_chill, humidity, "
-                    "pressure, indoor_temperature, indoor_humidity, rainfall, "
+                    "insert into sample(station_id, time_stamp, temperature, "
+                    "dew_point, apparent_temperature, wind_chill, relative_humidity, "
+                    "absolute_pressure, indoor_temperature, indoor_relative_humidity, rainfall, "
                     "data_file, average_wind_speed, gust_wind_speed, "
                     "wind_direction, solar_radiation, uv_index,reception, "
                     "high_temperature, low_temperature, high_rain_rate, "
@@ -562,6 +635,10 @@ bool WebCacheDB::imageExists(int stationId, int id) {
 
 void WebCacheDB::storeImageInfo(QString stationUrl, ImageInfo image) {
 
+    if (!ready) {
+        return;
+    }
+
     qDebug() << "Store single image against temporary image set...";
 
     // Grab station ID (this will create the station if it doesn't exist)
@@ -614,6 +691,11 @@ void WebCacheDB::storeImageInfo(QString stationUrl, ImageInfo image) {
 }
 
 void WebCacheDB::updateImageInfo(QString stationUrl, ImageInfo imageInfo) {
+
+    if (!ready) {
+        return;
+    }
+
     int stationId = getStationId(stationUrl);
 
     if (!imageExists(stationId, imageInfo.id)) {
@@ -701,6 +783,11 @@ void WebCacheDB::storeImage(ImageInfo image, int imageSetId, int stationId,
 }
 
 void WebCacheDB::cacheImageSet(image_set_t imageSet) {
+
+    if (!ready) {
+        return;
+    }
+
     // Grab station ID (this will create the station if it doesn't exist)
     int stationId = getStationId(imageSet.station_url);
 
@@ -760,6 +847,12 @@ ImageInfo RecordToImageInfo(QSqlRecord record) {
 }
 
 ImageInfo WebCacheDB::getImageInfo(QString stationUrl, int id) {
+
+    if (!ready) {
+        ImageInfo fail;
+        return fail;
+    }
+
     int stationId = getStationId(stationUrl);
 
     QSqlQuery query(sampleCacheDb);
@@ -783,6 +876,12 @@ ImageInfo WebCacheDB::getImageInfo(QString stationUrl, int id) {
 }
 
 ImageSource WebCacheDB::getImageSource(QString stationUrl, QString sourceCode) {
+
+    if (!ready) {
+        ImageSource src;
+        return src;
+    }
+
     int stationId = getStationId(stationUrl);
     QSqlQuery query(sampleCacheDb);
     query.prepare("select code, name, description "
@@ -808,6 +907,12 @@ ImageSource WebCacheDB::getImageSource(QString stationUrl, QString sourceCode) {
 
 QVector<ImageInfo> WebCacheDB::getImagesForDate(QDate date, QString stationUrl,
                                          QString imageSourceCode) {
+
+    if (!ready) {
+        QVector<ImageInfo> vec;
+        return vec;
+    }
+
     int stationId = getStationId(stationUrl);
 
     qDebug() << "Station Id: " << stationId;
@@ -844,6 +949,12 @@ QVector<ImageInfo> WebCacheDB::getImagesForDate(QDate date, QString stationUrl,
 }
 
 QVector<ImageInfo> WebCacheDB::getMostRecentImages(QString stationUrl) {
+
+    if (!ready) {
+        QVector<ImageInfo> fail;
+        return fail;
+    }
+
     int stationId = getStationId(stationUrl);
 
     qDebug() << "Station Id: " << stationId;
@@ -883,6 +994,12 @@ QVector<ImageInfo> WebCacheDB::getMostRecentImages(QString stationUrl) {
 }
 
 image_set_t WebCacheDB::getImageSetCacheInformation(QString imageSetUrl) {
+
+    if (!ready) {
+        image_set_t fail;
+        return fail;
+    }
+
     QSqlQuery query(sampleCacheDb);
     query.prepare("select last_modified, size, is_valid "
                   "from image_set "
@@ -912,7 +1029,7 @@ image_set_t WebCacheDB::getImageSetCacheInformation(QString imageSetUrl) {
 QString WebCacheDB::buildColumnList(SampleColumns columns, QString format) {
     QString query;
     if (columns.testFlag(SC_Timestamp))
-        query += format.arg("timestamp");
+        query += format.arg("time_stamp");
     if (columns.testFlag(SC_Temperature))
         query += format.arg("temperature");
     if (columns.testFlag(SC_DewPoint))
@@ -924,11 +1041,11 @@ QString WebCacheDB::buildColumnList(SampleColumns columns, QString format) {
     if (columns.testFlag(SC_IndoorTemperature))
         query += format.arg("indoor_temperature");
     if (columns.testFlag(SC_IndoorHumidity))
-        query += format.arg("indoor_humidity");
+        query += format.arg("indoor_relative_humidity");
     if (columns.testFlag(SC_Humidity))
-        query += format.arg("humidity");
+        query += format.arg("relative_humidity");
     if (columns.testFlag(SC_Pressure))
-        query += format.arg("pressure");
+        query += format.arg("absolute_pressure");
     if (columns.testFlag(SC_AverageWindSpeed))
         query += format.arg("average_wind_speed");
     if (columns.testFlag(SC_GustWindSpeed))
@@ -965,7 +1082,7 @@ QString WebCacheDB::buildColumnList(SampleColumns columns, QString format) {
 
 QString WebCacheDB::buildSelectForColumns(SampleColumns columns)
 {
-    QString selectPart = "select timestamp";
+    QString selectPart = "select time_stamp";
 
     selectPart += buildColumnList(columns & ~SC_Timestamp, ", %1");
 
@@ -973,8 +1090,8 @@ QString WebCacheDB::buildSelectForColumns(SampleColumns columns)
 }
 
 int WebCacheDB::getNonAggregatedRowCount(int stationId, QDateTime startTime, QDateTime endTime) {
-    QString qry = "select count(*) from sample where station = :station_id "
-            "and timestamp >= :start_time and timestamp <= :end_time";
+    QString qry = "select count(*) from sample where station_id = :station_id "
+            "and time_stamp >= :start_time and time_stamp <= :end_time";
 
     QSqlQuery query(sampleCacheDb);
     query.prepare(qry);
@@ -1040,9 +1157,9 @@ int WebCacheDB::getAggregatedRowCount(int stationId,
 
 QSqlQuery WebCacheDB::buildBasicSelectQuery(SampleColumns columns) {
     QString sql = buildSelectForColumns(columns);
-    sql += " from sample where station = :station_id "
-             "and timestamp >= :start_time and timestamp <= :end_time"
-             " order by timestamp asc";
+    sql += " from sample where station_id = :station_id "
+             "and time_stamp >= :start_time and time_stamp <= :end_time"
+             " order by time_stamp asc";
 
     QSqlQuery query(sampleCacheDb);
     query.prepare(sql);
@@ -1072,7 +1189,7 @@ QString WebCacheDB::buildAggregatedSelect(SampleColumns columns,
     QString query = "select iq.quadrant as quadrant ";
 
     if (columns.testFlag(SC_Timestamp))
-        query += ", min(iq.timestamp) as timestamp ";
+        query += ", min(iq.time_stamp) as time_stamp ";
 
     // It doesn't make sense to sum certain fields (like temperature).
     // So when AF_Sum or AF_RunningTotal is specified we'll apply that only
@@ -1103,25 +1220,25 @@ QString WebCacheDB::buildAggregatedSelect(SampleColumns columns,
     query += " from (select ";
 
     if (groupType == AGT_Custom) {
-        query += "(cur.timestamp / :groupSeconds) AS quadrant ";
+        query += "(cur.time_stamp / :groupSeconds) AS quadrant ";
     } else if (groupType == AGT_Month) {
-        query += "strftime('%s', julianday(datetime(cur.timestamp, 'unixepoch', 'start of month'))) as quadrant";
+        query += "strftime('%s', julianday(datetime(cur.time_stamp, 'unixepoch', 'start of month'))) as quadrant";
         // In postgres this would be: extract(epoch from date_trunc('month', cur.time_stamp))::integer as quadrant
     } else { // year
-        query += "strftime('%s', julianday(datetime(cur.timestamp, 'unixepoch', 'start of year'))) as quadrant";
+        query += "strftime('%s', julianday(datetime(cur.time_stamp, 'unixepoch', 'start of year'))) as quadrant";
         // In postgres this would be: extract(epoch from date_trunc('year', cur.time_stamp))::integer as quadrant
     }
 
     query += buildColumnList(columns, ", cur.%1 ");
 
     query += " from sample cur, sample prev"
-             " where cur.timestamp <= :end_time"
-             " and cur.timestamp >= :start_time"
-             " and prev.timestamp = (select max(timestamp) from sample where timestamp < cur.timestamp"
+             " where cur.time_stamp <= :end_time"
+             " and cur.time_stamp >= :start_time"
+             " and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < cur.time_stamp"
              "        and station = :station_id )"
              " and cur.station = :stationIdB "
              " and prev.station = :stationIdC "
-             " order by cur.timestamp asc) as iq "
+             " order by cur.time_stamp asc) as iq "
              " group by iq.quadrant "
              " order by iq.quadrant asc ";
 
@@ -1179,6 +1296,11 @@ SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
     QSqlQuery query(sampleCacheDb);
     SampleSet samples;
 
+    if (!ready) {
+        samples.sampleCount = 0;
+        return samples;
+    }
+
     int stationId = getStationId(stationUrl);
 
     int count;
@@ -1224,7 +1346,7 @@ SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
         do {
             QSqlRecord record = query.record();
 
-            int timeStamp = record.value("timestamp").toInt();
+            int timeStamp = record.value("time_stamp").toInt();
             samples.timestampUnix.append(timeStamp);
             samples.timestamp.append(timeStamp);
 
@@ -1248,14 +1370,14 @@ SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
                             record.value("indoor_temperature").toDouble());
 
             if (columns.testFlag(SC_Humidity))
-                samples.humidity.append(record.value("humidity").toDouble());
+                samples.humidity.append(record.value("relative_humidity").toDouble());
 
             if (columns.testFlag(SC_IndoorHumidity))
                 samples.indoorHumidity.append(
-                            record.value("indoor_humidity").toDouble());
+                            record.value("indoor_relative_humidity").toDouble());
 
             if (columns.testFlag(SC_Pressure))
-                samples.pressure.append(record.value("pressure").toDouble());
+                samples.pressure.append(record.value("absolute_pressure").toDouble());
 
             if (columns.testFlag(SC_Rainfall)) {
                 double value = record.value("rainfall").toDouble();
@@ -1353,6 +1475,11 @@ SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
 }
 
 void WebCacheDB::clearSamples() {
+
+    if (!ready) {
+        return;
+    }
+
     QSqlQuery query(sampleCacheDb);
     query.exec("delete from sample");
     query.exec("delete from data_file");;
@@ -1362,10 +1489,102 @@ void WebCacheDB::clearSamples() {
 }
 
 void WebCacheDB::clearImages() {
+
+    if (!ready) {
+        return;
+    }
+
     QSqlQuery query(sampleCacheDb);
     query.exec("delete from image");
     query.exec("delete from image_set");
     sampleCacheDb.close();
     sampleCacheDb.open();
     query.exec("vacuum");
+}
+
+bool WebCacheDB::stationKnown(QString url) {
+    QSqlQuery query(sampleCacheDb);
+    query.prepare("select station_id from station where code = :url");
+    query.bindValue(":url", url);
+    query.exec();
+    return query.first();
+}
+
+void WebCacheDB::updateStation(QString url, QString title, QString description,
+                               QString type_code, int interval, float latitude,
+                               float longitude, float altitude, bool solar,
+                               int davis_broadcast_id) {
+    if (!ready) {
+        return;
+    }
+
+    qDebug() << "Updating station info for" << url;
+
+    int stationId = getStationId(url);
+
+
+    QSqlQuery query(sampleCacheDb);
+    query.prepare("update station set title = :title, description = :description, "
+                  "station_type_id = (select station_type_id from station_type where lower(code) = :type_code), "
+                  "sample_interval = :interval, "
+                  "latitude = :latitude, longitude = :longitude, altitude = :altitude, "
+                  "solar_available = :solar, davis_broadcast_id = :broadcast_id "
+                  "where station_id = :station_id");
+    query.bindValue(":title", title);
+    query.bindValue(":description", description);
+    query.bindValue(":type_code", type_code.toLower());
+    query.bindValue(":interval", interval);
+
+    query.bindValue(":altitude", altitude);
+    query.bindValue(":solar", solar);
+    query.bindValue(":station_id", stationId);
+
+    if (latitude == FLT_MAX) {
+        query.bindValue(":latitude", QVariant(QVariant::Double));
+    } else {
+        query.bindValue(":latitude", latitude);
+    }
+
+    if (longitude == FLT_MAX) {
+        query.bindValue(":longitude", QVariant(QVariant::Double));
+    } else {
+        query.bindValue(":longitude", longitude);
+    }
+
+    if (davis_broadcast_id > 0) {
+        query.bindValue(":broadcast_id", davis_broadcast_id);
+    } else {
+        query.bindValue(":broadcast_id", QVariant(QVariant::Int));
+    }
+
+    query.exec();
+    sampleCacheDb.commit();
+    qDebug() << "Station updated";
+}
+
+
+bool WebCacheDB::solarAvailable(QString url) {
+    QSqlQuery q(sampleCacheDb);
+    q.prepare("select solar_available from station where code = :url");
+    q.bindValue(":url", url);
+    if (q.exec()) {
+        if (q.first()) {
+            return q.record().field(0).value().toBool();
+        }
+    }
+    return false;
+}
+
+QString WebCacheDB::hw_type(QString url) {
+    QSqlQuery q(sampleCacheDb);
+    q.prepare("select hwt.code from station_type hwt "
+              "inner join station stn on stn.station_type_id = hwt.station_type_id "
+              "where stn.code = :url");
+    q.bindValue(":url", url);
+    if (q.exec()) {
+        if (q.first()) {
+            return q.record().field(0).value().toString().toLower();
+        }
+    }
+    return "generic";
 }

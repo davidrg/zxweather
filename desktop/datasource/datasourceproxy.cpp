@@ -192,6 +192,14 @@ void DataSourceProxy::primeCache(QDateTime start, QDateTime end) {
     sampleSource->primeCache(start, end);
 }
 
+bool DataSourceProxy::solarAvailable() {
+    if (sampleSource == 0) {
+        return false; // ERROR
+    }
+
+    return sampleSource->solarAvailable();
+}
+
 // Slots
 void DataSourceProxy::liveDataSlot(LiveDataSet data) {
     emit liveData(data);

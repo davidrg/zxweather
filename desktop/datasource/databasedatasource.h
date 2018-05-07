@@ -48,6 +48,8 @@ public:
 
     void primeCache(QDateTime start, QDateTime end);
 
+    bool solarAvailable();
+
 private slots:
     void notificationPump(bool force = false);
     void dbError(QString message);

@@ -122,7 +122,8 @@ SOURCES += main.cpp\
     reporting/report.cpp \
     reporting/qt-mustache/mustache.cpp \
     reporting/runreportdialog.cpp \
-    reporting/reportdisplaywindow.cpp
+    reporting/reportdisplaywindow.cpp \
+    datasource/webtasks/fetchstationinfo.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
@@ -217,7 +218,8 @@ HEADERS  += mainwindow.h \
     reporting/report.h \
     reporting/qt-mustache/mustache.h \
     reporting/runreportdialog.h \
-    reporting/reportdisplaywindow.h
+    reporting/reportdisplaywindow.h \
+    datasource/webtasks/fetchstationinfo.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \
