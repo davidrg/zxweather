@@ -8,6 +8,7 @@
 #include <QNetworkRequest>
 #include <QNetworkReply>
 #include <QtDebug>
+#include <cfloat>
 
 #define DATASET_SYSCONFIG "sysconfig.json"
 
@@ -111,17 +112,54 @@ bool FetchSamplesWebTask::processResponse(QByteArray responseData) {
 
             QString hw = stationData["hw_type"].toMap()["code"].toString().toUpper();
 
+            int davis_broadcast_id = -1;
+
             if (hw == "DAVIS") {
                 _isSolarAvailable = stationData["hw_config"]
                         .toMap()["has_solar_and_uv"].toBool();
                 _isWireless = stationData["hw_config"]
                         .toMap()["is_wireless"].toBool();
                 _hwType = HW_DAVIS;
+
+                if (_isWireless) {
+                    bool ok;
+                    davis_broadcast_id = stationData["hw_config"].toMap()["broadcast_id"].toInt(&ok);
+                    if (!ok) {
+                        davis_broadcast_id = -1;
+                    }
+                }
             } else if (hw == "FOWH1080") {
                 _hwType = HW_FINE_OFFSET;
             } else {
                 _hwType = HW_GENERIC;
             }
+
+            float latitude = FLT_MAX, longitude = FLT_MAX;
+            QVariantMap coordinates = stationData["coordinates"].toMap();
+            if (!coordinates["latitude"].isNull()) {
+                latitude = coordinates["latitude"].toFloat();
+            }
+            if (!coordinates["longitude"].isNull()) {
+                longitude = coordinates["longitude"].toFloat();
+            }
+
+            int sample_interval = 5;
+            if (stationData.contains("interval")) {
+                sample_interval = stationData["interval"].toInt();
+            }
+
+            _dataSource->updateStation(
+                    _stationName,
+                    stationData["desc"].toString(),
+                    stationData["hw_type"].toMap()["code"].toString().toLower(),
+                    sample_interval,
+                    latitude,
+                    longitude,
+                    stationData["coordinates"].toMap()["altitude"].toFloat(),
+                    _isSolarAvailable,
+                    davis_broadcast_id
+            );
+
             return true;
         }
     }

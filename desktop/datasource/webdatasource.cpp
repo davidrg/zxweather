@@ -14,6 +14,7 @@
 #include "webtasks/fetchraintotalswebtask.h"
 #include "webtasks/request_data.h"
 #include "webtasks/selectsampleswebtask.h"
+#include "webtasks/fetchstationinfo.h"
 
 #include <QStringList>
 #include <QNetworkRequest>
@@ -57,7 +58,7 @@
  *****************************************************************************/
 WebDataSource::WebDataSource(AbstractProgressListener *progressListener, QObject *parent) :
     AbstractDataSource(progressListener, parent)
-{
+{    
     Settings& settings = Settings::getInstance();
     baseURL = settings.webInterfaceUrl();
     stationCode = settings.stationCode().toLower();
@@ -86,6 +87,10 @@ WebDataSource::WebDataSource(AbstractProgressListener *progressListener, QObject
     processingQueue = false;
     currentTask = 0;
     currentSubtask = 0;
+
+    if (!WebCacheDB::getInstance().stationKnown(stationURL())) {
+        queueTask(new FetchStationInfoWebTask(baseURL, stationCode, this));
+    }
 }
 
 
@@ -448,11 +453,40 @@ void WebDataSource::enableLiveData() {
     livePollTimer.start();
 }
 
+QString WebDataSource::stationURL() const {
+    Settings& settings = Settings::getInstance();
+    QString baseURL = settings.webInterfaceUrl();
+
+    QString dataRootUrl = baseURL + "data/";
+    QString stationBaseUrl = dataRootUrl + stationCode + "/";
+#ifdef USE_GNUPLOT_DATA
+    QString stationDataUrl = baseURL + "b/" + stationCode + "/";
+#else
+    QString stationDataUrl = stationBaseUrl;
+#endif
+
+    return stationDataUrl;
+}
+
 hardware_type_t WebDataSource::getHardwareType() {
     // we cant determine the hardware type on demand like this. We won't
     // know until after live data is turned on or we've processed a request
     // for samples.
+    QString typ = WebCacheDB::getInstance().hw_type(stationURL());
+
+    if (typ == "generic") {
+        return HW_GENERIC;
+    } else if (typ == "fowh1080") {
+        return HW_FINE_OFFSET;
+    } else if (typ == "davis") {
+        return HW_DAVIS;
+    }
+
     return HW_GENERIC;
+}
+
+bool WebDataSource::solarAvailable() {
+    return WebCacheDB::getInstance().solarAvailable(stationURL());
 }
 
 /*****************************************************************************
@@ -755,4 +789,14 @@ void WebDataSource::taskQueueResponseDataReady(QNetworkReply* reply) {
         qDebug() << "No current task!";
         reply->deleteLater(); // A reply without an owner!
     }
+}
+
+void WebDataSource::updateStation(QString title, QString description, QString type_code,
+                                  int interval, float latitude, float longitude, float altitude,
+                                  bool solar, int davis_broadcast_id) {
+
+
+    WebCacheDB::getInstance().updateStation(
+                stationURL(), title, description, type_code, interval, latitude, longitude,
+                altitude, solar, davis_broadcast_id);
 }

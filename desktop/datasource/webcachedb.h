@@ -206,6 +206,45 @@ public:
      */
     void clearImages();
 
+    /** Returns true if the specified station is known to the cache database
+     *
+     * @param url Station URL
+     * @return true if it exists in the cache database
+     */
+    bool stationKnown(QString url);
+
+    /** Updates extra data associated with a station. Aside from the solar and hardware type
+     * parameters this is mostly for use by reports.
+     *
+     * @param url Station to update
+     * @param title Station title
+     * @param description Description
+     * @param type_code Hardware type code
+     * @param interval Sample interval
+     * @param latitude Latitude. Use FLT_MAX if unknown.
+     * @param longitude Longitude. use FLT_MAX if unknown.
+     * @param altitude Altitude. use 0 if unknown.
+     * @param solar If solar sensors are available
+     * @param davis_broadcast_id Wireless broadcast ID for davis stations. Use 0 for cabled or non-davis stations.
+     */
+    void updateStation(QString url, QString title, QString description, QString type_code,
+                       int interval, float latitude, float longitude, float altitude,
+                       bool solar, int davis_broadcast_id);
+
+    /** Returns true if the station has solar sensors available
+     *
+     * @param url Station to check
+     * @return True if solar sensors are available
+     */
+    bool solarAvailable(QString url);
+
+    /** Gets the hardware type associated with the station
+     *
+     * @param url Station to check
+     * @return Station hardware type code
+     */
+    QString hw_type(QString url);
+
 signals:
     /** Emitted when an error occurs which would prevent the cache database
      * from operating.
@@ -413,6 +452,12 @@ private:
     QSqlQuery buildAggregatedSelectQuery(SampleColumns columns, int stationId,
                                          AggregateFunction aggregateFunction,
                                          AggregateGroupType groupType, uint32_t groupMinutes);
+
+    bool runDbScript(QString filename);
+
+    /** If the cache DB is ready.
+     */
+    bool ready;
 };
 
 #endif // WEBCACHEDB_H

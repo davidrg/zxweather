@@ -13,7 +13,6 @@
 #include <QBuffer>
 
 /* Run report dialog TODO:
- *  - Intro page for when no report is selected
  *  - Filter out reports that don't support the current hardware type
  *  - Save custom criteria and reload for next time
  *
@@ -21,16 +20,6 @@
  *  - Update copyright info in about dialog (Qt Mustache)
  *  - Add a licenses tab to the about dialog? That or update the licenses file in source control.
  *  - Include license file in mkdist script
- *
- * Report class TODO:
- *  - Load supported weather station types
- *  - Support for for pre-set timespans so the timespan page can be skipped.
- *
- * DB Data Source TODO:
- *  - Change column names to match the Postgres schema
- *  - Make station code available in the DB. Should be full URL with code supplied to
- *    query as also the full url.
- *  - make hw-type and other station config details available
  */
 
 RunReportDialog::RunReportDialog(QWidget *parent) :
@@ -44,6 +33,14 @@ RunReportDialog::RunReportDialog(QWidget *parent) :
     bool isWebDs = Settings::getInstance().sampleDataSourceType() == Settings::DS_TYPE_WEB_INTERFACE;
     bool isDbDs = Settings::getInstance().sampleDataSourceType() == Settings::DS_TYPE_DATABASE;
 
+    QScopedPointer<AbstractDataSource> ds;
+    if (Settings::getInstance().sampleDataSourceType() == Settings::DS_TYPE_DATABASE)
+        ds.reset(new DatabaseDataSource(new DialogProgressListener(this), this));
+    else
+        ds.reset(new WebDataSource(new DialogProgressListener(this), this));
+    hardware_type_t hw_type = ds->getHardwareType();
+    bool solarAvailable = ds->solarAvailable();
+
     foreach (Report r, reports) {
         if (r.isNull())
             continue;
@@ -54,6 +51,38 @@ RunReportDialog::RunReportDialog(QWidget *parent) :
 
         if (isDbDs && !r.supportsDBDS()) {
             continue; // Report not compatible with the current data source
+        }
+
+        QSet<Report::WeatherStationType> wsType = r.supportedWeatherStations();
+
+        // If the report needs something fancier than a generic weather station
+        // check the weather station type is listed as supported by the report.
+        if (!wsType.contains(Report::WST_Generic)) {
+            switch(hw_type) {
+            case HW_DAVIS:
+                // We're either a Vantage Pro2/Vue or Vantage Pro2 Plus (or Vue
+                // console with a Pro2 Plus SIM)
+
+                if (wsType.contains(Report::WST_VantagePro2)) {
+                    // Any davis station is fine.
+                    break;
+                } else if (solarAvailable &&  wsType.contains(Report::WST_VantagePro2Plus)) {
+                    // Solar sensors are required and we have them.
+                    break;
+                }
+
+                // Either davis stations aren't supported or the report needs
+                // solar sensors and we don't have them.
+                continue;
+            case HW_FINE_OFFSET:
+                if (!wsType.contains(Report::WST_WH1080)) {
+                    continue; // No support for Fine offset stations.
+                }
+                break;
+            case HW_GENERIC:
+            default:
+                continue; // Generic wasn't listed
+            }
         }
 
         QTreeWidgetItem *twi = new QTreeWidgetItem();

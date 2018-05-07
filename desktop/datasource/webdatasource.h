@@ -25,6 +25,8 @@ class WebDataSource : public AbstractDataSource
     friend class FetchImageWebTask;
     friend class FetchThumbnailWebTask;
     friend class FetchRainTotalsWebTask;
+    friend class FetchSamplesWebTask;
+    friend class FetchStationInfoWebTask;
     Q_OBJECT
 
 public:
@@ -46,8 +48,6 @@ public:
 
     hardware_type_t getHardwareType();
 
-    bool hasUVAndSolarSensors();
-
     // Stubs to allow the app to build while other related functionality is
     // implemented.
     void fetchImageDateList();
@@ -62,6 +62,8 @@ public:
     void fetchRainTotals();
 
     void primeCache(QDateTime start, QDateTime end);
+
+    bool solarAvailable();
 
 private slots:
     void liveDataReady(QNetworkReply* reply);
@@ -109,6 +111,13 @@ private:
     // Progress dialog stuff
     void makeProgress(QString message);
     void moveGoalpost(int,QString);
+
+    // For updating station info in the cache DB
+    void updateStation(QString title, QString description, QString type_code,
+                       int interval, float latitude, float longitude, float altitude,
+                       bool solar, int davis_broadcast_id);
+
+    QString stationURL() const;
 
     QString baseURL;
     QString stationCode;

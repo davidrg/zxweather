@@ -6,6 +6,7 @@
 #include <QStringList>
 #include <QIcon>
 #include <QSqlQuery>
+#include <QSet>
 
 class AbstractDataSource;
 
@@ -48,6 +49,13 @@ public:
         FTS_AllTime
     } FixedTimeSpan;
 
+    typedef enum {
+        WST_Generic,
+        WST_WH1080,
+        WST_VantagePro2,
+        WST_VantagePro2Plus
+    } WeatherStationType;
+
     bool isNull() const {return _isNull;}
 
     QString name() const {return _name;}
@@ -60,6 +68,7 @@ public:
     QByteArray customCriteriaUi() const {return _ui;}
     bool supportsWebDS() const { return _web_ok; }
     bool supportsDBDS() const { return _db_ok; }
+    QSet<WeatherStationType> supportedWeatherStations() const { return QSet<WeatherStationType>::fromList(_weatherStations); }
 
     void run(AbstractDataSource* dataSource, QDateTime start, QDateTime end, QVariantMap parameters);
     void run(AbstractDataSource* dataSource, QDate start, QDate end, QVariantMap parameters);
@@ -84,6 +93,7 @@ private:
     QIcon _icon;
     TimePickerType _tpType;
     FixedTimeSpan _defaultTimeSpan;
+    QList<WeatherStationType> _weatherStations;
 
     typedef struct _query {
         QString name;

@@ -134,6 +134,24 @@ Report::Report(QString name)
         }
     }
 
+    if (!doc.contains("supported_weather_stations")) {
+        _weatherStations.append(WST_Generic);
+    } else {
+        QVariantList wsts = doc["supported_weather_stations"].toList();
+        foreach (QVariant wst, wsts) {
+            QString t = wst.toString();
+            if (t == "generic") {
+                _weatherStations.append(WST_Generic);
+            } else if (t == "wh1080") {
+                _weatherStations.append(WST_WH1080);
+            } else if (t == "vantage_pro2") {
+                _weatherStations.append(WST_VantagePro2);
+            } else if (t == "vantage_pro2_plus") {
+                _weatherStations.append(WST_VantagePro2Plus);
+            }
+        }
+    }
+
     _custom_criteria = doc.contains("criteria_ui");
     if (_custom_criteria) {
         _ui = readFile(reportDir + doc["criteria_ui"].toString());

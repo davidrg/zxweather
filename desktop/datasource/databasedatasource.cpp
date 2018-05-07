@@ -1481,3 +1481,40 @@ void DatabaseDataSource::primeCache(QDateTime start, QDateTime end) {
     Q_UNUSED(start);
     Q_UNUSED(end);
 }
+
+bool DatabaseDataSource::solarAvailable() {
+    using namespace QtJson;
+
+    int id = getStationId();
+
+    // A station ID of -1 means we're running on a v0.1 database.
+    if (id != -1) {
+        QSqlQuery query;
+        query.prepare("select s.title, s.station_config "
+                      "from station s "
+                      "where s.station_id = :stationId");
+        query.bindValue(":stationId", id);
+        query.exec();
+
+        if (query.isActive() && query.size() == 1) {
+            query.first();
+            bool has_solar = false;
+
+            QString config = query.value(1).toString();
+
+            bool ok;
+            QVariantMap result = Json::parse(config, ok).toMap();
+
+            if (!ok) {
+                emit error("JSON parsing failed");
+                return false;
+            }
+
+            if (result["has_solar_and_uv"].toBool()) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
