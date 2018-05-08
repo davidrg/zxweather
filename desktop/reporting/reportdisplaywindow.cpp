@@ -10,7 +10,7 @@
 #include <QApplication>
 #include <QClipboard>
 
-ReportDisplayWindow::ReportDisplayWindow(QString reportName, QIcon reportIcon, QWidget *parent) : QWidget(parent)
+ReportDisplayWindow::ReportDisplayWindow(QString reportName, QIcon reportIcon, QWidget *parent) : QDialog(parent)
 {
     setWindowTitle(reportName);
     setWindowIcon(reportIcon);

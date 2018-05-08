@@ -68,4 +68,11 @@
         <file alias="ssTriangleInverted">resources/scatter_style/ssTriangleInverted.png</file>
     </qresource>
     <qresource prefix="/"/>
+    <qresource prefix="/licenses">
+        <file alias="gpl_v3.txt">charts/qcp/GPL.txt</file>
+        <file alias="mustache_bsd_2cl.txt">reporting/qt-mustache/license.txt</file>
+        <file alias="lgpl-2.1.txt">qtcolorbutton/lgpl-2.1.txt</file>
+        <file alias="lgpl_exception.txt">qtcolorbutton/LGPL_EXCEPTION.TXT</file>
+        <file alias="qtcolorbutton.txt">qtcolorbutton/license.txt</file>
+    </qresource>
 </RCC>

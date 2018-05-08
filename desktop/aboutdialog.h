@@ -54,6 +54,9 @@ protected:
      * @param e Event details.
      */
     void changeEvent(QEvent *e);
+
+private slots:
+    void showLicenses();
     
 private:
     Ui::AboutDialog *ui;
