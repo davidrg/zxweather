@@ -1235,9 +1235,9 @@ QString WebCacheDB::buildAggregatedSelect(SampleColumns columns,
              " where cur.time_stamp <= :end_time"
              " and cur.time_stamp >= :start_time"
              " and prev.time_stamp = (select max(time_stamp) from sample where time_stamp < cur.time_stamp"
-             "        and station = :station_id )"
-             " and cur.station = :stationIdB "
-             " and prev.station = :stationIdC "
+             "        and station_id = :station_id )"
+             " and cur.station_id = :stationIdB "
+             " and prev.station_id = :stationIdC "
              " order by cur.time_stamp asc) as iq "
              " group by iq.quadrant "
              " order by iq.quadrant asc ";
