@@ -12,13 +12,6 @@
 #include <QtUiTools>
 #include <QBuffer>
 
-/*
- * Misc TODO:
- *  - Update copyright info in about dialog (Qt Mustache)
- *  - Add a licenses tab to the about dialog? That or update the licenses file in source control.
- *  - Include license file in mkdist script
- */
-
 RunReportDialog::RunReportDialog(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::RunReportDialog)

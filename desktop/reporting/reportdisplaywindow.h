@@ -1,14 +1,14 @@
 #ifndef REPORTDISPLAYWINDOW_H
 #define REPORTDISPLAYWINDOW_H
 
-#include <QWidget>
+#include <QDialog>
 #include <QAbstractTableModel>
 
 #include "report.h"
 
 class QTabWidget;
 
-class ReportDisplayWindow : public QWidget
+class ReportDisplayWindow : public QDialog
 {
     Q_OBJECT
 public:
