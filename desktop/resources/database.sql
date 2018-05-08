@@ -84,7 +84,7 @@ CREATE TABLE sample (
   data_file integer not null
 );
 
-create index sample_stn_ts on sample(station, time_stamp asc);
+create index sample_stn_ts on sample(station_id, time_stamp asc);
 
 -- View to emulate the davis_sample table in the postgres schema
 create view davis_sample as
