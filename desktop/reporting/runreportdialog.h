@@ -62,6 +62,8 @@ private:
 
     void switchPage(Page page);
     void runReport();
+
+    void loadReportCriteria(QWidget* widget);
 };
 
 #endif // RUNREPORTDIALOG_H
