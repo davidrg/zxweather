@@ -117,18 +117,28 @@ Report::Report(QString name)
             _defaultTimeSpan = FTS_Today;
         } else if (ts == "yesterday") {
             _defaultTimeSpan = FTS_Yesterday;
+        } else if (ts == "last_24h") {
+            _defaultTimeSpan = FTS_Last_24H;
         } else if (ts == "this_week") {
             _defaultTimeSpan = FTS_ThisWeek;
         } else if (ts == "last_week") {
             _defaultTimeSpan = FTS_LastWeek;
+        } else if (ts == "last_7d") {
+            _defaultTimeSpan = FTS_Last_7D;
+        } else if (ts == "last_14d") {
+            _defaultTimeSpan = FTS_Last_14D;
         } else if (ts == "this_month") {
             _defaultTimeSpan = FTS_ThisMonth;
         } else if (ts == "last_month") {
             _defaultTimeSpan = FTS_LastMonth;
+        } else if (ts == "last_30d") {
+            _defaultTimeSpan = FTS_Last_30D;
         } else if (ts == "this_year") {
             _defaultTimeSpan = FTS_ThisYear;
         } else if (ts == "last_year") {
             _defaultTimeSpan = FTS_LastYear;
+        } else if (ts == "last_365d") {
+            _defaultTimeSpan = FTS_Last_365D;
         } else if (ts == "all_time") {
             _defaultTimeSpan = FTS_AllTime;
         }
