@@ -64,7 +64,7 @@ CREATE TABLE sample (
   data_file integer not null
 );
 
-create index sample_stn_ts on sample(station, time_stamp asc);
+create index sample_stn_ts on sample(station_id, time_stamp asc);
 
 insert into sample(sample_id, time_stamp, indoor_relative_humidity, indoor_temperature, relative_humidity,
                    temperature, dew_point, wind_chill, apparent_temperature, absolute_pressure, average_wind_speed,
