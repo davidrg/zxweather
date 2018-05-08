@@ -143,6 +143,10 @@ namespace SettingsKey {
         const QString USERNAME = "Database/username";
         const QString PASSWORD = "Database/password";
     }
+
+    namespace ReportCustomCriteria {
+        const QString CUSTOM_CRITERIA = "ReportCriteria/";
+    }
 }
 
 Settings::Settings() {
@@ -678,4 +682,27 @@ void Settings::saveMainWindowGeometry(QByteArray geom) {
 
 QByteArray Settings::mainWindowGeometry() const {
     return settings->value(SettingsKey::General::MAIN_WINDOW_GEOMETRY, QByteArray()).toByteArray();
+}
+
+void Settings::saveReportCriteria(QString report, QVariantMap criteria) {
+    QString key = SettingsKey::ReportCustomCriteria::CUSTOM_CRITERIA;
+    if (sampleDataSourceType() == Settings::DS_TYPE_WEB_INTERFACE) {
+        key += webInterfaceUrl().replace("/", "_") + stationCode() + "/" + report;
+    } else {
+        key += stationCode() + "/" + report;
+    }
+
+    settings->setValue(key, criteria);
+}
+
+QVariantMap Settings::getReportCriteria(QString report) {
+    QString key = SettingsKey::ReportCustomCriteria::CUSTOM_CRITERIA;
+    if (sampleDataSourceType() == Settings::DS_TYPE_WEB_INTERFACE) {
+        key += webInterfaceUrl().replace("/", "_") + stationCode() + "/" + report;
+    } else {
+        key += stationCode() + "/" + report;
+    }
+
+    QVariantMap map;
+    return settings->value(key, map).toMap();
 }

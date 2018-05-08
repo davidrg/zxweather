@@ -12,10 +12,7 @@
 #include <QtUiTools>
 #include <QBuffer>
 
-/* Run report dialog TODO:
- *  - Filter out reports that don't support the current hardware type
- *  - Save custom criteria and reload for next time
- *
+/*
  * Misc TODO:
  *  - Update copyright info in about dialog (Qt Mustache)
  *  - Add a licenses tab to the about dialog? That or update the licenses file in source control.
@@ -144,6 +141,89 @@ RunReportDialog::~RunReportDialog()
     delete ui;
 }
 
+void RunReportDialog::loadReportCriteria(QWidget *widget) {
+    QVariantMap params = Settings::getInstance().getReportCriteria(report.name());
+
+
+    QList<QLineEdit*> lineEdits = ui->custom_criteria_page->findChildren<QLineEdit*>();
+    QList<QComboBox*> comboBoxes = ui->custom_criteria_page->findChildren<QComboBox*>();
+    QList<QTextEdit*> textEdits = ui->custom_criteria_page->findChildren<QTextEdit*>();
+    QList<QPlainTextEdit*> plainTextEdits = ui->custom_criteria_page->findChildren<QPlainTextEdit*>();
+    QList<QSpinBox*> spinBoxes = ui->custom_criteria_page->findChildren<QSpinBox*>();
+    QList<QDoubleSpinBox*> doubleSpinBoxes = ui->custom_criteria_page->findChildren<QDoubleSpinBox*>();
+    QList<QTimeEdit*> timeEdits = ui->custom_criteria_page->findChildren<QTimeEdit*>();
+    QList<QDateEdit*> dateEdits = ui->custom_criteria_page->findChildren<QDateEdit*>();
+    QList<QDateTimeEdit*> dateTimeEdits = ui->custom_criteria_page->findChildren<QDateTimeEdit*>();
+    QList<QDial*> dials = ui->custom_criteria_page->findChildren<QDial*>();
+    QList<QSlider*> sliders = ui->custom_criteria_page->findChildren<QSlider*>();
+
+    foreach (QLineEdit* ed, lineEdits) {
+        params[ed->objectName()] = ed->text();
+    }
+
+    foreach (QComboBox* comboBox, comboBoxes) {
+        if (params.contains(comboBox->objectName() + "_id")) {
+            comboBox->setCurrentIndex(params[comboBox->objectName() + "_id"].toInt());
+        } else if (params.contains(comboBox->objectName())) {
+            comboBox->setCurrentText(params[comboBox->objectName()].toString());
+        }
+    }
+
+    foreach (QTextEdit* ed, textEdits) {
+        if (params.contains(ed->objectName())) {
+            ed->setHtml(params[ed->objectName()].toString());
+        }
+    }
+
+    foreach (QPlainTextEdit *ed, plainTextEdits) {
+        if (params.contains(ed->objectName())) {
+            ed->setPlainText(params[ed->objectName()].toString());
+        }
+    }
+
+    foreach (QSpinBox* sb, spinBoxes) {
+        if (params.contains(sb->objectName())) {
+            sb->setValue(params[sb->objectName()].toInt());
+        }
+    }
+
+    foreach (QDoubleSpinBox *sb, doubleSpinBoxes) {
+        if (params.contains(sb->objectName())) {
+            sb->setValue(params[sb->objectName()].toDouble());
+        }
+    }
+
+    foreach (QTimeEdit *ed, timeEdits) {
+        if (params.contains(ed->objectName())) {
+            ed->setTime(params[ed->objectName()].toTime());
+        }
+    }
+
+    foreach (QDateEdit *ed, dateEdits) {
+        if (params.contains(ed->objectName())) {
+            ed->setDate(params[ed->objectName()].toDate());
+        }
+    }
+
+    foreach (QDateTimeEdit *ed, dateTimeEdits) {
+        if (params.contains(ed->objectName())) {
+            ed->setDateTime(params[ed->objectName()].toDateTime());
+        }
+    }
+
+    foreach (QDial* dial, dials) {
+        if (params.contains(dial->objectName())) {
+            dial->setValue(params[dial->objectName()].toInt());
+        }
+    }
+
+    foreach (QSlider* slider, sliders) {
+        if (params.contains(slider->objectName())) {
+            slider->setValue(params[slider->objectName()].toInt());
+        }
+    }
+}
+
 void RunReportDialog::reportSelected(QTreeWidgetItem* twi, QTreeWidgetItem *prev) {
     Q_UNUSED(prev);
 
@@ -172,6 +252,7 @@ void RunReportDialog::reportSelected(QTreeWidgetItem* twi, QTreeWidgetItem *prev
             QWidget *widget = loader.load(&buf, this);
             buf.close();
             ui->custom_criteria_page->layout()->addWidget(widget);
+            loadReportCriteria(widget);
         }
     }
 
@@ -613,6 +694,8 @@ void RunReportDialog::runReport() {
         foreach (QSlider* slider, sliders) {
             params[slider->objectName()] = slider->value();
         }
+
+        Settings::getInstance().saveReportCriteria(report.name(), params);
     }
 
     if (report.timePickerType() == Report::TP_Timespan ||
