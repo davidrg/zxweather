@@ -39,13 +39,18 @@ public:
     typedef enum {
         FTS_None,
         FTS_Today,
+        FTS_Last_24H,
         FTS_Yesterday,
         FTS_ThisWeek,
         FTS_LastWeek,
+        FTS_Last_7D,
+        FTS_Last_14D,
         FTS_ThisMonth,
         FTS_LastMonth,
+        FTS_Last_30D,
         FTS_ThisYear,
         FTS_LastYear,
+        FTS_Last_365D,
         FTS_AllTime
     } FixedTimeSpan;
 

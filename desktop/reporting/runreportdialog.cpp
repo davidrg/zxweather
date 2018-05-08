@@ -315,24 +315,44 @@ void RunReportDialog::reportSelected(QTreeWidgetItem* twi, QTreeWidgetItem *prev
     case Report::FTS_Yesterday:
         ui->rbYesterday->setChecked(ui->rbYesterday->isEnabled());
         break;
+    case Report::FTS_Last_24H:
+        ui->rbTimeSpan->setChecked(ui->rbTimeSpan->isEnabled());
+        ui->teStartTime->setDateTime(QDateTime::currentDateTime().addSecs(24 * 60 * 60));
+        ui->teEndTime->setDateTime(QDateTime::currentDateTime());
     case Report::FTS_ThisWeek:
         ui->rbThisWeek->setChecked(ui->rbThisWeek->isEnabled());
         break;
     case Report::FTS_LastWeek:
         ui->rbLastWeek->setChecked(ui->rbLastWeek->isEnabled());
         break;
+    case Report::FTS_Last_7D:
+        ui->rbTimeSpan->setChecked(ui->rbTimeSpan->isEnabled());
+        ui->teStartTime->setDateTime(QDateTime::currentDateTime().addSecs(7 * 24 * 60 * 60));
+        ui->teEndTime->setDateTime(QDateTime::currentDateTime());
+    case Report::FTS_Last_14D:
+        ui->rbTimeSpan->setChecked(ui->rbTimeSpan->isEnabled());
+        ui->teStartTime->setDateTime(QDateTime::currentDateTime().addSecs(14 * 24 * 60 * 60));
+        ui->teEndTime->setDateTime(QDateTime::currentDateTime());
     case Report::FTS_ThisMonth:
         ui->rbThisMonth->setChecked(ui->rbThisMonth->isEnabled());
         break;
     case Report::FTS_LastMonth:
         ui->rbLastMonth->setChecked(ui->rbLastMonth->isEnabled());
         break;
+    case Report::FTS_Last_30D:
+        ui->rbTimeSpan->setChecked(ui->rbTimeSpan->isEnabled());
+        ui->teStartTime->setDateTime(QDateTime::currentDateTime().addSecs(30 * 24 * 60 * 60));
+        ui->teEndTime->setDateTime(QDateTime::currentDateTime());
     case Report::FTS_ThisYear:
         ui->rbThisYear->setChecked(ui->rbThisYear->isEnabled());
         break;
     case Report::FTS_LastYear:
         ui->rbLastYear->setChecked(ui->rbLastYear->isEnabled());
         break;
+    case Report::FTS_Last_365D:
+        ui->rbTimeSpan->setChecked(ui->rbTimeSpan->isEnabled());
+        ui->teStartTime->setDateTime(QDateTime::currentDateTime().addSecs(365 * 24 * 60 * 60));
+        ui->teEndTime->setDateTime(QDateTime::currentDateTime());
     case Report::FTS_AllTime:
         ui->rbTimeSpan->setChecked(ui->rbTimeSpan->isEnabled());
         ui->teStartTime->setDateTime(QDateTime(QDate(2000,1,1), QTime(0,0,0)));
