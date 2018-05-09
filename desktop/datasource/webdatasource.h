@@ -65,6 +65,8 @@ public:
 
     bool solarAvailable();
 
+    station_info_t getStationInfo();
+
 private slots:
     void liveDataReady(QNetworkReply* reply);
     void liveDataPoll();

@@ -8,6 +8,7 @@
 #include "datasource/sampleset.h"
 #include "datasource/imageset.h"
 #include "datasource/aggregate.h"
+#include "datasource/station_info.h"
 
 typedef struct _data_file_t {
     QString filename;
@@ -35,6 +36,7 @@ typedef struct _cache_stats_t {
     QDateTime end;
     bool isValid;
 } cache_stats_t;
+
 
 /* How caching works:
  *  - Only download data file if either:
@@ -244,6 +246,12 @@ public:
      * @return Station hardware type code
      */
     QString hw_type(QString url);
+
+    /** Gets basic station info
+     *
+     * @return
+     */
+    station_info_t getStationInfo(QString url);
 
 signals:
     /** Emitted when an error occurs which would prevent the cache database

@@ -489,6 +489,10 @@ bool WebDataSource::solarAvailable() {
     return WebCacheDB::getInstance().solarAvailable(stationURL());
 }
 
+station_info_t WebDataSource::getStationInfo() {
+    return WebCacheDB::getInstance().getStationInfo(stationURL());
+}
+
 /*****************************************************************************
  **** IMAGES *****************************************************************
  *****************************************************************************/

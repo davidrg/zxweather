@@ -200,6 +200,15 @@ bool DataSourceProxy::solarAvailable() {
     return sampleSource->solarAvailable();
 }
 
+station_info_t DataSourceProxy::getStationInfo() {
+    if (sampleSource == 0) {
+        station_info_t info;
+        info.isValid = false;
+        return info;
+    }
+    return sampleSource->getStationInfo();
+}
+
 // Slots
 void DataSourceProxy::liveDataSlot(LiveDataSet data) {
     emit liveData(data);

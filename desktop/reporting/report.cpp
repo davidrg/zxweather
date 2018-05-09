@@ -144,6 +144,11 @@ Report::Report(QString name)
         }
     }
 
+    _primeCache = true;
+    if (doc.contains("dont_prime_cache")) {
+        _primeCache = !doc["dont_prime_cache"].toBool();
+    }
+
     if (!doc.contains("supported_weather_stations")) {
         _weatherStations.append(WST_Generic);
     } else {
@@ -312,38 +317,48 @@ QList<Report> Report::loadReports() {
 }
 
 void Report::run(AbstractDataSource *dataSource, QDateTime start, QDateTime end, QVariantMap parameters) {
-    dataSource->primeCache(start, end);
+
+    if (_primeCache) {
+        dataSource->primeCache(start, end);
+    }
+
     parameters["start"] = start;
     parameters["end"] = end;
     run(dataSource, parameters);
 }
 
 void Report::run(AbstractDataSource* dataSource, QDate start, QDate end, QVariantMap parameters) {
-    dataSource->primeCache(QDateTime(start, QTime(0,0,0)),
-                           QDateTime(end, QTime(23,59,59,59)));
+    if (_primeCache) {
+        dataSource->primeCache(QDateTime(start, QTime(0,0,0)),
+                               QDateTime(end, QTime(23,59,59,59)));
+    }
+
     parameters["start"] = start;
     parameters["end"] = end;
     run(dataSource, parameters);
 }
 
 void Report::run(AbstractDataSource* dataSource, QDate dayOrMonth, bool month, QVariantMap parameters) {
-    if (month) {
-        QDate end = dayOrMonth.addMonths(1).addDays(-1);
-        dataSource->primeCache(QDateTime(dayOrMonth, QTime(0,0,0)),
-                               QDateTime(end, QTime(23,59,59,59)));
-    } else {
-        dataSource->primeCache(QDateTime(dayOrMonth, QTime(0,0,0)),
-                               QDateTime(dayOrMonth, QTime(23,59,59,59)));
+    if (_primeCache) {
+        if (month) {
+            QDate end = dayOrMonth.addMonths(1).addDays(-1);
+            dataSource->primeCache(QDateTime(dayOrMonth, QTime(0,0,0)),
+                                   QDateTime(end, QTime(23,59,59,59)));
+        } else {
+            dataSource->primeCache(QDateTime(dayOrMonth, QTime(0,0,0)),
+                                   QDateTime(dayOrMonth, QTime(23,59,59,59)));
+        }
     }
     parameters["date"] = dayOrMonth;
     run(dataSource, parameters);
 }
 
 void Report::run(AbstractDataSource* dataSource, int year, QVariantMap parameters) {
-
-    dataSource->primeCache(QDateTime(QDate(year, 1, 1), QTime(0,0,0)),
-                           QDateTime(QDate(year, 1, 1).addYears(1).addDays(-1),
-                                     QTime(23,59,59,59)));
+    if (_primeCache) {
+        dataSource->primeCache(QDateTime(QDate(year, 1, 1), QTime(0,0,0)),
+                               QDateTime(QDate(year, 1, 1).addYears(1).addDays(-1),
+                                         QTime(23,59,59,59)));
+    }
 
     parameters["year"] = year;
     run(dataSource, parameters);
@@ -361,6 +376,7 @@ void Report::run(AbstractDataSource* dataSource, QMap<QString, QVariant> paramet
         QSqlQuery query = dataSource->query();
 
         query.prepare(isWeb ? q.web_query : q.db_query);
+
         foreach (QString paramName, parameters.keys()) {
             query.bindValue(":" + paramName, parameters[paramName]);
             qDebug() << "Parameter" << paramName << "value" << parameters[paramName];
@@ -368,7 +384,12 @@ void Report::run(AbstractDataSource* dataSource, QMap<QString, QVariant> paramet
         if (query.exec()) {
             queryResults[q.name] = QSqlQuery(query);
         } else {
-            qDebug() << "Query failed" << query.lastError().databaseText() << query.lastError().driverText();
+            qDebug() << "Query failed";
+            qDebug() << "db text:" << query.lastError().databaseText();
+            qDebug() << "driver text:" << query.lastError().driverText();
+            qDebug() << "--- query";
+            qDebug().noquote() << query.executedQuery();
+            qDebug() << "---- /query";
         }
     }
 
@@ -627,7 +648,6 @@ QString Report::renderTemplatedReport(QMap<QString, QVariant> reportParameters,
                 for (int i = 0; i < record.count(); i++) {
                     QSqlField f = record.field(i);
                     row[f.name()] = f.value();
-                    qDebug() << f.name() << f.value();
                 }
 
                 rows.append(row);

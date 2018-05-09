@@ -13,6 +13,7 @@
 #include "sampleset.h"
 #include "imageset.h"
 #include "abstractprogresslistener.h"
+#include "station_info.h"
 
 class AbstractDataSource : public AbstractLiveDataSource
 {
@@ -124,6 +125,12 @@ public:
      * @return True if UV and Solar Radiation sensors are available.
      */
     virtual bool solarAvailable() = 0;
+
+    /** Gets basic station information
+     *
+     * @return Station information
+     */
+    virtual station_info_t getStationInfo() = 0;
 signals:
     /** Emitted when samples have been retrieved and are ready for processing.
      *

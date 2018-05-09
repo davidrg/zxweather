@@ -6,6 +6,7 @@
 #include <QDateTime>
 
 #include "report.h"
+#include "datasource/abstractdatasource.h"
 
 namespace Ui {
 class RunReportDialog;
@@ -44,6 +45,8 @@ private:
     Page nextPage;
     Page previousPage;
 
+    QScopedPointer<AbstractDataSource> ds;
+
     typedef struct {
         QDate start;
         QDate end;
@@ -63,7 +66,9 @@ private:
     void switchPage(Page page);
     void runReport();
 
-    void loadReportCriteria(QWidget* widget);
+    bool needsCriteriaPageCreated;
+    void createReportCriteria();
+    void loadReportCriteria();
 };
 
 #endif // RUNREPORTDIALOG_H

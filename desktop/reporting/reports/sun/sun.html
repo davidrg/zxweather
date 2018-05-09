@@ -1,0 +1,27 @@
+<html>
+<head>
+<title>Sun</title>
+</head>
+<body>
+<b>Sun from {{start}} to {{end}}</b>
+<hr>
+
+<p>At latitude {{latitude}}, longitude {{longitude}} for {{#criteria}} time {{time}} at offset {{time_offset}} {{/criteria}}.</p>
+<table border=1>
+	<tr>
+		<th>Date</th>
+		<th>Rise Time</th>
+		<th>Set Time</th>
+		<th>Solar Noon</th>
+	</tr>
+	{{#sun_html}}
+	<tr>
+		<td>{{{date}}}</td>
+		<td>{{{rise_time}}}</td>
+		<td>{{{set_time}}}</td>
+		<td>{{{solar_noon}}}</td>
+	</tr>
+	{{/sun_html}}
+</table>
+</body>
+</html>
