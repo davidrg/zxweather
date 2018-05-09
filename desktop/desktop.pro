@@ -219,7 +219,8 @@ HEADERS  += mainwindow.h \
     reporting/qt-mustache/mustache.h \
     reporting/runreportdialog.h \
     reporting/reportdisplaywindow.h \
-    datasource/webtasks/fetchstationinfo.h
+    datasource/webtasks/fetchstationinfo.h \
+    datasource/station_info.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \

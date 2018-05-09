@@ -50,6 +50,8 @@ public:
 
     bool solarAvailable();
 
+    station_info_t getStationInfo();
+
 private slots:
     void notificationPump(bool force = false);
     void dbError(QString message);

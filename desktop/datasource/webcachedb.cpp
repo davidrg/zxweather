@@ -1588,3 +1588,35 @@ QString WebCacheDB::hw_type(QString url) {
     }
     return "generic";
 }
+
+station_info_t WebCacheDB::getStationInfo(QString url) {
+    station_info_t info;
+    info.isValid = false;
+
+    if (!ready) {
+        return info;
+    }
+
+    QSqlQuery query(sampleCacheDb);
+    query.prepare("select title, description, latitude, longitude, altitude "
+                  "from station where code = :url");
+    query.bindValue(":url", url);
+    if (query.exec()) {
+        if (query.first()) {
+            info.isValid = true;
+            if (query.record().value("latitude").isNull() || query.record().value("longitude").isNull()) {
+                info.coordinatesPresent = false;
+            } else {
+                info.coordinatesPresent = true;
+                info.latitude = query.record().value("latitude").toFloat();
+                info.longitude = query.record().value("longitude").toFloat();
+            }
+
+            info.title = query.record().value("title").toString();
+            info.description = query.record().value("description").toString();
+            info.altitude = query.record().value("altitude").toFloat();
+        }
+    }
+
+    return info;
+}

@@ -1498,7 +1498,6 @@ bool DatabaseDataSource::solarAvailable() {
 
         if (query.isActive() && query.size() == 1) {
             query.first();
-            bool has_solar = false;
 
             QString config = query.value(1).toString();
 
@@ -1517,4 +1516,37 @@ bool DatabaseDataSource::solarAvailable() {
     }
 
     return false;
+}
+
+station_info_t DatabaseDataSource::getStationInfo() {
+    station_info_t info;
+    info.isValid = false;
+
+    int id = getStationId();
+    qDebug() << "Get info for station" << id;
+
+    QSqlQuery query;
+    query.prepare("select title, description, latitude, longitude, altitude "
+                  "from station where station_id = :id");
+    query.bindValue(":id", id);
+    if (query.exec()) {
+        if (query.first()) {
+            info.isValid = true;
+            if (query.record().value("latitude").isNull() || query.record().value("longitude").isNull()) {
+                qDebug() << "No coordinates present";
+                info.coordinatesPresent = false;
+            } else {
+                info.coordinatesPresent = true;
+                info.latitude = query.record().value("latitude").toFloat();
+                info.longitude = query.record().value("longitude").toFloat();
+                qDebug() << "lat" << info.latitude << "long" << info.longitude;
+            }
+
+            info.title = query.record().value("title").toString();
+            info.description = query.record().value("description").toString();
+            info.altitude = query.record().value("altitude").toFloat();
+        }
+    }
+
+    return info;
 }

@@ -63,6 +63,7 @@ public:
     QSqlQuery query();
     void primeCache(QDateTime start, QDateTime end);
     bool solarAvailable();
+    station_info_t getStationInfo();
 
 private slots:
     // Forward AbstractLiveDataSource signals

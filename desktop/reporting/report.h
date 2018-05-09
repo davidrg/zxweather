@@ -99,6 +99,7 @@ private:
     TimePickerType _tpType;
     FixedTimeSpan _defaultTimeSpan;
     QList<WeatherStationType> _weatherStations;
+    bool _primeCache;
 
     typedef struct _query {
         QString name;

@@ -23,7 +23,6 @@ RunReportDialog::RunReportDialog(QWidget *parent) :
     bool isWebDs = Settings::getInstance().sampleDataSourceType() == Settings::DS_TYPE_WEB_INTERFACE;
     bool isDbDs = Settings::getInstance().sampleDataSourceType() == Settings::DS_TYPE_DATABASE;
 
-    QScopedPointer<AbstractDataSource> ds;
     if (Settings::getInstance().sampleDataSourceType() == Settings::DS_TYPE_DATABASE)
         ds.reset(new DatabaseDataSource(new DialogProgressListener(this), this));
     else
@@ -134,9 +133,25 @@ RunReportDialog::~RunReportDialog()
     delete ui;
 }
 
-void RunReportDialog::loadReportCriteria(QWidget *widget) {
+void RunReportDialog::loadReportCriteria() {
     QVariantMap params = Settings::getInstance().getReportCriteria(report.name());
 
+    station_info_t info = ds->getStationInfo();
+
+    if (info.coordinatesPresent) {
+        params["latitude"] = info.latitude;
+        params["longitude"] = info.longitude;
+    }
+    params["altitude"] = info.altitude;
+    params["title"] = info.title;
+    params["description"] = info.description;
+
+    time_span_t span = get_time_span();
+    params["start"] = span.start;
+    params["end"] = span.end;
+    params["year"] = get_year();
+    params["month"] = get_month();
+    params["date"] = get_date();
 
     QList<QLineEdit*> lineEdits = ui->custom_criteria_page->findChildren<QLineEdit*>();
     QList<QComboBox*> comboBoxes = ui->custom_criteria_page->findChildren<QComboBox*>();
@@ -217,6 +232,27 @@ void RunReportDialog::loadReportCriteria(QWidget *widget) {
     }
 }
 
+void RunReportDialog::createReportCriteria() {
+    // Remove any custom criteria widgets currently in the UI.
+    QList<QWidget*> widgets = ui->custom_criteria_page->findChildren<QWidget*>(QString(), Qt::FindDirectChildrenOnly);
+    foreach (QWidget* w, widgets) {
+        ui->custom_criteria_page->layout()->removeWidget(w);
+        delete w;
+    }
+
+    // Add this reports custom criteria widget if it has one
+    QUiLoader loader;
+    QByteArray ui_data = report.customCriteriaUi();
+    QBuffer buf(&ui_data);
+    if (buf.open(QIODevice::ReadOnly)) {
+        QWidget *widget = loader.load(&buf, this);
+        buf.close();
+        ui->custom_criteria_page->layout()->addWidget(widget);
+        loadReportCriteria();
+        needsCriteriaPageCreated = false;
+    }
+}
+
 void RunReportDialog::reportSelected(QTreeWidgetItem* twi, QTreeWidgetItem *prev) {
     Q_UNUSED(prev);
 
@@ -229,25 +265,8 @@ void RunReportDialog::reportSelected(QTreeWidgetItem* twi, QTreeWidgetItem *prev
     switchPage(Page_ReportSelect);
     ui->pbNext->setEnabled(true);
 
-    // Remove any custom criteria widgets currently in the UI.
-    QList<QWidget*> widgets = ui->custom_criteria_page->findChildren<QWidget*>(QString(), Qt::FindDirectChildrenOnly);
-    foreach (QWidget* w, widgets) {
-        ui->custom_criteria_page->layout()->removeWidget(w);
-        delete w;
-    }
-
-    // Add this reports custom criteria widget if it has one
-    if (report.hasCustomCriteria()) {
-        QUiLoader loader;
-        QByteArray ui_data = report.customCriteriaUi();
-        QBuffer buf(&ui_data);
-        if (buf.open(QIODevice::ReadOnly)) {
-            QWidget *widget = loader.load(&buf, this);
-            buf.close();
-            ui->custom_criteria_page->layout()->addWidget(widget);
-            loadReportCriteria(widget);
-        }
-    }
+    needsCriteriaPageCreated = report.hasCustomCriteria();
+    qDebug() << "Has custom criteria" << needsCriteriaPageCreated;
 
     ui->rbDate->setEnabled(true);
     ui->rbDateSpan->setEnabled(true);
@@ -436,6 +455,11 @@ void RunReportDialog::reportSelected(QTreeWidgetItem* twi, QTreeWidgetItem *prev
     default:
         break; // no default
     }
+
+    if (report.timePickerType() == Report::TP_None && needsCriteriaPageCreated) {
+        qDebug() << "No time picker specified - creating report criteria page now";
+        createReportCriteria();
+    }
 }
 
 QDate RunReportDialog::get_date() {
@@ -566,7 +590,10 @@ void RunReportDialog::switchPage(Page page) {
         return;
     }
 
-    ui->stackedWidget->setCurrentIndex(page);
+    if (page == Page_Criteria && needsCriteriaPageCreated) {
+        qDebug() << "switching to criteria page - creating report criteria page now";
+        createReportCriteria();
+    }
 
     // Set previous page
     ui->pbBack->setEnabled(true);
@@ -619,6 +646,8 @@ void RunReportDialog::switchPage(Page page) {
         }
         break;
     }
+
+    ui->stackedWidget->setCurrentIndex(page);
 }
 
 void RunReportDialog::runReport() {

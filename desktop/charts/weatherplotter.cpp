@@ -550,7 +550,6 @@ void WeatherPlotter::multiRescale(RescaleType rs_type) {
 
     // 1. Find the X axis for the dataset that has the largest range.
     uint max_delta = 0;
-    dataset_id_t max_range_ds_id;
     QDateTime max_range_ds_start;
     QDateTime max_range_ds_end;
     QDateTime min_start = QDateTime(QDate(3000,12,12));
@@ -566,7 +565,6 @@ void WeatherPlotter::multiRescale(RescaleType rs_type) {
         uint delta = end.toTime_t() - start.toTime_t();
         if (delta > max_delta) {
             max_delta = delta;
-            max_range_ds_id = id;
             max_range_ds_start = start;
             max_range_ds_end = end;
         }

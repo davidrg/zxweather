@@ -1,0 +1,41 @@
+{
+	"title": "Sun",
+	"description": "description.html",
+	"icon": "weather.png",
+	"time_picker": "datespan",
+	"default_time_span": "this_month",
+	"dont_prime_cache": true,
+	"criteria_ui": "criteria.ui",
+	"supported_weather_stations": ["generic"],
+	
+	"queries": {
+		"sun": {
+			"db": "sunrise_query_psql.sql",
+		},
+		"sun_html": {
+			"db": "sunrise_query_psql_html.sql",
+		},
+		"criteria": {
+			"db": "criteria_formatted_psql.sql",
+		}
+	},
+	"output_type": "show",
+	"outputs": [
+		{
+			"name": "html",
+			"title": "Sun",
+			"icon": "../../icons/report",
+			"format": "html",
+			"template": "sun.html",
+			"filename": "sun.html"
+		},
+		{
+			"name": "grid",
+			"title": "Grid",
+			"icon": "../../icons/table",
+			"format": "table",
+			"query": "sun",
+			"filename": "sun.csv"
+		}
+	]
+}
