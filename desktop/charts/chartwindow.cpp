@@ -555,9 +555,13 @@ void ChartWindow::changeSelectedKeyAxisTimespan() {
 
     dataset_id_t dataset = keyAxis->property(AXIS_DATASET).toInt();
 
+   changeDataSetTimeSpan(dataset);
+}
+
+void ChartWindow::changeDataSetTimeSpan(dataset_id_t dsId) {
     int index = -1;
     for (int i = 0; i < dataSets.count(); i++) {
-        if (dataSets[i].id == dataset) {
+        if (dataSets[i].id == dsId) {
             index = i;
         }
     }
@@ -570,16 +574,28 @@ void ChartWindow::changeSelectedKeyAxisTimespan() {
     int result = dlg.exec();
 
     if (result == QDialog::Accepted) {
-        QDateTime start = dlg.getStartTime();
-        QDateTime end = dlg.getEndTime();
-
-        qDebug() << "Changing timespan for dataset" << dataset
-                 << "to:" << start << "-" << end;
-
-        dataSets[index].startTime = start;
-        dataSets[index].endTime = end;
-        plotter->changeDataSetTimespan(dataset, start, end);
+        changeDataSetTimeSpan(dsId, dlg.getStartTime(), dlg.getEndTime());
     }
+}
+
+void ChartWindow::changeDataSetTimeSpan(dataset_id_t dsId, QDateTime start, QDateTime end) {
+    int index = -1;
+    for (int i = 0; i < dataSets.count(); i++) {
+        if (dataSets[i].id == dsId) {
+            index = i;
+        }
+    }
+    if (index < 0) {
+        return;
+    }
+
+    qDebug() << "Changing timespan for dataset" << dsId
+             << "to:" << start << "-" << end;
+
+    dataSets[index].startTime = start;
+    dataSets[index].endTime = end;
+    plotter->changeDataSetTimespan(dsId, start, end);
+    emit dataSetTimeSpanChanged(dataSets[index].id, start, end);
 }
 
 void ChartWindow::removeSelectedKeyAxis() {
@@ -596,17 +612,21 @@ void ChartWindow::removeSelectedKeyAxis() {
     }
 
     dataset_id_t dataset = keyAxis->property(AXIS_DATASET).toInt();
-    emit dataSetWasRemoved(dataset);
 
-    if (hiddenDataSets.contains(dataset)) {
-        hiddenDataSets.remove(dataset);
+    removeDataSet(dataset);
+}
+
+void ChartWindow::removeDataSet(dataset_id_t dsId) {
+
+    if (hiddenDataSets.contains(dsId)) {
+        hiddenDataSets.remove(dsId);
     }
 
-    plotter->removeGraphs(dataset, ALL_SAMPLE_COLUMNS);
+    plotter->removeGraphs(dsId, ALL_SAMPLE_COLUMNS);
 
     int index = -1;
     for (int i = 0; i < dataSets.count(); i++) {
-        if (dataSets[i].id == dataset) {
+        if (dataSets[i].id == dsId) {
             index = i;
         }
     }
@@ -614,7 +634,7 @@ void ChartWindow::removeSelectedKeyAxis() {
         dataSets.removeAt(index);
     }
 
-
+    emit dataSetWasRemoved(dsId);
 }
 
 //void ChartWindow::showValueAxisContextMenu(QPoint point, QCPAxis *axis) {
@@ -886,12 +906,17 @@ void ChartWindow::addGraph()
 
 #endif
 
-    AddGraphDialog adg(plotter->availableColumns(dataset),
+    showAddGraph(dataset);
+}
+
+void ChartWindow::showAddGraph(dataset_id_t dsId) {
+
+    AddGraphDialog adg(plotter->availableColumns(dsId),
                        solarDataAvailable,
                        hw_type,
                        this);
     if (adg.exec() == QDialog::Accepted) {
-        plotter->addGraphs(dataset, adg.selectedColumns());
+        plotter->addGraphs(dsId, adg.selectedColumns());
     }
 }
 
@@ -1155,6 +1180,17 @@ void ChartWindow::showDataSetsWindow() {
             dds.data(), SLOT(dataSetRenamed(dataset_id_t,QString)));
     connect(dds.data(), SIGNAL(dataSetNameChanged(dataset_id_t,QString)),
             this, SLOT(setDataSetName(dataset_id_t,QString)));
+
+    connect(this, SIGNAL(dataSetTimeSpanChanged(dataset_id_t,QDateTime,QDateTime)),
+            dds.data(), SLOT(dataSetTimeSpanChanged(dataset_id_t,QDateTime,QDateTime)));
+    connect(dds.data(), SIGNAL(changeTimeSpan(dataset_id_t)),
+            this, SLOT(changeDataSetTimeSpan(dataset_id_t)));
+
+    connect(dds.data(), SIGNAL(addGraph(dataset_id_t)),
+            this, SLOT(showAddGraph(dataset_id_t)));
+
+    connect(dds.data(), SIGNAL(removeDataSet(dataset_id_t)),
+            this, SLOT(removeDataSet(dataset_id_t)));
 
     dds->show();
 }
