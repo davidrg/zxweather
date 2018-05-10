@@ -8,6 +8,8 @@
 #define COL_NAME 0
 #define COL_DS 1
 #define COL_AXIS 2
+#define COL_START 3
+#define COL_END 4
 
 DataSetsDialog::DataSetsDialog(QList<DataSet> ds,
                                QMap<dataset_id_t, QString> names,
@@ -64,8 +66,8 @@ void DataSetsDialog::addDataSetToUI(DataSet s, QString name, bool axisVisible, b
 
     twi->setCheckState(COL_DS, isVisible ? Qt::Checked : Qt::Unchecked);
     twi->setCheckState(COL_AXIS, axisVisible ? Qt::Checked : Qt::Unchecked);
-    twi->setText(3, s.startTime.toString());
-    twi->setText(4, s.endTime.toString());
+    twi->setText(COL_START, s.startTime.toString());
+    twi->setText(COL_END, s.endTime.toString());
     switch(s.aggregateFunction) {
     case AF_None:
         twi->setText(5, tr("None"));
@@ -183,6 +185,11 @@ void DataSetsDialog::contextMenuRequested(QPoint point) {
     menu->setAttribute(Qt::WA_DeleteOnClose);
 
     menu->addAction(tr("&Rename..."), this, SLOT(doRename()));
+    menu->addAction(tr("&Add Graph..."), this, SLOT(doAddGraph()));
+    menu->addAction(tr("&Change Timespan..."), this, SLOT(doChangeTimespan()));
+    menu->addSeparator();
+    QAction *act = menu->addAction(tr("R&emove"), this, SLOT(doRemove()));
+    act->setEnabled(ui->twDataSets->topLevelItemCount() > 1);
 
     menu->popup(ui->twDataSets->mapToGlobal(point));
 }
@@ -202,5 +209,36 @@ void DataSetsDialog::doRename() {
                 &ok);
     if (ok) {
         emit dataSetNameChanged(id, name);
+    }
+}
+
+
+void DataSetsDialog::doAddGraph() {
+    QTreeWidgetItem *twi = ui->twDataSets->selectedItems().first();
+    dataset_id_t id = twi->data(COL_NAME, Qt::UserRole).toInt();
+    emit addGraph(id);
+}
+
+void DataSetsDialog::doRemove() {
+    QTreeWidgetItem *twi = ui->twDataSets->selectedItems().first();
+    dataset_id_t id = twi->data(COL_NAME, Qt::UserRole).toInt();
+    emit removeDataSet(id);
+}
+
+void DataSetsDialog::doChangeTimespan() {
+    QTreeWidgetItem *twi = ui->twDataSets->selectedItems().first();
+    dataset_id_t id = twi->data(COL_NAME, Qt::UserRole).toInt();
+    emit changeTimeSpan(id);
+}
+
+
+void DataSetsDialog::dataSetTimeSpanChanged(dataset_id_t dsId, QDateTime start, QDateTime end) {
+    for(int i = 0; i < ui->twDataSets->topLevelItemCount(); i++) {
+        QTreeWidgetItem *twi = ui->twDataSets->topLevelItem(i);
+        int id = twi->data(COL_NAME, Qt::UserRole).toInt();
+        if (id == dsId) {
+            twi->setText(COL_START, start.toString());
+            twi->setText(COL_END, end.toString());
+        }
     }
 }

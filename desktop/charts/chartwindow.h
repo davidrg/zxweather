@@ -69,6 +69,7 @@ private slots:
     void hideSelectedKeyAxis();
     void changeSelectedKeyAxisTimespan();
     void removeSelectedKeyAxis();
+    void removeDataSet(dataset_id_t dsId);
 
     void showDataSetsWindow();
 
@@ -82,6 +83,9 @@ private slots:
     void setDataSetVisibility(dataset_id_t dsId, bool visible);
     void setDataSetName(dataset_id_t dsId, QString name);
     void selectDataSet(dataset_id_t dsId);
+    void changeDataSetTimeSpan(dataset_id_t dsId);
+    void changeDataSetTimeSpan(dataset_id_t dsId, QDateTime start, QDateTime end);
+    void showAddGraph(dataset_id_t dsId);
 
 signals:
     void axisVisibilityChangedForDataSet(dataset_id_t dataSetId, bool visible);
@@ -89,7 +93,7 @@ signals:
     void dataSetAdded(DataSet ds, QString name);
     void dataSetWasRemoved(dataset_id_t dsId);
     void dataSetRenamed(dataset_id_t dsId, QString name);
-    
+    void dataSetTimeSpanChanged(dataset_id_t dsId, QDateTime start, QDateTime end);
 
 private:
     void showLegendContextMenu(QPoint point);
