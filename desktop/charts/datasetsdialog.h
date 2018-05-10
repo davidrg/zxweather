@@ -29,11 +29,13 @@ signals:
     void dataSourceVisibilityChanged(dataset_id_t dsId, bool visible);
     void dataSetSelected(dataset_id_t dsId);
 
+
 public slots:
     void axisVisibilityChangedForDataSet(dataset_id_t dsId, bool visible);
     void visibilityChangedForDataSet(dataset_id_t dsId, bool visible);
     void dataSetAdded(DataSet ds, QString name);
     void dataSetRemoved(dataset_id_t dsId);
+    void dataSetRenamed(dataset_id_t dsId, QString name);
 
 private slots:
     void addDataSetRequested();

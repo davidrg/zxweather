@@ -174,6 +174,7 @@ void ChartWindow::dataSetRemoved(dataset_id_t dataSetId) {
     for(int i = 0; i < dataSets.count(); i++) {
         if (dataSets[i].id == dataSetId) {
             dataSets.removeAt(i);
+            emit dataSetWasRemoved(dataSetId);
             return;
         }
     }
@@ -514,6 +515,7 @@ void ChartWindow::renameSelectedKeyAxis() {
                 &ok);
     if (ok) {
         keyAxis->setLabel(name);
+        emit dataSetRenamed(keyAxis->property(AXIS_DATASET).toInt(), name);
         ui->chart->replot();
     }
 }
@@ -1137,6 +1139,9 @@ void ChartWindow::showDataSetsWindow() {
             dds.data(), SLOT(dataSetAdded(DataSet, QString)));
     connect(this, SIGNAL(dataSetWasRemoved(dataset_id_t)),
             dds.data(), SLOT(dataSetRemoved(dataset_id_t)));
+
+    connect(this, SIGNAL(dataSetRenamed(dataset_id_t,QString)),
+            dds.data(), SLOT(dataSetRenamed(dataset_id_t,QString)));
 
     dds->show();
 }

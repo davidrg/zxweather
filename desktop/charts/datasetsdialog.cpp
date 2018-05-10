@@ -1,6 +1,7 @@
 #include "datasetsdialog.h"
 #include "ui_datasetsdialog.h"
 
+#define COL_NAME 0
 #define COL_DS 1
 #define COL_AXIS 2
 
@@ -51,8 +52,8 @@ DataSetsDialog::DataSetsDialog(QList<DataSet> ds,
 void DataSetsDialog::addDataSetToUI(DataSet s, QString name, bool axisVisible, bool isVisible) {
     QTreeWidgetItem *twi = new QTreeWidgetItem();
 
-    twi->setData(0, Qt::UserRole, s.id);
-    twi->setText(0, name);
+    twi->setData(COL_NAME, Qt::UserRole, s.id);
+    twi->setText(COL_NAME, name);
 
     twi->setCheckState(COL_DS, isVisible ? Qt::Checked : Qt::Unchecked);
     twi->setCheckState(COL_AXIS, axisVisible ? Qt::Checked : Qt::Unchecked);
@@ -107,7 +108,7 @@ void DataSetsDialog::addDataSetRequested() {
 }
 
 void DataSetsDialog::itemChanged(QTreeWidgetItem *twi, int column) {
-    int id = twi->data(0, Qt::UserRole).toInt();
+    int id = twi->data(COL_NAME, Qt::UserRole).toInt();
 
     if (column == COL_AXIS) {
         emit axisVisibilityChanged(id, twi->checkState(COL_AXIS) == Qt::Checked);
@@ -119,7 +120,7 @@ void DataSetsDialog::itemChanged(QTreeWidgetItem *twi, int column) {
 void DataSetsDialog::axisVisibilityChangedForDataSet(dataset_id_t dsId, bool visible) {
     for(int i = 0; i < ui->twDataSets->topLevelItemCount(); i++) {
         QTreeWidgetItem *twi = ui->twDataSets->topLevelItem(i);
-        int id = twi->data(0, Qt::UserRole).toInt();
+        int id = twi->data(COL_NAME, Qt::UserRole).toInt();
         if (id == dsId) {
             twi->setCheckState(COL_AXIS, visible ? Qt::Checked : Qt::Unchecked);
         }
@@ -129,7 +130,7 @@ void DataSetsDialog::axisVisibilityChangedForDataSet(dataset_id_t dsId, bool vis
 void DataSetsDialog::visibilityChangedForDataSet(dataset_id_t dsId, bool visible) {
     for(int i = 0; i < ui->twDataSets->topLevelItemCount(); i++) {
         QTreeWidgetItem *twi = ui->twDataSets->topLevelItem(i);
-        int id = twi->data(0, Qt::UserRole).toInt();
+        int id = twi->data(COL_NAME, Qt::UserRole).toInt();
         if (id == dsId) {
             twi->setCheckState(COL_DS, visible ? Qt::Checked : Qt::Unchecked);
         }
@@ -139,7 +140,7 @@ void DataSetsDialog::visibilityChangedForDataSet(dataset_id_t dsId, bool visible
 void DataSetsDialog::currentItemChanged(QTreeWidgetItem* twi,QTreeWidgetItem* twiOld) {
     Q_UNUSED(twiOld);
 
-    int id = twi->data(0, Qt::UserRole).toInt();
+    int id = twi->data(COL_NAME, Qt::UserRole).toInt();
 
     emit dataSetSelected(id);
 }
@@ -151,10 +152,20 @@ void DataSetsDialog::dataSetAdded(DataSet ds, QString name) {
 void DataSetsDialog::dataSetRemoved(dataset_id_t dsId) {
     for(int i = 0; i < ui->twDataSets->topLevelItemCount(); i++) {
         QTreeWidgetItem *twi = ui->twDataSets->topLevelItem(i);
-        int id = twi->data(0, Qt::UserRole).toInt();
+        int id = twi->data(COL_NAME, Qt::UserRole).toInt();
         if (id == dsId) {
             ui->twDataSets->takeTopLevelItem(ui->twDataSets->indexOfTopLevelItem(twi));
             delete twi;
+        }
+    }
+}
+
+void DataSetsDialog::dataSetRenamed(dataset_id_t dsId, QString name) {
+    for(int i = 0; i < ui->twDataSets->topLevelItemCount(); i++) {
+        QTreeWidgetItem *twi = ui->twDataSets->topLevelItem(i);
+        int id = twi->data(COL_NAME, Qt::UserRole).toInt();
+        if (id == dsId) {
+            twi->setText(COL_NAME, name);
         }
     }
 }
