@@ -87,6 +87,7 @@ signals:
     void dataSetVisibilityChanged(dataset_id_t dataSetId, bool visible);
     void dataSetAdded(DataSet ds, QString name);
     void dataSetWasRemoved(dataset_id_t dsId);
+    void dataSetRenamed(dataset_id_t dsId, QString name);
     
 
 private:
