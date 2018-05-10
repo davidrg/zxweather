@@ -1,6 +1,10 @@
 #include "datasetsdialog.h"
 #include "ui_datasetsdialog.h"
 
+#include <QMenu>
+#include <QAction>
+#include <QInputDialog>
+
 #define COL_NAME 0
 #define COL_DS 1
 #define COL_AXIS 2
@@ -20,6 +24,9 @@ DataSetsDialog::DataSetsDialog(QList<DataSet> ds,
             this, SLOT(itemChanged(QTreeWidgetItem*,int)));
     connect(ui->twDataSets, SIGNAL(currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)),
             this, SLOT(currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)));
+    connect(ui->twDataSets, SIGNAL(customContextMenuRequested(QPoint)),
+            this, SLOT(contextMenuRequested(QPoint)));
+    ui->twDataSets->setContextMenuPolicy(Qt::CustomContextMenu);
 
     foreach (DataSet s, ds) {
         QString name;
@@ -113,7 +120,7 @@ void DataSetsDialog::itemChanged(QTreeWidgetItem *twi, int column) {
     if (column == COL_AXIS) {
         emit axisVisibilityChanged(id, twi->checkState(COL_AXIS) == Qt::Checked);
     } else if (column == COL_DS) {
-        emit dataSourceVisibilityChanged(id, twi->checkState(COL_DS) == Qt::Checked);
+        emit dataSetVisibilityChanged(id, twi->checkState(COL_DS) == Qt::Checked);
     }
 }
 
@@ -167,5 +174,33 @@ void DataSetsDialog::dataSetRenamed(dataset_id_t dsId, QString name) {
         if (id == dsId) {
             twi->setText(COL_NAME, name);
         }
+    }
+}
+
+
+void DataSetsDialog::contextMenuRequested(QPoint point) {
+    QMenu* menu = new QMenu(this);
+    menu->setAttribute(Qt::WA_DeleteOnClose);
+
+    menu->addAction(tr("&Rename..."), this, SLOT(doRename()));
+
+    menu->popup(ui->twDataSets->mapToGlobal(point));
+}
+
+void DataSetsDialog::doRename() {
+    QTreeWidgetItem *twi = ui->twDataSets->selectedItems().first();
+    QString name = twi->text(COL_NAME);
+    dataset_id_t id = twi->data(COL_NAME, Qt::UserRole).toInt();
+
+    bool ok;
+    name = QInputDialog::getText(
+                this,
+                "Rename",
+                "New Axis Label:",
+                QLineEdit::Normal,
+                name,
+                &ok);
+    if (ok) {
+        emit dataSetNameChanged(id, name);
     }
 }

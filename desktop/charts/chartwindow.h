@@ -79,7 +79,8 @@ private slots:
     void copy();
 
     void setDataSetAxisVisibility(dataset_id_t dsId, bool visible);
-    void setDataSourceVisibility(dataset_id_t dsId, bool visible);
+    void setDataSetVisibility(dataset_id_t dsId, bool visible);
+    void setDataSetName(dataset_id_t dsId, QString name);
     void selectDataSet(dataset_id_t dsId);
 
 signals:

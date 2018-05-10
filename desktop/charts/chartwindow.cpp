@@ -1036,6 +1036,17 @@ void ChartWindow::setDataSetAxisVisibility(dataset_id_t dsId, bool visible) {
     }
 }
 
+void ChartWindow::setDataSetName(dataset_id_t dsId, QString name) {
+    foreach (QCPAxis* axis, ui->chart->axisRect()->axes(QCPAxis::atBottom | QCPAxis::atTop)) {
+        dataset_id_t id = axis->property(AXIS_DATASET).toInt();
+        if (dsId == id) {
+            axis->setLabel(name);
+            emit dataSetRenamed(dsId, name);
+            ui->chart->replot();
+            return;
+        }
+    }
+}
 
 void ChartWindow::selectDataSet(dataset_id_t dsId) {
     qDebug() << "Select dataset" << dsId;
@@ -1060,7 +1071,7 @@ void ChartWindow::selectDataSet(dataset_id_t dsId) {
     ui->chart->replot();
 }
 
-void ChartWindow::setDataSourceVisibility(dataset_id_t dsId, bool visible) {
+void ChartWindow::setDataSetVisibility(dataset_id_t dsId, bool visible) {
     qDebug() << "Select dataset" << dsId;
 
     // Select its axis
@@ -1130,8 +1141,8 @@ void ChartWindow::showDataSetsWindow() {
     connect(dds.data(), SIGNAL(dataSetSelected(dataset_id_t)),
             this, SLOT(selectDataSet(dataset_id_t)));
 
-    connect(dds.data(), SIGNAL(dataSourceVisibilityChanged(dataset_id_t,bool)),
-            this, SLOT(setDataSourceVisibility(dataset_id_t,bool)));
+    connect(dds.data(), SIGNAL(dataSetVisibilityChanged(dataset_id_t,bool)),
+            this, SLOT(setDataSetVisibility(dataset_id_t,bool)));
     connect(this, SIGNAL(dataSetVisibilityChanged(dataset_id_t,bool)),
             dds.data(), SLOT(visibilityChangedForDataSet(dataset_id_t,bool)));
 
@@ -1142,6 +1153,8 @@ void ChartWindow::showDataSetsWindow() {
 
     connect(this, SIGNAL(dataSetRenamed(dataset_id_t,QString)),
             dds.data(), SLOT(dataSetRenamed(dataset_id_t,QString)));
+    connect(dds.data(), SIGNAL(dataSetNameChanged(dataset_id_t,QString)),
+            this, SLOT(setDataSetName(dataset_id_t,QString)));
 
     dds->show();
 }

@@ -26,9 +26,9 @@ public:
 signals:
     void addDataSet();
     void axisVisibilityChanged(dataset_id_t dsId, bool visible);
-    void dataSourceVisibilityChanged(dataset_id_t dsId, bool visible);
+    void dataSetVisibilityChanged(dataset_id_t dsId, bool visible);
     void dataSetSelected(dataset_id_t dsId);
-
+    void dataSetNameChanged(dataset_id_t dsId, QString name);
 
 public slots:
     void axisVisibilityChangedForDataSet(dataset_id_t dsId, bool visible);
@@ -41,6 +41,8 @@ private slots:
     void addDataSetRequested();
     void itemChanged(QTreeWidgetItem *twi, int column);
     void currentItemChanged(QTreeWidgetItem* twi,QTreeWidgetItem* twiOld);
+    void contextMenuRequested(QPoint point);
+    void doRename();
 
 private:
     Ui::DataSetsDialog *ui;
