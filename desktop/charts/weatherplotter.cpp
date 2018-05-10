@@ -19,6 +19,11 @@ WeatherPlotter::WeatherPlotter(QCustomPlot *chart, QObject *parent) :
             this, SLOT(dataSetsReady(QMap<dataset_id_t,SampleSet>)));
     connect(cacheManager.data(), SIGNAL(retreivalError(QString)),
             this, SLOT(dataSourceError(QString)));
+
+    // Set these to something invalid so they don't get incorrectly counted as
+    // belonging to data set 0.
+    chart->xAxis->setProperty(AXIS_DATASET, -1);
+    chart->xAxis2->setProperty(AXIS_DATASET, -1);
 }
 
 void WeatherPlotter::setDataSource(AbstractDataSource *dataSource)

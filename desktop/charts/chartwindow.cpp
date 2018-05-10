@@ -5,6 +5,7 @@
 #include "customisechartdialog.h"
 #include "graphstyledialog.h"
 #include "datasettimespandialog.h"
+#include "datasetsdialog.h"
 
 #include "datasource/webdatasource.h"
 #include "datasource/databasedatasource.h"
@@ -311,17 +312,20 @@ void ChartWindow::showChartContextMenu(QPoint point) {
     QAction *action;
 
 #ifdef MULTI_DATA_SET
-    menu->addAction("Add Data Set...",
+    menu->addAction(tr("Add Data Set..."),
                     this, SLOT(addDataSet()));
+
+    menu->addAction(tr("Data Sets..."),
+                    this, SLOT(showDataSetsWindow()));
 
     // If a graph is currently selected show some extra options.
     if (!ui->chart->selectedGraphs().isEmpty()) {
-        QMenu* graphMenu = menu->addMenu("&Selected Graph");
-        graphMenu->addAction("&Rename...", this, SLOT(renameSelectedGraph()));
-        graphMenu->addAction("&Change Style...", this,
+        QMenu* graphMenu = menu->addMenu(tr("&Selected Graph"));
+        graphMenu->addAction(tr("&Rename..."), this, SLOT(renameSelectedGraph()));
+        graphMenu->addAction(tr("&Change Style..."), this,
                              SLOT(changeSelectedGraphStyle()));
         graphMenu->addSeparator();
-        graphMenu->addAction("R&emove", this, SLOT(removeSelectedGraph()));
+        graphMenu->addAction(tr("R&emove"), this, SLOT(removeSelectedGraph()));
     }
 
 #else
@@ -329,17 +333,17 @@ void ChartWindow::showChartContextMenu(QPoint point) {
 
     // If a graph is currently selected let it be removed.
     if (!ui->chart->selectedGraphs().isEmpty()) {
-        menu->addAction("Remove selected graph",
+        menu->addAction(tr("Remove selected graph"),
                         this, SLOT(removeSelectedGraph()));
     }
 #endif
 
     menu->addSeparator();
-    menu->addAction(QIcon(":/icons/save"), "&Save...", this, SLOT(save()));
-    menu->addAction("&Copy", this, SLOT(copy()));
+    menu->addAction(QIcon(":/icons/save"), tr("&Save..."), this, SLOT(save()));
+    menu->addAction(tr("&Copy"), this, SLOT(copy()));
 #ifndef MULTI_DATA_SET
     /******** Graph add ********/
-    action = menu->addAction(QIcon(":/icons/chart-add"), "Add Graph...",
+    action = menu->addAction(QIcon(":/icons/chart-add"), tr("Add Graph..."),
                                       this, SLOT(addGraph()));
 
     if (plotter->availableColumns(0) == 0) {
@@ -360,34 +364,34 @@ void ChartWindow::showChartContextMenu(QPoint point) {
 
 #ifdef MULTI_DATA_SET
     if (dataSets.count() > 1) {
-        QMenu* rescaleMenu = menu->addMenu("&Rescale");
-        rescaleMenu->addAction("By &Time", plotter.data(),
+        QMenu* rescaleMenu = menu->addMenu(tr("&Rescale"));
+        rescaleMenu->addAction(tr("By &Time"), plotter.data(),
                                SLOT(rescaleByTime()));
-        rescaleMenu->addAction("By Time of &Year", plotter.data(),
+        rescaleMenu->addAction(tr("By Time of &Year"), plotter.data(),
                                SLOT(rescaleByTimeOfYear()));
-        rescaleMenu->addAction("By Time of &Day", plotter.data(),
+        rescaleMenu->addAction(tr("By Time of &Day"), plotter.data(),
                                SLOT(rescaleByTimeOfDay()));
     }
 #else
-    action = menu->addAction("&Rescale", plotter.data(),
+    action = menu->addAction(tr("&Rescale"), plotter.data(),
                              SLOT(rescaleByTime()));
 #endif // MULTI_DATA_SET
 
     // Title visibility option.
-    action = menu->addAction("Show Title",
+    action = menu->addAction(tr("Show Title"),
                              this, SLOT(showTitleToggle()));
     action->setCheckable(true);
     action->setChecked(!plotTitle.isNull());
 
 
     // Legend visibility option.
-    action = menu->addAction("Show Legend",
+    action = menu->addAction(tr("Show Legend"),
                              this, SLOT(showLegendToggle()));
     action->setCheckable(true);
     action->setChecked(ui->chart->legend->visible());
 
     // Grid visibility option
-    action = menu->addAction("Show Grid",
+    action = menu->addAction(tr("Show Grid"),
                              this,
                              SLOT(showGridToggle()));
     action->setCheckable(true);
@@ -397,12 +401,12 @@ void ChartWindow::showChartContextMenu(QPoint point) {
 
 #ifdef MULTI_DATA_SET
     // X Axis lock
-    action = menu->addAction("Lock &X Axis", this, SLOT(toggleXAxisLock()));
+    action = menu->addAction(tr("Lock &X Axis"), this, SLOT(toggleXAxisLock()));
     action->setCheckable(true);
     action->setChecked(ui->cbXLock->isChecked());
 #endif
     // Y Axis lock
-    action = menu->addAction("Lock &Y Axis", this, SLOT(toggleYAxisLock()));
+    action = menu->addAction(tr("Lock &Y Axis"), this, SLOT(toggleYAxisLock()));
     action->setCheckable(true);
     action->setChecked(ui->cbYLock->isChecked());
 
@@ -464,17 +468,19 @@ void ChartWindow::showKeyAxisContextMenu(QPoint point, QCPAxis *axis) {
     QMenu* menu = new QMenu(this);
     menu->setAttribute(Qt::WA_DeleteOnClose);
 
-    menu->addAction("&Rename...",
+    menu->addAction(tr("&Rename..."),
                     this, SLOT(renameSelectedKeyAxis()));
+    menu->addAction(tr("&Hide Axis"),
+                    this, SLOT(hideSelectedKeyAxis()));
 
-    menu->addAction("&Add Graph...", this, SLOT(addGraph()));
+    menu->addAction(tr("&Add Graph..."), this, SLOT(addGraph()));
 
-    menu->addAction("&Change Timespan...",
+    menu->addAction(tr("&Change Timespan..."),
                     this, SLOT(changeSelectedKeyAxisTimespan()));
 
     menu->addSeparator();
 
-    QAction* action = menu->addAction("Remove &Data Set",
+    QAction* action = menu->addAction(tr("Remove &Data Set"),
                                       this, SLOT(removeSelectedKeyAxis()));
 
     if (dataSets.count() == 1) {
@@ -510,6 +516,26 @@ void ChartWindow::renameSelectedKeyAxis() {
         keyAxis->setLabel(name);
         ui->chart->replot();
     }
+}
+
+void ChartWindow::hideSelectedKeyAxis() {
+    QCPAxis* keyAxis = 0;
+
+    foreach(QCPAxis* axis, ui->chart->axisRect()->axes(QCPAxis::atTop | QCPAxis::atBottom)) {
+        if (axis->selectedParts().testFlag(QCPAxis::spAxis) ||
+                axis->selectedParts().testFlag(QCPAxis::spTickLabels))
+            keyAxis = axis;
+    }
+
+    if (keyAxis == 0) {
+        return;
+    }
+
+    keyAxis->setVisible(false);
+    int dataSetId = keyAxis->property(AXIS_DATASET).toInt();
+
+    emit axisVisibilityChangedForDataSet(dataSetId, false);
+    ui->chart->replot();
 }
 
 void ChartWindow::changeSelectedKeyAxisTimespan() {
@@ -568,6 +594,11 @@ void ChartWindow::removeSelectedKeyAxis() {
     }
 
     dataset_id_t dataset = keyAxis->property(AXIS_DATASET).toInt();
+    emit dataSetWasRemoved(dataset);
+
+    if (hiddenDataSets.contains(dataset)) {
+        hiddenDataSets.remove(dataset);
+    }
 
     plotter->removeGraphs(dataset, ALL_SAMPLE_COLUMNS);
 
@@ -580,6 +611,8 @@ void ChartWindow::removeSelectedKeyAxis() {
     if (index > -1) {
         dataSets.removeAt(index);
     }
+
+
 }
 
 //void ChartWindow::showValueAxisContextMenu(QPoint point, QCPAxis *axis) {
@@ -982,8 +1015,128 @@ void ChartWindow::addDataSet() {
     ds.id = dataSets.count();
     dataSets.append(ds);
 
+    emit dataSetAdded(ds, QString());
 
     // This will resuilt in the chart being redrawn completely.
     // TODO: don't rebuild the entire chart. Just add the new data set.
     reloadDataSets(true);
+}
+
+void ChartWindow::setDataSetAxisVisibility(dataset_id_t dsId, bool visible) {
+    foreach (QCPAxis* axis, ui->chart->axisRect()->axes(QCPAxis::atBottom | QCPAxis::atTop)) {
+        dataset_id_t id = axis->property(AXIS_DATASET).toInt();
+        if (dsId == id) {
+            axis->setVisible(visible);
+            emit axisVisibilityChangedForDataSet(dsId, visible);
+            ui->chart->replot();
+            return;
+        }
+    }
+}
+
+
+void ChartWindow::selectDataSet(dataset_id_t dsId) {
+    qDebug() << "Select dataset" << dsId;
+
+    // Select its axis
+    foreach (QCPAxis *axis, ui->chart->axisRect()->axes(QCPAxis::atBottom | QCPAxis::atTop)) {
+        dataset_id_t id = axis->property(AXIS_DATASET).toInt();
+        if (id == dsId) {
+            axis->setSelectedParts(QCPAxis::spAxis | QCPAxis::spTickLabels | QCPAxis::spAxisLabel);
+            break;
+        }
+    }
+
+    foreach (QCPGraph* g, ui->chart->axisRect()->graphs()) {
+        dataset_id_t id = g->property(GRAPH_DATASET).toInt();
+        if (id == dsId) {
+            g->setSelection(QCPDataSelection(QCPDataRange(0, 1)));
+            QCPPlottableLegendItem *lip = ui->chart->legend->itemWithPlottable(g);
+            lip->setSelected(true);
+        }
+    }
+    ui->chart->replot();
+}
+
+void ChartWindow::setDataSourceVisibility(dataset_id_t dsId, bool visible) {
+    qDebug() << "Select dataset" << dsId;
+
+    // Select its axis
+    foreach (QCPAxis *axis, ui->chart->axisRect()->axes(QCPAxis::atBottom | QCPAxis::atTop)) {
+        dataset_id_t id = axis->property(AXIS_DATASET).toInt();
+        if (id == dsId) {
+            axis->setVisible(visible);
+            break;
+        }
+    }
+
+    foreach (QCPGraph* g, ui->chart->axisRect()->graphs()) {
+        dataset_id_t id = g->property(GRAPH_DATASET).toInt();
+        if (id == dsId) {
+            g->setVisible(visible);
+            g->setSelection(QCPDataSelection(QCPDataRange(0, 1)));
+            QCPPlottableLegendItem *lip = ui->chart->legend->itemWithPlottable(g);
+            lip->setVisible(visible);
+        }
+    }
+
+    if (visible && hiddenDataSets.contains(dsId)) {
+        hiddenDataSets.remove(dsId);
+    } else if (!visible) {
+        hiddenDataSets.insert(dsId);
+    }
+
+    emit axisVisibilityChangedForDataSet(dsId, visible);
+    emit dataSetVisibilityChanged(dsId, visible);
+
+    ui->chart->replot();
+}
+
+void ChartWindow::showDataSetsWindow() {
+    if (!dds.isNull()) {
+        dds->show();
+        dds->activateWindow();
+        return;
+    }
+
+    QMap<dataset_id_t, QString> names;
+    QMap<dataset_id_t, bool> axisVisibility;
+    QMap<dataset_id_t, bool> visibility;
+
+    foreach (DataSet d, dataSets) {
+        foreach (QCPAxis* axis, ui->chart->axisRect()->axes(QCPAxis::atBottom | QCPAxis::atTop)) {
+            int dsId = axis->property(AXIS_DATASET).toInt();
+            if (dsId == d.id) {
+                names[d.id] = axis->label();
+                axisVisibility[d.id] = axis->visible();
+            }
+        }
+    }
+
+    foreach (dataset_id_t id, hiddenDataSets) {
+        visibility[id] = false;
+    }
+
+    dds.reset(new DataSetsDialog(dataSets, names, axisVisibility, visibility));
+
+    connect(dds.data(), SIGNAL(addDataSet()), this, SLOT(addDataSet()));
+    connect(this, SIGNAL(axisVisibilityChangedForDataSet(dataset_id_t,bool)),
+            dds.data(), SLOT(axisVisibilityChangedForDataSet(dataset_id_t,bool)));
+    connect(dds.data(), SIGNAL(axisVisibilityChanged(dataset_id_t,bool)),
+            this, SLOT(setDataSetAxisVisibility(dataset_id_t,bool)));
+
+    connect(dds.data(), SIGNAL(dataSetSelected(dataset_id_t)),
+            this, SLOT(selectDataSet(dataset_id_t)));
+
+    connect(dds.data(), SIGNAL(dataSourceVisibilityChanged(dataset_id_t,bool)),
+            this, SLOT(setDataSourceVisibility(dataset_id_t,bool)));
+    connect(this, SIGNAL(dataSetVisibilityChanged(dataset_id_t,bool)),
+            dds.data(), SLOT(visibilityChangedForDataSet(dataset_id_t,bool)));
+
+    connect(this, SIGNAL(dataSetAdded(DataSet, QString)),
+            dds.data(), SLOT(dataSetAdded(DataSet, QString)));
+    connect(this, SIGNAL(dataSetWasRemoved(dataset_id_t)),
+            dds.data(), SLOT(dataSetRemoved(dataset_id_t)));
+
+    dds->show();
 }

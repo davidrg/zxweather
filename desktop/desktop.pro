@@ -123,7 +123,8 @@ SOURCES += main.cpp\
     reporting/qt-mustache/mustache.cpp \
     reporting/runreportdialog.cpp \
     reporting/reportdisplaywindow.cpp \
-    datasource/webtasks/fetchstationinfo.cpp
+    datasource/webtasks/fetchstationinfo.cpp \
+    charts/datasetsdialog.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
@@ -220,7 +221,8 @@ HEADERS  += mainwindow.h \
     reporting/runreportdialog.h \
     reporting/reportdisplaywindow.h \
     datasource/webtasks/fetchstationinfo.h \
-    datasource/station_info.h
+    datasource/station_info.h \
+    charts/datasetsdialog.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \
@@ -245,7 +247,8 @@ FORMS    += mainwindow.ui \
     charts/liveplotwindow.ui \
     charts/addlivegraphdialog.ui \
     charts/livechartoptionsdialog.ui \
-    reporting/runreportdialog.ui
+    reporting/runreportdialog.ui \
+    charts/datasetsdialog.ui
 
 # On Qt 4 we've got to use Phonon for video playback.
 lessThan(QT_MAJOR_VERSION, 5) {

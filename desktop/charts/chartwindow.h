@@ -7,6 +7,7 @@
 #include <QPointer>
 #include <QDateTime>
 #include <QColor>
+#include <QSet>
 
 #include "chartoptionsdialog.h"
 #include "datasource/webdatasource.h"
@@ -14,6 +15,7 @@
 #include "qcp/qcustomplot.h"
 #include "basicqcpinteractionmanager.h"
 #include "weatherplotter.h"
+#include "datasetsdialog.h"
 
 namespace Ui {
 class ChartWindow;
@@ -64,14 +66,28 @@ private slots:
     void customiseChart();
     void addDataSet();
     void renameSelectedKeyAxis();
+    void hideSelectedKeyAxis();
     void changeSelectedKeyAxisTimespan();
     void removeSelectedKeyAxis();
+
+    void showDataSetsWindow();
 
     void refresh();
 
     // Save As slot
     void save();
     void copy();
+
+    void setDataSetAxisVisibility(dataset_id_t dsId, bool visible);
+    void setDataSourceVisibility(dataset_id_t dsId, bool visible);
+    void selectDataSet(dataset_id_t dsId);
+
+signals:
+    void axisVisibilityChangedForDataSet(dataset_id_t dataSetId, bool visible);
+    void dataSetVisibilityChanged(dataset_id_t dataSetId, bool visible);
+    void dataSetAdded(DataSet ds, QString name);
+    void dataSetWasRemoved(dataset_id_t dsId);
+    
 
 private:
     void showLegendContextMenu(QPoint point);
@@ -102,6 +118,9 @@ private:
     QScopedPointer<WeatherPlotter> plotter;
 
     QList<DataSet> dataSets;
+    QSet<dataset_id_t> hiddenDataSets;
+
+    QScopedPointer<DataSetsDialog> dds;
 
     bool solarDataAvailable;
     hardware_type_t hw_type;
