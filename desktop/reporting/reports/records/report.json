@@ -1,0 +1,24 @@
+{
+	"title": "Records",
+	"description": "description.html",
+	"time_picker": "none",
+	"default_time_span": "all_time",
+	"supported_weather_stations": ["generic"],
+	"queries": {
+		"records": {
+			"db": "records_psql.sql",
+			"web": "records_sqlite.sql"
+		}
+	},
+	"output_type": "show",
+	"outputs": [
+		{
+			"name": "html",
+			"title": "Station Records",
+			"icon": "../../icons/report",
+			"format": "html",
+			"template": "records.html",
+			"filename": "records.html"
+		}
+	]
+}
