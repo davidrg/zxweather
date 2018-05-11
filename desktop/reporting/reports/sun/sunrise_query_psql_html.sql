@@ -3,7 +3,7 @@ with params as (
          (:at_time)::time::varchar as time,
          extract(hour from (:offset)::timestamp)::int as time_offset,   -- TODO: Figure this out.
          (:latitude)::numeric as latitude,
-         (:longitude)::numeric as longitude 
+         (:longitude)::numeric as longitude
   FROM generate_series(:start, :end, '1 day'::interval) dd
 ),
 julian_date as (
@@ -73,11 +73,14 @@ sun_app_long_deg as (
     from calcs calc
     inner join sun_app_long_deg sa on sa.date = calc.date and sa.latitude = calc.latitude and sa.longitude = calc.longitude
   ),
-ha_sunrise_deg as (
+hour_angles_deg as (
     select date,
            latitude,
            longitude,
-           degrees(acos(cos(radians(90.833)) / (cos(radians(latitude)) * cos(radians(sun_decln_deg))) - tan(radians(latitude)) * tan(radians(sun_decln_deg)))) as ha_sunrise_deg
+           degrees(acos(cos(radians(90.833)) / (cos(radians(latitude)) * cos(radians(sun_decln_deg))) - tan(radians(latitude)) * tan(radians(sun_decln_deg)))) as ha_sunrise_deg,
+           degrees(acos(cos(radians(96.0)) / (cos(radians(latitude)) * cos(radians(sun_decln_deg))) - tan(radians(latitude)) * tan(radians(sun_decln_deg)))) as ha_civil_dawn,
+           degrees(acos(cos(radians(102.0)) / (cos(radians(latitude)) * cos(radians(sun_decln_deg))) - tan(radians(latitude)) * tan(radians(sun_decln_deg)))) as ha_nautical_dawn,
+           degrees(acos(cos(radians(108.0)) / (cos(radians(latitude)) * cos(radians(sun_decln_deg))) - tan(radians(latitude)) * tan(radians(sun_decln_deg)))) as ha_astronomical_dawn
     from sun_decln_deg
   ),
 var_y as (
@@ -112,17 +115,28 @@ times as (
   select sn.date,
          sn.latitude,
          sn.longitude,
-		 solar_noon_lst,
-		 (TIMESTAMP 'epoch' + (solar_noon_lst * 86400) * INTERVAL '1 second')::time as solar_noon,
-         (TIMESTAMP 'epoch' + (((solar_noon_lst * 1440 - ha_sunrise_deg * 4) / 1440) * 86400) * INTERVAL '1 second')::time as sunrise_time,
-         (TIMESTAMP 'epoch' + (((solar_noon_lst * 1440 + ha_sunrise_deg * 4) / 1440) * 86400) * INTERVAL '1 second')::time as sunset_time
+		 (TIMESTAMP 'epoch' + ((solar_noon_lst)* 86400) * INTERVAL '1 second')::time as solar_noon,
+         (TIMESTAMP 'epoch' + (((solar_noon_lst * 1440 - ha_sunrise_deg * 4) / 1440)* 86400) * INTERVAL '1 second')::time as sunrise_time,
+         (TIMESTAMP 'epoch' + (((solar_noon_lst * 1440 + ha_sunrise_deg * 4) / 1440)* 86400) * INTERVAL '1 second')::time as sunset_time,
+         (TIMESTAMP 'epoch' + (((solar_noon_lst * 1440 - ha_civil_dawn * 4) / 1440)* 86400) * INTERVAL '1 second')::time as civil_dawn,
+         (TIMESTAMP 'epoch' + (((solar_noon_lst * 1440 + ha_civil_dawn * 4) / 1440)* 86400) * INTERVAL '1 second')::time as civil_dusk,
+         (TIMESTAMP 'epoch' + (((solar_noon_lst * 1440 - ha_nautical_dawn * 4) / 1440)* 86400) * INTERVAL '1 second')::time as nautical_dawn,
+         (TIMESTAMP 'epoch' + (((solar_noon_lst * 1440 + ha_nautical_dawn * 4) / 1440)* 86400) * INTERVAL '1 second')::time as nautical_dusk,
+         (TIMESTAMP 'epoch' + (((solar_noon_lst * 1440 - ha_astronomical_dawn * 4) / 1440)* 86400) * INTERVAL '1 second')::time as astronomical_dawn,
+         (TIMESTAMP 'epoch' + (((solar_noon_lst * 1440 + ha_astronomical_dawn * 4) / 1440)* 86400) * INTERVAL '1 second')::time as astronomical_dusk
   from solar_noon_lst sn
-  inner join ha_sunrise_deg ha on ha.date = sn.date and ha.longitude = sn.longitude and ha.latitude = sn.latitude
+  inner join hour_angles_deg ha on ha.date = sn.date and ha.longitude = sn.longitude and ha.latitude = sn.latitude
 )
 select
 	case when times.date = NOW()::date then '<b>' || times.date::varchar || '</b>' else times.date::varchar end as date,
 	case when times.date = NOW()::date then '<b>' || to_char(times.sunrise_time, 'HH12:MI:SS')::varchar || '</b>' else to_char(times.sunrise_time, 'HH12:MI:SS')::varchar end as rise_time,
 	case when times.date = NOW()::date then '<b>' || to_char(times.sunset_time, 'HH12:MI:SS')::varchar || '</b>' else to_char(times.sunset_time, 'HH12:MI:SS')::varchar end as set_time,
-	case when times.date = NOW()::date then '<b>' || to_char(times.solar_noon, 'HH12:MI:SS')::varchar || '</b>' else to_char(times.solar_noon, 'HH12:MI:SS')::varchar end as solar_noon
+	case when times.date = NOW()::date then '<b>' || to_char(times.solar_noon, 'HH12:MI:SS')::varchar || '</b>' else to_char(times.solar_noon, 'HH12:MI:SS')::varchar end as solar_noon,
+	case when times.date = NOW()::date then '<b>' || to_char(times.civil_dawn, 'HH12:MI:SS')::varchar || '</b>' else to_char(times.civil_dawn, 'HH12:MI:SS')::varchar end as civil_dawn,
+	case when times.date = NOW()::date then '<b>' || to_char(times.civil_dusk, 'HH12:MI:SS')::varchar || '</b>' else to_char(times.civil_dusk, 'HH12:MI:SS')::varchar end as civil_dusk,
+	case when times.date = NOW()::date then '<b>' || to_char(times.nautical_dawn, 'HH12:MI:SS')::varchar || '</b>' else to_char(times.nautical_dawn, 'HH12:MI:SS')::varchar end as nautical_dawn,
+	case when times.date = NOW()::date then '<b>' || to_char(times.nautical_dusk, 'HH12:MI:SS')::varchar || '</b>' else to_char(times.nautical_dusk, 'HH12:MI:SS')::varchar end as nautical_dusk,
+	case when times.date = NOW()::date then '<b>' || to_char(times.astronomical_dawn, 'HH12:MI:SS')::varchar || '</b>' else to_char(times.astronomical_dawn, 'HH12:MI:SS')::varchar end as astronomical_dawn,
+	case when times.date = NOW()::date then '<b>' || to_char(times.astronomical_dusk, 'HH12:MI:SS')::varchar || '</b>' else to_char(times.astronomical_dusk, 'HH12:MI:SS')::varchar end as astronomical_dusk
 from times
 order by times.date;
