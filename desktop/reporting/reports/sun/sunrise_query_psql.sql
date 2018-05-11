@@ -3,7 +3,7 @@ with params as (
          (:at_time)::time::varchar as time,
          extract(hour from (:offset)::timestamp)::int as time_offset,   -- TODO: Figure this out.
          (:latitude)::numeric as latitude,
-         (:longitude)::numeric as longitude 
+         (:longitude)::numeric as longitude
   FROM generate_series(:start, :end, '1 day'::interval) dd
 ),
 julian_date as (
@@ -73,11 +73,14 @@ sun_app_long_deg as (
     from calcs calc
     inner join sun_app_long_deg sa on sa.date = calc.date and sa.latitude = calc.latitude and sa.longitude = calc.longitude
   ),
-ha_sunrise_deg as (
+hour_angles_deg as (
     select date,
            latitude,
            longitude,
-           degrees(acos(cos(radians(90.833)) / (cos(radians(latitude)) * cos(radians(sun_decln_deg))) - tan(radians(latitude)) * tan(radians(sun_decln_deg)))) as ha_sunrise_deg
+           degrees(acos(cos(radians(90.833)) / (cos(radians(latitude)) * cos(radians(sun_decln_deg))) - tan(radians(latitude)) * tan(radians(sun_decln_deg)))) as ha_sunrise_deg,
+           degrees(acos(cos(radians(96.0)) / (cos(radians(latitude)) * cos(radians(sun_decln_deg))) - tan(radians(latitude)) * tan(radians(sun_decln_deg)))) as ha_civil_dawn,
+           degrees(acos(cos(radians(102.0)) / (cos(radians(latitude)) * cos(radians(sun_decln_deg))) - tan(radians(latitude)) * tan(radians(sun_decln_deg)))) as ha_nautical_dawn,
+           degrees(acos(cos(radians(108.0)) / (cos(radians(latitude)) * cos(radians(sun_decln_deg))) - tan(radians(latitude)) * tan(radians(sun_decln_deg)))) as ha_astronomical_dawn
     from sun_decln_deg
   ),
 var_y as (
@@ -114,9 +117,15 @@ times as (
          sn.longitude,
 		 (TIMESTAMP 'epoch' + ((solar_noon_lst)* 86400) * INTERVAL '1 second')::time as solar_noon,
          (TIMESTAMP 'epoch' + (((solar_noon_lst * 1440 - ha_sunrise_deg * 4) / 1440)* 86400) * INTERVAL '1 second')::time as sunrise_time,
-         (TIMESTAMP 'epoch' + (((solar_noon_lst * 1440 + ha_sunrise_deg * 4) / 1440)* 86400) * INTERVAL '1 second')::time as sunset_time
+         (TIMESTAMP 'epoch' + (((solar_noon_lst * 1440 + ha_sunrise_deg * 4) / 1440)* 86400) * INTERVAL '1 second')::time as sunset_time,
+         (TIMESTAMP 'epoch' + (((solar_noon_lst * 1440 - ha_civil_dawn * 4) / 1440)* 86400) * INTERVAL '1 second')::time as civil_dawn,
+         (TIMESTAMP 'epoch' + (((solar_noon_lst * 1440 + ha_civil_dawn * 4) / 1440)* 86400) * INTERVAL '1 second')::time as civil_dusk,
+         (TIMESTAMP 'epoch' + (((solar_noon_lst * 1440 - ha_nautical_dawn * 4) / 1440)* 86400) * INTERVAL '1 second')::time as nautical_dawn,
+         (TIMESTAMP 'epoch' + (((solar_noon_lst * 1440 + ha_nautical_dawn * 4) / 1440)* 86400) * INTERVAL '1 second')::time as nautical_dusk,
+         (TIMESTAMP 'epoch' + (((solar_noon_lst * 1440 - ha_astronomical_dawn * 4) / 1440)* 86400) * INTERVAL '1 second')::time as astronomical_dawn,
+         (TIMESTAMP 'epoch' + (((solar_noon_lst * 1440 + ha_astronomical_dawn * 4) / 1440)* 86400) * INTERVAL '1 second')::time as astronomical_dusk
   from solar_noon_lst sn
-  inner join ha_sunrise_deg ha on ha.date = sn.date and ha.longitude = sn.longitude and ha.latitude = sn.latitude
+  inner join hour_angles_deg ha on ha.date = sn.date and ha.longitude = sn.longitude and ha.latitude = sn.latitude
 )
 select
   times.date as "Date",
@@ -125,6 +134,12 @@ select
   times.sunrise_time as "Sunrise Time",
   times.sunset_time as "Sunset Time",
   to_char(times.sunset_time - times.sunrise_time, 'HH24:MI:SS') as "Day Length",
-  times.solar_noon as "Solar Noon"
+  times.solar_noon as "Solar Noon",
+  times.civil_dawn as "Civil Dawn",
+  times.civil_dusk as "Civil Dusk",
+  times.nautical_dawn as "Nautical Dawn",
+  times.nautical_dusk as "Nautical Dusk",
+  times.astronomical_dawn as "Astronomical Dawn",
+  times.astronomical_dusk as "Astronomical Dusk"
 from times
 order by times.date;
