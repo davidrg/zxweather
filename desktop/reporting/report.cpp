@@ -18,6 +18,7 @@
 #include "reporting/qt-mustache/mustache.h"
 #include "reportdisplaywindow.h"
 #include "settings.h"
+#include "reportfinisher.h"
 
 QByteArray readFile(QString name) {
     QStringList files;
@@ -271,6 +272,13 @@ Report::Report(QString name)
     }
 
     _isNull = false;
+    _finisher = NULL;
+}
+
+Report::~Report() {
+    if (_finisher != NULL) {
+        delete _finisher;
+    }
 }
 
 
@@ -316,30 +324,53 @@ QList<Report> Report::loadReports() {
     return reports;
 }
 
-void Report::run(AbstractDataSource *dataSource, QDateTime start, QDateTime end, QVariantMap parameters) {
-
-    if (_primeCache) {
-        dataSource->primeCache(start, end);
-    }
-
+ReportFinisher* Report::run(AbstractDataSource *dataSource, QDateTime start, QDateTime end, QVariantMap parameters) {
     parameters["start"] = start;
     parameters["end"] = end;
-    run(dataSource, parameters);
+
+    _dataSource = dataSource;
+    _parameters = parameters;
+
+    if (_primeCache) {
+        _finisher=(new ReportFinisher(this));
+        dataSource->connect(dataSource, SIGNAL(cachingFinished()),
+                            _finisher, SLOT(cachingFinished()));
+        dataSource->primeCache(start, end);
+        return _finisher;
+    } else {
+        executeReport();
+    }
 }
 
-void Report::run(AbstractDataSource* dataSource, QDate start, QDate end, QVariantMap parameters) {
+ReportFinisher* Report::run(AbstractDataSource* dataSource, QDate start, QDate end, QVariantMap parameters) {
+    parameters["start"] = start;
+    parameters["end"] = end;
+
+    _dataSource = dataSource;
+    _parameters = parameters;
+
     if (_primeCache) {
+        _finisher=(new ReportFinisher(this));
+        dataSource->connect(dataSource, SIGNAL(cachingFinished()),
+                            _finisher, SLOT(cachingFinished()));
         dataSource->primeCache(QDateTime(start, QTime(0,0,0)),
                                QDateTime(end, QTime(23,59,59,59)));
+        return _finisher;
+    } else {
+        executeReport();
     }
-
-    parameters["start"] = start;
-    parameters["end"] = end;
-    run(dataSource, parameters);
 }
 
-void Report::run(AbstractDataSource* dataSource, QDate dayOrMonth, bool month, QVariantMap parameters) {
+ReportFinisher* Report::run(AbstractDataSource* dataSource, QDate dayOrMonth, bool month, QVariantMap parameters) {
+    parameters["date"] = dayOrMonth;
+
+    _dataSource = dataSource;
+    _parameters = parameters;
+
     if (_primeCache) {
+        _finisher=(new ReportFinisher(this));
+        dataSource->connect(dataSource, SIGNAL(cachingFinished()),
+                            _finisher, SLOT(cachingFinished()));
         if (month) {
             QDate end = dayOrMonth.addMonths(1).addDays(-1);
             dataSource->primeCache(QDateTime(dayOrMonth, QTime(0,0,0)),
@@ -348,20 +379,37 @@ void Report::run(AbstractDataSource* dataSource, QDate dayOrMonth, bool month, Q
             dataSource->primeCache(QDateTime(dayOrMonth, QTime(0,0,0)),
                                    QDateTime(dayOrMonth, QTime(23,59,59,59)));
         }
+        return _finisher;
+    } else {
+        executeReport();
     }
-    parameters["date"] = dayOrMonth;
-    run(dataSource, parameters);
 }
 
-void Report::run(AbstractDataSource* dataSource, int year, QVariantMap parameters) {
+ReportFinisher* Report::run(AbstractDataSource* dataSource, int year, QVariantMap parameters) {
+    parameters["year"] = year;
+
+    _dataSource = dataSource;
+    _parameters = parameters;
+
     if (_primeCache) {
+        _finisher =(new ReportFinisher(this));
+        dataSource->connect(dataSource, SIGNAL(cachingFinished()),
+                            _finisher, SLOT(cachingFinished()));
         dataSource->primeCache(QDateTime(QDate(year, 1, 1), QTime(0,0,0)),
                                QDateTime(QDate(year, 1, 1).addYears(1).addDays(-1),
                                          QTime(23,59,59,59)));
-    }
 
-    parameters["year"] = year;
-    run(dataSource, parameters);
+        return _finisher;
+    } else {
+        executeReport();
+    }
+}
+
+void Report::executeReport() {
+    run(_dataSource, _parameters);
+    if (_finisher != NULL) {
+        _finisher->finishReport();
+    }
 }
 
 void Report::run(AbstractDataSource* dataSource, QMap<QString, QVariant> parameters) {
@@ -369,6 +417,17 @@ void Report::run(AbstractDataSource* dataSource, QMap<QString, QVariant> paramet
     QString stationCode = Settings::getInstance().stationCode();
 
     parameters["stationCode"] = stationCode;
+
+    if (isWeb) {
+        parameters["is_web_ds"] = true;
+        QString url = Settings::getInstance().webInterfaceUrl();
+        if (!url.endsWith("/")) {
+            url.append("/");
+        }
+        url.append("data/" + stationCode + "/");
+        parameters["stationCode"] = url;
+
+    }
 
     QMap<QString, QSqlQuery> queryResults;
 
@@ -524,7 +583,7 @@ void Report::saveReport(QList<report_output_file_t> outputs, QWidget *parent) {
 void Report::outputToUI(QMap<QString, QVariant> reportParameters,
                         QMap<QString, QSqlQuery> queries) {
 
-    ReportDisplayWindow *window = new ReportDisplayWindow(_name, _icon);
+    ReportDisplayWindow *window = new ReportDisplayWindow(_title, _icon);
 
     QList<report_output_file_t> files;
 
@@ -662,4 +721,21 @@ QString Report::renderTemplatedReport(QMap<QString, QVariant> reportParameters,
     QString result = renderer.render(outputTemplate, &context);
     qDebug() << result;
     return result;
+}
+
+ReportFinisher::ReportFinisher(Report *report) : QObject(NULL) {
+    r = report;
+}
+
+void ReportFinisher::cachingFinished() {
+    r->executeReport();
+}
+
+void ReportFinisher::finishReport() {
+    finished = true;
+    emit reportCompleted();
+}
+
+bool ReportFinisher::isFinished() {
+    return finished;
 }

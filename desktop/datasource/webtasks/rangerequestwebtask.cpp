@@ -2,6 +2,7 @@
 #include "rangerequestwebtask.h"
 #include "datafilewebtask.h"
 #include "selectsampleswebtask.h"
+#include "cachingfinishedwebtask.h"
 
 #include "json/json.h"
 
@@ -193,6 +194,11 @@ bool RangeRequestWebTask::processResponse(QString data) {
                                                                     _requestData,
                                                                     _dataSource);
         emit queueTask(selectTask);
+    } else {
+        CachingFinishedWebTask *finishedTask = new CachingFinishedWebTask(_baseUrl,
+                                                                          _stationCode,
+                                                                          _dataSource);
+        emit queueTask(finishedTask);
     }
 
     return true;

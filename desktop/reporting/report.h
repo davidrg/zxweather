@@ -7,6 +7,8 @@
 #include <QIcon>
 #include <QSqlQuery>
 #include <QSet>
+#include <QScopedPointer>
+#include "reportfinisher.h"
 
 class AbstractDataSource;
 
@@ -19,13 +21,14 @@ typedef struct {
     QSqlQuery query;
 } report_output_file_t;
 
-
-
 class Report
 {
+    friend class ReportFinisher;
+
 public:
-    explicit Report() {_isNull = true; }
+    explicit Report() {_isNull = true; _finisher = NULL;}
     explicit Report(QString name);
+    ~Report();
 
     typedef enum {
         TP_None,    // Use of this setting won't prime the web cache!
@@ -75,16 +78,18 @@ public:
     bool supportsDBDS() const { return _db_ok; }
     QSet<WeatherStationType> supportedWeatherStations() const { return QSet<WeatherStationType>::fromList(_weatherStations); }
 
-    void run(AbstractDataSource* dataSource, QDateTime start, QDateTime end, QVariantMap parameters);
-    void run(AbstractDataSource* dataSource, QDate start, QDate end, QVariantMap parameters);
-    void run(AbstractDataSource* dataSource, QDate dayOrMonth, bool month, QVariantMap parameters);
-    void run(AbstractDataSource* dataSource, int year, QVariantMap parameters);
+    ReportFinisher* run(AbstractDataSource* dataSource, QDateTime start, QDateTime end, QVariantMap parameters);
+    ReportFinisher* run(AbstractDataSource* dataSource, QDate start, QDate end, QVariantMap parameters);
+    ReportFinisher* run(AbstractDataSource* dataSource, QDate dayOrMonth, bool month, QVariantMap parameters);
+    ReportFinisher* run(AbstractDataSource* dataSource, int year, QVariantMap parameters);
 
     static QStringList reports();
 
     static QList<Report> loadReports();
 
     static void saveReport(QList<report_output_file_t> outputs, QWidget *parent=NULL);
+
+    void executeReport();
 
 private:
     bool _isNull;
@@ -143,10 +148,16 @@ private:
 
     output_type_t output_type;
 
+    // For running the report
+    ReportFinisher* _finisher;
+    AbstractDataSource *_dataSource;
+    QVariantMap _parameters;
+
     static QString queryToCSV(QSqlQuery query);
     static void writeFile(report_output_file_t file);
 
     void run(AbstractDataSource*, QMap<QString, QVariant> parameters);
+    void completeReport();
     void outputToUI(QMap<QString, QVariant> reportParameters,
                     QMap<QString, QSqlQuery> queries);
     void outputToDisk(QMap<QString, QVariant> reportParameters,
@@ -155,5 +166,7 @@ private:
                                   QMap<QString, QSqlQuery> queries,
                                   QString outputTemplate);
 };
+
+
 
 #endif // REPORT_H

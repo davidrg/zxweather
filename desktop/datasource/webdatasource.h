@@ -27,6 +27,7 @@ class WebDataSource : public AbstractDataSource
     friend class FetchRainTotalsWebTask;
     friend class FetchSamplesWebTask;
     friend class FetchStationInfoWebTask;
+    friend class CachingFinishedWebTask;
     Q_OBJECT
 
 public:
@@ -94,6 +95,8 @@ private slots:
     void taskFailed(QString error);
 
     void taskQueueResponseDataReady(QNetworkReply* reply);
+
+    void finishedCaching();
 private:
     // Called by SelectSamplesWebTask
     void fireSamplesReady(SampleSet samples);

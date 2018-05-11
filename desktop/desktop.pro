@@ -124,7 +124,8 @@ SOURCES += main.cpp\
     reporting/runreportdialog.cpp \
     reporting/reportdisplaywindow.cpp \
     datasource/webtasks/fetchstationinfo.cpp \
-    charts/datasetsdialog.cpp
+    charts/datasetsdialog.cpp \
+    datasource/webtasks/cachingfinishedwebtask.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
@@ -222,7 +223,9 @@ HEADERS  += mainwindow.h \
     reporting/reportdisplaywindow.h \
     datasource/webtasks/fetchstationinfo.h \
     datasource/station_info.h \
-    charts/datasetsdialog.h
+    charts/datasetsdialog.h \
+    datasource/webtasks/cachingfinishedwebtask.h \
+    reporting/reportfinisher.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \
