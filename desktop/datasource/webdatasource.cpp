@@ -804,3 +804,7 @@ void WebDataSource::updateStation(QString title, QString description, QString ty
                 stationURL(), title, description, type_code, interval, latitude, longitude,
                 altitude, solar, davis_broadcast_id);
 }
+
+void WebDataSource::finishedCaching() {
+    emit cachingFinished();
+}

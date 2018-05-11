@@ -64,7 +64,7 @@ private:
     time_span_t get_time_span();
 
     void switchPage(Page page);
-    void runReport();
+    ReportFinisher* runReport();
 
     bool needsCriteriaPageCreated;
     void createReportCriteria();

@@ -1480,6 +1480,7 @@ void DatabaseDataSource::fetchSamplesFromCache(DataSet dataSet) {
 void DatabaseDataSource::primeCache(QDateTime start, QDateTime end) {
     Q_UNUSED(start);
     Q_UNUSED(end);
+    emit cachingFinished();
 }
 
 bool DatabaseDataSource::solarAvailable() {

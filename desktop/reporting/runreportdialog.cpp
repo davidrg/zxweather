@@ -6,6 +6,7 @@
 #include "datasource/databasedatasource.h"
 #include "datasource/webdatasource.h"
 #include "datasource/dialogprogresslistener.h"
+#include "reportfinisher.h"
 
 #include <QDebug>
 #include <QTreeWidgetItem>
@@ -570,8 +571,20 @@ RunReportDialog::time_span_t RunReportDialog::get_time_span() {
 
 void RunReportDialog::moveNextPage() {
     if (nextPage == Page_Finish) {
-        runReport();
-        accept();
+        ReportFinisher* finisher = runReport();
+        if (finisher == NULL) {
+            accept();
+        } else {
+            if (finisher->isFinished()) {
+                accept();
+            }
+            connect(finisher, SIGNAL(reportCompleted()), this, SLOT(accept()));
+            ui->pbBack->setEnabled(false);
+            ui->pbNext->setEnabled(false);
+            ui->pbCancel->setEnabled(false);
+            ui->treeWidget->setEnabled(false);
+            ui->stackedWidget->setCurrentIndex(0);
+        }
     } else {
         switchPage(nextPage);
     }
@@ -650,7 +663,7 @@ void RunReportDialog::switchPage(Page page) {
     ui->stackedWidget->setCurrentIndex(page);
 }
 
-void RunReportDialog::runReport() {
+ReportFinisher *RunReportDialog::runReport() {
     AbstractDataSource *ds;
     if (Settings::getInstance().sampleDataSourceType() == Settings::DS_TYPE_DATABASE)
         ds = new DatabaseDataSource(new DialogProgressListener(this), this);
@@ -724,16 +737,16 @@ void RunReportDialog::runReport() {
             (report.timePickerType() == Report::TP_None &&
              report.defaultTimeSpan() != Report::FTS_None)) {
         time_span_t ts = get_time_span();
-        report.run(ds, ts.start, ts.end, params);
+        return report.run(ds, ts.start, ts.end, params);
     } else if (report.timePickerType() == Report::TP_Datespan) {
         date_span_t span = get_date_span();
-        report.run(ds, span.start, span.end, params);
+        return report.run(ds, span.start, span.end, params);
     } else if (report.timePickerType() == Report::TP_Day) {
-        report.run(ds, get_date(), false, params);
+        return report.run(ds, get_date(), false, params);
     } else if (report.timePickerType() == Report::TP_Month) {
-        report.run(ds, get_month(), true, params);
+        return report.run(ds, get_month(), true, params);
     } else if (report.timePickerType() == Report::TP_Year) {
-        report.run(ds, get_year(), params);
+        return report.run(ds, get_year(), params);
     }
 }
 

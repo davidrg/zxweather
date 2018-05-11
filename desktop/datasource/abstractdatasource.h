@@ -193,6 +193,11 @@ signals:
      * Raised in response to a call to hasActiveImageSources()
      */
     void archivedImagesAvailable();
+
+    /** Emitted when a primeCache() call has completed.
+     *
+     */
+    void cachingFinished();
 protected:
     QPointer<AbstractProgressListener> progressListener;
 };
