@@ -67,7 +67,7 @@ void WebCacheDB::openDatabase() {
     if (!query.next()) {
         qDebug() << "Creating initial schema...";
         runDbScript(":/cache_db/create.sql");
-        runDbScript(":/cache_db/trig_lookup.sql");
+        //runDbScript(":/cache_db/trig_lookup.sql");
     } else {
         qDebug() << "Checking version...";
         query.exec("select v from db_metadata where k = 'v'");
@@ -99,11 +99,11 @@ void WebCacheDB::openDatabase() {
                 }
                 db.commit();
 
-                if (!runDbScript(":/cache_db/trig_lookup.sql")) {
-                    qWarning() << "Failed to create trig lookup table";
-                    emit criticalError("Failed to upgrade cache database. Delete file " + filename + " manually to correct error.");
-                    return;
-                }
+//                if (!runDbScript(":/cache_db/trig_lookup.sql")) {
+//                    qWarning() << "Failed to create trig lookup table";
+//                    emit criticalError("Failed to upgrade cache database. Delete file " + filename + " manually to correct error.");
+//                    return;
+//                }
             }
         } else {
             emit criticalError("Failed to determine version of cache database");

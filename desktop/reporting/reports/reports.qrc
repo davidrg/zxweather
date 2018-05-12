@@ -1,0 +1,17 @@
+<RCC>
+    <qresource prefix="/reports">
+        <file>records/description.html</file>
+        <file>records/records.html</file>
+        <file>records/records_psql.sql</file>
+        <file>records/records_sqlite.sql</file>
+        <file>records/report.json</file>
+        <file>sun/criteria.ui</file>
+        <file>sun/criteria_formatted_psql.sql</file>
+        <file>sun/description.html</file>
+        <file>sun/report.json</file>
+        <file>sun/sun.html</file>
+        <file>sun/sunrise_query_psql.sql</file>
+        <file>sun/sunrise_query_psql_html.sql</file>
+        <file>sun/weather.png</file>
+    </qresource>
+</RCC>

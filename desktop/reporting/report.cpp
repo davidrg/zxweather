@@ -22,8 +22,8 @@
 
 QByteArray readFile(QString name) {
     QStringList files;
-    files << "reports" + QString(QDir::separator()) + name;
-    files << ":/reports/" + name;
+    files << QDir::cleanPath("reports" + QString(QDir::separator()) + name);
+    files << QDir::cleanPath(":/reports/" + name);
 
     foreach (QString filename, files) {
         qDebug() << "Trying" << filename;
@@ -290,9 +290,11 @@ QStringList findReportsIn(QString directory) {
     foreach (QString d, dir.entryList(QDir::Dirs|QDir::NoDotAndDotDot|QDir::System|QDir::Hidden)) {
         qDebug() << d;
 
-        QString reportFile = directory + QDir::separator()
-                + d + QDir::separator() + QString("report.json");
+        QString reportFile = QDir::cleanPath(directory + QDir::separator()
+                + d + QDir::separator() + QString("report.json"));
         qDebug() << reportFile;
+
+        QFile f(reportFile);
 
         if (QFile(reportFile).exists()) {
             result.append(d);
@@ -432,6 +434,7 @@ void Report::run(AbstractDataSource* dataSource, QMap<QString, QVariant> paramet
     QMap<QString, QSqlQuery> queryResults;
 
     foreach (query_t q, queries) {
+        qDebug() << "Run query" << q.name;
         QSqlQuery query = dataSource->query();
 
         query.prepare(isWeb ? q.web_query : q.db_query);
