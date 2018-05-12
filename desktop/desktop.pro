@@ -273,6 +273,7 @@ OTHER_FILES += \
     desktop.rc
 
 RESOURCES += \
-    resources.qrc
+    resources.qrc \
+    reporting/reports/reports.qrc
 
 RC_FILE += desktop.rc
