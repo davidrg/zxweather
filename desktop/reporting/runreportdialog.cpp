@@ -21,6 +21,8 @@ RunReportDialog::RunReportDialog(QWidget *parent) :
 
     QList<Report> reports = Report::loadReports();
 
+    qSort(reports.begin(), reports.end());
+
     bool isWebDs = Settings::getInstance().sampleDataSourceType() == Settings::DS_TYPE_WEB_INTERFACE;
     bool isDbDs = Settings::getInstance().sampleDataSourceType() == Settings::DS_TYPE_DATABASE;
 

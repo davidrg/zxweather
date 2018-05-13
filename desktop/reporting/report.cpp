@@ -281,6 +281,10 @@ Report::~Report() {
     }
 }
 
+bool Report::operator <(Report const& b)const {
+    return _title < b.title();
+}
+
 
 QStringList findReportsIn(QString directory) {
     QDir dir(directory);
