@@ -77,10 +77,13 @@ void AboutDialog::showLicenses() {
 
     QFile mustache(":/licenses/mustache_bsd_2cl.txt");
     mustache.open(QIODevice::ReadOnly);
+    QFile qtjson(":/licenses/qtjson_license.txt");
+    qtjson.open(QIODevice::ReadOnly);
 
     w->addPlainTab("GPL v3", QIcon(), QString::fromUtf8(gpl3.readAll()));
     w->addPlainTab("QtColorButton", QIcon(), license);
     w->addPlainTab("qt-mustache", QIcon(), QString::fromUtf8(mustache.readAll()));
+    w->addPlainTab("qt-json", QIcon(), QString::fromUtf8(qtjson.readAll()));
 
     w->setAttribute(Qt::WA_DeleteOnClose);
     w->show();

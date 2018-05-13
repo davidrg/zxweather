@@ -9,6 +9,7 @@
 #include <QShortcut>
 #include <QApplication>
 #include <QClipboard>
+#include <QFontDatabase>
 
 ReportDisplayWindow::ReportDisplayWindow(QString reportName, QIcon reportIcon, QWidget *parent) : QDialog(parent)
 {
@@ -52,6 +53,7 @@ void ReportDisplayWindow::addPlainTab(QString name, QIcon icon, QString text) {
 
     QTextBrowser *browser = new QTextBrowser();
     browser->setPlainText(text);
+    browser->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
 
     tabLayout->addWidget(browser);
     tab->setLayout(tabLayout);
