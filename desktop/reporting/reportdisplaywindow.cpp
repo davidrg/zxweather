@@ -15,6 +15,7 @@ ReportDisplayWindow::ReportDisplayWindow(QString reportName, QIcon reportIcon, Q
 {
     setWindowTitle(reportName);
     setWindowIcon(reportIcon);
+    setWindowFlags(Qt::Window);
     resize(800,600);
 
     QGridLayout *layout = new QGridLayout(this);

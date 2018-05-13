@@ -366,7 +366,7 @@ ReportFinisher* Report::run(AbstractDataSource* dataSource, QDate start, QDate e
 }
 
 ReportFinisher* Report::run(AbstractDataSource* dataSource, QDate dayOrMonth, bool month, QVariantMap parameters) {
-    parameters["date"] = dayOrMonth;
+    parameters["atDate"] = dayOrMonth;
 
     if (month) {
         parameters["start"] = dayOrMonth;

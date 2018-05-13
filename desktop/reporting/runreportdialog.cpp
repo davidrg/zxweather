@@ -176,6 +176,8 @@ void RunReportDialog::loadReportCriteria() {
     QList<QDateTimeEdit*> dateTimeEdits = ui->custom_criteria_page->findChildren<QDateTimeEdit*>();
     QList<QDial*> dials = ui->custom_criteria_page->findChildren<QDial*>();
     QList<QSlider*> sliders = ui->custom_criteria_page->findChildren<QSlider*>();
+    QList<QRadioButton*> radioButtons = ui->custom_criteria_page->findChildren<QRadioButton*>();
+    QList<QCheckBox*> checkBoxes = ui->custom_criteria_page->findChildren<QCheckBox*>();
 
     foreach (QLineEdit* ed, lineEdits) {
         if (params.contains(ed->objectName())) {
@@ -242,6 +244,18 @@ void RunReportDialog::loadReportCriteria() {
     foreach (QSlider* slider, sliders) {
         if (params.contains(slider->objectName())) {
             slider->setValue(params[slider->objectName()].toInt());
+        }
+    }
+
+    foreach (QRadioButton* button, radioButtons) {
+        if (params.contains(button->objectName())) {
+            button->setChecked(params[button->objectName()].toBool());
+        }
+    }
+
+    foreach (QCheckBox* checkbox, checkBoxes) {
+        if (params.contains(checkbox->objectName())) {
+            checkbox->setChecked(params[checkbox->objectName()].toBool());
         }
     }
 }
@@ -697,6 +711,8 @@ ReportFinisher *RunReportDialog::runReport() {
         QList<QDateTimeEdit*> dateTimeEdits = ui->custom_criteria_page->findChildren<QDateTimeEdit*>();
         QList<QDial*> dials = ui->custom_criteria_page->findChildren<QDial*>();
         QList<QSlider*> sliders = ui->custom_criteria_page->findChildren<QSlider*>();
+        QList<QRadioButton*> radioButtons = ui->custom_criteria_page->findChildren<QRadioButton*>();
+        QList<QCheckBox*> checkBoxes = ui->custom_criteria_page->findChildren<QCheckBox*>();
 
         foreach (QLineEdit* ed, lineEdits) {
             params[ed->objectName()] = ed->text();
@@ -741,6 +757,14 @@ ReportFinisher *RunReportDialog::runReport() {
 
         foreach (QSlider* slider, sliders) {
             params[slider->objectName()] = slider->value();
+        }
+
+        foreach (QRadioButton* button, radioButtons) {
+            params[button->objectName()] = button->isChecked();
+        }
+
+        foreach (QCheckBox* checkbox, checkBoxes) {
+            params[checkbox->objectName()] = checkbox->isChecked();
         }
 
         Settings::getInstance().saveReportCriteria(report.name(), params);
