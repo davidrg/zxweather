@@ -91,6 +91,8 @@ public:
 
     void executeReport();
 
+    bool operator <(Report const& b)const;
+
 private:
     bool _isNull;
     QString _name;
