@@ -143,9 +143,18 @@ void RunReportDialog::loadReportCriteria() {
         params["latitude"] = info.latitude;
         params["longitude"] = info.longitude;
     }
-    params["altitude"] = info.altitude;
-    params["title"] = info.title;
-    params["description"] = info.description;
+
+    if (info.altitude == 0) {
+        params["altitude"] = info.altitude;
+    }
+
+    if (!info.title.isNull()) {
+        params["title"] = info.title;
+    }
+
+    if (!info.description.isNull()) {
+        params["description"] = info.description;
+    }
 
     time_span_t span = get_time_span();
     params["start"] = span.start;
@@ -153,6 +162,8 @@ void RunReportDialog::loadReportCriteria() {
     params["year"] = get_year();
     params["month"] = get_month();
     params["date"] = get_date();
+
+    qDebug() << params;
 
     QList<QLineEdit*> lineEdits = ui->custom_criteria_page->findChildren<QLineEdit*>();
     QList<QComboBox*> comboBoxes = ui->custom_criteria_page->findChildren<QComboBox*>();
@@ -167,7 +178,9 @@ void RunReportDialog::loadReportCriteria() {
     QList<QSlider*> sliders = ui->custom_criteria_page->findChildren<QSlider*>();
 
     foreach (QLineEdit* ed, lineEdits) {
-        params[ed->objectName()] = ed->text();
+        if (params.contains(ed->objectName())) {
+            ed->setText(params[ed->objectName()].toString());
+        }
     }
 
     foreach (QComboBox* comboBox, comboBoxes) {

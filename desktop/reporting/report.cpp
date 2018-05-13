@@ -342,6 +342,7 @@ ReportFinisher* Report::run(AbstractDataSource *dataSource, QDateTime start, QDa
     } else {
         executeReport();
     }
+    return NULL;
 }
 
 ReportFinisher* Report::run(AbstractDataSource* dataSource, QDate start, QDate end, QVariantMap parameters) {
@@ -361,10 +362,20 @@ ReportFinisher* Report::run(AbstractDataSource* dataSource, QDate start, QDate e
     } else {
         executeReport();
     }
+    return NULL;
 }
 
 ReportFinisher* Report::run(AbstractDataSource* dataSource, QDate dayOrMonth, bool month, QVariantMap parameters) {
     parameters["date"] = dayOrMonth;
+
+    if (month) {
+        parameters["start"] = dayOrMonth;
+        parameters["end"] = dayOrMonth.addMonths(1).addDays(-1);
+    } else {
+        QDateTime start = QDateTime(dayOrMonth, QTime(0, 0));
+        parameters["start"] = start;
+        parameters["end"] = start.addDays(1).addMSecs(-1);
+    }
 
     _dataSource = dataSource;
     _parameters = parameters;
@@ -385,10 +396,15 @@ ReportFinisher* Report::run(AbstractDataSource* dataSource, QDate dayOrMonth, bo
     } else {
         executeReport();
     }
+    return NULL;
 }
 
 ReportFinisher* Report::run(AbstractDataSource* dataSource, int year, QVariantMap parameters) {
     parameters["year"] = year;
+
+    QDateTime start = QDateTime(QDate(year, 1, 1), QTime(0, 0));
+    parameters["start"] = start;
+    parameters["end"] = start.addYears(1).addMSecs(-1);
 
     _dataSource = dataSource;
     _parameters = parameters;
@@ -405,6 +421,7 @@ ReportFinisher* Report::run(AbstractDataSource* dataSource, int year, QVariantMa
     } else {
         executeReport();
     }
+    return NULL;
 }
 
 void Report::executeReport() {

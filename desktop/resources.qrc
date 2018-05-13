@@ -73,5 +73,6 @@
         <file alias="lgpl-2.1.txt">qtcolorbutton/lgpl-2.1.txt</file>
         <file alias="lgpl_exception.txt">qtcolorbutton/LGPL_EXCEPTION.TXT</file>
         <file alias="qtcolorbutton.txt">qtcolorbutton/license.txt</file>
+        <file alias="qtjson_license.txt">json/LICENSE</file>
     </qresource>
 </RCC>
