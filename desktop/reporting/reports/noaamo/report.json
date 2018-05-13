@@ -1,0 +1,36 @@
+{
+	"title": "NOAA Month Summary",
+	"description": "description.html",
+	"time_picker": "month",
+	"default_time_span": "this_month",
+	"criteria_ui": "criteria.ui",
+	"supported_weather_stations": ["generic"],
+	"queries": {
+		"daily": {
+			"db": "daily_psql.sql",
+		},
+		"month": {
+			"db": "month_psql.sql",
+		},
+		"criteria": {
+			"db": "criteria_psql.sql",
+		},
+		"high_rain": {
+			"db": "high_rain_psql.sql",
+		},
+		"counts": {
+			"db": "counts_psql.sql",
+		}
+	},
+	"output_type": "show",
+	"outputs": [
+		{
+			"name": "noaamo",
+			"title": "NOAA Month",
+			"format": "text",
+			"template": "noaamo.txt",
+			"filename": "NOAAMO.TXT"
+		}
+	]
+}
+s
