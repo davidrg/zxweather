@@ -5,7 +5,7 @@
 <body>
 <b>Station Records</b>
 <hr>
-
+<p>This view shows the most recent time the station recorded each record</p>
 {{#records}}
 <p>Total Rainfall: {{total_rainfall}}mm</p>
 {{/records}}
@@ -18,10 +18,10 @@
 	</tr>
 	<tr>
 		<th>Sensor</th>
-		<th>Value</th>
-		<th>Time</th>
-		<th>Value</th>
-		<th>Time</th>
+		<th width=80>Value</th>
+		<th width=150>Time</th>
+		<th width=80>Value</th>
+		<th width=150>Time</th>
 	</tr>
 	{{#records}}
 	<tr>
@@ -47,7 +47,7 @@
 	<tr>
 		<td>Dew Point</td>
 		<td><center>{{max_dew_point}}°C</center></td><td>{{max_dew_point_ts}}</td>
-		<td><center>{{min_dew_point}}°C</center></td><td>{{min_dew_point_ts}}</td>
+                <td><center>{{min_dew_point}}°C</center></td><td>{{min_dew_point_ts}}</td>
 	</tr>
 	<tr>
 		<td>Barometer</td>
@@ -57,31 +57,32 @@
 	<tr>
 		<td>Average Wind Speed</td>
 		<td><center>{{max_average_wind_speed}} m/s</center></td><td>{{max_average_wind_speed_ts}}</td>
-		<td></td>
+		<td colspan=2></td>
 	</tr>
 	<tr>
 		<td>Gust Wind Speed</td>
 		<td><center>{{max_gust_wind_speed}} m/s</center></td><td>{{max_gust_wind_speed_ts}}</td>
-		<td></td>
+		<td colspan=2></td>
 	</tr>
 	<tr>
 		<td>Solar Radiation</td>
 		<td><center>{{max_solar_radiation}} W/m²</center></td><td>{{max_solar_radiation_ts}}</td>
+		<td colspan=2></td>
 	</tr>
 	<tr>
 		<td>UV Index</td>
 		<td><center>{{max_uv_index}}</center></td><td>{{max_uv_index_ts}}</td>
-		<td></td>
+		<td colspan=2></td>
 	</tr>
 	<tr>
 		<td>Evapotranspiration</td>
 		<td><center>{{max_evapotranspiration}} mm</center></td><td>{{max_evapotranspiration_ts}}</td>
-		<td></td>
+		<td colspan=2></td>
 	</tr>
 	<tr>
 		<td>Rain Rate</td>
 		<td><center>{{max_rain_rate}} mm/h</center></td><td>{{max_rain_rate_ts}}</td>
-		<td></td>
+		<td colspan=2></td>
 	</tr>
 	{{/records}}
 </table>
