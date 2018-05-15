@@ -1,0 +1,30 @@
+{
+	"title": "NOAA Yearly Summary",
+	"description": "description.html",
+	"time_picker": "year",
+	"default_time_span": "this_year",
+	"criteria_ui": "criteria.ui",
+	"supported_weather_stations": ["generic"],
+	"queries": {
+		"monthly": {
+			"db": "monthly_psql.sql",
+		},
+		"yearly": {
+			"db": "yearly_psql.sql",
+		},
+		"criteria": {
+			"db": "criteria_psql.sql",
+		}
+	},
+	"output_type": "show",
+	"outputs": [
+		{
+			"name": "noaayr",
+			"title": "NOAA Year",
+			"format": "text",
+			"template": "noaayr.txt",
+			"filename": "NOAAYR.TXT"
+		}
+	]
+}
+s
