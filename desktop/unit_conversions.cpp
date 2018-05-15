@@ -32,6 +32,12 @@ UnitConversions::UnitValue::UnitValue(int32_t v) {
     unit = U_UNKNOWN;
 }
 
+UnitConversions::UnitValue::UnitValue() {
+    value.intValue = 0;
+    isInt = true;
+    unit = U_UNKNOWN;
+}
+
 UnitConversions::UnitValue::operator int() const {
     return isInt ? value.intValue : (int)value.floatValue;
 }

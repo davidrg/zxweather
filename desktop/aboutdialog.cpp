@@ -25,6 +25,8 @@
 #include "constants.h"
 #include "reporting/reportdisplaywindow.h"
 
+#include <QFile>
+
 AboutDialog::AboutDialog(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::AboutDialog)

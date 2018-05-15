@@ -239,7 +239,8 @@ qint64 getDirectorySize(QString dirname) {
 }
 
 QString sizeToString(qint64 size) {
-    QStringList units = {"Bytes", "KB", "MB", "GB"};
+    QStringList units;
+    units << "Bytes" << "KB" << "MB" << "GB";
 
     int i;
     double result = size;
@@ -256,7 +257,7 @@ QString sizeToString(qint64 size) {
 }
 
 void SettingsDialog::getCacheInfo() {
-#if QT_VERSION >= 0x050000
+#if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
     QString cacheDir = QStandardPaths::writableLocation(
                 QStandardPaths::CacheLocation);
 #else

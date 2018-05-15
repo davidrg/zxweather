@@ -54,7 +54,7 @@ namespace UnitConversions {
         UnitValue(float v);
         UnitValue(double v);
         UnitValue(int v);
-        UnitValue() : UnitValue(0) {}
+        UnitValue();
 
         unit_t unit;
 

@@ -76,6 +76,12 @@ void WebCacheDB::openDatabase() {
             qDebug() << "Cache DB at version" << version;
             if (version == 1) {
                 qDebug() << "Cache DB is out of date. Upgrading to v2...";
+
+                QSqlDatabase db = QSqlDatabase::database(SAMPLE_CACHE,true);
+                db.commit();
+                db.close();
+                db.open();
+
                 if (!runDbScript(":/cache_db/v2.sql")) {
                     qWarning() << "V2 upgrade failed.";
                     emit criticalError("Failed to upgrade cache database. Delete file " + filename + " manually to correct error.");
@@ -83,7 +89,7 @@ void WebCacheDB::openDatabase() {
                 }
 
                 // Reopen the database to clear locks
-                QSqlDatabase db = QSqlDatabase::database(SAMPLE_CACHE,true);
+                db = QSqlDatabase::database(SAMPLE_CACHE,true);
                 db.commit();
                 db.close();
                 db.open();

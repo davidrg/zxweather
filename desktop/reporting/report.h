@@ -8,6 +8,7 @@
 #include <QSqlQuery>
 #include <QSet>
 #include <QScopedPointer>
+#include <QVariant>
 #include "reportfinisher.h"
 
 class AbstractDataSource;
