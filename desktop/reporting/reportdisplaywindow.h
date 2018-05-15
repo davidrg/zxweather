@@ -12,7 +12,7 @@ class ReportDisplayWindow : public QDialog
 {
     Q_OBJECT
 public:
-    explicit ReportDisplayWindow(QString reportName, QIcon reportIcon, QWidget *parent = nullptr);
+    explicit ReportDisplayWindow(QString reportName, QIcon reportIcon, QWidget *parent = NULL);
 
     void addHtmlTab(QString name, QIcon icon, QString content);
     void addPlainTab(QString name, QIcon icon, QString text);

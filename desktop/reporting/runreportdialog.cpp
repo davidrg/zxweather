@@ -12,6 +12,12 @@
 #include <QTreeWidgetItem>
 #include <QtUiTools>
 #include <QBuffer>
+#include <QComboBox>
+#include <QPlainTextEdit>
+#include <QSpinBox>
+#include <QDial>
+#include <QCheckBox>
+#include <QLineEdit>
 
 RunReportDialog::RunReportDialog(QWidget *parent) :
     QDialog(parent),
@@ -787,6 +793,7 @@ ReportFinisher *RunReportDialog::runReport() {
     } else if (report.timePickerType() == Report::TP_Year) {
         return report.run(ds, get_year(), params);
     }
+    return NULL;
 }
 
 void RunReportDialog::timespanSelected() {
