@@ -14,11 +14,19 @@
 	"outputs": [
 		{
 			"name": "html",
-			"title": "Station Records",
+			"title": "Station Records - Latest Occurrence",
 			"icon": "../../icons/report",
 			"format": "html",
 			"template": "records.html",
 			"filename": "records.html"
+		},
+		{
+			"name": "html",
+			"title": "Station Records - Earliest Occurrence",
+			"icon": "../../icons/report",
+			"format": "html",
+			"template": "records_early.html",
+			"filename": "records_early.html"
 		}
 	]
 }
