@@ -40,7 +40,7 @@ select
          ELSE p.altitude
     END)::NUMERIC, 0)::varchar, 5, ' ')   AS altitude,
   CASE WHEN p.altitude_feet THEN 'ft'
-       ELSE 'm'
+       ELSE 'm '
     END                                   AS altitude_units,
   lpad(lat.degrees || '° ' || lat.minutes || ''' ' || round(lat.seconds::numeric, 0) || '" ' || lat.direction, 14, ' ')      AS latitude,
   lpad(long.degrees || '° ' || long.minutes || ''' ' || round(long.seconds::numeric, 0) || '" ' || long.direction, 14, ' ')  AS longitude,

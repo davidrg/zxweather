@@ -17,7 +17,7 @@
    <item row="0" column="0">
     <widget class="QLabel" name="label_16">
      <property name="text">
-      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:xx-large; font-weight:600;&quot;&gt;NOAA Month&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:xx-large; font-weight:600;&quot;&gt;NOAA Month Summary&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
      </property>
     </widget>
    </item>
@@ -358,8 +358,8 @@
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="bgWindSpeed"/>
   <buttongroup name="bgTemperature"/>
   <buttongroup name="bgRainfall"/>
+  <buttongroup name="bgWindSpeed"/>
  </buttongroups>
 </ui>
