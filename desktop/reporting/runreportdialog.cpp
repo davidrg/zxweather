@@ -139,6 +139,7 @@ RunReportDialog::RunReportDialog(QWidget *parent) :
 
 RunReportDialog::~RunReportDialog()
 {
+    qDebug() << "RunReportDialog - destructor";
     delete ui;
 }
 
@@ -291,6 +292,8 @@ void RunReportDialog::createReportCriteria() {
 
 void RunReportDialog::reportSelected(QTreeWidgetItem* twi, QTreeWidgetItem *prev) {
     Q_UNUSED(prev);
+
+    ui->pbNext->setEnabled(false);
 
     qDebug() << "Report Selected!";
 
@@ -496,6 +499,8 @@ void RunReportDialog::reportSelected(QTreeWidgetItem* twi, QTreeWidgetItem *prev
         qDebug() << "No time picker specified - creating report criteria page now";
         createReportCriteria();
     }
+
+    ui->pbNext->setEnabled(true);
 }
 
 QDate RunReportDialog::get_date() {
@@ -606,6 +611,7 @@ RunReportDialog::time_span_t RunReportDialog::get_time_span() {
 
 void RunReportDialog::moveNextPage() {
     if (nextPage == Page_Finish) {
+        qDebug() << "Running report...";
         ReportFinisher* finisher = runReport();
         if (finisher == NULL) {
             accept();
@@ -699,11 +705,11 @@ void RunReportDialog::switchPage(Page page) {
 }
 
 ReportFinisher *RunReportDialog::runReport() {
-    AbstractDataSource *ds;
-    if (Settings::getInstance().sampleDataSourceType() == Settings::DS_TYPE_DATABASE)
-        ds = new DatabaseDataSource(new DialogProgressListener(this), this);
-    else
-        ds = new WebDataSource(new DialogProgressListener(this), this);
+//    AbstractDataSource *ds;
+//    if (Settings::getInstance().sampleDataSourceType() == Settings::DS_TYPE_DATABASE)
+//        ds = new DatabaseDataSource(new DialogProgressListener(this), this);
+//    else
+//        ds = new WebDataSource(new DialogProgressListener(this), this);
 
     QVariantMap params;
 
@@ -782,17 +788,18 @@ ReportFinisher *RunReportDialog::runReport() {
             (report.timePickerType() == Report::TP_None &&
              report.defaultTimeSpan() != Report::FTS_None)) {
         time_span_t ts = get_time_span();
-        return report.run(ds, ts.start, ts.end, params);
+        return report.run(ds.data(), ts.start, ts.end, params);
     } else if (report.timePickerType() == Report::TP_Datespan) {
         date_span_t span = get_date_span();
-        return report.run(ds, span.start, span.end, params);
+        return report.run(ds.data(), span.start, span.end, params);
     } else if (report.timePickerType() == Report::TP_Day) {
-        return report.run(ds, get_date(), false, params);
+        return report.run(ds.data(), get_date(), false, params);
     } else if (report.timePickerType() == Report::TP_Month) {
-        return report.run(ds, get_month(), true, params);
+        return report.run(ds.data(), get_month(), true, params);
     } else if (report.timePickerType() == Report::TP_Year) {
-        return report.run(ds, get_year(), params);
+        return report.run(ds.data(), get_year(), params);
     }
+    qDebug() << "No time picker selected!";
     return NULL;
 }
 
