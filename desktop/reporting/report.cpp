@@ -333,6 +333,8 @@ QList<Report> Report::loadReports() {
 ReportFinisher* Report::run(AbstractDataSource *dataSource, QDateTime start, QDateTime end, QVariantMap parameters) {
     parameters["start"] = start;
     parameters["end"] = end;
+    parameters["start_t"] = start.toTime_t();
+    parameters["end_t"] = end.toTime_t();
 
     _dataSource = dataSource;
     _parameters = parameters;
@@ -352,6 +354,8 @@ ReportFinisher* Report::run(AbstractDataSource *dataSource, QDateTime start, QDa
 ReportFinisher* Report::run(AbstractDataSource* dataSource, QDate start, QDate end, QVariantMap parameters) {
     parameters["start"] = start;
     parameters["end"] = end;
+    parameters["start_t"] = QDateTime(start, QTime(0, 0, 0)).toTime_t();
+    parameters["end_t"] = QDateTime(end, QTime(0, 0, 0)).toTime_t();
 
     _dataSource = dataSource;
     _parameters = parameters;
@@ -372,14 +376,17 @@ ReportFinisher* Report::run(AbstractDataSource* dataSource, QDate start, QDate e
 ReportFinisher* Report::run(AbstractDataSource* dataSource, QDate dayOrMonth, bool month, QVariantMap parameters) {
     parameters["atDate"] = dayOrMonth;
 
+    QDateTime start = QDateTime(dayOrMonth, QTime(0, 0));
     if (month) {
         parameters["start"] = dayOrMonth;
         parameters["end"] = dayOrMonth.addMonths(1).addDays(-1);
     } else {
-        QDateTime start = QDateTime(dayOrMonth, QTime(0, 0));
         parameters["start"] = start;
         parameters["end"] = start.addDays(1).addMSecs(-1);
     }
+
+    parameters["start_t"] = start.toTime_t();
+    parameters["end_t"] = start.addMonths(1).addDays(-1).toTime_t();
 
     _dataSource = dataSource;
     _parameters = parameters;
@@ -409,6 +416,9 @@ ReportFinisher* Report::run(AbstractDataSource* dataSource, int year, QVariantMa
     QDateTime start = QDateTime(QDate(year, 1, 1), QTime(0, 0));
     parameters["start"] = start;
     parameters["end"] = start.addYears(1).addMSecs(-1);
+
+    parameters["start_t"] = start.toTime_t();
+    parameters["end_t"] = start.addYears(1).addMSecs(-1).toTime_t();
 
     _dataSource = dataSource;
     _parameters = parameters;
@@ -535,6 +545,14 @@ void Report::writeFile(report_output_file_t file) {
     }
 }
 
+bool isDirEmpty(QDir dir) {
+#if (QT_VERSION >= QT_VERSION_CHECK(5,9,0))
+    return dir.isEmpty();
+#else
+    return dir.entryInfoList(QDir::NoDotAndDotDot|QDir::AllEntries).count() == 0;
+#endif
+}
+
 QString getSaveDirectory(QWidget *parent) {
     // This will loop until either:
     // 1) The user selects an empty directory
@@ -547,7 +565,7 @@ QString getSaveDirectory(QWidget *parent) {
             return QString(); // user canceled
         }
 
-        if (QDir(dir).isEmpty()) {
+        if (isDirEmpty(QDir(dir))) {
             // Directory is empty. Save.
             return dir;
         } else {
