@@ -6,8 +6,14 @@
 	"supported_weather_stations": ["generic"],
 	"queries": {
 		"records": {
-			"db": "records_psql.sql",
-			"web": "records_sqlite.sql"
+            "db": {
+                "file": "records_psql.sql",
+                "parameters": ["stationCode"]
+            },
+            "web": {
+                "file": "records_sqlite.sql",
+                "parameters": ["stationCode"]
+            }
 		}
 	},
 	"output_type": "show",

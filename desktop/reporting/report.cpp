@@ -26,7 +26,6 @@ QByteArray readFile(QString name) {
     files << QDir::cleanPath(":/reports/" + name);
 
     foreach (QString filename, files) {
-        qDebug() << "Trying" << filename;
 
         QFile file(filename);
 
@@ -68,6 +67,8 @@ Report::Report(QString name)
     using namespace QtJson;
     _isNull = true;
     this->_name = name;
+
+    qDebug() << "========== Load report " << name << "==========";
 
     QString reportDir = name + QDir::separator() ;
 
@@ -185,18 +186,34 @@ Report::Report(QString name)
 
         QVariantMap q = queries[key].toMap();
 
-        query.db_query = readTextFile(reportDir + q["db"].toString());
-        query.web_query = readTextFile(reportDir + q["web"].toString());
+        if (q.contains("db")) {
+            QVariantMap queryDetails = q["db"].toMap();
+            if (queryDetails.contains("file") && queryDetails.contains("parameters")) {
+                query.db_query.query_text = readTextFile(
+                            reportDir + queryDetails["file"].toString());
+                query.db_query.parameters = QSet<QString>::fromList(
+                            queryDetails["parameters"].toStringList());
+            }
+        }
+        if (q.contains("web")) {
+            QVariantMap queryDetails = q["web"].toMap();
+            if (queryDetails.contains("file") && queryDetails.contains("parameters")) {
+                query.web_query.query_text = readTextFile(
+                            reportDir + queryDetails["file"].toString());
+                query.web_query.parameters = QSet<QString>::fromList(
+                            queryDetails["parameters"].toStringList());
+            }
+        }
 
-        if (query.web_query.isNull()) {
+        if (query.web_query.query_text.isNull()) {
             qDebug() << "No WebDataSource query supplied for" << query.name;
         }
-        if (query.db_query.isNull()) {
+        if (query.db_query.query_text.isNull()) {
             qDebug() << "No DatabaseDataSource query supplied for" << query.name;
         }
 
-        _web_ok = _web_ok && !query.web_query.isNull();
-        _db_ok = _db_ok && !query.db_query.isNull();
+        _web_ok = _web_ok && !query.web_query.query_text.isNull();
+        _db_ok = _db_ok && !query.db_query.query_text.isNull();
 
         this->queries.append(query);
     }
@@ -468,15 +485,22 @@ void Report::run(AbstractDataSource* dataSource, QMap<QString, QVariant> paramet
         qDebug() << "Run query" << q.name;
         QSqlQuery query = dataSource->query();
 
-        query.prepare(isWeb ? q.web_query : q.db_query);
+        query_variant_t variant = isWeb ? q.web_query : q.db_query;
+        query.prepare(variant.query_text);
 
         foreach (QString paramName, parameters.keys()) {
+            if (!variant.parameters.contains(paramName)) {
+                continue; // Report doesn't need this parameter so exclude it
+                // We do this because some database drivers don't like extra unused query
+                // parameters (in Qt 5.4 QSQLite seems to report this as an error)
+            }
             query.bindValue(":" + paramName, parameters[paramName]);
             qDebug() << "Parameter" << paramName << "value" << parameters[paramName];
         }
         if (query.exec()) {
             queryResults[q.name] = QSqlQuery(query);
         } else {
+            qDebug() << "===============================";
             qDebug() << "Query failed";
             qDebug() << "db text:" << query.lastError().databaseText();
             qDebug() << "driver text:" << query.lastError().driverText();
@@ -767,6 +791,7 @@ QString Report::renderTemplatedReport(QMap<QString, QVariant> reportParameters,
 
 ReportFinisher::ReportFinisher(Report *report) : QObject(NULL) {
     r = report;
+    finished = false;
 }
 
 void ReportFinisher::cachingFinished() {

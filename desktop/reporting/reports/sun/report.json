@@ -10,13 +10,39 @@
 	
 	"queries": {
 		"sun": {
-			"db": "sunrise_query_psql.sql",
+            "db": {
+                "file": "sunrise_query_psql.sql",
+                "parameters": [
+                    "at_time",
+                    "offset",
+                    "latitude",
+                    "longitude",
+                    "start",
+                    "end"
+                ]
+            },
 		},
 		"sun_html": {
-			"db": "sunrise_query_psql_html.sql",
+            "db": {
+                "file": "sunrise_query_psql_html.sql",
+                "parameters": [
+                    "at_time",
+                    "offset",
+                    "latitude",
+                    "longitude",
+                    "start",
+                    "end"
+                ]
+            },
 		},
 		"criteria": {
-			"db": "criteria_formatted_psql.sql",
+            "db": {
+                "file": "criteria_formatted_psql.sql",
+                "parameters": [
+                    "at_time",
+                    "offset"
+                ]
+            },
 		}
 	},
 	"output_type": "show",
