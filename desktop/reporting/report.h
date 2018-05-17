@@ -109,10 +109,15 @@ private:
     QList<WeatherStationType> _weatherStations;
     bool _primeCache;
 
+    typedef struct _query_variant {
+        QString query_text;
+        QSet<QString> parameters;
+    } query_variant_t;
+
     typedef struct _query {
         QString name;
-        QString web_query;
-        QString db_query;
+        query_variant_t web_query;
+        query_variant_t db_query;
     } query_t;
 
     QList<query_t> queries;

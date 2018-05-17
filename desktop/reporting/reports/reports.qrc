@@ -29,5 +29,8 @@
         <file>noaayr/noaayr.txt</file>
         <file>noaayr/report.json</file>
         <file>noaayr/yearly_psql.sql</file>
+        <file>noaayr/criteria_sqlite.sql</file>
+        <file>noaayr/monthly_sqlite.sql</file>
+        <file>noaayr/yearly_sqlite.sql</file>
     </qresource>
 </RCC>

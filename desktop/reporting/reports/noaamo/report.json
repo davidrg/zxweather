@@ -7,19 +7,79 @@
 	"supported_weather_stations": ["generic"],
 	"queries": {
 		"daily": {
-			"db": "daily_psql.sql",
+            "db": {
+                "file": "daily_psql.sql",
+                "parameters": [
+                    "heatBase",
+                    "coolBase",
+                    "start",
+                    "end",
+                    "fahrenheit",
+                    "kmh",
+                    "mph",
+                    "inches",
+                    "stationCode"
+                ]
+            },
 		},
 		"month": {
-			"db": "month_psql.sql",
+            "db": {
+                "file": "month_psql.sql",
+                "parameters": [
+                    "heatBase",
+                    "coolBase",
+                    "atDate",
+                    "fahrenheit",
+                    "kmh",
+                    "mph",
+                    "inches",
+                    "stationCode"
+                ]
+            },
 		},
 		"criteria": {
-			"db": "criteria_psql.sql",
+            "db": {
+                "file":"criteria_psql.sql"
+                "parameters": [
+                    "celsius",
+                    "kmh",
+                    "mph",
+                    "inches",
+                    "atDate",
+                    "title",
+                    "city",
+                    "state",
+                    "altitude",
+                    "latitude",
+                    "longitude",
+                    "altFeet",
+                    "coolBase",
+                    "heatBase"
+                ]
+            },
 		},
 		"high_rain": {
-			"db": "high_rain_psql.sql",
+            "db": {
+                "file": "high_rain_psql.sql",
+                "parameters": [
+                    "start",
+                    "end",
+                    "inches",
+                    "stationCode"
+                ]
+            }
 		},
 		"counts": {
-			"db": "counts_psql.sql",
+            "db": {
+                "file": "counts_psql.sql",
+                "parameters": [
+                    "start",
+                    "end",
+                    "stationCode",
+                    "fahrenheit",
+                    "inches"
+                ]
+            },
 		}
 	},
 	"output_type": "show",
