@@ -48,11 +48,11 @@ WITH parameters AS (
       aggregates.date                                         AS date,
       aggregates.station_id                                   AS station_id,
       -- Day Counts
-      case when aggregates.tot_rain > parameters.rain_02
+      case when aggregates.tot_rain >= parameters.rain_02
         then 1 else 0 end                                     AS rain_over_02,
-      case when aggregates.tot_rain > parameters.rain_2
+      case when aggregates.tot_rain >= parameters.rain_2
         then 1 else 0 end                                     AS rain_over_2,
-      case when aggregates.tot_rain > parameters.rain_20
+      case when aggregates.tot_rain >= parameters.rain_20
         then 1 else 0 end                                     AS rain_over_20,
       case when aggregates.max_temp >= parameters.max_high_temp
         then 1 else 0 end                                     AS max_high_temp,
@@ -230,7 +230,7 @@ select
   lpad(case when p.inches
     then round(d.tot_rain::numeric, 2)
     else round(d.tot_rain::numeric, 1)
-    end::varchar, 5, ' ')                                   as tot_rain,
+    end::varchar, 7, ' ')                                   as tot_rain,
   lpad(case when p.inches
     then round(d.dep_norm_rain::numeric, 2)
     else round(d.dep_norm_rain::numeric, 1)

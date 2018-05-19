@@ -46,9 +46,9 @@ from (
     CASE WHEN x.max_temp <= r.max_low_temp  THEN 1 ELSE 0 END AS max_low_temp,
     CASE WHEN x.min_temp <= r.min_high_temp THEN 1 ELSE 0 END AS min_high_temp,
     CASE WHEN x.min_temp <= r.min_low_temp  THEN 1 ELSE 0 END AS min_low_temp,
-    CASE WHEN x.tot_rain > 0.2              THEN 1 ELSE 0 END AS rain_ex_02,
-    CASE WHEN x.tot_rain > 2.0              THEN 1 ELSE 0 END AS rain_ex_2,
-    CASE WHEN x.tot_rain > 20.0             THEN 1 ELSE 0 END AS rain_ex_20
+    CASE WHEN x.tot_rain >= 0.2             THEN 1 ELSE 0 END AS rain_ex_02,
+    CASE WHEN x.tot_rain >= 2.0             THEN 1 ELSE 0 END AS rain_ex_2,
+    CASE WHEN x.tot_rain >= 20.0            THEN 1 ELSE 0 END AS rain_ex_20
   FROM (
          SELECT
            s.time_stamp :: DATE as date,
