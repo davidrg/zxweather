@@ -48,11 +48,11 @@ WITH parameters AS (
       aggregates.date                                         AS date,
       aggregates.station_id                                   AS station_id,
       -- Day Counts
-      case when aggregates.tot_rain > parameters.rain_02
+      case when aggregates.tot_rain >= parameters.rain_02
         then 1 else 0 end                                     AS rain_over_02,
-      case when aggregates.tot_rain > parameters.rain_2
+      case when aggregates.tot_rain >= parameters.rain_2
         then 1 else 0 end                                     AS rain_over_2,
-      case when aggregates.tot_rain > parameters.rain_20
+      case when aggregates.tot_rain >= parameters.rain_20
         then 1 else 0 end                                     AS rain_over_20,
       case when aggregates.max_temp >= parameters.max_high_temp
         then 1 else 0 end                                     AS max_high_temp,
