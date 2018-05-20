@@ -395,15 +395,17 @@ ReportFinisher* Report::run(AbstractDataSource* dataSource, QDate dayOrMonth, bo
 
     QDateTime start = QDateTime(dayOrMonth, QTime(0, 0));
     if (month) {
-        parameters["start"] = dayOrMonth;
-        parameters["end"] = dayOrMonth.addMonths(1).addDays(-1);
+        parameters["start"] = QDateTime(dayOrMonth, QTime(0,0,0));
+        parameters["end"] = QDateTime(dayOrMonth.addMonths(1).addDays(-1), QTime(23,59,59));
+        parameters["end_t"] = start.addMonths(1).addMSecs(-1).toTime_t();
     } else {
         parameters["start"] = start;
         parameters["end"] = start.addDays(1).addMSecs(-1);
+        parameters["end_t"] = start.addDays(1).addMSecs(-1).toTime_t();
     }
 
     parameters["start_t"] = start.toTime_t();
-    parameters["end_t"] = start.addMonths(1).addDays(-1).toTime_t();
+
 
     _dataSource = dataSource;
     _parameters = parameters;
@@ -482,7 +484,7 @@ void Report::run(AbstractDataSource* dataSource, QMap<QString, QVariant> paramet
     QMap<QString, QSqlQuery> queryResults;
 
     foreach (query_t q, queries) {
-        qDebug() << "Run query" << q.name;
+        qDebug() << "==== Run query " << q.name << "====";
         QSqlQuery query = dataSource->query();
 
         query_variant_t variant = isWeb ? q.web_query : q.db_query;
@@ -765,6 +767,8 @@ QString Report::renderTemplatedReport(QMap<QString, QVariant> reportParameters,
         QVariantList rows;
         QSqlQuery query = queries[queryName];
 
+        qDebug() << "--- Query result for:" << queryName << "---";
+
         if (query.first()) {
             do {
                 QSqlRecord record = query.record();
@@ -774,6 +778,7 @@ QString Report::renderTemplatedReport(QMap<QString, QVariant> reportParameters,
                     QSqlField f = record.field(i);
                     row[f.name()] = f.value();
                 }
+               // qDebug() << row;
 
                 rows.append(row);
             } while (query.next());

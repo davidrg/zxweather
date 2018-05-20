@@ -21,27 +21,57 @@
                     "stationCode"
                 ]
             },
+			"web": {
+				"file": "daily_sqlite.sql",
+				"parameters": [
+                    "heatBase",
+                    "coolBase",
+                    "start_t",
+                    "end_t",
+                    "fahrenheit",
+                    "kmh",
+                    "mph",
+                    "inches",
+                    "stationCode"
+				]
+			}
 		},
 		"month": {
             "db": {
                 "file": "month_psql.sql",
                 "parameters": [
                     "heatBase",
-                    "coolBase",
-                    "atDate",
-                    "fahrenheit",
-                    "kmh",
-                    "mph",
-                    "inches",
-                    "stationCode"
+					"coolBase",
+					"start",
+					"end",
+					"fahrenheit",
+					"kmh",
+					"mph",
+					"inches",
+					"stationCode"
                 ]
             },
+			"web": {
+				"file": "month_sqlite.sql",
+				"parameters": [
+					"heatBase",
+					"coolBase",
+					"start_t",
+					"end_t",
+					"fahrenheit",
+					"kmh",
+					"mph",
+					"inches",
+					"stationCode"
+				]
+			}
 		},
 		"criteria": {
             "db": {
                 "file":"criteria_psql.sql"
                 "parameters": [
                     "celsius",
+					"fahrenheit",
                     "kmh",
                     "mph",
                     "inches",
@@ -57,27 +87,24 @@
                     "heatBase"
                 ]
             },
-		},
-		"high_rain": {
-            "db": {
-                "file": "high_rain_psql.sql",
+			"web": {
+                "file":"criteria_sqlite.sql"
                 "parameters": [
-                    "start",
-                    "end",
+                    "celsius",
+					"fahrenheit",
+                    "kmh",
+                    "mph",
                     "inches",
-                    "stationCode"
-                ]
-            }
-		},
-		"counts": {
-            "db": {
-                "file": "counts_psql.sql",
-                "parameters": [
-                    "start",
-                    "end",
-                    "stationCode",
-                    "fahrenheit",
-                    "inches"
+                    "atDate",
+                    "title",
+                    "city",
+                    "state",
+                    "altitude",
+                    "latitude",
+                    "longitude",
+                    "altFeet",
+                    "coolBase",
+                    "heatBase"
                 ]
             },
 		}
