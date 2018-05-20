@@ -9,8 +9,8 @@ WITH parameters AS (
 	:mph::boolean			AS mph,	-- instead of m/s
 	:inches::boolean		AS inches -- instead of mm
 ), compass_points AS (
-  SELECT 
-	column1 AS idx, 
+  SELECT
+	column1 AS idx,
 	column2 AS point
   FROM (VALUES
     (0, 'N'), (1, 'NNE'), (2, 'NE'), (3, 'ENE'), (4, 'E'), (5, 'ESE'), (6, 'SE'), (7, 'SSE'), (8, 'S'), (9, 'SSW'),
@@ -45,19 +45,21 @@ SELECT
 		 else round(records.rainfall::NUMERIC, 1)
 	end)::varchar, 4, ' ')												AS rain,
   lpad(round(
-	case when p.mph then records.avg_wind * 2.23694 
-		 when p.kmh then records.avg_wind * 3.6 
-		 else records.avg_wind 
+	case when p.mph then records.avg_wind * 2.23694
+		 when p.kmh then records.avg_wind * 3.6
+		 else records.avg_wind
 	end::NUMERIC, 1)::varchar, 4, ' ')									AS avg_wind_speed,
   lpad(round((
-	case when p.mph then records.high_wind * 2.23694 
-		 when p.kmh then records.high_wind * 3.6 
-		 else records.high_wind 
+	case when p.mph then records.high_wind * 2.23694
+		 when p.kmh then records.high_wind * 3.6
+		 else records.high_wind
 	end)::NUMERIC, 1)::varchar, 4, ' ')									AS high_wind,
   lpad(to_char(records.high_wind_time, 'fmHH24:MI'), 5, ' ' )			AS high_wind_time,
   lpad(point.point::varchar, 3, ' ')									AS dom_wind_dir
 from parameters p, (
-  SELECT generate_series(start_date, end_date, '1 day' :: INTERVAL) :: DATE as date, (select station_id from station where lower(code) = lower((:stationCode)::varchar(5))) as station_id
+  SELECT
+    generate_series(start_date, end_date, '1 day' :: INTERVAL) :: DATE as date,
+    (select station_id from station where lower(code) = lower((:stationCode)::varchar(5))) as station_id
   from parameters
 ) as dates
 LEFT OUTER JOIN (
@@ -115,12 +117,12 @@ LEFT OUTER JOIN (
                     x.average_wind_speed,
                     x.gust_wind_speed,
                     x.rainfall,
-                    CASE WHEN x.temperature > p.cool_base 
-                      THEN x.temperature - p.cool_base    
+                    CASE WHEN x.temperature > p.cool_base
+                      THEN x.temperature - p.cool_base
                     ELSE 0
                     END * (stn.sample_interval :: NUMERIC / 86400.0) AS cool_dd,
-                    CASE WHEN x.temperature < p.heat_base 
-                      THEN p.heat_base - x.temperature    
+                    CASE WHEN x.temperature < p.heat_base
+                      THEN p.heat_base - x.temperature
                     ELSE 0
                     END * (stn.sample_interval :: NUMERIC / 86400.0) AS heat_dd
                   from parameters p, sample x
@@ -129,7 +131,7 @@ LEFT OUTER JOIN (
                 ) s, parameters p
                 where s.time_stamp::date between p.start_date and p.end_date
                 GROUP BY s.time_stamp :: DATE, s.station_id
-               ) dr ON (s.time_stamp :: DATE = dr.date_stamp))
+               ) dr ON (s.time_stamp :: DATE = dr.date_stamp and s.station_id = dr.station_id))
         WHERE s.gust_wind_speed = dr.max_gust_wind_speed OR
                 ((s.temperature = dr.max_temperature) OR (s.temperature = dr.min_temperature))
        ) data
