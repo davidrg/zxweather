@@ -113,5 +113,8 @@ create view davis_sample as
     inner join station stn on stn.station_id = s.station_id
 ;
 
+-- ///////////////////// Indexes /////////////////////
+create index idx_rain_time_station on sample(station_id, time_stamp asc, rainfall asc);
+
 -- //////////////////// Update database version //////////////////// --
 update db_metadata set v = 2 where k = 'v';
