@@ -11,6 +11,7 @@
 #include <QFileDialog>
 #include <QDir>
 #include <QMessageBox>
+#include <QMap>
 
 #include "json/json.h"
 #include "datasource/abstractdatasource.h"
@@ -82,6 +83,11 @@ Report::Report(QString name)
     QVariantMap doc = Json::parse(report, ok).toMap();
     if (!ok) {
         return;
+    }
+
+    _debug = false;
+    if (doc.contains("debug_mode")) {
+        _debug = doc["debug_mode"].toBool();
     }
 
     _title = doc["title"].toString();
@@ -288,6 +294,30 @@ Report::Report(QString name)
         this->outputs.append(output);
     }
 
+    if (_debug) {
+        // TODO: Gather together debug info from the report loading stage and store in member
+        // variable for later output.
+
+        this->outputs.clear();
+        output_t summary;
+        summary.name = "debug_summary";
+        summary.title = "Debug Summary";
+        summary.format = OF_HTML;
+        summary.output_template = readFile("debug_summary.html");
+        this->outputs.append(summary);
+
+        foreach (query_t q, this->queries) {
+            output_t o;
+            o.name = q.name;
+            o.title = q.name;
+            o.format = OF_TABLE;
+            o.query_name = q.name;
+            this->outputs.append(o);
+        }
+
+        output_type = OT_DISPLAY;
+    }
+
     _isNull = false;
     _finisher = NULL;
 }
@@ -483,12 +513,39 @@ void Report::run(AbstractDataSource* dataSource, QMap<QString, QVariant> paramet
 
     QMap<QString, QSqlQuery> queryResults;
 
+    QVariantList queryDebugInfo;
+
     foreach (query_t q, queries) {
         qDebug() << "==== Run query " << q.name << "====";
         QSqlQuery query = dataSource->query();
 
+        QVariantMap debugInfo;
+        bool success;
+
         query_variant_t variant = isWeb ? q.web_query : q.db_query;
-        query.prepare(variant.query_text);
+
+        if (!_debug) {
+            query.prepare(variant.query_text);
+        } else {
+            if (isWeb) {
+                query.prepare("explain query plan " + variant.query_text);
+            } else {
+                // TODO explain support for postgres. This isn't supported with
+                // prepared queries so we'd have to inject the parameters into the query
+                // manually.
+                query.prepare(variant.query_text);
+            }
+
+            QVariantMap bv = query.boundValues();
+            QVariantList vals;
+            foreach (QString key, bv.keys()) {
+                QVariantMap m;
+                m["key"] = key;
+                vals.append(m);
+            }
+            debugInfo["parameters"] = vals;
+            debugInfo["name"] = q.name;
+        }
 
         foreach (QString paramName, parameters.keys()) {
             if (!variant.parameters.contains(paramName)) {
@@ -501,6 +558,7 @@ void Report::run(AbstractDataSource* dataSource, QMap<QString, QVariant> paramet
         }
         if (query.exec()) {
             queryResults[q.name] = QSqlQuery(query);
+            success = true;
         } else {
             qDebug() << "===============================";
             qDebug() << "Query failed";
@@ -509,7 +567,33 @@ void Report::run(AbstractDataSource* dataSource, QMap<QString, QVariant> paramet
             qDebug() << "--- query";
             qDebug().noquote() << query.executedQuery();
             qDebug() << "---- /query";
+            success = false;
         }
+
+        if (_debug) {
+            debugInfo["success"] = success;
+            debugInfo["query"] = query.executedQuery();
+            QString driverText = query.lastError().driverText();
+            QString dbText = query.lastError().databaseText();
+            debugInfo["db_text"] = dbText.isEmpty() ? "none" : dbText;
+            debugInfo["driver_text"] = driverText.isEmpty() ? "none" : driverText;
+
+            QVariantMap bv = query.boundValues();
+            QVariantList vals;
+            foreach (QString key, bv.keys()) {
+                QVariantMap m;
+                m["key"] = key;
+                m["value"] = bv[key].toString();
+                vals.append(m);
+            }
+            debugInfo["bound_parameters"] = vals;
+
+            queryDebugInfo.append(debugInfo);
+        }
+    }
+
+    if (_debug) {
+        parameters["queries"] = queryDebugInfo;
     }
 
     if (output_type == OT_DISPLAY) {

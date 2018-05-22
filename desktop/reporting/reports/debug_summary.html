@@ -1,0 +1,54 @@
+<html>
+<head><title>Debug Summary</title></head>
+<body>
+<b>Report Debug Summary</b>
+<hr>
+<p>Explain results for each query can be found in the grid tab for each query.</p>
+
+<p>
+<b>Query Results</b>
+<ul>
+{{#queries}}
+<li><a href="#{{name}}">{{name}}</a></li>
+{{/queries}}
+</ul>
+</p>
+
+{{#queries}}
+<p>
+<b id="{{name}}">{{name}}</b>
+<dl>
+<dt>Was sucessfull</dt>
+<dd>{{success}}</dd>
+<dt>DB Text</dt>
+<dd>{{db_text}}</dd>
+<dt>Driver Text</dt>
+<dd>{{driver_text}}</dd>
+</dl></p>
+
+<p>
+<u>Parameters:</u>
+<ul>
+{{#parameters}}
+<li>{{key}}</li>
+{{/parameters}}
+</ul></p>
+
+<p>
+<u>Bound Parameters:</u>
+<ul>
+{{#bound_parameters}}
+<li>{{key}} - {{value}}</li>
+{{/bound_parameters}}
+</ul>
+</p>
+
+<p><u>Executed Query</u>
+<pre>
+{{query}}
+</pre>
+</p>
+{{/queries}}
+
+</body>
+</html>
