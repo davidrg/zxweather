@@ -17,31 +17,35 @@ WITH parameters AS (
      2.0 * 1.0                          AS rain_2,
      20.0 * 1.0                         AS rain_20
  ), compass_points AS (
-  SELECT
-	column1 AS idx,
-	column2 AS point
-  FROM (VALUES
-    (0, 'N'), (1, 'NNE'), (2, 'NE'), (3, 'ENE'), (4, 'E'), (5, 'ESE'), (6, 'SE'), (7, 'SSE'), (8, 'S'), (9, 'SSW'),
-    (10, 'SW'), (11, 'WSW'), (12, 'W'), (13, 'WNW'), (14, 'NW'), (15, 'NNW')) AS t
+     SELECT 0 AS idx, 'N' AS point union all
+     SELECT 1 AS idx, 'NNE' AS point union all
+     SELECT 2 AS idx, 'NE' AS point union all
+     SELECT 3 AS idx, 'ENE' AS point union all
+     SELECT 4 AS idx, 'E' AS point union all
+     SELECT 5 AS idx, 'ESE' AS point union all
+     SELECT 6 AS idx, 'SE' AS point union all
+     SELECT 7 AS idx, 'SSE' AS point union all
+     SELECT 8 AS idx, 'S' AS point union all
+     SELECT 9 AS idx, 'SSW' AS point union all
+     SELECT 10 AS idx, 'SW' AS point union all
+     SELECT 11 AS idx, 'WSW' AS point union all
+     SELECT 12 AS idx, 'W' AS point union all
+     SELECT 13 AS idx, 'WNW' AS point union all
+     SELECT 14 AS idx, 'NW' AS point union all
+     SELECT 15 AS idx, 'NNW' AS point
 ), normal_readings as (
-  select
-    column1 as month,
-    column2 as temp,
-    column3 as rain
-  from (values
-      (1, :normJan * 1.0, :normJanRain * 1.0),
-      (2, :normFeb * 1.0, :normFebRain * 1.0),
-      (3, :normMar * 1.0, :normMarRain * 1.0),
-      (4, :normApr * 1.0, :normAprRain * 1.0),
-      (5, :normMay * 1.0, :normMayRain * 1.0),
-      (6, :normJun * 1.0, :normJunRain * 1.0),
-      (7, :normJul * 1.0, :normJulRain * 1.0),
-      (8, :normAug * 1.0, :normAugRain * 1.0),
-      (9, :normSep * 1.0, :normSepRain * 1.0),
-      (10, :normOct * 1.0, :normOctRain * 1.0),
-      (11, :normNov * 1.0, :normNovRain * 1.0),
-      (12, :normDec * 1.0, :normDecRain * 1.0)
-    ) as norm
+    select  1 as month, :normJan * 1.0 as temp, :normJanRain * 1.0) as rain union all
+    select  2 as month, :normFeb * 1.0 as temp, :normFebRain * 1.0) as rain union all
+    select  3 as month, :normMar * 1.0 as temp, :normMarRain * 1.0) as rain union all
+    select  4 as month, :normApr * 1.0 as temp, :normAprRain * 1.0) as rain union all
+    select  5 as month, :normMay * 1.0 as temp, :normMayRain * 1.0) as rain union all
+    select  6 as month, :normJun * 1.0 as temp, :normJunRain * 1.0) as rain union all
+    select  7 as month, :normJul * 1.0 as temp, :normJulRain * 1.0) as rain union all
+    select  8 as month, :normAug * 1.0 as temp, :normAugRain * 1.0) as rain union all
+    select  9 as month, :normSep * 1.0 as temp, :normSepRain * 1.0) as rain union all
+    select 10 as month, :normOct * 1.0 as temp, :normOctRain * 1.0) as rain union all
+    select 11 as month, :normNov * 1.0 as temp, :normNovRain * 1.0) as rain union all
+    select 12 as month, :normDec * 1.0 as temp, :normDecRain * 1.0) as rain union
 ), daily_aggregates as (
   select
       -- Day info
