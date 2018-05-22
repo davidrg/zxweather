@@ -11,12 +11,22 @@ WITH parameters AS (
 	  :inches	      AS inches, -- instead of mm
 	  :stationCode as stationCode
 ), compass_points AS (
-  SELECT
-	column1 AS idx,
-	column2 AS point
-  FROM (VALUES
-    (0, 'N'), (1, 'NNE'), (2, 'NE'), (3, 'ENE'), (4, 'E'), (5, 'ESE'), (6, 'SE'), (7, 'SSE'), (8, 'S'), (9, 'SSW'),
-    (10, 'SW'), (11, 'WSW'), (12, 'W'), (13, 'WNW'), (14, 'NW'), (15, 'NNW')) AS t
+    SELECT 0 AS idx, 'N' AS point union all
+    SELECT 1 AS idx, 'NNE' AS point union all
+    SELECT 2 AS idx, 'NE' AS point union all
+    SELECT 3 AS idx, 'ENE' AS point union all
+    SELECT 4 AS idx, 'E' AS point union all
+    SELECT 5 AS idx, 'ESE' AS point union all
+    SELECT 6 AS idx, 'SE' AS point union all
+    SELECT 7 AS idx, 'SSE' AS point union all
+    SELECT 8 AS idx, 'S' AS point union all
+    SELECT 9 AS idx, 'SSW' AS point union all
+    SELECT 10 AS idx, 'SW' AS point union all
+    SELECT 11 AS idx, 'WSW' AS point union all
+    SELECT 12 AS idx, 'W' AS point union all
+    SELECT 13 AS idx, 'WNW' AS point union all
+    SELECT 14 AS idx, 'NW' AS point union all
+    SELECT 15 AS idx, 'NNW' AS point
 ), range as (
   WITH RECURSIVE generate_series(value) AS (
     SELECT datetime(p.start_date, 'unixepoch', 'localtime') from parameters p
