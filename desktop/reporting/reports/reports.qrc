@@ -13,11 +13,9 @@
         <file>sun/sunrise_query_psql.sql</file>
         <file>sun/sunrise_query_psql_html.sql</file>
         <file>sun/weather.png</file>
-        <file>noaamo/counts_psql.sql</file>
         <file>noaamo/criteria.ui</file>
         <file>noaamo/criteria_psql.sql</file>
         <file>noaamo/daily_psql.sql</file>
-        <file>noaamo/high_rain_psql.sql</file>
         <file>noaamo/month_psql.sql</file>
         <file>noaamo/noaamo.txt</file>
         <file>noaamo/report.json</file>
@@ -33,5 +31,8 @@
         <file>noaayr/monthly_sqlite.sql</file>
         <file>noaayr/yearly_sqlite.sql</file>
         <file>records/records_early.html</file>
+        <file>noaamo/criteria_sqlite.sql</file>
+        <file>noaamo/daily_sqlite.sql</file>
+        <file>noaamo/month_sqlite.sql</file>
     </qresource>
 </RCC>
