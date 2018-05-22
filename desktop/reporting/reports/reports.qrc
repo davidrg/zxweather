@@ -34,5 +34,6 @@
         <file>noaamo/criteria_sqlite.sql</file>
         <file>noaamo/daily_sqlite.sql</file>
         <file>noaamo/month_sqlite.sql</file>
+        <file>debug_summary.html</file>
     </qresource>
 </RCC>

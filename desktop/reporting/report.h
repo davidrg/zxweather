@@ -108,6 +108,7 @@ private:
     FixedTimeSpan _defaultTimeSpan;
     QList<WeatherStationType> _weatherStations;
     bool _primeCache;
+    bool _debug;
 
     typedef struct _query_variant {
         QString query_text;

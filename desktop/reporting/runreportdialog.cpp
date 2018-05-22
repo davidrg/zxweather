@@ -18,6 +18,7 @@
 #include <QDial>
 #include <QCheckBox>
 #include <QLineEdit>
+#include <QGroupBox>
 
 RunReportDialog::RunReportDialog(QWidget *parent) :
     QDialog(parent),
@@ -187,6 +188,7 @@ void RunReportDialog::loadReportCriteria() {
     QList<QSlider*> sliders = ui->custom_criteria_page->findChildren<QSlider*>();
     QList<QRadioButton*> radioButtons = ui->custom_criteria_page->findChildren<QRadioButton*>();
     QList<QCheckBox*> checkBoxes = ui->custom_criteria_page->findChildren<QCheckBox*>();
+    QList<QGroupBox*> groupBoxes = ui->custom_criteria_page->findChildren<QGroupBox*>();
 
     foreach (QLineEdit* ed, lineEdits) {
         if (params.contains(ed->objectName())) {
@@ -265,6 +267,12 @@ void RunReportDialog::loadReportCriteria() {
     foreach (QCheckBox* checkbox, checkBoxes) {
         if (params.contains(checkbox->objectName())) {
             checkbox->setChecked(params[checkbox->objectName()].toBool());
+        }
+    }
+
+    foreach(QGroupBox* box, groupBoxes) {
+        if (box->isCheckable() && params.contains(box->objectName())) {
+            box->setChecked(params[box->objectName()].toBool());
         }
     }
 }
@@ -727,6 +735,7 @@ ReportFinisher *RunReportDialog::runReport() {
         QList<QSlider*> sliders = ui->custom_criteria_page->findChildren<QSlider*>();
         QList<QRadioButton*> radioButtons = ui->custom_criteria_page->findChildren<QRadioButton*>();
         QList<QCheckBox*> checkBoxes = ui->custom_criteria_page->findChildren<QCheckBox*>();
+        QList<QGroupBox*> groupBoxes = ui->custom_criteria_page->findChildren<QGroupBox*>();
 
         foreach (QLineEdit* ed, lineEdits) {
             params[ed->objectName()] = ed->text();
@@ -779,6 +788,12 @@ ReportFinisher *RunReportDialog::runReport() {
 
         foreach (QCheckBox* checkbox, checkBoxes) {
             params[checkbox->objectName()] = checkbox->isChecked();
+        }
+
+        foreach (QGroupBox* box, groupBoxes) {
+            if (box->isCheckable()) {
+                params[box->objectName()] = box->isChecked();
+            }
         }
 
         Settings::getInstance().saveReportCriteria(report.name(), params);
