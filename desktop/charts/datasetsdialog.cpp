@@ -191,7 +191,7 @@ void DataSetsDialog::contextMenuRequested(QPoint point) {
     QAction *act = menu->addAction(tr("R&emove"), this, SLOT(doRemove()));
     act->setEnabled(ui->twDataSets->topLevelItemCount() > 1);
 
-    menu->popup(ui->twDataSets->mapToGlobal(point));
+    menu->popup(ui->twDataSets->viewport()->mapToGlobal(point));
 }
 
 void DataSetsDialog::doRename() {
