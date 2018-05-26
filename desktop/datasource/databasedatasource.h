@@ -63,6 +63,8 @@ private:
     void processLiveData();
     void processNewImage(int imageId);
     void processNewSample(int sampleId);
+    double nullableVariantDouble(QVariant v);
+    int getSampleInterval();
 
     int basicCountQuery(int stationId, QDateTime startTime, QDateTime endTime);
     int groupedCountQuery(int stationId, QDateTime startTime, QDateTime endTime,
@@ -80,6 +82,7 @@ private:
     void connectToDB();
     QScopedPointer<QTimer> notificationTimer;
     QScopedPointer<DBSignalAdapter> signalAdapter;
+    int sampleInterval;
 };
 
 #endif // DATABASEDATASOURCE_H

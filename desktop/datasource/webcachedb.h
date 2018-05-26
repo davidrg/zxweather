@@ -463,6 +463,12 @@ private:
 
     bool runDbScript(QString filename);
 
+    /** Gets the weather stations sample interval in seconds.
+     * @param stationId the station to get the sample interval for
+     * @return Sample interval in seconds
+     */
+    int getSampleInterval(int stationId);
+
     /** If the cache DB is ready.
      */
     bool ready;

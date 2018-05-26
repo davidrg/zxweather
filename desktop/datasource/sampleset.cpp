@@ -71,3 +71,82 @@ void ReserveSampleSetSpace(SampleSet& samples, int size, SampleColumns columns)
     if (columns.testFlag(SC_ForecastRuleId))
         samples.forecastRuleId.reserve(size);
 }
+
+void AppendNullSample(SampleSet &samples, SampleColumns columns, QDateTime time) {
+    samples.timestampUnix.append(time.toTime_t());
+    samples.sampleCount++;
+    samples.timestamp.append(time.toTime_t());
+
+    if (columns.testFlag(SC_Temperature))
+        samples.temperature.append(qQNaN());
+
+    if (columns.testFlag(SC_DewPoint))
+        samples.dewPoint.append(qQNaN());
+
+    if (columns.testFlag(SC_ApparentTemperature))
+        samples.apparentTemperature.append(qQNaN());
+
+    if (columns.testFlag(SC_WindChill))
+        samples.windChill.append(qQNaN());
+
+    if (columns.testFlag(SC_IndoorTemperature))
+        samples.indoorTemperature.append(qQNaN());
+
+    if (columns.testFlag(SC_Humidity))
+        samples.humidity.append(qQNaN());
+
+    if (columns.testFlag(SC_IndoorHumidity))
+        samples.indoorHumidity.append(qQNaN());
+
+    if (columns.testFlag(SC_Pressure))
+        samples.pressure.append(qQNaN());
+
+    if (columns.testFlag(SC_Rainfall))
+        samples.rainfall.append(qQNaN());
+
+    if (columns.testFlag(SC_AverageWindSpeed))
+        samples.averageWindSpeed.append(qQNaN());
+
+    if (columns.testFlag(SC_GustWindSpeed))
+        samples.gustWindSpeed.append(qQNaN());
+
+    if (columns.testFlag(SC_UV_Index))
+        samples.uvIndex.append(qQNaN());
+
+    if (columns.testFlag(SC_SolarRadiation))
+        samples.solarRadiation.append(qQNaN());
+
+    if (columns.testFlag(SC_Evapotranspiration))
+        samples.evapotranspiration.append(qQNaN());
+
+    if (columns.testFlag(SC_HighTemperature))
+        samples.highTemperature.append(qQNaN());
+
+    if (columns.testFlag(SC_LowTemperature))
+        samples.lowTemperature.append(qQNaN());
+
+    if (columns.testFlag(SC_HighRainRate))
+        samples.highRainRate.append(qQNaN());
+
+    if (columns.testFlag(SC_HighSolarRadiation))
+        samples.highSolarRadiation.append(qQNaN());
+
+    if (columns.testFlag(SC_HighUVIndex))
+        samples.highUVIndex.append(qQNaN());
+
+    if (columns.testFlag(SC_Reception))
+        samples.reception.append(qQNaN());
+
+    if (columns.testFlag(SC_ForecastRuleId))
+        samples.forecastRuleId.append(0);
+}
+
+void AppendNullSamples(SampleSet &samples, SampleColumns columns, QDateTime startTime,
+                       QDateTime endTime, int intervalSeconds) {
+    QDateTime ts = startTime;
+
+    while (ts <= endTime) {
+        AppendNullSample(samples, columns, ts);
+        ts = ts.addSecs(intervalSeconds);
+    }
+}

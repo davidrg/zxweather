@@ -355,6 +355,13 @@ void WebCacheDB::cacheDataFile(data_file_t dataFile, QString stationUrl) {
     cacheDataSet(dataFile.samples, stationId, dataFileId, dataFile.hasSolarData);
 }
 
+QVariant nullableDouble(double d) {
+    if (d == qQNaN()) {
+        return QVariant(QVariant::Double);
+    }
+    return d;
+}
+
 void WebCacheDB::cacheDataSet(SampleSet samples,
                               int stationId,
                               int dataFileId,
@@ -381,21 +388,21 @@ void WebCacheDB::cacheDataSet(SampleSet samples,
         dataFileIds << dataFileId; // Likewise
 
         timestamps.append(timestamp);
-        temperature.append(samples.temperature.at(i));
-        dewPoint.append(samples.dewPoint.at(i));
-        apparentTemperature.append(samples.apparentTemperature.at(i));
-        windChill.append(samples.windChill.at(i));
-        indoorTemperature.append(samples.indoorTemperature.at(i));
-        humidity.append(samples.humidity.at(i));
-        indoorHumidity.append(samples.indoorHumidity.at(i));
-        pressure.append(samples.pressure.at(i));
-        rainfall.append(samples.rainfall.at(i));
-        averageWindSpeeds.append(samples.averageWindSpeed.at(i));
-        gustWindSpeeds.append(samples.gustWindSpeed.at(i));
-        receptions.append(samples.reception.at(i));
-        highTemperatures.append(samples.highTemperature.at(i));
-        lowTemperatures.append(samples.lowTemperature.at(i));
-        highRainRates.append(samples.highRainRate.at(i));
+        temperature.append(nullableDouble(samples.temperature.at(i)));
+        dewPoint.append(nullableDouble(samples.dewPoint.at(i)));
+        apparentTemperature.append(nullableDouble(samples.apparentTemperature.at(i)));
+        windChill.append(nullableDouble(samples.windChill.at(i)));
+        indoorTemperature.append(nullableDouble(samples.indoorTemperature.at(i)));
+        humidity.append(nullableDouble(samples.humidity.at(i)));
+        indoorHumidity.append(nullableDouble(samples.indoorHumidity.at(i)));
+        pressure.append(nullableDouble(samples.pressure.at(i)));
+        rainfall.append(nullableDouble(samples.rainfall.at(i)));
+        averageWindSpeeds.append(nullableDouble(samples.averageWindSpeed.at(i)));
+        gustWindSpeeds.append(nullableDouble(samples.gustWindSpeed.at(i)));
+        receptions.append(nullableDouble(samples.reception.at(i)));
+        highTemperatures.append(nullableDouble(samples.highTemperature.at(i)));
+        lowTemperatures.append(nullableDouble(samples.lowTemperature.at(i)));
+        highRainRates.append(nullableDouble(samples.highRainRate.at(i)));
         forecastRuleIds.append(samples.forecastRuleId.at(i));
 
         if (samples.windDirection.contains(timestamp))
@@ -416,19 +423,19 @@ void WebCacheDB::cacheDataSet(SampleSet samples,
         }
 
         if (hasSolarData) {
-            solarRadiations.append(samples.solarRadiation.at(i));
-            uvIndexes.append(samples.uvIndex.at(i));
-            highSolarRadiations.append(samples.highSolarRadiation.at(i));
-            highUVIndexes.append(samples.highUVIndex.at(i));
-            evapotranspirations.append(samples.evapotranspiration.at(i));
+            solarRadiations.append(nullableDouble(samples.solarRadiation.at(i)));
+            uvIndexes.append(nullableDouble(samples.uvIndex.at(i)));
+            highSolarRadiations.append(nullableDouble(samples.highSolarRadiation.at(i)));
+            highUVIndexes.append(nullableDouble(samples.highUVIndex.at(i)));
+            evapotranspirations.append(nullableDouble(samples.evapotranspiration.at(i)));
         } else {
             // The lists still need to be populated for the query. As we don't
             // have any real data to put in them we'll use 0.
-            solarRadiations.append(0);
-            uvIndexes.append(0);
-            highSolarRadiations.append(0);
-            highUVIndexes.append(0);
-            evapotranspirations.append(0);
+            solarRadiations.append(QVariant(QVariant::Double));
+            uvIndexes.append(QVariant(QVariant::Double));
+            highSolarRadiations.append(QVariant(QVariant::Double));
+            highUVIndexes.append(QVariant(QVariant::Double));
+            evapotranspirations.append(QVariant(QVariant::Double));
         }
     }
 
@@ -1292,6 +1299,38 @@ QSqlQuery WebCacheDB::buildAggregatedSelectQuery(SampleColumns columns,
     return query;
 }
 
+double nullableVariantDouble(QVariant v) {
+    if (v.isNull()) {
+        return qQNaN();
+    }
+    bool ok;
+    double result = v.toDouble(&ok);
+    if (!ok) {
+        return qQNaN();
+    }
+    return result;
+}
+
+int WebCacheDB::getSampleInterval(int stationId) {
+    QSqlQuery query(sampleCacheDb);
+    query.prepare("select sample_interval * 60 from station where station_id = :id");
+    query.bindValue(":id", stationId);
+    query.exec();
+
+    if (!query.isActive()) {
+        qWarning() << "Sample interval lookup failed.";
+        qWarning() << query.lastError().driverText() << query.lastError().databaseText();
+        return -1;
+    }
+    else {
+        query.first();
+        return query.value(0).toInt();
+    }
+
+    qWarning() << "Sample interval lookup failed - multiple rows returned";
+    return -1;
+}
+
 SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
                                       QDateTime startTime,
                                       QDateTime endTime,
@@ -1328,13 +1367,16 @@ SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
 
     ReserveSampleSetSpace(samples, count, columns);
 
+    int interval = -1;
     if (aggregateFunction == AF_None || aggregateGroupType == AGT_None) {
         query = buildBasicSelectQuery(columns);
+        interval = getSampleInterval(stationId);
     } else {
         // Aggregated queries always require the timestamp column.
         query = buildAggregatedSelectQuery(columns | SC_Timestamp, stationId,
                                            aggregateFunction,
                                            aggregateGroupType, groupMinutes);
+        interval = groupMinutes * 60;
     }
 
     query.bindValue(":station_id", stationId);
@@ -1342,6 +1384,10 @@ SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
     query.bindValue(":end_time", endTime.toTime_t());
     query.exec();
 
+    QDateTime lastTs = startTime;
+    bool gapGeneration = interval > 0;
+    int thresholdSeconds = 2*interval;
+    qDebug() << "Threshold" << thresholdSeconds << "interval" << interval << "gap generation" << gapGeneration;
     if (query.first()) {
 
         double previousRainfall = 0.0;
@@ -1353,40 +1399,49 @@ SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
             QSqlRecord record = query.record();
 
             int timeStamp = record.value("time_stamp").toInt();
+
+            QDateTime ts = QDateTime::fromTime_t(timeStamp);
+            if (gapGeneration) {
+                if (ts > lastTs.addSecs(thresholdSeconds)) {
+                    // We skipped at least one sample! Generate same fake null samples.
+                    AppendNullSamples(samples,
+                                      columns,
+                                      lastTs.addSecs(interval),
+                                      ts.addSecs(-1 * interval),
+                                      interval);
+                }
+            }
+            lastTs = ts;
+
             samples.timestampUnix.append(timeStamp);
             samples.timestamp.append(timeStamp);
 
             if (columns.testFlag(SC_Temperature))
-                samples.temperature.append(
-                            record.value("temperature").toDouble());
+                samples.temperature.append(nullableVariantDouble(record.value("temperature")));
 
             if (columns.testFlag(SC_DewPoint))
-                samples.dewPoint.append(record.value("dew_point").toDouble());
+                samples.dewPoint.append(nullableVariantDouble(record.value("dew_point")));
 
             if (columns.testFlag(SC_ApparentTemperature))
-                samples.apparentTemperature.append(
-                            record.value("apparent_temperature").toDouble());
+                samples.apparentTemperature.append(nullableVariantDouble(record.value("apparent_temperature")));
 
             if (columns.testFlag(SC_WindChill))
-                samples.windChill.append(
-                            record.value("wind_chill").toDouble());
+                samples.windChill.append(nullableVariantDouble(record.value("wind_chill")));
 
             if (columns.testFlag(SC_IndoorTemperature))
-                samples.indoorTemperature.append(
-                            record.value("indoor_temperature").toDouble());
+                samples.indoorTemperature.append(nullableVariantDouble(record.value("indoor_temperature")));
 
             if (columns.testFlag(SC_Humidity))
-                samples.humidity.append(record.value("relative_humidity").toDouble());
+                samples.humidity.append(nullableVariantDouble(record.value("relative_humidity")));
 
             if (columns.testFlag(SC_IndoorHumidity))
-                samples.indoorHumidity.append(
-                            record.value("indoor_relative_humidity").toDouble());
+                samples.indoorHumidity.append(nullableVariantDouble(record.value("indoor_relative_humidity")));
 
             if (columns.testFlag(SC_Pressure))
-                samples.pressure.append(record.value("absolute_pressure").toDouble());
+                samples.pressure.append(nullableVariantDouble(record.value("absolute_pressure")));
 
             if (columns.testFlag(SC_Rainfall)) {
-                double value = record.value("rainfall").toDouble();
+                double value = nullableVariantDouble(record.value("rainfall"));
 
                 // Because SQLite doesn't support window functions we have to
                 // calculate the running total manually. We'll only bother doing
@@ -1403,12 +1458,10 @@ SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
             }
 
             if (columns.testFlag(SC_AverageWindSpeed))
-                samples.averageWindSpeed.append(
-                            record.value("average_wind_speed").toDouble());
+                samples.averageWindSpeed.append(nullableVariantDouble(record.value("average_wind_speed")));
 
             if (columns.testFlag(SC_GustWindSpeed))
-                samples.gustWindSpeed.append(
-                            record.value("gust_wind_speed").toDouble());
+                samples.gustWindSpeed.append(nullableVariantDouble(record.value("gust_wind_speed")));
 
             if (columns.testFlag(SC_WindDirection))
                 // Wind direction can be null.
@@ -1423,25 +1476,25 @@ SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
                             record.value("gust_wind_direction").toUInt();
 
             if (columns.testFlag(SC_SolarRadiation))
-                samples.solarRadiation.append(record.value("solar_radiation").toDouble());
+                samples.solarRadiation.append(nullableVariantDouble(record.value("solar_radiation")));
 
             if (columns.testFlag(SC_UV_Index))
-                samples.uvIndex.append(record.value("uv_index").toDouble());
+                samples.uvIndex.append(nullableVariantDouble(record.value("uv_index")));
 
             if (columns.testFlag(SC_Reception))
-                samples.reception.append(record.value("reception").toDouble());
+                samples.reception.append(nullableVariantDouble(record.value("reception")));
 
             if (columns.testFlag(SC_HighTemperature))
-                samples.highTemperature.append(record.value("high_temperature").toDouble());
+                samples.highTemperature.append(nullableVariantDouble(record.value("high_temperature")));
 
             if (columns.testFlag(SC_LowTemperature))
-                samples.lowTemperature.append(record.value("low_temperature").toDouble());
+                samples.lowTemperature.append(nullableVariantDouble(record.value("low_temperature")));
 
             if (columns.testFlag(SC_HighRainRate))
-                samples.highRainRate.append(record.value("high_rain_rate").toDouble());
+                samples.highRainRate.append(nullableVariantDouble(record.value("high_rain_rate")));
 
             if (columns.testFlag(SC_Evapotranspiration)) {
-                double value = record.value("evapotranspiration").toDouble();
+                double value = nullableVariantDouble(record.value("evapotranspiration"));
 
                 // Because SQLite doesn't support window functions we have to
                 // calculate the running total manually. We'll only bother doing
@@ -1458,10 +1511,10 @@ SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
             }
 
             if (columns.testFlag(SC_HighSolarRadiation))
-                samples.highSolarRadiation.append(record.value("high_solar_radiation").toDouble());
+                samples.highSolarRadiation.append(nullableVariantDouble(record.value("high_solar_radiation")));
 
             if (columns.testFlag(SC_HighUVIndex))
-                samples.highUVIndex.append(record.value("high_uv_index").toDouble());
+                samples.highUVIndex.append(nullableVariantDouble(record.value("high_uv_index")));
 
             if (columns.testFlag(SC_ForecastRuleId))
                 samples.forecastRuleId.append(record.value("forecast_rule_id").toInt());
