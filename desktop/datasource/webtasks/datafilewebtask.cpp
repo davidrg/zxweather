@@ -115,6 +115,17 @@ void DataFileWebTask::downloadRequestFinished(QNetworkReply *reply) {
     emit finished();
 }
 
+double nullableDouble(QString v) {
+    if (v == "None" || v == "?") {
+        return qQNaN();
+    }
+    bool ok;
+    double result = v.toDouble(&ok);
+    if (ok) {
+        return result;
+    }
+    return qQNaN();
+}
 
 data_file_t DataFileWebTask::loadDataFile(QStringList fileData,
                                         QDateTime lastModified, int fileSize,
@@ -189,45 +200,45 @@ data_file_t DataFileWebTask::loadDataFile(QStringList fileData,
 
         QStringList values = sampleParts.takeFirst();
 
-        samples.temperature.append(values.takeFirst().toDouble());
-        samples.dewPoint.append(values.takeFirst().toDouble());
-        samples.apparentTemperature.append(values.takeFirst().toDouble());
-        samples.windChill.append(values.takeFirst().toDouble());
-        samples.humidity.append(values.takeFirst().toDouble());
-        samples.pressure.append(values.takeFirst().toDouble());
-        samples.indoorTemperature.append(values.takeFirst().toDouble());
-        samples.indoorHumidity.append(values.takeFirst().toDouble());
-        samples.rainfall.append(values.takeFirst().toDouble());
-        samples.averageWindSpeed.append(values.takeFirst().toDouble());
-        samples.gustWindSpeed.append(values.takeFirst().toDouble());
+        samples.temperature.append(nullableDouble(values.takeFirst()));
+        samples.dewPoint.append(nullableDouble(values.takeFirst()));
+        samples.apparentTemperature.append(nullableDouble(values.takeFirst()));
+        samples.windChill.append(nullableDouble(values.takeFirst()));
+        samples.humidity.append(nullableDouble(values.takeFirst()));
+        samples.pressure.append(nullableDouble(values.takeFirst()));
+        samples.indoorTemperature.append(nullableDouble(values.takeFirst()));
+        samples.indoorHumidity.append(nullableDouble(values.takeFirst()));
+        samples.rainfall.append(nullableDouble(values.takeFirst()));
+        samples.averageWindSpeed.append(nullableDouble(values.takeFirst()));
+        samples.gustWindSpeed.append(nullableDouble(values.takeFirst()));
 
         QVariant val = values.takeFirst();
         if (val != "None")
             samples.windDirection[timestamp] = val.toDouble();
 
         if (_requestData.isSolarAvailable) {
-            samples.uvIndex.append(values.takeFirst().toDouble());
-            samples.solarRadiation.append(values.takeFirst().toDouble());
+            samples.uvIndex.append(nullableDouble(values.takeFirst()));
+            samples.solarRadiation.append(nullableDouble(values.takeFirst()));
         } else {
             // Throw away solar values
             values.takeFirst();
             values.takeFirst();
         }
 
-        samples.reception.append(values.takeFirst().toDouble());
-        samples.highTemperature.append(values.takeFirst().toDouble());
-        samples.lowTemperature.append(values.takeFirst().toDouble());
-        samples.highRainRate.append(values.takeFirst().toDouble());
+        samples.reception.append(nullableDouble(values.takeFirst()));
+        samples.highTemperature.append(nullableDouble(values.takeFirst()));
+        samples.lowTemperature.append(nullableDouble(values.takeFirst()));
+        samples.highRainRate.append(nullableDouble(values.takeFirst()));
 
         QVariant gustDirection = values.takeFirst();
         if (gustDirection != "None") {
             samples.gustWindDirection[timestamp] = gustDirection.toDouble();
         }
 
-        samples.evapotranspiration.append(values.takeFirst().toDouble());
+        samples.evapotranspiration.append(nullableDouble(values.takeFirst()));
         if (_requestData.isSolarAvailable) {
-            samples.highSolarRadiation.append(values.takeFirst().toDouble());
-            samples.highUVIndex.append(values.takeFirst().toDouble());
+            samples.highSolarRadiation.append(nullableDouble(values.takeFirst()));
+            samples.highUVIndex.append(nullableDouble(values.takeFirst()));
         } else {
             values.takeFirst();
             values.takeFirst();

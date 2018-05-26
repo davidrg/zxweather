@@ -81,6 +81,16 @@
         </property>
        </widget>
       </item>
+      <item row="1" column="1">
+       <widget class="QCheckBox" name="cbDashNulls">
+        <property name="text">
+         <string>Dash nulls</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>
@@ -383,6 +393,7 @@
   <tabstop>rbOtherDelimiter</tabstop>
   <tabstop>leCustomDelimiter</tabstop>
   <tabstop>cbIncludeHeadings</tabstop>
+  <tabstop>cbDashNulls</tabstop>
   <tabstop>cbTimestamp</tabstop>
   <tabstop>cbTemperature</tabstop>
   <tabstop>cbIndoorTemperature</tabstop>

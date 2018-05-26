@@ -1,4 +1,5 @@
 #include "datasetmodel.h"
+#include <cmath>
 
 DataSetModel::DataSetModel(DataSet dataSet, SampleSet sampleSet,
                            QObject *parent)
@@ -34,29 +35,42 @@ QVariant DataSetModel::data(const QModelIndex &index, int role) const
     SampleColumn column = columns[index.column()];
     int row = index.row();
 
+    double value;
+
     switch (column) {
     case SC_Temperature:
-        return sampleSet.temperature[row];
+        value = sampleSet.temperature[row];
+        break;
     case SC_IndoorTemperature:
-        return sampleSet.indoorTemperature[row];
+        value = sampleSet.indoorTemperature[row];
+        break;
     case SC_ApparentTemperature:
-        return sampleSet.apparentTemperature[row];
+        value = sampleSet.apparentTemperature[row];
+        break;
     case SC_WindChill:
-        return sampleSet.windChill[row];
+        value = sampleSet.windChill[row];
+        break;
     case SC_DewPoint:
-        return sampleSet.dewPoint[row];
+        value = sampleSet.dewPoint[row];
+        break;
     case SC_Humidity:
-        return sampleSet.humidity[row];
+        value = sampleSet.humidity[row];
+        break;
     case SC_IndoorHumidity:
-        return sampleSet.indoorHumidity[row];
+        value = sampleSet.indoorHumidity[row];
+        break;
     case SC_Pressure:
-        return sampleSet.pressure[row];
+        value = sampleSet.pressure[row];
+        break;
     case SC_Rainfall:
-        return sampleSet.rainfall[row];
+        value = sampleSet.rainfall[row];
+        break;
     case SC_AverageWindSpeed:
-        return sampleSet.averageWindSpeed[row];
+        value = sampleSet.averageWindSpeed[row];
+        break;
     case SC_GustWindSpeed:
-        return sampleSet.gustWindSpeed[row];
+        value = sampleSet.gustWindSpeed[row];
+        break;
     case SC_WindDirection: {
         uint idx = sampleSet.timestampUnix[row];
         if (sampleSet.windDirection.contains(idx)) {
@@ -67,19 +81,25 @@ QVariant DataSetModel::data(const QModelIndex &index, int role) const
         return v;
     }
     case SC_SolarRadiation:
-        return sampleSet.solarRadiation[row];
+        value = sampleSet.solarRadiation[row];
+        break;
     case SC_UV_Index:
-        return sampleSet.uvIndex[row];
+        value = sampleSet.uvIndex[row];
+        break;
     case SC_Timestamp:
         return QDateTime::fromTime_t(sampleSet.timestampUnix[row]);
     case SC_Reception:
-        return sampleSet.reception[row];
+        value = sampleSet.reception[row];
+        break;
     case SC_HighTemperature:
-        return sampleSet.highTemperature[row];
+        value = sampleSet.highTemperature[row];
+        break;
     case SC_LowTemperature:
-        return sampleSet.lowTemperature[row];
+        value = sampleSet.lowTemperature[row];
+        break;
     case SC_HighRainRate:
-        return sampleSet.highRainRate[row];
+        value = sampleSet.highRainRate[row];
+        break;
     case SC_GustWindDirection:{
         uint idx = sampleSet.timestampUnix[row];
         if (sampleSet.gustWindDirection.contains(idx)) {
@@ -90,11 +110,14 @@ QVariant DataSetModel::data(const QModelIndex &index, int role) const
         return v;
     }
     case SC_Evapotranspiration:
-        return sampleSet.evapotranspiration[row];
+        value = sampleSet.evapotranspiration[row];
+        break;
     case SC_HighSolarRadiation:
-        return sampleSet.highSolarRadiation[row];
+        value = sampleSet.highSolarRadiation[row];
+        break;
     case SC_HighUVIndex:
-        return sampleSet.highUVIndex[row];
+        value = sampleSet.highUVIndex[row];
+        break;
     case SC_ForecastRuleId:
         return sampleSet.forecastRuleId[row];
 
@@ -104,8 +127,11 @@ QVariant DataSetModel::data(const QModelIndex &index, int role) const
         return QVariant();
     }
 
-    // likewise
-    return QVariant();
+    if (std::isnan(value)) {
+        return "--";
+    }
+
+    return value;
 }
 
 QVariant DataSetModel::headerData(int section, Qt::Orientation orientation, int role) const

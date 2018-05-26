@@ -29,12 +29,14 @@ private:
     QScopedPointer<AbstractDataSource> dataSource;
 
     QString targetFilename;
+    bool dashNulls;
 
     QString getDelimiter();
     QDateTime getStartTime();
     QDateTime getEndTime();
     SampleColumns getColumns();
     QString getHeaderRow(SampleColumns columns);
+    QString dstr(double v, bool nodp=false);
 };
 
 #endif // EXPORTDIALOG_H

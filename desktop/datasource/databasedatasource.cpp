@@ -25,6 +25,7 @@ DatabaseDataSource::DatabaseDataSource(AbstractProgressListener *progressListene
     notificationTimer->setInterval(1000);
     connect(notificationTimer.data(), SIGNAL(timeout()),
             this, SLOT(notificationPump()));
+    sampleInterval = -1;
 }
 
 DatabaseDataSource::~DatabaseDataSource() {
@@ -458,6 +459,39 @@ QSqlQuery setupGroupedQuery(SampleColumns columns, int stationId,
     return query;
 }
 
+double DatabaseDataSource::nullableVariantDouble(QVariant v) {
+    if (v.isNull()) {
+        return qQNaN();
+    }
+    bool ok;
+    double result = v.toDouble(&ok);
+    if (!ok) {
+        return qQNaN();
+    }
+    return result;
+}
+
+int DatabaseDataSource::getSampleInterval() {
+    if (sampleInterval > 0) {
+        return sampleInterval;
+    }
+
+    QSqlQuery query;
+    query.prepare("select sample_interval from station where station_id = :id");
+    query.bindValue(":id", getStationId());
+    query.exec();
+
+    if (!query.isActive()) {
+        databaseError("getSampleInterval", query.lastError(), query.lastQuery());
+    }
+    else if (query.size() == 1) {
+        query.first();
+        sampleInterval = query.value(0).toInt();
+    }
+
+    return sampleInterval;
+}
+
 void DatabaseDataSource::fetchSamples(SampleColumns columns,
                                       QDateTime startTime,
                                       QDateTime endTime,
@@ -532,13 +566,17 @@ void DatabaseDataSource::fetchSamples(SampleColumns columns,
         }
     }
 
+    int interval = -1;
     QSqlQuery query;
-    if (aggregateFunction == AF_None || groupType == AGT_None)
+    if (aggregateFunction == AF_None || groupType == AGT_None) {
         query = setupBasicQuery(columns, broadcastId);
-    else
+        interval = getSampleInterval();
+    } else {
         query = setupGroupedQuery(columns | SC_Timestamp, stationId,
                           aggregateFunction, groupType, groupMinutes,
                                   broadcastId);
+        interval = groupMinutes * 60;
+    }
 
     qDebug() <<  "Parameters: startTime -" << startTime << ", endTime -" << endTime;
 
@@ -563,54 +601,71 @@ void DatabaseDataSource::fetchSamples(SampleColumns columns,
     ReserveSampleSetSpace(samples, size, columns);
 
     qDebug() << "Processing results...";
+    QDateTime lastTs = startTime;
+    bool gapGeneration = interval > 0;
+    int thresholdSeconds = 2*interval;
     while (query.next()) {
         if (progressListener->wasCanceled()) return;
 
         QSqlRecord record = query.record();
 
-        time_t timestamp = record.value("time_stamp").toDateTime().toTime_t();
+        QDateTime ts = record.value("time_stamp").toDateTime();
+
+        if (gapGeneration) {
+            if (ts > lastTs.addSecs(thresholdSeconds)) {
+                // We skipped at least one sample! Generate same fake null samples.
+                AppendNullSamples(samples,
+                                  columns,
+                                  lastTs.addSecs(interval),
+                                  ts.addSecs(-1 * interval),
+                                  interval);
+            }
+        }
+        lastTs = ts;
+
+        time_t timestamp = ts.toTime_t();
         samples.timestamp.append(timestamp);
         samples.timestampUnix.append(timestamp); // Not sure why we need both.
 
         if (columns.testFlag(SC_Temperature))
-            samples.temperature.append(record.value("temperature").toDouble());
+            samples.temperature.append(nullableVariantDouble(record.value("temperature")));
 
         if (columns.testFlag(SC_DewPoint))
-            samples.dewPoint.append(record.value("dew_point").toDouble());
+            samples.dewPoint.append(nullableVariantDouble(record.value("dew_point")));
 
         if (columns.testFlag(SC_ApparentTemperature))
-            samples.apparentTemperature.append(
-                        record.value("apparent_temperature").toDouble());
+            samples.apparentTemperature.append(nullableVariantDouble(
+                                                   record.value("apparent_temperature")));
 
         if (columns.testFlag(SC_WindChill))
-            samples.windChill.append(record.value("wind_chill").toDouble());
+            samples.windChill.append(nullableVariantDouble(record.value("wind_chill")));
 
         if (columns.testFlag(SC_IndoorTemperature))
-            samples.indoorTemperature.append(
-                        record.value("indoor_temperature").toDouble());
+            samples.indoorTemperature.append(nullableVariantDouble(
+                        record.value("indoor_temperature")));
 
         if (columns.testFlag(SC_Humidity))
-            samples.humidity.append(
-                        record.value("relative_humidity").toDouble());
+            samples.humidity.append(nullableVariantDouble(
+                        record.value("relative_humidity")));
 
         if (columns.testFlag(SC_IndoorHumidity))
-            samples.indoorHumidity.append(
-                        record.value("indoor_relative_humidity").toDouble());
+            samples.indoorHumidity.append(nullableVariantDouble(
+                        record.value("indoor_relative_humidity")));
 
         if (columns.testFlag(SC_Pressure))
-            samples.pressure.append(
-                        record.value("absolute_pressure").toDouble());
+            samples.pressure.append(nullableVariantDouble(
+                        record.value("absolute_pressure")));
 
         if (columns.testFlag(SC_Rainfall))
-            samples.rainfall.append(record.value("rainfall").toDouble());
+            samples.rainfall.append(nullableVariantDouble(record.value("rainfall")));
 
         if (columns.testFlag(SC_AverageWindSpeed))
-            samples.averageWindSpeed.append(
-                        record.value("average_wind_speed").toDouble());
+            samples.averageWindSpeed.append(nullableVariantDouble(
+                        record.value("average_wind_speed")));
 
         if (columns.testFlag(SC_GustWindSpeed))
-            samples.gustWindSpeed.append(
-                        record.value("gust_wind_speed").toDouble());
+            samples.gustWindSpeed.append(nullableVariantDouble(
+                        record.value("gust_wind_speed")));
 
         if (columns.testFlag(SC_WindDirection))
             // Wind direction is often null.
@@ -625,31 +680,31 @@ void DatabaseDataSource::fetchSamples(SampleColumns columns,
                         record.value("gust_wind_direction").toUInt();
 
         if (columns.testFlag(SC_UV_Index))
-            samples.uvIndex.append(record.value("average_uv_index").toDouble());
+            samples.uvIndex.append(nullableVariantDouble(record.value("average_uv_index")));
 
         if (columns.testFlag(SC_SolarRadiation))
-            samples.solarRadiation.append(record.value("solar_radiation").toDouble());
+            samples.solarRadiation.append(nullableVariantDouble(record.value("solar_radiation")));
 
         if (columns.testFlag(SC_Evapotranspiration))
-            samples.evapotranspiration.append(record.value("evapotranspiration").toDouble());
+            samples.evapotranspiration.append(nullableVariantDouble(record.value("evapotranspiration")));
 
         if (columns.testFlag(SC_HighTemperature))
-            samples.highTemperature.append(record.value("high_temperature").toDouble());
+            samples.highTemperature.append(nullableVariantDouble(record.value("high_temperature")));
 
         if (columns.testFlag(SC_LowTemperature))
-            samples.lowTemperature.append(record.value("low_temperature").toDouble());
+            samples.lowTemperature.append(nullableVariantDouble(record.value("low_temperature")));
 
         if (columns.testFlag(SC_HighRainRate))
-            samples.highRainRate.append(record.value("high_rain_rate").toDouble());
+            samples.highRainRate.append(nullableVariantDouble(record.value("high_rain_rate")));
 
         if (columns.testFlag(SC_HighSolarRadiation))
-            samples.highSolarRadiation.append(record.value("high_solar_radiation").toDouble());
+            samples.highSolarRadiation.append(nullableVariantDouble(record.value("high_solar_radiation")));
 
         if (columns.testFlag(SC_HighUVIndex))
-            samples.highUVIndex.append(record.value("high_uv_index").toDouble());
+            samples.highUVIndex.append(nullableVariantDouble(record.value("high_uv_index")));
 
         if (columns.testFlag(SC_Reception))
-            samples.reception.append(record.value("reception").toDouble());
+            samples.reception.append(nullableVariantDouble(record.value("reception")));
 
         if (columns.testFlag(SC_ForecastRuleId))
             samples.forecastRuleId.append(record.value("forecast_rule_id").toInt());

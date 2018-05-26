@@ -9,6 +9,7 @@
 #include <QMessageBox>
 #include <QProgressDialog>
 #include <QDebug>
+#include <cmath>
 
 #define FILTERS "Data file (*.dat);;Comma separated values (*.csv);;Text file (*.txt)"
 
@@ -165,6 +166,7 @@ void ExportDialog::exportData() {
 
     QStringList filters = QString(FILTERS).split(";;");
     QString selectedFilter = filters.first();
+    dashNulls = ui->cbDashNulls->isChecked();
 
     if (delimiter == ",")
         selectedFilter = filters.at(1); // csv
@@ -182,6 +184,21 @@ void ExportDialog::exportData() {
     targetFilename = filename;
 
     dataSource->fetchSamples(getColumns(), startTime, endTime);
+}
+
+QString ExportDialog::dstr(double d, bool nodp) {
+    if (std::isnan(d)) {
+        if (dashNulls) {
+            return "--";
+        }
+        return "";
+    }
+
+    if (nodp) {
+        return QString::number(d);
+    }
+
+    return QString::number(d, 'f', 1);
 }
 
 void ExportDialog::samplesReady(SampleSet samples)
@@ -224,28 +241,25 @@ void ExportDialog::samplesReady(SampleSet samples)
                                samples.timestampUnix.at(i))
                            .toString(Qt::ISODate));
         if (columns.testFlag(SC_Temperature))
-            rowData.append(QString::number(samples.temperature.at(i),'f', 1));
+            rowData.append(dstr(samples.temperature.at(i)));
         if (columns.testFlag(SC_ApparentTemperature))
-            rowData.append(QString::number(
-                               samples.apparentTemperature.at(i),'f', 1));
+            rowData.append(dstr(samples.apparentTemperature.at(i)));
         if (columns.testFlag(SC_WindChill))
-            rowData.append(QString::number(samples.windChill.at(i),'f', 1));
+            rowData.append(dstr(samples.windChill.at(i)));
         if (columns.testFlag(SC_DewPoint))
-            rowData.append(QString::number(samples.dewPoint.at(i),'f', 1));
+            rowData.append(dstr(samples.dewPoint.at(i)));
         if (columns.testFlag(SC_Humidity))
-            rowData.append(QString::number(samples.humidity.at(i)));
+            rowData.append(dstr(samples.humidity.at(i), true));
         if (columns.testFlag(SC_IndoorTemperature))
-            rowData.append(QString::number(
-                               samples.indoorTemperature.at(i),'f', 1));
+            rowData.append(dstr(samples.indoorTemperature.at(i)));
         if (columns.testFlag(SC_IndoorHumidity))
-            rowData.append(QString::number(samples.indoorHumidity.at(i)));
+            rowData.append(dstr(samples.indoorHumidity.at(i), true));
         if (columns.testFlag(SC_Pressure))
-            rowData.append(QString::number(samples.pressure.at(i),'f', 1));
+            rowData.append(dstr(samples.pressure.at(i)));
         if (columns.testFlag(SC_Rainfall))
-            rowData.append(QString::number(samples.rainfall.at(i),'f', 1));
+            rowData.append(dstr(samples.rainfall.at(i)));
         if (columns.testFlag(SC_AverageWindSpeed))
-            rowData.append(QString::number(
-                               samples.averageWindSpeed.at(i),'f',1));
+            rowData.append(dstr(samples.averageWindSpeed.at(i)));
         if (columns.testFlag(SC_WindDirection)) {
             time_t ts = samples.timestampUnix.at(i);
             if (samples.windDirection.contains(ts))
@@ -254,7 +268,7 @@ void ExportDialog::samplesReady(SampleSet samples)
                  rowData.append("");
         }
         if (columns.testFlag(SC_GustWindSpeed))
-            rowData.append(QString::number(samples.gustWindSpeed.at(i),'f',1));
+            rowData.append(dstr(samples.gustWindSpeed.at(i)));
         if (columns.testFlag(SC_GustWindDirection)) {
             time_t ts = samples.timestampUnix.at(i);
             if (samples.gustWindDirection.contains(ts))
@@ -263,26 +277,23 @@ void ExportDialog::samplesReady(SampleSet samples)
                  rowData.append("");
         }
         if (columns.testFlag(SC_UV_Index))
-            rowData.append(QString::number(
-                               samples.uvIndex.at(i), 'f', 1));
+            rowData.append(dstr(samples.uvIndex.at(i)));
         if (columns.testFlag(SC_SolarRadiation))
-            rowData.append(QString::number(
-                               samples.solarRadiation.at(i)));
-
+            rowData.append(dstr(samples.solarRadiation.at(i), true));
         if (columns.testFlag(SC_Evapotranspiration))
-            rowData.append(QString::number(samples.evapotranspiration.at(i)));
+            rowData.append(dstr(samples.evapotranspiration.at(i), true));
         if (columns.testFlag(SC_HighTemperature))
-            rowData.append(QString::number(samples.highTemperature.at(i),'f', 1));
+            rowData.append(dstr(samples.highTemperature.at(i)));
         if (columns.testFlag(SC_LowTemperature))
-            rowData.append(QString::number(samples.lowTemperature.at(i),'f', 1));
+            rowData.append(dstr(samples.lowTemperature.at(i)));
         if (columns.testFlag(SC_HighRainRate))
-            rowData.append(QString::number(samples.highRainRate.at(i),'f', 1));
+            rowData.append(dstr(samples.highRainRate.at(i)));
         if (columns.testFlag(SC_HighSolarRadiation))
-            rowData.append(QString::number(samples.highSolarRadiation.at(i),'f', 1));
+            rowData.append(dstr(samples.highSolarRadiation.at(i)));
         if (columns.testFlag(SC_HighUVIndex))
-            rowData.append(QString::number(samples.highUVIndex.at(i),'f', 1));
+            rowData.append(dstr(samples.highUVIndex.at(i)));
         if (columns.testFlag(SC_Reception))
-            rowData.append(QString::number(samples.reception.at(i),'f', 1));
+            rowData.append(dstr(samples.reception.at(i)));
         if (columns.testFlag(SC_ForecastRuleId))
             rowData.append(QString::number(samples.forecastRuleId.at(i)));
 

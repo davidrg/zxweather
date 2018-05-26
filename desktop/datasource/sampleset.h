@@ -67,6 +67,8 @@ void ReserveSampleSetSpace(SampleSet& samples,
                            int size,
                            SampleColumns columns);
 
+void AppendNullSamples(SampleSet &samples, SampleColumns columns, QDateTime startTime, QDateTime endTime, int intervalSeconds);
+
 typedef struct _Sample {
     // Timestamp
     QDateTime timestamp;
