@@ -154,7 +154,7 @@ void RunReportDialog::loadReportCriteria() {
         params["longitude"] = info.longitude;
     }
 
-    if (info.altitude == 0) {
+    if (info.altitude > 0) {
         params["altitude"] = info.altitude;
     }
 
