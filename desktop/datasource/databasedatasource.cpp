@@ -511,13 +511,21 @@ void DatabaseDataSource::fetchSamples(SampleColumns columns,
     int stationId = getStationId();
     if (stationId == -1) return; // Bad station code.
 
+    sample_range_t range = getSampleRange();
+    if (range.isValid) {
+        if (startTime < range.start) {
+            startTime = range.start;
+        }
+        if (endTime > range.end) {
+            endTime = range.end;
+        }
+    }
+
     if (getHardwareType() != HW_DAVIS) {
         // Turn off all the davis columns - they're not valid here
         qDebug() << "Not davis hardwrae - disabling columns";
         columns = columns & ~DAVIS_COLUMNS;
     }
-    // ##TODO: RECEPTION
-    // TODO: also filter out reception if not wireless and solar if not Pro2Plus
 
     progressListener->setSubtaskName("Count...");
     progressListener->setValue(1);
@@ -1631,6 +1639,28 @@ station_info_t DatabaseDataSource::getStationInfo() {
         }
     } else {
         qWarning() << "station info query failed" << query.lastError().driverText() << query.lastError().databaseText();
+    }
+
+    return info;
+}
+
+sample_range_t DatabaseDataSource::getSampleRange() {
+    sample_range_t info;
+    info.isValid = false;
+
+    int id = getStationId();
+    qDebug() << "Get range for station" << id;
+
+    QSqlQuery query;
+    query.prepare("select max(time_stamp) as end, min(time_stamp) as start from sample where station_id = :id");
+    query.bindValue(":id", id);
+    if (query.exec()) {
+        if (query.first()) {
+            info.start = query.record().value("start").toDateTime();
+            info.end = query.record().value("end").toDateTime();
+            info.isValid = true;
+            return info;
+        }
     }
 
     return info;

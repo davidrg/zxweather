@@ -131,6 +131,13 @@ public:
      * @return Station information
      */
     virtual station_info_t getStationInfo() = 0;
+
+    /** Gets the timespan for which samples are available. Queries for samples outside
+     * this timespan will produce no results. The upper bound of this range is likely to
+     * change every 5 minutes or so.
+     * @return Sample timespan
+     */
+    virtual sample_range_t getSampleRange() = 0;
 signals:
     /** Emitted when samples have been retrieved and are ready for processing.
      *

@@ -493,6 +493,15 @@ station_info_t WebDataSource::getStationInfo() {
     return WebCacheDB::getInstance().getStationInfo(stationURL());
 }
 
+sample_range_t WebDataSource::getSampleRange() {
+    // TODO: Get this from the Web UI instead as the cache DB probably doesn't
+    // represent the full range of data available.
+    sample_range_t range;
+    range.isValid = false;
+    return range;
+    //return WebCacheDB::getInstance().getSampleRange(stationURL());
+}
+
 /*****************************************************************************
  **** IMAGES *****************************************************************
  *****************************************************************************/

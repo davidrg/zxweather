@@ -68,6 +68,8 @@ public:
 
     station_info_t getStationInfo();
 
+    sample_range_t getSampleRange();
+
 private slots:
     void liveDataReady(QNetworkReply* reply);
     void liveDataPoll();

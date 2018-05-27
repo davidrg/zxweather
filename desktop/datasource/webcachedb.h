@@ -249,9 +249,17 @@ public:
 
     /** Gets basic station info
      *
-     * @return
+     * @param url The station to get info for
+     * @return Station info
      */
     station_info_t getStationInfo(QString url);
+
+    /** Gets the range of samples available for the specified station
+     *
+     * @param url Station to get the range for
+     * @return Start and end times for the station
+     */
+    sample_range_t getSampleRange(QString url);
 
 signals:
     /** Emitted when an error occurs which would prevent the cache database

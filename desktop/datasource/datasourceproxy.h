@@ -64,6 +64,7 @@ public:
     void primeCache(QDateTime start, QDateTime end);
     bool solarAvailable();
     station_info_t getStationInfo();
+    sample_range_t getSampleRange();
 
 private slots:
     // Forward AbstractLiveDataSource signals
