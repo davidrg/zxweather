@@ -1081,7 +1081,8 @@ void ChartWindow::selectDataSet(dataset_id_t dsId) {
         dataset_id_t id = axis->property(AXIS_DATASET).toInt();
         if (id == dsId) {
             axis->setSelectedParts(QCPAxis::spAxis | QCPAxis::spTickLabels | QCPAxis::spAxisLabel);
-            break;
+        } else {
+            axis->setSelectedParts(QCPAxis::spNone);
         }
     }
 
@@ -1091,6 +1092,10 @@ void ChartWindow::selectDataSet(dataset_id_t dsId) {
             g->setSelection(QCPDataSelection(QCPDataRange(0, 1)));
             QCPPlottableLegendItem *lip = ui->chart->legend->itemWithPlottable(g);
             lip->setSelected(true);
+        } else {
+            g->setSelection(QCPDataSelection(QCPDataRange(0, 0)));
+            QCPPlottableLegendItem *lip = ui->chart->legend->itemWithPlottable(g);
+            lip->setSelected(false);
         }
     }
     ui->chart->replot();
