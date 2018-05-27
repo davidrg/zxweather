@@ -125,9 +125,6 @@ void WeatherImageWindow::imageReady(ImageInfo imageInfo, QImage image, QString f
     // If its an image or a video without metadata, show metadata for the
     // timestamp. For a video this will probably be as of the end of the video.
     if (isImage || (!isImage && !haveVideoMeta)) {
-        dataSource.data()->fetchSamples(ALL_SAMPLE_COLUMNS,
-                                        imageInfo.timeStamp.addSecs(-600),
-                                        imageInfo.timeStamp);
         videoSync = false;
         if (!isImage) {
             if (imageInfo.mimeType.startsWith("video/")) {
@@ -136,6 +133,10 @@ void WeatherImageWindow::imageReady(ImageInfo imageInfo, QImage image, QString f
                 ui->message->setText(tr("Insufficient metadata"));
             }
         }
+
+        dataSource.data()->fetchSamples(ALL_SAMPLE_COLUMNS,
+                                        imageInfo.timeStamp.addSecs(-600),
+                                        imageInfo.timeStamp);
     } else {
         // A video (or audio file) with metadata!
 
@@ -165,14 +166,15 @@ void WeatherImageWindow::imageReady(ImageInfo imageInfo, QImage image, QString f
         ui->image->setVideoTickInterval(sampleInterval);
         msPerSample = sampleInterval;
 
-        dataSource.data()->fetchSamples(ALL_SAMPLE_COLUMNS,
-                                        start.addSecs(-600),
-                                        finish);
         videoStart = start;
         videoEnd = finish;
         frameInterval = interval;
         this->frameCount = frameCount;
         videoSync = true;
+
+        dataSource.data()->fetchSamples(ALL_SAMPLE_COLUMNS,
+                                        start.addSecs(-600),
+                                        finish);
     }
 }
 
