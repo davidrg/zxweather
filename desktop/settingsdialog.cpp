@@ -30,7 +30,12 @@
 #include <QDir>
 #include <QfileInfo>
 #include <QDesktopServices>
+
+#if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
 #include <QtConcurrent>
+#else
+#include <QtCore>
+#endif
 
 SettingsDialog::SettingsDialog(bool solarDataAvailable, QWidget *parent) :
     QDialog(parent),

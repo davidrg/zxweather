@@ -200,7 +200,11 @@ void RunReportDialog::loadReportCriteria() {
         if (params.contains(comboBox->objectName() + "_id")) {
             comboBox->setCurrentIndex(params[comboBox->objectName() + "_id"].toInt());
         } else if (params.contains(comboBox->objectName())) {
+            #if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
             comboBox->setCurrentText(params[comboBox->objectName()].toString());
+            #else
+            comboBox->setEditText(params[comboBox->objectName()].toString());
+            #endif
         }
     }
 
@@ -279,7 +283,11 @@ void RunReportDialog::loadReportCriteria() {
 
 void RunReportDialog::createReportCriteria() {
     // Remove any custom criteria widgets currently in the UI.
+    #if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
     QList<QWidget*> widgets = ui->custom_criteria_page->findChildren<QWidget*>(QString(), Qt::FindDirectChildrenOnly);
+    #else
+    QList<QWidget*> widgets = ui->custom_criteria_page->findChildren<QWidget*>();
+    #endif
     foreach (QWidget* w, widgets) {
         ui->custom_criteria_page->layout()->removeWidget(w);
         delete w;

@@ -11,6 +11,10 @@
 #include <QClipboard>
 #include <QFontDatabase>
 
+#if (QT_VERSION < QT_VERSION_CHECK(5,0,0))
+#include <QFont>
+#endif
+
 ReportDisplayWindow::ReportDisplayWindow(QString reportName, QIcon reportIcon, QWidget *parent) : QDialog(parent)
 {
     setWindowTitle(reportName);
@@ -54,7 +58,13 @@ void ReportDisplayWindow::addPlainTab(QString name, QIcon icon, QString text) {
 
     QTextBrowser *browser = new QTextBrowser();
     browser->setPlainText(text);
+    #if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
     browser->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+    #else
+    QFont font = browser->document()->defaultFont();
+    font.setFamily("Courier New");
+    browser->document()->setDefaultFont(font);
+    #endif
 
     tabLayout->addWidget(browser);
     tab->setLayout(tabLayout);

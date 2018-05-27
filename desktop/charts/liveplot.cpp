@@ -2,6 +2,11 @@
 
 #include <QApplication>
 #include <QFileDialog>
+#include <QClipboard>
+#include <QLineEdit>
+#include <QInputDialog>
+#include <QAction>
+#include <QMenu>
 
 #include "graphstyledialog.h"
 #include "settings.h"

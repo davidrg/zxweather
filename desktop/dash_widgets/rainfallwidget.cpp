@@ -8,6 +8,10 @@
 #include <QUrl>
 #include <QDesktopServices>
 #include <QDir>
+#include <QMenu>
+#include <QAction>
+#include <QFileDialog>
+#include <QClipboard>
 
 #include "charts/qcp/qcustomplot.h"
 #include "settings.h"

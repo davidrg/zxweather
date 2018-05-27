@@ -26,6 +26,7 @@
 #include <QObject>
 #include <QColor>
 #include <QStringList>
+#include <QVariantMap>
 
 class QSettings;
 
