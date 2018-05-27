@@ -10,6 +10,7 @@
 #include <QApplication>
 #include <QClipboard>
 #include <QFontDatabase>
+#include <QSortFilterProxyModel>
 
 #if (QT_VERSION < QT_VERSION_CHECK(5,0,0))
 #include <QFont>
@@ -82,9 +83,12 @@ void ReportDisplayWindow::addGridTab(QString name, QIcon icon, QAbstractTableMod
 
     QTableView *table = new QTableView(tab);
     model->setParent(table);
-    table->setModel(model);
+    QSortFilterProxyModel *sortableModel = new QSortFilterProxyModel(this);
+    sortableModel->setSourceModel(model);
+    table->setModel(sortableModel);
     table->resizeColumnsToContents();
     table->resizeRowsToContents();
+    table->setSortingEnabled(true);
 
     // Setup a keyboard shortcut for copying a selection in the
     // grid to tab-delimited data in the clipboard
