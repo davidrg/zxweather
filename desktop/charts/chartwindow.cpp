@@ -49,6 +49,7 @@ ChartWindow::ChartWindow(QList<DataSet> dataSets, bool solarAvailable,
     solarDataAvailable = solarAvailable;
     gridVisible = true;
     plotTitleEnabled = false;
+    nextDataSetId = 0;
 
     basicInteractionManager.reset(
             new BasicQCPInteractionManager(ui->chart, this));
@@ -158,11 +159,6 @@ void ChartWindow::reloadDataSets(bool rebuildChart) {
 #endif
 
     if (rebuildChart) {
-        // Reset the IDs on all incoming datasets to ensure they're unique.
-        for (int i = 0; i < dataSets.count(); i++) {
-            dataSets[i].id = i;
-        }
-
         plotter->drawChart(dataSets);
     }
 
@@ -623,6 +619,7 @@ void ChartWindow::removeDataSet(dataset_id_t dsId) {
         hiddenDataSets.remove(dsId);
     }
 
+    // Removing all graphs removes the dataset too and triggers a replot.
     plotter->removeGraphs(dsId, ALL_SAMPLE_COLUMNS);
 
     int index = -1;
@@ -1040,14 +1037,16 @@ void ChartWindow::addDataSet() {
     ds.aggregateFunction = options.getAggregateFunction();
     ds.groupType = options.getAggregateGroupType();
     ds.customGroupMinutes = options.getCustomMinutes();
-    ds.id = dataSets.count();
+    ds.id = nextDataSetId;
     dataSets.append(ds);
+    nextDataSetId++;
 
     emit dataSetAdded(ds, QString());
 
     // This will resuilt in the chart being redrawn completely.
     // TODO: don't rebuild the entire chart. Just add the new data set.
-    reloadDataSets(true);
+    plotter->addDataSet(ds);
+    reloadDataSets(false);
 }
 
 void ChartWindow::setDataSetAxisVisibility(dataset_id_t dsId, bool visible) {

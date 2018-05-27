@@ -53,6 +53,12 @@ public:
      */
     void addGraphs(dataset_id_t dataSetId, SampleColumns columns);
 
+    /** Adds a new dataset to the plot.
+     *
+     * @param dataSet Data set to add
+     */
+    void addDataSet(DataSet dataSet);
+
     /** Removes the graph for the specified column from the chart.
      *
      * @param dataSetId the dataset to remove the graph from
