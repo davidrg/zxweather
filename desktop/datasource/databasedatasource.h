@@ -52,6 +52,7 @@ public:
 
     station_info_t getStationInfo();
 
+    sample_range_t getSampleRange();
 private slots:
     void notificationPump(bool force = false);
     void dbError(QString message);

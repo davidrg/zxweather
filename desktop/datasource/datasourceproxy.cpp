@@ -270,3 +270,12 @@ void DataSourceProxy::activeImageSourcesAvailableSlot() {
 void DataSourceProxy::archivedImagesAvailableSlot() {
     emit archivedImagesAvailable();
 }
+
+sample_range_t DataSourceProxy::getSampleRange() {
+    if (sampleSource == 0) {
+        sample_range_t info;
+        info.isValid = false;
+        return info;
+    }
+    return sampleSource->getSampleRange();
+}

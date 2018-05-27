@@ -1347,6 +1347,18 @@ SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
     }
 
     int stationId = getStationId(stationUrl);
+    sample_range_t range = getSampleRange(stationUrl);
+
+    if (range.isValid) {
+        if (startTime < range.start) {
+            startTime = range.start;
+        }
+        if (endTime > range.end) {
+            endTime = range.end;
+        }
+    } else {
+        qWarning() << "Sample range invalid";
+    }
 
     int count;
 
@@ -1678,6 +1690,28 @@ station_info_t WebCacheDB::getStationInfo(QString url) {
 
             QVariant broadcastId = query.record().value("davis_broadcast_id");
             info.isWireless = !broadcastId.isNull() && broadcastId.toInt() != -1;
+        }
+    }
+
+    return info;
+}
+
+sample_range_t WebCacheDB::getSampleRange(QString url) {
+    sample_range_t info;
+    info.isValid = false;
+
+    int id = getStationId(url);
+
+    QSqlQuery query(sampleCacheDb);
+    query.prepare("select max(time_stamp) as end, min(time_stamp) as start from sample where station_id = :id");
+    query.bindValue(":id", id);
+    if (query.exec()) {
+        if (query.first()) {
+            info.start = QDateTime::fromTime_t(query.record().value("start").toInt());
+            info.end = QDateTime::fromTime_t(query.record().value("end").toInt());
+            info.isValid = info.start < info.end;
+            qDebug() << "Start" << info.start << "End" << info.end << "Valid" << info.isValid;
+            return info;
         }
     }
 
