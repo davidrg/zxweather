@@ -565,7 +565,7 @@ void Report::run(AbstractDataSource* dataSource, QMap<QString, QVariant> paramet
             qDebug() << "db text:" << query.lastError().databaseText();
             qDebug() << "driver text:" << query.lastError().driverText();
             qDebug() << "--- query";
-            qDebug().noquote() << query.executedQuery();
+            qDebug() << query.executedQuery();
             qDebug() << "---- /query";
             success = false;
         }

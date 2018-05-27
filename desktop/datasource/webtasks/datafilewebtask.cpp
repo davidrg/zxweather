@@ -5,6 +5,11 @@
 #include <QtDebug>
 #include <QTimer>
 
+#if (QT_VERSION < QT_VERSION_CHECK(5,0,0))
+#include <limits>
+#define qQNaN std::numeric_limits<double>::quiet_NaN
+#endif
+
 DataFileWebTask::DataFileWebTask(QString baseUrl, QString stationCode,
                                  request_data_t requestData, QString name,
                                  QString url, WebDataSource *ds)

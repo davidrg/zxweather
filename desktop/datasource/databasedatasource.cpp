@@ -13,6 +13,11 @@
 #include <QFile>
 #include <QDir>
 
+#if (QT_VERSION < QT_VERSION_CHECK(5,0,0))
+#include <limits>
+#define qQNaN std::numeric_limits<double>::quiet_NaN
+#endif
+
 DatabaseDataSource::DatabaseDataSource(AbstractProgressListener *progressListener, QObject *parent) :
     AbstractDataSource(progressListener, parent)
 {

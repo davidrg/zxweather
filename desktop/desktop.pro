@@ -4,11 +4,14 @@
 #
 #-------------------------------------------------
 
-QT       += core gui network sql concurrent uitools
+QT       += core gui network sql
 
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets printsupport multimedia multimediawidgets
+greaterThan(QT_MAJOR_VERSION, 4): QT += widgets printsupport multimedia multimediawidgets concurrent uitools
 
 lessThan(QT_MAJOR_VERSION, 5): QT += phonon
+
+lessThan(QT_MAJOR_VERSION, 5): CONFIG += uitools
+
 
 TARGET = desktop
 TEMPLATE = app

@@ -19,6 +19,7 @@
 #include <QInputDialog>
 #include <QMenu>
 #include <QIcon>
+#include <QClipboard>
 
 // single-data-set functionality needs to know which the first (and only) data
 // set is.

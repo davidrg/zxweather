@@ -742,13 +742,14 @@ void LivePlotWindow::resetPlot() {
     legendLayout = 0;
 
     ui->plot = new LivePlot(ui->centralwidget);
-    ui->plot->setObjectName(QStringLiteral("plot"));
+    ui->plot->setObjectName("plot");
     ui->gridLayout->addWidget(ui->plot, 0, 0, 1, 1);
 
     // Configure the plot
     ui->plot->setBackground(QBrush(Settings::getInstance().getChartColours().background));
 
-    ticker.reset(new QCPAxisTickerDateTime());
+    ticker.clear();
+    ticker = QSharedPointer<QCPAxisTicker>(new QCPAxisTickerDateTime());
     ui->plot->plotLayout()->remove(ui->plot->axisRect());
 
     connect(ui->actionSave, SIGNAL(triggered(bool)),

@@ -21,9 +21,10 @@ UnitConversions::UnitValue::UnitValue(float v) {
     unit = U_UNKNOWN;
 }
 
-UnitConversions::UnitValue::UnitValue(double v)
-    : UnitValue((float)v) {
-
+UnitConversions::UnitValue::UnitValue(double v) {
+    value.floatValue = v;
+    isInt = false;
+    unit = U_UNKNOWN;
 }
 
 UnitConversions::UnitValue::UnitValue(int32_t v) {
