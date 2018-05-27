@@ -28,6 +28,12 @@ public slots:
      */
     void reset();
 
+    /** Turns the transmitter battery status on or off
+     *
+     * @param visible True for a wireless station, false otherwise
+     */
+    void setTransmitterBatteryVisible(bool visible);
+
 private:
     Ui::StatusWidget *ui;
 

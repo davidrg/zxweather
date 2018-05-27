@@ -585,6 +585,14 @@ void MainWindow::reconfigureDataSource() {
     dataSource->setDataSourceTypes(liveType, samplesType);
     dataSource->connectDataSources();
 
+    // TODO: This won't work the first time we use the WebDataSource against a station.
+    station_info_t info = dataSource->getStationInfo();
+    if (info.isValid) {
+        ui->status->setTransmitterBatteryVisible(info.isWireless);
+        adjustSize();
+        setFixedSize(size());
+    }
+
     dataSource->enableLiveData();
     dataSource->fetchRainTotals();
     dataSource->hasActiveImageSources();

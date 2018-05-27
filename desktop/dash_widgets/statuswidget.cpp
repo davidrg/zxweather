@@ -49,3 +49,10 @@ void StatusWidget::refreshLiveData(LiveDataSet lds) {
         txStatus = txStatus.mid(0, txStatus.length() - 2);
     ui->lblTxBattery->setText(txStatus);
 }
+
+void StatusWidget::setTransmitterBatteryVisible(bool visible) {
+    ui->lblTxBattery->setVisible(visible);
+    ui->txBatteryLabel->setVisible(visible);
+    updateGeometry();
+    adjustSize();
+}
