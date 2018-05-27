@@ -1657,7 +1657,7 @@ station_info_t WebCacheDB::getStationInfo(QString url) {
     }
 
     QSqlQuery query(sampleCacheDb);
-    query.prepare("select title, description, latitude, longitude, altitude "
+    query.prepare("select title, description, latitude, longitude, altitude, solar_available, davis_broadcast_id "
                   "from station where code = :url");
     query.bindValue(":url", url);
     if (query.exec()) {
@@ -1674,6 +1674,10 @@ station_info_t WebCacheDB::getStationInfo(QString url) {
             info.title = query.record().value("title").toString();
             info.description = query.record().value("description").toString();
             info.altitude = query.record().value("altitude").toFloat();
+            info.hasSolarAndUV = query.record().value("solar_available").toBool();
+
+            QVariant broadcastId = query.record().value("davis_broadcast_id");
+            info.isWireless = !broadcastId.isNull() && broadcastId.toInt() != -1;
         }
     }
 

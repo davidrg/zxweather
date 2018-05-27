@@ -1587,8 +1587,9 @@ station_info_t DatabaseDataSource::getStationInfo() {
     qDebug() << "Get info for station" << id;
 
     QSqlQuery query;
-    query.prepare("select title, description, latitude, longitude, altitude "
-                  "from station where station_id = :id");
+    query.prepare("select stn.title, stn.description, stn.latitude, stn.longitude, stn.altitude, stn.station_config, upper(st.code) as code "
+                  "from station stn inner join station_type st ON stn.station_type_id = st.station_type_id "
+                  "where station_id = :id");
     query.bindValue(":id", id);
     if (query.exec()) {
         if (query.first()) {
@@ -1606,7 +1607,30 @@ station_info_t DatabaseDataSource::getStationInfo() {
             info.title = query.record().value("title").toString();
             info.description = query.record().value("description").toString();
             info.altitude = query.record().value("altitude").toFloat();
+            info.isWireless = false;
+            info.hasSolarAndUV = false;
+
+            if (query.record().value("code").toString() == "DAVIS") {
+                qDebug() << "Loading station config...";
+
+                using namespace QtJson;
+
+                QString hwConfig = query.record().value("station_config").toString();
+                bool ok;
+                QVariantMap result = Json::parse(hwConfig, ok).toMap();
+
+                if (!ok) {
+                    emit error("JSON parsing of station config document failed");
+                    qWarning() << "Failed to parse station config";
+                }
+                info.hasSolarAndUV = result["has_solar_and_uv"].toBool();
+                info.isWireless = result["is_wireless"].toBool();
+            } else {
+                qDebug() << "Not loading config for hw type" << query.record().value("code").toString();
+            }
         }
+    } else {
+        qWarning() << "station info query failed" << query.lastError().driverText() << query.lastError().databaseText();
     }
 
     return info;

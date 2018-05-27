@@ -10,10 +10,16 @@
     <height>81</height>
    </rect>
   </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
   <property name="minimumSize">
    <size>
     <width>343</width>
-    <height>81</height>
+    <height>61</height>
    </size>
   </property>
   <property name="maximumSize">
@@ -62,7 +68,7 @@
       </widget>
      </item>
      <item row="3" column="0">
-      <widget class="QLabel" name="label_17">
+      <widget class="QLabel" name="txBatteryLabel">
        <property name="text">
         <string>Transmitter Battery Status:</string>
        </property>
