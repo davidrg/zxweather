@@ -73,6 +73,8 @@ void ReportDisplayWindow::addGridTab(QString name, QIcon icon, QAbstractTableMod
     QTableView *table = new QTableView(tab);
     model->setParent(table);
     table->setModel(model);
+    table->resizeColumnsToContents();
+    table->resizeRowsToContents();
 
     // Setup a keyboard shortcut for copying a selection in the
     // grid to tab-delimited data in the clipboard
