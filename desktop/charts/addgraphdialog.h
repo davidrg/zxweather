@@ -18,6 +18,7 @@ class AddGraphDialog : public QDialog
 public:
     explicit AddGraphDialog(SampleColumns availableColumns,
                             bool solarAvailable,
+                            bool isWireless,
                             hardware_type_t hw_type,
                             QWidget *parent = 0);
     ~AddGraphDialog();

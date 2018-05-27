@@ -19,7 +19,8 @@ class ChartOptionsDialog : public QDialog
     
 public:
 
-    explicit ChartOptionsDialog(bool solarAvailable, hardware_type_t hw_type, QWidget *parent = 0);
+    explicit ChartOptionsDialog(bool solarAvailable, hardware_type_t hw_type, bool isWireless,
+                                QWidget *parent = 0);
     ~ChartOptionsDialog();
     
     QDateTime getStartTime();

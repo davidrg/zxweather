@@ -28,6 +28,7 @@ class ChartWindow : public QWidget
 public:
     explicit ChartWindow(QList<DataSet> dataSets,
                          bool solarAvailable,
+                         bool isWireless,
                          QWidget *parent = 0);
     ~ChartWindow();
     
@@ -130,6 +131,7 @@ private:
     QScopedPointer<DataSetsDialog> dds;
 
     bool solarDataAvailable;
+    bool isWireless;
     hardware_type_t hw_type;
 };
 

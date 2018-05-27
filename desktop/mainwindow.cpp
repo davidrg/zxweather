@@ -434,7 +434,13 @@ void MainWindow::showAbout() {
 
 void MainWindow::showChartWindow() {
 
-    ChartOptionsDialog options(solarDataAvailable, last_hw_type);
+    station_info_t info = dataSource->getStationInfo();
+    bool wirelessAvailable = false;
+    if (info.isValid) {
+        wirelessAvailable = info.isWireless;
+    }
+
+    ChartOptionsDialog options(solarDataAvailable, last_hw_type, wirelessAvailable);
     int result = options.exec();
     if (result != QDialog::Accepted)
         return; // User canceled. Nothing to do.
@@ -458,7 +464,7 @@ void MainWindow::showChartWindow() {
     qDebug() << "AGGrp" << ds.groupType;
     qDebug() << "AGMin" << ds.customGroupMinutes;
 
-    ChartWindow *cw = new ChartWindow(dataSets, solarDataAvailable);
+    ChartWindow *cw = new ChartWindow(dataSets, solarDataAvailable, wirelessAvailable);
     cw->setAttribute(Qt::WA_DeleteOnClose);
     cw->show();
 }
@@ -481,13 +487,26 @@ void MainWindow::chartRequested(DataSet dataSet) {
     qDebug() << "AGGrp" << dataSet.groupType;
     qDebug() << "AGMin" << dataSet.customGroupMinutes;
 
-    ChartWindow *cw = new ChartWindow(ds, solarDataAvailable);
+
+    station_info_t info = dataSource->getStationInfo();
+    bool wirelessAvailable = false;
+    if (info.isValid) {
+        wirelessAvailable = info.isWireless;
+    }
+
+    ChartWindow *cw = new ChartWindow(ds, solarDataAvailable, wirelessAvailable);
     cw->setAttribute(Qt::WA_DeleteOnClose);
     cw->show();
 }
 
 void MainWindow::showExportDialog() {
-    ExportDialog dialog(solarDataAvailable, last_hw_type);
+    station_info_t info = dataSource->getStationInfo();
+    bool wirelessAvailable = false;
+    if (info.isValid) {
+        wirelessAvailable = info.isWireless;
+    }
+
+    ExportDialog dialog(solarDataAvailable, wirelessAvailable, last_hw_type);
     dialog.exec();
 }
 

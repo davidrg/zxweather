@@ -1,7 +1,7 @@
 #include "addgraphdialog.h"
 #include "ui_addgraphdialog.h"
 
-AddGraphDialog::AddGraphDialog(SampleColumns availableColumns, bool solarAvailable, hardware_type_t hw_type,
+AddGraphDialog::AddGraphDialog(SampleColumns availableColumns, bool solarAvailable, bool isWireless, hardware_type_t hw_type,
                                QWidget *parent) :
     QDialog(parent),
     ui(new Ui::AddGraphDialog)
@@ -10,6 +10,10 @@ AddGraphDialog::AddGraphDialog(SampleColumns availableColumns, bool solarAvailab
 
     if (!solarAvailable) {
         ui->gbSolar->setVisible(false);
+    }
+
+    if (!isWireless) {
+        ui->cbReception->setVisible(false);
     }
 
     if (hw_type != HW_DAVIS) {

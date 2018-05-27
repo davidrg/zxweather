@@ -39,7 +39,7 @@
 #endif
 
 
-ChartWindow::ChartWindow(QList<DataSet> dataSets, bool solarAvailable,
+ChartWindow::ChartWindow(QList<DataSet> dataSets, bool solarAvailable, bool isWireless,
                          QWidget *parent) :
     QWidget(parent),
     ui(new Ui::ChartWindow)
@@ -47,6 +47,7 @@ ChartWindow::ChartWindow(QList<DataSet> dataSets, bool solarAvailable,
     ui->setupUi(this);       
 
     solarDataAvailable = solarAvailable;
+    this->isWireless = isWireless;
     gridVisible = true;
     plotTitleEnabled = false;
     nextDataSetId = 0;
@@ -911,6 +912,7 @@ void ChartWindow::showAddGraph(dataset_id_t dsId) {
 
     AddGraphDialog adg(plotter->availableColumns(dsId),
                        solarDataAvailable,
+                       isWireless,
                        hw_type,
                        this);
     if (adg.exec() == QDialog::Accepted) {
@@ -1021,7 +1023,7 @@ void ChartWindow::customiseChart() {
 }
 
 void ChartWindow::addDataSet() {
-    ChartOptionsDialog options(solarDataAvailable, hw_type);
+    ChartOptionsDialog options(solarDataAvailable, hw_type, isWireless);
     options.setWindowTitle("Add Data Set");
 
     int result = options.exec();

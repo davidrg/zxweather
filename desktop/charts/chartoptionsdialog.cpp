@@ -5,7 +5,7 @@
 #include <QtDebug>
 
 ChartOptionsDialog::ChartOptionsDialog(bool solarAvailable,
-                                       hardware_type_t hw_type, QWidget *parent) :
+                                       hardware_type_t hw_type, bool isWireless, QWidget *parent) :
     QDialog(parent),
     ui(new Ui::ChartOptionsDialog)
 {
@@ -18,6 +18,10 @@ ChartOptionsDialog::ChartOptionsDialog(bool solarAvailable,
         ui->cbEvapotranspiration->setVisible(false);
         ui->cbHighSolarRadiation->setVisible(false);
         ui->cbHighUVIndex->setVisible(false);
+    }
+
+    if (!isWireless) {
+        ui->cbWirelessReception->setVisible(false);
     }
 
     if (hw_type != HW_DAVIS) {
