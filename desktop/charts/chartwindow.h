@@ -124,6 +124,7 @@ private:
     QScopedPointer<WeatherPlotter> plotter;
 
     QList<DataSet> dataSets;
+    dataset_id_t nextDataSetId;
     QSet<dataset_id_t> hiddenDataSets;
 
     QScopedPointer<DataSetsDialog> dds;

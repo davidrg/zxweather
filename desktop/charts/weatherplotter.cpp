@@ -35,11 +35,24 @@ void WeatherPlotter::drawChart(QList<DataSet> dataSets)
 {
     cacheManager->flushCache();
 
+    chart->clearGraphs();
+    chart->clearPlottables();
+    foreach(AxisType type, axisReferences.keys())
+        axisReferences[type] = 0;
+    removeUnusedAxes();
+
     foreach (DataSet dataSet, dataSets) {
         this->dataSets[dataSet.id] = dataSet;
     }
 
     cacheManager->getDataSets(dataSets);
+}
+
+void WeatherPlotter::addDataSet(DataSet dataSet) {
+    this->dataSets[dataSet.id] = dataSet;
+    QList<DataSet> foo;
+    foo.append(dataSet);
+    cacheManager->getDataSets(foo);
 }
 
 void WeatherPlotter::populateAxisLabels() {
@@ -515,12 +528,6 @@ void WeatherPlotter::drawChart(QMap<dataset_id_t, SampleSet> sampleSets)
 {
     qDebug() << "Drawing Chart...";
 
-    chart->clearGraphs();
-    chart->clearPlottables();
-    foreach(AxisType type, axisReferences.keys())
-        axisReferences[type] = 0;
-    removeUnusedAxes();
-
     addGraphs(sampleSets);
 
     if (chart->graphCount() > 1)
@@ -779,6 +786,9 @@ SampleColumns WeatherPlotter::availableColumns(dataset_id_t dataSetId)
 
 void WeatherPlotter::addGraphs(dataset_id_t dataSetId, SampleColumns columns) {
     dataSets[dataSetId].columns |= columns;
+
+    chart->clearGraphs();
+    chart->clearPlottables();
 
     cacheManager->getDataSets(dataSets.values());
 }
