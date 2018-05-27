@@ -100,25 +100,10 @@ void ViewDataSetWindow::samplesReady(SampleSet samples)
     QSortFilterProxyModel *sortableModel = new QSortFilterProxyModel(this);
     sortableModel->setSourceModel(model);
 
-    /* Turns out there is a bug in QTableView that causes it to do a bunch of
-     * resizing when the widget is hidden. This results in the entire
-     * application locking up for anywhere between a few seconds and a few
-     * minutes when the window is closed (depending on how much data is in it).
-     *
-     * This bug was fixed in Qt 5.0.0. As such, resize-to-contents is disabled
-     * when buliding against older Qt versions.
-     *
-     * Details: https://bugreports.qt.io/browse/QTBUG-14234
-     */
-#if QT_VERSION >= 0x050000
-    for (int c = 0; c < ui->tableView->horizontalHeader()->count(); ++c)
-    {
-        ui->tableView->horizontalHeader()->setSectionResizeMode(
-            c, QHeaderView::ResizeToContents);
-    }
-#endif
-
     ui->tableView->setModel(sortableModel);
+
+    ui->tableView->resizeColumnsToContents();
+    ui->tableView->resizeRowsToContents();
 }
 
 void ViewDataSetWindow::samplesFailed(QString message)
