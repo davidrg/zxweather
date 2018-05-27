@@ -15,7 +15,7 @@ class ExportDialog : public QDialog
     Q_OBJECT
     
 public:
-    explicit ExportDialog(bool solarDataAvailable, hardware_type_t hw_type, QWidget *parent = 0);
+    explicit ExportDialog(bool solarDataAvailable, bool isWireless, hardware_type_t hw_type, QWidget *parent = 0);
     ~ExportDialog();
 
 private slots:

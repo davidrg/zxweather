@@ -19,7 +19,7 @@ void disableCheckbox(QCheckBox *cb) {
 }
 
 
-ExportDialog::ExportDialog(bool solarDataAvailable, hardware_type_t hw_type,
+ExportDialog::ExportDialog(bool solarDataAvailable, bool isWireless, hardware_type_t hw_type,
                            QWidget *parent) :
     QDialog(parent),
     ui(new Ui::ExportDialog)
@@ -42,6 +42,10 @@ ExportDialog::ExportDialog(bool solarDataAvailable, hardware_type_t hw_type,
         disableCheckbox(ui->cbHighSolarRadiation);
         disableCheckbox(ui->cbHighUVIndex);
         disableCheckbox(ui->cbEvapotranspiration);
+    }
+
+    if (!isWireless) {
+        disableCheckbox(ui->cbWirelessReception);
     }
 
     // Delimiter types

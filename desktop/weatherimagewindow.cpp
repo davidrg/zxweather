@@ -338,9 +338,16 @@ void WeatherImageWindow::plotRequested(DataSet ds) {
     qDebug() << "AGGrp" << ds.groupType;
     qDebug() << "AGMin" << ds.customGroupMinutes;
 
-    // TODO: we don't actually know solar data is available. Replace
-    // the true below with the actual value.
-    ChartWindow *cw = new ChartWindow(datasets, true);
+
+    station_info_t info = dataSource->getStationInfo();
+    bool wirelessAvailable = false;
+    bool solarAvailable = false;
+    if (info.isValid) {
+        wirelessAvailable = info.isWireless;
+        solarAvailable = info.hasSolarAndUV;
+    }
+
+    ChartWindow *cw = new ChartWindow(datasets, solarAvailable, wirelessAvailable);
     cw->setAttribute(Qt::WA_DeleteOnClose);
     cw->show();
 }
