@@ -159,6 +159,14 @@ void ChartWindow::reloadDataSets(bool rebuildChart) {
     }
 #endif
 
+    dataset_id_t max_id;
+    foreach (DataSet ds, dataSets) {
+        if (ds.id > max_id) {
+            max_id = ds.id;
+        }
+    }
+    nextDataSetId = max_id+1;
+
     if (rebuildChart) {
         plotter->drawChart(dataSets);
     }
