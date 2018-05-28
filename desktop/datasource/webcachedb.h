@@ -477,6 +477,11 @@ private:
      */
     int getSampleInterval(int stationId);
 
+    /** Optimises the database.
+     *
+     */
+    void optimise();
+
     /** If the cache DB is ready.
      */
     bool ready;
