@@ -1,5 +1,6 @@
 
 #include "dbutil.h"
+#include "version.h"
 
 #include <QSqlQuery>
 #include <QSqlRecord>
@@ -47,12 +48,34 @@ DatabaseCompatibility DbUtil::checkDatabaseCompatibility(QSqlDatabase db) {
          * schema is incompatible.
          */
         return DbUtil::DC_Incompatible;
-    } else if (version > 1) {
-        qDebug() << "V2+ database.";
+    } else if (version == 2) {
+        qDebug() << "V2 database.";
+        /*
+         * Most of the app should work on a V2 database except for:
+         *  -> Davis weather stations
+         *  -> A few extra bits of station info (lat/long/alt/station config)
+         *  -> Images
+         * Given the v2 schema was only used by zxweather v0.2 which was never
+         * in production for long we don't bother to support its database. The
+         * V3 schema is backwards compatible with the V2 schema (and zxweather
+         * v0.2) so no reason not to upgrade.
+         */
+
+        return DbUtil::DC_Incompatible;
+    } else if (version > 2) {
+        qDebug() << "V3+ database.";
 
         // Check that this version of the desktop client hasn't been
         // blacklisted by the database.
-        QSqlQuery query("select version_check('desktop',1,0,0)", db);
+        QSqlQuery query(db);
+        query.prepare("select version_check('desktop',:maj,:min,:rev)");
+        query.bindValue(":maj", VERSION_MAJOR);
+        query.bindValue(":min", VERSION_MINOR);
+        query.bindValue(":rev", VERSION_REVISION);
+        if (!query.exec()) {
+            return DbUtil::DC_Unknown;
+        }
+
         if (!query.isActive())
             return DbUtil::DC_Unknown;
         else {
@@ -76,6 +99,8 @@ QString DbUtil::getMinimumAppVersion(QSqlDatabase db)
         query.first();
         result = query.value(0).toString();
     }
+
+    qDebug() << "Minimum app version" << result;
 
     return result;
 }
