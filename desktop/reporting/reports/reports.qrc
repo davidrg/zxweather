@@ -35,5 +35,10 @@
         <file>noaamo/daily_sqlite.sql</file>
         <file>noaamo/month_sqlite.sql</file>
         <file>debug_summary.html</file>
+        <file>storm_rain/description.html</file>
+        <file>storm_rain/report.json</file>
+        <file>storm_rain/sqlite.sql</file>
+        <file>storm_rain/template.html</file>
+        <file>storm_rain/weather-rain.png</file>
     </qresource>
 </RCC>

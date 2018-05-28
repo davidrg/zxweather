@@ -1,0 +1,30 @@
+<html>
+<head>
+<title>Storm Rain</title>
+</head>
+<body>
+	<h1>Storm Rain</h1>
+	<p>From: {{start}} to {{end}}</p>
+
+	<table>
+        <thead>
+            <tr>
+                <th width="25%">Start Time</th>
+                <th width="25%">End Time</th>
+                <th width="25%">Duration</th>
+                <th width="25%">Total Rainfall</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#storm_rain}}
+            <tr>
+                <td>{{start_time}}</td>
+                <td>{{end_time}}</td>
+                <td>{{duration}}</td>
+                <td align=center>{{total_rainfall}}</td>
+            </tr>
+            {{/storm_rain}}
+        </tbody>
+	</table>
+</body>
+</html>
