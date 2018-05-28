@@ -336,6 +336,7 @@ void RunReportDialog::reportSelected(QTreeWidgetItem* twi, QTreeWidgetItem *prev
     ui->rbToday->setEnabled(true);
     ui->rbYear->setEnabled(true);
     ui->rbYesterday->setEnabled(true);
+    ui->rbAllTime->setEnabled(true);
 
     ui->pbNext->setText(tr("&Next >"));
 
@@ -371,6 +372,9 @@ void RunReportDialog::reportSelected(QTreeWidgetItem* twi, QTreeWidgetItem *prev
 
             // no timespans
             ui->rbTimeSpan->setEnabled(false);
+
+            // No big range
+            ui->rbAllTime->setEnabled(false);
         }
         if (!report.hasCustomCriteria()) {
             ui->pbNext->setText(tr("&Finish"));
@@ -396,6 +400,9 @@ void RunReportDialog::reportSelected(QTreeWidgetItem* twi, QTreeWidgetItem *prev
 
         // no timespans
         ui->rbTimeSpan->setEnabled(false);
+
+        // No big range
+        ui->rbAllTime->setEnabled(false);
         break;
     case Report::TP_Month:
         // no years
@@ -417,6 +424,9 @@ void RunReportDialog::reportSelected(QTreeWidgetItem* twi, QTreeWidgetItem *prev
 
         // no timespans
         ui->rbTimeSpan->setEnabled(false);
+
+        // No big range
+        ui->rbAllTime->setEnabled(false);
         break;
     case Report::TP_Day:
         // no years
@@ -438,6 +448,9 @@ void RunReportDialog::reportSelected(QTreeWidgetItem* twi, QTreeWidgetItem *prev
 
         // no timespans
         ui->rbTimeSpan->setEnabled(false);
+
+        // No big range
+        ui->rbAllTime->setEnabled(false);
         break;
     case Report::TP_Datespan:
         // years are ok (this is just a datespan from start to end of year)
@@ -450,6 +463,8 @@ void RunReportDialog::reportSelected(QTreeWidgetItem* twi, QTreeWidgetItem *prev
 
         // no timespans
         ui->rbTimeSpan->setEnabled(false);
+
+        // big range is ok
         break;
     case Report::TP_Timespan:
         // Disable nothing!
@@ -458,53 +473,65 @@ void RunReportDialog::reportSelected(QTreeWidgetItem* twi, QTreeWidgetItem *prev
 
     switch (report.defaultTimeSpan()) {
     case Report::FTS_Today:
-        ui->rbToday->setChecked(ui->rbToday->isEnabled());
+        ui->rbToday->setEnabled(true);
+        ui->rbToday->setChecked(true);
         break;
     case Report::FTS_Yesterday:
-        ui->rbYesterday->setChecked(ui->rbYesterday->isEnabled());
+        ui->rbYesterday->setEnabled(true);
+        ui->rbYesterday->setChecked(true);
         break;
     case Report::FTS_Last_24H:
-        ui->rbTimeSpan->setChecked(ui->rbTimeSpan->isEnabled());
+        ui->rbTimeSpan->setEnabled(true);
+        ui->rbTimeSpan->setChecked(true);
         ui->teStartTime->setDateTime(QDateTime::currentDateTime().addSecs(24 * 60 * 60));
         ui->teEndTime->setDateTime(QDateTime::currentDateTime());
     case Report::FTS_ThisWeek:
-        ui->rbThisWeek->setChecked(ui->rbThisWeek->isEnabled());
+        ui->rbThisWeek->setEnabled(true);
+        ui->rbThisWeek->setChecked(true);
         break;
     case Report::FTS_LastWeek:
-        ui->rbLastWeek->setChecked(ui->rbLastWeek->isEnabled());
+        ui->rbLastWeek->setEnabled(true);
+        ui->rbLastWeek->setChecked(true);
         break;
     case Report::FTS_Last_7D:
-        ui->rbTimeSpan->setChecked(ui->rbTimeSpan->isEnabled());
+        ui->rbTimeSpan->setEnabled(true);
+        ui->rbTimeSpan->setChecked(true);
         ui->teStartTime->setDateTime(QDateTime::currentDateTime().addSecs(7 * 24 * 60 * 60));
         ui->teEndTime->setDateTime(QDateTime::currentDateTime());
     case Report::FTS_Last_14D:
-        ui->rbTimeSpan->setChecked(ui->rbTimeSpan->isEnabled());
+        ui->rbTimeSpan->setEnabled(true);
+        ui->rbTimeSpan->setChecked(true);
         ui->teStartTime->setDateTime(QDateTime::currentDateTime().addSecs(14 * 24 * 60 * 60));
         ui->teEndTime->setDateTime(QDateTime::currentDateTime());
     case Report::FTS_ThisMonth:
-        ui->rbThisMonth->setChecked(ui->rbThisMonth->isEnabled());
+        ui->rbThisMonth->setEnabled(true);
+        ui->rbThisMonth->setChecked(true);
         break;
     case Report::FTS_LastMonth:
-        ui->rbLastMonth->setChecked(ui->rbLastMonth->isEnabled());
+        ui->rbLastMonth->setEnabled(true);
+        ui->rbLastMonth->setChecked(true);
         break;
     case Report::FTS_Last_30D:
-        ui->rbTimeSpan->setChecked(ui->rbTimeSpan->isEnabled());
+        ui->rbTimeSpan->setEnabled(true);
+        ui->rbTimeSpan->setChecked(true);
         ui->teStartTime->setDateTime(QDateTime::currentDateTime().addSecs(30 * 24 * 60 * 60));
         ui->teEndTime->setDateTime(QDateTime::currentDateTime());
     case Report::FTS_ThisYear:
-        ui->rbThisYear->setChecked(ui->rbThisYear->isEnabled());
+        ui->rbThisYear->setEnabled(true);
+        ui->rbThisYear->setChecked(true);
         break;
     case Report::FTS_LastYear:
-        ui->rbLastYear->setChecked(ui->rbLastYear->isEnabled());
+        ui->rbLastYear->setEnabled(true);
+        ui->rbLastYear->setChecked(true);
         break;
     case Report::FTS_Last_365D:
-        ui->rbTimeSpan->setChecked(ui->rbTimeSpan->isEnabled());
+        ui->rbTimeSpan->setEnabled(true);
+        ui->rbTimeSpan->setChecked(true);
         ui->teStartTime->setDateTime(QDateTime::currentDateTime().addSecs(365 * 24 * 60 * 60));
         ui->teEndTime->setDateTime(QDateTime::currentDateTime());
     case Report::FTS_AllTime:
-        ui->rbTimeSpan->setChecked(ui->rbTimeSpan->isEnabled());
-        ui->teStartTime->setDateTime(QDateTime(QDate(2000,1,1), QTime(0,0,0)));
-        ui->teEndTime->setDateTime(QDateTime(QDate(2100,1,1), QTime(0,0,0)));
+        ui->rbAllTime->setEnabled(true);
+        ui->rbAllTime->setChecked(true);
         break;
     case Report::FTS_None:
     default:
@@ -594,6 +621,9 @@ RunReportDialog::date_span_t RunReportDialog::get_date_span() {
     } else if (ui->rbDateSpan->isChecked()) {
         range.start = ui->deStartDate->date();
         range.end = ui->deEndDate->date();
+    } else if (ui->rbAllTime->isChecked()) {
+        range.start = QDate(2000,1,1);
+        range.end = QDate(2100,1,1);
     }
 
     return range;
@@ -601,6 +631,12 @@ RunReportDialog::date_span_t RunReportDialog::get_date_span() {
 
 RunReportDialog::time_span_t RunReportDialog::get_time_span() {
     time_span_t time_span;
+
+    if (ui->rbAllTime->isChecked() && ui->rbTimeSpan->isEnabled()) {
+        time_span.start = QDateTime(QDate(2000,1,1), QTime(0,0,0));
+        time_span.end = QDateTime(QDate(2100,1,1), QTime(0,0,0));
+        return time_span;
+    }
 
     if (ui->rbToday->isChecked()
             || ui->rbYesterday->isChecked()
@@ -613,7 +649,8 @@ RunReportDialog::time_span_t RunReportDialog::get_time_span() {
             || ui->rbYear->isChecked()
             || ui->rbThisWeek->isChecked()
             || ui->rbLastWeek->isChecked()
-            || ui->rbDateSpan->isChecked()) {
+            || ui->rbDateSpan->isChecked()
+            || ui->rbAllTime->isChecked()) {
         date_span_t span = get_date_span();
 
         time_span.start = QDateTime(span.start, QTime(0, 0));
