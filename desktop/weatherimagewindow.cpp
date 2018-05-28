@@ -83,9 +83,9 @@ void WeatherImageWindow::imageReady(ImageInfo imageInfo, QImage image, QString f
     QDateTime start;
     QDateTime finish;
     bool haveInterval = false;
-    uint interval;
+    uint interval = 300;
     bool haveFrameCount = false;
-    uint frameCount;
+    uint frameCount = 1;
 
     if (!isImage && imageInfo.hasMetadata && !imageInfo.metadata.isNull()) {
         using namespace QtJson;
@@ -186,7 +186,7 @@ QString tempString(double temp) {
 void WeatherImageWindow::samplesReady(SampleSet samples) {
     if (!videoSync) {
         // An image or a video with insufficient metadata
-        uint maxTs;
+        uint maxTs = 0;
         foreach (uint ts, samples.timestampUnix) {
             maxTs = qMax(maxTs, ts);
         }
