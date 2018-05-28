@@ -499,6 +499,8 @@ void WebCacheDB::cacheDataSet(SampleSet samples,
     }
     qDebug() << "Transaction committed at " << timer.elapsed() << "msecs";
 
+    optimise();
+
     qDebug() << "Cache insert completed.";
 }
 
@@ -1716,4 +1718,11 @@ sample_range_t WebCacheDB::getSampleRange(QString url) {
     }
 
     return info;
+}
+
+void WebCacheDB::optimise() {
+    QSqlQuery q(sampleCacheDb);
+    if (!q.exec("pragma optimize;")) {
+        qWarning() << "DB Optimisation failed";
+    }
 }
