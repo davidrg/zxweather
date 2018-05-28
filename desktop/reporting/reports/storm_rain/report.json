@@ -1,0 +1,46 @@
+{
+	"title": "Storm Rain",
+	"description": "description.html",
+	"time_picker": "timespan",
+	"default_time_span": "last_30d",
+	"icon": "weather-rain.png",
+	"queries": {
+		"storm_rain": {
+			"web": {
+				"file": "sqlite.sql",
+				"parameters": [
+					"stationCode",
+					"start_t",
+					"end_t"
+				]
+			},
+			"db": {
+				"file": "postgres.sql",
+				"parameters": [
+					"stationCode",
+					"start",
+					"end"
+				]
+			}
+		}
+	},
+	"output_type": "show",
+	"outputs": [
+		{
+			"name": "html",
+			"title": "Storm Rain",
+			"icon": "../../icons/report",
+			"format": "html",
+			"template": "template.html",
+			"filename": "storm_rain.html"
+		},
+		{
+			"name": "grid",
+			"title": "Grid",
+			"icon": "../../icons/table",
+			"format": "table",
+			"query": "storm_rain",
+			"filename": "storm_rain.csv"
+		}
+	]
+}
