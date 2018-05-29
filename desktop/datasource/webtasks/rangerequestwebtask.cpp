@@ -9,6 +9,7 @@
 #include <QtDebug>
 #include <QNetworkRequest>
 #include <QNetworkReply>
+#include <QDateTime>
 
 #define DATASET_RANGE "samplerange.json"
 
@@ -83,6 +84,8 @@ QString monthToName(int month) {
 
 void getURLList(QString baseURL, QDateTime startTime, QDateTime endTime,
                 QStringList& urlList, QStringList& nameList) {
+    static QMap<QString, QDateTime> lastQuery;
+
     QDate startDate = startTime.date();
     QDate endDate = endTime.date();
 
@@ -94,6 +97,8 @@ void getURLList(QString baseURL, QDateTime startTime, QDateTime endTime,
 
     //TODO: consider trying to make use of day-level data sources if it makes
     // sense.
+
+    QDate today = QDate::currentDate();
 
     for(int year = startYear; year <= endYear; year++) {
         qDebug() << "Year:" << year;
@@ -109,6 +114,17 @@ void getURLList(QString baseURL, QDateTime startTime, QDateTime endTime,
             QString url = baseURL + QString::number(year) + "/" +
                     QString::number(month) + "/samples.dat";
 #endif
+
+            if (lastQuery.contains(url)) {
+                if (QDateTime::currentDateTime().toTime_t() - lastQuery[url].toTime_t() < 86400) {
+                    // URL was queried less than 24 hours ago. Skip.
+                    if (year == endYear && month == endMonth)
+                        break;
+                    continue;
+                }
+            } else if (!(today.month() == month && today.year() == year)) {
+                lastQuery[url] = QDateTime::currentDateTime();
+            }
 
             urlList.append(url);
             nameList.append(monthName + " " + QString::number(year));
