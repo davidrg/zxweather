@@ -40,5 +40,6 @@
         <file>storm_rain/sqlite.sql</file>
         <file>storm_rain/template.html</file>
         <file>storm_rain/weather-rain.png</file>
+        <file>storm_rain/postgres.sql</file>
     </qresource>
 </RCC>
