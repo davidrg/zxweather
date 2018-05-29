@@ -4,10 +4,10 @@ WITH parameters AS (
      :coolBase * 1.0    	              AS cool_base,
      :start_t                           AS start_date,
      :end_t                             AS end_date,
-   	 :fahrenheit        	              AS fahrenheit, -- instead of celsius
-   	 :kmh         			                AS kmh,	-- instead of m/s
-   	 :mph         			                AS mph,	-- instead of m/s
-   	 :inches         		                AS inches, -- instead of mm
+         :fahrenheit        	              AS fahrenheit, -- instead of celsius
+         :kmh         			                AS kmh,	-- instead of m/s
+         :mph         			                AS mph,	-- instead of m/s
+         :inches         		                AS inches, -- instead of mm
      :stationCode                       AS stationCode,
      32 * 1                             AS max_high_temp,
      0 * 1                              AS max_low_temp,
@@ -34,18 +34,18 @@ WITH parameters AS (
      SELECT 14 AS idx, 'NW' AS point union all
      SELECT 15 AS idx, 'NNW' AS point
 ), normal_readings as (
-    select  1 as month, :normJan * 1.0 as temp, :normJanRain * 1.0) as rain union all
-    select  2 as month, :normFeb * 1.0 as temp, :normFebRain * 1.0) as rain union all
-    select  3 as month, :normMar * 1.0 as temp, :normMarRain * 1.0) as rain union all
-    select  4 as month, :normApr * 1.0 as temp, :normAprRain * 1.0) as rain union all
-    select  5 as month, :normMay * 1.0 as temp, :normMayRain * 1.0) as rain union all
-    select  6 as month, :normJun * 1.0 as temp, :normJunRain * 1.0) as rain union all
-    select  7 as month, :normJul * 1.0 as temp, :normJulRain * 1.0) as rain union all
-    select  8 as month, :normAug * 1.0 as temp, :normAugRain * 1.0) as rain union all
-    select  9 as month, :normSep * 1.0 as temp, :normSepRain * 1.0) as rain union all
-    select 10 as month, :normOct * 1.0 as temp, :normOctRain * 1.0) as rain union all
-    select 11 as month, :normNov * 1.0 as temp, :normNovRain * 1.0) as rain union all
-    select 12 as month, :normDec * 1.0 as temp, :normDecRain * 1.0) as rain union
+    select  1 as month, :normJan * 1.0 as temp, :normJanRain * 1.0 as rain union all
+    select  2 as month, :normFeb * 1.0 as temp, :normFebRain * 1.0 as rain union all
+    select  3 as month, :normMar * 1.0 as temp, :normMarRain * 1.0 as rain union all
+    select  4 as month, :normApr * 1.0 as temp, :normAprRain * 1.0 as rain union all
+    select  5 as month, :normMay * 1.0 as temp, :normMayRain * 1.0 as rain union all
+    select  6 as month, :normJun * 1.0 as temp, :normJunRain * 1.0 as rain union all
+    select  7 as month, :normJul * 1.0 as temp, :normJulRain * 1.0 as rain union all
+    select  8 as month, :normAug * 1.0 as temp, :normAugRain * 1.0 as rain union all
+    select  9 as month, :normSep * 1.0 as temp, :normSepRain * 1.0 as rain union all
+    select 10 as month, :normOct * 1.0 as temp, :normOctRain * 1.0 as rain union all
+    select 11 as month, :normNov * 1.0 as temp, :normNovRain * 1.0 as rain union all
+    select 12 as month, :normDec * 1.0 as temp, :normDecRain * 1.0 as rain
 ), daily_aggregates as (
   select
       -- Day info
@@ -197,9 +197,6 @@ monthly_aggregates as (
       count(wind_direction) AS count
     FROM sample s, parameters p
       where s.time_stamp between p.start_date and p.end_date and s.wind_direction is not null
-    /*where strftime('%Y-01-01 00:00:00', s.time_stamp, 'unixepoch', 'localtime')
-          between datetime(p.start_date, 'unixtime', 'localtime')
-          and datetime(p.end_date, 'unixtime', 'localtime') and s.wind_direction is not null*/
     GROUP BY strftime('%Y-01-01 00:00:00', s.time_stamp, 'unixepoch', 'localtime'), station_id, wind_direction
   ), max_count AS (
     SELECT
@@ -217,10 +214,6 @@ monthly_aggregates as (
     INNER JOIN max_count mc ON mc.station_id = d.station_id AND mc.year = d.year AND mc.max_count = d.count
   GROUP BY d.station_id, d.year
 )
-
-  -- TODO:
-  -- heat_dd and cool_dd are way off
-  -- rain day counts are a little high (other station being counted?)
 select
   d.year                                            as year,
 
