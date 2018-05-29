@@ -35,7 +35,6 @@ void WeatherPlotter::drawChart(QList<DataSet> dataSets)
 {
     cacheManager->flushCache();
 
-    chart->clearGraphs();
     chart->clearPlottables();
     foreach(AxisType type, axisReferences.keys())
         axisReferences[type] = 0;
@@ -80,6 +79,7 @@ void WeatherPlotter::reload() {
 
     cacheManager->flushCache();
 
+    chart->clearPlottables();
     cacheManager->getDataSets(dataSets.values());
 }
 
@@ -95,6 +95,7 @@ void WeatherPlotter::changeDataSetTimespan(dataset_id_t dataSetId, QDateTime sta
     }
     dataSets[dataSetId] = ds;
 
+    chart->clearPlottables();
     cacheManager->getDataSets(dataSets.values());
 }
 
@@ -787,7 +788,6 @@ SampleColumns WeatherPlotter::availableColumns(dataset_id_t dataSetId)
 void WeatherPlotter::addGraphs(dataset_id_t dataSetId, SampleColumns columns) {
     dataSets[dataSetId].columns |= columns;
 
-    chart->clearGraphs();
     chart->clearPlottables();
 
     cacheManager->getDataSets(dataSets.values());
