@@ -112,6 +112,7 @@ RunReportDialog::RunReportDialog(QWidget *parent) :
     connect(ui->rbToday, SIGNAL(toggled(bool)), this, SLOT(timespanSelected()));
     connect(ui->rbYear, SIGNAL(toggled(bool)), this, SLOT(timespanSelected()));
     connect(ui->rbYesterday, SIGNAL(toggled(bool)), this, SLOT(timespanSelected()));
+    connect(ui->rbAllTime, SIGNAL(toggled(bool)), this, SLOT(timespanSelected()));
 
     ui->pbNext->setEnabled(false);
     ui->pbBack->setEnabled(false);
@@ -876,7 +877,8 @@ void RunReportDialog::timespanSelected() {
             || ui->rbThisWeek->isChecked()
             || ui->rbLastWeek->isChecked()
             || ui->rbDateSpan->isChecked()
-            || ui->rbTimeSpan->isChecked();
+            || ui->rbTimeSpan->isChecked()
+            || ui->rbAllTime->isChecked();
 
     ui->pbNext->setEnabled(enabled);
 }
