@@ -113,7 +113,7 @@ void WeatherValueWidget::updateDisplay() {
 
 void WeatherValueWidget::showContextMenu(QPoint point) {
     QMenu *menu = new QMenu(this);
-    menu->setAcceptDrops(Qt::WA_DeleteOnClose);
+    menu->setAttribute(Qt::WA_DeleteOnClose);
 
     QAction *action;
 
