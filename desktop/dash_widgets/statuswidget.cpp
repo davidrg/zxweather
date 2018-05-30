@@ -19,7 +19,8 @@ StatusWidget::~StatusWidget()
 void StatusWidget::reset() {
     updateCount = 0;
     ui->lblUpdateCount->setText("0");
-    ui->lblConsoleBattery->setText("0.0 V");
+    ui->lblConsoleBatteryA->setText("0.0 V");
+    ui->lblConsoleBatteryB->setText("");
     ui->lblTxBattery->setText("unknown");
 }
 
@@ -30,11 +31,19 @@ void StatusWidget::refreshLiveData(LiveDataSet lds) {
     updateCount++;
     ui->lblUpdateCount->setText(QString::number(updateCount));
 
-    ui->lblConsoleBattery->setText(
-                QString::number(lds.davisHw.consoleBatteryVoltage,
-                                'f', 2) + " V");
+    QString bat_voltage = QString::number(lds.davisHw.consoleBatteryVoltage, 'f', 2) + " V";
+    if (lds.davisHw.consoleBatteryVoltage <= 3.5) {
+        // We need two labels to maintain proper vertical alignment. We'd just turn the visibility
+        // of the icon label on and off but it seems to still occupy space in the layout when
+        // its hidden. So we do this...
+        ui->lblConsoleBatteryA->setText("<img src=':/icons/battery-low' />");
+        ui->lblConsoleBatteryB->setText(bat_voltage);
+    } else {
+        ui->lblConsoleBatteryA->setText(bat_voltage);
+        ui->lblConsoleBatteryB->setText("");
+    }
 
-    // I can't find anything that explains the transmitter battery status
+    // I can't find anything that explains the transmitter  battery status
     // byte but what I can find suggests that it gives the status for
     // transmitters 1-8. I'm assuming it must be a bitmap.
     QString txStatus = "bad: ";

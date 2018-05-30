@@ -28,6 +28,7 @@
         <file alias="audio-32">resources/audiofile.png</file>
         <file alias="report">resources/report.png</file>
         <file alias="reports">resources/reports.png</file>
+        <file alias="battery-low">resources/battery-low.png</file>
     </qresource>
     <qresource prefix="/icons/weather">
         <file alias="mostly_cloudy">resources/weather-cloud.png</file>
