@@ -1,0 +1,70 @@
+{
+	"title": "Monthly Averages",
+	"description": "description.html",
+	"time_picker": "none",
+	"default_time_span": "all_time",
+	"criteria_ui": "units.ui",
+	"queries": {
+		"averages": {
+			"web": {
+				"file": "sqlite.sql",
+				"parameters": [
+					"stationCode",
+					"fahrenheit",
+					"kmh",
+					"mph",
+					"inches"
+				]
+			},
+			"db": {
+				"file": "postgres.sql",
+				"parameters": [
+					"stationCode",
+					"fahrenheit",
+					"kmh",
+					"mph",
+					"inches"
+				]
+			}
+		},
+		"criteria": {
+			"web": {
+				"file": "criteria_sqlite.sql",
+				"parameters": [
+					"fahrenheit",
+					"kmh",
+					"mph",
+					"inches"
+				]
+			},
+			"db": {
+				"file": "criteria_pg.sql",
+				"parameters": [
+					"fahrenheit",
+					"kmh",
+					"mph",
+					"inches"
+				]
+			}
+		}
+	},
+	"output_type": "show",
+	"outputs": [
+		{
+			"name": "html",
+			"title": "Monthly Averages",
+			"icon": "../../icons/report",
+			"format": "html",
+			"template": "template.html",
+			"filename": "monthly_averages.html"
+		},
+		{
+			"name": "grid",
+			"title": "Table View",
+			"icon": "../../icons/table",
+			"format": "table",
+			"query": "averages",
+			"filename": "monthly_averages.csv"
+		}
+	]
+}

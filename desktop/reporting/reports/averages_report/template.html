@@ -1,0 +1,63 @@
+<html>
+<head>
+<title>Monthly Averages</title>
+</head>
+<body>
+<b>Monthly Averages</b>
+<hr>
+
+<table border=1>
+{{#criteria}}
+<thead>
+<tr>
+<th colspan=3></th>
+<th colspan=3>Temperature ({{temperature}})</th>
+<th colspan=2>Rainfall ({{rainfall}})</th>
+<th></th>
+<th colspan=2>Wind ({{wind_speed}})</th>
+</tr>
+<tr>
+<th>First Year</th>
+<th>Last Year</th>
+<th>Month</th>
+
+<th>Average Low</th>
+<th>Daily Mean</th>
+<th>Average High</th>
+
+<th>Average Rain</th>
+<th>Average Rain Days</th>
+
+<th>Average Humidity (%)</th>
+
+<th>Average Wind Speed</th>
+<th>Average Gale Days</th>
+</tr>
+</thead>
+{{/criteria}}
+<tbody>
+{{#averages}}
+<tr>
+<td align=center>{{min_year}}</td>
+<td align=center>{{max_year}}</td>
+<td align=center>{{month_name}}</td>
+
+<td align=center>{{avg_high}}</td>
+<td align=center>{{daily_mean}}</td>
+<td align=center>{{avg_low}}</td>
+
+<td align=center>{{avg_precipitation}}</td>
+<td align=center>{{avg_preciptiation_days}}</td>
+
+<td align=center>{{avg_humidity}}</td>
+
+<td align=center>{{avg_wind}}</td>
+<td align=center>{{avg_gale_days}}</td>
+</tr>
+{{/averages}}
+</tbody>
+</table>
+
+<p>Rain days: days where rain is >= 1.0mm. Gale days: days where average wind speed is >= 65km/h</p>
+</body>
+</html>
