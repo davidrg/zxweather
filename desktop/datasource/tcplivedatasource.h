@@ -25,6 +25,7 @@ private slots:
     void error(QAbstractSocket::SocketError socketError);
     void readyRead();
     void reconnect();
+    void checkConnection();
     
 private:
     QScopedPointer<QTcpSocket> socket;
@@ -33,6 +34,8 @@ private:
     QString hostName;
     int port;
     QTimer reconnectTimer;
+    QTimer watchdog;
+    QDateTime LastUpdate;
 
     hardware_type_t hw_type;
 

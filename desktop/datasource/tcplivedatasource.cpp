@@ -25,6 +25,10 @@ TcpLiveDataSource::TcpLiveDataSource(QObject *parent) :
     reconnectTimer.setInterval(5000);
     connect(&reconnectTimer, SIGNAL(timeout()), this, SLOT(reconnect()));
 
+    LastUpdate = QDateTime::currentDateTime();
+    watchdog.setInterval(5000);
+    connect(&watchdog, SIGNAL(timeout()), this, SLOT(checkConnection()));
+
     state = STATE_INIT;
 }
 
@@ -46,6 +50,7 @@ void TcpLiveDataSource::enableLiveData() {
     port = settings.serverPort();
 
     socket->connectToHost(hostName, port);
+    watchdog.start();
 }
 
 void TcpLiveDataSource::reconnect() {
@@ -328,6 +333,8 @@ void TcpLiveDataSource::processStationInfo(QString line) {
 
 
 void TcpLiveDataSource::readyRead() {
+    LastUpdate = QDateTime::currentDateTime();
+
     QByteArray line = socket->readLine();
 
     while (line.count() != 0) {
@@ -348,4 +355,23 @@ void TcpLiveDataSource::readyRead() {
 
 hardware_type_t TcpLiveDataSource::getHardwareType() {
     return HW_GENERIC;
+}
+
+void TcpLiveDataSource::checkConnection() {
+    int delta = QDateTime::currentDateTime().toTime_t() - LastUpdate.toTime_t();
+
+    if (delta > 300) {
+        // So we don't try reconnecting for another five minutes
+        LastUpdate = QDateTime::currentDateTime();
+
+        qDebug() << "Silent connection - reconnecting...";
+        // 5 minutes since last communication with the server. Reset the connection.
+
+        if (socket->state() == QAbstractSocket::ConnectedState) {
+            socket->disconnectFromHost();
+        } else {
+            enableLiveData();
+        }
+
+    }
 }
