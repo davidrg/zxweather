@@ -46,17 +46,17 @@
    </property>
    <item row="0" column="0">
     <layout class="QGridLayout" name="statusLayout">
-     <item row="3" column="1">
-      <widget class="QLabel" name="lblTxBattery">
-       <property name="text">
-        <string/>
-       </property>
-      </widget>
-     </item>
      <item row="0" column="0">
       <widget class="QLabel" name="label_11">
        <property name="text">
         <string>&lt;b&gt;Status&lt;/b&gt;</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QLabel" name="lblConsoleBatteryA">
+       <property name="enabled">
+        <bool>true</bool>
        </property>
       </widget>
      </item>
@@ -74,13 +74,6 @@
        </property>
       </widget>
      </item>
-     <item row="4" column="1">
-      <widget class="QLabel" name="lblUpdateCount">
-       <property name="text">
-        <string/>
-       </property>
-      </widget>
-     </item>
      <item row="4" column="0">
       <widget class="QLabel" name="label_19">
        <property name="text">
@@ -88,14 +81,41 @@
        </property>
       </widget>
      </item>
-     <item row="2" column="1">
-      <widget class="QLabel" name="lblConsoleBattery">
+     <item row="3" column="1" colspan="2">
+      <widget class="QLabel" name="lblTxBattery">
        <property name="text">
         <string/>
        </property>
       </widget>
      </item>
-     <item row="1" column="0" colspan="2">
+     <item row="4" column="1" colspan="2">
+      <widget class="QLabel" name="lblUpdateCount">
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="2">
+      <widget class="QLabel" name="lblConsoleBatteryB">
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="3">
+      <spacer name="horizontalSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item row="1" column="0" colspan="4">
       <widget class="Line" name="line_2">
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
