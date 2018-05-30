@@ -239,10 +239,10 @@ select
     then round(d.tot_rain, 2)
     else round(d.tot_rain, 1)
     end, -7)                                        as tot_rain,
-  substr('     ' || case when p.inches
+  substr('      ' || case when p.inches
     then round(d.dep_norm_rain, 2)
     else round(d.dep_norm_rain, 1)
-    end, -5)                                        as dep_norm_rain,
+    end, -6)                                        as dep_norm_rain,
   substr('     ' || case when p.inches
     then round(d.max_obs_rain, 2)
     else round(d.max_obs_rain, 1)
