@@ -234,7 +234,7 @@ select
   lpad(case when p.inches
     then round(d.dep_norm_rain::numeric, 2)
     else round(d.dep_norm_rain::numeric, 1)
-    end::varchar, 5, ' ')                                   as dep_norm_rain,
+    end::varchar, 6, ' ')                                   as dep_norm_rain,
   lpad(case when p.inches
     then round(d.max_obs_rain::numeric, 2)
     else round(d.max_obs_rain::numeric, 1)
