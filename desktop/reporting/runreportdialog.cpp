@@ -173,6 +173,8 @@ void RunReportDialog::loadReportCriteria() {
     params["year"] = get_year();
     params["month"] = get_month();
     params["date"] = get_date();
+    params["reportName"] = this->report.title();
+    params["reportNameBig"] = "<h1>" + this->report.title() + "</h1>";
 
     qDebug() << params;
 
@@ -190,6 +192,13 @@ void RunReportDialog::loadReportCriteria() {
     QList<QRadioButton*> radioButtons = ui->custom_criteria_page->findChildren<QRadioButton*>();
     QList<QCheckBox*> checkBoxes = ui->custom_criteria_page->findChildren<QCheckBox*>();
     QList<QGroupBox*> groupBoxes = ui->custom_criteria_page->findChildren<QGroupBox*>();
+    QList<QLabel*> labels = ui->custom_criteria_page->findChildren<QLabel*>();
+
+    foreach (QLabel* lbl, labels) {
+        if (params.contains(lbl->objectName())) {
+            lbl->setText(params[lbl->objectName()].toString());
+        }
+    }
 
     foreach (QLineEdit* ed, lineEdits) {
         if (params.contains(ed->objectName())) {

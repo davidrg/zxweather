@@ -1,5 +1,5 @@
 {
-	"title": "NOAA Yearly Summary",
+    "title": "NOAA Year Summary",
 	"description": "description.html",
 	"time_picker": "year",
 	"default_time_span": "this_year",
