@@ -18,6 +18,7 @@
 #include "axistag.h"
 
 #define PROP_GRAPH_TYPE "graph_type"
+#define PROP_IS_POINT "is_point"
 
 UnitConversions::unit_t metricUnitToImperial(UnitConversions::unit_t unit);
 
@@ -390,12 +391,15 @@ void LivePlotWindow::addLiveValue(LiveValue v) {
 
         graphs[v] = ui->plot->addStyledGraph(keyAxis, valueAxis, style);
         graphs[v]->setProperty(PROP_GRAPH_TYPE, v);
+        graphs[v]->setProperty(PROP_IS_POINT, false);
 
         points[v] = new QCPGraph(keyAxis, valueAxis);
 
         points[v]->setLineStyle(QCPGraph::lsNone);
         points[v]->setScatterStyle(QCPScatterStyle::ssDisc);
         points[v]->removeFromLegend();
+        points[v]->setProperty(PROP_GRAPH_TYPE, v);
+        points[v]->setProperty(PROP_IS_POINT, true);
 
         if (axisTags) {
             tags[v] = new AxisTag(valueAxis, this);
@@ -611,13 +615,26 @@ void LivePlotWindow::graphRemoving(QCPGraph *graph) {
         return;
     }
 
+    bool isPoint = graph->property(PROP_IS_POINT).toBool();
     LiveValue graphType = (LiveValue)prop.toInt();
 
-    valuesToShow &= ~graphType;
+    if (isPoint && graphs.contains(graphType)) {
+        // Remove the owning graph too.
+        ui->plot->removeGraph(graphs[graphType]);
+    }
 
-    graphs.remove(graphType);
-    ui->plot->removeGraph(points[graphType]);
-    points.remove(graphType);
+    if (valuesToShow.testFlag(graphType)) {
+        valuesToShow &= ~graphType;
+    }
+
+    if (graphs.contains(graphType)) {
+        graphs.remove(graphType);
+    }
+
+    if (points.contains(graphType)) {
+        ui->plot->removeGraph(points[graphType]);
+        points.remove(graphType);
+    }
 
     if (tags.contains(graphType)) {
         delete tags[graphType];
