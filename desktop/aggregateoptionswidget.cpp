@@ -34,6 +34,10 @@ AggregateFunction AggregateOptionsWidget::getAggregateFunction() {
 }
 
 AggregateGroupType AggregateOptionsWidget::getAggregateGroupType() {
+    if (ui->rbHourly->isChecked())
+        return AGT_Hour;
+    if (ui->rbDaily->isChecked())
+        return AGT_Day;
     if (ui->rbMonthly->isChecked())
         return AGT_Month;
     if (ui->rbYearly->isChecked())
@@ -42,10 +46,6 @@ AggregateGroupType AggregateOptionsWidget::getAggregateGroupType() {
 }
 
 uint32_t AggregateOptionsWidget::getCustomMinutes() {
-    if (ui->rbHourly->isChecked())
-        return 60;
-    if (ui->rbDaily->isChecked())
-        return 1440;
     if (ui->rbWeekly->isChecked())
         return 10080;
     if (ui->rbCustom->isChecked())

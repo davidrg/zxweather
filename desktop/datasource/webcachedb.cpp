@@ -1236,11 +1236,17 @@ QString WebCacheDB::buildAggregatedSelect(SampleColumns columns,
 
     if (groupType == AGT_Custom) {
         query += "(cur.time_stamp / :groupSeconds) AS quadrant ";
+    } else if (groupType == AGT_Hour) {
+        query += "strftime('%Y-%m-%d %H:00:00', cur.time_stamp, 'unixepoch', 'localtime') as quadrant";
+    } else if (groupType == AGT_Day) {
+        query += "date(cur.time_stamp, 'unixepoch', 'localtime') as quadrant";
     } else if (groupType == AGT_Month) {
-        query += "strftime('%s', julianday(datetime(cur.time_stamp, 'unixepoch', 'start of month'))) as quadrant";
+        //query += "strftime('%s', julianday(datetime(cur.time_stamp, 'unixepoch', 'start of month'))) as quadrant";
+        query += "strftime('%Y-%m-01 00:00:00', cur.time_stamp, 'unixepoch', 'localtime') as quadrant";
         // In postgres this would be: extract(epoch from date_trunc('month', cur.time_stamp))::integer as quadrant
     } else { // year
-        query += "strftime('%s', julianday(datetime(cur.time_stamp, 'unixepoch', 'start of year'))) as quadrant";
+        //query += "strftime('%s', julianday(datetime(cur.time_stamp, 'unixepoch', 'start of year'))) as quadrant";
+        query += "strftime('%Y-01-01 00:00:00', cur.time_stamp, 'unixepoch', 'localtime') as quadrant";
         // In postgres this would be: extract(epoch from date_trunc('year', cur.time_stamp))::integer as quadrant
     }
 
