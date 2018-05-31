@@ -277,6 +277,10 @@ QString buildGroupedSelect(SampleColumns columns, AggregateFunction function, Ag
     // Build a quadrant number to group on
     if (groupType == AGT_Custom)
         query += "(extract(epoch from cur.time_stamp) / :groupSeconds)::integer AS quadrant ";
+    else if (groupType == AGT_Hour)
+        query += "extract(epoch from date_trunc('hour', cur.time_stamp))::integer as quadrant ";
+    else if (groupType == AGT_Day)
+        query += "extract(epoch from date_trunc('day', cur.time_stamp))::integer as quadrant ";
     else if (groupType == AGT_Month)
         query += "extract(epoch from date_trunc('month', cur.time_stamp))::integer as quadrant ";
     else // year

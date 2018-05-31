@@ -94,6 +94,12 @@ void DataSetsDialog::addDataSetToUI(DataSet s, QString name, bool axisVisible, b
     case AGT_None:
         twi->setText(6, tr("None"));
         break;
+    case AGT_Hour:
+        twi->setText(6, tr("Hour"));
+        break;
+    case AGT_Day:
+        twi->setText(6, tr("Day"));
+        break;
     case AGT_Month:
         twi->setText(6, tr("Month"));
         break;

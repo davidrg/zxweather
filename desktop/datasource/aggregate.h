@@ -17,6 +17,8 @@ enum AggregateFunction {
  */
 enum AggregateGroupType {
     AGT_None,   /*!< Don't group data */
+    AGT_Hour,   /*!< Group data on hour of day */
+    AGT_Day,    /*!< Group data on day of year */
     AGT_Month,  /*!< Group data on month */
     AGT_Year,   /*!< Group data on year */
     AGT_Custom  /*!< Group data by minute. */
