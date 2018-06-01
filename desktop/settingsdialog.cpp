@@ -24,6 +24,7 @@
 #include "ui_settingsdialog.h"
 #include "settings.h"
 #include "datasource/webcachedb.h"
+#include "datasource/webtasks/rangerequestwebtask.h"
 
 #include <QSqlDatabase>
 #include <QDebug>
@@ -346,5 +347,6 @@ void SettingsDialog::imagesCleared() {
 
 void SettingsDialog::clearSamples() {
     WebCacheDB::getInstance().clearSamples();
+    RangeRequestWebTask::ClearURLCache();
     getCacheInfo();
 }
