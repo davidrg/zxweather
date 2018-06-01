@@ -543,7 +543,7 @@ void MainWindow::viewData() {
     dataSource.groupType = options.getAggregateGroupType();
     dataSource.customGroupMinutes = options.getCustomMinutes();
 
-    ViewDataSetWindow *window = new ViewDataSetWindow(dataSource, this);
+    ViewDataSetWindow *window = new ViewDataSetWindow(dataSource);
     window->setAttribute(Qt::WA_DeleteOnClose, true);
     window->show();
 }
