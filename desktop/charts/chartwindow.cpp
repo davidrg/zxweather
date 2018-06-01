@@ -159,7 +159,7 @@ void ChartWindow::reloadDataSets(bool rebuildChart) {
     }
 #endif
 
-    dataset_id_t max_id;
+    dataset_id_t max_id = 0;
     foreach (DataSet ds, dataSets) {
         if (ds.id > max_id) {
             max_id = ds.id;
