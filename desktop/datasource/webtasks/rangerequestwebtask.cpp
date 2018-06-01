@@ -82,9 +82,15 @@ QString monthToName(int month) {
     }
 }
 
-void getURLList(QString baseURL, QDateTime startTime, QDateTime endTime,
+QMap<QString, QDateTime> RangeRequestWebTask::lastQuery;
+
+void RangeRequestWebTask::ClearURLCache() {
+    RangeRequestWebTask::lastQuery.clear();
+}
+
+void RangeRequestWebTask::getURLList(QString baseURL, QDateTime startTime, QDateTime endTime,
                 QStringList& urlList, QStringList& nameList) {
-    static QMap<QString, QDateTime> lastQuery;
+
 
     QDate startDate = startTime.date();
     QDate endDate = endTime.date();
@@ -115,15 +121,16 @@ void getURLList(QString baseURL, QDateTime startTime, QDateTime endTime,
                     QString::number(month) + "/samples.dat";
 #endif
 
-            if (lastQuery.contains(url)) {
-                if (QDateTime::currentDateTime().toTime_t() - lastQuery[url].toTime_t() < 86400) {
+            if (RangeRequestWebTask::lastQuery.contains(url)) {
+                if (QDateTime::currentDateTime().toTime_t() -
+                        RangeRequestWebTask::lastQuery[url].toTime_t() < 86400) {
                     // URL was queried less than 24 hours ago. Skip.
                     if (year == endYear && month == endMonth)
                         break;
                     continue;
                 }
             } else if (!(today.month() == month && today.year() == year)) {
-                lastQuery[url] = QDateTime::currentDateTime();
+                RangeRequestWebTask::lastQuery[url] = QDateTime::currentDateTime();
             }
 
             urlList.append(url);
@@ -174,7 +181,8 @@ bool RangeRequestWebTask::processResponse(QString data) {
 
     QStringList urlList;
     QStringList nameList;
-    getURLList(_stationDataUrl,
+    RangeRequestWebTask::getURLList(
+                _stationDataUrl,
                dlStartTime,
                dlEndTime,
                urlList /*OUT*/,

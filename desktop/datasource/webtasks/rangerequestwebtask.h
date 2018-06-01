@@ -35,6 +35,8 @@ public:
         return "Checking data range";
     }
 
+    static void ClearURLCache();
+
 public slots:
     /** Called when a network reply for a request this task submitted has
      * been received.
@@ -50,8 +52,11 @@ private:
     // Parameters
     request_data_t _requestData;
     bool _select;
+    static QMap<QString, QDateTime> lastQuery;
 
     bool processResponse(QString data);
+    static void getURLList(QString baseURL, QDateTime startTime, QDateTime endTime,
+                    QStringList& urlList, QStringList& nameList);
 };
 
 #endif // RANGEREQUESTWEBTASK_H
