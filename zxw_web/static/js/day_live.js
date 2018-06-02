@@ -635,6 +635,19 @@ ImageSection.prototype._add_image_to_carousel = function(current_image_row,
             }
         });
 
+        // Remove any images that are less than half the height of the
+        // largest image (broadcasts during sunrise may produce a few
+        // very short images alongside several normal size ones which
+        // looks odd)
+        try {
+            $(".item", this).each(function() {
+                var h = $(this).find("img").get(0).naturalHeight;
+                if (h < (maxHeight / 2)) {
+                    $(this).remove();
+                }
+            });
+        } catch (e) {}
+
         $(this).find(".item", this).height(maxHeight);
     });
 };
