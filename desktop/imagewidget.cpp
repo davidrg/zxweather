@@ -506,7 +506,7 @@ void ImageWidget::contextMenuRequested(QPoint point) {
     QMenu* menu = new QMenu(this);
     menu->setAttribute(Qt::WA_DeleteOnClose);
 
-#if NO_MULTIMEDIA
+#ifdef NO_MULTIMEDIA
     // No support for poping out a video as we can't play them.
     if (!(videoSet && isIcon)) {
 #endif
@@ -516,7 +516,7 @@ void ImageWidget::contextMenuRequested(QPoint point) {
     QFont f = act->font();
     f.setBold(true);
     act->setFont(f);
-#if NO_MULTIMEDIA
+#ifdef NO_MULTIMEDIA
     }
     QAction *act;
 #endif
