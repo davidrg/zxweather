@@ -94,7 +94,7 @@ def get_station_standard(ui, station):
         reception_available = hw_config['is_wireless']
         uv_and_solar_available = hw_config['has_solar_and_uv']
 
-    images = get_station_day_images(station_id, now)
+    images = get_station_day_images(station_id, now, '../..')
 
     day_cache_control(None, now, station_id)
     nav_urls = get_nav_urls(station, current_location)

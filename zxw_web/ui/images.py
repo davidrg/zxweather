@@ -106,7 +106,7 @@ class StationImage(object):
         return self._type
 
 
-def get_station_day_images(station_id, day):
+def get_station_day_images(station_id, day, prefix='../../../../..'):
     # Get images
     images = []
     sources = get_image_sources_for_station(station_id)
@@ -119,7 +119,7 @@ def get_station_day_images(station_id, day):
             if image_itr is not None:
                 source_images = []
                 for image in image_itr:
-                    source_images.append(StationImage(image, '../../../../..'))
+                    source_images.append(StationImage(image, prefix))
             if source_images is not None and (not len(source_images) > 0):
                 source_images = None
 
@@ -131,20 +131,23 @@ def get_station_day_images(station_id, day):
                 if len(latest_images) > 0:
                     latest_image = latest_images[0]
 
-                latest_ts = latest_image.time
-                latest_image_set = []
-                for i in source_images:
-                    # Group together all the regular images with the same
-                    # timestamp. We'll exclude unenhanced APT images,
-                    # spectrograms and APT recordings as they're not really
-                    # worthy of being the promoted image and certainly shouldn't
-                    # be in a carousel of all other images from that APT
-                    # broadcast.
-                    if i.time == latest_ts \
-                            and i.type_code not in ('aptd', 'spec', 'apt'):
-                        latest_image_set.append(i)
-                if len(latest_image_set) < 2:
-                    latest_image_set = None  # No set.
+                if latest_image is not None:
+                    latest_ts = latest_image.time
+                    latest_image_set = []
+                    for i in source_images:
+                        # Group together all the regular images with the same
+                        # timestamp. We'll exclude unenhanced APT images,
+                        # spectrograms and APT recordings as they're not really
+                        # worthy of being the promoted image and certainly shouldn't
+                        # be in a carousel of all other images from that APT
+                        # broadcast.
+                        if i.time == latest_ts \
+                                and i.type_code not in ('aptd', 'spec', 'apt'):
+                            latest_image_set.append(i)
+                    if len(latest_image_set) < 2:
+                        latest_image_set = None  # No set.
+                else:
+                    latest_image_set = None # No latest image set
 
                 images.append({
                     'name': source.source_name,
