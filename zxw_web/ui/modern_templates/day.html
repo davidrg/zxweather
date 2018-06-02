@@ -160,6 +160,15 @@
                 });
 
                 $("li", this).height(maxHeight);
+
+                try {
+                    $(".item", this).each(function() {
+                        var h = $(this).find("img").get(0).naturalHeight;
+                        if (h < (maxHeight / 2)) {
+                            $(this).remove();
+                        }
+                    });
+                } catch (e) {}
             })
         });
     </script>
