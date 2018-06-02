@@ -90,7 +90,7 @@ function refresh_7day_charts() {
 //                2 - 7 day chart only
 function show_hide_rainfall_charts(chart) {
     $.getJSON(rainfall_totals_url, function(data) {
-        if (chart == 0 || chart == 1) {
+        if (chart === 0 || chart === 1) {
             if (data['rainfall'] > 0) {
                 $("#chart_hourly_rainfall_div").show();
                 $("#chart_hourly_rainfall_key").show();
@@ -101,7 +101,7 @@ function show_hide_rainfall_charts(chart) {
             $("#tot_rainfall").html(data['rainfall'].toFixed(1));
         }
 
-        if (chart == 0 || chart == 2) {
+        if (chart === 0 || chart === 2) {
             if (data['7day_rainfall'] > 0) {
                 $("#chart_7_hourly_rainfall_div").show();
                 $("#chart_7_hourly_rainfall_key").show();

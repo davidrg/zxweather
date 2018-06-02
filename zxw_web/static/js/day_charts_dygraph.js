@@ -148,7 +148,7 @@ function drawRainfallChart(jsondata,
             this._labels_element.show();
         },
         _show_hide: function() {
-                        // Automatically show or hide the graph depending on if it contains
+            // Automatically show or hide the graph depending on if it contains
             // any data.
             var total = 0;
             for (var i = 0; i < this.data.length; i++) {
