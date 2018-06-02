@@ -89,7 +89,7 @@ bool FetchStationInfoWebTask::processResponse(QByteArray responseData) {
 
             int sample_interval = 5;
             if (stationData.contains("interval")) {
-                sample_interval = stationData["interval"].toInt();
+                sample_interval = stationData["interval"].toInt() / 60;
             }
 
             _dataSource->updateStation(
