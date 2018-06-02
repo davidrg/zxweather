@@ -16,29 +16,46 @@ lessThan(QT_MAJOR_VERSION, 5): CONFIG += uitools
 TARGET = desktop
 TEMPLATE = app
 
-# For building pgc sources with ECPG. For UNIX systems it assumes ecpg is
-# installed in the path.
-ecpg.name = Process Embedded SQL sources
-ecpg.input = ECPG_SOURCES
-ecpg.output = ${QMAKE_FILE_BASE}.cpp
-win32:ecpg.commands = ../desktop/tools/ecpg-9.1-win32/ecpg.exe -o ${QMAKE_FILE_OUT} ${QMAKE_FILE_IN}
-unix: ecpg.commands = ecpg -o ${QMAKE_FILE_OUT} ${QMAKE_FILE_IN}
-ecpg.variable_out = SOURCES
-ecpg.dependency_type = TYPE_CXX
-QMAKE_EXTRA_COMPILERS += ecpg
-
-win32 { # Use bundled postgres libraries
-    LIBS += -L../desktop/lib/libecpg-9.1-win32 -lecpg
-    LIBS += -L../desktop/lib/libpq-9.1-win32 -lpq
-    INCLUDEPATH += lib/libecpg-9.1-win32/include
+# Try to find the ECPG binary
+win32 {
+    #ECPG_BIN = ../desktop/tools/ecpg-9.1-win32/ecpg.exe
+    ECPG_BIN = $$system(where ecpg)
 }
-unix { # Assumes libecpg and libpq have been installed in /usr/lib
-    LIBS += -L/usr/lib -lpq
-    LIBS += -L/usr/lib -lecpg
-    INCLUDEPATH += /usr/include/postgresql
+unix|mac {
+    ECPG_BIN = $$system(which ecpg)
 }
 
-ECPG_SOURCES += database.pgc
+isEmpty(ECPG_BIN) {
+    message("ECPG Not found. Database support disabled.")
+    DEFINES += NO_ECPG
+} else {
+    message("Database support enabled - found ECPG in " $$ECPG_BIN)
+
+    # For building pgc sources with ECPG. For UNIX systems it assumes ecpg is
+    # installed in the path.
+    ecpg.name = Process Embedded SQL sources
+    ecpg.input = ECPG_SOURCES
+    ecpg.output = ${QMAKE_FILE_BASE}.cpp
+    #win32:ecpg.commands = ../desktop/tools/ecpg-9.1-win32/ecpg.exe -o ${QMAKE_FILE_OUT} ${QMAKE_FILE_IN}
+    #unix: ecpg.commands = ecpg -o ${QMAKE_FILE_OUT} ${QMAKE_FILE_IN}
+    ecpg.commands = $$ECPG_BIN -o ${QMAKE_FILE_OUT} ${QMAKE_FILE_IN}
+    ecpg.variable_out = SOURCES
+    ecpg.dependency_type = TYPE_CXX
+    QMAKE_EXTRA_COMPILERS += ecpg
+
+    win32 { # Use bundled postgres libraries
+        LIBS += -L../desktop/lib/libecpg-9.1-win32 -lecpg
+        LIBS += -L../desktop/lib/libpq-9.1-win32 -lpq
+        INCLUDEPATH += lib/libecpg-9.1-win32/include
+    }
+    unix { # Assumes libecpg and libpq have been installed in /usr/lib
+        LIBS += -L/usr/lib -lpq
+        LIBS += -L/usr/lib -lecpg
+        INCLUDEPATH += /usr/include/postgresql
+    }
+
+    ECPG_SOURCES += database.pgc
+}
 
 SOURCES += main.cpp\
         mainwindow.cpp \

@@ -20,6 +20,7 @@
  *
  ****************************************************************************/
 
+#ifndef NO_ECPG
 #include "dbsignaladapter.h"
 
 #include <QtDebug>
@@ -51,3 +52,5 @@ void DBSignalAdapter::raiseDatabaseError(long sqlcode,
 
     emit error(sqlerrmc);
 }
+
+#endif
