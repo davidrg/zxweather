@@ -29,7 +29,7 @@
 #include <QSqlDatabase>
 #include <QDebug>
 #include <QDir>
-#include <QfileInfo>
+#include <QFileInfo>
 #include <QDesktopServices>
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
