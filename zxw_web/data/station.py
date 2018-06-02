@@ -413,7 +413,7 @@ def image_sources(station_id, station_code):
                         second=row.last_image_time_stamp.second,
                         type_code=row.last_image_type_code.lower(),
                         size="metadata",
-                        extension="json"
+                        extension=".json"
                     )
 
     web.header('Content-Type', 'application/json')
