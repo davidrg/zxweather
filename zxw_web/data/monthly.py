@@ -633,13 +633,7 @@ def get_month_samples_tab_delimited(int_year, int_month, station_id):
     max_ts = None
 
     for record in weather_data:
-        # Handle missing data.
-        if record.gap:
-            file_data.append(
-                format_string.format(str(record[record.prev_sample_time]),
-                                     '?', '?', '?', '?', '?', '?', '?', '?',
-                                     '?', '?', '?', '?', '?', '?', '?', '?',
-                                     '?', '?', '?', '?', '?', '?', '?'))
+
         if max_ts is None:
             max_ts = record.time_stamp
 
