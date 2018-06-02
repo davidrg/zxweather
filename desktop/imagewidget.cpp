@@ -32,7 +32,9 @@ ImageWidget::ImageWidget(QWidget *parent) : QWidget(parent)
     videoControlsLocked = false;
     this->info.id = -1;
 
+#ifndef NO_MULTIMEDIA
     videoPlayer = NULL;
+#endif
 
     setContextMenuPolicy(Qt::CustomContextMenu);
     connect(this, SIGNAL(customContextMenuRequested(QPoint)),
@@ -134,6 +136,7 @@ void ImageWidget::setImage(QImage image, QString filename) {
                         setIcon(QIcon(":/icons/audio-32"));
                     }
 
+#ifndef NO_MULTIMEDIA
                     // We have video! Thats sort of an image I guess.
                     qDebug() << "File is video, not image: " << filename;
 
@@ -156,15 +159,25 @@ void ImageWidget::setImage(QImage image, QString filename) {
                     videoPlayer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
                     videoPlayer->show();
                     videoSet = true;
+#else
+                    videoSet = true;
+                    imageSet = true;
+                    isIcon = true;
+                    updateGeometry();
+                    repaint();
+                    return;
+#endif
                 } else if (info.mimeType.startsWith("audio/")) {
                     setIcon(QIcon(":/icons/audio-32"));
                 }
             }
         } else {
+#ifndef NO_MULTIMEDIA
             if (videoPlayer != NULL) {
                 videoPlayer->stop();
                 videoPlayer->hide();
             }
+#endif
         }
 
     } else {
@@ -200,9 +213,11 @@ void ImageWidget::setImage(QImage image, QString filename) {
 }
 
 void ImageWidget::setVideoTickInterval(qint32 interval) {
+#ifndef NO_MULTIMEDIA
     if (videoPlayer != NULL) {
         videoPlayer->setTickInterval(interval);
     }
+#endif
     videoTickInterval = interval;
 }
 
@@ -210,15 +225,19 @@ void ImageWidget::setVideoControlsEnabled(bool enabled) {
     if (enabled) {
         setVideoControlsLocked(false);
     }
+#ifndef NO_MULTIMEDIA
     if (videoPlayer != NULL) {
         videoPlayer->setControlsEnabled(enabled);
     }
+#endif
 }
 
 void ImageWidget::setVideoControlsLocked(bool locked) {
+#ifndef NO_MULTIMEDIA
     if (videoPlayer != NULL) {
         videoPlayer->setControlsLocked(locked);
     }
+#endif
     videoControlsLocked = locked;
 }
 
@@ -279,6 +298,12 @@ void ImageWidget::mouseDoubleClickEvent(QMouseEvent *event) {
     if (!imageSet) {
         return; // Nothing to do
     }
+
+#ifdef NO_MULTIMEDIA
+    if (videoSet && isIcon) {
+        return; // Don't pop out when all we can do is show an icon.
+    }
+#endif
 
     popOut();
 }
@@ -350,6 +375,7 @@ void ImageWidget::videoSizeChanged(QSize size) {
 // To maintain aspect ratio
 int ImageWidget::aspectRatioHeightForWidth(int width) const {
     if (videoSet) {
+#ifndef NO_MULTIMEDIA
         QSize videoSizeHint = videoPlayer->sizeHint();
 
         int result = (int)(((float)videoSizeHint.height() /
@@ -364,6 +390,10 @@ int ImageWidget::aspectRatioHeightForWidth(int width) const {
         // TODO: Extra padding for the controls, etc.
 
         return result;
+#else
+        return 32; // Video will be an icon, 32x32.
+#endif
+
     } else {
         int result = (int)(((float)image.height() / (float)image.width()) * (float)width);
 
@@ -401,9 +431,13 @@ QSize ImageWidget::sizeHint() const {
         if (s.height() > s.width()) {
             s = heightFor169Width(width());
         }
-    } else if (videoSet && videoPlayer != NULL) {
+    }
+#ifndef NO_MULTIMEDIA
+    else if (videoSet && videoPlayer != NULL) {
         s = videoPlayer->sizeHint();
-    } else {
+    }
+#endif
+    else {
         s = image.size();
     }
 
@@ -471,12 +505,21 @@ void ImageWidget::contextMenuRequested(QPoint point) {
 
     QMenu* menu = new QMenu(this);
     menu->setAttribute(Qt::WA_DeleteOnClose);
+
+#if NO_MULTIMEDIA
+    // No support for poping out a video as we can't play them.
+    if (!(videoSet && isIcon)) {
+#endif
+
     QAction *act = menu->addAction("&Open in new window",
                                        this, SLOT(popOut()));
     QFont f = act->font();
     f.setBold(true);
     act->setFont(f);
-
+#if NO_MULTIMEDIA
+    }
+    QAction *act;
+#endif
     act = menu->addAction("&View weather at time",
                           this, SLOT(weatherDataAtTime()));
 

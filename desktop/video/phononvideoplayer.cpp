@@ -1,3 +1,5 @@
+#ifndef NO_MULTIMEDIA
+
 #include "phononvideoplayer.h"
 #include "ui_phononvideoplayer.h"
 
@@ -184,3 +186,5 @@ QSize PhononVideoPlayer::sizeHint() const {
 void PhononVideoPlayer::mediaTick(qint64 time) {
     emit positionChanged(time);
 }
+
+#endif

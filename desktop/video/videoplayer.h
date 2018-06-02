@@ -1,6 +1,8 @@
 #ifndef VIDEOPLAYER_H
 #define VIDEOPLAYER_H
 
+#ifndef NO_MULTIMEDIA
+
 #include <QWidget>
 #include <QMediaPlayer>
 
@@ -51,5 +53,7 @@ private:
     QMediaPlayer mediaObject;
     QSize oldSize;
 };
+
+#endif // NO_MULTIMEDIA
 
 #endif // VIDEOPLAYER_H

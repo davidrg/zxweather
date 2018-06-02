@@ -1008,6 +1008,7 @@ where day_total.station_id = :stationId \
 }
 
 void DatabaseDataSource::enableLiveData() {
+#ifndef NO_ECPG
     using namespace QtJson;
 
     connectToDB();
@@ -1058,6 +1059,9 @@ void DatabaseDataSource::enableLiveData() {
     }
 
     notificationTimer->start();
+#else
+    emit error("Support for receiving live data from the database has not been compiled into this build of the application");
+#endif
 }
 
 hardware_type_t DatabaseDataSource::getHardwareType() {

@@ -8,7 +8,10 @@
 #include <QScopedPointer>
 #include <QTemporaryFile>
 #include "datasource/abstractdatasource.h"
+
+#ifndef NO_MULTIMEDIA
 #include "video/abstractvideoplayer.h"
+#endif
 
 class ImageWidget : public QWidget
 {
@@ -75,7 +78,9 @@ private:
 
     QScopedPointer<QTemporaryFile> imageFile;
 
+#ifndef NO_MULTIMEDIA
     AbstractVideoPlayer *videoPlayer;
+#endif
 
     int aspectRatioHeightForWidth(int width) const;
 

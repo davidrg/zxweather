@@ -1,3 +1,4 @@
+#ifndef NO_MULTIMEDIA
 #include "abstractvideoplayer.h"
 
 #include <QTime>
@@ -51,3 +52,4 @@ QString AbstractVideoPlayer::timeString(qint64 length, qint64 position) const {
 void AbstractVideoPlayer::setControlsLocked(bool locked) {
     controlsLocked = locked;
 }
+#endif

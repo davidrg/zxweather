@@ -1,6 +1,8 @@
 #ifndef PHONONVIDEOPLAYER_H
 #define PHONONVIDEOPLAYER_H
 
+#ifndef NO_MULTIMEDIA
+
 #include <QWidget>
 #include <Phonon/MediaObject>
 
@@ -53,4 +55,5 @@ private:
     bool controlsLocked;
 };
 
+#endif // NO_MULTIMEDIA
 #endif // PHONONVIDEOPLAYER_H

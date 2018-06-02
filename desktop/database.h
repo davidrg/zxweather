@@ -23,6 +23,8 @@
 #ifndef DATABASE_H
 #define DATABASE_H
 
+#ifndef NO_ECPG
+
 #include "dbsignaladapter.h"
 
 #define ST_GENERIC 0
@@ -127,5 +129,7 @@ notifications wdb_live_data_available();
  * @return Station type. One of the ST_ constants.
  */
 int wdb_get_hardware_type();
+
+#endif // NO_ECPG
 
 #endif // DATABASE_H
