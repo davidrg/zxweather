@@ -47,6 +47,11 @@ AccessTypePage::AccessTypePage(QWidget *parent)
         rbLocal->setText("&Local (PostgreSQL database driver not found)");
     }
 
+#ifdef NO_ECPG
+    rbLocal->setEnabled(false);
+    rbLocal->setText("&Local (PostgreSQL live data support disabled at build time)");
+#endif
+
     rbLocal->setWhatsThis(tr("Access data from your local weather database. "
                              "You will need the database name, hostname, port,"
                              " username and password. This is the fastest "

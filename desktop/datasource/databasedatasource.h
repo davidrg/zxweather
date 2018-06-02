@@ -5,8 +5,11 @@
 #include <QTimer>
 #include <QScopedPointer>
 #include "abstractdatasource.h"
-#include "dbsignaladapter.h"
 #include <QSqlError>
+
+#ifndef NO_ECPG
+#include "dbsignaladapter.h"
+#endif
 
 class DatabaseDataSource : public AbstractDataSource
 {
@@ -54,14 +57,15 @@ public:
 
     sample_range_t getSampleRange();
 private slots:
+#ifndef NO_ECPG
     void notificationPump(bool force = false);
+#endif
     void dbError(QString message);
 
 private:
     int getStationId();
     QString getStationHwType();
     void fetchImages(QList<int> imageIds, bool thumbnail);
-    void processLiveData();
     void processNewImage(int imageId);
     void processNewSample(int sampleId);
     double nullableVariantDouble(QVariant v);
@@ -80,10 +84,13 @@ private:
     //QString buildSelectForColumns(SampleColumns columns);
 
     // Live data functionality
+#ifndef NO_ECPG
     void connectToDB();
+    void processLiveData();
     QScopedPointer<QTimer> notificationTimer;
     QScopedPointer<DBSignalAdapter> signalAdapter;
     int sampleInterval;
+#endif
 };
 
 #endif // DATABASEDATASOURCE_H

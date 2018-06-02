@@ -71,6 +71,10 @@ SettingsDialog::SettingsDialog(bool solarDataAvailable, QWidget *parent) :
         ui->qcpSolarRadiation->setVisible(false);
     }
 
+#ifdef NO_ECPG
+    ui->rbLiveDatabase->setEnabled(false);
+#endif
+
     loadSettings();
 
     getCacheInfo();

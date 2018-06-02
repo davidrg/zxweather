@@ -1,6 +1,8 @@
 #include "databasedatasource.h"
 #include "settings.h"
+#ifndef NO_ECPG
 #include "database.h"
+#endif
 #include "json/json.h"
 
 #include <QMessageBox>
@@ -21,6 +23,7 @@
 DatabaseDataSource::DatabaseDataSource(AbstractProgressListener *progressListener, QObject *parent) :
     AbstractDataSource(progressListener, parent)
 {
+#ifndef NO_ECPG
     signalAdapter.reset(new DBSignalAdapter(this));
     wdb_set_signal_adapter(signalAdapter.data());
     connect(signalAdapter.data(), SIGNAL(error(QString)),
@@ -30,15 +33,20 @@ DatabaseDataSource::DatabaseDataSource(AbstractProgressListener *progressListene
     notificationTimer->setInterval(1000);
     connect(notificationTimer.data(), SIGNAL(timeout()),
             this, SLOT(notificationPump()));
+#endif
+
     sampleInterval = -1;
 }
 
 DatabaseDataSource::~DatabaseDataSource() {
     // Disconnect from the DB if required.
+
+#ifndef NO_ECPG
     if (notificationTimer->isActive()) {
         notificationTimer->stop();
         wdb_disconnect();
     }
+#endif
 }
 
 int DatabaseDataSource::getStationId() {
@@ -746,6 +754,7 @@ QSqlQuery DatabaseDataSource::query() {
     return QSqlQuery(QSqlDatabase::database());
 }
 
+#ifndef NO_ECPG
 void DatabaseDataSource::connectToDB() {
     Settings& settings = Settings::getInstance();
 
@@ -773,11 +782,13 @@ void DatabaseDataSource::connectToDB() {
         notificationPump(true);
     }
 }
+#endif
 
 void DatabaseDataSource::dbError(QString message) {
     emit error(message);
 }
 
+#ifndef NO_ECPG
 void DatabaseDataSource::notificationPump(bool force) {
 
     notifications n = wdb_live_data_available();
@@ -862,6 +873,7 @@ void DatabaseDataSource::processLiveData() {
 
     emit liveData(lds);
 }
+#endif
 
 void DatabaseDataSource::processNewImage(int imageId) {
     // Firstly, is it an image we care about?
