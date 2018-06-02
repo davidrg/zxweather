@@ -23,6 +23,8 @@
 #ifndef DBSIGNALADAPTER_H
 #define DBSIGNALADAPTER_H
 
+#ifndef NO_ECPG
+
 #include <QObject>
 
 /** The DBSignalAdapter class converts database errors and other events
@@ -67,5 +69,7 @@ signals:
      */
     void error(QString message);
 };
+
+#endif
 
 #endif // DBSIGNALADAPTER_H

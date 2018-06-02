@@ -1,3 +1,5 @@
+#ifndef NO_MULTIMEDIA
+
 #include "videoplayer.h"
 #include "ui_videoplayer.h"
 
@@ -190,3 +192,5 @@ QSize VideoPlayer::sizeHint() const {
 void VideoPlayer::mediaPositionChanged(qint64 pos) {
     emit positionChanged(pos);
 }
+
+#endif

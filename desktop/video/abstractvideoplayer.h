@@ -1,6 +1,8 @@
 #ifndef ABSTRACTVIDEOPLAYER_H
 #define ABSTRACTVIDEOPLAYER_H
 
+#ifndef NO_MULTIMEDIA
+
 #include <QWidget>
 
 /** A simple video playback widget with play/pause/stop controls plus
@@ -45,5 +47,7 @@ protected:
 
     bool controlsLocked;
 };
+
+#endif // NO_MULTIMEDIA
 
 #endif // ABSTRACTVIDEOPLAYER_H

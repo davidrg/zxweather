@@ -83,13 +83,14 @@ private:
 
     //QString buildSelectForColumns(SampleColumns columns);
 
+    int sampleInterval;
+
     // Live data functionality
 #ifndef NO_ECPG
     void connectToDB();
     void processLiveData();
     QScopedPointer<QTimer> notificationTimer;
     QScopedPointer<DBSignalAdapter> signalAdapter;
-    int sampleInterval;
 #endif
 };
 

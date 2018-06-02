@@ -6,9 +6,7 @@
 
 QT       += core gui network sql
 
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets printsupport multimedia multimediawidgets concurrent uitools
-
-lessThan(QT_MAJOR_VERSION, 5): QT += phonon
+greaterThan(QT_MAJOR_VERSION, 4): QT += widgets printsupport concurrent uitools
 
 lessThan(QT_MAJOR_VERSION, 5): CONFIG += uitools
 
@@ -16,10 +14,28 @@ lessThan(QT_MAJOR_VERSION, 5): CONFIG += uitools
 TARGET = desktop
 TEMPLATE = app
 
-# Try to find the ECPG binary
+# Configure tests
+load(configure)
+qtCompileTest(multimedia)
+
+CONFIG(config_multimedia) {
+    greaterThan(QT_MAJOR_VERSION, 4): QT += multimedia multimediawidgets
+    lessThan(QT_MAJOR_VERSION, 5): QT += phonon
+} else {
+    message("Multimedia support disabled")
+    DEFINES += NO_MULTIMEDIA
+}
+
+#################################
+# ECPG support for DB Live Data #
+#################################
+# Try to find the ECPG binary. If it can't be found we'll disable databsae live data support.
 win32 {
-    #ECPG_BIN = ../desktop/tools/ecpg-9.1-win32/ecpg.exe
     ECPG_BIN = $$system(where ecpg)
+    isEmpty(ECPG_BIN) {
+        # No system ECPG, use repository version
+        ECPG_BIN = ../desktop/tools/ecpg-9.1-win32/ecpg.exe
+    }
 }
 unix|mac {
     ECPG_BIN = $$system(which ecpg)
@@ -273,18 +289,20 @@ FORMS    += mainwindow.ui \
     reporting/runreportdialog.ui \
     charts/datasetsdialog.ui
 
-# On Qt 4 we've got to use Phonon for video playback.
-lessThan(QT_MAJOR_VERSION, 5) {
-    HEADERS += video/phononvideoplayer.h
-    SOURCES += video/phononvideoplayer.cpp
-    FORMS += video/phononvideoplayer.ui
-}
+CONFIG(config_multimedia) {
+    # On Qt 4 we've got to use Phonon for video playback.
+    lessThan(QT_MAJOR_VERSION, 5) {
+        HEADERS += video/phononvideoplayer.h
+        SOURCES += video/phononvideoplayer.cpp
+        FORMS += video/phononvideoplayer.ui
+    }
 
-# Qt 5 doesn't ship with Phonon - We've got to use QtMultimedia instead.
-greaterThan(QT_MAJOR_VERSION, 4) {
-    HEADERS += video/videoplayer.h
-    SOURCES += video/videoplayer.cpp
-    FORMS += video/videoplayer.ui
+    # Qt 5 doesn't ship with Phonon - We've got to use QtMultimedia instead.
+    greaterThan(QT_MAJOR_VERSION, 4) {
+        HEADERS += video/videoplayer.h
+        SOURCES += video/videoplayer.cpp
+        FORMS += video/videoplayer.ui
+    }
 }
 
 

@@ -118,20 +118,28 @@ void WeatherImageWindow::imageReady(ImageInfo imageInfo, QImage image, QString f
         }
     }
 
+#ifdef NO_MULTIMEDIA
+    bool haveVideoMeta = false;
+#else
     bool haveVideoMeta = !start.isNull() &&
             !finish.isNull() && haveInterval &&
             haveFrameCount;
+#endif
 
     // If its an image or a video without metadata, show metadata for the
     // timestamp. For a video this will probably be as of the end of the video.
     if (isImage || (!isImage && !haveVideoMeta)) {
         videoSync = false;
         if (!isImage) {
+#if NO_MULTIMEDIA
+            ui->message->setText(tr("Multimedia support not available"));
+#else
             if (imageInfo.mimeType.startsWith("video/")) {
                 ui->message->setText(tr("Insufficient video metadata"));
             } else {
                 ui->message->setText(tr("Insufficient metadata"));
             }
+#endif
         }
 
         dataSource.data()->fetchSamples(ALL_SAMPLE_COLUMNS,
