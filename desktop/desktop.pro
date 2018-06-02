@@ -4,6 +4,8 @@
 #
 #-------------------------------------------------
 
+load(configure)
+
 QT       += core gui network sql
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets printsupport concurrent uitools
@@ -14,13 +16,15 @@ lessThan(QT_MAJOR_VERSION, 5): CONFIG += uitools
 TARGET = desktop
 TEMPLATE = app
 
-# Configure tests
-load(configure)
+######################
+# Multimedia support #
+######################
 qtCompileTest(multimedia)
 
 CONFIG(config_multimedia) {
     greaterThan(QT_MAJOR_VERSION, 4): QT += multimedia multimediawidgets
     lessThan(QT_MAJOR_VERSION, 5): QT += phonon
+    message("Multimedia support enabled")
 } else {
     message("Multimedia support disabled")
     DEFINES += NO_MULTIMEDIA
@@ -29,7 +33,7 @@ CONFIG(config_multimedia) {
 #################################
 # ECPG support for DB Live Data #
 #################################
-# Try to find the ECPG binary. If it can't be found we'll disable databsae live data support.
+# Try to find the ECPG binary. If it can't be found we'll disable database live data support.
 win32 {
     ECPG_BIN = $$system(where ecpg)
     isEmpty(ECPG_BIN) {
