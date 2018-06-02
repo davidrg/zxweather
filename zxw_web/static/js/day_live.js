@@ -1245,87 +1245,83 @@ function parse_sample(parts) {
 
 function check_for_new_records(sample) {
 
-    if (records == null) {
-        return;  // No records to compare with
-    }
-
     var time_stamp = sample.time_stamp;
 
     var new_records = [];
 
-    if (sample.temperature > records.max_temp) {
+    if (records == null || sample.temperature > records.max_temp) {
         records.max_temp = sample.temperature;
         records.max_temp_ts = time_stamp;
         new_records.push(['day', 'max_temp', sample.temperature, time_stamp]);
     }
-    if (sample.temperature < records.min_temp) {
+    if (records == null || sample.temperature < records.min_temp) {
         records.min_temp = sample.temperature;
         records.min_temp_ts = time_stamp;
         new_records.push(['day', 'min_temp', sample.temperature, time_stamp]);
     }
 
-    if (sample.wind_chill > records.max_wind_chill) {
+    if (records == null || sample.wind_chill > records.max_wind_chill) {
         records.max_wind_chill = sample.wind_chill;
         records.max_wind_chill_ts = time_stamp;
         new_records.push(['day', 'max_wind_chill', sample.wind_chill, time_stamp]);
     }
-    if (sample.wind_chill < records.min_wind_chill) {
+    if (records == null || sample.wind_chill < records.min_wind_chill) {
         records.min_wind_chill = sample.wind_chill;
         records.min_wind_chill_ts = time_stamp;
         new_records.push(['day', 'min_wind_chill', sample.wind_chill, time_stamp]);
     }
 
-    if (sample.apparent_temperature > records.max_apparent_temp) {
+    if (records == null || sample.apparent_temperature > records.max_apparent_temp) {
         records.max_apparent_temp = sample.apparent_temperature;
         records.max_apparent_temp_ts = time_stamp;
         new_records.push(['day', 'max_apparent_temp', sample.apparent_temperature, time_stamp]);
     }
-    if (sample.apparent_temperature < records.min_apparent_temp) {
+    if (records == null || sample.apparent_temperature < records.min_apparent_temp) {
         records.min_apparent_temp = sample.apparent_temperature;
         records.min_apparent_temp_ts = time_stamp;
         new_records.push(['day', 'min_apparent_temp', sample.apparent_temperature, time_stamp]);
     }
 
-    if (sample.dew_point > records.max_dew_point) {
+    if (records == null || sample.dew_point > records.max_dew_point) {
         records.max_dew_point = sample.dew_point;
         records.max_dew_point_ts = time_stamp;
         new_records.push(['day', 'max_dew_point', sample.dew_point, time_stamp]);
     }
-    if (sample.dew_point < records.min_dew_point) {
+    if (records == null || sample.dew_point < records.min_dew_point) {
         records.min_dew_point = sample.dew_point;
         records.min_dew_point_ts = time_stamp;
         new_records.push(['day', 'min_dew_point', sample.dew_point, time_stamp]);
     }
 
-    if (sample.pressure > records.max_pressure) {
+    if (records == null || sample.pressure > records.max_pressure) {
         records.max_pressure = sample.pressure;
         records.max_pressure_ts = time_stamp;
         new_records.push(['day', 'max_pressure', sample.pressure, time_stamp]);
     }
-    if (sample.pressure < records.min_pressure) {
+    if (records == null || sample.pressure < records.min_pressure) {
         records.min_pressure = sample.pressure;
         records.min_pressure_ts = time_stamp;
         new_records.push(['day', 'min_pressure', sample.pressure, time_stamp]);
     }
 
-    if (sample.humidity > records.max_humidity) {
+    if (records == null || sample.humidity > records.max_humidity) {
         records.max_humidity = sample.humidity;
         records.max_humidity_ts = time_stamp;
         new_records.push(['day', 'max_humidity', sample.humidity, time_stamp]);
     }
-    if (sample.humidity < records.min_humidity) {
+    if (records == null || sample.humidity < records.min_humidity) {
         records.min_humidity = sample.humidity;
         records.min_humidity_ts = time_stamp;
         new_records.push(['day', 'min_humidity', sample.humidity, time_stamp]);
     }
 
-    if (sample.gust_wind_speed > records.max_gust_wind) {
+    if (records == null || sample.gust_wind_speed > records.max_gust_wind) {
         records.max_gust_wind = sample.gust_wind_speed;
         records.max_gust_wind_ts = time_stamp;
         new_records.push(['day', 'max_gust_wind', sample.gust_wind_speed, time_stamp]);
     }
 
-    if (sample.wind_speed > records.max_wind) {
+    if (records == null || sample.wind_speed > records.max_wind) {
         records.max_wind = sample.wind_speed;
         records.max_wind_ts = time_stamp;
         new_records.push(['day', 'max_wind', sample.wind_speed, time_stamp]);
