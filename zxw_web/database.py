@@ -1614,7 +1614,8 @@ order by dr.date_stamp
 
 
 # Query used by weather_plot for the month data set. Copied here as the desktop
-# client also uses this dataset for over-the-internet operation
+# client also uses this dataset for over-the-internet operation. This version
+# has gap detection removed as the desktop client figures this out itself
 def get_month_data_wp(year, month, station_id):
     query = """
 select cur.time_stamp,
@@ -1630,12 +1631,7 @@ select cur.time_stamp,
        round(cur.average_wind_speed::numeric,2) as average_wind_speed,
        round(cur.gust_wind_speed::numeric,2) as gust_wind_speed,
        cur.wind_direction,
-       cur.time_stamp::time - (s.sample_interval * '1 minute'::interval) as prev_sample_time,
-       CASE WHEN (cur.time_stamp - prev.time_stamp) > ((s.sample_interval * 2) * '1 minute'::interval) THEN
-          true
-       else
-          false
-       end as gap,
+       cur.time_stamp - (s.sample_interval * '1 second'::interval) as prev_sample_time,
        ds.average_uv_index as uv_index,
        ds.solar_radiation,
        
@@ -1652,12 +1648,6 @@ select cur.time_stamp,
        ds.high_uv_index,
        ds.forecast_rule_id
 from sample cur
-inner join sample prev on prev.station_id = cur.station_id
-        and prev.time_stamp = (
-            select max(pm.time_stamp)
-            from sample pm
-            where pm.time_stamp < cur.time_stamp
-            and pm.station_id = cur.station_id)
 inner join station s on s.station_id = cur.station_id
 left outer join davis_sample ds on ds.sample_id = cur.sample_id
 where date(date_trunc('month',cur.time_stamp)) = $date
@@ -1668,8 +1658,6 @@ order by cur.time_stamp asc
     # TODO: Integrate this get_station_config call into the query when our
     # minimum PostgreSQL version supports JSON
     broadcast_id = get_station_config(station_id)['broadcast_id']
-
-    print("Broadcast Id: {0}".format(broadcast_id))
 
     params = dict(station=station_id, date=date(year=year,month=month,day=1),
                   broadcast_id=broadcast_id)
@@ -1694,7 +1682,8 @@ where date(date_trunc('month',cur.time_stamp)) = $date
     return result[0].max_ts
 
 # Query used by weather_plot for the day data set. Copied here as the desktop
-# client also uses this dataset for over-the-internet operation
+# client also uses this dataset for over-the-internet operation. This version
+# excludes gap detection as the desktop client figures that out on its own.
 def get_day_data_wp(date, station_id):
     query = """select cur.time_stamp::time as time,
        cur.time_stamp,
@@ -1710,12 +1699,7 @@ def get_day_data_wp(date, station_id):
        round(cur.average_wind_speed::numeric,2) as average_wind_speed,
        round(cur.gust_wind_speed::numeric,2) as gust_wind_speed,
        cur.wind_direction,
-       cur.time_stamp::time - (s.sample_interval * '1 minute'::interval) as prev_sample_time,
-       CASE WHEN (cur.time_stamp - prev.time_stamp) > ((s.sample_interval * 2) * '1 minute'::interval) THEN
-          true
-       else
-          false
-       end as gap,
+       cur.time_stamp - (s.sample_interval * '1 second'::interval) as prev_sample_time,
        ds.average_uv_index as uv_index,
        ds.solar_radiation,
        
@@ -1732,11 +1716,6 @@ def get_day_data_wp(date, station_id):
        ds.high_uv_index,
        ds.forecast_rule_id
 from sample cur
-inner join sample prev on prev.time_stamp = (
-        select max(x.time_stamp)
-        from sample x
-        where x.time_stamp < cur.time_stamp
-        and x.station_id = cur.station_id) and prev.station_id = cur.station_id
 inner join station s on s.station_id = cur.station_id
 left outer join davis_sample ds on ds.sample_id = cur.sample_id
 where date(cur.time_stamp) = $date

@@ -1227,13 +1227,6 @@ def get_day_samples_tab_delimited(this_date, station_id):
                     '{11}\t{12}\t{13}\t{14}\t{15}\t{16}\t{17}\t{18}\t{19}\t' \
                     '{20}\t{21}\t{22}\t{23}\n'
     for record in weather_data:
-        # Handle missing data.
-        if record.gap:
-            file_data.append(
-                format_string.format(str(record.prev_sample_time),
-                                     '?', '?', '?', '?', '?', '?', '?', '?',
-                                     '?', '?', '?', '?', '?', '?', '?', '?',
-                                     '?', '?', '?', '?', '?', '?', '?'))
 
         if max_ts is None:
             max_ts = record.time_stamp
