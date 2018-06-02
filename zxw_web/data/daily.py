@@ -978,8 +978,13 @@ class image:
 
             image = get_image_details(image_id)
 
-            result = json.dumps({"title": image.title,
-                                 "description": image.description})
+            data = {"title": image.title,
+                    "description": image.description}
+
+            if data["title"] is None or data["title"] == "":
+                data["title"] = time_stamp.time().strftime("%H:%M")
+
+            result = json.dumps(data)
 
             web.header('Content-Type', 'application/json')
             web.header('Content-Length', str(len(result)))
