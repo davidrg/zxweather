@@ -4,6 +4,9 @@ BasicQCPInteractionManager::BasicQCPInteractionManager(QCustomPlot *plot, QObjec
     QObject(parent)
 {
     this->plot = plot;
+    xAxisLock = false;
+    yAxisLock = false;
+    mDragging = false;
 
     connect(plot, SIGNAL(mousePress(QMouseEvent*)),
             this, SLOT(mousePress(QMouseEvent*)));

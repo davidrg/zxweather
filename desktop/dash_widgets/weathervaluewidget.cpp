@@ -23,6 +23,8 @@ WeatherValueWidget::WeatherValueWidget(QWidget *parent) : QWidget(parent)
     doubleValue = false;
     imperial = Settings::getInstance().imperial();
     kmh = false;
+    column1 = SC_NoColumns;
+    column2 = SC_NoColumns;
 
     setContextMenuPolicy(Qt::CustomContextMenu);
     connect(this, SIGNAL(customContextMenuRequested(QPoint)),
