@@ -177,7 +177,7 @@ void Settings::setMinimiseToSysTray(bool enabled) {
 
 bool Settings::miniseToSysTray() {
     return settings->value(SettingsKey::General::MINIMISE_TO_SYSTRAY,
-                           true).toBool();
+                           false).toBool();
 }
 
 void Settings::setCloseToSysTray(bool enabled) {
@@ -187,7 +187,7 @@ void Settings::setCloseToSysTray(bool enabled) {
 
 bool Settings::closeToSysTray() {
     return settings->value(SettingsKey::General::CLOSE_TO_SYSTRAY,
-                           true).toBool();
+                           false).toBool();
 }
 
 /* Data Source */
