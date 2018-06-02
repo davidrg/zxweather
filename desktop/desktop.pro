@@ -21,11 +21,13 @@ TEMPLATE = app
 ######################
 qtCompileTest(multimedia)
 
-CONFIG(config_multimedia) {
+config_multimedia {
     greaterThan(QT_MAJOR_VERSION, 4): QT += multimedia multimediawidgets
     lessThan(QT_MAJOR_VERSION, 5): QT += phonon
     message("Multimedia support enabled")
-} else {
+}
+
+!config_multimedia {
     message("Multimedia support disabled")
     DEFINES += NO_MULTIMEDIA
 }
@@ -35,11 +37,13 @@ CONFIG(config_multimedia) {
 #################################
 # Try to find the ECPG binary. If it can't be found we'll disable database live data support.
 win32 {
-    ECPG_BIN = $$system(where ecpg)
-    isEmpty(ECPG_BIN) {
-        # No system ECPG, use repository version
-        ECPG_BIN = ../desktop/tools/ecpg-9.1-win32/ecpg.exe
-    }
+    #ECPG_BIN = $$system(where ecpg)
+    #isEmpty(ECPG_BIN) {
+    #    # No system ECPG, use repository version
+    #    ECPG_BIN = ../desktop/tools/ecpg-9.1-win32/ecpg.exe
+    #}
+
+    ECPG_BIN = ../desktop/tools/ecpg-9.1-win32/ecpg.exe
 }
 unix|mac {
     ECPG_BIN = $$system(which ecpg)
@@ -48,7 +52,9 @@ unix|mac {
 isEmpty(ECPG_BIN) {
     message("ECPG Not found. Database support disabled.")
     DEFINES += NO_ECPG
-} else {
+}
+
+!isEmpty(ECPG_BIN) {
     message("Database support enabled - found ECPG in " $$ECPG_BIN)
 
     # For building pgc sources with ECPG. For UNIX systems it assumes ecpg is
@@ -293,7 +299,7 @@ FORMS    += mainwindow.ui \
     reporting/runreportdialog.ui \
     charts/datasetsdialog.ui
 
-CONFIG(config_multimedia) {
+config_multimedia {
     # On Qt 4 we've got to use Phonon for video playback.
     lessThan(QT_MAJOR_VERSION, 5) {
         HEADERS += video/phononvideoplayer.h
