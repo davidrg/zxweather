@@ -129,6 +129,10 @@ ChartWindow::ChartWindow(QList<DataSet> dataSets, bool solarAvailable, bool isWi
 
     this->dataSets = dataSets;
 
+    for(int i = 0; i < this->dataSets.count(); i++) {
+        this->dataSets[i].id = i;
+    }
+
     reloadDataSets(true);
 }
 

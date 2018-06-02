@@ -74,6 +74,7 @@ TreeItem::TreeItem(ItemType type, QDate date, QString sourceCode, QString text,
     mChildrenLoaded = false;
     mDate = date;
     mSourceCode = sourceCode;
+    mLoadRequested = false;
     this->imageId = imageId;
     temporaryImageFile = NULL;
 
