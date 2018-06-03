@@ -14,7 +14,7 @@ LiveMonitor::LiveMonitor(QObject *parent) :
 void LiveMonitor::LiveDataRefreshed() {
     if (!timer) // Not configured yet.
         return;
-    timer->start(); // restart the timer to prevent timeout
+
     lastRefresh = QDateTime::currentDateTime();
 }
 
@@ -27,7 +27,8 @@ void LiveMonitor::reconfigure() {
     Settings& settings = Settings::getInstance();
 
     if (settings.liveTimeoutEnabled()) {
-        timer->setInterval(settings.liveTimeoutInterval());
+        interval = settings.liveTimeoutInterval();
+        timer->setInterval(interval);
         timer->start();
     } else {
         timer->stop();
@@ -36,6 +37,10 @@ void LiveMonitor::reconfigure() {
 
 void LiveMonitor::timeout() {
     if (!enabled) return;
+
+    if (QDateTime::currentMSecsSinceEpoch() - lastRefresh.toMSecsSinceEpoch() < interval) {
+        return; // Update was recent enough to be ok.
+    }
 
     emit showWarningPopup("No live data updates have been received since " +
                           lastRefresh.toString() +
