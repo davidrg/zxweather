@@ -1,7 +1,7 @@
 select data.station_id,
     data.rows_processed as rows_processed,
     cast(round(data.total_rainfall, 1) as text) as total_rainfall,
-    data.max_gust_wind_speed as max_gust_wind_speed,
+    cast(round(data.max_gust_wind_speed, 1) as text) as max_gust_wind_speed,
     datetime(max(data.max_gust_wind_speed_ts), 'unixepoch', 'localtime') as max_gust_wind_speed_ts,
     datetime(min(data.max_gust_wind_speed_ts), 'unixepoch', 'localtime') as max_gust_wind_speed_ts_min,
     cast(round(data.max_average_wind_speed, 1) as text) as max_average_wind_speed,

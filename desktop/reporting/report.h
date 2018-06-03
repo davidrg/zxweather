@@ -157,6 +157,8 @@ private:
 
     output_type_t output_type;
 
+    QSize outputWindowSize;
+
     // For running the report
     ReportFinisher* _finisher;
     AbstractDataSource *_dataSource;
