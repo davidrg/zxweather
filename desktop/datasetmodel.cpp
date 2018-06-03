@@ -28,7 +28,7 @@ int DataSetModel::columnCount(const QModelIndex &parent) const
 
 QVariant DataSetModel::data(const QModelIndex &index, int role) const
 {
-    if (role != Qt::DisplayRole) {
+    if (role != Qt::DisplayRole && role != DSM_SORT_ROLE) {
         return QVariant();
     }
 
@@ -76,9 +76,12 @@ QVariant DataSetModel::data(const QModelIndex &index, int role) const
         if (sampleSet.windDirection.contains(idx)) {
             return sampleSet.windDirection[idx];
         }
-        QVariant v;
-        v.convert(QVariant::Int);
-        return v;
+
+        // Else its null.
+        if (role == DSM_SORT_ROLE) {
+            return QVariant(QVariant::Int);
+        }
+        return "--";
     }
     case SC_SolarRadiation:
         value = sampleSet.solarRadiation[row];
@@ -87,6 +90,9 @@ QVariant DataSetModel::data(const QModelIndex &index, int role) const
         value = sampleSet.uvIndex[row];
         break;
     case SC_Timestamp:
+        if (role == DSM_SORT_ROLE) {
+            return sampleSet.timestampUnix[row];
+        }
         return QDateTime::fromTime_t(sampleSet.timestampUnix[row]);
     case SC_Reception:
         value = sampleSet.reception[row];
@@ -105,9 +111,12 @@ QVariant DataSetModel::data(const QModelIndex &index, int role) const
         if (sampleSet.gustWindDirection.contains(idx)) {
             return sampleSet.gustWindDirection[idx];
         }
-        QVariant v;
-        v.convert(QVariant::Int);
-        return v;
+
+        // Else its null.
+        if (role == DSM_SORT_ROLE) {
+            return QVariant(QVariant::Int);
+        }
+        return "--";
     }
     case SC_Evapotranspiration:
         value = sampleSet.evapotranspiration[row];
@@ -128,6 +137,9 @@ QVariant DataSetModel::data(const QModelIndex &index, int role) const
     }
 
     if (std::isnan(value)) {
+        if (role == DSM_SORT_ROLE) {
+            return QVariant(QVariant::Double);
+        }
         return "--";
     }
 

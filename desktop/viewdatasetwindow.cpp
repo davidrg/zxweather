@@ -98,6 +98,7 @@ void ViewDataSetWindow::samplesReady(SampleSet samples)
 
     DataSetModel *model = new DataSetModel(dataSet, samples, this);
     SortProxyModel *sortableModel = new SortProxyModel(this);
+    sortableModel->setSortRole(DSM_SORT_ROLE);
     sortableModel->setSourceModel(model);
 
     ui->tableView->setModel(sortableModel);
