@@ -29,6 +29,7 @@ private slots:
 private:
     QTimer* timer;
     QDateTime lastRefresh;
+    int interval;
     bool enabled;
 };
 
