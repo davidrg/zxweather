@@ -105,6 +105,8 @@ MainWindow::MainWindow(QWidget *parent) :
     // Rainfall widget
     connect(ui->rainfall, SIGNAL(chartRequested(DataSet)),
             this, SLOT(chartRequested(DataSet)));
+    connect(ui->rainfall, SIGNAL(refreshRequested()),
+            this, SLOT(refreshRainWidget()));
 
     // Live data monitor.
     liveMonitor.reset(new LiveMonitor());
@@ -559,6 +561,11 @@ void MainWindow::updateSysTrayIcon(QIcon icon) {
 
 void MainWindow::dataSourceError(QString message) {
     showWarningPopup(message, "Error", "", false);
+}
+
+void MainWindow::refreshRainWidget() {
+    ui->rainfall->reset();
+    dataSource->fetchRainTotals();
 }
 
 void MainWindow::reconfigureDataSource() {   
