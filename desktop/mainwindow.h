@@ -31,6 +31,7 @@
 #include <QScopedPointer>
 #include <QLayoutItem>
 #include <QHash>
+#include <QTimer>
 
 #include "livemonitor.h"
 #include "datasource/abstractdatasource.h"
@@ -139,6 +140,8 @@ private slots:
 
     void refreshRainWidget();
 
+    void checkDatabase();
+
 protected:
     /**
      * @brief changeEvent handles minimising the window to the system tray if
@@ -160,6 +163,7 @@ private:
     QScopedPointer<QMenu> trayIconMenu;
     QScopedPointer<QAction> restoreAction;
     QScopedPointer<QAction> quitAction;
+    QTimer databaseChecker;
 
     bool minimise_to_systray;
     bool close_to_systray;

@@ -163,7 +163,10 @@ MainWindow::MainWindow(QWidget *parent) :
     qDebug() << "Read settings and connect...";
     readSettings();
 
-
+    // Timer to check for dropped database connections. This is likely if the
+    // PC goes to sleep or wifi is turned off.
+    databaseChecker.setInterval(30000); // Check DB Connection every 30 seconds.
+    connect(&databaseChecker, SIGNAL(timeout()), this, SLOT(checkDatabase()));
 
     if (settings.stationCode().isEmpty()) {
         // We're probably migrating settings from v0.1.
@@ -249,6 +252,39 @@ bool MainWindow::databaseCompatibilityChecks() {
     return true;
 }
 
+void MainWindow::checkDatabase() {
+    QSqlDatabase db = QSqlDatabase::database(QSqlDatabase::defaultConnection, false);
+
+    qDebug() << "Database check";
+
+    if (!db.isOpen()) {
+        qDebug() << "Lost database connection. Beginning reconnect...";
+        if (!db.open()) {
+            dataSourceError("Failed to reconnect database");
+            return;
+        }
+        qDebug() << "Reconnected!";
+
+        // Now re-enable live data
+        dataSource->enableLiveData();
+        dataSource->fetchRainTotals();
+    }
+
+    QSqlQuery q;
+    if (!q.exec("select 1")) {
+        qDebug() << "Lost database connection. Beginning reconnect...";
+        if (!db.open()) {
+            dataSourceError("Failed to reconnect database");
+            return;
+        }
+        qDebug() << "Reconnected!";
+
+        // Now re-enable live data
+        dataSource->enableLiveData();
+        dataSource->fetchRainTotals();
+    }
+}
+
 void MainWindow::reconnectDatabase() {
     Settings& settings = Settings::getInstance();
 
@@ -293,6 +329,7 @@ void MainWindow::reconnectDatabase() {
             bool result = databaseCompatibilityChecks();
             if (result) {
                 reconfigureDataSource();
+                databaseChecker.start();
             }
         }
     } else {
@@ -361,6 +398,7 @@ void MainWindow::showSettings() {
                 && settings.sampleDataSourceType() != Settings::DS_TYPE_DATABASE) {
             // For the database live data source reconnectDatabase() will handle
             // calling reconfigureDataSource() once the database is ready.
+            databaseChecker.stop();
             reconfigureDataSource();
         }
 
