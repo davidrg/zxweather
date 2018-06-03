@@ -10,7 +10,7 @@
 #include <QApplication>
 #include <QClipboard>
 #include <QFontDatabase>
-#include <QSortFilterProxyModel>
+#include "sortproxymodel.h"
 
 #if (QT_VERSION < QT_VERSION_CHECK(5,0,0))
 #include <QFont>
@@ -83,7 +83,8 @@ void ReportDisplayWindow::addGridTab(QString name, QIcon icon, QAbstractTableMod
 
     QTableView *table = new QTableView(tab);
     model->setParent(table);
-    QSortFilterProxyModel *sortableModel = new QSortFilterProxyModel(this);
+    //QSortFilterProxyModel *sortableModel = new QSortFilterProxyModel(this);
+    SortProxyModel *sortableModel = new SortProxyModel(this);
     sortableModel->setSourceModel(model);
     table->setModel(sortableModel);
     table->resizeColumnsToContents();
