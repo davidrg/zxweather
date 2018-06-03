@@ -1,11 +1,11 @@
 #include <QMessageBox>
-#include <QSortFilterProxyModel>
 #include <QClipboard>
 
 #include "viewdatasetwindow.h"
 #include "ui_viewdatasetwindow.h"
 #include "datasetmodel.h"
 #include "settings.h"
+#include "sortproxymodel.h"
 
 #include "datasource/databasedatasource.h"
 #include "datasource/webdatasource.h"
@@ -97,7 +97,7 @@ void ViewDataSetWindow::samplesReady(SampleSet samples)
 {
 
     DataSetModel *model = new DataSetModel(dataSet, samples, this);
-    QSortFilterProxyModel *sortableModel = new QSortFilterProxyModel(this);
+    SortProxyModel *sortableModel = new SortProxyModel(this);
     sortableModel->setSourceModel(model);
 
     ui->tableView->setModel(sortableModel);
