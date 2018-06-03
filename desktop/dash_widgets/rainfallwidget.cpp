@@ -487,6 +487,9 @@ void RainfallWidget::showContextMenu(QPoint point) {
     menu->addAction(tr("Save As..."), this, SLOT(save()));
     menu->addSeparator();
 
+    menu->addAction(tr("&Refresh"), this, SLOT(requestRefresh()));
+    menu->addSeparator();
+
     QMenu *rain = menu->addMenu(tr("Plot"));
     action = rain->addAction(tr("Today"), this, SLOT(plotRain()));
     action->setData("today,s");
@@ -517,6 +520,10 @@ void RainfallWidget::showContextMenu(QPoint point) {
     action->setData("year,c");
 
     menu->popup(plot->mapToGlobal(point));
+}
+
+void RainfallWidget::requestRefresh() {
+    emit refreshRequested();
 }
 
 void RainfallWidget::plotRain() {

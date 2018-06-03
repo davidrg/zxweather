@@ -27,9 +27,11 @@ public slots:
     void setRain(QDate date, double day, double month, double year);
     void setStormRateEnabled(bool enabled);
     void reset();
+    void requestRefresh();
 
 signals:
     void chartRequested(DataSet dataset);
+    void refreshRequested();
 
 protected:
     void mousePressEvent(QMouseEvent *event);

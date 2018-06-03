@@ -137,6 +137,8 @@ private slots:
 
     void newImage(NewImageInfo imageInfo);
 
+    void refreshRainWidget();
+
 protected:
     /**
      * @brief changeEvent handles minimising the window to the system tray if
