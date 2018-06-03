@@ -234,6 +234,18 @@ Report::Report(QString name)
         }
     }
 
+    if (doc.contains("output_window_size") && !this->_debug) {
+        QVariantMap sz = doc["output_window_size"].toMap();
+        if (sz.contains("height") && sz.contains("width")) {
+            outputWindowSize.setHeight(sz.value("height").toInt());
+            outputWindowSize.setWidth(sz.value("width").toInt());
+        } else {
+            outputWindowSize = QSize();
+        }
+    } else {
+        outputWindowSize = QSize();
+    }
+
     QVariantList outputs = doc["outputs"].toList();
     foreach (QVariant item, outputs) {
         QVariantMap o = item.toMap();
@@ -785,6 +797,10 @@ void Report::outputToUI(QMap<QString, QVariant> reportParameters,
     }
 
     window->setSaveOutputs(files);
+
+    if (this->outputWindowSize.isValid()) {
+        window->resize(this->outputWindowSize);
+    }
 
     window->show();
     window->setAttribute(Qt::WA_DeleteOnClose);
