@@ -6,6 +6,8 @@
 
 #include "datasource/sampleset.h"
 
+#define DSM_SORT_ROLE (Qt::UserRole + 1)
+
 class DataSetModel : public QAbstractTableModel
 {
     Q_OBJECT

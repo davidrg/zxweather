@@ -2,102 +2,154 @@
 
 #include <QStringList>
 #include <QTime>
+#include <QtDebug>
 
 SortProxyModel::SortProxyModel(QObject *parent): QSortFilterProxyModel(parent)
 {
-
+#ifdef USE_INTERVAL_REGEXP
+    // This regexp has two captures:
+    //  1: number of days
+    //  2: time component (hh:mm:ss)
+    intervalRegExp = QRegExp("(?:(\\d+) days )?(\\d\\d:\\d\\d:\\d\\d)");
+#endif
 }
+
+void SortProxyModel::sort(int column, Qt::SortOrder order) {
+    int start = QDateTime::currentMSecsSinceEpoch();
+
+    QSortFilterProxyModel::sort(column, order);
+
+    int end = QDateTime::currentMSecsSinceEpoch();
+
+    qDebug() << "Sort completed in" << end - start << "ms";
+}
+
+#ifdef USE_INTERVAL_REGEXP
+int SortProxyModel::intervalToSeconds(QString interval) const {
+    QTime time;
+    int days = -1;
+    if (intervalRegExp.indexIn(interval.trimmed()) == 0) {
+        QString daysString = intervalRegExp.cap(1);
+        if (daysString.isNull() || daysString.isEmpty()) {
+            days = 0;
+        } else {
+            bool ok;
+            days = daysString.toInt(&ok);
+            if (!ok) {
+                days = -1;
+            }
+        }
+        if (days >= 0) {
+            time = QTime::fromString(intervalRegExp.cap(2), "hh:mm:ss");
+        }
+    }
+
+    if (days < 0 || !time.isValid() || time.isNull()) {
+        return -1;
+    }
+
+    // 86400 seconds in a day, 1000ms in a second
+    return (days * 86400) + (time.msecsSinceStartOfDay() / 1000);
+}
+#else
+int SortProxyModel::intervalToSeconds(QString interval) const {
+    QStringList parts = interval.trimmed().split(" ");
+
+    bool hasDays = parts.count() == 3 && parts.at(1) == "days";
+    int seconds = -1;
+
+    if (hasDays) {
+        bool ok;
+        int days = parts.at(0).toInt(&ok);
+        if (ok) {
+            seconds = days * 86400; // Seconds in a day
+
+            QTime t = QTime::fromString(parts.at(2), "hh:mm:ss");
+            if (t.isValid()) {
+                seconds += t.msecsSinceStartOfDay() / 1000;
+            } else {
+                seconds = -1;
+            }
+        }
+    } else {
+        QTime t = QTime::fromString(interval.trimmed(), "hh:mm:ss");
+        if (t.isValid()) {
+            seconds = t.msecsSinceStartOfDay() / 1000;
+        }
+    }
+
+    return seconds;
+}
+#endif
+
+
 
 bool SortProxyModel::lessThan(const QModelIndex &left,
                                       const QModelIndex &right) const
 {
-    QVariant leftData = sourceModel()->data(left);
-    QVariant rightData = sourceModel()->data(right);
+#ifdef ENABLE_EXTENDED_SORTING
+    QVariant leftData = sourceModel()->data(left, sortRole());
+    QVariant rightData = sourceModel()->data(right, sortRole());
 
     // Handle null values. Null is considered to be a larger than any non-null value.
     // This is the default sort behaviour for PostgreSQL.
-    bool leftIsNull = leftData.isNull();
-    if (!leftIsNull) {
-        leftIsNull = leftData.toString() == "--";
-    }
-
-    bool rightIsNull = rightData.isNull();
-    if (!rightIsNull) {
-        rightIsNull = rightData.toString() == "--";
-    }
-
-    if (leftIsNull && !rightIsNull) {
+    if (leftData.isNull() && !rightData.isNull()) {
         return false; // We'll consider null greater than non-null values.
+    } else if (!leftData.isNull() && rightData.isNull()) {
+        return true;
     }
 
-    // If both values can be parsed as a float then sort as a float. This is to
-    // handle SQL Queries that return numbers cast to strings (to maintain proper
-    // formatting in output templates).
-    bool leftIsFloat;
-    float leftFloat = leftData.toFloat(&leftIsFloat);
+    if (leftData.type() == QVariant::String || rightData.type() == QVariant::String) {
+        QString leftString = leftData.toString();
+        QString rightString = rightData.toString();
 
-    bool rightIsFloat;
-    float rightFloat = rightData.toFloat(&rightIsFloat);
+        if (sortRole() == Qt::DisplayRole) {
+            // A string of "--" is used to signify null.
+            bool leftIsNull = leftString == "--";
+            bool rightIsNull = rightString == "--";
 
-    if (leftIsFloat && rightIsFloat) {
-        return leftFloat < rightFloat;
-    }
+            // null < 5 == false
+            // 5 < null == true
+            if (leftIsNull && !rightIsNull) {
+                return false;
+            }
+            if (!leftIsNull && rightIsNull) {
+                return true;
+            }
+        }
 
-    //See if either looks like SQL Interval with a days component
-    // for example, "5 days 22:40:00"
-    QStringList leftParts = leftData.toString().split(" ");
-    QStringList rightParts = rightData.toString().split(" ");
-    bool leftDays = leftParts.count() == 3 && leftParts.at(1) == "days";
-    bool rightDays = rightParts.count() == 3 && rightParts.at(1) == "days";
-    if (leftDays || rightDays) {
-        int leftSeconds = -1, rightSeconds = -1;
-        if (leftDays) {
-            bool ok;
-            int days = leftParts.at(0).toInt(&ok);
-            if (ok) {
-                leftSeconds = days * 86400; // Seconds in a day
 
-                QTime t = QTime::fromString(leftParts.at(2), "hh:mm:ss");
-                if (t.isValid()) {
-                    leftSeconds += t.msecsSinceStartOfDay() / 1000;
-                } else {
-                    leftSeconds = -1;
+        if (leftData.type() == QVariant::String && rightData.type() == QVariant::String) {
+            // If both values are strings and can be parsed as floats then sort them as
+            // floats. This is to handle SQL Queries that return numbres as strings to
+            // maintain rounding and formatting when the values go into report templates.
+            bool leftIsFloat;
+            float leftFloat = leftData.toFloat(&leftIsFloat);
+
+            if (leftIsFloat) {
+                bool rightIsFloat;
+                float rightFloat = rightData.toFloat(&rightIsFloat);
+
+                if (rightIsFloat) {
+                    return leftFloat < rightFloat;
                 }
             }
-        } else {
-            QTime t = QTime::fromString(leftData.toString(), "hh:mm:ss");
-            if (t.isValid()) {
-                leftSeconds = t.msecsSinceStartOfDay() / 1000;
-            }
-        }
 
-        if (rightDays) {
-            bool ok;
-            int days = rightParts.at(0).toInt(&ok);
-            if (ok) {
-                rightSeconds = days * 86400; // Seconds in a day
+            // Otherwise, try parsing them as intervals (x days hh:mm:ss)
+            int leftSeconds = intervalToSeconds(leftString);
 
-                QTime t = QTime::fromString(rightParts.at(2), "hh:mm:ss");
-                if (t.isValid()) {
-                    rightSeconds += t.msecsSinceStartOfDay() / 1000;
-                } else {
-                    rightSeconds = -1;
+            if (leftSeconds >= 0) {
+                int rightSeconds = intervalToSeconds(rightString);
+
+                if (rightSeconds >= 0) {
+                    // Managed to parse both sides as a time interval.
+                    return leftSeconds < rightSeconds;
                 }
             }
-        } else {
-            QTime t = QTime::fromString(rightData.toString(), "hh:mm:ss");
-            if (t.isValid()) {
-                rightSeconds = t.msecsSinceStartOfDay() / 1000;
-            }
-        }
-
-        // We use -1 for parse failure. So only perform the comparison if both
-        // the left and right sides are 0 or more.
-        if (leftSeconds >= 0 && rightSeconds >= 0) {
-            return leftSeconds < rightSeconds;
         }
     }
 
+#endif
     // Otherwise we delegate to the default comparison
     return QSortFilterProxyModel::lessThan(left, right);
 }
