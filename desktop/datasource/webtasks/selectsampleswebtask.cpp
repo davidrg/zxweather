@@ -25,7 +25,8 @@ void SelectSamplesWebTask::beginTask() {
                 _requestData.columns,
                 _requestData.aggregateFunction,
                 _requestData.groupType,
-                _requestData.groupMinutes);
+                _requestData.groupMinutes,
+                _dataSource->progressListener);
 
     _dataSource->fireSamplesReady(samples);
 
