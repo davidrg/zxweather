@@ -1,5 +1,8 @@
 #include <QMessageBox>
 #include <QClipboard>
+#include <QDebug>
+#include <QFontMetrics>
+#include <QVariant>
 
 #include "viewdatasetwindow.h"
 #include "ui_viewdatasetwindow.h"
@@ -95,16 +98,21 @@ void ViewDataSetWindow::copySelection() {
 
 void ViewDataSetWindow::samplesReady(SampleSet samples)
 {
+    qDebug() << "Samples ready!";
 
     DataSetModel *model = new DataSetModel(dataSet, samples, this);
     SortProxyModel *sortableModel = new SortProxyModel(this);
     sortableModel->setSortRole(DSM_SORT_ROLE);
     sortableModel->setSourceModel(model);
 
+    qDebug() << "Model created. Assigning to view...";
+
     ui->tableView->setModel(sortableModel);
 
+    qDebug() << "View assigned Adjusting column & row sizes...";
     ui->tableView->resizeColumnsToContents();
-    ui->tableView->resizeRowsToContents();
+
+    qDebug() << "Loading complete.";
 }
 
 void ViewDataSetWindow::samplesFailed(QString message)

@@ -9,6 +9,7 @@
 #include "datasource/imageset.h"
 #include "datasource/aggregate.h"
 #include "datasource/station_info.h"
+#include "datasource/abstractprogresslistener.h"
 
 typedef struct _data_file_t {
     QString filename;
@@ -100,7 +101,8 @@ public:
                               SampleColumns columns,
                               AggregateFunction aggregateFunction,
                               AggregateGroupType aggregateGroupType,
-                              uint32_t groupMinutes);
+                              uint32_t groupMinutes,
+                              AbstractProgressListener *progressListener = 0);
 
     /** Stores the specified data file in the cache database. If the file does
      * not exist it will be created, otherwise it will be updated. All samples

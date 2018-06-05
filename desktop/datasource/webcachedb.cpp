@@ -1345,7 +1345,8 @@ SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
                                       SampleColumns columns,
                                       AggregateFunction aggregateFunction,
                                       AggregateGroupType aggregateGroupType,
-                                      uint32_t groupMinutes) {
+                                      uint32_t groupMinutes,
+                                      AbstractProgressListener *progressListener) {
     QSqlQuery query(sampleCacheDb);
     SampleSet samples;
 
@@ -1408,6 +1409,16 @@ SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
     bool gapGeneration = interval > 0;
     int thresholdSeconds = 2*interval;
     qDebug() << "Threshold" << thresholdSeconds << "interval" << interval << "gap generation" << gapGeneration;
+    qDebug() << "Loading query result set...";
+    int currentRow = 0;
+    double totalRows = count;
+    qDebug() << "Total Rows: " << query.numRowsAffected();
+
+    if (progressListener != NULL) {
+        progressListener->setSubtaskName("Loading Results...");
+        progressListener->setMaximum(progressListener->maximum() + count / 100);
+    }
+
     if (query.first()) {
 
         double previousRainfall = 0.0;
@@ -1416,6 +1427,15 @@ SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
         // At least one record came back. Go pull all of them out and dump
         // them in the SampleSet.
         do {
+            currentRow++;
+            double position = currentRow / totalRows * 100.0;
+            if (currentRow % 100 == 0) {
+                qDebug() << "Loading rows: " << position << "%";
+                if (progressListener != NULL) {
+                    progressListener->setValue(progressListener->value() + 1);
+                }
+                QCoreApplication::processEvents();
+            }
             QSqlRecord record = query.record();
 
             int timeStamp = record.value("time_stamp").toInt();
@@ -1424,6 +1444,7 @@ SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
             if (gapGeneration) {
                 if (ts > lastTs.addSecs(thresholdSeconds)) {
                     // We skipped at least one sample! Generate same fake null samples.
+                    qDebug() << "Inserting null samples from" << lastTs << "to" << ts << "...";
                     AppendNullSamples(samples,
                                       columns,
                                       lastTs.addSecs(interval),
@@ -1548,6 +1569,11 @@ SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
     } else {
         qDebug() << "Apparently there were no samples for the time range. "
                     "Cache store failed?";
+    }
+
+    qDebug() << "Finished loading result set. Returning...";
+    if (progressListener != NULL) {
+        progressListener->setSubtaskName("Loading complete.");
     }
 
     return samples;

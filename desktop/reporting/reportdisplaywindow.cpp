@@ -88,7 +88,6 @@ void ReportDisplayWindow::addGridTab(QString name, QIcon icon, QAbstractTableMod
     sortableModel->setSourceModel(model);
     table->setModel(sortableModel);
     table->resizeColumnsToContents();
-    table->resizeRowsToContents();
     table->setSortingEnabled(true);
 
     // Setup a keyboard shortcut for copying a selection in the
