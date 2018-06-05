@@ -221,6 +221,33 @@ def get_day_page(ui, station, day):
 
     images = get_station_day_images(station_id, day)
 
+    preload_urls = []
+    for img_source in images:
+        for img in img_source["images"]:
+            if img.is_audio or img.is_video:
+                # These don't seem to preload properly in chrome. The browser
+                # just downloads the video twice (once for the preload and again
+                # for the video tag) resulting in extra bandwidth use and worse
+                # performance.
+                continue
+
+            if img.is_video:
+                t = "video"
+                url = img.url
+            elif img.is_audio:
+                t = "audio"
+                url = img.url
+            else:
+                t = "image"
+                url = img.thumbnail_url
+
+            link = {
+                "url": url,
+                "as": t,
+                "mime_type": img.mime_type
+            }
+            preload_urls.append(link)
+
     if ui in ('s', 'm', 'a'):
         nav_urls = get_nav_urls(station, current_location)
         data_urls = get_day_data_urls(station, data.date_stamp, ui)
@@ -228,6 +255,7 @@ def get_day_page(ui, station, day):
         msg = get_station_message(station_id)
 
         return modern_templates.day(nav=nav_urls,
+                                    preload=preload_urls,
                                     data_urls=data_urls,
                                     data=data,
                                     station=station,

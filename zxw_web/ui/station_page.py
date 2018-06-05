@@ -96,9 +96,61 @@ def get_station_standard(ui, station):
 
     images = get_station_day_images(station_id, now, '../..')
 
+    preload_urls = []
+    for img_source in images:
+        if img_source["latest"] is not None:
+            img = img_source["latest"]
+
+            if img.is_audio or img.is_video:
+                # These don't seem to preload properly in chrome. The browser
+                # just downloads the video twice (once for the preload and again
+                # for the video tag) resulting in extra bandwidth use and worse
+                # performance.
+                continue
+
+            if img.is_video:
+                t = "video"
+            elif img.is_audio:
+                t = "audio"
+            else:
+                t = "image"
+
+            link = {
+                "url": img.url,
+                "as": t,
+                "mime_type": img.mime_type
+            }
+            preload_urls.append(link)
+
+        for img in img_source["images"]:
+            if img.is_audio or img.is_video:
+                # These don't seem to preload properly in chrome. The browser
+                # just downloads the video twice (once for the preload and again
+                # for the video tag) resulting in extra bandwidth use and worse
+                # performance.
+                continue
+
+            if img.is_video:
+                t = "video"
+                url = img.url
+            elif img.is_audio:
+                t = "audio"
+                url = img.url
+            else:
+                t = "image"
+                url = img.thumbnail_url
+
+            link = {
+                "url": url,
+                "as": t,
+                "mime_type": img.mime_type
+            }
+            preload_urls.append(link)
+
     day_cache_control(None, now, station_id)
     nav_urls = get_nav_urls(station, current_location)
     return modern_templates.station(nav=nav_urls,
+                                    preload=preload_urls,
                                     data=data,
                                     station=station,
                                     hw_type=hw_type,

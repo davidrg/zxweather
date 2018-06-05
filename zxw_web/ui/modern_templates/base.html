@@ -15,6 +15,11 @@
     <link rel="stylesheet" href="/css/zxweather.css" type="text/css"/>
     <link rel="stylesheet" href="/css/bootstrap-responsive.css" type="text/css" />
     <script type="text/javascript" src="/js/modernizr-canvas.min.js"></script>
+    {%- if preload -%}
+    {%- for link in preload %}
+    <link rel="preload" href="{{ link["url"] }}" as="{{ link["as"] }}" type="{{ link["mime_type"] }}">
+    {%- endfor -%}
+    {%- endif -%}
     {%- block head %} {% endblock %}
 </head>
 <body>

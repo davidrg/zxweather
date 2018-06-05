@@ -35,6 +35,10 @@ class StationImage(object):
         return self._mime.startswith("audio/")
 
     @property
+    def mime_type(self):
+        return self._mime
+
+    @property
     def title(self):
         return self._title
 

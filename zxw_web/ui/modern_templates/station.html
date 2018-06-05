@@ -1,7 +1,32 @@
 {% extends "base.html" %}
 
 {% block title %}Station Overview{% endblock %}
-{% block head %}{% endblock %}
+{% block head %}
+{%- if not page_data["no_content"] %}
+    <link rel="preload" href="../../js/day_live.js" as="script">
+    <link rel="preload" href="../../js/day_charts.js" as="script">
+    {% if ui and ui in ('s', 'm') -%}
+    <link rel="preload" href="../../js/dygraph-combined.js" as="script">
+    <link rel="preload" href="../../js/dygraph-charts.js" as="script">
+    <link rel="preload" href="../../js/day_charts_dygraph.js" as="script">
+    {% else -%}
+    <link rel="preload" href="http://www.google.com/jsapi" as="script">
+    <link rel="preload" href="../../js/day_charts_gviz.js" as="script">
+    {%- endif -%}
+{#- Preloading of JSON data doesn't seem to work properly in chrome -#}
+{#-    <link rel="preload" href="../../data/{{ station }}/live.json" as="fetch" type="application/json">#}
+{#-    <link rel="preload" href="../../data/{{ station }}/{{ subdir }}24hr_samples.json" as="fetch" type="application/json">#}
+{#-    {% if ui == 's' -%}#}
+{#-    <link rel="preload" href="../../data/{{ station }}/{{ subdir }}24hr_rainfall.json" as="fetch" type="application/json">#}
+{#-    {%- else -%}#}
+{#-    <link rel="preload" href="../../data/{{ station }}/{{ subdir }}24hr_hourly_rainfall.json" as="fetch" type="application/json">#}
+{#-    {%- endif -%}#}
+{#-    <link rel="preload" href="../../data/{{ station }}/{{ subdir }}168hr_30m_avg_samples.json" as="fetch" type="application/json">#}
+{#-    <link rel="preload" href="../../data/{{ station }}/{{ subdir }}168hr_rainfall.json" as="fetch" type="application/json">#}
+{#-    <link rel="preload" href="../../data/{{ station }}/current_day_records.json" as="fetch" type="application/json">#}
+{#-    <link rel="preload" href="../../data/{{ station }}/24hr_rainfall_totals.json" as="fetch" type="application/json">#}
+{%- endif -%}
+{% endblock %}
 {% block content %}
 {%- if page_data["no_content"] %}
         <h1>{{ page_data["station_name"] }}</h1>
