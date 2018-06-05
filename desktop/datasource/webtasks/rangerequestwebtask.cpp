@@ -3,6 +3,7 @@
 #include "datafilewebtask.h"
 #include "selectsampleswebtask.h"
 #include "cachingfinishedwebtask.h"
+#include "datasource/webcachedb.h"
 
 #include "json/json.h"
 
@@ -38,10 +39,13 @@ RangeRequestWebTask::RangeRequestWebTask(QString baseUrl,
     : AbstractWebTask(baseUrl, stationCode, ds) {
     _requestData = requestData;
     _select = select;
+    _requestingRange = true;
 }
 
 void RangeRequestWebTask::beginTask() {
     QString url = _stationBaseUrl + DATASET_RANGE;
+
+    emit subtaskChanged("Validating data range...");
 
     QNetworkRequest request(url);
 
@@ -56,7 +60,16 @@ void RangeRequestWebTask::networkReplyReceived(QNetworkReply *reply) {
     } else {
         QByteArray replyData = reply->readAll();
 
-        bool ok = processResponse(replyData);
+#ifdef PARALLEL_HEAD
+        bool ok;
+        if (_requestingRange) {
+            ok = processRangeResponse(replyData);
+        } else {
+            ok = processHeadResponse(reply);
+        }
+#else
+        bool ok = processRangeResponse(replyData);
+#endif
 
         if (ok) {
             emit finished();
@@ -143,7 +156,8 @@ void RangeRequestWebTask::getURLList(QString baseURL, QDateTime startTime, QDate
     }
 }
 
-bool RangeRequestWebTask::processResponse(QString data) {
+bool RangeRequestWebTask::processRangeResponse(QString data) {
+    _requestingRange = false;
     using namespace QtJson;
 
     bool ok;
@@ -193,19 +207,29 @@ bool RangeRequestWebTask::processResponse(QString data) {
     qDebug() << "Names:" << nameList;
 
     // Chuck the names in a hashtable for use later.
-    QHash<QString, QString> urlNames;
     for (int i = 0; i < urlList.count(); i++) {
         QString url = urlList[i];
         QString name = nameList[i];
-        urlNames[url] = name;
+        _urlNames[url] = name;
     }
 
+#ifdef PARALLEL_HEAD
+    headUrls();
+    return false;
+#else
+    queueDownloadTasks(false);
+    return true;
+#endif
+}
+
+void RangeRequestWebTask::queueDownloadTasks(bool forceDownload) {
     // Queue up all data files for processing
-    foreach (QString url, urlList) {
-        QString name = urlNames[url];
+    foreach (QString url, _urlNames.keys()) {
+        QString name = _urlNames[url];
         qDebug() << "URL: " << name << url;
         DataFileWebTask *task = new DataFileWebTask(_baseUrl, _stationCode,
                                                     _requestData, name, url,
+                                                    forceDownload,
                                                     _dataSource);
         emit queueTask(task);
     }
@@ -224,6 +248,52 @@ bool RangeRequestWebTask::processResponse(QString data) {
                                                                           _dataSource);
         emit queueTask(finishedTask);
     }
-
-    return true;
 }
+
+#ifdef PARALLEL_HEAD
+void RangeRequestWebTask::headUrls() {
+    emit subtaskChanged("Checking Cache Status...");
+    foreach (QString url, _urlNames.keys()) {
+        QNetworkRequest request(url);
+        _awaitingUrls.insert(url);
+        emit httpHead(request);
+    }
+}
+
+bool RangeRequestWebTask::processHeadResponse(QNetworkReply *reply) {
+    QString url = reply->request().url().toString();
+    _awaitingUrls.remove(url);
+
+    if (DataFileWebTask::UrlNeedsDownlodaing(reply)) {
+        QString name = _urlNames[url];
+        qDebug() << "URL: " << name << url;
+        DataFileWebTask *task = new DataFileWebTask(_baseUrl, _stationCode,
+                                                    _requestData, name, url,
+                                                    true, // don't issue a HEAD, force download
+                                                    _dataSource);
+        emit queueTask(task);
+    }
+
+    bool finished = _awaitingUrls.isEmpty();
+
+    if (finished) {
+        if (_select) {
+            // Put a task onto the end of the queue to grab the dataset from the cache
+            // database and hand it to the datasource.
+            SelectSamplesWebTask *selectTask = new SelectSamplesWebTask(_baseUrl,
+                                                                        _stationCode,
+                                                                        _requestData,
+                                                                        _dataSource);
+            emit queueTask(selectTask);
+        } else {
+            CachingFinishedWebTask *finishedTask = new CachingFinishedWebTask(_baseUrl,
+                                                                              _stationCode,
+                                                                              _dataSource);
+            emit queueTask(finishedTask);
+        }
+    }
+
+    return finished;
+}
+#endif
+

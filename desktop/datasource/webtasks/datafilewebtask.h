@@ -21,6 +21,7 @@ public:
                              request_data_t requestData,
                              QString name,
                              QString url,
+                             bool forceDownload,
                              WebDataSource* ds);
 
     /** Starts processing this task.
@@ -44,6 +45,14 @@ public:
         return "Checking cache status of " + _name;
     }
 
+    /** Compares the result from an HTTP HEAD request to the cache database
+     * and determinse if the local cache for the resource is out of date
+     *
+     * @param reply HTTP HEAD response
+     * @return True if the cache is out-of-date and the URL needs to be downloaded
+     */
+    static bool UrlNeedsDownlodaing(QNetworkReply *reply);
+
 public slots:
     /** Called when a network reply for a request this task submitted has
      * been received.
@@ -62,6 +71,7 @@ private:
     QString _name;
 
     bool _downloadingDataset;
+    bool _forceDownload;
 
     void cacheStatusRequestFinished(QNetworkReply *reply);
     void downloadRequestFinished(QNetworkReply *reply);
