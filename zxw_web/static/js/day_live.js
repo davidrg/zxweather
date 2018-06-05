@@ -414,6 +414,7 @@ ImageSection.prototype._create_video = function(full_url, title, caption,
     video.attr('src', full_url);
     video.attr('title', title);
     video.attr('width', thumbnail_width);
+    video.attr('preload', 'none');
 
     var caption_width = thumbnail_width - 20; // todo: remove magic number
 

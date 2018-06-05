@@ -2,7 +2,31 @@
 
 {% extends "base.html" %}
 {% block title %}Weather for {{ data.date_stamp }}{% endblock %}
-{% block head %}{% endblock %}
+{% block head -%}
+    {% if data.current_data %}
+    <link rel="preload" href="../../../../../js/day_live.js" as="script">
+    {% endif %}
+    <link rel="preload" href="../../../../../js/day_charts.js" as="script">
+    {% if ui and ui in ('s', 'm') -%}
+    <link rel="preload" href="../../../../../js/dygraph-combined.js" as="script">
+    <link rel="preload" href="../../../../../js/dygraph-charts.js" as="script">
+    <link rel="preload" href="../../../../../js/day_charts_dygraph.js" as="script">
+    {% else -%}
+    <link rel="preload" href="http://www.google.com/jsapi" as="script">
+    <link rel="preload" href="../../../../../js/day_charts_gviz.js" as="script">
+    {%- endif -%}
+{#- Preloading of JSON data doesn't seem to work properly in chrome -#}
+{#-    <link rel="preload" href="../../../../../data/{{ station }}/live.json" as="fetch" type="application/json">#}
+{#-    <link rel="preload" href="{{ data_urls['samples']}}" as="fetch" type="application/json">#}
+{#-    <link rel="preload" href="{{ data_urls['rainfall'] }}" as="fetch" type="application/json">#}
+{#-    <link rel="preload" href="{{ data_urls['7day_samples'] }}" as="fetch" type="application/json">#}
+{#-    <link rel="preload" href="{{ data_urls['7day_rainfall'] }}" as="fetch" type="application/json">#}
+{#-    <link rel="preload" href="{{ data_urls['records'] }}" as="fetch" type="application/json">#}
+{#-    <link rel="preload" href="{{ data_urls['rainfall_totals'] }}" as="fetch" type="application/json">#}
+{#-    {% if hw_type == 'DAVIS' -%}#}
+{#-    <link rel="preload" href="../../../../../data/davis_forecast_rules.json" as="fetch" type="application/json">#}
+{#-    {%- endif -%}#}
+{% endblock %}
 {% block content %}
         <header>
             <div class="row">
