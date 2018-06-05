@@ -6,6 +6,11 @@
 
 #include <QObject>
 
+// Check cache status for all URLS in parallel as part of the range request job
+// rather than leaving it to individual DataFileWebTasks. This is a fair bit faster
+// when latency is an issue but doesn't report progress very well at the moment.
+#define PARALLEL_HEAD
+
 class RangeRequestWebTask : public AbstractWebTask
 {
     Q_OBJECT
@@ -35,6 +40,8 @@ public:
         return "Checking data range";
     }
 
+    int subtasks() const { return 2; }
+
     static void ClearURLCache();
 
 public slots:
@@ -53,10 +60,21 @@ private:
     request_data_t _requestData;
     bool _select;
     static QMap<QString, QDateTime> lastQuery;
+    bool _requestingRange;
+    QHash<QString, QString> _urlNames;
 
-    bool processResponse(QString data);
+#ifdef PARALLEL_HEAD
+    QSet<QString> _awaitingUrls;
+    void headUrls();
+    bool processHeadResponse(QNetworkReply *reply);
+#endif
+
+    bool processRangeResponse(QString data);
+
     static void getURLList(QString baseURL, QDateTime startTime, QDateTime endTime,
                     QStringList& urlList, QStringList& nameList);
+
+    void queueDownloadTasks(bool forceDownload);
 };
 
 #endif // RANGEREQUESTWEBTASK_H

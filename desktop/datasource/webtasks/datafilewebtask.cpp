@@ -12,17 +12,22 @@
 
 DataFileWebTask::DataFileWebTask(QString baseUrl, QString stationCode,
                                  request_data_t requestData, QString name,
-                                 QString url, WebDataSource *ds)
+                                 QString url, bool forceDownload, WebDataSource *ds)
     : AbstractWebTask(baseUrl, stationCode, ds) {
     _requestData = requestData;
     _name = name;
     _url = url;
     _downloadingDataset = false; // We check the cache first.
+    _forceDownload = forceDownload;
 }
 
 void DataFileWebTask::beginTask() {
-    QNetworkRequest request(_url);
-    emit httpHead(request);
+    if (_forceDownload) {
+        getDataset();
+    } else {
+        QNetworkRequest request(_url);
+        emit httpHead(request);
+    }
 }
 
 void DataFileWebTask::networkReplyReceived(QNetworkReply *reply) {
@@ -39,11 +44,12 @@ void DataFileWebTask::networkReplyReceived(QNetworkReply *reply) {
     }
 }
 
-void DataFileWebTask::cacheStatusRequestFinished(QNetworkReply *reply) {
+bool DataFileWebTask::UrlNeedsDownlodaing(QNetworkReply *reply) {
+    QString url = reply->request().url().toString();
     data_file_t cache_info =
-            WebCacheDB::getInstance().getDataFileCacheInformation(_url);
+            WebCacheDB::getInstance().getDataFileCacheInformation(url);
 
-    qDebug() << "Cache status request for url [" << _url << "] finished.";
+    qDebug() << "Cache status request for url [" << url << "] finished.";
 
     if (reply->hasRawHeader("X-Cache-Lookup")) {
         QString upstreamStatus = QString(reply->rawHeader("X-Cache-Lookup"));
@@ -66,6 +72,21 @@ void DataFileWebTask::cacheStatusRequestFinished(QNetworkReply *reply) {
 
         // Fire of a GET to GET the full dataset. Which we'll then process and
         // cache.
+        return true;
+    } else {
+        // else the data file we have cached sounds the same as what is on the
+        // server. We won't bother redownloading it.
+
+        // We won't be downloading, processing or caching anything for this
+        // file so we can skip forward a bit.
+        qDebug() << "Cache copy seems ok. Skiping download.";
+        return false;
+    }
+}
+
+
+void DataFileWebTask::cacheStatusRequestFinished(QNetworkReply *reply) {
+    if (DataFileWebTask::UrlNeedsDownlodaing(reply)) {
         getDataset();
     } else {
         // else the data file we have cached sounds the same as what is on the
