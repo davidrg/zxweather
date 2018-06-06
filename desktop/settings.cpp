@@ -66,6 +66,10 @@ namespace SettingsKey {
         const QString MULTI_RECT = "LiveChart/multiple_axis_rects";
     }
 
+    namespace Chart {
+        const QString CURSOR_ENABLED = "Chart/cursor";
+    }
+
     namespace WeatherValueWidgets {
         const QString ROOT = "WeatherValueWidget";
     }
@@ -705,4 +709,12 @@ QVariantMap Settings::getReportCriteria(QString report) {
 
     QVariantMap map;
     return settings->value(key, map).toMap();
+}
+
+bool Settings::chartCursorEnabled() {
+    return settings->value(SettingsKey::Chart::CURSOR_ENABLED, true).toBool();
+}
+
+void Settings::setChartCursorEnabled(bool enabled) {
+    settings->setValue(SettingsKey::Chart::CURSOR_ENABLED, enabled);
 }

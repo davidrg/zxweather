@@ -1,7 +1,7 @@
 #ifndef WEATHERPLOT_H
 #define WEATHERPLOT_H
 
-#include "qcp/qcustomplot.h"
+#include "plotwidget.h"
 #include "datasource/abstractdatasource.h"
 #include "graphstyle.h"
 #include "cachemanager.h"
@@ -12,6 +12,8 @@
 #define GRAPH_AXIS "GraphAxisType"
 #define GRAPH_DATASET "GraphDataSet"
 #define AXIS_DATASET "AxisDataSet"
+
+#define FEATURE_PLUS_CURSOR
 
 /** WeatherPlotter is responsible for plotting weather data in a QCustomPlot widget.
  *
@@ -26,7 +28,7 @@ class WeatherPlotter : public QObject
     Q_PROPERTY(bool axisGridVisible READ axisGridVisible WRITE setAxisGridVisible)
 
 public:
-    explicit WeatherPlotter(QCustomPlot* chart, QObject *parent = 0);
+    explicit WeatherPlotter(PlotWidget* chart, QObject *parent = 0);
     
     /** Sets the data source to use. All data required for drawing charts will
      * be retrieved using the specified data source.
@@ -105,6 +107,10 @@ public:
 
     GraphStyle& getStyleForGraph(QCPGraph* graph);
 
+#ifdef FEATURE_PLUS_CURSOR
+     bool isCursorEnabled();
+#endif
+
 signals:
     void axisCountChanged(int count);
     void dataSetRemoved(dataset_id_t dataSetId);
@@ -139,6 +145,13 @@ public slots:
     void rescaleByTimeOfYear();
     void rescaleByTimeOfDay();
 
+#ifdef FEATURE_PLUS_CURSOR
+    /****************
+     * Plus Cursor  *
+     ****************/
+    void setCursorEnabled(bool enabled);
+#endif
+
 private slots:    
     /** Called by the CacheManager when its finished obtaining all the
       * requested datasets.
@@ -152,6 +165,15 @@ private slots:
       * @param message Error message
       */
     void dataSourceError(QString message);
+
+#ifdef FEATURE_PLUS_CURSOR
+    /****************
+     * Plus Cursor  *
+     ****************/
+    void updateCursor(QMouseEvent *event);
+
+    void hideCursor();
+#endif
 
 private:
     /*************************************
@@ -288,9 +310,10 @@ private:
      * exist it is created.
      *
      * @param axisType Axis type to fetch
+     * @param referenceCount If the reference should be counted
      * @return Value axis of the specified type.
      */
-    QPointer<QCPAxis> getValueAxis(AxisType axisType);
+    QPointer<QCPAxis> getValueAxis(AxisType axisType, bool referenceCount=true);
 
     /** Creates a new X axis for the specified dataset.
      *
@@ -318,6 +341,29 @@ private:
      */
     AxisType axisTypeForColumn(SampleColumn column);
 
+#ifdef FEATURE_PLUS_CURSOR
+    /****************
+     * Plus Cursor  *
+     ****************/
+
+    /** Set to true to enable the cursor, false to disable.
+     */
+    bool cursorEnabled;
+
+    /** The horizontal cursor line.
+     */
+    QPointer<QCPItemLine> hCursor;
+
+    /** The vertical cursor line.
+     */
+    QPointer<QCPItemLine> vCursor;
+
+    /** Axis value tags for the cursor.
+     * Key is an AxisType for value axes and AT_KEY+dataSetId for key axes.
+     */
+    QMap<int, QPointer<QCPItemText> > cursorAxisTags;
+#endif
+
     /*******************
      * Misc            *
      *******************/
@@ -341,7 +387,7 @@ private:
 
     /** The QCustomPlot instance we're drawing graphs into.
      */
-    QCustomPlot* chart;
+    PlotWidget* chart;
 
     bool mAxisGridsVisible; /*!< If axis grids should be visible on creation */
 };

@@ -52,6 +52,11 @@ private slots:
     void setXAxisLock();
     void toggleXAxisLock();
 
+#ifdef FEATURE_PLUS_CURSOR
+    void toggleCursor();
+#endif
+
+
     // Context menu related stuff
     void chartContextMenuRequested(QPoint point);
     void addTitle();

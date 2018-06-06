@@ -65,6 +65,8 @@ ChartWindow::ChartWindow(QList<DataSet> dataSets, bool solarAvailable, bool isWi
 
     Settings& settings = Settings::getInstance();
 
+    plotter->setCursorEnabled(settings.chartCursorEnabled());
+
     ChartColours colours = settings.getChartColours();
     plotTitleColour = colours.title;
     plotBackgroundBrush = QBrush(colours.background);
@@ -421,10 +423,23 @@ void ChartWindow::showChartContextMenu(QPoint point) {
     action->setCheckable(true);
     action->setChecked(ui->cbYLock->isChecked());
 
+#ifdef FEATURE_PLUS_CURSOR
+    action = menu->addAction(tr("Enable Cursor"), this, SLOT(toggleCursor()));
+    action->setCheckable(true);
+    action->setChecked(plotter->isCursorEnabled());
+#endif
 
     /******** Finished ********/
     menu->popup(ui->chart->mapToGlobal(point));
 }
+
+#ifdef FEATURE_PLUS_CURSOR
+void ChartWindow::toggleCursor() {
+    bool enabled = !plotter->isCursorEnabled();
+    Settings::getInstance().setChartCursorEnabled(enabled);
+    plotter->setCursorEnabled(enabled);
+}
+#endif
 
 void ChartWindow::showLegendContextMenu(QPoint point)
 {
