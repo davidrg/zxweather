@@ -181,6 +181,9 @@ public:
     void saveReportCriteria(QString report, QVariantMap criteria);
     QVariantMap getReportCriteria(QString report);
 
+    bool chartCursorEnabled();
+    void setChartCursorEnabled(bool enabled);
+
 private:
     Settings();
     ~Settings();
