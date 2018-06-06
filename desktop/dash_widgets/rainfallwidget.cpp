@@ -145,8 +145,13 @@ RainfallWidget::RainfallWidget(QWidget *parent) : QWidget(parent)
 
     setRain(QDate::currentDate(), 0, 0, 0); // initalise variables
 
-    shortRange->rescaleKeyAxis();
-    longRange->rescaleKeyAxis();
+//  These seem to have been observed setting the shortRage key axis
+//  range to weird values. Commenting them out appeared to make the
+//  bug go away with no visible side-effects. Who knows why we were
+//  even rescaling the key axes given we're setting the range on them
+//  manually.
+//    shortRange->rescaleKeyAxis();
+//    longRange->rescaleKeyAxis();
 
     plot->replot();
 
