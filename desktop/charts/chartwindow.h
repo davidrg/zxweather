@@ -1,7 +1,7 @@
 #ifndef CHARTWINDOW_H
 #define CHARTWINDOW_H
 
-#include <QWidget>
+#include <QMainWindow>
 #include <QScopedPointer>
 #include <QList>
 #include <QPointer>
@@ -21,7 +21,7 @@ namespace Ui {
 class ChartWindow;
 }
 
-class ChartWindow : public QWidget
+class ChartWindow : public QMainWindow
 {
     Q_OBJECT
     
@@ -114,7 +114,6 @@ private:
     void reloadDataSets(bool rebuildChart);
 
     bool gridVisible;
-
 
     Ui::ChartWindow *ui;
 

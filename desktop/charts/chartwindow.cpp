@@ -41,7 +41,7 @@
 
 ChartWindow::ChartWindow(QList<DataSet> dataSets, bool solarAvailable, bool isWireless,
                          QWidget *parent) :
-    QWidget(parent),
+    QMainWindow(parent),
     ui(new Ui::ChartWindow)
 {
     ui->setupUi(this);       
