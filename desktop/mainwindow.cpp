@@ -610,7 +610,7 @@ void MainWindow::reconfigureDataSource() {
 
     ui->actionImages->setVisible(false);
     Settings& settings = Settings::getInstance();
-    setWindowTitle("zxweather - " + settings.stationCode());
+    setWindowTitle(tr("%1 - zxweather").arg(settings.stationCode()));
 
     // hide image tabs
     ui->latestImages->hideImagery();
@@ -670,7 +670,7 @@ void MainWindow::reconfigureDataSource() {
 
 void MainWindow::setStationName(QString name) {
     if (!name.isEmpty()) {
-        setWindowTitle("zxweather - " + name);
+        setWindowTitle(tr("%1 - zxweather").arg(name));
     }
 }
 
