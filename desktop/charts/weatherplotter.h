@@ -90,6 +90,13 @@ public:
      */
     SampleColumns availableColumns(dataset_id_t dataSetId);
 
+    /** Returns the columns currently in the chart for a given dataset.
+     *
+     * @param dataSetId The data set to get columns for
+     * @return Columns currently in the chart.
+     */
+    SampleColumns selectedColumns(dataset_id_t dataSetId);
+
     /** Returns true if axis grids will be visible by default.
      *
      * @return True if axis grids are visible by default.
@@ -111,9 +118,18 @@ public:
      bool isCursorEnabled();
 #endif
 
+     typedef enum {
+         RS_TIME = 0, /*!< Align on time only ignoring year, month and day */
+         RS_MONTH = 1, /*!< Align on month, day and time ignoring year */
+         RS_YEAR = 2 /*!< Align on exact timestamp match */
+     } RescaleType;
+
+     RescaleType getCurrentScaleType() { return this->currentScaleType; }
+
 signals:
-    void axisCountChanged(int count);
+    void axisCountChanged(int valueAxes, int keyAxes);
     void dataSetRemoved(dataset_id_t dataSetId);
+    void legendVisibilityChanged(bool visible);
 
 public slots:
     /** Changes the timespan for the specified dataset and replots the chart.
@@ -141,6 +157,7 @@ public slots:
      */
     void setGraphStyles(QMap<SampleColumn, GraphStyle> styles, dataset_id_t dataSetId);
 
+    void rescale();
     void rescaleByTime();
     void rescaleByTimeOfYear();
     void rescaleByTimeOfDay();
@@ -150,6 +167,8 @@ public slots:
      * Plus Cursor  *
      ****************/
     void setCursorEnabled(bool enabled);
+
+    void hideCursor();
 #endif
 
 private slots:    
@@ -171,8 +190,6 @@ private slots:
      * Plus Cursor  *
      ****************/
     void updateCursor(QMouseEvent *event);
-
-    void hideCursor();
 #endif
 
 private:
@@ -217,11 +234,10 @@ private:
      */
     void addWindDirectionGraph(DataSet dataSet, SampleSet samples, SampleColumn column);
 
-    typedef enum {
-        RS_TIME = 0, /*!< Align on time only ignoring year, month and day */
-        RS_MONTH = 1, /*!< Align on month, day and time ignoring year */
-        RS_YEAR = 2 /*!< Align on exact timestamp match */
-    } RescaleType;
+    /** The last used rescale type. Used by the rescale() slot to reset the plot scale
+     * to the last used.
+     */
+    RescaleType currentScaleType;
 
     /** Rescales the plot aligning all x axes with the one that has the
      * largest timespan and scaling them to the same.

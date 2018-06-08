@@ -20,6 +20,7 @@
 #include <QMenu>
 #include <QIcon>
 #include <QClipboard>
+#include <QTimer>
 
 // single-data-set functionality needs to know which the first (and only) data
 // set is.
@@ -33,11 +34,6 @@
 #define CUSTOMISE_CHART
 #endif
 
-#ifdef MULTI_DATA_SET
-// Uncomment to hide the controls at the top of the window
-//#define NO_FORM_CONTROLS
-#endif
-
 
 ChartWindow::ChartWindow(QList<DataSet> dataSets, bool solarAvailable, bool isWireless,
                          QWidget *parent) :
@@ -46,9 +42,15 @@ ChartWindow::ChartWindow(QList<DataSet> dataSets, bool solarAvailable, bool isWi
 {
     ui->setupUi(this);       
 
+    restoreGeometry(Settings::getInstance().chartWindowGeometry());
+    restoreState(Settings::getInstance().chartWindowState());
+
     solarDataAvailable = solarAvailable;
     this->isWireless = isWireless;
+
     gridVisible = true;
+    ui->action_Grid->setChecked(gridVisible);
+
     plotTitleEnabled = false;
     nextDataSetId = 0;
 
@@ -58,14 +60,19 @@ ChartWindow::ChartWindow(QList<DataSet> dataSets, bool solarAvailable, bool isWi
     plotter.reset(new WeatherPlotter(ui->chart, this));
 
     // These will be turned back on later if they are needed.
-    ui->cbYLock->setVisible(false);
-    ui->YLockDiv->setVisible(false);
+    ui->actionLock_X_Axes->setVisible(false);
+    ui->actionLock_Y_Axes->setVisible(false);
     setYAxisLock();
     setXAxisLock();
 
     Settings& settings = Settings::getInstance();
 
     plotter->setCursorEnabled(settings.chartCursorEnabled());
+    ui->actionC_ursor->setChecked(plotter->isCursorEnabled());
+
+    // Hide the cursor while zooming (the tags drift with the zoom otherwise)
+    connect(basicInteractionManager.data(), SIGNAL(zooming()),
+            plotter.data(), SLOT(hideCursor()));
 
     ChartColours colours = settings.getChartColours();
     plotTitleColour = colours.title;
@@ -82,16 +89,49 @@ ChartWindow::ChartWindow(QList<DataSet> dataSets, bool solarAvailable, bool isWi
     hw_type = ds->getHardwareType();
     plotter->setDataSource(ds);
 
-    connect(ui->pbRefresh, SIGNAL(clicked()), this, SLOT(refresh()));
-    connect(ui->saveButton, SIGNAL(clicked()), this, SLOT(save()));
-    connect(ui->cbYLock, SIGNAL(toggled(bool)), this, SLOT(setYAxisLock()));
-    connect(ui->cbXLock, SIGNAL(toggled(bool)), this, SLOT(setXAxisLock()));
+    // Toolbar - Main
+    connect(ui->actionAdd_Dataset, SIGNAL(triggered()), this, SLOT(addDataSet()));
+    connect(ui->actionDatasets, SIGNAL(triggered()), this, SLOT(showDataSetsWindow()));
+    // ---
+    connect(ui->action_Title, SIGNAL(triggered()), this, SLOT(toggleTitle()));
+    connect(ui->action_Legend, SIGNAL(triggered()), this, SLOT(showLegendToggle()));
+    connect(ui->action_Grid, SIGNAL(triggered()), this, SLOT(showGridToggle()));
+    // ---
+    connect(ui->actionLock_X_Axes, SIGNAL(triggered()), this, SLOT(setXAxisLock()));
+    connect(ui->actionLock_Y_Axes, SIGNAL(triggered()), this, SLOT(setYAxisLock()));
+#ifdef FEATURE_PLUS_CURSOR
+    connect(ui->actionC_ursor, SIGNAL(triggered()), this, SLOT(toggleCursor()));
+#endif
+    // ---
+    connect(ui->action_Save, SIGNAL(triggered()), this, SLOT(save()));
+    connect(ui->action_Copy, SIGNAL(triggered()), this, SLOT(copy()));
+
+    // Toolbar - Selected Graph
+    connect(ui->action_Rename_Graph, SIGNAL(triggered()), this, SLOT(renameSelectedGraph()));
+    connect(ui->actionC_hange_Style, SIGNAL(triggered()), this, SLOT(changeSelectedGraphStyle()));
+    connect(ui->action_Remove, SIGNAL(triggered()), this, SLOT(removeSelectedGraph()));
+
+    connect(basicInteractionManager.data(), SIGNAL(graphSelected(bool)),
+                this, SLOT(setGraphActionsEnabled(bool)));
+    setGraphActionsEnabled(false);
+
+    // Toolbar - Selected Dataset
+    connect(ui->action_Add_Graph, SIGNAL(triggered()), this, SLOT(addGraph()));
+    connect(ui->actionC_hange_Timespan, SIGNAL(triggered()),
+            this, SLOT(changeSelectedKeyAxisTimespan()));
+
+    connect(basicInteractionManager.data(), SIGNAL(keyAxisSelected(bool)),
+            this, SLOT(setDataSetActionsEnabled(bool)));
+    setDataSetActionsEnabled(false);
+
 
     // WeatherPlotter events
-    connect(plotter.data(), SIGNAL(axisCountChanged(int)),
-            this, SLOT(chartAxisCountChanged(int)));
+    connect(plotter.data(), SIGNAL(axisCountChanged(int, int)),
+            this, SLOT(chartAxisCountChanged(int, int)));
     connect(plotter.data(), SIGNAL(dataSetRemoved(dataset_id_t)),
             this, SLOT(dataSetRemoved(dataset_id_t)));
+    connect(plotter.data(), SIGNAL(legendVisibilityChanged(bool)),
+            ui->action_Legend, SLOT(setChecked(bool)));
 
     // Chart events
     connect(ui->chart,
@@ -113,20 +153,6 @@ ChartWindow::ChartWindow(QList<DataSet> dataSets, bool solarAvailable, bool isWi
             SLOT(legendDoubleClick(QCPLegend*,QCPAbstractLegendItem*,
                                    QMouseEvent*)));
 
-
-#ifdef NO_FORM_CONTROLS
-    ui->startTime->setVisible(false);
-    ui->lblStartTime->setVisible(false);
-    ui->endTime->setVisible(false);
-    ui->lblEndTime->setVisible(false);
-    ui->pbRefresh->setVisible(false);
-    ui->divRefresh->setVisible(false);
-    ui->cbXLock->setVisible(false);
-    ui->cbYLock->setVisible(false);
-    ui->YLockDiv->setVisible(false);
-    ui->saveButton->setVisible(false);
-#endif
-
     setWindowTitle("Chart");
 
     this->dataSets = dataSets;
@@ -143,27 +169,35 @@ ChartWindow::~ChartWindow()
     delete ui;
 }
 
-void ChartWindow::reloadDataSets(bool rebuildChart) {
-#ifndef NO_FORM_CONTROLS
-    if (dataSets.count() > 1) {
-        // If we have multiple datasets then we can't use the simple
-        // start/end time boxes.
-        ui->startTime->setVisible(false);
-        ui->lblStartTime->setVisible(false);
-        ui->endTime->setVisible(false);
-        ui->lblEndTime->setVisible(false);
-        ui->pbRefresh->setVisible(false);
-        ui->divRefresh->setVisible(false);
-    } else {
-        ui->startTime->setDateTime(dataSets.first().startTime);
-        ui->endTime->setDateTime(dataSets.first().endTime);
-        ui->startTime->setVisible(true);
-        ui->endTime->setVisible(true);
-        ui->lblEndTime->setVisible(true);
-        ui->pbRefresh->setVisible(true);
-        ui->divRefresh->setVisible(true);
+void ChartWindow::closeEvent(QCloseEvent *event) {
+
+    Settings::getInstance().saveChartWindowGeometry(saveGeometry());
+    Settings::getInstance().saveChartWindowState(saveState());
+
+    QMainWindow::closeEvent(event);
+}
+
+void ChartWindow::setGraphActionsEnabled(bool enabled) {
+    ui->action_Rename_Graph->setEnabled(enabled);
+    ui->actionC_hange_Style->setEnabled(enabled);
+    ui->action_Remove->setEnabled(enabled);
+}
+
+void ChartWindow::setDataSetActionsEnabled(bool enabled) {
+    bool graphsAvailable = false;
+    dataset_id_t ds = getSelectedDataset();
+    if (ds == INVALID_DATASET_ID)
+        enabled = false;
+    else {
+        graphsAvailable = plotter->selectedColumns(ds) != AddGraphDialog::supportedColumns(
+                    hw_type, isWireless, solarDataAvailable);
     }
-#endif
+
+    ui->action_Add_Graph->setEnabled(enabled && graphsAvailable);
+    ui->actionC_hange_Timespan->setEnabled(enabled);
+}
+
+void ChartWindow::reloadDataSets(bool rebuildChart) {
 
     dataset_id_t max_id = 0;
     foreach (DataSet ds, dataSets) {
@@ -193,48 +227,35 @@ void ChartWindow::dataSetRemoved(dataset_id_t dataSetId) {
     qWarning() << "Could not find removed data set" << dataSetId;
 }
 
-void ChartWindow::refresh() {
-    // Update the first dataset only
-    plotter->changeDataSetTimespan(FIRST_DATA_SET,
-                                   ui->startTime->dateTime(),
-                                   ui->endTime->dateTime());
-}
+void ChartWindow::chartAxisCountChanged(int valueAxes, int keyAxes) {
+    ui->actionLock_Y_Axes->setVisible(valueAxes > 1);
+    ui->actionLock_X_Axes->setVisible(keyAxes > 1);
 
-void ChartWindow::chartAxisCountChanged(int count) {
-#ifndef NO_FORM_CONTROLS
-    if (count > 1) {
-        // Now that we have multiple axes the Y Lock option becomes available.
-        ui->YLockDiv->setVisible(true);
-        ui->cbYLock->setVisible(true);
-    } else {
-        ui->YLockDiv->setVisible(false);
-        ui->cbYLock->setVisible(false);
-    }
-#endif
     setYAxisLock();
+    setXAxisLock();
 }
 
 void ChartWindow::setYAxisLock() {
-    basicInteractionManager->setYAxisLockEnabled(ui->cbYLock->isEnabled()
-                                   && ui->cbYLock->isChecked());
+    basicInteractionManager->setYAxisLockEnabled(
+                ui->actionLock_Y_Axes->isEnabled() && ui->actionLock_Y_Axes->isChecked());
     ui->chart->deselectAll();
     ui->chart->replot();
 }
 
 void ChartWindow::toggleYAxisLock() {
-    ui->cbYLock->setChecked(!ui->cbYLock->isChecked());
+    ui->actionLock_Y_Axes->setChecked(!ui->actionLock_Y_Axes->isChecked());
     setYAxisLock();
 }
 
 void ChartWindow::setXAxisLock() {
-    basicInteractionManager->setXAxisLockEnabled(ui->cbXLock->isEnabled()
-                                                 && ui->cbXLock->isChecked());
+    basicInteractionManager->setXAxisLockEnabled(
+                ui->actionLock_X_Axes->isEnabled() && ui->actionLock_X_Axes->isChecked());
     ui->chart->deselectAll();
     ui->chart->replot();
 }
 
 void ChartWindow::toggleXAxisLock() {
-    ui->cbXLock->setChecked(!ui->cbXLock->isChecked());
+    ui->actionLock_X_Axes->setChecked(!ui->actionLock_X_Axes->isChecked());
     setXAxisLock();
 }
 
@@ -270,13 +291,19 @@ void ChartWindow::textElementDoubleClick(QMouseEvent *event)
         bool ok;
         QString newTitle = QInputDialog::getText(
                     this,
-                    tr("Change Text"),
-                    tr("Change text:"),
+                    tr("Change Title"),
+                    tr("New title:"),
                     QLineEdit::Normal,
                     element->text(),
                     &ok);
 
         if (ok) {
+            if (newTitle.isEmpty()) {
+                plotTitleValue = QString();
+                setWindowTitle(tr("Untitled - Chart"));
+                QTimer::singleShot(1, this, SLOT(removeTitle()));
+                return;
+            }
             element->setText(newTitle);
             ui->chart->replot();
         }
@@ -375,18 +402,27 @@ void ChartWindow::showChartContextMenu(QPoint point) {
     /******** Plot feature visibility & layout ********/
     menu->addSeparator();
 
+    menu->addAction(tr("&Rescale"), plotter.data(), SLOT(rescale()));
+
 #ifdef MULTI_DATA_SET
     if (dataSets.count() > 1) {
-        QMenu* rescaleMenu = menu->addMenu(tr("&Rescale"));
-        rescaleMenu->addAction(tr("By &Time"), plotter.data(),
+        QMenu* rescaleMenu = menu->addMenu(tr("&Align X Axes"));
+        WeatherPlotter::RescaleType type = plotter->getCurrentScaleType();
+        QAction *act = rescaleMenu->addAction(tr("By &Time"), plotter.data(),
                                SLOT(rescaleByTime()));
-        rescaleMenu->addAction(tr("By Time of &Year"), plotter.data(),
+        act->setCheckable(true);
+        act->setChecked(type == WeatherPlotter::RS_YEAR);
+        act = rescaleMenu->addAction(tr("By Time of &Year"), plotter.data(),
                                SLOT(rescaleByTimeOfYear()));
-        rescaleMenu->addAction(tr("By Time of &Day"), plotter.data(),
+        act->setCheckable(true);
+        act->setChecked(type == WeatherPlotter::RS_MONTH);
+        act = rescaleMenu->addAction(tr("By Time of &Day"), plotter.data(),
                                SLOT(rescaleByTimeOfDay()));
+        act->setCheckable(true);
+        act->setChecked(type == WeatherPlotter::RS_TIME);
     }
 #else
-    action = menu->addAction(tr("&Rescale"), plotter.data(),
+    action = menu->addAction(tr("&Align X Axes"), plotter.data(),
                              SLOT(rescaleByTime()));
 #endif // MULTI_DATA_SET
 
@@ -416,15 +452,15 @@ void ChartWindow::showChartContextMenu(QPoint point) {
     // X Axis lock
     action = menu->addAction(tr("Lock &X Axis"), this, SLOT(toggleXAxisLock()));
     action->setCheckable(true);
-    action->setChecked(ui->cbXLock->isChecked());
+    action->setChecked(ui->actionLock_X_Axes->isChecked());
 #endif
     // Y Axis lock
     action = menu->addAction(tr("Lock &Y Axis"), this, SLOT(toggleYAxisLock()));
     action->setCheckable(true);
-    action->setChecked(ui->cbYLock->isChecked());
+    action->setChecked(ui->actionLock_Y_Axes->isChecked());
 
 #ifdef FEATURE_PLUS_CURSOR
-    action = menu->addAction(tr("Enable Cursor"), this, SLOT(toggleCursor()));
+    action = menu->addAction(tr("Enable Crosshair"), this, SLOT(toggleCursor()));
     action->setCheckable(true);
     action->setChecked(plotter->isCursorEnabled());
 #endif
@@ -438,6 +474,7 @@ void ChartWindow::toggleCursor() {
     bool enabled = !plotter->isCursorEnabled();
     Settings::getInstance().setChartCursorEnabled(enabled);
     plotter->setCursorEnabled(enabled);
+    ui->actionC_ursor->setChecked(plotter->isCursorEnabled());
 }
 #endif
 
@@ -499,7 +536,14 @@ void ChartWindow::showKeyAxisContextMenu(QPoint point, QCPAxis *axis) {
     menu->addAction(tr("&Hide Axis"),
                     this, SLOT(hideSelectedKeyAxis()));
 
-    menu->addAction(tr("&Add Graph..."), this, SLOT(addGraph()));
+    bool graphsAvailable = false;
+    dataset_id_t ds = getSelectedDataset();
+    if (ds != INVALID_DATASET_ID) {
+        graphsAvailable = plotter->selectedColumns(ds) != AddGraphDialog::supportedColumns(
+                    hw_type, isWireless, solarDataAvailable);
+    }
+    QAction *act = menu->addAction(tr("&Add Graph..."), this, SLOT(addGraph()));
+    act->setEnabled(graphsAvailable);
 
     menu->addAction(tr("&Change Timespan..."),
                     this, SLOT(changeSelectedKeyAxisTimespan()));
@@ -566,21 +610,11 @@ void ChartWindow::hideSelectedKeyAxis() {
 }
 
 void ChartWindow::changeSelectedKeyAxisTimespan() {
-    QCPAxis* keyAxis = 0;
-
-    foreach(QCPAxis* axis, ui->chart->axisRect()->axes(QCPAxis::atTop | QCPAxis::atBottom)) {
-        if (axis->selectedParts().testFlag(QCPAxis::spAxis) ||
-                axis->selectedParts().testFlag(QCPAxis::spTickLabels))
-            keyAxis = axis;
-    }
-
-    if (keyAxis == 0) {
+    dataset_id_t ds = getSelectedDataset();
+    if (ds == INVALID_DATASET_ID)
         return;
-    }
 
-    dataset_id_t dataset = keyAxis->property(AXIS_DATASET).toInt();
-
-   changeDataSetTimeSpan(dataset);
+    changeDataSetTimeSpan(ds);
 }
 
 void ChartWindow::changeDataSetTimeSpan(dataset_id_t dsId) {
@@ -624,21 +658,11 @@ void ChartWindow::changeDataSetTimeSpan(dataset_id_t dsId, QDateTime start, QDat
 }
 
 void ChartWindow::removeSelectedKeyAxis() {
-    QCPAxis* keyAxis = 0;
-
-    foreach(QCPAxis* axis, ui->chart->axisRect()->axes(QCPAxis::atTop | QCPAxis::atBottom)) {
-        if (axis->selectedParts().testFlag(QCPAxis::spAxis) ||
-                axis->selectedParts().testFlag(QCPAxis::spTickLabels))
-            keyAxis = axis;
-    }
-
-    if (keyAxis == 0) {
+    dataset_id_t ds = getSelectedDataset();
+    if (ds == INVALID_DATASET_ID)
         return;
-    }
 
-    dataset_id_t dataset = keyAxis->property(AXIS_DATASET).toInt();
-
-    removeDataSet(dataset);
+    removeDataSet(ds);
 }
 
 void ChartWindow::removeDataSet(dataset_id_t dsId) {
@@ -717,10 +741,27 @@ void ChartWindow::addTitle()
     }
 }
 
+void ChartWindow::toggleTitle() {
+    if (plotTitleEnabled) {
+        removeTitle();
+    } else {
+        addTitle();
+    }
+}
+
 void ChartWindow::addTitle(QString title) {
     if (plotTitleEnabled) {
-        removeTitle(false);
+        removeTitle();
     }
+
+    if (title.isEmpty()) {
+        plotTitleEnabled = false;
+        plotTitleValue = QString();
+        setWindowTitle(tr("Untitled - Chart"));
+        ui->chart->replot();
+        return;
+    }
+
     plotTitleEnabled = true;
     plotTitleValue = title;
 
@@ -731,22 +772,28 @@ void ChartWindow::addTitle(QString title) {
     plotTitle->setTextColor(plotTitleColour);
     ui->chart->plotLayout()->insertRow(0);
     ui->chart->plotLayout()->addElement(0, 0, plotTitle);
+
+    if (!plotTitleValue.isEmpty()) {
+        setWindowTitle(tr("%1 - Chart").arg(title));
+    }
+
+    ui->action_Title->setChecked(true);
 }
 
-void ChartWindow::removeTitle(bool replot)
+void ChartWindow::removeTitle()
 {
     plotTitleEnabled = false;
     ui->chart->plotLayout()->remove(plotTitle);
     ui->chart->plotLayout()->simplify();
+    ui->action_Title->setChecked(false);
 
-    if (replot) {
-        ui->chart->replot();
-    }
+    ui->chart->replot(QCustomPlot::rpQueuedRefresh);
 }
 
 void ChartWindow::showLegendToggle()
 {
     ui->chart->legend->setVisible(!ui->chart->legend->visible());
+    ui->action_Legend->setChecked(ui->chart->legend->visible());
     ui->chart->replot();
 }
 
@@ -763,6 +810,7 @@ void ChartWindow::showGridToggle() {
     gridVisible = !gridVisible;
 
     plotter->setAxisGridVisible(gridVisible);
+    ui->action_Grid->setChecked(gridVisible);
 
     QList<QCPAxis*> axes = ui->chart->axisRect()->axes();
 
@@ -807,6 +855,9 @@ void ChartWindow::removeSelectedGraph()
                 dataSets[i].columns &= ~column;
             }
         }
+
+        // No more selected graph...
+        setGraphActionsEnabled(false);
     }
 }
 
@@ -910,8 +961,7 @@ QList<QCPAxis*> ChartWindow::valueAxes() {
     return ui->chart->axisRect()->axes(QCPAxis::atLeft | QCPAxis::atRight);
 }
 
-void ChartWindow::addGraph()
-{
+dataset_id_t ChartWindow::getSelectedDataset() {
     dataset_id_t dataset = FIRST_DATA_SET;
 
 #ifdef MULTI_DATA_SET
@@ -925,14 +975,23 @@ void ChartWindow::addGraph()
     }
 
     if (keyAxis == 0) {
-        return;
+        return INVALID_DATASET_ID;
     }
 
     dataset = keyAxis->property(AXIS_DATASET).toInt();
 
 #endif
 
-    showAddGraph(dataset);
+    return dataset;
+}
+
+void ChartWindow::addGraph()
+{
+    dataset_id_t ds = getSelectedDataset();
+    if (ds == INVALID_DATASET_ID)
+        return;
+
+    showAddGraph(ds);
 }
 
 void ChartWindow::showAddGraph(dataset_id_t dsId) {
@@ -944,6 +1003,7 @@ void ChartWindow::showAddGraph(dataset_id_t dsId) {
                        this);
     if (adg.exec() == QDialog::Accepted) {
         plotter->addGraphs(dsId, adg.selectedColumns());
+        setDataSetActionsEnabled(false);
     }
 }
 
@@ -1027,7 +1087,7 @@ void ChartWindow::customiseChart() {
 
             if (title != plotTitleValue || colour != plotTitleColour) {
                 if (plotTitleEnabled) {
-                    removeTitle(false);
+                    removeTitle();
                 }
                 plotTitleColour = colour;
                 addTitle(title);
@@ -1052,6 +1112,7 @@ void ChartWindow::customiseChart() {
 void ChartWindow::addDataSet() {
     ChartOptionsDialog options(solarDataAvailable, hw_type, isWireless);
     options.setWindowTitle("Add Data Set");
+    options.setWindowIcon(QIcon(":/icons/dataset-add"));
 
     int result = options.exec();
     if (result != QDialog::Accepted)

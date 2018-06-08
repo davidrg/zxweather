@@ -32,8 +32,11 @@ public:
                          QWidget *parent = 0);
     ~ChartWindow();
     
+protected:
+    virtual void closeEvent(QCloseEvent *event);
+
 private slots:
-    void chartAxisCountChanged(int count);
+    void chartAxisCountChanged(int valueAxes, int keyAxes);
     void dataSetRemoved(dataset_id_t dataSetId);
 
     // chart slots
@@ -51,6 +54,7 @@ private slots:
     void toggleYAxisLock();
     void setXAxisLock();
     void toggleXAxisLock();
+    void toggleTitle();
 
 #ifdef FEATURE_PLUS_CURSOR
     void toggleCursor();
@@ -60,7 +64,7 @@ private slots:
     // Context menu related stuff
     void chartContextMenuRequested(QPoint point);
     void addTitle();
-    void removeTitle(bool replot=true);
+    void removeTitle();
     void showLegendToggle();
     void showTitleToggle();
     void showGridToggle();
@@ -79,8 +83,6 @@ private slots:
 
     void showDataSetsWindow();
 
-    void refresh();
-
     // Save As slot
     void save();
     void copy();
@@ -92,6 +94,9 @@ private slots:
     void changeDataSetTimeSpan(dataset_id_t dsId);
     void changeDataSetTimeSpan(dataset_id_t dsId, QDateTime start, QDateTime end);
     void showAddGraph(dataset_id_t dsId);
+
+    void setGraphActionsEnabled(bool enabled);
+    void setDataSetActionsEnabled(bool enabled);
 
 signals:
     void axisVisibilityChangedForDataSet(dataset_id_t dataSetId, bool visible);
@@ -106,6 +111,8 @@ private:
     void showChartContextMenu(QPoint point);
     void showKeyAxisContextMenu(QPoint point, QCPAxis* axis);
     void showValueAxisContextMenu(QPoint point, QCPAxis* axis);
+
+    dataset_id_t getSelectedDataset();
 
     void changeGraphStyle(QCPGraph* graph);
 

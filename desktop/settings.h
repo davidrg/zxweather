@@ -178,6 +178,12 @@ public:
     void saveMainWindowGeometry(QByteArray geom);
     QByteArray mainWindowGeometry() const;
 
+    void saveChartWindowState(QByteArray state);
+    QByteArray chartWindowState() const;
+
+    void saveChartWindowGeometry(QByteArray geom);
+    QByteArray chartWindowGeometry() const;
+
     void saveReportCriteria(QString report, QVariantMap criteria);
     QVariantMap getReportCriteria(QString report);
 

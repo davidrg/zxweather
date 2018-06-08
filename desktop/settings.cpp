@@ -68,6 +68,8 @@ namespace SettingsKey {
 
     namespace Chart {
         const QString CURSOR_ENABLED = "Chart/cursor";
+        const QString CHART_WINDOW_STATE ="Chart/window_state";
+        const QString CHART_WINDOW_GEOMETRY = "Chart/window_geom";
     }
 
     namespace WeatherValueWidgets {
@@ -686,6 +688,22 @@ void Settings::saveMainWindowGeometry(QByteArray geom) {
 
 QByteArray Settings::mainWindowGeometry() const {
     return settings->value(SettingsKey::General::MAIN_WINDOW_GEOMETRY, QByteArray()).toByteArray();
+}
+
+void Settings::saveChartWindowState(QByteArray state) {
+    settings->setValue(SettingsKey::Chart::CHART_WINDOW_STATE, state);
+}
+
+QByteArray Settings::chartWindowState() const {
+    return settings->value(SettingsKey::Chart::CHART_WINDOW_STATE, QByteArray()).toByteArray();
+}
+
+void Settings::saveChartWindowGeometry(QByteArray geom) {
+    settings->setValue(SettingsKey::Chart::CHART_WINDOW_GEOMETRY, geom);
+}
+
+QByteArray Settings::chartWindowGeometry() const {
+    return settings->value(SettingsKey::Chart::CHART_WINDOW_GEOMETRY, QByteArray()).toByteArray();
 }
 
 void Settings::saveReportCriteria(QString report, QVariantMap criteria) {
