@@ -26,6 +26,8 @@ WeatherPlotter::WeatherPlotter(PlotWidget *chart, QObject *parent) :
     chart->xAxis->setProperty(AXIS_DATASET, -1);
     chart->xAxis2->setProperty(AXIS_DATASET, -1);
 
+    currentScaleType = RS_YEAR; // Align on exact timestamp match.
+
 #ifdef FEATURE_PLUS_CURSOR
     connect(chart, SIGNAL(mouseMove(QMouseEvent*)),
             this, SLOT(updateCursor(QMouseEvent*)));
@@ -176,7 +178,7 @@ QPointer<QCPAxis> WeatherPlotter::createValueAxis(AxisType type) {
     cursorAxisTags[type] = tag;
 #endif
 
-    emit axisCountChanged(configuredKeyAxes.count() + configuredValueAxes.count());
+    emit axisCountChanged(configuredValueAxes.count(), configuredKeyAxes.count());
 
     return axis;
 }
@@ -258,7 +260,7 @@ QPointer<QCPAxis> WeatherPlotter::createKeyAxis(dataset_id_t dataSetId) {
     cursorAxisTags[type] = tag;
 #endif
 
-    emit axisCountChanged(configuredKeyAxes.count() + configuredValueAxes.count());
+    emit axisCountChanged(configuredValueAxes.count(), configuredKeyAxes.count());
 
     return axis;
 }
@@ -612,12 +614,24 @@ void WeatherPlotter::drawChart(QMap<dataset_id_t, SampleSet> sampleSets)
 
     addGraphs(sampleSets);
 
+    bool legendWasVisible = chart->legend->visible();
     if (chart->graphCount() > 1)
         chart->legend->setVisible(true);
     else
         chart->legend->setVisible(false);
 
+    bool legendIsVisible = chart->legend->visible();
+
+    if (legendIsVisible != legendWasVisible) {
+        emit legendVisibilityChanged(legendIsVisible);
+    }
+
     multiRescale();
+    chart->replot();
+}
+
+void WeatherPlotter::rescale() {
+    multiRescale(currentScaleType);
     chart->replot();
 }
 
@@ -637,6 +651,7 @@ void WeatherPlotter::rescaleByTimeOfDay() {
 
 void WeatherPlotter::multiRescale(RescaleType rs_type) {
     qDebug() << "multiRescale" << rs_type;
+    currentScaleType = rs_type;
     if (dataSets.count() < 2) {
         chart->rescaleAxes();
         return;
@@ -858,7 +873,7 @@ void WeatherPlotter::removeUnusedAxes()
             }
         }
     }
-    emit axisCountChanged(configuredValueAxes.count() + configuredKeyAxes.count());
+    emit axisCountChanged(configuredValueAxes.count(), configuredKeyAxes.count());
 }
 
 SampleColumns WeatherPlotter::availableColumns(dataset_id_t dataSetId)
@@ -875,6 +890,10 @@ SampleColumns WeatherPlotter::availableColumns(dataset_id_t dataSetId)
         availableColumns &= ~SC_Timestamp;
 
     return availableColumns;
+}
+
+SampleColumns WeatherPlotter::selectedColumns(dataset_id_t dataSetId) {
+    return dataSets[dataSetId].columns;
 }
 
 void WeatherPlotter::addGraphs(dataset_id_t dataSetId, SampleColumns columns) {
@@ -1165,13 +1184,13 @@ void WeatherPlotter::updateCursor(QMouseEvent *event) {
                 }
 
                 if (axis->axisType() == QCPAxis::atLeft) {
-                    //tag->position->setCoords(keyZero, axisValue);
                     tag->position->setCoords(
                                 keyAxis->pixelToCoord(chart->axisRect()->bottomLeft().x() - axis->offset()), axisValue);
                 } else {
-                    //tag->position->setCoords(keyMax, axisValue);
+                    // +1 to align with axis rect border
                     tag->position->setCoords(
-                                keyAxis->pixelToCoord(chart->axisRect()->bottomRight().x() + axis->offset()), axisValue);
+                                keyAxis->pixelToCoord(chart->axisRect()->bottomRight().x() + axis->offset() + 1),
+                                axisValue);
                 }
             }
 
@@ -1194,7 +1213,7 @@ void WeatherPlotter::updateCursor(QMouseEvent *event) {
 
                 QPointer<QCPAxis> valueAxis = tag->position->valueAxis();
                 double valueZero = valueAxis->pixelToCoord(chart->axisRect()->bottomLeft().y());
-                double valueMax = valueAxis->pixelToCoord(chart->axisRect()->topRight().y());
+                double valueMax = valueAxis->pixelToCoord(chart->axisRect()->topRight().y() -1); // -1 to align with border
 
                 QFontMetrics m(tag->font());
                 double halfWidth = m.width(tag->text()) / 2;
@@ -1215,6 +1234,7 @@ void WeatherPlotter::updateCursor(QMouseEvent *event) {
                 }
 
                 if (axis->axisType() == QCPAxis::atTop) {
+                    // +1 to align with axis rect border
                     tag->position->setCoords(xValue, valueMax);
                 } else {
                     tag->position->setCoords(xValue, valueZero);

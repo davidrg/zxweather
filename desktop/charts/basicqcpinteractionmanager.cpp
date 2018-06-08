@@ -18,6 +18,8 @@ BasicQCPInteractionManager::BasicQCPInteractionManager(QCustomPlot *plot, QObjec
             this, SLOT(mouseWheel(QWheelEvent*)));
     connect(plot, SIGNAL(selectionChangedByUser()),
             this, SLOT(axisSelectionChanged()));
+    connect(plot, SIGNAL(selectionChangedByUser()),
+            this, SLOT(graphSelectionChanged()));
     connect(plot, SIGNAL(legendClick(QCPLegend*,QCPAbstractLegendItem*,QMouseEvent*)),
             this, SLOT(legendClick(QCPLegend*,QCPAbstractLegendItem*,QMouseEvent*)));
     connect(plot, SIGNAL(plottableClick(QCPAbstractPlottable*,int,QMouseEvent*)),
@@ -214,6 +216,9 @@ void BasicQCPInteractionManager::mouseRelease() {
 void BasicQCPInteractionManager::mouseWheel(QWheelEvent* event) {
     // Zoom on what ever axis is selected (if one is selected)
     //if (plot->xAxis->selectedParts().testFlag(QCPAxis::spAxis))
+
+    emit zooming();
+
     if (isAnyXAxisSelected() && !isXAxisLockEnabled()) {
         // A X axis is selected and axis lock is not on. So we'll just scale
         // that one axis.
@@ -333,9 +338,23 @@ QList<QCPAxis*> BasicQCPInteractionManager::keyAxes() {
     return plot->axisRect()->axes(QCPAxis::atTop | QCPAxis::atBottom);
 }
 
+void BasicQCPInteractionManager::graphSelectionChanged() {
+    bool selected = false;
+    for(int i = 0; i < plot->plottableCount(); i++) {
+        if (plot->plottable(i)->selected()) {
+            selected = true;
+            break;
+        }
+    }
+    emit graphSelected(selected);
+}
+
 void BasicQCPInteractionManager::axisSelectionChanged() {
+    bool keySelected = isAnyXAxisSelected();
+    emit keyAxisSelected(keySelected);
+
     // If either x axis or its tick labels are selected, select both axes
-    if (isAnyXAxisSelected()) {
+    if (keySelected) {
         // If one part (tick labels or the actual axis) is selected, ensure
         // both are.
 

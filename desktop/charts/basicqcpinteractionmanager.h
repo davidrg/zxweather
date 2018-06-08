@@ -16,6 +16,11 @@ public:
     bool isYAxisLockEnabled() const { return yAxisLock; }
     bool isXAxisLockEnabled() const { return xAxisLock; }
 
+signals:
+    graphSelected(bool);
+    keyAxisSelected(bool);
+    zooming();
+
 public slots:
     void setYAxisLockEnabled(bool enabled) { yAxisLock = enabled;}
     void setXAxisLockEnabled(bool enabled) { xAxisLock = enabled;}
@@ -27,6 +32,7 @@ private slots:
     void mouseWheel(QWheelEvent *event);
 
     void axisSelectionChanged();
+    void graphSelectionChanged();
 
     void legendClick(QCPLegend* legend,
                      QCPAbstractLegendItem* item,

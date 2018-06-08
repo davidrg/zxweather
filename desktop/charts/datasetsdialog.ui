@@ -15,7 +15,7 @@
   </property>
   <property name="windowIcon">
    <iconset resource="../resources.qrc">
-    <normaloff>:/icons/chart-edit</normaloff>:/icons/chart-edit</iconset>
+    <normaloff>:/icons/dataset-list</normaloff>:/icons/dataset-list</iconset>
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <item row="1" column="3">

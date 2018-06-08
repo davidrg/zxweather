@@ -235,3 +235,34 @@ SampleColumns AddGraphDialog::selectedColumns()
     return columns;
 }
 
+SampleColumns AddGraphDialog::supportedColumns(hardware_type_t hw_type, bool isWireless,
+                                               bool hasSolar) {
+    SampleColumns columns;
+
+    // Standard columns supported by all weather stations
+    columns = SC_Temperature | SC_IndoorTemperature | SC_ApparentTemperature
+            | SC_WindChill | SC_DewPoint | SC_Humidity | SC_IndoorHumidity
+            | SC_AverageWindSpeed | SC_GustWindSpeed | SC_WindDirection
+            | SC_Pressure | SC_Rainfall
+            ;
+
+    if (hw_type == HW_DAVIS) {
+        // Columns supported by all Davis Vantage Pro2 and Vue stations
+        columns |= SC_HighTemperature | SC_LowTemperature | SC_HighRainRate
+                | SC_GustWindDirection;
+
+        if (isWireless) {
+            // Columns supported by all Wireless davis stations
+            columns |= SC_Reception;
+        }
+
+        if (hasSolar) {
+            // Columns supported by the Vantage Pro2 Plus
+            columns |= SC_UV_Index | SC_SolarRadiation | SC_Evapotranspiration
+                    | SC_HighSolarRadiation | SC_HighUVIndex;
+        }
+    }
+
+    return columns;
+}
+

@@ -3,6 +3,9 @@
 
 #include <QFlags>
 #include <QDateTime>
+
+// TODO: Remove this when C++11 is the minimum supported standard
+#define __STDC_LIMIT_MACROS
 #include <stdint.h>
 
 #include "aggregate.h"
@@ -89,6 +92,8 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(SampleColumns)
 #define SUMMABLE_COLUMNS (SC_Rainfall | SC_Evapotranspiration)
 
 typedef uint16_t dataset_id_t;
+
+#define INVALID_DATASET_ID UINT16_MAX
 
 /** Describes a set of columns to be plotted in a chart along with the
  * timespan they should be plotted over. It also includes an ID will be

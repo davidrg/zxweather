@@ -29,6 +29,14 @@
         <file alias="report">resources/report.png</file>
         <file alias="reports">resources/reports.png</file>
         <file alias="battery-low">resources/battery-low.png</file>
+        <file alias="grid">resources/grid-dot.png</file>
+        <file alias="graph-style">resources/color-swatch.png</file>
+        <file alias="rename">resources/tag--pencil.png</file>
+        <file alias="crosshair">resources/crosshair.png</file>
+        <file alias="dataset-add">resources/calendar--plus.png</file>
+        <file alias="dataset-list">resources/calendar-list.png</file>
+        <file alias="timespan">resources/calendar-select-days-span.png</file>
+        <file alias="dataset-remove">resources/calendar--minus.png</file>
     </qresource>
     <qresource prefix="/icons/weather">
         <file alias="mostly_cloudy">resources/weather-cloud.png</file>

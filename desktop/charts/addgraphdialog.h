@@ -25,6 +25,11 @@ public:
     
     SampleColumns selectedColumns();
 
+    // Gets the set of columns that this window supports returning via
+    // the selectedColumns() method.
+    static SampleColumns supportedColumns(hardware_type_t hw_type,
+                                          bool isWireless, bool hasSolar);
+
 private:
     Ui::AddGraphDialog *ui;
 };
