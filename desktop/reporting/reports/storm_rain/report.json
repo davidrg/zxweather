@@ -40,7 +40,19 @@
 			"icon": "../../icons/table",
 			"format": "table",
 			"query": "storm_rain",
-			"filename": "storm_rain.csv"
+            "filename": "storm_rain.csv",
+            "view_columns": {
+                "start_time": "Start Time",
+                "end_time": "End Time",
+                "duration": "Duration",
+                "total_rainfall": "Total Rainfall"
+            },
+            "save_columns": {
+                "start_time": "Start Time",
+                "end_time": "End Time",
+                "duration": "Duration",
+                "total_rainfall": "Total Rainfall"
+            },
 		}
 	]
 }
