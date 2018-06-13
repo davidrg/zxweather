@@ -12,6 +12,7 @@
 #include <QDir>
 #include <QMessageBox>
 #include <QMap>
+#include <QDesktopServices>
 
 #include "json/json.h"
 #include "datasource/abstractdatasource.h"
@@ -26,8 +27,20 @@ QByteArray readFile(QString name) {
     files << QDir::cleanPath("reports" + QString(QDir::separator()) + name);
     files << QDir::cleanPath(":/reports/" + name);
 
-    foreach (QString filename, files) {
+    QStringList paths;
+// #if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
+//    paths.append(QStandardPaths::standardLocations(QStandardPaths::AppDataLocation));
+//    paths.append(QStandardPaths::standardLocations(QStandardPaths::AppLocalDataLocation));
+//#else
+//    paths.append(QDesktopServices::storageLocation(QDesktopServices::DataLocation));
 
+// #endif
+    foreach (QString path, paths) {
+        files << QDir::cleanPath(path + "/reports/" + name);
+    }
+
+    foreach (QString filename, files) {
+        qDebug() << "Checking for" << filename;
         QFile file(filename);
 
         if (file.exists()) {
@@ -346,6 +359,7 @@ bool Report::operator <(Report const& b)const {
 
 
 QStringList findReportsIn(QString directory) {
+    qDebug() << "Searching for reports in" << directory;
     QDir dir(directory);
 
     QStringList result;
@@ -369,13 +383,28 @@ QStringList findReportsIn(QString directory) {
 }
 
 QStringList Report::reports() {
+     QStringList searchPaths;
+     searchPaths << "./";
+
+//#if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
+//     searchPaths.append(QStandardPaths::standardLocations(QStandardPaths::AppDataLocation));
+//     searchPaths.append(QStandardPaths::standardLocations(QStandardPaths::AppLocalDataLocation));
+//#else
+//     searchPaths.append(QDesktopServices::storageLocation(QDesktopServices::DataLocation));
+//#endif
+
+     searchPaths.removeDuplicates();
+
      QStringList reports = findReportsIn(":/reports");
 
-     foreach (QString report, findReportsIn("reports")) {
-         if (!reports.contains(report)) {
-             reports.append(report);
+     foreach (QString path, searchPaths) {
+         foreach (QString report, findReportsIn(QDir::cleanPath(path + "/reports"))) {
+             if (!reports.contains(report)) {
+                 reports.append(report);
+             }
          }
      }
+
      return reports;
 }
 
