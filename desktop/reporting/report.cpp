@@ -310,6 +310,19 @@ Report::Report(QString name)
                            << "for TABLE format output";
                 continue;
             }
+
+            if (o.contains("view_columns")) {
+                QVariantMap m = o["view_columns"].toMap();
+                foreach (QString key, m.keys()) {
+                    output.viewColumns[key] = m[key].toString();
+                }
+            }
+            if (o.contains("save_columns")) {
+                QVariantMap m = o["save_columns"].toMap();
+                foreach (QString key, m.keys()) {
+                    output.saveColumns[key] = m[key].toString();
+                }
+            }
         }
 
         if (o.contains("filename")) {
@@ -644,7 +657,7 @@ void Report::run(AbstractDataSource* dataSource, QMap<QString, QVariant> paramet
     }
 }
 
-QString Report::queryToCSV(QSqlQuery query) {
+QString Report::queryToCSV(QSqlQuery query, QMap<QString, QString> columnHeadings) {
     QString result;
 
     bool haveHeader = false;
@@ -657,6 +670,10 @@ QString Report::queryToCSV(QSqlQuery query) {
 
             for (int i = 0; i < record.count(); i++) {
                 QSqlField f = record.field(i);
+                QString fieldName = f.name();
+                if (columnHeadings.contains(fieldName) && columnHeadings[fieldName].isNull()) {
+                    continue;
+                }
 
                 if (!row.isEmpty()) {
                     row.append(",");
@@ -667,7 +684,11 @@ QString Report::queryToCSV(QSqlQuery query) {
                     if (!header.isEmpty()) {
                         header.append(",");
                     }
-                    header.append(f.name());
+                    if (columnHeadings.contains(fieldName)) {
+                        header.append(columnHeadings[fieldName]);
+                    } else {
+                        header.append(fieldName);
+                    }
                 }
             }
 
@@ -689,7 +710,7 @@ void Report::writeFile(report_output_file_t file) {
         if (!file.data.isNull()) {
             f.write(file.data);
         } else if (file.query.isActive()) {
-            f.write(Report::queryToCSV(file.query).toUtf8());
+            f.write(Report::queryToCSV(file.query, file.columnHeadings).toUtf8());
         }
 
         f.close();
@@ -810,12 +831,49 @@ void Report::outputToUI(QMap<QString, QVariant> reportParameters,
         } else if (output.format == OF_TABLE) {
             QSqlQueryModel *model = new QSqlQueryModel();
             model->setQuery(queries[output.query_name]);
-            window->addGridTab(output.title, output.icon, model);
+
+//            foreach (QString columnName, output.viewColumns.keys()) {
+//                QString newName = output.viewColumns[columnName];
+
+//                for(int i = 0; i < model->columnCount(QModelIndex()); i++) {
+//                    QString thisColumn = model->headerData(i, Qt::Horizontal, Qt::DisplayRole).toString();
+//                    if (columnName == thisColumn) {
+//                        if (!newName.isNull()) {
+//                            model->setHeaderData(i, Qt::Horizontal, newName, Qt::DisplayRole);
+//                        }
+//                        break;
+//                    }
+//                }
+//            }
+
+//            for(int i = model->columnCount(QModelIndex()) - 1; i >= 0; i--) {
+//                QString col = model->headerData(i, Qt::Horizontal, Qt::DisplayRole).toString();
+//                if (output.viewColumns.contains(col)) {
+//                    if (output.viewColumns[col].isNull()) {
+//                        model->removeColumn(i);
+//                    }
+//                }
+//            }
+
+            QStringList hideColumns;
+            for(int i = 0; i < model->columnCount(QModelIndex()); i++) {
+                QString col = model->headerData(i, Qt::Horizontal, Qt::DisplayRole).toString();
+                if (output.viewColumns.contains(col)) {
+                    if (output.viewColumns[col].isNull()) {
+                        hideColumns.append(col);
+                    } else {
+                        model->setHeaderData(i, Qt::Horizontal, output.viewColumns[col], Qt::DisplayRole);
+                    }
+                }
+            }
+
+            window->addGridTab(output.title, output.icon, model, hideColumns);
 
             report_output_file_t output_file;
             output_file.default_filename = output.filename;
             output_file.dialog_filter = QObject::tr("CSV Files (*.csv)");
             output_file.query = QSqlQuery(queries[output.query_name]);
+            output_file.columnHeadings = output.saveColumns;
 
             if (output_file.default_filename.isEmpty()) {
                 output_file.default_filename = output.name + ".csv";
@@ -870,6 +928,7 @@ void Report::outputToDisk(QMap<QString, QVariant> reportParameters,
             output_file.default_filename = output.filename;
             output_file.dialog_filter = QObject::tr("CSV Files (*.csv)");
             output_file.query = QSqlQuery(queries[output.query_name]);
+            output_file.columnHeadings = output.saveColumns;
 
             if (output_file.default_filename.isEmpty()) {
                 output_file.default_filename = output.name + ".csv";
