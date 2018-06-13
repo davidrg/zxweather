@@ -68,7 +68,33 @@
 			"icon": "../../icons/table",
 			"format": "table",
 			"query": "averages",
-			"filename": "monthly_averages.csv"
+            "filename": "monthly_averages.csv",
+            "view_columns": {
+                "min_year": "First Year",
+                "max_year": "Lsat Year",
+                "month_name": "Month",
+                "avg_high": "Avg. High",
+                "daily_mean": "Daily Mean",
+                "avg_low": "Avg. Low",
+                "avg_precipitation": "Avg. Rain",
+                "avg_preciptiation_days": "Avg. Rain Days",
+                "avg_humidity": "Avg. Humidity",
+                "avg_wind": "Avg. Wind",
+                "avg_gale_days": "Avg. Gale Days"
+            },
+            "save_columns": {
+                "min_year": "First Year",
+                "max_year": "Last Year",
+                "month_name": "Month",
+                "avg_high": "Avg. High",
+                "daily_mean": "Daily Mean",
+                "avg_low": "Avg. Low",
+                "avg_precipitation": "Avg. Rain",
+                "avg_preciptiation_days": "Avg. Rain Days",
+                "avg_humidity": "Avg. Humidity",
+                "avg_wind": "Avg. Wind",
+                "avg_gale_days": "Avg. Gale Days"
+            },
 		}
 	]
 }
