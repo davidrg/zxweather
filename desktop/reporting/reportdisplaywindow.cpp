@@ -77,7 +77,7 @@ void ReportDisplayWindow::addPlainTab(QString name, QIcon icon, QString text) {
     }
 }
 
-void ReportDisplayWindow::addGridTab(QString name, QIcon icon, QAbstractTableModel *model) {
+void ReportDisplayWindow::addGridTab(QString name, QIcon icon, QAbstractTableModel *model, QStringList hideColumns) {
     QWidget *tab = new QWidget(tabs);
     QGridLayout *tabLayout = new QGridLayout(tab);
 
@@ -89,6 +89,14 @@ void ReportDisplayWindow::addGridTab(QString name, QIcon icon, QAbstractTableMod
     table->setModel(sortableModel);
     table->resizeColumnsToContents();
     table->setSortingEnabled(true);
+
+    foreach (QString col, hideColumns) {
+        for(int i = 0; i < table->model()->columnCount(); i++) {
+            if (table->model()->headerData(i, Qt::Horizontal, Qt::DisplayRole).toString() == col) {
+                table->hideColumn(i);
+            }
+        }
+    }
 
     // Setup a keyboard shortcut for copying a selection in the
     // grid to tab-delimited data in the clipboard

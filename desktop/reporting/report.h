@@ -20,6 +20,7 @@ typedef struct {
     QString dialog_filter;
     QByteArray data;
     QSqlQuery query;
+    QMap<QString, QString> columnHeadings;
 } report_output_file_t;
 
 class Report
@@ -146,6 +147,12 @@ private:
         // user will be prompted for an output directory to store all outputs
         // rather than an output file for the single output)
         QString filename; // for when a report is saved
+
+        // Column headings for view and save. Use a column heading of null
+        // to disable that column in either the view-as-grid or save-to-csv.
+        // Columns not included in these will receive default settings.
+        QMap<QString, QString> viewColumns;
+        QMap<QString, QString> saveColumns;
     } output_t;
 
     QList<output_t> outputs;
@@ -164,7 +171,7 @@ private:
     AbstractDataSource *_dataSource;
     QVariantMap _parameters;
 
-    static QString queryToCSV(QSqlQuery query);
+    static QString queryToCSV(QSqlQuery query, QMap<QString, QString> columnHeadings);
     static void writeFile(report_output_file_t file);
 
     void run(AbstractDataSource*, QMap<QString, QVariant> parameters);

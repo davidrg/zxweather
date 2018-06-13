@@ -16,7 +16,7 @@ public:
 
     void addHtmlTab(QString name, QIcon icon, QString content);
     void addPlainTab(QString name, QIcon icon, QString text);
-    void addGridTab(QString name, QIcon icon, QAbstractTableModel *model);
+    void addGridTab(QString name, QIcon icon, QAbstractTableModel *model, QStringList hideColumns);
 
     void setSaveOutputs(QList<report_output_file_t> outputs);
 
