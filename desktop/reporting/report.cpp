@@ -295,6 +295,10 @@ Report::Report(QString name)
                            << "- failed to load template for specified for TEXT/HTML format output";
                 continue;
             }
+
+            if (o.contains("view_template")) {
+                output.view_output_template = readFile(reportDir + o["view_template"].toString());
+            }
         } else if (output.format == OF_TABLE) {
             if (!o.contains("query")) {
                 qWarning() << "invalid output" << key
@@ -803,16 +807,26 @@ void Report::outputToUI(QMap<QString, QVariant> reportParameters,
 
     foreach (output_t output, outputs) {
         if (output.format == OF_HTML || output.format == OF_TEXT) {
-            QString result = renderTemplatedReport(reportParameters, queries,
+            QString saveResult = renderTemplatedReport(reportParameters, queries,
                                                    output.output_template);
+            QString viewResult;
+            if (!output.view_output_template.isNull()) {
+                viewResult = renderTemplatedReport(reportParameters,
+                                                   queries,
+                                                   output.view_output_template);
+            } else {
+                viewResult = saveResult;
+            }
+
+
             QString filter = "";
             QString extension = "";
             if (output.format == OF_HTML) {
-                window->addHtmlTab(output.title, output.icon, result);
+                window->addHtmlTab(output.title, output.icon, viewResult);
                 filter = QObject::tr("HTML Files (*.html *.html)");
                 extension = ".html";
             } else if (output.format == OF_TEXT) {
-                window->addPlainTab(output.title, output.icon, result);
+                window->addPlainTab(output.title, output.icon, viewResult);
                 filter = QObject::tr("Text Files (*.txt)");
                 extension = ".txt";
             }
@@ -820,7 +834,7 @@ void Report::outputToUI(QMap<QString, QVariant> reportParameters,
             report_output_file_t output_file;
             output_file.default_filename = output.filename;
             output_file.dialog_filter = filter;
-            output_file.data = result.toUtf8();
+            output_file.data = saveResult.toUtf8();
 
             if (output_file.default_filename.isEmpty()) {
                 output_file.default_filename = output.name + extension;
@@ -831,29 +845,6 @@ void Report::outputToUI(QMap<QString, QVariant> reportParameters,
         } else if (output.format == OF_TABLE) {
             QSqlQueryModel *model = new QSqlQueryModel();
             model->setQuery(queries[output.query_name]);
-
-//            foreach (QString columnName, output.viewColumns.keys()) {
-//                QString newName = output.viewColumns[columnName];
-
-//                for(int i = 0; i < model->columnCount(QModelIndex()); i++) {
-//                    QString thisColumn = model->headerData(i, Qt::Horizontal, Qt::DisplayRole).toString();
-//                    if (columnName == thisColumn) {
-//                        if (!newName.isNull()) {
-//                            model->setHeaderData(i, Qt::Horizontal, newName, Qt::DisplayRole);
-//                        }
-//                        break;
-//                    }
-//                }
-//            }
-
-//            for(int i = model->columnCount(QModelIndex()) - 1; i >= 0; i--) {
-//                QString col = model->headerData(i, Qt::Horizontal, Qt::DisplayRole).toString();
-//                if (output.viewColumns.contains(col)) {
-//                    if (output.viewColumns[col].isNull()) {
-//                        model->removeColumn(i);
-//                    }
-//                }
-//            }
 
             QStringList hideColumns;
             for(int i = 0; i < model->columnCount(QModelIndex()); i++) {
