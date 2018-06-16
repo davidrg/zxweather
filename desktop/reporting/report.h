@@ -138,6 +138,7 @@ private:
 
         // for OF_HTML and OF_TEXT
         QString output_template;    // For templated output
+        QString view_output_template; // For templated output on screen
 
         // for OF_TABLE
         QString query_name;  // for grid/csv output
