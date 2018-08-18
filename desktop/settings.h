@@ -190,6 +190,9 @@ public:
     bool chartCursorEnabled();
     void setChartCursorEnabled(bool enabled);
 
+    bool showCurrentDayInImageWindow();
+    bool selectCurrentDayInImageWindow();
+
 private:
     Settings();
     ~Settings();

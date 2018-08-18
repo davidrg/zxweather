@@ -53,6 +53,16 @@ namespace SettingsKey {
             const QString VLAYOUT = "General/images_window/vertical_layout";
             const QString WLAYOUT = "General/images_window/window_layout";
             const QString TYPE_SORT = "General/images_window/image_type_sort_order";
+
+            // When true (default) and there are images for the current day, the current day is
+            // visible when the images window is opened.
+            const QString SHOW_CURRENT_DAY = "General/images_window/show_current_day";
+
+            // When true (default) and there are images for the current day, the current day is
+            // selected when the images window is opened and thumbnails for the current days
+            // images will be visible in the list view. This may trigger the downloading of all
+            // images for the current day.
+            const QString SELECT_CURRENT_DAY = "General/images_window/select_current_day";
         }
     }
 
@@ -735,4 +745,12 @@ bool Settings::chartCursorEnabled() {
 
 void Settings::setChartCursorEnabled(bool enabled) {
     settings->setValue(SettingsKey::Chart::CURSOR_ENABLED, enabled);
+}
+
+bool Settings::showCurrentDayInImageWindow() {
+    return settings->value(SettingsKey::General::ImagesWindow::SHOW_CURRENT_DAY, true).toBool();
+}
+
+bool Settings::selectCurrentDayInImageWindow() {
+    return settings->value(SettingsKey::General::ImagesWindow::SELECT_CURRENT_DAY, true).toBool();
 }
