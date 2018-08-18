@@ -47,6 +47,7 @@ public:
     QImage image(const QModelIndex &index) const;
     ImageInfo imageInfo(const QModelIndex &index) const;
     QString imageTemporaryFileName(const QModelIndex &index) const;
+    QDate itemDate(const QModelIndex &index) const;
 
     // Drag-drop functionality
     Qt::ItemFlags flags(const QModelIndex &index) const;
