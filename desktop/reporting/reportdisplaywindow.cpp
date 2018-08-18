@@ -102,6 +102,9 @@ void ReportDisplayWindow::addGridTab(QString name, QIcon icon, QAbstractTableMod
     table->resizeColumnsToContents();
     table->setSortingEnabled(true);
 
+    table->verticalHeader()->setDefaultSectionSize(23);
+    table->verticalHeader()->setMinimumSectionSize(23);
+
     foreach (QString col, hideColumns) {
         for(int i = 0; i < table->model()->columnCount(); i++) {
             if (table->model()->headerData(i, Qt::Horizontal, Qt::DisplayRole).toString() == col) {
