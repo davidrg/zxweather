@@ -34,6 +34,8 @@ private slots:
     void listItemContextMenu(const QPoint& point);
     void treeItemContextMenu(const QPoint& point);
 
+    void expandNow();
+
     // Context menu
     void openImageInWindow();
     void saveImageAs();
@@ -50,6 +52,7 @@ private:
 
     void loadImageForIndex(QModelIndex index);
     void contextMenu(QPoint point, QModelIndex idx, bool isList);
+    void expandCurrentDay(bool expandDay);
 };
 
 #endif // VIEWIMAGESWINDOW_H

@@ -380,7 +380,7 @@ void ImageModel::imageDatesReady(QList<ImageDate> dates,
     // Build the actual tree
     foreach (int year, sourceTree.keys()) {
         TreeItem* yearNode = new TreeItem(IT_YEAR,
-                                          QDate(),
+                                          QDate(year, 1, 1),
                                           "",
                                           QString::number(year),
                                           rootNode,
@@ -389,7 +389,7 @@ void ImageModel::imageDatesReady(QList<ImageDate> dates,
         foreach (int month, sourceTree[year].keys()) {
             QString monthName = QDate::longMonthName(month);
             TreeItem *monthNode = new TreeItem(IT_MONTH,
-                                               QDate(),
+                                               QDate(year, month, 1),
                                                "",
                                                monthName,
                                                yearNode,
@@ -610,6 +610,12 @@ ImageInfo ImageModel::imageInfo(const QModelIndex &index) const {
     ImageInfo nullInfo;
 
     return nullInfo;
+}
+
+QDate ImageModel::itemDate(const QModelIndex &index) const {
+    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
+
+    return item->date();
 }
 
 
