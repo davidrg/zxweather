@@ -32,6 +32,7 @@
 			"icon": "../../icons/report",
 			"format": "html",
 			"template": "template.html",
+			"view_template": "view_template.html",
 			"filename": "storm_rain.html"
 		},
 		{
@@ -40,19 +41,19 @@
 			"icon": "../../icons/table",
 			"format": "table",
 			"query": "storm_rain",
-            "filename": "storm_rain.csv",
-            "view_columns": {
-                "start_time": "Start Time",
-                "end_time": "End Time",
-                "duration": "Duration",
-                "total_rainfall": "Total Rainfall"
-            },
-            "save_columns": {
-                "start_time": "Start Time",
-                "end_time": "End Time",
-                "duration": "Duration",
-                "total_rainfall": "Total Rainfall"
-            },
+			"filename": "storm_rain.csv",
+			"view_columns": {
+				"start_time": "Start Time",
+				"end_time": "End Time",
+				"duration": "Duration",
+				"total_rainfall": "Total Rainfall"
+			},
+			"save_columns": {
+				"start_time": "Start Time",
+				"end_time": "End Time",
+				"duration": "Duration",
+				"total_rainfall": "Total Rainfall"
+			},
 		}
 	]
 }

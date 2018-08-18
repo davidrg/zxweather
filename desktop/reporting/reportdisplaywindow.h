@@ -3,8 +3,10 @@
 
 #include <QDialog>
 #include <QAbstractTableModel>
+#include <QUrl>
 
 #include "report.h"
+#include "datasource/samplecolumns.h"
 
 class QTabWidget;
 
@@ -20,13 +22,20 @@ public:
 
     void setSaveOutputs(QList<report_output_file_t> outputs);
 
+    void setStationInfo(bool hasSolarData, bool isWireless) {
+        solarDataAvailable = hasSolarData; wirelessAvailable = isWireless;
+    }
+
 private slots:
     void copyGridSelection();
     void saveReport();
+    void linkClicked(QUrl url);
 
 private:
     QTabWidget *tabs;
     QList<report_output_file_t> outputs;
+    bool solarDataAvailable;
+    bool wirelessAvailable;
 };
 
 #endif // REPORTDISPLAYWINDOW_H
