@@ -5,6 +5,7 @@
 #include "request_data.h"
 
 #include <QObject>
+#include <QSet>
 
 // Check cache status for all URLS in parallel as part of the range request job
 // rather than leaving it to individual DataFileWebTasks. This is a fair bit faster

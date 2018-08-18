@@ -8,6 +8,10 @@
 #define __STDC_LIMIT_MACROS
 #include <stdint.h>
 
+#ifndef UINT16_MAX
+#define UINT16_MAX 65535
+#endif
+
 #include "aggregate.h"
 
 /*

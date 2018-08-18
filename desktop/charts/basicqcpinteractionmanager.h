@@ -17,9 +17,9 @@ public:
     bool isXAxisLockEnabled() const { return xAxisLock; }
 
 signals:
-    graphSelected(bool);
-    keyAxisSelected(bool);
-    zooming();
+    void graphSelected(bool);
+    void keyAxisSelected(bool);
+    void zooming();
 
 public slots:
     void setYAxisLockEnabled(bool enabled) { yAxisLock = enabled;}
