@@ -114,6 +114,11 @@ void TcpLiveDataSource::processStreamLine(QString line) {
 
     QStringList parts = line.split(",");
 
+    if (parts.count() == 0) {
+        qDebug() << "Failed to parse line";
+        return;
+    }
+
     if (parts[0] == "l") {
         processLiveData(parts);
     } else if (parts[0] == "i") {
@@ -177,8 +182,6 @@ void TcpLiveDataSource::processLiveData(QStringList parts) {
 
     emit liveData(lds);
 }
-
-
 
 void TcpLiveDataSource::processSample(QStringList parts) {
     if (parts.at(0) != "s") {
@@ -330,7 +333,6 @@ void TcpLiveDataSource::processStationInfo(QString line) {
     emit stationName(station_name);
     emit isSolarDataEnabled(solar_available);
 }
-
 
 void TcpLiveDataSource::readyRead() {
     LastUpdate = QDateTime::currentDateTime();
