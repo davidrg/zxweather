@@ -49,7 +49,13 @@ int SortProxyModel::intervalToSeconds(QString interval) const {
     }
 
     // 86400 seconds in a day, 1000ms in a second
+#if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
     return (days * 86400) + (time.msecsSinceStartOfDay() / 1000);
+#else
+    QTime from(0, 0);
+    return (days * 86400) + (from.msecsTo(time) / 1000);
+
+#endif
 }
 #else
 int SortProxyModel::intervalToSeconds(QString interval) const {
