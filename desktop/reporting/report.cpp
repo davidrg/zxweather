@@ -655,7 +655,9 @@ void Report::run(AbstractDataSource* dataSource, QMap<QString, QVariant> paramet
     }
 
     if (output_type == OT_DISPLAY) {
-        outputToUI(parameters, queryResults);
+        station_info_t info = dataSource->getStationInfo();
+
+        outputToUI(parameters, queryResults, info.hasSolarAndUV, info.isWireless);
     } else if (output_type == OT_SAVE) {
         outputToDisk(parameters, queryResults);
     }
@@ -799,9 +801,10 @@ void Report::saveReport(QList<report_output_file_t> outputs, QWidget *parent) {
 }
 
 void Report::outputToUI(QMap<QString, QVariant> reportParameters,
-                        QMap<QString, QSqlQuery> queries) {
+                        QMap<QString, QSqlQuery> queries, bool hasSolar, bool isWireless) {
 
     ReportDisplayWindow *window = new ReportDisplayWindow(_title, _icon);
+    window->setStationInfo(hasSolar, isWireless);
 
     QList<report_output_file_t> files;
 

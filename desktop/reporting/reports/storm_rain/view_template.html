@@ -1,0 +1,33 @@
+<html>
+<head>
+<title>Storm Rain</title>
+</head>
+<body>
+	<h1>Storm Rain</h1>
+	<p>From: {{start}} to {{end}}</p>
+
+        <table width="100%">
+        <thead>
+            <tr>
+                <th width="25%">Start Time</th>
+                <th width="25%">End Time</th>
+                <th width="25%">Duration</th>
+                <th width="25%">Total Rainfall</th>
+				<th></th>
+			</tr>
+        </thead>
+        <tbody>
+            {{#storm_rain}}
+            <tr>
+                <td>{{start_time}}</td>
+                <td>{{end_time}}</td>
+                <td>{{duration}}</td>
+                <td align=center>{{total_rainfall}}</td>
+				<td><a href="zxw://plot?start={{start_time}}&end={{end_time}}&title=Storm Starting {{start_time}}&graphs=rainfall&aggregate=running_total&grouping=custom&group_minutes=5">Plot</a></td>
+            </tr>
+            {{/storm_rain}}
+        </tbody>
+	</table>
+
+</body>
+</html>

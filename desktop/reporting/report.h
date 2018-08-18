@@ -178,7 +178,7 @@ private:
     void run(AbstractDataSource*, QMap<QString, QVariant> parameters);
     void completeReport();
     void outputToUI(QMap<QString, QVariant> reportParameters,
-                    QMap<QString, QSqlQuery> queries);
+                    QMap<QString, QSqlQuery> queries, bool hasSolar, bool isWireless);
     void outputToDisk(QMap<QString, QVariant> reportParameters,
                       QMap<QString, QSqlQuery> queries);
     QString renderTemplatedReport(QMap<QString, QVariant> reportParameters,

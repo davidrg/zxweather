@@ -49,5 +49,6 @@
         <file>averages_report/sqlite.sql</file>
         <file>averages_report/template.html</file>
         <file>averages_report/units.ui</file>
+        <file>storm_rain/view_template.html</file>
     </qresource>
 </RCC>
