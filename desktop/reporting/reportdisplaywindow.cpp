@@ -15,6 +15,7 @@
 
 #include "datasource/samplecolumns.h"
 #include "charts/chartwindow.h"
+#include "viewdatasetwindow.h"
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
 #include <QUrlQuery>
@@ -199,7 +200,12 @@ DataSet decodeDataSet(QUrl url) {
     if (q.hasQueryItem("title")) {
         title = q.queryItemValue("title");
     }
-    graphs = q.queryItemValue("graphs").toLower();
+    if (q.hasQueryItem("graphs")) {
+        graphs = q.queryItemValue("graphs").toLower();
+    } else {
+        graphs = q.queryItemValue("columns").toLower();
+    }
+
     if (q.hasQueryItem("aggregate")) {
         aggregate = q.queryItemValue("aggregate").toLower();
         grouping = q.queryItemValue("grouping").toLower();
@@ -231,6 +237,8 @@ DataSet decodeDataSet(QUrl url) {
     }
     QStringList columns = graphs.split("+");
     foreach (QString col, columns) {
+        if (col == "time")
+            ds.columns |= SC_Timestamp;
         if (col == "temperature") {
             ds.columns |= SC_Temperature;
         } else if (col == "indoor_temperature") {
@@ -324,6 +332,13 @@ void ReportDisplayWindow::linkClicked(QUrl url) {
             ChartWindow *cw = new ChartWindow(ds, solarDataAvailable, wirelessAvailable);
             cw->setAttribute(Qt::WA_DeleteOnClose);
             cw->show();
+            return;
+        } else if (url.authority() == "view-data") {
+            DataSet ds = decodeDataSet(url);
+
+            ViewDataSetWindow *window = new ViewDataSetWindow(ds);
+            window->setAttribute(Qt::WA_DeleteOnClose);
+            window->show();
             return;
         }
     }
