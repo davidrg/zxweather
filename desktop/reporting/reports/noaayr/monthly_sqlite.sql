@@ -217,15 +217,15 @@ select
   substr('     ' || case when p.inches
     then cast(round(d.dep_norm_rain, 2) as text)
     else round(d.dep_norm_rain, 1)
-    end, -5)                                                as dep_norm_rain,
+    end, -6)                                                as dep_norm_rain,
   substr('     ' || case when p.inches
     then cast(round(d.max_obs_rain, 2) as text)
     else round(d.max_obs_rain, 1)
     end, -5)                                                as max_obs_rain,
-  substr('     ' || d.max_obs_rain_day, -2)                 as max_obs_rain_day,
-  substr('     ' || d.rain_02, -2)                          as rain_02,
-  substr('     ' || d.rain_2, -2)                           as rain_2,
-  substr('     ' || d.rain_20, -2)                          as rain_20,
+  substr('     ' || d.max_obs_rain_day, -3)                 as max_obs_rain_day,
+  substr('     ' || d.rain_02, -3)                          as rain_02,
+  substr('     ' || d.rain_2, -3)                           as rain_2,
+  substr('     ' || d.rain_20, -3)                          as rain_20,
 
   -- Wind
   substr('     ' || round(d.avg_wind, 1), -4)               as avg_wind,

@@ -204,15 +204,15 @@ select
   lpad(case when p.inches
     then round(d.dep_norm_rain::numeric, 2)
     else round(d.dep_norm_rain::numeric, 1)
-    end::varchar, 5, ' ')                                   as dep_norm_rain,
+    end::varchar, 6, ' ')                                   as dep_norm_rain,
   lpad(case when p.inches
     then round(d.max_obs_rain::numeric, 2)
     else round(d.max_obs_rain::numeric, 1)
     end::varchar, 5, ' ')                                   as max_obs_rain,
-  lpad(d.max_obs_rain_day::varchar, 2, ' ')                 as max_obs_rain_day,
-  lpad(d.rain_02::varchar, 2, ' ')                          as rain_02,
-  lpad(d.rain_2::varchar, 2, ' ')                           as rain_2,
-  lpad(d.rain_20::varchar, 2, ' ')                          as rain_20,
+  lpad(d.max_obs_rain_day::varchar, 3, ' ')                 as max_obs_rain_day,
+  lpad(d.rain_02::varchar, 3, ' ')                          as rain_02,
+  lpad(d.rain_2::varchar, 3, ' ')                           as rain_2,
+  lpad(d.rain_20::varchar, 3, ' ')                          as rain_20,
 
   -- Wind
   lpad(round(d.avg_wind::numeric, 1)::varchar, 4, ' ')      as avg_wind,
