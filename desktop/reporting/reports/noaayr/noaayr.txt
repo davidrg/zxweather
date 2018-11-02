@@ -19,7 +19,7 @@ ELEV: {{altitude}} {{altitude_units}}  LAT: {{{latitude}}}  LONG: {{{longitude}}
                FROM   OBS.          OVER
  YR MO  TOTAL  NORM   DAY  DATE {{#criteria}}{{rain_02}}   {{rain_2}}  {{rain_20}}{{/criteria}}
 ---------------------------------------------
-{{#monthly}} {{year}} {{month}} {{tot_rain}}  {{dep_norm_rain}} {{max_obs_rain}}   {{max_obs_rain_day}}   {{rain_02}}   {{rain_2}}   {{rain_20}}
+{{#monthly}} {{year}} {{month}} {{tot_rain}} {{dep_norm_rain}} {{max_obs_rain}}  {{max_obs_rain_day}}  {{rain_02}}  {{rain_2}}  {{rain_20}}
 {{/monthly}}
 ---------------------------------------------
      {{#yearly}}{{tot_rain}} {{dep_norm_rain}} {{max_obs_rain}}  {{max_obs_rain_day}}  {{rain_02}}  {{rain_2}}  {{rain_20}}{{/yearly}}
