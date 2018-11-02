@@ -92,6 +92,10 @@ void ImageWidget::setPixmap(const QPixmap &pixmap) {
     imageSet = true;
     //QLabel::setPixmap(pixmap);
     image = pixmap.toImage();
+    if (videoPlayer != NULL) {
+        videoPlayer->stop();
+        videoPlayer->hide();
+    }
     updateGeometry();
     repaint();
 }
@@ -99,6 +103,10 @@ void ImageWidget::setPixmap(const QPixmap &pixmap) {
 void ImageWidget::setIcon(QIcon icon) {
     isIcon = true;
     setPixmap(icon.pixmap(32,32));
+    if (videoPlayer != NULL) {
+        videoPlayer->stop();
+        videoPlayer->hide();
+    }
 }
 
 
