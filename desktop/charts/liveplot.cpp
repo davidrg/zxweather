@@ -351,6 +351,33 @@ void LivePlot::showLegendContextMenu(QPoint point)
     QMenu *menu = new QMenu(this);
     menu->setAttribute(Qt::WA_DeleteOnClose);
 
+    for (int i = 0; i < legend->itemCount(); i++) {
+        if (legend->item(i)->selectTest(point, false) >= 0) {
+           QCPAbstractLegendItem *item = legend->item(i);
+           QCPPlottableLegendItem *plottableItem = qobject_cast<QCPPlottableLegendItem*>(item);
+           if (plottableItem != NULL) {
+               // Deselect any currently selected plottables
+               for (int i = 0; i < plottableCount(); i++) {
+                   plottable(i)->setSelection(QCPDataSelection(QCPDataRange(0, 0)));
+               }
+
+               // select the graph
+               plottableItem->setSelected(true);
+               plottableItem->plottable()->setSelection(QCPDataSelection(QCPDataRange(0,1)));
+
+               replot(QCustomPlot::rpRefreshHint);
+
+               // And add on the graphs context menu options
+               menu->addAction("Remove graph", this, SLOT(removeSelectedGraph()));
+               menu->addSeparator();
+
+               // We've found the legend item that was right-clicked - no need to search
+               // any further.
+               break;
+           }
+        }
+    }
+
     bool inRect = false;
 
     // Figure out if the legend is currently inside the default axis
