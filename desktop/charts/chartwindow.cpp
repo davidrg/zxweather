@@ -319,6 +319,7 @@ void ChartWindow::chartContextMenuRequested(QPoint point)
         return;
     }
 
+
     // Check if an X axis was right-clicked on
     QList<QCPAxis*> keyAxes = ui->chart->axisRect()->axes(QCPAxis::atTop |
                                                           QCPAxis::atBottom);
@@ -482,6 +483,38 @@ void ChartWindow::showLegendContextMenu(QPoint point)
 {
     QMenu *menu = new QMenu(this);
     menu->setAttribute(Qt::WA_DeleteOnClose);
+
+    for (int i = 0; i < ui->chart->legend->itemCount(); i++) {
+        if (ui->chart->legend->item(i)->selectTest(point, false) >= 0) {
+           QCPAbstractLegendItem *item = ui->chart->legend->item(i);
+           QCPPlottableLegendItem *plottableItem = qobject_cast<QCPPlottableLegendItem*>(item);
+           if (plottableItem != NULL) {
+               // Deselect any currently selected plottables
+               for (int i = 0; i < ui->chart->plottableCount(); i++) {
+                   ui->chart->plottable(i)->setSelection(QCPDataSelection(QCPDataRange(0, 0)));
+               }
+
+               // select the graph
+               plottableItem->setSelected(true);
+               plottableItem->plottable()->setSelection(QCPDataSelection(QCPDataRange(0,1)));
+
+               ui->chart->replot(QCustomPlot::rpRefreshHint);
+
+               // And add on the graphs context menu options
+               menu->addAction(tr("&Rename..."), this, SLOT(renameSelectedGraph()));
+               menu->addAction(tr("&Change Style..."), this,
+                                    SLOT(changeSelectedGraphStyle()));
+               menu->addAction(tr("R&emove"), this, SLOT(removeSelectedGraph()));
+               menu->addSeparator();
+
+               // We've found the legend item that was right-clicked - no need to search
+               // any further.
+               break;
+           }
+        }
+    }
+
+
 
     // Options to re-position the legend
     menu->addAction("Move to top left",
