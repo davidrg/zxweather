@@ -1,0 +1,45 @@
+-------------------------------------------------------------------------------
+zxweather Import/Export tool
+===============================================================================
+
+  The tools in this directory are for exporting data from one weather database
+  and importing it into another. You can export all data or only a portion
+  of it between two timestamps either with or without any associated images.
+
+  Exporter:
+    python export.py localhost weather postgres password ./exported
+        --station sb --start "01-JAN-2018" --end "01-MAR-2018" --include-images
+
+    If a start time is not specified then all data from the earliest sample or
+    image will be exported. If an end time is not specified then all data from
+    the start time (if specified) to the last sample or image will be exported.
+
+    If a station code is not specified then all stations will be exported.
+
+    Images will only be exported if the --include-images flag is specified.
+
+    Note that the export tool is only compatible with zxweather v1.0.0 or newer
+    databases.
+
+  Importer:
+    python import.py localhost weather postgres password
+        ./exported/sb/station.json --start "01-FEB-2018" --end "15-FEB-2018"
+        --include-images
+
+     If a start or end time is not specified then earliest and latest samples
+     are used instead as the start and end time. Only one station can be
+     imported at a time. If --include-images is not specified then images will
+     not be imported.
+
+     If the station does not exist in the destination database it will be
+     created. If any samples to be imported already exist in the destination
+     database they will be automatically skipped (data that already exists in
+     the database will not be modified).
+
+  The import tool will expect the following directory structure:
+    \station.json
+    \samples.dat
+    \{image-source-code}\{n}.json   (where n is some number)
+                        \{n}.jpeg   (or other extension depending on MIME type)
+
+===============================================================================

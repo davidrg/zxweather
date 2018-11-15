@@ -37,6 +37,15 @@
         <file alias="dataset-list">resources/calendar-list.png</file>
         <file alias="timespan">resources/calendar-select-days-span.png</file>
         <file alias="dataset-remove">resources/calendar--minus.png</file>
+        <file alias="folder-tree">resources/folder-tree.png</file>
+        <file alias="image-small">resources/image-small.png</file>
+        <file alias="image-doc">resources/document-image.png</file>
+        <file alias="small-document">resources/document-small.png</file>
+        <file>resources/detail.png</file>
+        <file>resources/up-folder.png</file>
+        <file alias="preview">resources/application-image.png</file>
+        <file alias="properties">resources/property.png</file>
+        <file alias="open-image">resources/folder-open-image.png</file>
     </qresource>
     <qresource prefix="/icons/weather">
         <file alias="mostly_cloudy">resources/weather-cloud.png</file>

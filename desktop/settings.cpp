@@ -53,6 +53,9 @@ namespace SettingsKey {
             const QString VLAYOUT = "General/images_window/vertical_layout";
             const QString WLAYOUT = "General/images_window/window_layout";
             const QString TYPE_SORT = "General/images_window/image_type_sort_order";
+            const QString VIEW_MODE = "General/images_window/view_mode";
+            const QString TREE_VISIBLE = "General/images_window/nav_tree";
+            const QString PREVIEW_VISIBLE = "General/images_window/preview";
 
             // When true (default) and there are images for the current day, the current day is
             // visible when the images window is opened.
@@ -592,6 +595,34 @@ QByteArray Settings::getImagesWindowLayout() {
     return settings->value(SettingsKey::General::ImagesWindow::WLAYOUT,
                            QByteArray()).toByteArray();
 
+}
+
+void Settings::setImagesWindowViewMode(int viewMode) {
+    settings->setValue(SettingsKey::General::ImagesWindow::VIEW_MODE,
+                       viewMode);
+}
+
+int Settings::imagesWindowViewMode() {
+    return settings->value(SettingsKey::General::ImagesWindow::VIEW_MODE, 0).toInt();
+
+}
+
+void Settings::setImagesWindowNavigationPaneVisible(bool visible) {
+    settings->setValue(SettingsKey::General::ImagesWindow::TREE_VISIBLE,
+                       visible);
+}
+
+bool Settings::imagesWindowNavigationPaneVisible() {
+    return settings->value(SettingsKey::General::ImagesWindow::TREE_VISIBLE, true).toBool();
+}
+
+void Settings::setImagesWindowPreviewPaneVisible(bool visible) {
+    settings->setValue(SettingsKey::General::ImagesWindow::PREVIEW_VISIBLE,
+                       visible);
+}
+
+bool Settings::imagesWindowPreviewPaneVisible() {
+    return settings->value(SettingsKey::General::ImagesWindow::PREVIEW_VISIBLE, true).toBool();
 }
 
 QStringList Settings::imageTypeSortOrder() {
