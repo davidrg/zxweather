@@ -542,10 +542,10 @@ void ChartWindow::showKeyAxisContextMenu(QPoint point, QCPAxis *axis) {
         graphsAvailable = plotter->selectedColumns(ds) != AddGraphDialog::supportedColumns(
                     hw_type, isWireless, solarDataAvailable);
     }
-    QAction *act = menu->addAction(tr("&Add Graph..."), this, SLOT(addGraph()));
+    QAction *act = menu->addAction(QIcon(":/icons/chart-add"),tr("&Add Graph..."), this, SLOT(addGraph()));
     act->setEnabled(graphsAvailable);
 
-    menu->addAction(tr("&Change Timespan..."),
+    menu->addAction(QIcon(":/icons/timespan"),tr("&Change Timespan..."),
                     this, SLOT(changeSelectedKeyAxisTimespan()));
 
     menu->addSeparator();
