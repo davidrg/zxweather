@@ -28,5 +28,13 @@ namespace Constants {
      * of the desktop client.
      */
     const QString ZXWEATHER_VERSION = APP_VERSION_STR;
+
+    // Size for image thumbnails.
+    const int THUMBNAIL_WIDTH = 304;
+    const int THUMBNAIL_HEIGHT = 171;
+
+    // Size for mini image thumbnails
+    const int MINI_THUMBNAIL_WIDTH = 90;
+    const int MINI_THUMBNAIL_HEIGHT = 51;
 }
 #endif // CONSTANTS_H

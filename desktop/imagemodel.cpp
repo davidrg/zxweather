@@ -11,19 +11,11 @@
 #include <QFileInfo>
 #include <QDesktopServices>
 #include <QDir>
+#include <QTime>
+#include <QPainter>
 
 #include "settings.h"
-
-typedef enum {
-    IT_ROOT,
-    IT_YEAR,
-    IT_MONTH,
-    IT_DAY,
-    IT_IMAGE_SOURCE,
-    //IT_IMAGE_TYPE,
-    IT_IMAGE,
-    IT_LOADING
-} ItemType;
+#include "constants.h"
 
 class TreeItem{
 public:
@@ -33,12 +25,14 @@ public:
     ItemType itemType() const;
     QString text() const;
     void appendChild(TreeItem* child);
+    void deleteChild(TreeItem *child);
     TreeItem* parent() const;
     TreeItem* child(int row);
     int childCount() const;
     int row() const;
     bool childrenLoaded() const;
     QIcon icon() const;
+    QIcon thumbnail() const;
     QImage image() const;
     QFile* imageFile() const;
     void setLoadRequested();
@@ -60,7 +54,7 @@ private:
     bool mLoadRequested;
     QDate mDate;
     QString mSourceCode;
-    QImage thumbnail;
+    QImage mThumbnail;
     int imageId;
     QFile* temporaryImageFile;
     ImageInfo info;
@@ -78,7 +72,7 @@ TreeItem::TreeItem(ItemType type, QDate date, QString sourceCode, QString text,
     this->imageId = imageId;
     temporaryImageFile = NULL;
 
-    if (type == IT_DAY || type == IT_IMAGE_SOURCE) {
+    if ((type == IT_DAY && sourceCode != "") || type == IT_IMAGE_SOURCE) {
         // Add a place-holder "Loading..." item. This will be removed
         // automatically when the first child is added.
         this->childItems.append(new TreeItem(IT_LOADING,
@@ -131,6 +125,11 @@ void TreeItem::appendChild(TreeItem* child) {
     mChildrenLoaded = true;
 }
 
+void TreeItem::deleteChild(TreeItem *child) {
+    childItems.removeOne(child);
+    delete child;
+}
+
 TreeItem* TreeItem::parent() const {
     return parentNode;
 }
@@ -155,7 +154,7 @@ bool TreeItem::childrenLoaded() const {
 }
 
 void TreeItem::setThumbnail(QImage thumbnailImage) {
-    thumbnail = thumbnailImage;
+    mThumbnail = thumbnailImage;
 }
 
 QIcon TreeItem::icon() const {
@@ -183,9 +182,74 @@ QIcon TreeItem::icon() const {
             icon.addFile(":/icons/image-32", QSize(32, 32));
         }
 
-        if (!thumbnail.isNull()) {
-            icon.addPixmap(QPixmap::fromImage(thumbnail));
+//        if (!mThumbnail.isNull()) {
+
+//            int width = Constants::THUMBNAIL_WIDTH;
+//            int height = Constants::THUMBNAIL_HEIGHT;
+
+//            if (width > height) {
+//                height = width;
+//            } else if (height > width) {
+//                width = height;
+//            }
+
+//            QPixmap source = QPixmap::fromImage(mThumbnail);
+//            QPixmap dest(width, height);
+//            dest.fill(Qt::transparent);
+//            QPixmap resized = source.scaled(dest.size(), Qt::KeepAspectRatio);
+//            QPainter p(&dest);
+//            if (resized.width() < dest.width())
+//                p.drawPixmap( (dest.width() - resized.width())/2, 0, resized);
+//            else
+//                p.drawPixmap( 0, (dest.height() - resized.height())/2, resized);
+//            p.end();
+
+//            icon.addPixmap(dest);
+
+//            //icon.addPixmap(QPixmap::fromImage(thumbnail), QIcon::Normal);
+//        }
+
+
+        break;
+    case IT_LOADING:
+    case IT_ROOT:
+    default:
+        ; // No icon.
+    }
+
+    return icon;
+}
+
+QIcon TreeItem::thumbnail() const {
+    QIcon icon;
+
+    switch(type) {
+    case IT_YEAR:
+    case IT_MONTH:
+    case IT_DAY:
+    case IT_IMAGE_SOURCE:
+        icon.addFile(":/icons/folder-horizontal", QSize(16,16), QIcon::Normal);
+        icon.addFile(":/icons/folder-horizontal-32", QSize(32,32), QIcon::Normal);
+        //icon.addFile(":/icons/folder-horizontal-open", QSize(16, 16), QIcon::Selected);
+        break;
+    case IT_IMAGE:
+        if (info.mimeType.startsWith("video/")) {
+            icon.addFile(":/icons/film", QSize(16, 16));
+            icon.addFile(":/icons/film-32", QSize(32, 32));
+        } else if (info.mimeType.startsWith("audio/")) {
+            // TODO: get an audio file icon
+            icon.addFile(":/icons/audio", QSize(16, 16));
+            icon.addFile(":/icons/audio-32", QSize(32, 32));
+        } else {
+            icon.addFile(":/icons/image", QSize(16,16));
+            icon.addFile(":/icons/image-32", QSize(32, 32));
         }
+
+        if (!mThumbnail.isNull()) {
+            icon.addPixmap(QPixmap::fromImage(mThumbnail).scaled(Constants::MINI_THUMBNAIL_WIDTH, Constants::MINI_THUMBNAIL_HEIGHT), QIcon::Normal);
+            icon.addPixmap(QPixmap::fromImage(mThumbnail).scaled(Constants::THUMBNAIL_WIDTH, Constants::THUMBNAIL_HEIGHT), QIcon::Normal);
+        }
+
         break;
     case IT_LOADING:
     case IT_ROOT:
@@ -288,6 +352,7 @@ ImageModel::ImageModel(AbstractDataSource *dataSource, QObject *parent)
 
     // Create the root item
     rootNode = 0;
+    treeBuilt = false;
     resetTree();
     loadingImages = false;
 
@@ -356,6 +421,19 @@ ImageSourceMapTree buildImageSourceMapTree(QList<ImageDate> dates) {
 
 void ImageModel::imageDatesReady(QList<ImageDate> dates,
                                  QList<ImageSource> sources) {
+
+    qDebug() << "Image dates ready!";
+    if (treeBuilt) {
+        qDebug() << "Tree already built - updating...";
+        updateTree(dates, sources);
+    } else {
+        qDebug() << "Building tree...";
+        buildTree(dates, sources);
+    }
+}
+
+void ImageModel::buildTree(QList<ImageDate> dates, QList<ImageSource> sources) {
+
     beginResetModel();
     resetTree();
 
@@ -412,6 +490,7 @@ void ImageModel::imageDatesReady(QList<ImageDate> dates,
                                                  QString::number(day),
                                                  monthNode,
                                                  -1);
+
                 monthNode->appendChild(dayNode);
 
                 // Only bother adding image source nodes if there is more than
@@ -433,6 +512,239 @@ void ImageModel::imageDatesReady(QList<ImageDate> dates,
         }
     }
     endResetModel();
+    treeBuilt = true;
+}
+
+TreeItem* GetYear(TreeItem *root, int year) {
+    for (int yearIdx = 0; yearIdx < root->childCount(); yearIdx++) {
+        TreeItem *yearNode = root->child(yearIdx);
+        if (yearNode->date() == QDate(year, 1, 1)) {
+            return yearNode;
+        }
+    }
+
+    return NULL;
+}
+
+TreeItem* GetMonth(TreeItem *root, int year, int month, TreeItem* yearNode=NULL) {
+    if (yearNode == NULL) {
+        yearNode = GetYear(root, year);
+    }
+
+    for (int monthIdx = 0; monthIdx < yearNode->childCount(); monthIdx++) {
+        TreeItem *monthNode = yearNode->child(monthIdx);
+        if (monthNode->date() == QDate(year, month, 1)) {
+            return monthNode;
+        }
+    }
+
+    return NULL;
+}
+
+TreeItem* GetDay(TreeItem *root, QDate date, TreeItem* monthNode=NULL) {
+    if (monthNode == NULL) {
+        monthNode = GetMonth(root, date.year(), date.month());
+    }
+
+    for (int dayIdx = 0; dayIdx < monthNode->childCount(); dayIdx++) {
+        TreeItem *dayNode = monthNode->child(dayIdx);
+        if (dayNode->date() == date) {
+            return dayNode;
+        }
+    }
+
+    return NULL;
+}
+
+TreeItem* GetImageSourceNode(TreeItem *root, QDate date, QString imageSourceCode, TreeItem* dayNode=NULL) {
+    if (dayNode == NULL) {
+        dayNode = GetDay(root, date);
+    }
+
+    if (dayNode->sourceCode() == imageSourceCode) {
+        // there is only one image source for this date so the day node *is* the image source
+        // node.
+        return dayNode;
+    }
+
+    for (int srcIdx = 0; srcIdx < dayNode->childCount(); srcIdx++) {
+        TreeItem *sourceNode = dayNode->child(srcIdx);
+        if (sourceNode->date() == date && sourceNode->sourceCode() == imageSourceCode) {
+            return sourceNode;
+        }
+    }
+
+    return NULL;
+}
+
+void ImageModel::updateTree(QList<ImageDate> dates, QList<ImageSource> sources) {
+    // Here we want to do something similar to build tree but we'll only create nodes
+    // were they don't already exist. Any source-level nodes (an IT_IMAGE_SOURCE or an
+    // IT_DATE with no child IT_IMAGE_SOURCEs) will be queued for refresh as part of this.
+    // This is because the main reason for a tree update is a new image being received so we
+    // want that image immediately available.
+
+    ImageSourceMapTree sourceTree = buildImageSourceMapTree(dates);
+
+    QMap<QString, ImageSource> imageSources = imageSourcesListToMap(sources);
+
+    qDebug() << "======================== Updating Image Tree ========================";
+
+    // Update the tree.
+    foreach (int year, sourceTree.keys()) {
+        TreeItem* yearNode = GetYear(rootNode, year);
+        bool yearCreated = false;
+        if (yearNode == NULL) {
+
+            // Couldn't find the year. Create it.
+            yearNode = new TreeItem(IT_YEAR,
+                                    QDate(year, 1, 1),
+                                    "",
+                                    QString::number(year),
+                                    rootNode,
+                                    -1);
+            yearCreated = true;
+            QModelIndex root = index(0,0);
+            int rows = rowCount(root);
+            beginInsertRows(root, rows, rows+1);
+
+            rootNode->appendChild(yearNode);
+            qDebug() << "Created Year:" << year;
+        }
+
+        foreach (int month, sourceTree[year].keys()) {
+            TreeItem *monthNode = GetMonth(rootNode, year, month, yearNode);
+
+            bool monthCreated = false;
+            if (monthNode == NULL) {
+                // Couldn't find the year. Create it.
+                QString monthName = QDate::longMonthName(month);
+                monthNode = new TreeItem(IT_MONTH,
+                                         QDate(year, month, 1),
+                                         "",
+                                         monthName,
+                                         yearNode,
+                                         -1);
+                monthCreated = true;
+
+                if (!yearCreated) {
+                    QModelIndex yearIndex = findIndex(IT_YEAR, year);
+                    int rows = rowCount(yearIndex);
+                    beginInsertRows(yearIndex, rows, rows+1);
+                }
+
+                yearNode->appendChild(monthNode);
+                qDebug() << "Created Month: " << year << month;
+            }
+
+            foreach (int day, sourceTree[year][month].keys()) {
+
+                QStringList imageSourceCodes = sourceTree[year][month][day];
+
+                QString srcCode = "";
+                if (imageSourceCodes.count() == 1) {
+                    srcCode = imageSourceCodes.first();
+                }
+
+                QDate date(year, month, day);
+
+                TreeItem *dayNode = GetDay(rootNode, date, monthNode);
+                bool dayCreated = false;
+
+                if (dayNode != NULL && dayNode->sourceCode() != "" && imageSourceCodes.count() > 1) {
+                    // We have multiple image souces for this date but the date node we found
+                    // is for a single image source. We'll just delete the day node and recreate
+                    // it with multiple image sources.
+
+                    qDebug() << "Creating day for multiple image sources: " << date;
+
+                    QModelIndex dayIndex = findIndex(IT_DAY, year, month, day);
+                    QModelIndex monthIndex = dayIndex.parent();
+
+                    beginRemoveRows(monthIndex, dayIndex.row(), dayIndex.row());
+                    TreeItem *parent = dayNode->parent();
+                    parent->deleteChild(dayNode);
+                    dayNode = NULL;
+                    endRemoveRows();
+                }
+
+                if (dayNode == NULL) {
+
+                    // Couldn't find the day. Create it.
+                    dayNode = new TreeItem(IT_DAY,
+                                           date,
+                                           srcCode,
+                                           QString::number(day),
+                                           monthNode,
+                                           -1);
+                    dayCreated = true;
+
+                    if (!yearCreated && !monthCreated) {
+                        QModelIndex monthIndex = findIndex(IT_MONTH, year, month);
+                        int rows = rowCount(monthIndex);
+                        beginInsertRows(monthIndex, rows, rows+1);
+                    }
+
+
+                    monthNode->appendChild(dayNode);
+                    qDebug() << "Created Date:" << date;
+                }
+
+                QModelIndex dayIndex = findIndex(IT_DAY, year, month, day);
+
+                // Only bother adding image source nodes if there is more than
+                // one for this particular date.
+                if (imageSourceCodes.count() > 1) {
+                    foreach (QString imageSourceCode, imageSourceCodes) {
+                        if (GetImageSourceNode(rootNode, date, imageSourceCode, dayNode) == NULL) {
+                            // Image source doesn't exist. Create it.
+                            TreeItem *src = new TreeItem(
+                                        IT_IMAGE_SOURCE,
+                                        date,
+                                        imageSourceCode,
+                                        imageSources[imageSourceCode].name,
+                                        dayNode,
+                                        -1);
+
+                            if (!yearCreated && !monthCreated && !dayCreated) {
+                                int rows = rowCount(dayIndex);
+                                beginInsertRows(dayIndex, rows, rows+1);
+                            }
+
+                            dayNode->appendChild(src);
+                            qDebug() << "Created Image Source:" << date << imageSourceCode;
+
+                            if (!yearCreated && !monthCreated && !dayCreated) {
+                                endInsertRows();
+                            }
+
+                            if (src->childCount() > 0) {
+                                // Queue for loading
+                                QModelIndex sourceIndex = findIndex(IT_IMAGE_SOURCE, year, month, day, imageSourceCode);
+                                loadItem(index(0, 0, sourceIndex));
+                            }
+                        }
+                    }
+                } else if (dayCreated) {
+                    // queue for loading
+                    loadItem(index(0, 0, dayIndex));
+                }
+
+                if (!yearCreated && !monthCreated && dayCreated) {
+                    endInsertRows();
+                }
+            }
+
+            if (!yearCreated && monthCreated) {
+                endInsertRows();
+            }
+        }
+
+        if (yearCreated) {
+            endInsertRows();
+        }
+    }
+    qDebug() << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^";
 }
 
 ImageModel::~ImageModel() {
@@ -440,6 +752,107 @@ ImageModel::~ImageModel() {
         delete rootNode;
     }
 }
+
+QModelIndex ImageModel::findIndex(ItemType type, int year, int month, int day,
+                      QString source, QTime time) {
+    return findIndex(type, QDate(year, month, day), source, time);
+}
+
+QModelIndex ImageModel::findIndex(ItemType type, QDate date, QString source, QTime time) {
+    int rootRows = rowCount();
+    for (int row = 0; row < rootRows; row++) {
+        QModelIndex idx = findIndex(index(row,0), type, date, source, time);
+        if (idx.isValid()) {
+            return idx;
+        }
+    }
+
+    return QModelIndex();
+}
+
+QModelIndex ImageModel::findIndex(QModelIndex index, ItemType type, QDate date,
+                                  QString source, QTime time) {
+
+    //qDebug() << "findIndex" << type << date << source << time;
+
+    if (type == IT_ROOT) {
+        //qDebug() << "Found root.";
+        return this->index(0,0);
+    }
+
+    TreeItem *treeNode = static_cast<TreeItem*>(index.internalPointer());
+
+    if (treeNode == NULL) {
+        qWarning() << "Index has no tree node!";
+        return QModelIndex(); // This shouldn't happen.
+    }
+
+    if (treeNode->itemType() == type && treeNode->date() == date) {
+        if (type == IT_YEAR || type == IT_MONTH || type == IT_DAY) {
+            // For year, month or day nodes all we need to check is the current index is
+            // of the correct type and the date match. Time and source don't matter.
+            //qDebug() << "Found year, month or day";
+            return index;
+        }
+        else if (treeNode->sourceCode() == source) {
+            // For source nodes, the source code needs to match
+            if (type == IT_IMAGE_SOURCE) {
+                //qDebug() << "Found image source.";
+                return index;
+            } else if (type == IT_IMAGE && treeNode->imageInfo().timeStamp == QDateTime(date, time)) {
+                // And for an image, the time must also match.
+                //qDebug() << "Found image.";
+                return index;
+            }
+        }
+    }
+
+    // Current model index isn't the one we're after. If it has children we could search
+    // them...
+    if (!this->hasChildren(index)) {
+        qDebug() << "Node has no children - at end of branch";
+        return QModelIndex(); // No matches on this branch of the tree.
+    }
+
+    //qDebug() << "Searching children...";
+
+    // Descend into the children.
+    for(int i = 0; i < rowCount(index); i++) {
+        //qDebug() << "Child" << i;
+        QModelIndex child = this->index(i, 0, index);
+        TreeItem *treeNode = static_cast<TreeItem*>(child.internalPointer());
+        if (treeNode == NULL) {
+            qWarning() << "Index has no associated tree node!";
+            return QModelIndex(); // this shouldn't happen.
+        }
+
+        QModelIndex idx;
+        ItemType currentItemType = treeNode->itemType();
+
+        //qDebug() << "Item" << currentItemType << "Date" << treeNode->date() << "Searching for" << type << date;
+        if (currentItemType == IT_ROOT || currentItemType == type) {
+            idx = findIndex(child, type, date, source, time);
+        } else if (currentItemType == IT_YEAR && treeNode->date() == QDate(date.year(), 1, 1)) {
+            idx = findIndex(child, type, date, source, time);
+        } else if (currentItemType == IT_MONTH && treeNode->date() == QDate(date.year(), date.month(), 1)) {
+                idx = findIndex(child, type, date, source, time);
+        } else if (currentItemType == IT_DAY && treeNode->date() == date) {
+            idx = findIndex(child, type, date, source, time);
+        } else if (currentItemType == IT_IMAGE_SOURCE && treeNode->date() == date && treeNode->sourceCode() == source) {
+            idx = findIndex(child, type, date, source, time);
+        }
+        if (idx.isValid()) {
+            //qDebug() << "found index" << type << date << source << time;
+            return idx; // Found it
+        }
+        // Else, check the next child.
+    }
+
+    //qDebug() << "Could not find index.";
+
+    return QModelIndex();
+}
+
 
 void ImageModel::loadItem(const QModelIndex &index) const {
     if (!index.isValid() || index.model() != this) {
@@ -469,6 +882,71 @@ void ImageModel::loadItem(const QModelIndex &index) const {
     }
 }
 
+void ImageModel::newImage(NewImageInfo info) {
+    qDebug() << "============================================";
+    qDebug() << "New image! " << info.imageSourceCode << info.timestamp;
+
+    QModelIndex dateIndex = findIndex(IT_DAY, info.timestamp.date());
+    QModelIndex sourceIndex = findIndex(dateIndex, IT_IMAGE_SOURCE, info.timestamp.date(),
+                                        info.imageSourceCode, QTime());
+
+    // TODO: What if only one image source was present when the date list was loaded
+    // and this image is not from that source? we need to rebuild the tree from the date
+    // node down. Same goes for if the date (or month or year) node doesn't exist at all.
+
+    QModelIndex index;
+
+    if (sourceIndex.isValid()) {
+        qDebug() << "Found image source node";
+        index = sourceIndex;
+    } else if (dateIndex.isValid()) {
+        index = dateIndex;
+        qDebug() << "Found date node";
+    }
+
+    TreeItem *item = NULL;
+    if (index.isValid()) {
+        item = static_cast<TreeItem*>(index.internalPointer());
+
+        if (item->sourceCode().toLower() != info.imageSourceCode.toLower()) {
+            // Oops! the item we found isn't the one we're after. Whats probably happened
+            // is when the date list was loaded only one image source had produced images. Now
+            // we've received an image from a different source on that date. This date should
+            // now have two or more image source nodes on it containing the images rather than
+            // the images being directly under the date node.
+            index = QModelIndex();
+            item = NULL;
+
+            qDebug() << "Found node was not of the correct image source" << item->sourceCode() << info.imageSourceCode;
+        }
+    }
+
+    if (!index.isValid()) {
+        qDebug() << "Could not find suitable index to add image - refreshing dates from server...";
+
+        // We couldn't locate an appropriate node to slot this image under. We need to rebuild
+        // part of the tree...
+
+        // Fetching the image date list with an already loaded tree will result in the tree
+        // being updated with date and/or image source nodes pre-emptively loaded so we  don't
+        // need to proc
+        dataSource->fetchImageDateList();
+
+        return;
+    }
+
+    qDebug() << "Requesting image load...";
+    ImageLoadRequest request;
+    request.date = info.timestamp.date();
+    request.imageSourceCode = info.imageSourceCode;
+    request.treeItem = item;
+    request.index = index;
+    const_cast<QList<ImageLoadRequest> *>(&imageLoadRequestQueue)->append(request);
+    QTimer::singleShot(1,
+                       const_cast<ImageModel*>(this),
+                       SLOT(processImageLoadRequestQueue()));
+}
+
 QVariant ImageModel::data(const QModelIndex &index, int role) const {
 
     if (!index.isValid() || index.model() != this) {
@@ -484,10 +962,93 @@ QVariant ImageModel::data(const QModelIndex &index, int role) const {
 
     switch (role) {
     case Qt::EditRole:
-    case Qt::DisplayRole:
+    case Qt::DisplayRole: {
+        if (item->itemType() == IT_IMAGE) {
+            switch (index.column()) {
+            case COL_NAME:
+            case COL_NAME_THUMB:
+                return item->text();
+            case COL_TIME: return item->imageInfo().timeStamp;
+            case COL_TYPE: return item->imageInfo().imageTypeName;
+            case COL_SIZE: {
+                if (item->imageFile() == NULL) {
+                    return "";
+                }
+
+                QFileInfo info(item->imageFile()->fileName());
+                qint64 size = info.size();
+
+                float humanSize = size;
+                QString humanSuffix = QString::null;
+                if (humanSize > 1024) {
+                    humanSize /= 1024;
+                    humanSuffix = tr("KiB");
+                }
+                if (humanSize > 1024) {
+                    humanSize /= 1024;
+                    humanSuffix = tr("MiB");
+                }
+                if (humanSuffix.isNull()) {
+                    return QString(tr("%1 bytes")).arg(size);
+                }
+                else {
+                    return QString(tr("%1 %2")).arg(QString::number(humanSize,'f', 2)).arg(humanSuffix);
+                }
+            }
+            case COL_DESCRIPTION: return item->imageInfo().description;
+            case COL_MIME_TYPE: return item->imageInfo().mimeType;
+            case COL_IMAGE_SOURCE: return item->imageInfo().imageSource.name;
+            default:
+                return "";
+            }
+        } else if (item->itemType() == IT_LOADING) {
+            switch(index.column()) {
+            case COL_NAME:
+            case COL_NAME_THUMB:
+                return item->text();
+            case COL_TIME: return item->date();
+            case COL_TYPE: return tr("Loading");
+            case COL_SIZE: return "";
+            case COL_DESCRIPTION: {
+                return "Images for this date are being loaded...";
+            }
+            case COL_MIME_TYPE: return "";
+            case COL_IMAGE_SOURCE: return ""; // No source name available except on image nodes.
+            }
+        } else {
+            switch(index.column()) {
+            case COL_NAME:
+            case COL_NAME_THUMB:
+                return item->text();
+            case COL_TIME: return item->date();
+            case COL_TYPE: return tr("Folder");
+            case COL_SIZE: return ""; // No size available for folders (too expensive to compute)
+            case COL_DESCRIPTION: {
+                switch (item->itemType()) {
+                case IT_DAY:
+                    return tr("Day");
+                case IT_MONTH:
+                    return tr("Month");
+                case IT_YEAR:
+                    return tr("Year");
+                case IT_IMAGE_SOURCE:
+                    return tr("IUmage source");
+                default:
+                    return "";
+                }
+            }
+            case COL_MIME_TYPE: return "";
+            case COL_IMAGE_SOURCE: return ""; // No source name available except on image nodes.
+            }
+        }
         return item->text();
+    }
     case Qt::DecorationRole:
-        return item->icon();
+        if (index.column() == COL_NAME)
+            return item->icon();
+        if (index.column() == COL_NAME_THUMB)
+            return item->thumbnail();
+        return QVariant();
     case Qt::ToolTipRole:
         return item->date().toString();
     case Qt::WhatsThisRole:
@@ -514,22 +1075,29 @@ QVariant ImageModel::data(const QModelIndex &index, int role) const {
     }
 }
 
-//QVariant ImageModel::headerData(int section, Qt::Orientation orientation,
-//                                int role) const {
+QVariant ImageModel::headerData(int section, Qt::Orientation orientation,
+                                int role) const {
 
-//    /* If we supported multiple columns we'd store the column names in the
-//     * root node and do something like this:
-//     * if (orientation == Qt::Horizontal && role == Qt::DisplayRole) {
-//     *     return rootNode->data(section);
-//     * }
-//     *
-//     * For now we don't want headers at all. So...
-//     */
+    if (role != Qt::DisplayRole)
+        return QVariant();
 
-//    return tr("Time");
+    if (orientation == Qt::Horizontal) {
+        switch(section) {
+        case 0: return tr("Title");
+        case 1: return tr("Time");
+        case 2: return tr("Type");
+        case 3: return tr("Size");
+        case 4: return tr("Description");
+        case 5: return tr("MIME Type");
+        case 6: return tr("Source");
+        default:
+            return "";
+        }
+    }
 
-//    //return QVariant();
-//}
+    return QVariant(section);
+
+}
 
 
 QModelIndex ImageModel::index(int row, int column,
@@ -559,7 +1127,7 @@ QModelIndex ImageModel::index(int row, int column,
 }
 
 QModelIndex ImageModel::parent(const QModelIndex &index) const {
-    if (!index.isValid() || index.column() > 0) {
+    if (!index.isValid()) {
         return QModelIndex();
     }
 
@@ -650,14 +1218,7 @@ int ImageModel::rowCount(const QModelIndex &parent) const {
 int ImageModel::columnCount(const QModelIndex &parent) const {
     Q_UNUSED(parent)
 
-    return 1; // Only one column: timestamp
-
-    // If we were to support more than one column:
-//    if (parent.isValid()) {
-//        return static_cast<TreeItem*>(parent.internalPointer())->columnCount();
-//    } else {
-//        return rootNode->columnCount();
-//    }
+    return 8;
 }
 
 bool ImageModel::hasChildren(const QModelIndex &parent) const {
@@ -737,6 +1298,7 @@ void ImageModel::imageListReady(QList<ImageInfo> imageList) {
     endInsertRows();
 
     dataSource->fetchThumbnails(thumbnailIds);
+    emit lazyLoadingComplete(req.index);
 
     if (!imageLoadRequestQueue.isEmpty()) {
         processImageLoadRequestQueue();
@@ -757,6 +1319,7 @@ void ImageModel::thumbnailReady(int imageId, QImage thumbnail) {
         req.treeItem->setThumbnail(thumbnail);
 
         emit dataChanged(req.index, req.index);
+        emit thumbnailReady(req.index);
 
         emit layoutChanged();
     }
@@ -779,6 +1342,8 @@ void ImageModel::imageReady(ImageInfo info, QImage image, QString cacheFile) {
         }
 
         req.treeItem->setImage(info, image, cacheFile);
+
+        emit imageReady(req.index);
 
         // We don't need to emit a model changed here as we're not
         // changing anything exposed to the view. Note that if the
@@ -823,7 +1388,9 @@ QMimeData* ImageModel::mimeData(const QModelIndexList &indexes) const {
     QList<QUrl> urls;
 
     foreach (const QModelIndex &index, indexes) {
-        if (index.isValid()) {
+        if (index.isValid() &&
+                (index.column() == ImageModel::COL_NAME
+                 || index.column() == ImageModel::COL_NAME_THUMB)) {
             TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
 
             QString path = item->imageFile()->fileName();
@@ -837,3 +1404,29 @@ QMimeData* ImageModel::mimeData(const QModelIndexList &indexes) const {
 
     return mimeData;
 }
+
+#ifdef QT_DEBUG
+bool ImageModel::testFindIndex(QModelIndex index) {
+    TreeItem *n = static_cast<TreeItem*>(index.internalPointer());
+    qDebug() << n->sourceCode();
+
+    if (isImage(index)) {
+        ImageInfo info = imageInfo(index);
+        QModelIndex result = findIndex(IT_IMAGE,
+                                       info.timeStamp.date(),
+                                       info.imageSource.code,
+                                       info.timeStamp.time());
+
+
+
+        return result == index;
+    } else {
+        TreeItem *treeNode = static_cast<TreeItem*>(index.internalPointer());
+
+        QModelIndex result = findIndex(treeNode->itemType(),
+                                       treeNode->date(),
+                                       treeNode->sourceCode());
+        return result == index;
+    }
+}
+#endif

@@ -5,10 +5,6 @@
 #include <QDateTime>
 #include <QStringList>
 
-
-#define THUMBNAIL_WIDTH 304
-#define THUMBNAIL_HEIGHT 171
-
 struct ImageDate {
     QDate date;
     QStringList sourceCodes;

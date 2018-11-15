@@ -554,6 +554,8 @@ void MainWindow::showImagesWindow() {
     ViewImagesWindow *imagesWindow = new ViewImagesWindow();
     imagesWindow->setAttribute(Qt::WA_DeleteOnClose);
     imagesWindow->show();
+    connect(dataSource, SIGNAL(newImage(NewImageInfo)),
+            imagesWindow, SLOT(newImage(NewImageInfo)));
 }
 
 void MainWindow::viewData() {

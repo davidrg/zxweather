@@ -1,4 +1,5 @@
 #include "fetchthumbnailwebtask.h"
+#include "constants.h"
 
 #include <QDebug>
 
@@ -21,8 +22,8 @@ void FetchThumbnailWebTask::dealWithImage(QString filename) {
     if (_imageInfo.mimeType.startsWith("image/")) {
         QImage image(filename);
 
-        QImage thumbnailImage = image.scaled(THUMBNAIL_WIDTH,
-                                             THUMBNAIL_HEIGHT,
+        QImage thumbnailImage = image.scaled(Constants::THUMBNAIL_WIDTH,
+                                             Constants::THUMBNAIL_HEIGHT,
                                              Qt::KeepAspectRatio);
 
         _dataSource->fireThumbnailReady(_imageInfo.id, thumbnailImage);

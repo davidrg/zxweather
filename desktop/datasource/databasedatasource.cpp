@@ -20,6 +20,8 @@
 #define qQNaN std::numeric_limits<double>::quiet_NaN
 #endif
 
+#include "constants.h"
+
 DatabaseDataSource::DatabaseDataSource(AbstractProgressListener *progressListener, QObject *parent) :
     AbstractDataSource(progressListener, parent)
 {
@@ -1461,8 +1463,8 @@ void DatabaseDataSource::fetchImages(QList<int> imageIds, bool thumbnail) {
             if (!info.mimeType.startsWith("video/")) {
                 qDebug() << "Thumbnailing image" << imageId;
                 // Resize the image
-                QImage thumbnailImage = srcImage.scaled(THUMBNAIL_WIDTH,
-                                                        THUMBNAIL_HEIGHT,
+                QImage thumbnailImage = srcImage.scaled(Constants::THUMBNAIL_WIDTH,
+                                                        Constants::THUMBNAIL_HEIGHT,
                                                         Qt::KeepAspectRatio);
 
                 emit thumbnailReady(imageId, thumbnailImage);

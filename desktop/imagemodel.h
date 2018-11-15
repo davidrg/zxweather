@@ -10,6 +10,17 @@
 
 class TreeItem;
 class QMimeData;
+typedef enum {
+    IT_ROOT = 0,
+    IT_YEAR = 1,
+    IT_MONTH = 2,
+    IT_DAY = 3,
+    IT_IMAGE_SOURCE = 4,
+    //IT_IMAGE_TYPE = 5,
+    IT_IMAGE = 6,
+    IT_LOADING = 7
+} ItemType;
+
 
 struct ImageLoadRequest {
     QDate date;
@@ -25,6 +36,15 @@ struct ThumbnailRequest {
     bool imageLoaded;
 };
 
+//#define COL_NAME    0
+//#define COL_TIME    1
+//#define COL_TYPE    2
+//#define COL_SIZE    3
+//#define COL_DESCRIPTION 4
+//#define COL_MIME_TYPE   5
+//#define COL_IMAGE_SOURCE    6
+//#define COL_NAME_THUMB  7
+
 class ImageModel : public QAbstractItemModel
 {
     Q_OBJECT
@@ -32,8 +52,8 @@ public:
     explicit ImageModel(AbstractDataSource *dataSource, QObject *parent = 0);
     ~ImageModel();
 
-//    QVariant headerData(int section, Qt::Orientation orientation,
-//                        int role = Qt::DisplayRole) const;
+    QVariant headerData(int section, Qt::Orientation orientation,
+                        int role = Qt::DisplayRole) const;
     QModelIndex index(int row, int column,
                       const QModelIndex &parent = QModelIndex()) const;
     QModelIndex parent(const QModelIndex &index) const;
@@ -59,9 +79,32 @@ public:
     // Pass in a "Loading..." item to cause immediate loading of that node.
     void loadItem(const QModelIndex &index) const;
 
+    typedef enum {
+        COL_NAME = 0,
+        COL_TIME = 1,
+        COL_TYPE = 2,
+        COL_SIZE = 3,
+        COL_DESCRIPTION = 4,
+        COL_MIME_TYPE = 5,
+        COL_IMAGE_SOURCE = 6,
+
+        // Same as COL_NAME but uses image thumbnails instead of icons.
+        COL_NAME_THUMB = 7
+    } Column;
+
+#ifdef QT_DEBUG
+    bool testFindIndex(QModelIndex index);
+#endif
+
 signals:
+    void lazyLoadingComplete(QModelIndex index);
+    void thumbnailReady(QModelIndex index);
+    void imageReady(QModelIndex index);
 
 public slots:
+    // Connect this to an AbstractLiveDataSource to auto-refresh station-day nodes when
+    // new images are available.
+    void newImage(NewImageInfo info);
 
 private slots:
     void imageDatesReady(QList<ImageDate> dates,QList<ImageSource> sources);
@@ -72,6 +115,17 @@ private slots:
 
 private:
     void resetTree();
+    void buildTree(QList<ImageDate> dates, QList<ImageSource> sources);
+    void updateTree(QList<ImageDate> dates, QList<ImageSource> sources);
+
+    // Gets the index for a tree node based on its timestamp and type. Does not
+    // support finding IT_LOADING nodes.
+    QModelIndex findIndex(ItemType type, int year=1, int month=1, int day=1,
+                          QString source=QString::null, QTime time=QTime());
+    QModelIndex findIndex(ItemType type, QDate date, QString source=QString::null,
+                          QTime time=QTime());
+    QModelIndex findIndex(QModelIndex index, ItemType type, QDate date,
+                          QString source, QTime time);
 
     QList<ImageLoadRequest> imageLoadRequestQueue;
     QMap<int, ThumbnailRequest> pendingThumbnails;
@@ -80,6 +134,7 @@ private:
     AbstractDataSource *dataSource;
 
     TreeItem *rootNode;
+    bool treeBuilt;
 };
 
 #endif // IMAGEMODEL_H

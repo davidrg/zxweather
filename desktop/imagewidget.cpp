@@ -92,21 +92,18 @@ void ImageWidget::setPixmap(const QPixmap &pixmap) {
     imageSet = true;
     //QLabel::setPixmap(pixmap);
     image = pixmap.toImage();
-    if (videoPlayer != NULL) {
-        videoPlayer->stop();
-        videoPlayer->hide();
-    }
     updateGeometry();
     repaint();
 }
 
 void ImageWidget::setIcon(QIcon icon) {
     isIcon = true;
-    setPixmap(icon.pixmap(32,32));
+
     if (videoPlayer != NULL) {
-        videoPlayer->stop();
-        videoPlayer->hide();
+        videoPlayer->setVisible(false);
     }
+
+    setPixmap(icon.pixmap(32,32));
 }
 
 
@@ -161,12 +158,13 @@ void ImageWidget::setImage(QImage image, QString filename) {
                     connect(videoPlayer, SIGNAL(sizeChanged(QSize)),
                             this, SLOT(videoSizeChanged(QSize)));
 
+                    videoSet = true;
+                    videoPlayer->show();
                     videoPlayer->setControlsLocked(videoControlsLocked);
                     videoPlayer->setFilename(filename);
                     videoPlayer->setTickInterval(videoTickInterval);
                     videoPlayer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-                    videoPlayer->show();
-                    videoSet = true;
+
 #else
                     videoSet = true;
                     imageSet = true;

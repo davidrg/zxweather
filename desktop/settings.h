@@ -145,6 +145,15 @@ public:
     void setImagesWindowLayout(QByteArray data);
     QByteArray getImagesWindowLayout();
 
+    void setImagesWindowViewMode(int viewMode);
+    int imagesWindowViewMode();
+
+    void setImagesWindowNavigationPaneVisible(bool visible);
+    bool imagesWindowNavigationPaneVisible();
+
+    void setImagesWindowPreviewPaneVisible(bool visible);
+    bool imagesWindowPreviewPaneVisible();
+
     QStringList imageTypeSortOrder();
 
     bool imperial() const;

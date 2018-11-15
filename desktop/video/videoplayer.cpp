@@ -73,6 +73,7 @@ void VideoPlayer::stop() {
 
 void VideoPlayer::setFilename(QString filename) {
     mediaObject.setMedia(QUrl::fromLocalFile(filename));
+    mediaObject.setPosition(0);
     setStatus("Loading...");
 }
 
@@ -100,6 +101,7 @@ void VideoPlayer::setControlsEnabled(bool enabled) {
 }
 
 void VideoPlayer::setStatus(QString status) {
+    qDebug() << status;
     ui->lStatus->setText(status);
 }
 
@@ -111,6 +113,7 @@ QSize VideoPlayer::videoSize() {
 }
 
 void VideoPlayer::mediaStatusChanged(QMediaPlayer::MediaStatus newStatus) {
+    qDebug() << "mediaStatusChanged";
     switch (newStatus) {
     case QMediaPlayer::LoadingMedia:
         setStatus("Loading...");
@@ -128,12 +131,15 @@ void VideoPlayer::mediaStatusChanged(QMediaPlayer::MediaStatus newStatus) {
         emit ready();
         break;
     case QMediaPlayer::BufferingMedia:
+        qDebug() << "Buffering";
 //        setStatus("Buffering");
         break;
     case QMediaPlayer::StalledMedia:
+        qDebug() << "Stalled";
 //        setStatus("Stalled");
         break;
     case QMediaPlayer::BufferedMedia:
+        qDebug() << "buffered";
 //        setStatus("Buffered");
         break;
     case QMediaPlayer::InvalidMedia:
@@ -141,8 +147,8 @@ void VideoPlayer::mediaStatusChanged(QMediaPlayer::MediaStatus newStatus) {
         setControlsEnabled(false);
         break;
     case QMediaPlayer::UnknownMediaStatus:
+        qDebug() << "Unkown media status";
     case QMediaPlayer::NoMedia:
-
     default:
         setStatus("No Media");
         setControlsEnabled(false);
@@ -161,6 +167,7 @@ void VideoPlayer::mediaStatusChanged(QMediaPlayer::MediaStatus newStatus) {
 }
 
 void VideoPlayer::stateChanged(QMediaPlayer::State newState) {
+    qDebug() << "State changed";
     switch (newState) {
     case QMediaPlayer::PlayingState:
         setStatus("Playing");
