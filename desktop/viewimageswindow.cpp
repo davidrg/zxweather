@@ -29,7 +29,6 @@
  *  -> Refresh/reload button? This is probably most useful if a model
  *      is being shared by multiple windows.
  *  -> Test: Live image loading on new image source
- *  -> Save window size
  */
 
 ViewImagesWindow::ViewImagesWindow(QWidget *parent) :
@@ -172,6 +171,7 @@ ViewImagesWindow::ViewImagesWindow(QWidget *parent) :
     updateToolbarStatus(QModelIndex());
 
     restoreState(settings.getImagesWindowLayout());
+    restoreGeometry(settings.imagesWindowGeometry());
 }
 
 ViewImagesWindow::~ViewImagesWindow()
@@ -329,6 +329,7 @@ void ViewImagesWindow::newImage(NewImageInfo info) {
 void ViewImagesWindow::closeEvent(QCloseEvent *event)
 {
     Settings::getInstance().setImagesWindowLayout(saveState());
+    Settings::getInstance().saveImagesWindowGeometry(saveGeometry());
     QMainWindow::closeEvent(event);
 }
 
