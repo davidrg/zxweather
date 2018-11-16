@@ -56,6 +56,7 @@ namespace SettingsKey {
             const QString VIEW_MODE = "General/images_window/view_mode";
             const QString TREE_VISIBLE = "General/images_window/nav_tree";
             const QString PREVIEW_VISIBLE = "General/images_window/preview";
+            const QString WINDOW_GEOMETRY = "General/images_window/window_geom";
 
             // When true (default) and there are images for the current day, the current day is
             // visible when the images window is opened.
@@ -596,6 +597,15 @@ QByteArray Settings::getImagesWindowLayout() {
                            QByteArray()).toByteArray();
 
 }
+
+void Settings::saveImagesWindowGeometry(QByteArray geom) {
+    settings->setValue(SettingsKey::General::ImagesWindow::WINDOW_GEOMETRY, geom);
+}
+
+QByteArray Settings::imagesWindowGeometry() const {
+    return settings->value(SettingsKey::General::ImagesWindow::WINDOW_GEOMETRY, QByteArray()).toByteArray();
+}
+
 
 void Settings::setImagesWindowViewMode(int viewMode) {
     settings->setValue(SettingsKey::General::ImagesWindow::VIEW_MODE,

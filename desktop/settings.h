@@ -145,6 +145,9 @@ public:
     void setImagesWindowLayout(QByteArray data);
     QByteArray getImagesWindowLayout();
 
+    void saveImagesWindowGeometry(QByteArray geom);
+    QByteArray imagesWindowGeometry() const;
+
     void setImagesWindowViewMode(int viewMode);
     int imagesWindowViewMode();
 
