@@ -29,10 +29,7 @@
  *  -> Refresh/reload button? This is probably most useful if a model
  *      is being shared by multiple windows.
  *  -> Test: Live image loading on new image source
- * -> Fix weird valignment over paint in the preview pane
- *      This doesn't happen on the main window and checking the
- *      ImageWidgets painting it looks like the ImageWidget isn't to blame.
- *      Its probably being caused by the scroll area
+ *  -> Save window size
  */
 
 ViewImagesWindow::ViewImagesWindow(QWidget *parent) :

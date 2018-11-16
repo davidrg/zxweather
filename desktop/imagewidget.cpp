@@ -51,7 +51,10 @@ void ImageWidget::paintEvent(QPaintEvent *event) {
     // Set the background to black
     QPainter painter(this);
     painter.setBrush(QBrush(Qt::black));
-    painter.drawRect(0, 0, width(), height());
+
+    // For some reason the area we're painting isn't just 0,0 -> width,height. If we don't
+    // have these offsets we get either a white boarder at top/left or bottom/right
+    painter.drawRect(-1, -1, width()+1, height()+1);
 
     if (image.isNull()) return; // Nothing to paint
 
