@@ -3,8 +3,45 @@
 #include "json/json.h"
 
 #include <QStringList>
+#include <QLocale>
 
 #define TS_FORMAT "ddd dd MMM yyyy HH:mm:ss"
+
+QString toHumanSize(quint64 size) {
+    double humanSize = size;
+    QString humanSuffix = QString::null;
+    if (humanSize > 1024) {
+        humanSize /= 1024;
+        humanSuffix = "KiB";
+    }
+    if (humanSize > 1024) {
+        humanSize /= 1024;
+        humanSuffix = "MiB";
+    }
+    if (humanSize > 1024) {
+        humanSize /= 1024;
+        humanSuffix = "GiB";
+    }
+
+    QLocale locale;
+
+    if (humanSuffix.isNull()) {
+        return QString("%1 bytes").arg(locale.toString(size));
+    }
+    return QString("%1 %2 (%3 bytes)").arg(QString::number(humanSize,'f', 2)).arg(humanSuffix).arg(locale.toString(size));
+    //return QString("%1 %2 (%3 bytes)").arg(QString::number(humanSize,'f', 2)).arg(humanSuffix).arg(size);
+}
+
+QString toHumanTime(uint time) {
+    QString seconds = QString::number(time) + " seconds";
+    if (time <= 60) {
+        return seconds;
+    }
+
+    QString hhmmss = QDateTime::fromTime_t(time).toUTC().toString("hh:mm:ss");
+
+    return QString("%0 (%1)").arg(hhmmss).arg(seconds);
+}
 
 ImagePropertiesDialog::ImagePropertiesDialog(ImageInfo info, quint64 size,
                                              QImage image, QWidget *parent) :
@@ -42,23 +79,7 @@ ImagePropertiesDialog::ImagePropertiesDialog(ImageInfo info, quint64 size,
 
     ui->title->setText(info.title);
     ui->description->setText(info.description);
-
-    float humanSize = size;
-    QString humanSuffix = QString::null;
-    if (humanSize > 1024) {
-        humanSize /= 1024;
-        humanSuffix = "KiB";
-    }
-    if (humanSize > 1024) {
-        humanSize /= 1024;
-        humanSuffix = "MiB";
-    }
-    if (humanSuffix.isNull()) {
-        ui->size->setText(QString("%1 bytes").arg(size));
-    }
-    else {
-        ui->size->setText(QString("%1 %2 (%3 bytes)").arg(QString::number(humanSize,'f', 2)).arg(humanSuffix).arg(size));
-    }
+    ui->size->setText(toHumanSize(size));
 
     bool hasMetadata = !info.metadata.isNull() && info.hasMetadata;
 
@@ -81,7 +102,7 @@ ImagePropertiesDialog::ImagePropertiesDialog(ImageInfo info, quint64 size,
                 addMetadata("Finish", map["finish"].toDateTime().toString(TS_FORMAT));
             }
             if (map.contains("interval")) {
-                addMetadata("Frame interval", map["interval"]);
+                addMetadata("Frame interval", map["interval"].toString() + " seconds");
             }
             if (map.contains("frame_count")) {
                 addMetadata("Frame count", map["frame_count"]);
@@ -90,7 +111,10 @@ ImagePropertiesDialog::ImagePropertiesDialog(ImageInfo info, quint64 size,
                 addMetadata("Frame rate", map["frame_rate"]);
             }
             if (map.contains("processing_time")) {
-                addMetadata("Encoding time", map["processing_time"]);
+                addMetadata("Encoding time", toHumanTime(map["processing_time"].toUInt()));
+            }
+            if (map.contains("total_size")) {
+                addMetadata("Input size", toHumanSize(map["total_size"].toULongLong()));
             }
 
             // APT metadata
@@ -137,7 +161,7 @@ ImagePropertiesDialog::ImagePropertiesDialog(ImageInfo info, quint64 size,
                        << "azimuth" << "direction" << "enhancement"
                        << "max_elevation" << "rec_len" << "satellite"
                        << "with_map" << "frequency" << "bandwidth"
-                       << "duration";
+                       << "duration" << "total_size";
 
             // Add in anything else thats in the document
             foreach (QString key, map.keys()) {
