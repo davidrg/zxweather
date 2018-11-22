@@ -805,29 +805,39 @@ QStringList Settings::reportSearchPath() const {
 
     QString val = settings->value(SettingsKey::Reports::SEARCH_PATH, "").toString();
 
-    if (val.isEmpty()) {
-        return result;
-    }
+    if (!val.isEmpty()) {
+        if (val.contains(";")) {
+            foreach(QString s, val.split(";")) {
+                if (s.isEmpty()) {
+                    continue;
+                }
 
-    if (val.contains(";")) {
-        foreach(QString s, val.split(";")) {
-            if (s.isEmpty()) {
-                continue;
+                QFileInfo dir(s);
+
+                if (dir.exists() && dir.isDir() && dir.isReadable()) {
+                    result << s;
+                }
             }
-
-            QFileInfo dir(s);
+        } else {
+            QFileInfo dir(val);
 
             if (dir.exists() && dir.isDir() && dir.isReadable()) {
-                result << s;
+                result << val;
             }
         }
-    } else {
-        QFileInfo dir(val);
-
-        if (dir.exists() && dir.isDir() && dir.isReadable()) {
-            result << val;
-        }
     }
+
+//#if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
+//     result << QDir::cleanPath(QStandardPaths::standardLocations(QStandardPaths::AppDataLocation) + "/reports");
+//     result << QDir::cleanPath(QStandardPaths::standardLocations(QStandardPaths::AppLocalDataLocation) + "/reports");
+//#else
+//     result << QDir::cleanPath(QDesktopServices::storageLocation(QDesktopServices::DataLocation) + "/reports");
+//#endif
+
+    result << "./reports";
+
+    // Internal report definitions and assets come last so they can be overridden externally.
+    result << ":/reports";
 
     return result;
 }
