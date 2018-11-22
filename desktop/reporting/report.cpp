@@ -24,9 +24,9 @@
 
 QByteArray readFile(QString name) {
     QStringList files;
-    files << QDir::cleanPath("reports" + QString(QDir::separator()) + name);
+//    files << QDir::cleanPath("reports" + QString(QDir::separator()) + name);
 
-    QStringList paths = Settings::getInstance().reportSearchPath();
+//    QStringList paths = Settings::getInstance().reportSearchPath();
 // #if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
 //    paths.append(QStandardPaths::standardLocations(QStandardPaths::AppDataLocation) + "/reports/");
 //    paths.append(QStandardPaths::standardLocations(QStandardPaths::AppLocalDataLocation) + "/reports/");
@@ -34,11 +34,11 @@ QByteArray readFile(QString name) {
 //    paths.append(QDesktopServices::storageLocation(QDesktopServices::DataLocation) + "/reports/");
 
 // #endif
-    foreach (QString path, paths) {
+    foreach (QString path, Settings::getInstance().reportSearchPath()) {
         files << QDir::cleanPath(path + "/" + name);
     }
 
-    files << QDir::cleanPath(":/reports/" + name);
+//    files << QDir::cleanPath(":/reports/" + name);
 
     foreach (QString filename, files) {
         qDebug() << "Checking for" << filename;
@@ -405,18 +405,19 @@ QStringList findReportsIn(QString directory) {
 
 QStringList Report::reports() {
      QStringList searchPaths = Settings::getInstance().reportSearchPath();
-     searchPaths << "./";
+//     searchPaths << "./";
 
-//#if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
-//     searchPaths.append(QStandardPaths::standardLocations(QStandardPaths::AppDataLocation) + "/reports");
-//     searchPaths.append(QStandardPaths::standardLocations(QStandardPaths::AppLocalDataLocation) + "/reports");
-//#else
-//     searchPaths.append(QDesktopServices::storageLocation(QDesktopServices::DataLocation) + "/reports");
-//#endif
+////#if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
+////     searchPaths.append(QStandardPaths::standardLocations(QStandardPaths::AppDataLocation) + "/reports");
+////     searchPaths.append(QStandardPaths::standardLocations(QStandardPaths::AppLocalDataLocation) + "/reports");
+////#else
+////     searchPaths.append(QDesktopServices::storageLocation(QDesktopServices::DataLocation) + "/reports");
+////#endif
 
-     searchPaths.removeDuplicates();
+//     searchPaths.removeDuplicates();
 
-     QStringList reports = findReportsIn(":/reports");
+//     QStringList reports = findReportsIn(":/reports");
+     QStringList reports;
 
      foreach (QString path, searchPaths) {
          foreach (QString report, findReportsIn(QDir::cleanPath(path))) {
