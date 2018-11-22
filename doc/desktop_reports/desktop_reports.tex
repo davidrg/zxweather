@@ -594,7 +594,7 @@ Outputs are listed under the \verb|outputs| property in the Report Definition. A
 \hline
 \textbf{Property} & \textbf{Description} \\
 \hline
-\verb|format| & The output format. Either table, html or text.\\
+\verb|format| & The output format. Either \verb|table|, \verb|html|, \verb|text| or \verb|text_wrapped|.\\
 \verb|name| & A unique name for the output.\\
 \verb|title| & This is displayed in the outputs tab in the report output window.\\
 \verb|icon| & This is displayed in the outputs tab in the report output window.\\
@@ -663,7 +663,7 @@ HTML outputs can show formatted text (figure \ref{img_html_output}) using a limi
  \label{img_html_output}
 \end {figure}
 
-Plain text outputs can generate and display plain text documents (figure \ref{img_text_output}) which are shown to the user with a fixed with font. If the output type is \verb|save| rather than \verb|show| this output format could be used to generate other document formats.
+Plain text outputs can generate and display plain text documents (figure \ref{img_text_output}) which are shown to the user with a fixed with font with word wrap turned off by default to preserve formatting. If the output type is \verb|save| rather than \verb|show| this output format could be used to generate other document formats. 
 
 \begin {figure}[!ht]
  \centering
@@ -687,7 +687,9 @@ An HTML or text output definition looks like:
 },
 \end{lstlisting}
 
-Where the \verb|format| parameter is either \verb|html| for html output or \verb|text| for plain text output. The \verb|template| parameter specifies the mustache template to produce output with. 
+Where the \verb|format| parameter is either \verb|html| for html output or \verb|text| for plain text output. If word wrapping is suitable for the report it can be enabled by using the format parameter \verb|text_wrapped| instead; this has no affect when the report is saved.
+
+The \verb|template| parameter specifies the mustache template to produce output with. 
 
 The optional \verb|view_template| parameter specifies an additional template for producing the on-screen view of the report. When this parameter is supplied, the \verb|template| parameter will be used to produce output for saving. This allows saved versions of HTML reports to use more advanced formatting than that allowed by appendix \ref{app_html_subset}.
 

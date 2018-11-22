@@ -127,6 +127,7 @@ private:
     typedef enum _format {
         OF_HTML,
         OF_TEXT,
+        OF_TEXT_WRAPPED,
         OF_TABLE
     } output_format_t;
 

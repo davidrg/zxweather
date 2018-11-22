@@ -82,10 +82,10 @@ void AboutDialog::showLicenses() {
     QFile qtjson(":/licenses/qtjson_license.txt");
     qtjson.open(QIODevice::ReadOnly);
 
-    w->addPlainTab("GPL v3", QIcon(), QString::fromUtf8(gpl3.readAll()));
-    w->addPlainTab("QtColorButton", QIcon(), license);
-    w->addPlainTab("qt-mustache", QIcon(), QString::fromUtf8(mustache.readAll()));
-    w->addPlainTab("qt-json", QIcon(), QString::fromUtf8(qtjson.readAll()));
+    w->addPlainTab("GPL v3", QIcon(), QString::fromUtf8(gpl3.readAll()), false);
+    w->addPlainTab("QtColorButton", QIcon(), license, false);
+    w->addPlainTab("qt-mustache", QIcon(), QString::fromUtf8(mustache.readAll()), false);
+    w->addPlainTab("qt-json", QIcon(), QString::fromUtf8(qtjson.readAll()), false);
 
     w->setAttribute(Qt::WA_DeleteOnClose);
     w->show();

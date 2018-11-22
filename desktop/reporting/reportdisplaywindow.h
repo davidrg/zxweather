@@ -17,7 +17,7 @@ public:
     explicit ReportDisplayWindow(QString reportName, QIcon reportIcon, QWidget *parent = NULL);
 
     void addHtmlTab(QString name, QIcon icon, QString content);
-    void addPlainTab(QString name, QIcon icon, QString text);
+    void addPlainTab(QString name, QIcon icon, QString text, bool wordWrap);
     void addGridTab(QString name, QIcon icon, QAbstractTableModel *model, QStringList hideColumns);
 
     void setSaveOutputs(QList<report_output_file_t> outputs);
