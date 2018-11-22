@@ -205,6 +205,8 @@ public:
     bool showCurrentDayInImageWindow();
     bool selectCurrentDayInImageWindow();
 
+    QStringList reportSearchPath() const;
+
 private:
     Settings();
     ~Settings();
