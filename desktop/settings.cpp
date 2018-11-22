@@ -167,6 +167,10 @@ namespace SettingsKey {
     namespace ReportCustomCriteria {
         const QString CUSTOM_CRITERIA = "ReportCriteria/";
     }
+
+    namespace Reports {
+        const QString SEARCH_PATH = "Reports/SearchPath";
+    }
 }
 
 Settings::Settings() {
@@ -794,4 +798,36 @@ bool Settings::showCurrentDayInImageWindow() {
 
 bool Settings::selectCurrentDayInImageWindow() {
     return settings->value(SettingsKey::General::ImagesWindow::SELECT_CURRENT_DAY, true).toBool();
+}
+
+QStringList Settings::reportSearchPath() const {
+    QStringList result;
+
+    QString val = settings->value(SettingsKey::Reports::SEARCH_PATH, "").toString();
+
+    if (val.isEmpty()) {
+        return result;
+    }
+
+    if (val.contains(";")) {
+        foreach(QString s, val.split(";")) {
+            if (s.isEmpty()) {
+                continue;
+            }
+
+            QFileInfo dir(s);
+
+            if (dir.exists() && dir.isDir() && dir.isReadable()) {
+                result << s;
+            }
+        }
+    } else {
+        QFileInfo dir(val);
+
+        if (dir.exists() && dir.isDir() && dir.isReadable()) {
+            result << val;
+        }
+    }
+
+    return result;
 }
