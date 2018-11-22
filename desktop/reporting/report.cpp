@@ -278,11 +278,14 @@ Report::Report(QString name)
             output.format = OF_HTML;
         } else if (format == "text") {
             output.format = OF_TEXT;
+        } else if (format == "text_wrapped") {
+            output.format = OF_TEXT_WRAPPED;
         } else if (format == "table") {
             output.format = OF_TABLE;
         }
 
-        if (output.format == OF_HTML || output.format == OF_TEXT) {
+        if (output.format == OF_HTML || output.format == OF_TEXT
+                 || output.format == OF_TEXT_WRAPPED) {
             if (!o.contains("template")) {
                 qWarning() << "invalid output" << key
                            << "for report" << name
@@ -810,7 +813,8 @@ void Report::outputToUI(QMap<QString, QVariant> reportParameters,
     QList<report_output_file_t> files;
 
     foreach (output_t output, outputs) {
-        if (output.format == OF_HTML || output.format == OF_TEXT) {
+        if (output.format == OF_HTML || output.format == OF_TEXT
+                || output.format == OF_TEXT_WRAPPED) {
             QString saveResult = renderTemplatedReport(reportParameters, queries,
                                                    output.output_template);
             QString viewResult;
@@ -829,8 +833,8 @@ void Report::outputToUI(QMap<QString, QVariant> reportParameters,
                 window->addHtmlTab(output.title, output.icon, viewResult);
                 filter = QObject::tr("HTML Files (*.html *.html)");
                 extension = ".html";
-            } else if (output.format == OF_TEXT) {
-                window->addPlainTab(output.title, output.icon, viewResult);
+            } else if (output.format == OF_TEXT || output.format == OF_TEXT_WRAPPED) {
+                window->addPlainTab(output.title, output.icon, viewResult, output.format == OF_TEXT_WRAPPED);
                 filter = QObject::tr("Text Files (*.txt)");
                 extension = ".txt";
             }
@@ -894,7 +898,7 @@ void Report::outputToDisk(QMap<QString, QVariant> reportParameters,
     QList<report_output_file_t> files;
 
     foreach (output_t output, outputs) {
-        if (output.format == OF_HTML || output.format == OF_TEXT) {
+        if (output.format == OF_HTML || output.format == OF_TEXT || output.format == OF_TEXT_WRAPPED) {
             QString result = renderTemplatedReport(reportParameters, queries,
                                                    output.output_template);
             QString filter = "";
@@ -902,7 +906,7 @@ void Report::outputToDisk(QMap<QString, QVariant> reportParameters,
             if (output.format == OF_HTML) {
                 filter = QObject::tr("HTML Files (*.html *.html)");
                 extension = ".html";
-            } else if (output.format == OF_TEXT) {
+            } else if (output.format == OF_TEXT || output.format == OF_TEXT_WRAPPED) {
                 filter = QObject::tr("Text Files (*.txt)");
                 extension = ".txt";
             }

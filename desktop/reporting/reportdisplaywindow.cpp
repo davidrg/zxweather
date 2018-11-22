@@ -65,12 +65,13 @@ void ReportDisplayWindow::addHtmlTab(QString name, QIcon icon, QString content) 
     }
 }
 
-void ReportDisplayWindow::addPlainTab(QString name, QIcon icon, QString text) {
+void ReportDisplayWindow::addPlainTab(QString name, QIcon icon, QString text, bool wordWrap) {
     QWidget *tab = new QWidget(tabs);
     QGridLayout *tabLayout = new QGridLayout(tab);
 
     QTextBrowser *browser = new QTextBrowser();
     browser->setPlainText(text);
+    browser->setWordWrapMode(wordWrap ? QTextOption::WrapAtWordBoundaryOrAnywhere : QTextOption::NoWrap);
     #if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
     browser->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
     #else
