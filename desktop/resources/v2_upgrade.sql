@@ -1,5 +1,12 @@
 --begin transaction;
 
+-- Target database: V1
+-- Upgrades to: V3
+--
+-- This script originally upgraded from V1 to V2. 
+-- The davis_sample view has a bug in V2 which is fixed by v3_upgrade.sql.
+-- This script has also been adjusted so the end result of this script is a V3 database too.
+
 -- //////////////////// Station Table //////////////////// --
 drop index station_url;
 alter table station rename to station_old;
@@ -101,7 +108,7 @@ create view davis_sample as
     s.high_rain_rate,
     s.solar_radiation,
     -- convert reception back into wind samples
-    round(((s.reception / 100) * (stn.sample_interval * 1.0) / (((41 + stn.davis_broadcast_id -1) * 1.0) / 16.0 )) * 1.0, 0) as wind_sample_count,
+    cast(round(((s.reception / 100) * (stn.sample_interval*60 * 1.0) / (((41 + stn.davis_broadcast_id -1) * 1.0) / 16.0 )) * 1.0, 0) as int) as wind_sample_count,
     s.gust_wind_direction,
     s.uv_index as average_uv_index,
     s.evapotranspiration,
@@ -117,4 +124,4 @@ create view davis_sample as
 create index idx_rain_time_station on sample(station_id, time_stamp asc, rainfall asc);
 
 -- //////////////////// Update database version //////////////////// --
-update db_metadata set v = 2 where k = 'v';
+update db_metadata set v = 3 where k = 'v';
