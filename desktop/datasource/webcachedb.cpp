@@ -104,12 +104,33 @@ void WebCacheDB::openDatabase() {
                     emit criticalError("Failed to drop obsolete station_old table");
                 }
                 db.commit();
+                version = 3;
 
 //                if (!runDbScript(":/cache_db/trig_lookup.sql")) {
 //                    qWarning() << "Failed to create trig lookup table";
 //                    emit criticalError("Failed to upgrade cache database. Delete file " + filename + " manually to correct error.");
 //                    return;
 //                }
+            }
+            else if (version == 2) {
+                qDebug() << "Cache DB is out of date. Upgrading to v3...";
+
+                QSqlDatabase db = QSqlDatabase::database(SAMPLE_CACHE,true);
+                db.commit();
+                db.close();
+                db.open();
+
+                if (!runDbScript(":/cache_db/v3.sql")) {
+                    qWarning() << "V3 upgrade failed.";
+                    emit criticalError("Failed to upgrade cache database. Delete file " + filename + " manually to correct error.");
+                    return;
+                }
+
+                // Reopen the database to clear locks
+                db = QSqlDatabase::database(SAMPLE_CACHE,true);
+                db.commit();
+                db.close();
+                db.open();
             }
         } else {
             emit criticalError("Failed to determine version of cache database");

@@ -64,6 +64,7 @@
     <qresource prefix="/cache_db">
         <file alias="create.sql">resources/database.sql</file>
         <file alias="v2.sql">resources/v2_upgrade.sql</file>
+        <file alias="v3.sql">resources/v3_upgrade.sql</file>
     </qresource>
     <qresource prefix="/images/config_wizard">
         <file alias="logo">resources/config_wizard/zxwd_logo_temp.png</file>

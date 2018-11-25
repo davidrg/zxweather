@@ -97,7 +97,7 @@ create view davis_sample as
     s.high_rain_rate,
     s.solar_radiation,
     -- convert reception back into wind samples
-    round(((s.reception / 100) * (stn.sample_interval * 1.0) / (((41 + stn.davis_broadcast_id -1) * 1.0) / 16.0 )) * 1.0, 0) as wind_sample_count,
+    cast(round(((s.reception / 100) * (stn.sample_interval*60 * 1.0) / (((41 + stn.davis_broadcast_id -1) * 1.0) / 16.0 )) * 1.0, 0) as int) as wind_sample_count,
     s.gust_wind_direction,
     s.uv_index as average_uv_index,
     s.evapotranspiration,
