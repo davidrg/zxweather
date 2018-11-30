@@ -6,12 +6,9 @@
         <file>records/records_sqlite.sql</file>
         <file>records/report.json</file>
         <file>sun/criteria.ui</file>
-        <file>sun/criteria_formatted_psql.sql</file>
         <file>sun/description.html</file>
         <file>sun/report.json</file>
         <file>sun/sun.html</file>
-        <file>sun/sunrise_query_psql.sql</file>
-        <file>sun/sunrise_query_psql_html.sql</file>
         <file>sun/weather.png</file>
         <file>noaamo/criteria.ui</file>
         <file>noaamo/criteria_psql.sql</file>
@@ -50,5 +47,11 @@
         <file>averages_report/template.html</file>
         <file>averages_report/units.ui</file>
         <file>storm_rain/view_template.html</file>
+        <file>sun/libs/moment.js</file>
+        <file>sun/libs/moment-timezone-with-data-2012-2022.js</file>
+        <file>sun/lat_long.js</file>
+        <file>sun/solar_gen.js</file>
+        <file>sun/wlformat.txt</file>
+        <file>lib.js</file>
     </qresource>
 </RCC>

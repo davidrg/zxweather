@@ -6,42 +6,68 @@
 <b>Sun from {{start}} to {{end}}</b>
 <hr>
 
-<p>At latitude {{latitude}}, longitude {{longitude}} for {{#criteria}} time {{time}} at offset {{time_offset}} {{/criteria}}.</p>
+<p>At {{#lat_long}}latitude {{{lat}}}, longitude {{{long}}}{{/lat_long}} ({{latitude}}, {{longitude}}) for time zone {{timeZone}}.</p>
 <table border=1>
 	<tr>
 		<th></th>
 		<th colspan=2>Sunrise/Sunset</th>
-		<th></th>
+		<th colspan=2>Daylength</th>
 		<th colspan=2>Astronomical Twilight</th>
 		<th colspan=2>Nautical Twilight</th>
 		<th colspan=2>Civil Twilight</th>
+		<th></th>
 	</tr>
 	<tr>
 		<th>Date</th>
 		<th>Sunrise</th>
 		<th>Sunset</th>
+		<th>Length</th>
+		<th>Difference</th>
+		<th>Start</th>
+		<th>End</th>
+		<th>Start</th>
+		<th>End</th>
+		<th>Start</th>
+		<th>End</th>
 		<th>Solar Noon</th>
-		<th>Start</th>
-		<th>End</th>
-		<th>Start</th>
-		<th>End</th>
-		<th>Start</th>
-		<th>End</th>
 	</tr>
-	{{#sun_html}}
+	{{#solar}}
+	{{#offset_change_message}}
+	<tr><td colspan="12"><center><b>{{offset_change_message}}</b></center></td></tr>
+	{{/offset_change_message}}
+	{{#today}}
+	<tr>
+		<td><b>{{{date}}}</b></td>
+		<td><b>{{{rise_time}}}</b></td>
+		<td><b>{{{set_time}}}</b></td>
+		<td><b>{{{daylength}}}</b></td>
+		<td><b>{{{daylength_difference}}}</b></td>
+		<td><b>{{{astronomical_dawn}}}</b></td>
+		<td><b>{{{astronomical_dusk}}}</b></td>
+		<td><b>{{{nautical_dawn}}}</b></td>
+		<td><b>{{{nautical_dusk}}}</b></td>
+		<td><b>{{{civil_dawn}}}</b></td>
+		<td><b>{{{civil_dusk}}}</b></td>
+		<td><b>{{{solar_noon}}}</b></td>
+	</tr>
+	{{/today}}
+	{{^today}}
 	<tr>
 		<td>{{{date}}}</td>
 		<td>{{{rise_time}}}</td>
 		<td>{{{set_time}}}</td>
-		<td>{{{solar_noon}}}</td>
+		<td>{{{daylength}}}</td>
+		<td>{{{daylength_difference}}}</td>
 		<td>{{{astronomical_dawn}}}</td>
 		<td>{{{astronomical_dusk}}}</td>
 		<td>{{{nautical_dawn}}}</td>
 		<td>{{{nautical_dusk}}}</td>
 		<td>{{{civil_dawn}}}</td>
 		<td>{{{civil_dusk}}}</td>
+		<td>{{{solar_noon}}}</td>
 	</tr>
-	{{/sun_html}}
+	{{/today}}
+	{{/solar}}
 </table>
 </body>
 </html>

@@ -1,5 +1,5 @@
 {
-	"title": "Sun",
+	"title": "Sunrise & Sunset",
 	"description": "description.html",
 	"icon": "weather.png",
 	"time_picker": "datespan",
@@ -7,61 +7,39 @@
 	"dont_prime_cache": true,
 	"criteria_ui": "criteria.ui",
 	"supported_weather_stations": ["generic"],
-	
 	"queries": {
-		"sun": {
-            "db": {
-                "file": "sunrise_query_psql.sql",
-                "parameters": [
-                    "at_time",
-                    "offset",
-                    "latitude",
-                    "longitude",
-                    "start",
-                    "end"
-                ]
-            },
+		"solar": {
+            "script": {
+				"file": ["libs/moment.js", "libs/moment-timezone-with-data-2012-2022.js", "solar_gen.js"]
+			}
 		},
-		"sun_html": {
-            "db": {
-                "file": "sunrise_query_psql_html.sql",
-                "parameters": [
-                    "at_time",
-                    "offset",
-                    "latitude",
-                    "longitude",
-                    "start",
-                    "end"
-                ]
-            },
-		},
-		"criteria": {
-            "db": {
-                "file": "criteria_formatted_psql.sql",
-                "parameters": [
-                    "at_time",
-                    "offset"
-                ]
-            },
+		"lat_long": {
+			"script": {
+				"file": ["lat_long.js"]
+			}
 		}
 	},
 	"output_type": "show",
+    	"output_window_size": {
+		"height": 800,
+		"width": 1000
+	},
 	"outputs": [
 		{
 			"name": "html",
-			"title": "Sun",
+			"title": "Sunrise & Sunset",
 			"icon": "../../icons/report",
 			"format": "html",
 			"template": "sun.html",
 			"filename": "sun.html"
 		},
 		{
-			"name": "grid",
-			"title": "Grid",
-			"icon": "../../icons/table",
-			"format": "table",
-			"query": "sun",
-			"filename": "sun.csv"
+			"name": "text",
+			"title": "Plain text",
+			"icon": "../../icons/report",
+			"format": "text",
+			"template": "wlformat.txt",
+			"filename": "wlformat.txt"
 		}
 	]
 }

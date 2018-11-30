@@ -1,0 +1,91 @@
+<html lang="en">
+<head>
+    <title>test</title>
+    <script src="libs/moment.js"></script>
+    <script src="libs/moment-timezone-with-data-2012-2022.js"></script>
+    <script src="solar_gen.js"></script>
+</head>
+<body>
+
+<table id="tbl" border="3">
+
+</table>
+
+<pre id="log">
+
+</pre>
+
+<script>
+    var query_name = '';
+    var criteria = {
+        //"at_time": "Sat Jan 1 12:00:00 2000 GMT+1300",
+        //"offset": "Sat Jan 1 12:00:00 2000 GMT+1300",
+        //"end": "Sun Dec 2 23:59:59 2018 GMT+1300",
+        //"start": "Mon Nov 26 00:00:00 2018 GMT+1300",
+        //"at_time": "2000-01-01T12:00:00",
+        //"offset": "2000-01-01T00:00:00",
+
+        // This month (November)
+        // "start": "2018-11-01T00:00:00",
+        // "end": "2018-11-30T23:59:59",
+        // "start_t": 1540983600,
+        // "end_t": 1543575599,
+
+        // Last month (October)
+        // "start_t": 1538305200,
+        // "end_t": 1540983599,
+
+        // Month with a DST switch at end (September)
+        // "start": "2018-09-01T00:00:00Z",
+        // "end": "2018-09-30T23:59:59Z",
+        // "start_t": 1535716800,
+        // "end_t": 1538305199,
+
+        // Month with a DST switch at start (April)
+        // "start_t": 1522494000,
+        // "end_t": 1525089599,
+
+        // Month with a DST switch part way through (April 2013)
+        "start_t": 1364727600,
+        "end_t": 1367323199,
+
+
+        //"end_t": 1543748399,
+        //"is_web_ds": true,
+        "latitude": -37.78,
+        "longitude": 175.28,
+        //"start_t": 1543143600,
+        //"stationCode": "http://weather.zx.net.nz/data/sb/",
+        "timeZone": "Pacific/Auckland"
+    };
+
+    log_el = document.getElementById("log");
+
+    log = function(text) {
+        log_el.textContent += text + "\n";
+    };
+
+    var result = generate(query_name, criteria);
+    console.log(result);
+
+    var tableEl = document.getElementById("tbl");
+    var headerRow = tableEl.appendChild(document.createElement("tr"));
+    for (var i  = 0; i < result.column_names.length; i++) {
+        var col = document.createElement("th");
+        col.textContent = result.column_names[i];
+        headerRow.appendChild(col);
+    }
+
+    for (var rowId = 0; rowId < result.row_data.length; rowId++) {
+        var tr = tableEl.appendChild(document.createElement("tr"));
+        for(var colId = 0; colId < result.column_names.length; colId++) {
+            var td = document.createElement("td");
+            td.textContent = result.row_data[rowId][colId];
+            tr.appendChild(td);
+        }
+        tableEl.appendChild(tr);
+    }
+
+</script>
+</body>
+</html>
