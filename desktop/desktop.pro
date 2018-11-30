@@ -12,6 +12,15 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets printsupport concurrent uitools
 
 lessThan(QT_MAJOR_VERSION, 5): CONFIG += uitools
 
+# QML is currently used only for QJsEngine support
+equals(QT_MAJOR_VERSION, 5):!lessThan(QT_MINOR_VERSION,6) {
+    message("Using QJSEngine for scripting")
+    QT += qml
+    DEFINES += USE_QJSENGINE
+} else {
+    message("Using QtScript for scripting")
+    QT += script
+}
 
 TARGET = desktop
 TEMPLATE = app

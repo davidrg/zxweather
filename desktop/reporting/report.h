@@ -9,6 +9,7 @@
 #include <QSet>
 #include <QScopedPointer>
 #include <QVariant>
+#include <QAbstractTableModel>
 #include "reportfinisher.h"
 
 class AbstractDataSource;
@@ -116,13 +117,21 @@ private:
         QSet<QString> parameters;
     } query_variant_t;
 
+    typedef struct _data_generator_variant {
+        QString script_text;
+        QString file_name;
+    } data_generator_variant_t;
+
     typedef struct _query {
         QString name;
         query_variant_t web_query;
         query_variant_t db_query;
+        data_generator_variant_t generator;
     } query_t;
 
     QList<query_t> queries;
+
+
 
     typedef enum _format {
         OF_HTML,
@@ -156,6 +165,11 @@ private:
         QMap<QString, QString> viewColumns;
         QMap<QString, QString> saveColumns;
     } output_t;
+    
+    typedef struct _query_result {
+        QStringList columnNames;
+        QList<QVariantList> rowData;
+    } query_result_t;
 
     QList<output_t> outputs;
 
@@ -173,20 +187,49 @@ private:
     AbstractDataSource *_dataSource;
     QVariantMap _parameters;
 
-    static QString queryToCSV(QSqlQuery query, QMap<QString, QString> columnHeadings);
+    static QByteArray queryResultToCSV(query_result_t query, QMap<QString, QString> columnHeadings);
     static void writeFile(report_output_file_t file);
 
     void run(AbstractDataSource*, QMap<QString, QVariant> parameters);
     void completeReport();
     void outputToUI(QMap<QString, QVariant> reportParameters,
-                    QMap<QString, QSqlQuery> queries, bool hasSolar, bool isWireless);
+                    QMap<QString, query_result_t> queries, bool hasSolar, bool isWireless);
     void outputToDisk(QMap<QString, QVariant> reportParameters,
-                      QMap<QString, QSqlQuery> queries);
+                      QMap<QString, query_result_t> queries);
     QString renderTemplatedReport(QMap<QString, QVariant> reportParameters,
-                                  QMap<QString, QSqlQuery> queries,
+                                  QMap<QString, query_result_t> queries,
                                   QString outputTemplate);
+
+    query_result_t runDataGenerator(QString script_text,
+                                    QString scriptFileName,
+                                    QMap<QString, QVariant> parameters,
+                                    bool isWeb,
+                                    QString stationCode,
+                                    QString queryName);
+    query_result_t runDataQuery(QString queryText,
+                                QMap<QString, QVariant> parameters,
+                                bool isWeb,
+                                QSqlQuery query,
+                                QVariantMap &debugInfo,
+                                QVariantList &queryDebugInfo,
+                                QString queryName,
+                                QSet<QString> queryParameters);
 };
 
 
+class QueryResultModel : public QAbstractTableModel {
+    Q_OBJECT
+public:
+    QueryResultModel(QStringList columnNames, QList<QVariantList> rowData, QObject *parent = NULL);
+    int rowCount(const QModelIndex &parent = QModelIndex()) const;
+    int columnCount(const QModelIndex &parent = QModelIndex()) const;
+    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const;
+    QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
+    bool setHeaderData(int section, Qt::Orientation orientation, const QVariant &value,
+                                   int role = Qt::EditRole);
+private:
+    QStringList columnNames;
+    QList<QVariantList> rowData;
+};
 
 #endif // REPORT_H

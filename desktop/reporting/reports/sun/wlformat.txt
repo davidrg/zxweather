@@ -1,0 +1,13 @@
+{{#lat_long}}
+Latitude:  {{{lat}}}
+Longitude: {{{long}}}
+{{/lat_long}}
+Time Zone: {{{timeZone}}}
+Daylight Savings Time: Automatic
+
+          ------Twilight-----                   ------Twilight----- Daylight
+  Date    Astro  Naut   Civil Sunrise  Sunset   Civil  Naut   Astro  Hours
+ --------------------------------------------------------------------------
+{{#solar}}
+{{{date_ddmmyy}}} {{{astro_dawn_short}}} {{{naut_dawn_short}}} {{{civil_dawn_short}}}  {{{sunrise_short}}}  {{{sunset_short}}}  {{{civil_dusk_short}}} {{{naut_dusk_short}}} {{{astro_dusk_short}}}  {{{daylength}}}
+{{/solar}}

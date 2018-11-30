@@ -13,6 +13,15 @@
 #include <QMessageBox>
 #include <QMap>
 #include <QDesktopServices>
+#include <QAbstractTableModel>
+
+#if USE_QJSENGINE
+#include <QJSEngine>
+#include <QJSValue>
+#include <QJSValueIterator>
+#else
+#include <QtScript>
+#endif
 
 #include "json/json.h"
 #include "datasource/abstractdatasource.h"
@@ -21,6 +30,62 @@
 #include "reportdisplaywindow.h"
 #include "settings.h"
 #include "reportfinisher.h"
+
+
+
+QueryResultModel::QueryResultModel(QStringList columnNames, QList<QVariantList> rowData, QObject *parent) : QAbstractTableModel (parent) {
+    this->columnNames = columnNames;
+    this->rowData = rowData;
+}
+
+int QueryResultModel::rowCount(const QModelIndex &parent) const {
+    if (parent.isValid())
+        return 0;
+    return rowData.count();
+}
+
+int QueryResultModel::columnCount(const QModelIndex &parent) const {
+    if (parent.isValid() || rowData.isEmpty())
+        return 0;
+
+    return columnNames.count();
+}
+
+QVariant QueryResultModel::data(const QModelIndex &index, int role) const {
+    if (!index.isValid()) {
+        return QVariant();
+    }
+
+    if (index.column() > columnCount() || index.row() > rowCount()) {
+        return QVariant();
+    }
+
+    if (role == Qt::DisplayRole) {
+        return this->rowData[index.row()][index.column()];
+    }
+
+    return QVariant();
+}
+
+QVariant QueryResultModel::headerData(int section, Qt::Orientation orientation, int role) const {
+    if (orientation == Qt::Horizontal && role == Qt::DisplayRole) {
+        return this->columnNames[section];
+    }
+
+    return QAbstractTableModel::headerData(section, orientation, role);
+}
+
+bool QueryResultModel::setHeaderData(int section, Qt::Orientation orientation,
+                                     const QVariant &value,
+                                     int role) {
+    if (orientation == Qt::Horizontal && role == Qt::DisplayRole) {
+        this->columnNames[section] = value.toString();
+        emit headerDataChanged(orientation, section, section);
+        return true;
+    }
+
+    return false;
+}
 
 QByteArray readFile(QString name) {
     QStringList files;
@@ -224,16 +289,38 @@ Report::Report(QString name)
                             queryDetails["parameters"].toStringList());
             }
         }
+        if (q.contains("script")) {
+            QVariantMap scriptDetails = q["script"].toMap();
+            if (scriptDetails.contains("file")) {
+                if (scriptDetails["file"].type() == QVariant::List) {
+                    QVariantList files = scriptDetails["file"].toList();
 
-        if (query.web_query.query_text.isNull()) {
+                    query.generator.script_text = readFile("lib.js") + "\n";
+
+                    foreach(QVariant file, files) {
+                        query.generator.script_text += readTextFile(reportDir + file.toString()) + "\n";
+                        query.generator.file_name = file.toString();
+                    }
+
+                } else {
+                    query.generator.script_text = readTextFile(
+                                reportDir + scriptDetails["file"].toString());
+                    query.generator.file_name = scriptDetails["file"].toString();
+                }
+            }
+        }
+
+        if (query.web_query.query_text.isNull() && query.generator.script_text.isNull()) {
             qDebug() << "No WebDataSource query supplied for" << query.name;
         }
-        if (query.db_query.query_text.isNull()) {
+        if (query.db_query.query_text.isNull() && query.generator.script_text.isNull()) {
             qDebug() << "No DatabaseDataSource query supplied for" << query.name;
         }
 
-        _web_ok = _web_ok && !query.web_query.query_text.isNull();
-        _db_ok = _db_ok && !query.db_query.query_text.isNull();
+        _web_ok = _web_ok && (!query.web_query.query_text.isNull() || !query.generator.script_text.isNull());
+        _db_ok = _db_ok && (!query.db_query.query_text.isNull() || !query.generator.script_text.isNull());
+
+        qDebug() << "WebOk" << _web_ok << "DbOk" << _db_ok;
 
         this->queries.append(query);
     }
@@ -574,84 +661,47 @@ void Report::run(AbstractDataSource* dataSource, QMap<QString, QVariant> paramet
 
     }
 
-    QMap<QString, QSqlQuery> queryResults;
+    QMap<QString, query_result_t> queryResults;
 
     QVariantList queryDebugInfo;
 
     foreach (query_t q, queries) {
         qDebug() << "==== Run query " << q.name << "====";
-        QSqlQuery query = dataSource->query();
-
-        QVariantMap debugInfo;
-        bool success;
 
         query_variant_t variant = isWeb ? q.web_query : q.db_query;
+        if (variant.query_text.isNull()) {
 
-        if (!_debug) {
-            query.prepare(variant.query_text);
-        } else {
-            if (isWeb) {
-                query.prepare("explain query plan " + variant.query_text);
-            } else {
-                // TODO explain support for postgres. This isn't supported with
-                // prepared queries so we'd have to inject the parameters into the query
-                // manually.
-                query.prepare(variant.query_text);
+            if (q.generator.script_text.isNull()) {
+                qWarning() << "No SQL query or data generator available for backend - "
+                              "results for query will not be available" << q.name;
+                continue;
             }
 
-            QVariantMap bv = query.boundValues();
-            QVariantList vals;
-            foreach (QString key, bv.keys()) {
-                QVariantMap m;
-                m["key"] = key;
-                vals.append(m);
-            }
-            debugInfo["parameters"] = vals;
-            debugInfo["name"] = q.name;
-        }
+            query_result_t data = runDataGenerator(
+                        q.generator.script_text,
+                        q.generator.file_name,
+                        parameters,
+                        isWeb,
+                        stationCode,
+                        q.name);
+            queryResults[q.name] = data;
 
-        foreach (QString paramName, parameters.keys()) {
-            if (!variant.parameters.contains(paramName)) {
-                continue; // Report doesn't need this parameter so exclude it
-                // We do this because some database drivers don't like extra unused query
-                // parameters (in Qt 5.4 QSQLite seems to report this as an error)
-            }
-            query.bindValue(":" + paramName, parameters[paramName]);
-            qDebug() << "Parameter" << paramName << "value" << parameters[paramName];
-        }
-        if (query.exec()) {
-            queryResults[q.name] = QSqlQuery(query);
-            success = true;
-        } else {
-            qDebug() << "===============================";
-            qDebug() << "Query failed";
-            qDebug() << "db text:" << query.lastError().databaseText();
-            qDebug() << "driver text:" << query.lastError().driverText();
-            qDebug() << "--- query";
-            qDebug() << query.executedQuery();
-            qDebug() << "---- /query";
-            success = false;
-        }
 
-        if (_debug) {
-            debugInfo["success"] = success;
-            debugInfo["query"] = query.executedQuery();
-            QString driverText = query.lastError().driverText();
-            QString dbText = query.lastError().databaseText();
-            debugInfo["db_text"] = dbText.isEmpty() ? "none" : dbText;
-            debugInfo["driver_text"] = driverText.isEmpty() ? "none" : driverText;
+        } else {    // Run the SQL Query
+            QSqlQuery query = dataSource->query();
+            QVariantMap debugInfo;
 
-            QVariantMap bv = query.boundValues();
-            QVariantList vals;
-            foreach (QString key, bv.keys()) {
-                QVariantMap m;
-                m["key"] = key;
-                m["value"] = bv[key].toString();
-                vals.append(m);
-            }
-            debugInfo["bound_parameters"] = vals;
-
-            queryDebugInfo.append(debugInfo);
+            query_result_t data = runDataQuery(
+                        variant.query_text,
+                        parameters,
+                        isWeb,
+                        query,
+                        debugInfo,
+                        queryDebugInfo,
+                        q.name,
+                        variant.parameters
+                        );
+            queryResults[q.name] = data;
         }
     }
 
@@ -668,50 +718,327 @@ void Report::run(AbstractDataSource* dataSource, QMap<QString, QVariant> paramet
     }
 }
 
-QString Report::queryToCSV(QSqlQuery query, QMap<QString, QString> columnHeadings) {
+Report::query_result_t Report::runDataQuery(QString queryText,
+                                            QMap<QString, QVariant> parameters,
+                                            bool isWeb,
+                                            QSqlQuery query,
+                                            QVariantMap &debugInfo,
+                                            QVariantList &queryDebugInfo,
+                                            QString queryName,
+                                            QSet<QString> queryParameters) {
+    bool success;
+    if (!_debug) {
+        query.prepare(queryText);
+    } else {
+        if (isWeb) {
+            query.prepare("explain query plan " + queryText);
+        } else {
+            // TODO explain support for postgres. This isn't supported with
+            // prepared queries so we'd have to inject the parameters into the query
+            // manually.
+            query.prepare(queryText);
+        }
+
+        QVariantMap bv = query.boundValues();
+        QVariantList vals;
+        foreach (QString key, bv.keys()) {
+            QVariantMap m;
+            m["key"] = key;
+            vals.append(m);
+        }
+        debugInfo["parameters"] = vals;
+        debugInfo["name"] = queryName;
+    }
+
+    foreach (QString paramName, parameters.keys()) {
+        if (!queryParameters.contains(paramName)) {
+            continue; // Report doesn't need this parameter so exclude it
+            // We do this because some database drivers don't like extra unused query
+            // parameters (in Qt 5.4 QSQLite seems to report this as an error)
+        }
+        query.bindValue(":" + paramName, parameters[paramName]);
+        qDebug() << "Parameter" << paramName << "value" << parameters[paramName];
+    }
+    query_result_t result;
+    bool columnListPopulated=false;
+
+    if (query.exec()) {
+        if (query.first()) {
+            do {
+                QSqlRecord record = query.record();
+
+                QVariantList row;
+                for (int i = 0; i < record.count(); i++) {
+                    if (!columnListPopulated) {
+                        result.columnNames.append(record.field(i).name());
+                    }
+                    row.append(record.field(i).value());
+                }
+                result.rowData.append(row);
+                columnListPopulated = true;
+            } while (query.next());
+        }
+
+
+    } else {
+        qDebug() << "===============================";
+        qDebug() << "Query failed";
+        qDebug() << "db text:" << query.lastError().databaseText();
+        qDebug() << "driver text:" << query.lastError().driverText();
+        qDebug() << "--- query";
+        qDebug() << query.executedQuery();
+        qDebug() << "---- /query";
+        success = false;
+    }
+
+    if (_debug) {
+        debugInfo["success"] = success;
+        debugInfo["query"] = query.executedQuery();
+        QString driverText = query.lastError().driverText();
+        QString dbText = query.lastError().databaseText();
+        debugInfo["db_text"] = dbText.isEmpty() ? "none" : dbText;
+        debugInfo["driver_text"] = driverText.isEmpty() ? "none" : driverText;
+
+        QVariantMap bv = query.boundValues();
+        QVariantList vals;
+        foreach (QString key, bv.keys()) {
+            QVariantMap m;
+            m["key"] = key;
+            m["value"] = bv[key].toString();
+            vals.append(m);
+        }
+        debugInfo["bound_parameters"] = vals;
+
+        queryDebugInfo.append(debugInfo);
+    }
+
+    return result;
+}
+
+#if USE_QJSENGINE
+Report::query_result_t Report::runDataGenerator(QString script_text,
+                                                QString scriptFileName,
+                                                QMap<QString, QVariant> parameters,
+                                                bool isWeb,
+                                                QString stationCode,
+                                                QString queryName) {
+    qDebug() << "Executing data generator...";
+
+    query_result_t result;
+
+    QJSEngine engine;
+    engine.installExtensions(QJSEngine::AllExtensions);
+
+    QJSValue evalResult = engine.evaluate(script_text, scriptFileName);
+
+    if (evalResult.isError()) {
+        qWarning() << evalResult.toString();
+        return result;
+    }
+
+    if (!engine.globalObject().hasProperty("generate") || !engine.globalObject().property("generate").isCallable()) {
+        qWarning() << "Script has no generate function";
+        return result;
+    }
+
+    // TODO: date/time parameters need to be ISO8601 format
+    QJSValueList args;
+    args << queryName;
+    args << engine.toScriptValue(parameters);
+
+    // Function is: function generate(isWebDs, stationCode, queryName, criteria) {}
+    QJSValue callResult = engine.globalObject().property("generate").call(args);
+
+    if (callResult.isError()) {
+        qWarning() << "Error calling generate function:" << callResult.toString();
+        return result;
+    }
+
+    if (!callResult.isObject()) {
+        qWarning() << "Error calling generate function: return type was not an object";
+        return result;
+    }
+
+    if (!callResult.hasProperty("column_names") || !callResult.property("column_names").isArray()) {
+        qWarning() << "Result does not have column_names property";
+        return result;
+    }
+
+    if (!callResult.hasProperty("row_data")) {
+        qWarning() << "Result does not have row_data property";
+        return result;
+    }
+
+    QJSValue columnNames = callResult.property("column_names");
+    QJSValue rowData = callResult.property("row_data");
+
+    for (uint i = 0; i < columnNames.property("length").toUInt(); i++) {
+        result.columnNames.append(columnNames.property(i).toString());
+    }
+
+    int columnCount = result.columnNames.count();
+
+    for (uint rowId = 0; rowId < rowData.property("length").toUInt(); rowId++) {
+        QVariantList row;
+        QJSValue rowValue = rowData.property(rowId);
+
+        if (!rowValue.isArray()) {
+            qWarning() << "Row" << rowId << "is not an array! ignoring.";
+            continue;
+        }
+
+        for (uint colId = 0; colId < rowValue.property("length").toUInt(); colId++) {
+            row.append(rowValue.property(colId).toVariant());
+        }
+
+        if (row.count() != columnCount) {
+            qWarning() << "Incorrect row length" << row.length() << "expected" << columnCount << "row" << row;
+            continue;
+        }
+
+        result.rowData.append(row);
+    }
+
+    qDebug() << "Generated" << result.rowData.count() << "rows";
+    qDebug() << result.columnNames;
+
+    return result;
+}
+#else
+Report::query_result_t Report::runDataGenerator(QString script_text,
+                                                QString scriptFileName,
+                                                QMap<QString, QVariant> parameters,
+                                                bool isWeb,
+                                                QString stationCode,
+                                                QString queryName) {
+
+    qDebug() << "Executing data generator..";
+
+    query_result_t result;
+
+    QScriptEngine engine;
+
+    QScriptValue evalResult = engine.evaluate(script_text, scriptFileName);
+
+    if (evalResult.isError()) {
+        qWarning() << evalResult.toString();
+        return result;
+    }
+
+    if (!engine.globalObject().property("generate").isValid() || !engine.globalObject().property("generate").isFunction()) {
+        qWarning() << "Script has no generate function";
+        return result;
+    }
+
+    // TODO: date/time parameters need to be ISO8601 format
+    QScriptValueList args;
+    args << queryName;
+    args << engine.toScriptValue(parameters);
+
+    // Function is: function generate(isWebDs, stationCode, queryName, criteria) {}
+    QScriptValue callResult = engine.globalObject().property("generate").call(QScriptValue(), args);
+
+    if (callResult.isError()) {
+        qWarning() << "Error calling generate function:" << callResult.toString();
+        return result;
+    }
+
+    if (!callResult.isObject()) {
+        qWarning() << "Error calling generate function: return type was not an object";
+        return result;
+    }
+
+    if (!callResult.property("column_names").isValid() || !callResult.property("column_names").isArray()) {
+        qWarning() << "Result does not have column_names property";
+        return result;
+    }
+
+    if (!callResult.property("row_data").isValid()) {
+        qWarning() << "Result does not have row_data property";
+        return result;
+    }
+
+    QScriptValue columnNames = callResult.property("column_names");
+    QScriptValue rowData = callResult.property("row_data");
+
+    for (uint i = 0; i < columnNames.property("length").toUInt32(); i++) {
+        result.columnNames.append(columnNames.property(i).toString());
+    }
+
+    int columnCount = result.columnNames.count();
+
+    for (uint rowId = 0; rowId < rowData.property("length").toUInt32(); rowId++) {
+        QVariantList row;
+        QScriptValue rowValue = rowData.property(rowId);
+
+        if (!rowValue.isArray()) {
+            qWarning() << "Row" << rowId << "is not an array! ignoring.";
+            continue;
+        }
+
+        for (uint colId = 0; colId < rowValue.property("length").toUInt32(); colId++) {
+            row.append(rowValue.property(colId).toVariant());
+        }
+
+        if (row.count() != columnCount) {
+            qWarning() << "Incorrect row length" << row.length() << "expected" << columnCount << "row" << row;
+            continue;
+        }
+
+        result.rowData.append(row);
+    }
+
+    qDebug() << "Generated" << result.rowData.count() << "rows";
+    qDebug() << result.columnNames;
+
+    return result;
+}
+#endif
+
+
+QByteArray Report::queryResultToCSV(query_result_t query, QMap<QString, QString> columnHeadings) {
     QString result;
 
     bool haveHeader = false;
     QString header;
 
-    if (query.first()) {
-        do {
-            QSqlRecord record = query.record();
-            QString row;
+    for (int i = 0; i < query.rowData.count(); i++) {
+        QString row;
 
-            for (int i = 0; i < record.count(); i++) {
-                QSqlField f = record.field(i);
-                QString fieldName = f.name();
-                if (columnHeadings.contains(fieldName) && columnHeadings[fieldName].isNull()) {
-                    continue;
-                }
+        for (int j = 0; j < query.columnNames.count(); j++) {
+            QString fieldName = query.columnNames.at(j);
 
-                if (!row.isEmpty()) {
-                    row.append(",");
-                }
-                row.append(f.value().toString());
-
-                if (!haveHeader) {
-                    if (!header.isEmpty()) {
-                        header.append(",");
-                    }
-                    if (columnHeadings.contains(fieldName)) {
-                        header.append(columnHeadings[fieldName]);
-                    } else {
-                        header.append(fieldName);
-                    }
-                }
+            if (columnHeadings.contains(fieldName) && columnHeadings[fieldName].isNull()) {
+                continue;
             }
 
-            row.append("\n");
-            result.append(row);
-            haveHeader = true;
-        } while (query.next());
+            QVariant dat = query.rowData[i][j];
+
+            if (!row.isEmpty()) {
+                row.append(",");
+            }
+            row.append(dat.toString());
+
+            if (!haveHeader) {
+                if (!header.isEmpty()) {
+                    header.append(",");
+                }
+                if (columnHeadings.contains(fieldName)) {
+                    header.append(columnHeadings[fieldName]);
+                } else {
+                    header.append(fieldName);
+                }
+            }
+        }
+
+        row.append("\n");
+        result.append(row);
+        haveHeader = true;
     }
 
     result = header + "\n" + result;
 
-    return result;
+    return result.toUtf8();
 }
 
 void Report::writeFile(report_output_file_t file) {
@@ -720,8 +1047,6 @@ void Report::writeFile(report_output_file_t file) {
     if (f.open(QIODevice::WriteOnly)) {
         if (!file.data.isNull()) {
             f.write(file.data);
-        } else if (file.query.isActive()) {
-            f.write(Report::queryToCSV(file.query, file.columnHeadings).toUtf8());
         }
 
         f.close();
@@ -806,7 +1131,7 @@ void Report::saveReport(QList<report_output_file_t> outputs, QWidget *parent) {
 }
 
 void Report::outputToUI(QMap<QString, QVariant> reportParameters,
-                        QMap<QString, QSqlQuery> queries, bool hasSolar, bool isWireless) {
+                        QMap<QString, query_result_t> queries, bool hasSolar, bool isWireless) {
 
     ReportDisplayWindow *window = new ReportDisplayWindow(_title, _icon);
     window->setStationInfo(hasSolar, isWireless);
@@ -852,8 +1177,11 @@ void Report::outputToUI(QMap<QString, QVariant> reportParameters,
             files.append(output_file);
 
         } else if (output.format == OF_TABLE) {
-            QSqlQueryModel *model = new QSqlQueryModel();
-            model->setQuery(queries[output.query_name]);
+//            QSqlQueryModel *model = new QSqlQueryModel();
+//            model->setQuery(queries[output.query_name]);
+            QueryResultModel *model = new QueryResultModel(
+                        queries[output.query_name].columnNames,
+                        queries[output.query_name].rowData);
 
             QStringList hideColumns;
             for(int i = 0; i < model->columnCount(QModelIndex()); i++) {
@@ -872,7 +1200,7 @@ void Report::outputToUI(QMap<QString, QVariant> reportParameters,
             report_output_file_t output_file;
             output_file.default_filename = output.filename;
             output_file.dialog_filter = QObject::tr("CSV Files (*.csv)");
-            output_file.query = QSqlQuery(queries[output.query_name]);
+            output_file.data = queryResultToCSV(queries[output.query_name], output.saveColumns);
             output_file.columnHeadings = output.saveColumns;
 
             if (output_file.default_filename.isEmpty()) {
@@ -894,7 +1222,7 @@ void Report::outputToUI(QMap<QString, QVariant> reportParameters,
 }
 
 void Report::outputToDisk(QMap<QString, QVariant> reportParameters,
-                          QMap<QString, QSqlQuery> queries) {
+                          QMap<QString, query_result_t> queries) {
 
     QList<report_output_file_t> files;
 
@@ -927,7 +1255,7 @@ void Report::outputToDisk(QMap<QString, QVariant> reportParameters,
             report_output_file_t output_file;
             output_file.default_filename = output.filename;
             output_file.dialog_filter = QObject::tr("CSV Files (*.csv)");
-            output_file.query = QSqlQuery(queries[output.query_name]);
+            output_file.data = queryResultToCSV(queries[output.query_name], output.saveColumns);
             output_file.columnHeadings = output.saveColumns;
 
             if (output_file.default_filename.isEmpty()) {
@@ -942,7 +1270,7 @@ void Report::outputToDisk(QMap<QString, QVariant> reportParameters,
 }
 
 QString Report::renderTemplatedReport(QMap<QString, QVariant> reportParameters,
-                                      QMap<QString, QSqlQuery> queries,
+                                      QMap<QString, query_result_t> queries,
                                       QString outputTemplate) {
     using namespace Mustache;
 
@@ -953,24 +1281,18 @@ QString Report::renderTemplatedReport(QMap<QString, QVariant> reportParameters,
 
     foreach (QString queryName, queries.keys()) {
         QVariantList rows;
-        QSqlQuery query = queries[queryName];
+        query_result_t q = queries[queryName];
 
-        qDebug() << "--- Query result for:" << queryName << "---";
-
-        if (query.first()) {
-            do {
-                QSqlRecord record = query.record();
-                QVariantMap row;
-
-                for (int i = 0; i < record.count(); i++) {
-                    QSqlField f = record.field(i);
-                    row[f.name()] = f.value();
-                }
-               // qDebug() << row;
-
-                rows.append(row);
-            } while (query.next());
+        for(int i = 0; i < q.rowData.count(); i++) {
+            QVariantMap m;
+            for (int j = 0; j < q.columnNames.count(); j++) {
+                QString col = q.columnNames[j];
+                QVariant dat = q.rowData[i][j];
+                m[col] = dat;
+            }
+            rows.append(m);
         }
+
         parameters[queryName] = rows;
     }
 
