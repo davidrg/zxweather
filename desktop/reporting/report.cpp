@@ -142,6 +142,35 @@ QString readTextFile(QString name) {
     return QString(data);
 }
 
+
+class ReportPartialResolver : public Mustache::PartialResolver
+{
+public:
+    ReportPartialResolver(QString reportName);
+    virtual ~ReportPartialResolver() {}
+
+    /** Returns the partial template with a given @p name. */
+    virtual QString getPartial(const QString& name);
+private:
+    QString partialsDir;
+    QHash<QString, QString> cache;
+};
+
+ReportPartialResolver::ReportPartialResolver(QString reportName) {
+    partialsDir = reportName + QDir::separator() + "partials" + QDir::separator();
+}
+
+QString ReportPartialResolver::getPartial(const QString &name) {
+
+    if (cache.contains(name)) {
+        return cache[name];
+    }
+
+    cache[name] = readTextFile(partialsDir + name + ".mustache");
+
+    return cache[name];
+}
+
 Report::Report(QString name)
 {
     using namespace QtJson;
@@ -1297,7 +1326,8 @@ QString Report::renderTemplatedReport(QMap<QString, QVariant> reportParameters,
     }
 
     Mustache::Renderer renderer;
-    Mustache::QtVariantContext context(parameters);
+    ReportPartialResolver partialResolver(this->_name);
+    Mustache::QtVariantContext context(parameters, &partialResolver);
 
     QString result = renderer.render(outputTemplate, &context);
     qDebug() << result;
