@@ -1,0 +1,60 @@
+{
+	"title": "Rainfall",
+	"description": "description.html",
+	"time_picker": "none",
+	"default_time_span": "all_time",
+	"supported_weather_stations": ["generic"],
+	"queries": {
+		"yearly": {
+			"web": {
+				"file": "yearly_sqlite.sql",
+				"parameters": [
+                    "start_t",
+                    "end_t",
+                    "stationCode"
+				]
+			},
+			"db": {
+				"file": "yearly_psql.sql",
+				"parameters": [
+                    "start_t",
+                    "end_t",
+                    "stationCode"
+				]
+			}
+		},
+		"summary": {
+			"web": {
+				"file": "summary_sqlite.sql",
+				"parameters": [
+                    "start_t",
+                    "end_t",
+                    "stationCode"
+				]
+			},
+			"db": {
+				"file": "summary_psql.sql",
+				"parameters": [
+                    "start_t",
+                    "end_t",
+                    "stationCode"
+				]
+			}
+		}
+	},
+	"output_type": "show",
+    	"output_window_size": {
+		"height": 800,
+		"width": 750
+	},
+	"outputs": [
+		{
+			"name": "rainfall",
+			"title": "Rainfall",
+            "icon": "../../icons/report",
+			"format": "text",
+			"template": "template.txt",
+			"filename": "rainfall.txt"
+		}
+	]
+}
