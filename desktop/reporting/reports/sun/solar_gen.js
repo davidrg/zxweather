@@ -145,7 +145,7 @@ function short_time(time) {
     return t;
 }
 
-function generate(query_name, criteria) {
+function generate_solar_dataset(criteria) {
 	log("generating");
     log("Report Criteria:");
     for (var k in criteria){
@@ -308,34 +308,35 @@ function generate(query_name, criteria) {
     // }
 
 	return {
+		"name": "solar",
 		"column_names": [
-		    "date",
-            "rise_time",
-            "set_time",
-            "daylength",
-            "daylength_difference",
-            "solar_noon",
-            "civil_dawn",
-            "civil_dusk",
-            "nautical_dawn",
-            "nautical_dusk",
-            "astronomical_dawn",
-            "astronomical_dusk",
-            "today",
-            "Offset",
-            "Offset Change",
-            "offset_change_message",
+			"date",
+			"rise_time",
+			"set_time",
+			"daylength",
+			"daylength_difference",
+			"solar_noon",
+			"civil_dawn",
+			"civil_dusk",
+			"nautical_dawn",
+			"nautical_dusk",
+			"astronomical_dawn",
+			"astronomical_dusk",
+			"today",
+			"Offset",
+			"Offset Change",
+			"offset_change_message",
 
-            "date_ddmmyy",
-            "astro_dawn_short",
-            "naut_dawn_short",
-            "civil_dawn_short",
-            "sunrise_short",
-            "sunset_short",
-            "civil_dusk_short",
-            "naut_dusk_short",
-            "astro_dusk_short"
-        ],
+			"date_ddmmyy",
+			"astro_dawn_short",
+			"naut_dawn_short",
+			"civil_dawn_short",
+			"sunrise_short",
+			"sunset_short",
+			"civil_dusk_short",
+			"naut_dusk_short",
+			"astro_dusk_short"
+		],
 		"row_data": results
 	};
 }

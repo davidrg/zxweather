@@ -61,7 +61,7 @@ function dms(val) {
     return result.padStart(12);
 }
 
-function generate(query_name, criteria) {
+function generate_lat_long_dataset(criteria) {
 
     var latitude = criteria["latitude"];
     var lat = dms(latitude);
@@ -80,6 +80,7 @@ function generate(query_name, criteria) {
     }
 
     return {
+		"name": "lat_long",
 		"column_names": [
 		    "lat", "long"
         ],

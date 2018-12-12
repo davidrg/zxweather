@@ -10,9 +10,16 @@
 #include <QScopedPointer>
 #include <QVariant>
 #include <QAbstractTableModel>
+#if USE_QJSENGINE
+#include <QJSEngine>
+
+#else
+#include <QtScript>
+#endif
 #include "reportfinisher.h"
 
 class AbstractDataSource;
+class ScriptValue;
 
 class QSqlQuery;
 
@@ -111,27 +118,26 @@ private:
     QList<WeatherStationType> _weatherStations;
     bool _primeCache;
     bool _debug;
+    QStringList _scripts;
 
     typedef struct _query_variant {
         QString query_text;
         QSet<QString> parameters;
     } query_variant_t;
 
-    typedef struct _data_generator_variant {
-        QString script_text;
-        QString file_name;
-    } data_generator_variant_t;
+//    typedef struct _data_generator_variant {
+//        QString script_text;
+//        QString file_name;
+//    } data_generator_variant_t;
 
     typedef struct _query {
         QString name;
         query_variant_t web_query;
         query_variant_t db_query;
-        data_generator_variant_t generator;
+//        data_generator_variant_t generator;
     } query_t;
 
     QList<query_t> queries;
-
-
 
     typedef enum _format {
         OF_HTML,
@@ -169,6 +175,7 @@ private:
     typedef struct _query_result {
         QStringList columnNames;
         QList<QVariantList> rowData;
+        QString name;
     } query_result_t;
 
     QList<output_t> outputs;
@@ -214,6 +221,15 @@ private:
                                 QVariantList &queryDebugInfo,
                                 QString queryName,
                                 QSet<QString> queryParameters);
+
+#if USE_QJSENGINE
+    void initialiseScriptEngine(QJSEngine &engine);
+#else
+    void initialiseScriptEngine(QScriptEngine &engine);
+#endif
+    QMap<QString, Report::query_result_t> runDataGenerators(QMap<QString, QVariant> parameters);
+
+    Report::query_result_t scriptValueToResultSet(ScriptValue value);
 };
 
 
