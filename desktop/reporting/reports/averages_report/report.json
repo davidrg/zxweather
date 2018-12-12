@@ -19,7 +19,7 @@
 			"db": {
 				"file": "postgres.sql",
 				"parameters": [
-					"stationCode",
+                    "stationCode",
 					"fahrenheit",
 					"kmh",
 					"mph",
@@ -71,7 +71,7 @@
             "filename": "monthly_averages.csv",
             "view_columns": {
                 "min_year": "First Year",
-                "max_year": "Lsat Year",
+                "max_year": "Last Year",
                 "month_name": "Month",
                 "avg_high": "Avg. High",
                 "daily_mean": "Daily Mean",
