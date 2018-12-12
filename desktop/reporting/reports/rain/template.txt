@@ -1,0 +1,11 @@
+        JAN    FEB    MAR    APR    MAY    JUN    JUL    AUG    SEP    OCT    NOV    DEC    TOT
+------------------------------------------------------------------------------------------------
+{{#yearly}}
+{{year}} {{january}} {{february}} {{march}} {{april}} {{may}} {{june}} {{july}} {{august}} {{september}} {{october}} {{november}} {{december}} {{total}}
+{{/yearly}}
+ 
+{{#summary}}
+ MIN {{january_min}} {{february_min}} {{march_min}} {{april_min}} {{may_min}} {{june_min}} {{july_min}} {{august_min}} {{september_min}} {{october_min}} {{november_min}} {{december_min}} {{total_min}}
+ MAX {{january_max}} {{february_max}} {{march_max}} {{april_max}} {{may_max}} {{june_max}} {{july_max}} {{august_max}} {{september_max}} {{october_max}} {{november_max}} {{december_max}} {{total_max}}
+ AVG {{january_avg}} {{february_avg}} {{march_avg}} {{april_avg}} {{may_avg}} {{june_avg}} {{july_avg}} {{august_avg}} {{september_avg}} {{october_avg}} {{november_avg}} {{december_avg}} {{total_avg}}
+{{/summary}} 
