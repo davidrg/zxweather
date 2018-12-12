@@ -206,6 +206,8 @@ void ViewImagesWindow::detailItemDoubleClicked(QModelIndex index) {
 
     updateToolbarStatus(index);
 
+    index = normaliseIndexColumn(index);
+
     if (!model->isImage(index)){
         ui->tvImageSet->expand(index);
         setViewIndex(index);
