@@ -87,6 +87,105 @@ bool QueryResultModel::setHeaderData(int section, Qt::Orientation orientation,
     return false;
 }
 
+
+// This either a wrappre around QJSValue in Qt 5.6+ or an adapter to give QScriptValue
+// a similar public API to QJSValue in order to minimise code differences later on.
+class ScriptValue {
+public:
+#ifdef USE_QJSENGINE
+    ScriptValue(QJSValue jsValue): value(jsValue) {
+    }
+#else
+    ScriptValue(QScriptValue jsValue): value(jsValue) {
+
+    }
+#endif
+
+    bool isError() const {
+        return value.isError();
+    }
+
+    bool hasProperty(QString prop) const {
+#if USE_QJSENGINE
+        return value.hasProperty(prop);
+#else
+        return value.property(prop).isValid();
+#endif
+    }
+
+    bool hasOwnProperty(QString prop) const {
+#ifdef USE_QJSENGINE
+        return value.hasOwnProperty(prop);
+#else
+        return value.property(prop).isValid();
+#endif
+    }
+
+    ScriptValue property(QString prop) const {
+        ScriptValue v = value.property(prop);
+        return v;
+    }
+
+    ScriptValue property(uint i) const {
+        return property(QString::number(i));
+    }
+
+    bool isCallable() const {
+#ifdef USE_QJSENGINE
+        return value.isCallable();
+#else
+        return value.isFunction();
+#endif
+    }
+
+    bool isObject() const {
+        return value.isObject();
+    }
+
+    bool isArray() const {
+        return value.isArray();
+    }
+
+
+#ifdef USE_QJSENGINE
+    ScriptValue call(const QJSValueList &args = QJSValueList()) {
+
+        //TODO: convert to QJSValueList
+        ScriptValue result = value.call(args);
+        return result;
+    }
+#else
+    ScriptValue call(const QScriptValueList &args = QScriptValueList()) {
+        //TODO: convert to QJSValueList
+        ScriptValue result = value.call(QScriptValue(), args);
+        return result;
+    }
+    #endif
+
+    QString toString() const {
+        return value.toString();
+    }
+
+    quint32 toUInt() const {
+#ifdef USE_QJSENGINE
+        return value.toUInt();
+#else
+        return value.toUInt32();
+#endif
+    }
+
+    QVariant toVariant() const {
+        return value.toVariant();
+    }
+
+private:
+#ifdef USE_QJSENGINE
+    QJSValue value;
+#else
+    QScriptValue value;
+#endif
+};
+
 QByteArray readFile(QString name) {
     QStringList files;
 //    files << QDir::cleanPath("reports" + QString(QDir::separator()) + name);
@@ -289,6 +388,18 @@ Report::Report(QString name)
         _custom_criteria = !_ui.isNull();
     }
 
+    if (doc.contains("scripts")) {
+        QVariantList scripts = doc["scripts"].toList();
+
+        // Standard libraries. This mostly consists of polyfills for the older QtScript
+        // engine used when building against Qt 5.5 or older.
+        scripts.insert(0, "../lib.js");
+
+        foreach (QVariant script, scripts) {
+            this->_scripts.append(reportDir + script.toString());
+        }
+    }
+
     // Load queries
     _web_ok = true;
     _db_ok = true;
@@ -318,36 +429,36 @@ Report::Report(QString name)
                             queryDetails["parameters"].toStringList());
             }
         }
-        if (q.contains("script")) {
-            QVariantMap scriptDetails = q["script"].toMap();
-            if (scriptDetails.contains("file")) {
-                if (scriptDetails["file"].type() == QVariant::List) {
-                    QVariantList files = scriptDetails["file"].toList();
+//        if (q.contains("script")) {
+//            QVariantMap scriptDetails = q["script"].toMap();
+//            if (scriptDetails.contains("file")) {
+//                if (scriptDetails["file"].type() == QVariant::List) {
+//                    QVariantList files = scriptDetails["file"].toList();
 
-                    query.generator.script_text = readFile("lib.js") + "\n";
+//                    query.generator.script_text = readFile("lib.js") + "\n";
 
-                    foreach(QVariant file, files) {
-                        query.generator.script_text += readTextFile(reportDir + file.toString()) + "\n";
-                        query.generator.file_name = file.toString();
-                    }
+//                    foreach(QVariant file, files) {
+//                        query.generator.script_text += readTextFile(reportDir + file.toString()) + "\n";
+//                        query.generator.file_name = file.toString();
+//                    }
 
-                } else {
-                    query.generator.script_text = readTextFile(
-                                reportDir + scriptDetails["file"].toString());
-                    query.generator.file_name = scriptDetails["file"].toString();
-                }
-            }
-        }
+//                } else {
+//                    query.generator.script_text = readTextFile(
+//                                reportDir + scriptDetails["file"].toString());
+//                    query.generator.file_name = scriptDetails["file"].toString();
+//                }
+//            }
+//        }
 
-        if (query.web_query.query_text.isNull() && query.generator.script_text.isNull()) {
+        if (query.web_query.query_text.isNull() /*&& query.generator.script_text.isNull()*/) {
             qDebug() << "No WebDataSource query supplied for" << query.name;
         }
-        if (query.db_query.query_text.isNull() && query.generator.script_text.isNull()) {
+        if (query.db_query.query_text.isNull() /*&& query.generator.script_text.isNull()*/) {
             qDebug() << "No DatabaseDataSource query supplied for" << query.name;
         }
 
-        _web_ok = _web_ok && (!query.web_query.query_text.isNull() || !query.generator.script_text.isNull());
-        _db_ok = _db_ok && (!query.db_query.query_text.isNull() || !query.generator.script_text.isNull());
+        _web_ok = _web_ok && (!query.web_query.query_text.isNull());// || !query.generator.script_text.isNull());
+        _db_ok = _db_ok && (!query.db_query.query_text.isNull());// || !query.generator.script_text.isNull());
 
         qDebug() << "WebOk" << _web_ok << "DbOk" << _db_ok;
 
@@ -673,6 +784,143 @@ void Report::executeReport() {
     }
 }
 
+#if USE_QJSENGINE
+void Report::initialiseScriptEngine(QJSEngine &engine) {
+#else
+void Report::initialiseScriptEngine(QScriptEngine &engine) {
+#endif
+
+    // Load all the script files
+    QString script;
+    foreach (QString file, _scripts) {
+        script += readTextFile(file) + "\n";
+    }
+
+    // Perform any basic initialisation
+#if USE_QJSENGINE
+    engine.installExtensions(QJSEngine::AllExtensions);
+#else
+#endif
+
+    qDebug() << "Evaluating script...";
+    ScriptValue evalResult = engine.evaluate(script, "script");
+
+    if (evalResult.isError()) {
+        qWarning() << evalResult.toString();
+        return;
+    }
+    qDebug() << "done.";
+}
+
+Report::query_result_t Report::scriptValueToResultSet(ScriptValue value) {
+    Report::query_result_t result;
+
+    if (!value.isObject()) {
+        qWarning() << "Error calling generate function: return type was not an object";
+        return result;
+    }
+
+    if (!value.hasProperty("column_names") || !value.property("column_names").isArray()) {
+        qWarning() << "Result does not have column_names property";
+        return result;
+    }
+
+    if (!value.hasProperty("row_data")) {
+        qWarning() << "Result does not have row_data property";
+        return result;
+    }
+
+    if (!value.hasProperty("name")) {
+        qWarning() << "Result does not have name property";
+        return result;
+    }
+
+    ScriptValue columnNames = value.property("column_names");
+    ScriptValue rowData = value.property("row_data");
+    result.name = value.property("name").toString();
+
+
+    for (uint i = 0; i < columnNames.property("length").toUInt(); i++) {
+        result.columnNames.append(columnNames.property(i).toString());
+    }
+
+    int columnCount = result.columnNames.count();
+
+    for (uint rowId = 0; rowId < rowData.property("length").toUInt(); rowId++) {
+        QVariantList row;
+        ScriptValue rowValue = rowData.property(rowId);
+
+        if (!rowValue.isArray()) {
+            qWarning() << "Row" << rowId << "is not an array! ignoring.";
+            continue;
+        }
+
+        for (uint colId = 0; colId < rowValue.property("length").toUInt(); colId++) {
+            row.append(rowValue.property(colId).toVariant());
+        }
+
+        if (row.count() != columnCount) {
+            qWarning() << "Incorrect row length" << row.length() << "expected" << columnCount << "row" << row;
+            continue;
+        }
+
+        result.rowData.append(row);
+    }
+
+    qDebug() << "Generated" << result.rowData.count() << "rows";
+    qDebug() << result.columnNames;
+
+    return result;
+}
+
+QMap<QString, Report::query_result_t> Report::runDataGenerators(QMap<QString, QVariant> parameters) {
+#if USE_QJSENGINE
+    QJSEngine engine;
+#else
+    QScriptEngine engine;
+#endif
+    initialiseScriptEngine(engine);
+
+    ScriptValue globalObject = engine.globalObject();
+    QMap<QString, Report::query_result_t> result;
+
+    qDebug() << "Checking for generate_datasets...";
+    if (!globalObject.hasProperty("generate_datasets") || !globalObject.property("generate_datasets").isCallable()) {
+        qDebug() << "No generate_datasets defined.";
+        return result;
+    }
+
+    qDebug() << "Prepairing parmeters...";
+#ifdef USE_QJSENGINE
+    QJSValueList args;
+#else
+    QScriptValueList args;
+#endif
+    args << engine.toScriptValue(parameters);
+
+    // Function is: function generate_datasets(criteria) {}
+    qDebug() << "Running data generators...";
+    ScriptValue callResult = globalObject.property("generate_datasets").call(args);
+
+    if (callResult.isError()) {
+        qWarning() << "Error calling generate_datasets function:" << callResult.toString();
+        return result;
+    }
+
+    if (!callResult.isObject()) {
+        qWarning() << "Error calling generate_datasets function: return type was not a list";
+        return result;
+    }
+
+
+    for (uint dsId = 0; dsId < callResult.property("length").toUInt(); dsId++) {
+        Report::query_result_t dataset = scriptValueToResultSet(callResult.property(dsId));
+        result[dataset.name] = dataset;
+    }
+
+    return result;
+}
+
 void Report::run(AbstractDataSource* dataSource, QMap<QString, QVariant> parameters) {
     bool isWeb = Settings::getInstance().sampleDataSourceType() == Settings::DS_TYPE_WEB_INTERFACE;
     QString stationCode = Settings::getInstance().stationCode();
@@ -698,25 +946,25 @@ void Report::run(AbstractDataSource* dataSource, QMap<QString, QVariant> paramet
         qDebug() << "==== Run query " << q.name << "====";
 
         query_variant_t variant = isWeb ? q.web_query : q.db_query;
-        if (variant.query_text.isNull()) {
+//        if (variant.query_text.isNull()) {
 
-            if (q.generator.script_text.isNull()) {
-                qWarning() << "No SQL query or data generator available for backend - "
-                              "results for query will not be available" << q.name;
-                continue;
-            }
+//            if (q.generator.script_text.isNull()) {
+//                qWarning() << "No SQL query or data generator available for backend - "
+//                              "results for query will not be available" << q.name;
+//                continue;
+//            }
 
-            query_result_t data = runDataGenerator(
-                        q.generator.script_text,
-                        q.generator.file_name,
-                        parameters,
-                        isWeb,
-                        stationCode,
-                        q.name);
-            queryResults[q.name] = data;
+//            query_result_t data = runDataGenerator(
+//                        q.generator.script_text,
+//                        q.generator.file_name,
+//                        parameters,
+//                        isWeb,
+//                        stationCode,
+//                        q.name);
+//            queryResults[q.name] = data;
 
 
-        } else {    // Run the SQL Query
+//        } else {    // Run the SQL Query
             QSqlQuery query = dataSource->query();
             QVariantMap debugInfo;
 
@@ -731,8 +979,16 @@ void Report::run(AbstractDataSource* dataSource, QMap<QString, QVariant> paramet
                         variant.parameters
                         );
             queryResults[q.name] = data;
-        }
+//        }
     }
+
+    // Run JavaScript data generators
+    qDebug() << "Run data generators...";
+    QMap<QString, query_result_t> generatedData = runDataGenerators(parameters);
+    foreach (QString key, generatedData.keys()) {
+        queryResults[key] = generatedData[key];
+    }
+    qDebug() << "Finished running data generators.";
 
     if (_debug) {
         parameters["queries"] = queryDebugInfo;
@@ -844,185 +1100,185 @@ Report::query_result_t Report::runDataQuery(QString queryText,
     return result;
 }
 
-#if USE_QJSENGINE
-Report::query_result_t Report::runDataGenerator(QString script_text,
-                                                QString scriptFileName,
-                                                QMap<QString, QVariant> parameters,
-                                                bool isWeb,
-                                                QString stationCode,
-                                                QString queryName) {
-    qDebug() << "Executing data generator...";
+//#if USE_QJSENGINE
+//Report::query_result_t Report::runDataGenerator(QString script_text,
+//                                                QString scriptFileName,
+//                                                QMap<QString, QVariant> parameters,
+//                                                bool isWeb,
+//                                                QString stationCode,
+//                                                QString queryName) {
+//    qDebug() << "Executing data generator...";
 
-    query_result_t result;
+//    query_result_t result;
 
-    QJSEngine engine;
-    engine.installExtensions(QJSEngine::AllExtensions);
+//    QJSEngine engine;
+//    engine.installExtensions(QJSEngine::AllExtensions);
 
-    QJSValue evalResult = engine.evaluate(script_text, scriptFileName);
+//    QJSValue evalResult = engine.evaluate(script_text, scriptFileName);
 
-    if (evalResult.isError()) {
-        qWarning() << evalResult.toString();
-        return result;
-    }
+//    if (evalResult.isError()) {
+//        qWarning() << evalResult.toString();
+//        return result;
+//    }
 
-    if (!engine.globalObject().hasProperty("generate") || !engine.globalObject().property("generate").isCallable()) {
-        qWarning() << "Script has no generate function";
-        return result;
-    }
+//    if (!engine.globalObject().hasProperty("generate") || !engine.globalObject().property("generate").isCallable()) {
+//        qWarning() << "Script has no generate function";
+//        return result;
+//    }
 
-    // TODO: date/time parameters need to be ISO8601 format
-    QJSValueList args;
-    args << queryName;
-    args << engine.toScriptValue(parameters);
+//    // TODO: date/time parameters need to be ISO8601 format
+//    QJSValueList args;
+//    args << queryName;
+//    args << engine.toScriptValue(parameters);
 
-    // Function is: function generate(isWebDs, stationCode, queryName, criteria) {}
-    QJSValue callResult = engine.globalObject().property("generate").call(args);
+//    // Function is: function generate(isWebDs, stationCode, queryName, criteria) {}
+//    QJSValue callResult = engine.globalObject().property("generate").call(args);
 
-    if (callResult.isError()) {
-        qWarning() << "Error calling generate function:" << callResult.toString();
-        return result;
-    }
+//    if (callResult.isError()) {
+//        qWarning() << "Error calling generate function:" << callResult.toString();
+//        return result;
+//    }
 
-    if (!callResult.isObject()) {
-        qWarning() << "Error calling generate function: return type was not an object";
-        return result;
-    }
+//    if (!callResult.isObject()) {
+//        qWarning() << "Error calling generate function: return type was not an object";
+//        return result;
+//    }
 
-    if (!callResult.hasProperty("column_names") || !callResult.property("column_names").isArray()) {
-        qWarning() << "Result does not have column_names property";
-        return result;
-    }
+//    if (!callResult.hasProperty("column_names") || !callResult.property("column_names").isArray()) {
+//        qWarning() << "Result does not have column_names property";
+//        return result;
+//    }
 
-    if (!callResult.hasProperty("row_data")) {
-        qWarning() << "Result does not have row_data property";
-        return result;
-    }
+//    if (!callResult.hasProperty("row_data")) {
+//        qWarning() << "Result does not have row_data property";
+//        return result;
+//    }
 
-    QJSValue columnNames = callResult.property("column_names");
-    QJSValue rowData = callResult.property("row_data");
+//    QJSValue columnNames = callResult.property("column_names");
+//    QJSValue rowData = callResult.property("row_data");
 
-    for (uint i = 0; i < columnNames.property("length").toUInt(); i++) {
-        result.columnNames.append(columnNames.property(i).toString());
-    }
+//    for (uint i = 0; i < columnNames.property("length").toUInt(); i++) {
+//        result.columnNames.append(columnNames.property(i).toString());
+//    }
 
-    int columnCount = result.columnNames.count();
+//    int columnCount = result.columnNames.count();
 
-    for (uint rowId = 0; rowId < rowData.property("length").toUInt(); rowId++) {
-        QVariantList row;
-        QJSValue rowValue = rowData.property(rowId);
+//    for (uint rowId = 0; rowId < rowData.property("length").toUInt(); rowId++) {
+//        QVariantList row;
+//        QJSValue rowValue = rowData.property(rowId);
 
-        if (!rowValue.isArray()) {
-            qWarning() << "Row" << rowId << "is not an array! ignoring.";
-            continue;
-        }
+//        if (!rowValue.isArray()) {
+//            qWarning() << "Row" << rowId << "is not an array! ignoring.";
+//            continue;
+//        }
 
-        for (uint colId = 0; colId < rowValue.property("length").toUInt(); colId++) {
-            row.append(rowValue.property(colId).toVariant());
-        }
+//        for (uint colId = 0; colId < rowValue.property("length").toUInt(); colId++) {
+//            row.append(rowValue.property(colId).toVariant());
+//        }
 
-        if (row.count() != columnCount) {
-            qWarning() << "Incorrect row length" << row.length() << "expected" << columnCount << "row" << row;
-            continue;
-        }
+//        if (row.count() != columnCount) {
+//            qWarning() << "Incorrect row length" << row.length() << "expected" << columnCount << "row" << row;
+//            continue;
+//        }
 
-        result.rowData.append(row);
-    }
+//        result.rowData.append(row);
+//    }
 
-    qDebug() << "Generated" << result.rowData.count() << "rows";
-    qDebug() << result.columnNames;
+//    qDebug() << "Generated" << result.rowData.count() << "rows";
+//    qDebug() << result.columnNames;
 
-    return result;
-}
-#else
-Report::query_result_t Report::runDataGenerator(QString script_text,
-                                                QString scriptFileName,
-                                                QMap<QString, QVariant> parameters,
-                                                bool isWeb,
-                                                QString stationCode,
-                                                QString queryName) {
+//    return result;
+//}
+//#else
+//Report::query_result_t Report::runDataGenerator(QString script_text,
+//                                                QString scriptFileName,
+//                                                QMap<QString, QVariant> parameters,
+//                                                bool isWeb,
+//                                                QString stationCode,
+//                                                QString queryName) {
 
-    qDebug() << "Executing data generator..";
+//    qDebug() << "Executing data generator..";
 
-    query_result_t result;
+//    query_result_t result;
 
-    QScriptEngine engine;
+//    QScriptEngine engine;
 
-    QScriptValue evalResult = engine.evaluate(script_text, scriptFileName);
+//    QScriptValue evalResult = engine.evaluate(script_text, scriptFileName);
 
-    if (evalResult.isError()) {
-        qWarning() << evalResult.toString();
-        return result;
-    }
+//    if (evalResult.isError()) {
+//        qWarning() << evalResult.toString();
+//        return result;
+//    }
 
-    if (!engine.globalObject().property("generate").isValid() || !engine.globalObject().property("generate").isFunction()) {
-        qWarning() << "Script has no generate function";
-        return result;
-    }
+//    if (!engine.globalObject().property("generate").isValid() || !engine.globalObject().property("generate").isFunction()) {
+//        qWarning() << "Script has no generate function";
+//        return result;
+//    }
 
-    // TODO: date/time parameters need to be ISO8601 format
-    QScriptValueList args;
-    args << queryName;
-    args << engine.toScriptValue(parameters);
+//    // TODO: date/time parameters need to be ISO8601 format
+//    QScriptValueList args;
+//    args << queryName;
+//    args << engine.toScriptValue(parameters);
 
-    // Function is: function generate(isWebDs, stationCode, queryName, criteria) {}
-    QScriptValue callResult = engine.globalObject().property("generate").call(QScriptValue(), args);
+//    // Function is: function generate(isWebDs, stationCode, queryName, criteria) {}
+//    QScriptValue callResult = engine.globalObject().property("generate").call(QScriptValue(), args);
 
-    if (callResult.isError()) {
-        qWarning() << "Error calling generate function:" << callResult.toString();
-        return result;
-    }
+//    if (callResult.isError()) {
+//        qWarning() << "Error calling generate function:" << callResult.toString();
+//        return result;
+//    }
 
-    if (!callResult.isObject()) {
-        qWarning() << "Error calling generate function: return type was not an object";
-        return result;
-    }
+//    if (!callResult.isObject()) {
+//        qWarning() << "Error calling generate function: return type was not an object";
+//        return result;
+//    }
 
-    if (!callResult.property("column_names").isValid() || !callResult.property("column_names").isArray()) {
-        qWarning() << "Result does not have column_names property";
-        return result;
-    }
+//    if (!callResult.property("column_names").isValid() || !callResult.property("column_names").isArray()) {
+//        qWarning() << "Result does not have column_names property";
+//        return result;
+//    }
 
-    if (!callResult.property("row_data").isValid()) {
-        qWarning() << "Result does not have row_data property";
-        return result;
-    }
+//    if (!callResult.property("row_data").isValid()) {
+//        qWarning() << "Result does not have row_data property";
+//        return result;
+//    }
 
-    QScriptValue columnNames = callResult.property("column_names");
-    QScriptValue rowData = callResult.property("row_data");
+//    QScriptValue columnNames = callResult.property("column_names");
+//    QScriptValue rowData = callResult.property("row_data");
 
-    for (uint i = 0; i < columnNames.property("length").toUInt32(); i++) {
-        result.columnNames.append(columnNames.property(i).toString());
-    }
+//    for (uint i = 0; i < columnNames.property("length").toUInt32(); i++) {
+//        result.columnNames.append(columnNames.property(i).toString());
+//    }
 
-    int columnCount = result.columnNames.count();
+//    int columnCount = result.columnNames.count();
 
-    for (uint rowId = 0; rowId < rowData.property("length").toUInt32(); rowId++) {
-        QVariantList row;
-        QScriptValue rowValue = rowData.property(rowId);
+//    for (uint rowId = 0; rowId < rowData.property("length").toUInt32(); rowId++) {
+//        QVariantList row;
+//        QScriptValue rowValue = rowData.property(rowId);
 
-        if (!rowValue.isArray()) {
-            qWarning() << "Row" << rowId << "is not an array! ignoring.";
-            continue;
-        }
+//        if (!rowValue.isArray()) {
+//            qWarning() << "Row" << rowId << "is not an array! ignoring.";
+//            continue;
+//        }
 
-        for (uint colId = 0; colId < rowValue.property("length").toUInt32(); colId++) {
-            row.append(rowValue.property(colId).toVariant());
-        }
+//        for (uint colId = 0; colId < rowValue.property("length").toUInt32(); colId++) {
+//            row.append(rowValue.property(colId).toVariant());
+//        }
 
-        if (row.count() != columnCount) {
-            qWarning() << "Incorrect row length" << row.length() << "expected" << columnCount << "row" << row;
-            continue;
-        }
+//        if (row.count() != columnCount) {
+//            qWarning() << "Incorrect row length" << row.length() << "expected" << columnCount << "row" << row;
+//            continue;
+//        }
 
-        result.rowData.append(row);
-    }
+//        result.rowData.append(row);
+//    }
 
-    qDebug() << "Generated" << result.rowData.count() << "rows";
-    qDebug() << result.columnNames;
+//    qDebug() << "Generated" << result.rowData.count() << "rows";
+//    qDebug() << result.columnNames;
 
-    return result;
-}
-#endif
+//    return result;
+//}
+//#endif
 
 
 QByteArray Report::queryResultToCSV(query_result_t query, QMap<QString, QString> columnHeadings) {

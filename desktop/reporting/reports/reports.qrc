@@ -53,5 +53,6 @@
         <file>sun/solar_gen.js</file>
         <file>sun/wlformat.txt</file>
         <file>lib.js</file>
+        <file>sun/solar.js</file>
     </qresource>
 </RCC>

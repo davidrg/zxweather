@@ -1,5 +1,5 @@
 {
-	"title": "Sunrise & Sunset",
+    "title": "Sunrise & Sunset",
 	"description": "description.html",
 	"icon": "weather.png",
 	"time_picker": "datespan",
@@ -7,18 +7,7 @@
 	"dont_prime_cache": true,
 	"criteria_ui": "criteria.ui",
 	"supported_weather_stations": ["generic"],
-	"queries": {
-		"solar": {
-            "script": {
-				"file": ["libs/moment.js", "libs/moment-timezone-with-data-2012-2022.js", "solar_gen.js"]
-			}
-		},
-		"lat_long": {
-			"script": {
-				"file": ["lat_long.js"]
-			}
-		}
-	},
+	"scripts": ["libs/moment.js", "libs/moment-timezone-with-data-2012-2022.js", "solar_gen.js", "lat_long.js", "solar.js"],
 	"output_type": "show",
     	"output_window_size": {
 		"height": 800,
