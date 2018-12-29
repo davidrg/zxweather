@@ -153,6 +153,11 @@ private:
     QQueue<AbstractWebTask*> lowPriorityQueue;
     AbstractWebTask* currentTask;
     int currentSubtask;
+
+    #if QT_VERSION < 0x050600
+        QUrl previousRedirect;
+        QUrl liveRedirect;
+    #endif
 };
 
 #endif // WEBDATASOURCE_H
