@@ -88,6 +88,13 @@ WebDataSource::WebDataSource(AbstractProgressListener *progressListener, QObject
     currentTask = 0;
     currentSubtask = 0;
 
+    // Qt 5.9 adds a handy setting where we can just say to follow redirects.
+    // For 5.6-5.8 we have to set an attribute on the individual network requests.
+    // For 4.8-5.5 we have to handle redirects manually.
+    #if QT_VERSION >= 0x050900
+    taskQueueNetworkAccessManager->setRedirectPolicy(QNetworkRequest::NoLessSafeRedirectPolicy);
+    #endif
+
     if (!WebCacheDB::getInstance().stationKnown(stationURL())) {
         queueTask(new FetchStationInfoWebTask(baseURL, stationCode, this));
     }
@@ -114,6 +121,23 @@ void WebDataSource::moveGoalpost(int distance, QString reason) {
     progressListener->setMaximum(curMax + distance);
 }
 
+
+#if QT_VERSION < 0x050600
+QUrl redirectUrl(const QUrl& possibleRedirectUrl,
+                 const QUrl& oldRedirectUrl) {
+     QUrl redirectUrl;
+     /*
+      * Check if the URL is empty and
+      * that we aren't being fooled into a infinite redirect loop.
+      * We could also keep track of how many redirects we have been to
+      * and set a limit to it, but we'll leave that to you.
+      */
+     if(!possibleRedirectUrl.isEmpty() && possibleRedirectUrl != oldRedirectUrl) {
+        redirectUrl = possibleRedirectUrl;
+     }
+     return redirectUrl;
+}
+#endif
 
 
 /*****************************************************************************
@@ -276,6 +300,52 @@ void WebDataSource::ProcessStationConfig(QNetworkReply *reply) {
 }
 
 void WebDataSource::liveDataReady(QNetworkReply *reply) {
+#if QT_VERSION < 0x050600
+    /*
+     * Reply is finished!
+     * We'll ask for the reply about the Redirection attribute
+     * http://doc.trolltech.com/qnetworkrequest.html#Attribute-enum
+     */
+    QVariant possibleRedirectUrl =
+             reply->attribute(QNetworkRequest::RedirectionTargetAttribute);
+
+    /* We'll deduct if the redirection is valid in the redirectUrl function */
+    liveRedirect = redirectUrl(possibleRedirectUrl.toUrl(),
+                                         liveRedirect);
+
+    /* If the URL is not empty, we're being redirected. */
+    if(!liveRedirect.isEmpty()) {
+        switch(reply->operation()) {
+        case QNetworkAccessManager::GetOperation:
+            this->taskQueueNetworkAccessManager->get(QNetworkRequest(liveRedirect));
+            break;
+        case QNetworkAccessManager::HeadOperation:
+            this->taskQueueNetworkAccessManager->head(QNetworkRequest(liveRedirect));
+            break;
+        default:
+            qWarning() << "Unsupported Operation" << reply->operation();
+        }
+
+        reply->deleteLater();
+        return;
+    }
+
+    /*
+     * We weren't redirected anymore
+     * so we arrived to the final destination...
+     */
+
+    /* ...so this can be cleared. */
+    liveRedirect.clear();
+
+
+#endif
+
+
+
+
+
+
     using namespace QtJson;
 
     if (!stationConfigLoaded) {
@@ -406,6 +476,10 @@ void WebDataSource::liveDataPoll() {
         request.setUrl(baseURL + "data/sysconfig.json");
         request.setRawHeader("User-Agent", Constants::USER_AGENT);
 
+#if QT_VERSION < 0x050900 && QT_VERSION >= 0x050600
+        request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+#endif
+
         liveNetAccessManager->get(request);
 
         // Figure out if the station also has active image sources.
@@ -414,6 +488,10 @@ void WebDataSource::liveDataPoll() {
         QNetworkRequest request;
         request.setUrl(liveDataUrl);
         request.setRawHeader("User-Agent", Constants::USER_AGENT);
+
+#if QT_VERSION < 0x050900 && QT_VERSION >= 0x050600
+        request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+#endif
 
         liveNetAccessManager->get(request);
     }
@@ -733,12 +811,22 @@ void WebDataSource::subtaskChanged(QString name) {
 void WebDataSource::httpGet(QNetworkRequest request)  {
     qDebug() << ":: Issuing HTTP GET for task - URL: " << request.url();
     request.setRawHeader("User-Agent", Constants::USER_AGENT);
+
+#if QT_VERSION < 0x050900 && QT_VERSION >= 0x050600
+    request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+#endif
+
     taskQueueNetworkAccessManager->get(request);
 }
 
 void WebDataSource::httpHead(QNetworkRequest request) {
     qDebug() << ":: Issuing HTTP HEAD for task - URL: " << request.url();
     request.setRawHeader("User-Agent", Constants::USER_AGENT);
+
+#if QT_VERSION < 0x050900 && QT_VERSION >= 0x050600
+    request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+#endif
+
     taskQueueNetworkAccessManager->head(request);
 }
 
@@ -794,7 +882,54 @@ void WebDataSource::taskFailed(QString error) {
     emit sampleRetrievalError(error);
 }
 
+
 void WebDataSource::taskQueueResponseDataReady(QNetworkReply* reply) {
+#if QT_VERSION < 0x050600
+    /*
+     * Reply is finished!
+     * We'll ask for the reply about the Redirection attribute
+     * http://doc.trolltech.com/qnetworkrequest.html#Attribute-enum
+     */
+    QVariant possibleRedirectUrl =
+             reply->attribute(QNetworkRequest::RedirectionTargetAttribute);
+
+    /* We'll deduct if the redirection is valid in the redirectUrl function */
+    previousRedirect = redirectUrl(possibleRedirectUrl.toUrl(),
+                                         previousRedirect);
+
+    /* If the URL is not empty, we're being redirected. */
+    if(!previousRedirect.isEmpty()) {
+        switch(reply->operation()) {
+        case QNetworkAccessManager::GetOperation:
+            this->taskQueueNetworkAccessManager->get(QNetworkRequest(previousRedirect));
+            break;
+        case QNetworkAccessManager::HeadOperation:
+            this->taskQueueNetworkAccessManager->head(QNetworkRequest(previousRedirect));
+            break;
+        default:
+            qWarning() << "Unsupported Operation" << reply->operation();
+        }
+    }
+    else {
+        /*
+         * We weren't redirected anymore
+         * so we arrived to the final destination...
+         */
+
+        if (currentTask != 0) {
+            currentTask->networkReplyReceived(reply);
+        } else {
+            qDebug() << "No current task!";
+            reply->deleteLater(); // A reply without an owner!
+        }
+
+        /* ...so this can be cleared. */
+        previousRedirect.clear();
+        return;
+    }
+    /* Clean up. */
+    reply->deleteLater();
+#else
     qDebug() << ":: Task network reply ready";
     if (currentTask != 0) {
         currentTask->networkReplyReceived(reply);
@@ -802,7 +937,10 @@ void WebDataSource::taskQueueResponseDataReady(QNetworkReply* reply) {
         qDebug() << "No current task!";
         reply->deleteLater(); // A reply without an owner!
     }
+#endif
 }
+
+
 
 void WebDataSource::updateStation(QString title, QString description, QString type_code,
                                   int interval, float latitude, float longitude, float altitude,
