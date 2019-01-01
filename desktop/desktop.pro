@@ -183,7 +183,12 @@ SOURCES += main.cpp\
     datasource/webtasks/cachingfinishedwebtask.cpp \
     sortproxymodel.cpp \
     charts/plotwidget.cpp \
-    reporting/scriptrenderwrapper.cpp
+    reporting/scriptrenderwrapper.cpp \
+    reporting/scriptvalue.cpp \
+    reporting/reportcontext.cpp \
+    reporting/queryresultmodel.cpp \
+    reporting/reportfinisher.cpp \
+    reporting/reportpartialresolver.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
@@ -286,7 +291,11 @@ HEADERS  += mainwindow.h \
     reporting/reportfinisher.h \
     sortproxymodel.h \
     charts/plotwidget.h \
-    reporting/scriptrenderwrapper.h
+    reporting/scriptrenderwrapper.h \
+    reporting/scriptvalue.h \
+    reporting/reportcontext.h \
+    reporting/queryresultmodel.h \
+    reporting/reportpartialresolver.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \
