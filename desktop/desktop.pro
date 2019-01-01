@@ -182,7 +182,8 @@ SOURCES += main.cpp\
     charts/datasetsdialog.cpp \
     datasource/webtasks/cachingfinishedwebtask.cpp \
     sortproxymodel.cpp \
-    charts/plotwidget.cpp
+    charts/plotwidget.cpp \
+    reporting/scriptrenderwrapper.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
@@ -284,7 +285,8 @@ HEADERS  += mainwindow.h \
     datasource/webtasks/cachingfinishedwebtask.h \
     reporting/reportfinisher.h \
     sortproxymodel.h \
-    charts/plotwidget.h
+    charts/plotwidget.h \
+    reporting/scriptrenderwrapper.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \

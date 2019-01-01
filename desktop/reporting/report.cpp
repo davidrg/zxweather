@@ -31,6 +31,8 @@
 #include "settings.h"
 #include "reportfinisher.h"
 
+#include "scriptrenderwrapper.h"
+
 
 
 QueryResultModel::QueryResultModel(QStringList columnNames, QList<QVariantList> rowData, QObject *parent) : QAbstractTableModel (parent) {
@@ -269,6 +271,82 @@ QString ReportPartialResolver::getPartial(const QString &name) {
 
     return cache[name];
 }
+
+
+class ReportContext : public Mustache::QtVariantContext {
+public:
+#ifdef USE_QJSENGINE
+    ReportContext(QVariant& root,
+                  Mustache::PartialResolver* resolver,
+                  QJSEngine &engine):
+        Mustache::QtVariantContext(root, resolver),
+        engine(engine),
+        reportData(root)
+
+    {
+
+    }
+#else
+    ReportContext(QVariant& root,
+                  Mustache::PartialResolver* resolver,
+                  QScriptEngine &engine):
+        Mustache::QtVariantContext(root, resolver),
+        engine(engine),
+        reportData(root) {
+    }
+#endif
+
+    virtual bool canEval(const QString &key) const {
+        ScriptValue globalObject = engine.globalObject();
+        bool result = globalObject.hasProperty(key) && globalObject.property(key).isCallable();
+
+        //qDebug() << "Lambda: canEval" << key << result;
+
+        return result;
+    }
+
+    virtual QString eval(const QString &key, const QString &_template, Mustache::Renderer *renderer) {
+#ifdef USE_QJSENGINE
+        QJSValueList args;
+#else
+        QScriptValueList args;
+#endif
+
+        args << engine.toScriptValue(_template);
+
+#ifdef USE_QJSENGINE
+        args << engine.newQObject(new ScriptRenderWrapper(renderer, this, reportData));
+#else
+        args << engine.newQObject(
+                    new ScriptRenderWrapper(renderer, this, reportData),
+                    QScriptEngine::AutoOwnership,
+                    QScriptEngine::ExcludeChildObjects |
+                        QScriptEngine::ExcludeDeleteLater |
+                        QScriptEngine::ExcludeSuperClassContents |
+                        QScriptEngine::ExcludeSuperClassMethods |
+                        QScriptEngine::ExcludeSuperClassProperties);
+#endif
+
+        ScriptValue globalObject = engine.globalObject();
+        ScriptValue callResult = globalObject.property(key).call(args);
+
+        if (callResult.isError()) {
+            qWarning() << "Error running template lambda" << key << callResult.toString();
+            return QString();
+        }
+        return callResult.toString();
+    }
+
+private:
+#if USE_QJSENGINE
+    QJSEngine &engine;
+#else
+    QScriptEngine &engine;
+#endif
+
+    QVariant &reportData;
+};
+
 
 Report::Report(QString name)
 {
@@ -1583,7 +1661,18 @@ QString Report::renderTemplatedReport(QMap<QString, QVariant> reportParameters,
 
     Mustache::Renderer renderer;
     ReportPartialResolver partialResolver(this->_name);
-    Mustache::QtVariantContext context(parameters, &partialResolver);
+    //Mustache::QtVariantContext context(parameters, &partialResolver);
+
+#if USE_QJSENGINE
+    QJSEngine engine;
+#else
+    QScriptEngine engine;
+#endif
+    initialiseScriptEngine(engine);
+
+    QVariant v(parameters);
+
+    ReportContext context(v, &partialResolver, engine);
 
     QString result = renderer.render(outputTemplate, &context);
     qDebug() << result;
