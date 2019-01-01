@@ -188,7 +188,8 @@ SOURCES += main.cpp\
     reporting/reportcontext.cpp \
     reporting/queryresultmodel.cpp \
     reporting/reportfinisher.cpp \
-    reporting/reportpartialresolver.cpp
+    reporting/reportpartialresolver.cpp \
+    reporting/scriptingengine.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
@@ -295,7 +296,8 @@ HEADERS  += mainwindow.h \
     reporting/scriptvalue.h \
     reporting/reportcontext.h \
     reporting/queryresultmodel.h \
-    reporting/reportpartialresolver.h
+    reporting/reportpartialresolver.h \
+    reporting/scriptingengine.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \

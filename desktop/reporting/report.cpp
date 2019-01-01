@@ -36,6 +36,8 @@
 #include "queryresultmodel.h"
 #include "reportpartialresolver.h"
 
+#include "scriptingengine.h"
+
 
 QByteArray readFile(QString name) {
     QStringList files;
@@ -91,7 +93,6 @@ QString readTextFile(QString name) {
 
     return QString(data);
 }
-
 
 Report::Report(QString name)
 {
@@ -428,7 +429,6 @@ bool Report::operator <(Report const& b)const {
     return _title < b.title();
 }
 
-
 QStringList findReportsIn(QString directory) {
     qDebug() << "Searching for reports in" << directory;
     QDir dir(directory);
@@ -607,34 +607,6 @@ void Report::executeReport() {
     }
 }
 
-#if USE_QJSENGINE
-void Report::initialiseScriptEngine(QJSEngine &engine) {
-#else
-void Report::initialiseScriptEngine(QScriptEngine &engine) {
-#endif
-
-    // Load all the script files
-    QString script;
-    foreach (QString file, _scripts) {
-        script += readTextFile(file) + "\n";
-    }
-
-    // Perform any basic initialisation
-#if USE_QJSENGINE
-    engine.installExtensions(QJSEngine::AllExtensions);
-#else
-#endif
-
-    qDebug() << "Evaluating script...";
-    ScriptValue evalResult = engine.evaluate(script, "script");
-
-    if (evalResult.isError()) {
-        qWarning() << evalResult.toString();
-        return;
-    }
-    qDebug() << "done.";
-}
-
 Report::query_result_t Report::scriptValueToResultSet(ScriptValue value) {
     Report::query_result_t result;
 
@@ -697,12 +669,8 @@ Report::query_result_t Report::scriptValueToResultSet(ScriptValue value) {
 }
 
 QMap<QString, Report::query_result_t> Report::runDataGenerators(QMap<QString, QVariant> parameters) {
-#if USE_QJSENGINE
-    QJSEngine engine;
-#else
-    QScriptEngine engine;
-#endif
-    initialiseScriptEngine(engine);
+
+    ScriptingEngine engine(_scripts);
 
     ScriptValue globalObject = engine.globalObject();
     QMap<QString, Report::query_result_t> result;
@@ -714,11 +682,7 @@ QMap<QString, Report::query_result_t> Report::runDataGenerators(QMap<QString, QV
     }
 
     qDebug() << "Prepairing parmeters...";
-#ifdef USE_QJSENGINE
     QJSValueList args;
-#else
-    QScriptValueList args;
-#endif
     args << engine.toScriptValue(parameters);
 
     // Function is: function generate_datasets(criteria) {}
@@ -812,6 +776,9 @@ void Report::run(AbstractDataSource* dataSource, QMap<QString, QVariant> paramet
         queryResults[key] = generatedData[key];
     }
     qDebug() << "Finished running data generators.";
+
+    qDebug() << "Transforming datasets...";
+    qDebug() << "Finished transforming datasets.";
 
     if (_debug) {
         parameters["queries"] = queryDebugInfo;
@@ -1228,12 +1195,7 @@ QString Report::renderTemplatedReport(QMap<QString, QVariant> reportParameters,
     ReportPartialResolver partialResolver(this->_name);
     //Mustache::QtVariantContext context(parameters, &partialResolver);
 
-#if USE_QJSENGINE
-    QJSEngine engine;
-#else
-    QScriptEngine engine;
-#endif
-    initialiseScriptEngine(engine);
+    ScriptingEngine engine(_scripts);
 
     QVariant v(parameters);
 
@@ -1243,4 +1205,3 @@ QString Report::renderTemplatedReport(QMap<QString, QVariant> reportParameters,
     qDebug() << result;
     return result;
 }
-
