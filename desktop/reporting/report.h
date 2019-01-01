@@ -222,11 +222,6 @@ private:
                                 QString queryName,
                                 QSet<QString> queryParameters);
 
-#if USE_QJSENGINE
-    void initialiseScriptEngine(QJSEngine &engine);
-#else
-    void initialiseScriptEngine(QScriptEngine &engine);
-#endif
     QMap<QString, Report::query_result_t> runDataGenerators(QMap<QString, QVariant> parameters);
 
     Report::query_result_t scriptValueToResultSet(ScriptValue value);
