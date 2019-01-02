@@ -100,6 +100,7 @@ Report::Report(QString name)
     _isNull = true;
     this->_name = name;
 
+
     qDebug() << "========== Load report " << name << "==========";
 
     QString reportDir = name + QDir::separator() ;
@@ -223,6 +224,8 @@ Report::Report(QString name)
             this->_scripts.append(reportDir + script.toString());
         }
     }
+
+    this->scriptingEngine.reset(new ScriptingEngine(this->_scripts));
 
     // Load queries
     _web_ok = true;
@@ -670,9 +673,7 @@ Report::query_result_t Report::scriptValueToResultSet(ScriptValue value) {
 
 QMap<QString, Report::query_result_t> Report::runDataGenerators(QMap<QString, QVariant> parameters) {
 
-    ScriptingEngine engine(_scripts);
-
-    ScriptValue globalObject = engine.globalObject();
+    ScriptValue globalObject = scriptingEngine->globalObject();
     QMap<QString, Report::query_result_t> result;
 
     qDebug() << "Checking for generate_datasets...";
@@ -683,7 +684,7 @@ QMap<QString, Report::query_result_t> Report::runDataGenerators(QMap<QString, QV
 
     qDebug() << "Prepairing parmeters...";
     QJSValueList args;
-    args << engine.toScriptValue(parameters);
+    args << scriptingEngine->toScriptValue(parameters);
 
     // Function is: function generate_datasets(criteria) {}
     qDebug() << "Running data generators...";
@@ -1195,11 +1196,11 @@ QString Report::renderTemplatedReport(QMap<QString, QVariant> reportParameters,
     ReportPartialResolver partialResolver(this->_name);
     //Mustache::QtVariantContext context(parameters, &partialResolver);
 
-    ScriptingEngine engine(_scripts);
+    //ScriptingEngine engine(_scripts);
 
     QVariant v(parameters);
 
-    ReportContext context(v, &partialResolver, engine);
+    ReportContext context(v, &partialResolver, scriptingEngine);
 
     QString result = renderer.render(outputTemplate, &context);
     qDebug() << result;
