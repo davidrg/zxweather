@@ -40,6 +40,14 @@ ScriptValue ScriptingEngine::globalObject() {
 }
 
 
+QJSValue ScriptingEngine::newArray(uint length) {
+    return engine.newArray(length);
+}
+
+QJSValue ScriptingEngine::newObject() {
+    return engine.newObject();
+}
+
 QJSValue ScriptingEngine::newQObject(QObject* obj) {
 #if USE_QJSENGINE
     return engine.newQObject(obj);

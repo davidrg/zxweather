@@ -32,6 +32,8 @@ public:
         return engine.toScriptValue(value);
     }
 
+    QJSValue newArray(uint length = 0);
+    QJSValue newObject();
     QJSValue newQObject(QObject* obj);
 
 private:
