@@ -102,9 +102,11 @@ void ImageWidget::setPixmap(const QPixmap &pixmap) {
 void ImageWidget::setIcon(QIcon icon) {
     isIcon = true;
 
+#ifndef NO_MULTIMEDIA
     if (videoPlayer != NULL) {
         videoPlayer->setVisible(false);
     }
+#endif
 
     setPixmap(icon.pixmap(32,32));
 }

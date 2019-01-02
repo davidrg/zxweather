@@ -2,6 +2,7 @@
 #define QUERYRESULTMODEL_H
 
 #include <QAbstractTableModel>
+#include <QStringList>
 
 class QueryResultModel : public QAbstractTableModel {
     Q_OBJECT
