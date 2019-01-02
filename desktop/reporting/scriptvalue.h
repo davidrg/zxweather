@@ -40,13 +40,19 @@ public:
     ScriptValue call(const QJSValueList &args = QJSValueList());
 #else
     ScriptValue call(const QScriptValueList &args = QScriptValueList());
-    #endif
+#endif
 
     QString toString() const;
 
     quint32 toUInt() const;
 
     QVariant toVariant() const;
+
+#ifdef USE_QJSENGINE
+    operator QJSValue() const { return value; }
+#else
+    operator QScriptValue() const { return value; }
+#endif
 
 private:
 #ifdef USE_QJSENGINE

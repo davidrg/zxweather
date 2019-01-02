@@ -222,7 +222,10 @@ private:
 
     QMap<QString, Report::query_result_t> runDataGenerators(QMap<QString, QVariant> parameters);
 
+    QMap<QString, Report::query_result_t> runDataTransformation(QMap<QString, QVariant> parameters, QMap<QString, query_result_t> generatedData);
+
     Report::query_result_t scriptValueToResultSet(ScriptValue value);
+    ScriptValue resultSetToScriptValue(Report::query_result_t resultSet);
 };
 
 #endif // REPORT_H

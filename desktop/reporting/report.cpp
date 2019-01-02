@@ -671,6 +671,62 @@ Report::query_result_t Report::scriptValueToResultSet(ScriptValue value) {
     return result;
 }
 
+
+ScriptValue variantToScriptValue(QVariant v) {
+
+    switch(v.type()) {
+    case QVariant::Bool:
+        return QJSValue(v.toBool());
+    case QVariant::Int:
+        return QJSValue(v.toInt());
+    case QVariant::UInt:
+        return QJSValue(v.toUInt());
+    case QVariant::Double:
+        return QJSValue(v.toDouble());
+    case QVariant::String:
+        return QJSValue(v.toString());
+    case QVariant::Date:
+        return QJSValue(v.toDate().toString(Qt::ISODate));
+    case QVariant::DateTime:
+        return QJSValue(v.toDateTime().toString(Qt::ISODate));
+    case QVariant::Time:
+        return QJSValue(v.toTime().toString(Qt::ISODate));
+    default:
+        return QJSValue(v.toString());
+    }
+}
+
+
+ScriptValue Report::resultSetToScriptValue(Report::query_result_t resultSet) {
+    QJSValue object = scriptingEngine->newObject();
+
+    QJSValue columnNames = scriptingEngine->newArray();
+    int i = 0;
+    foreach (QString name, resultSet.columnNames) {
+        columnNames.setProperty(i, name);
+        i++;
+    }
+
+    QJSValue rowData = scriptingEngine->newArray();
+    i = 0;
+    foreach (QVariantList row, resultSet.rowData) {
+        QJSValue r = scriptingEngine->newArray();
+        int j = 0;
+
+        foreach (QVariant col, row) {
+            r.setProperty(j, variantToScriptValue(col));
+            j++;
+        }
+        rowData.setProperty(i, r);
+        i++;
+    }
+
+    object.setProperty("name", resultSet.name);
+    object.setProperty("column_names", columnNames);
+    object.setProperty("row_data", rowData);
+    return object;
+}
+
 QMap<QString, Report::query_result_t> Report::runDataGenerators(QMap<QString, QVariant> parameters) {
 
     ScriptValue globalObject = scriptingEngine->globalObject();
@@ -709,6 +765,52 @@ QMap<QString, Report::query_result_t> Report::runDataGenerators(QMap<QString, QV
     return result;
 }
 
+QMap<QString, Report::query_result_t> Report::runDataTransformation(QMap<QString, QVariant> parameters, QMap<QString, query_result_t> generatedData) {
+    ScriptValue globalObject = scriptingEngine->globalObject();
+
+    QMap<QString, Report::query_result_t> result;
+
+    qDebug() << "Checking for transform_datasets...";
+    if (!globalObject.hasProperty("transform_datasets") || !globalObject.property("transform_datasets").isCallable()) {
+        qDebug() << "No transform_datasets defined.";
+        return result;
+    }
+
+    qDebug() << "Prepairing parmeters...";
+    QJSValueList args;
+    args << scriptingEngine->toScriptValue(parameters);
+
+    QJSValue rowData = scriptingEngine->newArray();
+    int i = 0;
+    foreach (query_result_t result, generatedData.values()) {
+        QJSValue value = resultSetToScriptValue(result);
+        rowData.setProperty(i, value);
+        i++;
+    }
+    args << rowData;
+
+    qDebug() << "Transforming datasets...";
+    ScriptValue callResult = globalObject.property("transform_datasets").call(args);
+
+    if (callResult.isError()) {
+        qWarning() << "Error calling transform_datasets function:" << callResult.toString();
+        return result;
+    }
+
+    if (!callResult.isObject()) {
+        qWarning() << "Error calling transform_datasets function: return type was not a list";
+        return result;
+    }
+
+
+    for (uint dsId = 0; dsId < callResult.property("length").toUInt(); dsId++) {
+        Report::query_result_t dataset = scriptValueToResultSet(callResult.property(dsId));
+        result[dataset.name] = dataset;
+    }
+
+    return result;
+}
+
 void Report::run(AbstractDataSource* dataSource, QMap<QString, QVariant> parameters) {
     bool isWeb = Settings::getInstance().sampleDataSourceType() == Settings::DS_TYPE_WEB_INTERFACE;
     QString stationCode = Settings::getInstance().stationCode();
@@ -734,40 +836,21 @@ void Report::run(AbstractDataSource* dataSource, QMap<QString, QVariant> paramet
         qDebug() << "==== Run query " << q.name << "====";
 
         query_variant_t variant = isWeb ? q.web_query : q.db_query;
-//        if (variant.query_text.isNull()) {
 
-//            if (q.generator.script_text.isNull()) {
-//                qWarning() << "No SQL query or data generator available for backend - "
-//                              "results for query will not be available" << q.name;
-//                continue;
-//            }
+        QSqlQuery query = dataSource->query();
+        QVariantMap debugInfo;
 
-//            query_result_t data = runDataGenerator(
-//                        q.generator.script_text,
-//                        q.generator.file_name,
-//                        parameters,
-//                        isWeb,
-//                        stationCode,
-//                        q.name);
-//            queryResults[q.name] = data;
-
-
-//        } else {    // Run the SQL Query
-            QSqlQuery query = dataSource->query();
-            QVariantMap debugInfo;
-
-            query_result_t data = runDataQuery(
-                        variant.query_text,
-                        parameters,
-                        isWeb,
-                        query,
-                        debugInfo,
-                        queryDebugInfo,
-                        q.name,
-                        variant.parameters
-                        );
-            queryResults[q.name] = data;
-//        }
+        query_result_t data = runDataQuery(
+                    variant.query_text,
+                    parameters,
+                    isWeb,
+                    query,
+                    debugInfo,
+                    queryDebugInfo,
+                    q.name,
+                    variant.parameters
+                    );
+        queryResults[q.name] = data;
     }
 
     // Run JavaScript data generators
@@ -779,6 +862,10 @@ void Report::run(AbstractDataSource* dataSource, QMap<QString, QVariant> paramet
     qDebug() << "Finished running data generators.";
 
     qDebug() << "Transforming datasets...";
+    QMap<QString, query_result_t> transformedData = runDataTransformation(parameters, queryResults);
+    foreach (QString key, transformedData.keys()) {
+        queryResults[key] = transformedData[key];
+    }
     qDebug() << "Finished transforming datasets.";
 
     if (_debug) {
@@ -836,6 +923,7 @@ Report::query_result_t Report::runDataQuery(QString queryText,
         qDebug() << "Parameter" << paramName << "value" << parameters[paramName];
     }
     query_result_t result;
+    result.name = queryName;
     bool columnListPopulated=false;
 
     if (query.exec()) {
@@ -854,7 +942,6 @@ Report::query_result_t Report::runDataQuery(QString queryText,
                 columnListPopulated = true;
             } while (query.next());
         }
-
 
     } else {
         qDebug() << "===============================";
