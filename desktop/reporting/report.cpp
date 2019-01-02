@@ -225,7 +225,11 @@ Report::Report(QString name)
         }
     }
 
+#if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
     this->scriptingEngine.reset(new ScriptingEngine(this->_scripts));
+#else
+    this->scriptingEngine = QSharedPointer<ScriptingEngine>(new ScriptingEngine(this->_scripts));
+#endif
 
     // Load queries
     _web_ok = true;

@@ -11,6 +11,7 @@
 #include <QClipboard>
 #include <QFontDatabase>
 #include <QDesktopServices>
+#include <QHeaderView>
 #include "sortproxymodel.h"
 
 #include "datasource/samplecolumns.h"
