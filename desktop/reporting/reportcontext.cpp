@@ -4,7 +4,7 @@
 
 ReportContext::ReportContext(QVariant& root,
               Mustache::PartialResolver* resolver,
-              ScriptingEngine &engine):
+              QSharedPointer<ScriptingEngine> engine):
     Mustache::QtVariantContext(root, resolver),
     engine(engine),
     reportData(root) {
@@ -12,7 +12,7 @@ ReportContext::ReportContext(QVariant& root,
 }
 
 bool ReportContext::canEval(const QString &key) const {
-    ScriptValue globalObject = engine.globalObject();
+    ScriptValue globalObject = engine->globalObject();
     bool result = globalObject.hasProperty(key) && globalObject.property(key).isCallable();
 
     //qDebug() << "Lambda: canEval" << key << result;
@@ -23,10 +23,10 @@ bool ReportContext::canEval(const QString &key) const {
 QString ReportContext::eval(const QString &key, const QString &_template, Mustache::Renderer *renderer) {
     QJSValueList args;
 
-    args << engine.toScriptValue(_template);
-    args << engine.newQObject(new ScriptRenderWrapper(renderer, this, reportData));
+    args << engine->toScriptValue(_template);
+    args << engine->newQObject(new ScriptRenderWrapper(renderer, this, reportData));
 
-    ScriptValue globalObject = engine.globalObject();
+    ScriptValue globalObject = engine->globalObject();
     ScriptValue callResult = globalObject.property(key).call(args);
 
     if (callResult.isError()) {

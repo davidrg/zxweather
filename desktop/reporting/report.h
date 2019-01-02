@@ -8,14 +8,10 @@
 #include <QSqlQuery>
 #include <QSet>
 #include <QScopedPointer>
+#include <QSharedPointer>
 #include <QVariant>
 
-#if USE_QJSENGINE
-#include <QJSEngine>
-
-#else
-#include <QtScript>
-#endif
+#include "scriptingengine.h"
 #include "reportfinisher.h"
 
 class AbstractDataSource;
@@ -119,6 +115,8 @@ private:
     bool _primeCache;
     bool _debug;
     QStringList _scripts;
+
+    QSharedPointer<ScriptingEngine> scriptingEngine;
 
     typedef struct _query_variant {
         QString query_text;

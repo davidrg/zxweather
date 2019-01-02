@@ -10,14 +10,14 @@ class ReportContext : public Mustache::QtVariantContext {
 public:
     ReportContext(QVariant& root,
                   Mustache::PartialResolver* resolver,
-                  ScriptingEngine &engine);
+                  QSharedPointer<ScriptingEngine> engine);
 
     virtual bool canEval(const QString &key) const;
 
     virtual QString eval(const QString &key, const QString &_template, Mustache::Renderer *renderer);
 
 private:
-    ScriptingEngine &engine;
+    QSharedPointer<ScriptingEngine> engine;
     QVariant &reportData;
 };
 
