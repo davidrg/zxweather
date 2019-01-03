@@ -224,7 +224,7 @@ public:
      * @param title Station title
      * @param description Description
      * @param type_code Hardware type code
-     * @param interval Sample interval
+     * @param interval Sample interval in MINUTES
      * @param latitude Latitude. Use FLT_MAX if unknown.
      * @param longitude Longitude. use FLT_MAX if unknown.
      * @param altitude Altitude. use 0 if unknown.
