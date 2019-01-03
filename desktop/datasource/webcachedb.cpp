@@ -53,6 +53,12 @@ void WebCacheDB::openDatabase() {
         return;
     }
 
+    QSqlQuery qv("select sqlite_version()", sampleCacheDb);
+    if (qv.isActive()) {
+        qv.next();
+        qDebug() << "SQLite version: " << qv.record().value(0).toString();
+    }
+
 
     QSqlQuery query("select * from sqlite_master "
                     "where name='db_metadata' and type='table'",
