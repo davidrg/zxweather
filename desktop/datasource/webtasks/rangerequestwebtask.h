@@ -20,6 +20,7 @@ public:
      *
      * @param baseUrl The base URL for the web interface
      * @param stationCode Station Code for the weather station being used
+     * @param select If the data should be selected out at the end or if we're just priming the cache DB.
      * @param ds Parent data source that this task is doing work for
      */
     explicit RangeRequestWebTask(QString baseUrl,

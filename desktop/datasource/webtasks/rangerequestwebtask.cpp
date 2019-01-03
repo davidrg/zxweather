@@ -207,15 +207,23 @@ bool RangeRequestWebTask::processRangeResponse(QString data) {
     qDebug() << "Names:" << nameList;
 
     if (urlList.count() == 0) {
-        // No URLs in need of fetching.
-        // Put a task onto the end of the queue to grab the dataset from the cache
-        // database and hand it to the datasource.
-        SelectSamplesWebTask *selectTask = new SelectSamplesWebTask(_baseUrl,
-                                                                    _stationCode,
-                                                                    _requestData,
-                                                                    _dataSource);
-        emit queueTask(selectTask);
-        return true;
+        // No URLs in need of fetching. Job done.
+
+        if (_select) {
+            // Put a task onto the end of the queue to grab the dataset from the cache
+            // database and hand it to the datasource.
+            SelectSamplesWebTask *selectTask = new SelectSamplesWebTask(_baseUrl,
+                                                                        _stationCode,
+                                                                        _requestData,
+                                                                        _dataSource);
+            emit queueTask(selectTask);
+            return true;
+        } else {
+            CachingFinishedWebTask *finishedTask = new CachingFinishedWebTask(_baseUrl,
+                                                                              _stationCode,
+                                                                              _dataSource);
+            emit queueTask(finishedTask);
+        }
     }
 
     // Chuck the names in a hashtable for use later.
