@@ -108,6 +108,8 @@ void RangeRequestWebTask::getURLList(QString baseURL, QDateTime startTime, QDate
     QDate startDate = startTime.date();
     QDate endDate = endTime.date();
 
+    qDebug() << "Building URLlist from" << startTime << "and" << endTime;
+
     int startYear = startDate.year();
     int startMonth = startDate.month();
 
