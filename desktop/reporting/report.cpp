@@ -755,8 +755,8 @@ QMap<QString, Report::query_result_t> Report::runDataGenerators(QMap<QString, QV
         return result;
     }
 
-    if (!callResult.isObject()) {
-        qWarning() << "Error calling generate_datasets function: return type was not a list";
+    if (!callResult.isArray()) {
+        qWarning() << "Error calling generate_datasets function: return type was not an object";
         return result;
     }
 
