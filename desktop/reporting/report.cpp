@@ -1297,3 +1297,69 @@ QString Report::renderTemplatedReport(QMap<QString, QVariant> reportParameters,
     qDebug() << result;
     return result;
 }
+/*
+ * QJSEngine isn't flexible enough to access functions on a QObject - it can
+ * only see signals, slots and properties. This makes it fairly useless for
+ * interacting with QWidgets. Looks like this feature can't be supported at this time.
+ *
+void Report::criteriaUICreated(QWidget *w) {
+    ScriptValue globalObject = scriptingEngine->globalObject();
+
+    if (!globalObject.hasProperty("initialise_criteria_ui") || !globalObject.property("initialise_criteria_ui").isCallable()) {
+        qDebug() << "No criteria UI initialiser.";
+        return;
+    }
+
+    qDebug() << "Prepairing parmeters...";
+    QJSValueList args;
+    args << scriptingEngine->newQObject(w);
+
+    // Function is: function initialise_criteria_ui(ui) {}
+    qDebug() << "Running criteria UI initaliser...";
+    ScriptValue callResult = globalObject.property("initialise_criteria_ui").call(args);
+
+    if (callResult.isError()) {
+        qWarning() << "Error calling initialise_criteria_ui function:" << callResult.toString();
+        return;
+    }
+}
+
+bool Report::validateCriteriaUI(QString &errorMessage, QWidget *w) {
+    ScriptValue globalObject = scriptingEngine->globalObject();
+
+    if (!globalObject.hasProperty("validate_criteria_ui") || !globalObject.property("validate_criteria_ui").isCallable()) {
+        qDebug() << "No criteria UI validator.";
+        errorMessage = "";
+        return true;
+    }
+
+    qDebug() << "Prepairing parmeters...";
+    QJSValueList args;
+    args << scriptingEngine->newQObject(w);
+
+    // Function is: function initialise_criteria_ui(ui) {}
+    qDebug() << "Running criteria UI initaliser...";
+    ScriptValue callResult = globalObject.property("validate_criteria_ui").call(args);
+
+    if (callResult.isError()) {
+        qWarning() << "Error calling validate_criteria_ui function:" << callResult.toString();
+        return true;
+    }
+
+    if (!callResult.isObject()) {
+        qWarning() << "Error calling validate_criteria_ui function: return type was not an object";
+        return true;
+    }
+
+    if (!callResult.hasProperty("result") || !callResult.property("result").isBool()) {
+        qWarning() << "No result property";
+        return true;
+    }
+
+    if (callResult.hasProperty("message")) {
+        errorMessage = callResult.property("message").toString();
+    }
+
+    return callResult.property("result").toBool();
+}
+*/

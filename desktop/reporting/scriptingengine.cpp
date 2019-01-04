@@ -55,10 +55,6 @@ QJSValue ScriptingEngine::newQObject(QObject* obj) {
     return engine.newQObject(
                 obj,
                 QScriptEngine::AutoOwnership,
-                QScriptEngine::ExcludeChildObjects |
-                    QScriptEngine::ExcludeDeleteLater |
-                    QScriptEngine::ExcludeSuperClassContents |
-                    QScriptEngine::ExcludeSuperClassMethods |
-                    QScriptEngine::ExcludeSuperClassProperties);
+                QScriptEngine::ExcludeDeleteLater);
 #endif
 }
