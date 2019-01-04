@@ -36,6 +36,8 @@ public:
 
     bool isArray() const;
 
+    bool isBool() const;
+
 #ifdef USE_QJSENGINE
     ScriptValue call(const QJSValueList &args = QJSValueList());
 #else
@@ -47,6 +49,8 @@ public:
     quint32 toUInt() const;
 
     QVariant toVariant() const;
+
+    bool toBool() const;
 
 #ifdef USE_QJSENGINE
     operator QJSValue() const { return value; }

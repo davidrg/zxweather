@@ -54,6 +54,10 @@ bool ScriptValue::isArray() const {
     return value.isArray();
 }
 
+bool ScriptValue::isBool() const {
+    return value.isBool();
+}
+
 
 #ifdef USE_QJSENGINE
 ScriptValue ScriptValue::call(const QJSValueList &args) {
@@ -84,4 +88,8 @@ quint32 ScriptValue::toUInt() const {
 
 QVariant ScriptValue::toVariant() const {
     return value.toVariant();
+}
+
+bool ScriptValue::toBool() const {
+    return value.toBool();
 }

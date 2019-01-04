@@ -313,6 +313,7 @@ void RunReportDialog::createReportCriteria() {
         ui->custom_criteria_page->layout()->addWidget(widget);
         loadReportCriteria();
         needsCriteriaPageCreated = false;
+        //report.criteriaUICreated(widget);
     }
 }
 
@@ -674,6 +675,16 @@ RunReportDialog::time_span_t RunReportDialog::get_time_span() {
 
 void RunReportDialog::moveNextPage() {
     if (nextPage == Page_Finish) {
+//        if (ui->stackedWidget->currentIndex() == Page_Criteria) {
+//            QString result;
+//            if (!report.validateCriteriaUI(
+//                        result,
+//                         ui->custom_criteria_page->layout()->widget())) {
+//                QMessageBox::warning(this, "Error", result);
+//                return;
+//            }
+//        }
+
         qDebug() << "Running report...";
         ReportFinisher* finisher = runReport();
         if (finisher == NULL) {

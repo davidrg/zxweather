@@ -10,6 +10,7 @@
 #include <QScopedPointer>
 #include <QSharedPointer>
 #include <QVariant>
+//#include <QWidget>
 
 #include "scriptingengine.h"
 #include "reportfinisher.h"
@@ -83,6 +84,9 @@ public:
     bool supportsWebDS() const { return _web_ok; }
     bool supportsDBDS() const { return _db_ok; }
     QSet<WeatherStationType> supportedWeatherStations() const { return QSet<WeatherStationType>::fromList(_weatherStations); }
+
+//    void criteriaUICreated(QWidget* w);
+//    bool validateCriteriaUI(QString &errorMessage, QWidget* w);
 
     ReportFinisher* run(AbstractDataSource* dataSource, QDateTime start, QDateTime end, QVariantMap parameters);
     ReportFinisher* run(AbstractDataSource* dataSource, QDate start, QDate end, QVariantMap parameters);
