@@ -622,7 +622,7 @@
   </widget>
   <widget class="QToolBar" name="toolBar">
    <property name="windowTitle">
-    <string>toolBar</string>
+    <string>Standard</string>
    </property>
    <property name="iconSize">
     <size>
@@ -653,7 +653,7 @@
   <widget class="QStatusBar" name="statusBar"/>
   <widget class="QToolBar" name="toolBar_2">
    <property name="windowTitle">
-    <string>toolBar_2</string>
+    <string>Image</string>
    </property>
    <property name="iconSize">
     <size>
