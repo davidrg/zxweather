@@ -189,7 +189,8 @@ SOURCES += main.cpp\
     reporting/queryresultmodel.cpp \
     reporting/reportfinisher.cpp \
     reporting/reportpartialresolver.cpp \
-    reporting/scriptingengine.cpp
+    reporting/scriptingengine.cpp \
+    datasource/livebuffer.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
@@ -297,7 +298,8 @@ HEADERS  += mainwindow.h \
     reporting/reportcontext.h \
     reporting/queryresultmodel.h \
     reporting/reportpartialresolver.h \
-    reporting/scriptingengine.h
+    reporting/scriptingengine.h \
+    datasource/livebuffer.h
 
 FORMS    += mainwindow.ui \
     settingsdialog.ui \

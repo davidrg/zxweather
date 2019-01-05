@@ -8,6 +8,7 @@
 #include "datasource/webdatasource.h"
 #include "datasource/tcplivedatasource.h"
 #include "datasource/dialogprogresslistener.h"
+#include "datasource/livebuffer.h"
 #include "qcp/qcustomplot.h"
 #include "settings.h"
 #include "constants.h"
@@ -122,8 +123,6 @@ LivePlotWindow::LivePlotWindow(bool solarAvailalble, hardware_type_t hardwareTyp
     connect(aggregator.data(), SIGNAL(liveData(LiveDataSet)),
             this, SLOT(liveData(LiveDataSet)));
 
-    ds->enableLiveData();   
-
     resetPlot();
 
     // Hookup toolbar buttons
@@ -137,6 +136,16 @@ LivePlotWindow::LivePlotWindow(bool solarAvailalble, hardware_type_t hardwareTyp
                 tr("Select the values to display in the live chart. More can be added "
                    "later."),
                 tr("Choose graphs"));
+
+    // Load initial data
+    QDateTime minTime = QDateTime::currentDateTime().addSecs(0-timespanMinutes*60);
+    foreach (LiveDataSet lds, LiveBuffer::getInstance().getData()) {
+        if (lds.timestamp > minTime) {
+            liveData(lds);
+        }
+    }
+
+    ds->enableLiveData();
 }
 
 UnitConversions::unit_t metricUnitToImperial(UnitConversions::unit_t unit) {
@@ -522,7 +531,7 @@ void LivePlotWindow::liveData(LiveDataSet ds) {
     updateGraph(LV_UVIndex, ts, xRange, ds.davisHw.uvIndex);
     updateGraph(LV_SolarRadiation, ts, xRange, ds.davisHw.solarRadiation);
 
-    ui->plot->replot();
+    ui->plot->replot(QCustomPlot::rpQueuedReplot);
 }
 
 void LivePlotWindow::updateGraph(LiveValue type, double key, double range, double value) {
@@ -586,6 +595,8 @@ void LivePlotWindow::addLiveValues(LiveValues columns) {
     TEST_ADD_COL(LV_StormRain);
     TEST_ADD_COL(LV_UVIndex);
     TEST_ADD_COL(LV_SolarRadiation);
+
+    resetData();
 
     ui->plot->replot();
 
@@ -671,27 +682,30 @@ void LivePlotWindow::showOptions() {
                                 hwType == HW_DAVIS, timespanMinutes, axisTags,
                                 multipleAxisRects, this);
 
-    if (lcod.exec() == QDialog::Accepted) {
-        if (aggregate != lcod.aggregate() || maxRainRate != lcod.maxRainRate() ||
-                stormRain != lcod.stormRain() || aggregateSeconds != lcod.aggregatePeriod()) {
-            // User changed settings.
-            aggregate = lcod.aggregate();
-            maxRainRate = lcod.maxRainRate();
-            stormRain = lcod.stormRain();
-            aggregateSeconds = lcod.aggregatePeriod();
-
-            if (aggregate) {
-                aggregator.reset(new AveragedLiveAggregator(aggregateSeconds, maxRainRate, stormRain, this));
-            } else {
-                aggregator.reset(new NonAggregatingLiveAggregator(stormRain, this));
-            }
-
-            connect(repeater.data(), SIGNAL(liveData(LiveDataSet)),
-                    aggregator.data(), SLOT(incomingLiveData(LiveDataSet)));
-            connect(aggregator.data(), SIGNAL(liveData(LiveDataSet)),
-                    this, SLOT(liveData(LiveDataSet)));
-        }
+    if (lcod.exec() != QDialog::Accepted) {
+        return;
     }
+
+    if (aggregate != lcod.aggregate() || maxRainRate != lcod.maxRainRate() ||
+            stormRain != lcod.stormRain() || aggregateSeconds != lcod.aggregatePeriod()) {
+        // User changed settings.
+        aggregate = lcod.aggregate();
+        maxRainRate = lcod.maxRainRate();
+        stormRain = lcod.stormRain();
+        aggregateSeconds = lcod.aggregatePeriod();
+
+        if (aggregate) {
+            aggregator.reset(new AveragedLiveAggregator(aggregateSeconds, maxRainRate, stormRain, this));
+        } else {
+            aggregator.reset(new NonAggregatingLiveAggregator(stormRain, this));
+        }
+
+        connect(repeater.data(), SIGNAL(liveData(LiveDataSet)),
+                aggregator.data(), SLOT(incomingLiveData(LiveDataSet)));
+        connect(aggregator.data(), SIGNAL(liveData(LiveDataSet)),
+                this, SLOT(liveData(LiveDataSet)));
+    }
+
 
     if (lcod.rangeMinutes() != timespanMinutes) {
         timespanMinutes = lcod.rangeMinutes();
@@ -719,6 +733,8 @@ void LivePlotWindow::showOptions() {
 
         addLiveValues(currentValues);
     }
+
+    resetData();
 
     Settings &settings = Settings::getInstance();
     settings.setLiveAggregate(aggregate);
@@ -793,4 +809,18 @@ void LivePlotWindow::resetPlot() {
             ui->actionLegend, SLOT(setChecked(bool)));
     connect(ui->plot, SIGNAL(graphStyleChanged(QCPGraph*,GraphStyle&)),
             this, SLOT(graphStyleChanged(QCPGraph*,GraphStyle&)));
+}
+
+void LivePlotWindow::resetData() {
+    foreach (LiveValue v, graphs.keys()) {
+        graphs[v]->data().clear();
+        points[v]->data().clear();
+    }
+
+    QDateTime minTime = QDateTime::currentDateTime().addSecs(0-timespanMinutes*60);
+    foreach (LiveDataSet lds, LiveBuffer::getInstance().getData()) {
+        if (lds.timestamp > minTime) {
+            liveData(lds);
+        }
+    }
 }

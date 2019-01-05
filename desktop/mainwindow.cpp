@@ -49,6 +49,7 @@
 
 #include "datasource/datasourceproxy.h"
 #include "datasource/dialogprogresslistener.h"
+#include "datasource/livebuffer.h"
 
 #include "config_wizard/configwizard.h"
 
@@ -124,6 +125,8 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(dataSource, SIGNAL(liveData(LiveDataSet)),
             ui->liveData, SLOT(refreshLiveData(LiveDataSet)));
     connect(dataSource, SIGNAL(liveData(LiveDataSet)),
+            &LiveBuffer::getInstance(), SLOT(liveData(LiveDataSet)));
+    connect(dataSource, SIGNAL(liveData(LiveDataSet)),
             ui->rainfall, SLOT(liveData(LiveDataSet)));
     connect(dataSource, SIGNAL(liveData(LiveDataSet)),
             ui->forecast, SLOT(refreshLiveData(LiveDataSet)));
@@ -174,6 +177,8 @@ MainWindow::MainWindow(QWidget *parent) :
         showSettings();
     }
     else {
+        LiveBuffer::getInstance().connectStation(settings.stationCode());
+
         // This will call reconfigureDataSource on successful connect if the live
         // data source is the database.
         QTimer::singleShot(1, this, SLOT(reconnectDatabase()));

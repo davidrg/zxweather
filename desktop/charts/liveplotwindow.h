@@ -51,6 +51,7 @@ private:
     void moveLegend();
     void ensureLegend();
     void resetPlot();
+    void resetData();
 
     bool axisRectExists(LiveValue type);
     QCPAxisRect* createAxisRectForGraph(LiveValue type);
