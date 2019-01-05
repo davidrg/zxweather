@@ -40,6 +40,7 @@ RangeRequestWebTask::RangeRequestWebTask(QString baseUrl,
     _requestData = requestData;
     _select = select;
     _requestingRange = true;
+    _awaitingUrls = 0;
 }
 
 void RangeRequestWebTask::beginTask() {
@@ -277,14 +278,14 @@ void RangeRequestWebTask::headUrls() {
     emit subtaskChanged("Checking Cache Status...");
     foreach (QString url, _urlNames.keys()) {
         QNetworkRequest request(url);
-        _awaitingUrls.insert(url);
+        _awaitingUrls++;
         emit httpHead(request);
     }
 }
 
 bool RangeRequestWebTask::processHeadResponse(QNetworkReply *reply) {
     QString url = reply->request().url().toString();
-    _awaitingUrls.remove(url);
+    _awaitingUrls--;
 
     if (DataFileWebTask::UrlNeedsDownlodaing(reply)) {
         QString name = _urlNames[url];
@@ -296,7 +297,7 @@ bool RangeRequestWebTask::processHeadResponse(QNetworkReply *reply) {
         emit queueTask(task);
     }
 
-    bool finished = _awaitingUrls.isEmpty();
+    bool finished = _awaitingUrls == 0;
 
     if (finished) {
         if (_select) {
@@ -319,3 +320,8 @@ bool RangeRequestWebTask::processHeadResponse(QNetworkReply *reply) {
 }
 #endif
 
+#if QT_VERSION < 0x050600
+void RangeRequestWebTask::requestRedirected(QString oldUrl, QString newUrl) {
+    _urlNames[newUrl] = _urlNames[oldUrl];
+}
+#endif

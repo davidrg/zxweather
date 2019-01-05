@@ -899,6 +899,8 @@ void WebDataSource::taskQueueResponseDataReady(QNetworkReply* reply) {
 
     /* If the URL is not empty, we're being redirected. */
     if(!previousRedirect.isEmpty()) {
+        currentTask->requestRedirected(reply->request().url().toString(), previousRedirect.toString());
+
         switch(reply->operation()) {
         case QNetworkAccessManager::GetOperation:
             this->taskQueueNetworkAccessManager->get(QNetworkRequest(previousRedirect));

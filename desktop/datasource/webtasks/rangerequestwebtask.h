@@ -57,6 +57,10 @@ public slots:
      */
     void networkReplyReceived(QNetworkReply *reply);
 
+#if QT_VERSION < 0x050600
+    void requestRedirected(QString oldUrl, QString newUrl);
+#endif
+
 private:
     // Parameters
     request_data_t _requestData;
@@ -66,7 +70,7 @@ private:
     QHash<QString, QString> _urlNames;
 
 #ifdef PARALLEL_HEAD
-    QSet<QString> _awaitingUrls;
+    int _awaitingUrls;
     void headUrls();
     bool processHeadResponse(QNetworkReply *reply);
 #endif
