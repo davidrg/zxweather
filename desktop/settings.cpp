@@ -42,6 +42,10 @@ namespace SettingsKey {
         const QString MAIN_WINDOW_STATE ="General/mw_state";
         const QString MAIN_WINDOW_GEOMETRY = "General/mw_geom";
 
+        // Number of hours of live data to keep in memory. This is currently used
+        // only to initialise live plots.
+        const QString LIVE_BUFFER_HOURS = "General/live_buffer_hours";
+
         namespace LiveMon {
             const QString ENABLED = "General/live_mon/enabled";
             const QString INTERVAL = "General/live_mon/interval";
@@ -840,4 +844,8 @@ QStringList Settings::reportSearchPath() const {
     result << ":/reports";
 
     return result;
+}
+
+int Settings::liveBufferHours() const {
+    return settings->value(SettingsKey::General::LIVE_BUFFER_HOURS, 1).toInt();
 }

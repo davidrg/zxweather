@@ -207,6 +207,8 @@ public:
 
     QStringList reportSearchPath() const;
 
+    int liveBufferHours() const;
+
 private:
     Settings();
     ~Settings();
