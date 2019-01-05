@@ -117,6 +117,17 @@ public slots:
      */
     virtual void networkReplyReceived(QNetworkReply *reply) = 0;
 
+#if QT_VERSION < 0x050600
+    /** Called when a network request was redirected. This will be
+     * called once for each redirect. Only supported in Qt 5.5 and ealier
+     * (from Qt 5.6 redirects are handled transparently)
+     *
+     * @param oldUrl the previous URL the resource was known by
+     * @param newUrl the new URL for the resource.
+     */
+    virtual void requestRedirected(QString oldUrl, QString newUrl) {}
+#endif
+
     // TODO: Some way of linking this network error with a request?
     // What happens if a task submits more than one request? this could get
     // confusing.
