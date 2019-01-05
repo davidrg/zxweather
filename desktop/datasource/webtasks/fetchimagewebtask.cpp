@@ -102,7 +102,16 @@ void FetchImageWebTask::beginTask() {
 
 void FetchImageWebTask::networkReplyReceived(QNetworkReply *reply) {
     reply->deleteLater();
-    if (reply->request().url() == _imageInfo.fullUrl) {
+    if (reply->rawHeader("Content-Type").toLower() == "application/json") {
+        qDebug() << "Got metadata";
+
+        needMetadata = false;
+        _imageInfo.hasMetadata = true;
+        _imageInfo.metadata = reply->readAll();
+
+        // Update the database with metadata
+        WebCacheDB::getInstance().updateImageInfo(_stationBaseUrl, _imageInfo);
+    } else {
         qDebug() << "Got image";
 
         filename = getCacheFilename();
@@ -115,15 +124,6 @@ void FetchImageWebTask::networkReplyReceived(QNetworkReply *reply) {
             // Error?
             emit failed("Failed to open cache file " + filename);
         }
-    } else if (reply->request().url() == _imageInfo.metaUrl) {
-        qDebug() << "Got metadata";
-
-        needMetadata = false;
-        _imageInfo.hasMetadata = true;
-        _imageInfo.metadata = reply->readAll();
-
-        // Update the database with metadata
-        WebCacheDB::getInstance().updateImageInfo(_stationBaseUrl, _imageInfo);
     }
 
     if (!needMetadata && !needImage) {
