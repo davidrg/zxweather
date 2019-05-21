@@ -167,6 +167,9 @@ class DavisLoggerProtocol(Protocol):
 
     def _samplesArrived(self, sampleList):
 
+        if len(sampleList) == 0:
+            return  # Nothing to do
+
         adjusted_samples = [self._dst_switcher.process_sample(sample)
                             for sample in sampleList]
 
