@@ -437,7 +437,8 @@ QSqlQuery setupBasicQuery(SampleColumns columns, int broadcastId) {
             " inner join station st on st.station_id = sample.station_id "
             "where st.station_id = :stationId "
             "  and time_stamp >= :startTime "
-            "  and time_stamp <= :endTime";
+            "  and time_stamp <= :endTime "
+            "order by time_stamp asc";
 
     // This can't be a regular query parameter as it appears in the select
     selectPart = selectPart.replace(":broadcastId", QString::number(broadcastId));
@@ -553,6 +554,8 @@ void DatabaseDataSource::fetchSamples(SampleColumns columns,
                                  aggregateFunction, groupType, groupMinutes);
     if (size == -1) return; // error
 
+    qDebug() << "Expected Row Count" << size;
+
     progressListener->setSubtaskName("Query...");
     progressListener->setValue(2);
     if (progressListener->wasCanceled()) return;
@@ -631,7 +634,12 @@ void DatabaseDataSource::fetchSamples(SampleColumns columns,
     QDateTime lastTs = startTime;
     bool gapGeneration = interval > 0;
     int thresholdSeconds = 2*interval;
+
+    qDebug() << "Gap Generation:" << gapGeneration << "Interval" << interval << "Threshold Seconds" << thresholdSeconds;
+
+    int rowCount = 0;
     while (query.next()) {
+        rowCount++;
         if (progressListener->wasCanceled()) return;
 
         QSqlRecord record = query.record();
@@ -640,6 +648,8 @@ void DatabaseDataSource::fetchSamples(SampleColumns columns,
 
         if (gapGeneration) {
             if (ts > lastTs.addSecs(thresholdSeconds)) {
+                qDebug() << "Gap generated at: " << lastTs.addSecs(interval);
+                qDebug() << "ts" << ts << "lastTs" << lastTs << "Thresh" << lastTs.addSecs(thresholdSeconds);
                 // We skipped at least one sample! Generate same fake null samples.
                 AppendNullSamples(samples,
                                   columns,
@@ -742,6 +752,7 @@ void DatabaseDataSource::fetchSamples(SampleColumns columns,
 
     qDebug() << "Data retrieval complete.";
 
+    qDebug() << "Row count:" << rowCount;
     qDebug() << "Expected samples:" << samples.sampleCount;
     qDebug() << "Have samples:" << samples.timestamp.count();
     if ((int)samples.sampleCount != samples.timestamp.count()) {
