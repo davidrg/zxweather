@@ -1,8 +1,9 @@
 # coding=utf-8
 """
 The Davis module: Code for interfacing with a Davis weather station. The
-Vantage Vue in particular (as I don't have access to anything else to test
-with).
+Vantage Vue and later firmwares for the Pro2 and Envoy. Firmware pre-1.9 for the
+Vantage Pro2 ought to work too but its untested, as is the Vantage Pro (firmware
+from 24-APR-2002 only - anything earlier certainly won't work)
 """
 import struct
 import datetime
@@ -223,7 +224,12 @@ class DavisWeatherStation(object):
     def _getLoopPacketsCallback(self):
         self._state = STATE_LPS
         self._lps_acknowledged = False
-        self._write('LPS 1 ' + str(self._lps_packets_remaining) + '\n')
+
+        # The LPS command and its associated LOOP2 packets are only supported
+        # on the Vantage Pro2 running firmware 1.9 or higher.
+        #self._write('LPS 1 ' + str(self._lps_packets_remaining) + '\n')
+
+        self._write('LOOP ' + str(self._lps_packets_remaining) + '\n')
 
     def getSamples(self, timestamp):
         """
