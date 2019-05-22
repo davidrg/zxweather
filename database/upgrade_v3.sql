@@ -292,29 +292,33 @@ create table davis_sample (
   evapotranspiration float,
   high_solar_radiation int,
   high_uv_index numeric(3,1),
-  forecast_rule_id int
+  forecast_rule_id int,
 
-  -- These columns are not currently stored as I've no way of testing them with
-  -- my Vantage Vue or Cabled Vantage Pro2 Plus and I doubt most people would
-  -- have any of the extra sensors.
-
---leaf_temperature_A float,
---leaf_temperature_B float,
---leaf_wetness_A int,
---leaf_wetness_B int,
---soil_temperatures_A float,
---soil_temperatures_B float,
---soil_temperatures_C float,
---soil_temperatures_D float,
---extra_humidity_A rh_percentage,
---extra_humidity_B rh_percentage,
---extra_temperature_A float,
---extra_temperature_B float,
---extra_temperature_C float,
---soil_moisture_A int,
---soil_moisture_B int,
---soil_moisture_C int,
---soil_moisture_D int
+  -- Extra sensors. To populate all of these you'll need:
+  --    1x 6345 Leaf/Soil transmitter setup as a leaf wetness station
+  --    1x 6345 Leaf/soil transmitter setup as a soil moisture station
+  --    2x 6382 Temperature/humidity stations
+  --    1x 6372 Temperature station
+  -- With a single Leaf/Soil transmitter the two leaf temperature columns will
+  -- be populated with the same values as the first two soil temperature
+  -- columns.
+  leaf_wetness_1 int,
+  leaf_wetness_2 int,
+  leaf_temperature_1 float,
+  leaf_temperature_2 float,
+  soil_moisture_1 int,
+  soil_moisture_2 int,
+  soil_moisture_3 int,
+  soil_moisture_4 int,
+  soil_temperature_1 float,
+  soil_temperature_2 float,
+  soil_temperature_3 float,
+  soil_temperature_4 float,
+  extra_humidity_1 rh_percentage,
+  extra_humidity_2 rh_percentage,
+  extra_temperature_1 float,
+  extra_temperature_2 float,
+  extra_temperature_3 float
 );
 comment on table davis_sample is 'Data for samples taken from Davis-compatbile hardware';
 comment on column davis_sample.record_time is 'The time value from the record';
@@ -330,6 +334,23 @@ comment on column davis_sample.evapotranspiration is 'Evapotranspiration accumul
 comment on column davis_sample.high_solar_radiation is 'Highest solar radiation value over the archive period in watts per square meter';
 comment on column davis_sample.high_uv_index is 'Highest UV index observed over the archive period in watts per square meter';
 comment on column davis_sample.forecast_rule_id is 'ID for the forecast rule at the end of the archive period.';
+comment on column davis_sample.leaf_wetness_1 is 'First leaf wetness. Range is 0-15 (0=dry, 15=wet)';
+comment on column davis_sample.leaf_wetness_2 is 'Second leaf wetness. Range is 0-15 (0=dry, 15=wet)';
+comment on column davis_sample.leaf_temperature_1 is 'First leaf temperature';
+comment on column davis_sample.leaf_temperature_2 is 'Second leaf temperature';
+comment on column davis_sample.soil_moisture_1 is 'First soil moisture sensor in centibars.';
+comment on column davis_sample.soil_moisture_2 is 'Second soil moisture sensor in centibars.';
+comment on column davis_sample.soil_moisture_3 is 'Third soil moisture sensor in centibars.';
+comment on column davis_sample.soil_moisture_4 is 'Fourth soil moisture sensor in centibars.';
+comment on column davis_sample.soil_temperature_1 is 'First soil temperature sensor.';
+comment on column davis_sample.soil_temperature_2 is 'Second soil temperature sensor.';
+comment on column davis_sample.soil_temperature_3 is 'Third soil temperature sensor.';
+comment on column davis_sample.soil_temperature_4 is 'Fourth soil temperature sensor.';
+comment on column davis_sample.extra_humidity_1 is 'First extra humidity sensor';
+comment on column davis_sample.extra_humidity_2 is 'Second extra humidity sensor';
+comment on column davis_sample.extra_temperature_1 is 'First extra temperature sensor';
+comment on column davis_sample.extra_temperature_2 is 'Second extra temperature';
+comment on column davis_sample.extra_temperature_3 is 'Third extra temperature sensor';
 
 create table davis_forecast_rule(
   rule_id integer not null primary key,
@@ -549,7 +570,33 @@ create table davis_live_data (
   forecast_icon int,
   forecast_rule_id int,
   uv_index numeric(3,1),
-  solar_radiation int
+  solar_radiation int,
+
+    -- Extra sensors. To populate all of these you'll need:
+  --    1x 6345 Leaf/Soil transmitter setup as a leaf wetness station
+  --    1x 6345 Leaf/soil transmitter setup as a soil moisture station
+  --    2x 6382 Temperature/humidity stations
+  --    1x 6372 Temperature station
+  -- With a single Leaf/Soil transmitter the two leaf temperature columns will
+  -- be populated with the same values as the first two soil temperature
+  -- columns.
+  leaf_wetness_1 int,
+  leaf_wetness_2 int,
+  leaf_temperature_1 float,
+  leaf_temperature_2 float,
+  soil_moisture_1 int,
+  soil_moisture_2 int,
+  soil_moisture_3 int,
+  soil_moisture_4 int,
+  soil_temperature_1 float,
+  soil_temperature_2 float,
+  soil_temperature_3 float,
+  soil_temperature_4 float,
+  extra_humidity_1 rh_percentage,
+  extra_humidity_2 rh_percentage,
+  extra_temperature_1 float,
+  extra_temperature_2 float,
+  extra_temperature_3 float
 );
 comment on table davis_live_data is 'Additional live data available from Davis-compatible hardware';
 comment on column davis_live_data.bar_trend is 'Barometer trend. -60 is falling rapidly, -20 is falling slowly, 0 is steady, 20 is rising slowly, 60 is rising rapidly.';
@@ -562,6 +609,23 @@ comment on column davis_live_data.forecast_icon is 'Forecast icon';
 comment on column davis_live_data.forecast_rule_id is 'Current forecast rule. See davis_forecast_rule table for values';
 comment on column davis_live_data.uv_index is 'Latest UV index reading';
 comment on column davis_live_data.solar_radiation is 'Latest solar radiation reading in watt/meter squared';
+comment on column davis_live_data.leaf_wetness_1 is 'First leaf wetness. Range is 0-15 (0=dry, 15=wet)';
+comment on column davis_live_data.leaf_wetness_2 is 'Second leaf wetness. Range is 0-15 (0=dry, 15=wet)';
+comment on column davis_live_data.leaf_temperature_1 is 'First leaf temperature';
+comment on column davis_live_data.leaf_temperature_2 is 'Second leaf temperature';
+comment on column davis_live_data.soil_moisture_1 is 'First soil moisture sensor in centibars.';
+comment on column davis_live_data.soil_moisture_2 is 'Second soil moisture sensor in centibars.';
+comment on column davis_live_data.soil_moisture_3 is 'Third soil moisture sensor in centibars.';
+comment on column davis_live_data.soil_moisture_4 is 'Fourth soil moisture sensor in centibars.';
+comment on column davis_live_data.soil_temperature_1 is 'First soil temperature sensor.';
+comment on column davis_live_data.soil_temperature_2 is 'Second soil temperature sensor.';
+comment on column davis_live_data.soil_temperature_3 is 'Third soil temperature sensor.';
+comment on column davis_live_data.soil_temperature_4 is 'Fourth soil temperature sensor.';
+comment on column davis_live_data.extra_humidity_1 is 'First extra humidity sensor';
+comment on column davis_live_data.extra_humidity_2 is 'Second extra humidity sensor';
+comment on column davis_live_data.extra_temperature_1 is 'First extra temperature sensor';
+comment on column davis_live_data.extra_temperature_2 is 'Second extra temperature';
+comment on column davis_live_data.extra_temperature_3 is 'Third extra temperature sensor';
 
 ----------------------------------------------------------------------
 -- CONSTRAINTS -------------------------------------------------------

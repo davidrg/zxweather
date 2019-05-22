@@ -125,7 +125,7 @@ def deserialise_8bit_temp(temp):
     if temp == 255:
         return None
     else:
-        return f_to_c(temp + 90)
+        return f_to_c(temp - 90)
 
 
 def serialise_8bit_temp(temp):
@@ -139,7 +139,7 @@ def serialise_8bit_temp(temp):
     if temp is None:
         return 255
 
-    return int(c_to_f(temp) - 90)
+    return int(c_to_f(temp) + 90)
 
 
 def undash_8bit(value):

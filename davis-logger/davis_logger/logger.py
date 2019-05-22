@@ -274,8 +274,15 @@ class DavisLoggerProtocol(Protocol):
                     low_temperature, high_rain_rate, solar_radiation,
                     wind_sample_count, gust_wind_direction, average_uv_index,
                     evapotranspiration, high_solar_radiation, high_uv_index,
-                    forecast_rule_id)
-                values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                    forecast_rule_id, leaf_wetness_1, leaf_wetness_2, 
+                    leaf_temperature_1, leaf_temperature_2, soil_moisture_1, 
+                    soil_moisture_2, soil_moisture_3, soil_moisture_4, 
+                    soil_temperature_1, soil_temperature_2, soil_temperature_3, 
+                    soil_temperature_4, extra_humidity_1, extra_humidity_2, 
+                    extra_temperature_1, extra_temperature_2, 
+                    extra_temperature_3)
+                values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,
+                       %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                 """
 
         try:
@@ -325,7 +332,24 @@ class DavisLoggerProtocol(Protocol):
                                 sample.ET,
                                 sample.highSolarRadiation,
                                 sample.highUVIndex,
-                                sample.forecastRule
+                                sample.forecastRule,
+                                sample.leafWetness[0],
+                                sample.leafWetness[1],
+                                sample.leafTemperature[0],
+                                sample.leafTemperature[1],
+                                sample.soilMoistures[0],
+                                sample.soilMoistures[1],
+                                sample.soilMoistures[2],
+                                sample.soilMoistures[3],
+                                sample.soilTemperatures[0],
+                                sample.soilTemperatures[1],
+                                sample.soilTemperatures[2],
+                                sample.soilTemperatures[3],
+                                sample.extraHumidities[0],
+                                sample.extraHumidities[1],
+                                sample.extraTemperatures[0],
+                                sample.extraTemperatures[1],
+                                sample.extraTemperatures[2],
                             ))
         except psycopg2.Error as e:
             log.msg("""Database exception trying to insert samples:-
@@ -393,7 +417,24 @@ by a change in time zone due to daylight savings.""".format(e.pgerror))
                     forecast_icon = %s,
                     forecast_rule_id = %s,
                     uv_index = %s,
-                    solar_radiation = %s
+                    solar_radiation = %s,
+                    leaf_wetness_1 = %s, 
+                    leaf_wetness_2 = %s, 
+                    leaf_temperature_1 = %s, 
+                    leaf_temperature_2 = %s, 
+                    soil_moisture_1 = %s, 
+                    soil_moisture_2 = %s, 
+                    soil_moisture_3 = %s, 
+                    soil_moisture_4 = %s, 
+                    soil_temperature_1 = %s, 
+                    soil_temperature_2 = %s, 
+                    soil_temperature_3 = %s, 
+                    soil_temperature_4 = %s, 
+                    extra_humidity_1 = %s, 
+                    extra_humidity_2 = %s, 
+                    extra_temperature_1 = %s, 
+                    extra_temperature_2 = %s, 
+                    extra_temperature_3 = %s
                 where station_id = %s
                 """
 
@@ -410,6 +451,24 @@ by a change in time zone due to daylight savings.""".format(e.pgerror))
                 loop.forecastRuleNumber,
                 loop.UV,
                 loop.solarRadiation,
+                loop.leafWetness[0],
+                loop.leafWetness[1],
+                loop.leafTemperatures[0],
+                loop.leafTemperatures[1],
+                loop.soilMoistures[0],
+                loop.soilMoistures[1],
+                loop.soilMoistures[2],
+                loop.soilMoistures[3],
+                loop.soilTemperatures[0],
+                loop.soilTemperatures[1],
+                loop.soilTemperatures[2],
+                loop.soilTemperatures[3],
+                loop.extraHumidities[0],
+                loop.extraHumidities[1],
+                loop.extraTemperatures[0],
+                loop.extraTemperatures[1],
+                loop.extraTemperatures[2],
+
                 self._station_id
             )
         )
