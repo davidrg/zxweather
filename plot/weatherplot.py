@@ -81,7 +81,7 @@ signal.signal(signal.SIGINT, handler)
 
 
 def plot_day(dest_dir, cur, plot_date, station_code, start_date, output_format,
-             hw_config):
+             hw_config, write_data):
     """
     Plots charts for a single day.
 
@@ -98,6 +98,8 @@ def plot_day(dest_dir, cur, plot_date, station_code, start_date, output_format,
     :type output_format: str
     :param hw_config: Station hardware configuration
     :type hw_config: StationConfig
+    :param write_data: If data file should be re-written.
+    :type write_data: bool
     :return:
     """
 
@@ -120,17 +122,17 @@ def plot_day(dest_dir, cur, plot_date, station_code, start_date, output_format,
 
     # Plot the 1-day charts
     charts_1_day(cur, dest_dir, plot_date, station_code, output_format,
-                 hw_config)
+                 hw_config, write_data)
     rainfall_1_day(cur, dest_dir, plot_date, station_code, output_format)
     charts_7_days(cur, dest_dir, plot_date, station_code, output_format,
-                  hw_config)
+                  hw_config, write_data)
 
     # Disabled because the graph is fairly unreadable
     #rainfall_7_day(cur, dest_dir, plot_date, station_code, output_format)
 
 
 def plot_month(dest_dir, cur, year, month, station_code, start_date,
-               output_format, hw_config):
+               output_format, hw_config, write_data):
     """
     Plots charts for a particular month
     :param dest_dir:
@@ -145,6 +147,8 @@ def plot_month(dest_dir, cur, year, month, station_code, start_date,
     :type output_format: str
     :param hw_config: Station hardware configuration
     :type hw_config: StationConfig
+    :param write_data: If data should be re-written
+    :type write_data: bool
     :return: The final date plotted for
     :rtype: date
     """
@@ -168,7 +172,7 @@ def plot_month(dest_dir, cur, year, month, station_code, start_date,
 
     # Generate graphs for the entire month
     month_charts(cur, dest_dir, month, year, station_code, output_format,
-                 hw_config)
+                 hw_config, write_data)
 
     # Then deal with each day
     cur.execute("""select distinct extract(day from s.time_stamp)
@@ -176,7 +180,7 @@ def plot_month(dest_dir, cur, year, month, station_code, start_date,
         inner join station st on st.station_id = s.station_id
         where extract(year from s.time_stamp) = %s
           and extract(month from s.time_stamp) = %s
-          and st.code = %s
+          and lower(st.code) = lower(%s)
         order by extract(day from s.time_stamp)""", (year,month, station_code,))
     days = cur.fetchall()
 
@@ -184,11 +188,11 @@ def plot_month(dest_dir, cur, year, month, station_code, start_date,
     for day in days:
         final_date = date(year, month, int(day[0]))
         plot_day(dest_dir, cur, final_date, station_code, start_date,
-                 output_format, hw_config)
+                 output_format, hw_config, write_data)
     return final_date
 
 
-def plot_year(dest_dir, cur, year, station_code, start_date, output_format, hw_config):
+def plot_year(dest_dir, cur, year, station_code, start_date, output_format, hw_config, write_data):
     """
     Plots summary graphs for the specified year. It will then call
     plot_month() for each month in the database for this year.
@@ -206,6 +210,8 @@ def plot_year(dest_dir, cur, year, station_code, start_date, output_format, hw_c
     :type output_format: str
     :param hw_config: Hardware configuration data
     :type hw_config: StationConfig
+    :param write_data: If data file should be rewritten
+    :type write_data: bool
     :return: The final date plotted for
     :rtype: date
     """
@@ -228,7 +234,7 @@ def plot_year(dest_dir, cur, year, station_code, start_date, output_format, hw_c
         from sample s
         inner join station st on st.station_id = s.station_id
         where extract(year from s.time_stamp) = %s
-          and st.code = %s
+          and lower(st.code) = lower(%s)
         order by extract(month from s.time_stamp)""", (year, station_code,))
     months = cur.fetchall()
 
@@ -236,18 +242,18 @@ def plot_year(dest_dir, cur, year, station_code, start_date, output_format, hw_c
     for month in months:
         final_date = plot_month(dest_dir, cur, year, int(month[0]),
                                 station_code, start_date, output_format,
-                                hw_config)
+                                hw_config, write_data)
 
     return final_date
 
 
-def plot_for_station(code, cur, dest_dir, start_date, output_format):
+def plot_for_station(code, cur, dest_dir, start_date, output_format, write_data):
 
     # First up, figure out what years we have
     cur.execute("""select distinct extract(year from s.time_stamp)
 from sample s
 inner join station st on st.station_id = s.station_id
-where st.code = %s
+where lower(st.code) = lower(%s)
 order by extract(year from s.time_stamp) asc
                            """, (code,))
     years = cur.fetchall()
@@ -256,7 +262,7 @@ order by extract(year from s.time_stamp) asc
        st.code as hw_type
 from station s
 inner join station_type st on st.station_type_id = s.station_type_id
-where s.code = %s""", (code,))
+where lower(s.code) = lower(%s)""", (code,))
     result = cur.fetchone()
 
     hw_config = StationConfig(result[1], result[0])
@@ -266,7 +272,7 @@ where s.code = %s""", (code,))
     final_date = None
     for year in years:
         final_date = plot_year(dest_dir, cur, int(year[0]), code, start_date,
-                               output_format, hw_config)
+                               output_format, hw_config, write_data)
 
     print("Plot completed at {0} for station {1}".format(
         datetime.datetime.now(), code))
@@ -308,11 +314,11 @@ def main():
                       help="The stations to plot charts for")
 
     # TODO: Don't rewrite the data file for each format
-    # parser.add_option("-f", "--output-format", dest="output_formats",
-    #                   action="append",
-    #                   help="The formats to generate output in. Default is "
-    #                        "'pngcairo' (high quality PNG). Other options are "
-    #                        "'png' and 'gif'.")
+    parser.add_option("-f", "--output-format", dest="output_formats",
+                      action="append",
+                      help="The formats to generate output in. Default is "
+                           "'pngcairo' (high quality PNG). Other options are "
+                           "'png',  'gif', 'txt' and 'txtwide'.")
 
     (options, args) = parser.parse_args()
 
@@ -339,9 +345,9 @@ def main():
     if options.directory is None:
         print("ERROR: output directory not specified")
         error = True
-    #if options.output_formats is None or len(options.output_formats) == 0:
+    if options.output_formats is None or len(options.output_formats) == 0:
         # Default output format.
-    options.output_formats = ["pngcairo"]
+        options.output_formats = ["pngcairo"]
 
     if error:
         print("Required parameters were not supplied. Re-run with --help for options.")
@@ -439,6 +445,7 @@ def main():
         exec_start = time.time()
 
         for station in options.station_codes:
+            write_data = True
             for output_format in options.output_formats:
                 if len(options.output_formats) == 1 and \
                         output_format == "pngcairo":
@@ -448,7 +455,8 @@ def main():
 
                 plot_dates[format_key] = plot_for_station(
                     station, cur, dest_dir, plot_dates[format_key],
-                    output_format)
+                    output_format, write_data)
+                write_data = False
 
                 # Update stored date for next time
                 if options.plot_new is not None:

@@ -45,16 +45,18 @@ def get_file_extension(output_format):
     # postscript eps
     formats = [
         ("png", ".png"),
+        ("pngcairo", ".png"),
         ("gif", ".gif"),
         ("jpeg", ".jpg"),
         ("pdf", ".pdf"),
         ("postscript", ".ps"),
         ("svg", ".svg"),
         ("canvas", ".js"),
-
+        ("txt", ".txt"),
+        ("txtwide", "_wide.txt")
     ]
     for fmt in formats:
-        if output_format.startswith(fmt[0]):
+        if output_format == fmt[0]:
             return fmt[1]
     return ""
 
@@ -102,11 +104,18 @@ set output "{0}"
 set datafile missing "?"
 """.format(output_filename)
 
-    if width is not None and height is not None:
-        script += "set terminal {2} size {0}, {1}\n".format(width, height,
-                                                            output_format)
+    if output_format in ("txt", "txtwide"):
+        if width is not None and height is not None:
+            script += "set terminal dumb size {0}, {1} mono\n".format(width, height)
+        else:
+            script += "set terminal dumb mono\n"
     else:
-        script += "set terminal {0}\n".format(output_format)
+        if width is not None and height is not None:
+            script += "set terminal {2} size {0}, {1}\n".format(width, height,
+                                                                output_format)
+        else:
+            script += "set terminal {0}\n".format(output_format)
+
 
     if title is not None:
         script += 'set title "{0}"\n'.format(title)
@@ -199,8 +208,13 @@ def plot_rainfall(data_file_name, output_filename, title, width, height, empty,
     script = ""
 
     script += 'set output "{0}"\n'.format(output_filename)
-    script += 'set terminal {2} size {0}, {1}\n'.format(width, height,
-                                                        output_format)
+
+    if output_format in ("txt", "txtwide"):
+        script += 'set terminal dumb size {0}, {1} mono\n'.format(width, height,
+                                                            output_format)
+    else:
+        script += 'set terminal {2} size {0}, {1}\n'.format(width, height,
+                                                            output_format)
 
     script += "set style fill solid border -1\n"
     script += "set boxwidth 0.8\n"
