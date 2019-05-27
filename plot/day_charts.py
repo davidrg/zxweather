@@ -1,3 +1,5 @@
+import sys
+
 from datetime import date
 from gnuplot import plot_graph, plot_rainfall
 
@@ -5,7 +7,7 @@ __author__ = 'David Goodwin'
 
 
 def charts_1_day(cur, dest_dir, plot_date, station_code, output_format,
-                 hw_config):
+                 hw_config, write_data):
     """
     Charts detailing weather for a single day (24 hours max)
     :param cur: Database cursor
@@ -19,40 +21,6 @@ def charts_1_day(cur, dest_dir, plot_date, station_code, output_format,
     :param hw_config: station hardware configuration details
     :type hw_config: weatherplot.StationConfig
     """
-
-    cur.execute("""select cur.time_stamp::time,
-       round(cur.temperature::numeric,2),
-       round(cur.dew_point::numeric, 1),
-       round(cur.apparent_temperature::numeric, 1),
-       round(cur.wind_chill::numeric,1),
-       cur.relative_humidity,
-       round(cur.absolute_pressure::numeric,2),
-       round(cur.indoor_temperature::numeric,2),
-       cur.indoor_relative_humidity,
-       round(cur.rainfall::numeric, 1),
-       round(cur.average_wind_speed::numeric,2),
-       round(cur.gust_wind_speed::numeric,2),
-       cur.wind_direction,
-       cur.time_stamp::time - (s.sample_interval * '1 minute'::interval) as prev_sample_time,
-       CASE WHEN (cur.time_stamp - prev.time_stamp) > ((s.sample_interval * 2) * '1 minute'::interval) THEN
-          true
-       else
-          false
-       end as gap,
-       ds.average_uv_index as uv_index,
-       ds.solar_radiation
-from sample cur
-inner join sample prev on prev.time_stamp = (
-        select max(x.time_stamp)
-        from sample x
-        where x.time_stamp < cur.time_stamp
-        and x.station_id = cur.station_id) and prev.station_id = cur.station_id
-inner join station s on s.station_id = cur.station_id
-left outer join davis_sample ds on ds.sample_id = cur.sample_id
-where date(cur.time_stamp) = %s
-  and s.code = %s
-order by cur.time_stamp asc""", (plot_date, station_code,))
-    weather_data = cur.fetchall()
 
     # Columns in the query
     COL_TIMESTAMP = 0
@@ -90,53 +58,116 @@ order by cur.time_stamp asc""", (plot_date, station_code,))
     FIELD_UV_INDEX = 14
     FIELD_SOLAR_RADIATION = 15
 
-    # Write the data file for gnuplot
-    file_data = [
-        '# timestamp\ttemperature\tdew point\tapparent temperature\twind chill'
-        '\trelative humidity\tabsolute pressure\tindoor temperature\t'
-        'indoor relative humidity\trainfall\taverage wind speed\t'
-        'gust wind speed\twind direction\tuv index\tsolar radiation\n']
-
-    FORMAT_STRING = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t{10}\t{11}\t{12}\t{13}\t{14}\n'
-    for record in weather_data:
-        # Handle missing data.
-        if record[COL_PREV_SAMPLE_MISSING]:
-            file_data.append(
-                FORMAT_STRING.format(str(record[COL_PREV_TIMESTAMP]),
-                                     '?', '?', '?', '?', '?', '?', '?', '?',
-                                     '?', '?', '?', '?', '?', '?'))
-
-        file_data.append(FORMAT_STRING.format(str(record[COL_TIMESTAMP]),
-                                              str(record[COL_TEMPERATURE]),
-                                              str(record[COL_DEW_POINT]),
-                                              str(record[COL_APPARENT_TEMP]),
-                                              str(record[COL_WIND_CHILL]),
-                                              str(record[COL_REL_HUMIDITY]),
-                                              str(record[COL_ABS_PRESSURE]),
-                                              str(record[COL_INDOOR_TEMP]),
-                                              str(record[
-                                                  COL_INDOOR_REL_HUMIDITY]),
-                                              str(record[COL_RAINFALL]),
-                                              str(record[COL_AVG_WIND_SPEED]),
-                                              str(record[COL_GUST_WIND_SPEED]),
-                                              str(record[COL_WIND_DIRECTION]),
-                                              str(record[COL_UV_INDEX]),
-                                              str(record[COL_SOLAR_RADIATION])
-        ))
-    x_range = (str(weather_data[0][COL_TIMESTAMP]),
-               str(weather_data[len(weather_data) - 1][COL_TIMESTAMP]))
     data_filename = dest_dir + 'gnuplot_data.dat'
-    file = open(data_filename, 'w+')
-    file.writelines(file_data)
-    file.close()
+
+    if write_data:
+        cur.execute("""select cur.time_stamp::time,
+       round(cur.temperature::numeric,2),
+       round(cur.dew_point::numeric, 1),
+       round(cur.apparent_temperature::numeric, 1),
+       round(cur.wind_chill::numeric,1),
+       cur.relative_humidity,
+       round(cur.absolute_pressure::numeric,2),
+       round(cur.indoor_temperature::numeric,2),
+       cur.indoor_relative_humidity,
+       round(cur.rainfall::numeric, 1),
+       round(cur.average_wind_speed::numeric,2),
+       round(cur.gust_wind_speed::numeric,2),
+       cur.wind_direction,
+       cur.time_stamp::time - (s.sample_interval * '1 minute'::interval) as prev_sample_time,
+       CASE WHEN (cur.time_stamp - prev.time_stamp) > ((s.sample_interval * 2) * '1 minute'::interval) THEN
+          true
+       else
+          false
+       end as gap,
+       ds.average_uv_index as uv_index,
+       ds.solar_radiation
+from sample cur
+inner join sample prev on prev.time_stamp = (
+        select max(x.time_stamp)
+        from sample x
+        where x.time_stamp < cur.time_stamp
+        and x.station_id = cur.station_id) and prev.station_id = cur.station_id
+inner join station s on s.station_id = cur.station_id
+left outer join davis_sample ds on ds.sample_id = cur.sample_id
+where date(cur.time_stamp) = %s
+  and lower(s.code) = lower(%s)
+order by cur.time_stamp asc""", (plot_date, station_code,))
+        weather_data = cur.fetchall()
+
+        # Write the data file for gnuplot
+        file_data = [
+            '# timestamp\ttemperature\tdew point\tapparent temperature\twind chill'
+            '\trelative humidity\tabsolute pressure\tindoor temperature\t'
+            'indoor relative humidity\trainfall\taverage wind speed\t'
+            'gust wind speed\twind direction\tuv index\tsolar radiation\n']
+
+        FORMAT_STRING = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t{10}\t{11}\t{12}\t{13}\t{14}\n'
+        for record in weather_data:
+            # Handle missing data.
+            if record[COL_PREV_SAMPLE_MISSING]:
+                file_data.append(
+                    FORMAT_STRING.format(str(record[COL_PREV_TIMESTAMP]),
+                                         '?', '?', '?', '?', '?', '?', '?', '?',
+                                         '?', '?', '?', '?', '?', '?'))
+
+            file_data.append(FORMAT_STRING.format(str(record[COL_TIMESTAMP]),
+                                                  str(record[COL_TEMPERATURE]),
+                                                  str(record[COL_DEW_POINT]),
+                                                  str(record[COL_APPARENT_TEMP]),
+                                                  str(record[COL_WIND_CHILL]),
+                                                  str(record[COL_REL_HUMIDITY]),
+                                                  str(record[COL_ABS_PRESSURE]),
+                                                  str(record[COL_INDOOR_TEMP]),
+                                                  str(record[
+                                                      COL_INDOOR_REL_HUMIDITY]),
+                                                  str(record[COL_RAINFALL]),
+                                                  str(record[COL_AVG_WIND_SPEED]),
+                                                  str(record[COL_GUST_WIND_SPEED]),
+                                                  str(record[COL_WIND_DIRECTION]),
+                                                  str(record[COL_UV_INDEX]),
+                                                  str(record[COL_SOLAR_RADIATION])
+            ))
+        x_range = (str(weather_data[0][COL_TIMESTAMP]),
+                   str(weather_data[len(weather_data) - 1][COL_TIMESTAMP]))
+
+        file = open(data_filename, 'w+')
+        file.writelines(file_data)
+        file.close()
+    else:
+        cur.execute("""select min(cur.time_stamp)::time as min_ts, max(cur.time_stamp)::time as max_ts
+        from sample cur
+inner join station s on s.station_id = cur.station_id
+where date(cur.time_stamp) = %s
+  and lower(s.code) = lower(%s)""", (plot_date, station_code,))
+        weather_data = cur.fetchone()
+
+        x_range = (str(weather_data[0]),
+                   str(weather_data[1]))
+
     for large in [True, False]:
         # Create both large and regular versions of each plot.
-        if large:
-            width = 1140
-            height = 600
+        if output_format == "txt":
+            if large:
+                width = 120
+                height = 50
+            else:
+                width = 80  # Default width and height
+                height = 25
+        elif output_format == "txtwide":
+            if large:
+                width = 264
+                height = 50
+            else:
+                width = 132  # Default width and height
+                height = 25
         else:
-            width = 570    # Default width and height
-            height = 300
+            if large:
+                width = 1140
+                height = 600
+            else:
+                width = 570    # Default width and height
+                height = 300
 
         # Plot Temperature and Dew Point
         output_filename = dest_dir + 'temperature_tdp'
@@ -312,7 +343,7 @@ def rainfall_1_day(cur, dest_dir, plot_date, station_code, output_format):
     from sample s
     inner join station st on st.station_id = s.station_id
     where date(s.time_stamp) = %s
-      and st.code = %s
+      and lower(st.code) = lower(%s)
     group by extract(hour from s.time_stamp)
     order by extract(hour from s.time_stamp) asc
     """, (plot_date, station_code,))
@@ -363,7 +394,7 @@ def rainfall_1_day(cur, dest_dir, plot_date, station_code, output_format):
 
 
 def charts_7_days(cur, dest_dir, plot_date, station_code, output_format,
-                 hw_config):
+                 hw_config, write_data):
     """
     Creates 7-day charts for the specified day
     :param cur: Database cursor
@@ -376,42 +407,8 @@ def charts_7_days(cur, dest_dir, plot_date, station_code, output_format,
     :param hw_config: station hardware configuration details
     :type hw_config: weatherplot.StationConfig
     """
-    cur.execute("""select s.time_stamp,
-       round(s.temperature::numeric,2),
-       round(s.dew_point::numeric, 1),
-       round(s.apparent_temperature::numeric, 1),
-       round(s.wind_chill::numeric,1),
-       s.relative_humidity,
-       round(s.absolute_pressure::numeric,2),
-       round(s.indoor_temperature::numeric,2),
-       s.indoor_relative_humidity,
-       round(s.rainfall::numeric, 1),
-       round(s.average_wind_speed::numeric,2),
-       round(s.gust_wind_speed::numeric,2),
-       s.wind_direction,
-       s.time_stamp::time - (st.sample_interval * '1 minute'::interval) as prev_sample_time,
-       CASE WHEN (s.time_stamp - prev.time_stamp) > ((st.sample_interval * 2) * '1 minute'::interval) THEN
-          true
-       else
-          false
-       end as gap,
-       ds.average_uv_index as uv_index,
-       ds.solar_radiation
-from (select max(time_stamp) as ts, station_id from sample where time_stamp::date = %s group by station_id) as max_ts
-inner join sample s on s.time_stamp <= max_ts.ts
-        and s.time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
-inner join sample prev on prev.station_id = s.station_id
-        and prev.time_stamp = (
-            select max(ps.time_stamp)
-            from sample ps
-            where ps.time_stamp < s.time_stamp
-            and ps.station_id = s.station_id)
-inner join station st on st.station_id = s.station_id
-left outer join davis_sample ds on ds.sample_id = s.sample_id
-where st.code = %s
-order by s.time_stamp asc
-""", (plot_date, station_code,))
-    temperature_data = cur.fetchall()
+
+    data_filename = dest_dir + '7-day_gnuplot_data.dat'
 
     # Columns in the query
     COL_TIMESTAMP = 0
@@ -452,51 +449,117 @@ order by s.time_stamp asc
     FIELD_UV_INDEX = 15
     FIELD_SOLAR_RADIATION = 16
 
-    # Write the data file for gnuplot
-    file_data = [
-        '# timestamp\ttemperature\tdew point\tapparent temperature\twind chill'
-        '\trelative humidity\tabsolute pressure\tindoor temperature'
-        '\tindoor relative humidity\trainfall\taverage wind speed\tgust wind speed\twind direction\tuv index\tsolar radiation\n']
-    FORMAT_STRING = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t{10}\t{11}\t{12}\t{13}\t{14}\n'
-    for record in temperature_data:
-        # Handle missing data.
-        if record[COL_PREV_SAMPLE_MISSING]:
-            file_data.append(
-                FORMAT_STRING.format(str(record[COL_PREV_TIMESTAMP]),
-                                     '?', '?', '?', '?', '?', '?', '?', '?',
-                                     '?', '?', '?', '?', '?', '?'))
+    if write_data:
+        cur.execute("""select s.time_stamp,
+       round(s.temperature::numeric,2),
+       round(s.dew_point::numeric, 1),
+       round(s.apparent_temperature::numeric, 1),
+       round(s.wind_chill::numeric,1),
+       s.relative_humidity,
+       round(s.absolute_pressure::numeric,2),
+       round(s.indoor_temperature::numeric,2),
+       s.indoor_relative_humidity,
+       round(s.rainfall::numeric, 1),
+       round(s.average_wind_speed::numeric,2),
+       round(s.gust_wind_speed::numeric,2),
+       s.wind_direction,
+       s.time_stamp::time - (st.sample_interval * '1 minute'::interval) as prev_sample_time,
+       CASE WHEN (s.time_stamp - prev.time_stamp) > ((st.sample_interval * 2) * '1 minute'::interval) THEN
+          true
+       else
+          false
+       end as gap,
+       ds.average_uv_index as uv_index,
+       ds.solar_radiation
+from (select max(time_stamp) as ts, station_id from sample where time_stamp::date = %s group by station_id) as max_ts
+inner join sample s on s.time_stamp <= max_ts.ts
+        and s.time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
+inner join sample prev on prev.station_id = s.station_id
+        and prev.time_stamp = (
+            select max(ps.time_stamp)
+            from sample ps
+            where ps.time_stamp < s.time_stamp
+            and ps.station_id = s.station_id)
+inner join station st on st.station_id = s.station_id
+left outer join davis_sample ds on ds.sample_id = s.sample_id
+where lower(st.code) = lower(%s)
+order by s.time_stamp asc
+""", (plot_date, station_code,))
+        temperature_data = cur.fetchall()
 
-        file_data.append(FORMAT_STRING.format(str(record[COL_TIMESTAMP]),
-                                              str(record[COL_TEMPERATURE]),
-                                              str(record[COL_DEW_POINT]),
-                                              str(record[COL_APPARENT_TEMP]),
-                                              str(record[COL_WIND_CHILL]),
-                                              str(record[COL_REL_HUMIDITY]),
-                                              str(record[COL_ABS_PRESSURE]),
-                                              str(record[COL_INDOOR_TEMP]),
-                                              str(record[
-                                                  COL_INDOOR_REL_HUMIDITY]),
-                                              str(record[COL_RAINFALL]),
-                                              str(record[COL_AVG_WIND_SPEED]),
-                                              str(record[COL_GUST_WIND_SPEED]),
-                                              str(record[COL_WIND_DIRECTION]),
-                                              str(record[COL_UV_INDEX]),
-                                              str(record[COL_SOLAR_RADIATION])
-        ))
-    x_range = (str(temperature_data[0][COL_TIMESTAMP]),
-               str(temperature_data[len(temperature_data) - 1][COL_TIMESTAMP]))
-    data_filename = dest_dir + '7-day_gnuplot_data.dat'
-    file = open(data_filename, 'w+')
-    file.writelines(file_data)
-    file.close()
+        # Write the data file for gnuplot
+        file_data = [
+            '# timestamp\ttemperature\tdew point\tapparent temperature\twind chill'
+            '\trelative humidity\tabsolute pressure\tindoor temperature'
+            '\tindoor relative humidity\trainfall\taverage wind speed\tgust wind speed\twind direction\tuv index\tsolar radiation\n']
+        FORMAT_STRING = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t{10}\t{11}\t{12}\t{13}\t{14}\n'
+        for record in temperature_data:
+            # Handle missing data.
+            if record[COL_PREV_SAMPLE_MISSING]:
+                file_data.append(
+                    FORMAT_STRING.format(str(record[COL_PREV_TIMESTAMP]),
+                                         '?', '?', '?', '?', '?', '?', '?', '?',
+                                         '?', '?', '?', '?', '?', '?'))
+
+            file_data.append(FORMAT_STRING.format(str(record[COL_TIMESTAMP]),
+                                                  str(record[COL_TEMPERATURE]),
+                                                  str(record[COL_DEW_POINT]),
+                                                  str(record[COL_APPARENT_TEMP]),
+                                                  str(record[COL_WIND_CHILL]),
+                                                  str(record[COL_REL_HUMIDITY]),
+                                                  str(record[COL_ABS_PRESSURE]),
+                                                  str(record[COL_INDOOR_TEMP]),
+                                                  str(record[
+                                                      COL_INDOOR_REL_HUMIDITY]),
+                                                  str(record[COL_RAINFALL]),
+                                                  str(record[COL_AVG_WIND_SPEED]),
+                                                  str(record[COL_GUST_WIND_SPEED]),
+                                                  str(record[COL_WIND_DIRECTION]),
+                                                  str(record[COL_UV_INDEX]),
+                                                  str(record[COL_SOLAR_RADIATION])
+            ))
+        x_range = (str(temperature_data[0][COL_TIMESTAMP]),
+                   str(temperature_data[len(temperature_data) - 1][COL_TIMESTAMP]))
+        file = open(data_filename, 'w+')
+        file.writelines(file_data)
+        file.close()
+    else:
+        cur.execute("""select min(s.time_stamp) as min_ts, max(s.time_stamp) as max_ts
+        from (select max(time_stamp) as ts, station_id from sample where time_stamp::date = %s group by station_id) as max_ts
+        inner join sample s on s.time_stamp <= max_ts.ts
+                and s.time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
+        inner join station st on st.station_id = s.station_id
+        left outer join davis_sample ds on ds.sample_id = s.sample_id
+        where lower(st.code) = lower(%s)
+        """, (plot_date, station_code,))
+        weather_data = cur.fetchone()
+        x_range = (str(weather_data[0]),
+                   str(weather_data[1]))
+
+
     for large in [True, False]:
         # Create both large and regular versions of each plot.
-        if large:
-            width = 2340
-            height = 600
+        if output_format == "txt":
+            if large:
+                width = 120
+                height = 50
+            else:
+                width = 80  # Default width and height
+                height = 25
+        elif output_format == "txtwide":
+            if large:
+                width = 264
+                height = 50
+            else:
+                width = 132  # Default width and height
+                height = 25
         else:
-            width = 1170    # Default width and height
-            height = 300
+            if large:
+                width = 2340
+                height = 600
+            else:
+                width = 1170    # Default width and height
+                height = 300
 
         # Plot Temperature and Dew Point
         output_filename = dest_dir + '7-day_temperature_tdp'
@@ -705,7 +768,7 @@ inner join (select max(time_stamp) as ts, station_id from sample
             where time_stamp::date = %s group by station_id) as max_ts
         on s.time_stamp <= max_ts.ts     -- 604800 seconds in a week.
        and s.time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
-  where st.code = %s
+  where lower(st.code) = lower(%s)
     group by date_trunc('hour', s.time_stamp)
     order by date_trunc('hour', s.time_stamp) asc
     """, (plot_date, station_code,))
