@@ -20,13 +20,16 @@
  *
  ****************************************************************************/
 
+
 #ifndef DBSIGNALADAPTER_H
 #define DBSIGNALADAPTER_H
 
 #ifndef NO_ECPG
 
+
 #include <QObject>
 #include <Qtimer>
+#include "database.h"
 
 /** The DBSignalAdapter class converts database errors and other events
  * into signals that can be consumed by Qt classes. It also handles polling
@@ -70,7 +73,7 @@ signals:
      */
     void error(QString message);
 
-    void liveDataUpdated();
+    void liveDataUpdated(live_data_record rec);
     void newImage(int imageId);
     void newSample(int sampleId);
 

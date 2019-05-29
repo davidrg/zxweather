@@ -108,7 +108,8 @@ void DBSignalAdapter::notificationPump(bool force) {
     notifications n = wdb_live_data_available();
 
     if (n.live_data || force) {
-        emit liveDataUpdated();
+        live_data_record rec = wdb_get_live_data();
+        emit liveDataUpdated(rec);
     }
 
     if (n.new_image) {

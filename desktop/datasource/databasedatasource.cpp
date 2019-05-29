@@ -26,8 +26,8 @@ DatabaseDataSource::DatabaseDataSource(AbstractProgressListener *progressListene
     AbstractDataSource(progressListener, parent)
 {
 #ifndef NO_ECPG
-    connect(&DBSignalAdapter::getInstance(), SIGNAL(liveDataUpdated()),
-            this, SLOT(processLiveData()));
+    connect(&DBSignalAdapter::getInstance(), SIGNAL(liveDataUpdated(live_data_record)),
+            this, SLOT(processLiveData(live_data_record)));
     connect(&DBSignalAdapter::getInstance(), SIGNAL(newImage(int)),
             this, SLOT(processNewImage(int)));
     connect(&DBSignalAdapter::getInstance(), SIGNAL(newSample(int)),
@@ -787,26 +787,8 @@ void DatabaseDataSource::dbError(QString message) {
 }
 
 #ifndef NO_ECPG
-//void DatabaseDataSource::notificationPump(bool force) {
 
-//    notifications n = wdb_live_data_available();
-
-//    if (n.live_data || force) {
-//        processLiveData();
-//    }
-
-//    if (n.new_image) {
-//        processNewImage(n.image_id);
-//    }
-
-//    if (n.new_sample) {
-//        processNewSample(n.sample_id);
-//    }
-//}
-
-void DatabaseDataSource::processLiveData() {
-    live_data_record rec = wdb_get_live_data();
-
+void DatabaseDataSource::processLiveData(live_data_record rec) {
     LiveDataSet lds;
     lds.indoorTemperature = rec.indoor_temperature;
     lds.indoorHumidity = rec.indoor_relative_humidity;
@@ -1053,7 +1035,7 @@ void DatabaseDataSource::enableLiveData() {
     // correct if the station is currently online and horribly out of date if its
     // offline. Not much we can really do about that right now.
     if (getHardwareType() != HW_DAVIS) {
-        processLiveData();
+        processLiveData(wdb_get_live_data());
     }
 
 #else
