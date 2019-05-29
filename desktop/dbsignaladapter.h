@@ -26,20 +26,21 @@
 #ifndef NO_ECPG
 
 #include <QObject>
+#include <Qtimer>
 
 /** The DBSignalAdapter class converts database errors and other events
- * into signals that can be consumed by Qt classes.
+ * into signals that can be consumed by Qt classes. It also handles polling
+ * the database for current conditions and new samples.
  */
 class DBSignalAdapter : public QObject
 {
     Q_OBJECT
+
 public:
-    /**
-     * @brief DBSignalAdapter creates a new DB Signal Adapter.
-     * @param parent Who owns the signal adapter.
-     */
-    explicit DBSignalAdapter(QObject *parent = 0);
-    
+
+    static void connectInstance(QString host, QString username, QString password, QString stationCode) ;
+    static DBSignalAdapter& getInstance();
+
     /**
      * @brief raiseDatabaseError is called by the database layer when an error
      * occurs. This causes the suitable signals to be raised for handling by
@@ -68,6 +69,28 @@ signals:
      * @param message Error message from the database layer.
      */
     void error(QString message);
+
+    void liveDataUpdated();
+    void newImage(int imageId);
+    void newSample(int sampleId);
+
+private slots:
+    void notificationPump(bool force = false);
+
+private:
+    DBSignalAdapter();
+    ~DBSignalAdapter() {}
+
+    bool isConnected;
+    QString username;
+    QString password;
+    QString hostname;
+    QString stationCode;
+
+    QTimer notificationTimer;
+
+    DBSignalAdapter(DBSignalAdapter const&); /* Not implemented. Don't use it. */
+    void operator=(DBSignalAdapter const&); /* Not implemented. Don't use it. */
 };
 
 #endif

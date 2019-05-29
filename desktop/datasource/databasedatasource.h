@@ -58,16 +58,18 @@ public:
     sample_range_t getSampleRange();
 private slots:
 #ifndef NO_ECPG
-    void notificationPump(bool force = false);
+    //void notificationPump(bool force = false);
+    void processLiveData();
 #endif
     void dbError(QString message);
 
+    void processNewImage(int imageId);
+    void processNewSample(int sampleId);
 private:
     int getStationId();
     QString getStationHwType();
     void fetchImages(QList<int> imageIds, bool thumbnail);
-    void processNewImage(int imageId);
-    void processNewSample(int sampleId);
+
     double nullableVariantDouble(QVariant v);
     int getSampleInterval();
 
@@ -88,9 +90,6 @@ private:
     // Live data functionality
 #ifndef NO_ECPG
     void connectToDB();
-    void processLiveData();
-    QScopedPointer<QTimer> notificationTimer;
-    QScopedPointer<DBSignalAdapter> signalAdapter;
 #endif
 };
 

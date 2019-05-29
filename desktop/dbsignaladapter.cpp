@@ -22,12 +22,22 @@
 
 #ifndef NO_ECPG
 #include "dbsignaladapter.h"
+#include "database.h"
 
 #include <QtDebug>
 
-DBSignalAdapter::DBSignalAdapter(QObject *parent) :
-    QObject(parent)
+DBSignalAdapter::DBSignalAdapter() :
+    QObject(nullptr)
 {
+    wdb_set_signal_adapter(this);
+
+    // 48 seconds (Fine Offset) and 2.4 seconds (Davis)
+    // both divide cleanly into 800ms. So this number will
+    // stop the apparent update rate from varying.
+    notificationTimer.setInterval(800);
+
+    connect(&notificationTimer, SIGNAL(timeout()),
+            this, SLOT(notificationPump()));
 }
 
 void DBSignalAdapter::raiseDatabaseError(long sqlcode,
@@ -52,5 +62,63 @@ void DBSignalAdapter::raiseDatabaseError(long sqlcode,
 
     emit error(sqlerrmc);
 }
+
+
+DBSignalAdapter& DBSignalAdapter::getInstance() {
+    static DBSignalAdapter instance;
+    return instance;
+}
+
+void DBSignalAdapter::connectInstance(QString host, QString username, QString password, QString stationCode) {
+    bool connectRequired = false;
+
+    if (getInstance().isConnected) {
+       if (getInstance().username != username
+               || getInstance().password != password
+               || getInstance().hostname != host
+               || getInstance().stationCode != stationCode) {
+            connectRequired = true;
+            getInstance().notificationTimer.stop();
+            wdb_disconnect();
+       }
+    } else {
+        connectRequired = true;
+    }
+
+    if (connectRequired) {
+        qDebug() << "Notification adapter CONNECT required! Connecting..";
+
+        getInstance().hostname = host;
+        getInstance().username = username;
+        getInstance().password = password;
+        getInstance().stationCode = stationCode;
+        if (wdb_connect(getInstance().hostname.toLatin1().constData(),
+                        getInstance().username.toLatin1().constData(),
+                        getInstance().password.toLatin1().constData(),
+                        getInstance().stationCode.toLatin1().constData())) {
+
+            qDebug() << "Notification adapter connected!";
+
+            getInstance().notificationTimer.start();
+            getInstance().notificationPump(true);
+        }
+    }
+}
+void DBSignalAdapter::notificationPump(bool force) {
+    notifications n = wdb_live_data_available();
+
+    if (n.live_data || force) {
+        emit liveDataUpdated();
+    }
+
+    if (n.new_image) {
+        emit newImage(n.image_id);
+    }
+
+    if (n.new_sample) {
+        emit newSample(n.sample_id);
+    }
+}
+
 
 #endif
