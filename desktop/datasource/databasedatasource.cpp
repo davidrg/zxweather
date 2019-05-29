@@ -26,15 +26,12 @@ DatabaseDataSource::DatabaseDataSource(AbstractProgressListener *progressListene
     AbstractDataSource(progressListener, parent)
 {
 #ifndef NO_ECPG
-    signalAdapter.reset(new DBSignalAdapter(this));
-    wdb_set_signal_adapter(signalAdapter.data());
-    connect(signalAdapter.data(), SIGNAL(error(QString)),
-            this, SLOT(dbError(QString)));
-
-    notificationTimer.reset(new QTimer(this));
-    notificationTimer->setInterval(1000);
-    connect(notificationTimer.data(), SIGNAL(timeout()),
-            this, SLOT(notificationPump()));
+    connect(&DBSignalAdapter::getInstance(), SIGNAL(liveDataUpdated()),
+            this, SLOT(processLiveData()));
+    connect(&DBSignalAdapter::getInstance(), SIGNAL(newImage(int)),
+            this, SLOT(processNewImage(int)));
+    connect(&DBSignalAdapter::getInstance(), SIGNAL(newSample(int)),
+            this, SLOT(processNewSample(int)));
 #endif
 
     sampleInterval = -1;
@@ -42,13 +39,6 @@ DatabaseDataSource::DatabaseDataSource(AbstractProgressListener *progressListene
 
 DatabaseDataSource::~DatabaseDataSource() {
     // Disconnect from the DB if required.
-
-#ifndef NO_ECPG
-    if (notificationTimer->isActive()) {
-        notificationTimer->stop();
-        wdb_disconnect();
-    }
-#endif
 }
 
 int DatabaseDataSource::getStationId() {
@@ -787,13 +777,8 @@ void DatabaseDataSource::connectToDB() {
 
     qDebug() << "Connecting to target" << target << "as user" << username;
 
-    if (wdb_connect(target.toLatin1().constData(),
-                     username.toLatin1().constData(),
-                     password.toLatin1().constData(),
-                     station.toLatin1().constData())) {
-        notificationTimer->start();
-        notificationPump(true);
-    }
+    // Fetching an instance will force a connect.
+    DBSignalAdapter::connectInstance(target, username, password, station);
 }
 #endif
 
@@ -802,22 +787,22 @@ void DatabaseDataSource::dbError(QString message) {
 }
 
 #ifndef NO_ECPG
-void DatabaseDataSource::notificationPump(bool force) {
+//void DatabaseDataSource::notificationPump(bool force) {
 
-    notifications n = wdb_live_data_available();
+//    notifications n = wdb_live_data_available();
 
-    if (n.live_data || force) {
-        processLiveData();
-    }
+//    if (n.live_data || force) {
+//        processLiveData();
+//    }
 
-    if (n.new_image) {
-        processNewImage(n.image_id);
-    }
+//    if (n.new_image) {
+//        processNewImage(n.image_id);
+//    }
 
-    if (n.new_sample) {
-        processNewSample(n.sample_id);
-    }
-}
+//    if (n.new_sample) {
+//        processNewSample(n.sample_id);
+//    }
+//}
 
 void DatabaseDataSource::processLiveData() {
     live_data_record rec = wdb_get_live_data();
@@ -1071,7 +1056,6 @@ void DatabaseDataSource::enableLiveData() {
         processLiveData();
     }
 
-    notificationTimer->start();
 #else
     emit error("Support for receiving live data from the database has not been compiled into this build of the application");
 #endif
