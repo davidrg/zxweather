@@ -9,6 +9,7 @@
 
 #ifndef NO_ECPG
 #include "dbsignaladapter.h"
+#include "database.h"
 #endif
 
 class DatabaseDataSource : public AbstractDataSource
@@ -58,8 +59,7 @@ public:
     sample_range_t getSampleRange();
 private slots:
 #ifndef NO_ECPG
-    //void notificationPump(bool force = false);
-    void processLiveData();
+    void processLiveData(live_data_record record);
 #endif
     void dbError(QString message);
 

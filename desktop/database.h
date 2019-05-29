@@ -25,11 +25,11 @@
 
 #ifndef NO_ECPG
 
-#include "dbsignaladapter.h"
-
 #define ST_GENERIC 0
 #define ST_FINE_OFFSET 1
 #define ST_DAVIS 2
+
+class DBSignalAdapter;
 
 /** Additional data available from Davis weather stations.
  */

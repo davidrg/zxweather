@@ -33,6 +33,7 @@
 #include <stdlib.h>
 #include <libpq-fe.h>
 #include <QtDebug>
+#include "dbsignaladapter.h"
 
 #define LIVE_DATA_UPDATE_CHANNEL "live_data_updated"
 #define NEW_IMAGE_CHANNEL "new_image"
