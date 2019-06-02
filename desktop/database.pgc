@@ -404,7 +404,7 @@ live_data_record get_live_data_v2() {
     float apparent_temperature = 0.0;
     float absolute_pressure = 0.0;
     float average_wind_speed = 0.0;
-    int wind_direction;
+    int wind_direction = 0;
     int wind_direction_null;
     long download_timestamp = 0;
     int station_id_param = station_id;    
