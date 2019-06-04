@@ -101,7 +101,8 @@ LivePlotWindow::LivePlotWindow(bool solarAvailalble, hardware_type_t hardwareTyp
     // This is to give the averaging aggregator a constant stream of updates
     // so it keeps producing new samples when the weater station goes quiet.
     repeater.reset(new LiveDataRepeater(this));
-    connect(ds, SIGNAL(liveData(LiveDataSet)), repeater.data(), SLOT(incomingLiveData(LiveDataSet)));
+    connect(ds, SIGNAL(liveData(LiveDataSet)), repeater.data(),
+            SLOT(incomingLiveData(LiveDataSet)));
 
     // Setup the aggregator
     aggregateSeconds = settings.liveAggregateSeconds();
@@ -113,7 +114,8 @@ LivePlotWindow::LivePlotWindow(bool solarAvailalble, hardware_type_t hardwareTyp
     multipleAxisRects = settings.liveMultipleAxisRectsEnabled();
 
     if (aggregate) {
-        aggregator.reset(new AveragedLiveAggregator(aggregateSeconds, maxRainRate, stormRain, this));
+        aggregator.reset(new AveragedLiveAggregator(
+                             aggregateSeconds, maxRainRate, stormRain, this));
     } else {
         aggregator.reset(new NonAggregatingLiveAggregator(stormRain, this));
     }
@@ -137,13 +139,18 @@ LivePlotWindow::LivePlotWindow(bool solarAvailalble, hardware_type_t hardwareTyp
                    "later."),
                 tr("Choose graphs"));
 
+
+    resetData();
+
     // Load initial data
-    QDateTime minTime = QDateTime::currentDateTime().addSecs(0-timespanMinutes*60);
-    foreach (LiveDataSet lds, LiveBuffer::getInstance().getData()) {
-        if (lds.timestamp > minTime) {
-            liveData(lds);
-        }
-    }
+//    QDateTime minTime = QDateTime::currentDateTime().addSecs(0-timespanMinutes*60);
+//    foreach (LiveDataSet lds, LiveBuffer::getInstance().getData()) {
+//        if (lds.timestamp > minTime) {
+//            //liveData(lds);
+//            qDebug() << "Initial live data: " << lds.timestamp;
+//            aggregator->incomingLiveData(lds);
+//        }
+//    }
 
     ds->enableLiveData();
 }
@@ -494,6 +501,7 @@ void LivePlotWindow::addLiveValue(LiveValue v) {
 }
 
 void LivePlotWindow::liveData(LiveDataSet ds) {
+    qDebug() << "New plot data!";
     if (valuesToShow == LV_NoColumns) {
         return; // Nothing to do.
     }
@@ -686,8 +694,13 @@ void LivePlotWindow::showOptions() {
         return;
     }
 
+    bool resetPlot = false;
+
     if (aggregate != lcod.aggregate() || maxRainRate != lcod.maxRainRate() ||
             stormRain != lcod.stormRain() || aggregateSeconds != lcod.aggregatePeriod()) {
+
+        resetPlot = true;
+
         // User changed settings.
         aggregate = lcod.aggregate();
         maxRainRate = lcod.maxRainRate();
@@ -706,12 +719,9 @@ void LivePlotWindow::showOptions() {
                 this, SLOT(liveData(LiveDataSet)));
     }
 
-
     if (lcod.rangeMinutes() != timespanMinutes) {
         timespanMinutes = lcod.rangeMinutes();
     }
-
-    bool resetPlot = false;
 
     if (lcod.tagsEnabled() != axisTags) {
         axisTags = lcod.tagsEnabled();
@@ -812,15 +822,24 @@ void LivePlotWindow::resetPlot() {
 }
 
 void LivePlotWindow::resetData() {
+    qDebug() << "Reset live plot data!";
     foreach (LiveValue v, graphs.keys()) {
         graphs[v]->data().clear();
         points[v]->data().clear();
     }
 
+    ds->disableLiveData();
+    aggregator->reset();
+
     QDateTime minTime = QDateTime::currentDateTime().addSecs(0-timespanMinutes*60);
     foreach (LiveDataSet lds, LiveBuffer::getInstance().getData()) {
         if (lds.timestamp > minTime) {
-            liveData(lds);
+            //liveData(lds);
+         //   qDebug() << "LiveBuffer data @" << lds.timestamp;
+            repeater->incomingLiveData(lds);
         }
     }
+
+    ds->enableLiveData();
+    ui->plot->replot();
 }

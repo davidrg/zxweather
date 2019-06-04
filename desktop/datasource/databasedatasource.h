@@ -33,6 +33,7 @@ public:
     QSqlQuery query();
 
     void enableLiveData();
+    void disableLiveData();
 
     hardware_type_t getHardwareType();
 
@@ -86,6 +87,8 @@ private:
     //QString buildSelectForColumns(SampleColumns columns);
 
     int sampleInterval;
+
+    bool liveDataEnabled;
 
     // Live data functionality
 #ifndef NO_ECPG

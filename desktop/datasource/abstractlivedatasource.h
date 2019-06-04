@@ -113,6 +113,7 @@ public:
      * data until this is called.
      */
     virtual void enableLiveData() = 0;
+    virtual void disableLiveData() = 0;
 
 
     /** Gets the type of weather station hardware currently in use.

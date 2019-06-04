@@ -16,6 +16,7 @@ signals:
 
 public slots:
     virtual void incomingLiveData(LiveDataSet data) = 0;
+    virtual void reset() = 0;
 };
 
 #endif // ABSTRACTLIVEAGGREGATOR_H

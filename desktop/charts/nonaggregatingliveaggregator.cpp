@@ -6,6 +6,11 @@ NonAggregatingLiveAggregator::NonAggregatingLiveAggregator(bool runningTotalRain
     : AbstractLiveAggregator(parent)
 {
     this->runningTotalRain = runningTotalRain;
+    reset();
+}
+
+
+void NonAggregatingLiveAggregator::reset() {
     lastStormRain = -1;
 }
 

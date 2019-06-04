@@ -16,6 +16,7 @@ public:
     ~TcpLiveDataSource();
 
     void enableLiveData();
+    void disableLiveData();
 
     hardware_type_t getHardwareType();
 
@@ -36,6 +37,7 @@ private:
     QTimer reconnectTimer;
     QTimer watchdog;
     QDateTime LastUpdate;
+    bool liveDataEnabled;
 
     hardware_type_t hw_type;
 

@@ -15,6 +15,8 @@ public:
 
 public slots:
     void incomingLiveData(LiveDataSet data);
+    void reset();
+    void clear();
 
 private:
     qint64 nextTs();
