@@ -94,6 +94,14 @@ void DataSourceProxy::enableLiveData() {
     liveSource->enableLiveData();
 }
 
+void DataSourceProxy::disableLiveData() {
+    if (liveSource == 0) {
+        return; // ERROR
+    }
+
+    liveSource->disableLiveData();
+}
+
 
 void DataSourceProxy::fetchSamples(
             SampleColumns columns,

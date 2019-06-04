@@ -531,6 +531,10 @@ void WebDataSource::enableLiveData() {
     livePollTimer.start();
 }
 
+void WebDataSource::disableLiveData() {
+    livePollTimer.stop();
+}
+
 QString WebDataSource::stationURL() const {
     Settings& settings = Settings::getInstance();
     QString baseURL = settings.webInterfaceUrl();

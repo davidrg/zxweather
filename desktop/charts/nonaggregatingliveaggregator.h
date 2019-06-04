@@ -17,6 +17,7 @@ public:
 
 public slots:
    void incomingLiveData(LiveDataSet data);
+   void reset();
 
 private:
    bool runningTotalRain;

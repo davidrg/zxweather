@@ -38,6 +38,7 @@ public:
 
     // Reimplemented members from AbstractLiveDataSource;
     void enableLiveData();
+    void disableLiveData();
 
     // Reimplemented members from AbstractDataSource:
     void fetchSamples(

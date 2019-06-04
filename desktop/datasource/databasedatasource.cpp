@@ -35,6 +35,7 @@ DatabaseDataSource::DatabaseDataSource(AbstractProgressListener *progressListene
 #endif
 
     sampleInterval = -1;
+    liveDataEnabled = false;
 }
 
 DatabaseDataSource::~DatabaseDataSource() {
@@ -789,6 +790,9 @@ void DatabaseDataSource::dbError(QString message) {
 #ifndef NO_ECPG
 
 void DatabaseDataSource::processLiveData(live_data_record rec) {
+
+    if (!liveDataEnabled) return;
+
     LiveDataSet lds;
     lds.indoorTemperature = rec.indoor_temperature;
     lds.indoorHumidity = rec.indoor_relative_humidity;
@@ -1028,6 +1032,8 @@ void DatabaseDataSource::enableLiveData() {
         }
     }
 
+    liveDataEnabled = true;
+
     // If we're not connected to a davis hardware force a live update immediately.
     // We do this because fine offset stations in particular update infrequently
     // (every 48 seconds) and we don't want to wait around that long to show
@@ -1038,9 +1044,15 @@ void DatabaseDataSource::enableLiveData() {
         processLiveData(wdb_get_live_data());
     }
 
+
+
 #else
     emit error("Support for receiving live data from the database has not been compiled into this build of the application");
 #endif
+}
+
+void DatabaseDataSource::disableLiveData() {
+    liveDataEnabled = false;
 }
 
 hardware_type_t DatabaseDataSource::getHardwareType() {

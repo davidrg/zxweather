@@ -42,15 +42,23 @@ TcpLiveDataSource::~TcpLiveDataSource() {
 }
 
 void TcpLiveDataSource::enableLiveData() {
-    Settings& settings = Settings::getInstance();
-    qDebug() << "Connect....";
+    liveDataEnabled = true;
 
-    stationCode = settings.stationCode().toLower();
-    hostName = settings.serverHostname();
-    port = settings.serverPort();
+    if (!socket->isOpen()) {
+        Settings& settings = Settings::getInstance();
+        qDebug() << "Connect....";
 
-    socket->connectToHost(hostName, port);
-    watchdog.start();
+        stationCode = settings.stationCode().toLower();
+        hostName = settings.serverHostname();
+        port = settings.serverPort();
+
+        socket->connectToHost(hostName, port);
+        watchdog.start();
+    }
+}
+
+void TcpLiveDataSource::disableLiveData() {
+    liveDataEnabled = false;
 }
 
 void TcpLiveDataSource::reconnect() {
@@ -130,7 +138,6 @@ void TcpLiveDataSource::processStreamLine(QString line) {
     }
 }
 
-
 void TcpLiveDataSource::processLiveData(QStringList parts) {
     if (parts.at(0) != "l") {
         qDebug() << "Not a live update. Type:" << parts.at(0);
@@ -147,6 +154,8 @@ void TcpLiveDataSource::processLiveData(QStringList parts) {
         qDebug() << "Invalid live data line:" << parts.join(",");
         return;
     }
+
+    if (!liveDataEnabled) return;
 
     LiveDataSet lds;
     lds.temperature = parts.at(1).toFloat();

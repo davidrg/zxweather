@@ -46,6 +46,7 @@ public:
     QSqlQuery query();
 
     void enableLiveData();
+    void disableLiveData();
 
     hardware_type_t getHardwareType();
 

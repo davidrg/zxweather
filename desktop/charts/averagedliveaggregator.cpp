@@ -11,8 +11,16 @@ AveragedLiveAggregator::AveragedLiveAggregator(int timespan, bool maxRainRate,
     this->runningTotalRain = runningTotalRain;
     this->timespan = timespan;
 
+    reset();
+}
 
+void AveragedLiveAggregator::reset() {
     currentTs = 0;
+    clear();
+    samples = -1;
+}
+
+void AveragedLiveAggregator::clear() {
     samples = 0;
     temperature = 0;
     indoorTemperature = 0;
@@ -70,21 +78,30 @@ LiveDataSet AveragedLiveAggregator::makeLiveData(bool indoorDataAvailable, hardw
 }
 
 void AveragedLiveAggregator::incomingLiveData(LiveDataSet data) {
-
+    qDebug() << "Adding live data to the collective" << data.timestamp;
     if (currentTs == 0) {
+        qDebug() << "adopting current sample TS at" << data.timestamp;
         currentTs = data.timestamp.toMSecsSinceEpoch();
+    }
+
+    if (samples == -1) {
+        // Put the first point in the plot
+        emit liveData(data);
+        samples = 0;
     }
 
     qint64 ts = nextTs();
 
-    if (ts > currentTs) {
+    qDebug() << "This TS" << data.timestamp.toMSecsSinceEpoch()
+             << "Next TS" << ts;
+
+    if (ts < data.timestamp.toMSecsSinceEpoch()) {
+        qDebug() << "Next TS is in the past!";
+
         // Time to average it.
-        if (samples == 0) {
-            // Put the first point in the plot
-            emit liveData(data);
-        } else {
-            emit liveData(makeLiveData(data.indoorDataAvailable, data.hw_type));
-        }
+        emit liveData(makeLiveData(data.indoorDataAvailable, data.hw_type));
+
+        clear();
 
         // Then reset everything for the next time period.
         currentTs = ts;
