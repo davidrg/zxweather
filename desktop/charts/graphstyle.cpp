@@ -106,6 +106,7 @@ GraphStyle::GraphStyle(SampleColumn column) {
     case SC_Evapotranspiration:
         colour = colours.evapotranspiration;
         name = "Evapotranspiration";
+        lineStyle = QCPGraph::lsStepLeft;
         break;
     case SC_ForecastRuleId: // Not supported in graphs
     case SC_NoColumns:
