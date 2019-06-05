@@ -322,13 +322,14 @@ void MainWindow::reconnectDatabase() {
         if (!ok) {
             qDebug() << "Connect failed: " + db.lastError().driverText();
             QMessageBox::warning(this, "Connect error",
-                                 "Failed to connect to the database. Charting "
+                                 "Failed to connect to the database. Charting and Reporting "
                                  "functions will not be available. The error "
                                  "was: " + db.lastError().driverText());
             ui->actionCharts->setEnabled(false);
             ui->actionExport_Data->setEnabled(false);
             ui->actionView_Data->setEnabled(false);
             ui->actionImages->setEnabled(false);
+            ui->action_Reports->setEnabled(false);
         } else {
             qDebug() << "Connect succeeded. Checking compatibility...";
             bool result = databaseCompatibilityChecks();
