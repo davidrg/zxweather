@@ -27,7 +27,7 @@
 #include <QtDebug>
 
 DBSignalAdapter::DBSignalAdapter() :
-    QObject(nullptr)
+    QObject(NULL)
 {
     wdb_set_signal_adapter(this);
 

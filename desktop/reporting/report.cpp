@@ -947,14 +947,21 @@ Report::query_result_t Report::runDataQuery(QString queryText,
             } while (query.next());
         }
 
-    } else {
         qDebug() << "===============================";
-        qDebug() << "Query failed";
-        qDebug() << "db text:" << query.lastError().databaseText();
-        qDebug() << "driver text:" << query.lastError().driverText();
+        qDebug() << "Query succeeded";
+        qDebug() << "Rows:" << query.size();
         qDebug() << "--- query";
         qDebug() << query.executedQuery();
         qDebug() << "---- /query";
+
+    } else {
+        qWarning() << "===============================";
+        qWarning() << "Query failed";
+        qWarning() << "db text:" << query.lastError().databaseText();
+        qWarning() << "driver text:" << query.lastError().driverText();
+        qWarning() << "--- query";
+        qWarning() << query.executedQuery();
+        qWarning() << "---- /query";
         success = false;
     }
 
