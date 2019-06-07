@@ -99,6 +99,7 @@ private:
     QMap<int, GraphStyle> graphStyles;
     QPointer<QCPTextElement> plotTitle;
     QString plotTitleValue;
+    QFont plotTitleFont;
     bool plotTitleEnabled;
 
     bool addGraphsEnabled;
