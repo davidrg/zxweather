@@ -129,6 +129,7 @@ private:
     QString plotTitleValue;
     bool plotTitleEnabled;
     QColor plotTitleColour;
+    QFont plotTitleFont;
 
     QBrush plotBackgroundBrush;
 

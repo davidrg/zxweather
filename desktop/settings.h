@@ -27,6 +27,7 @@
 #include <QColor>
 #include <QStringList>
 #include <QVariantMap>
+#include <QFont>
 
 class QSettings;
 
@@ -208,6 +209,11 @@ public:
     QStringList reportSearchPath() const;
 
     int liveBufferHours() const;
+
+    QFont defaultChartTitleFont() const;
+    QFont defaultChartAxisTickLabelFont() const;
+    QFont defaultChartAxisLabelFont() const;
+    QFont defaultChartLegendFont() const;
 
 private:
     Settings();

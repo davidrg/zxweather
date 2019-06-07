@@ -23,6 +23,7 @@
 #include "settings.h"
 #include <QSettings>
 #include <QCoreApplication>
+#include <QApplication>
 #include <QFile>
 #include <QDir>
 #include <QDesktopServices>
@@ -848,4 +849,20 @@ QStringList Settings::reportSearchPath() const {
 
 int Settings::liveBufferHours() const {
     return settings->value(SettingsKey::General::LIVE_BUFFER_HOURS, 1).toInt();
+}
+
+QFont Settings::defaultChartAxisTickLabelFont() const {
+    return QApplication::font();
+}
+
+QFont Settings::defaultChartAxisLabelFont() const {
+    return defaultChartAxisTickLabelFont();
+}
+
+QFont Settings::defaultChartLegendFont() const {
+    return defaultChartAxisTickLabelFont();
+}
+
+QFont Settings::defaultChartTitleFont() const {
+    return defaultChartAxisTickLabelFont();
 }

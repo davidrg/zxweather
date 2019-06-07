@@ -159,6 +159,9 @@ QPointer<QCPAxis> WeatherPlotter::createValueAxis(AxisType type) {
     axisTypes.insert(axis,type);
     axis->setLabel(axisLabels[type]);
 
+    axis->setTickLabelFont(Settings::getInstance().defaultChartAxisTickLabelFont());
+    axis->setLabelFont(Settings::getInstance().defaultChartAxisLabelFont());
+
 #ifdef FEATURE_PLUS_CURSOR
     QPointer<QCPItemText> tag = new QCPItemText(chart);
     tag->setLayer("overlay");
@@ -239,6 +242,9 @@ QPointer<QCPAxis> WeatherPlotter::createKeyAxis(dataset_id_t dataSetId) {
     axis->setLabel(axisLabels[type]);
 
     axis->setProperty(AXIS_DATASET, dataSetId);
+
+    axis->setTickLabelFont(Settings::getInstance().defaultChartAxisTickLabelFont());
+    axis->setLabelFont(Settings::getInstance().defaultChartAxisLabelFont());
 
 #ifdef FEATURE_PLUS_CURSOR
     QPointer<QCPItemText> tag = new QCPItemText(chart);

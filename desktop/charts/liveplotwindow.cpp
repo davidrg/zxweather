@@ -235,9 +235,19 @@ QCPAxisRect* LivePlotWindow::createAxisRectForGraph(LiveValue type) {
         QCPAxisRect *rect = new QCPAxisRect(ui->plot);
         rect->setupFullAxesBox(true);
 
+        Settings& settings = Settings::getInstance();
+
         rect->axis(QCPAxis::atTop)->setVisible(false);
         rect->axis(axisTags ? QCPAxis::atLeft : QCPAxis::atRight)->setVisible(false);
+
         rect->axis(QCPAxis::atBottom)->setTicker(ticker);
+        rect->axis(QCPAxis::atBottom)->setTickLabelFont(settings.defaultChartAxisTickLabelFont());
+        rect->axis(QCPAxis::atBottom)->setLabelFont(settings.defaultChartAxisLabelFont());
+        rect->axis(QCPAxis::atLeft)->setTickLabelFont(settings.defaultChartAxisTickLabelFont());
+        rect->axis(QCPAxis::atLeft)->setLabelFont(settings.defaultChartAxisLabelFont());
+        rect->axis(QCPAxis::atRight)->setTickLabelFont(settings.defaultChartAxisTickLabelFont());
+        rect->axis(QCPAxis::atRight)->setLabelFont(settings.defaultChartAxisLabelFont());
+
 
         axisRects[type] = rect;
 

@@ -6,7 +6,7 @@
 
 load(configure)
 
-QT       += core gui network sql
+QT       += core gui network sql svg
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets printsupport concurrent uitools
 
