@@ -89,6 +89,13 @@ namespace SettingsKey {
         const QString CURSOR_ENABLED = "Chart/cursor";
         const QString CHART_WINDOW_STATE ="Chart/window_state";
         const QString CHART_WINDOW_GEOMETRY = "Chart/window_geom";
+
+        namespace FontDefaults {
+            const QString TITLE = "Chart/Fonts/title";
+            const QString LEGEND = "Chart/Fonts/legend";
+            const QString AXIS_LABEL = "Chart/Fonts/axis_label";
+            const QString TICK_LABEL = "Chart/Fonts/tick_label";
+        }
     }
 
     namespace WeatherValueWidgets {
@@ -851,18 +858,56 @@ int Settings::liveBufferHours() const {
     return settings->value(SettingsKey::General::LIVE_BUFFER_HOURS, 1).toInt();
 }
 
+
+void Settings::setDefaultChartTitleFont(QFont font) {
+    settings->setValue(SettingsKey::Chart::FontDefaults::TITLE, font.toString());
+}
+
 QFont Settings::defaultChartAxisTickLabelFont() const {
-    return QApplication::font();
+    QFont font;
+    font.fromString(settings->value(SettingsKey::Chart::FontDefaults::TICK_LABEL,
+                                    QApplication::font().toString()).toString());
+    return font;
+}
+
+void Settings::setDefaultChartAxisTickLabelFont(QFont font) {
+    settings->setValue(SettingsKey::Chart::FontDefaults::TICK_LABEL, font.toString());
 }
 
 QFont Settings::defaultChartAxisLabelFont() const {
-    return defaultChartAxisTickLabelFont();
+    QFont font;
+    font.fromString(settings->value(SettingsKey::Chart::FontDefaults::AXIS_LABEL,
+                                    QApplication::font().toString()).toString());
+    return font;
+}
+
+void Settings::setDefaultChartAxisLabelFont(QFont font) {
+    settings->setValue(SettingsKey::Chart::FontDefaults::AXIS_LABEL, font.toString());
 }
 
 QFont Settings::defaultChartLegendFont() const {
-    return defaultChartAxisTickLabelFont();
+    QFont font;
+    font.fromString(settings->value(SettingsKey::Chart::FontDefaults::LEGEND,
+                                    QApplication::font().toString()).toString());
+    return font;
+}
+
+void Settings::setDefaultChartLegendFont(QFont font) {
+    settings->setValue(SettingsKey::Chart::FontDefaults::LEGEND, font.toString());
 }
 
 QFont Settings::defaultChartTitleFont() const {
-    return QFont("sans", 12, QFont::Bold);
+    QFont font;
+    font.fromString(settings->value(
+                        SettingsKey::Chart::FontDefaults::TITLE,
+                        QFont("sans", 12, QFont::Bold).toString()).toString());
+    return font;
+
+}
+
+void Settings::resetFontsToDefaults() const {
+    settings->remove(SettingsKey::Chart::FontDefaults::TITLE);
+    settings->remove(SettingsKey::Chart::FontDefaults::LEGEND);
+    settings->remove(SettingsKey::Chart::FontDefaults::AXIS_LABEL);
+    settings->remove(SettingsKey::Chart::FontDefaults::TICK_LABEL);
 }
