@@ -210,10 +210,19 @@ public:
 
     int liveBufferHours() const;
 
+    void setDefaultChartTitleFont(QFont font);
     QFont defaultChartTitleFont() const;
+
+    void setDefaultChartAxisTickLabelFont(QFont font);
     QFont defaultChartAxisTickLabelFont() const;
+
+    void setDefaultChartAxisLabelFont(QFont font);
     QFont defaultChartAxisLabelFont() const;
+
+    void setDefaultChartLegendFont(QFont font);
     QFont defaultChartLegendFont() const;
+
+    void resetFontsToDefaults() const;
 
 private:
     Settings();

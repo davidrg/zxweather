@@ -95,8 +95,28 @@ protected slots:
     void clearSamples();
 
     void imagesCleared();
+
+
+    void setChartTitleFont();
+    void setChartLegendFont();
+    void setChartAxisLabelFont();
+    void setChartTickLabelFont();
+    void resetFontsToDefaults();
 private:
     void getCacheInfo();
+
+    QFont chartTitleFont;
+    QFont chartLegendFont;
+    QFont chartAxisLabelFont;
+    QFont chartTickLabelFont;
+
+    bool resetFonts;
+
+    bool saveChartTitleFont;
+    bool saveChartLegendFont;
+    bool saveChartAxisLabelFont;
+    bool saveChartTickLabelFont;
+
 
     Ui::SettingsDialog *ui;
     QFutureWatcher<qint64> imagesDirWatcher;

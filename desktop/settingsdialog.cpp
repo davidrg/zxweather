@@ -31,6 +31,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QDesktopServices>
+#include <QFontDialog>
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
 #include <QtConcurrent>
@@ -53,6 +54,11 @@ SettingsDialog::SettingsDialog(bool solarDataAvailable, QWidget *parent) :
     connect(ui->pbClearImages, SIGNAL(clicked()), this, SLOT(clearImages()));
     connect(&imagesDirWatcher, SIGNAL(finished()), this, SLOT(imagesSizeCalculated()));
     connect(&clearImagesWatcher, SIGNAL(finished()), this, SLOT(imagesCleared()));
+    connect(ui->tbTitleFont, SIGNAL(clicked()), this, SLOT(setChartTitleFont()));
+    connect(ui->tbLegendFont, SIGNAL(clicked()), this, SLOT(setChartLegendFont()));
+    connect(ui->tbAxisLabelFont, SIGNAL(clicked()), this, SLOT(setChartAxisLabelFont()));
+    connect(ui->tbTickLabelsFont, SIGNAL(clicked()), this, SLOT(setChartTickLabelFont()));
+    connect(ui->pbResetFonts, SIGNAL(clicked()), this, SLOT(resetFontsToDefaults()));
 
     // Disable the samples database option if the Postgres driver isn't present.
     if (!QSqlDatabase::drivers().contains("QPSQL")) {
@@ -148,7 +154,20 @@ void SettingsDialog::writeSettings() {
     else
         settings.setSampleDataSourceType(Settings::DS_TYPE_WEB_INTERFACE);
 
-    // Charts tab
+    // Chart defaults tab
+    if (resetFonts) {
+        settings.resetFontsToDefaults();
+    }
+    if (saveChartTitleFont)
+        settings.setDefaultChartTitleFont(chartTitleFont);
+    if (saveChartLegendFont)
+        settings.setDefaultChartLegendFont(chartLegendFont);
+    if (saveChartAxisLabelFont)
+        settings.setDefaultChartAxisLabelFont(chartAxisLabelFont);
+    if (saveChartTickLabelFont)
+        settings.setDefaultChartAxisTickLabelFont(chartTickLabelFont);
+
+    // Chart colours tab
     ChartColours colours;
     colours.apparentTemperature = ui->qcpApparentTemperature->color();
     colours.dewPoint = ui->qcpDewPoint->color();
@@ -170,6 +189,26 @@ void SettingsDialog::writeSettings() {
     colours.background = ui->qcpBackground->color();
 
     settings.setChartColours(colours);
+}
+
+QString fontDescription(QFont font) {
+        // font, style, size, effects (strikeout, underline)
+    QString desc = QString(QObject::tr("%1, %2pt"))
+            .arg(font.family())
+            .arg(font.pointSize());
+
+    if (!font.styleName().isEmpty()) {
+        desc += ", " + font.styleName();
+    }
+
+    if (font.strikeOut()) {
+        desc += QObject::tr(", Strikeout");
+    }
+
+    if (font.underline()) {
+        desc += QObject::tr(", Underline");
+    }
+    return desc;
 }
 
 void SettingsDialog::loadSettings() {
@@ -228,6 +267,16 @@ void SettingsDialog::loadSettings() {
 
     ui->qcpTitle->setColor(colours.title);
     ui->qcpBackground->setColor(colours.background);
+
+    chartTitleFont = settings.defaultChartTitleFont();
+    chartLegendFont = settings.defaultChartLegendFont();
+    chartAxisLabelFont = settings.defaultChartAxisLabelFont();
+    chartTickLabelFont = settings.defaultChartAxisTickLabelFont();
+
+    ui->tbTitleFont->setText(fontDescription(chartTitleFont));
+    ui->tbLegendFont->setText(fontDescription(chartLegendFont));
+    ui->tbAxisLabelFont->setText(fontDescription(chartAxisLabelFont));
+    ui->tbTickLabelsFont->setText(fontDescription(chartTickLabelFont));
 
     dataSourceChanged();
 }
@@ -353,4 +402,68 @@ void SettingsDialog::clearSamples() {
     WebCacheDB::getInstance().clearSamples();
     RangeRequestWebTask::ClearURLCache();
     getCacheInfo();
+}
+
+void SettingsDialog::setChartTitleFont() {
+    bool ok;
+    QFont newFont = QFontDialog::getFont(&ok, chartTitleFont, this, tr("Default Chart Title Font"));
+
+    if (ok) {
+        chartTitleFont = newFont;
+        ui->tbTitleFont->setText(fontDescription(chartTitleFont));
+        saveChartTitleFont = true;
+    }
+}
+
+void SettingsDialog::setChartLegendFont() {
+    bool ok;
+    QFont newFont = QFontDialog::getFont(&ok, chartLegendFont, this, tr("Default Chart Legend Font"));
+
+    if (ok) {
+        chartLegendFont = newFont;
+        ui->tbLegendFont->setText(fontDescription(chartLegendFont));
+        saveChartLegendFont = true;
+    }
+}
+
+void SettingsDialog::setChartAxisLabelFont() {
+    bool ok;
+    QFont newFont = QFontDialog::getFont(&ok, chartAxisLabelFont, this, tr("Default Chart Axis Labe; Font"));
+
+    if (ok) {
+        chartAxisLabelFont = newFont;
+        ui->tbAxisLabelFont->setText(fontDescription(chartAxisLabelFont));
+        saveChartAxisLabelFont = true;
+    }
+}
+
+void SettingsDialog::setChartTickLabelFont() {
+    bool ok;
+    QFont newFont = QFontDialog::getFont(&ok, chartTickLabelFont, this, tr("Default Chart Axis Tick Label Font"));
+
+    if (ok) {
+        chartTickLabelFont = newFont;
+        ui->tbTickLabelsFont->setText(fontDescription(chartTickLabelFont));
+        saveChartTickLabelFont = true;
+    }
+}
+
+void SettingsDialog::resetFontsToDefaults() {
+    resetFonts = true;
+
+    saveChartTitleFont = false;
+    saveChartLegendFont = false;
+    saveChartAxisLabelFont = false;
+    saveChartTickLabelFont = false;
+
+    chartTitleFont = QFont("sans", 12, QFont::Bold);
+    chartLegendFont = QApplication::font();
+    chartAxisLabelFont = QApplication::font();
+    chartTickLabelFont = QApplication::font();
+
+    ui->tbTitleFont->setText(fontDescription(chartTitleFont));
+    ui->tbLegendFont->setText(fontDescription(chartLegendFont));
+    ui->tbAxisLabelFont->setText(fontDescription(chartAxisLabelFont));
+    ui->tbTickLabelsFont->setText(fontDescription(chartTickLabelFont));
+
 }
