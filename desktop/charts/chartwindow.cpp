@@ -12,6 +12,7 @@
 #include "datasource/dialogprogresslistener.h"
 
 #include <QFileDialog>
+#include <QFontDialog>
 #include <QtDebug>
 #include <QPen>
 #include <QBrush>
@@ -309,6 +310,7 @@ void ChartWindow::textElementDoubleClick(QMouseEvent *event)
                 return;
             }
             element->setText(newTitle);
+            plotTitleValue = newTitle;
             ui->chart->replot();
         }
     }
@@ -323,6 +325,11 @@ void ChartWindow::chartContextMenuRequested(QPoint point)
         return;
     }
 
+    if (plotTitleEnabled && plotTitle->selectTest(point, false) >= 0 && plotTitle->visible()) {
+        showTitleContextMenu(point);
+        return;
+    }
+
 
     // Check if an X axis was right-clicked on
     QList<QCPAxis*> keyAxes = ui->chart->axisRect()->axes(QCPAxis::atTop |
@@ -334,17 +341,15 @@ void ChartWindow::chartContextMenuRequested(QPoint point)
         }
     }
 
-    // Commented out: Intended functions were rename and move to opposite. Turns
-    // out only one of those is possbile and the other probably not so useful.
-//    // Check if a Y axis was right-clicked on
-//    QList<QCPAxis*> valueAxes = ui->chart->axisRect()->axes(QCPAxis::atLeft |
-//                                                          QCPAxis::atRight);
-//    foreach (QCPAxis* valueAxis, valueAxes) {
-//        if (valueAxis->selectTest(point, false) >= 0) {
-//            showValueAxisContextMenu(point, valueAxis);
-//            return;
-//        }
-//    }
+    // Check if a Y axis was right-clicked on
+    QList<QCPAxis*> valueAxes = ui->chart->axisRect()->axes(QCPAxis::atLeft |
+                                                          QCPAxis::atRight);
+    foreach (QCPAxis* valueAxis, valueAxes) {
+        if (valueAxis->selectTest(point, false) >= 0) {
+            showValueAxisContextMenu(point, valueAxis);
+            return;
+        }
+    }
 
     showChartContextMenu(point);
 }
@@ -492,7 +497,7 @@ void ChartWindow::showLegendContextMenu(QPoint point)
         if (ui->chart->legend->item(i)->selectTest(point, false) >= 0) {
            QCPAbstractLegendItem *item = ui->chart->legend->item(i);
            QCPPlottableLegendItem *plottableItem = qobject_cast<QCPPlottableLegendItem*>(item);
-           if (plottableItem != NULL) {
+           if (plottableItem != NULL) {               
                // Deselect any currently selected plottables
                for (int i = 0; i < ui->chart->plottableCount(); i++) {
                    ui->chart->plottable(i)->setSelection(QCPDataSelection(QCPDataRange(0, 0)));
@@ -509,8 +514,8 @@ void ChartWindow::showLegendContextMenu(QPoint point)
                menu->addAction(tr("&Change Style..."), this,
                                     SLOT(changeSelectedGraphStyle()));
                menu->addAction(tr("R&emove"), this, SLOT(removeSelectedGraph()));
-               menu->addSeparator();
 
+               menu->addSeparator();
                // We've found the legend item that was right-clicked - no need to search
                // any further.
                break;
@@ -518,7 +523,8 @@ void ChartWindow::showLegendContextMenu(QPoint point)
         }
     }
 
-
+    menu->addAction(tr("&Change Font..."), this, SLOT(changeLegendFont()));
+    menu->addSeparator();
 
     // Options to re-position the legend
     menu->addAction("Move to top left",
@@ -553,6 +559,56 @@ void ChartWindow::showLegendContextMenu(QPoint point)
     menu->popup(ui->chart->mapToGlobal(point));
 }
 
+void ChartWindow::showTitleContextMenu(QPoint point) {
+    QMenu *menu = new QMenu(this);
+    menu->setAttribute(Qt::WA_DeleteOnClose);
+
+    QAction* act = menu->addAction(tr("&Edit..."), this, SLOT(editTitle()));
+    QFont f = act->font();
+    f.setBold(true);
+    act->setFont(f);
+
+    menu->addAction(tr("&Change font..."), this, SLOT(changeTitleFont()));
+    menu->addSeparator();
+    menu->addAction(tr("&Hide"), this, SLOT(removeTitle()));
+
+    menu->popup(ui->chart->mapToGlobal(point));
+}
+
+void ChartWindow::changeTitleFont() {
+    bool ok;
+    QFont newFont = QFontDialog::getFont(&ok, plotTitleFont, this, tr("Title Font"));
+
+    if (ok) {
+        plotTitle->setFont(newFont);
+        plotTitleFont = newFont;
+        ui->chart->replot();
+    }
+}
+
+void ChartWindow::editTitle() {
+    bool ok;
+    QString newTitle = QInputDialog::getText(
+                this,
+                tr("Change Title"),
+                tr("New title:"),
+                QLineEdit::Normal,
+                plotTitle->text(),
+                &ok);
+
+    if (ok) {
+        if (newTitle.isEmpty()) {
+            plotTitleValue = QString();
+            setWindowTitle(tr("Untitled - Chart"));
+            QTimer::singleShot(1, this, SLOT(removeTitle()));
+            return;
+        }
+        plotTitle->setText(newTitle);
+        ui->chart->replot();
+        plotTitleValue = newTitle;
+    }
+}
+
 void ChartWindow::showKeyAxisContextMenu(QPoint point, QCPAxis *axis) {
 
     // Deselect all X axis
@@ -572,6 +628,11 @@ void ChartWindow::showKeyAxisContextMenu(QPoint point, QCPAxis *axis) {
                     this, SLOT(renameSelectedKeyAxis()));
     menu->addAction(tr("&Hide Axis"),
                     this, SLOT(hideSelectedKeyAxis()));
+
+    menu->addAction(tr("&Change Label Font..."), this, SLOT(changeAxisLabelFont()));
+    menu->addAction(tr("&Change Tick Label Font..."), this, SLOT(changeAxisTickLabelFont()));
+
+    menu->addSeparator();
 
     bool graphsAvailable = false;
     dataset_id_t ds = getSelectedDataset();
@@ -596,6 +657,48 @@ void ChartWindow::showKeyAxisContextMenu(QPoint point, QCPAxis *axis) {
     }
 
     menu->popup(ui->chart->mapToGlobal(point));
+}
+
+void ChartWindow::changeAxisLabelFont() {
+    QCPAxis* selectedAxis = 0;
+
+    foreach(QCPAxis* axis, ui->chart->axisRect()->axes()) {
+        if (axis->selectedParts().testFlag(QCPAxis::spAxis) ||
+                axis->selectedParts().testFlag(QCPAxis::spTickLabels))
+            selectedAxis = axis;
+    }
+
+    if (selectedAxis != NULL) {
+        QFont current = selectedAxis->labelFont();
+        bool ok;
+        QFont newFont = QFontDialog::getFont(&ok, current, this, tr("Axis Label Font"));
+
+        if (ok) {
+            selectedAxis->setLabelFont(newFont);
+            ui->chart->replot();
+        }
+    }
+}
+
+void ChartWindow::changeAxisTickLabelFont() {
+    QCPAxis* selectedAxis = 0;
+
+    foreach(QCPAxis* axis, ui->chart->axisRect()->axes()) {
+        if (axis->selectedParts().testFlag(QCPAxis::spAxis) ||
+                axis->selectedParts().testFlag(QCPAxis::spTickLabels))
+            selectedAxis = axis;
+    }
+
+    if (selectedAxis != NULL) {
+        QFont current = selectedAxis->tickLabelFont();
+        bool ok;
+        QFont newFont = QFontDialog::getFont(&ok, current, this, tr("Axis Tick Label Font"));
+
+        if (ok) {
+            selectedAxis->setTickLabelFont(newFont);
+            ui->chart->replot();
+        }
+    }
 }
 
 void ChartWindow::renameSelectedKeyAxis() {    
@@ -724,22 +827,26 @@ void ChartWindow::removeDataSet(dataset_id_t dsId) {
     emit dataSetWasRemoved(dsId);
 }
 
-//void ChartWindow::showValueAxisContextMenu(QPoint point, QCPAxis *axis) {
+void ChartWindow::showValueAxisContextMenu(QPoint point, QCPAxis *axis) {
 
-//    axis->setSelectedParts(QCPAxis::spAxis | QCPAxis::spTickLabels |
-//                           QCPAxis::spAxisLabel);
-//    ui->chart->replot();
+    axis->setSelectedParts(QCPAxis::spAxis | QCPAxis::spTickLabels |
+                           QCPAxis::spAxisLabel);
+    ui->chart->replot();
 
-//    QMenu* menu = new QMenu(this);
-//    menu->setAttribute(Qt::WA_DeleteOnClose);
+    QMenu* menu = new QMenu(this);
+    menu->setAttribute(Qt::WA_DeleteOnClose);
 
-//    menu->addAction("&Rename",
-//                    this, SLOT(renameSelectedValueAxis()));
+    menu->addAction("&Rename",
+                    this, SLOT(renameSelectedValueAxis()));
+
+    menu->addAction(tr("&Change Label Font..."), this, SLOT(changeAxisLabelFont()));
+    menu->addAction(tr("&Change Tick Label Font..."), this, SLOT(changeAxisTickLabelFont()));
+
 //    menu->addAction("&Move to Opposite",
 //                    this, SLOT(moveSelectedValueAxisToOpposite()));
 
-//    menu->popup(ui->chart->mapToGlobal(point));
-//}
+    menu->popup(ui->chart->mapToGlobal(point));
+}
 
 
 
@@ -754,6 +861,34 @@ void ChartWindow::removeDataSet(dataset_id_t dsId) {
 //    }
 //}
 
+
+void ChartWindow::renameSelectedValueAxis() {
+    QCPAxis* valueAxis = 0;
+
+    foreach(QCPAxis* axis, ui->chart->axisRect()->axes(QCPAxis::atLeft | QCPAxis::atRight)) {
+        if (axis->selectedParts().testFlag(QCPAxis::spAxis) ||
+                axis->selectedParts().testFlag(QCPAxis::spTickLabels))
+            valueAxis = axis;
+    }
+
+    if (valueAxis == 0) {
+        return;
+    }
+
+    bool ok;
+    QString name = QInputDialog::getText(
+                this,
+                "Rename Axis",
+                "New Axis Label:",
+                QLineEdit::Normal,
+                valueAxis->label(),
+                &ok);
+    if (ok) {
+        valueAxis->setLabel(name);
+        emit dataSetRenamed(valueAxis->property(AXIS_DATASET).toInt(), name);
+        ui->chart->replot();
+    }
+}
 
 void ChartWindow::addTitle()
 {
@@ -802,12 +937,13 @@ void ChartWindow::addTitle(QString title) {
     plotTitleEnabled = true;
     plotTitleValue = title;
 
-    plotTitle = new QCPTextElement(ui->chart, title, QFont("sans", 12, QFont::Bold));
+    plotTitle = new QCPTextElement(ui->chart, title, plotTitleFont);
 
     connect(plotTitle, SIGNAL(doubleClicked(QMouseEvent*)), this, SLOT(textElementDoubleClick(QMouseEvent*)));
 
     plotTitle->setTextColor(plotTitleColour);
-    plotTitle->setFont(plotTitleFont);
+    plotTitle->setSelectable(true);
+
     ui->chart->plotLayout()->insertRow(0);
     ui->chart->plotLayout()->addElement(0, 0, plotTitle);
 
@@ -871,6 +1007,17 @@ void ChartWindow::moveLegend()
                         0, (Qt::Alignment)intData);
             ui->chart->replot();
         }
+    }
+}
+
+void ChartWindow::changeLegendFont() {
+    QFont current = ui->chart->legend->font();
+    bool ok;
+    QFont newFont = QFontDialog::getFont(&ok, current, this, tr("Legend Font"));
+
+    if (ok) {
+        ui->chart->legend->setFont(newFont);
+        ui->chart->replot();
     }
 }
 
