@@ -864,5 +864,5 @@ QFont Settings::defaultChartLegendFont() const {
 }
 
 QFont Settings::defaultChartTitleFont() const {
-    return defaultChartAxisTickLabelFont();
+    return QFont("sans", 12, QFont::Bold);
 }

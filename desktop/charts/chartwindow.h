@@ -65,10 +65,12 @@ private slots:
     void chartContextMenuRequested(QPoint point);
     void addTitle();
     void removeTitle();
+    void editTitle();
     void showLegendToggle();
     void showTitleToggle();
     void showGridToggle();
     void moveLegend();
+    void changeLegendFont();
     void removeSelectedGraph();
     void renameSelectedGraph();
     void changeSelectedGraphStyle();
@@ -76,10 +78,14 @@ private slots:
     void customiseChart();
     void addDataSet();
     void renameSelectedKeyAxis();
+    void renameSelectedValueAxis();
     void hideSelectedKeyAxis();
     void changeSelectedKeyAxisTimespan();
     void removeSelectedKeyAxis();
     void removeDataSet(dataset_id_t dsId);
+    void changeTitleFont();
+    void changeAxisLabelFont();
+    void changeAxisTickLabelFont();
 
     void showDataSetsWindow();
 
@@ -108,6 +114,7 @@ signals:
 
 private:
     void showLegendContextMenu(QPoint point);
+    void showTitleContextMenu(QPoint point);
     void showChartContextMenu(QPoint point);
     void showKeyAxisContextMenu(QPoint point, QCPAxis* axis);
     void showValueAxisContextMenu(QPoint point, QCPAxis* axis);
