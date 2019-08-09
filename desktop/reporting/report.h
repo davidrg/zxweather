@@ -159,7 +159,7 @@ private:
         QString view_output_template; // For templated output on screen
 
         // for OF_TABLE
-        QString query_name;  // for grid/csv output
+        QString dataset_name;  // for grid/csv output
 
         // default filename for saving. If output type is OT_SAVE and
         // multiple outputs are present this will be the save filename (the
