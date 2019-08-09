@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <QScopedPointer>
 #include <QItemSelection>
+#include <QDateTime>
 
 #include "datasource/abstractdatasource.h"
 #include "imagemodel.h"
@@ -19,7 +20,7 @@ class ViewImagesWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    explicit ViewImagesWindow(QWidget *parent = 0);
+    explicit ViewImagesWindow(QDate atDate = QDate(), QWidget *parent = 0);
     ~ViewImagesWindow();
 
 public slots:
@@ -78,6 +79,8 @@ private:
     QModelIndex currentImageIndex;
     bool imageLoaded;
 
+    QDate onLoadExpandDate;
+
     // Status bar
     QLabel *location;
     QLabel *itemCount;
@@ -104,7 +107,7 @@ private:
 
     void loadImageForIndex(QModelIndex index);
     void contextMenu(QPoint point, QModelIndex idx, ContextMenuSource source);
-    void expandCurrentDay(bool expandDay);
+    void expandDate(QDate date, bool expandDate);
     void updateLocation(QModelIndex index);
     QString getCurrentLocation(QModelIndex index);
     void updateItemCount();

@@ -348,13 +348,19 @@ QString TreeItem::sourceCode() const {
 ImageModel::ImageModel(AbstractDataSource *dataSource, QObject *parent)
     : QAbstractItemModel(parent)
 {
-    this->dataSource = dataSource;
-
     // Create the root item
     rootNode = 0;
     treeBuilt = false;
     resetTree();
     loadingImages = false;
+
+    if (dataSource != 0) {
+        setDataSource(dataSource);
+    }
+}
+
+void ImageModel::setDataSource(AbstractDataSource *dataSource) {
+    this->dataSource = dataSource;
 
     connect(dataSource,
             SIGNAL(imageDatesReady(QList<ImageDate>,QList<ImageSource>)),
@@ -375,6 +381,7 @@ ImageModel::ImageModel(AbstractDataSource *dataSource, QObject *parent)
     // Launch a query to populate the tree
     dataSource->fetchImageDateList();
 }
+
 
 QMap<QString, ImageSource> imageSourcesListToMap(QList<ImageSource> sources) {
     QMap<QString, ImageSource> imageSources;
@@ -433,7 +440,7 @@ void ImageModel::imageDatesReady(QList<ImageDate> dates,
 }
 
 void ImageModel::buildTree(QList<ImageDate> dates, QList<ImageSource> sources) {
-
+    qDebug() << "Rebuild tree...";
     beginResetModel();
     resetTree();
 
@@ -511,8 +518,10 @@ void ImageModel::buildTree(QList<ImageDate> dates, QList<ImageSource> sources) {
             }
         }
     }
-    endResetModel();
+    qDebug() << "Tree rebuild complete.";
     treeBuilt = true;
+    endResetModel();
+    emit modelReady();
 }
 
 TreeItem* GetYear(TreeItem *root, int year) {

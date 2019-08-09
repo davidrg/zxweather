@@ -31,12 +31,14 @@
  *  -> Test: Live image loading on new image source
  */
 
-ViewImagesWindow::ViewImagesWindow(QWidget *parent) :
+ViewImagesWindow::ViewImagesWindow(QDate atDate, QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::ViewImagesWindow)
 {
     ui->setupUi(this);
     ui->lImage->setScaled(false);
+
+    onLoadExpandDate = atDate;
 
     // This doesn't seem to fix the overpaint
     //ui->scrollArea->setFrameStyle(QFrame::NoFrame);
@@ -96,13 +98,16 @@ ViewImagesWindow::ViewImagesWindow(QWidget *parent) :
     else
         dataSource.reset(new WebDataSource(new DialogProgressListener(this), this));
 
-    model.reset(new ImageModel(dataSource.data(), this));
-
-    ui->tvDetail->setIconSize(QSize(16,16));
-
+    ImageModel *m = new ImageModel(NULL, this);
+    model.reset(m);
+    connect(m, SIGNAL(modelReady()), this, SLOT(expandNow()));
     ui->tvImageSet->setModel(model.data());
     ui->tvDetail->setModel(model.data());
     ui->lvImageList->setModel(model.data());
+
+    m->setDataSource(dataSource.data());
+
+    ui->tvDetail->setIconSize(QSize(16,16));
 
     ui->tvImageSet->hideColumn(ImageModel::COL_TIME);
     ui->tvImageSet->hideColumn(ImageModel::COL_TYPE);
@@ -117,8 +122,6 @@ ViewImagesWindow::ViewImagesWindow(QWidget *parent) :
     setViewMode((ViewImagesWindowViewMode)settings.imagesWindowViewMode());
     showHidePreviewPane(settings.imagesWindowPreviewPaneVisible());
     showHideTreePane(settings.imagesWindowNavigationPaneVisible());
-
-    connect(model.data(), SIGNAL(modelReset()), this, SLOT(expandNow()));
 
     // Update layout of image list as items come in
     connect(model.data(), SIGNAL(layoutChanged()),
@@ -605,36 +608,40 @@ void ViewImagesWindow::openItem() {
 }
 
 void ViewImagesWindow::expandNow() {
-    if (Settings::getInstance().showCurrentDayInImageWindow()) {
-        expandCurrentDay(Settings::getInstance().selectCurrentDayInImageWindow());
+    qDebug() << "Ready to expand date";
+
+    if (!onLoadExpandDate.isValid()) {
+        expandDate(QDate::currentDate(),
+                   Settings::getInstance().selectCurrentDayInImageWindow());
+    } else {
+        expandDate(onLoadExpandDate, true);
     }
 }
 
-void ViewImagesWindow::expandCurrentDay(bool expandDay) {
-    qDebug() << "Expanding current date";
+void ViewImagesWindow::expandDate(QDate date, bool expandDay) {
+    qDebug() << "Expanding to date" << date;
 
-    QDate now = QDate::currentDate();
 
     for (int i = 0; i < model->rowCount(); i++) {
         // Years
         QModelIndex yearIdx = model->index(i, 0);
         int year = model->itemDate(yearIdx).year();
         qDebug() << "Found year" << year;
-        if (now.year() == year) {
+        if (date.year() == year) {
             ui->tvImageSet->expand(yearIdx);
             for (int j = 0; j < model->rowCount(yearIdx); j++) {
                 // Months
                 QModelIndex monthIdx = yearIdx.child(j, 0);
                 int month = model->itemDate(monthIdx).month();
                 qDebug() << "Found month" << month;
-                if (month == now.month()) {
+                if (month == date.month()) {
                     ui->tvImageSet->expand(monthIdx);
                     if (expandDay) {
                         for (int k = 0; k < model->rowCount(monthIdx); k++) {
                             QModelIndex dayIdx = monthIdx.child(k, 0);
                             int day = model->itemDate(dayIdx).day();
                             qDebug() << "Found day" << day;
-                            if (day == now.day()) {
+                            if (day == date.day()) {
                                 //ui->tvImageSet->expand(dayIdx);
                                 ui->tvImageSet->selectionModel()->setCurrentIndex(dayIdx, QItemSelectionModel::Select);
                                 setViewIndex(dayIdx);
