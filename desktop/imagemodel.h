@@ -49,8 +49,10 @@ class ImageModel : public QAbstractItemModel
 {
     Q_OBJECT
 public:
-    explicit ImageModel(AbstractDataSource *dataSource, QObject *parent = 0);
+    explicit ImageModel(AbstractDataSource *dataSource = 0, QObject *parent = 0);
     ~ImageModel();
+
+    void setDataSource(AbstractDataSource *dataSource);
 
     QVariant headerData(int section, Qt::Orientation orientation,
                         int role = Qt::DisplayRole) const;
@@ -100,6 +102,7 @@ signals:
     void lazyLoadingComplete(QModelIndex index);
     void thumbnailReady(QModelIndex index);
     void imageReady(QModelIndex index);
+    void modelReady();
 
 public slots:
     // Connect this to an AbstractLiveDataSource to auto-refresh station-day nodes when
