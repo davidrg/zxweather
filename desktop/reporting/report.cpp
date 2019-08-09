@@ -362,17 +362,25 @@ Report::Report(QString name)
                 output.view_output_template = readFile(reportDir + o["view_template"].toString());
             }
         } else if (output.format == OF_TABLE) {
-            if (!o.contains("query")) {
+            if (!o.contains("query") && !o.contains("dataset")) {
                 qWarning() << "invalid output" << key
                            << "for report" << name
                            << "- no query specified for TABLE format output";
                 continue;
             }
-            output.query_name = o["query"].toString();
-            if (!queries.keys().contains(output.query_name)) {
+
+            bool is_query = false;
+            if (o.contains("query")) {
+                output.dataset_name = o["query"].toString();
+                is_query = true;
+            } else if (o.contains("dataset")) {
+                output.dataset_name = o["dataset"].toString();
+            }
+
+            if (!queries.keys().contains(output.dataset_name) && is_query) {
                 qWarning() << "invalid output" << key
                            << "for report" << name
-                           << "- no such query" << output.query_name
+                           << "- no such query" << output.dataset_name
                            << "for TABLE format output";
                 continue;
             }
@@ -415,7 +423,7 @@ Report::Report(QString name)
             o.name = q.name;
             o.title = q.name;
             o.format = OF_TABLE;
-            o.query_name = q.name;
+            o.dataset_name = q.name;
             this->outputs.append(o);
         }
 
@@ -1170,12 +1178,12 @@ void Report::outputToUI(QMap<QString, QVariant> reportParameters,
 
             files.append(output_file);
 
-        } else if (output.format == OF_TABLE) {
+        } else if (output.format == OF_TABLE && queries.contains(output.dataset_name)) {
 //            QSqlQueryModel *model = new QSqlQueryModel();
 //            model->setQuery(queries[output.query_name]);
             QueryResultModel *model = new QueryResultModel(
-                        queries[output.query_name].columnNames,
-                        queries[output.query_name].rowData);
+                        queries[output.dataset_name].columnNames,
+                        queries[output.dataset_name].rowData);
 
             QStringList hideColumns;
             for(int i = 0; i < model->columnCount(QModelIndex()); i++) {
@@ -1194,7 +1202,7 @@ void Report::outputToUI(QMap<QString, QVariant> reportParameters,
             report_output_file_t output_file;
             output_file.default_filename = output.filename;
             output_file.dialog_filter = QObject::tr("CSV Files (*.csv)");
-            output_file.data = queryResultToCSV(queries[output.query_name], output.saveColumns);
+            output_file.data = queryResultToCSV(queries[output.dataset_name], output.saveColumns);
             output_file.columnHeadings = output.saveColumns;
 
             if (output_file.default_filename.isEmpty()) {
@@ -1249,7 +1257,7 @@ void Report::outputToDisk(QMap<QString, QVariant> reportParameters,
             report_output_file_t output_file;
             output_file.default_filename = output.filename;
             output_file.dialog_filter = QObject::tr("CSV Files (*.csv)");
-            output_file.data = queryResultToCSV(queries[output.query_name], output.saveColumns);
+            output_file.data = queryResultToCSV(queries[output.dataset_name], output.saveColumns);
             output_file.columnHeadings = output.saveColumns;
 
             if (output_file.default_filename.isEmpty()) {
