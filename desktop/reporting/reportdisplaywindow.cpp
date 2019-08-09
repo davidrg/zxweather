@@ -12,11 +12,13 @@
 #include <QFontDatabase>
 #include <QDesktopServices>
 #include <QHeaderView>
-#include "sortproxymodel.h"
+#include <QDate>
 
+#include "sortproxymodel.h"
 #include "datasource/samplecolumns.h"
 #include "charts/chartwindow.h"
 #include "viewdatasetwindow.h"
+#include "viewimageswindow.h"
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
 #include <QUrlQuery>
@@ -195,6 +197,11 @@ void ReportDisplayWindow::saveReport() {
     Report::saveReport(outputs);
 }
 
+QDate decodeDate(QUrl url) {
+    QUrlQuery q(url);
+    return QDate::fromString(q.queryItemValue("date"), Qt::ISODate);
+}
+
 DataSet decodeDataSet(QUrl url) {
     QString start, end, title, graphs, aggregate, grouping, group_minutes;
 
@@ -342,6 +349,11 @@ void ReportDisplayWindow::linkClicked(QUrl url) {
             DataSet ds = decodeDataSet(url);
 
             ViewDataSetWindow *window = new ViewDataSetWindow(ds);
+            window->setAttribute(Qt::WA_DeleteOnClose);
+            window->show();
+            return;
+        } else if (url.authority() == "view-images") {
+            ViewImagesWindow *window = new ViewImagesWindow(decodeDate(url));
             window->setAttribute(Qt::WA_DeleteOnClose);
             window->show();
             return;
