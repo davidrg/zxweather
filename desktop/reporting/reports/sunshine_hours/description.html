@@ -1,0 +1,50 @@
+<html>
+<head>
+<title>Sunshine Hours</title>
+</head>
+<body>
+<b>Sunshine Hours</b>
+<hr>
+<p>
+    Calculates hours of bright sunshine by comparing readings from the
+    weather stations solar sensors to the calculated maximum solar radiation
+    based on the stations location and the time of year.
+</p>
+<p>
+    Note that the numbers produced by this report are not a true count of
+    sunshine hours but rather an approximation. To calculate real sunshine
+    hours a proper Sun Recorder is required.
+</p>
+<p>
+    This report implements two algorithms for calculating maximum solar
+    radiation. Each algorithm takes a parameter which you may wish to
+    adjust for your location. Additionally the threshold altered to 
+    control how close the solar radiation sensors must be to the calculated
+    maximum for it to be considered bright sunshine. The <em>Raw Data</em> output
+    produced by this report may be useful in fine-tuning these parameters.
+</p>
+
+<p></p>
+<b>Outputs</b>
+<hr>
+
+<p>The report produces the following outputs</p>
+
+<h4>Daily Sunshine Hours:</h4>
+<p>Total sunshine hours by day with expected sunshine and a sunshine percentage sorted descending. Links to plot each day are provided as well as links to the images for each day (where images exist)</p>
+
+<h4>Daily Sunshine Hours (grid):</h4>
+<p>Same data as in the table in the <em>Daily Sunshine Hours</em> output but without the totals row at the bottom.</p>
+
+<h4>Plain Text:</h4>
+<p>Same format as the Weather-Link Bright Sunshine Hours report (but with a more sophisticated algorithm behind the numbers). Output is mostly the same as the <em>Daily Sunshine Hours</em> output but without the percentage and in plain-text.</p>
+
+<h4>Raw Data:</h4>
+<p>This is the underlying raw data - one row per sample.
+    Columns are Start Time, Solar Radiation, Max Solar Radiation, Sunshine Hours.
+    This data is mostly useful when adjusting the report algorithm parameters.
+    Includes only the first 1000 rows of date.
+</p>
+
+</body>
+</html>

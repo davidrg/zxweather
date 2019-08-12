@@ -61,5 +61,18 @@
         <file>rain/template.txt</file>
         <file>rain/yearly_psql.sql</file>
         <file>rain/yearly_sqlite.sql</file>
+        <file>sunshine_hours/criteria.ui</file>
+        <file>sunshine_hours/description.html</file>
+        <file>sunshine_hours/psql.sql</file>
+        <file>sunshine_hours/report.js</file>
+        <file>sunshine_hours/report.json</file>
+        <file>sunshine_hours/solar.js</file>
+        <file>sunshine_hours/sqlite.sql</file>
+        <file>sunshine_hours/sun_hours.html</file>
+        <file>sunshine_hours/sun_hours_save.html</file>
+        <file>sunshine_hours/weather.png</file>
+        <file>sunshine_hours/wlformat.txt</file>
+        <file>sunshine_hours/libs/moment.js</file>
+        <file>sunshine_hours/libs/moment-timezone-with-data-2012-2022.js</file>
     </qresource>
 </RCC>

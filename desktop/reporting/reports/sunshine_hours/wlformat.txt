@@ -1,0 +1,11 @@
+{{#info}}		 Total Hours of Bright Sunshine {{run_date}}
+
+ Total Hours: {{total_hours}}
+ Start Date: {{start_date}}
+ End Date: {{end_date}}
+  Threshold: {{threshold}} W/m²
+
+ Hours for last {{count}} days...{{/info}}
+{{#txt_day_summary}}
+{{date}}   {{total_sun_hours}}
+{{/txt_day_summary}}

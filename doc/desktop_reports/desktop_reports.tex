@@ -20,13 +20,13 @@
 \newcommand{\projectnum}{DAZW}
 \newcommand{\docnum}{DCR1}
 \newcommand{\docrev}{001}
-\newcommand{\docdate}{June 2018}
+\newcommand{\docdate}{August 2019}
 \newcommand{\docauthor}{David Goodwin}
 \newcommand{\docabstract}{This manual documents the zxweather desktop clients reporting system, cache schema and built-in reports.}
 \newcommand{\docupdateinfo}{This is a new manual}
 \newcommand{\docosver}{Linux; Microsoft Windows 7+}
 \newcommand{\docswver}{zxweather 1.0}
-\newcommand{\doccopyright}{\textcircled{c} Copyright David Goodwin, 2018.}
+\newcommand{\doccopyright}{\textcircled{c} Copyright David Goodwin, 2018, 2019.}
 \newcommand{\doclicense}{Use, reproduction and modification of this document is permitted subject to the terms of the GNU Free Documentation License, Version 1.3 or any later vesion published by the Free Software Foundation. See \url{http://www.gnu.org/copyleft/fdl.html} for full license text.}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1912,7 +1912,26 @@ This output is compatible with the equivalent report in WeatherLink and includes
 \end{tabular}
 
 \section{Sunshine hours}
-This report displays the approximate number of sunshine hours per day based on the calculated theoretical maximum sunshine for the stations coordinates and time of year. 
+This report displays the approximate number of sunshine hours per day based on the calculated theoretical maximum sunshine for the stations coordinates and time of year along with a percentage for the day (sunshine hours out of theoretical maximum). Daily output formats are text (with links to view images for the day where they exist), plain text in the style of WeatherLink, and a sortable grid. Raw per-sample data is also provided in a grid for the first 1000 rows primarily for the purposes of adjusting report parameters to better match actual conditions.
+
+\subsection{Files}
+\begin{tabular}{p{3.8cm} p{10cm}}
+\hline
+\textbf{File} & \textbf{Description} \\
+\hline
+\verb|criteria.ui| & Report Criteria.\\
+\verb|description.html| & Report description. \\
+\verb|psql.sql| & PostgreSQL data query.\\
+\verb|report.js| & Main data processing script. \\
+\verb|report.json| & Report Definition.\\
+\verb|solar.js| & astronomical calculations \\
+\verb|sqlite.sql| & SQLite data query. \\
+\verb|sun_hours.html| & HTML display template.\\
+\verb|sun_hours_save.html| & HTML save template.\\
+\verb|weather.png| & Report Icon.\\
+\verb|wlformat.txt| & Text output template.\\
+\hline
+\end{tabular}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

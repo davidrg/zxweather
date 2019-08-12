@@ -1,0 +1,6 @@
+Qt compatibility
+    5.10.1 - report doesn't work with larger timespans. Queries run but an assertion fails when loading the data into the scripting environment.
+    5.5.1  - report works fine with larger timespans provided the raw data output is limited to only a few thousand rows. Throwing a very large
+             number of rows into the table view seems to result in a crash after sorting.
+
+

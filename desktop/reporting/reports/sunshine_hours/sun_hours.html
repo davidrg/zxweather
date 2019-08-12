@@ -1,0 +1,42 @@
+<html>
+<head>
+	<meta charset="utf-8"/>
+<title>Sun</title>
+</head>
+<body>
+<b>Sunshine hours from {{start}} to {{end}}</b>
+<hr>
+
+<p>
+	At {{#lat_long}}latitude {{{lat}}}, longitude {{{long}}}{{/lat_long}} ({{latitude}}, {{longitude}}).
+</p>
+<table border=1>
+	<tr>
+		<th>Date</th>
+		<th>Sunshine Hours</th>
+		<th>Maximum Hours</th>
+		<th>Percentage Sunny</th>
+		<th></th>
+	</tr>
+	{{#daily_summary}}
+	<tr>
+		<td>{{date}}</td>
+		<td>{{total_sun_hours}}</td>
+		<td>{{max_sun_hours}}</td>
+		<td>{{{percentage}}}%</td>
+		<td>{{{links}}}</td>
+	</tr>
+	{{/daily_summary}}
+	{{#info}}
+	<tr>
+		<th>Total</th>
+		<td>{{total_hours}}</td>
+		<td>{{total_max_hours}}</td>
+		<td>{{{total_percent}}}%</td>
+		<td></td>
+	</tr>
+	{{/info}}
+</table>
+
+</body>
+</html>

@@ -1,0 +1,99 @@
+{
+    "title": "Sunshine Hours",
+	"description": "description.html",
+	"icon": "weather.png",
+	"time_picker": "datespan",
+	"default_time_span": "this_week",
+	"criteria_ui": "criteria.ui",
+	"supported_weather_stations": ["vantage_pro2_plus"],
+	"scripts": ["libs/moment.js", "libs/moment-timezone-with-data-2012-2022.js", "solar.js", "report.js"],
+    "queries": {
+		"sun_data": {
+            "db": {
+                "file": "psql.sql",
+                "parameters": [
+                    "start_t",
+                    "end_t",
+                    "stationCode"
+                ]
+            },
+			"web": {
+				"file": "sqlite.sql",
+				"parameters": [
+                    "start_t",
+                    "end_t",
+                    "stationCode"
+				]
+			}
+		}
+	},
+	"output_type": "show",
+    	"output_window_size": {
+		"height": 800,
+		"width": 600
+	},
+	"outputs": [
+		{
+			"name": "html_daily",
+			"title": "Daily Sunshine Hours",
+			"icon": "../../icons/report",
+			"format": "html",
+			"template": "sun_hours_save.html",
+			"view_template": "sun_hours.html",
+			"filename": "daily_sun_hours.html",
+		}, {
+			"name": "grid",
+			"title": "Daily Sunshine Hours",
+			"icon": "../../icons/table",
+			"format": "table",
+			"dataset": "daily_summary",
+			"filename": "daily_sun_hours.csv",
+			"view_columns": {
+				"date": null,
+				"sortable_date": "Date",
+				"total_sun_hours": "Sunshine Hours",
+				"max_sun_hours": "Maximum Hours",
+				"percentage": "Percentage",
+				"links": null
+			},
+			"save_columns": {
+				"date": null,
+				"sortable_date": "Date",
+				"total_sun_hours": "Sunshine Hours",
+				"max_sun_hours": "Maximum Hours",
+				"percentage": "Percentage",
+				"links": null
+			}
+		},{
+			"name": "text_daily",
+			"title": "Plain text",
+			"icon": "../../icons/report",
+			"format": "text",
+			"template": "wlformat.txt",
+			"filename": "daily_sun_hours.txt"
+		}, {
+			"name": "grid",
+			"title": "Raw data",
+			"icon": "../../icons/table",
+			"format": "table",
+			"query": "sun_data",
+			"filename": "raw_data.csv",
+			"view_columns": {
+				"time_stamp": "Time",
+				"solar_radiation": "Solar Radiation",
+				"max_solar_radiation": "Max Solar Radiation",
+				"bright_sunshine_hours": "Sunshine Hours",
+				"sample_interval": null,
+				"image_link": null
+			},
+			"save_columns": {
+				"time_stamp": "Time",
+				"solar_radiation": "Solar Radiation",
+				"max_solar_radiation": "Max Solar Radiation",
+				"bright_sunshine_hours": "Sunshine Hours",
+				"sample_interval": null,
+				"image_link": null
+			}
+		}
+	]
+}
