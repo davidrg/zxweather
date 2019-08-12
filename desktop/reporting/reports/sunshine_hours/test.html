@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Test</title>
+</head>
+<body>
+<pre id="output">
+    
+</pre>
+<script src="libs/moment.js"></script>
+<script src="libs/moment-timezone-with-data-2012-2022.js"></script>
+<script src="solar.js"></script>
+<script>
+    function log(msg) {
+        el = document.getElementById("output");
+        el.innerText = el.innerText + msg + "\n"
+    }
+    
+    function test() {
+        let latitude = -36.526428;
+        let longitude = 175.456898;
+        let altitudeMeters = 1;
+        let time_zone = 'Pacific/Auckland';
+
+        let start = moment("2019-08-05T00:00:00+12");
+
+        let timestamp = start.clone();
+        while(timestamp.date() === start.date()) {
+            let stolz = solar_max(SOLAR_ALG_RYAN_STOLZENBACH, timestamp, latitude, longitude, altitudeMeters, 0.8, 2.0);
+            let bras = solar_max(SOLAR_ALG_BRAS, timestamp, latitude, longitude, altitudeMeters, 0.8, 2.0);
+            log(timestamp.format("D/M/YYYY HH:mm") + "," + stolz.toString() + "," + bras.toString());
+            
+            
+            timestamp = timestamp.clone().add(5, 'minutes');
+        }
+    }
+    test();
+//http://web.archive.org/web/20100122125508/http://www.ecy.wa.gov/programs/eap/models/solrad.zip
+</script>
+
+
+</body>
+</html>
