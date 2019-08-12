@@ -12,4 +12,5 @@ CachingFinishedWebTask::CachingFinishedWebTask(
 
 void CachingFinishedWebTask::beginTask() {
     _dataSource->finishedCaching();
+    emit finished();
 }
