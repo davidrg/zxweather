@@ -287,7 +287,8 @@ The following basic metadata can be supplied for each report. An icon is optiona
     "output_type": "show",
    "supported_weather_stations": [
         "generic",
-    ]
+    ],
+    "load_image_dates": true
 }
 \end{lstlisting}
 
@@ -339,6 +340,8 @@ This option should be used to ensure the report is only run against weather stat
 \hline
 \end{tabular}
 
+\subsection{Load Image Dates}
+When running against the SQLite cache database only very limited and often out of date information is available about any images. This is because the application normally only downloads and caches information about images one date at a time when images for a date are requested by the View Images window. If the report needs to know what dates have images for generating links to the View Images window you can request to have the \verb|image_dates| in the cache database populated by setting the \verb|load_image_dates| report setting to true.
 
 \section{Timespan}
 All reports must specify a timespan they operate over. In addition to being supplied as a parameter to all report queries this timespan is used to ensure all data the report requires is available before running the queries.

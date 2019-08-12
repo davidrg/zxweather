@@ -193,11 +193,11 @@ QSqlQuery DataSourceProxy::query() {
     return sampleSource->query();
 }
 
-void DataSourceProxy::primeCache(QDateTime start, QDateTime end) {
+void DataSourceProxy::primeCache(QDateTime start, QDateTime end, bool imageDates) {
     if (sampleSource == 0) {
         return; // ERROR
     }
-    sampleSource->primeCache(start, end);
+    sampleSource->primeCache(start, end, imageDates);
 }
 
 bool DataSourceProxy::solarAvailable() {
