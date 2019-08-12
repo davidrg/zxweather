@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>411</width>
-    <height>143</height>
+    <width>418</width>
+    <height>162</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -174,11 +174,20 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>celsius</tabstop>
+  <tabstop>fahrenheit</tabstop>
+  <tabstop>ms</tabstop>
+  <tabstop>kmh</tabstop>
+  <tabstop>mph</tabstop>
+  <tabstop>mm</tabstop>
+  <tabstop>inches</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="bgTempeature"/>
   <buttongroup name="bgWindSpeed"/>
+  <buttongroup name="bgTempeature"/>
   <buttongroup name="bgRainfall"/>
  </buttongroups>
 </ui>
