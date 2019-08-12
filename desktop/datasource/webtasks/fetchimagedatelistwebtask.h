@@ -13,7 +13,7 @@ public:
                                        WebDataSource* ds);
     void beginTask();
 
-    int subtasks() { return 3; }
+    int subtasks() const { return 3; }
 
     QString taskName() const {
         return "Loading image source information";

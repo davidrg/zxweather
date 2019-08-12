@@ -101,27 +101,6 @@ WebDataSource::WebDataSource(AbstractProgressListener *progressListener, QObject
 }
 
 
-
-void WebDataSource::makeProgress(QString message) {
-    progressListener->setSubtaskName(message);
-    int value = progressListener->value() + 1;
-    int maxValue = progressListener->maximum();
-    progressListener->setValue(value);
-    qDebug() << "Progress [" << value << "/" << maxValue << "]:" << message;
-}
-
-void WebDataSource::moveGoalpost(int distance, QString reason) {
-
-    int curVal = progressListener->value();
-    int curMax = progressListener->maximum();
-
-    qDebug() << "Antiprogress: [" << curVal << "/" << curMax << "] to ["
-             << curVal << "/" << curMax + distance << "] - " << reason;
-
-    progressListener->setMaximum(curMax + distance);
-}
-
-
 #if QT_VERSION < 0x050600
 QUrl redirectUrl(const QUrl& possibleRedirectUrl,
                  const QUrl& oldRedirectUrl) {
@@ -246,7 +225,6 @@ void WebDataSource::fireRainTotals(QDate date, double day, double month,
 
 bool WebDataSource::LoadStationConfigData(QByteArray data) {
     using namespace QtJson;
-
     bool ok;
 
     QVariantMap result = Json::parse(data, ok).toMap();
@@ -292,6 +270,9 @@ void WebDataSource::ProcessStationConfig(QNetworkReply *reply) {
         emit error(reply->errorString());
     } else {
         LoadStationConfigData(reply->readAll());
+
+        qDebug() << "Station" << station_name << "has solar data available?" << isSolarDataAvailable;
+
         emit stationName(station_name);
         emit isSolarDataEnabled(isSolarDataAvailable);
     }
@@ -725,23 +706,77 @@ void WebDataSource::fireThumbnailReady(int imageId, QImage thumbnail) {
     emit thumbnailReady(imageId, thumbnail);
 }
 
-void WebDataSource::queueTask(AbstractWebTask *task) {
-    queueTask(task, true);
+
+void WebDataSource::updateStation(QString title, QString description, QString type_code,
+                                  int interval, float latitude, float longitude, float altitude,
+                                  bool solar, int davis_broadcast_id) {
+
+
+    WebCacheDB::getInstance().updateStation(
+                stationURL(), title, description, type_code, interval, latitude, longitude,
+                altitude, solar, davis_broadcast_id);
 }
+
+void WebDataSource::finishedCaching() {
+    emit cachingFinished();
+}
+
+/*****************************************************************************
+ **** TASK QUEUE *************************************************************
+ *****************************************************************************/
+#ifdef QT_DEBUG
+//#define TQLOG qDebug() << QString("Progress[%1/%2] Subtask[%3/%4] Task[%5]") \
+//                            .arg(progressListener->value()).arg(progressListener->maximum()) \
+//                            .arg(currentSubtask) \
+//                            .arg(currentTask == NULL ? 0 : currentTask->subtasks()) \
+//                            .arg(currentTask == NULL ? "" : currentTask->taskName()).toLatin1()
+#define TQLOG qDebug() << "Progress[" << progressListener->value() \
+                       << "/" << progressListener->maximum() \
+                       << "] Subtask[" << currentSubtask << "/" \
+                       << (currentTask == NULL ? 0 : currentTask->subtasks()) \
+                       << "] Task[" << (currentTask == NULL ? "no-task" : currentTask->taskName()) << "]"
+#else
+#define TQLOG qDebug()
+#endif
+
+void WebDataSource::makeProgress(QString message) {
+    progressListener->setSubtaskName(message);
+    int value = progressListener->value() + 1;
+    int maxValue = progressListener->maximum();
+    progressListener->setValue(value);
+
+    TQLOG << "Making progress:" << message;
+}
+
+void WebDataSource::moveGoalpost(int distance, QString reason) {
+
+    int curVal = progressListener->value();
+    int curMax = progressListener->maximum();
+
+    TQLOG << "Antiprogress: [" << curVal << "/" << curMax << "] to ["
+             << curVal << "/" << curMax + distance << "] - " << reason;
+
+    progressListener->setMaximum(curMax + distance);
+}
+
+void WebDataSource::queueTask(AbstractWebTask *task) {
+    queueTask(task,true);
+}
+
 
 void WebDataSource::queueTask(AbstractWebTask *task, bool startProcessing,
                               bool priority, bool lowPriority) {
 
-    if (!processingQueue) {
+    if (highPriorityTaskQueue.isEmpty() && taskQueue.isEmpty() && lowPriorityQueue.isEmpty() && !processingQueue) {
         progressListener->reset();
-        progressListener->setMaximum(task->subtasks() + 1);
-    } else {
-        // Move the goalposts - +1 for the task itself
-        qDebug() << "Task " << task->taskName() << " worth " << task->subtasks() + 1 << "points!";
-        moveGoalpost( task->subtasks() + 1, "Queued new task ");
+        progressListener->setMaximum(1);
+        progressListener->setValue(0);
     }
 
-    qDebug() << ":::: Queuing Task: " << task->taskName();
+    // Move the goalposts - +1 for the task itself
+    int taskProgressPoints = task->subtasks() + 1;
+    TQLOG << "Queue Task " << task->taskName() << " worth " <<taskProgressPoints << "points!";
+    moveGoalpost( taskProgressPoints, "Queued new task ");
 
     // Hook up events
     connect(task, SIGNAL(queueTask(AbstractWebTask*)),
@@ -765,7 +800,7 @@ void WebDataSource::queueTask(AbstractWebTask *task, bool startProcessing,
         taskQueue.enqueue(task);
     }
 
-    qDebug() << ":: Queue Length now: " << taskQueue.length();
+    TQLOG << "Queue Length now: " << taskQueue.length() + highPriorityTaskQueue.length() + lowPriorityQueue.length();
 
     if (startProcessing) {
         startQueueProcessing();
@@ -777,9 +812,10 @@ void WebDataSource::startQueueProcessing() {
         return;
     }
 
+    TQLOG << "******* Start queue processing! *******";
+
     progressListener->show();
     processingQueue = true;
-
 
     processNextTask();
 }
@@ -796,7 +832,7 @@ void WebDataSource::processNextTask() {
         return;
     }
 
-    qDebug() << ":::: Processing task: " << currentTask->taskName();
+    TQLOG << "Processing task: " << currentTask->taskName();
 
     if (!currentTask->supertaskName().isNull()) {
         progressListener->setTaskName(currentTask->supertaskName());
@@ -835,16 +871,15 @@ void WebDataSource::httpHead(QNetworkRequest request) {
 }
 
 void WebDataSource::taskFinished() {
-    qDebug() << ":: Task Finished: " << ((AbstractWebTask*)QObject::sender())->taskName();
+    TQLOG << " Task Finished: " << ((AbstractWebTask*)QObject::sender())->taskName();
     // Current task has finished its work.
 
     // Increment the progress dialog to skip over any skipped subtasks
     int remainingSubtasks = currentTask->subtasks() - currentSubtask;
 
-    qDebug() << "Progress jump: " << remainingSubtasks;
+    TQLOG << "Progress jump: " << remainingSubtasks;
     progressListener->setValue(progressListener->value() + remainingSubtasks);
-    qDebug() << "Progress [" << progressListener->value() << "/"
-             << progressListener->maximum() << "]:" << "Skipping subtasks";
+    TQLOG << "Skipping subtasks";
 
     // Stop processing the queue
     currentTask->deleteLater();
@@ -855,9 +890,10 @@ void WebDataSource::taskFinished() {
     if (taskQueue.isEmpty() && highPriorityTaskQueue.isEmpty() && lowPriorityQueue.isEmpty()) {
         // And we're finished!
         progressListener->reset();
+        progressListener->setMaximum(0);
         processingQueue = false;
 
-        qDebug() << "******* Queue processing complete!";
+        TQLOG << "******* Queue processing complete! *******";
     } else {
         // Still more work to do!
         processNextTask();
@@ -865,7 +901,7 @@ void WebDataSource::taskFinished() {
 }
 
 void WebDataSource::taskFailed(QString error) {
-    qDebug() << ":: Task failed: " << error;
+    TQLOG << " Task failed: " << error;
     progressListener->hide();
 
     // Clear the queue - we're canceling
@@ -946,18 +982,3 @@ void WebDataSource::taskQueueResponseDataReady(QNetworkReply* reply) {
 #endif
 }
 
-
-
-void WebDataSource::updateStation(QString title, QString description, QString type_code,
-                                  int interval, float latitude, float longitude, float altitude,
-                                  bool solar, int davis_broadcast_id) {
-
-
-    WebCacheDB::getInstance().updateStation(
-                stationURL(), title, description, type_code, interval, latitude, longitude,
-                altitude, solar, davis_broadcast_id);
-}
-
-void WebDataSource::finishedCaching() {
-    emit cachingFinished();
-}
