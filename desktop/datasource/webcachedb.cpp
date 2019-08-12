@@ -4,6 +4,7 @@
 #include <QtDebug>
 #include <QDesktopServices>
 #include <cfloat>
+#include <QMap>
 
 #define SAMPLE_CACHE "sample-cache"
 #define sampleCacheDb QSqlDatabase::database(SAMPLE_CACHE)
@@ -80,69 +81,72 @@ void WebCacheDB::openDatabase() {
         if (query.first()) {
             int version = query.value(0).toInt();
             qDebug() << "Cache DB at version" << version;
-            if (version == 1) {
-                qDebug() << "Cache DB is out of date. Upgrading to v2...";
 
-                QSqlDatabase db = QSqlDatabase::database(SAMPLE_CACHE,true);
-                db.commit();
-                db.close();
-                db.open();
-
-                if (!runDbScript(":/cache_db/v2.sql")) {
-                    qWarning() << "V2 upgrade failed.";
-                    emit criticalError("Failed to upgrade cache database. Delete file " + filename + " manually to correct error.");
-                    return;
+            // This script has some special needs
+            if (version < 2) {
+                if (runUpgradeScript(2, ":/cache_db/v2.sql", filename)) { // v1 -> v3
+                    QSqlQuery q(db);
+                    if (!q.exec("drop table sample_old;")) {
+                        qWarning() << "Failed to drop sample_old";
+                        emit criticalError("Failed to drop obsolete sample_old table");
+                    }
+                    if (!q.exec("drop table station_old;")) {
+                        qWarning() << "Failed to drop station_old";
+                        emit criticalError("Failed to drop obsolete station_old table");
+                    }
+                    db.commit();
+                } else {
+                    return; // we failed
                 }
-
-                // Reopen the database to clear locks
-                db = QSqlDatabase::database(SAMPLE_CACHE,true);
-                db.commit();
-                db.close();
-                db.open();
-
-                QSqlQuery q(db);
-                if (!q.exec("drop table sample_old;")) {
-                    qWarning() << "Failed to drop sample_old";
-                    emit criticalError("Failed to drop obsolete sample_old table");
-                }
-                if (!q.exec("drop table station_old;")) {
-                    qWarning() << "Failed to drop station_old";
-                    emit criticalError("Failed to drop obsolete station_old table");
-                }
-                db.commit();
-                version = 3;
-
-//                if (!runDbScript(":/cache_db/trig_lookup.sql")) {
-//                    qWarning() << "Failed to create trig lookup table";
-//                    emit criticalError("Failed to upgrade cache database. Delete file " + filename + " manually to correct error.");
-//                    return;
-//                }
             }
-            else if (version == 2) {
-                qDebug() << "Cache DB is out of date. Upgrading to v3...";
 
-                QSqlDatabase db = QSqlDatabase::database(SAMPLE_CACHE,true);
-                db.commit();
-                db.close();
-                db.open();
+            // Run other upgrade scripts
+            if (!runUpgradeScript(3, ":/cache_db/v3.sql", filename)) return; // v2 -> v3
+            if (!runUpgradeScript(4, ":/cache_db/v4.sql", filename)) return; // v3 -> v4
 
-                if (!runDbScript(":/cache_db/v3.sql")) {
-                    qWarning() << "V3 upgrade failed.";
-                    emit criticalError("Failed to upgrade cache database. Delete file " + filename + " manually to correct error.");
-                    return;
-                }
 
-                // Reopen the database to clear locks
-                db = QSqlDatabase::database(SAMPLE_CACHE,true);
-                db.commit();
-                db.close();
-                db.open();
-            }
         } else {
             emit criticalError("Failed to determine version of cache database");
         }
     }
     ready = true;
+}
+
+bool WebCacheDB::runUpgradeScript(int version, QString script, QString filename) {
+    QSqlQuery query("select v from db_metadata where k = 'v'", sampleCacheDb);
+
+    int currentVersion = -1;
+    if (query.first()) {
+        currentVersion = query.value(0).toInt();
+    } else {
+        qWarning() << "Failed to determine database version.";
+        return false;
+    }
+
+    if (currentVersion >= version) {
+        return true; // Nothing to do.
+    }
+
+    qDebug() << "Cache DB is out of date. Upgrading to v" + QString::number(version) + "...";
+
+
+    QSqlDatabase db = QSqlDatabase::database(SAMPLE_CACHE,true);
+    db.commit();
+    db.close();
+    db.open();
+
+    if (!runDbScript(script)) {
+        qWarning() << "v" + QString::number(version) + " upgrade failed.";
+        emit criticalError("Failed to upgrade cache database. Delete file " + filename + " manually to correct error.");
+        return false;
+    }
+
+    // Reopen the database to clear locks
+    db = QSqlDatabase::database(SAMPLE_CACHE,true);
+    db.commit();
+    db.close();
+    db.open();
+    return true;
 }
 
 bool WebCacheDB::runDbScript(QString filename) {
@@ -1784,4 +1788,54 @@ void WebCacheDB::optimise() {
     if (!q.exec("pragma optimize;")) {
         qWarning() << "DB Optimisation failed";
     }
+}
+
+void WebCacheDB::updateImageDateList(QString stationCode, QMap<QString, QList<QDate> > dates) {
+    int stationId = getStationId(stationCode);
+
+    qDebug() << "Station" << stationCode << "ID" << stationId;
+
+    QVariantList sourceIds;
+    QVariantList dateValues;
+
+    QTime timer;
+    timer.start();
+    QSqlDatabase db = sampleCacheDb;
+    db.transaction();
+
+    foreach(QString sourceCode, dates.keys()) {
+        int sourceId = getImageSourceId(stationId, sourceCode);
+        QSqlQuery q(sampleCacheDb);
+        q.prepare("delete from image_dates where image_source_id = :id");
+        q.bindValue(":id", sourceId);
+        if (!q.exec()) {
+            qWarning() << "Failed to drop cacehed dates for source " << sourceCode << "with id" << sourceId;
+        }
+
+
+        foreach(QDate date, dates[sourceCode]) {
+            sourceIds.append(sourceId);
+            dateValues.append(date.toString(Qt::ISODate));
+
+//            qDebug() << "Station Code " << stationCode << "has ID" << stationId
+//                     << "source code" << sourceCode << "has ID" << sourceId
+//                     << "date" << date;
+        }
+    }
+
+    QSqlQuery q(sampleCacheDb);
+    q.prepare("insert into image_dates(image_source_id, date) values(?, ?);");
+    q.addBindValue(sourceIds);
+    q.addBindValue(dateValues);
+    if (!q.execBatch()) {
+        qWarning() << "Failed to store image dates";
+    }
+
+    if (!db.commit()) {
+        qWarning() << "Transaction commit failed. Data not cached.";
+    }
+    qDebug() << "Transaction committed at " << timer.elapsed() << "msecs";
+
+    optimise();
+
 }
