@@ -50,6 +50,7 @@
 
  \usepackage{bera}% optional: just to have a nice mono-spaced font
  \usepackage{xcolor}
+\usepackage{color}
 
 
 % Configure JSON support in the listings package
@@ -119,6 +120,42 @@
        {\}}{{{\color{delim}{\}}}}}{1}
        {[}{{{\color{delim}{[}}}}{1}
        {]}{{{\color{delim}{]}}}}{1},
+ }
+
+
+ \definecolor{lightgray}{rgb}{.9,.9,.9}
+ \definecolor{darkgray}{rgb}{.4,.4,.4}
+ \definecolor{purple}{rgb}{0.65, 0.12, 0.82}
+
+ \lstdefinelanguage{JavaScript}{
+   keywords={typeof, new, true, false, catch, function, return, null, catch, switch, var, if, in, while, do, else, case, break},
+   keywordstyle=\color{blue}\bfseries,
+   ndkeywords={class, export, boolean, throw, implements, import, this},
+   ndkeywordstyle=\color{darkgray}\bfseries,
+   identifierstyle=\color{black},
+   sensitive=false,
+   comment=[l]{//},
+   morecomment=[s]{/*}{*/},
+   commentstyle=\color{purple}\ttfamily,
+   stringstyle=\color{red}\ttfamily,
+   morestring=[b]',
+   morestring=[b]"
+ }
+
+ \lstset{
+    language=JavaScript,
+    backgroundcolor=\color{lightgray},
+    extendedchars=true,
+    basicstyle=\footnotesize\ttfamily,
+    showstringspaces=false,
+    showspaces=false,
+    numbers=left,
+    numberstyle=\footnotesize,
+    numbersep=9pt,
+    tabsize=2,
+    breaklines=true,
+    showtabs=false,
+    captionpos=b
  }
 
 
@@ -208,27 +245,33 @@
 
 
 \chapter{Introduction}
-% Back to arabac numerals for the proper content
+% Back to arabic numerals for the proper content
 \pagenumbering{arabic}
 \setcounter{page}{1}
 
-The zxweather desktop client includes a basic reporting system able to produce one or more of the following ouputs for a set of SQL Queries:
+The zxweather desktop client includes a basic reporting system capable of producing outputs in any of the following formats:
 \begin{itemize}
 \item Plain Text
 \item Formatted (HTML) text
 \item CSV (displayed on screen in a table)
 \end{itemize}
-Reports can either be saved to disk on completion or displayed to the user (who can then choose to save them). 
+Outputs can either be saved to disk on completion or displayed to the user (who can then choose to save them). Outputs that are only saved to disk on completion have the option of generating additional output formats as long as they are text based (eg, XML, JSON, etc).
 
-A report consists of the following files:
+A report is built out of the following files:
 \begin{itemize}
 \item A report.json file describing the report
-\item One or more PostgreSQL and/or SQLite Queries
-\item Zero or more output templates and other resources
+\item PostgreSQL and/or SQLite Queries
+\item JavaScript scripts
+\item Output templates and other resources
 \end{itemize}
-New reports can be added by placing these files in a directory with a unique name under the reports directory. If the report is valid it will be found next time the run report window is opened.
+New reports can be added by placing these files in a directory with a unique name somewhere in the report search path. If the report is valid it will be found next time the run report window is opened. By default the report search path consists of the reports subdirectory and the internal reports directory where the built-in reports are stored. You can add additional reports to the search path by placing something like the following in the applications configuration file:
 
-The desktop client ships with a number of built in reports developed with the same system described in this manual. These reports consist of the same types of files except the files are contained within the application itself rather than living inside the reports directory. If a file with the same name as one of the built-in reports is found in the reports directory it will be loaded instead. This allows adjusting/fixing the built-in reports without having to rebuild the application. For a description of the built-in reports and the files they consist of, see appendix \ref{app_built_in_reports}.
+\begin{verbatim}
+[Reports]
+SearchPath=C:\\my-reports;C:\\test-reports
+\end{verbatim}
+
+The built-in reports that ship with the desktop client are built with the same system described in this manual. These reports consist of the same types of files except the files are contained within the application itself rather than living inside the reports directory. If a file with the same name as one of the built-in reports is found in in a folder with the same name earlier in the report search path (such as in the reports subdirectory), that file will be loaded instead. This allows adjusting/fixing the built-in reports without having to rebuild the application. For a description of the built-in reports and the files they consist of, see appendix \ref{app_built_in_reports}.
 
 \chapter{Report Definition}
 The report definition file, \verb|report.json|, contains the basic configuration data for the report. All reports must have at least this file in order to be loaded by the application. Format of this file is JSON. It contains basic metadata for the report as well as a list of queries, outputs to generate and other details.
@@ -290,7 +333,7 @@ This option should be used to ensure the report is only run against weather stat
 \textbf{Option} & \textbf{Description} \\
 \hline
 \verb|generic| & Any weather station \\
-\verb|wh1080| & \verb|wh1080_sample| talbe is populated\\
+\verb|wh1080| & \verb|wh1080_sample| table is populated\\
 \verb|vantage_pro2| & \verb|davis_sample| table is populated.\\
 \verb|vantage_pro2_plus| & \verb|davis_sample| table with the UV and Solar columns populated.\\
 \hline
@@ -300,7 +343,7 @@ This option should be used to ensure the report is only run against weather stat
 \section{Timespan}
 All reports must specify a timespan they operate over. In addition to being supplied as a parameter to all report queries this timespan is used to ensure all data the report requires is available before running the queries.
 
-The reports timespan settings are controlled via the following properites in the Report Definition:
+The reports timespan settings are controlled via the following properties in the Report Definition:
 \begin{lstlisting}[language=json]
 {
 	"time_picker": "timespan",
@@ -316,11 +359,11 @@ The \verb|time_picker| property specifies what sort timespan the user is allowed
 
 Time picker options are:
 
-\begin{tabular}{p{2.5cm} l}
+\begin{tabular}{p{2.5cm} p{11.5cm}}
 \hline
 \textbf{Option} & \textbf{Description} \\
 \hline
-\verb|none| & The time span page is disabled. The user can not choose anything.\\
+\verb|none| & The time span page is disabled. The user can not choose anything. The default timespan will always be used.\\
 \verb|year| & The user can choose a year.\\
 \verb|month| & the user can choose a month.\\
 \verb|day| & The user can choose a single day.\\
@@ -329,7 +372,7 @@ Time picker options are:
 \hline
 \end{tabular}
 
-if the report supports being run against the SQLite database and the time picker is set to \verb|none| then you must specify a default timespan to ensure there is data available in the database before queries are run. If no data is required by the report, see No Timespan (section \ref{sec_no_timespan}.
+If the report supports being run against the SQLite database and the time picker is set to \verb|none| then you must specify a default timespan to ensure there is data available in the database before queries are run. If no data is required by the report, see No Timespan (section \ref{sec_no_timespan}.
 
 \subsection{Default Timespan}
 The \verb|default_time_span| property specifies which time span option is selected by default. 
@@ -363,7 +406,7 @@ Default time span options are:
 
 \subsection{No Timespan}
 \label{sec_no_timespan}
-When a report is run under the \emph{Web Interface} Sample Data Source all data files covering the chosen timespan are downloaded over the Interent and loaded into the SQLite database before any queries can be run. Depending on server configuratoin and network performance this can take a little while.
+When a report is run under the \emph{Web Interface} Sample Data Source all data files covering the chosen timespan are downloaded over the Interent and loaded into the SQLite database before any queries can be run. Depending on server configuration and network performance this can take a little while.
 
 If the report does not actually require any data from the \verb|sample| table in the SQLite database you can turn this behaviour off. With cache priming turned off any queries run against the \verb|sample| table in the SQLite database may return incorrect results.
 
@@ -376,12 +419,12 @@ To turn off cache priming, set the \verb|dont_prime_cache| property to true:
 }
 \end{lstlisting}
 
-
+This ability is useful only when data is being generated in JavaScript or SQL like with the sunrise/sunset report.
 
 \chapter{Queries}
-Queries implement the logic of a report. Each report can have as many queries as it needs with each query coming in two versions - one for PostgreSQL and one for SQLite. 
+Queries implement the basic logic of a report. Each report can have as many queries as it needs with each query coming in two versions - one for PostgreSQL and one for SQLite. 
 
-If one version of a query is not supplied then the report will not be available for that database. This means that if the SQLite version of a query is not available the report won't be available when using the \emph{Web Interface} Sample Data Source.
+If one version of a query is not supplied then the report will not be available for that database. This means that if the SQLite version of any query is not available the report won't be available when using the \emph{Web Interface} Sample Data Source.
 
 Queries are listed by name in the \verb|queries| property of the Report Definition. In the below example, \verb|storm_rain| is the name of the query which lives in two files, \verb|sqlite.sql| for the SQLite version (run against the web interface sample data source) and \verb|postgres.sql| for the PostgreSQL version (run against a local weather database). Each version of the query specifies a list of parameters it takes.
 \begin{lstlisting}[language=json]
@@ -408,9 +451,9 @@ Queries are listed by name in the \verb|queries| property of the Report Definiti
 	},
 }
 \end{lstlisting}
-Each query must have a unique name. If the same query works on both SQLite and PostgreSQL you can just list specify the same sql file for both versions. Be careful to include only one sql statement in the SQL file - multiple statements will produce an error.
+Each query must have a unique name. If the same query works on both SQLite and PostgreSQL you can just specify the same sql file for both versions. Be careful to include only one sql statement in the SQL file - multiple statements will produce an error.
 
-In versoin 1.0 of the desktop client, SQL Queries run \emph{synchronously} in the main UI thread. This means that while a query is running the application will not respond to user input. This will be addressed in a future release. Until then try to make queries run as fast as possible to minimise application lockups.
+In version 1.0 of the desktop client, SQL Queries run \emph{synchronously} in the main UI thread. This means that while a query is running the application will not respond to user input. This will be addressed in a future release. Until then try to make queries run as fast as possible to minimise application lockups.
 
 \section{Implementation Notes}
 
@@ -426,7 +469,7 @@ select (:stationCode)::varchar(5) as station_code;
 \subsection{SQLite}
 The SQLite driver tends to be a little buggy. All query errors appear to be reported as a "parameter count mismatch" regardless of whether the error has anything to do with parameters or their count. In some Qt releases the application will simply crash if the query runs into a problem (this has been observed in Qt 5.10.1). 
 
-The integrated SQLite supplied with Qt has loadable extensions removing the ability to extend SQLite at all. This combined with the limited performance and feature set of SQLite makes building queries supporting the \emph{Web Interface} Sample Data Source challenging. 
+The integrated SQLite supplied with Qt has loadable extensions disabled removing the ability to extend SQLite at all. This combined with the limited performance and feature set of SQLite makes building queries supporting the \emph{Web Interface} Sample Data Source challenging. 
 
 If lack of loadable extensions is a significant problem it should be possible to recompile the SQLite driver (\verb|qsqlite.dll| in the windows version) using a different SQLite configuration without touching the main zxweather Desktop Client executable.
 
@@ -483,7 +526,7 @@ from sample s limit 1;
 Query parameters are prefixed with a colon (:) and can only be referenced once. If a parameter is required in multiple locations within a query consider placing it in a CTE.
 Parameters that are not listed in the queries definition inside the Report Definition file will not be supplied when the query is executed.
 
-All reports have the following parameters supplied:
+All reports have the following parameters available:
 
 \begin{tabular}{p{2.5cm} l}
 \hline
@@ -575,9 +618,116 @@ When debug mode is on the following changes are made to the report:
 \item List of bound parameters with their values
 \item The query that was sent to the database (the executed query)
 \end{itemize}
-\item One table output for each query. For PostgreSQL these tables show the query output For SQLite these tables show the explain results for the query.
+\item One table output for each query. For PostgreSQL these tables show the query output. For SQLite these tables show the explain results for the query.
 \end{itemize}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\chapter{Scripting}
+The reporting system supports using JavaScript for generating and altering data as well as implementing some template features such as lambdas.
+
+Scripts are specified via the \verb|scripts| property in the report definition:
+\begin{lstlisting}[language=json]
+{
+	"scripts": ["libs/moment.js", "libs/moment-timezone-with-data-2012-2022.js", "solar_gen.js", "lat_long.js", "report.js"],
+}
+\end{lstlisting}
+When multiple scripts are specified they will be concatenated and parsed in the order they are listed.
+
+\section{Generating Data}
+Tables of data can be generated by providing a function called \verb|generate_datasets| which can return one or more tables of data:
+
+\begin{lstlisting}[language=javascript]
+function generate_datasets(criteria) {
+	return [
+		{
+			"name": "example",
+			"column_names": [
+				"numbers", "letters"
+			],
+			"row_data": [
+				[1, "A"],
+				[2, "B"],
+				[3, "C"]
+			]
+		};
+	];
+}
+\end{lstlisting}
+
+The criteria parameter consists of all the reports criteria - these are the same values available as parameters to SQL queries.
+
+The return value is a list of objects with the following properties:
+\begin{itemize}
+\item \verb|name| - The name of the data set
+\item \verb|column_names| - The names of the columns in the data saet. The number of items in this list should match the number of items in each row of the row\_data property.
+\item \verb|row_data| - the data itself. An array of arrays.
+\end{itemize}
+
+\section{Altering Data}
+Tables of data can be modified by providing a function called \verb|transform_datasets|. This function takes as parameters the report criteria and the list of all tables produced
+via SQL queries and the \verb|generate_datasets| function.
+
+The following example takes a table of data consisting of time, temperature and humidity and adds on a calculated dew point column:
+\begin{lstlisting}[language=javascript]
+function dew_point(temperature, humidity) {
+	var a = 17.271;
+	var b = 237.7;
+	var gamma = ((a * temperature) / (b + temperature)) + Math.log(humidity / 100.0);
+	return result = (b * gamma) / (a - gamma);
+}
+
+
+function transform_datasets(criteria, datasets) {
+	
+	// Look for the dataset containing temperature and humidity data
+	var dataSetId;	
+	for(var i = 0; i < datasets.length; i++) {
+		console.log(datasets[i]["name"]);
+		if (datasets[i]["name"] == "temp_hum") {
+			dataSetId = i;
+		}
+	}
+	
+	// If we found it...
+	if (dataSetId !== undefined) {
+		// Add a new dew point column
+		datasets[dataSetId]["column_names"].push("dew_point");
+		
+		// Then calculate the dew point for each row.
+		for(var i = 0; i < datasets[dataSetId]["row_data"].length; i++) {
+			// column 0 is time
+			var temp = datasets[dataSetId]["row_data"][i][1];
+			var hum = datasets[dataSetId]["row_data"][i][2];
+			datasets[dataSetId]["row_data"][i].push(dew_point(temp, hum));
+		}
+		
+		// We only have to return modified datasets.
+		return [
+			datasets[dataSetId]
+		]
+	}
+	
+	// Couldn't find the dataset. No data sets modified.
+	return [];
+}
+\end{lstlisting}
+
+Note that this function only needs to return any data sets it has modified. The format of the expected return value and the datasets paramter is the same as the return value for the \verb|generate_datasets| function.
+
+\section{Mustache Lambdas}
+Mustache lambdas are implemented as JavaScript functions. The name of the function matches that of the lambda and takes the lambdas template as its first parameter and a renderer object as its second parameter:
+
+\begin{lstlisting}[language=javascript]
+function make_bold(template, renderer) {
+	return "<b>" + renderer.renderTemplate(template) + "</b>";
+}
+\end{lstlisting}
+
+The renderer object has two methods:
+\begin{itemize}
+\item \verb|renderTemplate(template)| - Renders the specified mustache template.
+\item \verb|reportData()| - Returns all data available to the template
+\end{itemize}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \chapter{Outputs and Templates}
@@ -631,7 +781,19 @@ A table output definition looks like the following where the \verb|query| proper
 	"save_columns": null        
 }
 \end{lstlisting}
-
+If the output is the result of a dataset generated by JavaScript the output definition looks much the same but instead of specifying a query name, specify the generated dataset name:
+\begin{lstlisting}[language=json]
+{
+	"format": "table",
+	"name": "grid",
+	"title": "Grid",
+	"icon": "../../icons/table",
+	"dataset": "daily_sunshine_hours",
+	"filename": "daily_sunshine_hours.csv",
+	"view_columns": null,
+	"save_columns": null        
+}
+\end{lstlisting}
 
 
 The \verb|view_columns| and \verb|save_columns| properties allow for renaming columns in both the GUI table view (figure \ref{img_table_output}) as well as CSV file output (when the reports output type is \verb|save| or the user clicks the save button) respectively. These properties take an object mapping SQL column names to their display names:
@@ -654,7 +816,7 @@ The object only needs to include columns to be renamed - any columns not include
 
 
 \section{HTML  and Text Outputs}
-HTML outputs can show formatted text (figure \ref{img_html_output}) using a limited HTML subset (descriibed in appendix \ref{app_html_subset}). If the reports output type is \verb|save| rather than \verb|show| then there are no limitations on the HTML output that can be produced.
+HTML outputs can show formatted text (figure \ref{img_html_output}) using a limited HTML subset (described in appendix \ref{app_html_subset}). If the reports output type is \verb|save| rather than \verb|show| then there are no limitations on the HTML output that can be produced.
 
 \begin {figure}[!ht]
  \centering
@@ -702,7 +864,7 @@ Time span: {{start}} - {{end}}
 
 This includes any additional parameters from the reports custom criteria page (if it has one).
 
-Each query executed is also available as a list parameter. For example, the following query named \verb|temperatures| andthe following HTML template could be used to list temperatures within the reports timespan:
+Each query executed is also available as a list parameter. For example, the following query named \verb|temperatures| and the following HTML template could be used to list temperatures within the reports timespan:
 \begin{lstlisting}[language=SQL]
 select
  s.time_stamp,
@@ -722,6 +884,9 @@ and s.time_stamp between :start and :end;
 {{/temperatures}}
 </body></html>
 \end{lstlisting}
+
+\subsection{Template Partials}
+Template partials can be placed in the \verb|partials| subdirectory and must have the \verb|.mustache| file extension. They can then be included in templates via \verb|{{>partial_name}}|.
 
 \subsection{Chart and Data  Links}
 The Report Display Window supports links that open a new chart in the Chart Window or show data in the View Data window. Links for a chart start with \verb|zxw://plot| while links to show data start with \verb|zxw://view-data|. Details about the timespan and columns or graphs to include (along with a title for charts) are supplied via query string parameters.
@@ -820,6 +985,27 @@ zxw://view-data?start={{start_time}}&end={{end_time}}
         &graphs=time+rainfall&aggregate=running_total
         &grouping=custom&group_minutes=5
 \end{verbatim}
+
+
+\subsection{Links to the View Images window}
+Links to the View Images window are also supported. These start with \verb|zxw://view-images|.
+
+Required parameters are:
+
+\begin{tabular}{p{3.5cm} p{2.5cm} p{7.6cm}}
+\hline
+\textbf{Parameter} & \textbf{Type} & \textbf{Description} \\
+\hline
+\verb|date| & ISO8601 date & Date to expand in the images window \\
+\hline
+\end{tabular}
+
+\subsubsection{Example}
+The following opens the view images window and expands the 2019, August, 10th nodes to show images for the 10th of August 2019:
+\begin{verbatim}
+zxw://view-images?date=2019-08-10
+\end{verbatim}
+
 
 \chapter{Custom Criteria Pages}
 Custom Criteria Pages allow collecting additional report parameters using a custom UI component. These consist of a single Qt Designer \verb|.ui| file which is displayed to the user after the time span page. Any supported input widgets are turned into parameters which are available to both queries and output templates. The widgets Object Name is used as the name of the parameter.
@@ -1093,6 +1279,18 @@ Stores information about downloaded images.
 \verb|url| & text & Original URL on the Web Interface for the image\\
 \verb|metadata| & text & JSON document containing metadata for the image\\
 \verb|meta_url| & text & Original URL on the Web Interface for the metadata\\
+\hline
+\end{tabular}
+
+\section{image\_dates Table}
+For each image source this table has a list of dates that have images available. This is primarily for reports that need to generate links to the view images window. Any date in this table should be valid for the view images window.
+
+\begin{tabular}{p{2.5cm} p{2.5cm} p{8.6cm}}
+\hline
+\textbf{Column} & \textbf{Type} & \textbf{Description} \\
+\hline
+\verb|image_source_id| & integer & ID of an image source in the \verb|image_source| table.\\
+\verb|date| & text & An ISO8601 date for which there are images available for the image source \\
 \hline
 \end{tabular}
 
@@ -1391,6 +1589,7 @@ The Desktop Client has the following built-in reports:
 \item Monthly Averages
 \item NOAA Month Summary
 \item NOAA Year Summary
+\item Rainfall
 \item Station Records
 \item Storm Rain
 \item Sun
@@ -1595,6 +1794,23 @@ The summary row for the entire year contains:
 \hline
 \end{tabular}
 
+\section{Rainfall}
+This report calculates rainfall totals by year and month along with per-month highs, lows and averages across the stations entire data set. It does not have a timespan picker or any custom criteria page. The output format is plain text and compatible with the equivalent WeatherLink report.
+
+\subsection{Files}
+\begin{tabular}{p{3.8cm} p{10cm}}
+\hline
+\textbf{File} & \textbf{Description} \\
+\hline
+\verb|description.html| & Report description. \\
+\verb|report.json| & Report Definition.\\
+\verb|summary_psql.sql| & PostgreSQL query for computing summary data\\
+\verb|summary_sqlite.sql| & SQLite query for computing summary data.\\
+\verb|template.txt| & Output template.\\
+\verb|yearly_psql.sql| & PostgreSQL query for computing yearly data.\\
+\verb|yearly_sqlite.sql| & SQLite query for computing yearly data.\\
+\hline
+\end{tabular}
 
 \section{Station Records}
 This report finds the highs and lows for the stations entire data set. It produces two HTML format outputs showing the earliest and latest occurrance for each record. It does not have a timespan picker or any custom criteria page.
@@ -1651,32 +1867,52 @@ Output is both formatted text (HTML) and CSV (table) consisting of start and end
 \end{tabular}
 
 \section{Sun}
-This reprot displays sunrise and sunset times for a chosen timespan. It is only available for PostgreSQL due to missing features in SQLite. Its criteria page requires coordinates to calculate times for as well as a timezone offset, time of day and date range. It produces HTML and tablular output consisting of:
+This report displays sunrise and sunset times for a chosen timespan.  Its criteria page requires coordinates to calculate times for as well as a timezone.
+
+It produces an HTML output with the folloing data:
 \begin{itemize}
 \item Date
 \item Sunrise and Sunset
-\item Solar Noon
+\item Day length and difference from previous day
 \item Astronomical Twilight Start and End
 \item Nautical Twilight Start and End
 \item Civil Twilight Start and End
+\item Solar noon time
 \end{itemize}
-The row for the current date in the HTML output is highlighted.
+The row for today is highlighted. It also contains the coordinates, timespan and timezone
+
+It also produces a plain-text output with:
+\begin{itemize}
+\item Date
+\item Astronomical, Nautical and Civil twilight start
+\item Sunrise
+\item Sunset
+\item Civil, Nautical and Astronomical twilight end
+\item Daylight hours
+\end{itemize}
+This output is compatible with the equivalent report in WeatherLink and includes the coordinates and timezone. Daylight savings mode is always Automatic.
+
+
 
 \subsection{Files}
-\begin{tabular}{p{5.8cm} l}
+\begin{tabular}{p{3.8cm} p{10cm}}
 \hline
 \textbf{File} & \textbf{Description} \\
 \hline
 \verb|criteria.ui| & Report Criteria.\\
-\verb|criteria_formatted_psql.sql| & PostgreSQL criteria formatting query. \\
 \verb|description.html| & Report description. \\
+\verb|lat_long.js| & JavaScript code for converting latitude \& longitude to degrees-minutes-seconds format.\\
 \verb|report.json| & Report Definition.\\
-\verb|sun.html| & Output template.\\
-\verb|sunrise_query_psql.sql| & Query for CSV/table output.\\
-\verb|sunrise_query_psql_html.sql| & Query for HTML output. \\
+\verb|solar.js| & Contains the \verb|generate_datasets| function\\
+\verb|solar_gen.js| & JavaScript code for calculating sun data.\\
+\verb|sun.html| & HTML output template.\\
 \verb|weather.png| & Report Icon.\\
+\verb|wlformat.txt| & Text output template.\\
 \hline
 \end{tabular}
+
+\section{Sunshine hours}
+This report displays the approximate number of sunshine hours per day based on the calculated theoretical maximum sunshine for the stations coordinates and time of year. 
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
