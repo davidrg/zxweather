@@ -198,8 +198,12 @@ void ReportDisplayWindow::saveReport() {
 }
 
 QDate decodeDate(QUrl url) {
+#if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
     QUrlQuery q(url);
     return QDate::fromString(q.queryItemValue("date"), Qt::ISODate);
+#else
+    return QDate::fromString(url.queryItemValue("date"), Qt::ISODate);
+#endif
 }
 
 DataSet decodeDataSet(QUrl url) {
