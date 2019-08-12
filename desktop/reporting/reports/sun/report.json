@@ -28,7 +28,7 @@
 			"icon": "../../icons/report",
 			"format": "text",
 			"template": "wlformat.txt",
-			"filename": "wlformat.txt"
+            "filename": "sun.txt"
 		}
 	]
 }
