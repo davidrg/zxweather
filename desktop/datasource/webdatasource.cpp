@@ -181,6 +181,9 @@ void WebDataSource::fetchSamplesFromCache(DataSet dataSet) {
 }
 
 void WebDataSource::primeCache(QDateTime start, QDateTime end) {
+    FetchImageDateListWebTask *dateListTask = new FetchImageDateListWebTask(
+                baseURL, stationCode, this, true);
+
     FetchSamplesWebTask* task = new FetchSamplesWebTask(
                 baseURL,
                 stationCode,
@@ -199,7 +202,8 @@ void WebDataSource::primeCache(QDateTime start, QDateTime end) {
 
     // Prime the cache with priority to ensure this is processed before any subsequent
     // selects
-    queueTask(task, true, true);
+    queueTask(dateListTask, false, true);
+    queueTask(task, true, false);
 }
 
 QSqlQuery WebDataSource::query() {

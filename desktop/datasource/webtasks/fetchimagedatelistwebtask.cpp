@@ -1,20 +1,23 @@
 #include "fetchimagedatelistwebtask.h"
 
 #include "json/json.h"
+#include "datasource/webcachedb.h"
 
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QtDebug>
+#include <QMap>
 
 #define DATASET_IMAGE_SOURCES "image_sources.json"
 #define DATASET_IMAGE_SOURCE_DATES "image_sources_by_date.json"
 
 FetchImageDateListWebTask::FetchImageDateListWebTask(QString baseUrl,
                                                      QString stationCode,
-                                                     WebDataSource* ds)
+                                                     WebDataSource* ds, bool cacheResult)
     : AbstractWebTask(baseUrl, stationCode, ds)
 {
     _haveStationInfo = false;
+    _cacheResult = cacheResult;
 }
 
 void FetchImageDateListWebTask::beginTask() {
@@ -40,8 +43,6 @@ void FetchImageDateListWebTask::processStationList(QString data) {
 
     // Progress:
     emit subtaskChanged("Processing image source information");
-
-    qDebug() << data;
 
     bool ok = true;
 
@@ -72,6 +73,7 @@ void FetchImageDateListWebTask::processDateList(QString data) {
     emit subtaskChanged("Processing source dates...");
 
     QList<ImageDate> imageDates;
+    QMap<QString, QList<QDate> > imageDatesBySource;
 
     bool ok = true;
 
@@ -84,14 +86,25 @@ void FetchImageDateListWebTask::processDateList(QString data) {
         imageDate.date = QDate::fromString(key, Qt::ISODate);
         imageDate.sourceCodes = result[key].toStringList();
 
-        // Convert source codes to lowercase
+        // Convert source codes to lowercase & add to map
         for (int i = 0; i < imageDate.sourceCodes.count(); i++) {
-            imageDate.sourceCodes[i] = imageDate.sourceCodes[i].toLower();
+            QString code = imageDate.sourceCodes[i].toLower();
+            imageDate.sourceCodes[i] = code;
+
+            if (_cacheResult) {
+                if (!imageDatesBySource.contains(code)) {
+                    imageDatesBySource[code] = QList<QDate>();
+                }
+                imageDatesBySource[code].append(imageDate.date);
+            }
         }
 
         imageDates.append(imageDate);
     }
 
     emit dateListReady(imageDates, _imageSources);
+    if (_cacheResult) {
+        WebCacheDB::getInstance().updateImageDateList(_stationDataUrl, imageDatesBySource);
+    }
     emit finished();
 }

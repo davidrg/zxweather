@@ -263,6 +263,13 @@ public:
      */
     sample_range_t getSampleRange(QString url);
 
+    /** Stores the list of dates that have images available. This is
+     * primarily for the benefit of reports.
+     *
+     * @param imageDates List of images that have dates.
+     */
+    void updateImageDateList(QString stationCode, QMap<QString, QList<QDate> > dates);
+
 signals:
     /** Emitted when an error occurs which would prevent the cache database
      * from operating.
@@ -483,6 +490,16 @@ private:
      *
      */
     void optimise();
+
+    /** Runs the specified database upgrade script.
+     *
+     * @param version The version this script is for. Script will only run if
+     *                current DB version is below this number.
+     * @param script Script file to run to perform the upgrade
+     * @param filename Name of the database file being upgraded. This is
+     *                 used in diagnostic messages only.
+     */
+    bool runUpgradeScript(int version, QString script, QString filename);
 
     /** If the cache DB is ready.
      */

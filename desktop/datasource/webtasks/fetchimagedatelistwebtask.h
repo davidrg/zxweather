@@ -10,7 +10,8 @@ class FetchImageDateListWebTask : public AbstractWebTask
     Q_OBJECT
 public:
     explicit FetchImageDateListWebTask(QString baseUrl, QString stationCode,
-                                       WebDataSource* ds);
+                                       WebDataSource* ds,
+                                       bool cacheResult=false);
     void beginTask();
 
     int subtasks() const { return 3; }
@@ -30,6 +31,7 @@ private:
     void processStationList(QString data);
     void processDateList(QString data);
     bool _haveStationInfo;
+    bool _cacheResult;
 
     QList<ImageSource> _imageSources;
 };
