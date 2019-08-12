@@ -117,6 +117,7 @@ private:
     FixedTimeSpan _defaultTimeSpan;
     QList<WeatherStationType> _weatherStations;
     bool _primeCache;
+    bool _primeImageDates;
     bool _debug;
     QStringList _scripts;
 

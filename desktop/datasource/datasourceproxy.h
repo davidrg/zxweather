@@ -62,7 +62,7 @@ public:
     void fetchRainTotals();
     void fetchSamplesFromCache(DataSet dataSet);
     QSqlQuery query();
-    void primeCache(QDateTime start, QDateTime end);
+    void primeCache(QDateTime start, QDateTime end, bool imageDates);
     bool solarAvailable();
     station_info_t getStationInfo();
     sample_range_t getSampleRange();

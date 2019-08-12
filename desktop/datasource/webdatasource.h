@@ -63,7 +63,7 @@ public:
 
     void fetchRainTotals();
 
-    void primeCache(QDateTime start, QDateTime end);
+    void primeCache(QDateTime start, QDateTime end, bool imageDates);
 
     bool solarAvailable();
 

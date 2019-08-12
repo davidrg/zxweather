@@ -1556,9 +1556,10 @@ void DatabaseDataSource::fetchSamplesFromCache(DataSet dataSet) {
     AbstractDataSource::fetchSamples(dataSet);
 }
 
-void DatabaseDataSource::primeCache(QDateTime start, QDateTime end) {
+void DatabaseDataSource::primeCache(QDateTime start, QDateTime end, bool imageDates) {
     Q_UNUSED(start);
     Q_UNUSED(end);
+    Q_UNUSED(imageDates);
     emit cachingFinished();
 }
 

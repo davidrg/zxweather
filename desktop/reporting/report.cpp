@@ -185,8 +185,13 @@ Report::Report(QString name)
     }
 
     _primeCache = true;
+    _primeImageDates = false;
     if (doc.contains("dont_prime_cache")) {
         _primeCache = !doc["dont_prime_cache"].toBool();
+    }
+
+    if (doc.contains("load_image_dates")) {
+        _primeImageDates = doc["load_image_dates"].toBool();
     }
 
     if (!doc.contains("supported_weather_stations")) {
@@ -518,7 +523,7 @@ ReportFinisher* Report::run(AbstractDataSource *dataSource, QDateTime start, QDa
         _finisher=(new ReportFinisher(this));
         dataSource->connect(dataSource, SIGNAL(cachingFinished()),
                             _finisher, SLOT(cachingFinished()));
-        dataSource->primeCache(start, end);
+        dataSource->primeCache(start, end, _primeImageDates);
         return _finisher;
     } else {
         executeReport();
@@ -540,7 +545,8 @@ ReportFinisher* Report::run(AbstractDataSource* dataSource, QDate start, QDate e
         dataSource->connect(dataSource, SIGNAL(cachingFinished()),
                             _finisher, SLOT(cachingFinished()));
         dataSource->primeCache(QDateTime(start, QTime(0,0,0)),
-                               QDateTime(end, QTime(23,59,59,59)));
+                               QDateTime(end, QTime(23,59,59,59)),
+                               _primeImageDates);
         return _finisher;
     } else {
         executeReport();
@@ -575,10 +581,12 @@ ReportFinisher* Report::run(AbstractDataSource* dataSource, QDate dayOrMonth, bo
         if (month) {
             QDate end = dayOrMonth.addMonths(1).addDays(-1);
             dataSource->primeCache(QDateTime(dayOrMonth, QTime(0,0,0)),
-                                   QDateTime(end, QTime(23,59,59,59)));
+                                   QDateTime(end, QTime(23,59,59,59)),
+                                   _primeImageDates);
         } else {
             dataSource->primeCache(QDateTime(dayOrMonth, QTime(0,0,0)),
-                                   QDateTime(dayOrMonth, QTime(23,59,59,59)));
+                                   QDateTime(dayOrMonth, QTime(23,59,59,59)),
+                                   _primeImageDates);
         }
         return _finisher;
     } else {
@@ -606,7 +614,8 @@ ReportFinisher* Report::run(AbstractDataSource* dataSource, int year, QVariantMa
                             _finisher, SLOT(cachingFinished()));
         dataSource->primeCache(QDateTime(QDate(year, 1, 1), QTime(0,0,0)),
                                QDateTime(QDate(year, 1, 1).addYears(1).addDays(-1),
-                                         QTime(23,59,59,59)));
+                                         QTime(23,59,59,59)),
+                               _primeImageDates);
 
         return _finisher;
     } else {

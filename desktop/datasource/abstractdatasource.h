@@ -117,8 +117,9 @@ public:
      *
      * @param start Start time
      * @param end End time
+     * @param imageDates Load a list of dates where images are available
      */
-    virtual void primeCache(QDateTime start, QDateTime end) = 0;
+    virtual void primeCache(QDateTime start, QDateTime end, bool imageDates) = 0;
 
     /** Returns true if solar data is available for this station.
      *
