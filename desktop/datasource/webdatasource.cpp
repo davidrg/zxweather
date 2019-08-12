@@ -265,7 +265,7 @@ bool WebDataSource::LoadStationConfigData(QByteArray data) {
             station_name = stationData["name"].toString();
             isSolarDataAvailable = false;
 
-            QString hw = stationData["hw_type"].toMap()["code"].toString().toLower();
+            QString hw = stationData["hw_type"].toMap()["code"].toString().toUpper();
 
             if (hw == "DAVIS") {
                 isSolarDataAvailable = stationData["hw_config"].toMap()["has_solar_and_uv"].toBool();
