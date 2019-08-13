@@ -300,6 +300,8 @@ function transform_datasets(criteria, datasets) {
                 "end_date",
                 "threshold",
                 "count",
+
+                // Other stuff
                 "total_max_hours",
                 "total_percent"
             ],
@@ -314,15 +316,21 @@ function transform_datasets(criteria, datasets) {
                     txt_format_rows.length,
                     max_hours.toFixed(1),
                     (max_hours > 0 ? total_hours / max_hours * 100 : 0.0).toFixed(1)
+
                 ]
             ]
         }, {
             "name": "lat_long",
             "column_names": [
-                "lat", "long"
+                "lat", "long", "lat_dec", "long_dec"
             ],
             "row_data": [
-                [lat, long]
+                [
+                    lat,
+                    long,
+                    latitude.toFixed(6),
+                    longitude.toFixed(6)
+                ]
             ]
 	    }, {
             "name": "sun_data",
