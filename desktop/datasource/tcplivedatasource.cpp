@@ -147,7 +147,7 @@ void TcpLiveDataSource::processLiveData(QStringList parts) {
     int expectedLength = 11;
 
     if (hw_type == HW_DAVIS) {
-        expectedLength = 19;
+        expectedLength = 21;
     }
 
     if (parts.length() < expectedLength) {
@@ -199,6 +199,10 @@ void TcpLiveDataSource::processSample(QStringList parts) {
     }
 
     int expectedLength = 14;
+
+    if (hw_type == HW_DAVIS) {
+        expectedLength = 16;
+    }
 
     if (parts.length() < expectedLength) {
         qDebug() << "Invalid sample data line:" << parts.join(",");
