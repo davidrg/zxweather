@@ -82,10 +82,15 @@ function generate_lat_long_dataset(criteria) {
     return {
 		"name": "lat_long",
 		"column_names": [
-		    "lat", "long"
+            "lat", "long", "lat_dec", "long_dec"
         ],
 		"row_data": [
-		    [lat, long]
+            [
+                lat,
+                long,
+                latitude.toFixed(6),
+                longitude.toFixed(6)
+            ]
         ]
 	};
 }
