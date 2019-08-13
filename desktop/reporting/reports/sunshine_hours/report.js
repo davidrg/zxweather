@@ -121,6 +121,7 @@ function transform_datasets(criteria, datasets) {
     var current_max = 0;
     var total_hours = 0;
     var max_date = moment(criteria["start"]);
+    var min_date = moment(criteria["end"]);
     var max_hours = 0;
     var any_images = false;
 
@@ -216,10 +217,12 @@ function transform_datasets(criteria, datasets) {
         if (ts > max_date) {
             max_date = ts;
         }
+        if (ts < min_date) {
+            min_date = ts;
+        }
     }
 
-    var end_date = max_date;
-
+    // Insert the row for the final day.
     if (current_date !== "") {
         links = current_date_plot_link;
         if (current_date_image_link !== null) {
@@ -243,10 +246,17 @@ function transform_datasets(criteria, datasets) {
         ]);
     }
 
-    var day_count = end_date.diff(moment(criteria["start"]), 'days') + 1;
+    var end_date = max_date;
+    var start_date = moment(criteria["start"])
+    var day_count = end_date.diff(start_date, 'days') + 1;
+    if (day_count > 60) {
+        day_count = end_date.diff(min_date, 'days') + 1;
+        start_date = min_date;
+    }
 
     if (txt_format_rows.length < day_count) {
         var blanks = day_count - txt_format_rows.length;
+        if (blanks > 59) blanks = 59;
         for (i = 0; i < blanks; i++) {
             txt_format_rows.push([
                 "  ----",
@@ -301,22 +311,25 @@ function transform_datasets(criteria, datasets) {
                 "threshold",
                 "count",
 
-                // Other stuff
+                // For HTML output
                 "total_max_hours",
-                "total_percent"
+                "total_percent",
+                "h_start_date",
+                "h_end_date"
             ],
             "row_data": [
                 [
                     // stuff for the wlformat template
                     moment().format("DD/MM/YY"),
                     total_hours.toFixed(1).toString().padStart(6, ' '),
-                    moment(criteria["start"]).format("DD/MM/YY"),
+                    start_date.format("DD/MM/YY"),
                     end_date.format("DD/MM/YY"),
                     criteria["threshold"],
                     txt_format_rows.length,
                     max_hours.toFixed(1),
-                    (max_hours > 0 ? total_hours / max_hours * 100 : 0.0).toFixed(1)
-
+                    (max_hours > 0 ? total_hours / max_hours * 100 : 0.0).toFixed(1),
+                    start_date.format("YYYY-MM-DD"),
+                    end_date.format("YYYY-MM-DD")
                 ]
             ]
         }, {
