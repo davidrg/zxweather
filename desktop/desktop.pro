@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-load(configure)
+greaterThan(QT_MAJOR_VERSION, 4): load(configure)
 
 QT       += core gui network sql svg
 
@@ -28,17 +28,21 @@ TEMPLATE = app
 ######################
 # Multimedia support #
 ######################
-qtCompileTest(multimedia)
+greaterThan(QT_MAJOR_VERSION, 4) {
+    qtCompileTest(multimedia)
 
-config_multimedia {
-    greaterThan(QT_MAJOR_VERSION, 4): QT += multimedia multimediawidgets
-    lessThan(QT_MAJOR_VERSION, 5): QT += phonon
-    message("Multimedia support enabled")
-}
+    config_multimedia {
+        QT += multimedia multimediawidgets
+        message("Multimedia support enabled")
+    }
 
-!config_multimedia {
-    message("Multimedia support disabled")
-    DEFINES += NO_MULTIMEDIA
+    !config_multimedia {
+        message("Multimedia support disabled")
+        DEFINES += NO_MULTIMEDIA
+    }
+} else {
+    QT += phonon
+    message("Unable to test for multimedia support under Qt 4 - assuming its available and enabling.")
 }
 
 #################################
@@ -328,18 +332,16 @@ FORMS    += mainwindow.ui \
     charts/datasetsdialog.ui
 
 config_multimedia {
-    # On Qt 4 we've got to use Phonon for video playback.
+    HEADERS += video/videoplayer.h
+    SOURCES += video/videoplayer.cpp
+    FORMS += video/videoplayer.ui
+} else {
     lessThan(QT_MAJOR_VERSION, 5) {
+        # Qt 4.8 doesn't support any sort of config testing thats useful
+        # here so we just always enable multimedia support and hop
         HEADERS += video/phononvideoplayer.h
         SOURCES += video/phononvideoplayer.cpp
         FORMS += video/phononvideoplayer.ui
-    }
-
-    # Qt 5 doesn't ship with Phonon - We've got to use QtMultimedia instead.
-    greaterThan(QT_MAJOR_VERSION, 4) {
-        HEADERS += video/videoplayer.h
-        SOURCES += video/videoplayer.cpp
-        FORMS += video/videoplayer.ui
     }
 }
 
