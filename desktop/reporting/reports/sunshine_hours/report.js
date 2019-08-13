@@ -156,6 +156,7 @@ function transform_datasets(criteria, datasets) {
             current_date = this_date;
             current_date_ts = ts;
             current_date_image_link = null;
+			current_date_plot_link = null;
             current_start_ts = ts;
             current_end_ts = null;
 
@@ -195,6 +196,7 @@ function transform_datasets(criteria, datasets) {
             current_date = this_date;
             current_date_ts = ts;
             current_date_image_link = null;
+			current_date_plot_link = null;
             current_total = 0;
             current_max = 0;
             current_start_ts = ts;
