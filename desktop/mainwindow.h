@@ -121,6 +121,8 @@ public slots:
     void setStationName(QString name);
     void setSolarDataAvailable(bool available);   
 
+    void messageReceived(const QString &message);
+
 private slots:
     /** Mostly used to check for late live data.
      */

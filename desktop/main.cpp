@@ -24,7 +24,10 @@
 #include <QtDebug>
 #include <QFile>
 #include <QTextStream>
+#include <QtSingleApplication>
 #include "mainwindow.h"
+#include "settings.h"
+#include "constants.h"
 
 #define LOG_FILE "desktop.log"
 
@@ -90,13 +93,28 @@ int main(int argc, char *argv[])
         qWarning() << "Failed to open log file" << LOG_FILE << "for write+append.";
     }
 
-    QApplication a(argc, argv);
+    QString station_code = Settings::getInstance().stationCode();
+    QString app_id = "zxw-desktop-" + station_code.toLower();
+
+    QtSingleApplication a(app_id, argc, argv);
+
+    qDebug() << a.id();
+
+    if (a.isRunning()) {
+        qDebug() << "Activating existing instance for station" << station_code;
+        return !a.sendMessage("");
+    }
+
 
     QCoreApplication::setOrganizationName("zxnet");
     QCoreApplication::setOrganizationDomain("zx.net.nz");
-    QCoreApplication::setApplicationName("zxweather-desktop");
+    QCoreApplication::setApplicationName(Constants::APP_NAME);
 
     MainWindow w;
+
+    QObject::connect(&a, SIGNAL(messageReceived(const QString &)),
+                     &w, SLOT(messageReceived(const QString&)));
+    a.setActivationWindow(&w);
     w.adjustSize();
     w.show();
 
