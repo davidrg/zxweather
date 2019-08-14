@@ -26,6 +26,11 @@ TARGET = desktop
 TEMPLATE = app
 
 ######################
+# Libraries          #
+######################
+include(qsingleapplication/src/qtsingleapplication.pri)
+
+######################
 # Multimedia support #
 ######################
 greaterThan(QT_MAJOR_VERSION, 4) {

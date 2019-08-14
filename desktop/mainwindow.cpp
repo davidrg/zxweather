@@ -737,3 +737,7 @@ void MainWindow::showReports() {
     rrd->setAttribute(Qt::WA_DeleteOnClose);
     rrd->show();
 }
+
+void MainWindow::messageReceived(const QString &message) {
+
+}

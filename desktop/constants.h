@@ -2,6 +2,7 @@
 #define CONSTANTS_H
 
 #include <QByteArray>
+#include <QString>
 
 #include "version.h"
 
@@ -23,6 +24,8 @@ namespace Constants {
      * release of zxweather.
      */
     const QString INSTALLATION_REFERENCE_MANUAL = "DAZW-IG03";
+
+    const QString APP_NAME = "zxweather-desktop";
 
     /** The version of zxweather that first included this particular version
      * of the desktop client.

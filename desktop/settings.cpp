@@ -29,6 +29,8 @@
 #include <QDesktopServices>
 #include <QDebug>
 
+#include "constants.h"
+
 /** Settings keys.
  */
 namespace SettingsKey {
@@ -187,7 +189,7 @@ namespace SettingsKey {
 
 Settings::Settings() {
     QString settingsFile;
-    settingsFile = QCoreApplication::applicationName() + ".ini";
+    settingsFile = Constants::APP_NAME + ".ini";
 
     if (QFile::exists(settingsFile)) {
         // Load settings from there
