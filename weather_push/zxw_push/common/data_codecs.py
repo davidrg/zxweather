@@ -234,6 +234,7 @@ _U_INT_16 = "H"
 _INT_32 = "l"
 _U_INT_32 = "L"
 _BOOL = "?"
+_U_DICT = "!!DICT!!"
 
 _INT_8_NULL = -128
 _U_INT_8_NULL = 255
@@ -413,6 +414,46 @@ _wh1080_sample_fields = [
     (31, None, None, None, None, None),
 ]
 
+
+# TODO: is 8 bits enough? The console sends it as whole degrees F + 90. From
+# there we subtract 90, convert to degrees C and store as a float.
+# TODO: We also need to implement a way of encoding/decoding this from a sub-dict
+_davis_sample_extra_fields = [
+    # Num, name, type, encode conversion function, decode conversion function
+    (0, None, None, None, None, None),
+    (1, "leaf_wetness_1", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
+    (2, "leaf_wetness_2", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
+    (3, "leaf_temperature_1", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
+    (4, "leaf_temperature_2", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
+    (5, "soil_moisture_1", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
+    (6, "soil_moisture_2", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
+    (7, "soil_moisture_3", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
+    (8, "soil_moisture_4", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
+    (9, "soil_temperature_1", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
+    (10, "soil_temperature_2", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
+    (11, "soil_temperature_3", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
+    (12, "soil_temperature_4", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
+    (13, "extra_temperature_1", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
+    (14, "extra_temperature_2", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
+    (15, "extra_temperature_3", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
+    (16, "extra_humidity_1", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
+    (17, "extra_humidity_2", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
+    (18, None, None, None, None, None),
+    (19, None, None, None, None, None),
+    (20, None, None, None, None, None),
+    (21, None, None, None, None, None),
+    (22, None, None, None, None, None),
+    (23, None, None, None, None, None),
+    (24, None, None, None, None, None),
+    (25, None, None, None, None, None),
+    (26, None, None, None, None, None),
+    (27, None, None, None, None, None),
+    (28, None, None, None, None, None),
+    (29, None, None, None, None, None),
+    (30, None, None, None, None, None),
+    (31, None, None, None, None, None),
+]
+
 _davis_sample_fields = [
     # Num, name, type, encode conversion function, decode conversion function
     (0, None, None, None, None, None),
@@ -452,7 +493,7 @@ _davis_sample_fields = [
     (28, None, None, None, None, None),
     (29, None, None, None, None, None),
     (30, None, None, None, None, None),
-    (31, None, None, None, None, None),
+    (31, "extra_fields", _U_DICT, _davis_sample_extra_fields, None, None),
 ]
 
 _sample_fields = {
@@ -501,6 +542,12 @@ def _encode_dict(data_dict, field_definitions, field_ids):
         # Field definition values:
         field_number = field[0]
         field_name = field[1]
+
+        if field[2] == _U_DICT:
+            # TODO: We also need the field header thing here
+            encoded_value = _encode_dict(data_dict[field_name], field[3], None)
+            result += encoded_value
+            continue
 
         if field_name is None:
             continue  # Unused or reserved field
@@ -695,6 +742,9 @@ def calculate_encoded_size(field_ids, hardware_type, is_live):
 
         if field_name is None:
             continue  # Reserved field has no size
+
+        if field_type == _U_DICT:
+            continue # TODO: This
 
         total_size += struct.calcsize("!" + field_type)
 
