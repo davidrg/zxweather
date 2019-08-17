@@ -4,6 +4,7 @@
 #include "ui_videoplayer.h"
 
 #include <QTime>
+#include <QStyle>
 
 VideoPlayer::VideoPlayer(QWidget *parent) :
     AbstractVideoPlayer(parent),
