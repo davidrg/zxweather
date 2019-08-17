@@ -290,20 +290,20 @@ _generic_live_fields = [
     (31, None, None, None, None, None),
 ]
 
-_davis_live_fields = [
+_davis_live_fields = [                                      # Update Frequency
     _generic_live_fields[0],  # Live diff sequence
     _generic_live_fields[1],  # sample diff timestamp
     _generic_live_fields[2],  # indoor humidity
     _generic_live_fields[3],  # indoor temperature
-    _generic_live_fields[4],  # temperature
-    _generic_live_fields[5],  # humidity
+    _generic_live_fields[4],  # temperature                   10 seconds
+    _generic_live_fields[5],  # humidity                      50 seconds
     _generic_live_fields[6],  # pressure
-    _generic_live_fields[7],  # average wind speed
-    _generic_live_fields[8],  # gust wind speed
-    _generic_live_fields[9],  # wind direction
+    _generic_live_fields[7],  # average wind speed            2.5 seconds
+    _generic_live_fields[8],  # gust wind speed               2.5 seconds ???
+    _generic_live_fields[9],  # wind direction                2.5 seconds
     (10, "bar_trend", _INT_8, None, None, _INT_8_NULL),
     (11, "rain_rate", _U_INT_16, _float_encode, _float_decode, _U_INT_16_NULL),
-    (12, "storm_rain", _U_INT_16, _float_encode, _float_decode, _U_INT_16_NULL),
+    (12, "storm_rain", _U_INT_16, _float_encode, _float_decode, _U_INT_16_NULL),        # Every 10 seconds?
     (13, "current_storm_start_date", _U_INT_16, _date_encode, _date_decode,
      _U_INT_16_NULL),
     (14, "transmitter_battery", _U_INT_8, None, None, _U_INT_8_NULL),
@@ -311,8 +311,8 @@ _davis_live_fields = [
      _U_INT_16_NULL),
     (16, "forecast_icon", _U_INT_8, None, None, _U_INT_8_NULL),
     (17, "forecast_rule_id", _U_INT_8, None, None, _U_INT_8_NULL),
-    (18, "uv_index", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
-    (19, "solar_radiation", _U_INT_16, None, None, _U_INT_16_NULL),
+    (18, "uv_index", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),            # Every 50 seconds
+    (19, "solar_radiation", _U_INT_16, None, None, _U_INT_16_NULL),                     # Every 50 seconds
     (20, None, None, None, None, None),
     (21, None, None, None, None, None),
     (22, None, None, None, None, None),
