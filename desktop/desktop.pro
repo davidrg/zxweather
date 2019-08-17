@@ -25,10 +25,19 @@ equals(QT_MAJOR_VERSION, 5):!lessThan(QT_MINOR_VERSION,6) {
 TARGET = desktop
 TEMPLATE = app
 
+
+######################
+# Build Settings     #
+######################
+DEFINES += SINGLE_INSTANCE   # Only allow one instance per station code
+
+
 ######################
 # Libraries          #
 ######################
-include(qsingleapplication/src/qtsingleapplication.pri)
+contains(DEFINES, SINGLE_INSTANCE) {
+    include($$PWD/qsingleapplication/src/qtsingleapplication.pri)
+}
 
 ######################
 # Multimedia support #
@@ -90,6 +99,7 @@ isEmpty(ECPG_BIN) {
     win32 { # Use bundled postgres libraries
         LIBS += -L../desktop/lib/libecpg-9.1-win32 -lecpg
         LIBS += -L../desktop/lib/libpq-9.1-win32 -lpq
+        #INCLUDEPATH += $$PWD/lib/libecpg-9.1-win32/include
         INCLUDEPATH += lib/libecpg-9.1-win32/include
     }
     unix { # Assumes libecpg and libpq have been installed in /usr/lib
@@ -360,3 +370,6 @@ RESOURCES += \
     reporting/reports/reports.qrc
 
 RC_FILE += desktop.rc
+
+message("Includepath:")
+message($$INCLUDEPATH)

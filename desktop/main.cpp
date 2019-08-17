@@ -24,7 +24,9 @@
 #include <QtDebug>
 #include <QFile>
 #include <QTextStream>
+#ifdef SINGLE_INSTANCE
 #include <QtSingleApplication>
+#endif
 #include "mainwindow.h"
 #include "settings.h"
 #include "constants.h"
@@ -93,10 +95,14 @@ int main(int argc, char *argv[])
         qWarning() << "Failed to open log file" << LOG_FILE << "for write+append.";
     }
 
+#ifndef SINGLE_INSTANCE
+    QApplication a(argc, argv);
+#else
     QString station_code = Settings::getInstance().stationCode();
     QString app_id = "zxw-desktop-" + station_code.toLower();
 
     QtSingleApplication a(app_id, argc, argv);
+
 
     qDebug() << a.id();
 
@@ -104,7 +110,7 @@ int main(int argc, char *argv[])
         qDebug() << "Activating existing instance for station" << station_code;
         return !a.sendMessage("");
     }
-
+#endif
 
     QCoreApplication::setOrganizationName("zxnet");
     QCoreApplication::setOrganizationDomain("zx.net.nz");
@@ -112,9 +118,12 @@ int main(int argc, char *argv[])
 
     MainWindow w;
 
+#ifdef SINGLE_INSTANCE
     QObject::connect(&a, SIGNAL(messageReceived(const QString &)),
                      &w, SLOT(messageReceived(const QString&)));
     a.setActivationWindow(&w);
+#endif
+
     w.adjustSize();
     w.show();
 
