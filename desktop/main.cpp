@@ -20,16 +20,19 @@
  *
  ****************************************************************************/
 
-#include <QApplication>
 #include <QtDebug>
 #include <QFile>
 #include <QTextStream>
 #ifdef SINGLE_INSTANCE
 #include <QtSingleApplication>
+#else
+#include <QApplication>
 #endif
 #include "mainwindow.h"
 #include "settings.h"
 #include "constants.h"
+
+//#include <foo1234567890123456.h>
 
 #define LOG_FILE "desktop.log"
 
@@ -94,6 +97,8 @@ int main(int argc, char *argv[])
 #endif
         qWarning() << "Failed to open log file" << LOG_FILE << "for write+append.";
     }
+
+    //qDebug() << ABACUS;
 
 #ifndef SINGLE_INSTANCE
     QApplication a(argc, argv);
