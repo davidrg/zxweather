@@ -83,6 +83,13 @@ SettingsDialog::SettingsDialog(bool solarDataAvailable, QWidget *parent) :
 
     loadSettings();
 
+    if (Settings::getInstance().isStationCodeOverridden()) {
+        ui->dbTab->setEnabled(false);
+        ui->gbStation->setEnabled(false);
+    } else {
+        ui->lStationOverride->hide();
+    }
+
     getCacheInfo();
 }
 

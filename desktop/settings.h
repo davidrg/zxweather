@@ -224,6 +224,9 @@ public:
 
     void resetFontsToDefaults() const;
 
+    void overrideStationCode(const QString &stationCode);
+    bool isStationCodeOverridden() const;
+
 private:
     Settings();
     ~Settings();
@@ -234,6 +237,8 @@ private:
     QSettings *settings;
 
     QStringList imageTypePriority;
+
+    QString stationCodeOverride;
 };
 
 #endif // SETTINGS_H
