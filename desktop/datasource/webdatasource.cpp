@@ -356,7 +356,7 @@ void WebDataSource::liveDataReady(QNetworkReply *reply) {
             return;
         }
 
-        lds.windDirection = result["wind_direction"].toFloat();
+        lds.windDirection = result["wind_direction"].toInt();
         lds.windSpeed = result["average_wind_speed"].toFloat();
         lds.temperature = result["temperature"].toFloat();
         lds.dewPoint = result["dew_point"].toFloat();
@@ -417,7 +417,7 @@ void WebDataSource::liveDataReady(QNetworkReply *reply) {
                 sample.averageWindSpeed = s["average_wind_speed"].toDouble();
                 sample.gustWindSpeed = s["gust_wind_speed"].toDouble();
                 sample.windDirectionValid = !s["wind_direction"].isNull();
-                sample.windDirection = s["wind_direction"].toInt();
+                sample.windDirection = s["wind_direction"].toUInt();
                 sample.solarRadiationValid = !s["solar_radiation"].isNull();
                 sample.solarRadiation = s["solar_radiation"].toDouble();
                 sample.uvIndexValid = !s["uv_index"].isNull();
@@ -493,7 +493,7 @@ void WebDataSource::liveDataPoll() {
         QVector<ImageInfo> latestImages = WebCacheDB::getInstance().getMostRecentImages(url);
 
         QDateTime minTs = QDateTime();
-        minTs.addDays(-1);
+        minTs = minTs.addDays(-1);
 
         // Look through the latest images in the cache database. If any are
         // less than 24 hours old we'll assume there are active image sources
@@ -731,11 +731,6 @@ void WebDataSource::finishedCaching() {
  **** TASK QUEUE *************************************************************
  *****************************************************************************/
 #ifdef QT_DEBUG
-//#define TQLOG qDebug() << QString("Progress[%1/%2] Subtask[%3/%4] Task[%5]") \
-//                            .arg(progressListener->value()).arg(progressListener->maximum()) \
-//                            .arg(currentSubtask) \
-//                            .arg(currentTask == NULL ? 0 : currentTask->subtasks()) \
-//                            .arg(currentTask == NULL ? "" : currentTask->taskName()).toLatin1()
 #define TQLOG qDebug() << "Progress[" << progressListener->value() \
                        << "/" << progressListener->maximum() \
                        << "] Subtask[" << currentSubtask << "/" \
@@ -748,7 +743,7 @@ void WebDataSource::finishedCaching() {
 void WebDataSource::makeProgress(QString message) {
     progressListener->setSubtaskName(message);
     int value = progressListener->value() + 1;
-    int maxValue = progressListener->maximum();
+    //int maxValue = progressListener->maximum();
     progressListener->setValue(value);
 
     TQLOG << "Making progress:" << message;
