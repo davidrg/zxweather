@@ -125,7 +125,7 @@ public slots:
      * @param oldUrl the previous URL the resource was known by
      * @param newUrl the new URL for the resource.
      */
-    virtual void requestRedirected(QString oldUrl, QString newUrl) {}
+    virtual void requestRedirected(QString oldUrl, QString newUrl) { Q_UNUSED(newUrl); Q_UNUSED(oldUrl); }
 #endif
 
     // TODO: Some way of linking this network error with a request?

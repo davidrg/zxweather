@@ -66,7 +66,7 @@ void LiveBuffer::trimBuffer() {
 
     QDateTime minTime = QDateTime::currentDateTime().addSecs(0-keepSecs);
 
-    int count = buffer.length();
+    //int count = buffer.length();
     while(!buffer.isEmpty() && buffer.at(0).timestamp < minTime) {
         buffer.removeAt(0);
     }
