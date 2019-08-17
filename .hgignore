@@ -56,3 +56,9 @@ known_issues.html
 zxweather-desktop.ini
 auto_dist.bat
 clean.bat
+davis-config/build-davis-config-*
+build-*-release/*
+dist-*/*
+desktop/desktop.pro.user*
+desktop/config.tests/multimedia/multimedia.exe
+desktop/.qmake.cache
