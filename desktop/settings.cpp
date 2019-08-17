@@ -520,6 +520,11 @@ ChartColours Settings::getChartColours() {
 }
 
 QString Settings::stationCode() {
+
+    if (!stationCodeOverride.isNull()) {
+        return stationCodeOverride;
+    }
+
     QString result = settings->value(
                 SettingsKey::DataSource::STATION_NAME,"").toString();
 
@@ -912,4 +917,12 @@ void Settings::resetFontsToDefaults() const {
     settings->remove(SettingsKey::Chart::FontDefaults::LEGEND);
     settings->remove(SettingsKey::Chart::FontDefaults::AXIS_LABEL);
     settings->remove(SettingsKey::Chart::FontDefaults::TICK_LABEL);
+}
+
+bool Settings::isStationCodeOverridden() const {
+    return !stationCodeOverride.isNull();
+}
+
+void Settings::overrideStationCode(const QString &stationCode) {
+    stationCodeOverride = stationCode;
 }

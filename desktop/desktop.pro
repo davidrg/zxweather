@@ -112,6 +112,7 @@ isEmpty(ECPG_BIN) {
 }
 
 SOURCES += main.cpp\
+    applock.cpp \
         mainwindow.cpp \
     settingsdialog.cpp \
     dbsignaladapter.cpp \
@@ -212,6 +213,7 @@ SOURCES += main.cpp\
     datasource/livebuffer.cpp
 
 HEADERS  += mainwindow.h \
+    applock.h \
     database.h \
     settingsdialog.h \
     dbsignaladapter.h \

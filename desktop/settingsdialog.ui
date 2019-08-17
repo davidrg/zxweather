@@ -163,18 +163,11 @@
         </widget>
        </item>
        <item row="1" column="0" colspan="2">
-        <widget class="QGroupBox" name="groupBox_7">
+        <widget class="QGroupBox" name="gbStation">
          <property name="title">
           <string>Station</string>
          </property>
          <layout class="QGridLayout" name="gridLayout">
-          <item row="1" column="0">
-           <widget class="QLabel" name="stationNameLabel">
-            <property name="text">
-             <string>Station Code</string>
-            </property>
-           </widget>
-          </item>
           <item row="1" column="1">
            <widget class="QLineEdit" name="stationNameLineEdit">
             <property name="sizePolicy">
@@ -194,7 +187,17 @@
             </property>
            </widget>
           </item>
-          <item row="1" column="2">
+          <item row="0" column="0" colspan="4">
+           <widget class="QLabel" name="label_7">
+            <property name="text">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;This is the code for the station to monitor. It is present in all web interface URLs. For example: &lt;br/&gt;http://weather.example/s/&lt;span style=&quot; font-weight:600;&quot;&gt;foo&lt;/span&gt;/.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
+            <property name="wordWrap">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="3">
            <spacer name="horizontalSpacer">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
@@ -207,13 +210,17 @@
             </property>
            </spacer>
           </item>
-          <item row="0" column="0" colspan="3">
-           <widget class="QLabel" name="label_7">
+          <item row="1" column="0">
+           <widget class="QLabel" name="stationNameLabel">
             <property name="text">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;This is the code for the station to monitor. It is present in all web interface URLs. For example: &lt;br/&gt;http://weather.example/s/&lt;span style=&quot; font-weight:600;&quot;&gt;foo&lt;/span&gt;/.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             <string>Station Code</string>
             </property>
-            <property name="wordWrap">
-             <bool>true</bool>
+           </widget>
+          </item>
+          <item row="1" column="2">
+           <widget class="QLabel" name="lStationOverride">
+            <property name="text">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Station code has been set via command line&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
            </widget>
           </item>

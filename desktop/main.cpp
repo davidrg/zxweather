@@ -23,16 +23,16 @@
 #include <QtDebug>
 #include <QFile>
 #include <QTextStream>
-#ifdef SINGLE_INSTANCE
-#include <QtSingleApplication>
-#else
 #include <QApplication>
-#endif
+#include <QCommandLineParser>
+#include <QCommandLineOption>
 #include "mainwindow.h"
 #include "settings.h"
 #include "constants.h"
 
-//#include <foo1234567890123456.h>
+#ifdef SINGLE_INSTANCE
+#include "applock.h"
+#endif
 
 #define LOG_FILE "desktop.log"
 
@@ -72,6 +72,7 @@ void msgFileHandler(QtMsgType type, const QMessageLogContext &, const QString & 
     _log_stream << output_line << endl;
 }
 
+
 int main(int argc, char *argv[])
 {    
     _global_log_file.setFileName(LOG_FILE);
@@ -98,22 +99,39 @@ int main(int argc, char *argv[])
         qWarning() << "Failed to open log file" << LOG_FILE << "for write+append.";
     }
 
-    //qDebug() << ABACUS;
-
-#ifndef SINGLE_INSTANCE
     QApplication a(argc, argv);
-#else
+
+    QCommandLineParser parser;
+    parser.setApplicationDescription("zxweather desktop client");
+    parser.addHelpOption();
+    parser.addVersionOption();
+    parser.addPositionalArgument("url", QCoreApplication::translate("main", "Open internal url"));
+
+    QCommandLineOption stationCodeOption(
+                QStringList() << "s" << "station-code",
+                QCoreApplication::translate("main", "Override configured station code"));
+    stationCodeOption.setValueName(QCoreApplication::translate("main", "station_code"));
+
+    parser.addOption(stationCodeOption);
+
+    parser.process(a);
+
+    const QStringList args = parser.positionalArguments();
+
+    if (parser.isSet(stationCodeOption)) {
+        Settings::getInstance().overrideStationCode(parser.value(stationCodeOption));
+    }
+
+#ifdef SINGLE_INSTANCE
     QString station_code = Settings::getInstance().stationCode();
     QString app_id = "zxw-desktop-" + station_code.toLower();
 
-    QtSingleApplication a(app_id, argc, argv);
+    AppLock lock;
+    lock.lock(app_id);
 
-
-    qDebug() << a.id();
-
-    if (a.isRunning()) {
+    if (lock.isRunning()) {
         qDebug() << "Activating existing instance for station" << station_code;
-        return !a.sendMessage("");
+        return !lock.sendMessage("");
     }
 #endif
 
@@ -124,9 +142,9 @@ int main(int argc, char *argv[])
     MainWindow w;
 
 #ifdef SINGLE_INSTANCE
-    QObject::connect(&a, SIGNAL(messageReceived(const QString &)),
+    QObject::connect(&lock, SIGNAL(messageReceived(const QString &)),
                      &w, SLOT(messageReceived(const QString&)));
-    a.setActivationWindow(&w);
+    lock.setWindow(&w);
 #endif
 
     w.adjustSize();
