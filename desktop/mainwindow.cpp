@@ -55,12 +55,16 @@
 
 #include "imagewidget.h"
 
+#include "urlhandler.h"
+
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
     qDebug() << "MainWindow::MainWindow...";
     ui->setupUi(this);
+    ready = false;
+    processingMessages = false;
 
     // The UI is configured for a Davis Vantage Pro 2 Plus by default
     last_hw_type = HW_DAVIS;
@@ -203,6 +207,8 @@ MainWindow::MainWindow(QWidget *parent) :
     policy.setHeightForWidth(true);
     policy.setVerticalStretch(1);
     ui->latestImages->setSizePolicy(policy);
+
+    urlHandler = new UrlHandler();
 }
 
 
@@ -674,6 +680,7 @@ void MainWindow::reconfigureDataSource() {
     } else {
         liveMonitor->disable();
     }
+    ready = true;
 }
 
 void MainWindow::setStationName(QString name) {
@@ -733,11 +740,44 @@ void MainWindow::adjustSizeSlot() {
 }
 
 void MainWindow::showReports() {
-    RunReportDialog *rrd = new RunReportDialog();
+    RunReportDialog *rrd = new RunReportDialog(urlHandler);
     rrd->setAttribute(Qt::WA_DeleteOnClose);
     rrd->show();
 }
 
 void MainWindow::messageReceived(const QString &message) {
+    qDebug() << "Open request:" << message;
+    waitingMessages.append(message);
 
+    if (!processingMessages) {
+        processMessages();
+    }
+}
+
+void MainWindow::processMessages() {
+
+    if (!ready) {
+        qDebug() << "Not ready to process messages yet. Retrying soon...";
+        QTimer::singleShot(1000, this, SLOT(processMessages()));
+        return;
+    }
+
+    processingMessages = true;
+    while(!waitingMessages.isEmpty()) {
+        QString message = waitingMessages.takeFirst();
+        // TODO: wait until we're actually ready and connected to the datasource.
+        if (!message.isNull()) {
+            QUrl url(message);
+            if (url.isValid() && url.scheme() == "zxw") {
+                station_info_t info = dataSource->getStationInfo();
+                bool wirelessAvailable = false;
+                if (info.isValid) {
+                    wirelessAvailable = info.isWireless;
+                }
+
+                urlHandler->handleUrl(url, solarDataAvailable, wirelessAvailable);
+            }
+        }
+    }
+    processingMessages = false;
 }

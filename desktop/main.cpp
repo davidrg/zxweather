@@ -117,9 +117,15 @@ int main(int argc, char *argv[])
     parser.process(a);
 
     const QStringList args = parser.positionalArguments();
+    qDebug() << "Arguments:" << args;
 
     if (parser.isSet(stationCodeOption)) {
         Settings::getInstance().overrideStationCode(parser.value(stationCodeOption));
+    }
+
+    QString message = "";
+    if (!args.isEmpty()) {
+        message = args.first();
     }
 
 #ifdef SINGLE_INSTANCE
@@ -130,8 +136,9 @@ int main(int argc, char *argv[])
     lock.lock(app_id);
 
     if (lock.isRunning()) {
-        qDebug() << "Activating existing instance for station" << station_code;
-        return !lock.sendMessage("");
+        qDebug() << "Activating existing instance for station" << station_code << "with message" << message;
+
+        return !lock.sendMessage(message);
     }
 #endif
 
@@ -142,13 +149,15 @@ int main(int argc, char *argv[])
     MainWindow w;
 
 #ifdef SINGLE_INSTANCE
+    lock.setWindow(&w);
     QObject::connect(&lock, SIGNAL(messageReceived(const QString &)),
                      &w, SLOT(messageReceived(const QString&)));
-    lock.setWindow(&w);
 #endif
 
     w.adjustSize();
     w.show();
+
+    w.messageReceived(message);
 
     return a.exec();
 }

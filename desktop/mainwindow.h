@@ -35,6 +35,7 @@
 
 #include "livemonitor.h"
 #include "datasource/abstractdatasource.h"
+#include "abstracturlhandler.h"
 
 namespace Ui {
 class MainWindow;
@@ -144,6 +145,8 @@ private slots:
 
     void checkDatabase();
 
+    void processMessages();
+
 protected:
     /**
      * @brief changeEvent handles minimising the window to the system tray if
@@ -188,8 +191,13 @@ private:
     QLayoutItem* statusItem;
     QLayoutItem* forecastItem;
     QLayoutItem* spacerItem;
+    AbstractUrlHandler *urlHandler;
 
     bool solarDataAvailable;
+
+    bool ready;
+    bool processingMessages;
+    QStringList waitingMessages;
 };
 
 #endif // MAINWINDOW_H

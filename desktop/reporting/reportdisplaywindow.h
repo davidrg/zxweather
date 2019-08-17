@@ -9,12 +9,13 @@
 #include "datasource/samplecolumns.h"
 
 class QTabWidget;
+class AbstractUrlHandler;
 
 class ReportDisplayWindow : public QDialog
 {
     Q_OBJECT
 public:
-    explicit ReportDisplayWindow(QString reportName, QIcon reportIcon, QWidget *parent = NULL);
+    explicit ReportDisplayWindow(QString reportName, QIcon reportIcon, AbstractUrlHandler *urlHandler, QWidget *parent = NULL);
 
     void addHtmlTab(QString name, QIcon icon, QString content);
     void addPlainTab(QString name, QIcon icon, QString text, bool wordWrap);
@@ -33,6 +34,7 @@ private slots:
 
 private:
     QTabWidget *tabs;
+    AbstractUrlHandler *urlHandler;
     QList<report_output_file_t> outputs;
     bool solarDataAvailable;
     bool wirelessAvailable;

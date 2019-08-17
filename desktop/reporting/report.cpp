@@ -510,7 +510,9 @@ QList<Report> Report::loadReports() {
     return reports;
 }
 
-ReportFinisher* Report::run(AbstractDataSource *dataSource, QDateTime start, QDateTime end, QVariantMap parameters) {
+ReportFinisher* Report::run(AbstractDataSource *dataSource, AbstractUrlHandler *urlHandler, QDateTime start, QDateTime end, QVariantMap parameters) {
+    this->urlHandler = urlHandler;
+
     parameters["start"] = start;
     parameters["end"] = end;
     parameters["start_t"] = start.toTime_t();
@@ -531,7 +533,9 @@ ReportFinisher* Report::run(AbstractDataSource *dataSource, QDateTime start, QDa
     return NULL;
 }
 
-ReportFinisher* Report::run(AbstractDataSource* dataSource, QDate start, QDate end, QVariantMap parameters) {
+ReportFinisher* Report::run(AbstractDataSource* dataSource, AbstractUrlHandler *urlHandler, QDate start, QDate end, QVariantMap parameters) {
+    this->urlHandler = urlHandler;
+
     parameters["start"] = start;
     parameters["end"] = end;
     parameters["start_t"] = QDateTime(start, QTime(0, 0, 0)).toTime_t();
@@ -554,7 +558,9 @@ ReportFinisher* Report::run(AbstractDataSource* dataSource, QDate start, QDate e
     return NULL;
 }
 
-ReportFinisher* Report::run(AbstractDataSource* dataSource, QDate dayOrMonth, bool month, QVariantMap parameters) {
+ReportFinisher* Report::run(AbstractDataSource* dataSource, AbstractUrlHandler *urlHandler, QDate dayOrMonth, bool month, QVariantMap parameters) {
+    this->urlHandler = urlHandler;
+
     parameters["atDate"] = dayOrMonth;
 
     QDateTime start = QDateTime(dayOrMonth, QTime(0, 0));
@@ -595,7 +601,9 @@ ReportFinisher* Report::run(AbstractDataSource* dataSource, QDate dayOrMonth, bo
     return NULL;
 }
 
-ReportFinisher* Report::run(AbstractDataSource* dataSource, int year, QVariantMap parameters) {
+ReportFinisher* Report::run(AbstractDataSource* dataSource, AbstractUrlHandler *urlHandler, int year, QVariantMap parameters) {
+    this->urlHandler = urlHandler;
+
     parameters["year"] = year;
 
     QDateTime start = QDateTime(QDate(year, 1, 1), QTime(0, 0));
@@ -1144,7 +1152,7 @@ void Report::saveReport(QList<report_output_file_t> outputs, QWidget *parent) {
 void Report::outputToUI(QMap<QString, QVariant> reportParameters,
                         QMap<QString, query_result_t> queries, bool hasSolar, bool isWireless) {
 
-    ReportDisplayWindow *window = new ReportDisplayWindow(_title, _icon);
+    ReportDisplayWindow *window = new ReportDisplayWindow(_title, _icon, urlHandler);
     window->setStationInfo(hasSolar, isWireless);
 
     QList<report_output_file_t> files;
