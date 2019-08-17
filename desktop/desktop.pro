@@ -36,7 +36,7 @@ DEFINES += SINGLE_INSTANCE   # Only allow one instance per station code
 # Libraries          #
 ######################
 contains(DEFINES, SINGLE_INSTANCE) {
-    include($$PWD/qsingleapplication/src/qtsingleapplication.pri)
+    include(qtsingleapplication/src/qtsingleapplication.pri)
 }
 
 ######################
