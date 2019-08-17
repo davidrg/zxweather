@@ -24,6 +24,7 @@
 #include "ui_aboutdialog.h"
 #include "constants.h"
 #include "reporting/reportdisplaywindow.h"
+#include "abstracturlhandler.h"
 
 #include <QFile>
 
@@ -59,7 +60,11 @@ void AboutDialog::changeEvent(QEvent *e)
 }
 
 void AboutDialog::showLicenses() {
-    ReportDisplayWindow *w = new ReportDisplayWindow("Licenses", QIcon(":/icons/about"), this);
+    ReportDisplayWindow *w = new ReportDisplayWindow(
+                "Licenses",
+                QIcon(":/icons/about"),
+                new NullUrlHandler(),
+                this);
     QFile gpl3(":/licenses/gpl_v3.txt");
     gpl3.open(QIODevice::ReadOnly);
 

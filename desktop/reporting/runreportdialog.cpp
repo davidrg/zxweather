@@ -20,11 +20,12 @@
 #include <QLineEdit>
 #include <QGroupBox>
 
-RunReportDialog::RunReportDialog(QWidget *parent) :
+RunReportDialog::RunReportDialog(AbstractUrlHandler *urlHandler, QWidget *parent) :
     QDialog(parent),
     ui(new Ui::RunReportDialog)
 {
     ui->setupUi(this);
+    this->urlHandler = urlHandler;
 
     QList<Report> reports = Report::loadReports();
 
@@ -869,16 +870,16 @@ ReportFinisher *RunReportDialog::runReport() {
             (report.timePickerType() == Report::TP_None &&
              report.defaultTimeSpan() != Report::FTS_None)) {
         time_span_t ts = get_time_span();
-        return report.run(ds.data(), ts.start, ts.end, params);
+        return report.run(ds.data(), urlHandler, ts.start, ts.end, params);
     } else if (report.timePickerType() == Report::TP_Datespan) {
         date_span_t span = get_date_span();
-        return report.run(ds.data(), span.start, span.end, params);
+        return report.run(ds.data(), urlHandler, span.start, span.end, params);
     } else if (report.timePickerType() == Report::TP_Day) {
-        return report.run(ds.data(), get_date(), false, params);
+        return report.run(ds.data(), urlHandler, get_date(), false, params);
     } else if (report.timePickerType() == Report::TP_Month) {
-        return report.run(ds.data(), get_month(), true, params);
+        return report.run(ds.data(), urlHandler, get_month(), true, params);
     } else if (report.timePickerType() == Report::TP_Year) {
-        return report.run(ds.data(), get_year(), params);
+        return report.run(ds.data(), urlHandler, get_year(), params);
     }
     qDebug() << "No time picker selected!";
     return NULL;

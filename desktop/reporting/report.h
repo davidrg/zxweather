@@ -20,6 +20,8 @@ class ScriptValue;
 
 class QSqlQuery;
 
+class AbstractUrlHandler;
+
 typedef struct {
     QString default_filename;
     QString dialog_filter;
@@ -88,10 +90,10 @@ public:
 //    void criteriaUICreated(QWidget* w);
 //    bool validateCriteriaUI(QString &errorMessage, QWidget* w);
 
-    ReportFinisher* run(AbstractDataSource* dataSource, QDateTime start, QDateTime end, QVariantMap parameters);
-    ReportFinisher* run(AbstractDataSource* dataSource, QDate start, QDate end, QVariantMap parameters);
-    ReportFinisher* run(AbstractDataSource* dataSource, QDate dayOrMonth, bool month, QVariantMap parameters);
-    ReportFinisher* run(AbstractDataSource* dataSource, int year, QVariantMap parameters);
+    ReportFinisher* run(AbstractDataSource* dataSource, AbstractUrlHandler* urlHandler, QDateTime start, QDateTime end, QVariantMap parameters);
+    ReportFinisher* run(AbstractDataSource* dataSource, AbstractUrlHandler* urlHandler, QDate start, QDate end, QVariantMap parameters);
+    ReportFinisher* run(AbstractDataSource* dataSource, AbstractUrlHandler* urlHandler, QDate dayOrMonth, bool month, QVariantMap parameters);
+    ReportFinisher* run(AbstractDataSource* dataSource, AbstractUrlHandler* urlHandler, int year, QVariantMap parameters);
 
     static QStringList reports();
 
@@ -196,6 +198,8 @@ private:
     ReportFinisher* _finisher;
     AbstractDataSource *_dataSource;
     QVariantMap _parameters;
+
+    AbstractUrlHandler* urlHandler;
 
     static QByteArray queryResultToCSV(query_result_t query, QMap<QString, QString> columnHeadings);
     static void writeFile(report_output_file_t file);

@@ -29,7 +29,10 @@ bool AppLock::isRunning() {
 }
 
 void AppLock::setWindow(QWidget* window) {
-    qCritical() << "Not locked - unable to set window";
+    if (peer == NULL) {
+        qCritical() << "Not locked - unable to set window";
+        return;
+    }
     this->window = window;
     connect(peer, SIGNAL(messageReceived(const QString&)),
         this, SLOT(activateWindow()));
@@ -37,7 +40,10 @@ void AppLock::setWindow(QWidget* window) {
 
 
 bool AppLock::sendMessage(const QString &message, int timeout) {
-    qCritical() << "Not locked - unable to send message";
+   if (peer == NULL) {
+        qCritical() << "Not locked - unable to send message";
+        return false;
+    }
     return peer->sendMessage(message, timeout);
 }
 

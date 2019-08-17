@@ -14,12 +14,14 @@ class RunReportDialog;
 
 class QTreeWidgetItem;
 
+class AbstractUrlHandler;
+
 class RunReportDialog : public QDialog
 {
     Q_OBJECT
 
 public:
-    explicit RunReportDialog(QWidget *parent = 0);
+    explicit RunReportDialog(AbstractUrlHandler *urlHandler, QWidget *parent = 0);
     ~RunReportDialog();
 
     typedef enum {
@@ -69,6 +71,8 @@ private:
     bool needsCriteriaPageCreated;
     void createReportCriteria();
     void loadReportCriteria();
+
+    AbstractUrlHandler *urlHandler;
 };
 
 #endif // RUNREPORTDIALOG_H

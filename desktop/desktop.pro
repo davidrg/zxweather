@@ -155,6 +155,7 @@ SOURCES += main.cpp\
     charts/datasettimespandialog.cpp \
     timespanwidget.cpp \
     aggregateoptionswidget.cpp \
+    urlhandler.cpp \
     viewdataoptionsdialog.cpp \
     viewdatasetwindow.cpp \
     datasetmodel.cpp \
@@ -213,6 +214,7 @@ SOURCES += main.cpp\
     datasource/livebuffer.cpp
 
 HEADERS  += mainwindow.h \
+    abstracturlhandler.h \
     applock.h \
     database.h \
     settingsdialog.h \
@@ -262,6 +264,7 @@ HEADERS  += mainwindow.h \
     charts/datasettimespandialog.h \
     timespanwidget.h \
     aggregateoptionswidget.h \
+    urlhandler.h \
     viewdataoptionsdialog.h \
     viewdatasetwindow.h \
     datasetmodel.h \
