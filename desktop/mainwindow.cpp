@@ -46,6 +46,7 @@
 #include <QSqlDatabase>
 #include <QSqlError>
 #include <QSqlQuery>
+#include <QVariant>
 
 #include "datasource/datasourceproxy.h"
 #include "datasource/dialogprogresslistener.h"
@@ -56,6 +57,7 @@
 #include "imagewidget.h"
 
 #include "urlhandler.h"
+#include "json/json.h"
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -745,12 +747,19 @@ void MainWindow::showReports() {
     rrd->show();
 }
 
-void MainWindow::messageReceived(const QString &message) {
-    qDebug() << "Open request:" << message;
-    waitingMessages.append(message);
+void MainWindow::messageReceived(const QString &messageArray) {
+    using namespace QtJson;
 
-    if (!processingMessages) {
-        processMessages();
+    QVariantList messages = Json::parse(messageArray).toList();
+
+    foreach(QVariant messageV, messages) {
+        QString message = messageV.toString();
+        qDebug() << "Open request:" << message;
+        waitingMessages.append(message);
+
+        if (!processingMessages) {
+            processMessages();
+        }
     }
 }
 
