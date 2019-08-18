@@ -36,7 +36,6 @@
 #include "applock.h"
 #endif
 
-#define LOG_FILE "desktop.log"
 
 #ifndef qInfo
 #define qInfo qDebug
@@ -77,31 +76,11 @@ void msgFileHandler(QtMsgType type, const QMessageLogContext &, const QString & 
 
 int main(int argc, char *argv[])
 {    
-    _global_log_file.setFileName(LOG_FILE);
-    if (_global_log_file.exists() && _global_log_file.open(QIODevice::WriteOnly | QIODevice::Append)) {
-        qInfo() << "Log file" << LOG_FILE << "found and opened successfully! Redirecting log output...";
-
-        _log_stream.setDevice(&_global_log_file);
-
-#if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
-        qInstallMessageHandler(msgFileHandler);
-#else
-        qInstallMsgHandler(msgFileHandler);
-#endif
-    } else if (!_global_log_file.exists()) {
-#ifdef Q_OS_WIN
-        fprintf(stdout, "Log file " LOG_FILE " not found. Log output will be sent to the debugger.");
-#endif
-        qInfo() << "Log file" << LOG_FILE << "not found.";
-
-    } else {
-#ifdef Q_OS_WIN
-        fprintf(stderr, "Failed to open log file " LOG_FILE " for write+append. Log output will be sent to the debugger.");
-#endif
-        qWarning() << "Failed to open log file" << LOG_FILE << "for write+append.";
-    }
-
     QApplication a(argc, argv);
+    QCoreApplication::setOrganizationName("zxnet");
+    QCoreApplication::setOrganizationDomain("zx.net.nz");
+    QCoreApplication::setApplicationName(Constants::APP_NAME);
+    QCoreApplication::setApplicationVersion(Constants::VERSION_STR);
 
     QCommandLineParser parser;
     parser.setApplicationDescription("zxweather desktop client");
@@ -135,16 +114,49 @@ int main(int argc, char *argv[])
     reportSearchPathRemove.setValueName(QCoreApplication::translate("main", "path"));
     parser.addOption(reportSearchPathRemove);
 
+    QCommandLineOption logFile(
+                QStringList() << "log-file",
+                QCoreApplication::translate("main", "Write log messages to the specified file"));
+    logFile.setValueName(QCoreApplication::translate("main", "logfile"));
+    parser.addOption(logFile);
 
     parser.process(a);
 
+    // Enable logging?
+    if (parser.isSet(logFile)) {
+        QString log_filename = parser.value(logFile);
+        _global_log_file.setFileName(log_filename);
+        if (_global_log_file.open(QIODevice::WriteOnly | QIODevice::Append)) {
+            qInfo() << "Log file" << log_filename << "opened successfully! Redirecting log output...";
+
+            _log_stream.setDevice(&_global_log_file);
+
+    #if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
+            qInstallMessageHandler(msgFileHandler);
+    #else
+            qInstallMsgHandler(msgFileHandler);
+    #endif
+        } else {
+    #ifdef Q_OS_WIN
+            fprintf(stderr, QString("Failed to open log file %1 for write+append. Log output will be sent to the debugger.").arg(log_filename).toLatin1());
+    #endif
+            qWarning() << "Failed to open log file" << log_filename << "for write+append.";
+        }
+    }
+
+    // Change config file?
     if (parser.isSet(configFileOption)) {
         Settings::getInstance().setConfigFile(parser.value(configFileOption));
     }
 
+    // Override station code?
+    if (parser.isSet(stationCodeOption)) {
+        Settings::getInstance().overrideStationCode(parser.value(stationCodeOption));
+    }
 
+    // Gather together all settings that are handled in the MainWindow. These settings can be
+    // redirected to a running instance if any.
     const QStringList args = parser.positionalArguments();
-    qDebug() << "Arguments:" << args;
 
     using namespace QtJson;
 
@@ -169,17 +181,11 @@ int main(int argc, char *argv[])
         argsList.append(m);
     }
 
-
     QVariantMap parametersMap;
     parametersMap.insert("positional", positionalArgsList);
     parametersMap.insert("args", argsList);
 
     QString message = Json::serialize(parametersMap);
-
-
-    if (parser.isSet(stationCodeOption)) {
-        Settings::getInstance().overrideStationCode(parser.value(stationCodeOption));
-    }
 
 #ifdef SINGLE_INSTANCE
     QString station_code = Settings::getInstance().stationCode();
@@ -194,10 +200,6 @@ int main(int argc, char *argv[])
         return !lock.sendMessage(message);
     }
 #endif
-
-    QCoreApplication::setOrganizationName("zxnet");
-    QCoreApplication::setOrganizationDomain("zx.net.nz");
-    QCoreApplication::setApplicationName(Constants::APP_NAME);
 
     MainWindow w;
 
