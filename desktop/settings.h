@@ -73,6 +73,8 @@ public:
         return instance;
     }
 
+    void setConfigFile(const QString filename);
+
     enum data_source_type_t {DS_TYPE_DATABASE, DS_TYPE_WEB_INTERFACE, DS_TYPE_SERVER};
     
     /* General Settings */
@@ -227,6 +229,9 @@ public:
     void overrideStationCode(const QString &stationCode);
     bool isStationCodeOverridden() const;
 
+    void temporarilyAddReportSearchPath(const QString path);
+    void removeReportSearchPath(const QString path);
+
 private:
     Settings();
     ~Settings();
@@ -239,6 +244,9 @@ private:
     QStringList imageTypePriority;
 
     QString stationCodeOverride;
+
+    QStringList extraReportSearchPaths;
+    QStringList blacklistReportSearchPaths;
 };
 
 #endif // SETTINGS_H

@@ -188,22 +188,35 @@ namespace SettingsKey {
 }
 
 Settings::Settings() {
+    settings = NULL;
     QString settingsFile;
     settingsFile = Constants::APP_NAME + ".ini";
 
-    if (QFile::exists(settingsFile)) {
+    setConfigFile(settingsFile);
+}
+
+Settings::~Settings() {
+    if (settings != NULL) {
+        delete settings;
+        settings = NULL;
+    }
+}
+
+void Settings::setConfigFile(const QString filename) {
+    if (settings != NULL) {
+        settings->sync();
+        delete settings;
+        settings = NULL;
+    }
+
+    if (QFile::exists(filename)) {
         // Load settings from there
-        qDebug() << "Loading settings from file" << settingsFile;
-        settings = new QSettings(settingsFile, QSettings::IniFormat, this);
+        qDebug() << "Loading settings from file" << filename;
+        settings = new QSettings(filename, QSettings::IniFormat, this);
     } else {
         qDebug() << "Loading settings from platform default location";
         settings = new QSettings("zxnet", "zxweather", this);
     }
-}
-
-Settings::~Settings() {
-    delete settings;
-    settings = NULL;
 }
 
 
@@ -822,6 +835,18 @@ bool Settings::selectCurrentDayInImageWindow() {
 QStringList Settings::reportSearchPath() const {
     QStringList result;
 
+    foreach(QString s, extraReportSearchPaths) {
+        if (s.isEmpty()) {
+            continue;
+        }
+
+        QFileInfo dir(s);
+
+        if (dir.exists() && dir.isDir() && dir.isReadable()) {
+            result << s;
+        }
+    }
+
     QString val = settings->value(SettingsKey::Reports::SEARCH_PATH, "").toString();
 
     if (!val.isEmpty()) {
@@ -858,8 +883,24 @@ QStringList Settings::reportSearchPath() const {
     // Internal report definitions and assets come last so they can be overridden externally.
     result << ":/reports";
 
+    foreach(QString blackListed, blacklistReportSearchPaths) {
+        result.removeAll(blackListed);
+    }
+
     return result;
 }
+
+void Settings::temporarilyAddReportSearchPath(const QString path) {
+    extraReportSearchPaths.append(path);
+
+    blacklistReportSearchPaths.removeAll(path);
+}
+
+void Settings::removeReportSearchPath(const QString path) {
+    blacklistReportSearchPaths.append(path);
+    extraReportSearchPaths.removeAll(path);
+}
+
 
 int Settings::liveBufferHours() const {
     return settings->value(SettingsKey::General::LIVE_BUFFER_HOURS, 1).toInt();
