@@ -26,9 +26,11 @@
 #include <QApplication>
 #include <QCommandLineParser>
 #include <QCommandLineOption>
+#include <QVariantList>
 #include "mainwindow.h"
 #include "settings.h"
 #include "constants.h"
+#include "json/json.h"
 
 #ifdef SINGLE_INSTANCE
 #include "applock.h"
@@ -119,13 +121,18 @@ int main(int argc, char *argv[])
     const QStringList args = parser.positionalArguments();
     qDebug() << "Arguments:" << args;
 
-    if (parser.isSet(stationCodeOption)) {
-        Settings::getInstance().overrideStationCode(parser.value(stationCodeOption));
+    using namespace QtJson;
+
+    QVariantList argsList;
+    foreach(QString arg, args) {
+        argsList << arg;
     }
 
-    QString message = "";
-    if (!args.isEmpty()) {
-        message = args.first();
+    QString message = Json::serialize(argsList);
+
+
+    if (parser.isSet(stationCodeOption)) {
+        Settings::getInstance().overrideStationCode(parser.value(stationCodeOption));
     }
 
 #ifdef SINGLE_INSTANCE
