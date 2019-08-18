@@ -120,6 +120,11 @@ int main(int argc, char *argv[])
     logFile.setValueName(QCoreApplication::translate("main", "logfile"));
     parser.addOption(logFile);
 
+    QCommandLineOption showConfigWizardOption(
+                QStringList() << "show-config-wizard",
+                QCoreApplication::translate("main", "Show the first-run configuration wizard on startup"));
+    parser.addOption(showConfigWizardOption);
+
     parser.process(a);
 
     // Enable logging?
@@ -153,6 +158,9 @@ int main(int argc, char *argv[])
     if (parser.isSet(stationCodeOption)) {
         Settings::getInstance().overrideStationCode(parser.value(stationCodeOption));
     }
+
+    bool showConfigWizard = parser.isSet(showConfigWizardOption);
+
 
     // Gather together all settings that are handled in the MainWindow. These settings can be
     // redirected to a running instance if any.
@@ -201,7 +209,7 @@ int main(int argc, char *argv[])
     }
 #endif
 
-    MainWindow w;
+    MainWindow w(showConfigWizard);
 
 #ifdef SINGLE_INSTANCE
     lock.setWindow(&w);

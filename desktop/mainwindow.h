@@ -60,9 +60,11 @@ public:
      * This function will cause a connection to the currently configured
      * database to be made.
      *
+     * @param showConfigWizard Show the first run configuration wizard regardless
+     *      of whether its been run before.
      * @param parent Parent widget. Should always be 0.
      */
-    explicit MainWindow(QWidget *parent = 0);
+    explicit MainWindow(bool showConfigWizard, QWidget *parent = 0);
     ~MainWindow();
     
 public slots:
