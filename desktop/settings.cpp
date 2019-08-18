@@ -190,7 +190,30 @@ namespace SettingsKey {
 Settings::Settings() {
     settings = NULL;
     QString settingsFile;
-    settingsFile = Constants::APP_NAME + ".ini";
+
+#ifdef Q_OS_WIN
+    settingsFile = QCoreApplication::applicationDirPath()
+            + "/"
+            + QFileInfo(QCoreApplication::applicationFilePath()).baseName() + ".ini";
+
+    // The settings file used to be zxweather-desktop.ini in the current directory. Now
+    // the file is expected to be alongside the executable with a matching basename.
+    // We'll attempt to rename any existing file to the new filename.
+    QString oldSettingsFileName = Constants::APP_NAME + ".ini";
+    if (!QFile(settingsFile).exists()
+            && QFile().exists(oldSettingsFileName)) {
+        qDebug() << "Migrating configuration from" << oldSettingsFileName
+                 << "to" << settingsFile;
+        if (!QFile::rename(oldSettingsFileName, settingsFile)) {
+            qDebug() << "Failed to rename config file. Running with" << oldSettingsFileName
+                     << "instead of" << settingsFile;
+            settingsFile = oldSettingsFileName;
+        }
+    }
+#else
+    settingsFile = "~/.zxweather-desktop.ini"
+#endif
+
 
     setConfigFile(settingsFile);
 }
