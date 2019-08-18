@@ -8,6 +8,7 @@
 #include <QAction>
 #include <QMenu>
 #include <QSvgGenerator>
+#include <QAction>
 
 #include "graphstyledialog.h"
 #include "settings.h"
@@ -17,6 +18,8 @@
 LivePlot::LivePlot(QWidget *parent) : QCustomPlot(parent)
 {
     nextId = 0;
+    plotTitleEnabled = false;
+    addGraphsEnabled = false;
 
     // QCP::iRangeDrag | QCP::iRangeZoom |
     setInteractions(QCP::iSelectAxes | QCP::iSelectLegend | QCP::iSelectPlottables);
@@ -352,6 +355,57 @@ void LivePlot::toggleTitle()
     emit titleVisibilityChanged(plotTitleEnabled);
 }
 
+void LivePlot::editTitle() {
+    bool ok;
+    QString newTitle = QInputDialog::getText(
+                this,
+                tr("Change Text"),
+                tr("New text:"),
+                QLineEdit::Normal,
+                plotTitle->text(),
+                &ok);
+
+    if (ok) {
+        if (newTitle.isEmpty()) {
+            plotTitleValue = QString();
+            setWindowTitle(tr("Untitled - Chart"));
+            QTimer::singleShot(1, this, SLOT(removeTitle()));
+            return;
+        }
+        plotTitle->setText(newTitle);
+        replot();
+        plotTitleValue = newTitle;
+    }
+}
+
+// TODO: Make this into a generic text element context menu
+void LivePlot::showTitleContextMenu(QPoint point) {
+    QMenu *menu = new QMenu(this);
+    menu->setAttribute(Qt::WA_DeleteOnClose);
+
+    QAction* act = menu->addAction(tr("&Edit..."), this, SLOT(editTitle()));
+    QFont f = act->font();
+    f.setBold(true);
+    act->setFont(f);
+
+    menu->addAction(tr("&Change font..."), this, SLOT(changeTitleFont()));
+    menu->addSeparator();
+    menu->addAction(tr("&Hide"), this, SLOT(toggleTitle()));
+
+    menu->popup(mapToGlobal(point));
+}
+
+void LivePlot::changeTitleFont() {
+    bool ok;
+    QFont newFont = QFontDialog::getFont(&ok, plotTitleFont, this, tr("Title Font"));
+
+    if (ok) {
+        plotTitle->setFont(newFont);
+        plotTitleFont = newFont;
+        replot();
+    }
+}
+
 void LivePlot::moveLegend()
 {
     if (QAction* menuAction = qobject_cast<QAction*>(sender())) {
@@ -364,6 +418,17 @@ void LivePlot::moveLegend()
                         0, (Qt::Alignment)intData);
             replot();
         }
+    }
+}
+
+void LivePlot::changeLegendFont() {
+    QFont current = legend->font();
+    bool ok;
+    QFont newFont = QFontDialog::getFont(&ok, current, this, tr("Legend Font"));
+
+    if (ok) {
+        legend->setFont(newFont);
+        replot();
     }
 }
 
@@ -398,6 +463,9 @@ void LivePlot::showLegendContextMenu(QPoint point)
            }
         }
     }
+
+    menu->addAction(tr("&Change Font..."), this, SLOT(changeLegendFont()));
+    menu->addSeparator();
 
     bool inRect = false;
 
@@ -456,6 +524,25 @@ void LivePlot::chartContextMenuRequested(QPoint point)
         return;
     }
 
+    // Check if the plot title was right-clicked on
+    if (plotTitleEnabled && !plotTitle.isNull() && plotTitle->selectTest(point, false) >= 0 && plotTitle->visible()) {
+        showTitleContextMenu(point);
+        return;
+    }
+
+    // Check if an axis was right-clicked on
+    QList<QCPAxis*> axes = axisRectAt(point)->axes(QCPAxis::atTop |
+                                                   QCPAxis::atBottom |
+                                                   QCPAxis::atLeft |
+                                                   QCPAxis::atRight);
+    foreach (QCPAxis* axis, axes) {
+        if (axis->selectTest(point, false) >= 0) {
+            showAxisContextMenu(point, axis);
+            return;
+        }
+    }
+
+    // Nothing in particular selected? Show the general context menu.
     showChartContextMenu(point);
 }
 
@@ -611,6 +698,100 @@ void LivePlot::axisDoubleClicked(QCPAxis *axis, QCPAxis::SelectablePart part,
                     &ok);
         if (ok) {
             axis->setLabel(newLabel);
+            replot();
+        }
+    }
+}
+
+void LivePlot::showAxisContextMenu(QPoint point, QCPAxis *axis) {
+
+    axis->setSelectedParts(QCPAxis::spAxis | QCPAxis::spTickLabels |
+                           QCPAxis::spAxisLabel);
+    replot();
+
+    QMenu* menu = new QMenu(this);
+    menu->setAttribute(Qt::WA_DeleteOnClose);
+
+    menu->addAction("&Rename",
+                    this, SLOT(renameSelectedAxis()));
+
+    QAction *act;
+    act = menu->addAction(tr("&Change Label Font..."), this, SLOT(changeAxisLabelFont()));
+    act = menu->addAction(tr("&Change Tick Label Font..."), this, SLOT(changeAxisTickLabelFont()));
+
+    menu->popup(mapToGlobal(point));
+}
+
+void LivePlot::changeAxisLabelFont() {
+    QCPAxis* selectedAxis = 0;
+
+    foreach(QCPAxisRect *rect, axisRects()) {
+        foreach(QCPAxis* axis, rect->axes()) {
+            if (axis->selectedParts().testFlag(QCPAxis::spAxis) ||
+                    axis->selectedParts().testFlag(QCPAxis::spTickLabels))
+                selectedAxis = axis;
+        }
+    }
+
+    if (selectedAxis != NULL) {
+        QFont current = selectedAxis->labelFont();
+        bool ok;
+        QFont newFont = QFontDialog::getFont(&ok, current, this, tr("Axis Label Font"));
+
+        if (ok) {
+            selectedAxis->setLabelFont(newFont);
+            replot();
+        }
+    }
+}
+
+void LivePlot::renameSelectedAxis() {
+    QCPAxis* selectedAxis = 0;
+
+    foreach(QCPAxisRect *rect, axisRects()) {
+        foreach(QCPAxis* axis, rect->axes()) {
+            if (axis->selectedParts().testFlag(QCPAxis::spAxis) ||
+                    axis->selectedParts().testFlag(QCPAxis::spTickLabels))
+                selectedAxis = axis;
+        }
+    }
+
+    if (selectedAxis == 0) {
+        return;
+    }
+
+    bool ok;
+    QString name = QInputDialog::getText(
+                this,
+                "Rename Axis",
+                "New Axis Label:",
+                QLineEdit::Normal,
+                selectedAxis->label(),
+                &ok);
+    if (ok) {
+        selectedAxis->setLabel(name);
+        replot();
+    }
+}
+
+void LivePlot::changeAxisTickLabelFont() {
+    QCPAxis* selectedAxis = 0;
+
+    foreach(QCPAxisRect *rect, axisRects()) {
+        foreach(QCPAxis* axis, rect->axes()) {
+            if (axis->selectedParts().testFlag(QCPAxis::spAxis) ||
+                    axis->selectedParts().testFlag(QCPAxis::spTickLabels))
+                selectedAxis = axis;
+        }
+    }
+
+    if (selectedAxis != NULL) {
+        QFont current = selectedAxis->tickLabelFont();
+        bool ok;
+        QFont newFont = QFontDialog::getFont(&ok, current, this, tr("Axis Tick Label Font"));
+
+        if (ok) {
+            selectedAxis->setTickLabelFont(newFont);
             replot();
         }
     }

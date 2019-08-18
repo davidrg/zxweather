@@ -90,9 +90,20 @@ private slots:
 
     void moveLegend();
 
+    void changeLegendFont();
+
     void chartContextMenuRequested(QPoint point);
 
     void emitAddGraphRequested();
+
+    void showTitleContextMenu(QPoint point);
+    void changeTitleFont();
+    void editTitle();
+
+    void showAxisContextMenu(QPoint point, QCPAxis *axis);
+    void changeAxisLabelFont();
+    void renameSelectedAxis();
+    void changeAxisTickLabelFont();
 
 private:
     int nextId;
