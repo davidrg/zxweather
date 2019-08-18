@@ -73,7 +73,7 @@ public slots:
      * reloaded and db_connect() is called if the program is not currently
      * connected to the database.
      */
-    void showSettings();
+    bool showSettings();
 
     void adjustSizeSlot();
 
@@ -102,6 +102,11 @@ public slots:
      * @brief quit quits the application.
      */
     void quit();
+
+    /**
+     * @brief fail quits the application with a non-zero exit code.
+     */
+    void fail();
 
     /**
      * @brief showAbout shows the about dialog.

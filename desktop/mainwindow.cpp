@@ -164,7 +164,13 @@ MainWindow::MainWindow(QWidget *parent) :
         ConfigWizard wiz;
         if (wiz.exec() != QDialog::Accepted) {
             // Config wizard was canceled. Show the settings dialog instead.
-            showSettings();
+            bool result = showSettings();
+            if (!result) {
+                // settings dialog was canceled. Not much we can do without config.
+                // exit instead.
+                QTimer::singleShot(1, this, SLOT(fail()));
+                return;
+            }
         }
         settings.setSingleShotFirstRun();
     }
@@ -397,7 +403,7 @@ void MainWindow::changeEvent(QEvent *e)
     }
 }
 
-void MainWindow::showSettings() {
+bool MainWindow::showSettings() {
     SettingsDialog sd(solarDataAvailable);
     int result = sd.exec();
 
@@ -420,7 +426,10 @@ void MainWindow::showSettings() {
                 || settings.sampleDataSourceType() == Settings::DS_TYPE_DATABASE) {
             reconnectDatabase();
         }
+        return true;
     }
+
+    return false;
 }
 
 void MainWindow::showWarningPopup(QString message, QString title, QString tooltip, bool setWarningIcon) {
@@ -479,6 +488,10 @@ void MainWindow::closeEvent(QCloseEvent *event)
 
 void MainWindow::quit() {
     QCoreApplication::quit();
+}
+
+void MainWindow::fail() {
+    QCoreApplication::exit(1);
 }
 
 void MainWindow::showAbout() {
