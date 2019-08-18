@@ -59,7 +59,7 @@
 #include "urlhandler.h"
 #include "json/json.h"
 
-MainWindow::MainWindow(QWidget *parent) :
+MainWindow::MainWindow(bool showConfigWizard, QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
@@ -160,7 +160,7 @@ MainWindow::MainWindow(QWidget *parent) :
     Settings& settings = Settings::getInstance();
 
     // Show the configuration wizard on the first run.
-    if (!settings.singleShotFirstRun()) {
+    if (!settings.singleShotFirstRun() || showConfigWizard) {
         ConfigWizard wiz;
         if (wiz.exec() != QDialog::Accepted) {
             // Config wizard was canceled. Show the settings dialog instead.
