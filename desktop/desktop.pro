@@ -22,7 +22,7 @@ equals(QT_MAJOR_VERSION, 5):!lessThan(QT_MINOR_VERSION,6) {
     QT += script
 }
 
-TARGET = desktop
+TARGET = zxweather
 TEMPLATE = app
 
 
