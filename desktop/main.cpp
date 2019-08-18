@@ -113,22 +113,68 @@ int main(int argc, char *argv[])
                 QStringList() << "s" << "station-code",
                 QCoreApplication::translate("main", "Override configured station code"));
     stationCodeOption.setValueName(QCoreApplication::translate("main", "station_code"));
-
     parser.addOption(stationCodeOption);
 
+    QCommandLineOption configFileOption(
+                QStringList() << "c" << "config-file",
+                QCoreApplication::translate("main", "Configuration file"));
+    configFileOption.setValueName(QCoreApplication::translate("main", "config_file"));
+    parser.addOption(configFileOption);
+
+
+    QCommandLineOption reportSearchPathAdd(
+                QStringList() << "report-path-add",
+                QCoreApplication::translate("main",
+                                            "Add a directory to the report search path. If an instance is already running for the configured station this setting will be forwarded to that instance."));
+    reportSearchPathAdd.setValueName(QCoreApplication::translate("main", "path"));
+    parser.addOption(reportSearchPathAdd);
+
+    QCommandLineOption reportSearchPathRemove(
+                QStringList() << "report-path-remove",
+                QCoreApplication::translate("main", "Remove a directory from the report search path. If an instance is already running for the configured station this setting will be forwarded to that instance."));
+    reportSearchPathRemove.setValueName(QCoreApplication::translate("main", "path"));
+    parser.addOption(reportSearchPathRemove);
+
+
     parser.process(a);
+
+    if (parser.isSet(configFileOption)) {
+        Settings::getInstance().setConfigFile(parser.value(configFileOption));
+    }
+
 
     const QStringList args = parser.positionalArguments();
     qDebug() << "Arguments:" << args;
 
     using namespace QtJson;
 
-    QVariantList argsList;
+    QVariantList positionalArgsList;
     foreach(QString arg, args) {
-        argsList << arg;
+        positionalArgsList << arg;
     }
 
-    QString message = Json::serialize(argsList);
+    QVariantList argsList;
+
+    foreach(QString dir, parser.values(reportSearchPathAdd)) {
+        QVariantMap m;
+        m.insert("name", "reportPath+");
+        m.insert("value", dir);
+        argsList.append(m);
+    }
+
+    foreach(QString dir, parser.values(reportSearchPathRemove)) {
+        QVariantMap m;
+        m.insert("name", "reportPath-");
+        m.insert("value", dir);
+        argsList.append(m);
+    }
+
+
+    QVariantMap parametersMap;
+    parametersMap.insert("positional", positionalArgsList);
+    parametersMap.insert("args", argsList);
+
+    QString message = Json::serialize(parametersMap);
 
 
     if (parser.isSet(stationCodeOption)) {

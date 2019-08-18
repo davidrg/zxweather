@@ -747,10 +747,25 @@ void MainWindow::showReports() {
     rrd->show();
 }
 
-void MainWindow::messageReceived(const QString &messageArray) {
+void MainWindow::messageReceived(const QString &parameters) {
     using namespace QtJson;
 
-    QVariantList messages = Json::parse(messageArray).toList();
+    QVariantMap args = Json::parse(parameters).toMap();
+
+    QVariantList argsList = args.value("args", QVariantList()).toList();
+    foreach(QVariant arg, argsList) {
+        QVariantMap argMap = arg.toMap();
+        QString name = argMap.value("name").toString();
+        QString value = argMap.value("value").toString();
+
+        if (name == "reportPath+") {
+            Settings::getInstance().temporarilyAddReportSearchPath(value);
+        } else if (name == "reportPath-") {
+            Settings::getInstance().removeReportSearchPath(value);
+        }
+    }
+
+    QVariantList messages = args.value("positional", QVariantList()).toList();
 
     foreach(QVariant messageV, messages) {
         QString message = messageV.toString();
