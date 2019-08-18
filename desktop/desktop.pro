@@ -39,6 +39,8 @@ contains(DEFINES, SINGLE_INSTANCE) {
     include(qtsingleapplication/src/qtsingleapplication.pri)
 }
 
+include(qtcompat/qtcompat.pri)
+
 ######################
 # Multimedia support #
 ######################
@@ -375,6 +377,3 @@ RESOURCES += \
     reporting/reports/reports.qrc
 
 RC_FILE += desktop.rc
-
-message("Includepath:")
-message($$INCLUDEPATH)
