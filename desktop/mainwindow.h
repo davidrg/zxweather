@@ -67,6 +67,10 @@ public:
     explicit MainWindow(bool showConfigWizard, QWidget *parent = 0);
     ~MainWindow();
     
+    // Disable context menu for toolbars - there isn't any way to turn a toolbar
+    // back on once you've turned it off besides deleting the window state from
+    // your config file.
+    QMenu* createPopupMenu() { return NULL; }
 public slots:
     /**
      * @brief showSettings Shows the settings dialog.
