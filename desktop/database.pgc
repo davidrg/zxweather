@@ -313,7 +313,7 @@ notifications wdb_live_data_available() {
             char* part = strtok(notification->extra, ":");
             /* First bit should be station code */
             if (part && strncasecmp(station_code, part, station_code_len)) {
-                part = strtok(notification->extra, ":");
+                part = strtok(NULL, ":");
                 if (part) {
                     n.sample_id = atoi(part);
                     n.new_sample = true;
