@@ -312,7 +312,7 @@ notifications wdb_live_data_available() {
             /* A new sample is available! The payload is station_code:sample_id */
             char* part = strtok(notification->extra, ":");
             /* First bit should be station code */
-            if (part && strncasecmp(station_code, part, station_code_len)) {
+            if (part != NULL && strncasecmp(station_code, part, station_code_len) == 0) {
                 part = strtok(NULL, ":");
                 if (part) {
                     n.sample_id = atoi(part);
