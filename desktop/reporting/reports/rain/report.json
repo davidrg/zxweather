@@ -43,8 +43,8 @@
 		}
 	},
 	"output_type": "show",
-    	"output_window_size": {
-		"height": 800,
+	"output_window_size": {
+		"height": 400,
 		"width": 750
 	},
 	"outputs": [
