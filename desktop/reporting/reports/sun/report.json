@@ -10,8 +10,8 @@
 	"scripts": ["libs/moment.js", "libs/moment-timezone-with-data-2012-2022.js", "solar_gen.js", "lat_long.js", "solar.js"],
 	"output_type": "show",
     	"output_window_size": {
-		"height": 800,
-		"width": 1000
+		"height": 750,
+		"width": 850
 	},
 	"outputs": [
 		{

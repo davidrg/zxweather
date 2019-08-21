@@ -3,10 +3,11 @@
 <title>Storm Rain</title>
 </head>
 <body>
-	<h1>Storm Rain</h1>
+	<b>Storm Rain</b>
+    <hr>
 	<p>From: {{start}} to {{end}}</p>
 
-        <table width="100%">
+        <table width="100%" border=1>
         <thead>
             <tr>
                 <th width="25%">Start Time</th>
@@ -21,7 +22,7 @@
             <tr>
                 <td>{{start_time}}</td>
                 <td>{{end_time}}</td>
-                <td>{{duration}}</td>
+                <td align="right">{{duration}}</td>
                 <td align=center>{{total_rainfall}}</td>
 				<td><a href="zxw://plot?start={{start_time}}&end={{end_time}}&title=Storm Starting {{start_time}}&graphs=rainfall&aggregate=running_total&grouping=custom&group_minutes=5">Plot</a></td>
             </tr>
