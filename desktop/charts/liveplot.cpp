@@ -9,6 +9,7 @@
 #include <QMenu>
 #include <QSvgGenerator>
 #include <QAction>
+#include <QFontDialog>
 
 #include "graphstyledialog.h"
 #include "settings.h"
