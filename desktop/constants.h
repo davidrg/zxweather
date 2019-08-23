@@ -6,14 +6,20 @@
 
 #include "version.h"
 
-//#define DEGREE_SYMBOL "\xB0"
-//#define SQUARED_SYMBOL "\xB2"
-
-#define SQUARED_SYMBOL "²"
-#define DEGREE_SYMBOL "°"
+#if (QT_VERSION < QT_VERSION_CHECK(5,0,0))
+// Otherwise we get garbage...
+#define DEGREE_SYMBOL "\xB0"
+#define SQUARED_SYMBOL "\xB2"
+#else
+#define SQUARED_SYMBOL "\u00B2"
+#define DEGREE_SYMBOL "\u00B0"
+#endif
 
 #define TEMPERATURE_SYMBOL DEGREE_SYMBOL "C"
 #define IMPERIAL_TEMPERATURE_SYMBOL DEGREE_SYMBOL "F"
+
+//#define TEMPERATURE_SYMBOL "\u2103"
+//#define IMPERIAL_TEMPERATURE_SYMBOL "\u2109"
 
 namespace Constants {
 
