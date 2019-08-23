@@ -797,6 +797,7 @@ void LivePlotWindow::resetPlot() {
     ui->plot = new LivePlot(ui->centralwidget);
     ui->plot->setObjectName("plot");
     ui->gridLayout->addWidget(ui->plot, 0, 0, 1, 1);
+    ui->plot->plotLayout()->setFillOrder(QCPLayoutGrid::foRowsFirst);
 
     // Configure the plot
     ui->plot->setBackground(QBrush(Settings::getInstance().getChartColours().background));
