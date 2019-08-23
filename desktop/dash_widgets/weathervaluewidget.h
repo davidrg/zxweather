@@ -33,6 +33,7 @@ private slots:
     void plot();
     void copy();
     void toggle_kmh();
+    void unitsChanged(bool imperial, bool kmh);
 
 private:
     UnitConversions::UnitValue value1;

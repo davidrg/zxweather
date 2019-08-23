@@ -41,6 +41,7 @@ namespace SettingsKey {
         const QString CLOSE_TO_SYSTRAY = "General/close_to_systray";
 
         const QString IMPERIAL = "General/imperial";
+        const QString METRIC_KMH = "General/metric_kmh";
 
         const QString MAIN_WINDOW_STATE ="General/mw_state";
         const QString MAIN_WINDOW_GEOMETRY = "General/mw_geom";
@@ -718,14 +719,24 @@ void Settings::setWeatherValueWidgetSetting(QString name, QString setting, QVari
     settings->setValue(s, value);
 }
 
+void Settings::setUnits(bool imperial, bool kmh) {
+    bool i = this->imperial();
+    bool k = this->kmh();
+    settings->setValue(SettingsKey::General::IMPERIAL, imperial);
+    settings->setValue(SettingsKey::General::METRIC_KMH, kmh);
+
+    if (imperial != i || kmh != k) {
+        emit unitsChanged(imperial, kmh);
+    }
+}
 
 bool Settings::imperial() const {
     return settings->value(SettingsKey::General::IMPERIAL, false).toBool();
 }
 
-void Settings::setImperial(bool enabled) {
-    settings->setValue(SettingsKey::General::IMPERIAL, enabled);
-}
+bool Settings::kmh() const {
+        return settings->value(SettingsKey::General::METRIC_KMH, true).toBool();
+    }
 
 
 int Settings::liveAggregateSeconds() const {

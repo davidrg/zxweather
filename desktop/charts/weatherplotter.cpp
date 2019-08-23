@@ -81,17 +81,32 @@ void WeatherPlotter::addDataSet(DataSet dataSet) {
 }
 
 void WeatherPlotter::populateAxisLabels() {
-    axisLabels.insert(AT_HUMIDITY, "Humidity (%)");
-    axisLabels.insert(AT_PRESSURE, "Pressure (hPa)");
-    axisLabels.insert(AT_RAINFALL, "Rainfall (mm)");
-    axisLabels.insert(AT_TEMPERATURE, "Temperature (" TEMPERATURE_SYMBOL ")");
-    axisLabels.insert(AT_WIND_SPEED, "Wind speed (m/s)");
-    axisLabels.insert(AT_WIND_DIRECTION, "Wind direction (degrees)");
-    axisLabels.insert(AT_SOLAR_RADIATION, "Solar Radiation (W/m" SQUARED_SYMBOL ")");
-    axisLabels.insert(AT_UV_INDEX, "UV Index");
-    axisLabels.insert(AT_RAIN_RATE, "Rain rate (mm/h)");
-    axisLabels.insert(AT_RECEPTION, "Wireless Reception (%)");
-    axisLabels.insert(AT_EVAPOTRANSPIRATION, "Evapotranspiration (mm)");
+    if (Settings::getInstance().imperial()) {
+        axisLabels.insert(AT_HUMIDITY, "Humidity (%)");
+        axisLabels.insert(AT_PRESSURE, "Pressure (inHg)");
+        axisLabels.insert(AT_RAINFALL, "Rainfall (in)");
+        axisLabels.insert(AT_TEMPERATURE, "Temperature (" IMPERIAL_TEMPERATURE_SYMBOL ")");
+        axisLabels.insert(AT_WIND_SPEED, "Wind speed (mph)");
+        axisLabels.insert(AT_WIND_DIRECTION, "Wind direction (degrees)");
+        axisLabels.insert(AT_SOLAR_RADIATION, "Solar Radiation (W/m" SQUARED_SYMBOL ")");
+        axisLabels.insert(AT_UV_INDEX, "UV Index");
+        axisLabels.insert(AT_RAIN_RATE, "Rain rate (in/h)");
+        axisLabels.insert(AT_RECEPTION, "Wireless Reception (%)");
+        axisLabels.insert(AT_EVAPOTRANSPIRATION, "Evapotranspiration (in)");
+    } else {
+        bool kmh = Settings::getInstance().kmh();
+        axisLabels.insert(AT_HUMIDITY, "Humidity (%)");
+        axisLabels.insert(AT_PRESSURE, "Pressure (hPa)");
+        axisLabels.insert(AT_RAINFALL, "Rainfall (mm)");
+        axisLabels.insert(AT_TEMPERATURE, "Temperature (" TEMPERATURE_SYMBOL ")");
+        axisLabels.insert(AT_WIND_SPEED, kmh ? "Wind speed (km/h)" : "Wind speed (m/s)");
+        axisLabels.insert(AT_WIND_DIRECTION, "Wind direction (degrees)");
+        axisLabels.insert(AT_SOLAR_RADIATION, "Solar Radiation (W/m" SQUARED_SYMBOL ")");
+        axisLabels.insert(AT_UV_INDEX, "UV Index");
+        axisLabels.insert(AT_RAIN_RATE, "Rain rate (mm/h)");
+        axisLabels.insert(AT_RECEPTION, "Wireless Reception (%)");
+        axisLabels.insert(AT_EVAPOTRANSPIRATION, "Evapotranspiration (mm)");
+    }
 }
 
 void WeatherPlotter::reload() {
@@ -355,49 +370,46 @@ QVector<double> WeatherPlotter::samplesForColumn(SampleColumn column, SampleSet 
     Q_ASSERT_X(column != SC_Timestamp, "samplesForColumn", "Invalid column SC_Timestamp");
     Q_ASSERT_X(column != SC_ForecastRuleId, "samplesForColumn", "Invalid column ForecastRuleId");
 
-
-    switch (column) {
+    switch(column) {
     case SC_Temperature:
-        return samples.temperature;
     case SC_IndoorTemperature:
-        return samples.indoorTemperature;
     case SC_ApparentTemperature:
-        return samples.apparentTemperature;
     case SC_WindChill:
-        return samples.windChill;
     case SC_DewPoint:
-        return samples.dewPoint;
+    case SC_Pressure:
+    case SC_Rainfall:
+    case SC_HighRainRate:
+    case SC_Evapotranspiration:
+    case SC_AverageWindSpeed:
+    case SC_GustWindSpeed:
+    case SC_HighTemperature:
+    case SC_LowTemperature: {
+        // These units all support conversion to imperial or other units.
+        UnitConversions::unit_t units = SampleColumnUnits(column);
+        if (Settings::getInstance().imperial()) {
+            units = UnitConversions::metricToImperial(units);
+        } else {
+            if (units == UnitConversions::U_METERS_PER_SECOND && Settings::getInstance().kmh()) {
+                units = UnitConversions::U_KILOMETERS_PER_HOUR;
+            }
+        }
+
+        return SampleColumnInUnits(samples, column, units);
+    }
     case SC_Humidity:
         return samples.humidity;
     case SC_IndoorHumidity:
         return samples.indoorHumidity;
-    case SC_Pressure:
-        return samples.pressure;
-    case SC_Rainfall:
-        return samples.rainfall;
-    case SC_AverageWindSpeed:
-        return samples.averageWindSpeed;
-    case SC_GustWindSpeed:
-        return samples.gustWindSpeed;
     case SC_UV_Index:
         return samples.uvIndex;
     case SC_SolarRadiation:
         return samples.solarRadiation;
-    case SC_HighTemperature:
-        return samples.highTemperature;
-    case SC_LowTemperature:
-        return samples.lowTemperature;
     case SC_HighSolarRadiation:
         return samples.highSolarRadiation;
     case SC_HighUVIndex:
         return samples.highUVIndex;
-    case SC_HighRainRate:
-        return samples.highRainRate;
     case SC_Reception:
         return samples.reception;
-    case SC_Evapotranspiration:
-        return samples.evapotranspiration;
-
     case SC_WindDirection:
     case SC_GustWindDirection:
     case SC_ForecastRuleId:
