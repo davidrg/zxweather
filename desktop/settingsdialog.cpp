@@ -137,6 +137,7 @@ void SettingsDialog::writeSettings() {
     settings.setCloseToSysTray(ui->chkCloseToSystemTray->isChecked());
     settings.setLiveTimeoutEnabled(ui->gbLiveDataWarning->isChecked());
     settings.setLiveTimeoutInterval(ui->sbLiveDataWarningInterval->value() * 1000);
+    settings.setUnits(ui->rbImperial->isChecked(), ui->cbKmh->isChecked());
 
     // Data source tab
     settings.setDatabaseName(ui->databaseLineEdit->text());
@@ -226,6 +227,10 @@ void SettingsDialog::loadSettings() {
     ui->chkCloseToSystemTray->setChecked(settings.closeToSysTray());
     ui->gbLiveDataWarning->setChecked(settings.liveTimeoutEnabled());
     ui->sbLiveDataWarningInterval->setValue(settings.liveTimeoutInterval() / 1000);
+    ui->rbImperial->setChecked(settings.imperial());
+    ui->rbMetric->setChecked(!settings.imperial());
+    ui->cbKmh->setChecked(settings.kmh());
+    ui->cbKmh->setEnabled(ui->rbMetric->isChecked());
 
     // Data source tab
     ui->databaseLineEdit->setText(settings.databaseName());

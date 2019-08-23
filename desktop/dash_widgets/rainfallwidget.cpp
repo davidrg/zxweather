@@ -14,8 +14,9 @@
 #include <QClipboard>
 
 #include "charts/qcp/qcustomplot.h"
-#include "settings.h"
 #include "unit_conversions.h"
+#include "settings.h"
+
 
 #define K_DAY 1
 #define K_STORM 2
@@ -25,7 +26,10 @@
 
 RainfallWidget::RainfallWidget(QWidget *parent) : QWidget(parent)
 {
+    connect(&Settings::getInstance(), SIGNAL(unitsChanged(bool,bool)),
+            this, SLOT(unitsChanged(bool,bool)));
     imperial = Settings::getInstance().imperial();
+
 
     // Create the basic UI
     plot = new QCustomPlot(this);
@@ -179,6 +183,13 @@ RainfallWidget::~RainfallWidget() {
     QFile(tempFileName).remove();
 }
 
+void RainfallWidget::unitsChanged(bool imperial, bool kmh) {
+    Q_UNUSED(kmh);
+
+    this->imperial = imperial;
+    reset();
+}
+
 void RainfallWidget::mousePressEvent(QMouseEvent *event)
 {
     if (event == NULL) {
@@ -241,8 +252,13 @@ void RainfallWidget::reset() {
     lastStormRain = -1;
     lastUpdate = QDate::currentDate();
 
-    shortRange->valueAxis()->setRange(0, 10);
-    longRange->valueAxis()->setRange(0, 100);
+    if (Settings::getInstance().imperial()) {
+        shortRange->valueAxis()->setRange(0, 0.5);
+        longRange->valueAxis()->setRange(0, 5);
+    } else {
+        shortRange->valueAxis()->setRange(0, 10);
+        longRange->valueAxis()->setRange(0, 100);
+    }
 
     updatePlot();
 }
@@ -335,18 +351,8 @@ void RainfallWidget::setRain(QDate date, double day, double month, double year) 
     updatePlot();
 }
 
-int roundToMultiple(int num, int multiple) {
-    if (num == 0) {
-        return multiple;
-    }
-
-    int remainder = num % multiple;
-
-    if (remainder == 0) {
-        return num;
-    }
-
-    return num + multiple - remainder;
+double roundToMultiple(double num, double multiple) {
+    return ceil(num / multiple) * multiple;
 }
 
 void RainfallWidget::updatePlot() {
@@ -398,11 +404,17 @@ void RainfallWidget::updatePlot() {
     shortRange->rescaleValueAxis();
     longRange->rescaleValueAxis();
 
-    shortRange->valueAxis()->setRange(
-                0, roundToMultiple(shortRange->valueAxis()->range().upper, 10));
-    longRange->valueAxis()->setRange(
-                0, roundToMultiple(longRange->valueAxis()->range().upper, 100));
-
+    if (imperial) {
+        shortRange->valueAxis()->setRange(
+                    0, roundToMultiple(shortRange->valueAxis()->range().upper, 0.5));
+        longRange->valueAxis()->setRange(
+                    0, roundToMultiple(longRange->valueAxis()->range().upper, 5));
+    } else {
+        shortRange->valueAxis()->setRange(
+                    0, roundToMultiple(shortRange->valueAxis()->range().upper, 10));
+        longRange->valueAxis()->setRange(
+                    0, roundToMultiple(longRange->valueAxis()->range().upper, 100));
+    }
     plot->replot();
 }
 

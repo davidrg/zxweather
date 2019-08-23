@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>437</width>
-    <height>389</height>
+    <height>431</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -88,6 +88,13 @@
         </property>
         <property name="checked">
          <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="2" colspan="3">
+       <widget class="QCheckBox" name="cbUnits">
+        <property name="text">
+         <string>Use imperial units</string>
         </property>
        </widget>
       </item>
@@ -394,6 +401,7 @@
   <tabstop>leCustomDelimiter</tabstop>
   <tabstop>cbIncludeHeadings</tabstop>
   <tabstop>cbDashNulls</tabstop>
+  <tabstop>cbUnits</tabstop>
   <tabstop>cbTimestamp</tabstop>
   <tabstop>cbTemperature</tabstop>
   <tabstop>cbIndoorTemperature</tabstop>

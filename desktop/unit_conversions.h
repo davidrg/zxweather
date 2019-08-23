@@ -95,6 +95,10 @@ namespace UnitConversions {
     QString windDirectionToCompassPoint(int windDirection);
     QString bftToString(int bft);
     QString metersPerSecondToBFTString(double ms);
+
+    unit_t metricToImperial(unit_t unit);
+
+    QString unitString(unit_t unit);
 }
 
 #endif // UNIT_CONVERSIONS_H

@@ -5,6 +5,7 @@
 #include <QMap>
 
 #include "samplecolumns.h"
+#include "unit_conversions.h"
 
 typedef struct _SampleSet {
     unsigned long sampleCount;
@@ -100,5 +101,9 @@ typedef struct _Sample {
     bool uvIndexValid;
     double uvIndex;
 } Sample;
+
+inline UnitConversions::unit_t SampleColumnUnits(SampleColumn column);
+
+QVector<double> SampleColumnInUnits(SampleSet samples, SampleColumn column, UnitConversions::unit_t units);
 
 #endif // SAMPLESET_H

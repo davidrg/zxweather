@@ -162,10 +162,23 @@ public:
 
     QStringList imageTypeSortOrder();
 
+    /** Sets the units used for display through-out the application.
+     *
+     * @param imperial If Imperial units should be used instead of metric
+     * @param kmh When using metric, if kilometers per hour should be used for
+     *            wind speed instead of meters per second.
+     */
+    void setUnits(bool imperial, bool kmh);
+
+    /** If units should be imperial / US Customary intead of metric
+     */
     bool imperial() const;
 
-    // NOTE: calling this will require notifying all the WeatherValueWidgets.
-    void setImperial(bool enabled);
+    /** When using Metric units, if wind speed should be displayed
+     * in kilometers per hour (km/h) by default instead of meters
+     * per sceond (m/s)
+     */
+    bool kmh() const;
 
     QVariant weatherValueWidgetSetting(QString name, QString setting, QVariant defaultValue);
     void setWeatherValueWidgetSetting(QString name, QString setting, QVariant value);
@@ -231,6 +244,9 @@ public:
 
     void temporarilyAddReportSearchPath(const QString path);
     void removeReportSearchPath(const QString path);
+
+signals:
+    void unitsChanged(bool imperial, bool kmh);
 
 private:
     Settings();

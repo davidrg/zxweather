@@ -64,43 +64,33 @@ UnitConversions::UnitValue::operator QString() const {
         val = QString::number(value.floatValue, 'f', 1);
     }
 
+    QString suffix = unitString(unit);
+
     switch(unit) {
     case U_METERS_PER_SECOND:
-        return val + " m/s";
     case U_KILOMETERS_PER_HOUR:
-        return val + " km/h";
     case U_MILES_PER_HOUR:
-        return val + " mph";
-    case U_CELSIUS:
-        return val + DEGREE_SYMBOL + "C";
-    case U_FAHRENHEIT:
-        return val + DEGREE_SYMBOL + "F";
     case U_HECTOPASCALS:
-        return val + " hPa";
     case U_INCHES_OF_MERCURY:
-        return val + " inHg";
     case U_MILLIMETERS:
-        return val + " mm";
     case U_CENTIMETERS:
-        return val + " cm";
     case U_INCHES:
-        return val + " in";
     case U_MILLIMETERS_PER_HOUR:
-        return val + " mm/h";
     case U_CENTIMETERS_PER_HOUR:
-        return val + " cm/h";
     case U_INCHES_PER_HOUR:
-        return val + " in/h";
     case U_WATTS_PER_SQUARE_METER:
-        return val + " W/m" SQUARED_SYMBOL;
-    case U_UV_INDEX:
-        return val;
-    case U_HUMIDITY:
-        return val + "%";
-    case U_DEGREES:
-        return val + DEGREE_SYMBOL;
+        return val + " " + suffix;
+
+    case U_CELSIUS:
+    case U_FAHRENHEIT:
     case U_VOLTAGE:
-        return val + "V";
+    case U_HUMIDITY:
+        return val + suffix;
+
+    case U_UV_INDEX:
+    case U_DEGREES:
+        return val;
+
     case U_UNKNOWN:
     default:
         return val + " --unknown--";
@@ -200,28 +190,27 @@ QString UnitConversions::davisBarometerTrendLabel(int trend) {
     }
 }
 
-double UnitConversions::metersPerSecondToKilometersPerHour(double ms) {
+inline double UnitConversions::metersPerSecondToKilometersPerHour(double ms) {
     return ms * 3.6;
 }
 
-double UnitConversions::metersPerSecondToMilesPerHour(double ms) {
+inline double UnitConversions::metersPerSecondToMilesPerHour(double ms) {
     return ms * 2.23694;
 }
 
-double UnitConversions::celsiusToFahrenheit(double c) {
+inline double UnitConversions::celsiusToFahrenheit(double c) {
     return 1.8 * c + 32;
 }
 
-double UnitConversions::hectopascalsToInchesOfMercury(double hpa) {
+inline double UnitConversions::hectopascalsToInchesOfMercury(double hpa) {
     return hpa * 0.02953;
 }
 
-
-double UnitConversions::millimetersToInches(double mm) {
+inline double UnitConversions::millimetersToInches(double mm) {
     return mm * 1.0/25.4;
 }
 
-double UnitConversions::millimetersToCentimeters(double mm) {
+inline double UnitConversions::millimetersToCentimeters(double mm) {
     return mm * 0.1;
 }
 
@@ -265,5 +254,86 @@ UnitConversions::UnitValue UnitConversions::toImperial(const UnitValue &v) {
     }
     default:
         return v;
+    }
+}
+
+UnitConversions::unit_t UnitConversions::metricToImperial(UnitConversions::unit_t unit) {
+    using namespace UnitConversions;
+
+    switch (unit) {
+    // Wind speed
+    case U_METERS_PER_SECOND:
+        return U_MILES_PER_HOUR;
+    case U_KILOMETERS_PER_HOUR:
+        return U_MILES_PER_HOUR;
+
+    // Temperature
+    case U_CELSIUS:
+        return U_FAHRENHEIT;
+
+    // atmospheric pressure
+    case U_HECTOPASCALS:
+        return U_INCHES_OF_MERCURY;
+
+    // Rainfall
+    case U_MILLIMETERS:
+        return U_INCHES;
+    case U_CENTIMETERS:
+        return U_INCHES;
+
+    // Rain rate
+    case U_MILLIMETERS_PER_HOUR:
+        return U_INCHES_PER_HOUR;
+    case U_CENTIMETERS_PER_HOUR:
+        return U_INCHES_PER_HOUR;
+
+    // Solar Radiation
+    //case U_WATTS_PER_SQUARE_METER:
+    default:
+        return unit;
+    }
+}
+
+QString UnitConversions::unitString(UnitConversions::unit_t unit) {
+    switch(unit) {
+    case U_METERS_PER_SECOND:
+        return "m/s";
+    case U_KILOMETERS_PER_HOUR:
+        return "km/h";
+    case U_MILES_PER_HOUR:
+        return "mph";
+    case U_CELSIUS:
+        return TEMPERATURE_SYMBOL;
+    case U_FAHRENHEIT:
+        return IMPERIAL_TEMPERATURE_SYMBOL;
+    case U_HECTOPASCALS:
+        return "hPa";
+    case U_INCHES_OF_MERCURY:
+        return "inHg";
+    case U_MILLIMETERS:
+        return "mm";
+    case U_CENTIMETERS:
+        return "cm";
+    case U_INCHES:
+        return "in";
+    case U_MILLIMETERS_PER_HOUR:
+        return "mm/h";
+    case U_CENTIMETERS_PER_HOUR:
+        return "cm/h";
+    case U_INCHES_PER_HOUR:
+        return "in/h";
+    case U_WATTS_PER_SQUARE_METER:
+        return "W/m" SQUARED_SYMBOL;
+    case U_UV_INDEX:
+        return "";
+    case U_HUMIDITY:
+        return "%";
+    case U_DEGREES:
+        return DEGREE_SYMBOL;
+    case U_VOLTAGE:
+        return "V";
+    case U_UNKNOWN:
+    default:
+        return "";
     }
 }

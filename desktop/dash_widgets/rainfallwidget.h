@@ -45,6 +45,7 @@ private slots:
     void plotRain();
     void save();
     void copy();
+    void unitsChanged(bool imperial, bool kmh);
 
 private:
     // UI

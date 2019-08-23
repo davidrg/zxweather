@@ -21,14 +21,23 @@ WeatherValueWidget::WeatherValueWidget(QWidget *parent) : QWidget(parent)
 
     insideOutside = false;
     doubleValue = false;
+    connect(&Settings::getInstance(), SIGNAL(unitsChanged(bool,bool)),
+            this, SLOT(unitsChanged(bool,bool)));
+
     imperial = Settings::getInstance().imperial();
-    kmh = false;
+    kmh = Settings::getInstance().kmh();
+
     column1 = SC_NoColumns;
     column2 = SC_NoColumns;
 
     setContextMenuPolicy(Qt::CustomContextMenu);
     connect(this, SIGNAL(customContextMenuRequested(QPoint)),
             this, SLOT(showContextMenu(QPoint)));
+}
+
+void WeatherValueWidget::unitsChanged(bool imperial, bool kmh) {
+    this->imperial = imperial;
+    this->kmh = kmh;
 }
 
 void WeatherValueWidget::setValue(
