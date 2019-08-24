@@ -54,7 +54,7 @@ void CacheManager::getNextDataSet() {
 
         qDebug() << "Skipping dataset" << ds.id
                  << "(start" << ds.startTime << ", end"
-                 << ds.endTime << ", columns" << ds.columns << ", function"
+                 << ds.endTime << ", columns" << ds.columns.standard << ds.columns.extra << ", function"
                  << ds.aggregateFunction << ", grouping" << ds.groupType
                  << ", minutes" << ds.customGroupMinutes
                  << ") - cached data set is identical";
@@ -76,14 +76,15 @@ void CacheManager::getNextDataSet() {
              ds.customGroupMinutes == cachedDataSet.customGroupMinutes) {
         // Only the columns have changed. We should be able to pull some or all data
         // from cache.
-        if ((ds.columns & cachedDataSet.columns) == ds.columns) {
+        if (((ds.columns.standard & cachedDataSet.columns.standard) == ds.columns.standard)
+                && ((ds.columns.extra & cachedDataSet.columns.extra) == ds.columns.extra)) {
             // Some columns have been removed from the dataset but no new ones were added.
             // This means that we can just return data from cache. The WeatherPlotter will
             // simply ignore any columns in the SampleSet it didn't request.
 
             qDebug() << "Skipping dataset" << ds.id
                      << "(start" << ds.startTime << ", end"
-                     << ds.endTime << ", columns" << ds.columns << ", function"
+                     << ds.endTime << ", columns" << ds.columns.standard << ds.columns.extra << ", function"
                      << ds.aggregateFunction << ", grouping" << ds.groupType
                      << ", minutes" << ds.customGroupMinutes
                      << ") - column superset already cached";
@@ -91,19 +92,23 @@ void CacheManager::getNextDataSet() {
             samplesReady(sampleCache[ds.id]);
         } else {
             // These bits are set both in the cache and request.
-            SampleColumns commonColumns = ds.columns & cachedDataSet.columns;
+            SampleColumns commonColumns;
+            commonColumns.standard = ds.columns.standard & cachedDataSet.columns.standard;
+            commonColumns.extra = ds.columns.extra & cachedDataSet.columns.extra;
 
             // Find columns that are in ds.columns but not in cachedDataSet.columns
-            SampleColumns newColumns = ds.columns & (~commonColumns);
+            SampleColumns newColumns;
+            newColumns.standard = ds.columns.standard & (~commonColumns.standard);
+            newColumns.extra = ds.columns.extra & (~commonColumns.extra);
 
             // There are some new flags.
             qDebug() << "Requested dataset" << ds.id
                      << "(start" << ds.startTime << ", end"
-                     << ds.endTime << ", columns" << ds.columns << ", function"
+                     << ds.endTime << ", columns" << ds.columns.standard << ds.columns.extra << ", function"
                      << ds.aggregateFunction << ", grouping" << ds.groupType
                      << ", minutes" << ds.customGroupMinutes
                      << ") is a superset of the cached dataset. "
-                        "Fetching new columns (" << newColumns << ") only.";
+                        "Fetching new columns (" << newColumns.standard << newColumns.extra << ") only.";
 
             // Make a note of the new columns we're fetching. We'll have to merge these
             // into the cache later.
@@ -118,7 +123,7 @@ void CacheManager::getNextDataSet() {
         // Its too hard trying to merge the timespan so we'll just request the entire
         // dataset again.
 
-        qDebug() << "Fetching columns" << ds.columns << "between" << ds.startTime
+        qDebug() << "Fetching columns" << ds.columns.standard << ds.columns.extra << "between" << ds.startTime
                  << "and" << ds.endTime << "for data set" << ds.id;
 
 
@@ -149,7 +154,8 @@ void CacheManager::samplesReady(SampleSet samples) {
         // We have the dataset cached with matching timespan and id but the columns
         // are different. If any of the columns in the SampleSet are missing from
         // the cache then merge them in.
-        if ((ds.columns & cachedDataSet.columns) != ds.columns)
+        if (((ds.columns.standard & cachedDataSet.columns.standard) != ds.columns.standard)
+                || ((ds.columns.extra & cachedDataSet.columns.extra) != ds.columns.extra))
             mergeSampleSet(ds.id, samples, ds.columns);
         else
             qDebug() << "Requested samples for data set" << ds.id
@@ -178,77 +184,129 @@ void CacheManager::samplesReady(SampleSet samples) {
 
 void CacheManager::mergeSampleSet(dataset_id_t dataSetId, SampleSet samples, SampleColumns columns)
 {
-    qDebug() << "Merging in columns" << columns << "for dataset" << dataSetId;
-    if (columns.testFlag(SC_Temperature))
+    qDebug() << "Merging in columns" << columns.standard << columns.extra << "for dataset" << dataSetId;
+    if (columns.standard.testFlag(SC_Temperature))
         sampleCache[dataSetId].temperature = samples.temperature;
 
-    if (columns.testFlag(SC_IndoorTemperature))
+    if (columns.standard.testFlag(SC_IndoorTemperature))
         sampleCache[dataSetId].indoorTemperature = samples.indoorTemperature;
 
-    if (columns.testFlag(SC_ApparentTemperature))
+    if (columns.standard.testFlag(SC_ApparentTemperature))
         sampleCache[dataSetId].apparentTemperature = samples.apparentTemperature;
 
-    if (columns.testFlag(SC_DewPoint))
+    if (columns.standard.testFlag(SC_DewPoint))
         sampleCache[dataSetId].dewPoint = samples.dewPoint;
 
-    if (columns.testFlag(SC_WindChill))
+    if (columns.standard.testFlag(SC_WindChill))
         sampleCache[dataSetId].windChill = samples.windChill;
 
-    if (columns.testFlag(SC_Humidity))
+    if (columns.standard.testFlag(SC_Humidity))
         sampleCache[dataSetId].humidity = samples.humidity;
 
-    if (columns.testFlag(SC_IndoorHumidity))
+    if (columns.standard.testFlag(SC_IndoorHumidity))
         sampleCache[dataSetId].indoorHumidity = samples.indoorHumidity;
 
-    if (columns.testFlag(SC_Pressure))
+    if (columns.standard.testFlag(SC_Pressure))
         sampleCache[dataSetId].pressure = samples.pressure;
 
-    if (columns.testFlag(SC_Rainfall))
+    if (columns.standard.testFlag(SC_Rainfall))
         sampleCache[dataSetId].rainfall = samples.rainfall;
 
-    if (columns.testFlag(SC_AverageWindSpeed))
+    if (columns.standard.testFlag(SC_AverageWindSpeed))
         sampleCache[dataSetId].averageWindSpeed = samples.averageWindSpeed;
 
-    if (columns.testFlag(SC_GustWindSpeed))
+    if (columns.standard.testFlag(SC_GustWindSpeed))
         sampleCache[dataSetId].gustWindSpeed = samples.gustWindSpeed;
 
-    if (columns.testFlag(SC_WindDirection))
+    if (columns.standard.testFlag(SC_WindDirection))
         sampleCache[dataSetId].windDirection = samples.windDirection;
 
-    if (columns.testFlag(SC_UV_Index))
+    if (columns.standard.testFlag(SC_UV_Index))
         sampleCache[dataSetId].uvIndex = samples.uvIndex;
 
-    if (columns.testFlag(SC_SolarRadiation))
+    if (columns.standard.testFlag(SC_SolarRadiation))
         sampleCache[dataSetId].solarRadiation = samples.solarRadiation;
 
-    if (columns.testFlag(SC_HighTemperature))
+    if (columns.standard.testFlag(SC_HighTemperature))
         sampleCache[dataSetId].highTemperature = samples.highTemperature;
 
-    if (columns.testFlag(SC_LowTemperature))
+    if (columns.standard.testFlag(SC_LowTemperature))
         sampleCache[dataSetId].lowTemperature = samples.lowTemperature;
 
-    if (columns.testFlag(SC_HighSolarRadiation))
+    if (columns.standard.testFlag(SC_HighSolarRadiation))
         sampleCache[dataSetId].highSolarRadiation = samples.highSolarRadiation;
 
-    if (columns.testFlag(SC_HighUVIndex))
+    if (columns.standard.testFlag(SC_HighUVIndex))
         sampleCache[dataSetId].highUVIndex = samples.highUVIndex;
 
-    if (columns.testFlag(SC_GustWindDirection))
+    if (columns.standard.testFlag(SC_GustWindDirection))
         sampleCache[dataSetId].gustWindDirection = samples.gustWindDirection;
 
-    if (columns.testFlag(SC_HighRainRate))
+    if (columns.standard.testFlag(SC_HighRainRate))
         sampleCache[dataSetId].highRainRate = samples.highRainRate;
 
-    if (columns.testFlag(SC_Reception))
+    if (columns.standard.testFlag(SC_Reception))
         sampleCache[dataSetId].reception = samples.reception;
 
-    if (columns.testFlag(SC_Evapotranspiration))
+    if (columns.standard.testFlag(SC_Evapotranspiration))
         sampleCache[dataSetId].evapotranspiration = samples.evapotranspiration;
+
+    if (columns.extra.testFlag(EC_LeafWetness1))
+        sampleCache[dataSetId].leafWetness1 = samples.leafWetness1;
+
+    if (columns.extra.testFlag(EC_LeafWetness2))
+        sampleCache[dataSetId].leafWetness2 = samples.leafWetness2;
+
+    if (columns.extra.testFlag(EC_LeafTemperature1))
+        sampleCache[dataSetId].leafTemperature1 = samples.leafTemperature1;
+
+    if (columns.extra.testFlag(EC_LeafTemperature2))
+        sampleCache[dataSetId].leafTemperature2 = samples.leafTemperature2;
+
+    if (columns.extra.testFlag(EC_SoilMoisture1))
+        sampleCache[dataSetId].soilMoisture1 = samples.soilMoisture1;
+
+    if (columns.extra.testFlag(EC_SoilMoisture2))
+        sampleCache[dataSetId].soilMoisture2 = samples.soilMoisture2;
+
+    if (columns.extra.testFlag(EC_SoilMoisture3))
+        sampleCache[dataSetId].soilMoisture3 = samples.soilMoisture3;
+
+    if (columns.extra.testFlag(EC_SoilMoisture4))
+        sampleCache[dataSetId].soilMoisture4 = samples.soilMoisture4;
+
+    if (columns.extra.testFlag(EC_SoilTemperature1))
+        sampleCache[dataSetId].soilTemperature1 = samples.soilTemperature1;
+
+    if (columns.extra.testFlag(EC_SoilTemperature2))
+        sampleCache[dataSetId].soilTemperature2 = samples.soilTemperature2;
+
+    if (columns.extra.testFlag(EC_SoilTemperature3))
+        sampleCache[dataSetId].soilTemperature3 = samples.soilTemperature3;
+
+    if (columns.extra.testFlag(EC_SoilTemperature4))
+        sampleCache[dataSetId].soilTemperature4 = samples.soilTemperature4;
+
+    if (columns.extra.testFlag(EC_ExtraHumidity1))
+        sampleCache[dataSetId].extraHumidity1 = samples.extraHumidity1;
+
+    if (columns.extra.testFlag(EC_ExtraHumidity2))
+        sampleCache[dataSetId].extraHumidity2 = samples.extraHumidity2;
+
+    if (columns.extra.testFlag(EC_ExtraTemperature1))
+        sampleCache[dataSetId].extraTemperature1 = samples.extraTemperature1;
+
+    if (columns.extra.testFlag(EC_ExtraTemperature2))
+        sampleCache[dataSetId].extraTemperature2 = samples.extraTemperature2;
+
+    if (columns.extra.testFlag(EC_ExtraTemperature3))
+        sampleCache[dataSetId].extraTemperature3 = samples.extraTemperature3;
 
     // Not supported: SC_ForecastRuleId
 
 
-    datasetCache[dataSetId].columns |= columns;
+    datasetCache[dataSetId].columns.standard |= columns.standard;
+    datasetCache[dataSetId].columns.extra |= columns.extra;
 }
 
 void CacheManager::sampleRetrievalError(QString message) {

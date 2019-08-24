@@ -216,7 +216,10 @@ data_file_t DataFileWebTask::loadDataFile(QStringList fileData,
 
     // Allocate memory for the sample set
     int size = timeStamps.count();
-    ReserveSampleSetSpace(samples, size, ALL_SAMPLE_COLUMNS);
+    SampleColumns cols;
+    cols.standard = ALL_SAMPLE_COLUMNS;
+    cols.extra = ALL_EXTRA_COLUMNS;
+    ReserveSampleSetSpace(samples, size, cols);
 
     while (!timeStamps.isEmpty()) {
 

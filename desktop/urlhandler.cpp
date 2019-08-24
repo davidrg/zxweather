@@ -78,51 +78,85 @@ DataSet decodeDataSet(QUrl url) {
     QStringList columns = graphs.split("+");
     foreach (QString col, columns) {
         if (col == "time")
-            ds.columns |= SC_Timestamp;
+            ds.columns.standard |= SC_Timestamp;
         if (col == "temperature") {
-            ds.columns |= SC_Temperature;
+            ds.columns.standard |= SC_Temperature;
         } else if (col == "indoor_temperature") {
-            ds.columns |= SC_IndoorTemperature;
+            ds.columns.standard |= SC_IndoorTemperature;
         } else if (col == "apparent_temperature") {
-            ds.columns |= SC_ApparentTemperature;
+            ds.columns.standard |= SC_ApparentTemperature;
         } else if (col == "wind_chill") {
-            ds.columns |= SC_WindChill;
+            ds.columns.standard |= SC_WindChill;
         } else if (col == "dew_point") {
-            ds.columns |= SC_DewPoint;
+            ds.columns.standard |= SC_DewPoint;
         } else if (col == "humidity") {
-            ds.columns |= SC_Humidity;
+            ds.columns.standard |= SC_Humidity;
         } else if (col == "indoor_humidity") {
-            ds.columns |= SC_IndoorHumidity;
+            ds.columns.standard |= SC_IndoorHumidity;
         } else if (col == "pressure") {
-            ds.columns |= SC_Pressure;
+            ds.columns.standard |= SC_Pressure;
         } else if (col == "rainfall") {
-            ds.columns |= SC_Rainfall;
+            ds.columns.standard |= SC_Rainfall;
         } else if (col == "average_wind_speed") {
-            ds.columns |= SC_AverageWindSpeed;
+            ds.columns.standard |= SC_AverageWindSpeed;
         } else if (col == "gust_wind_speed") {
-            ds.columns |= SC_GustWindSpeed;
+            ds.columns.standard |= SC_GustWindSpeed;
         } else if (col == "wind_direction") {
-            ds.columns |= SC_WindDirection;
+            ds.columns.standard |= SC_WindDirection;
         } else if (col == "solar_radiation") {
-            ds.columns |= SC_SolarRadiation;
+            ds.columns.standard |= SC_SolarRadiation;
         } else if (col == "uv_index") {
-            ds.columns |= SC_UV_Index;
+            ds.columns.standard |= SC_UV_Index;
         } else if (col == "reception") {
-            ds.columns |= SC_Reception;
+            ds.columns.standard |= SC_Reception;
         } else if (col == "high_temperature") {
-            ds.columns |= SC_HighTemperature;
+            ds.columns.standard |= SC_HighTemperature;
         } else if (col == "low_temperature") {
-            ds.columns |= SC_LowTemperature;
+            ds.columns.standard |= SC_LowTemperature;
         } else if (col == "high_rain_rate") {
-            ds.columns |= SC_HighRainRate;
+            ds.columns.standard |= SC_HighRainRate;
         } else if (col == "gust_wind_speed") {
-            ds.columns |= SC_GustWindDirection;
+            ds.columns.standard |= SC_GustWindDirection;
         } else if (col == "evapotranspiration") {
-            ds.columns |= SC_Evapotranspiration;
+            ds.columns.standard |= SC_Evapotranspiration;
         } else if (col == "high_solar_radiation") {
-            ds.columns |= SC_HighSolarRadiation;
+            ds.columns.standard |= SC_HighSolarRadiation;
         } else if (col == "high_uv_index") {
-            ds.columns |= SC_HighUVIndex;
+            ds.columns.standard |= SC_HighUVIndex;
+        } else if (col == "leaf_wetness_1") {
+            ds.columns.extra |= EC_LeafWetness1;
+        } else if (col == "leaf_wetness_2") {
+            ds.columns.extra |= EC_LeafWetness2;
+        } else if (col == "leaf_tempreature_1") {
+            ds.columns.extra |= EC_LeafTemperature1;
+        } else if (col == "leaf_temperature_2") {
+            ds.columns.extra |= EC_LeafTemperature2;
+        } else if (col == "soil_moisture_1") {
+            ds.columns.extra |= EC_SoilMoisture1;
+        } else if (col == "soil_moisture_2") {
+            ds.columns.extra |= EC_SoilMoisture2;
+        } else if (col == "soil_moisture_3") {
+            ds.columns.extra |= EC_SoilMoisture3;
+        } else if (col == "soil_moisture_4") {
+            ds.columns.extra |= EC_SoilMoisture4;
+        } else if (col == "soil_temperature_1") {
+            ds.columns.extra |= EC_SoilTemperature1;
+        } else if (col == "soil_temperature_2") {
+            ds.columns.extra |= EC_SoilTemperature2;
+        } else if (col == "soil_temperature_3") {
+            ds.columns.extra |= EC_SoilTemperature3;
+        } else if (col == "soil_temperature_4") {
+            ds.columns.extra |= EC_SoilTemperature4;
+        } else if (col == "extra_humidity_1") {
+            ds.columns.extra |= EC_ExtraHumidity1;
+        } else if (col == "extra_humidity_2") {
+            ds.columns.extra |= EC_ExtraHumidity2;
+        } else if (col == "extra_temperature_1") {
+            ds.columns.extra |= EC_ExtraTemperature1;
+        } else if (col == "extra_temperature_2") {
+            ds.columns.extra |= EC_ExtraTemperature2;
+        } else if (col == "extra_temperature_3") {
+            ds.columns.extra |= EC_ExtraTemperature3;
         }
     }
 

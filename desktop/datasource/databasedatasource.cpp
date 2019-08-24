@@ -104,103 +104,103 @@ QString buildColumnList(SampleColumns columns, QString format,
         qualifiedFormat = format;
     }
     QString query;
-    if (columns.testFlag(SC_Timestamp))
+    if (columns.standard.testFlag(SC_Timestamp))
         query += format.arg("time_stamp");
-    if (columns.testFlag(SC_Temperature))
+    if (columns.standard.testFlag(SC_Temperature))
         query += format.arg("temperature");
-    if (columns.testFlag(SC_DewPoint))
+    if (columns.standard.testFlag(SC_DewPoint))
         query += format.arg("dew_point");
-    if (columns.testFlag(SC_ApparentTemperature))
+    if (columns.standard.testFlag(SC_ApparentTemperature))
         query += format.arg("apparent_temperature");
-    if (columns.testFlag(SC_WindChill))
+    if (columns.standard.testFlag(SC_WindChill))
         query += format.arg("wind_chill");
-    if (columns.testFlag(SC_IndoorTemperature))
+    if (columns.standard.testFlag(SC_IndoorTemperature))
         query += format.arg("indoor_temperature");
-    if (columns.testFlag(SC_IndoorHumidity))
+    if (columns.standard.testFlag(SC_IndoorHumidity))
         query += format.arg("indoor_relative_humidity");
-    if (columns.testFlag(SC_Humidity))
+    if (columns.standard.testFlag(SC_Humidity))
         query += format.arg("relative_humidity");
-    if (columns.testFlag(SC_Pressure))
+    if (columns.standard.testFlag(SC_Pressure))
         query += format.arg("absolute_pressure");
-    if (columns.testFlag(SC_AverageWindSpeed))
+    if (columns.standard.testFlag(SC_AverageWindSpeed))
         query += format.arg("average_wind_speed");
-    if (columns.testFlag(SC_GustWindSpeed))
+    if (columns.standard.testFlag(SC_GustWindSpeed))
         query += format.arg("gust_wind_speed");
-    if (columns.testFlag(SC_WindDirection))
+    if (columns.standard.testFlag(SC_WindDirection))
         query += format.arg("wind_direction");
-    if (columns.testFlag(SC_Rainfall))
+    if (columns.standard.testFlag(SC_Rainfall))
         query += format.arg("rainfall");
-    if (columns.testFlag(SC_UV_Index)) {
+    if (columns.standard.testFlag(SC_UV_Index)) {
         if (qualifiers) {
             query += qualifiedFormat.arg("ds.average_uv_index");
         } else {
             query += format.arg("average_uv_index");
         }
     }
-    if (columns.testFlag(SC_SolarRadiation)) {
+    if (columns.standard.testFlag(SC_SolarRadiation)) {
         if (qualifiers) {
             query += qualifiedFormat.arg("ds.solar_radiation");
         } else {
             query += format.arg("solar_radiation");
         }
     }
-    if (columns.testFlag(SC_GustWindDirection)) {
+    if (columns.standard.testFlag(SC_GustWindDirection)) {
         if (qualifiers) {
             query += qualifiedFormat.arg("ds.gust_wind_direction");
         } else {
             query += format.arg("gust_wind_direction");
         }
     }
-    if (columns.testFlag(SC_Evapotranspiration)) {
+    if (columns.standard.testFlag(SC_Evapotranspiration)) {
         if (qualifiers) {
             query += qualifiedFormat.arg("ds.evapotranspiration");
         } else {
             query += format.arg("evapotranspiration");
         }
     }
-    if (columns.testFlag(SC_HighTemperature)) {
+    if (columns.standard.testFlag(SC_HighTemperature)) {
         if (qualifiers) {
             query += qualifiedFormat.arg("ds.high_temperature");
         } else {
             query += format.arg("high_temperature");
         }
     }
-    if (columns.testFlag(SC_LowTemperature)) {
+    if (columns.standard.testFlag(SC_LowTemperature)) {
         if (qualifiers) {
             query += qualifiedFormat.arg("ds.low_temperature");
         } else {
             query += format.arg("low_temperature");
         }
     }
-    if (columns.testFlag(SC_HighRainRate)) {
+    if (columns.standard.testFlag(SC_HighRainRate)) {
         if (qualifiers) {
             query += qualifiedFormat.arg("ds.high_rain_rate");
         } else {
             query += format.arg("high_rain_rate");
         }
     }
-    if (columns.testFlag(SC_HighSolarRadiation)) {
+    if (columns.standard.testFlag(SC_HighSolarRadiation)) {
         if (qualifiers) {
             query += qualifiedFormat.arg("ds.high_solar_radiation");
         } else {
             query += format.arg("high_solar_radiation");
         }
     }
-    if (columns.testFlag(SC_HighUVIndex)) {
+    if (columns.standard.testFlag(SC_HighUVIndex)) {
         if (qualifiers) {
             query += qualifiedFormat.arg("ds.high_uv_index");
         } else {
             query += format.arg("high_uv_index");
         }
     }
-    if (columns.testFlag(SC_ForecastRuleId)) {
+    if (columns.standard.testFlag(SC_ForecastRuleId)) {
         if (qualifiers) {
             query += qualifiedFormat.arg("ds.forecast_rule_id");
         } else {
             query += format.arg("forecast_rule_id");
         }
     }
-    if (columns.testFlag(SC_Reception)) {
+    if (columns.standard.testFlag(SC_Reception)) {
         if (qualifiers) {
             query += qualifiedFormat.arg(
                 "case when :broadcastId is null then null "
@@ -210,6 +210,126 @@ QString buildColumnList(SampleColumns columns, QString format,
             query += format.arg("reception");
         }
     }
+    if (columns.extra.testFlag(EC_LeafWetness1)) {
+        if (qualifiers) {
+            query += qualifiedFormat.arg("ds.leaf_wetness_1");
+        } else {
+            query += format.arg("leaf_wetness_1");
+        }
+    }
+    if (columns.extra.testFlag(EC_LeafWetness2)) {
+        if (qualifiers) {
+            query += qualifiedFormat.arg("ds.leaf_wetness_2");
+        } else {
+            query += format.arg("leaf_wetness_2");
+        }
+    }
+    if (columns.extra.testFlag(EC_LeafTemperature1)) {
+        if (qualifiers) {
+            query += qualifiedFormat.arg("ds.leaf_temperature_1");
+        } else {
+            query += format.arg("leaf_temperature_1");
+        }
+    }
+    if (columns.extra.testFlag(EC_LeafTemperature2)) {
+        if (qualifiers) {
+            query += qualifiedFormat.arg("ds.leaf_temperature_2");
+        } else {
+            query += format.arg("leaf_temperature_2");
+        }
+    }
+    if (columns.extra.testFlag(EC_SoilMoisture1)) {
+        if (qualifiers) {
+            query += qualifiedFormat.arg("ds.soil_moisture_1");
+        } else {
+            query += format.arg("soil_moisture_1");
+        }
+    }
+    if (columns.extra.testFlag(EC_SoilMoisture2)) {
+        if (qualifiers) {
+            query += qualifiedFormat.arg("ds.soil_moisture_2");
+        } else {
+            query += format.arg("soil_moisture_2");
+        }
+    }
+    if (columns.extra.testFlag(EC_SoilMoisture3)) {
+        if (qualifiers) {
+            query += qualifiedFormat.arg("ds.soil_moisture_3");
+        } else {
+            query += format.arg("soil_moisture_3");
+        }
+    }
+    if (columns.extra.testFlag(EC_SoilMoisture4)) {
+        if (qualifiers) {
+            query += qualifiedFormat.arg("ds.soil_moisture_4");
+        } else {
+            query += format.arg("soil_moisture_4");
+        }
+    }
+    if (columns.extra.testFlag(EC_SoilTemperature1)) {
+        if (qualifiers) {
+            query += qualifiedFormat.arg("ds.soil_temperature_1");
+        } else {
+            query += format.arg("soil_temperature_1");
+        }
+    }
+    if (columns.extra.testFlag(EC_SoilTemperature2)) {
+        if (qualifiers) {
+            query += qualifiedFormat.arg("ds.soil_temperature_2");
+        } else {
+            query += format.arg("soil_temperature_2");
+        }
+    }
+    if (columns.extra.testFlag(EC_SoilTemperature3)) {
+        if (qualifiers) {
+            query += qualifiedFormat.arg("ds.soil_temperature_3");
+        } else {
+            query += format.arg("soil_temperature_3");
+        }
+    }
+    if (columns.extra.testFlag(EC_SoilTemperature4)) {
+        if (qualifiers) {
+            query += qualifiedFormat.arg("ds.soil_temperature_4");
+        } else {
+            query += format.arg("soil_temperature_4");
+        }
+    }
+    if (columns.extra.testFlag(EC_ExtraHumidity1)) {
+        if (qualifiers) {
+            query += qualifiedFormat.arg("ds.extra_humidity_1");
+        } else {
+            query += format.arg("extra_humidity_2");
+        }
+    }
+    if (columns.extra.testFlag(EC_ExtraHumidity2)) {
+        if (qualifiers) {
+            query += qualifiedFormat.arg("ds.extra_humidity_2");
+        } else {
+            query += format.arg("extra_humidity_2");
+        }
+    }
+    if (columns.extra.testFlag(EC_ExtraTemperature1)) {
+        if (qualifiers) {
+            query += qualifiedFormat.arg("ds.extra_temperature_1");
+        } else {
+            query += format.arg("extra_temperature_1");
+        }
+    }
+    if (columns.extra.testFlag(EC_ExtraTemperature2)) {
+        if (qualifiers) {
+            query += qualifiedFormat.arg("ds.extra_temperature_2");
+        } else {
+            query += format.arg("extra_temperature_2");
+        }
+    }
+    if (columns.extra.testFlag(EC_ExtraTemperature3)) {
+        if (qualifiers) {
+            query += qualifiedFormat.arg("ds.extra_temperature_3");
+        } else {
+            query += format.arg("extra_temperature_3");
+        }
+    }
+
 
     return query;
 }
@@ -217,7 +337,7 @@ QString buildColumnList(SampleColumns columns, QString format,
 QString buildSelectForColumns(SampleColumns columns)
 {
     // Unset timestamp column (we'll put that in ourselves)
-    columns &= ~SC_Timestamp;
+    columns.standard &= ~SC_Timestamp;
 
     QString query = "select time_stamp";
     query += buildColumnList(columns, ", %1", true, ", %1 ");
@@ -241,7 +361,7 @@ QString buildGroupedSelect(SampleColumns columns, AggregateFunction function, Ag
     // and aggregate it
     QString query = "select iq.quadrant as quadrant ";
 
-    if (columns.testFlag(SC_Timestamp))
+    if (columns.standard.testFlag(SC_Timestamp))
         query += ", min(iq.time_stamp) as time_stamp ";
 
     // Column names in the list get wrapped in the aggregate function
@@ -251,25 +371,31 @@ QString buildGroupedSelect(SampleColumns columns, AggregateFunction function, Ag
     // others.
     if (function == AF_Sum || function == AF_RunningTotal) {
         // Figure out which columns we can sum
-        SampleColumns summables = columns & SUMMABLE_COLUMNS;
+        SampleColumns summables;
+        summables.standard = columns.standard & SUMMABLE_COLUMNS;
+        summables.extra = columns.extra & EXTRA_SUMMABLE_COLUMNS;
 
         // And which columns we can't
-        SampleColumns nonSummables = columns & ~SUMMABLE_COLUMNS;
-        nonSummables = nonSummables & ~SC_Timestamp; // we don't want timestamp either
+        SampleColumns nonSummables;
+        nonSummables.standard = columns.standard & ~SUMMABLE_COLUMNS;
+        nonSummables.standard = nonSummables.standard & ~SC_Timestamp; // we don't want timestamp either
+        nonSummables.extra = columns.extra & ~EXTRA_SUMMABLE_COLUMNS;
 
         // Sum the summables
-        if (summables != SC_NoColumns) {
+        if (summables.standard != SC_NoColumns || summables.extra != EC_NoColumns) {
             query += buildColumnList(summables, QString(", %1(iq.%2) as %2 ").arg(fn).arg("%1"), false);
         }
 
         // And just average the nonsummables(we have to apply some sort of
         // aggregate or the grouping will fail)
-        if (nonSummables != SC_NoColumns) {
+        if (nonSummables.standard != SC_NoColumns || nonSummables.extra != EC_NoColumns) {
             query += buildColumnList(nonSummables, ", avg(iq.%1) as %1 ", false);
         }
 
     } else {
-        query += buildColumnList(columns & ~SC_Timestamp, QString(", %1(iq.%2) as %2 ").arg(fn).arg("%1"), false);
+        SampleColumns cols = columns;
+        cols.standard = columns.standard & ~SC_Timestamp;
+        query += buildColumnList(cols, QString(", %1(iq.%2) as %2 ").arg(fn).arg("%1"), false);
     }
 
     // Start of subquery 'iq'
@@ -309,26 +435,30 @@ QString buildGroupedSelect(SampleColumns columns, AggregateFunction function, Ag
              " order by iq.quadrant asc ";
 
     // If we're computing a running total wrap up the above query to do the job.
-    if (function == AF_RunningTotal && columns.testFlag(SC_Timestamp)) {
+    if (function == AF_RunningTotal && columns.standard.testFlag(SC_Timestamp)) {
         // This requires a window function to do it efficiently.
         // And that needs to be outside the grouped query.
         QString outer_query = "select grouped.quadrant, grouped.time_stamp ";
 
         // Figure out which columns we can sum
-        SampleColumns summables = columns & SUMMABLE_COLUMNS;
+        SampleColumns summables;
+        summables.standard = columns.standard & SUMMABLE_COLUMNS;
+        summables.extra = columns.extra & EXTRA_SUMMABLE_COLUMNS;
 
         // And which columns we can't
-        SampleColumns nonSummables = columns & ~SUMMABLE_COLUMNS;
-        nonSummables = nonSummables & ~SC_Timestamp; // we don't want timestamp either
+        SampleColumns nonSummables;
+        nonSummables.standard = columns.standard & ~SUMMABLE_COLUMNS;
+        nonSummables.standard = nonSummables.standard & ~SC_Timestamp; // we don't want timestamp either
+        nonSummables.extra = columns.extra & ~EXTRA_SUMMABLE_COLUMNS;
 
         // Sum the summables
-        if (summables != SC_NoColumns) {
+        if (summables.standard != SC_NoColumns || summables.extra != EC_NoColumns) {
             outer_query += buildColumnList(summables,
                                            ", sum(grouped.%1) over (order by grouped.time_stamp) as %1 ");
         }
 
         // And just leave the non-summables alone.
-        if (nonSummables != SC_NoColumns) {
+        if (nonSummables.standard != SC_NoColumns || nonSummables.extra != EC_NoColumns) {
             outer_query += buildColumnList(nonSummables, ", grouped.%1 as %1 ", false);
         }
 
@@ -351,8 +481,11 @@ QString buildGroupedSelect(SampleColumns columns, AggregateFunction function, Ag
 }
 
 QString buildGroupedCount(AggregateFunction function, AggregateGroupType groupType) {
+    SampleColumns columns;
+    columns.standard = SC_NoColumns;
+    columns.extra = EC_NoColumns;
 
-    QString baseQuery = buildGroupedSelect(SC_NoColumns, function, groupType);
+    QString baseQuery = buildGroupedSelect(columns, function, groupType);
 
     QString query = "select count(*) as cnt from ( " + baseQuery + " ) as x ";
     return query;
@@ -530,7 +663,7 @@ void DatabaseDataSource::fetchSamples(SampleColumns columns,
     if (getHardwareType() != HW_DAVIS) {
         // Turn off all the davis columns - they're not valid here
         qDebug() << "Not davis hardwrae - disabling columns";
-        columns = columns & ~DAVIS_COLUMNS;
+        columns.standard = columns.standard & ~DAVIS_COLUMNS;
     }
 
     progressListener->setSubtaskName("Count...");
@@ -552,7 +685,7 @@ void DatabaseDataSource::fetchSamples(SampleColumns columns,
     if (progressListener->wasCanceled()) return;
 
     int broadcastId = -1;
-    if (columns.testFlag(SC_Reception)) {
+    if (columns.standard.testFlag(SC_Reception)) {
         // We need some extra config data for the reception column.
 
         QSqlQuery q;
@@ -563,7 +696,7 @@ void DatabaseDataSource::fetchSamples(SampleColumns columns,
             // Couldn't get config data. Turn off the column
             qWarning() << "Failed to get station config for SC_Reception column. Errors:"
                        << q.lastError().driverText() << q.lastError().databaseText();
-            columns = columns & ~SC_Reception;
+            columns.standard = columns.standard & ~SC_Reception;
         } else {
             q.first();
             using namespace QtJson;
@@ -574,7 +707,7 @@ void DatabaseDataSource::fetchSamples(SampleColumns columns,
 
             if (!ok) {
                 qWarning() << "Station config JSON parsing failed. Turning off reception column.";
-                columns = columns & ~SC_Reception;
+                columns.standard = columns.standard & ~SC_Reception;
             } else if (!result["broadcast_id"].isNull()){
                 broadcastId = result["broadcast_id"].toInt();
             }
@@ -583,7 +716,7 @@ void DatabaseDataSource::fetchSamples(SampleColumns columns,
 
         if (broadcastId == -1) {
             qDebug() << "Failed to get broadcast id. Turning off reception column.";
-            columns = columns & ~SC_Reception;
+            columns.standard = columns.standard & ~SC_Reception;
         }
     }
 
@@ -593,7 +726,10 @@ void DatabaseDataSource::fetchSamples(SampleColumns columns,
         query = setupBasicQuery(columns, broadcastId);
         interval = getSampleInterval();
     } else {
-        query = setupGroupedQuery(columns | SC_Timestamp, stationId,
+        SampleColumns cols;
+        cols.standard = columns.standard | SC_Timestamp;
+        cols.extra = columns.extra;
+        query = setupGroupedQuery(cols, stationId,
                           aggregateFunction, groupType, groupMinutes,
                                   broadcastId);
         interval = groupMinutes * 60;
@@ -655,87 +791,138 @@ void DatabaseDataSource::fetchSamples(SampleColumns columns,
         samples.timestamp.append(timestamp);
         samples.timestampUnix.append(timestamp); // Not sure why we need both.
 
-        if (columns.testFlag(SC_Temperature))
+        if (columns.standard.testFlag(SC_Temperature))
             samples.temperature.append(nullableVariantDouble(record.value("temperature")));
 
-        if (columns.testFlag(SC_DewPoint))
+        if (columns.standard.testFlag(SC_DewPoint))
             samples.dewPoint.append(nullableVariantDouble(record.value("dew_point")));
 
-        if (columns.testFlag(SC_ApparentTemperature))
+        if (columns.standard.testFlag(SC_ApparentTemperature))
             samples.apparentTemperature.append(nullableVariantDouble(
                                                    record.value("apparent_temperature")));
 
-        if (columns.testFlag(SC_WindChill))
+        if (columns.standard.testFlag(SC_WindChill))
             samples.windChill.append(nullableVariantDouble(record.value("wind_chill")));
 
-        if (columns.testFlag(SC_IndoorTemperature))
+        if (columns.standard.testFlag(SC_IndoorTemperature))
             samples.indoorTemperature.append(nullableVariantDouble(
                         record.value("indoor_temperature")));
 
-        if (columns.testFlag(SC_Humidity))
+        if (columns.standard.testFlag(SC_Humidity))
             samples.humidity.append(nullableVariantDouble(
                         record.value("relative_humidity")));
 
-        if (columns.testFlag(SC_IndoorHumidity))
+        if (columns.standard.testFlag(SC_IndoorHumidity))
             samples.indoorHumidity.append(nullableVariantDouble(
                         record.value("indoor_relative_humidity")));
 
-        if (columns.testFlag(SC_Pressure))
+        if (columns.standard.testFlag(SC_Pressure))
             samples.pressure.append(nullableVariantDouble(
                         record.value("absolute_pressure")));
 
-        if (columns.testFlag(SC_Rainfall))
+        if (columns.standard.testFlag(SC_Rainfall))
             samples.rainfall.append(nullableVariantDouble(record.value("rainfall")));
 
-        if (columns.testFlag(SC_AverageWindSpeed))
+        if (columns.standard.testFlag(SC_AverageWindSpeed))
             samples.averageWindSpeed.append(nullableVariantDouble(
                         record.value("average_wind_speed")));
 
-        if (columns.testFlag(SC_GustWindSpeed))
+        if (columns.standard.testFlag(SC_GustWindSpeed))
             samples.gustWindSpeed.append(nullableVariantDouble(
                         record.value("gust_wind_speed")));
 
-        if (columns.testFlag(SC_WindDirection))
+        if (columns.standard.testFlag(SC_WindDirection))
             // Wind direction is often null.
             if (!record.value("wind_direction").isNull())
                 samples.windDirection[timestamp] =
                         record.value("wind_direction").toUInt();
 
-        if (columns.testFlag(SC_GustWindDirection))
+        if (columns.standard.testFlag(SC_GustWindDirection))
             // Gust wind direction is often null.
             if (!record.value("gust_wind_direction").isNull())
                 samples.gustWindDirection[timestamp] =
                         record.value("gust_wind_direction").toUInt();
 
-        if (columns.testFlag(SC_UV_Index))
+        if (columns.standard.testFlag(SC_UV_Index))
             samples.uvIndex.append(nullableVariantDouble(record.value("average_uv_index")));
 
-        if (columns.testFlag(SC_SolarRadiation))
+        if (columns.standard.testFlag(SC_SolarRadiation))
             samples.solarRadiation.append(nullableVariantDouble(record.value("solar_radiation")));
 
-        if (columns.testFlag(SC_Evapotranspiration))
+        if (columns.standard.testFlag(SC_Evapotranspiration))
             samples.evapotranspiration.append(nullableVariantDouble(record.value("evapotranspiration")));
 
-        if (columns.testFlag(SC_HighTemperature))
+        if (columns.standard.testFlag(SC_HighTemperature))
             samples.highTemperature.append(nullableVariantDouble(record.value("high_temperature")));
 
-        if (columns.testFlag(SC_LowTemperature))
+        if (columns.standard.testFlag(SC_LowTemperature))
             samples.lowTemperature.append(nullableVariantDouble(record.value("low_temperature")));
 
-        if (columns.testFlag(SC_HighRainRate))
+        if (columns.standard.testFlag(SC_HighRainRate))
             samples.highRainRate.append(nullableVariantDouble(record.value("high_rain_rate")));
 
-        if (columns.testFlag(SC_HighSolarRadiation))
+        if (columns.standard.testFlag(SC_HighSolarRadiation))
             samples.highSolarRadiation.append(nullableVariantDouble(record.value("high_solar_radiation")));
 
-        if (columns.testFlag(SC_HighUVIndex))
+        if (columns.standard.testFlag(SC_HighUVIndex))
             samples.highUVIndex.append(nullableVariantDouble(record.value("high_uv_index")));
 
-        if (columns.testFlag(SC_Reception))
+        if (columns.standard.testFlag(SC_Reception))
             samples.reception.append(nullableVariantDouble(record.value("reception")));
 
-        if (columns.testFlag(SC_ForecastRuleId))
+        if (columns.standard.testFlag(SC_ForecastRuleId))
             samples.forecastRuleId.append(record.value("forecast_rule_id").toInt());
+
+        if (columns.extra.testFlag(EC_LeafWetness1))
+            samples.leafWetness1.append(nullableVariantDouble(record.value("leaf_wetness_1")));
+
+        if (columns.extra.testFlag(EC_LeafWetness2))
+            samples.leafWetness2.append(nullableVariantDouble(record.value("leaf_wetness_2")));
+
+        if (columns.extra.testFlag(EC_LeafTemperature1))
+            samples.leafTemperature1.append(nullableVariantDouble(record.value("leaf_temperature_1")));
+
+        if (columns.extra.testFlag(EC_LeafTemperature2))
+            samples.leafTemperature2.append(nullableVariantDouble(record.value("leaf_temperature_2")));
+
+        if (columns.extra.testFlag(EC_SoilMoisture1))
+            samples.soilMoisture1.append(nullableVariantDouble(record.value("soil_moisture_1")));
+
+        if (columns.extra.testFlag(EC_SoilMoisture2))
+            samples.soilMoisture2.append(nullableVariantDouble(record.value("soil_moisture_2")));
+
+        if (columns.extra.testFlag(EC_SoilMoisture3))
+            samples.soilMoisture3.append(nullableVariantDouble(record.value("soil_moisture_3")));
+
+        if (columns.extra.testFlag(EC_SoilMoisture4))
+            samples.soilMoisture4.append(nullableVariantDouble(record.value("soil_moisture_4")));
+
+        if (columns.extra.testFlag(EC_SoilTemperature1))
+            samples.soilTemperature1.append(nullableVariantDouble(record.value("soil_temperature_1")));
+
+        if (columns.extra.testFlag(EC_SoilTemperature2))
+            samples.soilTemperature2.append(nullableVariantDouble(record.value("soil_temperature_2")));
+
+        if (columns.extra.testFlag(EC_SoilTemperature3))
+            samples.soilTemperature3.append(nullableVariantDouble(record.value("soil_temperature_3")));
+
+        if (columns.extra.testFlag(EC_SoilTemperature4))
+            samples.soilTemperature4.append(nullableVariantDouble(record.value("soil_temperature_4")));
+
+        if (columns.extra.testFlag(EC_ExtraHumidity1))
+            samples.extraHumidity1.append(nullableVariantDouble(record.value("extra_humidity_1")));
+
+        if (columns.extra.testFlag(EC_ExtraHumidity2))
+            samples.extraHumidity2.append(nullableVariantDouble(record.value("extra_humidity_2")));
+
+        if (columns.extra.testFlag(EC_ExtraTemperature1))
+            samples.extraTemperature1.append(nullableVariantDouble(record.value("extra_temperature_1")));
+
+        if (columns.extra.testFlag(EC_ExtraTemperature2))
+            samples.extraTemperature2.append(nullableVariantDouble(record.value("extra_temperature_2")));
+
+        if (columns.extra.testFlag(EC_ExtraTemperature3))
+            samples.extraTemperature3.append(nullableVariantDouble(record.value("extra_temperature_3")));
     }
     progressListener->setSubtaskName("Draw...");
     progressListener->setValue(4);
@@ -1597,6 +1784,155 @@ bool DatabaseDataSource::solarAvailable() {
     }
 
     return false;
+}
+
+ExtraColumns DatabaseDataSource::extraColumnsAvailable() {
+    using namespace QtJson;
+
+    int id = getStationId();
+
+    // A station ID of -1 means we're running on a v0.1 database.
+    if (id != -1) {
+        QSqlQuery query;
+        query.prepare("select s.title, s.station_config "
+                      "from station s "
+                      "where s.station_id = :stationId");
+        query.bindValue(":stationId", id);
+        query.exec();
+
+        if (query.isActive() && query.size() == 1) {
+            query.first();
+
+            QString config = query.value(1).toString();
+
+            bool ok;
+            QVariantMap result = Json::parse(config, ok).toMap();
+
+            if (!ok) {
+                emit error("JSON parsing failed");
+                return EC_NoColumns;
+            }
+
+            if (result.contains("extra_sensors")) {
+                QVariantMap sensor_config = result["extra_sensors"].toMap();
+                ExtraColumns result = EC_NoColumns;
+                if (sensor_config.contains("leaf_wetness_1")) {
+                    QVariantMap sensor = sensor_config["leaf_wetness_1"].toMap();
+                    if (sensor["enabled"].toBool()) {
+                        result |= EC_LeafWetness1;
+                    }
+                }
+                if (sensor_config.contains("leaf_wetness_2")) {
+                    QVariantMap sensor = sensor_config["leaf_wetness_2"].toMap();
+                    if (sensor["enabled"].toBool()) {
+                        result |= EC_LeafWetness2;
+                    }
+                }
+                if (sensor_config.contains("leaf_temperature_1")) {
+                    QVariantMap sensor = sensor_config["leaf_temperature_1"].toMap();
+                    if (sensor["enabled"].toBool()) {
+                        result |= EC_LeafTemperature1;
+                    }
+                }
+                if (sensor_config.contains("leaf_temperature_2")) {
+                    QVariantMap sensor = sensor_config["leaf_temperature_2"].toMap();
+                    if (sensor["enabled"].toBool()) {
+                        result |= EC_LeafTemperature2;
+                    }
+                }
+                if (sensor_config.contains("soil_moisture_1")) {
+                    QVariantMap sensor = sensor_config["soil_moisture_1"].toMap();
+                    if (sensor["enabled"].toBool()) {
+                        result |= EC_SoilMoisture1;
+                    }
+                }
+                if (sensor_config.contains("soil_moisture_2")) {
+                    QVariantMap sensor = sensor_config["soil_moisture_2"].toMap();
+                    if (sensor["enabled"].toBool()) {
+                        result |= EC_SoilMoisture2;
+                    }
+                }
+                if (sensor_config.contains("soil_moisture_3")) {
+                    QVariantMap sensor = sensor_config["soil_moisture_3"].toMap();
+                    if (sensor["enabled"].toBool()) {
+                        result |= EC_SoilMoisture3;
+                    }
+                }
+                if (sensor_config.contains("soil_moisture_4")) {
+                    QVariantMap sensor = sensor_config["soil_moisture_4"].toMap();
+                    if (sensor["enabled"].toBool()) {
+                        result |= EC_SoilMoisture4;
+                    }
+                }
+                if (sensor_config.contains("soil_temperature_1")) {
+                    QVariantMap sensor = sensor_config["soil_temperature_1"].toMap();
+                    if (sensor["enabled"].toBool()) {
+                        result |= EC_SoilTemperature1;
+                    }
+                }
+                if (sensor_config.contains("soil_temperature_2")) {
+                    QVariantMap sensor = sensor_config["soil_temperature_2"].toMap();
+                    if (sensor["enabled"].toBool()) {
+                        result |= EC_SoilTemperature2;
+                    }
+                }
+                if (sensor_config.contains("soil_temperature_3")) {
+                    QVariantMap sensor = sensor_config["soil_temperature_3"].toMap();
+                    if (sensor["enabled"].toBool()) {
+                        result |= EC_SoilTemperature3;
+                    }
+                }
+                if (sensor_config.contains("soil_temperature_4")) {
+                    QVariantMap sensor = sensor_config["soil_temperature_4"].toMap();
+                    if (sensor["enabled"].toBool()) {
+                        result |= EC_SoilTemperature4;
+                    }
+                }
+                if (sensor_config.contains("extra_humidity_1")) {
+                    QVariantMap sensor = sensor_config["extra_humidity_1"].toMap();
+                    if (sensor["enabled"].toBool()) {
+                        result |= EC_ExtraHumidity1;
+                    }
+                }
+                if (sensor_config.contains("extra_humidity_2")) {
+                    QVariantMap sensor = sensor_config["extra_humidity_2"].toMap();
+                    if (sensor["enabled"].toBool()) {
+                        result |= EC_ExtraHumidity2;
+                    }
+                }
+                if (sensor_config.contains("extra_temperature_1")) {
+                    QVariantMap sensor = sensor_config["extra_temperature_1"].toMap();
+                    if (sensor["enabled"].toBool()) {
+                        result |= EC_ExtraTemperature1;
+                    }
+                }
+                if (sensor_config.contains("extra_temperature_2")) {
+                    QVariantMap sensor = sensor_config["extra_temperature_2"].toMap();
+                    if (sensor["enabled"].toBool()) {
+                        result |= EC_ExtraTemperature2;
+                    }
+                }
+                if (sensor_config.contains("extra_temperature_3")) {
+                    QVariantMap sensor = sensor_config["extra_temperature_3"].toMap();
+                    if (sensor["enabled"].toBool()) {
+                        result |= EC_ExtraTemperature3;
+                    }
+                }
+
+                return result;
+
+            } else {
+                return EC_NoColumns;
+            }
+        }
+    }
+
+    return EC_NoColumns;
+}
+
+QMap<ExtraColumn, QString> DatabaseDataSource::extraColumnNames() {
+    QMap<ExtraColumn, QString> result;
+    return result;
 }
 
 station_info_t DatabaseDataSource::getStationInfo() {

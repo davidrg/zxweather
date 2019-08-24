@@ -88,10 +88,10 @@ void WeatherPlotter::populateAxisLabels() {
         axisLabels.insert(AT_TEMPERATURE, "Temperature (" IMPERIAL_TEMPERATURE_SYMBOL ")");
         axisLabels.insert(AT_WIND_SPEED, "Wind speed (mph)");
         axisLabels.insert(AT_WIND_DIRECTION, "Wind direction (degrees)");
-        axisLabels.insert(AT_SOLAR_RADIATION, "Solar Radiation (W/m" SQUARED_SYMBOL ")");
+        axisLabels.insert(AT_SOLAR_RADIATION, "Solar radiation (W/m" SQUARED_SYMBOL ")");
         axisLabels.insert(AT_UV_INDEX, "UV Index");
         axisLabels.insert(AT_RAIN_RATE, "Rain rate (in/h)");
-        axisLabels.insert(AT_RECEPTION, "Wireless Reception (%)");
+        axisLabels.insert(AT_RECEPTION, "Wireless reception (%)");
         axisLabels.insert(AT_EVAPOTRANSPIRATION, "Evapotranspiration (in)");
     } else {
         bool kmh = Settings::getInstance().kmh();
@@ -101,19 +101,21 @@ void WeatherPlotter::populateAxisLabels() {
         axisLabels.insert(AT_TEMPERATURE, "Temperature (" TEMPERATURE_SYMBOL ")");
         axisLabels.insert(AT_WIND_SPEED, kmh ? "Wind speed (km/h)" : "Wind speed (m/s)");
         axisLabels.insert(AT_WIND_DIRECTION, "Wind direction (degrees)");
-        axisLabels.insert(AT_SOLAR_RADIATION, "Solar Radiation (W/m" SQUARED_SYMBOL ")");
+        axisLabels.insert(AT_SOLAR_RADIATION, "Solar radiation (W/m" SQUARED_SYMBOL ")");
         axisLabels.insert(AT_UV_INDEX, "UV Index");
         axisLabels.insert(AT_RAIN_RATE, "Rain rate (mm/h)");
-        axisLabels.insert(AT_RECEPTION, "Wireless Reception (%)");
+        axisLabels.insert(AT_RECEPTION, "Wireless reception (%)");
         axisLabels.insert(AT_EVAPOTRANSPIRATION, "Evapotranspiration (mm)");
     }
+    axisLabels.insert(AT_SOIL_MOISTURE, "Soil Moisture (cbar)");
+    axisLabels.insert(AT_LEAF_WETNESS, "Leaf Wetness");
 }
 
 void WeatherPlotter::reload() {
 
     int dataSetsToPlot = 0;
     foreach (DataSet dataSet, dataSets.values()) {
-        if (dataSet.columns != SC_NoColumns) dataSetsToPlot++;
+        if (dataSet.columns.standard != SC_NoColumns || dataSet.columns.extra != EC_NoColumns) dataSetsToPlot++;
     }
     if (dataSetsToPlot == 0)
         return; // No columns selected? nothing to do.
@@ -307,7 +309,7 @@ QPointer<QCPAxis> WeatherPlotter::getKeyAxis(dataset_id_t dataSetId,
     return axis;
 }
 
-WeatherPlotter::AxisType WeatherPlotter::axisTypeForColumn(SampleColumn column) {
+WeatherPlotter::AxisType WeatherPlotter::axisTypeForColumn(StandardColumn column) {
     switch (column) {
     case SC_Temperature:
     case SC_IndoorTemperature:
@@ -362,7 +364,41 @@ WeatherPlotter::AxisType WeatherPlotter::axisTypeForColumn(SampleColumn column) 
     }
 }
 
-QVector<double> WeatherPlotter::samplesForColumn(SampleColumn column, SampleSet samples) {
+WeatherPlotter::AxisType WeatherPlotter::axisTypeForColumn(ExtraColumn column) {
+    switch (column) {
+    case EC_LeafTemperature1:
+    case EC_LeafTemperature2:
+    case EC_SoilTemperature1:
+    case EC_SoilTemperature2:
+    case EC_SoilTemperature3:
+    case EC_SoilTemperature4:
+    case EC_ExtraTemperature1:
+    case EC_ExtraTemperature2:
+    case EC_ExtraTemperature3:
+        return AT_TEMPERATURE;
+
+    case EC_ExtraHumidity1:
+    case EC_ExtraHumidity2:
+        return AT_HUMIDITY;
+
+    case EC_LeafWetness1:
+    case EC_LeafWetness2:
+        return AT_LEAF_WETNESS;
+
+    case EC_SoilMoisture1:
+    case EC_SoilMoisture2:
+    case EC_SoilMoisture3:
+    case EC_SoilMoisture4:
+        return AT_SOIL_MOISTURE;
+
+    case EC_NoColumns:
+    default:
+        // This should never happen.
+        return AT_NONE;
+    }
+}
+
+QVector<double> WeatherPlotter::samplesForColumn(StandardColumn column, SampleSet samples) {
 
     Q_ASSERT_X(column != SC_WindDirection, "samplesForColumn", "WindDirection is unsupported");
     Q_ASSERT_X(column != SC_GustWindDirection, "samplesForColumn", "GustWindDirection is unsupported");
@@ -421,7 +457,53 @@ QVector<double> WeatherPlotter::samplesForColumn(SampleColumn column, SampleSet 
     }
 }
 
-void WeatherPlotter::addGenericGraph(DataSet dataSet, SampleColumn column, SampleSet samples) {
+QVector<double> WeatherPlotter::samplesForColumn(ExtraColumn column, SampleSet samples) {
+
+    switch(column) {
+    case EC_LeafTemperature1:
+    case EC_LeafTemperature2:
+    case EC_SoilTemperature1:
+    case EC_SoilTemperature2:
+    case EC_SoilTemperature3:
+    case EC_SoilTemperature4:
+    case EC_ExtraTemperature1:
+    case EC_ExtraTemperature2:
+    case EC_ExtraTemperature3: {
+        // These units all support conversion to imperial or other units.
+        UnitConversions::unit_t units = SampleColumnUnits(column);
+        if (Settings::getInstance().imperial()) {
+            units = UnitConversions::metricToImperial(units);
+        } else {
+            if (units == UnitConversions::U_METERS_PER_SECOND && Settings::getInstance().kmh()) {
+                units = UnitConversions::U_KILOMETERS_PER_HOUR;
+            }
+        }
+
+        return SampleColumnInUnits(samples, column, units);
+    }
+    case EC_ExtraHumidity1:
+        return samples.extraHumidity1;
+    case EC_ExtraHumidity2:
+        return samples.extraHumidity2;
+    case EC_LeafWetness1:
+        return samples.leafWetness1;
+    case EC_LeafWetness2:
+        return samples.leafWetness2;
+    case EC_SoilMoisture1:
+        return samples.soilMoisture1;
+    case EC_SoilMoisture2:
+        return samples.soilMoisture2;
+    case EC_SoilMoisture3:
+        return samples.soilMoisture3;
+    case EC_SoilMoisture4:
+        return samples.soilMoisture4;
+    default:
+        // This should never happen.
+        return QVector<double>();
+    }
+}
+
+void WeatherPlotter::addGenericGraph(DataSet dataSet, StandardColumn column, SampleSet samples) {
     qDebug() << "Adding graph for dataset" << dataSet.id << "column" << (int)column;
     AxisType axisType = axisTypeForColumn(column);
 
@@ -439,12 +521,37 @@ void WeatherPlotter::addGenericGraph(DataSet dataSet, SampleColumn column, Sampl
     }
     gs.applyStyle(graph);
 
+    graph->setProperty(COLUMN_TYPE, "standard");
     graph->setProperty(GRAPH_TYPE, column);
     graph->setProperty(GRAPH_AXIS, axisType);
     graph->setProperty(GRAPH_DATASET, dataSet.id);
 }
 
-void WeatherPlotter::addRainfallGraph(DataSet dataSet, SampleSet samples, SampleColumn column)
+void WeatherPlotter::addGenericGraph(DataSet dataSet, ExtraColumn column, SampleSet samples) {
+    qDebug() << "Adding graph for dataset" << dataSet.id << "column" << (int)column;
+    AxisType axisType = axisTypeForColumn(column);
+
+    QCPGraph* graph = chart->addGraph();
+    graph->setValueAxis(getValueAxis(axisType));
+    graph->setKeyAxis(getKeyAxis(dataSet.id));
+    graph->setData(samples.timestamp, samplesForColumn(column,samples));
+
+    GraphStyle gs;
+    if (extraGraphStyles[dataSet.id].contains(column))
+        gs = extraGraphStyles[dataSet.id][column];
+    else {
+        gs = column;
+        extraGraphStyles[dataSet.id][column] = gs;
+    }
+    gs.applyStyle(graph);
+
+    graph->setProperty(COLUMN_TYPE, "extra");
+    graph->setProperty(GRAPH_TYPE, column);
+    graph->setProperty(GRAPH_AXIS, axisType);
+    graph->setProperty(GRAPH_DATASET, dataSet.id);
+}
+
+void WeatherPlotter::addRainfallGraph(DataSet dataSet, SampleSet samples, StandardColumn column)
 {
     Q_ASSERT_X(column == SC_Rainfall || column == SC_HighRainRate,
                "addRainfallGraph", "Unsupported column type (must be rainfall or high rain rate)");
@@ -483,12 +590,13 @@ void WeatherPlotter::addRainfallGraph(DataSet dataSet, SampleSet samples, Sample
 //            bars->setBrush(QBrush(Qt::green));
 //            bars->setWidth(1000);
     // set pen
+    graph->setProperty(COLUMN_TYPE, "standard");
     graph->setProperty(GRAPH_TYPE, column);
     graph->setProperty(GRAPH_AXIS, axisType);
     graph->setProperty(GRAPH_DATASET, dataSet.id);
 }
 
-void WeatherPlotter::addWindDirectionGraph(DataSet dataSet, SampleSet samples, SampleColumn column)
+void WeatherPlotter::addWindDirectionGraph(DataSet dataSet, SampleSet samples, StandardColumn column)
 {
     QCPGraph * graph = chart->addGraph();
     graph->setValueAxis(getValueAxis(AT_WIND_DIRECTION));
@@ -525,6 +633,7 @@ void WeatherPlotter::addWindDirectionGraph(DataSet dataSet, SampleSet samples, S
     }
     gs.applyStyle(graph);
 
+    graph->setProperty(COLUMN_TYPE, "standard");
     graph->setProperty(GRAPH_TYPE, column);
     graph->setProperty(GRAPH_AXIS, AT_WIND_DIRECTION);
     graph->setProperty(GRAPH_DATASET, dataSet.id);
@@ -546,83 +655,134 @@ void WeatherPlotter::addGraphs(QMap<dataset_id_t, SampleSet> sampleSets)
         dataSetMaximumTime[dataSetId] = QDateTime::fromTime_t(
                     samples.timestampUnix.last());
 
-        qDebug() << "Adding graphs" << (int)ds.columns << "for dataset" << ds.id;
+        qDebug() << "Adding graphs" << (int)ds.columns.standard << (int)ds.columns.extra << "for dataset" << ds.id;
 
-        if (ds.columns.testFlag(SC_Temperature))
+        if (ds.columns.standard.testFlag(SC_Temperature))
             addGenericGraph(ds, SC_Temperature, samples);
             //addTemperatureGraph(samples);
 
-        if (ds.columns.testFlag(SC_IndoorTemperature))
+        if (ds.columns.standard.testFlag(SC_IndoorTemperature))
             addGenericGraph(ds, SC_IndoorTemperature, samples);
             //addIndoorTemperatureGraph(samples);
 
-        if (ds.columns.testFlag(SC_ApparentTemperature))
+        if (ds.columns.standard.testFlag(SC_ApparentTemperature))
             addGenericGraph(ds, SC_ApparentTemperature, samples);
             //addApparentTemperatureGraph(samples);
 
-        if (ds.columns.testFlag(SC_DewPoint))
+        if (ds.columns.standard.testFlag(SC_DewPoint))
             addGenericGraph(ds, SC_DewPoint, samples);
             //addDewPointGraph(samples);
 
-        if (ds.columns.testFlag(SC_WindChill))
+        if (ds.columns.standard.testFlag(SC_WindChill))
             addGenericGraph(ds, SC_WindChill, samples);
             //addWindChillGraph(samples);
 
-        if (ds.columns.testFlag(SC_Humidity))
+        if (ds.columns.standard.testFlag(SC_Humidity))
             addGenericGraph(ds, SC_Humidity, samples);
             //addHumidityGraph(samples);
 
-        if (ds.columns.testFlag(SC_IndoorHumidity))
+        if (ds.columns.standard.testFlag(SC_IndoorHumidity))
             addGenericGraph(ds, SC_IndoorHumidity, samples);
             //addIndoorHumidityGraph(samples);
 
-        if (ds.columns.testFlag(SC_Pressure))
+        if (ds.columns.standard.testFlag(SC_Pressure))
             addGenericGraph(ds, SC_Pressure, samples);
             //addPressureGraph(samples);
 
-        if (ds.columns.testFlag(SC_Rainfall))
+        if (ds.columns.standard.testFlag(SC_Rainfall))
             addRainfallGraph(ds, samples, SC_Rainfall); // keep
 
-        if (ds.columns.testFlag(SC_HighRainRate))
+        if (ds.columns.standard.testFlag(SC_HighRainRate))
             addRainfallGraph(ds, samples, SC_HighRainRate);
 
-        if (ds.columns.testFlag(SC_AverageWindSpeed))
+        if (ds.columns.standard.testFlag(SC_AverageWindSpeed))
             addGenericGraph(ds, SC_AverageWindSpeed, samples);
             //addAverageWindSpeedGraph(samples);
 
-        if (ds.columns.testFlag(SC_GustWindSpeed))
+        if (ds.columns.standard.testFlag(SC_GustWindSpeed))
             addGenericGraph(ds, SC_GustWindSpeed, samples);
             //addGustWindSpeedGraph(samples);
 
-        if (ds.columns.testFlag(SC_WindDirection))
+        if (ds.columns.standard.testFlag(SC_WindDirection))
             addWindDirectionGraph(ds, samples, SC_WindDirection); // keep
 
-        if (ds.columns.testFlag(SC_GustWindDirection))
+        if (ds.columns.standard.testFlag(SC_GustWindDirection))
             addWindDirectionGraph(ds, samples, SC_GustWindDirection); // keep
 
-        if (ds.columns.testFlag(SC_UV_Index))
+        if (ds.columns.standard.testFlag(SC_UV_Index))
             addGenericGraph(ds, SC_UV_Index, samples);
 
-        if (ds.columns.testFlag(SC_SolarRadiation))
+        if (ds.columns.standard.testFlag(SC_SolarRadiation))
             addGenericGraph(ds, SC_SolarRadiation, samples);
 
-        if (ds.columns.testFlag(SC_HighTemperature))
+        if (ds.columns.standard.testFlag(SC_HighTemperature))
             addGenericGraph(ds, SC_HighTemperature, samples);
 
-        if (ds.columns.testFlag(SC_LowTemperature))
+        if (ds.columns.standard.testFlag(SC_LowTemperature))
             addGenericGraph(ds, SC_LowTemperature, samples);
 
-        if (ds.columns.testFlag(SC_HighSolarRadiation))
+        if (ds.columns.standard.testFlag(SC_HighSolarRadiation))
             addGenericGraph(ds, SC_HighSolarRadiation, samples);
 
-        if (ds.columns.testFlag(SC_HighUVIndex))
+        if (ds.columns.standard.testFlag(SC_HighUVIndex))
             addGenericGraph(ds, SC_HighUVIndex, samples);
 
-        if (ds.columns.testFlag(SC_Reception))
+        if (ds.columns.standard.testFlag(SC_Reception))
             addGenericGraph(ds, SC_Reception, samples);
 
-        if (ds.columns.testFlag(SC_Evapotranspiration))
+        if (ds.columns.standard.testFlag(SC_Evapotranspiration))
             addGenericGraph(ds, SC_Evapotranspiration, samples);
+
+        if (ds.columns.extra.testFlag(EC_LeafWetness1))
+            addGenericGraph(ds, EC_LeafWetness1, samples);
+
+        if (ds.columns.extra.testFlag(EC_LeafWetness2))
+            addGenericGraph(ds, EC_LeafWetness2, samples);
+
+        if (ds.columns.extra.testFlag(EC_LeafTemperature1))
+            addGenericGraph(ds, EC_LeafTemperature1, samples);
+
+        if (ds.columns.extra.testFlag(EC_LeafTemperature2))
+            addGenericGraph(ds, EC_LeafTemperature2, samples);
+
+        if (ds.columns.extra.testFlag(EC_SoilMoisture1))
+            addGenericGraph(ds, EC_SoilMoisture1, samples);
+
+        if (ds.columns.extra.testFlag(EC_SoilMoisture2))
+            addGenericGraph(ds, EC_SoilMoisture2, samples);
+
+        if (ds.columns.extra.testFlag(EC_SoilMoisture3))
+            addGenericGraph(ds, EC_SoilMoisture3, samples);
+
+        if (ds.columns.extra.testFlag(EC_SoilMoisture4))
+            addGenericGraph(ds, EC_SoilMoisture4, samples);
+
+        if (ds.columns.extra.testFlag(EC_SoilTemperature1))
+            addGenericGraph(ds, EC_SoilTemperature1, samples);
+
+        if (ds.columns.extra.testFlag(EC_SoilTemperature2))
+            addGenericGraph(ds, EC_SoilTemperature2, samples);
+
+        if (ds.columns.extra.testFlag(EC_SoilTemperature3))
+            addGenericGraph(ds, EC_SoilTemperature3, samples);
+
+        if (ds.columns.extra.testFlag(EC_SoilTemperature4))
+            addGenericGraph(ds, EC_SoilTemperature4, samples);
+
+        if (ds.columns.extra.testFlag(EC_ExtraHumidity1))
+            addGenericGraph(ds, EC_ExtraHumidity1, samples);
+
+        if (ds.columns.extra.testFlag(EC_ExtraHumidity2))
+            addGenericGraph(ds, EC_ExtraHumidity2, samples);
+
+        if (ds.columns.extra.testFlag(EC_ExtraTemperature1))
+            addGenericGraph(ds, EC_ExtraTemperature1, samples);
+
+        if (ds.columns.extra.testFlag(EC_ExtraTemperature2))
+            addGenericGraph(ds, EC_ExtraTemperature2, samples);
+
+        if (ds.columns.extra.testFlag(EC_ExtraTemperature3))
+            addGenericGraph(ds, EC_ExtraTemperature3, samples);
     }
 }
 
@@ -897,15 +1057,18 @@ void WeatherPlotter::removeUnusedAxes()
 SampleColumns WeatherPlotter::availableColumns(dataset_id_t dataSetId)
 {
     //SampleColumns availableColumns = ~currentChartColumns;
-    SampleColumns availableColumns = ~dataSets[dataSetId].columns;
+    SampleColumns availableColumns;
+    availableColumns.standard = ~dataSets[dataSetId].columns.standard;
+    availableColumns.extra = ~dataSets[dataSetId].columns.extra;
 
     // This will have gone and set all the unused bits in the int too.
     // Go clear anything we don't use.
-    availableColumns &= ALL_SAMPLE_COLUMNS;
+    availableColumns.standard &= ALL_SAMPLE_COLUMNS;
+    availableColumns.extra &= ALL_EXTRA_COLUMNS;
 
     // Then unset the timestamp flag if its set (its not a valid option here).
-    if (availableColumns.testFlag(SC_Timestamp))
-        availableColumns &= ~SC_Timestamp;
+    if (availableColumns.standard.testFlag(SC_Timestamp))
+        availableColumns.standard &= ~SC_Timestamp;
 
     return availableColumns;
 }
@@ -915,18 +1078,43 @@ SampleColumns WeatherPlotter::selectedColumns(dataset_id_t dataSetId) {
 }
 
 void WeatherPlotter::addGraphs(dataset_id_t dataSetId, SampleColumns columns) {
-    dataSets[dataSetId].columns |= columns;
+    dataSets[dataSetId].columns.standard |= columns.standard;
+    dataSets[dataSetId].columns.extra |= columns.extra;
 
     chart->clearPlottables();
 
     cacheManager->getDataSets(dataSets.values());
 }
 
-QCPGraph* WeatherPlotter::getGraph(dataset_id_t dataSetId, SampleColumn column) {
+QCPGraph* WeatherPlotter::getGraph(dataset_id_t dataSetId, StandardColumn column) {
     QCPGraph* graph = 0;
     for (int i = 0; i < chart->graphCount(); i++) {
-        SampleColumn graphColumn =
-                (SampleColumn)chart->graph(i)->property(GRAPH_TYPE).toInt();
+        QString columnType = chart->graph(i)->property(COLUMN_TYPE).toString();
+        if (columnType != "standard") continue;
+
+        StandardColumn graphColumn =
+                (StandardColumn)chart->graph(i)->property(GRAPH_TYPE).toInt();
+        dataset_id_t graphDataSetId =
+                (dataset_id_t)chart->graph(i)->property(GRAPH_DATASET).toUInt();
+
+        if (graphColumn == column && graphDataSetId == dataSetId)
+            graph = chart->graph(i);
+    }
+
+    if (graph == 0) {
+        qWarning() << "Couldn't find graph to remove for column" << column;
+    }
+    return graph;
+}
+
+QCPGraph* WeatherPlotter::getGraph(dataset_id_t dataSetId, ExtraColumn column) {
+    QCPGraph* graph = 0;
+    for (int i = 0; i < chart->graphCount(); i++) {
+        QString columnType = chart->graph(i)->property(COLUMN_TYPE).toString();
+        if (columnType != "extra") continue;
+
+        ExtraColumn graphColumn =
+                (ExtraColumn)chart->graph(i)->property(GRAPH_TYPE).toInt();
         dataset_id_t graphDataSetId =
                 (dataset_id_t)chart->graph(i)->property(GRAPH_DATASET).toUInt();
 
@@ -941,9 +1129,9 @@ QCPGraph* WeatherPlotter::getGraph(dataset_id_t dataSetId, SampleColumn column) 
 }
 
 void WeatherPlotter::removeGraph(QCPGraph* graph, dataset_id_t dataSetId,
-                                 SampleColumn column) {
+                                 StandardColumn column) {
     // Remove the graph from the dataset so it doesn't magically come back later
-    dataSets[dataSetId].columns &= ~column;
+    dataSets[dataSetId].columns.standard &= ~column;
 
     // One less use of this particular axis.
     AxisType axisType = (AxisType)graph->property(GRAPH_AXIS).toInt();
@@ -958,7 +1146,25 @@ void WeatherPlotter::removeGraph(QCPGraph* graph, dataset_id_t dataSetId,
     chart->removeGraph(graph);
 }
 
-void WeatherPlotter::removeGraph(dataset_id_t dataSetId, SampleColumn column) {
+void WeatherPlotter::removeGraph(QCPGraph* graph, dataset_id_t dataSetId,
+                                 ExtraColumn column) {
+    // Remove the graph from the dataset so it doesn't magically come back later
+    dataSets[dataSetId].columns.extra &= ~column;
+
+    // One less use of this particular axis.
+    AxisType axisType = (AxisType)graph->property(GRAPH_AXIS).toInt();
+    axisReferences[axisType]--;
+    qDebug() << "Value axis now has" << axisReferences[axisType] << "references";
+
+    // And one less use of the key axis for the data set too
+    AxisType keyType = (AxisType)(AT_KEY + dataSetId);
+    axisReferences[keyType]--;
+    qDebug() << "Key axis now has" << axisReferences[keyType] << "references";
+
+    chart->removeGraph(graph);
+}
+
+void WeatherPlotter::removeGraph(dataset_id_t dataSetId, StandardColumn column) {
     qDebug() << "Removing graph" << column << "for data set" << dataSetId;
     // Try to find the graph that goes with this column.
 
@@ -971,7 +1177,31 @@ void WeatherPlotter::removeGraph(dataset_id_t dataSetId, SampleColumn column) {
 
     removeUnusedAxes();
 
-    if (dataSets[dataSetId].columns == SC_NoColumns) {
+    if (dataSets[dataSetId].columns.standard == SC_NoColumns && dataSets[dataSetId].columns.extra == EC_NoColumns) {
+        // The dataset doesn't have any graphs left in the chart. Remove the
+        // dataset itself if its not the last one remaining.
+        if (dataSets.count() > 1) {
+            removeDataSet(dataSetId);
+        }
+    }
+
+    chart->replot();
+}
+
+void WeatherPlotter::removeGraph(dataset_id_t dataSetId, ExtraColumn column) {
+    qDebug() << "Removing graph" << column << "for data set" << dataSetId;
+    // Try to find the graph that goes with this column.
+
+    QCPGraph *graph = getGraph(dataSetId, column);
+    if (graph == NULL) {
+        return;
+    }
+
+    removeGraph(graph, dataSetId, column);
+
+    removeUnusedAxes();
+
+    if (dataSets[dataSetId].columns.standard == SC_NoColumns && dataSets[dataSetId].columns.extra == EC_NoColumns) {
         // The dataset doesn't have any graphs left in the chart. Remove the
         // dataset itself if its not the last one remaining.
         if (dataSets.count() > 1) {
@@ -986,78 +1216,143 @@ void WeatherPlotter::removeGraphs(dataset_id_t dataSetId, SampleColumns columns)
 
     SampleColumns dsColumns = dataSets[dataSetId].columns;
 
-    columns &= dsColumns;
+    columns.standard &= dsColumns.standard;
+    columns.extra &= dsColumns.extra;
 
-    QList<SampleColumn> columnList;
+    QList<StandardColumn> columnList;
+    QList<ExtraColumn> extraColumnList;
 
-    if (columns.testFlag(SC_Temperature))
+    if (columns.standard.testFlag(SC_Temperature))
         columnList << SC_Temperature;
 
-    if (columns.testFlag(SC_IndoorTemperature))
+    if (columns.standard.testFlag(SC_IndoorTemperature))
         columnList << SC_IndoorTemperature;
 
-    if (columns.testFlag(SC_ApparentTemperature))
+    if (columns.standard.testFlag(SC_ApparentTemperature))
         columnList << SC_ApparentTemperature;
 
-    if (columns.testFlag(SC_DewPoint))
+    if (columns.standard.testFlag(SC_DewPoint))
         columnList << SC_DewPoint;
 
-    if (columns.testFlag(SC_WindChill))
+    if (columns.standard.testFlag(SC_WindChill))
         columnList << SC_WindChill;
 
-    if (columns.testFlag(SC_Humidity))
+    if (columns.standard.testFlag(SC_Humidity))
         columnList << SC_Humidity;
 
-    if (columns.testFlag(SC_IndoorHumidity))
+    if (columns.standard.testFlag(SC_IndoorHumidity))
         columnList << SC_IndoorHumidity;
 
-    if (columns.testFlag(SC_Pressure))
+    if (columns.standard.testFlag(SC_Pressure))
         columnList << SC_Pressure;
 
-    if (columns.testFlag(SC_Rainfall))
+    if (columns.standard.testFlag(SC_Rainfall))
         columnList << SC_Rainfall;
 
-    if (columns.testFlag(SC_AverageWindSpeed))
+    if (columns.standard.testFlag(SC_AverageWindSpeed))
         columnList << SC_AverageWindSpeed;
 
-    if (columns.testFlag(SC_GustWindSpeed))
+    if (columns.standard.testFlag(SC_GustWindSpeed))
         columnList << SC_GustWindSpeed;
 
-    if (columns.testFlag(SC_WindDirection))
+    if (columns.standard.testFlag(SC_WindDirection))
         columnList << SC_WindDirection;
 
-    if (columns.testFlag(SC_UV_Index))
+    if (columns.standard.testFlag(SC_UV_Index))
         columnList << SC_UV_Index;
 
-    if (columns.testFlag(SC_SolarRadiation))
+    if (columns.standard.testFlag(SC_SolarRadiation))
         columnList << SC_SolarRadiation;
 
-    if (columns.testFlag(SC_HighTemperature))
+    if (columns.standard.testFlag(SC_HighTemperature))
         columnList << SC_HighTemperature;
 
-    if (columns.testFlag(SC_LowTemperature))
+    if (columns.standard.testFlag(SC_LowTemperature))
         columnList << SC_LowTemperature;
 
-    if (columns.testFlag(SC_HighSolarRadiation))
+    if (columns.standard.testFlag(SC_HighSolarRadiation))
         columnList << SC_HighSolarRadiation;
 
-    if (columns.testFlag(SC_HighUVIndex))
+    if (columns.standard.testFlag(SC_HighUVIndex))
         columnList << SC_HighUVIndex;
 
-    if (columns.testFlag(SC_GustWindDirection))
+    if (columns.standard.testFlag(SC_GustWindDirection))
         columnList << SC_GustWindDirection;
 
-    if (columns.testFlag(SC_HighRainRate))
+    if (columns.standard.testFlag(SC_HighRainRate))
         columnList << SC_HighRainRate;
 
-    if (columns.testFlag(SC_Reception))
+    if (columns.standard.testFlag(SC_Reception))
         columnList << SC_Reception;
 
-    if (columns.testFlag(SC_Evapotranspiration))
+    if (columns.standard.testFlag(SC_Evapotranspiration))
         columnList << SC_Evapotranspiration;
 
     for(int i = 0; i < columnList.count(); i++) {
-        SampleColumn column = columnList[i];
+        StandardColumn column = columnList[i];
+
+        QCPGraph *graph = getGraph(dataSetId, column);
+        if (graph == NULL) {
+            // Graph is already missing?
+            continue;
+        }
+
+        removeGraph(graph, dataSetId, column);
+    }
+
+    if (columns.extra.testFlag(EC_LeafWetness1))
+        extraColumnList << EC_LeafWetness1;
+
+    if (columns.extra.testFlag(EC_LeafWetness2))
+        extraColumnList << EC_LeafWetness2;
+
+    if (columns.extra.testFlag(EC_LeafTemperature1))
+        extraColumnList << EC_LeafTemperature1;
+
+    if (columns.extra.testFlag(EC_LeafTemperature2))
+        extraColumnList << EC_LeafTemperature2;
+
+    if (columns.extra.testFlag(EC_SoilMoisture1))
+        extraColumnList << EC_SoilMoisture1;
+
+    if (columns.extra.testFlag(EC_SoilMoisture2))
+        extraColumnList << EC_SoilMoisture2;
+
+    if (columns.extra.testFlag(EC_SoilMoisture3))
+        extraColumnList << EC_SoilMoisture3;
+
+    if (columns.extra.testFlag(EC_SoilMoisture4))
+        extraColumnList << EC_SoilMoisture4;
+
+    if (columns.extra.testFlag(EC_SoilTemperature1))
+        extraColumnList << EC_SoilTemperature1;
+
+    if (columns.extra.testFlag(EC_SoilTemperature2))
+        extraColumnList << EC_SoilTemperature2;
+
+    if (columns.extra.testFlag(EC_SoilTemperature3))
+        extraColumnList << EC_SoilTemperature3;
+
+    if (columns.extra.testFlag(EC_SoilTemperature4))
+        extraColumnList << EC_SoilTemperature4;
+
+    if (columns.extra.testFlag(EC_ExtraHumidity1))
+        extraColumnList << EC_ExtraHumidity1;
+
+    if (columns.extra.testFlag(EC_ExtraHumidity2))
+        extraColumnList << EC_ExtraHumidity2;
+
+    if (columns.extra.testFlag(EC_ExtraTemperature1))
+        extraColumnList << EC_ExtraTemperature1;
+
+    if (columns.extra.testFlag(EC_ExtraTemperature2))
+        extraColumnList << EC_ExtraTemperature2;
+
+    if (columns.extra.testFlag(EC_ExtraTemperature3))
+        extraColumnList << EC_ExtraTemperature3;
+
+    for(int i = 0; i < extraColumnList.count(); i++) {
+        ExtraColumn column = extraColumnList[i];
 
         QCPGraph *graph = getGraph(dataSetId, column);
         if (graph == NULL) {
@@ -1070,7 +1365,7 @@ void WeatherPlotter::removeGraphs(dataset_id_t dataSetId, SampleColumns columns)
 
     removeUnusedAxes();
 
-    if (dataSets[dataSetId].columns == SC_NoColumns) {
+    if (dataSets[dataSetId].columns.standard == SC_NoColumns && dataSets[dataSetId].columns.extra == EC_NoColumns) {
         // The dataset doesn't have any graphs left in the chart. Remove the
         // dataset itself if its not the last remaining.
         if (dataSets.count() > 1) {
@@ -1094,23 +1389,42 @@ QString WeatherPlotter::defaultLabelForAxis(QCPAxis *axis) {
     }
 }
 
-QMap<SampleColumn, GraphStyle> WeatherPlotter::getGraphStyles(dataset_id_t dataSetId) {
-    return graphStyles[dataSetId];
+graph_styles_t WeatherPlotter::getGraphStyles(dataset_id_t dataSetId) {
+    graph_styles_t styles;
+    styles.standardStyles = graphStyles[dataSetId];
+    styles.extraStyles = extraGraphStyles[dataSetId];
+
+    return styles;
 }
 
-GraphStyle& WeatherPlotter::getStyleForGraph(dataset_id_t dataSetId, SampleColumn column) {
+GraphStyle& WeatherPlotter::getStyleForGraph(dataset_id_t dataSetId, StandardColumn column) {
     return graphStyles[dataSetId][column];
+}
+
+GraphStyle& WeatherPlotter::getStyleForGraph(dataset_id_t dataSetId, ExtraColumn column) {
+    return extraGraphStyles[dataSetId][column];
 }
 
 GraphStyle& WeatherPlotter::getStyleForGraph(QCPGraph* graph) {
     dataset_id_t dataset = graph->property(GRAPH_DATASET).toInt();
-    SampleColumn col = (SampleColumn)graph->property(GRAPH_TYPE).toInt();
 
-    return getStyleForGraph(dataset, col);
+    QString columnType = graph->property(COLUMN_TYPE).toString();
+    if (columnType == "standard") {
+        StandardColumn col = (StandardColumn)graph->property(GRAPH_TYPE).toInt();
+
+        return getStyleForGraph(dataset, col);
+    } else {
+        ExtraColumn col = (ExtraColumn)graph->property(GRAPH_TYPE).toInt();
+        return getStyleForGraph(dataset, col);
+    }
 }
 
-void WeatherPlotter::setGraphStyles(QMap<SampleColumn, GraphStyle> styles, dataset_id_t dataSetId) {
+void WeatherPlotter::setGraphStyles(QMap<StandardColumn, GraphStyle> styles, dataset_id_t dataSetId) {
     graphStyles[dataSetId] = styles;
+}
+
+void WeatherPlotter::setGraphStyles(QMap<ExtraColumn, GraphStyle> styles, dataset_id_t dataSetId) {
+    extraGraphStyles[dataSetId] = styles;
 }
 
 #ifdef FEATURE_PLUS_CURSOR

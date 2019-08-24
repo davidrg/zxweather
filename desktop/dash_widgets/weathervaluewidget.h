@@ -14,14 +14,15 @@ class WeatherValueWidget : public QWidget
 public:
     explicit WeatherValueWidget(QWidget *parent = NULL);
 
-    void setValue(UnitConversions::UnitValue value, SampleColumn column);
+    void setValue(UnitConversions::UnitValue value, StandardColumn column);
+    void setValue(UnitConversions::UnitValue value, ExtraColumn column);
     void setOutdoorIndoorValue(
-            UnitConversions::UnitValue outdoor, SampleColumn outdoorColumn,
-            UnitConversions::UnitValue indoor, SampleColumn indoorColumn);
+            UnitConversions::UnitValue outdoor, StandardColumn outdoorColumn,
+            UnitConversions::UnitValue indoor, StandardColumn indoorColumn);
     void setDoubleValue(UnitConversions::UnitValue value1,
-                        SampleColumn column1,
+                        StandardColumn column1,
                         UnitConversions::UnitValue value2,
-                        SampleColumn column2);
+                        StandardColumn column2);
     void setName(QString name);
     void clear();
 
@@ -37,10 +38,11 @@ private slots:
 
 private:
     UnitConversions::UnitValue value1;
-    SampleColumn column1;
+    StandardColumn column1;
+    ExtraColumn column1ex;
 
     UnitConversions::UnitValue value2;
-    SampleColumn column2;
+    StandardColumn column2;
     bool insideOutside;
     bool doubleValue;
 

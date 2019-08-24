@@ -55,6 +55,29 @@ typedef struct _SampleSet {
     QVector<double> reception; // wireless davis only
     QVector<int> forecastRuleId;
 
+    // Leaf columns
+    QVector<double> leafWetness1;
+    QVector<double> leafWetness2;
+    QVector<double> leafTemperature1;
+    QVector<double> leafTemperature2;
+
+    // Soil columns
+    QVector<double> soilMoisture1;
+    QVector<double> soilMoisture2;
+    QVector<double> soilMoisture3;
+    QVector<double> soilMoisture4;
+    QVector<double> soilTemperature1;
+    QVector<double> soilTemperature2;
+    QVector<double> soilTemperature3;
+    QVector<double> soilTemperature4;
+
+    // Temp+Hum statoins
+    QVector<double> extraHumidity1;
+    QVector<double> extraHumidity2;
+    QVector<double> extraTemperature1;
+    QVector<double> extraTemperature2;
+    QVector<double> extraTemperature3;
+
 } SampleSet;
 
 /** Reserve space in the sample sets data structures for the specified number
@@ -100,10 +123,37 @@ typedef struct _Sample {
     double solarRadiation;
     bool uvIndexValid;
     double uvIndex;
+
+    // Leaf
+    double leafWetness1;
+    double leafWetness2;
+    double leafTemperature1;
+    double leafTemperature2;
+
+    // Soil
+    double soilMoisture1;
+    double soilMoisture2;
+    double soilMoisture3;
+    double soilMoisture4;
+    double soilTemperature1;
+    double soilTemperature2;
+    double soilTemperature3;
+    double soilTemperature4;
+
+    // Temp+Humidity stations
+    double extraHumidity1;
+    double extraHumidity2;
+    double extraTemperature1;
+    double extraTemperature2;
+    double extraTemperature3;
 } Sample;
 
-inline UnitConversions::unit_t SampleColumnUnits(SampleColumn column);
+inline UnitConversions::unit_t SampleColumnUnits(StandardColumn column);
 
-QVector<double> SampleColumnInUnits(SampleSet samples, SampleColumn column, UnitConversions::unit_t units);
+QVector<double> SampleColumnInUnits(SampleSet samples, StandardColumn column, UnitConversions::unit_t units);
+
+inline UnitConversions::unit_t SampleColumnUnits(ExtraColumn column);
+
+QVector<double> SampleColumnInUnits(SampleSet samples, ExtraColumn column, UnitConversions::unit_t units);
 
 #endif // SAMPLESET_H

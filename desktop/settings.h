@@ -57,6 +57,28 @@ typedef struct _chart_colours {
     QColor reception;
     QColor consoleBatteryVoltage; // live only
 
+    QColor leafWetness1;
+    QColor leafWetness2;
+    QColor leafTemperature1;
+    QColor leafTemperature2;
+
+    QColor soilMoisture1;
+    QColor soilMoisture2;
+    QColor soilMoisture3;
+    QColor soilMoisture4;
+    QColor soilTemperature1;
+    QColor soilTemperature2;
+    QColor soilTemperature3;
+    QColor soilTemperature4;
+
+    QColor extraHumidity1;
+    QColor extraHumidity2;
+
+    QColor extraTemperature1;
+    QColor extraTemperature2;
+    QColor extraTemperature3;
+
+
     QColor title;
     QColor background;
 } ChartColours;

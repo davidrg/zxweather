@@ -2,7 +2,6 @@
 #include "ui_chartwindow.h"
 #include "settings.h"
 #include "addgraphdialog.h"
-#include "customisechartdialog.h"
 #include "graphstyledialog.h"
 #include "datasettimespandialog.h"
 #include "datasetsdialog.h"
@@ -30,12 +29,6 @@
 
 // This enables multi-data-set support in the UI,
 #define MULTI_DATA_SET
-
-#ifdef QT_DEBUG
-// This isn't finished yet. So disabled in release builds.
-#define CUSTOMISE_CHART
-#endif
-
 
 ChartWindow::ChartWindow(QList<DataSet> dataSets, bool solarAvailable, bool isWireless,
                          QWidget *parent) :
@@ -194,8 +187,9 @@ void ChartWindow::setDataSetActionsEnabled(bool enabled) {
     if (ds == INVALID_DATASET_ID)
         enabled = false;
     else {
-        graphsAvailable = plotter->selectedColumns(ds) != AddGraphDialog::supportedColumns(
-                    hw_type, isWireless, solarDataAvailable);
+        SampleColumns selected = plotter->selectedColumns(ds);
+        SampleColumns supported = AddGraphDialog::supportedColumns(hw_type, isWireless, solarDataAvailable);
+        graphsAvailable = selected.standard != supported.standard && selected.extra != supported.extra;
     }
 
     ui->action_Add_Graph->setEnabled(enabled && graphsAvailable);
@@ -400,13 +394,6 @@ void ChartWindow::showChartContextMenu(QPoint point) {
         // All graphs are already in the chart. No more to add.
         action->setEnabled(false);
     }
-
-#ifdef CUSTOMISE_CHART
-    menu->addSeparator();
-    // The customise chart window isn't finished yet.
-    menu->addAction("Customise",
-                    this, SLOT(customiseChart()));
-#endif
 #endif // MULTI_DATA_SET
 
     /******** Plot feature visibility & layout ********/
@@ -637,8 +624,9 @@ void ChartWindow::showKeyAxisContextMenu(QPoint point, QCPAxis *axis) {
     bool graphsAvailable = false;
     dataset_id_t ds = getSelectedDataset();
     if (ds != INVALID_DATASET_ID) {
-        graphsAvailable = plotter->selectedColumns(ds) != AddGraphDialog::supportedColumns(
-                    hw_type, isWireless, solarDataAvailable);
+        SampleColumns selected = plotter->selectedColumns(ds);
+        SampleColumns supported = AddGraphDialog::supportedColumns(hw_type, isWireless, solarDataAvailable);
+        graphsAvailable = selected.standard != supported.standard && selected.extra != supported.extra;
     }
     QAction *act = menu->addAction(QIcon(":/icons/chart-add"),tr("&Add Graph..."), this, SLOT(addGraph()));
     act->setEnabled(graphsAvailable);
@@ -812,7 +800,10 @@ void ChartWindow::removeDataSet(dataset_id_t dsId) {
     }
 
     // Removing all graphs removes the dataset too and triggers a replot.
-    plotter->removeGraphs(dsId, ALL_SAMPLE_COLUMNS);
+    SampleColumns cols;
+    cols.standard = ALL_SAMPLE_COLUMNS;
+    cols.extra = ALL_EXTRA_COLUMNS;
+    plotter->removeGraphs(dsId, cols);
 
     int index = -1;
     for (int i = 0; i < dataSets.count(); i++) {
@@ -1027,17 +1018,33 @@ void ChartWindow::removeSelectedGraph()
         QCPGraph* graph = ui->chart->selectedGraphs().first();
 
         dataset_id_t dataset = graph->property(GRAPH_DATASET).toInt();
-        SampleColumn column = (SampleColumn)graph->property(GRAPH_TYPE).toInt();
+        if (graph->property(COLUMN_TYPE).toString() == "standard") {
+            StandardColumn column = (StandardColumn)graph->property(GRAPH_TYPE).toInt();
 
-        // Turn off the column so it doesn't come back when the user
-        // hits refresh.
-        plotter->removeGraph(dataset, column);
+            // Turn off the column so it doesn't come back when the user
+            // hits refresh.
+            plotter->removeGraph(dataset, column);
 
-        // Turn the column off in the dataset itself so it doesn't come back
-        // later.
-        for (int i = 0; i < dataSets.count(); i++) {
-            if (dataSets[i].id == dataset) {
-                dataSets[i].columns &= ~column;
+            // Turn the column off in the dataset itself so it doesn't come back
+            // later.
+            for (int i = 0; i < dataSets.count(); i++) {
+                if (dataSets[i].id == dataset) {
+                    dataSets[i].columns.standard &= ~column;
+                }
+            }
+        } else {
+            ExtraColumn column = (ExtraColumn)graph->property(GRAPH_TYPE).toInt();
+
+            // Turn off the column so it doesn't come back when the user
+            // hits refresh.
+            plotter->removeGraph(dataset, column);
+
+            // Turn the column off in the dataset itself so it doesn't come back
+            // later.
+            for (int i = 0; i < dataSets.count(); i++) {
+                if (dataSets[i].id == dataset) {
+                    dataSets[i].columns.extra &= ~column;
+                }
             }
         }
 
@@ -1241,71 +1248,6 @@ void ChartWindow::save() {
         qcpPainter.begin(&generator);
         ui->chart->toPainter(&qcpPainter, ui->chart->width(), ui->chart->height());
         qcpPainter.end();
-    }
-}
-
-void ChartWindow::customiseChart() {
-
-    QMap<SampleColumn, GraphStyle> originalStyles = plotter->getGraphStyles(FIRST_DATA_SET);
-
-    CustomiseChartDialog ccd(originalStyles, solarDataAvailable, plotTitleEnabled,
-                             plotTitleValue, plotTitleColour, plotBackgroundBrush,
-                             this);
-    if (ccd.exec() == QDialog::Accepted) {
-        QMap<SampleColumn, GraphStyle> newStyles = ccd.getGraphStyles();
-
-        qDebug() << "Customise Chart Accept.";
-
-        bool replotRequired = false;
-
-        foreach (SampleColumn column, originalStyles.keys()) {
-            GraphStyle original = originalStyles[column];
-            GraphStyle updated = newStyles[column];
-
-            qDebug() << "Checking column " << column;
-
-            if (updated != original) {
-                qDebug() << "Column settings changed.";
-                // Find the graph and restyle it.
-
-                for (int i = 0; i < ui->chart->graphCount(); i++) {
-                    QCPGraph* graph = ui->chart->graph(i);
-                    if (graph->property(GRAPH_TYPE).toInt() == column) {
-                        qDebug() << "Graph found. Restyling.";
-                        updated.applyStyle(graph);
-                    }
-                }
-
-                replotRequired = true;
-            }
-        }
-        plotter->setGraphStyles(newStyles, FIRST_DATA_SET);
-
-        if (ccd.getTitleEnabled()) {
-            QString title = ccd.getTitle();
-            QColor colour = ccd.getTitleColour();
-
-            if (title != plotTitleValue || colour != plotTitleColour) {
-                if (plotTitleEnabled) {
-                    removeTitle();
-                }
-                plotTitleColour = colour;
-                addTitle(title);
-                replotRequired = true;
-            }
-        } else {
-            removeTitle();
-        }
-
-        QBrush newBackgroundBrush = ccd.getBackgroundBrush();
-        if (newBackgroundBrush != plotBackgroundBrush) {
-            plotBackgroundBrush = newBackgroundBrush;
-            ui->chart->axisRect()->setBackground(newBackgroundBrush);
-            replotRequired = true;
-        }
-
-        if (replotRequired)
-            ui->chart->replot();
     }
 }
 

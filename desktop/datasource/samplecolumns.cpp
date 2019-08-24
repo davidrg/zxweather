@@ -2,7 +2,8 @@
 
 bool DataSet::operator==(const DataSet& other)
 {
-    return (other.columns == columns)
+    return (other.columns.standard == columns.standard)
+            && (other.columns.extra == columns.extra)
             && (other.startTime == startTime)
             && (other.endTime == endTime)
             && (other.id == id)

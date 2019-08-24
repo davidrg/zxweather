@@ -127,6 +127,14 @@ public:
      */
     virtual bool solarAvailable() = 0;
 
+    /** Returns the set of extra columns available for the station.
+     *
+     * @return
+     */
+    virtual ExtraColumns extraColumnsAvailable() = 0;
+
+    virtual QMap<ExtraColumn, QString> extraColumnNames() = 0;
+
     /** Gets basic station information
      *
      * @return Station information

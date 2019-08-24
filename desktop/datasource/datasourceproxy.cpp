@@ -208,6 +208,21 @@ bool DataSourceProxy::solarAvailable() {
     return sampleSource->solarAvailable();
 }
 
+ExtraColumns DataSourceProxy::extraColumnsAvailable() {
+    if (sampleSource == 0) {
+        return EC_NoColumns;
+    }
+    return sampleSource->extraColumnsAvailable();
+}
+
+QMap<ExtraColumn, QString> DataSourceProxy::extraColumnNames() {
+    if (sampleSource == 0) {
+        QMap<ExtraColumn, QString> result;
+        return result;
+    }
+    return sampleSource->extraColumnNames();
+}
+
 station_info_t DataSourceProxy::getStationInfo() {
     if (sampleSource == 0) {
         station_info_t info;

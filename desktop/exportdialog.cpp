@@ -120,53 +120,53 @@ SampleColumns ExportDialog::getColumns()
 
 
     if (ui->cbTimestamp->isChecked())
-        columns |= SC_Timestamp;
+        columns.standard |= SC_Timestamp;
     if (ui->cbApparentTemperature->isChecked())
-        columns |= SC_ApparentTemperature;
+        columns.standard |= SC_ApparentTemperature;
     if (ui->cbDewPoint->isChecked())
-        columns |= SC_DewPoint;
+        columns.standard |= SC_DewPoint;
     if (ui->cbHumidity->isChecked())
-        columns |= SC_Humidity;
+        columns.standard |= SC_Humidity;
     if (ui->cbIndoorHumidity->isChecked())
-        columns |= SC_IndoorHumidity;
+        columns.standard |= SC_IndoorHumidity;
     if (ui->cbIndoorTemperature->isChecked())
-        columns |= SC_IndoorTemperature;
+        columns.standard |= SC_IndoorTemperature;
     if (ui->cbPressure->isChecked())
-        columns |= SC_Pressure;
+        columns.standard |= SC_Pressure;
     if (ui->cbRainfall->isChecked())
-        columns |= SC_Rainfall;
+        columns.standard |= SC_Rainfall;
     if (ui->cbTemperature->isChecked())
-        columns |= SC_Temperature;
+        columns.standard |= SC_Temperature;
     if (ui->cbWindChill->isChecked())
-        columns |= SC_WindChill;
+        columns.standard |= SC_WindChill;
     if (ui->cbAverageWindSpeed->isChecked())
-        columns |= SC_AverageWindSpeed;
+        columns.standard |= SC_AverageWindSpeed;
     if (ui->cbGustWindSpeed->isChecked())
-        columns |= SC_GustWindSpeed;
+        columns.standard |= SC_GustWindSpeed;
     if (ui->cbWindDirection->isChecked())
-        columns |= SC_WindDirection;
+        columns.standard |= SC_WindDirection;
     if (ui->cbUVIndex->isChecked() && ui->cbUVIndex->isVisible())
-        columns |= SC_UV_Index;
+        columns.standard |= SC_UV_Index;
     if (ui->cbSolarRadiation->isChecked() && ui->cbSolarRadiation->isVisible())
-        columns |= SC_SolarRadiation;
+        columns.standard |= SC_SolarRadiation;
     if (ui->cbWirelessReception->isChecked() && ui->cbWirelessReception->isVisible())
-        columns |= SC_Reception;
+        columns.standard |= SC_Reception;
     if (ui->cbHighTemperature->isChecked() && ui->cbHighTemperature->isVisible())
-        columns |= SC_HighTemperature;
+        columns.standard |= SC_HighTemperature;
     if (ui->cbLowTemperature->isChecked() && ui->cbLowTemperature->isVisible())
-        columns |= SC_LowTemperature;
+        columns.standard |= SC_LowTemperature;
     if (ui->cbHighRainRate->isChecked() && ui->cbHighRainRate->isVisible())
-        columns |= SC_HighRainRate;
+        columns.standard |= SC_HighRainRate;
     if (ui->cbGustWindDirection->isChecked() && ui->cbGustWindDirection->isVisible())
-        columns |= SC_GustWindDirection;
+        columns.standard |= SC_GustWindDirection;
     if (ui->cbEvapotranspiration->isChecked() && ui->cbEvapotranspiration->isVisible())
-        columns |= SC_Evapotranspiration;
+        columns.standard |= SC_Evapotranspiration;
     if (ui->cbHighSolarRadiation->isChecked() && ui->cbHighSolarRadiation->isVisible())
-        columns |= SC_HighSolarRadiation;
+        columns.standard |= SC_HighSolarRadiation;
     if (ui->cbHighUVIndex->isChecked() && ui->cbHighUVIndex->isVisible())
-        columns |= SC_HighUVIndex;
+        columns.standard |= SC_HighUVIndex;
     if (ui->cbForecastRuleID->isChecked() && ui->cbForecastRuleID->isVisible())
-        columns |= SC_ForecastRuleId;
+        columns.standard |= SC_ForecastRuleId;
     return columns;
 }
 
@@ -238,7 +238,7 @@ void ExportDialog::samplesReady(SampleSet samples)
 
     if (samples.reception.size() < samples.timestampUnix.size()) {
         // Reception not available in the data set (not valid for this station?
-        columns = columns & ~SC_Reception;
+        columns.standard = columns.standard & ~SC_Reception;
     }
 
     QString headerRow = getHeaderRow(columns);
@@ -257,92 +257,92 @@ void ExportDialog::samplesReady(SampleSet samples)
     for (int i = 0; i < samples.timestamp.count(); i++) {
         QStringList rowData;
 
-        if (columns.testFlag(SC_Timestamp)) {
+        if (columns.standard.testFlag(SC_Timestamp)) {
             rowData.append(QDateTime::fromTime_t(
                                samples.timestampUnix.at(i))
                            .toString(Qt::ISODate));
-        } if (columns.testFlag(SC_Temperature)) {
+        } if (columns.standard.testFlag(SC_Temperature)) {
             double value = samples.temperature.at(i);
             if (imperial) value = celsiusToFahrenheit(value);
             rowData.append(dstr(value));
-        } if (columns.testFlag(SC_ApparentTemperature)) {
+        } if (columns.standard.testFlag(SC_ApparentTemperature)) {
             double value = samples.apparentTemperature.at(i);
             if (imperial) value = celsiusToFahrenheit(value);
             rowData.append(dstr(value));
-        } if (columns.testFlag(SC_WindChill)) {
+        } if (columns.standard.testFlag(SC_WindChill)) {
             double value = samples.windChill.at(i);
             if (imperial) value = celsiusToFahrenheit(value);
             rowData.append(dstr(value));
-        } if (columns.testFlag(SC_DewPoint)) {
+        } if (columns.standard.testFlag(SC_DewPoint)) {
             double value = samples.dewPoint.at(i);
             if (imperial) value = celsiusToFahrenheit(value);
             rowData.append(dstr(value));
-        } if (columns.testFlag(SC_Humidity)) {
+        } if (columns.standard.testFlag(SC_Humidity)) {
             rowData.append(dstr(samples.humidity.at(i), true));
-        } if (columns.testFlag(SC_IndoorTemperature)) {
+        } if (columns.standard.testFlag(SC_IndoorTemperature)) {
             double value = samples.indoorTemperature.at(i);
             if (imperial) value = celsiusToFahrenheit(value);
             rowData.append(dstr(value));
-        } if (columns.testFlag(SC_IndoorHumidity)) {
+        } if (columns.standard.testFlag(SC_IndoorHumidity)) {
             rowData.append(dstr(samples.indoorHumidity.at(i), true));
-        } if (columns.testFlag(SC_Pressure)) {
+        } if (columns.standard.testFlag(SC_Pressure)) {
             rowData.append(dstr(samples.pressure.at(i)));
             double value = samples.pressure.at(i);
             if (imperial) value = hectopascalsToInchesOfMercury(value);
             rowData.append(dstr(value));
-        } if (columns.testFlag(SC_Rainfall)) {
+        } if (columns.standard.testFlag(SC_Rainfall)) {
             double value = samples.rainfall.at(i);
             if (imperial) value = millimetersToInches(value);
             rowData.append(dstr(value));
-        } if (columns.testFlag(SC_AverageWindSpeed)) {
+        } if (columns.standard.testFlag(SC_AverageWindSpeed)) {
             double value = samples.averageWindSpeed.at(i);
             if (imperial) value = metersPerSecondToMilesPerHour(value);
             else if (kmh) value = metersPerSecondToKilometersPerHour(value);
             rowData.append(dstr(value));
-        } if (columns.testFlag(SC_WindDirection)) {
+        } if (columns.standard.testFlag(SC_WindDirection)) {
             time_t ts = samples.timestampUnix.at(i);
             if (samples.windDirection.contains(ts))
                 rowData.append(QString::number(samples.windDirection[ts]));
              else
                  rowData.append("");
-        } if (columns.testFlag(SC_GustWindSpeed)) {
+        } if (columns.standard.testFlag(SC_GustWindSpeed)) {
             double value = samples.gustWindSpeed.at(i);
             if (imperial) value = metersPerSecondToMilesPerHour(value);
             else if (kmh) value = metersPerSecondToKilometersPerHour(value);
             rowData.append(dstr(value));
-        } if (columns.testFlag(SC_GustWindDirection)) {
+        } if (columns.standard.testFlag(SC_GustWindDirection)) {
             time_t ts = samples.timestampUnix.at(i);
             if (samples.gustWindDirection.contains(ts))
                 rowData.append(QString::number(samples.gustWindDirection[ts]));
              else
                  rowData.append("");
-        } if (columns.testFlag(SC_UV_Index)) {
+        } if (columns.standard.testFlag(SC_UV_Index)) {
             rowData.append(dstr(samples.uvIndex.at(i)));
-        } if (columns.testFlag(SC_SolarRadiation)) {
+        } if (columns.standard.testFlag(SC_SolarRadiation)) {
             rowData.append(dstr(samples.solarRadiation.at(i), true));
-        } if (columns.testFlag(SC_Evapotranspiration)) {
+        } if (columns.standard.testFlag(SC_Evapotranspiration)) {
             double value = samples.evapotranspiration.at(i);
             if (imperial) value = millimetersToInches(value);
             rowData.append(dstr(value));
-        } if (columns.testFlag(SC_HighTemperature)) {
+        } if (columns.standard.testFlag(SC_HighTemperature)) {
             double value = samples.highTemperature.at(i);
             if (imperial) value = celsiusToFahrenheit(value);
             rowData.append(dstr(value));
-        } if (columns.testFlag(SC_LowTemperature)) {
+        } if (columns.standard.testFlag(SC_LowTemperature)) {
             double value = samples.lowTemperature.at(i);
             if (imperial) value = celsiusToFahrenheit(value);
             rowData.append(dstr(value));
-        } if (columns.testFlag(SC_HighRainRate)) {
+        } if (columns.standard.testFlag(SC_HighRainRate)) {
             double value = samples.highRainRate.at(i);
             if (imperial) value = millimetersToInches(value);
             rowData.append(dstr(value));
-        } if (columns.testFlag(SC_HighSolarRadiation)) {
+        } if (columns.standard.testFlag(SC_HighSolarRadiation)) {
             rowData.append(dstr(samples.highSolarRadiation.at(i)));
-        } if (columns.testFlag(SC_HighUVIndex)) {
+        } if (columns.standard.testFlag(SC_HighUVIndex)) {
             rowData.append(dstr(samples.highUVIndex.at(i)));
-        } if (columns.testFlag(SC_Reception)) {
+        } if (columns.standard.testFlag(SC_Reception)) {
             rowData.append(dstr(samples.reception.at(i)));
-        } if (columns.testFlag(SC_ForecastRuleId)) {
+        } if (columns.standard.testFlag(SC_ForecastRuleId)) {
             rowData.append(QString::number(samples.forecastRuleId.at(i)));
         }
 
@@ -389,53 +389,53 @@ QString ExportDialog::getHeaderRow(SampleColumns columns) {
 
     QStringList columnNames;
 
-    if (columns.testFlag(SC_Timestamp))
+    if (columns.standard.testFlag(SC_Timestamp))
         columnNames.append(tr("Timestamp"));
-    if (columns.testFlag(SC_Temperature))
+    if (columns.standard.testFlag(SC_Temperature))
         columnNames.append(tr("Temperature (%1)").arg(temp));
-    if (columns.testFlag(SC_ApparentTemperature))
+    if (columns.standard.testFlag(SC_ApparentTemperature))
         columnNames.append(tr("Apparent Temperature (%1)").arg(temp));
-    if (columns.testFlag(SC_WindChill))
+    if (columns.standard.testFlag(SC_WindChill))
         columnNames.append(tr("Wind Chill (%1)").arg(temp));
-    if (columns.testFlag(SC_DewPoint))
+    if (columns.standard.testFlag(SC_DewPoint))
         columnNames.append(tr("Dew Point (%1)").arg(temp));
-    if (columns.testFlag(SC_Humidity))
+    if (columns.standard.testFlag(SC_Humidity))
         columnNames.append(tr("Humidity (%)"));
-    if (columns.testFlag(SC_IndoorTemperature))
+    if (columns.standard.testFlag(SC_IndoorTemperature))
         columnNames.append(tr("Indoor Temperature (%1)").arg(temp));
-    if (columns.testFlag(SC_IndoorHumidity))
+    if (columns.standard.testFlag(SC_IndoorHumidity))
         columnNames.append(tr("Indoor Humidity (%)"));
-    if (columns.testFlag(SC_Pressure))
+    if (columns.standard.testFlag(SC_Pressure))
          columnNames.append(tr("Pressure (%1)").arg(imperial ? unitString(U_INCHES_OF_MERCURY) : unitString(U_HECTOPASCALS)));
-    if (columns.testFlag(SC_Rainfall))
+    if (columns.standard.testFlag(SC_Rainfall))
         columnNames.append(tr("Rainfall (%1)").arg(imperial ? unitString(U_INCHES) : unitString(U_MILLIMETERS)));
-    if (columns.testFlag(SC_AverageWindSpeed))
+    if (columns.standard.testFlag(SC_AverageWindSpeed))
         columnNames.append(tr("Average Wind Speed (%1)").arg(windSpeed));
-    if (columns.testFlag(SC_WindDirection))
+    if (columns.standard.testFlag(SC_WindDirection))
         columnNames.append(tr("Wind Direction (%1)").arg(unitString(U_DEGREES)));
-    if (columns.testFlag(SC_GustWindSpeed))
+    if (columns.standard.testFlag(SC_GustWindSpeed))
         columnNames.append(tr("Gust Wind Speed (%1)").arg(windSpeed));
-    if (columns.testFlag(SC_GustWindDirection))
+    if (columns.standard.testFlag(SC_GustWindDirection))
         columnNames.append(tr("Gust Wind Direction (%1)").arg(unitString(U_DEGREES)));
-    if (columns.testFlag(SC_UV_Index))
+    if (columns.standard.testFlag(SC_UV_Index))
         columnNames.append(tr("UV Index"));
-    if (columns.testFlag(SC_SolarRadiation))
+    if (columns.standard.testFlag(SC_SolarRadiation))
         columnNames.append(tr("Solar Radiation (%1)").arg(unitString(U_WATTS_PER_SQUARE_METER)));
-    if (columns.testFlag(SC_Evapotranspiration))
+    if (columns.standard.testFlag(SC_Evapotranspiration))
         columnNames.append(tr("Evapotranspiration (%1)").arg(imperial ? unitString(U_INCHES) : unitString(U_MILLIMETERS)));
-    if (columns.testFlag(SC_HighTemperature))
+    if (columns.standard.testFlag(SC_HighTemperature))
         columnNames.append(tr("High Temperature (%1)").arg(temp));
-    if (columns.testFlag(SC_LowTemperature))
+    if (columns.standard.testFlag(SC_LowTemperature))
         columnNames.append(tr("Low Temperature (%1)").arg(temp));
-    if (columns.testFlag(SC_HighRainRate))
+    if (columns.standard.testFlag(SC_HighRainRate))
         columnNames.append(tr("High Rain Rate (%1)").arg(imperial ? unitString(U_INCHES_PER_HOUR) : unitString(U_MILLIMETERS_PER_HOUR)));
-    if (columns.testFlag(SC_HighSolarRadiation))
+    if (columns.standard.testFlag(SC_HighSolarRadiation))
         columnNames.append(tr("High Solar Radiation (%1)").arg(unitString(U_WATTS_PER_SQUARE_METER)));
-    if (columns.testFlag(SC_HighUVIndex))
+    if (columns.standard.testFlag(SC_HighUVIndex))
         columnNames.append(tr("High UV Index"));
-    if (columns.testFlag(SC_Reception))
+    if (columns.standard.testFlag(SC_Reception))
         columnNames.append(tr("Wireless Reception (%)"));
-    if (columns.testFlag(SC_ForecastRuleId))
+    if (columns.standard.testFlag(SC_ForecastRuleId))
         columnNames.append(tr("Forecast Rule ID"));
 
     return columnNames.join(getDelimiter()) + "\n";

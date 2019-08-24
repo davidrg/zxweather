@@ -72,7 +72,30 @@ void AxisTag::setStyle(const GraphStyle &style) {
             format = 'f';
             precision = 1;
         }
-    } else {
+    } else if (style.isExtraColumn()) {
+        switch(style.getExtraColumnType()) {
+        case EC_LeafWetness1:
+        case EC_LeafWetness2:
+            format = 'i';
+            break;
+        case EC_SoilMoisture1:
+        case EC_SoilMoisture2:
+        case EC_SoilMoisture3:
+        case EC_SoilMoisture4:
+        case EC_LeafTemperature1:
+        case EC_LeafTemperature2:
+        case EC_SoilTemperature1:
+        case EC_SoilTemperature2:
+        case EC_SoilTemperature3:
+        case EC_SoilTemperature4:
+        case EC_ExtraTemperature1:
+        case EC_ExtraTemperature2:
+        case EC_ExtraTemperature3:
+        default:
+            format = 'f';
+            precision = 1;
+        }
+    }else {
         switch (style.getColumnType()) {
         case SC_WindDirection:
         case SC_Humidity:

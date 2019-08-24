@@ -431,7 +431,7 @@ void RainfallWidget::plottableDoubleClick(QCPAbstractPlottable* plottable,
 
 void RainfallWidget::doPlot(bool shortRange, int type, bool runningTotal) {
     DataSet ds;
-    ds.columns = SC_Rainfall;
+    ds.columns.standard = SC_Rainfall;
 
     QTime startTime = QTime(0,0,0);
     QTime endTime = QTime(23,59,59);
@@ -459,7 +459,7 @@ void RainfallWidget::doPlot(bool shortRange, int type, bool runningTotal) {
         }
 
         if (type == K_RATE) {
-            ds.columns = SC_HighRainRate;
+            ds.columns.standard = SC_HighRainRate;
             ds.aggregateFunction = AF_None;
             ds.groupType = AGT_None;
             ds.customGroupMinutes = 0;
