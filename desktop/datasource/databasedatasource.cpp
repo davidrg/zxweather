@@ -36,6 +36,7 @@ DatabaseDataSource::DatabaseDataSource(AbstractProgressListener *progressListene
 
     sampleInterval = -1;
     liveDataEnabled = false;
+    sensorConfigLoaded = false;
 }
 
 DatabaseDataSource::~DatabaseDataSource() {
@@ -1786,7 +1787,9 @@ bool DatabaseDataSource::solarAvailable() {
     return false;
 }
 
-ExtraColumns DatabaseDataSource::extraColumnsAvailable() {
+// Some day this will replace all the hardware type/solar available stuff outside of the
+// data sources.
+void DatabaseDataSource::loadSensorConfig() {
     using namespace QtJson;
 
     int id = getStationId();
@@ -1810,128 +1813,233 @@ ExtraColumns DatabaseDataSource::extraColumnsAvailable() {
 
             if (!ok) {
                 emit error("JSON parsing failed");
-                return EC_NoColumns;
+                return;
             }
 
-            if (result.contains("extra_sensors")) {
-                QVariantMap sensor_config = result["extra_sensors"].toMap();
-                ExtraColumns result = EC_NoColumns;
-                if (sensor_config.contains("leaf_wetness_1")) {
-                    QVariantMap sensor = sensor_config["leaf_wetness_1"].toMap();
-                    if (sensor["enabled"].toBool()) {
-                        result |= EC_LeafWetness1;
-                    }
-                }
-                if (sensor_config.contains("leaf_wetness_2")) {
-                    QVariantMap sensor = sensor_config["leaf_wetness_2"].toMap();
-                    if (sensor["enabled"].toBool()) {
-                        result |= EC_LeafWetness2;
-                    }
-                }
-                if (sensor_config.contains("leaf_temperature_1")) {
-                    QVariantMap sensor = sensor_config["leaf_temperature_1"].toMap();
-                    if (sensor["enabled"].toBool()) {
-                        result |= EC_LeafTemperature1;
-                    }
-                }
-                if (sensor_config.contains("leaf_temperature_2")) {
-                    QVariantMap sensor = sensor_config["leaf_temperature_2"].toMap();
-                    if (sensor["enabled"].toBool()) {
-                        result |= EC_LeafTemperature2;
-                    }
-                }
-                if (sensor_config.contains("soil_moisture_1")) {
-                    QVariantMap sensor = sensor_config["soil_moisture_1"].toMap();
-                    if (sensor["enabled"].toBool()) {
-                        result |= EC_SoilMoisture1;
-                    }
-                }
-                if (sensor_config.contains("soil_moisture_2")) {
-                    QVariantMap sensor = sensor_config["soil_moisture_2"].toMap();
-                    if (sensor["enabled"].toBool()) {
-                        result |= EC_SoilMoisture2;
-                    }
-                }
-                if (sensor_config.contains("soil_moisture_3")) {
-                    QVariantMap sensor = sensor_config["soil_moisture_3"].toMap();
-                    if (sensor["enabled"].toBool()) {
-                        result |= EC_SoilMoisture3;
-                    }
-                }
-                if (sensor_config.contains("soil_moisture_4")) {
-                    QVariantMap sensor = sensor_config["soil_moisture_4"].toMap();
-                    if (sensor["enabled"].toBool()) {
-                        result |= EC_SoilMoisture4;
-                    }
-                }
-                if (sensor_config.contains("soil_temperature_1")) {
-                    QVariantMap sensor = sensor_config["soil_temperature_1"].toMap();
-                    if (sensor["enabled"].toBool()) {
-                        result |= EC_SoilTemperature1;
-                    }
-                }
-                if (sensor_config.contains("soil_temperature_2")) {
-                    QVariantMap sensor = sensor_config["soil_temperature_2"].toMap();
-                    if (sensor["enabled"].toBool()) {
-                        result |= EC_SoilTemperature2;
-                    }
-                }
-                if (sensor_config.contains("soil_temperature_3")) {
-                    QVariantMap sensor = sensor_config["soil_temperature_3"].toMap();
-                    if (sensor["enabled"].toBool()) {
-                        result |= EC_SoilTemperature3;
-                    }
-                }
-                if (sensor_config.contains("soil_temperature_4")) {
-                    QVariantMap sensor = sensor_config["soil_temperature_4"].toMap();
-                    if (sensor["enabled"].toBool()) {
-                        result |= EC_SoilTemperature4;
-                    }
-                }
-                if (sensor_config.contains("extra_humidity_1")) {
-                    QVariantMap sensor = sensor_config["extra_humidity_1"].toMap();
-                    if (sensor["enabled"].toBool()) {
-                        result |= EC_ExtraHumidity1;
-                    }
-                }
-                if (sensor_config.contains("extra_humidity_2")) {
-                    QVariantMap sensor = sensor_config["extra_humidity_2"].toMap();
-                    if (sensor["enabled"].toBool()) {
-                        result |= EC_ExtraHumidity2;
-                    }
-                }
-                if (sensor_config.contains("extra_temperature_1")) {
-                    QVariantMap sensor = sensor_config["extra_temperature_1"].toMap();
-                    if (sensor["enabled"].toBool()) {
-                        result |= EC_ExtraTemperature1;
-                    }
-                }
-                if (sensor_config.contains("extra_temperature_2")) {
-                    QVariantMap sensor = sensor_config["extra_temperature_2"].toMap();
-                    if (sensor["enabled"].toBool()) {
-                        result |= EC_ExtraTemperature2;
-                    }
-                }
-                if (sensor_config.contains("extra_temperature_3")) {
-                    QVariantMap sensor = sensor_config["extra_temperature_3"].toMap();
-                    if (sensor["enabled"].toBool()) {
-                        result |= EC_ExtraTemperature3;
-                    }
-                }
+            if (result["has_solar_and_uv"].toBool()) {
+                sensor_config_t uv;
+                uv.system_name = "uv_index";
+                uv.display_name = "UV Index";
+                uv.enabled = true;
+                uv.isExtraColumn = false;
+                uv.extraColumn = EC_NoColumns;
+                uv.standardColumn = SC_UV_Index;
+                sensorConfig.append(uv);
 
-                return result;
+                sensor_config_t solar;
+                solar.system_name = "solar_radiation";
+                solar.display_name = "Solar Radiation";
+                solar.enabled = true;
+                solar.isExtraColumn = false;
+                solar.extraColumn = EC_NoColumns;
+                solar.standardColumn = SC_SolarRadiation;
+                sensorConfig.append(solar);
 
-            } else {
-                return EC_NoColumns;
+                sensor_config_t high_uv;
+                high_uv.system_name = "high_uv_index";
+                high_uv.display_name = "High UV Index";
+                high_uv.enabled = true;
+                high_uv.isExtraColumn = false;
+                high_uv.extraColumn = EC_NoColumns;
+                high_uv.standardColumn = SC_HighUVIndex;
+                sensorConfig.append(high_uv);
+
+                sensor_config_t high_solar;
+                high_solar.system_name = "high_solar_radiation";
+                high_solar.display_name = "High Solar Radiation";
+                high_solar.enabled = true;
+                high_solar.isExtraColumn = false;
+                high_solar.extraColumn = EC_NoColumns;
+                high_solar.standardColumn = SC_HighSolarRadiation;
+                sensorConfig.append(high_solar);
+
+                sensor_config_t evapotranspiration;
+                evapotranspiration.system_name = "evapotranspiration";
+                evapotranspiration.display_name = "Evapotranspiration";
+                evapotranspiration.enabled = true;
+                evapotranspiration.isExtraColumn = false;
+                evapotranspiration.extraColumn = EC_NoColumns;
+                evapotranspiration.standardColumn = SC_Evapotranspiration;
+                sensorConfig.append(evapotranspiration);
+            }
+
+            if (getHardwareType() == HW_DAVIS) {
+                sensor_config_t high_temperature;
+                high_temperature.system_name = "high_temperature";
+                high_temperature.display_name = "High Temperature";
+                high_temperature.enabled = true;
+                high_temperature.isExtraColumn = false;
+                high_temperature.extraColumn = EC_NoColumns;
+                high_temperature.standardColumn = SC_HighTemperature;
+                sensorConfig.append(high_temperature);
+
+                sensor_config_t low_temperature;
+                low_temperature.system_name = "low_temperature";
+                low_temperature.display_name = "Low Temperature";
+                low_temperature.enabled = true;
+                low_temperature.isExtraColumn = false;
+                low_temperature.extraColumn = EC_NoColumns;
+                low_temperature.standardColumn = SC_LowTemperature;
+                sensorConfig.append(low_temperature);
+
+                sensor_config_t high_rain_rate;
+                high_rain_rate.system_name = "high_rain_rate";
+                high_rain_rate.display_name = "High Rain rate";
+                high_rain_rate.enabled = true;
+                high_rain_rate.isExtraColumn = false;
+                high_rain_rate.extraColumn = EC_NoColumns;
+                high_rain_rate.standardColumn = SC_HighRainRate;
+                sensorConfig.append(high_rain_rate);
+
+                sensor_config_t gust_wind_direction;
+                gust_wind_direction.system_name = "gust_wind_direction";
+                gust_wind_direction.display_name = "Gust Wind Direction";
+                gust_wind_direction.enabled = true;
+                gust_wind_direction.isExtraColumn = false;
+                gust_wind_direction.extraColumn = EC_NoColumns;
+                gust_wind_direction.standardColumn = SC_GustWindDirection;
+                sensorConfig.append(gust_wind_direction);
+
+                sensor_config_t forecast_rule_id;
+                forecast_rule_id.system_name = "forecast_rule_id";
+                forecast_rule_id.display_name = "Forecast Rule ID";
+                forecast_rule_id.enabled = true;
+                forecast_rule_id.isExtraColumn = false;
+                forecast_rule_id.extraColumn = EC_NoColumns;
+                forecast_rule_id.standardColumn = SC_ForecastRuleId;
+                sensorConfig.append(forecast_rule_id);
+            }
+
+            if (result["is_wireless"].toBool()) {
+                sensor_config_t wireless;
+                wireless.system_name = "reception";
+                wireless.display_name = "Reception";
+                wireless.enabled = true;
+                wireless.isExtraColumn = false;
+                wireless.extraColumn = EC_NoColumns;
+                wireless.standardColumn = SC_Reception;
+            }
+
+            if (result.contains("sensor_config")) {
+                QVariantMap sensor_config = result["sensor_config"].toMap();
+
+                foreach (QString key, sensor_config.keys()) {
+                    QVariantMap sensor = sensor_config[key].toMap();
+                    sensor_config_t config;
+                    config.system_name = key;
+                    config.enabled = sensor.contains("enabled") && sensor["enabled"].toBool();
+                    config.isExtraColumn = false;
+                    config.standardColumn = SC_NoColumns;
+                    config.extraColumn = EC_NoColumns;
+
+                    if (key == "leaf_wetness_1") {
+                        config.isExtraColumn = true;
+                        config.extraColumn = EC_LeafWetness1;
+                        config.display_name = "Leaf Wetness 1";
+                    } else if (key == "leaf_wetness_2") {
+                        config.isExtraColumn = true;
+                        config.extraColumn = EC_LeafWetness2;
+                        config.display_name = "Leaf Wetness 2";
+                    } else if (key == "leaf_temperature_1") {
+                        config.isExtraColumn = true;
+                        config.extraColumn = EC_LeafTemperature1;
+                        config.display_name = "Leaf Temperature 1";
+                    } else if (key == "leaf_temperature_2") {
+                        config.isExtraColumn = true;
+                        config.extraColumn = EC_LeafTemperature2;
+                        config.display_name = "Leaf Temperature 2";
+                    } else if (key == "soil_moisture_1") {
+                        config.isExtraColumn = true;
+                        config.extraColumn = EC_SoilMoisture1;
+                        config.display_name = "Soil Moisture 1";
+                    } else if (key == "soil_moisture_2") {
+                        config.isExtraColumn = true;
+                        config.extraColumn = EC_SoilMoisture2;
+                        config.display_name = "Soil Moisture 2";
+                    } else if (key == "soil_moisture_3") {
+                        config.isExtraColumn = true;
+                        config.extraColumn = EC_SoilMoisture3;
+                        config.display_name = "Soil Moisture 3";
+                    } else if (key == "soil_moisture_4") {
+                        config.isExtraColumn = true;
+                        config.extraColumn = EC_SoilMoisture4;
+                        config.display_name = "Soil Moisture 4";
+                    } else if (key == "soil_temperature_1") {
+                        config.isExtraColumn = true;
+                        config.extraColumn = EC_SoilTemperature1;
+                        config.display_name = "Soil Temperature 1";
+                    } else if (key == "soil_temperature_2") {
+                        config.isExtraColumn = true;
+                        config.extraColumn = EC_SoilTemperature2;
+                        config.display_name = "Soil Temperature 2";
+                    } else if (key == "soil_temperature_3") {
+                        config.isExtraColumn = true;
+                        config.extraColumn = EC_SoilTemperature3;
+                        config.display_name = "Soil Temperature 3";
+                    } else if (key == "soil_temperature_4") {
+                        config.isExtraColumn = true;
+                        config.extraColumn = EC_SoilTemperature4;
+                        config.display_name = "Soil Temperature 4";
+                    } else if (key == "extra_humidity_1") {
+                        config.isExtraColumn = true;
+                        config.extraColumn = EC_ExtraHumidity1;
+                        config.display_name = "Extra Humidity 1";
+                    } else if (key == "extra_humidity_2") {
+                        config.isExtraColumn = true;
+                        config.extraColumn = EC_ExtraHumidity2;
+                        config.display_name = "Extra Humidity 2";
+                    } else if (key == "extra_temperature_1") {
+                        config.isExtraColumn = true;
+                        config.extraColumn = EC_ExtraTemperature1;
+                        config.display_name = "Extra Temperature 1";
+                    } else if (key == "extra_temperature_2") {
+                        config.isExtraColumn = true;
+                        config.extraColumn = EC_ExtraTemperature2;
+                        config.display_name = "Extra Temperature 2";
+                    } else if (key == "extra_temperature_3") {
+                        config.isExtraColumn = true;
+                        config.extraColumn = EC_ExtraTemperature3;
+                        config.display_name = "Extra Temperature 3";
+                    }
+
+                    if (sensor.contains("name")) {
+                        config.display_name = sensor["name"].toString();
+                    }
+
+                    sensorConfig.append(config);
+                }
             }
         }
     }
 
-    return EC_NoColumns;
+    sensorConfigLoaded = true;
+}
+
+ExtraColumns DatabaseDataSource::extraColumnsAvailable() {
+    if (!sensorConfigLoaded) {
+        loadSensorConfig();
+    }
+
+    ExtraColumns result = EC_NoColumns;
+
+    foreach (sensor_config_t sensor, sensorConfig) {
+        if (sensor.isExtraColumn && sensor.enabled) {
+            result |= sensor.extraColumn;
+        }
+    }
+
+    return result;
 }
 
 QMap<ExtraColumn, QString> DatabaseDataSource::extraColumnNames() {
     QMap<ExtraColumn, QString> result;
+
+    foreach (sensor_config_t sensor, sensorConfig) {
+        if (sensor.isExtraColumn && sensor.enabled) {
+            result[sensor.extraColumn] = sensor.display_name;
+        }
+    }
+
     return result;
 }
 

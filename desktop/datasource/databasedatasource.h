@@ -12,6 +12,15 @@
 #include "database.h"
 #endif
 
+typedef struct _sensor_config {
+    QString system_name;
+    QString display_name;
+    bool enabled;
+    bool isExtraColumn;
+    StandardColumn standardColumn;
+    ExtraColumn extraColumn;
+} sensor_config_t;
+
 class DatabaseDataSource : public AbstractDataSource
 {
     Q_OBJECT
@@ -86,11 +95,16 @@ private:
     QList<ImageDate> getImageDates(int stationId, int progressOffset);
     QList<ImageSource> getImageSources(int stationId, int progressOffset);
 
+    void loadSensorConfig();
+
     //QString buildSelectForColumns(SampleColumns columns);
 
     int sampleInterval;
 
     bool liveDataEnabled;
+
+    bool sensorConfigLoaded;
+    QList<sensor_config_t> sensorConfig;
 
     // Live data functionality
 #ifndef NO_ECPG
