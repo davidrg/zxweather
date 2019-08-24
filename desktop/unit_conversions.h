@@ -38,6 +38,11 @@ namespace UnitConversions {
 
         U_HUMIDITY,
 
+        U_LEAF_WETNESS,
+
+        // Soil Moisture
+        U_CENTIBAR,
+
         // Wind Direction
         U_DEGREES,
         U_COMPASS_POINT,
