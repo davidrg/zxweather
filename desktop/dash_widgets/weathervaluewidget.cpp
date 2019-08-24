@@ -41,15 +41,22 @@ void WeatherValueWidget::unitsChanged(bool imperial, bool kmh) {
 }
 
 void WeatherValueWidget::setValue(
-        UnitConversions::UnitValue value, SampleColumn column) {
+        UnitConversions::UnitValue value, StandardColumn column) {
     value1 = value;
     column1 = column;
     updateDisplay();
 }
 
+void WeatherValueWidget::setValue(
+        UnitConversions::UnitValue value, ExtraColumn column) {
+    value1 = value;
+    column1ex = column;
+    updateDisplay();
+}
+
 void WeatherValueWidget::setOutdoorIndoorValue(
-        UnitConversions::UnitValue outdoor, SampleColumn outdoorColumn,
-        UnitConversions::UnitValue indoor, SampleColumn indoorColumn) {
+        UnitConversions::UnitValue outdoor, StandardColumn outdoorColumn,
+        UnitConversions::UnitValue indoor, StandardColumn indoorColumn) {
     value1 = outdoor;
     column1 = outdoorColumn;
     value2 = indoor;
@@ -59,8 +66,8 @@ void WeatherValueWidget::setOutdoorIndoorValue(
 }
 
 void WeatherValueWidget::setDoubleValue(
-        UnitConversions::UnitValue value1, SampleColumn column1,
-        UnitConversions::UnitValue value2, SampleColumn column2) {
+        UnitConversions::UnitValue value1, StandardColumn column1,
+        UnitConversions::UnitValue value2, StandardColumn column2) {
     this->value1 = value1;
     this->column1 = column1;
     this->value2 = value2;
@@ -172,13 +179,14 @@ void WeatherValueWidget::plot() {
         QDate today = QDate::currentDate();
 
         DataSet ds;
-        ds.columns = column1;
+        ds.columns.standard = column1;
+        ds.columns.extra = column1ex;
         ds.aggregateFunction = AF_None;
         ds.groupType = AGT_None;
         ds.customGroupMinutes = 5;
 
         if (column1 != column2 && column2 != SC_NoColumns) {
-            ds.columns |= column2;
+            ds.columns.standard |= column2;
         }
 
         switch(range) {

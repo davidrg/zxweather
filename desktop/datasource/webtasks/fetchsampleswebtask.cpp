@@ -57,15 +57,16 @@ void FetchSamplesWebTask::networkReplyReceived(QNetworkReply *reply) {
 
             // Firstly, filter out any columns that aren't valid:
             if (_hwType != HW_DAVIS) {
-                _columns = _columns & ~DAVIS_COLUMNS;
+                _columns.standard = _columns.standard & ~DAVIS_COLUMNS;
+                _columns.extra = _columns.extra & ~DAVIS_EXTRA_COLUMNS;
             } else {
                 // davis hardware. Turn off any columns not applicable for the
                 // model of hardware in use.
                 if (!_isSolarAvailable) {
-                    _columns = _columns & ~SOLAR_COLUMNS;
+                    _columns.standard = _columns.standard & ~SOLAR_COLUMNS;
                 }
                 if (!_isWireless) {
-                    _columns = _columns & ~SC_Reception;
+                    _columns.standard = _columns.standard & ~SC_Reception;
                 }
             }
 

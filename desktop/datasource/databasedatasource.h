@@ -54,6 +54,8 @@ public:
     void primeCache(QDateTime start, QDateTime end, bool imageDates);
 
     bool solarAvailable();
+    ExtraColumns extraColumnsAvailable();
+    QMap<ExtraColumn, QString> extraColumnNames();
 
     station_info_t getStationInfo();
 

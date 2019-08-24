@@ -25,9 +25,11 @@ private:
     DataSet dataSet;
     SampleSet sampleSet;
 
-    QList<SampleColumn> getColumns();
+    QList<StandardColumn> getColumns();
+    QList<ExtraColumn> getExtraColumns();
 
-    QList<SampleColumn> columns;
+    QList<StandardColumn> columns;
+    QList<ExtraColumn> extraColumns;
 };
 
 #endif // DATASETMODEL_H

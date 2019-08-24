@@ -3,9 +3,10 @@
 
 #include <QtDebug>
 
-GraphStyle::GraphStyle(SampleColumn column) {
+GraphStyle::GraphStyle(StandardColumn column) {
     this->column = column;
     isLiveColumn = false;
+    isExtra = false;
 
     ChartColours colours = Settings::getInstance().getChartColours();
 
@@ -125,9 +126,108 @@ GraphStyle::GraphStyle(SampleColumn column) {
     qDebug() << "Created graph style for" << name;
 }
 
+GraphStyle::GraphStyle(ExtraColumn column) {
+    this->extraColumn = column;
+    isLiveColumn = false;
+    isExtra = true;
+
+    ChartColours colours = Settings::getInstance().getChartColours();
+
+    QColor colour;
+
+    scatterStyle = QCPScatterStyle::ssNone;
+    brush = QBrush();
+    lineStyle = QCPGraph::lsLine;
+
+
+    switch (column) {
+    case EC_LeafTemperature1:
+        colour = colours.leafTemperature1;
+        name = "Leaf Temperature 1";
+        break;
+    case EC_LeafTemperature2:
+        colour = colours.leafTemperature2;
+        name = "Leaf Temperature 2";
+        break;
+    case EC_LeafWetness1:
+        colour = colours.leafWetness1;
+        name = "Leaf Wetness 1";
+        break;
+    case EC_LeafWetness2:
+        colour = colours.leafWetness2;
+        name = "Leaf Wetness 2";
+        break;
+    case EC_SoilMoisture1:
+        colour = colours.soilMoisture1;
+        name = "Soil Moisture 1";
+        break;
+    case EC_SoilMoisture2:
+        colour = colours.soilMoisture2;
+        name = "Soil Moisture 2";
+        break;
+    case EC_SoilMoisture3:
+        colour = colours.soilMoisture3;
+        name = "Soil Moisture 3";
+        break;
+    case EC_SoilMoisture4:
+        colour = colours.soilMoisture4;
+        name = "Soil Moisture 4";
+        break;
+    case EC_SoilTemperature1:
+        colour = colours.soilTemperature1;
+        name = "Soil Temperature 1";
+        break;
+    case EC_SoilTemperature2:
+        colour = colours.soilTemperature2;
+        name = "Soil Temperature 2";
+        break;
+    case EC_SoilTemperature3:
+        colour = colours.soilTemperature3;
+        name = "Soil Temperature 3";
+        break;
+    case EC_SoilTemperature4:
+        colour = colours.soilTemperature4;
+        name = "Soil Temperature 4";
+        break;
+    case EC_ExtraHumidity1:
+        colour = colours.extraHumidity1;
+        name = "Extra Humidity 1";
+        break;
+    case EC_ExtraHumidity2:
+        colour = colours.extraHumidity2;
+        name = "Extra Humidity 2";
+        break;
+    case EC_ExtraTemperature1:
+        colour = colours.extraTemperature1;
+        name = "Extra Temperature 1";
+        break;
+    case EC_ExtraTemperature2:
+        colour = colours.extraTemperature2;
+        name = "Extra Temperature 2";
+        break;
+    case EC_ExtraTemperature3:
+        colour = colours.extraTemperature3;
+        name = "Extra Temperature 3";
+        break;
+    case EC_NoColumns:
+    default:
+        // This should never happen.
+        colour = Qt::black;
+        name = "Invalid Graph";
+    }
+
+    pen = QPen(colour);
+
+    columnName = name;
+    defaultColour = colour;
+
+    qDebug() << "Created graph style for" << name;
+}
+
 GraphStyle::GraphStyle(LiveValue column) {
     this->liveColumn = column;
     isLiveColumn = true;
+    isExtra = false;
 
     ChartColours colours = Settings::getInstance().getChartColours();
 

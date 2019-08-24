@@ -8,12 +8,18 @@
 
 #include <QPointer>
 
+#define COLUMN_TYPE "ColumnType"
 #define GRAPH_TYPE "GraphType"
 #define GRAPH_AXIS "GraphAxisType"
 #define GRAPH_DATASET "GraphDataSet"
 #define AXIS_DATASET "AxisDataSet"
 
 #define FEATURE_PLUS_CURSOR
+
+typedef struct _graph_styles {
+    QMap<StandardColumn, GraphStyle> standardStyles;
+    QMap<ExtraColumn, GraphStyle> extraStyles;
+} graph_styles_t;
 
 /** WeatherPlotter is responsible for plotting weather data in a QCustomPlot widget.
  *
@@ -66,7 +72,8 @@ public:
      * @param dataSetId the dataset to remove the graph from
      * @param column Graph to remove.
      */
-    void removeGraph(dataset_id_t dataSetId, SampleColumn column);
+    void removeGraph(dataset_id_t dataSetId, StandardColumn column);
+    void removeGraph(dataset_id_t dataSetId, ExtraColumn column);
 
     /** Removes multiple graphs from the chart
      *
@@ -108,9 +115,11 @@ public:
      * @param dataSetId The dataset to get graph styles for.
      * @return Graph styles for the specified dataset.
      */
-    QMap<SampleColumn, GraphStyle> getGraphStyles(dataset_id_t dataSetId);
+    graph_styles_t getGraphStyles(dataset_id_t dataSetId);
 
-    GraphStyle& getStyleForGraph(dataset_id_t dataSetId, SampleColumn column);
+    GraphStyle& getStyleForGraph(dataset_id_t dataSetId, StandardColumn column);
+    GraphStyle& getStyleForGraph(dataset_id_t dataSetId, ExtraColumn column);
+
 
     GraphStyle& getStyleForGraph(QCPGraph* graph);
 
@@ -155,7 +164,8 @@ public slots:
      * @param styles New styles
      * @param dataSetId Dataset these apply to.
      */
-    void setGraphStyles(QMap<SampleColumn, GraphStyle> styles, dataset_id_t dataSetId);
+    void setGraphStyles(QMap<StandardColumn, GraphStyle> styles, dataset_id_t dataSetId);\
+    void setGraphStyles(QMap<ExtraColumn, GraphStyle> styles, dataset_id_t dataSetId);
 
     void rescale();
     void rescaleByTime();
@@ -218,21 +228,22 @@ private:
      * @param column The type of data this graph should contain.
      * @param samples The set of samples for the dataset.
      */
-    void addGenericGraph(DataSet dataSet, SampleColumn column, SampleSet samples);
+    void addGenericGraph(DataSet dataSet, StandardColumn column, SampleSet samples);
+    void addGenericGraph(DataSet dataSet, ExtraColumn column, SampleSet samples);
 
     /** Adds a rainfall graph to the plot.
      *
      * @param dataSet Dataset the rainfall graph is for.
      * @param samples Samples for the dataset.
      */
-    void addRainfallGraph(DataSet dataSet, SampleSet samples, SampleColumn column);
+    void addRainfallGraph(DataSet dataSet, SampleSet samples, StandardColumn column);
 
     /** Adds a wind direction graph to the plot.
      *
      * @param dataSet Dataset the wind direction graph is for.
      * @param samples Samples for the dataset.
      */
-    void addWindDirectionGraph(DataSet dataSet, SampleSet samples, SampleColumn column);
+    void addWindDirectionGraph(DataSet dataSet, SampleSet samples, StandardColumn column);
 
     /** The last used rescale type. Used by the rescale() slot to reset the plot scale
      * to the last used.
@@ -249,14 +260,17 @@ private:
      */
     void multiRescale(RescaleType rs_type = RS_TIME);
 
-    QCPGraph* getGraph(dataset_id_t dataSetId, SampleColumn column);
+    QCPGraph* getGraph(dataset_id_t dataSetId, StandardColumn column);
+    QCPGraph* getGraph(dataset_id_t dataSetId, ExtraColumn column);
 
-    void removeGraph(QCPGraph* graph, dataset_id_t dataSetId, SampleColumn column);
+    void removeGraph(QCPGraph* graph, dataset_id_t dataSetId, StandardColumn column);
+    void removeGraph(QCPGraph* graph, dataset_id_t dataSetId, ExtraColumn column);
 
     /*******************
      * Misc            *
      *******************/
-    QMap<dataset_id_t, QMap<SampleColumn, GraphStyle> > graphStyles;
+    QMap<dataset_id_t, QMap<StandardColumn, GraphStyle> > graphStyles;
+    QMap<dataset_id_t, QMap<ExtraColumn, GraphStyle> > extraGraphStyles;
 
     /** Returns the samples from a sampleset for the specified column.
      *
@@ -264,7 +278,8 @@ private:
      * @param samples The full set of samples for some dataset.
      * @return The list of samples for a single column from a dataset.
      */
-    QVector<double> samplesForColumn(SampleColumn column, SampleSet samples);
+    QVector<double> samplesForColumn(StandardColumn column, SampleSet samples);
+    QVector<double> samplesForColumn(ExtraColumn column, SampleSet samples);
 
     /** Wrapper around a DataSource that lets us fire off a request for multiple
      * different sets of data and get all sets back in one response with that
@@ -292,6 +307,8 @@ private:
         AT_RAIN_RATE = 9, /*!< Axis for Rain rate in mm/h */
         AT_RECEPTION = 10, /*!< Axis for wireless reception (%) */
         AT_EVAPOTRANSPIRATION = 11, /*!< Axis for Evapotrainspiration in mm */
+        AT_SOIL_MOISTURE = 12, /*!< Axis for soil moisture in centibar */
+        AT_LEAF_WETNESS = 13, /*!< Axis for leaf wetness */
         AT_KEY = 100 /*!< X Axis for DataSet 0. AT_KEY+1 for DataSet 1, etc. */
     } AxisType;
 
@@ -355,7 +372,8 @@ private:
      * @param column Column to get the axis for.
      * @return Axis type to use.
      */
-    AxisType axisTypeForColumn(SampleColumn column);
+    AxisType axisTypeForColumn(StandardColumn column);
+    AxisType axisTypeForColumn(ExtraColumn column);
 
 #ifdef FEATURE_PLUS_CURSOR
     /****************

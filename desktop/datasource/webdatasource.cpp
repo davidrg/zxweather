@@ -187,10 +187,14 @@ void WebDataSource::primeCache(QDateTime start, QDateTime end, bool imageDates) 
         queueTask(dateListTask, false, true);
     }
 
+    SampleColumns columns;
+    columns.standard = ALL_SAMPLE_COLUMNS;
+    columns.extra = ALL_EXTRA_COLUMNS;
+
     FetchSamplesWebTask* task = new FetchSamplesWebTask(
                 baseURL,
                 stationCode,
-                ALL_SAMPLE_COLUMNS,
+                columns,
                 start,
                 end,
                 AF_None,
@@ -556,6 +560,18 @@ hardware_type_t WebDataSource::getHardwareType() {
 
 bool WebDataSource::solarAvailable() {
     return WebCacheDB::getInstance().solarAvailable(stationURL());
+}
+
+ExtraColumns WebDataSource::extraColumnsAvailable() {
+    return EC_NoColumns; // TODO
+}
+
+QMap<ExtraColumn, QString> WebDataSource::extraColumnNames() {
+    QMap<ExtraColumn, QString> result;
+
+    // TODO
+
+    return result;
 }
 
 station_info_t WebDataSource::getStationInfo() {

@@ -149,7 +149,6 @@ SOURCES += main.cpp\
     config_wizard/confirmdetailspage.cpp \
     config_wizard/serverstationlister.cpp \
     config_wizard/serverdetailspage.cpp \
-    charts/customisechartdialog.cpp \
     charts/graphstyle.cpp \
     charts/cachemanager.cpp \
     datasource/samplecolumns.cpp \
@@ -257,7 +256,6 @@ HEADERS  += mainwindow.h \
     config_wizard/confirmdetailspage.h \
     config_wizard/serverstationlister.h \
     config_wizard/serverdetailspage.h \
-    charts/customisechartdialog.h \
     charts/graphstyle.h \
     charts/chartsettings.h \
     charts/cachemanager.h \
@@ -337,7 +335,6 @@ FORMS    += mainwindow.ui \
     dash_widgets/forecastwidget.ui \
     exportdialog.ui \
     charts/addgraphdialog.ui \
-    charts/customisechartdialog.ui \
     charts/graphstyledialog.ui \
     charts/datasettimespandialog.ui \
     timespanwidget.ui \

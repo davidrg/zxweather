@@ -524,7 +524,7 @@ void MainWindow::showChartWindow() {
     QList<DataSet> dataSets;
     dataSets << ds;
 
-    qDebug() << "DS Columns:"<< (int)ds.columns;
+    qDebug() << "DS Columns:"<< (int)ds.columns.standard << (int)ds.columns.extra;
     qDebug() << "Start" << ds.startTime;
     qDebug() << "End" << ds.endTime;
     qDebug() << "AGFunc" << ds.aggregateFunction;
@@ -547,7 +547,7 @@ void MainWindow::chartRequested(DataSet dataSet) {
     QList<DataSet> ds;
     ds << dataSet;
 
-    qDebug() << "DS Columns:"<< (int)dataSet.columns;
+    qDebug() << "DS Columns:"<< (int)dataSet.columns.standard << (int)dataSet.columns.extra;
     qDebug() << "Start" << dataSet.startTime;
     qDebug() << "End" << dataSet.endTime;
     qDebug() << "AGFunc" << dataSet.aggregateFunction;
@@ -593,15 +593,18 @@ void MainWindow::viewData() {
         return; // User canceled. Nothing to do.
 
     // Always show all columns in the view data screen.
-    SampleColumns columns = ALL_SAMPLE_COLUMNS;
+    SampleColumns columns;
+    columns.standard = ALL_SAMPLE_COLUMNS;
+    columns.extra = ALL_EXTRA_COLUMNS;
 
     if (last_hw_type != HW_DAVIS) {
-        columns = columns & ~DAVIS_COLUMNS;
+        columns.standard = columns.standard & ~DAVIS_COLUMNS;
+        columns.extra = columns.extra & ~DAVIS_EXTRA_COLUMNS;
     }
 
     if (!solarDataAvailable) {
         // Except the solar ones if the current station doesn't support it
-        columns = columns & ~SOLAR_COLUMNS;
+        columns.standard = columns.standard & ~SOLAR_COLUMNS;
     }
 
     DataSet dataSource;

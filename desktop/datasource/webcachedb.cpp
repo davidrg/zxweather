@@ -103,7 +103,7 @@ void WebCacheDB::openDatabase() {
             // Run other upgrade scripts
             if (!runUpgradeScript(3, ":/cache_db/v3.sql", filename)) return; // v2 -> v3
             if (!runUpgradeScript(4, ":/cache_db/v4.sql", filename)) return; // v3 -> v4
-
+            if (!runUpgradeScript(5, ":/cache_db/v5.sql", filename)) return; // v4 -> v5
 
         } else {
             emit criticalError("Failed to determine version of cache database");
@@ -1074,55 +1074,90 @@ image_set_t WebCacheDB::getImageSetCacheInformation(QString imageSetUrl) {
 
 QString WebCacheDB::buildColumnList(SampleColumns columns, QString format) {
     QString query;
-    if (columns.testFlag(SC_Timestamp))
+    if (columns.standard.testFlag(SC_Timestamp))
         query += format.arg("time_stamp");
-    if (columns.testFlag(SC_Temperature))
+    if (columns.standard.testFlag(SC_Temperature))
         query += format.arg("temperature");
-    if (columns.testFlag(SC_DewPoint))
+    if (columns.standard.testFlag(SC_DewPoint))
         query += format.arg("dew_point");
-    if (columns.testFlag(SC_ApparentTemperature))
+    if (columns.standard.testFlag(SC_ApparentTemperature))
         query += format.arg("apparent_temperature");
-    if (columns.testFlag(SC_WindChill))
+    if (columns.standard.testFlag(SC_WindChill))
         query += format.arg("wind_chill");
-    if (columns.testFlag(SC_IndoorTemperature))
+    if (columns.standard.testFlag(SC_IndoorTemperature))
         query += format.arg("indoor_temperature");
-    if (columns.testFlag(SC_IndoorHumidity))
+    if (columns.standard.testFlag(SC_IndoorHumidity))
         query += format.arg("indoor_relative_humidity");
-    if (columns.testFlag(SC_Humidity))
+    if (columns.standard.testFlag(SC_Humidity))
         query += format.arg("relative_humidity");
-    if (columns.testFlag(SC_Pressure))
+    if (columns.standard.testFlag(SC_Pressure))
         query += format.arg("absolute_pressure");
-    if (columns.testFlag(SC_AverageWindSpeed))
+    if (columns.standard.testFlag(SC_AverageWindSpeed))
         query += format.arg("average_wind_speed");
-    if (columns.testFlag(SC_GustWindSpeed))
+    if (columns.standard.testFlag(SC_GustWindSpeed))
         query += format.arg("gust_wind_speed");
-    if (columns.testFlag(SC_Rainfall))
+    if (columns.standard.testFlag(SC_Rainfall))
         query += format.arg("rainfall");
-    if (columns.testFlag(SC_WindDirection))
+    if (columns.standard.testFlag(SC_WindDirection))
         query += format.arg("wind_direction");
-    if (columns.testFlag(SC_SolarRadiation))
+    if (columns.standard.testFlag(SC_SolarRadiation))
         query += format.arg("solar_radiation");
-    if (columns.testFlag(SC_UV_Index))
+    if (columns.standard.testFlag(SC_UV_Index))
         query += format.arg("uv_index");
-    if (columns.testFlag(SC_GustWindDirection))
+    if (columns.standard.testFlag(SC_GustWindDirection))
         query += format.arg("gust_wind_direction");
-    if (columns.testFlag(SC_Evapotranspiration))
+    if (columns.standard.testFlag(SC_Evapotranspiration))
         query += format.arg("evapotranspiration");
-    if (columns.testFlag(SC_HighTemperature))
+    if (columns.standard.testFlag(SC_HighTemperature))
         query += format.arg("high_temperature");
-    if (columns.testFlag(SC_LowTemperature))
+    if (columns.standard.testFlag(SC_LowTemperature))
         query += format.arg("low_temperature");
-    if (columns.testFlag(SC_HighRainRate))
+    if (columns.standard.testFlag(SC_HighRainRate))
         query += format.arg("high_rain_rate");
-    if (columns.testFlag(SC_HighSolarRadiation))
+    if (columns.standard.testFlag(SC_HighSolarRadiation))
         query += format.arg("high_solar_radiation");
-    if (columns.testFlag(SC_HighUVIndex))
+    if (columns.standard.testFlag(SC_HighUVIndex))
         query += format.arg("high_uv_index");
-    if (columns.testFlag(SC_ForecastRuleId))
+    if (columns.standard.testFlag(SC_ForecastRuleId))
         query += format.arg("forecast_rule_id");
-    if (columns.testFlag(SC_Reception))
+    if (columns.standard.testFlag(SC_Reception))
         query += format.arg("reception");
-
+    if (columns.extra.testFlag(EC_LeafWetness1))
+        query += format.arg("leaf_wetness_1");
+    if (columns.extra.testFlag(EC_LeafWetness2))
+        query += format.arg("leaf_wetness_2");
+    if (columns.extra.testFlag(EC_LeafTemperature1))
+        query += format.arg("leaf_temperature_1");
+    if (columns.extra.testFlag(EC_LeafTemperature2))
+        query += format.arg("leaf_temperature_2");
+    if (columns.extra.testFlag(EC_SoilMoisture1))
+        query += format.arg("soil_moisture_1");
+    if (columns.extra.testFlag(EC_SoilMoisture2))
+        query += format.arg("soil_moisture_2");
+    if (columns.extra.testFlag(EC_SoilMoisture3))
+        query += format.arg("soil_moisture_3");
+    if (columns.extra.testFlag(EC_SoilMoisture4))
+        query += format.arg("soil_moisture_4");
+    if (columns.extra.testFlag(EC_SoilMoisture4))
+        query += format.arg("soil_moisture_4");
+    if (columns.extra.testFlag(EC_SoilTemperature1))
+        query += format.arg("soil_temperature_1");
+    if (columns.extra.testFlag(EC_SoilTemperature2))
+        query += format.arg("soil_temperature_2");
+    if (columns.extra.testFlag(EC_SoilTemperature3))
+        query += format.arg("soil_temperature_3");
+    if (columns.extra.testFlag(EC_SoilTemperature4))
+        query += format.arg("soil_temperature_4");
+    if (columns.extra.testFlag(EC_ExtraHumidity1))
+        query += format.arg("extra_humidity_1");
+    if (columns.extra.testFlag(EC_ExtraHumidity2))
+        query += format.arg("extra_humidity_2");
+    if (columns.extra.testFlag(EC_ExtraTemperature1))
+        query += format.arg("extra_temperature_1");
+    if (columns.extra.testFlag(EC_ExtraTemperature2))
+        query += format.arg("extra_temperature_2");
+    if (columns.extra.testFlag(EC_ExtraTemperature3))
+        query += format.arg("extra_temperature_3");
     return query;
 }
 
@@ -1130,7 +1165,11 @@ QString WebCacheDB::buildSelectForColumns(SampleColumns columns)
 {
     QString selectPart = "select time_stamp";
 
-    selectPart += buildColumnList(columns & ~SC_Timestamp, ", %1");
+    SampleColumns cols;
+    cols.standard = columns.standard & ~SC_Timestamp;
+    cols.extra = columns.extra;
+
+    selectPart += buildColumnList(cols, ", %1");
 
     return selectPart;
 }
@@ -1168,7 +1207,11 @@ int WebCacheDB::getAggregatedRowCount(int stationId,
         qDebug() << "Custom group minutes: " << groupMinutes;
     }
 
-    QString qry = buildAggregatedSelect(SC_NoColumns,
+    SampleColumns noCols;
+    noCols.standard = SC_NoColumns;
+    noCols.extra = EC_NoColumns;
+
+    QString qry = buildAggregatedSelect(noCols,
                                         aggregateFunction,
                                         groupType);
 
@@ -1234,7 +1277,7 @@ QString WebCacheDB::buildAggregatedSelect(SampleColumns columns,
 
     QString query = "select iq.quadrant as quadrant ";
 
-    if (columns.testFlag(SC_Timestamp))
+    if (columns.standard.testFlag(SC_Timestamp))
         query += ", min(iq.time_stamp) as time_stamp ";
 
     // It doesn't make sense to sum certain fields (like temperature).
@@ -1243,24 +1286,31 @@ QString WebCacheDB::buildAggregatedSelect(SampleColumns columns,
     // others.
     if (function == AF_Sum || function == AF_RunningTotal) {
         // Figure out which columns we can sum
-        SampleColumns summables = columns & SUMMABLE_COLUMNS;
+        SampleColumns summables;
+        summables.standard = columns.standard & SUMMABLE_COLUMNS;
+        summables.extra = columns.extra & EXTRA_SUMMABLE_COLUMNS;
 
         // And which columns we can't
-        SampleColumns nonSummables = columns & ~SUMMABLE_COLUMNS;
-        nonSummables = nonSummables & ~SC_Timestamp; // we don't want timestamp either
+        SampleColumns nonSummables;
+        nonSummables.standard = columns.standard & ~SUMMABLE_COLUMNS;
+        nonSummables.extra = columns.extra & ~EXTRA_SUMMABLE_COLUMNS;
+        nonSummables.standard = nonSummables.standard & ~SC_Timestamp; // we don't want timestamp either
 
         // Sum the summables
-        if (summables != SC_NoColumns) {
+        if (summables.standard != SC_NoColumns || summables.extra != EC_NoColumns) {
             query += buildColumnList(summables, QString(", %1(iq.%2) as %2 ").arg(fn).arg("%1"));
         }
 
         // And just average the nonsummables(we have to apply some sort of
         // aggregate or the grouping will fail)
-        if (nonSummables != SC_NoColumns) {
+        if (nonSummables.standard != SC_NoColumns || nonSummables.extra != EC_NoColumns) {
             query += buildColumnList(nonSummables, ", avg(iq.%1) as %1 ");
         }
     } else {
-        query += buildColumnList(columns & ~SC_Timestamp, QString(", %1(iq.%2) as %2 ").arg(fn).arg("%1"));
+        SampleColumns cols;
+        cols.standard = columns.standard & ~SC_Timestamp;
+        cols.extra = columns.extra;
+        query += buildColumnList(cols, QString(", %1(iq.%2) as %2 ").arg(fn).arg("%1"));
     }
 
     query += " from (select ";
@@ -1425,7 +1475,10 @@ SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
         interval = getSampleInterval(stationId);
     } else {
         // Aggregated queries always require the timestamp column.
-        query = buildAggregatedSelectQuery(columns | SC_Timestamp, stationId,
+        SampleColumns cols;
+        cols.standard = columns.standard | SC_Timestamp;
+        cols.extra = columns.extra;
+        query = buildAggregatedSelectQuery(cols, stationId,
                                            aggregateFunction,
                                            aggregateGroupType, groupMinutes);
         interval = groupMinutes * 60;
@@ -1488,31 +1541,31 @@ SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
             samples.timestampUnix.append(timeStamp);
             samples.timestamp.append(timeStamp);
 
-            if (columns.testFlag(SC_Temperature))
+            if (columns.standard.testFlag(SC_Temperature))
                 samples.temperature.append(nullableVariantDouble(record.value("temperature")));
 
-            if (columns.testFlag(SC_DewPoint))
+            if (columns.standard.testFlag(SC_DewPoint))
                 samples.dewPoint.append(nullableVariantDouble(record.value("dew_point")));
 
-            if (columns.testFlag(SC_ApparentTemperature))
+            if (columns.standard.testFlag(SC_ApparentTemperature))
                 samples.apparentTemperature.append(nullableVariantDouble(record.value("apparent_temperature")));
 
-            if (columns.testFlag(SC_WindChill))
+            if (columns.standard.testFlag(SC_WindChill))
                 samples.windChill.append(nullableVariantDouble(record.value("wind_chill")));
 
-            if (columns.testFlag(SC_IndoorTemperature))
+            if (columns.standard.testFlag(SC_IndoorTemperature))
                 samples.indoorTemperature.append(nullableVariantDouble(record.value("indoor_temperature")));
 
-            if (columns.testFlag(SC_Humidity))
+            if (columns.standard.testFlag(SC_Humidity))
                 samples.humidity.append(nullableVariantDouble(record.value("relative_humidity")));
 
-            if (columns.testFlag(SC_IndoorHumidity))
+            if (columns.standard.testFlag(SC_IndoorHumidity))
                 samples.indoorHumidity.append(nullableVariantDouble(record.value("indoor_relative_humidity")));
 
-            if (columns.testFlag(SC_Pressure))
+            if (columns.standard.testFlag(SC_Pressure))
                 samples.pressure.append(nullableVariantDouble(record.value("absolute_pressure")));
 
-            if (columns.testFlag(SC_Rainfall)) {
+            if (columns.standard.testFlag(SC_Rainfall)) {
                 double value = nullableVariantDouble(record.value("rainfall"));
 
                 // Because SQLite doesn't support window functions we have to
@@ -1529,43 +1582,43 @@ SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
                 }
             }
 
-            if (columns.testFlag(SC_AverageWindSpeed))
+            if (columns.standard.testFlag(SC_AverageWindSpeed))
                 samples.averageWindSpeed.append(nullableVariantDouble(record.value("average_wind_speed")));
 
-            if (columns.testFlag(SC_GustWindSpeed))
+            if (columns.standard.testFlag(SC_GustWindSpeed))
                 samples.gustWindSpeed.append(nullableVariantDouble(record.value("gust_wind_speed")));
 
-            if (columns.testFlag(SC_WindDirection))
+            if (columns.standard.testFlag(SC_WindDirection))
                 // Wind direction can be null.
                 if (!record.value("wind_direction").isNull())
                     samples.windDirection[timeStamp] =
                             record.value("wind_direction").toUInt();
 
-            if (columns.testFlag(SC_GustWindDirection))
+            if (columns.standard.testFlag(SC_GustWindDirection))
                 // Wind direction can be null.
                 if (!record.value("gust_wind_direction").isNull())
                     samples.gustWindDirection[timeStamp] =
                             record.value("gust_wind_direction").toUInt();
 
-            if (columns.testFlag(SC_SolarRadiation))
+            if (columns.standard.testFlag(SC_SolarRadiation))
                 samples.solarRadiation.append(nullableVariantDouble(record.value("solar_radiation")));
 
-            if (columns.testFlag(SC_UV_Index))
+            if (columns.standard.testFlag(SC_UV_Index))
                 samples.uvIndex.append(nullableVariantDouble(record.value("uv_index")));
 
-            if (columns.testFlag(SC_Reception))
+            if (columns.standard.testFlag(SC_Reception))
                 samples.reception.append(nullableVariantDouble(record.value("reception")));
 
-            if (columns.testFlag(SC_HighTemperature))
+            if (columns.standard.testFlag(SC_HighTemperature))
                 samples.highTemperature.append(nullableVariantDouble(record.value("high_temperature")));
 
-            if (columns.testFlag(SC_LowTemperature))
+            if (columns.standard.testFlag(SC_LowTemperature))
                 samples.lowTemperature.append(nullableVariantDouble(record.value("low_temperature")));
 
-            if (columns.testFlag(SC_HighRainRate))
+            if (columns.standard.testFlag(SC_HighRainRate))
                 samples.highRainRate.append(nullableVariantDouble(record.value("high_rain_rate")));
 
-            if (columns.testFlag(SC_Evapotranspiration)) {
+            if (columns.standard.testFlag(SC_Evapotranspiration)) {
                 double value = nullableVariantDouble(record.value("evapotranspiration"));
 
                 // Because SQLite doesn't support window functions we have to
@@ -1582,14 +1635,65 @@ SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
                 }
             }
 
-            if (columns.testFlag(SC_HighSolarRadiation))
+            if (columns.standard.testFlag(SC_HighSolarRadiation))
                 samples.highSolarRadiation.append(nullableVariantDouble(record.value("high_solar_radiation")));
 
-            if (columns.testFlag(SC_HighUVIndex))
+            if (columns.standard.testFlag(SC_HighUVIndex))
                 samples.highUVIndex.append(nullableVariantDouble(record.value("high_uv_index")));
 
-            if (columns.testFlag(SC_ForecastRuleId))
+            if (columns.standard.testFlag(SC_ForecastRuleId))
                 samples.forecastRuleId.append(record.value("forecast_rule_id").toInt());
+
+            if (columns.extra.testFlag(EC_LeafWetness1))
+                samples.leafWetness1.append(nullableVariantDouble(record.value("leaf_wetness_1")));
+
+            if (columns.extra.testFlag(EC_LeafWetness2))
+                samples.leafWetness2.append(nullableVariantDouble(record.value("leaf_wetness_2")));
+
+            if (columns.extra.testFlag(EC_LeafTemperature1))
+                samples.leafTemperature1.append(nullableVariantDouble(record.value("leaf_temperature_1")));
+
+            if (columns.extra.testFlag(EC_LeafTemperature2))
+                samples.leafTemperature2.append(nullableVariantDouble(record.value("leaf_temperature_2")));
+
+            if (columns.extra.testFlag(EC_SoilMoisture1))
+                samples.soilMoisture1.append(nullableVariantDouble(record.value("soil_moisture_1")));
+
+            if (columns.extra.testFlag(EC_SoilMoisture2))
+                samples.soilMoisture2.append(nullableVariantDouble(record.value("soil_moisture_2")));
+
+            if (columns.extra.testFlag(EC_SoilMoisture3))
+                samples.soilMoisture3.append(nullableVariantDouble(record.value("soil_moisture_3")));
+
+            if (columns.extra.testFlag(EC_SoilMoisture4))
+                samples.soilMoisture4.append(nullableVariantDouble(record.value("soil_moisture_4")));
+
+            if (columns.extra.testFlag(EC_SoilTemperature1))
+                samples.soilTemperature1.append(nullableVariantDouble(record.value("soil_temperature_1")));
+
+            if (columns.extra.testFlag(EC_SoilTemperature2))
+                samples.soilTemperature2.append(nullableVariantDouble(record.value("soil_temperature_2")));
+
+            if (columns.extra.testFlag(EC_SoilTemperature3))
+                samples.soilTemperature3.append(nullableVariantDouble(record.value("soil_temperature_3")));
+
+            if (columns.extra.testFlag(EC_SoilTemperature4))
+                samples.soilTemperature4.append(nullableVariantDouble(record.value("soil_temperature_4")));
+
+            if (columns.extra.testFlag(EC_ExtraHumidity1))
+                samples.extraHumidity1.append(nullableVariantDouble(record.value("extra_humidity_1")));
+
+            if (columns.extra.testFlag(EC_ExtraHumidity2))
+                samples.extraHumidity2.append(nullableVariantDouble(record.value("extra_humidity_2")));
+
+            if (columns.extra.testFlag(EC_ExtraTemperature1))
+                samples.extraTemperature1.append(nullableVariantDouble(record.value("extra_temperature_1")));
+
+            if (columns.extra.testFlag(EC_ExtraTemperature2))
+                samples.extraTemperature2.append(nullableVariantDouble(record.value("extra_temperature_2")));
+
+            if (columns.extra.testFlag(EC_ExtraTemperature3))
+                samples.extraTemperature3.append(nullableVariantDouble(record.value("extra_temperature_3")));
 
         } while (query.next());
     } else if (query.lastError().isValid()) {

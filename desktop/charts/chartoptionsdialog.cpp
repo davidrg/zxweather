@@ -42,54 +42,54 @@ ChartOptionsDialog::~ChartOptionsDialog()
 }
 
 void ChartOptionsDialog::checkAndAccept() {
-    columns &= SC_NoColumns;
+    columns.standard &= SC_NoColumns;
 
     if (ui->cbTemperature->isChecked())
-        columns |= SC_Temperature;
+        columns.standard |= SC_Temperature;
     if (ui->cbIndoorTemperature->isChecked())
-        columns |= SC_IndoorTemperature;
+        columns.standard |= SC_IndoorTemperature;
     if (ui->cbApparentTemperature->isChecked())
-        columns |= SC_ApparentTemperature;
+        columns.standard |= SC_ApparentTemperature;
     if (ui->cbDewPoint->isChecked())
-        columns |= SC_DewPoint;
+        columns.standard |= SC_DewPoint;
     if (ui->cbWindChill->isChecked())
-        columns |= SC_WindChill;
+        columns.standard |= SC_WindChill;
     if (ui->cbHumidity->isChecked())
-        columns |= SC_Humidity;
+        columns.standard |= SC_Humidity;
     if (ui->cbIndoorHumidity->isChecked())
-        columns |= SC_IndoorHumidity;
+        columns.standard |= SC_IndoorHumidity;
     if (ui->cbPressure->isChecked())
-        columns |= SC_Pressure;
+        columns.standard |= SC_Pressure;
     if (ui->cbRainfall->isChecked())
-        columns |= SC_Rainfall;
+        columns.standard |= SC_Rainfall;
     if (ui->cbAverageWindSpeed->isChecked())
-        columns |= SC_AverageWindSpeed;
+        columns.standard |= SC_AverageWindSpeed;
     if (ui->cbGustWindSpeed->isChecked())
-        columns |= SC_GustWindSpeed;
+        columns.standard |= SC_GustWindSpeed;
     if (ui->cbWindDirection->isChecked())
-        columns |= SC_WindDirection;
+        columns.standard |= SC_WindDirection;
     if (ui->cbUVIndex->isChecked())
-        columns |= SC_UV_Index;
+        columns.standard |= SC_UV_Index;
     if (ui->cbSolarRadiation->isChecked())
-        columns |= SC_SolarRadiation;
+        columns.standard |= SC_SolarRadiation;
     if (ui->cbHighTemperature->isChecked())
-        columns |= SC_HighTemperature;
+        columns.standard |= SC_HighTemperature;
     if (ui->cbLowTemperature->isChecked())
-        columns |= SC_LowTemperature;
+        columns.standard |= SC_LowTemperature;
     if (ui->cbHighSolarRadiation->isChecked())
-        columns |= SC_HighSolarRadiation;
+        columns.standard |= SC_HighSolarRadiation;
     if (ui->cbHighUVIndex->isChecked())
-        columns |= SC_HighUVIndex;
+        columns.standard |= SC_HighUVIndex;
     if (ui->cbWirelessReception->isChecked())
-        columns |= SC_Reception;
+        columns.standard |= SC_Reception;
     if (ui->cbHighRainRate->isChecked())
-        columns |= SC_HighRainRate;
+        columns.standard |= SC_HighRainRate;
     if (ui->cbEvapotranspiration->isChecked())
-        columns |= SC_Evapotranspiration;
+        columns.standard |= SC_Evapotranspiration;
     if (ui->cbGustDirection->isChecked())
-        columns |= SC_GustWindDirection;
+        columns.standard |= SC_GustWindDirection;
 
-    if (columns == SC_NoColumns) {
+    if (columns.standard == SC_NoColumns && columns.extra == EC_NoColumns) {
         QMessageBox::information(this, "Data Sets",
                                  "At least one data set must be selected");
         return;

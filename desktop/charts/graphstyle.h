@@ -11,7 +11,8 @@
 class GraphStyle {
 public:
     GraphStyle() {}
-    GraphStyle(SampleColumn column);
+    GraphStyle(StandardColumn column);
+    GraphStyle(ExtraColumn column);
     GraphStyle(LiveValue column);
 
     QString getName() const { return name; }
@@ -19,9 +20,11 @@ public:
     QCPScatterStyle getScatterStyle() const { return scatterStyle; }
     QBrush getBrush() const { return brush; }
     QCPGraph::LineStyle getLineStyle() const { return lineStyle; }
-    SampleColumn getColumnType() const {return column; }
+    StandardColumn getColumnType() const {return column; }
+    ExtraColumn getExtraColumnType() const {return extraColumn; }
     LiveValue getLiveColumnType() const {return liveColumn; }
     bool isLive() const { return isLiveColumn; }
+    bool isExtraColumn() const {return isExtra; }
     QString getColumnName() const {return columnName; }
     QColor getDefaultColour() const {return defaultColour; }
 
@@ -41,9 +44,11 @@ private:
     QCPScatterStyle scatterStyle;
     QBrush brush;
     QCPGraph::LineStyle lineStyle;
-    SampleColumn column;
+    StandardColumn column;
+    ExtraColumn extraColumn;
     LiveValue liveColumn;
     bool isLiveColumn;
+    bool isExtra;
     QString columnName;
     QColor defaultColour;
 };

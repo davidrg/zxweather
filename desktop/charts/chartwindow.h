@@ -75,7 +75,6 @@ private slots:
     void renameSelectedGraph();
     void changeSelectedGraphStyle();
     void addGraph();
-    void customiseChart();
     void addDataSet();
     void renameSelectedKeyAxis();
     void renameSelectedValueAxis();

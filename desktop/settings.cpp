@@ -154,6 +154,27 @@ namespace SettingsKey {
             const QString CONSOLE_BATTERY_VOLTAGE = "Colours/Charts/console_battery_voltage";
             const QString TITLE = "Colours/Charts/title";
             const QString BACKGROUND = "Colours/Charts/background";
+
+            const QString LEAF_WETNESS_1 = "Colours/Charts/leaf_wetness_1";
+            const QString LEAF_WETNESS_2 = "Colours/Charts/leaf_wetness_2";
+            const QString LEAF_TEMPERATURE_1 = "Colours/Charts/leaf_temperature_1";
+            const QString LEAF_TEMPERATURE_2 = "Colours/Charts/leaf_temperature_2";
+
+            const QString SOIL_MOISTURE_1 = "Colours/Charts/soil_moisture_1";
+            const QString SOIL_MOISTURE_2 = "Colours/Charts/soil_moisture_2";
+            const QString SOIL_MOISTURE_3 = "Colours/Charts/soil_moisture_3";
+            const QString SOIL_MOISTURE_4 = "Colours/Charts/soil_moisture_4";
+            const QString SOIL_TEMPERATURE_1 = "Colours/Charts/soil_temperature_1";
+            const QString SOIL_TEMPERATURE_2 = "Colours/Charts/soil_temperature_2";
+            const QString SOIL_TEMPERATURE_3 = "Colours/Charts/soil_temperature_3";
+            const QString SOIL_TEMPERATURE_4 = "Colours/Charts/soil_temperature_4";
+
+            const QString EXTRA_HUMIDITY_1 = "Colours/Charts/extra_humidity_1";
+            const QString EXTRA_HUMIDITY_2 = "Colours/Charts/extra_humidity_2";
+
+            const QString EXTRA_TEMPERATURE_1 = "Colours/Charts/extra_temperature_1";
+            const QString EXTRA_TEMPERATURE_2 = "Colours/Charts/extra_temperature_2";
+            const QString EXTRA_TEMPERATURE_3 = "Colours/Charts/extra_temperature_3";
         }
     }
 
@@ -479,6 +500,23 @@ void Settings::setChartColours(ChartColours colours) {
                        colours.reception);
     settings->setValue(SettingsKey::Colours::Charts::CONSOLE_BATTERY_VOLTAGE,
                        colours.consoleBatteryVoltage);
+    settings->setValue(SettingsKey::Colours::Charts::LEAF_WETNESS_1, colours.leafWetness1);
+    settings->setValue(SettingsKey::Colours::Charts::LEAF_WETNESS_2, colours.leafWetness2);
+    settings->setValue(SettingsKey::Colours::Charts::LEAF_TEMPERATURE_1, colours.leafTemperature1);
+    settings->setValue(SettingsKey::Colours::Charts::LEAF_TEMPERATURE_2, colours.leafTemperature2);
+    settings->setValue(SettingsKey::Colours::Charts::SOIL_MOISTURE_1, colours.soilMoisture1);
+    settings->setValue(SettingsKey::Colours::Charts::SOIL_MOISTURE_2, colours.soilMoisture2);
+    settings->setValue(SettingsKey::Colours::Charts::SOIL_MOISTURE_3, colours.soilMoisture3);
+    settings->setValue(SettingsKey::Colours::Charts::SOIL_MOISTURE_4, colours.soilMoisture4);
+    settings->setValue(SettingsKey::Colours::Charts::SOIL_TEMPERATURE_1, colours.soilTemperature1);
+    settings->setValue(SettingsKey::Colours::Charts::SOIL_TEMPERATURE_2, colours.soilTemperature2);
+    settings->setValue(SettingsKey::Colours::Charts::SOIL_TEMPERATURE_3, colours.soilTemperature3);
+    settings->setValue(SettingsKey::Colours::Charts::SOIL_TEMPERATURE_4, colours.soilTemperature4);
+    settings->setValue(SettingsKey::Colours::Charts::EXTRA_HUMIDITY_1, colours.extraHumidity1);
+    settings->setValue(SettingsKey::Colours::Charts::EXTRA_HUMIDITY_2, colours.extraHumidity2);
+    settings->setValue(SettingsKey::Colours::Charts::EXTRA_TEMPERATURE_1, colours.extraTemperature1);
+    settings->setValue(SettingsKey::Colours::Charts::EXTRA_TEMPERATURE_2, colours.extraTemperature2);
+    settings->setValue(SettingsKey::Colours::Charts::EXTRA_TEMPERATURE_3, colours.extraTemperature3);
 }
 
 ChartColours Settings::getChartColours() {
@@ -538,12 +576,37 @@ ChartColours Settings::getChartColours() {
                 SettingsKey::Colours::Charts::CONSOLE_BATTERY_VOLTAGE,
                 QColor(Qt::gray)).value<QColor>();
 
+    colours.leafWetness1 = settings->value(SettingsKey::Colours::Charts::LEAF_WETNESS_1, QColor(Qt::blue)).value<QColor>();
+    colours.leafWetness2 = settings->value(SettingsKey::Colours::Charts::LEAF_WETNESS_2, QColor(Qt::blue)).value<QColor>();
+    colours.leafTemperature1 = settings->value(SettingsKey::Colours::Charts::LEAF_TEMPERATURE_1, QColor(Qt::darkBlue)).value<QColor>();
+    colours.leafTemperature2 = settings->value(SettingsKey::Colours::Charts::LEAF_TEMPERATURE_1, QColor(Qt::darkBlue)).value<QColor>();
+
+    colours.soilMoisture1 = settings->value(SettingsKey::Colours::Charts::SOIL_MOISTURE_1, QColor(Qt::red)).value<QColor>();
+    colours.soilMoisture2 = settings->value(SettingsKey::Colours::Charts::SOIL_MOISTURE_2, QColor(Qt::red)).value<QColor>();
+    colours.soilMoisture3 = settings->value(SettingsKey::Colours::Charts::SOIL_MOISTURE_3, QColor(Qt::red)).value<QColor>();
+    colours.soilMoisture4 = settings->value(SettingsKey::Colours::Charts::SOIL_MOISTURE_4, QColor(Qt::red)).value<QColor>();
+
+    colours.soilTemperature1 = settings->value(SettingsKey::Colours::Charts::SOIL_TEMPERATURE_1, QColor(Qt::darkBlue)).value<QColor>();
+    colours.soilTemperature2 = settings->value(SettingsKey::Colours::Charts::SOIL_TEMPERATURE_2, QColor(Qt::darkBlue)).value<QColor>();
+    colours.soilTemperature3 = settings->value(SettingsKey::Colours::Charts::SOIL_TEMPERATURE_3, QColor(Qt::darkBlue)).value<QColor>();
+    colours.soilTemperature4 = settings->value(SettingsKey::Colours::Charts::SOIL_TEMPERATURE_4, QColor(Qt::darkBlue)).value<QColor>();
+
+    colours.extraHumidity1 = settings->value(SettingsKey::Colours::Charts::EXTRA_HUMIDITY_1, QColor(Qt::darkMagenta)).value<QColor>();
+    colours.extraHumidity1 = settings->value(SettingsKey::Colours::Charts::EXTRA_HUMIDITY_1, QColor(Qt::darkMagenta)).value<QColor>();
+
+    colours.extraTemperature1 = settings->value(SettingsKey::Colours::Charts::EXTRA_TEMPERATURE_1, QColor(Qt::darkBlue)).value<QColor>();
+    colours.extraTemperature2 = settings->value(SettingsKey::Colours::Charts::EXTRA_TEMPERATURE_2, QColor(Qt::darkBlue)).value<QColor>();
+    colours.extraTemperature3 = settings->value(SettingsKey::Colours::Charts::EXTRA_TEMPERATURE_3, QColor(Qt::darkBlue)).value<QColor>();
+
     /* Available default colours:
      *   Qt::white
      * white and light gray may not be real options.
      *
-     * rain rate and gust wind speed share default colours
+     * rain rate, gust wind speed and soil moistures 1-4 share default colours
      * evapotranspiration and console battery voltage share default colours
+     * rainfall and leaf wetness 1&2 share default colours
+     * outdoor temperature, soil temperatures 1-4 and extra temperatures 1-3 share default colours
+     * outdoor humidity and extra humidities 1 & 2 share default colours
      */
 
     colours.title = settings->value(

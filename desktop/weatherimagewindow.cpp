@@ -142,7 +142,10 @@ void WeatherImageWindow::imageReady(ImageInfo imageInfo, QImage image, QString f
 #endif
         }
 
-        dataSource.data()->fetchSamples(ALL_SAMPLE_COLUMNS,
+        SampleColumns cols;
+        cols.standard = ALL_SAMPLE_COLUMNS;
+        cols.extra = ALL_EXTRA_COLUMNS;
+        dataSource.data()->fetchSamples(cols,
                                         imageInfo.timeStamp.addSecs(-600),
                                         imageInfo.timeStamp);
     } else {
@@ -180,7 +183,10 @@ void WeatherImageWindow::imageReady(ImageInfo imageInfo, QImage image, QString f
         this->frameCount = frameCount;
         videoSync = true;
 
-        dataSource.data()->fetchSamples(ALL_SAMPLE_COLUMNS,
+        SampleColumns cols;
+        cols.standard = ALL_SAMPLE_COLUMNS;
+        cols.extra = ALL_EXTRA_COLUMNS;
+        dataSource.data()->fetchSamples(cols,
                                         start.addSecs(-600),
                                         finish);
     }
@@ -339,7 +345,7 @@ void WeatherImageWindow::plotRequested(DataSet ds) {
     QList<DataSet> datasets;
     datasets << ds;
 
-    qDebug() << "DS Columns:"<< (int)ds.columns;
+    qDebug() << "DS Columns:"<< (int)ds.columns.standard << (int)ds.columns.extra;
     qDebug() << "Start" << ds.startTime;
     qDebug() << "End" << ds.endTime;
     qDebug() << "AGFunc" << ds.aggregateFunction;
