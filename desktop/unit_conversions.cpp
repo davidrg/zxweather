@@ -79,6 +79,7 @@ UnitConversions::UnitValue::operator QString() const {
     case U_CENTIMETERS_PER_HOUR:
     case U_INCHES_PER_HOUR:
     case U_WATTS_PER_SQUARE_METER:
+    case U_CENTIBAR:
         return val + " " + suffix;
 
     case U_CELSIUS:
@@ -89,6 +90,7 @@ UnitConversions::UnitValue::operator QString() const {
 
     case U_UV_INDEX:
     case U_DEGREES:
+    case U_LEAF_WETNESS:
         return val;
 
     case U_UNKNOWN:
@@ -287,8 +289,11 @@ UnitConversions::unit_t UnitConversions::metricToImperial(UnitConversions::unit_
     case U_CENTIMETERS_PER_HOUR:
         return U_INCHES_PER_HOUR;
 
+    case U_CENTIBAR:
+        return U_CENTIBAR; // Already imperial
+
     // Solar Radiation
-    //case U_WATTS_PER_SQUARE_METER:
+    //case U_WATTS_PER_SQUARE_METER: // No imperial conversion available
     default:
         return unit;
     }
@@ -325,13 +330,17 @@ QString UnitConversions::unitString(UnitConversions::unit_t unit) {
     case U_WATTS_PER_SQUARE_METER:
         return "W/m" SQUARED_SYMBOL;
     case U_UV_INDEX:
-        return "";
+        return ""; // No special units for UV Index
     case U_HUMIDITY:
         return "%";
     case U_DEGREES:
         return DEGREE_SYMBOL;
     case U_VOLTAGE:
         return "V";
+    case U_CENTIBAR:
+        return "cbar";
+    case U_LEAF_WETNESS:
+        return ""; // no special units for leaf wentess
     case U_UNKNOWN:
     default:
         return "";
