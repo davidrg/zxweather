@@ -3,6 +3,7 @@
 
 #include <QMessageBox>
 #include <QtDebug>
+#include <QCheckbox>
 
 ChartOptionsDialog::ChartOptionsDialog(bool solarAvailable,
                                        hardware_type_t hw_type, bool isWireless, QWidget *parent) :
@@ -36,11 +37,60 @@ ChartOptionsDialog::ChartOptionsDialog(bool solarAvailable,
 
     // Buttons
     connect(this->ui->buttonBox, SIGNAL(accepted()), this, SLOT(checkAndAccept()));
+
+    for (int i = 0; i < ui->tabWidget->count(); i++) {
+        tabLabels.insert(i, ui->tabWidget->tabText(i));
+    }
+
+    // Checkboxes
+    foreach (QCheckBox* cb, this->findChildren<QCheckBox*>()) {
+        connect(cb, SIGNAL(toggled(bool)), this, SLOT(checkboxToggled(bool)));
+    }
 }
 
 ChartOptionsDialog::~ChartOptionsDialog()
 {
     delete ui;
+}
+
+// Show how many checkboxes are checked in the title for each tab
+void ChartOptionsDialog::checkboxToggled(bool checked) {
+    Q_UNUSED(checked);
+
+    QCheckBox *cb = qobject_cast<QCheckBox*>(sender());
+
+    // Try and find the tab the checkbox is on
+    QWidget *parent = qobject_cast<QWidget*>(cb->parentWidget());
+    if (parent == NULL || ui->tabWidget->indexOf(parent) == -1) {
+        parent = qobject_cast<QWidget*>(cb->parentWidget()->parentWidget());
+        if (parent == NULL || ui->tabWidget->indexOf(parent) == -1) {
+            parent = qobject_cast<QWidget*>(cb->parentWidget()->parentWidget()->parentWidget());
+            if (parent == NULL || ui->tabWidget->indexOf(parent) == -1) {
+                // We tried looking three levels up and could find anything. Its probably not
+                // on a tab. Give up.
+                qDebug() << "Parent tab not found!";
+                return;
+            }
+        }
+    }
+
+    int checkedCount = 0;
+    foreach (QCheckBox* checkbox, parent->findChildren<QCheckBox*>()) {
+        if (checkbox->isChecked()) {
+            checkedCount++;
+        }
+    }
+
+    int index = ui->tabWidget->indexOf(parent);
+
+    if (index >= 0) {
+        QString label = tabLabels[index];
+        if (checkedCount > 0) {
+            label = (label + " (%1)").arg(checkedCount);
+        }
+        ui->tabWidget->setTabText(index, label);
+    }
+
 }
 
 void ChartOptionsDialog::checkAndAccept() {
