@@ -32,10 +32,12 @@ public:
 
 private slots:
     void checkAndAccept();
+    void checkboxToggled(bool checked);
 
 private:
     Ui::ChartOptionsDialog *ui;
     SampleColumns columns;
+    QMap<int, QString> tabLabels;
 };
 
 #endif // CHARTOPTIONSDIALOG_H

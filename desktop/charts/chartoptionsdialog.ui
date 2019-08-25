@@ -83,7 +83,7 @@
      <property name="currentIndex">
       <number>0</number>
      </property>
-     <widget class="QWidget" name="tab">
+     <widget class="QWidget" name="tabCommon">
       <attribute name="title">
        <string>Common</string>
       </attribute>
@@ -418,7 +418,7 @@
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="tab_2">
+     <widget class="QWidget" name="tabHighsAndLows">
       <attribute name="title">
        <string>Highs and Lows</string>
       </attribute>
@@ -579,7 +579,7 @@
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="tab_3">
+     <widget class="QWidget" name="tabLeafAndSoil">
       <attribute name="title">
        <string>Leaf &amp;&amp; Soil</string>
       </attribute>
@@ -732,7 +732,7 @@
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="tab_4">
+     <widget class="QWidget" name="tabExtra">
       <attribute name="title">
        <string>Extra Sensors</string>
       </attribute>
