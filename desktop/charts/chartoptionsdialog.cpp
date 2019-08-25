@@ -12,7 +12,8 @@ ChartOptionsDialog::ChartOptionsDialog(bool solarAvailable,
     ui->setupUi(this);
 
     if (!solarAvailable) {
-        ui->lblSolar->setVisible(false);
+        ui->gbSolar->setVisible(false);
+        ui->gbSolarHighs->setVisible(false);
         ui->cbSolarRadiation->setVisible(false);
         ui->cbUVIndex->setVisible(false);
         ui->cbEvapotranspiration->setVisible(false);
@@ -25,6 +26,7 @@ ChartOptionsDialog::ChartOptionsDialog(bool solarAvailable,
     }
 
     if (hw_type != HW_DAVIS) {
+        ui->gbTemperatureHighLow->setVisible(false);
         ui->cbHighTemperature->setVisible(false);
         ui->cbLowTemperature->setVisible(false);
         ui->cbWirelessReception->setVisible(false);
@@ -88,6 +90,23 @@ void ChartOptionsDialog::checkAndAccept() {
         columns.standard |= SC_Evapotranspiration;
     if (ui->cbGustDirection->isChecked())
         columns.standard |= SC_GustWindDirection;
+    if (ui->cbLeafWetness1->isChecked()) columns.extra |= EC_LeafWetness1;
+    if (ui->cbLeafWetness2->isChecked()) columns.extra |= EC_LeafWetness2;
+    if (ui->cbLeafTemperature1->isChecked()) columns.extra |= EC_LeafTemperature1;
+    if (ui->cbLeafTemperature2->isChecked()) columns.extra |= EC_LeafTemperature2;
+    if (ui->cbSoilMoisture1->isChecked()) columns.extra |= EC_SoilMoisture1;
+    if (ui->cbSoilMoisture2->isChecked()) columns.extra |= EC_SoilMoisture2;
+    if (ui->cbSoilMoisture3->isChecked()) columns.extra |= EC_SoilMoisture3;
+    if (ui->cbSoilMoisture4->isChecked()) columns.extra |= EC_SoilMoisture4;
+    if (ui->cbSoilTemperature1->isChecked()) columns.extra |= EC_SoilTemperature1;
+    if (ui->cbSoilTemperature2->isChecked()) columns.extra |= EC_SoilTemperature2;
+    if (ui->cbSoilTemperature3->isChecked()) columns.extra |= EC_SoilTemperature3;
+    if (ui->cbSoilTemperature4->isChecked()) columns.extra |= EC_SoilTemperature4;
+    if (ui->cbExtraHumidity1->isChecked()) columns.extra |= EC_ExtraHumidity1;
+    if (ui->cbExtraHumidity2->isChecked()) columns.extra |= EC_ExtraHumidity2;
+    if (ui->cbExtraTemperature1->isChecked()) columns.extra |= EC_ExtraTemperature1;
+    if (ui->cbExtraTemperature2->isChecked()) columns.extra |= EC_ExtraTemperature2;
+    if (ui->cbExtraTemperature3->isChecked()) columns.extra |= EC_ExtraTemperature3;
 
     if (columns.standard == SC_NoColumns && columns.extra == EC_NoColumns) {
         QMessageBox::information(this, "Data Sets",
