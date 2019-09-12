@@ -219,11 +219,14 @@ VUE      Vantage Vue
             station_id = get_number("Which ID is the station broadcasting on?",
                                     defaults['davis_settings']['broadcast_id'])
 
+        sensor_config = dict()
+
         davis_settings = {
             "hardware_type": station,
             "is_wireless": is_wireless,
             "has_solar_and_uv": has_solar_and_uv,
-            "broadcast_id": station_id
+            "broadcast_id": station_id,
+            "sensor_config": sensor_config
         }
 
     return {
@@ -362,8 +365,6 @@ returning station_id""", (
         elif not get_boolean("Do you wish to correct it? (Answering no will "
                              "cancel)", True):
             return
-
-    return
 
 
 def get_updated_station_info(defaults):
@@ -601,6 +602,283 @@ def set_station_message(con):
     print("Station message updated.")
 
 
+# Sorry about this function. Its late and I just want to get something working.
+# This whole apps needs an overhaul sometime anyway.
+def configure_sensors(con):
+    print("\n\nConfigure sensors")
+    print("------------\n\nThe following stations are available:")
+    cur = con.cursor()
+    codes = print_station_list(cur)
+
+    selected_station_code = get_code("Station to edit", codes, required=True)
+
+    cur.execute("""
+    select upper(ht.code) as hardware_type,
+           station_config
+    from station stn
+    inner join station_type ht on ht.station_type_id = stn.station_type_id
+    where lower(stn.code) = lower(%s)
+        """, (selected_station_code,))
+    result = cur.fetchone()
+
+    hw_type = result[0]
+    hw_config = json.loads(result[1])
+    sensor_config = None
+    if "sensor_config" in hw_config:
+        sensor_config = hw_config["sensor_config"]
+    else:
+        sensor_config = {
+            "leaf_wetness_1": {
+                "enabled": False,
+                "name": "Leaf Wetness 1"
+            },
+            "leaf_wetness_2": {
+                "enabled": False,
+                "name": "Leaf Wetness 2"
+            },
+            "leaf_temperature_1": {
+                "enabled": False,
+                "name": "Leaf Temperature 1"
+            },
+            "leaf_temperature_2": {
+                "enabled": False,
+                "name": "Leaf Temperature 2"
+            },
+            "soil_moisture_1": {
+                "enabled": False,
+                "name": "Soil Moisture 1"
+            },
+            "soil_moisture_2": {
+                "enabled": False,
+                "name": "Soil Moisture 2"
+            },
+            "soil_moisture_3": {
+                "enabled": False,
+                "name": "Soil Moisture 3"
+            },
+            "soil_moisture_4": {
+                "enabled": False,
+                "name": "Soil Moisture 4"
+            },
+            "soil_temperature_1": {
+                "enabled": False,
+                "name": "Soil Temperature 1"
+            },
+            "soil_temperature_2": {
+                "enabled": False,
+                "name": "Soil Temperature 2"
+            },
+            "soil_temperature_3": {
+                "enabled": False,
+                "name": "Soil Temperature 3"
+            },
+            "soil_temperature_4": {
+                "enabled": False,
+                "name": "Soil Temperature 4"
+            },
+            "extra_humidity_1": {
+                "enabled": False,
+                "name": "Extra Humidity 1"
+            },
+            "extra_humidity_2": {
+                "enabled": False,
+                "name": "Extra Humidity 2"
+            },
+            "extra_temperature_1": {
+                "enabled": False,
+                "name": "Extra Temperature 1"
+            },
+            "extra_temperature_2": {
+                "enabled": False,
+                "name": "Extra Temperature 2"
+            },
+            "extra_temperature_3": {
+                "enabled": False,
+                "name": "Extra Temperature 3"
+            },
+        }
+
+    if hw_type != "DAVIS":
+        print("This station does not support additional sensors")
+        return
+
+    option_fmt = "{letter}) {name:<23} - {enabled:<8}"
+    option_line = "{option_a:<37}    {option_b:<37}"
+
+    def option(letter, key):
+        name = sensor_config[key]["name"]
+        enabled = "ENABLED" if sensor_config[key]["enabled"] else "DISABLED"
+        return option_fmt.format(letter=letter, name=name, enabled=enabled)
+
+    while True:
+        print("""
+Choose sensor to configure:
+------------------------------------------------------------------------------""")
+        print(option_line.format(
+            option_a=option("A", "soil_moisture_1"),
+            option_b=option("B", "soil_temperature_1")))
+        print(option_line.format(
+            option_a=option("C", "soil_moisture_2"),
+            option_b=option("D", "soil_temperature_2")))
+        print(option_line.format(
+            option_a=option("E", "soil_moisture_3"),
+            option_b=option("F", "soil_temperature_3")))
+        print(option_line.format(
+            option_a=option("G", "soil_moisture_4"),
+            option_b=option("H", "soil_temperature_4")))
+        print(option_line.format(
+            option_a=option("I", "leaf_wetness_1"),
+            option_b=option("J", "leaf_temperature_1")))
+        print(option_line.format(
+            option_a=option("K", "leaf_wetness_2"),
+            option_b=option("L", "leaf_temperature_2")))
+        print(option_line.format(
+            option_a=option("M", "extra_humidity_1"),
+            option_b=option("N", "extra_temperature_1")))
+        print(option_line.format(
+            option_a=option("O", "extra_humidity_2"),
+            option_b=option("P", "extra_temperature_2")))
+        print(option_line.format(
+            option_a="",
+            option_b=option("Q", "extra_temperature_3")))
+        print("X) Cancel")
+        print("Y) Save and Return")
+
+        choice = get_string("Choice")
+        if choice.upper() not in ["A", "B", "C", "D", "E", "F", "G", "H", "I",
+                                  "J", "K", "L", "M", "N", "O", "P", "Q", "X",
+                                  "Y"]:
+            print("Invalid option")
+            continue
+
+        choice = choice.upper()
+
+        if choice == "X":
+            break
+        elif choice == "Y":
+            print("Saving configuration...")
+            hw_config["sensor_config"] = sensor_config
+
+            cur.execute("update station set station_config=%s where lower(code) = lower(%s)",
+                        (json.dumps(hw_config), selected_station_code))
+            con.commit()
+            cur.close()
+            break
+
+        def configure_sensor(sensor):
+            system_name = sensor
+            if sensor == "soil_moisture_1":
+                system_name = "Soil Moisture 1"
+            elif sensor == "soil_moisture_2":
+                system_name = "Soil Moisture 2"
+            elif sensor == "soil_moisture_3":
+                system_name = "Soil Moisture 3"
+            elif sensor == "soil_moisture_4":
+                system_name = "Soil Moisture 4"
+            elif sensor == "soil_temperature_1":
+                system_name = "Soil Temperature 1"
+            elif sensor == "soil_temperature_2":
+                system_name = "Soil Temperature 2"
+            elif sensor == "soil_temperature_3":
+                system_name = "Soil Temperature 3"
+            elif sensor == "soil_temperature_4":
+                system_name = "Soil Temperature 4"
+            elif sensor == "leaf_wetness_1":
+                system_name = "Leaf Wetness 1"
+            elif sensor == "leaf_wetness_2":
+                system_name = "Leaf Wetness 2"
+            elif sensor == "leaf_temperature_1":
+                system_name = "Leaf Temperature 1"
+            elif sensor == "leaf_temperature_2":
+                system_name = "Leaf Temperature 2"
+            elif sensor == "extra_humidity_1":
+                system_name = "Extra Humidity 1"
+            elif sensor == "extra_humidity_2":
+                system_name = "Extra Humidity 2"
+            elif sensor == "extra_temperature_1":
+                system_name = "Extra Temperature 1"
+            elif sensor == "extra_temperature_2":
+                system_name = "Extra Temperature 2"
+            elif sensor == "extra_temperature_3":
+                system_name = "Extra Temperature 3"
+
+            def show_settings():
+                print("\nModify Sensor: {0}\n----------------------------------"
+                      "--------------------------------------------\n"
+                      "Display Name: {1}\nEnabled: {2}".format(
+                    system_name, sensor_config[sensor]["name"], sensor_config[sensor]["enabled"]))
+
+            def toggle_enabled():
+                sensor_config[sensor]["enabled"] = not sensor_config[sensor]["enabled"]
+                show_settings()
+
+            def set_display_name():
+                sensor_config[sensor]["name"] = get_string("Display name", system_name)
+                show_settings()
+            while True:
+                choices = [
+                    {
+                        "key": "1",
+                        "name": "Disable sensor" if sensor_config[sensor]["enabled"] else "Enable sensor",
+                        "type": "return",
+                    },
+                    {
+                        "key": "2",
+                        "name": "Set display name",
+                        "type": "return",
+                    },
+                    {
+                        "key": "0",
+                        "name": "Return",
+                        "type": "return"
+                    }
+                ]
+
+                show_settings()
+                choice = menu(choices)
+                if choice == "1":
+                    toggle_enabled()
+                elif choice == "2":
+                    set_display_name()
+                elif choice == "0":
+                    break
+
+        if choice == "A":
+            configure_sensor("soil_moisture_1")
+        elif choice == "B":
+            configure_sensor("soil_temperature_1")
+        elif choice == "C":
+            onfigure_sensor("soil_moisture_2")
+        elif choice == "D":
+            configure_sensor("soil_temperature_2")
+        elif choice == "E":
+            configure_sensor("soil_moisture_3")
+        elif choice == "F":
+            configure_sensor("soil_temperature_3")
+        elif choice == "G":
+            configure_sensor("soil_moisture_4")
+        elif choice == "H":
+            configure_sensor("soil_temperature_4")
+        elif choice == "I":
+            configure_sensor("leaf_wetness_1")
+        elif choice == "J":
+            configure_sensor("leaf_temperature_1")
+        elif choice == "K":
+            configure_sensor("leaf_wetness_2")
+        elif choice == "L":
+            configure_sensor("leaf_temperature_1")
+        elif choice == "M":
+            configure_sensor("extra_humidity_1")
+        elif choice == "N":
+            configure_sensor("extra_temperature_1")
+        elif choice == "O":
+            configure_sensor("extra_humidity_2")
+        elif choice == "P":
+            configure_sensor("extra_temperature_2")
+        elif choice == "Q":
+            configure_sensor("extra_temperature_3")
+
+
 def manage_stations(con):
     """
     Runs a menu allowing the user to select various station management options.
@@ -631,6 +909,12 @@ def manage_stations(con):
             "name": "Set station message",
             "type": "func",
             "func": lambda: set_station_message(con)
+        },
+        {
+            "key": "5",
+            "name": "Configure extra sensors",
+            "type": "func",
+            "func": lambda: configure_sensors(con)
         },
         {
             "key": "0",
