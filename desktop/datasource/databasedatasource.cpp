@@ -1935,75 +1935,82 @@ void DatabaseDataSource::loadSensorConfig() {
                     if (key == "leaf_wetness_1") {
                         config.isExtraColumn = true;
                         config.extraColumn = EC_LeafWetness1;
-                        config.display_name = "Leaf Wetness 1";
+                        config.default_name = "Leaf Wetness 1";
                     } else if (key == "leaf_wetness_2") {
                         config.isExtraColumn = true;
                         config.extraColumn = EC_LeafWetness2;
-                        config.display_name = "Leaf Wetness 2";
+                        config.default_name = "Leaf Wetness 2";
                     } else if (key == "leaf_temperature_1") {
                         config.isExtraColumn = true;
                         config.extraColumn = EC_LeafTemperature1;
-                        config.display_name = "Leaf Temperature 1";
+                        config.default_name = "Leaf Temperature 1";
                     } else if (key == "leaf_temperature_2") {
                         config.isExtraColumn = true;
                         config.extraColumn = EC_LeafTemperature2;
-                        config.display_name = "Leaf Temperature 2";
+                        config.default_name = "Leaf Temperature 2";
                     } else if (key == "soil_moisture_1") {
                         config.isExtraColumn = true;
                         config.extraColumn = EC_SoilMoisture1;
-                        config.display_name = "Soil Moisture 1";
+                        config.default_name = "Soil Moisture 1";
                     } else if (key == "soil_moisture_2") {
                         config.isExtraColumn = true;
                         config.extraColumn = EC_SoilMoisture2;
-                        config.display_name = "Soil Moisture 2";
+                        config.default_name = "Soil Moisture 2";
                     } else if (key == "soil_moisture_3") {
                         config.isExtraColumn = true;
                         config.extraColumn = EC_SoilMoisture3;
-                        config.display_name = "Soil Moisture 3";
+                        config.default_name = "Soil Moisture 3";
                     } else if (key == "soil_moisture_4") {
                         config.isExtraColumn = true;
                         config.extraColumn = EC_SoilMoisture4;
-                        config.display_name = "Soil Moisture 4";
+                        config.default_name = "Soil Moisture 4";
                     } else if (key == "soil_temperature_1") {
                         config.isExtraColumn = true;
                         config.extraColumn = EC_SoilTemperature1;
-                        config.display_name = "Soil Temperature 1";
+                        config.default_name = "Soil Temperature 1";
                     } else if (key == "soil_temperature_2") {
                         config.isExtraColumn = true;
                         config.extraColumn = EC_SoilTemperature2;
-                        config.display_name = "Soil Temperature 2";
+                        config.default_name = "Soil Temperature 2";
                     } else if (key == "soil_temperature_3") {
                         config.isExtraColumn = true;
                         config.extraColumn = EC_SoilTemperature3;
-                        config.display_name = "Soil Temperature 3";
+                        config.default_name = "Soil Temperature 3";
                     } else if (key == "soil_temperature_4") {
                         config.isExtraColumn = true;
                         config.extraColumn = EC_SoilTemperature4;
-                        config.display_name = "Soil Temperature 4";
+                        config.default_name = "Soil Temperature 4";
                     } else if (key == "extra_humidity_1") {
                         config.isExtraColumn = true;
                         config.extraColumn = EC_ExtraHumidity1;
-                        config.display_name = "Extra Humidity 1";
+                        config.default_name = "Extra Humidity 1";
                     } else if (key == "extra_humidity_2") {
                         config.isExtraColumn = true;
                         config.extraColumn = EC_ExtraHumidity2;
-                        config.display_name = "Extra Humidity 2";
+                        config.default_name = "Extra Humidity 2";
                     } else if (key == "extra_temperature_1") {
                         config.isExtraColumn = true;
                         config.extraColumn = EC_ExtraTemperature1;
-                        config.display_name = "Extra Temperature 1";
+                        config.default_name = "Extra Temperature 1";
                     } else if (key == "extra_temperature_2") {
                         config.isExtraColumn = true;
                         config.extraColumn = EC_ExtraTemperature2;
-                        config.display_name = "Extra Temperature 2";
+                        config.default_name = "Extra Temperature 2";
                     } else if (key == "extra_temperature_3") {
                         config.isExtraColumn = true;
                         config.extraColumn = EC_ExtraTemperature3;
-                        config.display_name = "Extra Temperature 3";
+                        config.default_name = "Extra Temperature 3";
                     }
+
+                    qDebug() << "Sensor" << config.system_name
+                             << "Name" << sensor["name"].toString()
+                             << "Default Name" << config.default_name
+                             << "Enabled" << config.enabled;
 
                     if (sensor.contains("name")) {
                         config.display_name = sensor["name"].toString();
+                    } else {
+                        config.display_name = config.default_name;
                     }
 
                     sensorConfig.append(config);
@@ -2034,9 +2041,14 @@ ExtraColumns DatabaseDataSource::extraColumnsAvailable() {
 QMap<ExtraColumn, QString> DatabaseDataSource::extraColumnNames() {
     QMap<ExtraColumn, QString> result;
 
+    if (!sensorConfigLoaded) {
+        loadSensorConfig();
+    }
+
     foreach (sensor_config_t sensor, sensorConfig) {
         if (sensor.isExtraColumn && sensor.enabled) {
             result[sensor.extraColumn] = sensor.display_name;
+            qDebug() << sensor.display_name;
         }
     }
 

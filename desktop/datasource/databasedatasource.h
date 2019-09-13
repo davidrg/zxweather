@@ -15,6 +15,7 @@
 typedef struct _sensor_config {
     QString system_name;
     QString display_name;
+    QString default_name;
     bool enabled;
     bool isExtraColumn;
     StandardColumn standardColumn;

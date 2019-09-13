@@ -3,6 +3,7 @@
 
 #include <QFlags>
 #include <QDateTime>
+#include <QMap>
 
 // TODO: Remove this when C++11 is the minimum supported standard
 #define __STDC_LIMIT_MACROS
@@ -145,6 +146,8 @@ typedef uint16_t dataset_id_t;
 struct DataSet {
     dataset_id_t id;    /*!< Unique identifier for the dataset */
     SampleColumns columns;  /*!< Columns that should be displayed for the dataset */
+    QMap<ExtraColumn, QString> extraColumnNames;
+
     QDateTime startTime;    /*!< Start of the timespan */
     QDateTime endTime;      /*!< End of the timespan */
 

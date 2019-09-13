@@ -187,7 +187,7 @@
               <property name="sizeHint" stdset="0">
                <size>
                 <width>20</width>
-                <height>40</height>
+                <height>0</height>
                </size>
               </property>
              </spacer>
@@ -353,8 +353,8 @@
               </property>
               <property name="sizeHint" stdset="0">
                <size>
-                <width>20</width>
-                <height>40</height>
+                <width>0</width>
+                <height>0</height>
                </size>
               </property>
              </spacer>
@@ -502,8 +502,8 @@
               </property>
               <property name="sizeHint" stdset="0">
                <size>
-                <width>20</width>
-                <height>40</height>
+                <width>0</width>
+                <height>0</height>
                </size>
               </property>
              </spacer>
@@ -548,8 +548,8 @@
               </property>
               <property name="sizeHint" stdset="0">
                <size>
-                <width>20</width>
-                <height>40</height>
+                <width>0</width>
+                <height>0</height>
                </size>
               </property>
              </spacer>
@@ -594,8 +594,8 @@
               </property>
               <property name="sizeHint" stdset="0">
                <size>
-                <width>20</width>
-                <height>40</height>
+                <width>0</width>
+                <height>0</height>
                </size>
               </property>
              </spacer>
@@ -612,8 +612,8 @@
             </property>
             <property name="sizeHint" stdset="0">
              <size>
-              <width>40</width>
-              <height>20</height>
+              <width>178</width>
+              <height>0</height>
              </size>
             </property>
            </spacer>
@@ -625,35 +625,12 @@
           <string>Leaf &amp;&amp; Soil</string>
          </attribute>
          <layout class="QGridLayout" name="gridLayout_6">
-          <item row="0" column="3">
-           <widget class="QGroupBox" name="verticalGroupBox_11">
-            <property name="title">
-             <string>Leaf Temperature</string>
-            </property>
-            <layout class="QVBoxLayout" name="verticalLayout_12">
-             <item>
-              <widget class="QCheckBox" name="cbLeafTemperature1">
-               <property name="text">
-                <string>Leaf Temperature 1</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QCheckBox" name="cbLeafTemperature2">
-               <property name="text">
-                <string>Leaf Temperature 2</string>
-               </property>
-              </widget>
-             </item>
-            </layout>
-           </widget>
-          </item>
           <item row="0" column="0" rowspan="2">
            <widget class="QGroupBox" name="gbSoilMoisture">
             <property name="title">
              <string>Soil Moisture</string>
             </property>
-            <layout class="QVBoxLayout" name="verticalLayout_9">
+            <layout class="QVBoxLayout" name="layoutSoilMoisture">
              <item>
               <widget class="QCheckBox" name="cbSoilMoisture1">
                <property name="text">
@@ -685,12 +662,35 @@
             </layout>
            </widget>
           </item>
+          <item row="0" column="3">
+           <widget class="QGroupBox" name="gbLeafTemperature">
+            <property name="title">
+             <string>Leaf Temperature</string>
+            </property>
+            <layout class="QVBoxLayout" name="layoutLeafTemperature">
+             <item>
+              <widget class="QCheckBox" name="cbLeafTemperature1">
+               <property name="text">
+                <string>Leaf Temperature 1</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QCheckBox" name="cbLeafTemperature2">
+               <property name="text">
+                <string>Leaf Temperature 2</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
           <item row="0" column="1" rowspan="2">
-           <widget class="QGroupBox" name="verticalGroupBox_9">
+           <widget class="QGroupBox" name="gbSoilTemperature">
             <property name="title">
              <string>Soil Temperature</string>
             </property>
-            <layout class="QVBoxLayout" name="gbSoilTemperature">
+            <layout class="QVBoxLayout" name="layoutSoilTemperature">
              <item>
               <widget class="QCheckBox" name="cbSoilTemperature1">
                <property name="text">
@@ -722,12 +722,25 @@
             </layout>
            </widget>
           </item>
+          <item row="1" column="2" rowspan="2">
+           <spacer name="verticalSpacer_7">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>0</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
           <item row="0" column="2">
            <widget class="QGroupBox" name="gbLeafWetness">
             <property name="title">
              <string>Leaf Wetness</string>
             </property>
-            <layout class="QVBoxLayout" name="verticalLayout_11">
+            <layout class="QVBoxLayout" name="layoutLeafWetness">
              <item>
               <widget class="QCheckBox" name="cbLeafWetness1">
                <property name="text">
@@ -752,20 +765,7 @@
             </property>
             <property name="sizeHint" stdset="0">
              <size>
-              <width>20</width>
-              <height>40</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-          <item row="1" column="2" rowspan="2">
-           <spacer name="verticalSpacer_7">
-            <property name="orientation">
-             <enum>Qt::Vertical</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>20</width>
+              <width>0</width>
               <height>40</height>
              </size>
             </property>
@@ -795,11 +795,11 @@
            </spacer>
           </item>
           <item row="0" column="1">
-           <widget class="QGroupBox" name="verticalGroupBox_13">
+           <widget class="QGroupBox" name="gbExtraHumidity">
             <property name="title">
              <string>Humidity</string>
             </property>
-            <layout class="QVBoxLayout" name="gbExtraHumidity">
+            <layout class="QVBoxLayout" name="lExtraHumidity">
              <item>
               <widget class="QCheckBox" name="cbExtraHumidity1">
                <property name="text">
@@ -818,11 +818,11 @@
            </widget>
           </item>
           <item row="0" column="0" rowspan="2">
-           <widget class="QGroupBox" name="verticalGroupBox_12">
+           <widget class="QGroupBox" name="gbExtraTemperature">
             <property name="title">
              <string>Temperature</string>
             </property>
-            <layout class="QVBoxLayout" name="gbExtraTemperature">
+            <layout class="QVBoxLayout" name="lExtraTemperature">
              <item>
               <widget class="QCheckBox" name="cbExtraTemperature1">
                <property name="text">
@@ -854,7 +854,7 @@
             </property>
             <property name="sizeHint" stdset="0">
              <size>
-              <width>20</width>
+              <width>0</width>
               <height>40</height>
              </size>
             </property>
@@ -867,7 +867,7 @@
             </property>
             <property name="sizeHint" stdset="0">
              <size>
-              <width>20</width>
+              <width>0</width>
               <height>40</height>
              </size>
             </property>
