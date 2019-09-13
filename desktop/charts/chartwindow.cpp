@@ -85,6 +85,8 @@ ChartWindow::ChartWindow(QList<DataSet> dataSets, bool solarAvailable, bool isWi
         ds = new WebDataSource(new DialogProgressListener(this), this);
 
     hw_type = ds->getHardwareType();
+    extraColumns = ds->extraColumnsAvailable();
+    extraColumnNames = ds->extraColumnNames();
     plotter->setDataSource(ds);
 
     // Toolbar - Main
@@ -1252,7 +1254,9 @@ void ChartWindow::save() {
 }
 
 void ChartWindow::addDataSet() {
-    ChartOptionsDialog options(solarDataAvailable, hw_type, isWireless);
+    ChartOptionsDialog options(solarDataAvailable, hw_type, isWireless,
+                               extraColumns,
+                               extraColumnNames);
     options.setWindowTitle("Add Data Set");
     options.setWindowIcon(QIcon(":/icons/dataset-add"));
 
@@ -1264,6 +1268,7 @@ void ChartWindow::addDataSet() {
 
     DataSet ds;
     ds.columns = columns;
+    ds.extraColumnNames = extraColumnNames;
     ds.startTime = options.getStartTime();
     ds.endTime = options.getEndTime();
     ds.aggregateFunction = options.getAggregateFunction();

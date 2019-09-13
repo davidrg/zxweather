@@ -541,6 +541,7 @@ void WeatherPlotter::addGenericGraph(DataSet dataSet, ExtraColumn column, Sample
         gs = extraGraphStyles[dataSet.id][column];
     else {
         gs = column;
+        gs.setName(dataSet.extraColumnNames[column]);
         extraGraphStyles[dataSet.id][column] = gs;
     }
     gs.applyStyle(graph);

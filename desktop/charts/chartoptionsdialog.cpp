@@ -6,12 +6,16 @@
 #include <QCheckbox>
 
 ChartOptionsDialog::ChartOptionsDialog(bool solarAvailable,
-                                       hardware_type_t hw_type, bool isWireless, QWidget *parent) :
+                                       hardware_type_t hw_type, bool isWireless,
+                                       ExtraColumns extraColumns,
+                                       QMap<ExtraColumn, QString> extraColumnNames,
+                                       QWidget *parent) :
     QDialog(parent),
     ui(new Ui::ChartOptionsDialog)
 {
     ui->setupUi(this);
 
+    // TODO: Get all this from the data sources column config
     if (!solarAvailable) {
         ui->gbSolar->setVisible(false);
         ui->gbSolarHighs->setVisible(false);
@@ -34,6 +38,118 @@ ChartOptionsDialog::ChartOptionsDialog(bool solarAvailable,
         ui->cbHighRainRate->setVisible(false);
         ui->cbGustDirection->setVisible(false);
     }
+
+    // Extra column config
+    ui->cbSoilMoisture1->setVisible(extraColumns.testFlag(EC_SoilMoisture1));
+    ui->cbSoilMoisture2->setVisible(extraColumns.testFlag(EC_SoilMoisture2));
+    ui->cbSoilMoisture3->setVisible(extraColumns.testFlag(EC_SoilMoisture3));
+    ui->cbSoilMoisture4->setVisible(extraColumns.testFlag(EC_SoilMoisture4));
+    ui->gbSoilMoisture->setVisible(
+                extraColumns.testFlag(EC_SoilMoisture1) ||
+                extraColumns.testFlag(EC_SoilMoisture2) ||
+                extraColumns.testFlag(EC_SoilMoisture3) ||
+                extraColumns.testFlag(EC_SoilMoisture4)
+                );
+
+    ui->cbSoilTemperature1->setVisible(extraColumns.testFlag(EC_SoilTemperature1));
+    ui->cbSoilTemperature2->setVisible(extraColumns.testFlag(EC_SoilTemperature2));
+    ui->cbSoilTemperature3->setVisible(extraColumns.testFlag(EC_SoilTemperature3));
+    ui->cbSoilTemperature4->setVisible(extraColumns.testFlag(EC_SoilTemperature4));
+    ui->gbSoilTemperature->setVisible(
+                extraColumns.testFlag(EC_SoilTemperature1) ||
+                extraColumns.testFlag(EC_SoilTemperature2) ||
+                extraColumns.testFlag(EC_SoilTemperature3) ||
+                extraColumns.testFlag(EC_SoilTemperature4)
+                );
+
+    ui->cbLeafWetness1->setVisible(extraColumns.testFlag(EC_LeafWetness1));
+    ui->cbLeafWetness2->setVisible(extraColumns.testFlag(EC_LeafWetness2));
+    ui->gbLeafWetness->setVisible(
+                extraColumns.testFlag(EC_LeafWetness1) ||
+                extraColumns.testFlag(EC_LeafWetness2)
+                );
+
+    ui->cbLeafTemperature1->setVisible(extraColumns.testFlag(EC_LeafTemperature1));
+    ui->cbLeafTemperature2->setVisible(extraColumns.testFlag(EC_LeafTemperature2));
+    ui->gbLeafTemperature->setVisible(
+                extraColumns.testFlag(EC_LeafTemperature1) ||
+                extraColumns.testFlag(EC_LeafTemperature2)
+                );
+
+    ui->tabLeafAndSoil->layout()->update();
+    ui->tabWidget->setTabEnabled(2,
+                extraColumns.testFlag(EC_SoilMoisture1) ||
+                extraColumns.testFlag(EC_SoilMoisture2) ||
+                extraColumns.testFlag(EC_SoilMoisture3) ||
+                extraColumns.testFlag(EC_SoilMoisture4) ||
+                extraColumns.testFlag(EC_SoilTemperature1) ||
+                extraColumns.testFlag(EC_SoilTemperature2) ||
+                extraColumns.testFlag(EC_SoilTemperature3) ||
+                extraColumns.testFlag(EC_SoilTemperature4) ||
+                extraColumns.testFlag(EC_LeafWetness1) ||
+                extraColumns.testFlag(EC_LeafWetness2) ||
+                extraColumns.testFlag(EC_LeafTemperature1) ||
+                extraColumns.testFlag(EC_LeafTemperature2)
+                );
+
+    ui->cbExtraHumidity1->setVisible(extraColumns.testFlag(EC_ExtraHumidity1));
+    ui->cbExtraHumidity2->setVisible(extraColumns.testFlag(EC_ExtraHumidity2));
+    ui->gbExtraHumidity->setVisible(
+                extraColumns.testFlag(EC_ExtraHumidity1) ||
+                extraColumns.testFlag(EC_ExtraHumidity2)
+                );
+
+    ui->cbExtraTemperature1->setVisible(extraColumns.testFlag(EC_ExtraTemperature1));
+    ui->cbExtraTemperature2->setVisible(extraColumns.testFlag(EC_ExtraTemperature2));
+    ui->cbExtraTemperature3->setVisible(extraColumns.testFlag(EC_ExtraTemperature3));
+    ui->gbExtraTemperature->setVisible(
+                extraColumns.testFlag(EC_ExtraTemperature1) ||
+                extraColumns.testFlag(EC_ExtraTemperature2) ||
+                extraColumns.testFlag(EC_ExtraTemperature3)
+                );
+
+    ui->tabWidget->setTabEnabled(3,
+                extraColumns.testFlag(EC_ExtraHumidity1) ||
+                extraColumns.testFlag(EC_ExtraHumidity2) ||
+                extraColumns.testFlag(EC_ExtraTemperature1) ||
+                extraColumns.testFlag(EC_ExtraTemperature2) ||
+                extraColumns.testFlag(EC_ExtraTemperature3)
+                );
+
+    if (extraColumns.testFlag(EC_SoilMoisture1))
+        ui->cbSoilMoisture1->setText(extraColumnNames[EC_SoilMoisture1]);
+    if (extraColumns.testFlag(EC_SoilMoisture2))
+        ui->cbSoilMoisture2->setText(extraColumnNames[EC_SoilMoisture2]);
+    if (extraColumns.testFlag(EC_SoilMoisture3))
+        ui->cbSoilMoisture3->setText(extraColumnNames[EC_SoilMoisture3]);
+    if (extraColumns.testFlag(EC_SoilMoisture4))
+        ui->cbSoilMoisture4->setText(extraColumnNames[EC_SoilMoisture4]);
+    if (extraColumns.testFlag(EC_SoilTemperature1))
+        ui->cbSoilTemperature1->setText(extraColumnNames[EC_SoilTemperature1]);
+    if (extraColumns.testFlag(EC_SoilTemperature2))
+        ui->cbSoilTemperature2->setText(extraColumnNames[EC_SoilTemperature2]);
+    if (extraColumns.testFlag(EC_SoilTemperature3))
+        ui->cbSoilTemperature3->setText(extraColumnNames[EC_SoilTemperature3]);
+    if (extraColumns.testFlag(EC_SoilTemperature4))
+        ui->cbSoilTemperature4->setText(extraColumnNames[EC_SoilTemperature4]);
+    if (extraColumns.testFlag(EC_LeafWetness1))
+        ui->cbLeafWetness1->setText(extraColumnNames[EC_LeafWetness1]);
+    if (extraColumns.testFlag(EC_LeafWetness2))
+        ui->cbLeafWetness2->setText(extraColumnNames[EC_LeafWetness2]);
+    if (extraColumns.testFlag(EC_LeafTemperature1))
+        ui->cbLeafTemperature1->setText(extraColumnNames[EC_LeafTemperature1]);
+    if (extraColumns.testFlag(EC_LeafTemperature2))
+        ui->cbLeafTemperature2->setText(extraColumnNames[EC_LeafTemperature2]);
+    if (extraColumns.testFlag(EC_ExtraHumidity1))
+        ui->cbExtraHumidity1->setText(extraColumnNames[EC_ExtraHumidity1]);
+    if (extraColumns.testFlag(EC_ExtraHumidity2))
+        ui->cbExtraHumidity2->setText(extraColumnNames[EC_ExtraHumidity2]);
+    if (extraColumns.testFlag(EC_ExtraTemperature1))
+        ui->cbExtraTemperature1->setText(extraColumnNames[EC_ExtraTemperature1]);
+    if (extraColumns.testFlag(EC_ExtraTemperature2))
+        ui->cbExtraTemperature2->setText(extraColumnNames[EC_ExtraTemperature2]);
+    if (extraColumns.testFlag(EC_ExtraTemperature3))
+        ui->cbExtraTemperature3->setText(extraColumnNames[EC_ExtraTemperature3]);
 
     // Buttons
     connect(this->ui->buttonBox, SIGNAL(accepted()), this, SLOT(checkAndAccept()));

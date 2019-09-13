@@ -20,6 +20,7 @@ class ChartOptionsDialog : public QDialog
 public:
 
     explicit ChartOptionsDialog(bool solarAvailable, hardware_type_t hw_type, bool isWireless,
+                                ExtraColumns extraColumns, QMap<ExtraColumn, QString> extraColumnNames,
                                 QWidget *parent = 0);
     ~ChartOptionsDialog();
     

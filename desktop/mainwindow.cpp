@@ -507,7 +507,9 @@ void MainWindow::showChartWindow() {
         wirelessAvailable = info.isWireless;
     }
 
-    ChartOptionsDialog options(solarDataAvailable, last_hw_type, wirelessAvailable);
+    ChartOptionsDialog options(solarDataAvailable, last_hw_type, wirelessAvailable,
+                               dataSource->extraColumnsAvailable(),
+                               dataSource->extraColumnNames());
     int result = options.exec();
     if (result != QDialog::Accepted)
         return; // User canceled. Nothing to do.
@@ -516,6 +518,7 @@ void MainWindow::showChartWindow() {
 
     DataSet ds;
     ds.columns = columns;
+    ds.extraColumnNames = dataSource->extraColumnNames();
     ds.startTime = options.getStartTime();
     ds.endTime = options.getEndTime();
     ds.aggregateFunction = options.getAggregateFunction();

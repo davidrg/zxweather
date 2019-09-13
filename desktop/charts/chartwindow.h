@@ -151,6 +151,8 @@ private:
     bool solarDataAvailable;
     bool isWireless;
     hardware_type_t hw_type;
+    ExtraColumns extraColumns;
+    QMap<ExtraColumn, QString> extraColumnNames;
 };
 
 #endif // CHARTWINDOW_H
