@@ -154,6 +154,9 @@
    <property name="text">
     <string>&amp;Save</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+S</string>
+   </property>
   </action>
   <action name="action_Copy">
    <property name="icon">
@@ -162,6 +165,9 @@
    </property>
    <property name="text">
     <string>&amp;Copy</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+C</string>
    </property>
   </action>
   <action name="action_Title">
@@ -260,6 +266,9 @@
    <property name="text">
     <string>Re&amp;name Graph</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+R</string>
+   </property>
   </action>
   <action name="actionC_hange_Style">
    <property name="icon">
@@ -268,6 +277,9 @@
    </property>
    <property name="text">
     <string>C&amp;hange Graph Style</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+G</string>
    </property>
   </action>
   <action name="action_Remove">
@@ -298,6 +310,9 @@
    </property>
    <property name="text">
     <string>&amp;Add Graph</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+A</string>
    </property>
   </action>
  </widget>
