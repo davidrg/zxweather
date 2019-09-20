@@ -278,6 +278,9 @@
    <property name="text">
     <string>&amp;Remove Graph</string>
    </property>
+   <property name="shortcut">
+    <string>Del</string>
+   </property>
   </action>
   <action name="actionC_hange_Timespan">
    <property name="icon">
