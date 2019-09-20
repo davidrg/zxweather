@@ -190,8 +190,8 @@ void ChartWindow::setDataSetActionsEnabled(bool enabled) {
         enabled = false;
     else {
         SampleColumns selected = plotter->selectedColumns(ds);
-        SampleColumns supported = AddGraphDialog::supportedColumns(hw_type, isWireless, solarDataAvailable);
-        graphsAvailable = selected.standard != supported.standard && selected.extra != supported.extra;
+        SampleColumns supported = AddGraphDialog::supportedColumns(hw_type, isWireless, solarDataAvailable, extraColumns);
+        graphsAvailable = selected.standard != supported.standard || selected.extra != supported.extra;
     }
 
     ui->action_Add_Graph->setEnabled(enabled && graphsAvailable);
@@ -627,8 +627,8 @@ void ChartWindow::showKeyAxisContextMenu(QPoint point, QCPAxis *axis) {
     dataset_id_t ds = getSelectedDataset();
     if (ds != INVALID_DATASET_ID) {
         SampleColumns selected = plotter->selectedColumns(ds);
-        SampleColumns supported = AddGraphDialog::supportedColumns(hw_type, isWireless, solarDataAvailable);
-        graphsAvailable = selected.standard != supported.standard && selected.extra != supported.extra;
+        SampleColumns supported = AddGraphDialog::supportedColumns(hw_type, isWireless, solarDataAvailable, extraColumns);
+        graphsAvailable = selected.standard != supported.standard || selected.extra != supported.extra;
     }
     QAction *act = menu->addAction(QIcon(":/icons/chart-add"),tr("&Add Graph..."), this, SLOT(addGraph()));
     act->setEnabled(graphsAvailable);
@@ -1194,6 +1194,8 @@ void ChartWindow::showAddGraph(dataset_id_t dsId) {
                        solarDataAvailable,
                        isWireless,
                        hw_type,
+                       extraColumns,
+                       extraColumnNames,
                        this);
     if (adg.exec() == QDialog::Accepted) {
         plotter->addGraphs(dsId, adg.selectedColumns());

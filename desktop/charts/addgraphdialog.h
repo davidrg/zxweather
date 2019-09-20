@@ -20,6 +20,8 @@ public:
                             bool solarAvailable,
                             bool isWireless,
                             hardware_type_t hw_type,
+                            ExtraColumns extraColumns,
+                            QMap<ExtraColumn, QString> extraColumnNames,
                             QWidget *parent = 0);
     ~AddGraphDialog();
     
@@ -28,7 +30,8 @@ public:
     // Gets the set of columns that this window supports returning via
     // the selectedColumns() method.
     static SampleColumns supportedColumns(hardware_type_t hw_type,
-                                          bool isWireless, bool hasSolar);
+                                          bool isWireless, bool hasSolar,
+                                          ExtraColumns extraColumns);
 
 private:
     Ui::AddGraphDialog *ui;
