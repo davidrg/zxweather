@@ -35,6 +35,9 @@
       <attribute name="title">
        <string>Common</string>
       </attribute>
+      <attribute name="whatsThis">
+       <string>Standard weather station sensors</string>
+      </attribute>
       <layout class="QGridLayout" name="gridLayout_2">
        <item row="0" column="0">
         <layout class="QVBoxLayout" name="verticalLayout_17">
@@ -396,6 +399,9 @@
       <attribute name="title">
        <string>Highs and Lows</string>
       </attribute>
+      <attribute name="whatsThis">
+       <string>Measured highs and lows during the archive period</string>
+      </attribute>
       <layout class="QGridLayout" name="gridLayout_8">
        <item row="0" column="2">
         <layout class="QVBoxLayout" name="verticalLayout_8">
@@ -557,6 +563,9 @@
       <attribute name="title">
        <string>Leaf &amp;&amp; Soil</string>
       </attribute>
+      <attribute name="whatsThis">
+       <string>Sensors attached to a Davis Leaf &amp; Soil Moisture/Temperature station</string>
+      </attribute>
       <layout class="QGridLayout" name="gridLayout_6">
        <item row="0" column="0" rowspan="2">
         <widget class="QGroupBox" name="gbSoilMoisture">
@@ -566,6 +575,12 @@
          <layout class="QVBoxLayout" name="layoutSoilMoisture">
           <item>
            <widget class="QCheckBox" name="cbSoilMoisture1">
+            <property name="toolTip">
+             <string/>
+            </property>
+            <property name="whatsThis">
+             <string>First soil moisture sensor</string>
+            </property>
             <property name="text">
              <string>Soil Moisture 1</string>
             </property>
@@ -573,6 +588,9 @@
           </item>
           <item>
            <widget class="QCheckBox" name="cbSoilMoisture2">
+            <property name="whatsThis">
+             <string>Second soil moisture sensor</string>
+            </property>
             <property name="text">
              <string>Soil Moisture 2</string>
             </property>
@@ -580,6 +598,9 @@
           </item>
           <item>
            <widget class="QCheckBox" name="cbSoilMoisture3">
+            <property name="whatsThis">
+             <string>Third soil moisture sensor</string>
+            </property>
             <property name="text">
              <string>Soil Moisture 3</string>
             </property>
@@ -587,6 +608,9 @@
           </item>
           <item>
            <widget class="QCheckBox" name="cbSoilMoisture4">
+            <property name="whatsThis">
+             <string>Fourth soil moisture sensor</string>
+            </property>
             <property name="text">
              <string>Soil Moisture 4</string>
             </property>
@@ -603,6 +627,9 @@
          <layout class="QVBoxLayout" name="layoutLeafTemperature">
           <item>
            <widget class="QCheckBox" name="cbLeafTemperature1">
+            <property name="whatsThis">
+             <string>First leaf temperature sensor</string>
+            </property>
             <property name="text">
              <string>Leaf Temperature 1</string>
             </property>
@@ -610,6 +637,9 @@
           </item>
           <item>
            <widget class="QCheckBox" name="cbLeafTemperature2">
+            <property name="whatsThis">
+             <string>Second leaf temperature sensor</string>
+            </property>
             <property name="text">
              <string>Leaf Temperature 2</string>
             </property>
@@ -626,6 +656,9 @@
          <layout class="QVBoxLayout" name="layoutSoilTemperature">
           <item>
            <widget class="QCheckBox" name="cbSoilTemperature1">
+            <property name="whatsThis">
+             <string>First soil temperature sensor</string>
+            </property>
             <property name="text">
              <string>Soil Temperature 1</string>
             </property>
@@ -633,6 +666,9 @@
           </item>
           <item>
            <widget class="QCheckBox" name="cbSoilTemperature2">
+            <property name="whatsThis">
+             <string>Second soil temperature sensor</string>
+            </property>
             <property name="text">
              <string>Soil Temperature 2</string>
             </property>
@@ -640,6 +676,9 @@
           </item>
           <item>
            <widget class="QCheckBox" name="cbSoilTemperature3">
+            <property name="whatsThis">
+             <string>Third soil temperature sensor</string>
+            </property>
             <property name="text">
              <string>Soil Temperature 3</string>
             </property>
@@ -647,6 +686,9 @@
           </item>
           <item>
            <widget class="QCheckBox" name="cbSoilTemperature4">
+            <property name="whatsThis">
+             <string>Fourth soil temperature sensor</string>
+            </property>
             <property name="text">
              <string>Soil Temperature 4</string>
             </property>
@@ -676,6 +718,9 @@
          <layout class="QVBoxLayout" name="layoutLeafWetness">
           <item>
            <widget class="QCheckBox" name="cbLeafWetness1">
+            <property name="whatsThis">
+             <string>First leaf wetness sensor</string>
+            </property>
             <property name="text">
              <string>Leaf Wetness 1</string>
             </property>
@@ -683,6 +728,9 @@
           </item>
           <item>
            <widget class="QCheckBox" name="cbLeafWetness2">
+            <property name="whatsThis">
+             <string>Second leaf wetness sensor</string>
+            </property>
             <property name="text">
              <string>Leaf Wetness 2</string>
             </property>
@@ -710,6 +758,9 @@
       <attribute name="title">
        <string>Extra Sensors</string>
       </attribute>
+      <attribute name="whatsThis">
+       <string>Sensors attached to extra Temperature or Temperature &amp; Humidity stations on a Davis weather station</string>
+      </attribute>
       <layout class="QGridLayout" name="gridLayout_7">
        <item row="0" column="2">
         <spacer name="horizontalSpacer_2">
@@ -735,6 +786,9 @@
          <layout class="QVBoxLayout" name="lExtraHumidity">
           <item>
            <widget class="QCheckBox" name="cbExtraHumidity1">
+            <property name="whatsThis">
+             <string>First extra humidity sensor</string>
+            </property>
             <property name="text">
              <string>Extra Humidity 1</string>
             </property>
@@ -742,6 +796,9 @@
           </item>
           <item>
            <widget class="QCheckBox" name="cbExtraHumidity2">
+            <property name="whatsThis">
+             <string>Second extra humidity sensor</string>
+            </property>
             <property name="text">
              <string>Extra Humidity 2</string>
             </property>
@@ -758,6 +815,9 @@
          <layout class="QVBoxLayout" name="lExtraTemperature">
           <item>
            <widget class="QCheckBox" name="cbExtraTemperature1">
+            <property name="whatsThis">
+             <string>First extra temperature sensor</string>
+            </property>
             <property name="text">
              <string>Extra Temperature 1</string>
             </property>
@@ -765,6 +825,9 @@
           </item>
           <item>
            <widget class="QCheckBox" name="cbExtraTemperature2">
+            <property name="whatsThis">
+             <string>Second extra temperature sensor</string>
+            </property>
             <property name="text">
              <string>Extra Temperature 2</string>
             </property>
@@ -772,6 +835,9 @@
           </item>
           <item>
            <widget class="QCheckBox" name="cbExtraTemperature3">
+            <property name="whatsThis">
+             <string>Third extra temperature sensor</string>
+            </property>
             <property name="text">
              <string>Extra Temperature 3</string>
             </property>
