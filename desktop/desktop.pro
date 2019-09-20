@@ -115,6 +115,7 @@ isEmpty(ECPG_BIN) {
 
 SOURCES += main.cpp\
     applock.cpp \
+    columnpickerwidget.cpp \
         mainwindow.cpp \
     settingsdialog.cpp \
     dbsignaladapter.cpp \
@@ -217,6 +218,7 @@ SOURCES += main.cpp\
 HEADERS  += mainwindow.h \
     abstracturlhandler.h \
     applock.h \
+    columnpickerwidget.h \
     database.h \
     settingsdialog.h \
     dbsignaladapter.h \
@@ -326,6 +328,7 @@ HEADERS  += mainwindow.h \
     datasource/livebuffer.h
 
 FORMS    += mainwindow.ui \
+    columnpickerwidget.ui \
     settingsdialog.ui \
     aboutdialog.ui \
     charts/chartwindow.ui \

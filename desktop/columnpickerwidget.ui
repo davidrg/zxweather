@@ -1,0 +1,859 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>ColumnPickerWidget</class>
+ <widget class="QWidget" name="ColumnPickerWidget">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>645</width>
+    <height>249</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <layout class="QGridLayout" name="gridLayout">
+   <property name="leftMargin">
+    <number>0</number>
+   </property>
+   <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="rightMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
+    <number>0</number>
+   </property>
+   <item row="0" column="0">
+    <widget class="QTabWidget" name="tabWidget">
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     <widget class="QWidget" name="tabCommon">
+      <attribute name="title">
+       <string>Common</string>
+      </attribute>
+      <layout class="QGridLayout" name="gridLayout_2">
+       <item row="0" column="0">
+        <layout class="QVBoxLayout" name="verticalLayout_17">
+         <item>
+          <widget class="QGroupBox" name="verticalGroupBox">
+           <property name="title">
+            <string>Temperature</string>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout">
+            <property name="leftMargin">
+             <number>9</number>
+            </property>
+            <property name="topMargin">
+             <number>9</number>
+            </property>
+            <property name="rightMargin">
+             <number>9</number>
+            </property>
+            <property name="bottomMargin">
+             <number>9</number>
+            </property>
+            <item>
+             <widget class="QCheckBox" name="cbTemperature">
+              <property name="whatsThis">
+               <string>Average outside temperature over the archive period</string>
+              </property>
+              <property name="text">
+               <string>Temperature</string>
+              </property>
+              <property name="checked">
+               <bool>false</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="cbIndoorTemperature">
+              <property name="whatsThis">
+               <string>Average inside temperature over the archive period</string>
+              </property>
+              <property name="text">
+               <string>Inside Temperature</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="cbApparentTemperature">
+              <property name="whatsThis">
+               <string>Average apparent temperature over the archive period</string>
+              </property>
+              <property name="text">
+               <string>Apparent Temperature</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="cbWindChill">
+              <property name="whatsThis">
+               <string>Average wind chill over the archive period</string>
+              </property>
+              <property name="text">
+               <string>Wind Chill</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="cbDewPoint">
+              <property name="whatsThis">
+               <string>Average dew point over the archive period</string>
+              </property>
+              <property name="text">
+               <string>Dew Point</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <spacer name="verticalSpacer">
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>0</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+       <item row="0" column="2">
+        <layout class="QVBoxLayout" name="verticalLayout_19">
+         <item>
+          <widget class="QGroupBox" name="groupBox_2">
+           <property name="title">
+            <string>Rain</string>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout_16">
+            <item>
+             <widget class="QCheckBox" name="cbRainfall">
+              <property name="enabled">
+               <bool>true</bool>
+              </property>
+              <property name="whatsThis">
+               <string>Total rainfall over the archive period</string>
+              </property>
+              <property name="text">
+               <string>Rainfall</string>
+              </property>
+              <property name="checked">
+               <bool>false</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="cbHighRainRate">
+              <property name="whatsThis">
+               <string>Maximum recorded rain rate over the archive period</string>
+              </property>
+              <property name="text">
+               <string>High Rain Rate</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QGroupBox" name="verticalGroupBox_4">
+           <property name="title">
+            <string>Other</string>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout_5">
+            <property name="leftMargin">
+             <number>9</number>
+            </property>
+            <property name="topMargin">
+             <number>9</number>
+            </property>
+            <property name="rightMargin">
+             <number>9</number>
+            </property>
+            <property name="bottomMargin">
+             <number>9</number>
+            </property>
+            <item>
+             <widget class="QCheckBox" name="cbPressure">
+              <property name="enabled">
+               <bool>true</bool>
+              </property>
+              <property name="whatsThis">
+               <string>Average barometric pressure over the archive period</string>
+              </property>
+              <property name="text">
+               <string>Barometric Pressure</string>
+              </property>
+              <property name="checked">
+               <bool>false</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="cbWirelessReception">
+              <property name="whatsThis">
+               <string>Average wireless reception quality over the archive period</string>
+              </property>
+              <property name="text">
+               <string>Wireless Reception</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <spacer name="verticalSpacer_2">
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>0</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+       <item row="0" column="3">
+        <layout class="QVBoxLayout" name="verticalLayout_20">
+         <item>
+          <widget class="QGroupBox" name="gbSolar">
+           <property name="title">
+            <string>Solar</string>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout_4">
+            <property name="leftMargin">
+             <number>9</number>
+            </property>
+            <property name="topMargin">
+             <number>9</number>
+            </property>
+            <property name="rightMargin">
+             <number>9</number>
+            </property>
+            <property name="bottomMargin">
+             <number>9</number>
+            </property>
+            <item>
+             <widget class="QCheckBox" name="cbUVIndex">
+              <property name="whatsThis">
+               <string>Average UV Index over the archive period</string>
+              </property>
+              <property name="text">
+               <string>UV Index</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="cbSolarRadiation">
+              <property name="whatsThis">
+               <string>Average Solar Radiation over the archive period</string>
+              </property>
+              <property name="text">
+               <string>Solar Radiation</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="cbEvapotranspiration">
+              <property name="whatsThis">
+               <string>Evapotranspiration - present only in the first sample of every hour.</string>
+              </property>
+              <property name="text">
+               <string>Evapotranspiration</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <spacer name="verticalSpacer_4">
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+       <item row="0" column="1">
+        <layout class="QVBoxLayout" name="verticalLayout_18">
+         <item>
+          <widget class="QGroupBox" name="groupBox">
+           <property name="title">
+            <string>Humidity</string>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout_15">
+            <item>
+             <widget class="QCheckBox" name="cbHumidity">
+              <property name="enabled">
+               <bool>true</bool>
+              </property>
+              <property name="whatsThis">
+               <string>Average outside relative humidity over the archive period</string>
+              </property>
+              <property name="text">
+               <string>Humidity</string>
+              </property>
+              <property name="checked">
+               <bool>false</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="cbIndoorHumidity">
+              <property name="enabled">
+               <bool>true</bool>
+              </property>
+              <property name="whatsThis">
+               <string>Average inside relative humidity over the archive period</string>
+              </property>
+              <property name="text">
+               <string>Inside Humidity</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QGroupBox" name="verticalGroupBox_2">
+           <property name="title">
+            <string>Wind</string>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout_3">
+            <property name="leftMargin">
+             <number>9</number>
+            </property>
+            <property name="topMargin">
+             <number>9</number>
+            </property>
+            <property name="rightMargin">
+             <number>9</number>
+            </property>
+            <property name="bottomMargin">
+             <number>9</number>
+            </property>
+            <item>
+             <widget class="QCheckBox" name="cbAverageWindSpeed">
+              <property name="whatsThis">
+               <string>Average wind speed over the archive period</string>
+              </property>
+              <property name="text">
+               <string>Average Speed</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="cbWindDirection">
+              <property name="whatsThis">
+               <string>Average wind direction over the archive period</string>
+              </property>
+              <property name="text">
+               <string>Average Direction</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <spacer name="verticalSpacer_3">
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>0</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tabHighsAndLows">
+      <attribute name="title">
+       <string>Highs and Lows</string>
+      </attribute>
+      <layout class="QGridLayout" name="gridLayout_8">
+       <item row="0" column="2">
+        <layout class="QVBoxLayout" name="verticalLayout_8">
+         <item>
+          <widget class="QGroupBox" name="gbSolarHighs">
+           <property name="title">
+            <string>Solar</string>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout_22">
+            <item>
+             <widget class="QCheckBox" name="cbHighSolarRadiation">
+              <property name="whatsThis">
+               <string>Maximum recorded solar radiation over the archive period</string>
+              </property>
+              <property name="text">
+               <string>High Solar Radiation</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="cbHighUVIndex">
+              <property name="whatsThis">
+               <string>Maximum recorded UV Index over the archive period</string>
+              </property>
+              <property name="text">
+               <string>High UV Index</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <spacer name="verticalSpacer_13">
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+       <item row="0" column="1">
+        <layout class="QVBoxLayout" name="verticalLayout_7">
+         <item>
+          <widget class="QGroupBox" name="gbWindGust">
+           <property name="title">
+            <string>Wind</string>
+           </property>
+           <layout class="QGridLayout" name="gridLayout_5">
+            <item row="0" column="0">
+             <widget class="QCheckBox" name="cbGustWindSpeed">
+              <property name="whatsThis">
+               <string>Maximum recorded wind speed over the archive period</string>
+              </property>
+              <property name="text">
+               <string>Gust Speed</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QCheckBox" name="cbGustDirection">
+              <property name="whatsThis">
+               <string>Direction of maximum recorded wind speed over the archive period</string>
+              </property>
+              <property name="text">
+               <string>Gust Direction</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <spacer name="verticalSpacer_12">
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+       <item row="0" column="0">
+        <layout class="QVBoxLayout" name="verticalLayout_6">
+         <item>
+          <widget class="QGroupBox" name="gbTemperatureHighLow">
+           <property name="title">
+            <string>Temperature</string>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout_21">
+            <item>
+             <widget class="QCheckBox" name="cbHighTemperature">
+              <property name="whatsThis">
+               <string>Maximum recorded outside temperature over the archive period</string>
+              </property>
+              <property name="text">
+               <string>High Outside Temperature</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="cbLowTemperature">
+              <property name="whatsThis">
+               <string>Minimum recorded outside temperature over the archive period</string>
+              </property>
+              <property name="text">
+               <string>Low Outside Temperature</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <spacer name="verticalSpacer_5">
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+       <item row="0" column="3">
+        <spacer name="horizontalSpacer">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::Preferred</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>178</width>
+           <height>0</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tabLeafAndSoil">
+      <attribute name="title">
+       <string>Leaf &amp;&amp; Soil</string>
+      </attribute>
+      <layout class="QGridLayout" name="gridLayout_6">
+       <item row="0" column="0" rowspan="2">
+        <widget class="QGroupBox" name="gbSoilMoisture">
+         <property name="title">
+          <string>Soil Moisture</string>
+         </property>
+         <layout class="QVBoxLayout" name="layoutSoilMoisture">
+          <item>
+           <widget class="QCheckBox" name="cbSoilMoisture1">
+            <property name="text">
+             <string>Soil Moisture 1</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="cbSoilMoisture2">
+            <property name="text">
+             <string>Soil Moisture 2</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="cbSoilMoisture3">
+            <property name="text">
+             <string>Soil Moisture 3</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="cbSoilMoisture4">
+            <property name="text">
+             <string>Soil Moisture 4</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item row="0" column="3">
+        <widget class="QGroupBox" name="gbLeafTemperature">
+         <property name="title">
+          <string>Leaf Temperature</string>
+         </property>
+         <layout class="QVBoxLayout" name="layoutLeafTemperature">
+          <item>
+           <widget class="QCheckBox" name="cbLeafTemperature1">
+            <property name="text">
+             <string>Leaf Temperature 1</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="cbLeafTemperature2">
+            <property name="text">
+             <string>Leaf Temperature 2</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item row="0" column="1" rowspan="2">
+        <widget class="QGroupBox" name="gbSoilTemperature">
+         <property name="title">
+          <string>Soil Temperature</string>
+         </property>
+         <layout class="QVBoxLayout" name="layoutSoilTemperature">
+          <item>
+           <widget class="QCheckBox" name="cbSoilTemperature1">
+            <property name="text">
+             <string>Soil Temperature 1</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="cbSoilTemperature2">
+            <property name="text">
+             <string>Soil Temperature 2</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="cbSoilTemperature3">
+            <property name="text">
+             <string>Soil Temperature 3</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="cbSoilTemperature4">
+            <property name="text">
+             <string>Soil Temperature 4</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item row="1" column="2" rowspan="2">
+        <spacer name="verticalSpacer_7">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>0</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="0" column="2">
+        <widget class="QGroupBox" name="gbLeafWetness">
+         <property name="title">
+          <string>Leaf Wetness</string>
+         </property>
+         <layout class="QVBoxLayout" name="layoutLeafWetness">
+          <item>
+           <widget class="QCheckBox" name="cbLeafWetness1">
+            <property name="text">
+             <string>Leaf Wetness 1</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="cbLeafWetness2">
+            <property name="text">
+             <string>Leaf Wetness 2</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <spacer name="verticalSpacer_6">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>0</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tabExtra">
+      <attribute name="title">
+       <string>Extra Sensors</string>
+      </attribute>
+      <layout class="QGridLayout" name="gridLayout_7">
+       <item row="0" column="2">
+        <spacer name="horizontalSpacer_2">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::Minimum</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>311</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="0" column="1">
+        <widget class="QGroupBox" name="gbExtraHumidity">
+         <property name="title">
+          <string>Humidity</string>
+         </property>
+         <layout class="QVBoxLayout" name="lExtraHumidity">
+          <item>
+           <widget class="QCheckBox" name="cbExtraHumidity1">
+            <property name="text">
+             <string>Extra Humidity 1</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="cbExtraHumidity2">
+            <property name="text">
+             <string>Extra Humidity 2</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item row="0" column="0" rowspan="2">
+        <widget class="QGroupBox" name="gbExtraTemperature">
+         <property name="title">
+          <string>Temperature</string>
+         </property>
+         <layout class="QVBoxLayout" name="lExtraTemperature">
+          <item>
+           <widget class="QCheckBox" name="cbExtraTemperature1">
+            <property name="text">
+             <string>Extra Temperature 1</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="cbExtraTemperature2">
+            <property name="text">
+             <string>Extra Temperature 2</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="cbExtraTemperature3">
+            <property name="text">
+             <string>Extra Temperature 3</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <spacer name="verticalSpacer_9">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>0</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="1" column="1" rowspan="2">
+        <spacer name="verticalSpacer_8">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>0</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <tabstops>
+  <tabstop>cbTemperature</tabstop>
+  <tabstop>cbIndoorTemperature</tabstop>
+  <tabstop>cbApparentTemperature</tabstop>
+  <tabstop>cbWindChill</tabstop>
+  <tabstop>cbDewPoint</tabstop>
+  <tabstop>cbHumidity</tabstop>
+  <tabstop>cbIndoorHumidity</tabstop>
+  <tabstop>cbAverageWindSpeed</tabstop>
+  <tabstop>cbWindDirection</tabstop>
+  <tabstop>cbRainfall</tabstop>
+  <tabstop>cbHighRainRate</tabstop>
+  <tabstop>cbPressure</tabstop>
+  <tabstop>cbWirelessReception</tabstop>
+  <tabstop>cbUVIndex</tabstop>
+  <tabstop>cbSolarRadiation</tabstop>
+  <tabstop>cbEvapotranspiration</tabstop>
+  <tabstop>cbHighTemperature</tabstop>
+  <tabstop>cbLowTemperature</tabstop>
+  <tabstop>cbGustWindSpeed</tabstop>
+  <tabstop>cbGustDirection</tabstop>
+  <tabstop>cbHighSolarRadiation</tabstop>
+  <tabstop>cbHighUVIndex</tabstop>
+  <tabstop>cbSoilMoisture1</tabstop>
+  <tabstop>cbSoilMoisture2</tabstop>
+  <tabstop>cbSoilMoisture3</tabstop>
+  <tabstop>cbSoilMoisture4</tabstop>
+  <tabstop>cbSoilTemperature1</tabstop>
+  <tabstop>cbSoilTemperature2</tabstop>
+  <tabstop>cbSoilTemperature3</tabstop>
+  <tabstop>cbSoilTemperature4</tabstop>
+  <tabstop>cbLeafWetness1</tabstop>
+  <tabstop>cbLeafWetness2</tabstop>
+  <tabstop>cbLeafTemperature1</tabstop>
+  <tabstop>cbLeafTemperature2</tabstop>
+  <tabstop>cbExtraTemperature1</tabstop>
+  <tabstop>cbExtraTemperature2</tabstop>
+  <tabstop>cbExtraTemperature3</tabstop>
+  <tabstop>cbExtraHumidity1</tabstop>
+  <tabstop>cbExtraHumidity2</tabstop>
+  <tabstop>tabWidget</tabstop>
+ </tabstops>
+ <resources/>
+ <connections/>
+</ui>
