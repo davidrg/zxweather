@@ -29,6 +29,7 @@ WeatherValueWidget::WeatherValueWidget(QWidget *parent) : QWidget(parent)
 
     column1 = SC_NoColumns;
     column2 = SC_NoColumns;
+    column1ex = EC_NoColumns;
 
     setContextMenuPolicy(Qt::CustomContextMenu);
     connect(this, SIGNAL(customContextMenuRequested(QPoint)),
@@ -81,6 +82,7 @@ void WeatherValueWidget::clear() {
     column1 = SC_NoColumns;
     value2 = UnitConversions::UnitValue();
     column2 = SC_NoColumns;
+    column1ex = EC_NoColumns;
     insideOutside = false;
     doubleValue = false;
     label->setText("--");
