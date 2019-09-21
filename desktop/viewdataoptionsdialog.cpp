@@ -11,7 +11,7 @@ ViewDataOptionsDialog::ViewDataOptionsDialog(bool solarAvailable, hardware_type_
     connect(ui->pbSelectAll, SIGNAL(clicked(bool)), ui->columnPicker, SLOT(checkAll()));
     connect(ui->pbSelectNone, SIGNAL(clicked(bool)), ui->columnPicker, SLOT(uncheckAll()));
 
-    ui->columnPicker->configure(solarAvailable, hw_type, isWireless, extraColumns, extraColumnNames);
+    ui->columnPicker->configure(solarAvailable, hw_type, isWireless, extraColumns, extraColumnNames, true);
 
     ui->columnPicker->checkAll();
 }
