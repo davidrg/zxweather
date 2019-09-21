@@ -39,6 +39,22 @@ public:
      */
     void checkAndLockColumns(SampleColumns columns);
 
+    /** Returns all checked columns (including those that have been disabled via
+     * checkAndLockColumns(SampleColumns).
+     *
+     * @return All checked columns
+     */
+    SampleColumns getColumns() const;
+
+    /** Returns all checked columns that weren't specified in any previous call to
+     * checkAndLockColumns(SampleColumns)
+     *
+     * @return Selected columns
+     */
+    SampleColumns getNewColumns() const;
+
+
+public slots:
     /** Checks all enabled checkboxes
      */
     void checkAll();
@@ -46,20 +62,6 @@ public:
     /** Unchecks all enabled checkboxes
      */
     void uncheckAll();
-
-    /** Returns all checked columns (including those that have been disabled via
-     * checkAndLockColumns(SampleColumns).
-     *
-     * @return All checked columns
-     */
-    SampleColumns getColumns();
-
-    /** Returns all checked columns that weren't specified in any previous call to
-     * checkAndLockColumns(SampleColumns)
-     *
-     * @return Selected columns
-     */
-    SampleColumns getNewColumns();
 
 private slots:
     void checkboxToggled(bool checked);

@@ -28,10 +28,19 @@ void ColumnPickerWidget::configure(bool solarAvailable, hardware_type_t hw_type,
         ui->cbEvapotranspiration->setVisible(false);
         ui->cbHighSolarRadiation->setVisible(false);
         ui->cbHighUVIndex->setVisible(false);
+
+        ui->gbSolar->setEnabled(false);
+        ui->gbSolarHighs->setEnabled(false);
+        ui->cbSolarRadiation->setEnabled(false);
+        ui->cbUVIndex->setEnabled(false);
+        ui->cbEvapotranspiration->setEnabled(false);
+        ui->cbHighSolarRadiation->setEnabled(false);
+        ui->cbHighUVIndex->setEnabled(false);
     }
 
     if (!isWireless) {
         ui->cbWirelessReception->setVisible(false);
+        ui->cbWirelessReception->setEnabled(false);
     }
 
     if (hw_type != HW_DAVIS) {
@@ -41,6 +50,13 @@ void ColumnPickerWidget::configure(bool solarAvailable, hardware_type_t hw_type,
         ui->cbWirelessReception->setVisible(false);
         ui->cbHighRainRate->setVisible(false);
         ui->cbGustDirection->setVisible(false);
+
+        ui->gbTemperatureHighLow->setEnabled(false);
+        ui->cbHighTemperature->setEnabled(false);
+        ui->cbLowTemperature->setEnabled(false);
+        ui->cbWirelessReception->setEnabled(false);
+        ui->cbHighRainRate->setEnabled(false);
+        ui->cbGustDirection->setEnabled(false);
     }
 
     // Extra column config
@@ -48,6 +64,12 @@ void ColumnPickerWidget::configure(bool solarAvailable, hardware_type_t hw_type,
     ui->cbSoilMoisture2->setVisible(extraColumns.testFlag(EC_SoilMoisture2));
     ui->cbSoilMoisture3->setVisible(extraColumns.testFlag(EC_SoilMoisture3));
     ui->cbSoilMoisture4->setVisible(extraColumns.testFlag(EC_SoilMoisture4));
+
+    ui->cbSoilMoisture1->setEnabled(extraColumns.testFlag(EC_SoilMoisture1));
+    ui->cbSoilMoisture2->setEnabled(extraColumns.testFlag(EC_SoilMoisture2));
+    ui->cbSoilMoisture3->setEnabled(extraColumns.testFlag(EC_SoilMoisture3));
+    ui->cbSoilMoisture4->setEnabled(extraColumns.testFlag(EC_SoilMoisture4));
+
     ui->gbSoilMoisture->setVisible(
                 extraColumns.testFlag(EC_SoilMoisture1) ||
                 extraColumns.testFlag(EC_SoilMoisture2) ||
@@ -59,6 +81,12 @@ void ColumnPickerWidget::configure(bool solarAvailable, hardware_type_t hw_type,
     ui->cbSoilTemperature2->setVisible(extraColumns.testFlag(EC_SoilTemperature2));
     ui->cbSoilTemperature3->setVisible(extraColumns.testFlag(EC_SoilTemperature3));
     ui->cbSoilTemperature4->setVisible(extraColumns.testFlag(EC_SoilTemperature4));
+
+    ui->cbSoilTemperature1->setEnabled(extraColumns.testFlag(EC_SoilTemperature1));
+    ui->cbSoilTemperature2->setEnabled(extraColumns.testFlag(EC_SoilTemperature2));
+    ui->cbSoilTemperature3->setEnabled(extraColumns.testFlag(EC_SoilTemperature3));
+    ui->cbSoilTemperature4->setEnabled(extraColumns.testFlag(EC_SoilTemperature4));
+
     ui->gbSoilTemperature->setVisible(
                 extraColumns.testFlag(EC_SoilTemperature1) ||
                 extraColumns.testFlag(EC_SoilTemperature2) ||
@@ -68,6 +96,10 @@ void ColumnPickerWidget::configure(bool solarAvailable, hardware_type_t hw_type,
 
     ui->cbLeafWetness1->setVisible(extraColumns.testFlag(EC_LeafWetness1));
     ui->cbLeafWetness2->setVisible(extraColumns.testFlag(EC_LeafWetness2));
+
+    ui->cbLeafWetness1->setEnabled(extraColumns.testFlag(EC_LeafWetness1));
+    ui->cbLeafWetness2->setEnabled(extraColumns.testFlag(EC_LeafWetness2));
+
     ui->gbLeafWetness->setVisible(
                 extraColumns.testFlag(EC_LeafWetness1) ||
                 extraColumns.testFlag(EC_LeafWetness2)
@@ -75,6 +107,10 @@ void ColumnPickerWidget::configure(bool solarAvailable, hardware_type_t hw_type,
 
     ui->cbLeafTemperature1->setVisible(extraColumns.testFlag(EC_LeafTemperature1));
     ui->cbLeafTemperature2->setVisible(extraColumns.testFlag(EC_LeafTemperature2));
+
+    ui->cbLeafTemperature1->setEnabled(extraColumns.testFlag(EC_LeafTemperature1));
+    ui->cbLeafTemperature2->setEnabled(extraColumns.testFlag(EC_LeafTemperature2));
+
     ui->gbLeafTemperature->setVisible(
                 extraColumns.testFlag(EC_LeafTemperature1) ||
                 extraColumns.testFlag(EC_LeafTemperature2)
@@ -98,6 +134,10 @@ void ColumnPickerWidget::configure(bool solarAvailable, hardware_type_t hw_type,
 
     ui->cbExtraHumidity1->setVisible(extraColumns.testFlag(EC_ExtraHumidity1));
     ui->cbExtraHumidity2->setVisible(extraColumns.testFlag(EC_ExtraHumidity2));
+
+    ui->cbExtraHumidity1->setEnabled(extraColumns.testFlag(EC_ExtraHumidity1));
+    ui->cbExtraHumidity2->setEnabled(extraColumns.testFlag(EC_ExtraHumidity2));
+
     ui->gbExtraHumidity->setVisible(
                 extraColumns.testFlag(EC_ExtraHumidity1) ||
                 extraColumns.testFlag(EC_ExtraHumidity2)
@@ -106,6 +146,11 @@ void ColumnPickerWidget::configure(bool solarAvailable, hardware_type_t hw_type,
     ui->cbExtraTemperature1->setVisible(extraColumns.testFlag(EC_ExtraTemperature1));
     ui->cbExtraTemperature2->setVisible(extraColumns.testFlag(EC_ExtraTemperature2));
     ui->cbExtraTemperature3->setVisible(extraColumns.testFlag(EC_ExtraTemperature3));
+
+    ui->cbExtraTemperature1->setEnabled(extraColumns.testFlag(EC_ExtraTemperature1));
+    ui->cbExtraTemperature2->setEnabled(extraColumns.testFlag(EC_ExtraTemperature2));
+    ui->cbExtraTemperature3->setEnabled(extraColumns.testFlag(EC_ExtraTemperature3));
+
     ui->gbExtraTemperature->setVisible(
                 extraColumns.testFlag(EC_ExtraTemperature1) ||
                 extraColumns.testFlag(EC_ExtraTemperature2) ||
@@ -204,7 +249,7 @@ void ColumnPickerWidget::checkboxToggled(bool checked) {
     }
 }
 
-SampleColumns ColumnPickerWidget::getColumns() {
+SampleColumns ColumnPickerWidget::getColumns() const {
     SampleColumns columns;
 
     columns.standard &= SC_NoColumns;
@@ -398,7 +443,7 @@ void ColumnPickerWidget::checkAndLockColumns(SampleColumns columns) {
     }
 }
 
-SampleColumns ColumnPickerWidget::getNewColumns() {
+SampleColumns ColumnPickerWidget::getNewColumns() const {
     SampleColumns columns = getColumns();
 
     // Clear the columns we started out with so we're only returning the

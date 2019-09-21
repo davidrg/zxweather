@@ -1935,71 +1935,71 @@ void DatabaseDataSource::loadSensorConfig() {
                     if (key == "leaf_wetness_1") {
                         config.isExtraColumn = true;
                         config.extraColumn = EC_LeafWetness1;
-                        config.default_name = "Leaf Wetness 1";
+                        config.default_name = tr("Leaf Wetness 1");
                     } else if (key == "leaf_wetness_2") {
                         config.isExtraColumn = true;
                         config.extraColumn = EC_LeafWetness2;
-                        config.default_name = "Leaf Wetness 2";
+                        config.default_name = tr("Leaf Wetness 2");
                     } else if (key == "leaf_temperature_1") {
                         config.isExtraColumn = true;
                         config.extraColumn = EC_LeafTemperature1;
-                        config.default_name = "Leaf Temperature 1";
+                        config.default_name = tr("Leaf Temperature 1");
                     } else if (key == "leaf_temperature_2") {
                         config.isExtraColumn = true;
                         config.extraColumn = EC_LeafTemperature2;
-                        config.default_name = "Leaf Temperature 2";
+                        config.default_name = tr("Leaf Temperature 2");
                     } else if (key == "soil_moisture_1") {
                         config.isExtraColumn = true;
                         config.extraColumn = EC_SoilMoisture1;
-                        config.default_name = "Soil Moisture 1";
+                        config.default_name = tr("Soil Moisture 1");
                     } else if (key == "soil_moisture_2") {
                         config.isExtraColumn = true;
                         config.extraColumn = EC_SoilMoisture2;
-                        config.default_name = "Soil Moisture 2";
+                        config.default_name = tr("Soil Moisture 2");
                     } else if (key == "soil_moisture_3") {
                         config.isExtraColumn = true;
                         config.extraColumn = EC_SoilMoisture3;
-                        config.default_name = "Soil Moisture 3";
+                        config.default_name = tr("Soil Moisture 3");
                     } else if (key == "soil_moisture_4") {
                         config.isExtraColumn = true;
                         config.extraColumn = EC_SoilMoisture4;
-                        config.default_name = "Soil Moisture 4";
+                        config.default_name = tr("Soil Moisture 4");
                     } else if (key == "soil_temperature_1") {
                         config.isExtraColumn = true;
                         config.extraColumn = EC_SoilTemperature1;
-                        config.default_name = "Soil Temperature 1";
+                        config.default_name = tr("Soil Temperature 1");
                     } else if (key == "soil_temperature_2") {
                         config.isExtraColumn = true;
                         config.extraColumn = EC_SoilTemperature2;
-                        config.default_name = "Soil Temperature 2";
+                        config.default_name = tr("Soil Temperature 2");
                     } else if (key == "soil_temperature_3") {
                         config.isExtraColumn = true;
                         config.extraColumn = EC_SoilTemperature3;
-                        config.default_name = "Soil Temperature 3";
+                        config.default_name = tr("Soil Temperature 3");
                     } else if (key == "soil_temperature_4") {
                         config.isExtraColumn = true;
                         config.extraColumn = EC_SoilTemperature4;
-                        config.default_name = "Soil Temperature 4";
+                        config.default_name = tr("Soil Temperature 4");
                     } else if (key == "extra_humidity_1") {
                         config.isExtraColumn = true;
                         config.extraColumn = EC_ExtraHumidity1;
-                        config.default_name = "Extra Humidity 1";
+                        config.default_name = tr("Extra Humidity 1");
                     } else if (key == "extra_humidity_2") {
                         config.isExtraColumn = true;
                         config.extraColumn = EC_ExtraHumidity2;
-                        config.default_name = "Extra Humidity 2";
+                        config.default_name = tr("Extra Humidity 2");
                     } else if (key == "extra_temperature_1") {
                         config.isExtraColumn = true;
                         config.extraColumn = EC_ExtraTemperature1;
-                        config.default_name = "Extra Temperature 1";
+                        config.default_name = tr("Extra Temperature 1");
                     } else if (key == "extra_temperature_2") {
                         config.isExtraColumn = true;
                         config.extraColumn = EC_ExtraTemperature2;
-                        config.default_name = "Extra Temperature 2";
+                        config.default_name = tr("Extra Temperature 2");
                     } else if (key == "extra_temperature_3") {
                         config.isExtraColumn = true;
                         config.extraColumn = EC_ExtraTemperature3;
-                        config.default_name = "Extra Temperature 3";
+                        config.default_name = tr("Extra Temperature 3");
                     }
 
                     qDebug() << "Sensor" << config.system_name

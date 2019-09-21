@@ -24,12 +24,12 @@ public:
                                 QWidget *parent = 0);
     ~ChartOptionsDialog();
     
-    QDateTime getStartTime();
-    QDateTime getEndTime();
-    SampleColumns getColumns();
-    AggregateFunction getAggregateFunction();
-    AggregateGroupType getAggregateGroupType();
-    uint32_t getCustomMinutes();
+    QDateTime getStartTime() const;
+    QDateTime getEndTime() const;
+    SampleColumns getColumns() const;
+    AggregateFunction getAggregateFunction() const;
+    AggregateGroupType getAggregateGroupType() const;
+    uint32_t getCustomMinutes() const;
 
 private slots:
     void checkAndAccept();
