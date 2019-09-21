@@ -211,6 +211,13 @@
               </property>
              </widget>
             </item>
+            <item>
+             <widget class="QCheckBox" name="cbForecastRule">
+              <property name="text">
+               <string>Forecast Rule ID</string>
+              </property>
+             </widget>
+            </item>
            </layout>
           </widget>
          </item>

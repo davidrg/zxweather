@@ -28,10 +28,12 @@ public:
      * @param isWireless If a wireless davis station is being used
      * @param extraColumns Enabled extra columns
      * @param extraColumnNames Names for enabled extra columns
+     * @param forecastRule Show the Forecast Rule ID checkbox
      */
     void configure(bool solarAvailable, hardware_type_t hw_type, bool isWireless,
                    ExtraColumns extraColumns,
-                   QMap<ExtraColumn, QString> extraColumnNames);
+                   QMap<ExtraColumn, QString> extraColumnNames,
+                   bool forecastRule = false);
 
     /** Used by the add graph dialog. Checks all specified checkboxes and disables
      * them. These columns won't be returned by getNewColumns.

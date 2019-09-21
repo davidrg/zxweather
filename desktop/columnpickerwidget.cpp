@@ -8,6 +8,7 @@ ColumnPickerWidget::ColumnPickerWidget(QWidget *parent) :
     ui(new Ui::ColumnPickerWidget)
 {
     ui->setupUi(this);
+    ui->cbForecastRule->hide();
 }
 
 ColumnPickerWidget::~ColumnPickerWidget()
@@ -18,7 +19,11 @@ ColumnPickerWidget::~ColumnPickerWidget()
 
 void ColumnPickerWidget::configure(bool solarAvailable, hardware_type_t hw_type,
                                    bool isWireless, ExtraColumns extraColumns,
-                                   QMap<ExtraColumn, QString> extraColumnNames) {
+                                   QMap<ExtraColumn, QString> extraColumnNames,
+                                   bool forecastRule) {
+
+    ui->cbForecastRule->setVisible(forecastRule);
+
     // TODO: Get all this from the data sources column config
     if (!solarAvailable) {
         ui->gbSolar->setVisible(false);
@@ -299,6 +304,8 @@ SampleColumns ColumnPickerWidget::getColumns() const {
         columns.standard |= SC_Evapotranspiration;
     if (ui->cbGustDirection->isChecked())
         columns.standard |= SC_GustWindDirection;
+    if (ui->cbForecastRule->isChecked())
+        columns.standard |= SC_ForecastRuleId;
     if (ui->cbLeafWetness1->isChecked()) columns.extra |= EC_LeafWetness1;
     if (ui->cbLeafWetness2->isChecked()) columns.extra |= EC_LeafWetness2;
     if (ui->cbLeafTemperature1->isChecked()) columns.extra |= EC_LeafTemperature1;

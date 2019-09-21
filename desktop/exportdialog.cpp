@@ -36,24 +36,6 @@ ExportDialog::ExportDialog(bool solarDataAvailable, bool isWireless, hardware_ty
 
     if (hw_type != HW_DAVIS) {
         solarDataAvailable = false;
-        disableCheckbox(ui->cbHighTemperature);
-        disableCheckbox(ui->cbLowTemperature);
-        disableCheckbox(ui->cbHighRainRate);
-        disableCheckbox(ui->cbWirelessReception);
-        disableCheckbox(ui->cbForecastRuleID);
-        disableCheckbox(ui->cbGustWindDirection);
-    }
-
-    if (!solarDataAvailable) {
-        disableCheckbox(ui->cbUVIndex);
-        disableCheckbox(ui->cbSolarRadiation);
-        disableCheckbox(ui->cbHighSolarRadiation);
-        disableCheckbox(ui->cbHighUVIndex);
-        disableCheckbox(ui->cbEvapotranspiration);
-    }
-
-    if (!isWireless) {
-        disableCheckbox(ui->cbWirelessReception);
     }
 
     // Delimiter types
@@ -79,6 +61,16 @@ ExportDialog::ExportDialog(bool solarDataAvailable, bool isWireless, hardware_ty
             this, SLOT(samplesReady(SampleSet)));
     connect(dataSource.data(), SIGNAL(sampleRetrievalError(QString)),
             this, SLOT(samplesFailed(QString)));
+
+    ui->columnPicker->configure(
+                solarDataAvailable, hw_type, isWireless,
+                dataSource->extraColumnsAvailable(),
+                dataSource->extraColumnNames(), true);
+
+    connect(ui->pbSelectAll, SIGNAL(clicked(bool)), ui->columnPicker, SLOT(checkAll()));
+    connect(ui->pbSelectNone, SIGNAL(clicked(bool)), ui->columnPicker, SLOT(uncheckAll()));
+
+    ui->columnPicker->checkAll();
 }
 
 ExportDialog::~ExportDialog()
@@ -114,63 +106,6 @@ QDateTime ExportDialog::getEndTime() {
     return ui->timespan->getEndTime();
 }
 
-SampleColumns ExportDialog::getColumns()
-{
-    SampleColumns columns;
-
-
-    if (ui->cbTimestamp->isChecked())
-        columns.standard |= SC_Timestamp;
-    if (ui->cbApparentTemperature->isChecked())
-        columns.standard |= SC_ApparentTemperature;
-    if (ui->cbDewPoint->isChecked())
-        columns.standard |= SC_DewPoint;
-    if (ui->cbHumidity->isChecked())
-        columns.standard |= SC_Humidity;
-    if (ui->cbIndoorHumidity->isChecked())
-        columns.standard |= SC_IndoorHumidity;
-    if (ui->cbIndoorTemperature->isChecked())
-        columns.standard |= SC_IndoorTemperature;
-    if (ui->cbPressure->isChecked())
-        columns.standard |= SC_Pressure;
-    if (ui->cbRainfall->isChecked())
-        columns.standard |= SC_Rainfall;
-    if (ui->cbTemperature->isChecked())
-        columns.standard |= SC_Temperature;
-    if (ui->cbWindChill->isChecked())
-        columns.standard |= SC_WindChill;
-    if (ui->cbAverageWindSpeed->isChecked())
-        columns.standard |= SC_AverageWindSpeed;
-    if (ui->cbGustWindSpeed->isChecked())
-        columns.standard |= SC_GustWindSpeed;
-    if (ui->cbWindDirection->isChecked())
-        columns.standard |= SC_WindDirection;
-    if (ui->cbUVIndex->isChecked() && ui->cbUVIndex->isVisible())
-        columns.standard |= SC_UV_Index;
-    if (ui->cbSolarRadiation->isChecked() && ui->cbSolarRadiation->isVisible())
-        columns.standard |= SC_SolarRadiation;
-    if (ui->cbWirelessReception->isChecked() && ui->cbWirelessReception->isVisible())
-        columns.standard |= SC_Reception;
-    if (ui->cbHighTemperature->isChecked() && ui->cbHighTemperature->isVisible())
-        columns.standard |= SC_HighTemperature;
-    if (ui->cbLowTemperature->isChecked() && ui->cbLowTemperature->isVisible())
-        columns.standard |= SC_LowTemperature;
-    if (ui->cbHighRainRate->isChecked() && ui->cbHighRainRate->isVisible())
-        columns.standard |= SC_HighRainRate;
-    if (ui->cbGustWindDirection->isChecked() && ui->cbGustWindDirection->isVisible())
-        columns.standard |= SC_GustWindDirection;
-    if (ui->cbEvapotranspiration->isChecked() && ui->cbEvapotranspiration->isVisible())
-        columns.standard |= SC_Evapotranspiration;
-    if (ui->cbHighSolarRadiation->isChecked() && ui->cbHighSolarRadiation->isVisible())
-        columns.standard |= SC_HighSolarRadiation;
-    if (ui->cbHighUVIndex->isChecked() && ui->cbHighUVIndex->isVisible())
-        columns.standard |= SC_HighUVIndex;
-    if (ui->cbForecastRuleID->isChecked() && ui->cbForecastRuleID->isVisible())
-        columns.standard |= SC_ForecastRuleId;
-    return columns;
-}
-
-
 void ExportDialog::exportData() {
     QString delimiter = getDelimiter();
     QDateTime startTime = getStartTime();
@@ -195,7 +130,7 @@ void ExportDialog::exportData() {
 
     targetFilename = filename;
 
-    dataSource->fetchSamples(getColumns(), startTime, endTime);
+    dataSource->fetchSamples(ui->columnPicker->getColumns(), startTime, endTime);
 }
 
 QString ExportDialog::dstr(double d, bool nodp) {
@@ -234,7 +169,8 @@ void ExportDialog::samplesReady(SampleSet samples)
     QTextStream streamDataFile(&dataFile);
     streamDataFile.setCodec("UTF-8");
 
-    SampleColumns columns = getColumns();
+    SampleColumns columns = ui->columnPicker->getColumns();
+    columns.standard |= SC_Timestamp;
 
     if (samples.reception.size() < samples.timestampUnix.size()) {
         // Reception not available in the data set (not valid for this station?
@@ -253,14 +189,22 @@ void ExportDialog::samplesReady(SampleSet samples)
 
     using namespace UnitConversions;
 
+    bool isoTime = ui->cbISOTime->isChecked();
+
     qDebug() << "Generating delimited text file...";
     for (int i = 0; i < samples.timestamp.count(); i++) {
         QStringList rowData;
 
         if (columns.standard.testFlag(SC_Timestamp)) {
-            rowData.append(QDateTime::fromTime_t(
-                               samples.timestampUnix.at(i))
-                           .toString(Qt::ISODate));
+            if (isoTime) {
+                rowData.append(QDateTime::fromTime_t(
+                                   samples.timestampUnix.at(i))
+                               .toString(Qt::ISODate));
+            } else {
+                rowData.append(QDateTime::fromTime_t(
+                                   samples.timestampUnix.at(i))
+                               .toString("yyyy-MM-dd HH:mm:ss"));
+            }
         } if (columns.standard.testFlag(SC_Temperature)) {
             double value = samples.temperature.at(i);
             if (imperial) value = celsiusToFahrenheit(value);
@@ -286,7 +230,6 @@ void ExportDialog::samplesReady(SampleSet samples)
         } if (columns.standard.testFlag(SC_IndoorHumidity)) {
             rowData.append(dstr(samples.indoorHumidity.at(i), true));
         } if (columns.standard.testFlag(SC_Pressure)) {
-            rowData.append(dstr(samples.pressure.at(i)));
             double value = samples.pressure.at(i);
             if (imperial) value = hectopascalsToInchesOfMercury(value);
             rowData.append(dstr(value));
@@ -344,6 +287,40 @@ void ExportDialog::samplesReady(SampleSet samples)
             rowData.append(dstr(samples.reception.at(i)));
         } if (columns.standard.testFlag(SC_ForecastRuleId)) {
             rowData.append(QString::number(samples.forecastRuleId.at(i)));
+        } if (columns.extra.testFlag(EC_SoilMoisture1)) {
+            rowData.append(dstr(samples.soilMoisture1.at(i)));
+        } if (columns.extra.testFlag(EC_SoilMoisture2)) {
+            rowData.append(dstr(samples.soilMoisture2.at(i)));
+        } if (columns.extra.testFlag(EC_SoilMoisture3)) {
+            rowData.append(dstr(samples.soilMoisture3.at(i)));
+        } if (columns.extra.testFlag(EC_SoilMoisture4)) {
+            rowData.append(dstr(samples.soilMoisture4.at(i)));
+        } if (columns.extra.testFlag(EC_SoilTemperature1)) {
+            rowData.append(dstr(samples.soilTemperature1.at(i)));
+        } if (columns.extra.testFlag(EC_SoilTemperature2)) {
+            rowData.append(dstr(samples.soilTemperature2.at(i)));
+        } if (columns.extra.testFlag(EC_SoilTemperature3)) {
+            rowData.append(dstr(samples.soilTemperature3.at(i)));
+        } if (columns.extra.testFlag(EC_SoilTemperature4)) {
+            rowData.append(dstr(samples.soilTemperature4.at(i)));
+        } if (columns.extra.testFlag(EC_LeafWetness1)) {
+            rowData.append(dstr(samples.leafWetness1.at(i), true));
+        } if (columns.extra.testFlag(EC_LeafWetness2)) {
+            rowData.append(dstr(samples.leafWetness2.at(i), true));
+        } if (columns.extra.testFlag(EC_LeafTemperature1)) {
+            rowData.append(dstr(samples.leafTemperature1.at(i)));
+        } if (columns.extra.testFlag(EC_LeafTemperature2)) {
+            rowData.append(dstr(samples.leafTemperature2.at(i)));
+        } if (columns.extra.testFlag(EC_ExtraTemperature1)) {
+            rowData.append(dstr(samples.extraTemperature1.at(i)));
+        } if (columns.extra.testFlag(EC_ExtraTemperature2)) {
+            rowData.append(dstr(samples.extraTemperature2.at(i)));
+        } if (columns.extra.testFlag(EC_ExtraTemperature3)) {
+            rowData.append(dstr(samples.extraTemperature3.at(i)));
+        } if (columns.extra.testFlag(EC_ExtraHumidity1)) {
+            rowData.append(dstr(samples.extraHumidity1.at(i)));
+        } if (columns.extra.testFlag(EC_ExtraHumidity2)) {
+            rowData.append(dstr(samples.extraHumidity2.at(i)));
         }
 
         QString row = rowData.join(delimiter) + "\n";
@@ -437,6 +414,46 @@ QString ExportDialog::getHeaderRow(SampleColumns columns) {
         columnNames.append(tr("Wireless Reception (%)"));
     if (columns.standard.testFlag(SC_ForecastRuleId))
         columnNames.append(tr("Forecast Rule ID"));
+
+    QMap<ExtraColumn, QString> extraColumnNames = dataSource->extraColumnNames();
+
+    QString cbar = unitString(U_CENTIBAR);
+
+    if (columns.extra.testFlag(EC_SoilMoisture1)) {
+        columnNames.append(extraColumnNames[EC_SoilMoisture1] + QString(" (%1)").arg(cbar));
+    } if (columns.extra.testFlag(EC_SoilMoisture2)) {
+        columnNames.append(extraColumnNames[EC_SoilMoisture2] + QString(" (%1)").arg(cbar));
+    } if (columns.extra.testFlag(EC_SoilMoisture3)) {
+        columnNames.append(extraColumnNames[EC_SoilMoisture3] + QString(" (%1)").arg(cbar));
+    } if (columns.extra.testFlag(EC_SoilMoisture4)) {
+        columnNames.append(extraColumnNames[EC_SoilMoisture4] + QString(" (%1)").arg(cbar));
+    } if (columns.extra.testFlag(EC_SoilTemperature1)) {
+        columnNames.append(extraColumnNames[EC_SoilTemperature1] + QString(" (%1)").arg(temp));
+    } if (columns.extra.testFlag(EC_SoilTemperature2)) {
+        columnNames.append(extraColumnNames[EC_SoilTemperature2] + QString(" (%1)").arg(temp));
+    } if (columns.extra.testFlag(EC_SoilTemperature3)) {
+        columnNames.append(extraColumnNames[EC_SoilTemperature3] + QString(" (%1)").arg(temp));
+    } if (columns.extra.testFlag(EC_SoilTemperature4)) {
+        columnNames.append(extraColumnNames[EC_SoilTemperature4] + QString(" (%1)").arg(temp));
+    } if (columns.extra.testFlag(EC_LeafWetness1)) {
+        columnNames.append(extraColumnNames[EC_LeafWetness1]);
+    } if (columns.extra.testFlag(EC_LeafWetness2)) {
+        columnNames.append(extraColumnNames[EC_LeafWetness2]);
+    } if (columns.extra.testFlag(EC_LeafTemperature1)) {
+        columnNames.append(extraColumnNames[EC_LeafTemperature1] + QString(" (%1)").arg(temp));
+    } if (columns.extra.testFlag(EC_LeafTemperature2)) {
+        columnNames.append(extraColumnNames[EC_LeafTemperature2] + QString(" (%1)").arg(temp));
+    } if (columns.extra.testFlag(EC_ExtraTemperature1)) {
+        columnNames.append(extraColumnNames[EC_ExtraTemperature1] + QString(" (%1)").arg(temp));
+    } if (columns.extra.testFlag(EC_ExtraTemperature2)) {
+        columnNames.append(extraColumnNames[EC_ExtraTemperature2] + QString(" (%1)").arg(temp));
+    } if (columns.extra.testFlag(EC_ExtraTemperature3)) {
+        columnNames.append(extraColumnNames[EC_ExtraTemperature3] + QString(" (%1)").arg(temp));
+    } if (columns.extra.testFlag(EC_ExtraHumidity1)) {
+        columnNames.append(extraColumnNames[EC_ExtraHumidity1] + "(%)");
+    } if (columns.extra.testFlag(EC_ExtraHumidity2)) {
+        columnNames.append(extraColumnNames[EC_ExtraHumidity2] + "(%)");
+    }
 
     return columnNames.join(getDelimiter()) + "\n";
 }

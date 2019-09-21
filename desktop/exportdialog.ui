@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>437</width>
-    <height>431</height>
+    <width>465</width>
+    <height>236</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -26,52 +26,79 @@
      <property name="title">
       <string>Format</string>
      </property>
+     <property name="flat">
+      <bool>true</bool>
+     </property>
      <layout class="QGridLayout" name="gridLayout">
-      <item row="0" column="2">
-       <widget class="QRadioButton" name="rbCommaDelimited">
+      <item row="3" column="3" colspan="3">
+       <widget class="QCheckBox" name="cbUnits">
         <property name="text">
-         <string>Comma</string>
+         <string>Use imperial units</string>
         </property>
        </widget>
       </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_2">
-        <property name="text">
-         <string>Column Delimiter:</string>
-        </property>
-       </widget>
+      <item row="2" column="0" colspan="7">
+       <layout class="QHBoxLayout" name="horizontalLayout_3">
+        <item>
+         <widget class="QLabel" name="label_2">
+          <property name="text">
+           <string>Column Delimiter:</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QRadioButton" name="rbTabDelimited">
+          <property name="text">
+           <string>Tab</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QRadioButton" name="rbCommaDelimited">
+          <property name="text">
+           <string>Comma</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QRadioButton" name="rbOtherDelimiter">
+          <property name="text">
+           <string>Other:</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="leCustomDelimiter">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>50</width>
+            <height>16777215</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
       </item>
-      <item row="0" column="4">
-       <widget class="QLineEdit" name="leCustomDelimiter">
-        <property name="enabled">
-         <bool>false</bool>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>50</width>
-          <height>16777215</height>
-         </size>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="3">
-       <widget class="QRadioButton" name="rbOtherDelimiter">
-        <property name="text">
-         <string>Other:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="QRadioButton" name="rbTabDelimited">
-        <property name="text">
-         <string>Tab</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
+      <item row="3" column="0">
        <widget class="QCheckBox" name="cbIncludeHeadings">
         <property name="text">
          <string>Include headings</string>
@@ -81,56 +108,23 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="1">
+      <item row="3" column="6">
+       <spacer name="horizontalSpacer_2">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item row="3" column="1">
        <widget class="QCheckBox" name="cbDashNulls">
         <property name="text">
-         <string>Dash nulls</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="2" colspan="3">
-       <widget class="QCheckBox" name="cbUnits">
-        <property name="text">
-         <string>Use imperial units</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
-    <widget class="QGroupBox" name="groupBox_2">
-     <property name="title">
-      <string>Columns</string>
-     </property>
-     <layout class="QGridLayout" name="gridLayout_2">
-      <item row="6" column="2">
-       <widget class="QCheckBox" name="cbHighUVIndex">
-        <property name="text">
-         <string>High UV Index</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="5" column="2">
-       <widget class="QCheckBox" name="cbSolarRadiation">
-        <property name="text">
-         <string>Solar Radiation</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="4" column="2">
-       <widget class="QCheckBox" name="cbUVIndex">
-        <property name="text">
-         <string>UV Index</string>
+         <string>replace missing vlaues with dashes</string>
         </property>
         <property name="checked">
          <bool>true</bool>
@@ -138,224 +132,9 @@
        </widget>
       </item>
       <item row="3" column="2">
-       <widget class="QCheckBox" name="cbGustWindDirection">
+       <widget class="QCheckBox" name="cbISOTime">
         <property name="text">
-         <string>Gust Wind Direction</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="0">
-       <widget class="QCheckBox" name="cbTimestamp">
-        <property name="text">
-         <string>Timestamp</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QCheckBox" name="cbTemperature">
-        <property name="text">
-         <string>Temperature</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="4" column="1">
-       <widget class="QCheckBox" name="cbRainfall">
-        <property name="enabled">
-         <bool>true</bool>
-        </property>
-        <property name="text">
-         <string>Rainfall</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="QCheckBox" name="cbHumidity">
-        <property name="enabled">
-         <bool>true</bool>
-        </property>
-        <property name="text">
-         <string>Humidity</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="1">
-       <widget class="QCheckBox" name="cbIndoorHumidity">
-        <property name="enabled">
-         <bool>true</bool>
-        </property>
-        <property name="text">
-         <string>Humidity (inside)</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="1">
-       <widget class="QCheckBox" name="cbPressure">
-        <property name="enabled">
-         <bool>true</bool>
-        </property>
-        <property name="text">
-         <string>Pressure</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="QCheckBox" name="cbDewPoint">
-        <property name="text">
-         <string>Dew Point</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="0">
-       <widget class="QCheckBox" name="cbApparentTemperature">
-        <property name="text">
-         <string>Apparent Temperature</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="4" column="0">
-       <widget class="QCheckBox" name="cbWindChill">
-        <property name="text">
-         <string>Wind Chill</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="2">
-       <widget class="QCheckBox" name="cbAverageWindSpeed">
-        <property name="text">
-         <string>Average Wind Speed</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="0">
-       <widget class="QCheckBox" name="cbIndoorTemperature">
-        <property name="text">
-         <string>Temperature (inside)</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="2">
-       <widget class="QCheckBox" name="cbGustWindSpeed">
-        <property name="text">
-         <string>Gust Wind Speed</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="2">
-       <widget class="QCheckBox" name="cbWindDirection">
-        <property name="text">
-         <string>Wind Direction</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="6" column="0">
-       <widget class="QCheckBox" name="cbLowTemperature">
-        <property name="text">
-         <string>Low Temperature</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="5" column="1">
-       <widget class="QCheckBox" name="cbHighRainRate">
-        <property name="text">
-         <string>High Rain Rate</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="5" column="0">
-       <widget class="QCheckBox" name="cbHighTemperature">
-        <property name="text">
-         <string>High Temperature</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="7" column="2">
-       <widget class="QCheckBox" name="cbHighSolarRadiation">
-        <property name="text">
-         <string>High Solar Radiation</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="7" column="1">
-       <widget class="QCheckBox" name="cbEvapotranspiration">
-        <property name="text">
-         <string>Evapotranspiration</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="7" column="0">
-       <widget class="QCheckBox" name="cbWirelessReception">
-        <property name="text">
-         <string>Wireless Reception</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="6" column="1">
-       <widget class="QCheckBox" name="cbForecastRuleID">
-        <property name="text">
-         <string>Forecast Rule ID</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
+         <string>ISO8601 time format</string>
         </property>
        </widget>
       </item>
@@ -363,9 +142,63 @@
     </widget>
    </item>
    <item>
+    <layout class="QHBoxLayout" name="horizontalLayout">
+     <item>
+      <widget class="QLabel" name="label">
+       <property name="text">
+        <string>Columns</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="Line" name="line">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pbSelectAll">
+       <property name="text">
+        <string>Select All</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pbSelectNone">
+       <property name="text">
+        <string>Select None</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <property name="leftMargin">
+      <number>9</number>
+     </property>
+     <property name="rightMargin">
+      <number>9</number>
+     </property>
+     <item>
+      <widget class="ColumnPickerWidget" name="columnPicker" native="true"/>
+     </item>
+    </layout>
+   </item>
+   <item>
     <widget class="QGroupBox" name="groupBox_3">
      <property name="title">
       <string>Period</string>
+     </property>
+     <property name="flat">
+      <bool>true</bool>
      </property>
      <layout class="QGridLayout" name="gridLayout_3">
       <item row="0" column="0">
@@ -393,6 +226,12 @@
    <header>timespanwidget.h</header>
    <container>1</container>
   </customwidget>
+  <customwidget>
+   <class>ColumnPickerWidget</class>
+   <extends>QWidget</extends>
+   <header>columnpickerwidget.h</header>
+   <container>1</container>
+  </customwidget>
  </customwidgets>
  <tabstops>
   <tabstop>rbTabDelimited</tabstop>
@@ -401,31 +240,10 @@
   <tabstop>leCustomDelimiter</tabstop>
   <tabstop>cbIncludeHeadings</tabstop>
   <tabstop>cbDashNulls</tabstop>
+  <tabstop>cbISOTime</tabstop>
   <tabstop>cbUnits</tabstop>
-  <tabstop>cbTimestamp</tabstop>
-  <tabstop>cbTemperature</tabstop>
-  <tabstop>cbIndoorTemperature</tabstop>
-  <tabstop>cbApparentTemperature</tabstop>
-  <tabstop>cbWindChill</tabstop>
-  <tabstop>cbHighTemperature</tabstop>
-  <tabstop>cbLowTemperature</tabstop>
-  <tabstop>cbWirelessReception</tabstop>
-  <tabstop>cbDewPoint</tabstop>
-  <tabstop>cbHumidity</tabstop>
-  <tabstop>cbIndoorHumidity</tabstop>
-  <tabstop>cbPressure</tabstop>
-  <tabstop>cbRainfall</tabstop>
-  <tabstop>cbHighRainRate</tabstop>
-  <tabstop>cbForecastRuleID</tabstop>
-  <tabstop>cbEvapotranspiration</tabstop>
-  <tabstop>cbAverageWindSpeed</tabstop>
-  <tabstop>cbGustWindSpeed</tabstop>
-  <tabstop>cbWindDirection</tabstop>
-  <tabstop>cbGustWindDirection</tabstop>
-  <tabstop>cbUVIndex</tabstop>
-  <tabstop>cbSolarRadiation</tabstop>
-  <tabstop>cbHighUVIndex</tabstop>
-  <tabstop>cbHighSolarRadiation</tabstop>
+  <tabstop>pbSelectAll</tabstop>
+  <tabstop>pbSelectNone</tabstop>
  </tabstops>
  <resources>
   <include location="resources.qrc"/>
