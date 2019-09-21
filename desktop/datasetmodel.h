@@ -13,7 +13,7 @@ class DataSetModel : public QAbstractTableModel
     Q_OBJECT
 
 public:
-    DataSetModel(DataSet dataSet, SampleSet sampleSet, QObject *parent = 0);
+    DataSetModel(DataSet dataSet, SampleSet sampleSet, QMap<ExtraColumn, QString> extraColumnNames, QObject *parent = 0);
 
     int rowCount(const QModelIndex &parent) const;
     int columnCount(const QModelIndex &parent) const;
@@ -30,6 +30,8 @@ private:
 
     QList<StandardColumn> columns;
     QList<ExtraColumn> extraColumns;
+
+    QMap<ExtraColumn, QString> extraColumnNames;
 };
 
 #endif // DATASETMODEL_H

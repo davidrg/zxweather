@@ -589,26 +589,24 @@ void MainWindow::showImagesWindow() {
 }
 
 void MainWindow::viewData() {
-    ViewDataOptionsDialog options(this);
+    station_info_t info = dataSource->getStationInfo();
+    bool wirelessAvailable = false;
+    if (info.isValid) {
+        wirelessAvailable = info.isWireless;
+    }
+
+    QMap<ExtraColumn, QString> extraColumnNames = dataSource->extraColumnNames();
+
+    ViewDataOptionsDialog options(solarDataAvailable, last_hw_type, wirelessAvailable,
+                                  dataSource->extraColumnsAvailable(),
+                                  extraColumnNames, this);
     int result = options.exec();
 
     if (result != QDialog::Accepted)
         return; // User canceled. Nothing to do.
 
     // Always show all columns in the view data screen.
-    SampleColumns columns;
-    columns.standard = ALL_SAMPLE_COLUMNS;
-    columns.extra = ALL_EXTRA_COLUMNS;
-
-    if (last_hw_type != HW_DAVIS) {
-        columns.standard = columns.standard & ~DAVIS_COLUMNS;
-        columns.extra = columns.extra & ~DAVIS_EXTRA_COLUMNS;
-    }
-
-    if (!solarDataAvailable) {
-        // Except the solar ones if the current station doesn't support it
-        columns.standard = columns.standard & ~SOLAR_COLUMNS;
-    }
+    SampleColumns columns = options.getColumns();
 
     DataSet dataSource;
     dataSource.columns = columns;

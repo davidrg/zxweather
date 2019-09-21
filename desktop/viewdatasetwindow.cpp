@@ -14,11 +14,15 @@
 #include "datasource/webdatasource.h"
 #include "datasource/dialogprogresslistener.h"
 
-ViewDataSetWindow::ViewDataSetWindow(DataSet dataSet, QWidget *parent) :
+ViewDataSetWindow::ViewDataSetWindow(
+        DataSet dataSet,
+        QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::ViewDataSetWindow)
 {
     ui->setupUi(this);
+
+
 
 #if QT_VERSION >= 0x050000
     ui->tableView->horizontalHeader()->setSectionsMovable(true);
@@ -100,7 +104,7 @@ void ViewDataSetWindow::samplesReady(SampleSet samples)
 {
     qDebug() << "Samples ready!";
 
-    DataSetModel *model = new DataSetModel(dataSet, samples, this);
+    DataSetModel *model = new DataSetModel(dataSet, samples, dataSource->extraColumnNames(), this);
     SortProxyModel *sortableModel = new SortProxyModel(this);
     sortableModel->setSortRole(DSM_SORT_ROLE);
     sortableModel->setSourceModel(model);

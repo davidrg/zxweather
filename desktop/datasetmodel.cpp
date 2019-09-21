@@ -2,7 +2,7 @@
 #include <cmath>
 #include "settings.h"
 
-DataSetModel::DataSetModel(DataSet dataSet, SampleSet sampleSet,
+DataSetModel::DataSetModel(DataSet dataSet, SampleSet sampleSet, QMap<ExtraColumn, QString> extraColumnNames,
                            QObject *parent)
     : QAbstractTableModel(parent)
 {
@@ -15,6 +15,7 @@ DataSetModel::DataSetModel(DataSet dataSet, SampleSet sampleSet,
     this->sampleSet = sampleSet;
     this->columns = getColumns();
     this->extraColumns = getExtraColumns();
+    this->extraColumnNames = extraColumnNames;
 }
 
 int DataSetModel::rowCount(const QModelIndex &parent) const {
@@ -387,6 +388,16 @@ QVariant DataSetModel::headerData(int section, Qt::Orientation orientation, int 
         }
 
         QString unit = unitString(columnUnits);
+
+        // If the name has been customised:
+        if (extraColumnNames.contains(column)) {
+            QString name = extraColumnNames[column];
+            if (column != EC_LeafWetness1 && column != EC_LeafWetness2) {
+                name += " (%1)";
+                return name.arg(unit);
+            }
+            return name;
+        }
 
         switch (column) {
         case EC_LeafWetness1:

@@ -40,35 +40,35 @@ void ChartOptionsDialog::checkAndAccept() {
     accept();
 }
 
-QDateTime ChartOptionsDialog::getStartTime() {
+QDateTime ChartOptionsDialog::getStartTime() const {
     return ui->timespan->getStartTime();
 }
 
-QDateTime ChartOptionsDialog::getEndTime() {
+QDateTime ChartOptionsDialog::getEndTime() const {
     return ui->timespan->getEndTime();
 }
 
-AggregateFunction ChartOptionsDialog::getAggregateFunction() {
+AggregateFunction ChartOptionsDialog::getAggregateFunction() const {
     if (!ui->gbAggregate->isChecked())
         return AF_None;
 
     return ui->aggregateWidget->getAggregateFunction();
 }
 
-AggregateGroupType ChartOptionsDialog::getAggregateGroupType() {
+AggregateGroupType ChartOptionsDialog::getAggregateGroupType() const {
     if (!ui->gbAggregate->isChecked())
         return AGT_None;
 
     return ui->aggregateWidget->getAggregateGroupType();
 }
 
-uint32_t ChartOptionsDialog::getCustomMinutes() {
+uint32_t ChartOptionsDialog::getCustomMinutes() const {
     if (!ui->gbAggregate->isChecked())
         return 0;
     return ui->aggregateWidget->getCustomMinutes();
 }
 
-SampleColumns ChartOptionsDialog::getColumns() {
+SampleColumns ChartOptionsDialog::getColumns() const {
     return ui->columnPicker->getColumns();
 }
 

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>422</width>
-    <height>158</height>
+    <width>570</width>
+    <height>267</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -18,20 +18,51 @@
     <normaloff>:/icons/table</normaloff>:/icons/table</iconset>
   </property>
   <layout class="QGridLayout" name="gridLayout_2">
-   <item row="2" column="0">
-    <widget class="QDialogButtonBox" name="buttonBox">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-     <property name="standardButtons">
-      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
-     </property>
-    </widget>
+   <item row="0" column="0">
+    <layout class="QHBoxLayout" name="horizontalLayout">
+     <item>
+      <widget class="QLabel" name="label">
+       <property name="text">
+        <string>Columns</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="Line" name="line">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pbSelectAll">
+       <property name="text">
+        <string>Select All</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pbSelectNone">
+       <property name="text">
+        <string>Select None</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </item>
-   <item row="1" column="0">
+   <item row="3" column="0">
     <widget class="QGroupBox" name="gbAggregate">
      <property name="title">
       <string>Aggregate</string>
+     </property>
+     <property name="flat">
+      <bool>true</bool>
      </property>
      <property name="checkable">
       <bool>true</bool>
@@ -53,10 +84,23 @@
      </layout>
     </widget>
    </item>
-   <item row="0" column="0">
+   <item row="4" column="0">
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="0">
     <widget class="QGroupBox" name="groupBox">
      <property name="title">
       <string>Timespan</string>
+     </property>
+     <property name="flat">
+      <bool>true</bool>
      </property>
      <layout class="QGridLayout" name="gridLayout_3">
       <item row="0" column="0">
@@ -64,6 +108,19 @@
       </item>
      </layout>
     </widget>
+   </item>
+   <item row="1" column="0">
+    <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <property name="leftMargin">
+      <number>9</number>
+     </property>
+     <property name="rightMargin">
+      <number>9</number>
+     </property>
+     <item>
+      <widget class="ColumnPickerWidget" name="columnPicker" native="true"/>
+     </item>
+    </layout>
    </item>
   </layout>
  </widget>
@@ -78,6 +135,12 @@
    <class>AggregateOptionsWidget</class>
    <extends>QWidget</extends>
    <header>aggregateoptionswidget.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>ColumnPickerWidget</class>
+   <extends>QWidget</extends>
+   <header>columnpickerwidget.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
