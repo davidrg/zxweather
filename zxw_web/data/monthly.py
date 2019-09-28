@@ -13,7 +13,7 @@ from config import db
 import config
 from data.util import outdoor_sample_result_to_datatable, outdoor_sample_result_to_json, daily_records_result_to_datatable, daily_records_result_to_json
 from database import get_station_id, get_sample_interval, \
-    get_month_data_wp, get_month_data_wp_age
+    get_month_data_wp, get_month_data_wp_age, get_extra_sensors_enabled
 
 __author__ = 'David Goodwin'
 
@@ -618,51 +618,99 @@ class data_dat:
 def get_month_samples_tab_delimited(int_year, int_month, station_id):
     weather_data = get_month_data_wp(int_year, int_month, station_id)
 
+    extra_sensors = get_extra_sensors_enabled(station_id)
+
     file_data = '# timestamp\ttemperature\tdew point\tapparent temperature\t' \
                 'wind chill\trelative humidity\tabsolute pressure\t' \
                 'indoor temperature\tindoor relative humidity\trainfall\t' \
                 'average wind speed\tgust wind speed\twind direction\t' \
                 'uv index\tsolar radiation\treception\thigh_temp\tlow_temp\t' \
                 'high_rain_rate\tgust_direction\tevapotranspiration\t' \
-                'high_solar_radiation\thigh_uv_index\tforecast_rule_id\n'
+                'high_solar_radiation\thigh_uv_index\tforecast_rule_id'
+
+    if extra_sensors:
+        file_data += '\tsoil_moisture_1\tsoil_moisture_2\tsoil_moisture_3\t' \
+                     'soil_moisture_4\tsoil_temperature_1\t' \
+                     'soil_temperature_2\tsoil_temperature_3\t' \
+                     'soil_temperature_4\tleaf_wetness_1\tleaf_wetness_2\t' \
+                     'leaf_temperature_1\tleaf_temperature_2\t' \
+                     'extra_humidity_1\textra_humidity_2\t' \
+                     'extra_temperature_1\textra_temperature_2\t' \
+                     'extra_temperature_3'
+    file_data += "\n"
 
     format_string = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t{10}' \
                     '\t{11}\t{12}\t{13}\t{14}\t{15}\t{16}\t{17}\t{18}\t{19}\t' \
-                    '{20}\t{21}\t{22}\t{23}\n'
+                    '{20}\t{21}\t{22}\t{23}'
+
+    if extra_sensors:
+        format_string += "\t{24}\t{25}\t{26}\t{27}\t{28}\t{29}\t{30}\t{31}\t" \
+                         "{32}\t{33}\t{34}\t{35}\t{36}\t{37}\t{38}\t{39}\t{40}"
+
+    format_string += "\n"
 
     max_ts = None
 
-    for record in weather_data:
+    def nullable_str(val):
+        if val is None:
+            return '?'
+        return str(val)
 
+    for record in weather_data:
         if max_ts is None:
             max_ts = record.time_stamp
 
         if record.time_stamp > max_ts:
             max_ts = record.time_stamp
 
-        file_data += format_string.format(str(record.time_stamp),
-                                          str(record.temperature),
-                                          str(record.dew_point),
-                                          str(record.apparent_temperature),
-                                          str(record.wind_chill),
-                                          str(record.relative_humidity),
-                                          str(record.absolute_pressure),
-                                          str(record.indoor_temperature),
-                                          str(record.indoor_relative_humidity),
-                                          str(record.rainfall),
-                                          str(record.average_wind_speed),
-                                          str(record.gust_wind_speed),
-                                          str(record.wind_direction),
-                                          str(record.uv_index),
-                                          str(record.solar_radiation),
-                                          str(record.reception),
-                                          str(record.high_temperature),
-                                          str(record.low_temperature),
-                                          str(record.high_rain_rate),
-                                          str(record.gust_wind_direction),
-                                          str(record.evapotranspiration),
-                                          str(record.high_solar_radiation),
-                                          str(record.high_uv_index),
-                                          str(record.forecast_rule_id))
+        row = [
+            str(record.time_stamp),
+            nullable_str(record.temperature),
+            nullable_str(record.dew_point),
+            nullable_str(record.apparent_temperature),
+            nullable_str(record.wind_chill),
+            nullable_str(record.relative_humidity),
+            nullable_str(record.absolute_pressure),
+            nullable_str(record.indoor_temperature),
+            nullable_str(record.indoor_relative_humidity),
+            nullable_str(record.rainfall),
+            nullable_str(record.average_wind_speed),
+            nullable_str(record.gust_wind_speed),
+            nullable_str(record.wind_direction),
+            nullable_str(record.uv_index),
+            nullable_str(record.solar_radiation),
+            nullable_str(record.reception),
+            nullable_str(record.high_temperature),
+            nullable_str(record.low_temperature),
+            nullable_str(record.high_rain_rate),
+            nullable_str(record.gust_wind_direction),
+            nullable_str(record.evapotranspiration),
+            nullable_str(record.high_solar_radiation),
+            nullable_str(record.high_uv_index),
+            nullable_str(record.forecast_rule_id)
+        ]
+
+        if extra_sensors:
+            row = row + [
+                nullable_str(record.soil_moisture_1),
+                nullable_str(record.soil_moisture_2),
+                nullable_str(record.soil_moisture_3),
+                nullable_str(record.soil_moisture_4),
+                nullable_str(record.soil_temperature_1),
+                nullable_str(record.soil_temperature_2),
+                nullable_str(record.soil_temperature_3),
+                nullable_str(record.soil_temperature_4),
+                nullable_str(record.leaf_wetness_1),
+                nullable_str(record.leaf_wetness_2),
+                nullable_str(record.leaf_temperature_1),
+                nullable_str(record.leaf_temperature_2),
+                nullable_str(record.extra_humidity_1),
+                nullable_str(record.extra_humidity_2),
+                nullable_str(record.extra_temperature_1),
+                nullable_str(record.extra_temperature_2),
+                nullable_str(record.extra_temperature_3),
+            ]
+
+        file_data += format_string.format(*row)
 
     return file_data, max_ts

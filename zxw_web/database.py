@@ -867,6 +867,53 @@ def get_full_station_info(include_coordinates=True):
     return stations
 
 
+def get_extra_sensors_enabled(station_id):
+    """
+    Returns true if the specified station has any extra sensors enabled at all.
+    An extra sensor is one of: Leaf Wetness 1-2, Leaf Temperature 1-2,
+    Soil Moisture 1-4, Soil Temperature 1-4, Extra Humidity 1-2,
+    Extra Temperature 1-3
+
+    :param station_id: Station ID
+    :type station_id: int
+    :return: True if an extra sensor is configured, false otherwise.
+    :rtype: bool
+    """
+    result = db.query("select station_config from station "
+                      "where station_id = $station and station_config is not null",
+                      dict(station=station_id))
+
+    if len(result) == 0:
+        return False
+
+    hw_config = json.loads(result[0].station_config)
+
+    if "sensor_config" not in hw_config:
+        return False
+
+    extra_sensor_names = [
+        "leaf_wetness_1", "leaf_wetness_2",
+        "leaf_temperature_1", "leaf_temperature_2",
+        "soil_moisture_1", "soil_moisture_2", "soil_moisture_3",
+        "soil_moisture_4",
+        "soil_temperature_1", "soil_temperature_2", "soil_temperature_3",
+        "soil_temperature_4",
+        "extra_humidity_1", "extra_humidity_2",
+        "extra_temperature_1", "extra_temperature_2", "extra_temperature_3"
+    ]
+
+    sensor_config = hw_config["sensor_config"]
+
+    for sensor in extra_sensor_names:
+        if sensor in sensor_config:
+            if "enabled" in sensor_config[sensor] and sensor_config[sensor]["enabled"]:
+                return True
+
+    return False
+
+
+
+
 def get_stations():
     """
     Gets a list of station code,name pairs for all stations in the database.
@@ -1646,7 +1693,26 @@ select cur.time_stamp,
        ds.evapotranspiration,
        ds.high_solar_radiation,
        ds.high_uv_index,
-       ds.forecast_rule_id
+       ds.forecast_rule_id,
+       
+       -- Extra sensors
+       ds.soil_moisture_1,
+       ds.soil_moisture_2,
+       ds.soil_moisture_3,
+       ds.soil_moisture_4,
+       round(ds.soil_temperature_1::numeric, 2) as soil_temperature_1,
+       round(ds.soil_temperature_2::numeric, 2) as soil_temperature_2,
+       round(ds.soil_temperature_3::numeric, 2) as soil_temperature_3,
+       round(ds.soil_temperature_4::numeric, 2) as soil_temperature_4,
+       ds.leaf_wetness_1,
+       ds.leaf_wetness_2,
+       round(ds.leaf_temperature_1::numeric, 2) as leaf_temperature_1,
+       round(ds.leaf_temperature_2::numeric, 2) as leaf_temperature_2,
+       ds.extra_humidity_1,
+       ds.extra_humidity_2,
+       round(ds.extra_temperature_1::numeric, 2) as extra_temperature_1,
+       round(ds.extra_temperature_2::numeric, 2) as extra_temperature_2,
+       round(ds.extra_temperature_3::numeric, 2) as extra_temperature_3
 from sample cur
 inner join station s on s.station_id = cur.station_id
 left outer join davis_sample ds on ds.sample_id = cur.sample_id
@@ -1714,7 +1780,26 @@ def get_day_data_wp(date, station_id):
        ds.evapotranspiration,
        ds.high_solar_radiation,
        ds.high_uv_index,
-       ds.forecast_rule_id
+       ds.forecast_rule_id,
+       
+       -- Extra sensors
+       ds.soil_moisture_1,
+       ds.soil_moisture_2,
+       ds.soil_moisture_3,
+       ds.soil_moisture_4,
+       round(ds.soil_temperature_1::numeric, 2) as soil_temperature_1,
+       round(ds.soil_temperature_2::numeric, 2) as soil_temperature_2,
+       round(ds.soil_temperature_3::numeric, 2) as soil_temperature_3,
+       round(ds.soil_temperature_4::numeric, 2) as soil_temperature_4,
+       ds.leaf_wetness_1,
+       ds.leaf_wetness_2,
+       round(ds.leaf_temperature_1::numeric, 2) as leaf_temperature_1,
+       round(ds.leaf_temperature_2::numeric, 2) as leaf_temperature_2,
+       ds.extra_humidity_1,
+       ds.extra_humidity_2,
+       round(ds.extra_temperature_1::numeric, 2) as extra_temperature_1,
+       round(ds.extra_temperature_2::numeric, 2) as extra_temperature_2,
+       round(ds.extra_temperature_3::numeric, 2) as extra_temperature_3
 from sample cur
 inner join station s on s.station_id = cur.station_id
 left outer join davis_sample ds on ds.sample_id = cur.sample_id
