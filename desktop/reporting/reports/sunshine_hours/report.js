@@ -247,7 +247,7 @@ function transform_datasets(criteria, datasets) {
     }
 
     var end_date = max_date;
-    var start_date = moment(criteria["start"])
+    var start_date = moment(criteria["start"]);
     var day_count = end_date.diff(start_date, 'days') + 1;
     if (day_count > 60) {
         day_count = end_date.diff(min_date, 'days') + 1;
@@ -279,9 +279,109 @@ function transform_datasets(criteria, datasets) {
         long += " E";
     }
 
+    // Sort the daily_summary data
+    var orderby_date = criteria["orderby_date"];
+    var orderby_hours = criteria["orderby_hours"];
+    var orderby_maxhours = criteria["orderby_maxhours"];
+    var orderby_percentage = criteria["orderby_percentage"];
+    var order_descending = criteria["order_descending"];
+    var sort_string = "";
+    function row_compare_date_desc(a, b) {
+        a_d = moment(a[1]);
+        b_d = moment(b[1]);
+        if (a_d > b_d) return -1;
+        if (a_d < b_d) return 1;
+        return 0;
+    }
+    function row_compare_date_asc(a, b) { 
+        a_d = moment(a[1]);
+        b_d = moment(b[1]);
+        if (a_d < b_d) return -1;
+        if (a_d > b_d) return 1;
+        return 0;
+    }
+    
+    function row_compare_hours_desc(a, b) { 
+        var a_f = parseFloat(a[2]);
+        var b_f = parseFloat(b[2]);
+        if (a_f > b_f) return -1;
+        if (a_f < b_f) return 1;
+        return 0;
+    }
+    function row_compare_hours_asc(a, b) {
+        var a_f = parseFloat(a[2]);
+        var b_f = parseFloat(b[2]);
+        if (a_f < b_f) return -1;
+        if (a_f > b_f) return 1;
+        return 0;
+    }
+    
+    function row_compare_maxhours_desc(a, b) {
+        var a_f = parseFloat(a[3]);
+        var b_f = parseFloat(b[3]);
+        if (a_f > b_f) return -1;
+        if (a_f < b_f) return 1;
+        return 0;
+    }
+    function row_compare_maxhours_asc(a, b) { 
+        var a_f = parseFloat(a[3]);
+        var b_f = parseFloat(b[3]);
+        if (a_f < b_f) return -1;
+        if (a_f > b_f) return 1;
+        return 0;
+    }
+    
+    function row_compare_percentage_desc(a, b) { 
+        var a_f = parseFloat(a[4]);
+        var b_f = parseFloat(b[4]);
+        if (a_f > b_f) return -1;
+        if (a_f < b_f) return 1;
+        return 0;
+    }
+    function row_compare_percentage_asc(a, b) { 
+        var a_f = parseFloat(a[4]);
+        var b_f = parseFloat(b[4]);
+        if (a_f < b_f) return -1;
+        if (a_f > b_f) return 1;
+        return 0;
+    }
+    
+    if (order_descending) {
+        if (orderby_date) {
+            // Already sorted date descending: Nothing to do
+            //daily_summary.sort(row_compare_date_desc);
+            sort_string = "date descending";
+        } else if (orderby_hours) {
+            daily_summary.sort(row_compare_hours_desc);
+            sort_string = "sunshine hours descending";
+        } else if (orderby_maxhours) {
+            daily_summary.sort(row_compare_maxhours_desc);
+            sort_string = "maximum hours descending";
+        } else if (orderby_percentage) {
+            daily_summary.sort(row_compare_percentage_desc);
+            sort_string = "percentage sunny descending";
+        }
+    } else {
+        if (orderby_date) {
+            daily_summary.sort(row_compare_date_asc);
+            sort_string = "date ascending";
+        } else if (orderby_hours) {
+            daily_summary.sort(row_compare_hours_asc);
+            sort_string = "sunshine hours ascending";
+        } else if (orderby_maxhours) {
+            daily_summary.sort(row_compare_maxhours_asc);
+            sort_string = "maximum hours ascending";
+        } else if (orderby_percentage) {
+            daily_summary.sort(row_compare_percentage_asc);
+            sort_string = "percentage sunny ascending";
+        }
+    }
+    
     // We only have to return modified datasets.
     return [
-        datasets[dataSetIdx],
+        //datasets[dataSetIdx],
+        
+        // This dataset is for the sun_hours.html template plus the "Daily Sunshine Hours" grid:
         {
             "name": "daily_summary",
             "column_names": [
@@ -293,7 +393,9 @@ function transform_datasets(criteria, datasets) {
                 "links"
             ],
             "row_data": daily_summary
-        },{
+        },
+        // For the wlformat.txt template:
+        {
             "name": "txt_day_summary",
             "column_names": [
                 "date",
@@ -314,6 +416,7 @@ function transform_datasets(criteria, datasets) {
                 // For HTML output
                 "total_max_hours",
                 "total_percent",
+                "sort",
                 "h_start_date",
                 "h_end_date"
             ],
@@ -328,6 +431,7 @@ function transform_datasets(criteria, datasets) {
                     txt_format_rows.length,
                     max_hours.toFixed(1),
                     (max_hours > 0 ? total_hours / max_hours * 100 : 0.0).toFixed(1),
+                    sort_string,
                     start_date.format("YYYY-MM-DD"),
                     end_date.format("YYYY-MM-DD")
                 ]
@@ -345,7 +449,9 @@ function transform_datasets(criteria, datasets) {
                     longitude.toFixed(6)
                 ]
             ]
-	    }, {
+	    }, 
+        // For the "Raw data" grid:
+        {
             "name": "sun_data",
             "column_names": datasets[dataSetIdx]["column_names"],
             // Only return the first 1000 rows. Large amounts of data is
