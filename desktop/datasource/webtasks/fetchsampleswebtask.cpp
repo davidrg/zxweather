@@ -2,6 +2,7 @@
 #include "datafilewebtask.h"
 #include "rangerequestwebtask.h"
 #include "datasource/webcachedb.h"
+#include "fetchstationinfo.h"
 
 #include "json/json.h"
 
@@ -102,9 +103,13 @@ bool FetchSamplesWebTask::processResponse(QByteArray responseData) {
         return false;
     }
 
+    qDebug() << "Parsing SYSCONFIG data";
+
     QVariantList stations = result["stations"].toList();
     foreach (QVariant station, stations) {
         QVariantMap stationData = station.toMap();
+
+        qDebug() << "SYSCONFIG: Station:" << stationData["code"].toString();
 
         if (stationData["code"].toString().toLower() == _stationCode) {
             _stationName = stationData["name"].toString();
@@ -149,6 +154,13 @@ bool FetchSamplesWebTask::processResponse(QByteArray responseData) {
                 sample_interval = stationData["interval"].toInt() / 60;
             }
 
+
+            QMap<ExtraColumn, QString> extraColumnNames;
+            ExtraColumns extraColumns;
+
+            FetchStationInfoWebTask::parseSensorConfig(
+                        stationData, &extraColumnNames, &extraColumns);
+
             _dataSource->updateStation(
                     _stationName,
                     stationData["desc"].toString(),
@@ -158,7 +170,9 @@ bool FetchSamplesWebTask::processResponse(QByteArray responseData) {
                     longitude,
                     stationData["coordinates"].toMap()["altitude"].toFloat(),
                     _isSolarAvailable,
-                    davis_broadcast_id
+                    davis_broadcast_id,
+                    extraColumns,
+                    extraColumnNames
             );
 
             return true;

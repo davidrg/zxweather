@@ -56,4 +56,12 @@ create view davis_sample as
     inner join station stn on stn.station_id = s.station_id
 ;
 
+create table sensor_config (
+  station_id integer,
+  sensor text,
+  enabled boolean,
+  name text,
+  unique(station_id, sensor)
+);
+
 update db_metadata set v = 5 where k = 'v';

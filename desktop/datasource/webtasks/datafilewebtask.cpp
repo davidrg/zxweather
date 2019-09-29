@@ -273,6 +273,32 @@ data_file_t DataFileWebTask::loadDataFile(QStringList fileData,
             values.takeFirst();
         }
         samples.forecastRuleId.append(values.takeFirst().toInt());
+
+        if (values.length() >= 17) {
+            // Extra sensors are present.
+            samples.soilMoisture1.append(nullableDouble(values.takeFirst()));
+            samples.soilMoisture2.append(nullableDouble(values.takeFirst()));
+            samples.soilMoisture3.append(nullableDouble(values.takeFirst()));
+            samples.soilMoisture4.append(nullableDouble(values.takeFirst()));
+
+            samples.soilTemperature1.append(nullableDouble(values.takeFirst()));
+            samples.soilTemperature2.append(nullableDouble(values.takeFirst()));
+            samples.soilTemperature3.append(nullableDouble(values.takeFirst()));
+            samples.soilTemperature4.append(nullableDouble(values.takeFirst()));
+
+            samples.leafWetness1.append(nullableDouble(values.takeFirst()));
+            samples.leafWetness2.append(nullableDouble(values.takeFirst()));
+
+            samples.leafTemperature1.append(nullableDouble(values.takeFirst()));
+            samples.leafTemperature2.append(nullableDouble(values.takeFirst()));
+
+            samples.extraHumidity1.append(nullableDouble(values.takeFirst()));
+            samples.extraHumidity2.append(nullableDouble(values.takeFirst()));
+
+            samples.extraTemperature1.append(nullableDouble(values.takeFirst()));
+            samples.extraTemperature2.append(nullableDouble(values.takeFirst()));
+            samples.extraTemperature3.append(nullableDouble(values.takeFirst()));
+        }
     }
 
     data_file_t dataFile;

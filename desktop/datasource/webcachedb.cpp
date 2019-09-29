@@ -211,7 +211,6 @@ int WebCacheDB::getStationId(QString stationUrl) {
     }
 }
 
-
 int WebCacheDB::getDataFileId(QString dataFileUrl) {
     QSqlQuery query(sampleCacheDb);
     query.prepare("select id from data_file where url = :url");
@@ -405,7 +404,35 @@ void WebCacheDB::cacheDataSet(SampleSet samples,
             gustWindSpeeds, windDirections, solarRadiations, uvIndexes,
             receptions, highTemperatures, lowTemperatures, highRainRates,
             gustWindDirections, evapotranspirations, highSolarRadiations,
-            highUVIndexes, forecastRuleIds;
+            highUVIndexes, forecastRuleIds, soilMoisture1, soilMoisture2,
+            soilMoisture3, soilMoisture4, soilTemperature1, soilTemperature2,
+            soilTemperature3, soilTemperature4, leafWetness1, leafWetness2,
+            leafTemperature1, leafTemperature2, extraTemperature1,
+            extraTemperature2, extraTemperature3, extraHumidity1,
+            extraHumidity2;
+
+    bool soilMoisture1Enabled = !samples.soilMoisture1.isEmpty();
+    bool soilMoisture2Enabled = !samples.soilMoisture2.isEmpty();
+    bool soilMoisture3Enabled = !samples.soilMoisture3.isEmpty();
+    bool soilMoisture4Enabled = !samples.soilMoisture4.isEmpty();
+
+    bool soilTemperature1Enabled = !samples.soilTemperature1.isEmpty();
+    bool soilTemperature2Enabled = !samples.soilTemperature2.isEmpty();
+    bool soilTemperature3Enabled = !samples.soilTemperature3.isEmpty();
+    bool soilTemperature4Enabled = !samples.soilTemperature4.isEmpty();
+
+    bool leafWetness1Enabled = !samples.leafWetness1.isEmpty();
+    bool leafWetness2Enabled = !samples.leafWetness2.isEmpty();
+
+    bool leafTemperature1Enabled = !samples.leafTemperature1.isEmpty();
+    bool leafTemperature2Enabled = !samples.leafTemperature2.isEmpty();
+
+    bool extraTemperature1Enabled = !samples.extraTemperature1.isEmpty();
+    bool extraTemperature2Enabled = !samples.extraTemperature2.isEmpty();
+    bool extraTemperature3Enabled = !samples.extraTemperature3.isEmpty();
+
+    bool extraHumidity1Enabled = !samples.extraHumidity1.isEmpty();
+    bool extraHumidity2Enabled = !samples.extraHumidity2.isEmpty();
 
     qDebug() << "Preparing list of samples to insert...";
 
@@ -435,6 +462,57 @@ void WebCacheDB::cacheDataSet(SampleSet samples,
         lowTemperatures.append(nullableDouble(samples.lowTemperature.at(i)));
         highRainRates.append(nullableDouble(samples.highRainRate.at(i)));
         forecastRuleIds.append(samples.forecastRuleId.at(i));
+
+        if (soilMoisture1Enabled) soilMoisture1.append(samples.soilMoisture1.at(i));
+        else soilMoisture1.append(QVariant(QVariant::Double));
+
+        if (soilMoisture2Enabled) soilMoisture2.append(samples.soilMoisture2.at(i));
+        else soilMoisture2.append(QVariant(QVariant::Double));
+
+        if (soilMoisture3Enabled) soilMoisture3.append(samples.soilMoisture3.at(i));
+        else soilMoisture3.append(QVariant(QVariant::Double));
+
+        if (soilMoisture4Enabled) soilMoisture4.append(samples.soilMoisture4.at(i));
+        else soilMoisture4.append(QVariant(QVariant::Double));
+
+        if (soilTemperature1Enabled) soilTemperature1.append(samples.soilTemperature1.at(i));
+        else soilTemperature1.append(QVariant(QVariant::Double));
+
+        if (soilTemperature2Enabled) soilTemperature2.append(samples.soilTemperature2.at(i));
+        else soilTemperature2.append(QVariant(QVariant::Double));
+
+        if (soilTemperature3Enabled) soilTemperature3.append(samples.soilTemperature3.at(i));
+        else soilTemperature3.append(QVariant(QVariant::Double));
+
+        if (soilTemperature4Enabled) soilTemperature4.append(samples.soilTemperature4.at(i));
+        else soilTemperature4.append(QVariant(QVariant::Double));
+
+        if (leafWetness1Enabled) leafWetness1.append(samples.leafWetness1.at(i));
+        else leafWetness1.append(QVariant(QVariant::Double));
+
+        if (leafWetness2Enabled) leafWetness2.append(samples.leafWetness2.at(i));
+        else leafWetness2.append(QVariant(QVariant::Double));
+
+        if (leafTemperature1Enabled) leafTemperature1.append(samples.leafTemperature1.at(i));
+        else leafTemperature1.append(QVariant(QVariant::Double));
+
+        if (leafTemperature2Enabled) leafTemperature2.append(samples.leafTemperature2.at(i));
+        else leafTemperature2.append(QVariant(QVariant::Double));
+
+        if (extraTemperature1Enabled) extraTemperature1.append(samples.extraTemperature1.at(i));
+        else extraTemperature1.append(QVariant(QVariant::Double));
+
+        if (extraTemperature2Enabled) extraTemperature2.append(samples.extraTemperature2.at(i));
+        else extraTemperature2.append(QVariant(QVariant::Double));
+
+        if (extraTemperature3Enabled) extraTemperature3.append(samples.extraTemperature3.at(i));
+        else extraTemperature3.append(QVariant(QVariant::Double));
+
+        if (extraHumidity1Enabled) extraHumidity1.append(samples.extraHumidity1.at(i));
+        else extraHumidity1.append(QVariant(QVariant::Double));
+
+        if (extraHumidity2Enabled) extraHumidity2.append(samples.extraHumidity2.at(i));
+        else extraHumidity2.append(QVariant(QVariant::Double));
 
         if (samples.windDirection.contains(timestamp))
             windDirections.append(samples.windDirection[timestamp]);
@@ -488,9 +566,14 @@ void WebCacheDB::cacheDataSet(SampleSet samples,
                     "wind_direction, solar_radiation, uv_index,reception, "
                     "high_temperature, low_temperature, high_rain_rate, "
                     "gust_wind_direction, evapotranspiration, "
-                    "high_solar_radiation, high_uv_index, forecast_rule_id) "
+                    "high_solar_radiation, high_uv_index, forecast_rule_id, "
+                    "soil_moisture_1, soil_moisture_2, soil_moisture_3, soil_moisture_4, "
+                    "soil_temperature_1, soil_temperature_2, soil_temperature_3, soil_temperature_4, "
+                    "leaf_wetness_1, leaf_wetness_2, leaf_temperature_1, leaf_temperature_2, "
+                    "extra_temperature_1, extra_temperature_2, extra_temperature_3, "
+                    "extra_humidity_1, extra_humidity_2) "
                     "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
-                    "?, ?, ?, ?, ?, ?, ?, ?, ?);");
+                    "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
         query.addBindValue(stationIds);
         query.addBindValue(timestamps);
         query.addBindValue(temperature);
@@ -517,6 +600,23 @@ void WebCacheDB::cacheDataSet(SampleSet samples,
         query.addBindValue(highSolarRadiations);
         query.addBindValue(highUVIndexes);
         query.addBindValue(forecastRuleIds);
+        query.addBindValue(soilMoisture1);
+        query.addBindValue(soilMoisture2);
+        query.addBindValue(soilMoisture3);
+        query.addBindValue(soilMoisture4);
+        query.addBindValue(soilTemperature1);
+        query.addBindValue(soilTemperature2);
+        query.addBindValue(soilTemperature3);
+        query.addBindValue(soilTemperature4);
+        query.addBindValue(leafWetness1);
+        query.addBindValue(leafWetness2);
+        query.addBindValue(leafTemperature1);
+        query.addBindValue(leafTemperature2);
+        query.addBindValue(extraTemperature1);
+        query.addBindValue(extraTemperature2);
+        query.addBindValue(extraTemperature3);
+        query.addBindValue(extraHumidity1);
+        query.addBindValue(extraHumidity2);
         if (!query.execBatch()) {
             qWarning() << "Sample insert failed: " << query.lastError();
         } else {
@@ -1753,7 +1853,8 @@ bool WebCacheDB::stationKnown(QString url) {
 void WebCacheDB::updateStation(QString url, QString title, QString description,
                                QString type_code, int interval, float latitude,
                                float longitude, float altitude, bool solar,
-                               int davis_broadcast_id) {
+                               int davis_broadcast_id,
+                               QMap<ExtraColumn, QString> extraColumnNames) {
     if (!ready) {
         return;
     }
@@ -1798,10 +1899,129 @@ void WebCacheDB::updateStation(QString url, QString title, QString description,
     }
 
     query.exec();
+
+    qDebug() << "Update sensor config";
+    qDebug() << "Disable all sensors...";
+    query.prepare("delete from sensor_config where station_id = :station_id");
+    query.bindValue(":station_id", stationId);
+    query.exec();
+
+    qDebug() << "Enable currently configured sensors...";
+    query.prepare("insert into sensor_config(station_id, sensor, enabled, name) "
+                  "values(:station_id, :sensor, 1, :name) ");
+
+    foreach (ExtraColumn col, extraColumnNames.keys()) {
+        QString name = extraColumnNames[col];
+        QString sensorName = "";
+        switch (col) {
+        case EC_ExtraHumidity1:
+            sensorName = "extra_humidity_1";
+            break;
+        case EC_ExtraHumidity2:
+            sensorName = "extra_humidity_2";
+            break;
+        case EC_ExtraTemperature1:
+            sensorName = "extra_temperature_1";
+            break;
+        case EC_ExtraTemperature2:
+            sensorName = "extra_temperature_2";
+            break;
+        case EC_ExtraTemperature3:
+            sensorName = "extra_temperature_3";
+            break;
+        case EC_LeafTemperature1:
+            sensorName = "leaf_temperature_1";
+            break;
+        case EC_LeafTemperature2:
+            sensorName = "leaf_temperature_2";
+            break;
+        case EC_LeafWetness1:
+            sensorName = "leaf_wetness_1";
+            break;
+        case EC_LeafWetness2:
+            sensorName = "leaf_wetness_2";
+            break;
+        case EC_SoilMoisture1:
+            sensorName = "soil_moisture_1";
+            break;
+        case EC_SoilMoisture2:
+            sensorName = "soil_moisture_2";
+            break;
+        case EC_SoilMoisture3:
+            sensorName = "soil_moisture_3";
+            break;
+        case EC_SoilMoisture4:
+            sensorName = "soil_moisture_4";
+            break;
+        case EC_SoilTemperature1:
+            sensorName = "soil_temperature_1";
+            break;
+        case EC_SoilTemperature2:
+            sensorName = "soil_temperature_2";
+            break;
+        case EC_SoilTemperature3:
+            sensorName = "soil_temperature_3";
+            break;
+        case EC_SoilTemperature4:
+            sensorName = "soil_temperature_4";
+            break;
+        case EC_NoColumns:
+            continue;
+        }
+
+        qDebug() << "Enable sensor" << sensorName << "with name" << name;
+        query.bindValue(":station_id", stationId);
+        query.bindValue(":name", name);
+        query.bindValue(":sensor", sensorName);
+        query.exec();
+    }
+
+    qDebug() << "Sensor config complete.";
+
     sampleCacheDb.commit();
     qDebug() << "Station updated";
 }
 
+QMap<ExtraColumn, QString> WebCacheDB::getExtraColumnNames(QString url) {
+    int station_id = getStationId(url);
+
+    QMap<ExtraColumn, QString> columns;
+
+    QSqlQuery q(sampleCacheDb);
+    q.prepare("select name, sensor from sensor_config where station_id = :station_id and enabled = 1");
+    q.bindValue(":station_id", station_id);
+    if (q.exec()) {
+        do {
+            QSqlRecord record = q.record();
+            QString name = record.field(0).value().toString();
+            QString sensor = record.field(1).value().toString();
+
+            ExtraColumn column = EC_NoColumns;
+            if (sensor == "extra_humidity_1")         column = EC_ExtraHumidity1;
+            else if (sensor == "extra_humidity_2")    column = EC_ExtraHumidity2;
+            else if (sensor == "extra_temperature_1") column = EC_ExtraTemperature1;
+            else if (sensor == "extra_temperature_2") column = EC_ExtraTemperature2;
+            else if (sensor == "extra_temperature_3") column = EC_ExtraTemperature3;
+            else if (sensor == "leaf_wetness_1")      column = EC_LeafWetness1;
+            else if (sensor == "leaf_wetness_2")      column = EC_LeafWetness2;
+            else if (sensor == "leaf_temperature_1")  column = EC_LeafTemperature1;
+            else if (sensor == "leaf_temperature_2")  column = EC_LeafTemperature2;
+            else if (sensor == "soil_moisture_1")     column = EC_SoilMoisture1;
+            else if (sensor == "soil_moisture_2")     column = EC_SoilMoisture2;
+            else if (sensor == "soil_moisture_3")     column = EC_SoilMoisture3;
+            else if (sensor == "soil_moisture_4")     column = EC_SoilMoisture4;
+            else if (sensor == "soil_temperature_1")  column = EC_SoilTemperature1;
+            else if (sensor == "soil_temperature_2")  column = EC_SoilTemperature2;
+            else if (sensor == "soil_temperature_3")  column = EC_SoilTemperature3;
+            else if (sensor == "soil_temperature_4")  column = EC_SoilTemperature4;
+            else continue;
+
+            columns[column] = name;
+        } while (q.next());
+    }
+
+    return columns;
+}
 
 bool WebCacheDB::solarAvailable(QString url) {
     QSqlQuery q(sampleCacheDb);
