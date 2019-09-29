@@ -111,7 +111,35 @@ void WeatherValueWidget::updateDisplay() {
                          .arg(QString(v1)).arg(v2s));
       }
     } else {
-        label->setText(v1);
+        if (column1 == SC_UV_Index) {
+            /* US EPA UV Index categories
+             *
+             *   Index      Exposure Category
+             *   --------   -----------------
+             *    0-2.9      Low
+             *    3-5.9      Moderate
+             *    6-7.9      High
+             *    7-10.9     Very High
+             *    11+        Extreme
+             */
+
+            QString exposureCategory = "";
+            if ((float)v1 < 3.0) {
+                exposureCategory = tr("low");
+            } else if ((float)v1 < 6.0) {
+                exposureCategory = tr("moderate");
+            } else if ((float)v1 < 8.0) {
+                exposureCategory = tr("hHigh");
+            } else if ((float)v1 < 11.0) {
+                exposureCategory = tr("very high");
+            } else {
+                exposureCategory = tr("extreme");
+            }
+
+            label->setText(QString("%1 (%2)").arg(QString(v1)).arg(exposureCategory));
+        } else {
+            label->setText(v1);
+        }
     }
 }
 
