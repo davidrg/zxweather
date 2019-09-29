@@ -80,6 +80,24 @@ CREATE TABLE sample (
   high_uv_index real,
   forecast_rule_id integer,
 
+  leaf_wetness_1 real,
+  leaf_wetness_2 real,
+  leaf_temperature_1 real,
+  leaf_temperature_2 real,
+  soil_moisture_1 real,
+  soil_moisture_2 real,
+  soil_moisture_3 real,
+  soil_moisture_4 real,
+  soil_temperature_1 real,
+  soil_temperature_2 real,
+  soil_temperature_3 real,
+  soil_temperature_4 real,
+  extra_humidity_1 real,
+  extra_humidity_2 real,
+  extra_temperature_1 real,
+  extra_temperature_2 real,
+  extra_temperature_3 real,
+
   -- sample cache DB only. For tracking where the record came from.
   data_file integer not null
 );
@@ -103,11 +121,35 @@ create view davis_sample as
     s.evapotranspiration,
     s.high_solar_radiation,
     s.high_uv_index,
-    s.forecast_rule_id
-
+    s.forecast_rule_id,
+    s.leaf_wetness_1,
+    s.leaf_wetness_2,
+    s.leaf_temperature_1,
+    s.leaf_temperature_2,
+    s.soil_moisture_1,
+    s.soil_moisture_2,
+    s.soil_moisture_3,
+    s.soil_moisture_4,
+    s.soil_temperature_1,
+    s.soil_temperature_2,
+    s.soil_temperature_3,
+    s.soil_temperature_4,
+    s.extra_humidity_1,
+    s.extra_humidity_2,
+    s.extra_temperature_1,
+    s.extra_temperature_2,
+    s.extra_temperature_3
   from sample s
     inner join station stn on stn.station_id = s.station_id
 ;
+
+create table sensor_config (
+  station_id integer,
+  sensor text,
+  enabled boolean,
+  name text,
+  unique(station_id, sensor)
+);
 
 -- Information about cameras, etc
 create table image_source (
@@ -153,13 +195,18 @@ create table image (
 create index image_id on image(id, source);
 create index image_date on image(date);
 
+create table image_dates (
+    image_source_id integer,
+    date text
+);
+
 -- Database metadata - version number, etc.
 create table db_metadata (
   k text not null primary key,
   v text
 );
 
-insert into db_metadata(k,v) values('v','2');
+insert into db_metadata(k,v) values('v','5');
 
 -- Try to enable the write ahead log (requires SQLite 3.7.0+)
 -- This improves performance by quite a bit.

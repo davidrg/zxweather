@@ -7,6 +7,7 @@
 #include <QObject>
 #include <QDateTime>
 #include <QByteArray>
+#include <QMap>
 
 /** Fetches information about the weather station and stores it in the cache database.
  */
@@ -45,6 +46,17 @@ public:
     QString taskName() const {
         return "Loading system configuration";
     }
+
+    /** Loads sensor config from the station data section of the system config
+     * document
+     *
+     * @param stationData Station config data
+     * @param columnNames Configured sensor column names
+     * @param enabledColumns Configured sensors
+     */
+    static void parseSensorConfig(QVariantMap stationData,
+                                  QMap<ExtraColumn, QString> *columnNames,
+                                  ExtraColumns* enabledColumns);
 
 public slots:
     /** Called when a network reply for a request this task submitted has

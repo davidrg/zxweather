@@ -230,10 +230,19 @@ public:
      * @param altitude Altitude. use 0 if unknown.
      * @param solar If solar sensors are available
      * @param davis_broadcast_id Wireless broadcast ID for davis stations. Use 0 for cabled or non-davis stations.
+     * @param extraColumnNames Names for all enabled extra columns. Extra columns not included will be considered disabled.
      */
     void updateStation(QString url, QString title, QString description, QString type_code,
                        int interval, float latitude, float longitude, float altitude,
-                       bool solar, int davis_broadcast_id);
+                       bool solar, int davis_broadcast_id,
+                       QMap<ExtraColumn, QString> extraColumnNames);
+
+    /** Gets the names for all enabled extra senosrs
+     *
+     * @param url Station to get extra sensor names for
+     * @return Map of sensor to name
+     */
+    QMap<ExtraColumn, QString> getExtraColumnNames(QString url);
 
     /** Returns true if the station has solar sensors available
      *

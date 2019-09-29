@@ -563,15 +563,20 @@ bool WebDataSource::solarAvailable() {
 }
 
 ExtraColumns WebDataSource::extraColumnsAvailable() {
-    return EC_NoColumns; // TODO
+    QMap<ExtraColumn, QString> names = extraColumnNames();
+
+    ExtraColumns enabled;
+
+    foreach (ExtraColumn c, names.keys()) {
+        enabled |= c;
+    }
+
+    return enabled;
 }
 
 QMap<ExtraColumn, QString> WebDataSource::extraColumnNames() {
-    QMap<ExtraColumn, QString> result;
 
-    // TODO
-
-    return result;
+    return WebCacheDB::getInstance().getExtraColumnNames(stationURL());
 }
 
 station_info_t WebDataSource::getStationInfo() {
@@ -731,12 +736,18 @@ void WebDataSource::fireThumbnailReady(int imageId, QImage thumbnail) {
 
 void WebDataSource::updateStation(QString title, QString description, QString type_code,
                                   int interval, float latitude, float longitude, float altitude,
-                                  bool solar, int davis_broadcast_id) {
+                                  bool solar, int davis_broadcast_id,
+                                  ExtraColumns extraColumns,
+                                  QMap<ExtraColumn, QString> extraColumnNames) {
+
+    this->extraColumns = extraColumns;
+    this->extraColumnName = extraColumnNames;
+
 
 
     WebCacheDB::getInstance().updateStation(
                 stationURL(), title, description, type_code, interval, latitude, longitude,
-                altitude, solar, davis_broadcast_id);
+                altitude, solar, davis_broadcast_id, extraColumnNames);
 }
 
 void WebDataSource::finishedCaching() {

@@ -125,12 +125,17 @@ private:
     // For updating station info in the cache DB
     void updateStation(QString title, QString description, QString type_code,
                        int interval, float latitude, float longitude, float altitude,
-                       bool solar, int davis_broadcast_id);
+                       bool solar, int davis_broadcast_id,
+                       ExtraColumns extraColumns,
+                       QMap<ExtraColumn, QString> extraColumnNames);
 
     QString stationURL() const;
 
     QString baseURL;
     QString stationCode;
+
+    ExtraColumns extraColumns;
+    QMap<ExtraColumn, QString> extraColumnName;
 
     // for live data stuff
     void ProcessStationConfig(QNetworkReply *reply);
