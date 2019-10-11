@@ -212,6 +212,14 @@ Report::Report(QString name)
         }
     }
 
+    if (doc.contains("required_sensors")) {
+        QVariantList rs = doc["required_sensors"].toList();
+        foreach (QVariant s, rs) {
+            QString sensor = s.toString();
+            _requiredSensors.insert(sensor);
+        }
+    }
+
     _custom_criteria = doc.contains("criteria_ui");
     if (_custom_criteria) {
         _ui = readFile(reportDir + doc["criteria_ui"].toString());
@@ -857,6 +865,69 @@ void Report::run(AbstractDataSource* dataSource, QMap<QString, QVariant> paramet
 
     }
 
+    QMap<ExtraColumn, QString> extraColumns = dataSource->extraColumnNames();
+    QMap<QString, QVariant> columnNames;
+    foreach (ExtraColumn ec, extraColumns.keys()) {
+        QString sensorName;
+        switch (ec) {
+        case EC_ExtraHumidity1:
+            sensorName = "extra_humidity_1";
+            break;
+        case EC_ExtraHumidity2:
+            sensorName = "extra_humidity_2";
+            break;
+        case EC_ExtraTemperature1:
+            sensorName = "extra_temperature_1";
+            break;
+        case EC_ExtraTemperature2:
+            sensorName = "extra_temperature_2";
+            break;
+        case EC_ExtraTemperature3:
+            sensorName = "extra_temperature_3";
+            break;
+        case EC_LeafTemperature1:
+            sensorName = "leaf_temperature_1";
+            break;
+        case EC_LeafTemperature2:
+            sensorName = "leaf_temperature_2";
+            break;
+        case EC_LeafWetness1:
+            sensorName = "leaf_wetness_1";
+            break;
+        case EC_LeafWetness2:
+            sensorName = "leaf_wetness_2";
+            break;
+        case EC_SoilMoisture1:
+            sensorName = "soil_moisture_1";
+            break;
+        case EC_SoilMoisture2:
+            sensorName = "soil_moisture_2";
+            break;
+        case EC_SoilMoisture3:
+            sensorName = "soil_moisture_3";
+            break;
+        case EC_SoilMoisture4:
+            sensorName = "soil_moisture_4";
+            break;
+        case EC_SoilTemperature1:
+            sensorName = "soil_temperature_1";
+            break;
+        case EC_SoilTemperature2:
+            sensorName = "soil_temperature_2";
+            break;
+        case EC_SoilTemperature3:
+            sensorName = "soil_temperature_3";
+            break;
+        case EC_SoilTemperature4:
+            sensorName = "soil_temperature_4";
+            break;
+        case EC_NoColumns:
+            continue;
+        }
+        columnNames[sensorName] = extraColumns[ec];
+    }
+
+
     QMap<QString, query_result_t> queryResults;
 
     QVariantList queryDebugInfo;
@@ -882,6 +953,11 @@ void Report::run(AbstractDataSource* dataSource, QMap<QString, QVariant> paramet
         queryResults[q.name] = data;
     }
 
+    // This can't be put in the parameters list until after all queries have been
+    // executed as its data type isn't something that can be passed as a query
+    // parameter.
+    parameters["sensor_names"] = QVariant(columnNames);
+
     // Run JavaScript data generators
     qDebug() << "Run data generators...";
     QMap<QString, query_result_t> generatedData = runDataGenerators(parameters);
@@ -890,6 +966,7 @@ void Report::run(AbstractDataSource* dataSource, QMap<QString, QVariant> paramet
     }
     qDebug() << "Finished running data generators.";
 
+    // Run javascript data transformations
     qDebug() << "Transforming datasets...";
     QMap<QString, query_result_t> transformedData = runDataTransformation(parameters, queryResults);
     foreach (QString key, transformedData.keys()) {

@@ -340,6 +340,79 @@ This option should be used to ensure the report is only run against weather stat
 \hline
 \end{tabular}
 
+\subsection{Required Sensors}
+Reports that depend on particular optional sensors can supply a list of the sensors or types of sensors they require. The report will be hidden for any station missing one or more of the required sensors.
+
+\subsubsection{Common Sensors}
+The following sensors are always present for all currently supported weather stations.
+\begin{itemize}
+\item \verb|temperature|
+\item \verb|indoor_temperature|
+\item \verb|humidity|
+\item \verb|indoor_humidity|
+\item \verb|pressure|
+\item \verb|rainfall|
+\item \verb|average_wind_speed|
+\item \verb|gust_wind_speed|
+\item \verb|average wind direction|
+\end{itemize}
+
+\subsubsection{Davis Weather Stations}
+The following sensors are always present for \verb|vantage_pro2| and \verb|vantage_pro2_plus| stations:
+\begin{itemize}
+\item \verb|high_temperature|
+\item \verb|low_temperature|
+\item \verb|high_rain_rate|
+\item \verb|gust_wind_direction|
+\item \verb|forecast_rule_id|
+\end{itemize}
+
+If the Vantage Pro2 or Vantage Pro2 Plus is wireless it will also have the \verb|wireless_reception| sensor present.
+
+The Vantage Pro2 Plus comes with a Solar Radiation sensor and a UV sensor so the following sensors will be present for that station type:
+\begin{itemize}
+\item \verb|uv_index|
+\item \verb|solar_radiation|
+\item \verb|evapotranspiration|
+\item \verb|high_uv_index|
+\item \verb|high_solar_radiation|
+\end{itemize}
+
+Davis stations can also be configured with extra sensor transmitters. When configured in zxweather the following sensors will be present:
+\begin{itemize}
+
+\item \verb|leaf_wetness| (At least one leaf sensor is present)
+\item \verb|leaf_wetness_1|
+\item \verb|leaf_wetness_2|
+
+\item \verb|leaf_temperature| (At least one leaf temperature sensor is present)
+\item \verb|leaf_temperature_1|
+\item \verb|leaf_temperature_2|
+
+\item \verb|soil_moisture| (At least one soil moisture sensor is present)
+\item \verb|soil_moisture_1|
+\item \verb|soil_moisture_2|
+\item \verb|soil_moisture_3|
+\item \verb|soil_moisture_4|
+
+\item \verb|soil_temperature| (At least one soil temperature sensor is present)
+\item \verb|soil_temperature_1|
+\item \verb|soil_temperature_2|
+\item \verb|soil_temperature_3|
+\item \verb|soil_temperature_4|
+
+\item \verb|extra_humidity| (At least one extra humidity sensor is present)
+\item \verb|extra_humidity_1|
+\item \verb|extra_humidity_2|
+
+\item \verb|extra_temperature| (At least one extra temperature sensor is present)
+\item \verb|extra_temperature_1|
+\item \verb|extra_temperature_2|
+\item \verb|extra_temperature_3|
+\end{itemize}
+
+
+
 \subsection{Load Image Dates}
 When running against the SQLite cache database only very limited and often out of date information is available about any images. This is because the application normally only downloads and caches information about images one date at a time when images for a date are requested by the View Images window. If the report needs to know what dates have images for generating links to the View Images window you can request to have the \verb|image_dates| in the cache database populated by setting the \verb|load_image_dates| report setting to true.
 
@@ -657,7 +730,27 @@ function generate_datasets(criteria) {
 }
 \end{lstlisting}
 
-The criteria parameter consists of all the reports criteria - these are the same values available as parameters to SQL queries.
+The criteria parameter consists of all the reports criteria (the same values available as parameters to SQL queries) plus an additional \verb|sensor_names| value. The \verb|sensor_names| value can be used to look up which additional sensors (eg, leaf wetness) are available and what their display names are. For example:
+\begin{lstlisting}[language=javascript]
+function generate_datasets(criteria) {
+	var sensor_names = criteria["sensor_names"];
+	
+	var leaf_wetness_1_enabled = false;
+	var leaf_wetness_1_name = "";
+	if (sensor_names.hasOwnProperty("leaf_wetness_1")) {
+		leaf_wetness_1_enabled = true; // Leaf wetness sensor is enabled
+
+		// This is whatever name the sensor has been configured with
+		leaf_wetness_1_name = sensor_names["leaf_wetness_1"]; 
+	}
+
+	var datasets = [];
+
+	// ... do stuff to generate datasets
+
+	return datasets;
+}
+\end{lstlisting}
 
 The return value is a list of objects with the following properties:
 \begin{itemize}
