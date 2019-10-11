@@ -1187,6 +1187,49 @@ The text parameters name is the object name of the widget while the integer para
  \caption{QComboBox}
 \end {figure}
 
+\subsubsection{Sensor combo box}
+You can have zxweather populate a QComboBox with a list of available sensors of different types by adding a string-type dynamic property called \verb|options| to the widget and setting its value to one of the following:
+
+\begin{tabular}{p{5cm} p{8cm} l}
+\hline
+\textbf{value} & \textbf{Description} \\
+\hline
+\verb|temperature-sensors| & All available temperature sensors \\
+\verb|humidity-sensors| & All available humidity sensors \\
+\verb|leaf-wetness-sensors| & Available leaf wetness sensors \\
+\verb|leaf-temperature-sensors| & Available leaf temperature sensors only\\
+\verb|soil-moisture-sensors| & Available soil moisture sensors\\
+\verb|soil-temperature-sensors| & Available soil temperature sensors only\\
+\hline
+\end{tabular}
+
+\begin {figure}[!ht]
+ \centering
+ \includegraphics[scale=1.0]{images/add_dynamic_property}
+ \caption{Adding a dynamic property in Qt Designer}
+\end {figure}
+
+\begin {figure}[!ht]
+ \centering
+ \includegraphics[scale=1.0]{images/dynamic_property}
+ \caption{Editing a dynamic property in Qt Designer}
+\end {figure}
+
+Where the user has renamed a sensor the sensor will be shown under the users chosen name rather than the system name. The ID produced by these combo boxes is not particuarly useful (as it will depend on what sensors happen to be configured) so these combo boxes produce a third parameter (ending with \verb|_value|) which contains the system name for the chosen sensor. System names for sensors are:
+\begin{itemize}
+\item \verb|outdoor_temperature|
+\item \verb|indoor_temperautre|
+\item \verb|outdoor_humidity|
+\item \verb|indoor_humidity|
+\item \verb|extra_humidity_1|, \verb|extra_humidity_2|
+\item \verb|extra_temperature_1|, \verb|extra_temperature_2|, \verb|extra_temperature_3|
+\item \verb|leaf_temperature_1|, \verb|leaf_temperature_2|
+\item \verb|leaf_wetness_1|, \verb|leaf_wetness_2|
+\item \verb|soil_moisture_1|, \verb|soil_moisture_2|, \verb|soil_moisture_3|, \verb|soil_moisture_4|
+\item \verb|soil_temperature_1|, \verb|soil_temperature_2|, \verb|soil_temperature_3|, \verb|soil_temperature_4|
+\end{itemize}
+
+
 \subsection{QTextEdit}
 A Multi-line text editor that supports pasting of formatted text. Produces HTML output.
 
@@ -1680,8 +1723,9 @@ All CSS 2.1 selector classes are supported except pseudo-class selectors like \v
 
 \chapter{Built-in Reports}
 \label{app_built_in_reports}
-The Desktop Client has the following built-in reports:
+The zxweather Desktop Client implements a number of common reports which aim to produce output compatible with existing software such as WeatherLink where feasible in addition to its own unique reports. Built-in reports consist of the following:
 \begin{itemize}
+\item Leaf Wet Hours
 \item Monthly Averages
 \item NOAA Month Summary
 \item NOAA Year Summary
@@ -1689,7 +1733,58 @@ The Desktop Client has the following built-in reports:
 \item Station Records
 \item Storm Rain
 \item Sun
+\item Sunshine hours
 \end{itemize}
+
+Some of these reports require sensors not available on all weather stations (eg, Solar Radiation) or sensors that are optional extras (eg, Leaf Wetness). When a required sensor is missing the report will not be available.
+
+All of these reports are built using the capabilities described in this manual - anything these reports can do a custom report can do as well. This section describes these reports, how they work and the files that make them up. Any files placed in the report search path with conflicting names will replace the built-in report files allowing them to be customised.
+
+\section{Leaf Wet Hours}
+This report calculates total leaf wet hours for a chosen date range plus a daily total for each day in that date range. It is only available for stations equipped with at least one Leaf Wetness Sensor. When multiple sensors are present it will calculate for each sensor
+
+Leaf Wet Hours are calculated using three threshold values:
+\begin{itemize}
+\item Minimum leaf wetness
+\item Minimum temperature
+\item Maximum temperature
+\end{itemize}
+
+One leaf wet hour will be one hour where the leaf wetness sensor is above the set minimum and the chosen temperature sensors value is between the set minimum and maximum. Any temperature sensor can be chosen for this calculation.
+
+The reports emulates the one shipped with WeatherLinks Ag/Turf module with the following differences:
+\begin{itemize}
+\item Fix typo in "Leaf Sensor Nunber"
+\item Include custom names for the temperature sensor and leaf wetness sensors where they have been set
+\item Fix truncation of minimum and maximum temperature values to 0dp (weatherlink does this with no rounding - a value of 4.9 becomes 4.0)
+\item Fix incorrect display of minimum and maximum temperatures in report output when using Celsius. In weatherlink an input of 1.0\degree C produces an output of 0.\degree C due to truncation between conversion to Fahrenheit and back to Celsius.
+\item Calculation is performed with the temperature thresholds as entered without truncating them to 0dp
+\item Fix day count to the number of dates between the reports start date and today if the reports end date is in the future ("Last 30 days" doesn't make sense when the report is really run for this month and we're only 5 days in)
+\end{itemize}
+
+These changes will result in slightly different output compared to WeatherLink but the results should be no less accurate.
+
+\subsection{Files}
+
+\begin{tabular}{p{6cm} l}
+\hline
+\textbf{File} & \textbf{Description} \\
+\hline
+\verb|libs/moment.js| & Date/time library\\
+\verb|libs/moment-timezone-with-data-2012-2022.js| & \\
+& Timezone data \\
+\verb|partials/summary.mustache| & Template containing per-sensor summary data\\
+\verb|criteria.ui| & Report criteria UI \\
+\verb|description.html| & Report description.\\
+\verb|psql.sql| & Report Query for PostgreSQL. \\
+\verb|report.js| & Summary data calculation and output formatting\\
+\verb|report.json| & Report Definition. \\
+\verb|sqlite.sql| & Report Query for SQLite. \\
+\verb|wlformat.txt| & main output template.\\
+\hline
+\end{tabular}
+
+All files live in a directory named \verb|leaf_wet_hours|.
 
 \section{Monthly Averages}
 This report runs over the weather stations entire data set aggregating data by month. It computes the following values:
@@ -1995,6 +2090,9 @@ This output is compatible with the equivalent report in WeatherLink and includes
 \hline
 \textbf{File} & \textbf{Description} \\
 \hline
+\verb|libs/moment.js| & Date/time library\\
+\verb|libs/moment-timezone-with-data-2012-2022.js| & \\
+& Timezone data \\
 \verb|criteria.ui| & Report Criteria.\\
 \verb|description.html| & Report description. \\
 \verb|lat_long.js| & JavaScript code for converting latitude \& longitude to degrees-minutes-seconds format.\\
@@ -2015,6 +2113,9 @@ This report displays the approximate number of sunshine hours per day based on t
 \hline
 \textbf{File} & \textbf{Description} \\
 \hline
+\verb|libs/moment.js| & Date/time library\\
+\verb|libs/moment-timezone-with-data-2012-2022.js| & \\
+& Timezone data \\
 \verb|criteria.ui| & Report Criteria.\\
 \verb|description.html| & Report description. \\
 \verb|psql.sql| & PostgreSQL data query.\\
