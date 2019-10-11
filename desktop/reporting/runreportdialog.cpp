@@ -41,6 +41,124 @@ RunReportDialog::RunReportDialog(AbstractUrlHandler *urlHandler, QWidget *parent
     hardware_type_t hw_type = ds->getHardwareType();
     bool solarAvailable = ds->solarAvailable();
 
+
+    QSet<QString> sensors;
+    foreach (ExtraColumn c, ds->extraColumnNames().keys()) {
+        switch(c) {
+        case EC_LeafWetness1:
+            sensors.insert("leaf_wetness");
+            sensors.insert("leaf_wetness_1");
+            break;
+        case EC_LeafWetness2:
+            sensors.insert("leaf_wetness");
+            sensors.insert("leaf_wetness_2");
+            break;
+        case EC_LeafTemperature1:
+            sensors.insert("leaf_temperature");
+            sensors.insert("leaf_temperature_1");
+            break;
+        case EC_LeafTemperature2:
+            sensors.insert("leaf_temperature");
+            sensors.insert("leaf_temperature_2");
+            break;
+        case EC_SoilMoisture1:
+            sensors.insert("soil_moisture");
+            sensors.insert("soil_moisture_1");
+            break;
+        case EC_SoilMoisture2:
+            sensors.insert("soil_moisture");
+            sensors.insert("soil_moisture_2");
+            break;
+        case EC_SoilMoisture3:
+            sensors.insert("soil_moisture");
+            sensors.insert("soil_moisture_3");
+            break;
+        case EC_SoilMoisture4:
+            sensors.insert("soil_moisture");
+            sensors.insert("soil_moisture_4");
+            break;
+        case EC_SoilTemperature1:
+            sensors.insert("soil_temperature");
+            sensors.insert("soil_temperature_1");
+            break;
+        case EC_SoilTemperature2:
+            sensors.insert("soil_temperature");
+            sensors.insert("soil_temperature_2");
+            break;
+        case EC_SoilTemperature3:
+            sensors.insert("soil_temperature");
+            sensors.insert("soil_temperature_3");
+            break;
+        case EC_SoilTemperature4:
+            sensors.insert("soil_temperature");
+            sensors.insert("soil_temperature_4");
+            break;
+        case EC_ExtraHumidity1:
+            sensors.insert("extra_humidity");
+            sensors.insert("extra_humidity_1");
+            break;
+        case EC_ExtraHumidity2:
+            sensors.insert("extra_humidity");
+            sensors.insert("extra_humidity_2");
+            break;
+        case EC_ExtraTemperature1:
+            sensors.insert("extra_temperature");
+            sensors.insert("extra_temperature_1");
+            break;
+        case EC_ExtraTemperature2:
+            sensors.insert("extra_temperature");
+            sensors.insert("extra_temperature_2");
+            break;
+        case EC_ExtraTemperature3:
+            sensors.insert("extra_temperature");
+            sensors.insert("extra_temperature_3");
+            break;
+        case EC_NoColumns:
+        default:
+            break; // Nothing to do.
+        }
+    }
+
+    // zxweather doesn't currently support enabling UV and Solar Radiation
+    // separately at the moment. It just has a "Vantage Pro2 Plus" station
+    // type which implies both UV and Solar Radiation. Eventually we'll
+    // let them be configured separately like we do with the other optional
+    // davis sensors.
+    if (solarAvailable) {
+        sensors << "uv_index"
+                << "solar_radiation"
+                << "evapotranspiration"
+                << "high_uv_index"
+                << "high_solar_radiation";
+    }
+
+    if (ds->getStationInfo().isValid && ds->getStationInfo().isWireless) {
+        sensors.insert("wireless_reception");
+    }
+
+    // A few extra values (not sensors) available for Davis stations. These
+    // are all highs and lows for the archive interval.
+    if (hw_type == HW_DAVIS) {
+        sensors << "high_temperature"
+                << "low_temperature"
+                << "high_rain_rate"
+                << "gust_wind_direction"
+                << "forecast_rule_id";
+    }
+
+    // All supported stations have these
+    sensors << "temperature"
+            << "indoor_temperature"
+            << "humidity"
+            << "indoor_humidity"
+            << "pressure"
+            << "rainfall"
+            << "average_wind_speed"
+            << "gust_wind_speed"
+            << "average wind direction";
+
+    qDebug() << "Configured sensors:" << sensors;
+
     foreach (Report r, reports) {
         if (r.isNull())
             continue;
@@ -83,6 +201,20 @@ RunReportDialog::RunReportDialog(AbstractUrlHandler *urlHandler, QWidget *parent
             default:
                 continue; // Generic wasn't listed
             }
+        }
+
+        qDebug() << "Report requires sensors:" << r.requiredSensors();
+        bool hasRequiredSensors = true;
+        foreach (QString sensor, r.requiredSensors()) {
+            if (!sensors.contains(sensor)) {
+                qDebug() << "Required sensor" << sensor << "not available - report not compatible!";
+                hasRequiredSensors = false;
+                break;
+            }
+        }
+        if (!hasRequiredSensors) {
+            // Skip report
+            continue;
         }
 
         QTreeWidgetItem *twi = new QTreeWidgetItem();

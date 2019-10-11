@@ -86,6 +86,7 @@ public:
     bool supportsWebDS() const { return _web_ok; }
     bool supportsDBDS() const { return _db_ok; }
     QSet<WeatherStationType> supportedWeatherStations() const { return QSet<WeatherStationType>::fromList(_weatherStations); }
+    QSet<QString> requiredSensors() const {return _requiredSensors;}
 
 //    void criteriaUICreated(QWidget* w);
 //    bool validateCriteriaUI(QString &errorMessage, QWidget* w);
@@ -118,6 +119,7 @@ private:
     TimePickerType _tpType;
     FixedTimeSpan _defaultTimeSpan;
     QList<WeatherStationType> _weatherStations;
+    QSet<QString> _requiredSensors;
     bool _primeCache;
     bool _primeImageDates;
     bool _debug;
