@@ -1,0 +1,12 @@
+{{# sensor_1_summary }}
+{{> summary}}
+{{/ sensor_1_summary }}
+{{#sensor_1_days}}
+{{date}}   {{wetness_hours}}
+{{/sensor_1_days}}
+{{# sensor_2_summary }}
+{{> summary}}
+{{/ sensor_2_summary }}
+{{#sensor_2_days}}
+{{date}}   {{wetness_hours}}
+{{/sensor_2_days}}

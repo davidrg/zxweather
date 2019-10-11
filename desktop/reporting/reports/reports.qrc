@@ -74,5 +74,15 @@
         <file>sunshine_hours/wlformat.txt</file>
         <file>sunshine_hours/libs/moment.js</file>
         <file>sunshine_hours/libs/moment-timezone-with-data-2012-2022.js</file>
+        <file>leaf_wet_hours/criteria.ui</file>
+        <file>leaf_wet_hours/description.html</file>
+        <file>leaf_wet_hours/psql.sql</file>
+        <file>leaf_wet_hours/report.js</file>
+        <file>leaf_wet_hours/report.json</file>
+        <file>leaf_wet_hours/sqlite.sql</file>
+        <file>leaf_wet_hours/wlformat.txt</file>
+        <file>leaf_wet_hours/libs/moment.js</file>
+        <file>leaf_wet_hours/libs/moment-timezone-with-data-2012-2022.js</file>
+        <file>leaf_wet_hours/partials/summary.mustache</file>
     </qresource>
 </RCC>
