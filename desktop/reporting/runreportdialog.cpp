@@ -327,6 +327,174 @@ void RunReportDialog::loadReportCriteria() {
     QList<QGroupBox*> groupBoxes = ui->custom_criteria_page->findChildren<QGroupBox*>();
     QList<QLabel*> labels = ui->custom_criteria_page->findChildren<QLabel*>();
 
+    // These map sensor name to sensor display name
+    QMap<QString, QString> temperature_sensors;
+    QMap<QString, QString> humidity_sensors;
+    QMap<QString, QString> leaf_wetness_sensors;
+    QMap<QString, QString> leaf_temperature_sensors;
+    QMap<QString, QString> soil_moisture_sensors;
+    QMap<QString, QString> soil_temperature_sensors;
+
+    // And this is the order we sort sensors in. This is because we want
+    // the built-in sensors to come before others.
+    QList<QString> temperature_sensors_keys;
+    QList<QString> humidity_sensors_keys;
+    QList<QString> leaf_wetness_sensors_keys;
+    QList<QString> leaf_temperature_sensors_keys;
+    QList<QString> soil_moisture_sensors_keys;
+    QList<QString> soil_temperature_sensors_keys;
+
+    temperature_sensors["outdoor_temperature"] = tr("Outside Temperature");
+    temperature_sensors["indoor_temperature"] = tr("Inside Temperature");
+    temperature_sensors_keys << "outdoor_temperature" << "indoor_temperature";
+
+    humidity_sensors["outdoor_humidity"] = tr("Outside Humidity");
+    humidity_sensors["indoor_humidity"] = tr("Inside Humidity");
+    humidity_sensors_keys << "outdoor_humidity" << "indoor_humidity";
+
+    QMap<ExtraColumn, QString> extra_columns = ds->extraColumnNames();
+    foreach (ExtraColumn ec, extra_columns.keys()) {
+        QString sensorName = "";
+        switch (ec) {
+        case EC_ExtraHumidity1:
+            sensorName = "extra_humidity_1";
+            humidity_sensors[sensorName] = extra_columns[ec];
+            humidity_sensors_keys << sensorName;
+            break;
+        case EC_ExtraHumidity2:
+            sensorName = "extra_humidity_2";
+            humidity_sensors[sensorName] = extra_columns[ec];
+            humidity_sensors_keys << sensorName;
+            break;
+        case EC_ExtraTemperature1:
+            sensorName = "extra_temperature_1";
+            temperature_sensors[sensorName] = extra_columns[ec];
+            temperature_sensors_keys << sensorName;
+            break;
+        case EC_ExtraTemperature2:
+            sensorName = "extra_temperature_2";
+            temperature_sensors[sensorName] = extra_columns[ec];
+            temperature_sensors_keys << sensorName;
+            break;
+        case EC_ExtraTemperature3:
+            sensorName = "extra_temperature_3";
+            temperature_sensors[sensorName] = extra_columns[ec];
+            temperature_sensors_keys << sensorName;
+            break;
+        case EC_LeafTemperature1:
+            sensorName = "leaf_temperature_1";
+            leaf_temperature_sensors[sensorName] = extra_columns[ec];
+            leaf_temperature_sensors_keys << sensorName;
+            temperature_sensors[sensorName] = extra_columns[ec];
+            temperature_sensors_keys << sensorName;
+            break;
+        case EC_LeafTemperature2:
+            sensorName = "leaf_temperature_2";
+            leaf_temperature_sensors[sensorName] = extra_columns[ec];
+            leaf_temperature_sensors_keys << sensorName;
+            temperature_sensors[sensorName] = extra_columns[ec];
+            temperature_sensors_keys << sensorName;
+            break;
+        case EC_LeafWetness1:
+            sensorName = "leaf_wetness_1";
+            leaf_wetness_sensors[sensorName] = extra_columns[ec];
+            leaf_wetness_sensors_keys << sensorName;
+            break;
+        case EC_LeafWetness2:
+            sensorName = "leaf_wetness_2";
+            leaf_wetness_sensors[sensorName] = extra_columns[ec];
+            leaf_wetness_sensors_keys << sensorName;
+            break;
+        case EC_SoilMoisture1:
+            sensorName = "soil_moisture_1";
+            soil_moisture_sensors[sensorName] = extra_columns[ec];
+            soil_moisture_sensors_keys << sensorName;
+            break;
+        case EC_SoilMoisture2:
+            sensorName = "soil_moisture_2";
+            soil_moisture_sensors[sensorName] = extra_columns[ec];
+            soil_moisture_sensors_keys << sensorName;
+            break;
+        case EC_SoilMoisture3:
+            sensorName = "soil_moisture_3";
+            soil_moisture_sensors[sensorName] = extra_columns[ec];
+            soil_moisture_sensors_keys << sensorName;
+            break;
+        case EC_SoilMoisture4:
+            sensorName = "soil_moisture_4";
+            soil_moisture_sensors[sensorName] = extra_columns[ec];
+            soil_moisture_sensors_keys << sensorName;
+            break;
+        case EC_SoilTemperature1:
+            sensorName = "soil_temperature_1";
+            temperature_sensors[sensorName] = extra_columns[ec];
+            temperature_sensors_keys << sensorName;
+            soil_temperature_sensors[sensorName] = extra_columns[ec];
+            soil_temperature_sensors_keys << sensorName;
+            break;
+        case EC_SoilTemperature2:
+            sensorName = "soil_temperature_2";
+            temperature_sensors[sensorName] = extra_columns[ec];
+            temperature_sensors_keys << sensorName;
+            soil_temperature_sensors[sensorName] = extra_columns[ec];
+            soil_temperature_sensors_keys << sensorName;
+            break;
+        case EC_SoilTemperature3:
+            sensorName = "soil_temperature_3";
+            temperature_sensors[sensorName] = extra_columns[ec];
+            temperature_sensors_keys << sensorName;
+            soil_temperature_sensors[sensorName] = extra_columns[ec];
+            soil_temperature_sensors_keys << sensorName;
+            break;
+        case EC_SoilTemperature4:
+            sensorName = "soil_temperature_4";
+            temperature_sensors[sensorName] = extra_columns[ec];
+            temperature_sensors_keys << sensorName;
+            soil_temperature_sensors[sensorName] = extra_columns[ec];
+            soil_temperature_sensors_keys << sensorName;
+            break;
+        case EC_NoColumns:
+            continue;
+        }
+    }
+
+    // Populate any combo boxes that want populating
+    foreach (QComboBox* comboBox, comboBoxes) {
+        QVariant optionsV = comboBox->property("options");
+
+        if (!optionsV.isValid()) {
+            continue; // No options requested
+        }
+
+        QMap<QString, QString> sensors;
+        QStringList sensorSort;
+
+        QString options = optionsV.toString().toLower();
+        if (options == "temperature-sensors") {
+            sensors = temperature_sensors;
+            sensorSort = temperature_sensors_keys;
+        } else if (options == "humidity-sensors") {
+            sensors = humidity_sensors;
+            sensorSort = humidity_sensors_keys;
+        } else if (options == "leaf-wetness-sensors") {
+            sensors = leaf_wetness_sensors;
+            sensorSort = leaf_wetness_sensors_keys;
+        } else if (options == "leaf-temperature-sensors") {
+            sensors = leaf_temperature_sensors;
+            sensorSort = leaf_temperature_sensors_keys;
+        } else if (options == "soil-moisture-sensors") {
+            sensors = soil_moisture_sensors;
+            sensorSort = soil_moisture_sensors_keys;
+        } else if (options == "soil-temperature-sensors") {
+            sensors = soil_temperature_sensors;
+            sensorSort = soil_temperature_sensors_keys;
+        }
+
+        foreach (QString sensor, sensorSort) {
+            comboBox->addItem(sensors[sensor], sensor);
+        }
+    }
+
     foreach (QLabel* lbl, labels) {
         if (params.contains(lbl->objectName())) {
             lbl->setText(params[lbl->objectName()].toString());
@@ -340,13 +508,20 @@ void RunReportDialog::loadReportCriteria() {
     }
 
     foreach (QComboBox* comboBox, comboBoxes) {
-        if (params.contains(comboBox->objectName() + "_id")) {
-            comboBox->setCurrentIndex(params[comboBox->objectName() + "_id"].toInt());
-        } else if (params.contains(comboBox->objectName())) {
+        QString objectName = comboBox->objectName();
+
+        if (params.contains(objectName + "_value")) {
+            comboBox->setCurrentIndex(
+                        comboBox->findData(
+                            params[objectName + "_value"].toString(),
+                            Qt::UserRole));
+        } else if (params.contains(objectName + "_id")) {
+            comboBox->setCurrentIndex(params[objectName + "_id"].toInt());
+        } else if (params.contains(objectName)) {
             #if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
-            comboBox->setCurrentText(params[comboBox->objectName()].toString());
+            comboBox->setCurrentText(params[objectName].toString());
             #else
-            comboBox->setEditText(params[comboBox->objectName()].toString());
+            comboBox->setEditText(params[objectName].toString());
             #endif
         }
     }
@@ -943,6 +1118,10 @@ ReportFinisher *RunReportDialog::runReport() {
         foreach (QComboBox* comboBox, comboBoxes) {
             params[comboBox->objectName()] = comboBox->currentText();
             params[comboBox->objectName() + "_id"] = comboBox->currentIndex();
+
+            if (comboBox->property("options").isValid()) {
+                params[comboBox->objectName() + "_value"] = comboBox->currentData(Qt::UserRole).toString();
+            }
         }
 
         foreach (QTextEdit* ed, textEdits) {
