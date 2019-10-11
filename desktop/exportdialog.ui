@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>465</width>
+    <width>596</width>
     <height>236</height>
    </rect>
   </property>
@@ -124,7 +124,7 @@
       <item row="3" column="1">
        <widget class="QCheckBox" name="cbDashNulls">
         <property name="text">
-         <string>replace missing vlaues with dashes</string>
+         <string>replace missing values with dashes</string>
         </property>
         <property name="checked">
          <bool>true</bool>
