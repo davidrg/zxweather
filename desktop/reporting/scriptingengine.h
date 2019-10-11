@@ -11,6 +11,7 @@
 #endif
 
 #include "scriptvalue.h"
+#include "jsconsole.h"
 
 #ifndef USE_QJSENGINE
 #define QJSValueList QScriptValueList
@@ -47,6 +48,7 @@ private:
     QScriptEngine engine;
 #endif
 
+    JSConsole console;
 };
 
 #endif // SCRIPTINGENGINE_H

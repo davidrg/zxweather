@@ -117,6 +117,7 @@ SOURCES += main.cpp\
     applock.cpp \
     columnpickerwidget.cpp \
         mainwindow.cpp \
+    reporting/jsconsole.cpp \
     settingsdialog.cpp \
     dbsignaladapter.cpp \
     aboutdialog.cpp \
@@ -220,6 +221,7 @@ HEADERS  += mainwindow.h \
     applock.h \
     columnpickerwidget.h \
     database.h \
+    reporting/jsconsole.h \
     settingsdialog.h \
     dbsignaladapter.h \
     aboutdialog.h \
