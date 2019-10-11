@@ -35,7 +35,6 @@
 			}
 		}
 	},
-	"debug_mode": false,
 	"output_type": "show",
     	"output_window_size": {
 		"height": 800,
@@ -49,16 +48,6 @@
 			"format": "text",
 			"template": "wlformat.txt",
 			"filename": "LeafWetHours.txt"
-		},
-
-		{
-			"name": "grid",
-			"title": "Grid",
-			"icon": "../../icons/table",
-			"format": "table",
-			"query": "data",
-			"filename": "storm_rain.csv",
-
 		}
 	]
 }
