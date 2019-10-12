@@ -1730,6 +1730,7 @@ The zxweather Desktop Client implements a number of common reports which aim to 
 \item NOAA Month Summary
 \item NOAA Year Summary
 \item Rainfall
+\item Soil Temperature Hours
 \item Station Records
 \item Storm Rain
 \item Sun
@@ -1741,7 +1742,7 @@ Some of these reports require sensors not available on all weather stations (eg,
 All of these reports are built using the capabilities described in this manual - anything these reports can do a custom report can do as well. This section describes these reports, how they work and the files that make them up. Any files placed in the report search path with conflicting names will replace the built-in report files allowing them to be customised.
 
 \section{Leaf Wet Hours}
-This report calculates total leaf wet hours for a chosen date range plus a daily total for each day in that date range. It is only available for stations equipped with at least one Leaf Wetness Sensor. When multiple sensors are present it will calculate for each sensor
+This report calculates total leaf wet hours for a chosen date range plus a daily total for each day in that date range. It is only available for stations equipped with at least one Leaf Wetness Sensor. When multiple sensors are present it will calculate for each sensor.
 
 Leaf Wet Hours are calculated using three threshold values:
 \begin{itemize}
@@ -2002,6 +2003,40 @@ This report calculates rainfall totals by year and month along with per-month hi
 \verb|yearly_sqlite.sql| & SQLite query for computing yearly data.\\
 \hline
 \end{tabular}
+
+\section{Soil Temperature Hours}
+This report calculates total soil temperature hours for a chosen date range plus a daily total for each day in that date range. It is best used with a soil moisture probe but is available to be used with any temperature sensor.
+
+One soil temperature hour will be one hour where the temperature sensor is above the set threshold. 
+
+The reports emulates the one shipped with WeatherLinks Ag/Turf module with the following differences:
+\begin{itemize}
+\item Include custom names for the temperature sensor and leaf wetness sensors where they have been set
+\item Fix day count to the number of dates between the reports start date and today if the reports end date is in the future ("Last 30 days" doesn't make sense when the report is really run for this month and we're only 5 days in)
+\end{itemize}
+
+These changes will result in slightly different output compared to WeatherLink but the results should be no less accurate.
+
+\subsection{Files}
+
+\begin{tabular}{p{6cm} l}
+\hline
+\textbf{File} & \textbf{Description} \\
+\hline
+\verb|libs/moment.js| & Date/time library\\
+\verb|libs/moment-timezone-with-data-2012-2022.js| & \\
+& Timezone data \\
+\verb|criteria.ui| & Report criteria UI \\
+\verb|description.html| & Report description.\\
+\verb|psql.sql| & Report Query for PostgreSQL. \\
+\verb|report.js| & Summary data calculation and output formatting\\
+\verb|report.json| & Report Definition. \\
+\verb|sqlite.sql| & Report Query for SQLite. \\
+\verb|wlformat.txt| & main output template.\\
+\hline
+\end{tabular}
+
+All files live in a directory named \verb|soil_temp_hours|.
 
 \section{Station Records}
 This report finds the highs and lows for the stations entire data set. It produces two HTML format outputs showing the earliest and latest occurrance for each record. It does not have a timespan picker or any custom criteria page.

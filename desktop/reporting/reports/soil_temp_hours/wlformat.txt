@@ -1,0 +1,12 @@
+{{#summary}}       Total Soil Temp. Hours {{at_date}}
+
+ Total:  {{total_hours}}
+ Start Date: {{start_date}}
+ End Date: {{end_date}}
+ Threshold: {{threshold}} °C
+ Temperature Sensor: {{temp_sensor}}
+
+ Hours for last {{total_days}} days...{{/summary}}
+{{#days}}
+ {{date}}   {{temp_hours}}
+{{/days}}

@@ -1,0 +1,48 @@
+{
+    "title": "Soil Temperature Hours",
+	"description": "description.html",
+	"time_picker": "datespan",
+	"default_time_span": "this_week",
+	"criteria_ui": "criteria.ui",
+	"supported_weather_stations": ["generic"],
+	"scripts": ["libs/moment.js", "libs/moment-timezone-with-data-2012-2022.js", "report.js"],
+    "queries": {
+		"data": {
+            "db": {
+                "file": "psql.sql",
+                "parameters": [
+                    "temp_sensor_value",
+                    "temp_threshold",
+					"start",
+					"end",
+                    "stationCode"
+                ]
+            },
+			"web": {
+				"file": "sqlite.sql",
+				"parameters": [
+					"temp_sensor_value",
+                    "temp_threshold",
+                    "start_t",
+                    "end_t",
+                    "stationCode"
+				]
+			}
+		}
+	},
+	"output_type": "show",
+    	"output_window_size": {
+		"height": 800,
+		"width": 600
+	},
+	"outputs": [
+		{
+			"name": "text",
+			"title": "Report",
+			"icon": "../../icons/report",
+			"format": "text",
+			"template": "wlformat.txt",
+			"filename": "LeafWetHours.txt"
+		}
+	]
+}
