@@ -84,5 +84,14 @@
         <file>leaf_wet_hours/libs/moment.js</file>
         <file>leaf_wet_hours/libs/moment-timezone-with-data-2012-2022.js</file>
         <file>leaf_wet_hours/partials/summary.mustache</file>
+        <file>soil_temp_hours/criteria.ui</file>
+        <file>soil_temp_hours/description.html</file>
+        <file>soil_temp_hours/psql.sql</file>
+        <file>soil_temp_hours/report.js</file>
+        <file>soil_temp_hours/report.json</file>
+        <file>soil_temp_hours/sqlite.sql</file>
+        <file>soil_temp_hours/wlformat.txt</file>
+        <file>soil_temp_hours/libs/moment.js</file>
+        <file>soil_temp_hours/libs/moment-timezone-with-data-2012-2022.js</file>
     </qresource>
 </RCC>
