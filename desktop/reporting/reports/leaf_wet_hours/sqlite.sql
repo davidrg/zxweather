@@ -5,7 +5,7 @@ with parameters as (
            (:low_temp)           as min_temperature,
            (:high_temp)          as max_temperature,
            (:start_t)            as start_date,
-           (:end_t)              as end_date
+           (:end_t) + 86399      as end_date
 ),
      sensor_data as (
          select strftime('%Y-%m-%d 00:00:00', s.time_stamp, 'unixepoch', 'localtime') as date,
