@@ -1,6 +1,7 @@
 {
 	"title": "Rainfall",
 	"description": "description.html",
+	"icon": "../storm_rain/weather-rain.png",
 	"time_picker": "none",
 	"default_time_span": "all_time",
 	"supported_weather_stations": ["generic"],
