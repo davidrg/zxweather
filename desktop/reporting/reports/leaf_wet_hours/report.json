@@ -1,6 +1,7 @@
 {
     "title": "Leaf Wet Hours",
 	"description": "description.html",
+	"icon": "leaf.png",
 	"time_picker": "datespan",
 	"default_time_span": "this_week",
 	"criteria_ui": "criteria.ui",
