@@ -103,6 +103,10 @@ with marked_storm_rows as (
 select
   storm.storm_start_time as start_time,
   storm.storm_end_time as end_time,
+
+  to_char(storm.storm_start_time, 'DD Mon YYYY HH24:MI') as start_time_fmt,
+  to_char(storm.storm_end_time, 'DD Mon YYYY HH24:MI') as end_time_fmt,
+
   storm.storm_end_time - storm.storm_start_time as duration,
   cast(round(sum(s.rainfall::numeric),1) as text) as total_rainfall
 from storms storm

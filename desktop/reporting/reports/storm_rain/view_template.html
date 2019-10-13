@@ -20,8 +20,8 @@
         <tbody>
             {{#storm_rain}}
             <tr>
-                <td>{{start_time}}</td>
-                <td>{{end_time}}</td>
+                <td>{{start_time_fmt}}</td>
+                <td>{{end_time_fmt}}</td>
                 <td align="right">{{duration}}</td>
                 <td align=center>{{total_rainfall}}</td>
 				<td><a href="zxw://plot?start={{start_time}}&end={{end_time}}&title=Storm Starting {{start_time}}&graphs=rainfall&aggregate=running_total&grouping=custom&group_minutes=5">Plot</a></td>
