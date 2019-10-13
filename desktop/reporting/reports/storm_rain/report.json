@@ -1,7 +1,7 @@
 {
 	"title": "Storm Rain",
 	"description": "description.html",
-	"time_picker": "timespan",
+	"time_picker": "datespan",
 	"default_time_span": "last_30d",
 	"icon": "weather-rain.png",
 	"queries": {
@@ -50,13 +50,17 @@
 				"start_time": "Start Time",
 				"end_time": "End Time",
 				"duration": "Duration",
-				"total_rainfall": "Total Rainfall"
+				"total_rainfall": "Total Rainfall",
+				"start_time_fmt": null,
+				"end_time_fmt": null
 			},
 			"save_columns": {
 				"start_time": "Start Time",
 				"end_time": "End Time",
 				"duration": "Duration",
-				"total_rainfall": "Total Rainfall"
+				"total_rainfall": "Total Rainfall",
+				"start_time_fmt": null,
+				"end_time_fmt": null
 			},
 		}
 	]

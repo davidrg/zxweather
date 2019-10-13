@@ -101,6 +101,10 @@ with marked_storm_rows as (
 select
   datetime(storm.storm_start_time, 'unixepoch', 'localtime') as start_time,
   datetime(storm.storm_end_time, 'unixepoch', 'localtime') as end_time,
+
+  datetime(storm.storm_start_time, 'unixepoch', 'localtime') as start_time_fmt,
+  datetime(storm.storm_end_time, 'unixepoch', 'localtime') as end_time_fmt,
+
   case
   when ((storm.storm_end_time - storm.storm_start_time) / 86400) > 0
     then ((storm.storm_end_time - storm.storm_start_time) / 86400) || ' days ' || strftime('%H:%M:%S', (storm.storm_end_time - storm.storm_start_time) % 86400, 'unixepoch')
