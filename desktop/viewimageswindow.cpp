@@ -661,7 +661,7 @@ void ViewImagesWindow::expandDate(QDate date, bool expandDay) {
 
 void ViewImagesWindow::expandRecursively() {
     if (QAction* menuAction = qobject_cast<QAction*>(sender())) {
-        bool isList = menuAction->data().toBool();
+        bool isList = menuAction->data().toInt() != CMS_Tree;
         QModelIndex index;
 
         // Tree only!
@@ -711,7 +711,7 @@ void ViewImagesWindow::expandRecursively() {
 
 void ViewImagesWindow::collapseRecursively() {
     if (QAction* menuAction = qobject_cast<QAction*>(sender())) {
-        bool isList = menuAction->data().toBool();
+        bool isList = menuAction->data().toInt() == CMS_Tree;
         QModelIndex index;
 
         // Tree only!
