@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>645</width>
-    <height>249</height>
+    <height>256</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -155,7 +155,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QCheckBox" name="cbHighRainRate">
+             <widget class="QCheckBox" name="cbRainRate">
               <property name="whatsThis">
                <string>Maximum recorded rain rate over the archive period</string>
               </property>
@@ -215,6 +215,13 @@
              <widget class="QCheckBox" name="cbForecastRule">
               <property name="text">
                <string>Forecast Rule ID</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="cbConsoleBatteryVoltage">
+              <property name="text">
+               <string>Console Battery Voltage</string>
               </property>
              </widget>
             </item>
@@ -363,7 +370,7 @@
              <number>9</number>
             </property>
             <item>
-             <widget class="QCheckBox" name="cbAverageWindSpeed">
+             <widget class="QCheckBox" name="cbWindSpeed">
               <property name="whatsThis">
                <string>Average wind speed over the archive period</string>
               </property>
@@ -893,10 +900,10 @@
   <tabstop>cbDewPoint</tabstop>
   <tabstop>cbHumidity</tabstop>
   <tabstop>cbIndoorHumidity</tabstop>
-  <tabstop>cbAverageWindSpeed</tabstop>
+  <tabstop>cbWindSpeed</tabstop>
   <tabstop>cbWindDirection</tabstop>
   <tabstop>cbRainfall</tabstop>
-  <tabstop>cbHighRainRate</tabstop>
+  <tabstop>cbRainRate</tabstop>
   <tabstop>cbPressure</tabstop>
   <tabstop>cbWirelessReception</tabstop>
   <tabstop>cbUVIndex</tabstop>

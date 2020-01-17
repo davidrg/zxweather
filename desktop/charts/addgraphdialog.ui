@@ -32,7 +32,7 @@
     </widget>
    </item>
    <item>
-    <widget class="ColumnPickerWidget" name="columnPicker" native="true"/>
+    <widget class="SampleColumnPickerWidget" name="columnPicker" native="true"/>
    </item>
    <item>
     <widget class="QDialogButtonBox" name="buttonBox">
@@ -48,9 +48,9 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>ColumnPickerWidget</class>
+   <class>SampleColumnPickerWidget</class>
    <extends>QWidget</extends>
-   <header>columnpickerwidget.h</header>
+   <header>samplecolumnpickerwidget.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
