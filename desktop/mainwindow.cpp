@@ -541,7 +541,9 @@ void MainWindow::showChartWindow() {
 
 void MainWindow::showLiveChartWindow() {
     LivePlotWindow *lpt = new LivePlotWindow(solarDataAvailable,
-                                             last_hw_type);
+                                             last_hw_type,
+                                             this->dataSource->extraColumnsAvailable(),
+                                             this->dataSource->extraColumnNames());
     lpt->setAttribute(Qt::WA_DeleteOnClose);
     lpt->show();
 }

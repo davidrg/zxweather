@@ -25,6 +25,25 @@ struct _DavisLive {
     float consoleBatteryVoltage;
     float uvIndex;
     float solarRadiation;
+
+    // Optional sensor transmitters:
+    double leafWetness1;
+    double leafWetness2;
+    double leafTemperature1;
+    double leafTemperature2;
+    double soilMoisture1;
+    double soilMoisture2;
+    double soilMoisture3;
+    double soilMoisture4;
+    double soilTemperature1;
+    double soilTemperature2;
+    double soilTemperature3;
+    double soilTemperature4;
+    double extraTemperature1;
+    double extraTemperature2;
+    double extraTemperature3;
+    double extraHumidity1;
+    double extraHumidity2;
 };
 
 typedef struct _liveData {
@@ -70,33 +89,50 @@ enum LiveValue {
     LV_Pressure                 = 0x00000080,
     LV_WindSpeed                = 0x00000100,
     LV_WindDirection            = 0x00000200,
-    LV_StormRain                = 0x00000400,
-    LV_RainRate                 = 0x00000800,
-    LV_BatteryVoltage           = 0x00001000,
-    LV_UVIndex                  = 0x00002000,
-    LV_SolarRadiation           = 0x00004000
+    LV_StormRain                = 0x00000400,   // Vantage Vue/Pro2
+    LV_RainRate                 = 0x00000800,   // Vantage Vue/Pro2
+    LV_BatteryVoltage           = 0x00001000,   // Vantage Vue/Pro2
+    LV_UVIndex                  = 0x00002000,   // Vantage Pro2+
+    LV_SolarRadiation           = 0x00004000,   // Vantage Pro2+
+
+    // Vantage Pro2 extra sensor stations
+    LV_LeafWetness1             = 0x00008000,  // Leaf+Soil or Leaf Station
+    LV_LeafWetness2             = 0x00010000,  // Leaf+Soil or Leaf Station
+    LV_LeafTemperature1         = 0x00020000,  // Leaf+Soil or Leaf Station
+    LV_LeafTemperature2         = 0x00040000,   // Leaf+Soil or Leaf Station
+    LV_SoilMoisture1            = 0x00080000,   // Leaf+Soil or Soil Station
+    LV_SoilMoisture2            = 0x00100000,   // Leaf+Soil or Soil Station
+    LV_SoilMoisture3            = 0x00200000,   // Leaf+Soil or Soil Station
+    LV_SoilMoisture4            = 0x00400000,   // Leaf+Soil or Soil Station
+    LV_SoilTemperature1         = 0x00800000,   // Leaf+Soil or Soil Station
+    LV_SoilTemperature2         = 0x01000000,   // Leaf+Soil or Soil Station
+    LV_SoilTemperature3         = 0x02000000,   // Leaf+Soil or Soil Station
+    LV_SoilTemperature4         = 0x04000000,   // Leaf+Soil or Soil Station
+    LV_ExtraTemperature1        = 0x08000000,   // Temperature-Humidity Station
+    LV_ExtraTemperature2        = 0x10000000,   // Temperature-Humidity Station
+    LV_ExtraTemperature3        = 0x20000000,   // Temperature Station
+    LV_ExtraHumidity1           = 0x40000000,   // Temperature-Humidity Station
+    LV_ExtraHumidity2           = 0x80000000    // Temperature-Humidity Station
 
 };
 Q_DECLARE_FLAGS(LiveValues, LiveValue)
 
-#define ALL_LIVE_COLUMNS (LV_Temperature | LV_IndoorTemperature | \
-    LV_ApparentTemperature | LV_WindChill | LV_DewPoint | LV_Humidity | \
-    LV_IndoorHumidity | LV_Pressure | LV_WindSpeed | LV_WindDirection | \
-    LV_StormRain | LV_RainRate | LV_BatteryVoltage | LV_UVIndex | \
-    LV_SolarRadiation)
-
+#define LIVE_LEAF_COLUMNS (LV_LeafWetness1 | LV_LeafWetness2 | LV_LeafTemperature1 | LV_LeafTemperature2)
+#define LIVE_SOIL_COLUMNS (LV_SoilMoisture1 | LV_SoilMoisture2 | LV_SoilMoisture3 | LV_SoilMoisture4 | \
+    LV_SoilTemperature1 | LV_SoilTemperature2 | LV_SoilTemperature3 | LV_SoilTemperature4 )
+#define LIVE_EXTRA_TEMP_HUM_COLUMNS (LV_ExtraTemperature1 | LV_ExtraTemperature2 | LV_ExtraTemperature3 | \
+    LV_ExtraHumidity1 | LV_ExtraHumidity2)
 #define LIVE_TEMPERATURE_COLUMNS (LV_Temperature | LV_IndoorTemperature | \
     LV_ApparentTemperature | LV_WindChill | LV_DewPoint)
-
 #define LIVE_HUMIDITY_COLUMNS (LV_Humidity | LV_IndoorHumidity)
-
 #define LIVE_WIND_COLUMNS (LV_WindDirection | LV_WindSpeed)
-
 #define LIVE_SOLAR_COLUMNS (LV_SolarRadiation | LV_UVIndex)
-
 #define LIVE_RAIN_COLUMNS (LV_StormRain | LV_RainRate)
-
 #define LIVE_OTHER_COLUNS (LV_BatteryVoltage | LV_Pressure)
+
+#define ALL_LIVE_COLUMNS (LIVE_TEMPERATURE_COLUMNS | LIVE_HUMIDITY_COLUMNS | LIVE_WIND_COLUMNS | \
+    LIVE_RAIN_COLUMNS | LIVE_OTHER_COLUNS | LIVE_SOLAR_COLUMNS | LIVE_LEAF_COLUMNS | \
+    LIVE_SOIL_COLUMNS | LIVE_EXTRA_TEMP_HUM_COLUMNS)
 
 /** This is an interface for all data sources that can provide live data.
  * Data sources that can also provide samples should inherit from

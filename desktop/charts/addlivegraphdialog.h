@@ -2,6 +2,7 @@
 #define ADDLIVEGRAPHDIALOG_H
 
 #include <QDialog>
+#include <QMap>
 #include "datasource/abstractlivedatasource.h"
 
 namespace Ui {
@@ -16,6 +17,8 @@ public:
     explicit AddLiveGraphDialog(LiveValues availableColumns,
                                 bool solarAvailable,
                                 hardware_type_t hw_type,
+                                ExtraColumns extraColumns,
+                                QMap<ExtraColumn, QString> extraColumnNames,
                                 QString message = QString(),
                                 QWidget *parent = 0);
     ~AddLiveGraphDialog();

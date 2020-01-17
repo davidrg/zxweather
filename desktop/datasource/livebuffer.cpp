@@ -81,7 +81,9 @@ QList<LiveDataSet> LiveBuffer::getData() {
 QString LiveBuffer::encodeLiveDataSet(LiveDataSet lds) {
     QString result = QString("%1\t%2\t%3\t%4\t%5\t%6\t%7\t%8\t%9\t%10\t"
                              "%11\t%12\t%13\t%14\t%15\t%16\t%17\t%18\t%19\t%20\t"
-                             "%21\t%22\t%23\t%24\n")
+                             "%21\t%22\t%23\t%24\t%25\t%26\t%27\t%28\t%29\t%30\t"
+                             "%31\t%32\t%33\t%34\t%35\t%36\t%37\t%38\t%39\t%40\t"
+                             "%41\n")
             .arg(lds.timestamp.toString(Qt::ISODate))
             .arg(lds.hw_type)
             .arg(lds.indoorDataAvailable ? "t" : "f")
@@ -105,7 +107,24 @@ QString LiveBuffer::encodeLiveDataSet(LiveDataSet lds) {
             .arg(lds.davisHw.txBatteryStatus)
             .arg(lds.davisHw.consoleBatteryVoltage, 0, 'f', 1)
             .arg(lds.davisHw.uvIndex)
-            .arg(lds.davisHw.solarRadiation);
+            .arg(lds.davisHw.solarRadiation)
+            .arg(lds.davisHw.leafWetness1)
+            .arg(lds.davisHw.leafWetness2)
+            .arg(lds.davisHw.leafTemperature1, 0, 'f', 1)
+            .arg(lds.davisHw.leafTemperature2, 0, 'f', 1)
+            .arg(lds.davisHw.soilMoisture1)
+            .arg(lds.davisHw.soilMoisture2)
+            .arg(lds.davisHw.soilMoisture3)
+            .arg(lds.davisHw.soilMoisture4)
+            .arg(lds.davisHw.soilTemperature1, 0, 'f', 1)
+            .arg(lds.davisHw.soilTemperature2, 0, 'f', 1)
+            .arg(lds.davisHw.soilTemperature3, 0, 'f', 1)
+            .arg(lds.davisHw.soilTemperature4, 0, 'f', 1)
+            .arg(lds.davisHw.extraTemperature1, 0, 'f', 1)
+            .arg(lds.davisHw.extraTemperature2, 0, 'f', 1)
+            .arg(lds.davisHw.extraTemperature3, 0, 'f', 1)
+            .arg(lds.davisHw.extraHumidity1)
+            .arg(lds.davisHw.extraHumidity2);
     return result;
 }
 
@@ -116,7 +135,7 @@ LiveDataSet LiveBuffer::decodeLiveDataSet(QString row) {
 
     qDebug() << parts.length() << parts;
 
-    if (parts.length() < 24) {
+    if (parts.length() < 41) {
         qDebug() << "invalid row";
         return result; // Invalid row.
     }
@@ -146,6 +165,24 @@ LiveDataSet LiveBuffer::decodeLiveDataSet(QString row) {
     result.davisHw.consoleBatteryVoltage = parts.at(21).toFloat();
     result.davisHw.uvIndex = parts.at(22).toFloat();
     result.davisHw.solarRadiation = parts.at(23).toFloat();
+
+    result.davisHw.leafWetness1 = parts.at(24).toFloat();
+    result.davisHw.leafWetness2 = parts.at(25).toFloat();
+    result.davisHw.leafTemperature1 = parts.at(26).toFloat();
+    result.davisHw.leafTemperature2 = parts.at(27).toFloat();
+    result.davisHw.soilMoisture1 = parts.at(28).toFloat();
+    result.davisHw.soilMoisture2 = parts.at(29).toFloat();
+    result.davisHw.soilMoisture3 = parts.at(30).toFloat();
+    result.davisHw.soilMoisture4 = parts.at(31).toFloat();
+    result.davisHw.soilTemperature1 = parts.at(32).toFloat();
+    result.davisHw.soilTemperature2 = parts.at(33).toFloat();
+    result.davisHw.soilTemperature3 = parts.at(34).toFloat();
+    result.davisHw.soilTemperature4 = parts.at(35).toFloat();
+    result.davisHw.extraTemperature1 = parts.at(36).toFloat();
+    result.davisHw.extraTemperature2 = parts.at(37).toFloat();
+    result.davisHw.extraTemperature3 = parts.at(38).toFloat();
+    result.davisHw.extraHumidity1 = parts.at(39).toFloat();
+    result.davisHw.extraHumidity2 = parts.at(40).toFloat();
 
     return result;
 }
