@@ -188,7 +188,7 @@
       <number>9</number>
      </property>
      <item>
-      <widget class="ColumnPickerWidget" name="columnPicker" native="true"/>
+      <widget class="SampleColumnPickerWidget" name="columnPicker" native="true"/>
      </item>
     </layout>
    </item>
@@ -221,15 +221,15 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>TimespanWidget</class>
+   <class>SampleColumnPickerWidget</class>
    <extends>QWidget</extends>
-   <header>timespanwidget.h</header>
+   <header>samplecolumnpickerwidget.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
-   <class>ColumnPickerWidget</class>
+   <class>TimespanWidget</class>
    <extends>QWidget</extends>
-   <header>columnpickerwidget.h</header>
+   <header>timespanwidget.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

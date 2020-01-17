@@ -94,7 +94,7 @@
      </property>
      <layout class="QGridLayout" name="gridLayout_9">
       <item row="0" column="0">
-       <widget class="ColumnPickerWidget" name="columnPicker" native="true"/>
+       <widget class="SampleColumnPickerWidget" name="columnPicker" native="true"/>
       </item>
      </layout>
     </widget>
@@ -102,6 +102,12 @@
   </layout>
  </widget>
  <customwidgets>
+  <customwidget>
+   <class>SampleColumnPickerWidget</class>
+   <extends>QWidget</extends>
+   <header>samplecolumnpickerwidget.h</header>
+   <container>1</container>
+  </customwidget>
   <customwidget>
    <class>TimespanWidget</class>
    <extends>QWidget</extends>
@@ -112,12 +118,6 @@
    <class>AggregateOptionsWidget</class>
    <extends>QWidget</extends>
    <header>aggregateoptionswidget.h</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>ColumnPickerWidget</class>
-   <extends>QWidget</extends>
-   <header>columnpickerwidget.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

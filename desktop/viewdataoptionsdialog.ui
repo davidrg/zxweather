@@ -14,7 +14,7 @@
    <string>View Data Options</string>
   </property>
   <property name="windowIcon">
-   <iconset resource="resources.qrc">
+   <iconset>
     <normaloff>:/icons/table</normaloff>:/icons/table</iconset>
   </property>
   <layout class="QGridLayout" name="gridLayout_2">
@@ -118,13 +118,19 @@
       <number>9</number>
      </property>
      <item>
-      <widget class="ColumnPickerWidget" name="columnPicker" native="true"/>
+      <widget class="SampleColumnPickerWidget" name="columnPicker" native="true"/>
      </item>
     </layout>
    </item>
   </layout>
  </widget>
  <customwidgets>
+  <customwidget>
+   <class>SampleColumnPickerWidget</class>
+   <extends>QWidget</extends>
+   <header>samplecolumnpickerwidget.h</header>
+   <container>1</container>
+  </customwidget>
   <customwidget>
    <class>TimespanWidget</class>
    <extends>QWidget</extends>
@@ -137,16 +143,8 @@
    <header>aggregateoptionswidget.h</header>
    <container>1</container>
   </customwidget>
-  <customwidget>
-   <class>ColumnPickerWidget</class>
-   <extends>QWidget</extends>
-   <header>columnpickerwidget.h</header>
-   <container>1</container>
-  </customwidget>
  </customwidgets>
- <resources>
-  <include location="resources.qrc"/>
- </resources>
+ <resources/>
  <connections>
   <connection>
    <sender>buttonBox</sender>
