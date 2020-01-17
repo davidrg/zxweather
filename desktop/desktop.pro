@@ -116,6 +116,7 @@ isEmpty(ECPG_BIN) {
 SOURCES += main.cpp\
     applock.cpp \
     columnpickerwidget.cpp \
+    livecolumnpickerwidget.cpp \
         mainwindow.cpp \
     reporting/jsconsole.cpp \
     samplecolumnpickerwidget.cpp \
@@ -222,6 +223,7 @@ HEADERS  += mainwindow.h \
     applock.h \
     columnpickerwidget.h \
     database.h \
+    livecolumnpickerwidget.h \
     reporting/jsconsole.h \
     samplecolumnpickerwidget.h \
     settingsdialog.h \

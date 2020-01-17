@@ -33,6 +33,7 @@
 #include <stdlib.h>
 #include <libpq-fe.h>
 #include <QtDebug>
+#include <math.h>
 #include "dbsignaladapter.h"
 
 #define LIVE_DATA_UPDATE_CHANNEL "live_data_updated"
@@ -421,6 +422,43 @@ live_data_record get_live_data_v2() {
     float uv_index = 0.0;
     float solar_radiation = 0.0;
 
+    double leafWetness1 = NAN;
+    double leafWetness2 = NAN;
+    double leafTemperature1 = NAN;
+    double leafTemperature2 = NAN;
+    double soilMoisture1 = NAN;
+    double soilMoisture2 = NAN;
+    double soilMoisture3 = NAN;
+    double soilMoisture4 = NAN;
+    double soilTemperature1 = NAN;
+    double soilTemperature2 = NAN;
+    double soilTemperature3 = NAN;
+    double soilTemperature4 = NAN;
+    double extraTemperature1 = NAN;
+    double extraTemperature2 = NAN;
+    double extraTemperature3 = NAN;
+    double extraHumidity1 = NAN;
+    double extraHumidity2 = NAN;
+
+    // These sensors can all have null values so we must have indicator variables for them.
+    int leafWetness1_ind = 0;
+    int leafWetness2_ind = 0;
+    int leafTemperature1_ind = 0;
+    int leafTemperature2_ind = 0;
+    int soilMoisture1_ind = 0;
+    int soilMoisture2_ind = 0;
+    int soilMoisture3_ind = 0;
+    int soilMoisture4_ind = 0;
+    int soilTemperature1_ind = 0;
+    int soilTemperature2_ind = 0;
+    int soilTemperature3_ind = 0;
+    int soilTemperature4_ind = 0;
+    int extraTemperature1_ind = 0;
+    int extraTemperature2_ind = 0;
+    int extraTemperature3_ind = 0;
+    int extraHumidity1_ind = 0;
+    int extraHumidity2_ind = 0;
+
     EXEC SQL END DECLARE SECTION;
 
     qDebug() << "V2 data load for station id" << station_id_param;
@@ -478,7 +516,24 @@ live_data_record get_live_data_v2() {
                         forecast_icon,
                         forecast_rule_id,
                         coalesce(uv_index, 0),
-                        coalesce(solar_radiation, 0)
+                        coalesce(solar_radiation, 0),
+                        leaf_wetness_1,
+                        leaf_wetness_2,
+                        leaf_temperature_1,
+                        leaf_temperature_2,
+                        soil_moisture_1,
+                        soil_moisture_2,
+                        soil_moisture_3,
+                        soil_moisture_4,
+                        soil_temperature_1,
+                        soil_temperature_2,
+                        soil_temperature_3,
+                        soil_temperature_4,
+                        extra_temperature_1,
+                        extra_temperature_2,
+                        extra_temperature_3,
+                        extra_humidity_1,
+                        extra_humidity_2
                 INTO :barometer_trend,
                      :rain_rate,
                      :storm_rain,
@@ -488,7 +543,24 @@ live_data_record get_live_data_v2() {
                      :forecast_icon,
                      :forecast_rule,
                      :uv_index,
-                     :solar_radiation
+                     :solar_radiation,
+                     :leafWetness1 :leafWetness1_ind,
+                     :leafWetness2 :leafWetness2_ind,
+                     :leafTemperature1 :leafTemperature2_ind,
+                     :leafTemperature2 :leafTemperature2_ind,
+                     :soilMoisture1 :soilMoisture1_ind,
+                     :soilMoisture2 :soilMoisture2_ind,
+                     :soilMoisture3 :soilMoisture3_ind,
+                     :soilMoisture4 :soilMoisture4_ind,
+                     :soilTemperature1 :soilTemperature1_ind,
+                     :soilTemperature2 :soilTemperature2_ind,
+                     :soilTemperature3 :soilTemperature3_ind,
+                     :soilTemperature4 :soilTemperature4_ind,
+                     :extraTemperature1 :extraTemperature1_ind,
+                     :extraTemperature2 :extraTemperature2_ind,
+                     :extraTemperature3 :extraTemperature3_ind,
+                     :extraHumidity1 :extraHumidity1_ind,
+                     :extraHumidity2 :extraHumidity2_ind
                  FROM davis_live_data
                 WHERE station_id = :station_id_param
                 LIMIT 1;
@@ -503,6 +575,24 @@ live_data_record get_live_data_v2() {
         rec.davis_data.console_battery = console_battery_voltage;
         rec.davis_data.uv_index = uv_index;
         rec.davis_data.solar_radiation = solar_radiation;
+
+        rec.davis_data.leafWetness1 = leafWetness1_ind == 0 ? leafWetness1 : NAN;
+        rec.davis_data.leafWetness2 = leafWetness2_ind == 0 ? leafWetness2 : NAN;
+        rec.davis_data.leafTemperature1 = leafTemperature1_ind == 0 ? leafTemperature1 : NAN;
+        rec.davis_data.leafTemperature2 = leafTemperature2_ind == 0 ? leafTemperature2 : NAN;
+        rec.davis_data.soilMoisture1 = soilMoisture1_ind == 0 ? soilMoisture1 : NAN;
+        rec.davis_data.soilMoisture2 = soilMoisture2_ind == 0 ? soilMoisture2 : NAN;
+        rec.davis_data.soilMoisture3 = soilMoisture3_ind == 0 ? soilMoisture3 : NAN;
+        rec.davis_data.soilMoisture4 = soilMoisture4_ind == 0 ? soilMoisture4 : NAN;
+        rec.davis_data.soilTemperature1 = soilTemperature1_ind == 0 ? soilTemperature1 : NAN;
+        rec.davis_data.soilTemperature2 = soilTemperature2_ind == 0 ? soilTemperature2 : NAN;
+        rec.davis_data.soilTemperature3 = soilTemperature3_ind == 0 ? soilTemperature3 : NAN;
+        rec.davis_data.soilTemperature4 = soilTemperature4_ind == 0 ? soilTemperature4 : NAN;
+        rec.davis_data.extraTemperature1 = extraTemperature1_ind == 0 ? extraTemperature1 : NAN;
+        rec.davis_data.extraTemperature2 = extraTemperature2_ind == 0 ? extraTemperature2 : NAN;
+        rec.davis_data.extraTemperature3 = extraTemperature3_ind == 0 ? extraTemperature3 : NAN;
+        rec.davis_data.extraHumidity1 = extraHumidity1_ind == 0 ? extraHumidity1 : NAN;
+        rec.davis_data.extraHumidity2 = extraHumidity2_ind == 0 ? extraHumidity2 : NAN;
     }
 
     return rec;

@@ -6,198 +6,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>464</width>
-    <height>305</height>
+    <width>443</width>
+    <height>116</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Add Graph</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
-   <property name="sizeConstraint">
-    <enum>QLayout::SetFixedSize</enum>
-   </property>
-   <item row="6" column="1" colspan="3">
-    <widget class="QDialogButtonBox" name="buttonBox">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-     <property name="standardButtons">
-      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="0">
-    <layout class="QVBoxLayout" name="verticalLayout_7">
-     <item>
-      <widget class="QGroupBox" name="gbTemperature">
-       <property name="title">
-        <string>Temperature</string>
-       </property>
-       <layout class="QVBoxLayout" name="verticalLayout">
-        <item>
-         <widget class="QCheckBox" name="cbTemperature">
-          <property name="text">
-           <string>Temperature</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QCheckBox" name="cbInsideTemperature">
-          <property name="text">
-           <string>Inside Temperature</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QCheckBox" name="cbApparentTemperature">
-          <property name="text">
-           <string>Apparent Temperature</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QCheckBox" name="cbWindChill">
-          <property name="text">
-           <string>Wind Chill</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QCheckBox" name="cbDewPoint">
-          <property name="text">
-           <string>Dew Point</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </widget>
-     </item>
-     <item>
-      <widget class="QGroupBox" name="gbRain">
-       <property name="title">
-        <string>Rain</string>
-       </property>
-       <layout class="QVBoxLayout" name="verticalLayout_4">
-        <item>
-         <widget class="QCheckBox" name="cbStormRain">
-          <property name="text">
-           <string>Storm Rain</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QCheckBox" name="cbRainRate">
-          <property name="text">
-           <string>Rain Rate</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </widget>
-     </item>
-     <item>
-      <spacer name="verticalSpacer">
-       <property name="orientation">
-        <enum>Qt::Vertical</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>20</width>
-         <height>40</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
-    </layout>
-   </item>
-   <item row="1" column="1">
-    <layout class="QVBoxLayout" name="verticalLayout_8">
-     <item>
-      <widget class="QGroupBox" name="gbWind">
-       <property name="title">
-        <string>Wind</string>
-       </property>
-       <layout class="QVBoxLayout" name="verticalLayout_3">
-        <item>
-         <widget class="QCheckBox" name="cbWindSpeed">
-          <property name="text">
-           <string>Wind Speed</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QCheckBox" name="cbWindDirection">
-          <property name="text">
-           <string>Wind Direction</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </widget>
-     </item>
-     <item>
-      <widget class="QGroupBox" name="gbHumidity">
-       <property name="title">
-        <string>Humidity</string>
-       </property>
-       <layout class="QVBoxLayout" name="verticalLayout_2">
-        <item>
-         <widget class="QCheckBox" name="cbHumidity">
-          <property name="text">
-           <string>Humidity</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QCheckBox" name="cbInsideHumidity">
-          <property name="text">
-           <string>Inside Humidity</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </widget>
-     </item>
-     <item>
-      <widget class="QGroupBox" name="gbSolar">
-       <property name="title">
-        <string>Solar</string>
-       </property>
-       <layout class="QVBoxLayout" name="verticalLayout_5">
-        <item>
-         <widget class="QCheckBox" name="cbUVIndex">
-          <property name="text">
-           <string>UV Index</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QCheckBox" name="cbSolarRadiation">
-          <property name="text">
-           <string>Solar Radiation</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </widget>
-     </item>
-     <item>
-      <spacer name="verticalSpacer_2">
-       <property name="orientation">
-        <enum>Qt::Vertical</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>20</width>
-         <height>40</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
-    </layout>
-   </item>
-   <item row="0" column="0" colspan="4">
+   <item row="0" column="0">
     <widget class="QLabel" name="lblMessage">
      <property name="text">
       <string>Select the additional graphs you would like to add to the chart. To remove a graph select it in the chart, right click and choose the remove graph option</string>
@@ -207,65 +24,29 @@
      </property>
     </widget>
    </item>
-   <item row="1" column="2" colspan="2">
-    <layout class="QVBoxLayout" name="verticalLayout_9">
-     <item>
-      <widget class="QGroupBox" name="gbOther">
-       <property name="title">
-        <string>Other</string>
-       </property>
-       <layout class="QVBoxLayout" name="verticalLayout_6">
-        <item>
-         <widget class="QCheckBox" name="cbPressure">
-          <property name="text">
-           <string>Barometric Pressure</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QCheckBox" name="cbConsoleBattery">
-          <property name="text">
-           <string>Console Battery Voltage</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </widget>
-     </item>
-     <item>
-      <spacer name="verticalSpacer_3">
-       <property name="orientation">
-        <enum>Qt::Vertical</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>20</width>
-         <height>40</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
-    </layout>
+   <item row="1" column="0">
+    <widget class="LiveColumnPickerWidget" name="columnPicker" native="true"/>
+   </item>
+   <item row="2" column="0">
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+     </property>
+    </widget>
    </item>
   </layout>
  </widget>
- <tabstops>
-  <tabstop>cbTemperature</tabstop>
-  <tabstop>cbInsideTemperature</tabstop>
-  <tabstop>cbApparentTemperature</tabstop>
-  <tabstop>cbWindChill</tabstop>
-  <tabstop>cbDewPoint</tabstop>
-  <tabstop>cbStormRain</tabstop>
-  <tabstop>cbRainRate</tabstop>
-  <tabstop>cbWindSpeed</tabstop>
-  <tabstop>cbWindDirection</tabstop>
-  <tabstop>cbHumidity</tabstop>
-  <tabstop>cbInsideHumidity</tabstop>
-  <tabstop>cbUVIndex</tabstop>
-  <tabstop>cbSolarRadiation</tabstop>
-  <tabstop>cbPressure</tabstop>
-  <tabstop>cbConsoleBattery</tabstop>
- </tabstops>
+ <customwidgets>
+  <customwidget>
+   <class>LiveColumnPickerWidget</class>
+   <extends>QWidget</extends>
+   <header>livecolumnpickerwidget.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections>
   <connection>

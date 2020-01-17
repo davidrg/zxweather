@@ -44,6 +44,24 @@ struct _davis_extra {
     float console_battery; /*!< Console battery voltage */
     float uv_index; /*!< Average UV index */
     float solar_radiation; /*!< Solar Radiation in W/m^2 */
+
+    double leafWetness1;
+    double leafWetness2;
+    double leafTemperature1;
+    double leafTemperature2;
+    double soilMoisture1;
+    double soilMoisture2;
+    double soilMoisture3;
+    double soilMoisture4;
+    double soilTemperature1;
+    double soilTemperature2;
+    double soilTemperature3;
+    double soilTemperature4;
+    double extraTemperature1;
+    double extraTemperature2;
+    double extraTemperature3;
+    double extraHumidity1;
+    double extraHumidity2;
 };
 
 /** Live data from the database.

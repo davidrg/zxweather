@@ -25,7 +25,11 @@ UnitConversions::unit_t metricUnitToImperial(UnitConversions::unit_t unit);
 
 #define imperialiseUnitDict(type) units[type] = metricUnitToImperial(units[type])
 
-LivePlotWindow::LivePlotWindow(bool solarAvailalble, hardware_type_t hardwareType, QWidget *parent) :
+LivePlotWindow::LivePlotWindow(bool solarAvailalble,
+                               hardware_type_t hardwareType,
+                               ExtraColumns extraColumns,
+                               QMap<ExtraColumn, QString> extraColumnNames,
+                               QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::LivePlotWindow)
 {
@@ -36,6 +40,8 @@ LivePlotWindow::LivePlotWindow(bool solarAvailalble, hardware_type_t hardwareTyp
     this->hwType = hardwareType;
     this->solarAvailable = solarAvailalble;
     this->valuesToShow = LV_NoColumns;
+    this->extraColumns = extraColumns;
+    this->extraColumnNames = extraColumnNames;
 
     // All the possible axis types
     units[LV_Temperature] = UnitConversions::U_CELSIUS;
@@ -53,6 +59,24 @@ LivePlotWindow::LivePlotWindow(bool solarAvailalble, hardware_type_t hardwareTyp
     units[LV_BatteryVoltage] = UnitConversions::U_VOLTAGE;
     units[LV_UVIndex] = UnitConversions::U_UV_INDEX;
     units[LV_SolarRadiation] = UnitConversions::U_WATTS_PER_SQUARE_METER;
+    units[LV_SoilTemperature1] = UnitConversions::U_CELSIUS;
+    units[LV_SoilTemperature2] = UnitConversions::U_CELSIUS;
+    units[LV_SoilTemperature3] = UnitConversions::U_CELSIUS;
+    units[LV_SoilTemperature4] = UnitConversions::U_CELSIUS;
+    units[LV_LeafTemperature1] = UnitConversions::U_CELSIUS;
+    units[LV_LeafTemperature2] = UnitConversions::U_CELSIUS;
+    units[LV_ExtraTemperature1] = UnitConversions::U_CELSIUS;
+    units[LV_ExtraTemperature2] = UnitConversions::U_CELSIUS;
+    units[LV_ExtraTemperature3] = UnitConversions::U_CELSIUS;
+    units[LV_ExtraHumidity1] = UnitConversions::U_HUMIDITY;
+    units[LV_ExtraHumidity2] = UnitConversions::U_HUMIDITY;
+    units[LV_SoilMoisture1] = UnitConversions::U_CENTIBAR;
+    units[LV_SoilMoisture2] = UnitConversions::U_CENTIBAR;
+    units[LV_SoilMoisture3] = UnitConversions::U_CENTIBAR;
+    units[LV_SoilMoisture4] = UnitConversions::U_CENTIBAR;
+    units[LV_LeafWetness1] = UnitConversions::U_LEAF_WETNESS;
+    units[LV_LeafWetness2] = UnitConversions::U_LEAF_WETNESS;
+
 
     if (imperial) {
         imperialiseUnitDict(LV_Temperature);
@@ -64,6 +88,15 @@ LivePlotWindow::LivePlotWindow(bool solarAvailalble, hardware_type_t hardwareTyp
         imperialiseUnitDict(LV_WindSpeed);
         imperialiseUnitDict(LV_StormRain);
         imperialiseUnitDict(LV_RainRate);
+        imperialiseUnitDict(LV_SoilTemperature1);
+        imperialiseUnitDict(LV_SoilTemperature2);
+        imperialiseUnitDict(LV_SoilTemperature3);
+        imperialiseUnitDict(LV_SoilTemperature4);
+        imperialiseUnitDict(LV_LeafTemperature1);
+        imperialiseUnitDict(LV_LeafTemperature2);
+        imperialiseUnitDict(LV_ExtraTemperature1);
+        imperialiseUnitDict(LV_ExtraTemperature2);
+        imperialiseUnitDict(LV_ExtraTemperature3);
     }
 
     // And their labels
@@ -83,6 +116,8 @@ LivePlotWindow::LivePlotWindow(bool solarAvailalble, hardware_type_t hardwareTyp
     axisLabels[UnitConversions::U_VOLTAGE] = tr("Voltage (V)");
     axisLabels[UnitConversions::U_UV_INDEX] = tr("UV Index");
     axisLabels[UnitConversions::U_WATTS_PER_SQUARE_METER] = tr("Solar Radiation (W/m" SQUARED_SYMBOL ")");
+    axisLabels[UnitConversions::U_CENTIBAR] = tr("Soil Moisture (cbar)");
+    axisLabels[UnitConversions::U_LEAF_WETNESS] = tr("Leaf Wetness");
 
     Settings &settings = Settings::getInstance();
 
@@ -399,6 +434,8 @@ QCPAxis* LivePlotWindow::valueAxisForGraph(LiveValue type) {
     return axis;
 }
 
+#define SET_EC_STYLE_NAME(lv, ec) if (v == lv) {style.setName(extraColumnNames.value(ec));}
+
 void LivePlotWindow::addLiveValue(LiveValue v) {
     valuesToShow |= v;
 
@@ -414,6 +451,29 @@ void LivePlotWindow::addLiveValue(LiveValue v) {
         ChartColours colours = Settings::getInstance().getChartColours();
 
         GraphStyle style = GraphStyle(v);
+
+        // For extra columns we have to set the style name to the extra columns
+        // configured name here as once the style is passed into the live plot
+        // widget we've got no further control over it. If we don't do this
+        // the graph will start off with the right name but the graph style
+        // window will only have the default name.
+        SET_EC_STYLE_NAME(LV_SoilMoisture1, EC_SoilMoisture1);
+        SET_EC_STYLE_NAME(LV_SoilMoisture2, EC_SoilMoisture2);
+        SET_EC_STYLE_NAME(LV_SoilMoisture3, EC_SoilMoisture3);
+        SET_EC_STYLE_NAME(LV_SoilMoisture4, EC_SoilMoisture4);
+        SET_EC_STYLE_NAME(LV_SoilTemperature1, EC_SoilTemperature1);
+        SET_EC_STYLE_NAME(LV_SoilTemperature2, EC_SoilTemperature2);
+        SET_EC_STYLE_NAME(LV_SoilTemperature3, EC_SoilTemperature3);
+        SET_EC_STYLE_NAME(LV_SoilTemperature4, EC_SoilTemperature4);
+        SET_EC_STYLE_NAME(LV_LeafWetness1, EC_LeafWetness1);
+        SET_EC_STYLE_NAME(LV_LeafWetness2, EC_LeafWetness2);
+        SET_EC_STYLE_NAME(LV_LeafTemperature1, EC_LeafTemperature1);
+        SET_EC_STYLE_NAME(LV_LeafTemperature2, EC_LeafTemperature2);
+        SET_EC_STYLE_NAME(LV_ExtraTemperature1, EC_ExtraTemperature1);
+        SET_EC_STYLE_NAME(LV_ExtraTemperature2, EC_ExtraTemperature2);
+        SET_EC_STYLE_NAME(LV_ExtraTemperature3, EC_ExtraTemperature3);
+        SET_EC_STYLE_NAME(LV_ExtraHumidity1, EC_ExtraHumidity1);
+        SET_EC_STYLE_NAME(LV_ExtraHumidity2, EC_ExtraHumidity2);
 
         graphs[v] = ui->plot->addStyledGraph(keyAxis, valueAxis, style);
         graphs[v]->setProperty(PROP_GRAPH_TYPE, v);
@@ -493,10 +553,83 @@ void LivePlotWindow::addLiveValue(LiveValue v) {
             graphs[v]->setName(tr("Solar Radiation"));
             graphs[v]->setPen(QPen(colours.solarRadiation));
             break;
+
+        case LV_SoilMoisture1:
+            graphs[v]->setName(extraColumnNames.value(EC_SoilMoisture1));
+            graphs[v]->setPen(QPen(colours.soilMoisture1));
+            break;
+        case LV_SoilMoisture2:
+            graphs[v]->setName(extraColumnNames.value(EC_SoilMoisture2));
+            graphs[v]->setPen(QPen(colours.soilMoisture2));
+            break;
+        case LV_SoilMoisture3:
+            graphs[v]->setName(extraColumnNames.value(EC_SoilMoisture3));
+            graphs[v]->setPen(QPen(colours.soilMoisture3));
+            break;
+        case LV_SoilMoisture4:
+            graphs[v]->setName(extraColumnNames.value(EC_SoilMoisture4));
+            graphs[v]->setPen(QPen(colours.soilMoisture4));
+            break;
+        case LV_SoilTemperature1:
+            graphs[v]->setName(extraColumnNames.value(EC_SoilTemperature1));
+            graphs[v]->setPen(QPen(colours.soilTemperature1));
+            break;
+        case LV_SoilTemperature2:
+            graphs[v]->setName(extraColumnNames.value(EC_SoilTemperature2));
+            graphs[v]->setPen(QPen(colours.soilTemperature2));
+            break;
+        case LV_SoilTemperature3:
+            graphs[v]->setName(extraColumnNames.value(EC_SoilTemperature3));
+            graphs[v]->setPen(QPen(colours.soilTemperature3));
+            break;
+        case LV_SoilTemperature4:
+            graphs[v]->setName(extraColumnNames.value(EC_SoilTemperature4));
+            graphs[v]->setPen(QPen(colours.soilTemperature4));
+            break;
+        case LV_LeafWetness1:
+            graphs[v]->setName(extraColumnNames.value(EC_LeafWetness1));
+            graphs[v]->setPen(QPen(colours.leafWetness1));
+            break;
+        case LV_LeafWetness2:
+            graphs[v]->setName(extraColumnNames.value(EC_LeafWetness2));
+            graphs[v]->setPen(QPen(colours.leafWetness2));
+            break;
+        case LV_LeafTemperature1:
+            graphs[v]->setName(extraColumnNames.value(EC_LeafTemperature1));
+            graphs[v]->setPen(QPen(colours.leafTemperature1));
+            break;
+        case LV_LeafTemperature2:
+            graphs[v]->setName(extraColumnNames.value(EC_LeafTemperature2));
+            graphs[v]->setPen(QPen(colours.leafTemperature2));
+            break;
+        case LV_ExtraTemperature1:
+            graphs[v]->setName(extraColumnNames.value(EC_ExtraTemperature1));
+            graphs[v]->setPen(QPen(colours.extraTemperature1));
+            break;
+        case LV_ExtraTemperature2:
+            graphs[v]->setName(extraColumnNames.value(EC_ExtraTemperature2));
+            graphs[v]->setPen(QPen(colours.extraTemperature2));
+            break;
+        case LV_ExtraTemperature3:
+            graphs[v]->setName(extraColumnNames.value(EC_ExtraTemperature3));
+            graphs[v]->setPen(QPen(colours.extraTemperature3));
+            break;
+        case LV_ExtraHumidity1:
+            graphs[v]->setName(extraColumnNames.value(EC_ExtraHumidity1));
+            graphs[v]->setPen(QPen(colours.extraHumidity1));
+            break;
+        case LV_ExtraHumidity2:
+            graphs[v]->setName(extraColumnNames.value(EC_ExtraHumidity2));
+            graphs[v]->setPen(QPen(colours.extraHumidity2));
+            break;
+
+
         case LV_NoColumns:
         default:
             break; // nothing to do.
         }
+
+        ui->plot->graphStyleChanged(graphs[v], style);
 
         points[v]->setPen(graphs[v]->pen());
         points[v]->setBrush(graphs[v]->pen().color());
@@ -548,6 +681,23 @@ void LivePlotWindow::liveData(LiveDataSet ds) {
     updateGraph(LV_BatteryVoltage, ts, xRange, ds.davisHw.consoleBatteryVoltage);
     updateGraph(LV_UVIndex, ts, xRange, ds.davisHw.uvIndex);
     updateGraph(LV_SolarRadiation, ts, xRange, ds.davisHw.solarRadiation);
+    updateGraph(LV_SoilMoisture1, ts, xRange, ds.davisHw.soilMoisture1);
+    updateGraph(LV_SoilMoisture2, ts, xRange, ds.davisHw.soilMoisture2);
+    updateGraph(LV_SoilMoisture3, ts, xRange, ds.davisHw.soilMoisture3);
+    updateGraph(LV_SoilMoisture4, ts, xRange, ds.davisHw.soilMoisture4);
+    updateGraph(LV_SoilTemperature1, ts, xRange, ds.davisHw.soilTemperature1);
+    updateGraph(LV_SoilTemperature2, ts, xRange, ds.davisHw.soilTemperature2);
+    updateGraph(LV_SoilTemperature3, ts, xRange, ds.davisHw.soilTemperature3);
+    updateGraph(LV_SoilTemperature4, ts, xRange, ds.davisHw.soilTemperature4);
+    updateGraph(LV_LeafWetness1, ts, xRange, ds.davisHw.leafWetness1);
+    updateGraph(LV_LeafWetness2, ts, xRange, ds.davisHw.leafWetness2);
+    updateGraph(LV_LeafTemperature1, ts, xRange, ds.davisHw.leafTemperature1);
+    updateGraph(LV_LeafTemperature2, ts, xRange, ds.davisHw.leafTemperature2);
+    updateGraph(LV_ExtraTemperature1, ts, xRange, ds.davisHw.extraTemperature1);
+    updateGraph(LV_ExtraTemperature2, ts, xRange, ds.davisHw.extraTemperature2);
+    updateGraph(LV_ExtraTemperature3, ts, xRange, ds.davisHw.extraTemperature3);
+    updateGraph(LV_ExtraHumidity1, ts, xRange, ds.davisHw.extraHumidity1);
+    updateGraph(LV_ExtraHumidity2, ts, xRange, ds.davisHw.extraHumidity2);
 
     ui->plot->replot(QCustomPlot::rpQueuedReplot);
 }
@@ -614,6 +764,24 @@ void LivePlotWindow::addLiveValues(LiveValues columns) {
     TEST_ADD_COL(LV_UVIndex);
     TEST_ADD_COL(LV_SolarRadiation);
 
+    TEST_ADD_COL(LV_SoilMoisture1);
+    TEST_ADD_COL(LV_SoilMoisture2);
+    TEST_ADD_COL(LV_SoilMoisture3);
+    TEST_ADD_COL(LV_SoilMoisture4);
+    TEST_ADD_COL(LV_SoilTemperature1);
+    TEST_ADD_COL(LV_SoilTemperature2);
+    TEST_ADD_COL(LV_SoilTemperature3);
+    TEST_ADD_COL(LV_SoilTemperature4);
+    TEST_ADD_COL(LV_LeafWetness1);
+    TEST_ADD_COL(LV_LeafWetness2);
+    TEST_ADD_COL(LV_LeafTemperature1);
+    TEST_ADD_COL(LV_LeafTemperature2);
+    TEST_ADD_COL(LV_ExtraTemperature1);
+    TEST_ADD_COL(LV_ExtraTemperature2);
+    TEST_ADD_COL(LV_ExtraTemperature3);
+    TEST_ADD_COL(LV_ExtraHumidity1);
+    TEST_ADD_COL(LV_ExtraHumidity2);
+
     resetData();
 
     ui->plot->replot();
@@ -629,9 +797,14 @@ void LivePlotWindow::showAddGraphDialog(QString message, QString title) {
     AddLiveGraphDialog algd(~valuesToShow,
                             solarAvailable,
                             hwType,
+                            extraColumns,
+                            extraColumnNames,
                             message,
                             this);
-    algd.setWindowTitle(title);
+
+    if (!title.isNull() && !title.isEmpty()) {
+        algd.setWindowTitle(title);
+    }
 
     if (algd.exec() == QDialog::Accepted) {
         addLiveValues(algd.selectedColumns());

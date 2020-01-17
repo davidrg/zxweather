@@ -995,6 +995,24 @@ void DatabaseDataSource::processLiveData(live_data_record rec) {
     lds.timestamp = QDateTime::fromTime_t(rec.download_timestamp);
     lds.indoorDataAvailable = true;
 
+    lds.davisHw.leafTemperature1 = qQNaN();
+    lds.davisHw.leafTemperature2 = qQNaN();
+    lds.davisHw.leafWetness1 = qQNaN();
+    lds.davisHw.leafWetness2 = qQNaN();
+    lds.davisHw.soilMoisture1 = qQNaN();
+    lds.davisHw.soilMoisture2 = qQNaN();
+    lds.davisHw.soilMoisture3 = qQNaN();
+    lds.davisHw.soilMoisture4 = qQNaN();
+    lds.davisHw.soilTemperature1 = qQNaN();
+    lds.davisHw.soilTemperature2 = qQNaN();
+    lds.davisHw.soilTemperature3 = qQNaN();
+    lds.davisHw.soilTemperature4 = qQNaN();
+    lds.davisHw.extraTemperature1 = qQNaN();
+    lds.davisHw.extraTemperature2 = qQNaN();
+    lds.davisHw.extraTemperature3 = qQNaN();
+    lds.davisHw.extraHumidity1 = qQNaN();
+    lds.davisHw.extraHumidity2 = qQNaN();
+
     if (rec.v1) {
         // The V1 schema stores wind direction as a string :(
         QString strd(rec.wind_direction_str);
@@ -1040,6 +1058,24 @@ void DatabaseDataSource::processLiveData(live_data_record rec) {
             lds.davisHw.stormDateValid = rec.davis_data.current_storm_start_date > 0;
             lds.davisHw.uvIndex = rec.davis_data.uv_index;
             lds.davisHw.solarRadiation = rec.davis_data.solar_radiation;
+
+            lds.davisHw.leafWetness1 = rec.davis_data.leafWetness1;
+            lds.davisHw.leafWetness2 = rec.davis_data.leafWetness2;
+            lds.davisHw.leafTemperature1 = rec.davis_data.leafTemperature1;
+            lds.davisHw.leafTemperature2 = rec.davis_data.leafTemperature2;
+            lds.davisHw.soilMoisture1 = rec.davis_data.soilMoisture1;
+            lds.davisHw.soilMoisture2 = rec.davis_data.soilMoisture2;
+            lds.davisHw.soilMoisture3 = rec.davis_data.soilMoisture3;
+            lds.davisHw.soilMoisture4 = rec.davis_data.soilMoisture4;
+            lds.davisHw.soilTemperature1 = rec.davis_data.soilTemperature1;
+            lds.davisHw.soilTemperature2 = rec.davis_data.soilTemperature2;
+            lds.davisHw.soilTemperature3 = rec.davis_data.soilTemperature3;
+            lds.davisHw.soilTemperature4 = rec.davis_data.soilTemperature4;
+            lds.davisHw.extraTemperature1 = rec.davis_data.extraTemperature1;
+            lds.davisHw.extraTemperature2 = rec.davis_data.extraTemperature2;
+            lds.davisHw.extraTemperature3 = rec.davis_data.extraTemperature3;
+            lds.davisHw.extraHumidity1 = rec.davis_data.extraHumidity1;
+            lds.davisHw.extraHumidity2 = rec.davis_data.extraHumidity2;
         }
     }
 
