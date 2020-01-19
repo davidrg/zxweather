@@ -429,6 +429,10 @@ QCPAxis* LivePlotWindow::valueAxisForGraph(LiveValue type) {
             axis->setPadding(10);
             axis->setLabelPadding(30);
         }
+
+        if (axisType == UnitConversions::U_LEAF_WETNESS) {
+            axis->setRange(0,15);
+        }
     }
 
     return axis;
@@ -716,6 +720,10 @@ void LivePlotWindow::updateGraph(LiveValue type, double key, double range, doubl
 
         if (tags.contains(type)) {
             tags[type]->setValue(value);
+        }
+
+        if (units[type] == UnitConversions::U_LEAF_WETNESS) {
+            return; // Range is fixed 0-15 on axis creation.
         }
 
         QCPRange oldRange = graphs[type]->valueAxis()->range();
