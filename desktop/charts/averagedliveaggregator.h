@@ -48,6 +48,27 @@ private:
     float solarRadiation;
     float rainRate;
 
+    float leafWetness1;
+    float leafWetness2;
+    float leafTemperature1;
+    float leafTemperature2;
+
+    float soilMoisture1;
+    float soilMoisture2;
+    float soilMoisture3;
+    float soilMoisture4;
+    float soilTemperature1;
+    float soilTemperature2;
+    float soilTemperature3;
+    float soilTemperature4;
+
+    float extraHumidity1;
+    float extraHumidity2;
+
+    float extraTemperature1;
+    float extraTemperature2;
+    float extraTemperature3;
+
 
     // Storm rain is never averaged
     float stormRain;
