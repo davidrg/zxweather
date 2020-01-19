@@ -38,6 +38,23 @@ void AveragedLiveAggregator::clear() {
     rainRate = 0;
     stormRain = 0;
     lastStormRain = 0;
+    leafWetness1 = 0;
+    leafWetness2 = 0;
+    leafTemperature1 = 0;
+    leafTemperature2 = 0;
+    soilMoisture1 = 0;
+    soilMoisture2 = 0;
+    soilMoisture3 = 0;
+    soilMoisture4 = 0;
+    soilTemperature1 = 0;
+    soilTemperature2 = 0;
+    soilTemperature3 = 0;
+    soilTemperature4 = 0;
+    extraHumidity1 = 0;
+    extraHumidity2 = 0;
+    extraTemperature1 = 0;
+    extraTemperature2 = 0;
+    extraTemperature3 = 0;
 }
 
 qint64 AveragedLiveAggregator::nextTs() {
@@ -72,6 +89,23 @@ LiveDataSet AveragedLiveAggregator::makeLiveData(bool indoorDataAvailable, hardw
         lds.davisHw.consoleBatteryVoltage = consoleBatteryVoltage / samples;
         lds.davisHw.uvIndex = uvIndex / samples;
         lds.davisHw.solarRadiation = solarRadiation / samples;
+        lds.davisHw.leafWetness1 = leafWetness1 / samples;
+        lds.davisHw.leafWetness2 = leafWetness2 / samples;
+        lds.davisHw.leafTemperature1 = leafTemperature1 / samples;
+        lds.davisHw.leafTemperature2 = leafTemperature2 / samples;
+        lds.davisHw.soilMoisture1 = soilMoisture1 / samples;
+        lds.davisHw.soilMoisture2 = soilMoisture2 / samples;
+        lds.davisHw.soilMoisture3 = soilMoisture3 / samples;
+        lds.davisHw.soilMoisture4 = soilMoisture4 / samples;
+        lds.davisHw.soilTemperature1 = soilTemperature1 / samples;
+        lds.davisHw.soilTemperature2 = soilTemperature2 / samples;
+        lds.davisHw.soilTemperature3 = soilTemperature3 / samples;
+        lds.davisHw.soilTemperature4 = soilTemperature4 / samples;
+        lds.davisHw.extraHumidity1 = extraHumidity1 / samples;
+        lds.davisHw.extraHumidity2 = extraHumidity2 / samples;
+        lds.davisHw.extraTemperature1 = extraTemperature1 / samples;
+        lds.davisHw.extraTemperature2 = extraTemperature2 / samples;
+        lds.davisHw.extraTemperature3 = extraTemperature3 / samples;
     }
 
     return lds;
@@ -125,6 +159,23 @@ void AveragedLiveAggregator::incomingLiveData(LiveDataSet data) {
         consoleBatteryVoltage += data.davisHw.consoleBatteryVoltage;
         uvIndex += data.davisHw.uvIndex;
         solarRadiation += data.davisHw.solarRadiation;
+        leafWetness1 += data.davisHw.leafWetness1;
+        leafWetness2 += data.davisHw.leafWetness2;
+        leafTemperature1 += data.davisHw.leafTemperature1;
+        leafTemperature2 += data.davisHw.leafTemperature2;
+        soilMoisture1 += data.davisHw.soilMoisture1;
+        soilMoisture2 += data.davisHw.soilMoisture2;
+        soilMoisture3 += data.davisHw.soilMoisture3;
+        soilMoisture4 += data.davisHw.soilMoisture4;
+        soilTemperature1 += data.davisHw.soilTemperature1;
+        soilTemperature2 += data.davisHw.soilTemperature2;
+        soilTemperature3 += data.davisHw.soilTemperature3;
+        soilTemperature4 += data.davisHw.soilTemperature4;
+        extraHumidity1 += data.davisHw.extraHumidity1;
+        extraHumidity2 += data.davisHw.extraHumidity2;
+        extraTemperature1 += data.davisHw.extraTemperature1;
+        extraTemperature2 += data.davisHw.extraTemperature2;
+        extraTemperature3 += data.davisHw.extraTemperature3;
 
         if (maxRainRate) {
             if(rainRate < data.davisHw.rainRate) {
