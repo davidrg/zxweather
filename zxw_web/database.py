@@ -613,6 +613,7 @@ where src.station_id = $station
     result = db.query(query, dict(station=station_id))
     return result
 
+
 def get_live_data(station_id):
     """
     Gets live data from the database. If config.live_data_available is set
@@ -661,7 +662,24 @@ def get_live_data(station_id):
                    dd.forecast_icon,
                    dd.forecast_rule_id,
                    dd.uv_index,
-                   dd.solar_radiation"""
+                   dd.solar_radiation,
+                   dd.leaf_wetness_1,
+                   dd.leaf_wetness_2,
+                   dd.leaf_temperature_1,
+                   dd.leaf_temperature_2,
+                   dd.soil_moisture_1,
+                   dd.soil_moisture_2,
+                   dd.soil_moisture_3, 
+                   dd.soil_moisture_4,
+                   dd.soil_temperature_1,
+                   dd.soil_temperature_2,
+                   dd.soil_temperature_3,
+                   dd.soil_temperature_4,
+                   dd.extra_humidity_1,
+                   dd.extra_humidity_2,
+                   dd.extra_temperature_1,
+                   dd.extra_temperature_2,
+                   dd.extra_temperature_3"""
 
             ext_joins = """
             inner join davis_live_data dd on dd.station_id = ld.station_id """

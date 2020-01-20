@@ -10,7 +10,7 @@ class LiveDataRepeater : public QObject
 {
     Q_OBJECT
 public:
-    explicit LiveDataRepeater(QObject *parent = 0);
+    explicit LiveDataRepeater(bool isWebDs, QObject *parent = 0);
 
 signals:
     void liveData(LiveDataSet data);
@@ -34,6 +34,7 @@ private:
 
    bool runningTotalRain;
    float lastStormRain;
+   bool isWebDs;
 };
 
 #endif // LIVEDATAREPEATER_H

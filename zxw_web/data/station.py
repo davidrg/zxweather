@@ -318,6 +318,43 @@ def live_data(station_id):
                 'uv_index': uv,
                 'solar_radiation': data.solar_radiation
             }
+
+            if data.leaf_wetness_1 is not None:
+                result['davis']['leaf_wetness_1'] = data.leaf_wetness_1
+            if data.leaf_wetness_2 is not None:
+                result['davis']['leaf_wetness_2'] = data.leaf_wetness_2
+            if data.leaf_temperature_1 is not None:
+                result['davis']['leaf_temperature_1'] = data.leaf_temperature_1
+            if data.leaf_temperature_2 is not None:
+                result['davis']['leaf_temperature_2'] = data.leaf_temperature_2
+
+            if data.soil_moisture_1 is not None:
+                result['davis']['soil_moisture_1'] = data.soil_moisture_1
+            if data.soil_moisture_2 is not None:
+                result['davis']['soil_moisture_2'] = data.soil_moisture_2
+            if data.soil_moisture_3 is not None:
+                result['davis']['soil_moisture_3'] = data.soil_moisture_3
+            if data.soil_moisture_4 is not None:
+                result['davis']['soil_moisture_4'] = data.soil_moisture_4
+            if data.soil_temperature_1 is not None:
+                result['davis']['soil_temperature_1'] = data.soil_temperature_1
+            if data.soil_temperature_2 is not None:
+                result['davis']['soil_temperature_2'] = data.soil_temperature_2
+            if data.soil_temperature_3 is not None:
+                result['davis']['soil_temperature_3'] = data.soil_temperature_3
+            if data.soil_temperature_4 is not None:
+                result['davis']['soil_temperature_4'] = data.soil_temperature_4
+
+            if data.extra_humidity_1 is not None:
+                result['davis']['extra_humidity_1'] = data.extra_humidity_1
+            if data.extra_humidity_2 is not None:
+                result['davis']['extra_humidity_2'] = data.extra_humidity_2
+            if data.extra_temperature_1 is not None:
+                result['davis']['extra_temperature_1'] = data.extra_temperature_1
+            if data.extra_temperature_2 is not None:
+                result['davis']['extra_temperature_2'] = data.extra_temperature_2
+            if data.extra_temperature_3 is not None:
+                result['davis']['extra_temperature_3'] = data.extra_temperature_3
     else:
         result = {'s': 'bad'}
 

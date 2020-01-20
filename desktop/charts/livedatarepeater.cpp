@@ -2,9 +2,10 @@
 
 #include <QtDebug>
 
-LiveDataRepeater::LiveDataRepeater(QObject *parent) : QObject(parent)
+LiveDataRepeater::LiveDataRepeater(bool isWebDs, QObject *parent) : QObject(parent)
 {
     lastReceivedValid = false;
+    this->isWebDs = isWebDs;
 
     connect(&timer, SIGNAL(timeout()), this, SLOT(repeatLastTransmission()));
 }
@@ -18,12 +19,16 @@ void LiveDataRepeater::incomingLiveData(LiveDataSet data) {
     lastReceived = data;
     lastReceivedTs = data.timestamp.toMSecsSinceEpoch();
 
-    if (data.hw_type == HW_DAVIS) {
-        interval = 2500;
-    } else if (data.hw_type == HW_FINE_OFFSET) {
+    if (isWebDs) {
         interval = 48000;
     } else {
-        interval = 30000; // Unknown station. Assume 30 seconds.
+        if (data.hw_type == HW_DAVIS) {
+            interval = 2500;
+        } else if (data.hw_type == HW_FINE_OFFSET) {
+            interval = 48000;
+        } else {
+            interval = 30000; // Unknown station. Assume 30 seconds.
+        }
     }
 
     emit liveData(data);
