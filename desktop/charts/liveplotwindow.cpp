@@ -120,6 +120,7 @@ LivePlotWindow::LivePlotWindow(bool solarAvailalble,
     axisLabels[UnitConversions::U_LEAF_WETNESS] = tr("Leaf Wetness");
 
     Settings &settings = Settings::getInstance();
+    bool usingWebDs = false;
 
     switch(settings.liveDataSourceType()) {
     case Settings::DS_TYPE_DATABASE:
@@ -130,12 +131,13 @@ LivePlotWindow::LivePlotWindow(bool solarAvailalble,
         break;
     case Settings::DS_TYPE_WEB_INTERFACE:
         ds = new WebDataSource(new DialogProgressListener(this), this);
+        usingWebDs = true;
         break;
     }
 
     // This is to give the averaging aggregator a constant stream of updates
     // so it keeps producing new samples when the weater station goes quiet.
-    repeater.reset(new LiveDataRepeater(this));
+    repeater.reset(new LiveDataRepeater(usingWebDs, this));
     connect(ds, SIGNAL(liveData(LiveDataSet)), repeater.data(),
             SLOT(incomingLiveData(LiveDataSet)));
 
@@ -713,6 +715,7 @@ void LivePlotWindow::updateGraph(LiveValue type, double key, double range, doubl
     }
 
     if (graphs.contains(type)) {
+        qDebug() << "Update live plot graph" << type << "with value" << value;
         graphs[type]->data()->removeBefore(key - range);
         graphs[type]->addData(key, value);
         points[type]->data()->clear();

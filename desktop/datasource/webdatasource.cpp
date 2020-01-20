@@ -290,6 +290,8 @@ void WebDataSource::ProcessStationConfig(QNetworkReply *reply) {
     liveDataPoll();
 }
 
+#define LD_NULLABLE_FLOAT(k) dd.contains(k) ? dd[k].toFloat() : qQNaN();
+
 void WebDataSource::liveDataReady(QNetworkReply *reply) {
 #if QT_VERSION < 0x050600
     /*
@@ -339,7 +341,8 @@ void WebDataSource::liveDataReady(QNetworkReply *reply) {
 
     using namespace QtJson;
 
-    if (!stationConfigLoaded) {
+    // If the reply is for the sysconfig data, go process that.
+    if (reply->request().url() == baseURL + "data/sysconfig.json") {
         ProcessStationConfig(reply);
         return;
     }
@@ -351,6 +354,8 @@ void WebDataSource::liveDataReady(QNetworkReply *reply) {
         emit error(reply->errorString());
     } else {
         LiveDataSet lds;
+        lds.davisHw.leafTemperature1 = 0;
+        lds.davisHw.leafTemperature2 = 0;
         bool ok;
 
         QVariantMap result = Json::parse(reply->readAll(), ok).toMap();
@@ -366,8 +371,9 @@ void WebDataSource::liveDataReady(QNetworkReply *reply) {
         lds.dewPoint = result["dew_point"].toFloat();
         lds.windChill = result["wind_chill"].toFloat();
         lds.humidity = result["relative_humidity"].toInt();
-        lds.timestamp = QDateTime::fromString(
-                             result["time_stamp"].toString(), "HH:mm:ss");
+        lds.timestamp = QDateTime(QDate::currentDate(),
+                                  QTime::fromString(
+                                      result["time_stamp"].toString(), Qt::ISODateWithMs));
         lds.apparentTemperature = result["apparent_temperature"].toFloat();
         lds.pressure = result["absolute_pressure"].toFloat();
 
@@ -396,11 +402,35 @@ void WebDataSource::liveDataReady(QNetworkReply *reply) {
             lds.davisHw.forecastRule = dd["forecast_rule"].toInt();
             lds.davisHw.uvIndex = dd["uv_index"].toFloat();
             lds.davisHw.solarRadiation = dd["solar_radiation"].toFloat();
+
+            lds.davisHw.leafWetness1 = LD_NULLABLE_FLOAT("leaf_wetness_1");
+            lds.davisHw.leafWetness2 = LD_NULLABLE_FLOAT("leaf_wetness_2");
+            lds.davisHw.leafTemperature1 = LD_NULLABLE_FLOAT("leaf_temperature_1");
+            lds.davisHw.leafTemperature2 = LD_NULLABLE_FLOAT("leaf_temperature_2");
+            lds.davisHw.soilMoisture1 = LD_NULLABLE_FLOAT("soil_moisture_1");
+            lds.davisHw.soilMoisture2 = LD_NULLABLE_FLOAT("soil_moisture_2");
+            lds.davisHw.soilMoisture3 = LD_NULLABLE_FLOAT("soil_moisture_3");
+            lds.davisHw.soilMoisture4 = LD_NULLABLE_FLOAT("soil_moisture_4");
+            lds.davisHw.soilTemperature1 = LD_NULLABLE_FLOAT("soil_temperature_1");
+            lds.davisHw.soilTemperature2 = LD_NULLABLE_FLOAT("soil_temperature_2");
+            lds.davisHw.soilTemperature3 = LD_NULLABLE_FLOAT("soil_temperature_3");
+            lds.davisHw.soilTemperature4 = LD_NULLABLE_FLOAT("soil_temperature_4");
+            lds.davisHw.extraHumidity1 = LD_NULLABLE_FLOAT("extra_humidity_1");
+            lds.davisHw.extraHumidity2 = LD_NULLABLE_FLOAT("extra_humidity_2");
+            lds.davisHw.extraTemperature1 = LD_NULLABLE_FLOAT("extra_temperature_1");
+            lds.davisHw.extraTemperature2 = LD_NULLABLE_FLOAT("extra_temperature_2");
+            lds.davisHw.extraTemperature3 = LD_NULLABLE_FLOAT("extra_temperature_3");
+
+            qDebug() << "Live S/M Temps: " << lds.davisHw.soilTemperature1 << lds.davisHw.soilTemperature2;
+            qDebug() << "Live leaf" << lds.davisHw.leafWetness1;
+
         }
+
 
         // Indoor data is not currently available from the website data feed.
         lds.indoorDataAvailable = false;
 
+        qDebug() << "WebDS Emit live!";
         emit liveData(lds);
 
         // now for samples!
@@ -427,6 +457,7 @@ void WebDataSource::liveDataReady(QNetworkReply *reply) {
                 sample.uvIndexValid = !s["uv_index"].isNull();
                 sample.uvIndex = s["uv_index"].toDouble();
                 emit newSample(sample);
+
             }
         }
 
