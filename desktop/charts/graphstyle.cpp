@@ -78,27 +78,27 @@ GraphStyle::GraphStyle(StandardColumn column) {
         name = tr("Solar Radiation");
         break;
     case SC_HighTemperature:
-        colour = colours.temperature;
+        colour = colours.highTemperature;
         name = tr("High Temperature");
         break;
     case SC_LowTemperature:
-        colour = colours.temperature;
+        colour = colours.lowTemperature;
         name = tr("Low Temperature");
         break;
     case SC_HighSolarRadiation:
-        colour = colours.solarRadiation;
+        colour = colours.highSolarRadiation;
         name = tr("High Solar Radiation");
         break;
     case SC_HighUVIndex:
-        colour = colours.uvIndex;
+        colour = colours.highUVIndex;
         name = tr("High UV Index");
         break;
     case SC_GustWindDirection:
-        colour = colours.windDirection;
+        colour = colours.gustWindDirection;
         name = tr("Gust Wind Direction");
         break;
     case SC_HighRainRate:
-        colour = colours.rainfall;
+        colour = colours.rainRate;
         name = tr("High Rain Rate");
         lineStyle = QCPGraph::lsStepLeft;
         break;

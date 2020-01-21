@@ -33,6 +33,8 @@ class QSettings;
 
 typedef struct _chart_colours {
     QColor temperature;
+    QColor highTemperature;
+    QColor lowTemperature;
     QColor indoorTemperature;
     QColor apparentTemperature;
     QColor windChill;
@@ -43,17 +45,20 @@ typedef struct _chart_colours {
 
     QColor pressure;
 
-    QColor rainfall; // also storm rain (for live)
-    QColor rainRate; // live only
+    QColor rainfall;
+    QColor rainRate;
 
     QColor averageWindSpeed;
-    QColor gustWindSpeed;       // shares default with rainrate
+    QColor gustWindSpeed;
     QColor windDirection;
+    QColor gustWindDirection;
 
     QColor uvIndex;
+    QColor highUVIndex;
     QColor solarRadiation;
+    QColor highSolarRadiation;
 
-    QColor evapotranspiration;  // shares default with console battery voltage
+    QColor evapotranspiration;
     QColor reception;
     QColor consoleBatteryVoltage; // live only
 
@@ -285,6 +290,8 @@ private:
 
     QStringList extraReportSearchPaths;
     QStringList blacklistReportSearchPaths;
+
+    ChartColours defaultChartColours;
 };
 
 #endif // SETTINGS_H
