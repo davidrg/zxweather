@@ -135,6 +135,8 @@ namespace SettingsKey {
     namespace Colours {
         namespace Charts {
             const QString TEMPERATURE = "Colours/Charts/temperature";
+            const QString HIGH_TEMPERATURE = "Colours/Charts/high_temperature";
+            const QString LOW_TEMPERATURE = "Colours/Charts/low_temperature";
             const QString INDOOR_TEMPERATURE = "Colours/Charts/indoor_temperature";
             const QString APPARENT_TEMPERATURE = "Colours/Charts/apparent_temperature";
             const QString WIND_CHILL = "Colours/Charts/wind_chill";
@@ -147,8 +149,11 @@ namespace SettingsKey {
             const QString AVG_WIND_SPEED = "Colours/Charts/average_wind_speed";
             const QString GUST_WIND_SPEED = "Colours/Charts/gust_wind_speed";
             const QString WIND_DIRECTION = "Colours/Charts/wind_direction";
+            const QString GUST_WIND_DIRECTION = "Colours/Charts/gust_wind_direction";
             const QString UV_INDEX = "Colours/Charts/uv_index";
+            const QString HIGH_UV_INDEX = "Colours/Charts/high_uv_index";
             const QString SOLAR_RADIATION = "Colours/Charts/solar_radiation";
+            const QString HIGH_SOLAR_RADIATION = "Colours/Charts/high_solar_radiation";
             const QString EVAPOTRANSPIRATION = "Colours/Charts/evapotranspiration";
             const QString RECEPTION = "Colours/Charts/reception";
             const QString CONSOLE_BATTERY_VOLTAGE = "Colours/Charts/console_battery_voltage";
@@ -238,6 +243,71 @@ Settings::Settings() {
 
 
     setConfigFile(settingsFile);
+
+    // These are the default colours for charts.
+    defaultChartColours.apparentTemperature = QColor(Qt::darkRed);
+    defaultChartColours.dewPoint = QColor(Qt::darkCyan);
+    defaultChartColours.humidity = QColor(Qt::darkMagenta);
+    defaultChartColours.indoorHumidity = QColor(Qt::darkYellow);
+    defaultChartColours.indoorTemperature = QColor(Qt::darkGreen);
+    defaultChartColours.pressure = QColor(Qt::black);
+    defaultChartColours.temperature = QColor(Qt::darkBlue);
+    defaultChartColours.highTemperature = defaultChartColours.temperature;
+    defaultChartColours.lowTemperature = defaultChartColours.temperature;
+    defaultChartColours.windChill = QColor(Qt::darkGray);
+    defaultChartColours.rainfall = QColor(Qt::blue);
+    defaultChartColours.rainRate = QColor(Qt::red);
+    defaultChartColours.averageWindSpeed = QColor(Qt::cyan);
+    defaultChartColours.gustWindSpeed = defaultChartColours.rainRate;
+    defaultChartColours.windDirection = QColor(Qt::green);
+    defaultChartColours.gustWindDirection = defaultChartColours.windDirection;
+    defaultChartColours.uvIndex = QColor(Qt::magenta);
+    defaultChartColours.highUVIndex = defaultChartColours.uvIndex;
+    defaultChartColours.solarRadiation = QColor(Qt::yellow);
+    defaultChartColours.highSolarRadiation = defaultChartColours.solarRadiation;
+    defaultChartColours.evapotranspiration = QColor(Qt::gray);
+    defaultChartColours.reception = QColor(Qt::lightGray);
+    defaultChartColours.consoleBatteryVoltage = defaultChartColours.evapotranspiration;
+
+    defaultChartColours.leafWetness1 = defaultChartColours.rainfall;
+    defaultChartColours.leafWetness2 = defaultChartColours.rainfall;
+    defaultChartColours.leafTemperature1 = defaultChartColours.temperature;
+    defaultChartColours.leafTemperature2 = defaultChartColours.temperature;
+
+    defaultChartColours.soilMoisture1 = defaultChartColours.rainRate;
+    defaultChartColours.soilMoisture2 = defaultChartColours.rainRate;
+    defaultChartColours.soilMoisture3 = defaultChartColours.rainRate;
+    defaultChartColours.soilMoisture4 = defaultChartColours.rainRate;
+
+    defaultChartColours.soilTemperature1 = defaultChartColours.temperature;
+    defaultChartColours.soilTemperature2 = defaultChartColours.temperature;
+    defaultChartColours.soilTemperature3 = defaultChartColours.temperature;
+    defaultChartColours.soilTemperature4 = defaultChartColours.temperature;
+
+    defaultChartColours.extraHumidity1 = defaultChartColours.humidity;
+    defaultChartColours.extraHumidity2 = defaultChartColours.humidity;
+
+    defaultChartColours.extraTemperature1 = defaultChartColours.temperature;
+    defaultChartColours.extraTemperature2 = defaultChartColours.temperature;
+    defaultChartColours.extraTemperature3 = defaultChartColours.temperature;
+
+
+    /* Available default colours:
+     *   Qt::white
+     * white and light gray may not be real options.
+     *
+     * rain rate, gust wind speed and soil moistures 1-4 share default colours
+     * evapotranspiration and console battery voltage share default colours
+     * rainfall and leaf wetness 1&2 share default colours
+     * outdoor temperature, high temperature, low temperature,
+     *      soil temperatures 1-4 and extra temperatures 1-3 share default colours
+     * outdoor humidity and extra humidities 1 & 2 share default colours
+     * uv index and high uv index share default colours
+     * solar radiation and high solar radiation share default colours
+     */
+
+    defaultChartColours.title = QColor(Qt::black);
+    defaultChartColours.background = QColor(Qt::white);
 }
 
 Settings::~Settings() {
@@ -474,6 +544,10 @@ void Settings::setChartColours(ChartColours colours) {
                        colours.pressure);
     settings->setValue(SettingsKey::Colours::Charts::TEMPERATURE,
                        colours.temperature);
+    settings->setValue(SettingsKey::Colours::Charts::HIGH_TEMPERATURE,
+                       colours.highTemperature);
+    settings->setValue(SettingsKey::Colours::Charts::LOW_TEMPERATURE,
+                       colours.lowTemperature);
     settings->setValue(SettingsKey::Colours::Charts::WIND_CHILL,
                        colours.windChill);
     settings->setValue(SettingsKey::Colours::Charts::RAINFALL,
@@ -486,10 +560,16 @@ void Settings::setChartColours(ChartColours colours) {
                        colours.gustWindSpeed);
     settings->setValue(SettingsKey::Colours::Charts::WIND_DIRECTION,
                        colours.windDirection);
+    settings->setValue(SettingsKey::Colours::Charts::GUST_WIND_DIRECTION,
+                       colours.gustWindDirection);
     settings->setValue(SettingsKey::Colours::Charts::UV_INDEX,
                        colours.uvIndex);
+    settings->setValue(SettingsKey::Colours::Charts::HIGH_UV_INDEX,
+                       colours.highUVIndex);
     settings->setValue(SettingsKey::Colours::Charts::SOLAR_RADIATION,
                        colours.solarRadiation);
+    settings->setValue(SettingsKey::Colours::Charts::HIGH_SOLAR_RADIATION,
+                       colours.highSolarRadiation);
     settings->setValue(SettingsKey::Colours::Charts::TITLE,
                        colours.title);
     settings->setValue(SettingsKey::Colours::Charts::BACKGROUND,
@@ -523,98 +603,102 @@ ChartColours Settings::getChartColours() {
     ChartColours colours;
     colours.apparentTemperature = settings->value(
                 SettingsKey::Colours::Charts::APPARENT_TEMPERATURE,
-                QColor(Qt::darkRed)).value<QColor>();
+                defaultChartColours.apparentTemperature).value<QColor>();
     colours.dewPoint = settings->value(
                 SettingsKey::Colours::Charts::DEW_POINT,
-                QColor(Qt::darkCyan)).value<QColor>();
+                defaultChartColours.dewPoint).value<QColor>();
     colours.humidity = settings->value(
                 SettingsKey::Colours::Charts::HUMIDITY,
-                QColor(Qt::darkMagenta)).value<QColor>();
+                defaultChartColours.humidity).value<QColor>();
     colours.indoorHumidity = settings->value(
                 SettingsKey::Colours::Charts::INDOOR_HUMIDITY,
-                QColor(Qt::darkYellow)).value<QColor>();
+                defaultChartColours.indoorHumidity).value<QColor>();
     colours.indoorTemperature = settings->value(
                 SettingsKey::Colours::Charts::INDOOR_TEMPERATURE,
-                QColor(Qt::darkGreen)).value<QColor>();
+                defaultChartColours.indoorTemperature).value<QColor>();
     colours.pressure = settings->value(
                 SettingsKey::Colours::Charts::PRESSURE,
-                QColor(Qt::black)).value<QColor>();
+                defaultChartColours.pressure).value<QColor>();
     colours.temperature = settings->value(
                 SettingsKey::Colours::Charts::TEMPERATURE,
-                QColor(Qt::darkBlue)).value<QColor>();
+                defaultChartColours.temperature).value<QColor>();
+    colours.highTemperature = settings->value(
+                SettingsKey::Colours::Charts::HIGH_TEMPERATURE,
+                defaultChartColours.highTemperature).value<QColor>();
+    colours.lowTemperature = settings->value(
+                SettingsKey::Colours::Charts::LOW_TEMPERATURE,
+                defaultChartColours.lowTemperature).value<QColor>();
     colours.windChill = settings->value(
                 SettingsKey::Colours::Charts::WIND_CHILL,
-                QColor(Qt::darkGray)).value<QColor>();
+                defaultChartColours.windChill).value<QColor>();
     colours.rainfall = settings->value(
                 SettingsKey::Colours::Charts::RAINFALL,
-                QColor(Qt::blue)).value<QColor>();
+                defaultChartColours.rainfall).value<QColor>();
     colours.rainRate = settings->value(
                 SettingsKey::Colours::Charts::RAINRATE,
-                QColor(Qt::red)).value<QColor>();
+                defaultChartColours.rainRate).value<QColor>();
     colours.averageWindSpeed = settings->value(
                 SettingsKey::Colours::Charts::AVG_WIND_SPEED,
-                QColor(Qt::cyan)).value<QColor>();
+                defaultChartColours.averageWindSpeed).value<QColor>();
     colours.gustWindSpeed = settings->value(
                 SettingsKey::Colours::Charts::GUST_WIND_SPEED,
-                QColor(Qt::red)).value<QColor>();
+                defaultChartColours.gustWindSpeed).value<QColor>();
     colours.windDirection = settings->value(
                 SettingsKey::Colours::Charts::WIND_DIRECTION,
-                QColor(Qt::green)).value<QColor>();
+                defaultChartColours.windDirection).value<QColor>();
+    colours.gustWindDirection = settings->value(
+                SettingsKey::Colours::Charts::GUST_WIND_DIRECTION,
+                defaultChartColours.gustWindDirection).value<QColor>();
     colours.uvIndex = settings->value(
                 SettingsKey::Colours::Charts::UV_INDEX,
-                QColor(Qt::magenta)).value<QColor>();
+                defaultChartColours.uvIndex).value<QColor>();
+    colours.highUVIndex = settings->value(
+                SettingsKey::Colours::Charts::HIGH_UV_INDEX,
+                defaultChartColours.highUVIndex).value<QColor>();
     colours.solarRadiation = settings->value(
                 SettingsKey::Colours::Charts::SOLAR_RADIATION,
-                QColor(Qt::yellow)).value<QColor>();
+                defaultChartColours.solarRadiation).value<QColor>();
+    colours.highSolarRadiation = settings->value(
+                SettingsKey::Colours::Charts::HIGH_SOLAR_RADIATION,
+                defaultChartColours.highSolarRadiation).value<QColor>();
     colours.evapotranspiration = settings->value(
                 SettingsKey::Colours::Charts::EVAPOTRANSPIRATION,
-                QColor(Qt::gray)).value<QColor>();
+                defaultChartColours.evapotranspiration).value<QColor>();
     colours.reception = settings->value(
                 SettingsKey::Colours::Charts::RECEPTION,
-                QColor(Qt::lightGray)).value<QColor>();
+                defaultChartColours.reception).value<QColor>();
     colours.consoleBatteryVoltage = settings->value(
                 SettingsKey::Colours::Charts::CONSOLE_BATTERY_VOLTAGE,
-                QColor(Qt::gray)).value<QColor>();
+                defaultChartColours.consoleBatteryVoltage).value<QColor>();
 
-    colours.leafWetness1 = settings->value(SettingsKey::Colours::Charts::LEAF_WETNESS_1, QColor(Qt::blue)).value<QColor>();
-    colours.leafWetness2 = settings->value(SettingsKey::Colours::Charts::LEAF_WETNESS_2, QColor(Qt::blue)).value<QColor>();
-    colours.leafTemperature1 = settings->value(SettingsKey::Colours::Charts::LEAF_TEMPERATURE_1, QColor(Qt::darkBlue)).value<QColor>();
-    colours.leafTemperature2 = settings->value(SettingsKey::Colours::Charts::LEAF_TEMPERATURE_1, QColor(Qt::darkBlue)).value<QColor>();
+    colours.leafWetness1 = settings->value(SettingsKey::Colours::Charts::LEAF_WETNESS_1, defaultChartColours.leafWetness1).value<QColor>();
+    colours.leafWetness2 = settings->value(SettingsKey::Colours::Charts::LEAF_WETNESS_2, defaultChartColours.leafWetness1).value<QColor>();
+    colours.leafTemperature1 = settings->value(SettingsKey::Colours::Charts::LEAF_TEMPERATURE_1, defaultChartColours.leafTemperature1).value<QColor>();
+    colours.leafTemperature2 = settings->value(SettingsKey::Colours::Charts::LEAF_TEMPERATURE_1, defaultChartColours.leafTemperature2).value<QColor>();
 
-    colours.soilMoisture1 = settings->value(SettingsKey::Colours::Charts::SOIL_MOISTURE_1, QColor(Qt::red)).value<QColor>();
-    colours.soilMoisture2 = settings->value(SettingsKey::Colours::Charts::SOIL_MOISTURE_2, QColor(Qt::red)).value<QColor>();
-    colours.soilMoisture3 = settings->value(SettingsKey::Colours::Charts::SOIL_MOISTURE_3, QColor(Qt::red)).value<QColor>();
-    colours.soilMoisture4 = settings->value(SettingsKey::Colours::Charts::SOIL_MOISTURE_4, QColor(Qt::red)).value<QColor>();
+    colours.soilMoisture1 = settings->value(SettingsKey::Colours::Charts::SOIL_MOISTURE_1, defaultChartColours.soilMoisture1).value<QColor>();
+    colours.soilMoisture2 = settings->value(SettingsKey::Colours::Charts::SOIL_MOISTURE_2, defaultChartColours.soilMoisture2).value<QColor>();
+    colours.soilMoisture3 = settings->value(SettingsKey::Colours::Charts::SOIL_MOISTURE_3, defaultChartColours.soilMoisture3).value<QColor>();
+    colours.soilMoisture4 = settings->value(SettingsKey::Colours::Charts::SOIL_MOISTURE_4, defaultChartColours.soilMoisture4).value<QColor>();
 
-    colours.soilTemperature1 = settings->value(SettingsKey::Colours::Charts::SOIL_TEMPERATURE_1, QColor(Qt::darkBlue)).value<QColor>();
-    colours.soilTemperature2 = settings->value(SettingsKey::Colours::Charts::SOIL_TEMPERATURE_2, QColor(Qt::darkBlue)).value<QColor>();
-    colours.soilTemperature3 = settings->value(SettingsKey::Colours::Charts::SOIL_TEMPERATURE_3, QColor(Qt::darkBlue)).value<QColor>();
-    colours.soilTemperature4 = settings->value(SettingsKey::Colours::Charts::SOIL_TEMPERATURE_4, QColor(Qt::darkBlue)).value<QColor>();
+    colours.soilTemperature1 = settings->value(SettingsKey::Colours::Charts::SOIL_TEMPERATURE_1, defaultChartColours.soilTemperature1).value<QColor>();
+    colours.soilTemperature2 = settings->value(SettingsKey::Colours::Charts::SOIL_TEMPERATURE_2, defaultChartColours.soilTemperature2).value<QColor>();
+    colours.soilTemperature3 = settings->value(SettingsKey::Colours::Charts::SOIL_TEMPERATURE_3, defaultChartColours.soilTemperature3).value<QColor>();
+    colours.soilTemperature4 = settings->value(SettingsKey::Colours::Charts::SOIL_TEMPERATURE_4, defaultChartColours.soilTemperature4).value<QColor>();
 
-    colours.extraHumidity1 = settings->value(SettingsKey::Colours::Charts::EXTRA_HUMIDITY_1, QColor(Qt::darkMagenta)).value<QColor>();
-    colours.extraHumidity1 = settings->value(SettingsKey::Colours::Charts::EXTRA_HUMIDITY_1, QColor(Qt::darkMagenta)).value<QColor>();
+    colours.extraHumidity1 = settings->value(SettingsKey::Colours::Charts::EXTRA_HUMIDITY_1, defaultChartColours.extraHumidity1).value<QColor>();
+    colours.extraHumidity1 = settings->value(SettingsKey::Colours::Charts::EXTRA_HUMIDITY_1, defaultChartColours.extraHumidity2).value<QColor>();
 
-    colours.extraTemperature1 = settings->value(SettingsKey::Colours::Charts::EXTRA_TEMPERATURE_1, QColor(Qt::darkBlue)).value<QColor>();
-    colours.extraTemperature2 = settings->value(SettingsKey::Colours::Charts::EXTRA_TEMPERATURE_2, QColor(Qt::darkBlue)).value<QColor>();
-    colours.extraTemperature3 = settings->value(SettingsKey::Colours::Charts::EXTRA_TEMPERATURE_3, QColor(Qt::darkBlue)).value<QColor>();
-
-    /* Available default colours:
-     *   Qt::white
-     * white and light gray may not be real options.
-     *
-     * rain rate, gust wind speed and soil moistures 1-4 share default colours
-     * evapotranspiration and console battery voltage share default colours
-     * rainfall and leaf wetness 1&2 share default colours
-     * outdoor temperature, soil temperatures 1-4 and extra temperatures 1-3 share default colours
-     * outdoor humidity and extra humidities 1 & 2 share default colours
-     */
+    colours.extraTemperature1 = settings->value(SettingsKey::Colours::Charts::EXTRA_TEMPERATURE_1, defaultChartColours.extraTemperature1).value<QColor>();
+    colours.extraTemperature2 = settings->value(SettingsKey::Colours::Charts::EXTRA_TEMPERATURE_2, defaultChartColours.extraTemperature2).value<QColor>();
+    colours.extraTemperature3 = settings->value(SettingsKey::Colours::Charts::EXTRA_TEMPERATURE_3, defaultChartColours.extraTemperature3).value<QColor>();
 
     colours.title = settings->value(
                 SettingsKey::Colours::Charts::TITLE,
-                QColor(Qt::black)).value<QColor>();
+                defaultChartColours.title).value<QColor>();
     colours.background = settings->value(
                 SettingsKey::Colours::Charts::BACKGROUND,
-                QColor(Qt::white)).value<QColor>();
+                defaultChartColours.background).value<QColor>();
 
     return colours;
 }
