@@ -1033,9 +1033,9 @@ function parse_live_data(parts) {
         'davis': null
     };
 
-    if (hw_type == 'DAVIS') {
+    if (hw_type === 'DAVIS') {
 
-        if (parts.length != 21) {
+        if (parts.length < 21) {
             // Invalid davis record (needs 20 fields)
             return null;
         }
@@ -1050,7 +1050,24 @@ function parse_live_data(parts) {
             'forecast_icon': parseInt(parts[17]),
             'forecast_rule': parseInt(parts[18]),
             'uv_index': parseFloat(parts[19]),
-            'solar_radiation': parseInt(parts[20])
+            'solar_radiation': parseInt(parts[20]),
+            // leaf wetness 1
+            // leaf wetness 2
+            // leaf temperature 1
+            // leaf temperature 2
+            // soil moisture 1
+            // soil moisture 2
+            // soil moisture 3
+            // soil moisture 4
+            // soil temperature 1
+            // soil temperature 2
+            // soil temperature 3
+            // soil temperature 4
+            // extra temperature 1
+            // extra temperature 2
+            // extra temperature 3
+            // extra humidity 1
+            // extra humidity 2
         };
 
         if (result['davis']['current_storm_date'] == 'None')

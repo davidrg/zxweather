@@ -7,3 +7,5 @@ python-dateutil
 pyOpenSSL==0.13.1
 pika
 txaio
+cryptography
+pyasn1

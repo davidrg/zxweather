@@ -138,6 +138,8 @@ void TcpLiveDataSource::processStreamLine(QString line) {
     }
 }
 
+#define NullableDouble(i) parts.at(i) == "None" ? qQNaN() : parts.at(i).toDouble();
+
 void TcpLiveDataSource::processLiveData(QStringList parts) {
     if (parts.at(0) != "l") {
         qDebug() << "Not a live update. Type:" << parts.at(0);
@@ -187,6 +189,31 @@ void TcpLiveDataSource::processLiveData(QStringList parts) {
         lds.davisHw.forecastRule = parts.at(18).toInt();
         lds.davisHw.uvIndex = parts.at(19).toFloat();
         lds.davisHw.solarRadiation = parts.at(20).toFloat();
+
+        if (parts.length() > expectedLength) {
+            // We've got extra sensors!
+            lds.davisHw.leafWetness1 = NullableDouble(21);
+            lds.davisHw.leafWetness2 = NullableDouble(22);
+            lds.davisHw.leafTemperature1 = NullableDouble(23);
+            lds.davisHw.leafTemperature2 = NullableDouble(24);
+
+            lds.davisHw.soilMoisture1 = NullableDouble(25);
+            lds.davisHw.soilMoisture2 = NullableDouble(26);
+            lds.davisHw.soilMoisture3 = NullableDouble(27);
+            lds.davisHw.soilMoisture4 = NullableDouble(28);
+
+            lds.davisHw.soilTemperature1 = NullableDouble(29);
+            lds.davisHw.soilTemperature2 = NullableDouble(30);
+            lds.davisHw.soilTemperature3 = NullableDouble(31);
+            lds.davisHw.soilTemperature4 = NullableDouble(32);
+
+            lds.davisHw.extraTemperature1 = NullableDouble(33);
+            lds.davisHw.extraTemperature2 = NullableDouble(34);
+            lds.davisHw.extraTemperature3 = NullableDouble(35);
+
+            lds.davisHw.extraHumidity1 = NullableDouble(36);
+            lds.davisHw.extraHumidity2 = NullableDouble(37);
+        }
     }
 
     emit liveData(lds);
@@ -309,6 +336,7 @@ void TcpLiveDataSource::processImageData(QStringList parts) {
 
     emit newImage(nii);
 }
+
 
 void TcpLiveDataSource::processStationInfo(QString line) {
     using namespace QtJson;

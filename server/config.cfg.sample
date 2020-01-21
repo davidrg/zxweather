@@ -88,3 +88,5 @@ hostname=server.example.com
 # SSL private key and certificate files
 private_key_file=server.key
 certificate_file=server.crt
+#chain_file=
+# chain file is optional

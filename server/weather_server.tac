@@ -94,6 +94,10 @@ web_socket_port = 81
 # Hostname the websocket service will be available under
 web_socket_hostname = 'server.example.com'
 
+
+# Certificate chain (optional)
+web_socket_chain_file = None
+
 ##############################################################################
 #   WebSocket TLS Protocol Configuration #####################################
 ##############################################################################
@@ -157,7 +161,8 @@ if enable_web_socket_tls:
         'port': web_socket_tls_port,
         'key': web_socket_tls_private_key_file,
         'certificate': web_socket_tls_certificate_file,
-        'host': web_socket_tls_hostname
+        'host': web_socket_tls_hostname,
+        'chain': web_socket_chain_file
     }
 
 if enable_broker:
