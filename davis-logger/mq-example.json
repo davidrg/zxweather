@@ -1,0 +1,94 @@
+{
+  "comment": "This document (minus this comment) is an example of what the davis logger publishes to RabbitMQ when that feature is enabled.",
+  "barTrend": 20,
+  "nextRecord": 2281,
+  "barometer": 1017.7540858957219,
+  "insideTemperature": 21.77777777777778,
+  "insideHumidity": 62,
+  "outsideTemperature": 17.388888888888886,
+  "windSpeed": 0.44704089408178815,
+  "averageWindSpeed10min": 0.44704089408178815,
+  "windDirection": 264,
+  "extraTemperatures": [
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  "soilTemperatures": [
+    16.11111111111111,
+    17.77777777777778,
+    null,
+    null
+  ],
+  "leafTemperatures": [
+    16.11111111111111,
+    17.77777777777778,
+    null,
+    null
+  ],
+  "outsideHumidity": 82,
+  "extraHumidities": [
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  "rainRate": 0.0,
+  "UV": 0.0,
+  "solarRadiation": 0,
+  "stormRain": 0.0,
+  "startDateOfCurrentStorm": null,
+  "dayRain": 0.0,
+  "monthRain": 7.6000000000000005,
+  "yearRain": 7.6000000000000005,
+  "dayET": 2108200.0,
+  "monthET": 975360.0,
+  "yearET": 975360.0,
+  "soilMoistures": [
+    null,
+    null,
+    null,
+    null
+  ],
+  "leafWetness": [
+    0,
+    null,
+    null,
+    0
+  ],
+  "insideAlarms": 0,
+  "rainAlarms": 0,
+  "outsideAlarms": [
+    0,
+    0
+  ],
+  "extraTempHumAlarms": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "soilAndLeafAlarms": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "transmitterBatteryStatus": 0,
+  "consoleBatteryVoltage": 4.875,
+  "forecastIcons": 6,
+  "forecastRuleNumber": 44,
+  "timeOfSunrise": "05:21:00",
+  "timeOfSunset": "19:39:00"
+}
