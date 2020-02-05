@@ -71,7 +71,11 @@ class WeatherDatabase(object):
         :param remote_stations: List of stations it can transmit data for
         :return:
         """
-        self._remote_stations = remote_stations
+
+        log.msg("Transmitter ready for stations: {0}".format(
+            ", ".join(remote_stations)))
+
+        self._remote_stations = [rs.upper() for rs in remote_stations]
         self._transmitter_ready = True
         self._connect()
 
@@ -381,15 +385,19 @@ class WeatherDatabase(object):
 
     @defer.inlineCallbacks
     def _fetch_samples(self, station_code):
-        log.msg("Fetch samples for {0}".format(station_code))
+        station_code = station_code.upper()
+
         if not self._transmitter_ready:
             # Client is not connected yet.
+            log.msg("Transmitter not yet ready - skip sample fetch for station {0}",format(station_code))
             return
 
         # Don't bother sending samples for stations the remote system doesn't
         # know anything about.
         if station_code not in self._remote_stations:
             return
+
+        log.msg("Fetch samples for {0}".format(station_code))
 
         hw_type = self.station_code_hardware_type[station_code]
 
