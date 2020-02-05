@@ -6,4 +6,4 @@ pyopenssl==16.2.0
 service_identity
 
 # only required if using RabbitMQ
-pika
+pika==0.11.2

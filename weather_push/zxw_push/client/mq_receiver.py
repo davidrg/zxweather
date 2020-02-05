@@ -65,7 +65,7 @@ class RabbitMqReceiver(object):
 
         channel = yield connection.channel()
 
-        yield channel.exchange_declare(exchange=self._exchange, type='topic')
+        yield channel.exchange_declare(exchange=self._exchange, exchange_type='topic')
 
         result = yield channel.queue_declare(exclusive=True)
 

@@ -603,7 +603,8 @@ class DavisService(service.Service):
 
         channel = yield connection.channel()
 
-        yield channel.exchange_declare(exchange=self._mq_exchange, type='topic')
+        yield channel.exchange_declare(exchange=self._mq_exchange,
+                                       exchange_type='topic')
         self._mq_publisher = MQPublisher(channel, self.station_code,
                                          self._mq_exchange)
 
