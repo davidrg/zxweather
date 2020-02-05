@@ -91,18 +91,21 @@ host_key = None
 #   Image Configuration ######################################################
 ##############################################################################
 
-# Images can only be sent over the TCP Transport. If you're using UDP then
-# the client will need to make a second TCP connection to use for sending
-# images. You can configure the TCP port the server is listening on below:
+# Images can only be sent over the TCP Transport. If you're using UDP or SSH
+# then the client will need to make a second TCP connection to the weatherpush
+# server to use for sending images. You can configure the TCP port the server
+# is listening on below:
 tcp_port = 4296
 
 # If images should be resized before transmission
 resize_images = False
 
+# image sources to resize images for (if enabled)
+resize_sources = []
+
 # Size of image to transmit
 new_image_width = 640
 new_image_height = 368
-
 
 ##############################################################################
 ##############################################################################
@@ -143,5 +146,5 @@ service = getClientService(
     host_key,
     dsn, transport_type, x_mq_host, x_mq_port, x_mq_exchange,
     x_mq_user, x_mq_password, x_mq_vhost, authorisation_code, resize_images,
-    (new_image_width, new_image_height), tcp_port)
+    (new_image_width, new_image_height), tcp_port, resize_sources)
 service.setServiceParent(application)
