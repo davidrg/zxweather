@@ -6,4 +6,8 @@ txpostgres==1.5.0
 Pillow
 
 # optional - only used by the client if RabbitMQ is configured
-pika
+pika==0.11.2
+
+# optional - only used by the client if pushing data via SSH
+cryptography
+pyasn1
