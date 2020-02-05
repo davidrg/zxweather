@@ -324,7 +324,8 @@ def station_live_updated(station_code, data=None):
 
         # BarTrend, RainRate, StormRain, CurrentStormStartDate,
         # TransmitterBattery, ConsoleBattery, ForecastIcon, ForecastRuleId,
-        # UVIndex, SolarRadiation
+        # UVIndex, SolarRadiation, leafWetnesses, leafTemperatures,
+        # soilMoistures, soilTemperatures, extraTemperatures, extraHumidities
 
         # The keys in the data structure don't match the rest of zxweather as
         # the davis logger was the first one to support outputting live data
