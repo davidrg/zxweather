@@ -624,7 +624,7 @@ def configure_sensors(con):
     hw_type = result[0]
     hw_config = json.loads(result[1])
     sensor_config = None
-    if "sensor_config" in hw_config:
+    if "sensor_config" in hw_config and len(hw_config["sensor_config"].keys()) > 0:
         sensor_config = hw_config["sensor_config"]
     else:
         sensor_config = {
