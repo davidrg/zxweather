@@ -40,7 +40,13 @@ DavisSampleRecord = namedtuple(
         'record_time', 'record_date', 'high_temperature', 'low_temperature',
         'high_rain_rate', 'solar_radiation', 'wind_sample_count',
         'gust_wind_direction', 'average_uv_index', 'evapotranspiration',
-        'high_solar_radiation', 'high_uv_index', 'forecast_rule_id'
+        'high_solar_radiation', 'high_uv_index', 'forecast_rule_id',
+        'leaf_wetness_1', 'leaf_wetness_2', 'leaf_temperature_1',
+        'leaf_temperature_2', 'soil_moisture_1', 'soil_moisture_2',
+        'soil_moisture_3', 'soil_moisture_4', 'soil_temperature_1',
+        'soil_temperature_2', 'soil_temperature_3', 'soil_temperature_4',
+        'extra_temperature_1', 'extra_temperature_2', 'extra_temperature_3',
+        'extra_humidity_1', 'extra_humidity_2'
     )
 )
 
@@ -61,7 +67,13 @@ DavisLiveRecord = namedtuple(
         'bar_trend', 'rain_rate', 'storm_rain',
         'current_storm_start_date', 'transmitter_battery',
         'console_battery_voltage', 'forecast_icon', 'forecast_rule_id',
-        'uv_index', 'solar_radiation'
+        'uv_index', 'solar_radiation',
+        'leaf_wetness_1', 'leaf_wetness_2', 'leaf_temperature_1',
+        'leaf_temperature_2', 'soil_moisture_1', 'soil_moisture_2',
+        'soil_moisture_3', 'soil_moisture_4', 'soil_temperature_1',
+        'soil_temperature_2', 'soil_temperature_3', 'soil_temperature_4',
+        'extra_temperature_1', 'extra_temperature_2', 'extra_temperature_3',
+        'extra_humidity_1', 'extra_humidity_2'
     )
 )
 
@@ -560,8 +572,14 @@ def _insert_davis_sample_int(txn, base, davis, station_id):
             high_temperature, low_temperature, high_rain_rate, solar_radiation,
             wind_sample_count, gust_wind_direction, average_uv_index,
             evapotranspiration, high_solar_radiation, high_uv_index,
-            forecast_rule_id)
-        values(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+            forecast_rule_id, leaf_wetness_1, leaf_wetness_2, 
+            leaf_temperature_1, leaf_temperature_2, soil_moisture_1,
+            soil_moisture_2, soil_moisture_3, soil_moisture_4, 
+            soil_temperature_1, soil_temperature_2, soil_temperature_3,
+            soil_temperature_4, extra_temperature_1, extra_temperature_2,
+            extra_temperature_3, extra_humidity_1, extra_humidity_2)
+        values(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 
+               %s, %s, %s, %s, %s, %s, %s, %s,%s, %s, %s, %s, %s, %s, %s)"""
 
     txn.execute(query,
                 (
@@ -578,7 +596,24 @@ def _insert_davis_sample_int(txn, base, davis, station_id):
                     davis.evapotranspiration,
                     davis.high_solar_radiation,
                     davis.high_uv_index,
-                    davis.forecast_rule_id
+                    davis.forecast_rule_id,
+                    davis.leaf_wetness_1,
+                    davis.leaf_wetness_2,
+                    davis.leaf_temperature_1,
+                    davis.leaf_temperature_2,
+                    davis.soil_moisture_1,
+                    davis.soil_moisture_2,
+                    davis.soil_moisture_3,
+                    davis.soil_moisture_4,
+                    davis.soil_temperature_1,
+                    davis.soil_temperature_2,
+                    davis.soil_temperature_3,
+                    davis.soil_temperature_4,
+                    davis.extra_temperature_1,
+                    davis.extra_temperature_2,
+                    davis.extra_temperature_3,
+                    davis.extra_humidity_1,
+                    davis.extra_humidity_2
                 ))
 
     # Done!
@@ -744,6 +779,15 @@ def update_base_live(base_data):
 
 
 def _update_davis_live_int(txn, base_data, davis_data, station_id):
+    """
+
+    :param txn:
+    :param base_data:
+    :param davis_data:
+    :type davis_data: DavisLiveRecord
+    :param station_id:
+    :return:
+    """
 
     query = """update live_data
                 set download_timestamp = %s,
@@ -787,7 +831,24 @@ def _update_davis_live_int(txn, base_data, davis_data, station_id):
                     forecast_icon = %s,
                     forecast_rule_id = %s,
                     uv_index = %s,
-                    solar_radiation = %s
+                    solar_radiation = %s,
+                    leaf_wetness_1 = %s,
+                    leaf_wetness_2 = %s,
+                    leaf_temperature_1 = %s,
+                    leaf_temperature_2 = %s,
+                    soil_moisture_1 = %s,
+                    soil_moisture_2 = %s,
+                    soil_moisture_3 = %s,
+                    soil_moisture_4 = %s,
+                    soil_temperature_1 = %s,
+                    soil_temperature_2 = %s,
+                    soil_temperature_3 = %s,
+                    soil_temperature_4 = %s,
+                    extra_temperature_1 = %s,
+                    extra_temperature_2 = %s,
+                    extra_temperature_3 = %s,
+                    extra_humidity_1 = %s,
+                    extra_humidity_2 = %s
                 where station_id = %s
                 """
 
@@ -805,6 +866,23 @@ def _update_davis_live_int(txn, base_data, davis_data, station_id):
                 davis_data.forecast_rule_id,
                 davis_data.uv_index,
                 davis_data.solar_radiation,
+                davis_data.leaf_wetness_1,
+                davis_data.leaf_wetness_2,
+                davis_data.leaf_temperature_1,
+                davis_data.leaf_temperature_2,
+                davis_data.soil_moisture_1,
+                davis_data.soil_moisture_2,
+                davis_data.soil_moisture_3,
+                davis_data.soil_moisture_4,
+                davis_data.soil_temperature_1,
+                davis_data.soil_temperature_2,
+                davis_data.soil_temperature_3,
+                davis_data.soil_temperature_4,
+                davis_data.extra_temperature_1,
+                davis_data.extra_temperature_2,
+                davis_data.extra_temperature_3,
+                davis_data.extra_humidity_1,
+                davis_data.extra_humidity_2,
                 station_id
             )
         )

@@ -320,7 +320,24 @@ class WeatherDatabase(object):
            dd.forecast_icon,
            dd.forecast_rule_id,
            dd.uv_index,
-           dd.solar_radiation
+           dd.solar_radiation,
+           dd.leaf_wetness_1,
+           dd.leaf_wetness_2,
+           dd.leaf_temperature_1,
+           dd.leaf_temperature_2,
+           dd.soil_moisture_1,
+           dd.soil_moisture_2,
+           dd.soil_moisture_3,
+           dd.soil_moisture_4,
+           dd.soil_temperature_1,
+           dd.soil_temperature_2,
+           dd.soil_temperature_3,
+           dd.soil_temperature_4,
+           dd.extra_temperature_1,
+           dd.extra_temperature_2,
+           dd.extra_temperature_3,
+           dd.extra_humidity_1,
+           dd.extra_humidity_2
     from live_data ld
     inner join station s on s.station_id = ld.station_id
     inner join davis_live_data dd on dd.station_id = ld.station_id
@@ -395,6 +412,7 @@ class WeatherDatabase(object):
         # Don't bother sending samples for stations the remote system doesn't
         # know anything about.
         if station_code not in self._remote_stations:
+            log.msg("Station {0} not known to remote system - ignoring new samples.".format(station_code))
             return
 
         log.msg("Fetch samples for {0}".format(station_code))
