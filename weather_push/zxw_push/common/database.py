@@ -120,7 +120,24 @@ select s.sample_id as sample_id,
        ds.evapotranspiration as evapotranspiration,
        ds.high_solar_radiation as high_solar_radiation,
        ds.high_uv_index as high_uv_index,
-       ds.forecast_rule_id as forecast_rule_id
+       ds.forecast_rule_id as forecast_rule_id,
+       ds.leaf_wetness_1 as leaf_wetness_1,
+       ds.leaf_wetness_2 as leaf_wetness_2,
+       ds.leaf_temperature_1 as leaf_temperature_1,
+       ds.leaf_temperature_2 as leaf_temperature_2,
+       ds.soil_moisture_1 as soil_moisture_1,
+       ds.soil_moisture_2 as soil_moisture_2,
+       ds.soil_moisture_3 as soil_moisture_3,
+       ds.soil_moisture_4 as soil_moisture_4,
+       ds.soil_temperature_1 as soil_temperature_1,
+       ds.soil_temperature_2 as soil_temperature_2,
+       ds.soil_temperature_3 as soil_temperature_3,
+       ds.soil_temperature_4 as soil_temperature_4,
+       ds.extra_temperature_1 as extra_temperature_1,
+       ds.extra_temperature_2 as extra_temperature_2,
+       ds.extra_temperature_3 as extra_temperature_3,
+       ds.extra_humidity_1 as extra_humidity_1,
+       ds.extra_humidity_2 as extra_humidity_2
 from sample s
 inner join station st on st.station_id = s.station_id
                          and upper(st.code) = upper(%(station_code)s)

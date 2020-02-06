@@ -115,7 +115,24 @@ def _get_davis_sample_record(values):
         evapotranspiration=_float_or_none(values[22]),
         high_solar_radiation=_float_or_none(values[23]),
         high_uv_index=_float_or_none(values[24]),
-        forecast_rule_id=_int_or_none(values[25])
+        forecast_rule_id=_int_or_none(values[25]),
+        leaf_wetness_1=_int_or_none(values[26]),
+        leaf_wetness_2=_int_or_none(values[27]),
+        leaf_temperature_1=_float_or_none(values[28]),
+        leaf_temperature_2=_float_or_none(values[29]),
+        soil_moisture_1=_float_or_none(values[30]),
+        soil_moisture_2=_float_or_none(values[31]),
+        soil_moisture_3=_float_or_none(values[32]),
+        soil_moisture_4=_float_or_none(values[33]),
+        soil_temperature_1=_float_or_none(values[34]),
+        soil_temperature_2=_float_or_none(values[35]),
+        soil_temperature_3=_float_or_none(values[36]),
+        soil_temperature_4=_float_or_none(values[37]),
+        extra_temperature_1=_float_or_none(values[38]),
+        extra_temperature_2=_float_or_none(values[39]),
+        extra_temperature_3=_float_or_none(values[40]),
+        extra_humidity_1=_float_or_none(values[41]),
+        extra_humidity_2=_float_or_none(values[42])
     )
 
     return rec
@@ -151,9 +168,9 @@ def insert_csv_samples(value_set):
             #return insert_wh1080_sample(base, wh1080)
 
         elif hw_type == 'DAVIS':
-            if len(values) != 26:
+            if len(values) != 43:
                 msg = "# ERR-008: Invalid DAVIS sample record - column count not " \
-                      "26. Rejecting."
+                      "43. Rejecting."
 
                 return defer.succeed(msg)
 
@@ -230,7 +247,24 @@ def _get_davis_live_record(values):
         forecast_icon=_int_or_none(values[17]),
         forecast_rule_id=_int_or_none(values[18]),
         uv_index=_float_or_none(values[19]),
-        solar_radiation=_int_or_none(values[20])
+        solar_radiation=_int_or_none(values[20]),
+        leaf_wetness_1=_int_or_none(values[21]),
+        leaf_wetness_2=_int_or_none(values[22]),
+        leaf_temperature_1=_float_or_none(values[23]),
+        leaf_temperature_2=_float_or_none(values[24]),
+        soil_moisture_1=_float_or_none(values[25]),
+        soil_moisture_2=_float_or_none(values[26]),
+        soil_moisture_3=_float_or_none(values[27]),
+        soil_moisture_4=_float_or_none(values[28]),
+        soil_temperature_1=_float_or_none(values[29]),
+        soil_temperature_2=_float_or_none(values[30]),
+        soil_temperature_3=_float_or_none(values[31]),
+        soil_temperature_4=_float_or_none(values[32]),
+        extra_temperature_1=_float_or_none(values[33]),
+        extra_temperature_2=_float_or_none(values[34]),
+        extra_temperature_3=_float_or_none(values[35]),
+        extra_humidity_1=_float_or_none(values[36]),
+        extra_humidity_2=_float_or_none(values[37])
     )
     return rec
 
@@ -255,9 +289,9 @@ def insert_csv_live(values):
 
         return update_base_live(base)
     elif hw_type == 'DAVIS':
-        if len(values) != 21:
+        if len(values) != 38:
             msg = '# ERR-010: Invalid Davis live record - column count not' \
-                  ' 19. Rejecting.'
+                  ' 38. Rejecting.'
             return defer.succeed(msg)
 
         davis = _get_davis_live_record(values)

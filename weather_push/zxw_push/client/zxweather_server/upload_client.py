@@ -48,7 +48,16 @@ class ZXDUploadClient(object):
     davis_live_format = ",{bar_trend},{rain_rate},{storm_rain}," \
                         "{current_storm_start_date},{transmitter_battery}," \
                         "{console_battery_voltage},{forecast_icon}," \
-                        "{forecast_rule_id},{uv_index},{solar_radiation}"
+                        "{forecast_rule_id},{uv_index},{solar_radiation}," \
+                        "{leaf_wetness_1},{leaf_wetness_2}," \
+                        "{leaf_temperature_1},{leaf_temperature_2}," \
+                        "{soil_moisture_1},{soil_moisture_2}," \
+                        "{soil_moisture_3},{soil_moisture_4}," \
+                        "{soil_temperature_1},{soil_temperature_2}," \
+                        "{soil_temperature_3},{soil_temperature_4}," \
+                        "{extra_temperature_1},{extra_temperature_2}," \
+                        "{extra_temperature_3},{extra_humidity_1}," \
+                        "{extra_humidity_2}"
     base_sample_format = "s,{station_code},{temperature},{humidity}," \
                          "{indoor_temperature},{indoor_humidity},{pressure}," \
                          "{average_wind_speed},{gust_wind_speed}," \
@@ -63,7 +72,16 @@ class ZXDUploadClient(object):
                           "{solar_radiation},{wind_sample_count}," \
                           "{gust_wind_direction},{average_uv_index}," \
                           "{evapotranspiration},{high_solar_radiation}," \
-                          "{high_uv_index},{forecast_rule_id}"
+                          "{high_uv_index},{forecast_rule_id}," \
+                          "{leaf_wetness_1},{leaf_wetness_2}," \
+                          "{leaf_temperature_1},{leaf_temperature_2}," \
+                          "{soil_moisture_1},{soil_moisture_2}," \
+                          "{soil_moisture_3},{soil_moisture_4}," \
+                          "{soil_temperature_1},{soil_temperature_2}," \
+                          "{soil_temperature_3},{soil_temperature_4}," \
+                          "{extra_temperature_1},{extra_temperature_2}," \
+                          "{extra_temperature_3},{extra_humidity_1}," \
+                          "{extra_humidity_2}"
 
     def __init__(self, finished_callback, client_name, client_version=None):
         """
@@ -172,7 +190,7 @@ class ZXDUploadClient(object):
                 log.msg('Server message: ' + data[1:])
                 if not self._upload_ready:
                     self._upload_ready = True
-                    self.Ready.fire(self.latestSampleInfo)
+                    self.Ready.fire(self.latestSampleInfo.keys())
 
         elif self._mode == MODE_DONE:
             # We've logged out.
@@ -350,6 +368,7 @@ class ZXDUploadClient(object):
                 #log.msg(data[key].isoformat())
                 #raise Exception("Foo")
             else:
+                # TODO: Round floating point numbers to save bandwidth
                 result[key] = str(data[key])
 
         return result

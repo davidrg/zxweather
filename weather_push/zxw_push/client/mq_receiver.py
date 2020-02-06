@@ -112,6 +112,8 @@ class RabbitMqReceiver(object):
                 properties.type, properties.app_id
             ))
 
+        # See the mq-example.json file shipped with the davis-logger for an
+        # example of what this document looks like.
         data = json.loads(body)
 
         if data["startDateOfCurrentStorm"] is not None:
@@ -144,6 +146,30 @@ class RabbitMqReceiver(object):
             "forecast_rule_id": data["forecastRuleNumber"],
             "uv_index": data["UV"],
             "solar_radiation": data["solarRadiation"],
+            "leaf_wetness_1": data["leafWetness"][0],
+            "leaf_wetness_2": data["leafWetness"][1],
+            "leaf_temperature_1": data["leafTemperatures"][0],
+            "leaf_temperature_2": data["leafTemperatures"][1],
+            # The other two leaf wetness and temperature values aren't supported
+            # here as there appears to be no way to actually use them - the docs
+            # claim you can only have one Leaf station (broadcasting 2 leaf
+            # sensors) plus a Soil station (broadcasting no leaf sensors) or
+            # a leaf+soil station broadcasting only 2 leaf sensors.
+            "soil_moisture_1": data["soilMoistures"][0],
+            "soil_moisture_2": data["soilMoistures"][1],
+            "soil_moisture_3": data["soilMoistures"][2],
+            "soil_moisture_4": data["soilMoistures"][3],
+            "soil_temperature_1": data["soilTemperatures"][0],
+            "soil_temperature_2": data["soilTemperatures"][1],
+            "soil_temperature_3": data["soilTemperatures"][2],
+            "soil_temperature_4": data["soilTemperatures"][3],
+            "extra_temperature_1": data["extraTemperatures"][0],
+            "extra_temperature_2": data["extraTemperatures"][1],
+            "extra_temperature_3": data["extraTemperatures"][2],
+            "extra_humidity_1": data["extraHumidities"][0],
+            "extra_humidity_2": data["extraHumidities"][1]
+            # The other extra temperatures and humidities aren't logged so we
+            # simply don't bother supporting them at all.
         }
 
         self.LiveUpdate.fire(live_packet, "DAVIS")
