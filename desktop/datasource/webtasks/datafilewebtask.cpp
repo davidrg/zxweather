@@ -5,7 +5,7 @@
 #include <QtDebug>
 #include <QTimer>
 
-#if (QT_VERSION < QT_VERSION_CHECK(5,0,0))
+#if (QT_VERSION < QT_VERSION_CHECK(5,2,0))
 #include <limits>
 #define qQNaN std::numeric_limits<double>::quiet_NaN
 #endif

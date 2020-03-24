@@ -635,7 +635,7 @@ void LivePlotWindow::addLiveValue(LiveValue v) {
             break; // nothing to do.
         }
 
-        ui->plot->graphStyleChanged(graphs[v], style);
+        graphStyleChanged(graphs[v], style);
 
         points[v]->setPen(graphs[v]->pen());
         points[v]->setBrush(graphs[v]->pen().color());

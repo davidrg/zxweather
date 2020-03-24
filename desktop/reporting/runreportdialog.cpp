@@ -1161,7 +1161,12 @@ ReportFinisher *RunReportDialog::runReport() {
             params[comboBox->objectName() + "_id"] = comboBox->currentIndex();
 
             if (comboBox->property("options").isValid()) {
+#if (QT_VERSION < QT_VERSION_CHECK(5,2,0))
+                params[comboBox->objectName() + "_value"] =
+                        comboBox->itemData(comboBox->currentIndex(), Qt::UserRole).toString();
+#else
                 params[comboBox->objectName() + "_value"] = comboBox->currentData(Qt::UserRole).toString();
+#endif
             }
         }
 

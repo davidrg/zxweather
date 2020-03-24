@@ -77,7 +77,7 @@ void ReportDisplayWindow::addPlainTab(QString name, QIcon icon, QString text, bo
     QTextBrowser *browser = new QTextBrowser();
     browser->setPlainText(text);
     browser->setWordWrapMode(wordWrap ? QTextOption::WrapAtWordBoundaryOrAnywhere : QTextOption::NoWrap);
-    #if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
+    #if (QT_VERSION >= QT_VERSION_CHECK(5,2,0))
     browser->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
     #else
     QFont font = browser->document()->defaultFont();
