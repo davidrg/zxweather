@@ -55,7 +55,7 @@ void msgFileHandler(QtMsgType type, const QMessageLogContext &, const QString & 
     case QtDebugMsg:
         output_line = QString("Debug: %1").arg(msg);
         break;
-#if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
+#if (QT_VERSION >= QT_VERSION_CHECK(5,5,0))
     case QtInfoMsg:
         output_line = QString("Info: %1").arg(msg);
         break;
