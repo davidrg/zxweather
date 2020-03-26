@@ -8,7 +8,7 @@ ScriptingEngine::ScriptingEngine(QStringList scriptFiles, QObject *parent) : QOb
 {
     _scripts = scriptFiles;
 
-    QJSValue consoleObj =  engine.newQObject(&console);
+    QJSValue consoleObj =  engine.newQObject(new JSConsole());
     engine.globalObject().setProperty("console", consoleObj);
 
     initialiseScriptEngine();
