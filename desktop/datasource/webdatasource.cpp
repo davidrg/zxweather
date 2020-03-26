@@ -377,9 +377,16 @@ void WebDataSource::liveDataReady(QNetworkReply *reply) {
         lds.dewPoint = result["dew_point"].toFloat();
         lds.windChill = result["wind_chill"].toFloat();
         lds.humidity = result["relative_humidity"].toInt();
+
+        #if (QT_VERSION < QT_VERSION_CHECK(5,8,0))
+        QString ts = result["time_stamp"].toString().split(".").first();
+        lds.timestamp = QDateTime(QDate::currentDate(),
+                                  QTime::fromString(ts,"HH:mm:ss"));
+        #else
         lds.timestamp = QDateTime(QDate::currentDate(),
                                   QTime::fromString(
                                       result["time_stamp"].toString(), Qt::ISODateWithMs));
+        #endif
         lds.apparentTemperature = result["apparent_temperature"].toFloat();
         lds.pressure = result["absolute_pressure"].toFloat();
 
@@ -426,10 +433,6 @@ void WebDataSource::liveDataReady(QNetworkReply *reply) {
             lds.davisHw.extraTemperature1 = LD_NULLABLE_FLOAT("extra_temperature_1");
             lds.davisHw.extraTemperature2 = LD_NULLABLE_FLOAT("extra_temperature_2");
             lds.davisHw.extraTemperature3 = LD_NULLABLE_FLOAT("extra_temperature_3");
-
-            qDebug() << "Live S/M Temps: " << lds.davisHw.soilTemperature1 << lds.davisHw.soilTemperature2;
-            qDebug() << "Live leaf" << lds.davisHw.leafWetness1;
-
         }
 
 
