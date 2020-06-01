@@ -234,22 +234,99 @@ _U_INT_16 = "H"
 _INT_32 = "l"
 _U_INT_32 = "L"
 _BOOL = "?"
-_U_DICT = "!!DICT!!"
+_SUB_FIELDS = "!!SUBFIELDS!!"
 
+# These values represent NULL/None/no-value
 _INT_8_NULL = -128
 _U_INT_8_NULL = 255
 _INT_16_NULL = -32768  # For float this is -3276.8 @ 1dp or -327.68 @ 2dp
 _U_INT_16_NULL = 65535  # For float this is 6553.5 @ 1dp or 655.35 @ 2dp
 _U_INT_32_NULL = 4294967295
 
+# Weather data field definitions
+# ==============================
+# Each hardware type has its own field set for live and sample data. The field set consists of a description of each
+# field with a field description consisting of:
+#   * ID (0-31)
+#   * Name
+#   * Data type
+#   * Encode function
+#   * Decode function
+#   * Null constant
+#
+# Valid data types are:
+#   _INT_8          8 bit signed integer
+#   _U_INT_8        8 bit unsigned integer
+#   _INT_16         16 bit signed integer
+#   _U_INT_16       16 bit unsigned integer
+#   _INT_32         32bit signed integer
+#   _U_INT_32       31bit unsigned integer
+#   _BOOL           true/false (8 bits - rather wasteful)
+#   _SUB_FIELDS     Variable length set of up to 32 sub fields.
+#
+# The _SUB_FIELDS data type is special. Fields of this type consist of a four byte field bitmap followed by up to 32
+# sub-fields. A subfield can not be of type _SUB_FIELDS (you cant nest subfields arbitrarily deep). Due to the four byte
+# penalty associated with using subfields they should really only be used for sensor values that change rarely.
+#
+# Field of type _SUB_FIELDS have a slightly different description:
+#   * ID (0-31)
+#   * Name
+#   * Data type
+#   * Sub-field set
+# Where Sub-field set is a list of field descriptions for all fields the subfields value can contain. Note that a
+# subfield can not contain further subfields (the _SUB_FIELDS data type is only valid for the top level field set)
+
+# TODO: is 8 bits enough? The console sends it as whole degrees F + 90. From
+# there we subtract 90, convert to degrees C and store as a float.
+
+# This defines all of the extra-sensor fields. Most stations won't be
+# transmitting this data as it requires fairly expensive extra-sensor
+# transmitters.
+_davis_extra_fields = [
+    # Num, name, type, encode conversion function, decode conversion function
+    (0, None, None, None, None, None),
+    (1, "leaf_wetness_1", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
+    (2, "leaf_wetness_2", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
+    (3, "leaf_temperature_1", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
+    (4, "leaf_temperature_2", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
+    (5, "soil_moisture_1", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
+    (6, "soil_moisture_2", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
+    (7, "soil_moisture_3", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
+    (8, "soil_moisture_4", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
+    (9, "soil_temperature_1", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
+    (10, "soil_temperature_2", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
+    (11, "soil_temperature_3", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
+    (12, "soil_temperature_4", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
+    (13, "extra_temperature_1", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
+    (14, "extra_temperature_2", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
+    (15, "extra_temperature_3", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
+    (16, "extra_humidity_1", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
+    (17, "extra_humidity_2", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
+    (18, None, None, None, None, None),
+    (19, None, None, None, None, None),
+    (20, None, None, None, None, None),
+    (21, None, None, None, None, None),
+    (22, None, None, None, None, None),
+    (23, None, None, None, None, None),
+    (24, None, None, None, None, None),
+    (25, None, None, None, None, None),
+    (26, None, None, None, None, None),
+    (27, None, None, None, None, None),
+    (28, None, None, None, None, None),
+    (29, None, None, None, None, None),
+    (30, None, None, None, None, None),
+    (31, None, None, None, None, None),
+]
+
 # Live fields in the order they appear in binary encodings.
 # Tuple values are:
 #   0 - field ID
 #   1 - field name
 #   2 - field packing type
-#   3 - optional function to adjust data before packing
-#   4 - optional function to adjust data after unpacking
-#   5 - null value
+#       If type is a regular field:                             If type is _U_SUB_FIELDS:
+#   3 - optional function to adjust data before packing         Field definitions
+#   4 - optional function to adjust data after unpacking        None - not used.
+#   5 - null value                                              None - reserved.
 _generic_live_fields = [
     # Num, name, type, encode conversion function, decode conversion function
     (0, "live_diff_sequence", _U_INT_16, None, None, None),
@@ -291,6 +368,24 @@ _generic_live_fields = [
     (31, None, None, None, None, None),
 ]
 
+# TODO: hide away the subfield header size stuff somewhere to make it easier to
+#   change to 16 bits. The davis extra fields thing only needs 16 subfields so
+#   switching to 16 bits would save us two bytes per record containing one or
+#   more subfield values
+
+# TODO: For stations not equipped with any extra sensor transmitters its a bit
+#   wasteful to include the extra_fields subfield set in any full live or sample
+#   record.
+#   A live record would end up sending 21 bytes of null values in every full live
+#   transmission. In a thirty day month we're transmitting 1,036,800 live records.
+#   At the moment every 30th record is transmitted in full so we're transmitting
+#   around 34,560 full records. This means we're wasting 725,760 bytes (708.75KiB)
+#   per 30 day month just to send nothing.
+#   For samples the waste should be less severe as in practice it should be
+#   pretty rare for a sample to be transmitted in full and stations without any
+#   extra sensor transmitters should have that subfield set excluded from all
+#   sample-diff encoded records.
+
 _davis_live_fields = [                                      # Update Frequency
     _generic_live_fields[0],  # Live diff sequence
     _generic_live_fields[1],  # sample diff timestamp
@@ -325,7 +420,7 @@ _davis_live_fields = [                                      # Update Frequency
     (28, None, None, None, None, None),
     (29, None, None, None, None, None),
     (30, None, None, None, None, None),
-    (31, None, None, None, None, None),
+    (31, "extra_fields", _SUB_FIELDS, _davis_extra_fields, None, None),
 ]
 
 _live_fields = {
@@ -337,9 +432,14 @@ _live_fields = {
 # List of all field IDs for each station type. This does not include the diff
 # id fields.
 all_live_field_ids = {
-    "GENERIC": range(2, 10),
-    "FOWH1080": range(2, 10),
-    "DAVIS": range(2, 20)
+    "GENERIC": (range(2, 10), None),
+    "FOWH1080": (range(2, 10), None),
+    "DAVIS": (
+        range(2, 20) + [31],
+        {
+            "extra_fields": range(1, 18)
+        }
+    )
 }
 
 _generic_sample_fields = [
@@ -414,48 +514,11 @@ _wh1080_sample_fields = [
     (31, None, None, None, None, None),
 ]
 
-
-# TODO: is 8 bits enough? The console sends it as whole degrees F + 90. From
-# there we subtract 90, convert to degrees C and store as a float.
-# TODO: We also need to implement a way of encoding/decoding this from a sub-dict
-_davis_sample_extra_fields = [
-    # Num, name, type, encode conversion function, decode conversion function
-    (0, None, None, None, None, None),
-    (1, "leaf_wetness_1", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
-    (2, "leaf_wetness_2", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
-    (3, "leaf_temperature_1", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
-    (4, "leaf_temperature_2", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
-    (5, "soil_moisture_1", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
-    (6, "soil_moisture_2", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
-    (7, "soil_moisture_3", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
-    (8, "soil_moisture_4", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
-    (9, "soil_temperature_1", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
-    (10, "soil_temperature_2", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
-    (11, "soil_temperature_3", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
-    (12, "soil_temperature_4", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
-    (13, "extra_temperature_1", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
-    (14, "extra_temperature_2", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
-    (15, "extra_temperature_3", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
-    (16, "extra_humidity_1", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
-    (17, "extra_humidity_2", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
-    (18, None, None, None, None, None),
-    (19, None, None, None, None, None),
-    (20, None, None, None, None, None),
-    (21, None, None, None, None, None),
-    (22, None, None, None, None, None),
-    (23, None, None, None, None, None),
-    (24, None, None, None, None, None),
-    (25, None, None, None, None, None),
-    (26, None, None, None, None, None),
-    (27, None, None, None, None, None),
-    (28, None, None, None, None, None),
-    (29, None, None, None, None, None),
-    (30, None, None, None, None, None),
-    (31, None, None, None, None, None),
-]
-
 _davis_sample_fields = [
-    # Num, name, type, encode conversion function, decode conversion function
+    # Standard field:
+    #   Num, name, type, encode conversion function, decode conversion function, null representation
+    # Subfield:
+    #   Num, name, type, subfield definition, None, None
     (0, None, None, None, None, None),
     _generic_sample_fields[1],  # sample diff timestamp
     _generic_sample_fields[2],  # indoor humidity
@@ -493,7 +556,7 @@ _davis_sample_fields = [
     (28, None, None, None, None, None),
     (29, None, None, None, None, None),
     (30, None, None, None, None, None),
-    (31, "extra_fields", _U_DICT, _davis_sample_extra_fields, None, None),
+    (31, "extra_fields", _SUB_FIELDS, _davis_extra_fields, None, None),
 ]
 
 _sample_fields = {
@@ -505,21 +568,32 @@ _sample_fields = {
 # List of all sample field IDs for each hardware type. This does not include
 # the diff id field
 all_sample_field_ids = {
-    "GENERIC": range(2, 11),
-    "FOWH1080": range(2, 18),
-    "DAVIS": range(2, 24)
+    "GENERIC": (range(2, 11), None),
+    "FOWH1080": (range(2, 18), None),
+    "DAVIS": (
+        range(2, 24) + [31],
+        {
+            "extra_fields": range(1, 18)
+        }
+    )
 }
 
 # These are fields that both live and sample records share in common. Same
-# field ID, same field name, same data type, etc
+# field ID, same field name, same data type, etc. Its used for sending live
+# records as a set of differences against a sample.
 common_live_sample_field_ids = {
-    "GENERIC": range(1, 10),
-    "FOWH1080": range(1, 10),
-    "DAVIS": range(1, 10)
+    "GENERIC": (range(1, 10), None),
+    "FOWH1080": (range(1, 10), None),
+    "DAVIS": (
+        range(1, 10) + [31],
+        {
+            "extra_fields": range(1, 18)
+        }
+    )
 }
 
 
-def _encode_dict(data_dict, field_definitions, field_ids):
+def _encode_dict(data_dict, field_definitions, field_ids, subfield_ids):
     """
     Encodes a dictionary of values into a byte string using the supplied
     field definitions and list of fields which should be encoded.
@@ -532,6 +606,9 @@ def _encode_dict(data_dict, field_definitions, field_ids):
     :type: list
     :param field_ids: List of Field IDs which should be included in the output.
     :type: list
+    :param subfield_ids: Dictionary of subfield name to list of IDs to encode. If a subfield is being encoded by this
+                         _encode_dict call then this parameter should be None as nested subfields are not allowed.
+    :type subfield_ids: dict or None
     :return: A byte array representing the input data selected by the list of
     field IDs.
     :rtype: bytearray
@@ -542,12 +619,7 @@ def _encode_dict(data_dict, field_definitions, field_ids):
         # Field definition values:
         field_number = field[0]
         field_name = field[1]
-
-        if field[2] == _U_DICT:
-            # TODO: We also need the field header thing here
-            encoded_value = _encode_dict(data_dict[field_name], field[3], None)
-            result += encoded_value
-            continue
+        field_type = field[2]
 
         if field_name is None:
             continue  # Unused or reserved field
@@ -555,42 +627,64 @@ def _encode_dict(data_dict, field_definitions, field_ids):
         if field_number not in field_ids:
             continue  # We're not including this field in the output.
 
-        # More field definition value
-        field_type = "!" + field[2]  # Encode big-endian (! = network/big)
-        encode_function = field[3]
-        # value 4 is the decode function - don't need it here
-        null_value = field[5]
+        if field_type == _SUB_FIELDS:
+            # This field is a collection of additional fields with its own field set header. This means a recursive
+            # call to encode the sub-dictionary
 
-        if encode_function is None:
-            encode_function = lambda x: x  # No special encoding required.
+            assert subfield_ids is not None, \
+                "Subfields not allowed here (subfields nested within subfields?). " \
+                "Field: {0}".format(field_name)
 
-        unencoded_value = data_dict[field_name]
+            sub_fields = field[3]       # The field definitions for the sub-field set
+            #not_used = field[4]
+            sub_field_ids = subfield_ids[field_name]
 
-        # If these two are equal then we've got a bug! The null values in the
-        # field definition tables should never occur in real data.
-        assert unencoded_value != null_value, \
-            "Value to encode collides with fields null value."
+            encoded_value = _encode_dict(data_dict[field_name], sub_fields, sub_field_ids, None)
 
-        # The field doesn't have a null value defined and we've got a null value
-        # for it! We've encountered data we can't encode. This would be a bug.
-        assert not(unencoded_value is None and null_value is None), \
-            "Attempted to encode null value for not null field."
+            # Calculate a header for the sub-field set
+            header = struct.pack("!L", set_field_ids(sub_field_ids))
 
-        if unencoded_value is None:
-            field_value = null_value
+            result += header + encoded_value
         else:
-            field_value = encode_function(unencoded_value)
+            # A regular scalar field.
 
-        try:
-            encoded_value = struct.pack(field_type, field_value)
-        except struct.error as e:
-            log.msg("Failed to encode value {0} for field {1} (type {2}) - {3}".format(
-                field_name, field_value, field_type, e.message
-            ))
-            log.msg(repr(data_dict))
-            raise e
+            # More field definition value
+            field_type = "!" + field_type  # Encode big-endian (! = network/big)
+            encode_function = field[3]
+            # decode_function = field[4] -- don't need it here
+            null_value = field[5]
 
-        result += encoded_value
+            if encode_function is None:
+                encode_function = lambda x: x  # No special encoding required.
+
+            unencoded_value = data_dict[field_name]
+
+            # If these two are equal then we've got a bug! The null values in the
+            # field definition tables should never occur in real data.
+            assert unencoded_value != null_value, \
+                "Value to encode collides with fields null value. Field {0}, value {1}, null value {2}"\
+                .format(field_name, unencoded_value, null_value)
+
+            # The field doesn't have a null value defined and we've got a null value
+            # for it! We've encountered data we can't encode. This would be a bug.
+            assert not(unencoded_value is None and null_value is None), \
+                "Attempted to encode null value for not null field. Field {0}".format(field_name)
+
+            if unencoded_value is None:
+                field_value = null_value
+            else:
+                field_value = encode_function(unencoded_value)
+
+            try:
+                encoded_value = struct.pack(field_type, field_value)
+            except struct.error as e:
+                log.msg("Failed to encode value {0} for field {1} (type {2}) - {3}".format(
+                    field_name, field_value, field_type, e.message
+                ))
+                log.msg(repr(data_dict))
+                raise e
+
+            result += encoded_value
 
     return result
 
@@ -605,6 +699,7 @@ def _decode_dict(encoded_data, field_definitions, field_ids):
         # function
         field_number = field[0]
         field_name = field[1]
+        field_type = field[2]
 
         if field_number not in field_ids:
             continue
@@ -617,29 +712,59 @@ def _decode_dict(encoded_data, field_definitions, field_ids):
         assert field_name is not None, \
             "Reserved/unused field included in field list."
 
-        field_type = "!" + field[2]
-        # encode_function = field[3]
-        decode_function = field[4]
-        null_value = field[5]
+        if field_type == _SUB_FIELDS:
+            # Here we need to:
+            #   1) Calculate how big the subfield set is. This will have to be
+            #       done by looking at its header and adding up all the fields
+            #       present then adding on the size of the header
+            #   2) Fetch out the subfield in its entirety
+            #   3) Split the header into a list of field IDs
+            #   4) Pass all of this into _decode_dict
+            #   5) Merge the resulting dict into result
+            #
 
-        field_size = struct.calcsize(field_type)
+            subfield_definitions = field[3]
 
-        if decode_function is None:
-            decode_function = lambda x: x
+            subfields_header = struct.unpack_from("!L", encoded_data, offset)[0]
+            offset += 4  # Skip over the header now we've decoded it.
 
-        value = struct.unpack_from(field_type, encoded_data, offset)[0]
+            # These are the fields we can expect to find:
+            subfield_ids_present = get_field_ids_set(subfields_header)
 
-        if value == null_value:
-            result[field_name] = None
+            # Now we figure out how big the subfield set is
+            subfields_size = _calculate_encoded_size(subfield_definitions, subfield_ids_present, None)
+
+            # copy that adata out of the encoded data
+            subfields_data = encoded_data[offset:offset+subfields_size]
+            offset += subfields_size
+
+            # and decode it
+            result[field_name] = _decode_dict(subfields_data, subfield_definitions, subfield_ids_present)
+
         else:
-            result[field_name] = decode_function(value)
+            field_type = "!" + field_type
+            # encode_function = field[3]
+            decode_function = field[4]
+            null_value = field[5]
 
-        offset += field_size
+            field_size = struct.calcsize(field_type)
+
+            if decode_function is None:
+                decode_function = lambda x: x
+
+            value = struct.unpack_from(field_type, encoded_data, offset)[0]
+
+            if value == null_value:
+                result[field_name] = None
+            else:
+                result[field_name] = decode_function(value)
+
+            offset += field_size
 
     return result
 
 
-def encode_live_data(data_dict, hardware_type, field_ids):
+def encode_live_data(data_dict, hardware_type, field_ids, subfield_ids):
     """
     Converts a dictionary containing live data to binary
 
@@ -649,12 +774,14 @@ def encode_live_data(data_dict, hardware_type, field_ids):
     :type hardware_type: str
     :param field_ids: List of field IDs to encode
     :type field_ids: list[int]
+    :param subfield_ids: Dictionary of subfield IDs to encode (key is subfield name, value is list of subfield IDs)
+    :type subfield_ids: dict[str,list[int]]
     :return: Encoded data
     :rtype: bytearray
     """
     return _encode_dict(data_dict,
                         _live_fields[hardware_type.upper()],
-                        field_ids)
+                        field_ids, subfield_ids)
 
 
 def decode_live_data(encoded_data, hardware_type, field_ids):
@@ -675,7 +802,7 @@ def decode_live_data(encoded_data, hardware_type, field_ids):
                         field_ids)
 
 
-def encode_sample_data(data_dict, hardware_type, field_ids):
+def encode_sample_data(data_dict, hardware_type, field_ids, subfield_ids):
     """
     Converts a dictionary containing sample data to binary
 
@@ -685,12 +812,14 @@ def encode_sample_data(data_dict, hardware_type, field_ids):
     :type hardware_type: str
     :param field_ids: List of field IDs to encode
     :type field_ids: list[int]
+    :param subfield_ids: Dictionary of subfield IDs to encode (key is subfield name, value is list of subfield IDs)
+    :type subfield_ids: dict[str,list[int]]
     :return: Encoded data
     :rtype: bytearray
     """
     return _encode_dict(data_dict,
                         _sample_fields[hardware_type.upper()],
-                        field_ids)
+                        field_ids, subfield_ids)
 
 
 def decode_sample_data(encoded_data, hardware_type, field_ids):
@@ -711,13 +840,52 @@ def decode_sample_data(encoded_data, hardware_type, field_ids):
                         field_ids)
 
 
-def calculate_encoded_size(field_ids, hardware_type, is_live):
+def _calculate_encoded_size(field_definitions, field_ids, subfield_ids):
+    """
+    Calculates the number of bytes required to encode the specified fields and subfields
+
+    :param field_definitions: Field definitions
+    :param field_ids: Fields being encoded
+    :param subfield_ids: Subfields being encoded
+    :return: Number of bytes to encode specified fields and subfields
+    :rtype: int
+    """
+    total_size = 0
+    for field in field_definitions:
+        field_id = field[0]
+        field_name = field[1]
+        field_type = field[2]
+
+        if field_id not in field_ids:
+            continue  # Field is not being encoded so has no size
+
+        if field_name is None:
+            continue  # Reserved field has no size
+
+        # Field is a subfield set - recursive call to calculate its size
+        if field_type == _SUB_FIELDS and subfield_ids is not None:
+            sub_field_ids = subfield_ids[field_name]
+            subfield_definitions = field[3]
+
+            total_size += 4  # For the header
+            total_size += _calculate_encoded_size(subfield_definitions, sub_field_ids, None)
+        else:   # Regular scalar field - size depends on type
+            total_size += struct.calcsize("!" + field_type)
+
+    return total_size
+
+
+def calculate_encoded_size(field_ids, subfield_ids, hardware_type, is_live):
     """
     Calculates the size required to encode the supplied field IDs for the
     specified hardware type and record type (live or sample)
 
     :param field_ids: Field IDs to encode
     :type field_ids: list[int]
+    :param subfield_ids: Dictionary of subfield IDs to encode (key is subfield name, value is list of subfield IDs).
+                         If the field set being encoded is itself a subfield then this parameter should be None as
+                         nested subfields are not supported.
+    :type subfield_ids: dict[str,list[int]] or None
     :param hardware_type: Hardware type code
     :type hardware_type: str
     :param is_live: If the data is live data instead of samples
@@ -730,25 +898,70 @@ def calculate_encoded_size(field_ids, hardware_type, is_live):
     else:
         field_definitions = _sample_fields[hardware_type.upper()]
 
-    total_size = 0
+    return _calculate_encoded_size(field_definitions, field_ids, subfield_ids)
+
+
+def _build_field_id_list(base_record, target_record, field_definitions, ignore_fields):
+    """
+       Returns a list of field IDs corresponding to the fields in target_record
+       that differ from the equivalent field in base_record. Both base_record
+       and target_record must be the same type of record (live or sample).
+
+       The output of this function becomes the list of fields that must be transmitted with
+       all remaining fields being filled in from the base record by the receiver.
+
+       :param base_record: The record the receiving party already has which is used
+                           as a source for the values of some fields
+       :type base_record: dict
+       :param target_record: The record which is being sent to the receiving party
+       :type target_record: dict
+       :param field_definitions: Definitions for the fields that could be present
+       :type field_definitions: List
+       :param ignore_fields: List of fields to ignore. These will never be included in the result
+                             even if they differ.
+       :type ignore_fields: List[int]
+       :return: list of field IDs that need to be sent and a list of subfield IDs that need to be sent
+       :rtype: list[int], dict[string, list[int]]
+       """
+    result = []
+    subfields_result = dict()
 
     for field in field_definitions:
         field_id = field[0]
         field_name = field[1]
         field_type = field[2]
 
-        if field_id not in field_ids:
+        if field_name is None:
+            continue  # Unused field
+
+        if field_id in ignore_fields:
+            continue  # Special non-data field.
+
+        if field_name not in base_record or field_name not in target_record:
+            # Field is missing from one of the records. This should never happen because by
+            # definition the two records are of the same type. But there is nothing much we
+            # can really do for now besides ignore it.
             continue
 
-        if field_name is None:
-            continue  # Reserved field has no size
+        base_value = base_record[field_name]
+        target_value = target_record[field_name]
 
-        if field_type == _U_DICT:
-            continue # TODO: This
+        if field_type == _SUB_FIELDS:
+            # This is a subfields field. Special attention required.
+            subfield_definitions = field[3]
 
-        total_size += struct.calcsize("!" + field_type)
+            r, sfr = _build_field_id_list(base_value, target_value, subfield_definitions, [])
 
-    return total_size
+            subfields_result[field_name] = r
+
+            if len(subfields_result[field_name]) > 0:
+                # One or more subfields are different so we need to include the subfield set header
+                result.append(field_id)
+
+        elif base_value != target_value:
+            result.append(field_id)
+
+    return result, subfields_result
 
 
 def build_field_id_list(base_record, target_record, hardware_type, is_live):
@@ -766,8 +979,8 @@ def build_field_id_list(base_record, target_record, hardware_type, is_live):
     :type hardware_type: str
     :param is_live: If both records are live data
     :type is_live: bool
-    :return: list of field IDs that need to be sent
-    :rtype: list[int]
+    :return: list of field IDs that need to be sent and a list of subfield IDs that need to be sent
+    :rtype: list[int], dict[string, list[int]]
     """
 
     if is_live:
@@ -777,25 +990,7 @@ def build_field_id_list(base_record, target_record, hardware_type, is_live):
         field_definitions = _sample_fields[hardware_type.upper()]
         ignore_fields = [1, ]   # Sample diff ID
 
-    result = []
-
-    for field in field_definitions:
-        field_id = field[0]
-        field_name = field[1]
-
-        if field_name is None:
-            continue  # Unused field
-
-        if field_id in ignore_fields:
-            continue  # Special non-data field.
-
-        base_value = base_record[field_name]
-        target_value = target_record[field_name]
-
-        if base_value != target_value:
-            result.append(field_id)
-
-    return result
+    return _build_field_id_list(base_record, target_record, field_definitions, ignore_fields)
 
 
 def build_field_id_list_for_live_against_sample(sample_record, live_record,
@@ -809,14 +1004,15 @@ def build_field_id_list_for_live_against_sample(sample_record, live_record,
     :param live_record: Live record to be sent
     :param hardware_type: Station hardware type code
     :return: List of field IDs in the live record that do not have identical
-             values in the sample record
-    :rtype: list[int]
+             values in the sample record and a dictionary of subfield fields
+             that also don't have identical values in the sample record.
+    :rtype: list[int], dict[string, list[int]]
     """
 
     live_definitions = _live_fields[hardware_type.upper()]
     sample_definitions = _sample_fields[hardware_type.upper()]
 
-    common_sample_fields = common_live_sample_field_ids[hardware_type.upper()]
+    common_sample_fields = common_live_sample_field_ids[hardware_type.upper()][0]
 
     # We'll check against this list to see what fields *should* be in a sample
     # record instead of just looking at the supplied records keys in case there
@@ -824,10 +1020,12 @@ def build_field_id_list_for_live_against_sample(sample_record, live_record,
     sample_field_names = [field[1] for field in sample_definitions]
 
     result = []
+    subfields_result = dict()
 
     for field in live_definitions:
         field_number = field[0]
         field_name = field[1]
+        field_type = field[2]
 
         if field_number in [0, 1]:
             continue  # Special fields
@@ -849,12 +1047,46 @@ def build_field_id_list_for_live_against_sample(sample_record, live_record,
         base_value = sample_record[field_name]
         live_value = live_record[field_name]
 
-        if base_value != live_value:
+        if field_type == _SUB_FIELDS:
+            # This is a subfields field. Special attention required.
+            subfield_definitions = field[3]
+            subfields_result[field_name] = []
+
+            for subfield in subfield_definitions:
+                subfield_number = subfield[0]
+                subfield_name = subfield[1]
+
+                if subfield_name is None:
+                    continue  # Unused field
+
+                if subfield_name not in base_value or subfield_name not in live_value:
+                    # Subfield is missing form either the live or base value so it must be
+                    # sent.
+
+                    # TODO: make the decoder a bit smarter so subfield IDs don't
+                    # need to match exactly
+
+                    # TODO: Should we be using the common field ids thing here?
+
+                    subfields_result[field_name].append(subfield_number)
+
+                base_subfield_value = sample_record[field_name][subfield_name]
+                live_subfield_value = live_record[field_name][subfield_name]
+
+                if base_subfield_value != live_subfield_value:
+                    # Subfield exists in both records but values differ so we must send it.
+                    subfields_result[field_name].append(subfield_number)
+
+            if len(subfields_result[field_name]) > 0:
+                # One or more subfields are different so we need to include the subfield set header
+                result.append(field_number)
+
+        elif base_value != live_value:
             # Fields exist in both records but they have different values. So
             # we must send it.
             result.append(field_number)
 
-    return result
+    return result, subfields_result
 
 
 def get_field_ids_set(field_id_bits):
@@ -923,18 +1155,22 @@ def set_field_ids(field_ids):
 def get_live_data_field_options(live_record, previous_live_record,
                                 previous_sample_record, hardware_type):
     """
-    Returns a list of options for sending live field data
+    Returns a list of options for sending live field data. These could be one or more of:
+        no_diff_option - send the full live data record
+        live_diff_option - send only the changes from the previous live data record
+        sample_diff_option - send only the changes from a particular sample record
+        skip_option - don't send anything at all
 
     :param live_record: The live record we want to trim unnecessary fields from
     :type live_record: dict
     :param previous_live_record: The last live record that was sent. We don't
                                  know if the server really received this so
                                  diffing against it has some risk.
-    :type previous_live_record: dict
+    :type previous_live_record: dict or None
     :param previous_sample_record: The last sample record we know for certain
                                    the server received. Diffing against this is
                                    quite safe but has smaller savings.
-    :type previous_sample_record: dict
+    :type previous_sample_record: dict or None
     :param hardware_type: Type of weather station hardware that generated the
                           live and sample records
     :type hardware_type: str
@@ -947,8 +1183,9 @@ def get_live_data_field_options(live_record, previous_live_record,
              (bool or None, list[int], int, int))
     """
 
-    all_fields = all_live_field_ids[hardware_type.upper()]
-    all_fields_size = calculate_encoded_size(all_fields, hardware_type, True)
+    all_fields = all_live_field_ids[hardware_type.upper()][0]
+    all_subfields = all_live_field_ids[hardware_type.upper()][1]
+    all_fields_size = calculate_encoded_size(all_fields, all_subfields, hardware_type, True)
 
     live_diff_field_id = None
     sample_diff_field_id = None
@@ -965,12 +1202,11 @@ def get_live_data_field_options(live_record, previous_live_record,
     skip_available = False
 
     live_diff_fields = None
+    live_diff_subfields = None
     live_diff_size = None
     if previous_live_record is not None:
-        live_diff_fields = build_field_id_list(previous_live_record,
-                                               live_record,
-                                               hardware_type,
-                                               True)  # True for live
+        live_diff_fields, live_diff_subfields = build_field_id_list(
+            previous_live_record, live_record, hardware_type, True)  # True for live
 
         if len(live_diff_fields) == 0:
             skip_available = True
@@ -980,13 +1216,15 @@ def get_live_data_field_options(live_record, previous_live_record,
         live_diff_fields.append(live_diff_field_id)
 
         live_diff_size = calculate_encoded_size(live_diff_fields,
+                                                live_diff_subfields,
                                                 hardware_type,
                                                 True)  # True for live
 
     sample_diff_fields = None
+    sample_diff_subfields = None
     sample_diff_size = None
     if previous_sample_record is not None:
-        sample_diff_fields = build_field_id_list_for_live_against_sample(
+        sample_diff_fields, sample_diff_subfields = build_field_id_list_for_live_against_sample(
             previous_sample_record, live_record, hardware_type)
 
         # Diffing includes a small size penalty as we have to send an additional
@@ -994,18 +1232,19 @@ def get_live_data_field_options(live_record, previous_live_record,
         sample_diff_fields.append(sample_diff_field_id)
 
         sample_diff_size = calculate_encoded_size(sample_diff_fields,
+                                                  sample_diff_subfields,
                                                   hardware_type,
                                                   True)  # True for live
 
     # (unused, field list, total size, size reduction)
-    no_diff_option = (None, all_fields, all_fields_size, 0)
+    no_diff_option = (None, all_fields, all_fields_size, 0, all_subfields)
     live_diff_option = None
     sample_diff_option = None
     skip_option = None
 
     if live_diff_fields is not None:
         saving = all_fields_size - live_diff_size
-        live_diff_option = (True, live_diff_fields, live_diff_size, saving)
+        live_diff_option = (True, live_diff_fields, live_diff_size, saving, live_diff_subfields)
 
     if skip_available:
         skip_option = (None, [], 0, all_fields_size)
@@ -1013,7 +1252,7 @@ def get_live_data_field_options(live_record, previous_live_record,
     if sample_diff_fields is not None:
         saving = all_fields_size - sample_diff_size
         sample_diff_option = (False, sample_diff_fields, sample_diff_size,
-                              saving)
+                              saving, sample_diff_subfields)
 
     return no_diff_option, live_diff_option, sample_diff_option, skip_option
 
@@ -1035,11 +1274,11 @@ def encode_live_record(live_record, previous_live_record,
     :param previous_live_record: The last live record that was sent. We don't
                                  know if the server really received this so
                                  diffing against it has some risk.
-    :type previous_live_record: dict
+    :type previous_live_record: dict or None
     :param previous_sample_record: The last sample record we know for certain
                                    the server received. Diffing against this is
                                    quite safe but has smaller savings.
-    :type previous_sample_record: dict
+    :type previous_sample_record: dict or None
     :param hardware_type: Type of weather station hardware that generated the
                           live and sample records
     :type hardware_type: str
@@ -1054,6 +1293,13 @@ def encode_live_record(live_record, previous_live_record,
             live_record, previous_live_record,
             previous_sample_record, hardware_type
         )
+
+    # diff options
+    #  0 - diff off/on
+    #  1 - field ids
+    #  2 - total size
+    #  3 - saving
+    #  4 - subfield ids
 
     if compress:
         options = [(1, no_diff_option[3])]
@@ -1074,31 +1320,36 @@ def encode_live_record(live_record, previous_live_record,
         smallest_option = 1  # No compression
 
     field_ids = None
+    subfield_ids = None
     saving = 0
     compression = "none"
     if smallest_option == 1:
         # No diff
         field_ids = no_diff_option[1]
+        subfield_ids = no_diff_option[4]
     elif smallest_option == 2:
         # Live diff
         field_ids = live_diff_option[1]
+        subfield_ids = live_diff_option[4]
         compression = "live-diff"
         saving = live_diff_option[3]
     elif smallest_option == 3:
         # Sample diff
         field_ids = sample_diff_option[1]
+        subfield_ids = sample_diff_option[4]
         compression = "sample-diff"
         saving = sample_diff_option[3]
     elif smallest_option == 4:
         # Skip (don't even bother sending a record)
         field_ids = []
+        subfield_ids = dict()
         compression = "skip"
         saving = skip_option[3]
 
     if smallest_option == 4:  # Skip option
         encoded = None
     else:
-        encoded = encode_live_data(live_record, hardware_type, field_ids)
+        encoded = encode_live_data(live_record, hardware_type, field_ids, subfield_ids)
 
     uncompressed_size = no_diff_option[2]
 
@@ -1115,7 +1366,7 @@ def get_sample_data_field_options(sample_record, previous_sample_record,
     :type sample_record: dict
     :param previous_sample_record: The last sample record we know for certain
                                    the server received.
-    :type previous_sample_record: dict
+    :type previous_sample_record: dict or None
     :param hardware_type: Type of weather station hardware that generated the
                           record
     :type hardware_type: str
@@ -1125,8 +1376,9 @@ def get_sample_data_field_options(sample_record, previous_sample_record,
     :rtype: ((bool, list[int], int, int), (bool, list[int], int, int))
     """
 
-    all_fields = all_sample_field_ids[hardware_type.upper()]
-    all_fields_size = calculate_encoded_size(all_fields, hardware_type, False)
+    all_fields = all_sample_field_ids[hardware_type.upper()][0]
+    all_subfields = all_sample_field_ids[hardware_type.upper()][1]
+    all_fields_size = calculate_encoded_size(all_fields, all_subfields, hardware_type, False)
 
     sample_diff_field_id = None
 
@@ -1136,9 +1388,10 @@ def get_sample_data_field_options(sample_record, previous_sample_record,
             break
 
     sample_diff_fields = None
+    sample_diff_subfields = None
     sample_diff_size = None
     if previous_sample_record is not None:
-        sample_diff_fields = build_field_id_list(
+        sample_diff_fields, sample_diff_subfields = build_field_id_list(
             previous_sample_record, sample_record, hardware_type, False)
 
         # Diffing includes a small (8 byte) size penalty as we have to send an
@@ -1148,16 +1401,17 @@ def get_sample_data_field_options(sample_record, previous_sample_record,
         sample_diff_fields.append(sample_diff_field_id)
 
         sample_diff_size = calculate_encoded_size(sample_diff_fields,
+                                                  sample_diff_subfields,
                                                   hardware_type,
                                                   False)  # True for live
 
-    no_diff_option = (False, all_fields, all_fields_size, 0)
+    no_diff_option = (False, all_fields, all_fields_size, 0, all_subfields)
     sample_diff_option = None
 
     if sample_diff_fields is not None:
         saving = all_fields_size - sample_diff_size
         sample_diff_option = (True, sample_diff_fields, sample_diff_size,
-                              saving)
+                              saving, sample_diff_subfields)
 
     return no_diff_option, sample_diff_option
 
@@ -1176,7 +1430,7 @@ def encode_sample_record(sample_record, previous_sample_record, hardware_type):
     :type sample_record: dict
     :param previous_sample_record: The last sample record we know for certain
                                    the server received.
-    :type previous_sample_record: dict
+    :type previous_sample_record: dict or None
     :param hardware_type: Type of weather station hardware that generated the
                           record
     :type hardware_type: str
@@ -1193,6 +1447,7 @@ def encode_sample_record(sample_record, previous_sample_record, hardware_type):
     #  1 - field ids
     #  2 - total size
     #  3 - saving
+    #  4 - subfield ids
 
     saving = 0
     compression = "none"
@@ -1200,24 +1455,26 @@ def encode_sample_record(sample_record, previous_sample_record, hardware_type):
     if sample_diff_option is None:
         # Full record is the only option
         field_ids = no_diff_option[1]
+        subfield_ids = no_diff_option[4]
     elif sample_diff_option[3] <= no_diff_option[3]:
         # Diffing doesn't remove enough fields to make up for the diff ID we
         # would have to send. Don't bother.
         field_ids = no_diff_option[1]
+        subfield_ids = no_diff_option[4]
     else:
         field_ids = sample_diff_option[1]
+        subfield_ids = sample_diff_option[4]
         saving = sample_diff_option[3]
         compression = "sample-diff"
 
-    encoded = encode_sample_data(sample_record, hardware_type, field_ids)
+    encoded = encode_sample_data(sample_record, hardware_type, field_ids, subfield_ids)
 
     uncompressed_size = no_diff_option[2]
 
     return encoded, field_ids, (uncompressed_size, saving, compression)
 
 
-def _patch_record(record, base_record, existing_field_ids, all_field_ids,
-                  field_definitions):
+def _patch_record(record, base_record, existing_field_ids, all_field_ids, field_definitions):
     missing_fields = [f for f in all_field_ids if f not in existing_field_ids]
 
     new_record = record
@@ -1225,11 +1482,48 @@ def _patch_record(record, base_record, existing_field_ids, all_field_ids,
     for field in field_definitions:
         field_id = field[0]
         name = field[1]
+        field_type = field[2]
 
         if name is None:
             continue
 
-        if field_id in missing_fields:
+        if field_id not in missing_fields:
+            continue
+
+        # If its a subfield and at least one of that subfields fields are present
+        # then we'll loop over all the fields in the subfields definition and patch
+        # in any that are missing. If the subfield set is entirely missing we'll
+        # treat it as a regular field and copy the whole thing over from the base
+        # record.
+        if field_type == _SUB_FIELDS and name in record:
+            subfield_definitions = field[3]
+            # TODO: existing subfield IDs? Where does that come from?
+            #  Looks like its extracted from the packet header. We'll have to build the list up ourselves based
+            #  on the keys present in the dictionary
+
+            for subfield in subfield_definitions:
+                #subfield_id = subfield[0]
+                subfield_name = subfield[1]
+
+                if subfield_name is None:
+                    continue
+
+                # We don't have a list of field IDs we've got values for so we'll just go by what dictionary keys are
+                # present. If a key is present we've got a value for it, if its not we need to copy the value from
+                # the base dictionary.
+                if subfield_name in record[name]:
+                    continue  # We've already got a value for this subfield
+
+                # If the record doesn't have a value for a subfield and the base record doesn't have it either we've
+                # no choice but to skip it
+                if subfield_name not in base_record[name]:
+                    log.msg("Warning: field {0} in subfield {1} is missing a value in both supplied and base "
+                            "records.".format(name, subfield_name))
+                    continue
+
+                record[name][subfield_name] = base_record[name][subfield_name]
+
+        else:
             new_record[name] = base_record[name]
 
     return new_record
@@ -1253,7 +1547,8 @@ def patch_live_from_live(live_record, base_live_record, existing_field_ids,
     :return: Patched live record
     :rtype: dict
     """
-    all_fields = all_live_field_ids[hardware_type.upper()]
+    all_fields = all_live_field_ids[hardware_type.upper()][0]
+
     field_definitions = _live_fields[hardware_type.upper()]
 
     return _patch_record(live_record, base_live_record, existing_field_ids,
@@ -1278,7 +1573,7 @@ def patch_live_from_sample(live_record, base_sample_record, existing_field_ids,
     :return: Patched live record
     :rtype: dict
     """
-    all_fields = common_live_sample_field_ids[hardware_type.upper()]
+    all_fields = common_live_sample_field_ids[hardware_type.upper()][0]
     field_definitions = _sample_fields[hardware_type.upper()]
 
     return _patch_record(live_record, base_sample_record, existing_field_ids,
@@ -1303,7 +1598,7 @@ def patch_sample(sample_record, base_sample_record, existing_field_ids,
     :return: Patched live record
     :rtype: dict
     """
-    all_fields = all_sample_field_ids[hardware_type.upper()]
+    all_fields = all_sample_field_ids[hardware_type.upper()][0]
     field_definitions = _sample_fields[hardware_type.upper()]
 
     return _patch_record(sample_record, base_sample_record, existing_field_ids,
