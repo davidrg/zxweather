@@ -9,6 +9,7 @@ from twisted.python import log
 
 from zxw_push.common.data_codecs import encode_live_record, \
     encode_sample_record
+from zxw_push.common.statistics_collector import MultiPeriodStatisticsCollector
 from zxw_push.common.util import Event, Sequencer
 from zxw_push.common.packets import StationInfoRequestUDPPacket, \
     decode_packet, StationInfoResponseUDPPacket, LiveDataRecord, \
@@ -81,6 +82,8 @@ class WeatherPushDatagramClient(DatagramProtocol):
         self._compressed_live_records_remaining = \
             self._max_compressed_live_records
 
+        self._statistics_collector = MultiPeriodStatisticsCollector(datetime.datetime.now, log.msg)
+
     def startProtocol(self):
         """
         Sets up the transport and fires off an initial station list request
@@ -134,6 +137,8 @@ class WeatherPushDatagramClient(DatagramProtocol):
 
         self._log_record_statistics(packet.sequence, packet.__class__.__name__,
                                     len(encoded), 0, "raw")
+
+        self._statistics_collector.log_packet_transmission(packet.__class__.__name__, len(encoded))
 
         self.transport.write(encoded, (self._ip_address, self._port))
 
@@ -345,17 +350,12 @@ class WeatherPushDatagramClient(DatagramProtocol):
         original_size = compression[0]
         reduction_size = compression[1]
         algorithm = compression[2]
-        # new_size_percentage = ((original_size - reduction_size) /
-        #                        (original_size * 1.0)) * 100.0
 
         self._log_record_statistics(packet_id, "LIVE", original_size,
                                     reduction_size, algorithm, seq_id)
 
-        # log.msg("Reduced LIVE   by {0} bytes (new size is {1}%) using "
-        #         "algorithm {2}. Live ID: {3}".format(reduction_size,
-        #                                              new_size_percentage,
-        #                                              algorithm,
-        #                                              seq_id))
+        self._statistics_collector.log_live_record(len(encoded) if encoded is not None else 0,
+                                                   original_size, algorithm)
 
         # Track how many compressed records we've sent.
         if algorithm != "none":
@@ -375,6 +375,9 @@ class WeatherPushDatagramClient(DatagramProtocol):
         encoded, field_ids, compression = encode_sample_record(
             data, previous_sample, hardware_type)
 
+        self._statistics_collector.log_sample_record(len(encoded) if encoded is not None else 0,
+                                                     compression[0], compression[2])
+
         if encoded is None:
             return None
 
@@ -389,15 +392,10 @@ class WeatherPushDatagramClient(DatagramProtocol):
         original_size = compression[0]
         reduction_size = compression[1]
         algorithm = compression[2]
-        # new_size_percentage = ((original_size - reduction_size) /
-        #                        (original_size * 1.0)) * 100.0
 
         self._log_record_statistics(packet_id, "SAMPLE", original_size,
                                     reduction_size, algorithm)
-
-        # log.msg("Reduced SAMPLE by {0} bytes (new size is {1}%) using "
-        #         "algorithm {2}".format(reduction_size, new_size_percentage,
-        #                                algorithm))
+        self._log_statistics(True, algorithm, original_size, reduction_size)
 
         return record
 
