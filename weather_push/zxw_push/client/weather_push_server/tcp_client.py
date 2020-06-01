@@ -4,6 +4,7 @@ Client implementation of Weather Push TCP protocol. It works largely the same
 way as the UDP implementation but with different packet types.
 """
 import json
+from datetime import datetime
 
 from twisted.internet import reactor, defer
 from twisted.internet import protocol
@@ -12,6 +13,7 @@ from twisted.python import log
 
 from zxw_push.common.data_codecs import encode_live_record, \
     encode_sample_record
+from zxw_push.common.statistics_collector import MultiPeriodStatisticsCollector
 from zxw_push.common.util import Event, Sequencer
 from zxw_push.common.packets import decode_packet, LiveDataRecord, \
     SampleDataRecord, AuthenticateTCPPacket, WeatherDataTCPPacket, \
@@ -96,6 +98,8 @@ class WeatherPushProtocol(protocol.Protocol):
 
         self._authentication_failed = False
 
+        self._statistics_collector = MultiPeriodStatisticsCollector(datetime.now, log.msg)
+
     def connectionMade(self):
         """
         Fires off an initial station list request
@@ -161,6 +165,8 @@ class WeatherPushProtocol(protocol.Protocol):
 
         if isinstance(encoded, bytearray):
             encoded = bytes(encoded)
+
+        self._statistics_collector.log_packet_transmission(packet.__class__.__name__, len(encoded))
 
         self.transport.write(encoded)
 
@@ -426,7 +432,11 @@ class WeatherPushProtocol(protocol.Protocol):
             record.field_list = field_ids
             record.field_data = encoded
 
+        uncompressed_size = compression[0]
         algorithm = compression[2]
+
+        self._statistics_collector.log_live_record(len(encoded) if encoded is not None else 0,
+                                                   uncompressed_size, algorithm)
 
         # Track how many compressed records we've sent.
         if algorithm != "none":
@@ -434,8 +444,7 @@ class WeatherPushProtocol(protocol.Protocol):
 
         return record
 
-    @staticmethod
-    def _make_sample_weather_record(data, previous_sample, hardware_type,
+    def _make_sample_weather_record(self, data, previous_sample, hardware_type,
                                     station_id):
 
         # Samples are always compressed when it makes sense (which is
@@ -446,6 +455,12 @@ class WeatherPushProtocol(protocol.Protocol):
 
         encoded, field_ids, compression = encode_sample_record(
             data, previous_sample, hardware_type)
+
+        uncompressed_size = compression[0]
+        algorithm = compression[2]
+
+        self._statistics_collector.log_sample_record(len(encoded) if encoded is not None else 0,
+                                                     uncompressed_size, algorithm)
 
         if encoded is None:
             return None
