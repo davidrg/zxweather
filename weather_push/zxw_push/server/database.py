@@ -2,6 +2,7 @@
 """
 Database functionality used by the WeatherPush server.
 """
+import copy
 from datetime import datetime
 
 import psycopg2
@@ -33,6 +34,92 @@ class ServerDatabase(object):
         self._station_code_hw_type = {}
         self._check_db()
         self.schema_version = None
+
+    @staticmethod
+    def _to_real_dict(value):
+        result = {}
+
+        for key in value.keys():
+            result[key] = value[key]
+
+        return result
+
+    @staticmethod
+    def _move_davis_extras_to_subfield(row):
+        """
+        Moves the davis extra fields into their subfield
+        :param row: Row to move subfields in
+        :return: Modified version of row with subfields moved.
+        """
+
+        if row is None:
+            return row
+
+        new_row = ServerDatabase._to_real_dict(row)
+        new_row.pop("leaf_wetness_1", None)
+        new_row.pop("leaf_wetness_2", None)
+        new_row.pop("leaf_temperature_1", None)
+        new_row.pop("leaf_temperature_2", None)
+        new_row.pop("soil_moisture_1", None)
+        new_row.pop("soil_moisture_2", None)
+        new_row.pop("soil_moisture_3", None)
+        new_row.pop("soil_moisture_4", None)
+        new_row.pop("soil_temperature_1", None)
+        new_row.pop("soil_temperature_2", None)
+        new_row.pop("soil_temperature_3", None)
+        new_row.pop("soil_temperature_4", None)
+        new_row.pop("extra_temperature_1", None)
+        new_row.pop("extra_temperature_2", None)
+        new_row.pop("extra_temperature_3", None)
+        new_row.pop("extra_humidity_1", None)
+        new_row.pop("extra_humidity_2", None)
+
+        new_row["extra_fields"] = {
+            "leaf_wetness_1": row["leaf_wetness_1"],
+            "leaf_wetness_2": row["leaf_wetness_2"],
+            "leaf_temperature_1": row["leaf_temperature_1"],
+            "leaf_temperature_2": row["leaf_temperature_2"],
+            "soil_moisture_1": row["soil_moisture_1"],
+            "soil_moisture_2": row["soil_moisture_2"],
+            "soil_moisture_3": row["soil_moisture_3"],
+            "soil_moisture_4": row["soil_moisture_4"],
+            "soil_temperature_1": row["soil_temperature_1"],
+            "soil_temperature_2": row["soil_temperature_2"],
+            "soil_temperature_3": row["soil_temperature_3"],
+            "soil_temperature_4": row["soil_temperature_4"],
+            "extra_temperature_1": row["extra_temperature_1"],
+            "extra_temperature_2": row["extra_temperature_2"],
+            "extra_temperature_3": row["extra_temperature_3"],
+            "extra_humidity_1": row["extra_humidity_1"],
+            "extra_humidity_2": row["extra_humidity_2"],
+        }
+
+        return new_row
+
+    @staticmethod
+    def _flatten_davis_extras_subfield(row):
+        new_row = copy.deepcopy(row)
+
+        new_row["leaf_wetness_1"] = new_row["extra_fields"]["leaf_wetness_1"]
+        new_row["leaf_wetness_2"] = new_row["extra_fields"]["leaf_wetness_2"]
+        new_row["leaf_temperature_1"] = new_row["extra_fields"]["leaf_temperature_1"]
+        new_row["leaf_temperature_2"] = new_row["extra_fields"]["leaf_temperature_2"]
+        new_row["soil_moisture_1"] = new_row["extra_fields"]["soil_moisture_1"]
+        new_row["soil_moisture_2"] = new_row["extra_fields"]["soil_moisture_2"]
+        new_row["soil_moisture_3"] = new_row["extra_fields"]["soil_moisture_3"]
+        new_row["soil_moisture_4"] = new_row["extra_fields"]["soil_moisture_4"]
+        new_row["soil_temperature_1"] = new_row["extra_fields"]["soil_temperature_1"]
+        new_row["soil_temperature_2"] = new_row["extra_fields"]["soil_temperature_2"]
+        new_row["soil_temperature_3"] = new_row["extra_fields"]["soil_temperature_3"]
+        new_row["soil_temperature_4"] = new_row["extra_fields"]["soil_temperature_4"]
+        new_row["extra_temperature_1"] = new_row["extra_fields"]["extra_temperature_1"]
+        new_row["extra_temperature_2"] = new_row["extra_fields"]["extra_temperature_2"]
+        new_row["extra_temperature_3"] = new_row["extra_fields"]["extra_temperature_3"]
+        new_row["extra_humidity_1"] = new_row["extra_fields"]["extra_humidity_1"]
+        new_row["extra_humidity_2"] = new_row["extra_fields"]["extra_humidity_2"]
+        new_row.pop("extra_fields", None)
+
+        return new_row
 
     @defer.inlineCallbacks
     def _get_schema_version(self):
@@ -280,6 +367,9 @@ class ServerDatabase(object):
 
         result = yield self._conn.runQuery(query, parameters)
 
+        if hw_type == 'DAVIS':
+            result = self._move_davis_extras_to_subfield(result)
+
         defer.returnValue(result)
 
     @defer.inlineCallbacks
@@ -318,6 +408,9 @@ class ServerDatabase(object):
         if len(result) == 0:
             defer.returnValue(None)
 
+        if hw_type == 'DAVIS':
+            result = self._move_davis_extras_to_subfield(result)
+
         defer.returnValue(result[0])
 
     @defer.inlineCallbacks
@@ -348,6 +441,8 @@ class ServerDatabase(object):
         # Update the common part first
         yield self._store_generic_live(station_id, live_record)
 
+        live_record = self._flatten_davis_extras_subfield(live_record)
+
         query = """update davis_live_data
                 set bar_trend = %(bar_trend)s,
                     rain_rate = %(rain_rate)s,
@@ -358,7 +453,24 @@ class ServerDatabase(object):
                     forecast_icon = %(forecast_icon)s,
                     forecast_rule_id = %(forecast_rule_id)s,
                     uv_index = %(uv_index)s,
-                    solar_radiation = %(solar_radiation)s
+                    solar_radiation = %(solar_radiation)s,
+                    leaf_wetness_1 = %(leaf_wetness_1)s,
+                    leaf_wetness_2 = %(leaf_wetness_2)s,
+                    leaf_temperature_1 = %(leaf_temperature_1)s,
+                    leaf_temperature_2 = %(leaf_temperature_2)s,
+                    soil_moisture_1 = %(soil_moisture_1)s,
+                    soil_moisture_2 = %(soil_moisture_2)s,
+                    soil_moisture_3 = %(soil_moisture_3)s,
+                    soil_moisture_4 = %(soil_moisture_4)s,
+                    soil_temperature_1 = %(soil_temperature_1)s,
+                    soil_temperature_2 = %(soil_temperature_2)s,
+                    soil_temperature_3 = %(soil_temperature_3)s,
+                    soil_temperature_4 = %(soil_temperature_4)s,
+                    extra_temperature_1 = %(extra_temperature_1)s,
+                    extra_temperature_2 = %(extra_temperature_2)s,
+                    extra_temperature_3 = %(extra_temperature_3)s,
+                    extra_humidity_1 = %(extra_humidity_1)s,
+                    extra_humidity_2 = %(extra_humidity_2)s
                 where station_id = %(station_id)s
                 """
 
@@ -486,6 +598,8 @@ class ServerDatabase(object):
         sample_id = ServerDatabase._store_generic_sample_interaction(
             txn, station_id, sample_record)
 
+        sample_record = ServerDatabase._flatten_davis_extras_subfield(sample_record)
+
         query = """
         insert into davis_sample(sample_id,
                                  record_time,
@@ -500,7 +614,24 @@ class ServerDatabase(object):
                                  evapotranspiration,
                                  high_solar_radiation,
                                  high_uv_index,
-                                 forecast_rule_id)
+                                 forecast_rule_id,
+                                 leaf_wetness_1,
+                                 leaf_wetness_2,
+                                 leaf_temperature_1,
+                                 leaf_temperature_2,
+                                 soil_moisture_1,
+                                 soil_moisture_2,
+                                 soil_moisture_3,
+                                 soil_moisture_4,
+                                 soil_temperature_1,
+                                 soil_temperature_2,
+                                 soil_temperature_3,
+                                 soil_temperature_4,
+                                 extra_temperature_1,
+                                 extra_temperature_2,
+                                 extra_temperature_3,
+                                 extra_humidity_1,
+                                 extra_humidity_2)
         values(%(sample_id)s,
                %(record_time)s,
                %(record_date)s,
@@ -514,7 +645,24 @@ class ServerDatabase(object):
                %(evapotranspiration)s,
                %(high_solar_radiation)s,
                %(high_uv_index)s,
-               %(forecast_rule_id)s)"""
+               %(forecast_rule_id)s,
+               %(leaf_wetness_1)s,
+               %(leaf_wetness_2)s,
+               %(leaf_temperature_1)s,
+               %(leaf_temperature_2)s,
+               %(soil_moisture_1)s,
+               %(soil_moisture_2)s,
+               %(soil_moisture_3)s,
+               %(soil_moisture_4)s,
+               %(soil_temperature_1)s,
+               %(soil_temperature_2)s,
+               %(soil_temperature_3)s,
+               %(soil_temperature_4)s,
+               %(extra_temperature_1)s,
+               %(extra_temperature_2)s,
+               %(extra_temperature_3)s,
+               %(extra_humidity_1)s,
+               %(extra_humidity_2)s)"""
 
         sample_record["sample_id"] = sample_id
 

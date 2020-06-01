@@ -593,6 +593,9 @@ common_live_sample_field_ids = {
 }
 
 
+def get_sample_field_definitions(hw_type):
+    return _sample_fields[hw_type.upper()]
+
 def _encode_dict(data_dict, field_definitions, field_ids, subfield_ids):
     """
     Encodes a dictionary of values into a byte string using the supplied
@@ -762,6 +765,71 @@ def _decode_dict(encoded_data, field_definitions, field_ids):
             offset += field_size
 
     return result
+
+
+def _find_subfield_ids(encoded_data, field_definitions, field_ids):
+    """
+    This function is similar to _decode_dict in the way it works but instead of
+    decoding an encoded dict it only looks to see what subfield ids are present.
+
+    :param encoded_data: Encoded data for the fields specified in field_ids
+    :param field_definitions: Field definitions for the specified field_ids
+    :param field_ids: Field_ids known to be present in encoded_data
+    :return: List of subfield IDs present.
+    """
+    result = {}
+
+    offset = 0
+
+    for field in field_definitions:
+        # Num, name, type, encode conversion function, decode conversion
+        # function
+        field_number = field[0]
+        field_name = field[1]
+        field_type = field[2]
+
+        if field_number not in field_ids:
+            continue
+
+        # If a field is in the field list that means it should have encoded
+        # data. Nameless fields don't don't support encoding or decoding so
+        # if the field name is None then either the list of field definitions
+        # don't match what the encoder used or the list of field IDs is wrong.
+        # Either way its a bug.
+        assert field_name is not None, \
+            "Reserved/unused field included in field list."
+
+        if field_type == _SUB_FIELDS:
+            subfield_definitions = field[3]
+
+            subfields_header = struct.unpack_from("!L", encoded_data, offset)[0]
+            offset += 4  # Skip over the header now we've decoded it.
+
+            # These are the fields we can expect to find:
+            subfield_ids_present = get_field_ids_set(subfields_header)
+
+            # Now we figure out how big the subfield set is and skip over it
+            subfields_size = _calculate_encoded_size(subfield_definitions, subfield_ids_present, None)
+            offset += subfields_size
+
+            # and make a note of the subfield IDs present
+            result[field_name] = subfield_ids_present
+
+        else:
+            # Skip over the field
+            field_type = "!" + field_type
+            field_size = struct.calcsize(field_type)
+            offset += field_size
+
+    return result
+
+
+def find_live_subfield_ids(encoded_data, field_ids, hw_type):
+    return _find_subfield_ids(encoded_data, _live_fields[hw_type.upper()], field_ids)
+
+
+def find_sample_subfield_ids(encoded_data, field_ids, hw_type):
+    return _find_subfield_ids(encoded_data, _sample_fields[hw_type.upper()], field_ids)
 
 
 def encode_live_data(data_dict, hardware_type, field_ids, subfield_ids):

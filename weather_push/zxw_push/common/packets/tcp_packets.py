@@ -3,7 +3,8 @@ import struct
 
 from twisted.python import log
 
-from zxw_push.common.data_codecs import timestamp_decode, timestamp_encode
+from zxw_push.common.data_codecs import timestamp_decode, timestamp_encode, find_sample_subfield_ids, \
+    find_live_subfield_ids
 from zxw_push.common.packets.common import Packet, StationInfoRecord, \
     SampleDataRecord, LiveDataRecord, WeatherRecord
 
@@ -554,8 +555,20 @@ class WeatherDataTCPPacket(TcpPacket):
             if isinstance(record, SampleDataRecord) or \
                isinstance(record, LiveDataRecord):
 
+                # Scan through the data and look for any known subfield headers. We need to
+                # pick out and parse these subfield headers so we can calculate the proper
+                # length for the whole record.
+                if isinstance(record, SampleDataRecord):
+                    subfields = find_sample_subfield_ids(record_data[record.header_size:],
+                                                         record.field_list,
+                                                         hardware_type_map[record.station_id])
+                else:
+                    subfields = find_live_subfield_ids(record_data[record.header_size:],
+                                                       record.field_list,
+                                                       hardware_type_map[record.station_id])
+
                 calculated_size = record.calculated_record_size(
-                    hardware_type_map[record.station_id])
+                    hardware_type_map[record.station_id], subfields)
 
                 if len(record_data) > calculated_size:
                     log.msg("** DECODE ERROR: Misplaced end of record marker "

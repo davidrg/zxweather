@@ -8,7 +8,8 @@ import struct
 import datetime
 from twisted.python import log as _log
 
-from zxw_push.common.data_codecs import timestamp_encode, timestamp_decode
+from zxw_push.common.data_codecs import timestamp_encode, timestamp_decode, find_sample_subfield_ids, \
+    find_live_subfield_ids
 from zxw_push.common.packets.common import Packet, HARDWARE_TYPE_CODES, \
     HARDWARE_TYPE_IDS, LiveDataRecord, WeatherRecord, SampleDataRecord, \
     StationInfoRecord
@@ -490,8 +491,20 @@ class WeatherDataUDPPacket(UDPPacket):
             if isinstance(record, SampleDataRecord) or \
                isinstance(record, LiveDataRecord):
 
+                # Scan through the data and look for any known subfield headers. We need to
+                # pick out and parse these subfield headers so we can calculate the proper
+                # length for the whole record.
+                if isinstance(record, SampleDataRecord):
+                    subfields = find_sample_subfield_ids(record_data[record.header_size:],
+                                                         record.field_list,
+                                                         hardware_type_map[record.station_id])
+                else:
+                    subfields = find_live_subfield_ids(record_data[record.header_size:],
+                                                       record.field_list,
+                                                       hardware_type_map[record.station_id])
+
                 calculated_size = record.calculated_record_size(
-                    hardware_type_map[record.station_id])
+                    hardware_type_map[record.station_id], subfields)
 
                 if len(record_data) > calculated_size:
                     _log.msg("** DECODE ERROR: Misplaced end of record marker "

@@ -2,6 +2,8 @@
 """
 Client-side database functionality
 """
+import copy
+
 from twisted.enterprise import adbapi
 from twisted.internet import defer
 from twisted.internet import reactor
@@ -64,6 +66,68 @@ class WeatherDatabase(object):
         self._peak_confirmation_queue_length = 0
 
         self._database_ready = False
+
+    @staticmethod
+    def _to_real_dict(value):
+        result = {}
+
+        for key in value.keys():
+            result[key] = value[key]
+
+        return result
+
+    @staticmethod
+    def _move_davis_extras_to_subfield(row):
+        """
+        Moves the davis extra fields into their subfield
+        :param row: Row to move subfields in
+        :return: Modified version of row with subfields moved.
+        """
+
+        if row is None:
+            return row
+
+        new_row = WeatherDatabase._to_real_dict(row)
+
+        new_row.pop("leaf_wetness_1", None)
+        new_row.pop("leaf_wetness_2", None)
+        new_row.pop("leaf_temperature_1", None)
+        new_row.pop("leaf_temperature_2", None)
+        new_row.pop("soil_moisture_1", None)
+        new_row.pop("soil_moisture_2", None)
+        new_row.pop("soil_moisture_3", None)
+        new_row.pop("soil_moisture_4", None)
+        new_row.pop("soil_temperature_1", None)
+        new_row.pop("soil_temperature_2", None)
+        new_row.pop("soil_temperature_3", None)
+        new_row.pop("soil_temperature_4", None)
+        new_row.pop("extra_temperature_1", None)
+        new_row.pop("extra_temperature_2", None)
+        new_row.pop("extra_temperature_3", None)
+        new_row.pop("extra_humidity_1", None)
+        new_row.pop("extra_humidity_2", None)
+
+        new_row["extra_fields"] = {
+            "leaf_wetness_1": row["leaf_wetness_1"],
+            "leaf_wetness_2": row["leaf_wetness_2"],
+            "leaf_temperature_1": row["leaf_temperature_1"],
+            "leaf_temperature_2": row["leaf_temperature_2"],
+            "soil_moisture_1": row["soil_moisture_1"],
+            "soil_moisture_2": row["soil_moisture_2"],
+            "soil_moisture_3": row["soil_moisture_3"],
+            "soil_moisture_4": row["soil_moisture_4"],
+            "soil_temperature_1": row["soil_temperature_1"],
+            "soil_temperature_2": row["soil_temperature_2"],
+            "soil_temperature_3": row["soil_temperature_3"],
+            "soil_temperature_4": row["soil_temperature_4"],
+            "extra_temperature_1": row["extra_temperature_1"],
+            "extra_temperature_2": row["extra_temperature_2"],
+            "extra_temperature_3": row["extra_temperature_3"],
+            "extra_humidity_1": row["extra_humidity_1"],
+            "extra_humidity_2": row["extra_humidity_2"],
+        }
+
+        return new_row
 
     def transmitter_ready(self, remote_stations):
         """
@@ -189,6 +253,9 @@ class WeatherDatabase(object):
 
         if len(results) > 0:
             result = results[0]
+
+        if hw_type == 'DAVIS':
+            result = self._move_davis_extras_to_subfield(result)
 
         defer.returnValue(result)
 
@@ -346,7 +413,10 @@ class WeatherDatabase(object):
 
         def _process_result(result):
             station_data = result[0]
-            self.LiveUpdate.fire(station_data, 'DAVIS')
+
+            result = self._move_davis_extras_to_subfield(station_data)
+
+            self.LiveUpdate.fire(result, 'DAVIS')
 
         self._conn.runQuery(query, (station_code,)).addCallback(
             _process_result)
@@ -373,6 +443,8 @@ class WeatherDatabase(object):
         """
 
         for data in result:
+            if hw_type == 'DAVIS':
+                data = self._move_davis_extras_to_subfield(data)
             self._update_replication_status(data["sample_id"])
             self.NewSample.fire(data, hw_type, True)
 
