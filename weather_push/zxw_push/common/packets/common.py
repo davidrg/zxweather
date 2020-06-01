@@ -227,15 +227,21 @@ class WeatherRecord(object):
 
         self._load_record_header(packet_data)
 
-    def calculated_record_size(self, hardware_type):
+    def calculated_record_size(self, hardware_type, subfield_ids):
         """
         Returns the calculated size of the record based on the specified
         hardware type
         :param hardware_type: Type of weather station that generated the record
         :type hardware_type: str
+        :param subfield_ids: Subfield IDs present in the record
+        :type subfield_ids: dict
         :returns: Expected size of the record
         :rtype: int
         """
+        return struct.calcsize(WeatherRecord._FMT_HEADER)
+
+    @property
+    def header_size(self):
         return struct.calcsize(WeatherRecord._FMT_HEADER)
 
 
@@ -333,20 +339,26 @@ class LiveDataRecord(WeatherRecord):
             struct.calcsize(self._RECORD_HEADER) + \
             struct.calcsize(self._FMT_HEADER)
 
-    def calculated_record_size(self, hardware_type):
+    def calculated_record_size(self, hardware_type, subfield_ids):
         """
         Returns the calculated size of the record based on the specified
         hardware type
         :param hardware_type: Type of weather station that generated the record
         :type hardware_type: str
+        :param subfield_ids: Subfield IDs present in the record
+        :type subfield_ids: dict
         :returns: Expected size of the record
         :rtype: int
         """
+        field_size = calculate_encoded_size(self.field_list, subfield_ids, hardware_type,
+                                            True)
+        return self.header_size + field_size
+
+    @property
+    def header_size(self):
         base_header = struct.calcsize(WeatherRecord._FMT_HEADER)
         record_header = struct.calcsize(self._RECORD_HEADER)
-        field_size = calculate_encoded_size(self.field_list, hardware_type,
-                                            True)
-        return base_header + record_header + field_size
+        return base_header + record_header
 
 
 class SampleDataRecord(WeatherRecord):
@@ -476,20 +488,27 @@ class SampleDataRecord(WeatherRecord):
             struct.calcsize(self._RECORD_HEADER) + \
             struct.calcsize(self._FMT_HEADER)
 
-    def calculated_record_size(self, hardware_type):
+    def calculated_record_size(self, hardware_type, subfield_ids):
         """
         Returns the calculated size of the record based on the specified
         hardware type
         :param hardware_type: Type of weather station that generated the record
         :type hardware_type: str
+        :param subfield_ids: Subfield IDs present in the record
+        :type subfield_ids: dict
         :returns: Expected size of the record
         :rtype: int
         """
+        field_size = calculate_encoded_size(self.field_list, subfield_ids, hardware_type,
+                                                    False)
+
+        return self.header_size + field_size
+
+    @property
+    def header_size(self):
         base_header = struct.calcsize(WeatherRecord._FMT_HEADER)
         record_header = struct.calcsize(self._RECORD_HEADER)
-        field_size = calculate_encoded_size(self.field_list, hardware_type,
-                                            False)
-        return base_header + record_header + field_size
+        return base_header + record_header
 
 
 class StationInfoRecord(object):

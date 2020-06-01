@@ -7,7 +7,7 @@ from zxw_push.common.data_codecs import _encode_dict, _U_INT_16, _U_INT_32, \
     _build_field_id_list, build_field_id_list_for_live_against_sample, get_live_data_field_options, \
     calculate_encoded_size, all_live_field_ids, _davis_live_fields, _davis_sample_fields, encode_live_record, \
     _float_encode, _float_encode_2dp, _date_encode, timestamp_encode, set_field_ids, get_sample_data_field_options, \
-    all_sample_field_ids, encode_sample_record, _patch_record
+    all_sample_field_ids, encode_sample_record, _patch_record, _find_subfield_ids, find_live_subfield_ids
 
 __author__ = 'david'
 
@@ -2789,3 +2789,62 @@ class PatchRecordTests(unittest.TestCase):
 
         self.assertDictEqual(patched, original_sample,
                              "extra_fields subfield set should be patched back in")
+
+class FindSubfieldIdsTests(unittest.TestCase):
+    @staticmethod
+    def _get_current_and_prev():
+        prev_live = copy.deepcopy(DAVIS_LIVE)
+
+        # Because we're feeding this into the encoder we need real dates and timestamps
+        prev_live["current_storm_start_date"] = datetime.date(year=2015, month=9, day=13)
+        prev_live["sample_diff_timestamp"] = datetime.datetime(year=2015, month=9, day=13, hour=1, minute=15)
+
+        live = copy.deepcopy(prev_live)
+        sample = copy.deepcopy(DAVIS_SAMPLE)
+
+        live["current_storm_start_date"] = prev_live["current_storm_start_date"]
+        live["sample_diff_timestamp"] = prev_live["sample_diff_timestamp"]
+
+        live["live_diff_sequence"] = prev_live["live_diff_sequence"] + 1
+        sample["time_stamp"] = live["sample_diff_timestamp"]
+
+        return live, prev_live, sample
+
+    def test_find_subfields_in_full_live(self):
+        live, prev_live, sample = self._get_current_and_prev()
+
+        encoded, field_ids, encode_results = encode_live_record(
+            live, prev_live, sample, DAVIS_HW_TYPE, False)
+
+        subfields = find_live_subfield_ids(encoded, field_ids, DAVIS_HW_TYPE)
+
+        self.assertTrue("extra_fields" in subfields,
+                        "Subfields should be present")
+
+        self.assertListEqual(
+            range(1,18),
+            sorted(subfields["extra_fields"]),
+            "All subfield IDs should be present"
+        )
+
+    def test_find_subfields_in_partial_live(self):
+        live, prev_live, sample = self._get_current_and_prev()
+
+        live["extra_fields"]["soil_moisture_1"] = 5
+        live["extra_fields"]["soil_temperature_3"] = 10
+        live["extra_fields"]["extra_temperature_3"] = 9
+        live["temperature"] = 3
+
+        encoded, field_ids, encode_results = encode_live_record(
+            live, prev_live, sample, DAVIS_HW_TYPE, True)
+
+        subfields = find_live_subfield_ids(encoded, field_ids, DAVIS_HW_TYPE)
+
+        self.assertTrue("extra_fields" in subfields,
+                        "Subfields should be present")
+
+        self.assertListEqual(
+            [5, 11, 15],
+            sorted(subfields["extra_fields"]),
+            "All subfield IDs should be present"
+        )
