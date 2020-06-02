@@ -1,7 +1,10 @@
 # coding=utf-8
+import copy
 import struct
 import unittest
-from datetime import datetime
+from datetime import datetime, date
+
+from zxw_push.common.data_codecs import _encode_dict, get_sample_field_definitions, get_live_field_definitions
 from zxw_push.common.packets import UDPPacket, StationInfoRequestUDPPacket, \
     StationInfoResponseUDPPacket, LiveDataRecord, SampleDataRecord, \
     WeatherDataUDPPacket, SampleAcknowledgementUDPPacket
@@ -167,6 +170,244 @@ class WeatherDataUDPPacketTests(unittest.TestCase):
     Tests the WeatherData Packet
     """
 
+    GENERIC_LIVE = {
+        "live_diff_sequence": 397,  # 0
+        "sample_diff_timestamp": datetime(year=2015, month=9, day=13, hour=1, minute=15),  # 1  Common with sample
+        "indoor_humidity": 23,  # 2  C
+        "indoor_temperature": 5.4,  # 3  C
+        "temperature": 9.3,  # 4  C
+        "humidity": 83,  # 5  C
+        "pressure": 913.4,  # 6  C
+        "average_wind_speed": 34.1,  # 7  C
+        "gust_wind_speed": 98.5,  # 8  C
+        "wind_direction": 256,  # 9  C
+    }
+
+    GENERIC_SAMPLE = {
+        "time_stamp": datetime(year=2015, month=9, day=13, hour=1, minute=15),  # Comes from the DB. This is encoded separately for transmission.
+        "sample_diff_timestamp": datetime(year=2015, month=9, day=13, hour=1, minute=15),  # Common with live
+        "indoor_humidity": 23,  # C
+        "indoor_temperature": 5.4,  # C
+        "temperature": 9.3,  # C
+        "humidity": 83,  # C
+        "pressure": 913.4,  # C
+        "average_wind_speed": 34.1,  # C
+        "gust_wind_speed": 98.5,  # C
+        "wind_direction": 256,  # C
+        "rainfall": 19.3,
+    }
+
+    WH1080_SAMPLE = {
+        "time_stamp": datetime(year=2015, month=9, day=13, hour=1, minute=15),  # Comes from the DB. This is encoded separately for transmission.
+        "sample_diff_timestamp": datetime(year=2015, month=9, day=13, hour=1, minute=15),  # Common with live
+        "indoor_humidity": 23,  # C
+        "indoor_temperature": 5.4,  # C
+        "temperature": 9.3,  # C
+        "humidity": 83,  # C
+        "pressure": 913.4,  # C
+        "average_wind_speed": 34.1,  # C
+        "gust_wind_speed": 98.5,  # C
+        "wind_direction": 256,  # C
+        "rainfall": 19.3,
+        "sample_interval": 300,
+        "record_number": 23,
+        "last_in_batch": True,
+        "invalid_data": False,
+        "wh1080_wind_direction": "NNE",
+        "total_rain": 125512,
+        "rain_overflow": False
+    }
+
+    DAVIS_LIVE = {
+        "live_diff_sequence": 397,  # 0
+        "sample_diff_timestamp": datetime(year=2015, month=9, day=13, hour=1, minute=15),  # 1  Common with sample
+        "indoor_humidity": 23,  # 2  C
+        "indoor_temperature": 5.4,  # 3  C
+        "temperature": 9.3,  # 4  C
+        "humidity": 83,  # 5  C
+        "pressure": 913.4,  # 6  C
+        "average_wind_speed": 34.1,  # 7  C
+        "gust_wind_speed": 98.5,  # 8  C
+        "wind_direction": 256,  # 9  C
+        "bar_trend": 6,  # 10
+        "rain_rate": 123,  # 11
+        "storm_rain": 985,  # 12
+        "current_storm_start_date": date(year=2015, month=9, day=13),  # 13    2015-09-13
+        "transmitter_battery": 2,  # 14
+        "console_battery_voltage": 5.9,  # 15
+        "forecast_icon": 7,  # 16
+        "forecast_rule_id": 10,  # 17
+        "uv_index": 9,  # 18
+        "solar_radiation": 1043,  # 19
+        "extra_fields": {  # 31    C (all fields)
+            "leaf_wetness_1": 12,  # 1
+            "leaf_wetness_2": 8,  # 2
+            "leaf_temperature_1": 15,  # 3
+            "leaf_temperature_2": 19,  # 4
+            "soil_moisture_1": 1,  # 5
+            "soil_moisture_2": 2,  # 6
+            "soil_moisture_3": 3,  # 7
+            "soil_moisture_4": 4,  # 8
+            "soil_temperature_1": 5,  # 9
+            "soil_temperature_2": 6,  # 10
+            "soil_temperature_3": 7,  # 11
+            "soil_temperature_4": 8,  # 12
+            "extra_temperature_1": 9,  # 13
+            "extra_temperature_2": 10,  # 14
+            "extra_temperature_3": 11,  # 15
+            "extra_humidity_1": 12,  # 16
+            "extra_humidity_2": 13  # 17
+        }
+    }
+
+    DAVIS_SAMPLE = {
+        "time_stamp": datetime(year=2015, month=9, day=13, hour=1, minute=15),  # Comes from the DB. This is encoded separately for transmission.
+        "sample_diff_timestamp": datetime(year=2015, month=9, day=13, hour=1, minute=15),  # Common with live
+        "indoor_humidity": 23,  # C
+        "indoor_temperature": 5.4,  # C
+        "temperature": 9.3,  # C
+        "humidity": 83,  # C
+        "pressure": 913.4,  # C
+        "average_wind_speed": 34.1,  # C
+        "gust_wind_speed": 98.5,  # C
+        "wind_direction": 256,  # C
+        "rainfall": 19.3,
+        "record_time": 1234,
+        "record_date": 4567,
+        "high_temperature": 19.34,
+        "low_temperature": 8.3,
+        "high_rain_rate": 89.3,
+        "solar_radiation": 103,
+        "wind_sample_count": 16,
+        "gust_wind_direction": 45,
+        "average_uv_index": 11.3,
+        "evapotranspiration": 18456874,
+        "high_solar_radiation": 1154,
+        "high_uv_index": 12,
+        "forecast_rule_id": 7,
+        "extra_fields": {  # C (all fields)
+            "leaf_wetness_1": 12,
+            "leaf_wetness_2": 8,
+            "leaf_temperature_1": 15,
+            "leaf_temperature_2": 19,
+            "soil_moisture_1": 1,
+            "soil_moisture_2": 2,
+            "soil_moisture_3": 3,
+            "soil_moisture_4": 4,
+            "soil_temperature_1": 5,
+            "soil_temperature_2": 6,
+            "soil_temperature_3": 7,
+            "soil_temperature_4": 8,
+            "extra_temperature_1": 9,
+            "extra_temperature_2": 10,
+            "extra_temperature_3": 11,
+            "extra_humidity_1": 12,
+            "extra_humidity_2": 13
+        }
+    }
+
+    def make_packet(self):
+        packet = WeatherDataUDPPacket(sequence=5, authorisation_code=0xABCDEFAB)
+        # Add a selection of records
+        rec = SampleDataRecord()
+        rec.station_id = 1  # Davis
+        rec.timestamp = datetime(2015, 3, 7, 10, 53, 42)
+        rec.download_timestamp = datetime(2015, 3, 6, 10, 53, 42)
+        rec.field_list = range(2, 24) + [31]
+        rec.field_data = str(_encode_dict(
+            self.DAVIS_SAMPLE,
+            get_sample_field_definitions("DAVIS"),
+            rec.field_list,
+            {
+                "extra_fields": range(1, 18)
+            }
+        ))
+        packet.add_record(rec)
+
+        rec = LiveDataRecord()
+        rec.station_id = 2  # WH1080
+        rec.sequence_id = 12345
+        rec.field_list = range(2, 10)
+        rec.field_data = str(_encode_dict(
+            self.GENERIC_LIVE,
+            get_live_field_definitions("FOWH1080"),
+            rec.field_list,
+            None
+        ))
+        packet.add_record(rec)
+
+        rec = SampleDataRecord()
+        rec.station_id = 3  # Generic
+        rec.timestamp = datetime(2015, 3, 7, 10, 53, 42)
+        rec.download_timestamp = datetime(2015, 3, 6, 10, 53, 42)
+        rec.field_list = range(2, 11)
+        rec.field_data = str(_encode_dict(
+            self.GENERIC_SAMPLE,
+            get_sample_field_definitions("GENERIC"),
+            rec.field_list,
+            None
+        ))
+        packet.add_record(rec)
+
+        rec = SampleDataRecord()
+        rec.station_id = 1  # Davis
+        rec.timestamp = datetime(2015, 3, 7, 10, 53, 42)
+        rec.download_timestamp = datetime(2015, 3, 6, 10, 53, 42)
+        rec.field_list = range(2, 24) + [31]
+
+        # Stick some record separators in the sample to make sure thats handled properly
+        samp = copy.deepcopy(self.DAVIS_SAMPLE)
+        samp["indoor_humidity"] = 0x1E
+        samp["wind_direction"] = 0x1E
+        samp["record_time"] = 0x1E
+        samp["solar_radiation"] = 0x1E
+
+        rec.field_data = str(_encode_dict(
+            samp,
+            get_sample_field_definitions("DAVIS"),
+            rec.field_list,
+            {
+                "extra_fields": range(1, 18)
+            }
+        ))
+        packet.add_record(rec)
+
+        rec = SampleDataRecord()
+        rec.station_id = 2  # WH1080
+        rec.timestamp = datetime(2015, 3, 7, 10, 53, 42)
+        rec.download_timestamp = datetime(2015, 3, 6, 10, 53, 42)
+        rec.field_list = range(2, 11)
+
+        # Stick some record separators in the sample to make sure thats handled properly
+        samp = copy.deepcopy(self.WH1080_SAMPLE)
+        samp["indoor_humidity"] = 0x1E
+        samp["wind_direction"] = 0x1E
+        samp["sample_interval"] = 0x1E
+        samp["record_number"] = 0x1E
+
+        rec.field_data = str(_encode_dict(
+            samp,
+            get_sample_field_definitions("FOWH1080"),
+            rec.field_list,
+            None
+        ))
+        packet.add_record(rec)
+
+        # This record contains the end-of-record marker early on in the header.
+        # We need to make sure this situation is still correctly handled.
+        rec = LiveDataRecord()
+        rec.station_id = 2  # WH1080
+        rec.sequence_id = 0x1E
+        rec.field_list = range(2, 10)
+        rec.field_data = str(_encode_dict(
+            self.GENERIC_LIVE,
+            get_live_field_definitions("FOWH1080"),
+            rec.field_list,
+            None
+        ))
+        packet.add_record(rec)
+        return packet
+
     def test_multi_record_round_trip(self):
         """
         Tests that what goes in comes back out.
@@ -178,81 +419,7 @@ class WeatherDataUDPPacketTests(unittest.TestCase):
             3: "GENERIC"
         }
 
-        packet = WeatherDataUDPPacket(sequence=5, authorisation_code=0xABCDEFAB)
-
-        # Add a selection of records
-        rec = SampleDataRecord()
-        rec.station_id = 1  # Davis
-        rec.timestamp = datetime(2015, 03, 07, 10, 53, 42)
-        rec.download_timestamp = datetime(2015, 03, 06, 10, 53, 42)
-        rec.field_list = [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27,
-                          29, 31]
-        # Given the above field list and hardware type, the field data should
-        # be 22 bytes
-        rec.field_data = "\xDE\xAD\xBE\xEF 123456789ABCEFAE3"
-        self.assertEqual(len(rec.field_data), 22)
-        packet.add_record(rec)
-
-        rec = LiveDataRecord()
-        rec.station_id = 2  # WH1080
-        rec.sequence_id = 12345
-        rec.field_list = [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27,
-                          29, 31]
-        # Given the above field list and hardware type, the field data should
-        # be 11 bytes
-        rec.field_data = "123456 \xDE\xAD\xBE\xEF"
-        self.assertEqual(len(rec.field_data), 11)
-        packet.add_record(rec)
-
-        rec = SampleDataRecord()
-        rec.station_id = 3  # Generic
-        rec.timestamp = datetime(2015, 03, 07, 10, 53, 42)
-        rec.download_timestamp = datetime(2015, 03, 06, 10, 53, 42)
-        rec.field_list = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28,
-                          30, 32]
-        # Given the above field list and hardware type, the field data should
-        # be 9 bytes
-        rec.field_data = "123 \x1E 456"
-        self.assertEqual(len(rec.field_data), 9)
-        packet.add_record(rec)
-
-        rec = SampleDataRecord()
-        rec.station_id = 1  # Davis
-        rec.timestamp = datetime(2015, 03, 07, 10, 53, 42)
-        rec.download_timestamp = datetime(2015, 03, 06, 10, 53, 42)
-        rec.field_list = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
-                          17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
-                          30, 31]
-        # Given the above field list and hardware type, the field data should
-        # be 44 bytes
-        rec.field_data = "\xDE\xAD \xBE\xEF \x1E More \x1E separator \x1E " \
-                         "testing 123456789"
-        self.assertEqual(len(rec.field_data), 44)
-        packet.add_record(rec)
-
-        rec = SampleDataRecord()
-        rec.station_id = 2  # WH1080
-        rec.timestamp = datetime(2015, 03, 07, 10, 53, 42)
-        rec.download_timestamp = datetime(2015, 03, 06, 10, 53, 42)
-        rec.field_list = [1, 2, 3, 4, 5]
-        # Given the above field list and hardware type, the field data should
-        # be 10 bytes
-        rec.field_data = """a\x1Eb\x1Ec\x1Ed\x1Ee\x1E"""
-        self.assertEqual(len(rec.field_data), 10)
-        packet.add_record(rec)
-
-        # This record contains the end-of-record marker early on in the header.
-        # We need to make sure this situation is still correctly handled.
-        rec = LiveDataRecord()
-        rec.station_id = 2  # WH1080
-        rec.sequence_id = 0x1E
-        rec.field_list = [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27,
-                          29, 31]
-        # Given the above field list and hardware type, the field data should
-        # be 11 bytes
-        rec.field_data = "123456 \xDE\xAD\xBE\xEF"
-        self.assertEqual(len(rec.field_data), 11)
-        packet.add_record(rec)
+        packet = self.make_packet()
 
         encoded = packet.encode()
 

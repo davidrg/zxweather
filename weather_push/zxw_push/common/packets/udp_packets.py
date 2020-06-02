@@ -503,19 +503,22 @@ class WeatherDataUDPPacket(UDPPacket):
                                                        record.field_list,
                                                        hardware_type_map[record.station_id])
 
-                calculated_size = record.calculated_record_size(
-                    hardware_type_map[record.station_id], subfields)
+                # If subfields comes back None it means there was insufficient data to
+                # search for subfields. We need to continue accreting data.
+                if subfields is not None:
+                    calculated_size = record.calculated_record_size(
+                        hardware_type_map[record.station_id], subfields)
 
-                if len(record_data) > calculated_size:
-                    _log.msg("** DECODE ERROR: Misplaced end of record marker "
-                             "at {0}".format(point))
-                    return
+                    if len(record_data) > calculated_size:
+                        _log.msg("** DECODE ERROR: Misplaced end of record marker "
+                                 "at {0}".format(point))
+                        return
 
-                if len(record_data) == calculated_size:
-                    # Record decoded!
-                    self.add_record(record)
-                    record_data = ""
-                    continue
+                    if len(record_data) == calculated_size:
+                        # Record decoded!
+                        self.add_record(record)
+                        record_data = ""
+                        continue
 
             # ELSE: Its a WeatherDataRecord - this means we don't even have
             # enough data to decode the header of whatever type of record it is

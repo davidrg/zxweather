@@ -2848,3 +2848,15 @@ class FindSubfieldIdsTests(unittest.TestCase):
             sorted(subfields["extra_fields"]),
             "All subfield IDs should be present"
         )
+
+    def test_find_subfields_in_truncated_live(self):
+        live, prev_live, sample = self._get_current_and_prev()
+
+        encoded, field_ids, encode_results = encode_live_record(
+            live, prev_live, sample, DAVIS_HW_TYPE, False)
+
+        subfields = find_live_subfield_ids(encoded[0:len(encoded)/2], field_ids, DAVIS_HW_TYPE)
+
+        self.assertIsNone(subfields,
+                         "Result should be None if there was insufficient data to complete search")
+#
