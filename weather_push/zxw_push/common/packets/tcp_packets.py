@@ -8,6 +8,26 @@ from zxw_push.common.data_codecs import timestamp_decode, timestamp_encode, find
 from zxw_push.common.packets.common import Packet, StationInfoRecord, \
     SampleDataRecord, LiveDataRecord, WeatherRecord
 
+def toHexString(string):
+    """
+    Converts the supplied string to hex.
+    :param string: Input string
+    :return:
+    """
+
+    if isinstance(string, bytearray):
+        string = str(string)
+
+    result = ""
+    for char in string:
+
+        hex_encoded = hex(ord(char))[2:]
+        if len(hex_encoded) == 1:
+            hex_encoded = '0' + hex_encoded
+
+        result += r'\x{0}'.format(hex_encoded)
+    return result
+
 
 class TcpPacket(Packet):
     def __init__(self, packet_type):
@@ -373,11 +393,12 @@ class WeatherDataTCPPacket(TcpPacket):
 
     _FMT_LENGTH = "H"
 
-    def __init__(self):
+    def __init__(self, log_output=log.msg):
         super(WeatherDataTCPPacket, self).__init__(0x07)
         self._records = []
         self._encoded_records = []
         self._length = None
+        self._log = log_output
 
     @staticmethod
     def packet_size_bytes_required():
@@ -546,9 +567,8 @@ class WeatherDataTCPPacket(TcpPacket):
             # Decode the record so we know what type it is
             record = self._decode_record(record_data)
             if record is None:
-                log.msg("** DECODE ERROR: Invalid record type ID {0}".format(
-                    ord(record_data[0])))
-
+                self._log("** DECODE ERROR: Invalid record type ID {0}. Full record is:\n{1}".format(
+                    ord(record_data[0]), toHexString(record_data)))
                 return
 
             # If it is a live or sample record see if we've got all the data
@@ -567,26 +587,29 @@ class WeatherDataTCPPacket(TcpPacket):
                                                        record.field_list,
                                                        hardware_type_map[record.station_id])
 
-                calculated_size = record.calculated_record_size(
-                    hardware_type_map[record.station_id], subfields)
+                # If subfields comes back None it means there was insufficient data to
+                # search for subfields. We need to continue accreting data.
+                if subfields is not None:
+                    calculated_size = record.calculated_record_size(
+                        hardware_type_map[record.station_id], subfields)
 
-                if len(record_data) > calculated_size:
-                    log.msg("** DECODE ERROR: Misplaced end of record marker "
-                            "at {0}".format(point))
-                    return
+                    if len(record_data) > calculated_size:
+                        self._log("** DECODE ERROR: Misplaced end of record marker "
+                                "at {0}".format(point))
+                        return
 
-                if len(record_data) == calculated_size:
-                    # Record decoded!
-                    self.add_record(record)
-                    record_data = ""
-                    continue
+                    if len(record_data) == calculated_size:
+                        # Record decoded!
+                        self.add_record(record)
+                        record_data = ""
+                        continue
 
             # ELSE: Its a WeatherDataRecord - this means we don't even have
             # enough data to decode the header of whatever type of record it is
             # Continue fetching data.
 
             if len(data_buffer) == 0 and not rs:
-                log.msg("** DECODE ERROR: Unable to decode record - no more "
+                self._log("** DECODE ERROR: Unable to decode record - no more "
                         "data in packet.")
                 return
 

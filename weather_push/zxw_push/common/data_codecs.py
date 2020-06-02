@@ -596,6 +596,9 @@ common_live_sample_field_ids = {
 def get_sample_field_definitions(hw_type):
     return _sample_fields[hw_type.upper()]
 
+def get_live_field_definitions(hw_type):
+    return _live_fields[hw_type.upper()]
+
 def _encode_dict(data_dict, field_definitions, field_ids, subfield_ids):
     """
     Encodes a dictionary of values into a byte string using the supplied
@@ -772,10 +775,14 @@ def _find_subfield_ids(encoded_data, field_definitions, field_ids):
     This function is similar to _decode_dict in the way it works but instead of
     decoding an encoded dict it only looks to see what subfield ids are present.
 
+    If encoded_data does not fully cover all specified field IDs then None will
+    be returned. Call again with more data.
+
     :param encoded_data: Encoded data for the fields specified in field_ids
     :param field_definitions: Field definitions for the specified field_ids
     :param field_ids: Field_ids known to be present in encoded_data
-    :return: List of subfield IDs present.
+    :return: List of subfield IDs present or None if insufficient data was supplied
+        to complete the search.
     """
     result = {}
 
@@ -820,6 +827,10 @@ def _find_subfield_ids(encoded_data, field_definitions, field_ids):
             field_type = "!" + field_type
             field_size = struct.calcsize(field_type)
             offset += field_size
+
+        if offset > len(encoded_data):
+            # Insufficient data to complete search for subfields. Return failure.
+            return None
 
     return result
 
@@ -937,6 +948,9 @@ def _calculate_encoded_size(field_definitions, field_ids, subfield_ids):
 
             total_size += 4  # For the header
             total_size += _calculate_encoded_size(subfield_definitions, sub_field_ids, None)
+        elif field_type == _SUB_FIELDS:
+            raise Exception("Unable to calcualte encoded size: field definitions include one or more subfields but no "
+                            "subfield IDs have been specified.")
         else:   # Regular scalar field - size depends on type
             total_size += struct.calcsize("!" + field_type)
 
