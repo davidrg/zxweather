@@ -473,6 +473,12 @@ class WeatherDataTCPPacket(TcpPacket):
 
         packet_length = len(header_data) + length_size + len(packet_data)
 
+        if packet_length > 65535:
+            raise Exception("WeatherDataTCPPacket is over-full. Maximum allowed size is 65535 bytes. "
+                            "This packet is {0} and contains {1} records.".format(
+                packet_length, len(self._records)
+            ))
+
         packet_size = struct.pack(self._FMT_ENDIANNESS + self._FMT_LENGTH,
                                   packet_length)
 

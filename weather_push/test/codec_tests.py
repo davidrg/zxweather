@@ -7,7 +7,8 @@ from zxw_push.common.data_codecs import _encode_dict, _U_INT_16, _U_INT_32, \
     _build_field_id_list, build_field_id_list_for_live_against_sample, get_live_data_field_options, \
     calculate_encoded_size, all_live_field_ids, _davis_live_fields, _davis_sample_fields, encode_live_record, \
     _float_encode, _float_encode_2dp, _date_encode, timestamp_encode, set_field_ids, get_sample_data_field_options, \
-    all_sample_field_ids, encode_sample_record, _patch_record, _find_subfield_ids, find_live_subfield_ids
+    all_sample_field_ids, encode_sample_record, _patch_record, _find_subfield_ids, find_live_subfield_ids, \
+    get_sample_field_definitions
 
 __author__ = 'david'
 
@@ -55,23 +56,23 @@ DAVIS_LIVE = {
     "uv_index": 9,  # 18
     "solar_radiation": 1043,  # 19
     "extra_fields": {  # 31    C (all fields)
-        "leaf_wetness_1": 12,  # 1
-        "leaf_wetness_2": 8,  # 2
-        "leaf_temperature_1": 15,  # 3
-        "leaf_temperature_2": 19,  # 4
-        "soil_moisture_1": 1,  # 5
-        "soil_moisture_2": 2,  # 6
-        "soil_moisture_3": 3,  # 7
-        "soil_moisture_4": 4,  # 8
-        "soil_temperature_1": 5,  # 9
-        "soil_temperature_2": 6,  # 10
-        "soil_temperature_3": 7,  # 11
-        "soil_temperature_4": 8,  # 12
-        "extra_temperature_1": 9,  # 13
-        "extra_temperature_2": 10,  # 14
-        "extra_temperature_3": 11,  # 15
-        "extra_humidity_1": 12,  # 16
-        "extra_humidity_2": 13  # 17
+        "leaf_wetness_1": 12,
+        "leaf_wetness_2": 8,
+        "leaf_temperature_1": -1.5,
+        "leaf_temperature_2": 19,
+        "soil_moisture_1": 1,
+        "soil_moisture_2": 2,
+        "soil_moisture_3": 3,
+        "soil_moisture_4": 4,
+        "soil_temperature_1": 5,
+        "soil_temperature_2": -3.7,
+        "soil_temperature_3": 7,
+        "soil_temperature_4": 8,
+        "extra_temperature_1": 9,
+        "extra_temperature_2": 10,
+        "extra_temperature_3": -4,
+        "extra_humidity_1": 12,
+        "extra_humidity_2": 13
     }
 }
 
@@ -103,19 +104,19 @@ DAVIS_SAMPLE = {
     "extra_fields": {  # C (all fields)
         "leaf_wetness_1": 12,
         "leaf_wetness_2": 8,
-        "leaf_temperature_1": 15,
+        "leaf_temperature_1": -1.5,
         "leaf_temperature_2": 19,
         "soil_moisture_1": 1,
         "soil_moisture_2": 2,
         "soil_moisture_3": 3,
         "soil_moisture_4": 4,
         "soil_temperature_1": 5,
-        "soil_temperature_2": 6,
+        "soil_temperature_2": -3.7,
         "soil_temperature_3": 7,
         "soil_temperature_4": 8,
         "extra_temperature_1": 9,
         "extra_temperature_2": 10,
-        "extra_temperature_3": 11,
+        "extra_temperature_3": -4,
         "extra_humidity_1": 12,
         "extra_humidity_2": 13
     }
@@ -1657,6 +1658,22 @@ class FieldIDListTests(unittest.TestCase):
         self.assertListEqual(result, expected_result)
         self.assertDictEqual(subfields_result, expected_subfields_result)
 
+    def test_sample_with_some_missing_subfields_fields(self):
+        base = copy.deepcopy(DAVIS_SAMPLE)
+        samp = copy.deepcopy(DAVIS_SAMPLE)
+
+        samp["extra_fields"].pop("leaf_wetness_1", None)
+
+        result, subfields_result = _build_field_id_list(
+            samp, base, get_sample_field_definitions("DAVIS"), [])
+
+        # List should be empty as nothing needs to be transmitted
+        expected = []
+
+        self.assertListEqual(sorted(result), sorted(expected))
+
+
+
 
 class LiveDataFieldOptionsTests(unittest.TestCase):
     """
@@ -2192,7 +2209,7 @@ class LiveDataEncodeTests(unittest.TestCase):
         all_fields_size = calculate_encoded_size(all_fields, all_subfields, DAVIS_HW_TYPE, True)
 
         all_live_fields = struct.pack(
-            "!BhhBHHHHbHHHBHBBBHLBBBBBBBBBBBBBBBBB",
+            "!BhhBHHHHbHHHBHBBBHLbbhhbbbbhhhhhhhbb",
             # ^^^^^^^^^^^^^^^^^^^^ ^ ^   ^   ^  ^
             # ||THP||DBRS||C||US|| | SM  |   |  |
             # |IT |GW   |TB|FR  || LT    |   |  EH
@@ -2217,14 +2234,14 @@ class LiveDataEncodeTests(unittest.TestCase):
             _float_encode(live["uv_index"]),
             live["solar_radiation"],
             set_field_ids(range(1, 18)),
-            _float_encode(live["extra_fields"]["leaf_wetness_1"]),
-            _float_encode(live["extra_fields"]["leaf_wetness_2"]),
+            live["extra_fields"]["leaf_wetness_1"],
+            live["extra_fields"]["leaf_wetness_2"],
             _float_encode(live["extra_fields"]["leaf_temperature_1"]),
             _float_encode(live["extra_fields"]["leaf_temperature_2"]),
-            _float_encode(live["extra_fields"]["soil_moisture_1"]),
-            _float_encode(live["extra_fields"]["soil_moisture_2"]),
-            _float_encode(live["extra_fields"]["soil_moisture_3"]),
-            _float_encode(live["extra_fields"]["soil_moisture_4"]),
+            live["extra_fields"]["soil_moisture_1"],
+            live["extra_fields"]["soil_moisture_2"],
+            live["extra_fields"]["soil_moisture_3"],
+            live["extra_fields"]["soil_moisture_4"],
             _float_encode(live["extra_fields"]["soil_temperature_1"]),
             _float_encode(live["extra_fields"]["soil_temperature_2"]),
             _float_encode(live["extra_fields"]["soil_temperature_3"]),
@@ -2232,8 +2249,8 @@ class LiveDataEncodeTests(unittest.TestCase):
             _float_encode(live["extra_fields"]["extra_temperature_1"]),
             _float_encode(live["extra_fields"]["extra_temperature_2"]),
             _float_encode(live["extra_fields"]["extra_temperature_3"]),
-            _float_encode(live["extra_fields"]["extra_humidity_1"]),
-            _float_encode(live["extra_fields"]["extra_humidity_2"])
+            live["extra_fields"]["extra_humidity_1"],
+            live["extra_fields"]["extra_humidity_2"]
         )
 
         print(toHexString(encoded))
@@ -2588,6 +2605,53 @@ class SampleEncodeTests(unittest.TestCase):
             "Sample-diff method should be used"
         )
 
+    def test_sample_diff_works_with_only_a_subfield_difference(self):
+        sample, prev_sample = self._get_current_and_prev()
+
+        # Only difference between the two samples is the value of a single subfield
+        sample["extra_fields"]["leaf_wetness_1"] = 42
+
+        encoded, field_ids, option_info = encode_sample_record(sample, prev_sample, DAVIS_HW_TYPE)
+
+        all_fields = all_sample_field_ids[DAVIS_HW_TYPE.upper()][0]
+        all_subfields = all_sample_field_ids[DAVIS_HW_TYPE.upper()][1]
+        all_fields_size = calculate_encoded_size(all_fields, all_subfields, DAVIS_HW_TYPE, False)
+
+        expected_result = struct.pack("!LLB",
+                                      timestamp_encode(sample["sample_diff_timestamp"]),
+                                      set_field_ids([1,]),
+                                      sample["extra_fields"]["leaf_wetness_1"])
+
+        self.assertEqual(encoded, expected_result,
+                         "Fields should be encoded correctly.")
+        self.assertListEqual(
+            sorted(field_ids),
+            sorted([
+                self._field_id_for_name("sample_diff_timestamp"),
+                self._field_id_for_name("extra_fields")
+            ]),
+            "Only sample diff timestamp and extra_fields should be included"
+        )
+
+        self.assertEqual(
+            option_info[0],
+            all_fields_size,
+            "Uncompressed value should be the size of all fields"
+        )
+
+        self.assertEqual(
+            option_info[1],
+            all_fields_size - 9,
+            "Savings should be all fields size minus 9 bytes for the two fields "
+            "and one subfield being sent"
+        )
+
+        self.assertEqual(
+            option_info[2],
+            "sample-diff",
+            "Sample-diff method should be used"
+        )
+
     def test_no_diff_works(self):
         sample, prev_sample = self._get_current_and_prev()
 
@@ -2599,12 +2663,12 @@ class SampleEncodeTests(unittest.TestCase):
         all_fields_size = calculate_encoded_size(all_fields, all_subfields, DAVIS_HW_TYPE, False)
 
         expected_result = struct.pack(
-            "!BhhBHHHHHHHhhhHBHBLHBBLBBBBBBBBBBBBBBBBB",
-            #^^^^^^^^^^^^^^^^^^^^^^^^ ^ ^   ^   ^  ^
-            #||T||||DR|||L|||GU|||F|LW| SM  ST  ET EH
-            #|IT|||GW ||HT||WSC||HU|  LT
-            #IH HPAW  |RD |SR  |HSR|
-            #         RT  HRR  EVA Subfield HDR
+            "!BhhBHHHHHHHhhhHBHBLHBBLbbhhbbbbhhhhhhhbb",
+            # ^^^^^^^^^^^^^^^^^^^^^^^^ ^ ^   ^   ^  ^
+            # ||T||||DR|||L|||GU|||F|LW| SM  ST  ET EH
+            # |IT|||GW ||HT||WSC||HU|  LT
+            # IH HPAW  |RD |SR  |HSR|
+            #          RT  HRR  EVA Subfield HDR
             sample["indoor_humidity"],
             _float_encode_2dp(sample["indoor_temperature"]),
             _float_encode_2dp(sample["temperature"]),
@@ -2628,14 +2692,14 @@ class SampleEncodeTests(unittest.TestCase):
             _float_encode(sample["high_uv_index"]),
             sample["forecast_rule_id"],
             set_field_ids(range(1, 18)),
-            _float_encode(sample["extra_fields"]["leaf_wetness_1"]),
-            _float_encode(sample["extra_fields"]["leaf_wetness_2"]),
+            sample["extra_fields"]["leaf_wetness_1"],
+            sample["extra_fields"]["leaf_wetness_2"],
             _float_encode(sample["extra_fields"]["leaf_temperature_1"]),
             _float_encode(sample["extra_fields"]["leaf_temperature_2"]),
-            _float_encode(sample["extra_fields"]["soil_moisture_1"]),
-            _float_encode(sample["extra_fields"]["soil_moisture_2"]),
-            _float_encode(sample["extra_fields"]["soil_moisture_3"]),
-            _float_encode(sample["extra_fields"]["soil_moisture_4"]),
+            sample["extra_fields"]["soil_moisture_1"],
+            sample["extra_fields"]["soil_moisture_2"],
+            sample["extra_fields"]["soil_moisture_3"],
+            sample["extra_fields"]["soil_moisture_4"],
             _float_encode(sample["extra_fields"]["soil_temperature_1"]),
             _float_encode(sample["extra_fields"]["soil_temperature_2"]),
             _float_encode(sample["extra_fields"]["soil_temperature_3"]),
@@ -2643,8 +2707,8 @@ class SampleEncodeTests(unittest.TestCase):
             _float_encode(sample["extra_fields"]["extra_temperature_1"]),
             _float_encode(sample["extra_fields"]["extra_temperature_2"]),
             _float_encode(sample["extra_fields"]["extra_temperature_3"]),
-            _float_encode(sample["extra_fields"]["extra_humidity_1"]),
-            _float_encode(sample["extra_fields"]["extra_humidity_2"])
+            sample["extra_fields"]["extra_humidity_1"],
+            sample["extra_fields"]["extra_humidity_2"]
         )
 
         self.assertEqual(encoded, expected_result,
@@ -2725,7 +2789,6 @@ class PatchRecordTests(unittest.TestCase):
         self.assertDictEqual(sample, patched,
                              "Full sample should pass through patching unmodified")
 
-
     def test_missing_field_is_patched(self):
         """
         Test a regular missing field is patched in
@@ -2782,7 +2845,9 @@ class PatchRecordTests(unittest.TestCase):
 
         # Remove the temperature field
         sample["extra_fields"].pop("soil_moisture_1", None)
-        sample_fields.remove(self._field_id_for_name("extra_fields"))
+        # NOTE: We don't remove the extra_fields ID from the list of fields in the
+        # sample as while one of the extra_fields fields is missing the extra_fields
+        # subfield itself is not - its header is present.
 
         patched = _patch_record(sample, prev_sample, sample_fields, all_fields,
                                 _davis_sample_fields)
