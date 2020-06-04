@@ -3,6 +3,7 @@
 Functions for encoding and decoding weather data to be sent over the wire
 """
 import calendar
+import copy
 import struct
 import datetime
 
@@ -276,32 +277,36 @@ _U_INT_32_NULL = 4294967295
 # Where Sub-field set is a list of field descriptions for all fields the subfields value can contain. Note that a
 # subfield can not contain further subfields (the _SUB_FIELDS data type is only valid for the top level field set)
 
-# TODO: is 8 bits enough? The console sends it as whole degrees F + 90. From
-# there we subtract 90, convert to degrees C and store as a float.
-
 # This defines all of the extra-sensor fields. Most stations won't be
 # transmitting this data as it requires fairly expensive extra-sensor
 # transmitters.
+# TODO: see if we can cram the temperature sensors into one an _INT_8: the station
+#   logs in whole fahrenheit so the only reason we're dealing with floats here rather
+#   than integers is because of the F->C conversion. If we transmit in whole fahrenheit
+#   here it would save one byte per field without any loss in accuracy.
+#     Only real down-side to this is support for the WeatherLink Live: This provides
+#     higher resolution data for these extra sensors which we'd have to us a 16bit
+#     field to transmit.
 _davis_extra_fields = [
     # Num, name, type, encode conversion function, decode conversion function
     (0, None, None, None, None, None),
-    (1, "leaf_wetness_1", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
-    (2, "leaf_wetness_2", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
-    (3, "leaf_temperature_1", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
-    (4, "leaf_temperature_2", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
-    (5, "soil_moisture_1", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
-    (6, "soil_moisture_2", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
-    (7, "soil_moisture_3", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
-    (8, "soil_moisture_4", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
-    (9, "soil_temperature_1", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
-    (10, "soil_temperature_2", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
-    (11, "soil_temperature_3", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
-    (12, "soil_temperature_4", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
-    (13, "extra_temperature_1", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
-    (14, "extra_temperature_2", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
-    (15, "extra_temperature_3", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
-    (16, "extra_humidity_1", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
-    (17, "extra_humidity_2", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),
+    (1, "leaf_wetness_1", _INT_8, None, None, _INT_8_NULL), # values 0-15 in steps of 1
+    (2, "leaf_wetness_2", _INT_8, None, None, _INT_8_NULL),
+    (3, "leaf_temperature_1", _INT_16, _float_encode, _float_decode, _INT_16_NULL),
+    (4, "leaf_temperature_2", _INT_16, _float_encode, _float_decode, _INT_16_NULL),
+    (5, "soil_moisture_1", _INT_8, None, None, _INT_8_NULL), # values 0-200 in steps of 1
+    (6, "soil_moisture_2", _INT_8, None, None, _INT_8_NULL),
+    (7, "soil_moisture_3", _INT_8, None, None, _INT_8_NULL),
+    (8, "soil_moisture_4", _INT_8, None, None, _INT_8_NULL),
+    (9, "soil_temperature_1", _INT_16, _float_encode, _float_decode, _INT_16_NULL),
+    (10, "soil_temperature_2", _INT_16, _float_encode, _float_decode, _INT_16_NULL),
+    (11, "soil_temperature_3", _INT_16, _float_encode, _float_decode, _INT_16_NULL),
+    (12, "soil_temperature_4", _INT_16, _float_encode, _float_decode, _INT_16_NULL),
+    (13, "extra_temperature_1", _INT_16, _float_encode, _float_decode, _INT_16_NULL),
+    (14, "extra_temperature_2", _INT_16, _float_encode, _float_decode, _INT_16_NULL),
+    (15, "extra_temperature_3", _INT_16, _float_encode, _float_decode, _INT_16_NULL),
+    (16, "extra_humidity_1", _INT_8, None, None, _INT_8_NULL), # Values 0-100 in steps of 1
+    (17, "extra_humidity_2", _INT_8, None, None, _INT_8_NULL),
     (18, None, None, None, None, None),
     (19, None, None, None, None, None),
     (20, None, None, None, None, None),
@@ -685,9 +690,14 @@ def _encode_dict(data_dict, field_definitions, field_ids, subfield_ids):
                 encoded_value = struct.pack(field_type, field_value)
             except struct.error as e:
                 log.msg("Failed to encode value {0} for field {1} (type {2}) - {3}".format(
-                    field_name, field_value, field_type, e.message
+                    field_value, field_name, field_type, e.message
                 ))
                 log.msg(repr(data_dict))
+
+                print("Failed to encode value {0} for field {1} (type {2}) - {3}".format(
+                    field_value, field_name, field_type, e.message
+                ))
+                print(repr(data_dict))
                 raise e
 
             result += encoded_value
@@ -808,6 +818,10 @@ def _find_subfield_ids(encoded_data, field_definitions, field_ids):
 
         if field_type == _SUB_FIELDS:
             subfield_definitions = field[3]
+
+            if offset+4 > len(encoded_data):
+                # Insufficient data to complete search for subfields. Return failure.
+                return None
 
             subfields_header = struct.unpack_from("!L", encoded_data, offset)[0]
             offset += 4  # Skip over the header now we've decoded it.
@@ -1559,7 +1573,7 @@ def encode_sample_record(sample_record, previous_sample_record, hardware_type):
 def _patch_record(record, base_record, existing_field_ids, all_field_ids, field_definitions):
     missing_fields = [f for f in all_field_ids if f not in existing_field_ids]
 
-    new_record = record
+    new_record = copy.deepcopy(record)
 
     for field in field_definitions:
         field_id = field[0]
@@ -1569,7 +1583,9 @@ def _patch_record(record, base_record, existing_field_ids, all_field_ids, field_
         if name is None:
             continue
 
-        if field_id not in missing_fields:
+        if field_id not in missing_fields and field_type != _SUB_FIELDS:
+            # Note that if the field is actually a set of subfields we need to have a
+            # look at its subfield header before we can decide if it can be skipped.
             continue
 
         # If its a subfield and at least one of that subfields fields are present
@@ -1579,9 +1595,6 @@ def _patch_record(record, base_record, existing_field_ids, all_field_ids, field_
         # record.
         if field_type == _SUB_FIELDS and name in record:
             subfield_definitions = field[3]
-            # TODO: existing subfield IDs? Where does that come from?
-            #  Looks like its extracted from the packet header. We'll have to build the list up ourselves based
-            #  on the keys present in the dictionary
 
             for subfield in subfield_definitions:
                 #subfield_id = subfield[0]
@@ -1600,11 +1613,10 @@ def _patch_record(record, base_record, existing_field_ids, all_field_ids, field_
                 # no choice but to skip it
                 if subfield_name not in base_record[name]:
                     log.msg("Warning: field {0} in subfield {1} is missing a value in both supplied and base "
-                            "records.".format(name, subfield_name))
+                            "records. Further errors may follow.".format(name, subfield_name))
                     continue
 
-                record[name][subfield_name] = base_record[name][subfield_name]
-
+                new_record[name][subfield_name] = base_record[name][subfield_name]
         else:
             new_record[name] = base_record[name]
 

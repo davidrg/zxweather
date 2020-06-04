@@ -6,7 +6,7 @@ import copy
 from datetime import datetime
 
 import psycopg2
-from psycopg2.extras import DictCursor
+from psycopg2.extras import DictCursor, DictRow
 
 from twisted.enterprise import adbapi
 from twisted.internet import defer
@@ -37,6 +37,15 @@ class ServerDatabase(object):
 
     @staticmethod
     def _to_real_dict(value):
+        if not isinstance(value, DictRow) and not isinstance(value, dict):
+            log.msg("**WARNING: Unexpected parameter type '{0}' passed to _to_real_dict. "
+                    "Further errors may follow. Parameter value is: {1}".format(
+                value.__class__.__name__, value))
+
+        if isinstance(value, dict):
+            # No conversion required - its already a real dict. Just return a copy.
+            return copy.deepcopy(value)
+
         result = {}
 
         for key in value.keys():
@@ -409,9 +418,9 @@ class ServerDatabase(object):
             defer.returnValue(None)
 
         if hw_type == 'DAVIS':
-            result = self._move_davis_extras_to_subfield(result)
+            result = self._move_davis_extras_to_subfield(result[0])
 
-        defer.returnValue(result[0])
+        defer.returnValue(result)
 
     @defer.inlineCallbacks
     def _store_generic_live(self, station_id, live_record):

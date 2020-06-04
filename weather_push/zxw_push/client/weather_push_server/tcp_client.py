@@ -494,7 +494,7 @@ class WeatherPushProtocol(protocol.Protocol):
 
         # Max is really 65535 but we'll leave some space for the live record and
         # packet headers, etc.
-        max_sample_payload = 65000
+        max_sample_payload = 60000
 
         data_size = 0
 
@@ -522,7 +522,8 @@ class WeatherPushProtocol(protocol.Protocol):
                 # as they're in the same packet.
                 previous_sample = sample
 
-                data_size += record.encoded_size()
+                # +1 for the record terminator the packet includes for each record
+                data_size += record.encoded_size() + 1
 
                 if data_size > max_sample_payload:
                     # Enough samples! We need to leave some space in this packet
