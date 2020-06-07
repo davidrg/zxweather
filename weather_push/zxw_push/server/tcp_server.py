@@ -50,6 +50,7 @@ class WeatherPushTcpServer(protocol.Protocol):
 
         self._live_record_cache = {}
         self._live_record_cache_ids = {}
+        self._last_live_record_id = dict()
 
         self._sample_record_cache = {}
         self._sample_record_cache_ids = []
@@ -61,6 +62,8 @@ class WeatherPushTcpServer(protocol.Protocol):
         self._authenticated = False
 
         self._authorisation_code = authorisation_code
+
+        self._undecoded_live_records = dict()
 
     def start_protocol(self, db):
         """
@@ -247,15 +250,38 @@ class WeatherPushTcpServer(protocol.Protocol):
         self._live_record_cache = {}
         self._live_record_cache_ids = {}
 
+    @defer.inlineCallbacks
     def _get_live_record(self, record_id, station_id):
 
         if station_id not in self._live_record_cache.keys():
-            return None  # We've never seen live data for this station before.
+            log.msg("No live data cached for station {0}".format(station_id))
+            # We've never seen live data for this station before.
+            defer.returnValue(None)
+            return
 
         if record_id in self._live_record_cache[station_id].keys():
-            return self._live_record_cache[station_id][record_id]
+            defer.returnValue(self._live_record_cache[station_id][record_id])
+            return
 
-        return None
+        log.msg("Live record {0} for station {1} not found. Cached records are: {2}".format(
+            record_id, station_id, repr(self._live_record_cache[station_id].keys())
+        ))
+
+        if station_id in self._undecoded_live_records:
+            if record_id in self._undecoded_live_records[station_id]:
+                log.msg("Found record {0} in undecoded records store. Attempting to decode...".format(
+                    record_id))
+                record = self._undecoded_live_records[station_id][record_id]
+                new_record = yield self._decode_live_record(record, False, False)
+                if new_record is not None:
+                    log.msg("Successfully decoded record {0} from undecoded records store!".format(
+                        record_id
+                    ))
+                    self._undecoded_live_records[station_id].pop(record_id, None)
+                    defer.returnValue(new_record)
+                    return
+
+        defer.returnValue(None)
 
     def _cache_live_record(self, new_live, record_id, station_id):
 
@@ -269,6 +295,10 @@ class WeatherPushTcpServer(protocol.Protocol):
         while len(self._live_record_cache_ids[station_id]) > self._MAX_LIVE_RECORD_CACHE:
             rid = self._live_record_cache_ids[station_id].pop(0)
             del self._live_record_cache[station_id][rid]
+
+        log.msg("live cache for station {0} is now: {1}".format(
+            station_id, repr(sorted(self._live_record_cache[station_id]))
+        ))
 
     @staticmethod
     def _to_real_dict(value):
@@ -358,6 +388,7 @@ class WeatherPushTcpServer(protocol.Protocol):
 
         defer.returnValue(new_live)
 
+    @defer.inlineCallbacks
     def _build_live_from_live_diff(self, data, station_id, fields, hw_type, sequence_id):
         """
         Decompresses a live record compressed using live-diff. If the required
@@ -374,7 +405,9 @@ class WeatherPushTcpServer(protocol.Protocol):
         :return: Decompressed live data or None on failure
         """
         other_live_id = data["live_diff_sequence"]
-        other_live = self._get_live_record(other_live_id, station_id)
+        other_live = yield self._get_live_record(other_live_id, station_id)
+
+        log.msg("Decode live {0} based on {1}".format(sequence_id, other_live_id))
 
         if other_live is None:
             # base record could not be found. This means that
@@ -384,33 +417,35 @@ class WeatherPushTcpServer(protocol.Protocol):
             # Either we can't decode this record. Count it as an
             # error and move on.
             log.msg("** NOTICE: Live record decoding failed for station {2} - other live not "
-                    "in cache. This is probably a client bug. This live is {0},"
-                    " other is {1}".format(sequence_id, other_live_id, station_id))
-            return None
+                    "in cache. Likely cause is network error or out-of-order processing. "
+                    "This live is {0}, other is {1}".format(sequence_id, other_live_id, station_id))
+            defer.returnValue(None)
+            return
 
-        return patch_live_from_live(data, other_live, fields, hw_type)
+        defer.returnValue(patch_live_from_live(data, other_live, fields, hw_type))
 
     @defer.inlineCallbacks
-    def _handle_live_record(self, record):
+    def _decode_live_record(self, record, cache=True, put_aside=True):
         """
-        Handles decoding and broadcasting a live record
+        Handles decoding a live record.
 
-        :param record: The received weather record
+        On success the live record will be stored in the recent live records cache and returned.
+        On failure None is returned.
+
+        :param record: Received weather record
         :type record: LiveDataRecord
-        :return: True on success, False on Failure
-        :rtype: bool
+        :return: decoded live record
         """
 
         fields = record.field_list
         data = record.field_data
         hw_type = self._station_id_hardware_type[record.station_id]
-        station_code = self._station_id_code[record.station_id]
 
         rec_data = decode_live_data(data, hw_type, fields)
 
         if "live_diff_sequence" in rec_data:
 
-            new_live = self._build_live_from_live_diff(
+            new_live = yield self._build_live_from_live_diff(
                 rec_data, record.station_id, fields, hw_type,
                 record.sequence_id
             )
@@ -425,17 +460,93 @@ class WeatherPushTcpServer(protocol.Protocol):
             # the record.
             new_live = rec_data
 
+            # We can now clear old un-decoded records from the un-decoded
+            # records store.
+            if record.station_id in self._undecoded_live_records:
+                for key in self._undecoded_live_records[record.station_id].keys():
+                    # Throw away all records older than this one or all records that
+                    # are a long way in the future (to account for the sequence ID
+                    # wrapping around)
+                    if key < record.sequence_id or key > record.sequence_id + 100:
+                        log.msg("Discarding live {0} for station {1} - "
+                                "made obsolete by receipt of full live record".format(
+                            key, record.station_id))
+                        self._undecoded_live_records[record.station_id].pop(key, None)
+
         if new_live is None:
             # Couldn't decompress - base record doesn't exist
-            defer.returnValue(False)
 
-        self._cache_live_record(new_live, record.sequence_id,
-                                record.station_id)
+            if put_aside:
+                # We'll just put it aside for now in case the base record turns up later.
+                if record.station_id not in self._undecoded_live_records:
+                    self._undecoded_live_records[record.station_id] = dict()
+                self._undecoded_live_records[record.station_id][record.sequence_id] = record
+
+                log.msg("Undecoded messages for station {0}: {1}".format(
+                    record.station_id,
+                    repr(sorted(self._undecoded_live_records[record.station_id].keys()))
+                ))
+
+            # Decode failed.
+            defer.returnValue(None)
+            return
+
+        if cache:
+            self._cache_live_record(new_live, record.sequence_id,
+                                    record.station_id)
+
+        defer.returnValue(new_live)
+
+    @defer.inlineCallbacks
+    def _handle_live_record(self, record):
+        """
+        Handles decoding and broadcasting a live record
+
+        :param record: The received weather record
+        :type record: LiveDataRecord
+        :return: True on success, False on Failure
+        :rtype: bool
+        """
+
+        if record.station_id not in self._last_live_record_id:
+            self._last_live_record_id[record.station_id] = None
+
+        new_live = yield self._decode_live_record(record)
+
+        if new_live is None:
+            defer.returnValue(False)
+            return
+
+        # We only really care about *NEW* live data. If a record arrives out-of-order and its
+        # older than the most recently received record we don't care about it. We still decode
+        # it above so the result can end up in cache so we can recover from missing dependency
+        # decode errors later on but we don't want to broadcast it.
+        last_live_id = self._last_live_record_id[record.station_id]
+        this_live_id = record.sequence_id
+        delta = None
+        if last_live_id is not None:
+            delta = this_live_id - last_live_id
+
+        # The live sequence wraps around after 65534. So 65535 == 0. So live 100 could actually
+        # be more recent than live 65400. For this reason if the ID appears to jump back a long
+        # way (more than 1000 live records or around 41 minutes) we'll consider this record to
+        # be newer.
+        if last_live_id is not None and this_live_id < last_live_id and delta > -1000:
+
+            # This live is obsolete. Its older than the most recent live record we've received
+            # for this station. No need to do anything with it.
+            log.msg("Discard live {0} for station {1} as its older than the "
+                    "last received ({2})".format(this_live_id, record.station_id, last_live_id))
+            return
+
+        station_code = self._station_id_code[record.station_id]
 
         # Insert decoded into the database as live data
         yield self._db.store_live_data(station_code, new_live)
 
         # TODO: Broadcast to message bus if configured
+
+        self._last_live_record_id[record.station_id] = this_live_id
 
         defer.returnValue(True)
 
