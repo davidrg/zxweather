@@ -1,7 +1,7 @@
 import datetime
 
 
-class StatisticsCollector(object):
+class ClientStatisticsCollector(object):
     """
     Collects statistics.
     """
@@ -109,15 +109,15 @@ def console_log_function(msg):
     print(msg)
 
 
-class MultiPeriodStatisticsCollector(object):
+class MultiPeriodClientStatisticsCollector(object):
     """
     Collects statistics for today, this week, this month and all time.
     """
     def __init__(self, time_source=datetime.datetime.now, log_function=console_log_function):
-        self.today = StatisticsCollector()
-        self.week = StatisticsCollector()
-        self.month = StatisticsCollector()
-        self.all_time = StatisticsCollector()
+        self.today = ClientStatisticsCollector()
+        self.week = ClientStatisticsCollector()
+        self.month = ClientStatisticsCollector()
+        self.all_time = ClientStatisticsCollector()
         self.now = time_source
 
         date = time_source().date()
@@ -208,31 +208,46 @@ class MultiPeriodStatisticsCollector(object):
         sample_stats = stats.get_sample_statistics()
         packet_stats = stats.get_packet_statistics()
 
+        live_data_saved = 0
+        sample_data_saved = 0
+
         live_by_algorithm = ""
         for algorithm in live_stats["algorithm"].keys():
+            total_unencoded = live_stats["algorithm"][algorithm]["total_unencoded_size"]
+            total_encoded = live_stats["algorithm"][algorithm]["total_encoded_size"]
+
             live_by_algorithm += "\t{algorithm}\n\t\tcount: {count}" \
-                                 "\n\t\ttotal unencoded size: {total_unencoded}" \
-                                 "\n\t\ttotal encoded size: {total_encoded}\n".format(
+                                 "\n\t\ttotal unencoded size: {total_unencoded} bytes" \
+                                 "\n\t\ttotal encoded size: {total_encoded} bytes" \
+                                 "\n\t\ttotal saved: {total_saved} bytes\n".format(
                 algorithm=algorithm,
                 count=live_stats["algorithm"][algorithm]["count"],
-                total_unencoded=live_stats["algorithm"][algorithm]["total_unencoded_size"],
-                total_encoded=live_stats["algorithm"][algorithm]["total_encoded_size"],
+                total_unencoded=total_unencoded,
+                total_encoded=total_encoded,
+                total_saved=total_unencoded-total_encoded
             )
+            live_data_saved += total_unencoded-total_encoded
 
         sample_by_algorithm = ""
         for algorithm in sample_stats["algorithm"].keys():
+            total_unencoded = sample_stats["algorithm"][algorithm]["total_unencoded_size"]
+            total_encoded = sample_stats["algorithm"][algorithm]["total_encoded_size"]
+
             sample_by_algorithm += "\t{algorithm}\n\t\tcount: {count}" \
-                                 "\n\t\ttotal unencoded size: {total_unencoded}" \
-                                 "\n\t\ttotal encoded size: {total_encoded}\n".format(
+                                 "\n\t\ttotal unencoded size: {total_unencoded} bytes" \
+                                 "\n\t\ttotal encoded size: {total_encoded} bytes" \
+                                 "\n\t\ttotal saved: {total_saved} bytes\n".format(
                 algorithm=algorithm,
                 count=sample_stats["algorithm"][algorithm]["count"],
-                total_unencoded=sample_stats["algorithm"][algorithm]["total_unencoded_size"],
-                total_encoded=sample_stats["algorithm"][algorithm]["total_encoded_size"],
+                total_unencoded=total_unencoded,
+                total_encoded=total_encoded,
+                total_saved=total_unencoded-total_encoded
             )
+            sample_data_saved += total_unencoded-total_encoded
 
         packets_by_type = ""
         for packet_type in packet_stats["type"].keys():
-            sample_by_algorithm += "\t{type}\n\t\tcount: {count}" \
+            packets_by_type += "\t{type}\n\t\tcount: {count}" \
                                  "\n\t\ttotal size: {size}\n".format(
                 type=packet_type,
                 count=packet_stats["type"][packet_type]["count"],
@@ -240,7 +255,7 @@ class MultiPeriodStatisticsCollector(object):
             )
 
         self.log("""Statistics for {period}
-------------------------------------
+-------------------------------------------------------------
 Total Live Records: {live_count}
 Live by encoding algorithm:
 {live_by_algorithm}
@@ -252,10 +267,223 @@ Samples by encoding algorithm:
 Total Packets: {packet_count}
 Packets by type:
 {packets_by_type}
+
+Total data saved: {total_saved}
+    - Live: {live_saved}
+    - Samples: {sample_saved}
 """.format(period=period,
            live_count=live_stats["count"],
            live_by_algorithm=live_by_algorithm,
            sample_count=sample_stats["count"],
            sample_by_algorithm=sample_by_algorithm,
            packet_count=packet_stats["count"],
-           packets_by_type=packets_by_type))
+           packets_by_type=packets_by_type,
+           total_saved=sample_data_saved+live_data_saved,
+           live_saved=live_data_saved,
+           sample_saved=sample_data_saved
+           ))
+
+
+class ServerStatisticsCollector(object):
+    def __init__(self):
+        self._sent_packets = dict()
+        self._duplicate_images = 0
+        self._duplicate_samples = 0
+        self._undecodable_live_records = 0
+        self._undecodable_sample_records = 0
+        self._recovered_live_records = 0
+
+    def log_packet_transmission(self, packet_type, packet_size):
+        """
+        Logs statistics for a transmitted packet.
+
+        :param packet_type: Type of packet transmitted
+        :param packet_size: Total size of the packet
+        """
+
+        if packet_type not in self._sent_packets:
+            self._sent_packets[packet_type] = {
+                "count": 0,
+                "total_size": 0
+            }
+
+        self._sent_packets[packet_type]["count"] += 1
+        self._sent_packets[packet_type]["total_size"] += packet_size
+
+    def log_duplicate_image_receipt(self):
+        self._duplicate_images += 1
+
+    def log_duplicate_sample_receipt(self):
+        self._duplicate_samples += 1
+
+    def log_undecodable_live_record(self):
+        self._undecodable_live_records += 1
+
+    def log_recovered_live_record(self):
+        self._recovered_live_records += 1
+
+    def log_undecodable_sample_record(self):
+        self._undecodable_sample_records += 1
+
+    def statistics(self):
+        stats = {
+            "sent_packets": self._sent_packets,
+            "duplicate_images": self._duplicate_images,
+            "duplicate_samples": self._duplicate_samples,
+            "undecodable_live_records": self._undecodable_live_records,
+            "undecodable_sample_records": self._undecodable_sample_records,
+            "recovered_live_records": self._recovered_live_records,
+        }
+        return stats
+
+    def reset_statistics(self):
+        self._sent_packets = dict()
+        self._duplicate_images = 0
+        self._duplicate_samples = 0
+        self._undecodable_live_records = 0
+        self._undecodable_sample_records = 0
+        self._recovered_live_records = 0
+
+
+class MultiPeriodServerStatisticsCollector(object):
+    """
+    Collects statistics for today, this week, this month and all time.
+    """
+    def __init__(self, time_source=datetime.datetime.now, log_function=console_log_function):
+        self.today = ServerStatisticsCollector()
+        self.week = ServerStatisticsCollector()
+        self.month = ServerStatisticsCollector()
+        self.all_time = ServerStatisticsCollector()
+        self.now = time_source
+
+        date = time_source().date()
+        self.this_date = date
+        self.this_month = date.month
+        self.this_week = date.isocalendar()[1]
+
+        self.log = log_function
+
+    def _check_reset(self):
+        date = self.now().date()
+        week = date.isocalendar()[1]
+
+        if date != self.this_date:
+            self._log_statistics("end of day {0}".format(self.this_date.isoformat()), self.today)
+
+            # Also log the all-time statistics daily
+            self._log_statistics("all time", self.all_time)
+
+            self.today.reset_statistics()
+            self.this_date = date
+
+        if week != self.this_week:
+            self._log_statistics("end of week {0}".format(self.this_week), self.today)
+            self.week.reset_statistics()
+            self.this_week = week
+
+        if date.month != self.this_month:
+            self._log_statistics("end of month {0}".format(self.this_month), self.today)
+            self.month.reset_statistics()
+            self.this_month = date.month
+
+    def log_packet_transmission(self, packet_type, packet_size):
+       self._check_reset()
+
+       self.today.log_packet_transmission(packet_type, packet_size)
+       self.week.log_packet_transmission(packet_type, packet_size)
+       self.month.log_packet_transmission(packet_type, packet_size)
+       self.all_time.log_packet_transmission(packet_type, packet_size)
+
+    def log_duplicate_image_receipt(self):
+        self._check_reset()
+
+        self.today.log_duplicate_image_receipt()
+        self.week.log_duplicate_image_receipt()
+        self.month.log_duplicate_image_receipt()
+        self.all_time.log_duplicate_image_receipt()
+
+    def log_duplicate_sample_receipt(self):
+        self._check_reset()
+
+        self.today.log_duplicate_sample_receipt()
+        self.week.log_duplicate_sample_receipt()
+        self.month.log_duplicate_sample_receipt()
+        self.all_time.log_duplicate_sample_receipt()
+
+    def log_undecodable_live_record(self):
+        self._check_reset()
+
+        self.today.log_undecodable_live_record()
+        self.week.log_undecodable_live_record()
+        self.month.log_undecodable_live_record()
+        self.all_time.log_undecodable_live_record()
+
+    def log_recovered_live_record(self):
+        self._check_reset()
+
+        self.today.log_recovered_live_record()
+        self.week.log_recovered_live_record()
+        self.month.log_recovered_live_record()
+        self.all_time.log_recovered_live_record()
+
+    def log_undecodable_sample_record(self):
+        self._check_reset()
+
+        self.today.log_undecodable_sample_record()
+        self.week.log_undecodable_sample_record()
+        self.month.log_undecodable_sample_record()
+        self.all_time.log_undecodable_sample_record()
+
+    def statistics(self):
+        stats = {
+            "day": self.today.statistics(),
+            "week": self.week.statistics(),
+            "month": self.month.statistics(),
+            "all_time": self.all_time.statistics()
+        }
+        return stats
+
+    def reset_statistics(self):
+        self.today.reset_statistics()
+        self.week.reset_statistics()
+        self.month.reset_statistics()
+        self.all_time.reset_statistics()
+
+    def _log_statistics(self, period, stats):
+        """
+                Dumps the supplied statistics for the specified period to the logs
+                :param period: Human-friendly description of the period
+                :param stats: Statistics to log
+                """
+        stats = stats.statistics()
+
+        packets_by_type = ""
+        total_packets = 0
+        for packet_type in stats["sent_packets"].keys():
+            packets_by_type += "\t{type}\n\t\tcount: {count}" \
+                               "\n\t\ttotal size: {size}\n".format(
+                type=packet_type,
+                count=stats["sent_packets"][packet_type]["count"],
+                size=stats["sent_packets"][packet_type]["total_size"]
+            )
+            total_packets += stats["sent_packets"][packet_type]["count"]
+
+        self.log("""Statistics for {period}
+        -------------------------------------------------------------
+        Undecodable Live Records: {undecodable_live_count}
+        Recovered Live Records: {recovered_live_count}
+        Undecodable Sample Records: {undecodable_sample_count}
+        
+        Duplicate Images Received: {duplicate_images}
+
+        Total Packets: {packet_count}
+        Packets by type:
+        {packets_by_type}
+        """.format(period=period,
+                   undecodable_live_count=stats["undecodable_live_records"],
+                   undecodable_sample_count=stats["undecodable_sample_records"],
+                   recovered_live_count=stats["recovered_live_records"],
+                   duplicate_images=stats["duplicate_images"],
+                   packet_count=total_packets,
+                   packets_by_type=packets_by_type
+                   ))

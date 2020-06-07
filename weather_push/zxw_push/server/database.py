@@ -291,6 +291,7 @@ class ServerDatabase(object):
             log.msg("Image {0}/{1}/{2} already exists as {3}. Ignoring.".format(
                 type_id, source_id, timestamp, result[0][0]
             ))
+            defer.returnValue(False)
             return
 
         query = """
@@ -302,6 +303,8 @@ class ServerDatabase(object):
                                       title, description,
                                       psycopg2.Binary(image_data), mime_type,
                                       metadata))
+
+        defer.returnValue(True)
 
     @defer.inlineCallbacks
     def store_live_data(self, station_code, live_record):

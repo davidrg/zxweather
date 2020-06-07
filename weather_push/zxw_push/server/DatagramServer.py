@@ -2,6 +2,8 @@
 """
 UDP implementation of the WeatherPush server
 """
+from datetime import datetime
+
 from twisted.internet import defer
 from twisted.internet.protocol import DatagramProtocol
 from twisted.python import log
@@ -11,6 +13,7 @@ from zxw_push.common.packets import decode_packet, \
     StationInfoRequestUDPPacket, StationInfoResponseUDPPacket, \
     WeatherDataUDPPacket, LiveDataRecord, SampleDataRecord, \
     SampleAcknowledgementUDPPacket
+from zxw_push.common.statistics_collector import MultiPeriodServerStatisticsCollector
 from zxw_push.common.util import Sequencer
 from zxw_push.server.database import ServerDatabase
 
@@ -47,6 +50,8 @@ class WeatherPushDatagramServer(DatagramProtocol):
         self._ready = False
 
         self._authorisation_code = authorisation_code
+
+        self._statistics_collector = MultiPeriodServerStatisticsCollector(datetime.now, log.msg)
 
     @defer.inlineCallbacks
     def startProtocol(self):
@@ -92,6 +97,9 @@ class WeatherPushDatagramServer(DatagramProtocol):
         #             payload_size + udp_header_size,
         #             payload_size + udp_header_size + ip4_header_size
         #         ))
+
+        self._statistics_collector.log_packet_transmission(packet.__class__.__name__,
+                                                           len(encoded))
 
         self.transport.write(encoded, address)
 
@@ -247,6 +255,7 @@ class WeatherPushDatagramServer(DatagramProtocol):
             log.msg("** NOTICE: Live record decoding failed - other sample "
                     "missing")
             self._lost_live_records += 1
+            self._statistics_collector.log_undecodable_live_record()
             defer.returnValue(None)
 
         new_live = patch_live_from_sample(data, other_sample,
@@ -282,6 +291,7 @@ class WeatherPushDatagramServer(DatagramProtocol):
             self._lost_live_records += 1
             log.msg("** NOTICE: Live record decoding failed - other live not "
                     "in cache")
+            self._statistics_collector.log_undecodable_live_record()
             return None
 
         return patch_live_from_live(data, other_live, fields, hw_type)
@@ -442,6 +452,7 @@ class WeatherPushDatagramServer(DatagramProtocol):
                                 "been received. This is probably a client bug."
                                 .format(record.timestamp, station_code,
                                         other_sample_timestamp))
+                        self._statistics_collector.log_undecodable_sample_record()
                         continue
 
                     new_sample = patch_sample(rec_data, other_sample,

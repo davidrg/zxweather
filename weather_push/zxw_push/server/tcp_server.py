@@ -4,6 +4,8 @@ TCP implementation of the WeatherPush server. Much the same as the UDP version
 but slightly different packets.
 """
 import time
+from datetime import datetime
+
 from twisted.internet import defer, reactor, protocol
 from twisted.python import log
 from zxw_push.common.data_codecs import decode_live_data, decode_sample_data, \
@@ -13,6 +15,8 @@ from zxw_push.common.packets import decode_packet, LiveDataRecord, \
     AuthenticateTCPPacket, WeatherDataTCPPacket, StationInfoTCPPacket, \
     SampleAcknowledgementTCPPacket, AuthenticateFailedTCPPacket, ImageTCPPacket, \
     ImageAcknowledgementTCPPacket
+from zxw_push.common.statistics_collector import MultiPeriodClientStatisticsCollector, \
+    MultiPeriodServerStatisticsCollector
 from zxw_push.common.util import Sequencer
 from zxw_push.server.database import ServerDatabase
 
@@ -64,6 +68,8 @@ class WeatherPushTcpServer(protocol.Protocol):
         self._authorisation_code = authorisation_code
 
         self._undecoded_live_records = dict()
+
+        self._statistics_collector = MultiPeriodServerStatisticsCollector(datetime.now, log.msg)
 
     def start_protocol(self, db):
         """
@@ -127,6 +133,9 @@ class WeatherPushTcpServer(protocol.Protocol):
 
     def _send_packet(self, packet):
         encoded = packet.encode()
+
+        self._statistics_collector.log_packet_transmission(packet.__class__.__name__,
+                                                           len(encoded))
 
         self.transport.write(encoded)
 
@@ -278,6 +287,7 @@ class WeatherPushTcpServer(protocol.Protocol):
                         record_id
                     ))
                     self._undecoded_live_records[station_id].pop(record_id, None)
+                    self._statistics_collector.log_undecodable_sample_record()
                     defer.returnValue(new_record)
                     return
 
@@ -381,6 +391,7 @@ class WeatherPushTcpServer(protocol.Protocol):
             # error and move on.
             log.msg("** NOTICE: Live record decoding failed - other sample "
                     "missing. This is probably a client bug.")
+            self._statistics_collector.log_undecodable_live_record()
             defer.returnValue(None)
 
         new_live = patch_live_from_sample(data, other_sample,
@@ -419,6 +430,7 @@ class WeatherPushTcpServer(protocol.Protocol):
             log.msg("** NOTICE: Live record decoding failed for station {2} - other live not "
                     "in cache. Likely cause is network error or out-of-order processing. "
                     "This live is {0}, other is {1}".format(sequence_id, other_live_id, station_id))
+            self._statistics_collector.log_undecodable_live_record()
             defer.returnValue(None)
             return
 
@@ -562,10 +574,12 @@ class WeatherPushTcpServer(protocol.Protocol):
         source_code = self._image_source_id_code[packet.image_source_id]
         type_code = self._image_type_id_code[packet.image_type_id]
 
-        yield self._db.store_image(source_code, type_code, packet.timestamp,
-                                   packet.title, packet.description,
-                                   packet.mime_type, packet.metadata,
-                                   packet.image_data)
+        result = yield self._db.store_image(source_code, type_code, packet.timestamp,
+                                           packet.title, packet.description,
+                                           packet.mime_type, packet.metadata,
+                                           packet.image_data)
+        if not result:
+            self._statistics_collector.log_duplicate_image_receipt()
 
         ack = ImageAcknowledgementTCPPacket()
         ack.add_image(packet.image_source_id, packet.image_type_id,
@@ -627,6 +641,7 @@ class WeatherPushTcpServer(protocol.Protocol):
                                 "been received. This is probably a client bug."
                                 .format(record.timestamp, station_code,
                                         other_sample_timestamp))
+                        self._statistics_collector.log_undecodable_sample_record()
                         continue
 
                     new_sample = patch_sample(rec_data, other_sample,
