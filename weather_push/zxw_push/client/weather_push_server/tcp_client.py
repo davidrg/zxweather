@@ -13,7 +13,7 @@ from twisted.python import log
 
 from zxw_push.common.data_codecs import encode_live_record, \
     encode_sample_record
-from zxw_push.common.statistics_collector import MultiPeriodStatisticsCollector
+from zxw_push.common.statistics_collector import MultiPeriodClientStatisticsCollector
 from zxw_push.common.util import Event, Sequencer
 from zxw_push.common.packets import decode_packet, LiveDataRecord, \
     SampleDataRecord, AuthenticateTCPPacket, WeatherDataTCPPacket, \
@@ -101,7 +101,7 @@ class WeatherPushProtocol(protocol.Protocol):
 
         self._authentication_failed = False
 
-        self._statistics_collector = MultiPeriodStatisticsCollector(datetime.now, log.msg)
+        self._statistics_collector = MultiPeriodClientStatisticsCollector(datetime.now, log.msg)
 
     def connectionMade(self):
         """

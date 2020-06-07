@@ -9,7 +9,7 @@ from twisted.python import log
 
 from zxw_push.common.data_codecs import encode_live_record, \
     encode_sample_record
-from zxw_push.common.statistics_collector import MultiPeriodStatisticsCollector
+from zxw_push.common.statistics_collector import MultiPeriodClientStatisticsCollector
 from zxw_push.common.util import Event, Sequencer
 from zxw_push.common.packets import StationInfoRequestUDPPacket, \
     decode_packet, StationInfoResponseUDPPacket, LiveDataRecord, \
@@ -82,7 +82,7 @@ class WeatherPushDatagramClient(DatagramProtocol):
         self._compressed_live_records_remaining = \
             self._max_compressed_live_records
 
-        self._statistics_collector = MultiPeriodStatisticsCollector(datetime.datetime.now, log.msg)
+        self._statistics_collector = MultiPeriodClientStatisticsCollector(datetime.datetime.now, log.msg)
 
     def startProtocol(self):
         """
