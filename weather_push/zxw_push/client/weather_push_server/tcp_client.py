@@ -75,6 +75,9 @@ class WeatherPushProtocol(protocol.Protocol):
         self._outgoing_samples = {}  # List of waiting samples for each station
         self._previous_live_record = {}  # Last live record for each station
 
+        # This is keyed by station and live sequence id
+        self._outgoing_weather_packets = dict()
+
         self._stations = None
         self._station_ids = None
         self._image_type_ids = None
@@ -406,7 +409,7 @@ class WeatherPushProtocol(protocol.Protocol):
         pass
 
     def _make_live_weather_record(self, data, previous_live, previous_sample,
-                                  hardware_type, station_id):
+                                  hardware_type, station_id, sequence_id):
 
         # We send a full uncompressed record every so often just in case a
         # packet has gone missing or arrived out of order at some point.
@@ -428,7 +431,7 @@ class WeatherPushProtocol(protocol.Protocol):
         if encoded is not None:
             record = LiveDataRecord()
             record.station_id = station_id
-            record.sequence_id = self._live_sequence_id[station_id]()
+            record.sequence_id = sequence_id
             record.field_list = field_ids
             record.field_data = encoded
 
@@ -487,6 +490,15 @@ class WeatherPushProtocol(protocol.Protocol):
         :param hardware_type: Hardware type used by the live data
         :type hardware_type: str
         """
+
+        live_sequence_id = self._live_sequence_id[station_id]()
+
+        if station_id not in self._outgoing_weather_packets.keys():
+            self._outgoing_weather_packets[station_id] = dict()
+
+        # Reserve a transmission slot for the packet we're about to assemble.
+        self._outgoing_weather_packets[station_id][live_sequence_id] = None
+
         previous_sample = yield self._confirmed_sample_func(
             self._station_codes[station_id])
 
@@ -544,7 +556,8 @@ class WeatherPushProtocol(protocol.Protocol):
 
         live_record = self._make_live_weather_record(
             live_data, previous_live, previous_sample,
-            hardware_type, station_id
+            hardware_type, station_id,
+            live_sequence_id
         )
 
         # live_record is None when compression throws away *all* data (meaning
@@ -555,6 +568,10 @@ class WeatherPushProtocol(protocol.Protocol):
 
             self._previous_live_record[station_id] = (live_data,
                                                       live_record.sequence_id)
+        else:
+            # Live record doesn't need transmitting. Clear its reservation.
+            self._outgoing_weather_packets[station_id].pop(live_sequence_id, None)
+            live_sequence_id = None
 
         if len(weather_records) == 0:
             # Nothing to send.
@@ -565,4 +582,67 @@ class WeatherPushProtocol(protocol.Protocol):
         for record in weather_records:
             packet.add_record(record)
 
-        self._send_packet(packet)
+        self._send_weather_data_packet(packet, station_id, live_sequence_id)
+
+    def _send_weather_data_packet(self, packet, station_id, live_sequence_id):
+        """
+        This function will ensure packets containing live weather data are sent strictly in the order they are
+        prepared.
+
+        Most of the time this should happen naturally but under certain circumstances (such is when
+        there are a large number of sample records waiting to be sent) the event driven nature of packet
+        assembly can result in multiple packets being assembled at one time and completed out of order.
+
+        :param packet: Packet to transmit
+        :param station_id: Station the packet is for
+        :param live_sequence_id: ID of the live record in the packet
+        """
+
+        if live_sequence_id is None:
+            self._send_packet(packet)  # No live record in the packet - transmission order doesn't matter.
+            return
+
+        if station_id not in self._outgoing_weather_packets:
+            raise Exception("No outgoing packets reserved for station {0}".format(station_id))
+
+        if live_sequence_id not in self._outgoing_weather_packets[station_id]:
+            raise Exception("Packet {0} for station {1} has no reserved transmission slot".format(
+                live_sequence_id, station_id))
+
+        if self._outgoing_weather_packets[station_id][live_sequence_id] is not None:
+            raise Exception("Packet {0} for station {1} is already awaiting transmission!")
+
+        log.msg("Queue data for station {0} packet {1}".format(station_id, live_sequence_id))
+
+        self._outgoing_weather_packets[station_id][live_sequence_id] = packet
+
+        waiting_packets = sorted(self._outgoing_weather_packets[station_id].keys())
+
+        other_queued  = False
+        if len(waiting_packets) > 2:
+            log.msg("Weather data packets with the following live sequence IDs are awaiting transmission "
+                    "for station {0} while transmitting live {2}: {1}".format(
+                station_id, repr(waiting_packets), live_sequence_id))
+            other_queued = True
+
+        while len(waiting_packets) > 0:
+            packet_id = waiting_packets.pop(0)
+
+            this_packet = self._outgoing_weather_packets[station_id][packet_id]
+
+            if this_packet is None:
+                log.msg("No data for packet {0} yet. Stopping transmission loop. The following additional "
+                        "packets remain to be transmitted: {1}".format(packet_id, repr(waiting_packets)))
+                # Stop transmission until we've got data for this packet to ensure packets aren't transmitted
+                # out of order.
+                break
+
+            log.msg("Transmit packet {0} for station {1}. Queue is now: {2}".format(
+                packet_id, station_id, repr(waiting_packets)))
+            self._send_packet(this_packet)
+
+            # Packet is sent, remove it from the queue
+            self._outgoing_weather_packets[station_id].pop(packet_id, None)
+
+        if other_queued and len(self._outgoing_weather_packets[station_id].keys()) == 0:
+            log.msg("Live queue cleared.")
