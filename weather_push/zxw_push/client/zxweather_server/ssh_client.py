@@ -15,18 +15,14 @@ from twisted.conch.ssh import transport, connection, userauth, channel
 from twisted.internet import defer, protocol, reactor
 
 
+# STG_INIT = -1
+# STG_SET_PROMPT = 0
+# STG_SET_TERM = 1
+# STG_SET_CLIENT = 2
+# STG_GET_RECENT = 3
+# STG_UPLOAD = 4
+# STG_QUIT = 5
 
-
-
-
-
-#STG_INIT = -1
-#STG_SET_PROMPT = 0
-#STG_SET_TERM = 1
-#STG_SET_CLIENT = 2
-#STG_GET_RECENT = 3
-#STG_UPLOAD = 4
-#STG_QUIT = 5
 
 class ShellChannel(channel.SSHChannel):
     name = 'session'
@@ -39,7 +35,6 @@ class ShellChannel(channel.SSHChannel):
         self._client.makeConnection(self)
         self.conn.sendRequest(
             self, 'shell', "")
-
 
     def dataReceived(self, data):
         self._client.dataReceived(data)
@@ -56,6 +51,7 @@ class PasswordAuth(userauth.SSHUserAuthClient):
     def getPassword(self, prompt=None):
         return defer.succeed(self._password)
 
+
 class ClientConnection(connection.SSHConnection):
     def __init__(self, client, *args, **kwargs):
         connection.SSHConnection.__init__(self)
@@ -67,6 +63,7 @@ class ClientConnection(connection.SSHConnection):
 
 class KeyValidationError(Exception):
     pass
+
 
 class ShellClientTransport(transport.SSHClientTransport):
     """
@@ -97,6 +94,7 @@ class ShellClientTransport(transport.SSHClientTransport):
         self.requestService(
             PasswordAuth(self._username, self._password, ClientConnection(self._client))
         )
+
 
 class ShellClientFactory(protocol.ClientFactory):
     """
