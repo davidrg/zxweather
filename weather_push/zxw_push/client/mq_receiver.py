@@ -96,7 +96,7 @@ class RabbitMqReceiver(object):
 
         ch, method, properties, body = yield queue_object.get()
 
-        station_code = method.routing_key.split(".")[0]
+        station_code = method.routing_key.split(".")[0].upper()
 
         if station_code not in self._station_codes:
             return  # Station isn't known to the server. Ignore it.

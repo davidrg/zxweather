@@ -90,6 +90,7 @@ class WeatherPushDatagramClientInstance(WeatherPushServerBase):
 
         self._send_packet(encoded, self._address)
 
+
 # Can't fix old-style-class-ness as its a twisted thing.
 # noinspection PyClassicStyleClass
 class WeatherPushDatagramServer(DatagramProtocol):

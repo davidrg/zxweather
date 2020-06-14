@@ -13,6 +13,7 @@ class WeatherPushClientBase(object):
     _STATION_LIST_TIMEOUT = 60  # seconds to wait for a response
 
     def __init__(self, authorisation_code, confirmed_sample_func):
+        self._max_sample_payload = 450
         self._authorisation_code = authorisation_code
         self._confirmed_sample_func = confirmed_sample_func
 
@@ -141,8 +142,7 @@ class WeatherPushClientBase(object):
     def send_sample(self, sample, hardware_type, hold=False):
         """
         Queues a sample for transmission to the remote server. The sample will
-        be sent when when the next live data record is ready to be sent or when
-        the number of waiting samples reaches a threshold
+        be sent when when the next live data record is ready to be sent.
 
         :param sample: Sample to send
         :param hardware_type: Type of hardware that generated the sample
@@ -183,7 +183,6 @@ class WeatherPushClientBase(object):
         """
         pass
 
-
     def _make_live_weather_record(self, data, previous_live, previous_sample,
                                   hardware_type, station_id, sequence_id):
 
@@ -223,7 +222,6 @@ class WeatherPushClientBase(object):
             self._compressed_live_records_remaining -= 1
 
         return record
-
 
     def _make_sample_weather_record(self, data, previous_sample, hardware_type,
                                     station_id):

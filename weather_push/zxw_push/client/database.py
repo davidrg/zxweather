@@ -36,7 +36,29 @@ class DictConnection(txpostgres.Connection):
     connectionFactory = staticmethod(dict_connect)
 
 
-class WeatherDatabase(object):
+# This just defines the public API the client weather database exports.
+# Here for clarity only really.
+class BaseClientDatabase(object):
+    def transmitter_ready(self, remote_stations):
+        raise NotImplementedError
+
+    def confirm_receipt(self, station_code, time_stamp):
+        raise NotImplementedError
+
+    @defer.inlineCallbacks
+    def confirm_image_receipt(self, image_source_code, image_type_code,
+                              time_stamp, resized):
+        raise NotImplementedError
+
+    @defer.inlineCallbacks
+    def get_last_confirmed_sample(self, station_code):
+        raise NotImplementedError
+
+    def process_samples_result(self, result, hw_type):
+        raise NotImplementedError
+
+
+class WeatherDatabase(BaseClientDatabase):
     """
     Client-side functionality relating to the weather database.
     """
@@ -562,7 +584,7 @@ class WeatherDatabase(object):
         for station in self._remote_stations:
             yield self._fetch_station_images(station)
 
-    def observer(self, notify):
+    def _observer(self, notify):
         """
         Called when ever notifications are received.
         :param notify: The notification.
@@ -717,7 +739,7 @@ class WeatherDatabase(object):
         self._conn_d = self._conn.connect(self._connection_string)
 
         # add a NOTIFY observer
-        self._conn.addNotifyObserver(self.observer)
+        self._conn.addNotifyObserver(self._observer)
 
         self._conn_d.addCallback(lambda _: self._check_db())
 
