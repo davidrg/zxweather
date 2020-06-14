@@ -848,7 +848,7 @@ Choose sensor to configure:
         elif choice == "B":
             configure_sensor("soil_temperature_1")
         elif choice == "C":
-            onfigure_sensor("soil_moisture_2")
+            configure_sensor("soil_moisture_2")
         elif choice == "D":
             configure_sensor("soil_temperature_2")
         elif choice == "E":
