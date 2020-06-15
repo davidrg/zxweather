@@ -16,6 +16,8 @@
 #include <QPainter>
 #include <QFileDialog>
 #include <QMenu>
+#include <QApplication>
+#include <QClipboard>
 
 #include "imagepropertiesdialog.h"
 #include "weatherimagewindow.h"
@@ -509,6 +511,11 @@ void ImageWidget::weatherDataAtTime(int imageId) {
     wnd->setImage(imageId);
 }
 
+void ImageWidget::copy() {
+    QApplication::clipboard()->setPixmap(QPixmap::fromImage(image));
+}
+
+
 void ImageWidget::contextMenuRequested(QPoint point) {
     if ((!imageSet && !videoSet) || (!videoSet && isIcon)) {
         return; // No context menu for no image.
@@ -536,8 +543,15 @@ void ImageWidget::contextMenuRequested(QPoint point) {
 
     menu->addSeparator();
 
+    if (!videoSet) {
+        // We're dealing with an image - offer the copy option
+        act = menu->addAction("&Copy",
+                        this, SLOT(copy()));
+    }
+
     act = menu->addAction("&Save As...",
                     this, SLOT(saveAs()));
+
 
     menu->addSeparator();
 

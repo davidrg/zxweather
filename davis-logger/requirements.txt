@@ -1,7 +1,7 @@
 psycopg2==2.6.2
 twisted==16.4.1
 pytz
-pyserial
+pyserial==2.7.0
 pyopenssl==16.2.0
 service_identity
 
