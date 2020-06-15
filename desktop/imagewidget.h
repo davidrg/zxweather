@@ -46,6 +46,8 @@ public slots:
 
     void popOut();
 
+    void copy();
+
 
 protected:
     void mousePressEvent(QMouseEvent *event);
