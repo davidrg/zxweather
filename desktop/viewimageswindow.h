@@ -52,6 +52,7 @@ private slots:
     void saveImageAs();
     void viewWeather();
     void properties();
+    void copy();
     void openItem();
     void expandRecursively();
     void collapseRecursively();

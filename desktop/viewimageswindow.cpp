@@ -10,6 +10,7 @@
 #include <QtDebug>
 #include <QMenu>
 #include <QMessageBox>
+#include <QClipboard>
 
 // Stack widget indicies
 #define SW_ICONS 0
@@ -78,12 +79,14 @@ ViewImagesWindow::ViewImagesWindow(QDate atDate, QWidget *parent) :
     connect(ui->actionPop_Out, SIGNAL(triggered(bool)), this, SLOT(openImageInWindow()));
     connect(ui->actionShow_Weather, SIGNAL(triggered(bool)), this, SLOT(viewWeather()));
     connect(ui->actionSave_As, SIGNAL(triggered(bool)), this, SLOT(saveImageAs()));
+    connect(ui->actionCopy, SIGNAL(triggered(bool)), this, SLOT(copy()));
     connect(ui->actionProperties, SIGNAL(triggered(bool)), this, SLOT(properties()));
 
     ui->actionPop_Out->setData(CMS_Toolbar);
     ui->actionShow_Weather->setData(CMS_Toolbar);
     ui->actionSave_As->setData(CMS_Toolbar);
     ui->actionProperties->setData(CMS_Toolbar);
+    ui->actionCopy->setData(CMS_Toolbar);
 
     // Item double-click
     connect(ui->lvImageList, SIGNAL(doubleClicked(QModelIndex)),
@@ -238,9 +241,18 @@ void ViewImagesWindow::updateToolbarStatus(QModelIndex index) {
     ui->actionShow_Weather->setEnabled(isImage);
     ui->actionSave_As->setEnabled(isImage);
     ui->actionProperties->setEnabled(isImage);
+    ui->actionCopy->setEnabled(false);
+
+    // The copy option is not available for videos at this time.
+    if (isImage) {
+        ImageInfo ii = model.data()->imageInfo(index);
+        bool isVideoOrAudio = ii.mimeType.startsWith("video/") || ii.mimeType.startsWith("audio/");
+        ui->actionCopy->setEnabled(!isVideoOrAudio);
+    }
 }
 
 void ViewImagesWindow::loadImageForIndex(QModelIndex index) {
+
     ui->lImage->setScaled(true);
     if (model->isImage(index)) {
 
@@ -416,6 +428,14 @@ void ViewImagesWindow::contextMenu(QPoint point, QModelIndex idx, ContextMenuSou
 
         menu->addSeparator();
 
+        // Show copy option only if its not a video or audio file.
+        ImageInfo ii = model.data()->imageInfo(idx);
+        if (!ii.mimeType.startsWith("video/") && !ii.mimeType.startsWith("audio/")) {
+            act = menu->addAction("&Copy",
+                            this, SLOT(copy()));
+            act->setData(source);
+        }
+
         act = menu->addAction("&Save As...",
                         this, SLOT(saveImageAs()));
         act->setData(source);
@@ -526,6 +546,34 @@ void ViewImagesWindow::saveImageAs() {
             ImageInfo info = model->imageInfo(index);
 
             ImageWidget::saveAs(this, info, image, filename);
+        }
+    }
+}
+
+void ViewImagesWindow::copy() {
+    if (QAction* menuAction = qobject_cast<QAction*>(sender())) {
+        ContextMenuSource menuSource = (ContextMenuSource)menuAction->data().toInt();
+        QModelIndex index;
+        if (menuSource == CMS_List) {
+            index = ui->lvImageList->currentIndex();
+        } else if (menuSource == CMS_Detail) {
+            index = ui->tvDetail->currentIndex();
+        } else if (menuSource == CMS_Toolbar) {
+            index = currentImageIndex;
+        } else {
+            index = ui->tvImageSet->currentIndex();
+        }
+
+        if (index.isValid() && model->isImage(index)) {
+            ImageInfo info = model->imageInfo(index);
+
+            if (info.mimeType.startsWith("video/") || info.mimeType.startsWith("audio/")) {
+                // Unsuported.
+                return;
+            }
+
+            QImage image = model->image(index);
+            QApplication::clipboard()->setPixmap(QPixmap::fromImage(image));
         }
     }
 }
