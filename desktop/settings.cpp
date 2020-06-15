@@ -329,6 +329,7 @@ void Settings::setConfigFile(const QString filename) {
         qDebug() << "Loading settings from file" << filename;
         settings = new QSettings(filename, QSettings::IniFormat, this);
     } else {
+        qDebug() << "Local settings file not found:" << filename;
         qDebug() << "Loading settings from platform default location";
         settings = new QSettings("zxnet", "zxweather", this);
     }
