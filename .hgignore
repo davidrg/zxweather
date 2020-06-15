@@ -62,3 +62,4 @@ dist-*/*
 desktop/desktop.pro.user*
 desktop/config.tests/multimedia/multimedia.exe
 desktop/.qmake.cache
+build-desktop-*
