@@ -500,10 +500,6 @@ void RainfallWidget::showContextMenu(QPoint point) {
 
     QAction *action;
 
-    menu->addAction(tr("Copy"), this, SLOT(copy()));
-    menu->addAction(tr("Save As..."), this, SLOT(save()));
-    menu->addSeparator();
-
     menu->addAction(tr("&Refresh"), this, SLOT(requestRefresh()));
     menu->addSeparator();
 
@@ -535,6 +531,10 @@ void RainfallWidget::showContextMenu(QPoint point) {
     action->setData("month,c");
     action = runningTotals->addAction(tr("This Year"), this, SLOT(plotRain()));
     action->setData("year,c");
+
+    menu->addSeparator();
+    menu->addAction(tr("Copy"), this, SLOT(copy()));
+    menu->addAction(tr("Save As..."), this, SLOT(save()));
 
     menu->popup(plot->mapToGlobal(point));
 }
