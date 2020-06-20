@@ -916,6 +916,53 @@ class image_old:
         raise web.redirect(url)
 
 
+def trim_cache_directory(directory, max_size):
+    """
+    Reduces the specified cache directory to the specified size
+
+    :param directory: Directory to trim
+    :param max_size: Maximum size (in megabytes) for the cache directory
+    """
+
+    if max_size is None:
+        return
+
+    # from timeit import default_timer as timer
+    # start = timer()
+
+    max_bytes = max_size * 1000 * 1000
+
+    cache_files = [os.path.join(directory, f) for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
+
+    dir_size = sum(os.path.getsize(f) for f in cache_files)
+
+    if dir_size < max_bytes:
+        # Cache is under maximum size. Nothing to do.
+        # end = timer()
+        # print("Cache is under max size in {0} seconds".format(end - start))
+        return
+
+    # Sort the list of files to decide what to delete first.
+    if config.cache_expiry_access_time:
+        # If the filesystem is mounted noatime this will behave the same as sorting
+        # by modified/created time.
+        cache_files.sort(key=os.path.getatime)
+    else:
+        # If the file hasn't been modified mtime should be the same as ctime.
+        cache_files.sort(key=os.path.getmtime)
+
+    for f in cache_files:
+        f_size = os.path.getsize(f)
+        os.remove(f)
+        dir_size = dir_size - f_size
+
+        if dir_size < max_bytes:
+            break  # Finished downloading files for now.
+
+    # end = timer()
+    # print("Completed cache cleanup in {0} seconds".format(end-start))
+
+
 class image:
     """
     Gets an image
@@ -1020,6 +1067,8 @@ class image:
                 with open(cache_file, 'w+b') as f:
                     f.write(video_data)
 
+                trim_cache_directory(config.video_cache_directory, config.max_video_cache_size)
+
                 mime_type = img.mime_type
 
             web.header('Content-Type', mime_type)
@@ -1103,6 +1152,8 @@ class image:
                     # Cache the image
                     with open(cache_file, 'w+b') as f:
                         f.write(thumb_data)
+
+                    trim_cache_directory(config.cache_directory, config.max_thumbnail_cache_size)
 
             web.header('Content-Type', mime_type)
             web.header('Content-Length', str(len(thumb_data)))
