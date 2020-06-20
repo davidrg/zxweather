@@ -260,7 +260,7 @@ def main():
 
         if data is None:
             print("No data available at this time.")
-            return
+            continue
 
         url = build_submit_url(site_id, aws_pin, data)
 
