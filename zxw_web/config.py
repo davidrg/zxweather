@@ -47,12 +47,17 @@ thumbnail_size = (304, 171)
 cache_videos = False
 video_cache_directory = None
 
+max_thumbnail_cache_size = None
+max_video_cache_size = None
+cache_expiry_access_time = False
+
 # Google analyics tracking ID. Set to a value to enable.
 google_analytics_id = None
 
 image_type_sort = None
 
 array_position_available = True
+
 
 def load_settings():
     """
@@ -64,7 +69,8 @@ def load_settings():
     global zxweatherd_hostname, zxweatherd_raw_port, disable_alt_ui
     global hide_coordinates, google_analytics_id, image_type_sort
     global cache_thumbnails, cache_directory, thumbnail_size, cache_videos
-    global video_cache_directory
+    global video_cache_directory, max_thumbnail_cache_size, max_video_cache_size
+    global cache_expiry_access_time
 
     import ConfigParser
     config = ConfigParser.ConfigParser()
@@ -126,6 +132,8 @@ def load_settings():
             bits = image_type_sort.split(",")
             bits = [x.strip() for x in bits if len(x.strip()) > 0]
             image_type_sort = ",".join(bits)
+    if image_type_sort is None:
+        raise Exception("ConfigurationError: image_type_sort option not specified")
 
     if config.has_option(S_D, 'hostname'):
         zxweatherd_hostname = config.get(S_D, 'hostname')
@@ -152,6 +160,9 @@ def load_settings():
     if config.has_option(S_T, "cache_thumbnails"):
         cache_thumbnails = config.getboolean(S_T, "cache_thumbnails")
 
+        if config.has_option(S_T, "max_thumbnail_cache_size"):
+            max_thumbnail_cache_size = config.getint(S_T, "max_thumbnail_cache_size")
+
         if config.has_option(S_T, "cache_directory"):
             cache_directory = config.get(S_T, "cache_directory")
 
@@ -175,6 +186,9 @@ def load_settings():
     if config.has_option(S_T, "cache_videos"):
         cache_videos = config.getboolean(S_T, "cache_thumbnails")
 
+        if config.has_option(S_T, "max_video_cache_size"):
+            max_video_cache_size = config.getint(S_T, "max_video_cache_size")
+
         if config.has_option(S_T, "cache_directory"):
             video_cache_directory = config.get(S_T, "cache_directory")
 
@@ -186,6 +200,11 @@ def load_settings():
                 os.makedirs(video_cache_directory)
         else:
             raise Exception("Thumbnail cache directory not set")
+
+    if cache_videos or cache_thumbnails:
+        if config.has_option(S_T, "expire_cache_by_access_time"):
+            cache_expiry_access_time = config.getboolean(S_T, "expire_cache_by_access_time")
+
 
 
 

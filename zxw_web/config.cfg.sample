@@ -88,9 +88,11 @@ image_type_sort: TLVID,CAM,AEMSA,AEHVT,AEMCI,AEZA,AEMSP,EHVP,AEHCP,AESEA,AETHE,A
 #                     times but requires disk space
 # cache_directory   - Where thumbnails should be stored
 # thumbnail_size    - The maximum thumbnail size (width x height)
+# cache_videos      - If videos should also be cached on disk instead of read
+#                     from the database every time.
 [image_thumbnails]
 cache_thumbnails: False
-#cache_directory: Z:/opt/zxweather/zxw_web/thumb_cache/
+#cache_directory: /opt/zxweather/web_cache/
 thumbnail_size: 304x171
 
 # Turn this on to cache videos on disk as well. This will reduce database server
@@ -98,3 +100,25 @@ thumbnail_size: 304x171
 # a fair bit of disk space. You might want to setup a cron job to clear them out
 # every so often.
 cache_videos: False
+
+# If setting up a cron job to expire old images and videos from cache is too much
+# work you can have this done automatically whenever a new item is stored in the
+# cache.
+#
+# Note that this may have a performance impact when loading pages with
+# uncached image thumbnails as each image loaded will result in the cache size
+# being calculated and old images expired. If the thumbnail cache size is only
+# growing very slowly its probably best to just clean that up manually from time
+# to time.
+#
+# Maximum cache size in megabytes. If not specified automatic cache expiry will not
+# happen - setup a cron job or clean up by hand when required.
+#max_thumbnail_cache_size: 100
+#max_video_cache_size: 1000
+
+# Which cache files to delete first when the cache directory hits its maximum size
+#   False: delete oldest cache files first (those with the oldest created or modified time)
+#   True: delete least recently accessed files first (those with the oldest access time)
+#         Note that this won't work if the filesystem the cache is stored on has been
+#         mounted with access times disabled (noatime mount option)
+expire_cache_by_access_time: False
