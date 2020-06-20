@@ -1741,7 +1741,10 @@ order by cur.time_stamp asc
 
     # TODO: Integrate this get_station_config call into the query when our
     # minimum PostgreSQL version supports JSON
-    broadcast_id = get_station_config(station_id)['broadcast_id']
+    station_config = get_station_config(station_id)
+    broadcast_id = None
+    if station_config is not None and 'broadcast_id' in station_config:
+        broadcast_id = station_config['broadcast_id']
 
     params = dict(station=station_id, date=date(year=year,month=month,day=1),
                   broadcast_id=broadcast_id)
