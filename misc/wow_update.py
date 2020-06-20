@@ -78,18 +78,14 @@ class Config(object):
         pw = config.get('database', 'password')
 
         self._dsn = "host={host} port={port} user={user} password={password} " \
-                   "dbname={name}".format(
-            host=hostname,
-            port=port,
-            user=user,
-            password=pw,
-            name=database
-        )
+                    "dbname={name}".format(host=hostname,
+                                           port=port,
+                                           user=user,
+                                           password=pw,
+                                           name=database)
 
     def getDatabaseConnection(self):
         con = psycopg2.connect(self._dsn)
-
-        db_version = 0
 
         cur = con.cursor()
         cur.execute("select 1 from INFORMATION_SCHEMA.tables where table_name = 'db_info'")
@@ -128,18 +124,17 @@ class Data(object):
     Manages data to be submitted to WOW.
     """
     def __init__(self, data):
-        self.winddir=data.wind_direction
-        self.windspeedmph=self._ms_to_mph(data.average_wind_speed)
-        self.windgustdir=data.gust_wind_direction
-        self.windgustmph=self._ms_to_mph(data.gust_wind_speed)
-        self.humidity=data.relative_humidity
-        self.dewptf=self._c_to_f(data.dew_point)
-        self.tempf=self._c_to_f(data.temperature)
-        self.rainin=self._mm_to_inch(data.rainfall_60_minutes)
-        self.dailyrainin=self._mm_to_inch(data.day_rainfall)
-        self.baromin=self._mb_to_inhg(data.absolute_pressure)
-        self.timestamp=data.time_stamp
-
+        self.winddir = data.wind_direction
+        self.windspeedmph = self._ms_to_mph(data.average_wind_speed)
+        self.windgustdir = data.gust_wind_direction
+        self.windgustmph = self._ms_to_mph(data.gust_wind_speed)
+        self.humidity = data.relative_humidity
+        self.dewptf = self._c_to_f(data.dew_point)
+        self.tempf = self._c_to_f(data.temperature)
+        self.rainin = self._mm_to_inch(data.rainfall_60_minutes)
+        self.dailyrainin = self._mm_to_inch(data.day_rainfall)
+        self.baromin = self._mb_to_inhg(data.absolute_pressure)
+        self.timestamp = data.time_stamp
 
     @staticmethod
     def _ms_to_mph(ms):
@@ -160,7 +155,6 @@ class Data(object):
     def _mb_to_inhg(mb):
         """ Convert hectopascals to inches of mercury """
         return (29.92 * mb) / 1013.25
-
 
 
 def get_latest_data_for_station(con, station_code):
@@ -222,7 +216,6 @@ def build_submit_url(site_id, aws_pin, data):
         tempf=data.tempf,
         rainin=data.rainin,
         dailyrainin=data.dailyrainin,
-
     )
 
     # Only davis hardware supplies this data this time
@@ -255,7 +248,6 @@ def main():
         site_id = station[1]
         aws_pin = station[2]
 
-
         data = get_latest_data_for_station(con, station_code)
 
         if data is None:
@@ -267,6 +259,7 @@ def main():
         submit_data(url)
 
     con.close()
+
 
 if __name__ == "__main__":
     main()
