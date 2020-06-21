@@ -51,9 +51,9 @@ function drawCharts() {
 if (typeof auto_plot === 'undefined')
     var auto_plot = true;
 
-google.load("visualization", "1", {packages:["corechart"]});
+google.charts.load('41', {packages: ['corechart']});
 if (auto_plot) {
-    google.setOnLoadCallback(drawCharts);
+    google.charts.setOnLoadCallback(drawCharts);
 } else {
     $('#lc7_obsolete_browser').show();
     $('#lc_obsolete_browser').show();

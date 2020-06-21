@@ -12,7 +12,7 @@
     <link rel="preload" href="../../../../../js/dygraph-charts.js" as="script">
     <link rel="preload" href="../../../../../js/day_charts_dygraph.js" as="script">
     {% else -%}
-    <link rel="preload" href="http://www.google.com/jsapi" as="script">
+    <link rel="preload" href="https://www.gstatic.com/charts/loader.js" as="script">
     <link rel="preload" href="../../../../../js/day_charts_gviz.js" as="script">
     {%- endif -%}
 {#- Preloading of JSON data doesn't seem to work properly in chrome -#}
@@ -206,7 +206,7 @@
         <script type="text/javascript" src="../../../../../js/dygraph-charts.js"></script>
         <script type="text/javascript" src="../../../../../js/day_charts_dygraph.js"></script>
     {% else -%}
-        <script type="text/javascript" src="http://www.google.com/jsapi"></script>
+        <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
         <script type="text/javascript" src="../../../../../js/day_charts_gviz.js"></script>
     {%- endif -%}
 {% endblock %}
