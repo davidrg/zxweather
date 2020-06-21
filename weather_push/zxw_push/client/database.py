@@ -478,7 +478,7 @@ class WeatherDatabase(BaseClientDatabase):
         set status = 'awaiting_confirmation',
         status_time = NOW(),
         retries = case when status = 'pending' then 0 else retries + 1 end
-        where sample_id = %s and site_id = %s
+        where sample_id = %s and site_id = %s and status <> 'done'
         """
 
         self._conn.runOperation(query, (sample_id, self._site_id))
