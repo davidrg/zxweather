@@ -90,9 +90,9 @@ function drawCharts() {
 if (typeof auto_plot === 'undefined')
     var auto_plot = true;
 
-google.load("visualization", "1", {packages:["corechart"]});
+google.charts.load('41', {packages: ['corechart']});
 if (auto_plot)
-    google.setOnLoadCallback(drawCharts);
+    google.charts.setOnLoadCallback(drawCharts);
 else {
     $("#7day-charts").hide();
     $("#day_charts_cont").hide();

@@ -130,9 +130,10 @@ function drawCharts() {
 if (typeof auto_plot === 'undefined')
     var auto_plot = true;
 
-google.load("visualization", "1", {packages:["corechart"]});
+//google.load("visualization", "1", {packages:["corechart"]});
+google.charts.load('41', {packages: ['corechart']});
 if (auto_plot)
-    google.setOnLoadCallback(drawCharts);
+    google.charts.setOnLoadCallback(drawCharts);
 else {
     $("#records_charts").hide();
     $('#lcr_obsolete_browser').show();
