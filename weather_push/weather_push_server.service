@@ -1,0 +1,13 @@
+[Unit]
+Description=zxweather weatherpush server daemon
+
+[Service]
+ExecStart=/usr/bin/twistd --nodaemon --pidfile= weather_push_server --config-file=/etc/zxweather/weather_push_server.cfg
+WorkingDirectory=/opt/zxweather/weather_push
+Environment="PYTHONPATH=/opt/zxweather/weather_push/"
+User=root
+Group=root
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
