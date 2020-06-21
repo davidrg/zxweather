@@ -399,12 +399,12 @@ class WeatherPushClientBase(object):
                 # out of order.
                 break
 
-            log.msg("Transmit packet {0} for station {1}. Queue is now: {2}".format(
-                packet_id, station_id, repr(waiting_packets)))
+            # log.msg("Transmit packet {0} for station {1}. Queue is now: {2}".format(
+            #     packet_id, station_id, repr(waiting_packets)))
             self._send_packet(this_packet)
 
             # Packet is sent, remove it from the queue
             self._outgoing_weather_packets[station_id].pop(packet_id, None)
 
-        if other_queued and len(self._outgoing_weather_packets[station_id].keys()) == 0:
-            log.msg("Live queue cleared.")
+        # if other_queued and len(self._outgoing_weather_packets[station_id].keys()) == 0:
+        #     log.msg("Live queue cleared.")

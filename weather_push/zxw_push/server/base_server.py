@@ -125,9 +125,9 @@ class WeatherPushServerBase(object):
             rid = self._live_record_cache_ids[station_id].pop(0)
             del self._live_record_cache[station_id][rid]
 
-        log.msg("live cache for station {0} is now: {1}".format(
-            station_id, repr(sorted(self._live_record_cache[station_id]))
-        ))
+        # log.msg("live cache for station {0} is now: {1}".format(
+        #     station_id, repr(sorted(self._live_record_cache[station_id]))
+        # ))
 
     @staticmethod
     def _to_real_dict(value):
@@ -243,7 +243,7 @@ class WeatherPushServerBase(object):
         other_live_id = data["live_diff_sequence"]
         other_live = yield self._get_live_record(other_live_id, station_id)
 
-        log.msg("Decode live {0} based on {1}".format(sequence_id, other_live_id))
+        # log.msg("Decode live {0} based on {1}".format(sequence_id, other_live_id))
 
         if other_live is None:
             # base record could not be found. This means that
