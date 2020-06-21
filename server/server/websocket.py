@@ -5,6 +5,8 @@ WebSocket support for zxweatherd.
 import txaio
 
 # Autobahn moved stuff around at some point.
+from twisted.python import log
+
 try:
     from autobahn.twisted.websocket import WebSocketServerProtocol, WebSocketServerFactory
 except:
@@ -36,6 +38,11 @@ class ChainedOpenSSLContextFactory(ssl.DefaultOpenSSLContextFactory):
         self.certificateChainFileName = certificateChainFileName
         self.cacheContext()
 
+    def reload_certificates(self):
+        log.msg("Reloading SSL Context...")
+        self._context = None
+        self.cacheContext()
+
     def cacheContext(self):
         ctx = SSL.Context(SSL.SSLv23_METHOD)
         if self.certificateFileName is not None:
@@ -63,7 +70,9 @@ def getWebSocketService(host, port):
 
     return internet.TCPServer(port, factory)
 
-def getWebSocketSecureService(host, port, key, certificate, chain):
+
+def getWebSocketSecureService(host, port, key, certificate, chain,
+                              ssl_reload_password):
     """
     Gets a SSL WebSocket service listening on the specified port
     :param host: The hostname the server is available under
@@ -76,6 +85,9 @@ def getWebSocketSecureService(host, port, key, certificate, chain):
     :type certificate: str
     :param chain: Certificate chain filename (PEM encoded)
     :type chain: str
+    :param ssl_reload_password: Password for reloading SSL certificates and
+        recreating the OpenSSL context
+    :type ssl_reload_password: str or None
     """
 
     # To make self-signed keys:
@@ -86,7 +98,12 @@ def getWebSocketSecureService(host, port, key, certificate, chain):
 
     contextFactory = ChainedOpenSSLContextFactory(key, certificate, chain)
     factory = WebSocketServerFactory("wss://{1}:{0}".format(port, host))
-    factory.protocol = WebSocketShellProtocol
+
+    def ssl_proto_factory():
+        return WebSocketShellProtocol(ssl_context_factory=contextFactory,
+                                      ssl_reload_password=ssl_reload_password)
+
+    factory.protocol = ssl_proto_factory
 
     return internet.SSLServer(port, factory, contextFactory)
 
@@ -97,7 +114,7 @@ class WebSocketShellProtocol(WebSocketServerProtocol, BaseShell):
     protocol design.
     """
 
-    def __init__(self):
+    def __init__(self, ssl_context_factory=None, ssl_reload_password=None):
         # noinspection PyBroadException
         try:
             # Later versions of autobahn require this. Earlier versions don't
@@ -108,6 +125,8 @@ class WebSocketShellProtocol(WebSocketServerProtocol, BaseShell):
 
         BaseShell.__init__(self, None, "websocket")
         self._buffer = ""
+        self._ssl_context_factory = ssl_context_factory
+        self._ssl_reload_password = ssl_reload_password
 
     def connectionLost(self, reason):
         super(WebSocketShellProtocol, self).connectionLost(reason)
@@ -135,6 +154,25 @@ class WebSocketShellProtocol(WebSocketServerProtocol, BaseShell):
         if len(self._buffer) > 0:
             self.processLine(self._buffer)
             self._buffer = ""
+
+    def processLine(self, line):
+        if line.lower().startswith("ssl_reload "):
+            if self._ssl_context_factory is None:
+                self.processOutput("ERROR: Not an SSL WebSocket")
+                log.msg("Error: Can not reload SSL context - not an SSL WebSocket")
+                return
+            elif self._ssl_reload_password is None:
+                self.processOutput("ERROR: SSL Reload command is disabled")
+                log.msg("Error: Can not reload SSL context - reload command is disabled (no password set)")
+            else:
+                password = line[11:]
+                if password == self._ssl_reload_password:
+                    self._ssl_context_factory.reload_certificates()
+                    self.processOutput("OK")
+                else:
+                    self.processOutput("Error: Incorrect password")
+        else:
+            super(WebSocketShellProtocol, self).processLine(line)
 
     def commandProcessorWarning(self, warning):
         """

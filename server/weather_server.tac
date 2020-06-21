@@ -122,6 +122,11 @@ web_socket_tls_chain_file = None
 # Hostname the websocket service will be available under
 web_socket_tls_hostname = 'server.example.com'
 
+# Set this to a long string that will be hard to guess or brute force if you
+# want to enable online certificate reloading. Leave set to None to disable
+# this feature (you'll have to restart the service if the certificates change)
+web_socket_tls_certificate_reload_password = None
+
 ##############################################################################
 ##############################################################################
 ##############################################################################
@@ -162,7 +167,8 @@ if enable_web_socket_tls:
         'key': web_socket_tls_private_key_file,
         'certificate': web_socket_tls_certificate_file,
         'host': web_socket_tls_hostname,
-        'chain': web_socket_chain_file
+        'chain': web_socket_chain_file,
+        'ssl_reload_password': web_socket_tls_certificate_reload_password
     }
 
 if enable_broker:
