@@ -90,3 +90,10 @@ private_key_file=server.key
 certificate_file=server.crt
 #chain_file=
 # chain file is optional
+
+# Password to use when forcing SSL certificates to be reloaded. Choose something
+# long and hard to guess if you don't want random people on the internet forcing
+# the websocket server to reload its certificates. Leave commented out to
+# disable online SSL certificate reloading (service will have to be restarted
+# if the certificate changes)
+#ssl_reload_password=

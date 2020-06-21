@@ -87,12 +87,17 @@ class ZXWServerServiceMaker(object):
             if config.has_option(S_WSS, 'certificate_file'):
                 cert = config.get(S_WSS, 'certificate_file')
 
+            ssl_reload_password = None
+            if config.has_option(S_WSS, 'ssl_reload_password'):
+                ssl_reload_password = config.get(S_WSS, 'ssl_reload_password')
+
             wss_config = {
                 'port': config.getint(S_WSS, 'port'),
                 'key': config.get(S_WSS, 'private_key_file'),
                 'host': config.get(S_WSS, 'hostname'),
                 'certificate': cert,
                 'chain': chain,
+                'ssl_reload_password': ssl_reload_password
             }
 
         if config.has_section(S_BROKER) \
