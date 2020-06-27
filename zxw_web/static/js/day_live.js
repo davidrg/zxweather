@@ -1968,10 +1968,8 @@ function poll_live_data() {
     $.getJSON(live_url, function (data) {
         refresh_live_data(data);
     }).error(function() {
-            $("#cc_refresh_failed").show();
-            $("#current_conditions").hide();
-            $("#cc_stale").hide();
-        });
+        show_live_data_error("Live data refresh failed - unable to contact the web server");
+    });
 }
 
 function ws_data_arrived(evt) {
@@ -2020,6 +2018,12 @@ function update_live_status(icon, message) {
     e_live_status_cont.attr('data-original-title', message);
     e_live_status.attr('class', 'fm_status_' + icon);
     e_live_status.tooltip();
+
+    if (icon === 'red') {
+        $("#live_status_time").hide();
+    } else {
+        $("#live_status_time").show();
+    }
 }
 
 function ws_connect(evt) {
@@ -2132,6 +2136,28 @@ function attempt_wss_connect() {
     };
 }
 
+function show_live_data_error(msg) {
+    console.log("Live data error: " + msg);
+    $("#cc_error_msg").html(msg);
+    $("#cc_error").show();
+    $("#current_conditions").hide();
+    update_live_status('red', 'Error');
+}
+
+function show_stale_live_data_error(age) {
+    show_live_data_error(
+            "No live data available. Live data has not been refreshed in "
+            + age.toString() + " seconds. The update service may " +
+            "have stopped");
+}
+
+function hide_live_data_error(show_cc) {
+    $("#cc_error").hide();
+    if (show_cc) {
+        $("#current_conditions").show();
+    }
+}
+
 function connect_live() {
     if (window.MozWebSocket) {
         window.WebSocket = window.MozWebSocket;
@@ -2173,6 +2199,11 @@ function connect_live() {
             } else if (server_reload) {
                 // Data on the server is too old to load the charts.
                 server_reload = false;
+                show_live_data_error(
+                    "Unable to start live update of current conditions - " +
+                    "the data on the server is stale. The update service may " +
+                    "have stopped.");
+                update_live_status('red', 'Unable to connect - server data stale');
                 return;
             }
         }
@@ -2247,25 +2278,16 @@ var wind_directions = [
  * @param data Data to populate the display with.
  */
 function refresh_live_data(data) {
-    $("#cc_refresh_failed").hide();
-
-    var cc_bad = $("#cc_bad");
-    var cc_stale = $("#cc_stale");
     var current_conditions = $("#current_conditions");
 
-    cc_bad.hide();
     if (data['s'] == "bad") {
-        current_conditions.hide();
-        cc_bad.show();
+        show_live_data_error("No live data available. This is likely due to misconfiguration");
     }
     // If the live data is over 5 minutes old show a warning instead.
     else if (data['age'] > 300) {
-        $("#cc_data_age").html(data['age']);
-        current_conditions.hide();
-        cc_stale.show();
+        show_stale_live_data_error(data['age']);
     } else {
-        current_conditions.show();
-        cc_stale.hide();
+        hide_live_data_error(true);
 
         // Current conditions
         var relative_humidity = data['relative_humidity'];
@@ -2386,9 +2408,7 @@ function refresh_live_data(data) {
     if (update_check_interval != null)
         window.clearInterval(update_check_interval);
     update_check_interval = window.setInterval(function(){
-        $("#cc_data_age").html('over 300');
-        current_conditions.hide();
-        cc_stale.show();
+        show_stale_live_data_error('over 300');
     }, 300000);
 }
 
