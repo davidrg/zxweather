@@ -46,6 +46,7 @@
         <file alias="preview">resources/application-image.png</file>
         <file alias="properties">resources/property.png</file>
         <file alias="open-image">resources/folder-open-image.png</file>
+        <file alias="cursor-tag">resources/cursor-tag.png</file>
     </qresource>
     <qresource prefix="/icons/weather">
         <file alias="mostly_cloudy">resources/weather-cloud.png</file>

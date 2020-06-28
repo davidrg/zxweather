@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>779</width>
+    <width>781</width>
     <height>454</height>
    </rect>
   </property>
@@ -79,6 +79,7 @@
    <addaction name="action_Grid"/>
    <addaction name="separator"/>
    <addaction name="actionC_ursor"/>
+   <addaction name="action_Track_Cursor"/>
   </widget>
   <widget class="QToolBar" name="tbSelectedGraph">
    <property name="windowTitle">
@@ -313,6 +314,21 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+A</string>
+   </property>
+  </action>
+  <action name="action_Track_Cursor">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../resources.qrc">
+     <normaloff>:/icons/cursor-tag</normaloff>:/icons/cursor-tag</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;Track Cursor</string>
+   </property>
+   <property name="toolTip">
+    <string>Highlights all points in line with the mouse cursor and shows their positions on the axis</string>
    </property>
   </action>
  </widget>

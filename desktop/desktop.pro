@@ -115,6 +115,7 @@ isEmpty(ECPG_BIN) {
 
 SOURCES += main.cpp\
     applock.cpp \
+    charts/plotwidget/chartmousetracker.cpp \
     columnpickerwidget.cpp \
     livecolumnpickerwidget.cpp \
         mainwindow.cpp \
@@ -221,6 +222,7 @@ SOURCES += main.cpp\
 HEADERS  += mainwindow.h \
     abstracturlhandler.h \
     applock.h \
+    charts/plotwidget/chartmousetracker.h \
     columnpickerwidget.h \
     database.h \
     livecolumnpickerwidget.h \

@@ -17,6 +17,8 @@
 #include "weatherplotter.h"
 #include "datasetsdialog.h"
 
+#include "plotwidget/chartmousetracker.h"
+
 namespace Ui {
 class ChartWindow;
 }
@@ -103,6 +105,8 @@ private slots:
     void setGraphActionsEnabled(bool enabled);
     void setDataSetActionsEnabled(bool enabled);
 
+    void setMouseTrackingEnabled(bool enabled);
+
 signals:
     void axisVisibilityChangedForDataSet(dataset_id_t dataSetId, bool visible);
     void dataSetVisibilityChanged(dataset_id_t dataSetId, bool visible);
@@ -153,6 +157,8 @@ private:
     hardware_type_t hw_type;
     ExtraColumns extraColumns;
     QMap<ExtraColumn, QString> extraColumnNames;
+
+    ChartMouseTracker *mouseTracker;
 };
 
 #endif // CHARTWINDOW_H

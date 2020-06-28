@@ -90,6 +90,7 @@ namespace SettingsKey {
 
     namespace Chart {
         const QString CURSOR_ENABLED = "Chart/cursor";
+        const QString TRACK_MOUSE_ENABLED = "Chart/track_mouse";
         const QString CHART_WINDOW_STATE ="Chart/window_state";
         const QString CHART_WINDOW_GEOMETRY = "Chart/window_geom";
 
@@ -999,11 +1000,19 @@ QVariantMap Settings::getReportCriteria(QString report) {
 }
 
 bool Settings::chartCursorEnabled() {
-    return settings->value(SettingsKey::Chart::CURSOR_ENABLED, true).toBool();
+    return settings->value(SettingsKey::Chart::CURSOR_ENABLED, false).toBool();
 }
 
 void Settings::setChartCursorEnabled(bool enabled) {
     settings->setValue(SettingsKey::Chart::CURSOR_ENABLED, enabled);
+}
+
+bool Settings::chartTracksMouseEnabled() {
+    return settings->value(SettingsKey::Chart::TRACK_MOUSE_ENABLED, true).toBool();
+}
+
+void Settings::setChartTracksMouseEnabled(bool enabled) {
+    settings->setValue(SettingsKey::Chart::TRACK_MOUSE_ENABLED, enabled);
 }
 
 bool Settings::showCurrentDayInImageWindow() {
