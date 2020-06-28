@@ -37,6 +37,12 @@ ChartWindow::ChartWindow(QList<DataSet> dataSets, bool solarAvailable, bool isWi
 {
     ui->setupUi(this);
 
+    Settings& settings = Settings::getInstance();
+
+    mouseTracker = new ChartMouseTracker(ui->chart);
+    mouseTracker->setEnabled(settings.chartTracksMouseEnabled());
+    ui->action_Track_Cursor->setChecked(mouseTracker->isEnabled());
+
     restoreGeometry(Settings::getInstance().chartWindowGeometry());
     restoreState(Settings::getInstance().chartWindowState());
 
@@ -59,8 +65,6 @@ ChartWindow::ChartWindow(QList<DataSet> dataSets, bool solarAvailable, bool isWi
     ui->actionLock_Y_Axes->setVisible(false);
     setYAxisLock();
     setXAxisLock();
-
-    Settings& settings = Settings::getInstance();
 
     plotter->setCursorEnabled(settings.chartCursorEnabled());
     ui->actionC_ursor->setChecked(plotter->isCursorEnabled());
@@ -102,6 +106,8 @@ ChartWindow::ChartWindow(QList<DataSet> dataSets, bool solarAvailable, bool isWi
 #ifdef FEATURE_PLUS_CURSOR
     connect(ui->actionC_ursor, SIGNAL(triggered()), this, SLOT(toggleCursor()));
 #endif
+    connect(ui->action_Track_Cursor, SIGNAL(triggered(bool)), this, SLOT(setMouseTrackingEnabled(bool)));
+
     // ---
     connect(ui->action_Save, SIGNAL(triggered()), this, SLOT(save()));
     connect(ui->action_Copy, SIGNAL(triggered()), this, SLOT(copy()));
@@ -175,6 +181,11 @@ void ChartWindow::closeEvent(QCloseEvent *event) {
     Settings::getInstance().saveChartWindowState(saveState());
 
     QMainWindow::closeEvent(event);
+}
+
+void ChartWindow::setMouseTrackingEnabled(bool enabled) {
+    mouseTracker->setEnabled(enabled);
+    Settings::getInstance().setChartTracksMouseEnabled(enabled);
 }
 
 void ChartWindow::setGraphActionsEnabled(bool enabled) {

@@ -245,6 +245,9 @@ public:
     bool chartCursorEnabled();
     void setChartCursorEnabled(bool enabled);
 
+    bool chartTracksMouseEnabled();
+    void setChartTracksMouseEnabled(bool enabled);
+
     bool showCurrentDayInImageWindow();
     bool selectCurrentDayInImageWindow();
 
