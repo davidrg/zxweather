@@ -1,0 +1,19 @@
+# Edit this file with the location of the configuration file and service.
+# To install, copy into /etc/systemd/system and:
+# systemctl daemon-reload
+# systemctl start zxweather_davis_logger.service
+# systemctl enable zxweather_davis_logger.service
+
+[Unit]
+Description=zxweather davis data logger daemon
+
+[Service]
+ExecStart=/usr/bin/twistd --nodaemon --pidfile= davis_logger -f /etc/zxweather/davis_logger.cfg
+WorkingDirectory=/opt/zxweather/davis-logger
+Environment="PYTHONPATH=/opt/zxweather/davis-logger/"
+User=root
+Group=root
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
