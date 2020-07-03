@@ -109,7 +109,21 @@ image_source_code = "cam01"
 
 # You can turn this on if security isn't a concern and your camera has an SSL
 # certificate that can't be verified.
-disable_ssl_certificate_verification = True
+disable_ssl_certificate_verification =
+
+# Set this to true if you'd like a json file to be produced for each frame
+# captured. This will allow you to load an individual frame as a camera photo
+# into the database using the store_video script.
+store_frame_info = False
+
+# Optional: If you want to keep a copy of the individual images that make up
+# the time-lapse video you can specify a script to archive these. This script
+# will be called after all processing has been completed so you can grab
+# a copy before they're deleted.
+# Parameters passed to the script are:
+#   1 - Directory to be archived
+#   2 - Date the images were captured
+archive_script = None
 
 ##############################################################################
 #   Data Processing Configuration ############################################
@@ -157,6 +171,19 @@ except NameError:
 sunrise_time_t = datetime.strptime(sunrise_time, "%H:%M").time()
 sunset_time_t = datetime.strptime(sunset_time, "%H:%M").time()
 
+output_config = [
+    {
+        "script": encoder_script,
+        "backup_location": backup_location,
+        "store_in_db": True,
+        "variant_name": None,
+        "interval_multiplier": 1,
+        "output_name": "",
+        "title": "Time-lapse for {date}",
+        "description": "Time-lapse from {start_time} to {end_time}"
+    }
+]
+
 application = Application("time-lapse-logger")
 IProcess(application).processName = "time-lapse-logger"
 
@@ -166,8 +193,9 @@ service = TSLoggerService(dsn, station_code, x_mq_hostname, x_mq_port,
                           sunset_time_t, use_solar_sensors, camera_url,
                           image_source_code,
                           disable_ssl_certificate_verification,
-                          encoder_script, working_directory, calculate_schedule,
+                          working_directory, calculate_schedule,
                           latitude, longitude, timezone, elevation,
-                          sunrise_offset, sunset_offset, backup_location)
+                          sunrise_offset, sunset_offset, output_config, False
+                          None)
 
 service.setServiceParent(application)

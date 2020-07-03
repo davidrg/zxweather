@@ -1,6 +1,8 @@
 # coding=utf-8
+import errno
 import json
 import os
+import shutil
 from datetime import datetime, time, timedelta
 import subprocess
 from timeit import default_timer as timer
@@ -19,6 +21,7 @@ import dateutil.parser
 from database import DatabaseReceiver, Database
 from mq_receiver import RabbitMqReceiver
 from readbody import readBody
+from util import Event
 
 
 # License: GPLv3 (Astral incompatible with GPLv2)
@@ -27,13 +30,20 @@ from readbody import readBody
 # TODO:
 #  - Target file size option? Calculate a bit rate based on the number of
 #    frames and pass to the encoder
-#  - option to store generated video on disk as well as database
 #  - Handle restarting the message broker
 #  - Optionally generate subtitle overlay with weather data
-
-# Stuff to test
-#  - Recovery from broker restart
-
+#  - Stuff to test
+#    - Recovery from broker restart
+#  - Allow for additional metadata to be stored from the config file?
+#  - Any other metadata we might want to store beyond what we have now?
+#  - Option to log weather data for duration of video and include in metadata?
+#               This would have to be Davis Sample equivalents generated from live data
+#               and aggregated into whatever the frame interval is:
+#               15s - 6 live updates
+#               30s - 12 live updates
+#               60s - 24 live updates
+#  - Include detected sunrise and sunset times in metadata?
+#  - Include calculated sunrise and sunset times in metadata?
 
 # noinspection PyClassicStyleClass
 class NoVerifyWebClientContextFactory(ClientContextFactory):
@@ -44,14 +54,263 @@ class NoVerifyWebClientContextFactory(ClientContextFactory):
         return ClientContextFactory.getContext(self)
 
 
+class VideoProcessor(object):
+    def __init__(self, working_directory, encoder_script, backup_location,
+                 store_in_database, database, image_source_code, enabled,
+                 variant_name, output_name, interval_multiplier, title,
+                 description):
+
+        self.stopService = Event()
+        self.reconnectDatabase = Event()
+
+        self._backup_location = backup_location
+        self._database = None
+        if store_in_database:
+            self._database = database
+        self._redirect_videos_to_disk = not store_in_database
+        self._mp4_script = encoder_script
+        self._working_dir = working_directory
+        self._image_source_code = image_source_code
+        self._enabled = enabled
+
+        self._variant_name = variant_name
+        self._output_name = output_name
+        self._interval_multiplier = interval_multiplier
+        self._title = title
+        self._description = description
+
+        # TODO: This produces no output because the log doesn't
+        #   start until the service starts
+        if enabled:
+            log.msg("Output '{0}' enabled with interval multiplier {1}x ".format(
+                    output_name, interval_multiplier))
+        else:
+            log.msg("Output '{0}' is disabled".format(output_name))
+
+    @property
+    def enabled(self):
+        return self._enabled
+
+    @property
+    def output(self):
+        return self._output_name
+
+    @staticmethod
+    def _select_inputs(working_dir, input_path, multiplier, frame_count):
+        # Symlink (or copy if windows) every nth image into the input path
+        # The resulting directory should be a smaller set of consecutively
+        # numbered images
+        # eg, with a multiplier of 2:
+        #    working_dir            input_path
+        #    001.jpg   --------->   001.jpg
+        #    002.jpg       /---->   002.jpg
+        #    003.jpg   ---/  /-->   003.jpg
+        #    004.jpg        /
+        #    005.jpg   ----/
+
+        log.msg("Selecting inputs for multiplier {0}, output to {1}".format(multiplier, input_path))
+
+        if not os.path.exists(input_path):
+            os.makedirs(input_path)
+
+        # First up, these are the frames we've got to work with
+        available_images = ["{0:06}.jpg".format(frame_number)
+                            for frame_number in range(0, frame_count+1)]
+
+        selected_images = []
+        i = 0
+        next_id = 0
+        while i < len(available_images):
+            if i == next_id:
+                selected_images.append(available_images[i])
+                next_id += multiplier
+            i += 1
+
+        # Empty target directory
+        for f in os.listdir(input_path):
+            file_path = os.path.join(input_path, f)
+            if os.path.isfile(file_path):
+                os.unlink(file_path)
+
+        # Now symlink (or copy) the selected images into the input path for
+        # encoding.
+
+        i = 0
+        if hasattr(os, "symlink"):
+            wd = os.getcwd()
+            os.chdir(input_path)
+            for image in selected_images:
+                relative_path = os.path.join("../", image)
+                os.symlink(relative_path, "{0:06}.jpg".format(i))
+                i += 1
+            os.chdir(wd)
+        else:
+            for image in selected_images:
+                shutil.copy(os.path.join(working_dir, image),
+                            os.path.join(input_path, "{0:06}.jpg".format(i)))
+                i += 1
+        return len(selected_images)
+
+    def build_and_store_video(self, current_time, logging_start_time, interval,
+                              frame_count):
+
+        log.msg("Building video for output '{0}', multiplier {1}, store to db ".format(
+                self._output_name, self._interval_multiplier, not self._redirect_videos_to_disk))
+
+        finish_time = current_time
+        mime_type = "video/mp4"
+
+        metadata_parameters = {
+            "date": logging_start_time.date(),
+            "start_time": logging_start_time.time().strftime("%H:%M"),
+            "end_time": finish_time.time().strftime("%H:%M")
+        }
+
+        title = self._title.format(**metadata_parameters)
+        description = self._description.format(**metadata_parameters)
+
+        input_path = self._working_dir
+        if self._interval_multiplier > 1:
+            if self._output_name is None or self._output_name == '':
+                input_path = os.path.join(self._working_dir, 'default')
+            else:
+                input_path = os.path.join(self._working_dir, self._output_name)
+
+            # Prepare a new encoder input directory with a reduced number of frames
+            # and get a new frame count.
+            frame_count = self._select_inputs(self._working_dir, input_path,
+                                              self._interval_multiplier, frame_count)
+
+        input_size = sum(os.path.getsize(os.path.join(input_path, f))
+                         for f in os.listdir(input_path)
+                         if os.path.isfile(os.path.join(input_path, f)))
+
+        dest_file = "output{name}.mp4".format(name=self._output_name)
+
+        start = timer()
+
+        command = '{0} "{1}" "{2}" "{3}" "{4}"'.format(
+            self._mp4_script, input_path, dest_file, title, description)
+        log.msg("Encoding video {1} with command: {0}".format(command, dest_file))
+
+        # generate the video file using the generator script
+        result = subprocess.call(command, shell=True)
+
+        processing_time = timer() - start
+
+        if result != 0:
+            log.msg("** ERROR: video script fails")
+            self.stopService.fire()
+            return timer() - start
+
+        metadata = {
+            "start": logging_start_time.isoformat(),
+            "finish": finish_time.isoformat(),
+            "processing_time": processing_time,
+            "frame_count": frame_count + 1,  # +1 to account for number 0
+            "base_interval": interval,
+            "interval": interval * self._interval_multiplier,
+            "total_size": input_size,
+            "variant": self._variant_name
+        }
+
+        with open(os.path.join(input_path, dest_file), 'rb') as f:
+            video_data = f.read()
+
+        log.msg("Video is {0} bytes long".format(len(video_data)))
+
+        if self._redirect_videos_to_disk:
+            # Store video on disk in the backup location only
+            self._store_video_in_backup_location(
+                finish_time, metadata, video_data, mime_type, title,
+                description)
+        else:
+            self._store_video_in_database(finish_time, metadata, video_data,
+                                          mime_type, title, description,
+                                          current_time)
+        processing_time = timer() - start
+        return processing_time
+
+    @inlineCallbacks
+    def _store_video_in_database(self, finish_time, metadata, video_data,
+                                 mime_type, title, description, current_time):
+        log.msg("Writing video to database.")
+        try:
+            yield self._database.store_video(current_time, video_data,
+                                             'video/mp4', json.dumps(metadata),
+                                             title, description)
+            log.msg("Video stored.")
+        except:
+            log.msg("Possible database connection problem. "
+                    "Attempting to reconnect...")
+            try:
+                self.reconnectDatabase.fire()
+
+                yield self._database.store_video(finish_time, video_data,
+                                                 mime_type,
+                                                 json.dumps(metadata),
+                                                 title, description)
+                log.msg("Database reconnected and video stored.")
+            except Exception as e:
+                log.msg("Reconnect failed or other problem storing video.")
+
+                self._store_video_in_backup_location(
+                    finish_time, metadata, video_data, mime_type, title,
+                    description)
+
+                log.msg("Rethrowing exception...")
+                raise e
+
+    def _store_video_in_backup_location(self, finish_time, metadata, video_data,
+                                        mime_type, title, description):
+        log.msg("Storing video in backup location")
+        if not os.path.exists(self._backup_location):
+            os.makedirs(self._backup_location)
+
+        filename_part = finish_time.strftime("%Y_%m_%d_%H_%M_%S")
+
+        if self._output_name is not None and self._output_name != '':
+            filename_part = self._output_name + '_' + filename_part
+
+        metadata_file = os.path.join(self._backup_location,
+                                     filename_part + ".json")
+        db_info_file = os.path.join(self._backup_location,
+                                    filename_part + "_info.json")
+        video_file = os.path.join(self._backup_location,
+                                  filename_part + ".mp4")
+        with open(metadata_file, 'w') as f:
+            f.write(json.dumps(metadata))
+        with open(video_file, 'wb') as f:
+            f.write(video_data)
+        with open(db_info_file, 'w') as f:
+            info = {
+                "time": finish_time.isoformat(),
+                "mime": mime_type,
+                "title": title,
+                "description": description,
+                "source": self._image_source_code,
+                "type": "TLVID",
+                "metadata": metadata_file,
+                "video": video_file
+            }
+            f.write(json.dumps(info))
+            f.flush()
+
+        log.msg("Video copied to backup location.\n"
+                "Video file: {0}\nMetadata file: {1}\nTitle: {2}\n"
+                "Description: {3}\nSize: {4} bytes".format(
+                    video_file, metadata_file, title, description, len(video_data)))
+
+
 class TSLoggerService(service.Service):
     def __init__(self, dsn, station_code, mq_hostname, mq_port, mq_exchange,
                  mq_username, mq_password, mq_vhost, capture_interval,
                  sunrise_time, sunset_time,
                  use_solar_sensors, camera_url, image_source_code,
-                 disable_cert_verification, video_script, working_dir,
+                 disable_cert_verification, working_dir,
                  calculate_schedule, latitude, longitude, timezone, elevation,
-                 sunrise_offset, sunset_offset, backup_location):
+                 sunrise_offset, sunset_offset, output_configurations,
+                 store_frame_info, archive_script):
         """
 
         :param dsn: Database connection string
@@ -87,8 +346,6 @@ class TSLoggerService(service.Service):
         :type image_source_code: str
         :param disable_cert_verification: Disable SSL certificate verification
         :type disable_cert_verification: bool
-        :param video_script: Script to generate the video file
-        :type video_script: str
         :param working_dir: Directory to store captured images and the generated
         video in
         :type working_dir: str
@@ -108,15 +365,26 @@ class TSLoggerService(service.Service):
         :type sunrise_offset: int
         :param sunset_offset: Time offset in minutes for calculated sunset
         :type sunset_offset: int
-        :param backup_location: Where to store failed videos on disk
-        :type backup_location: str
+        :param output_configurations: Output configuration data
         """
 
-        self._backup_location = backup_location
+        self._agent = None
+
+        self._archive_script = archive_script
+
+        store_in_database = False
+        for c in output_configurations:
+            store_in_database = c["store_in_db"]
+            if store_in_database:
+                break
 
         # Database connection for storing videos
-        self._database = Database(dsn, image_source_code)
-        self._image_source_code = image_source_code
+        if store_in_database or use_solar_sensors:
+            self._database = Database(dsn, image_source_code)
+        else:
+            self._database = None
+
+        self._store_frame_info = store_frame_info
 
         # How often pictures should be taken
         self._interval = capture_interval
@@ -165,14 +433,32 @@ class TSLoggerService(service.Service):
         if not os.path.exists(self._working_dir):
             os.makedirs(self._working_dir)
 
-        # Script to build the video
-        self._mp4_script = video_script
-
         # Initialise other members
         self._logging = False
         self._looper = task.LoopingCall(self._get_image)
         self._logging_start_time = None
         self._current_image_number = 0
+
+        def _stop_service():
+            self.stopService()
+
+        def _reconnect_db():
+            self._database.reconnect()
+            if self._db_receiver is not None:
+                self._db_receiver.reconnect()
+
+        self._image_source_code = image_source_code
+        self._video_processors = []
+        for c in output_configurations:
+            self._video_processors.append(VideoProcessor(
+                self._working_dir, c["script"], c["backup_location"],
+                c["store_in_db"], self._database, image_source_code, True,
+                c["variant_name"], c["output_name"], c["interval_multiplier"],
+                c["title"], c["description"]))
+
+        for vp in self._video_processors:
+            vp.stopService += _stop_service
+            vp.reconnectDatabase += _reconnect_db
 
     @property
     def current_time(self):
@@ -225,7 +511,10 @@ class TSLoggerService(service.Service):
     def startService(self):
         service.Service.startService(self)
 
-        self._database.connect()
+        log.msg("Service start")
+
+        if self._database is not None:
+            self._database.connect()
 
         if self._daylight_trigger and not self._calculated_schedule:
             # The schedule will be started and stopped by the presence or
@@ -252,21 +541,23 @@ class TSLoggerService(service.Service):
 
     def stopService(self):
         service.Service.stopService(self)
-        self._stop_logging("service stop")
+        self._stop_logging("service stop", False)
 
     @inlineCallbacks
     def _get_image(self):
         log.msg("Obtaining image #{0:06}...".format(self._current_image_number))
 
         try:
-            # TODO: Try sharing the factory to reduce log message spam
-            if self._disable_cert_verification:
-                context_factory = NoVerifyWebClientContextFactory()
-            else:
-                context_factory = WebClientContextFactory()
-            agent = Agent(reactor, context_factory)
+            # Share the agent to reduce log message spam
+            # TODO: check this works
+            if self._agent is None:
+                if self._disable_cert_verification:
+                    context_factory = NoVerifyWebClientContextFactory()
+                else:
+                    context_factory = WebClientContextFactory()
+                self._agent = Agent(reactor, context_factory)
 
-            response = yield agent.request(
+            response = yield self._agent.request(
                 'GET',
                 self._camera_url,
                 Headers({'User-Agent': ['zxweather time-lapse-logger']}),
@@ -274,6 +565,7 @@ class TSLoggerService(service.Service):
             )
 
             response_data = yield readBody(response)
+            response_time = self.current_time
 
             if response_data is None or not len(response_data):
                 raise Exception("Empty repsonse from camera")
@@ -281,6 +573,23 @@ class TSLoggerService(service.Service):
             fn = os.path.join(self._working_dir, "{0:06}.jpg".format(self._current_image_number))
             with open(fn, 'wb') as f:
                 f.write(response_data)
+
+            # Optionally store some metadata for the frame so it can be later
+            # inserted into the database by the user if it has something
+            # interesting in it.
+            if self._store_frame_info:
+                fi_fn = os.path.join(self._working_dir, "{0:06}.json".format(self._current_image_number))
+                with open(fi_fn, "w") as f:
+                    f.write(json.dumps({
+                        "time": response_time.isoformat(),
+                        "mime": "image/jpeg",
+                        "title": None,
+                        "description": "Time lapse frame {0:06}".format(self._current_image_number),
+                        "source": self._image_source_code,
+                        "type": "CAM",
+                        "metadata": None,
+                        "image": "{0:06}.jpg".format(self._current_image_number)
+                    }))
 
             log.msg("Image {0:06} captured.".format(self._current_image_number))
 
@@ -363,7 +672,7 @@ class TSLoggerService(service.Service):
         # else the logger will be stopped when the associated weather station
         # stops detecting sunlight
 
-    def _stop_logging(self, trigger):
+    def _stop_logging(self, trigger, produce_outputs=True):
 
         if not self._logging:
             return
@@ -393,109 +702,42 @@ class TSLoggerService(service.Service):
         # else the logger will be started when the associated weather station
         # detects sunlight
 
-        self._build_and_store_video()
+        if produce_outputs:
+            self._build_and_store_video()
 
-    @inlineCallbacks
     def _build_and_store_video(self):
-        finish_time = self.current_time
-        mime_type = "video/mp4"
+        for vp in self._video_processors:
+            if vp.enabled:
+                log.msg("Processing for output: " + vp.output)
+                pt = vp.build_and_store_video(self.current_time,
+                                              self._logging_start_time,
+                                              self._interval,
+                                              self._current_image_number - 1)
+                log.msg("Processed output in {0} seconds".format(pt))
+            else:
+                log.msg("Skipping output {0} - not enabled".format(vp.output))
 
-        title = "Time-lapse for {0}".format(self._logging_start_time.date())
-        description = "Time-lapse from {0} to {1}".format(
-            self._logging_start_time.time().strftime("%H:%M"),
-            finish_time.time().strftime("%H:%M")
-        )
+        log.msg("All video processing completed.")
 
-        input_size = sum(os.path.getsize(os.path.join(self._working_dir, f))
-                         for f in os.listdir(self._working_dir)
-                         if os.path.isfile(os.path.join(self._working_dir, f)))
+        # If the user wants to keep a copy of the input frames, take that copy
+        # now.
+        if self._archive_script is not None:
+            command = '{0} "{1}" "{2}"'.format(
+                self._archive_script,
+                self._working_dir,
+                self._logging_start_time.date())
 
-        dest_file = "output.mp4"
+            log.msg("Running archive script: {0}".format(command))
 
-        start = timer()
+            start = timer()
+            result = subprocess.call(command, shell=True)
+            processing_time = timer() - start
 
-        command = '{0} "{1}" "{2}" "{3}" "{4}"'.format(
-            self._mp4_script, self._working_dir, dest_file, title, description)
-        log.msg("Encoding video with command: {0}".format(command))
-
-        # generate the video file using the generator script
-        result = subprocess.call(command, shell=True)
-
-        processing_time = timer() - start
-
-        if result != 0:
-            log.msg("** ERROR: video script fails")
-            self.stopService()
-
-        metadata = {
-            "start": self._logging_start_time.isoformat(),
-            "finish": finish_time.isoformat(),
-            "processing_time": processing_time,
-            "frame_count": self._current_image_number - 1,
-            "interval": self._interval,
-            "total_size": input_size
-        }
-
-        with open(os.path.join(self._working_dir, dest_file), 'rb') as f:
-            video_data = f.read()
-
-        # Store video in the database
-        try:
-            yield self._database.store_video(self.current_time, video_data,
-                                             'video/mp4', json.dumps(metadata),
-                                             title, description)
-            log.msg("Video stored.")
-        except:
-            log.msg("Possible database connection problem. "
-                    "Attempting to reconnect...")
-            try:
-                self._database.reconnect()
-                if self._db_receiver is not None:
-                    self._db_receiver.reconnect()
-
-                yield self._database.store_video(finish_time, video_data,
-                                                 mime_type,
-                                                 json.dumps(metadata),
-                                                 title, description)
-                log.msg("Database reconnected and video stored.")
-            except Exception as e:
-                log.msg("Reconnect failed or other problem storing video.")
-
-                if not os.path.exists(self._backup_location):
-                    os.makedirs(self._backup_location)
-
-                filename_part = finish_time.strftime("%Y_%m_%d_%H_%M_%S")
-
-                metadata_file = os.path.join(self._backup_location,
-                                             filename_part + ".json")
-                db_info_file = os.path.join(self._backup_location,
-                                            filename_part + "_info.json")
-                video_file = os.path.join(self._backup_location,
-                                          filename_part + ".mp4")
-                with open(metadata_file, 'w') as f:
-                    f.write(json.dumps(metadata))
-                with open(video_file, 'wb') as f:
-                    f.write(video_data)
-                with open(db_info_file, 'w') as f:
-                    info = {
-                        "time": finish_time.isoformat(),
-                        "mime": mime_type,
-                        "title": title,
-                        "description": description,
-                        "source": self._image_source_code,
-                        "type": "TLVID",
-                        "metadata": metadata_file,
-                        "video": video_file
-                    }
-                    f.write(json.dumps(info))
-                    f.flush()
-
-                log.msg("Video copied to backup location.\n"
-                        "Video file: {0}\nMetadata file: {1}\nTitle: {2}\n"
-                        "Description: {3}".format(
-                            video_file, metadata_file, title, description))
-                log.msg("Rethrowing exception...")
-                raise e
+            if result != 0:
+                log.msg("** ERROR: archive script fails")
+            else:
+                log.msg("Archive script completed after {0}".format(
+                    processing_time))
 
     def _recover_run(self):
 
@@ -529,10 +771,23 @@ class TSLoggerService(service.Service):
             log.msg(e)
             self._empty_working_dir()
 
+    @staticmethod
+    def mkdir_p(path):
+        try:
+            os.makedirs(path)
+        except OSError as exc:  # Python ≥ 2.5
+            if exc.errno == errno.EEXIST and os.path.isdir(path):
+                pass
+            else:
+                raise
+
     def _empty_working_dir(self):
         """
         Deletes all files within the working directory
         """
+
+        # Ensure the working directory actually exists
+        self.mkdir_p(self._working_dir)
 
         for the_file in os.listdir(self._working_dir):
             file_path = os.path.join(self._working_dir, the_file)

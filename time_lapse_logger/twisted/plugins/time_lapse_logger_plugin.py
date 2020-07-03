@@ -81,16 +81,43 @@ class TSLoggerServiceMaker(object):
         disable_cert_verification = config.getboolean(
                 S_CAMERA, "disable_ssl_certificate_verification")
 
-        working_dir = config.get(S_PROCESSING, "working_directory")
-        encoder_script = config.get(S_PROCESSING, "encoder_script")
-        backup_location = config.get(S_PROCESSING, "backup_location")
+        working_dir = config.get(S_CAMERA, "working_directory")
+
+        save_frame_information = config.get(S_CAMERA, "save_frame_information")
+
+        outputs = [x for x in config.sections() if x.startswith(S_PROCESSING)]
+
+        output_configurations = []
+
+        for output in outputs:
+            vp = {
+                "script": config.get(output, "encoder_script"),
+                "backup_location": config.get(output, "backup_location"),
+                "store_in_db": config.getboolean(output, "store_in_database"),
+                "variant_name": None,
+                "interval_multiplier": config.getint(output, "interval_multiplier"),
+                "output_name": output[len(S_PROCESSING):],
+                "title": config.get(output, "title"),
+                "description": config.get(output, "description")
+            }
+            if config.has_option(output, "variant_name"):
+                vp["variant_name"] = config.get(output, "variant_name")
+
+            output_configurations.append(vp)
+
+        if config.has_option(S_CAMERA, "archive_script"):
+            archive_script = config.get(S_CAMERA, "archive_script")
+        else:
+            archive_script = None
 
         return dsn, mq_host, mq_port, mq_exchange, mq_user, mq_password, \
             mq_vhost, capture_interval, sunrise_time_t, \
             sunset_time_t, use_solar_sensors, station_code, camera_url, \
             image_source_code, disable_cert_verification, working_dir, \
-            encoder_script, calculate_schedule, latitude, longitude, timezone, \
-               elevation, sunrise_offset, sunset_offset, backup_location
+            calculate_schedule, latitude, longitude, timezone, \
+            elevation, sunrise_offset, sunset_offset, output_configurations, \
+            save_frame_information, archive_script
+
 
     def makeService(self, options):
         """
@@ -103,9 +130,10 @@ class TSLoggerServiceMaker(object):
             mq_vhost, capture_interval, sunrise_time, \
             sunset_time, use_solar_sensors, station_code, camera_url, \
             image_source_code, disable_cert_verification,\
-            working_dir, encoder_script, calculate_schedule, latitude, \
+            working_dir, calculate_schedule, latitude, \
             longitude, timezone, elevation, sunrise_offset, \
-            sunset_offset, backup_location \
+            sunset_offset, output_configurations, save_frame_information, \
+            archive_script \
             = self._readConfigFile(options['config-file'])
 
         svc = TSLoggerService(dsn, station_code, mq_host, mq_port,
@@ -113,9 +141,11 @@ class TSLoggerServiceMaker(object):
                               capture_interval, sunrise_time,
                               sunset_time, use_solar_sensors, camera_url,
                               image_source_code, disable_cert_verification,
-                              encoder_script, working_dir, calculate_schedule,
+                              working_dir, calculate_schedule,
                               latitude, longitude, timezone, elevation,
-                              sunrise_offset, sunset_offset, backup_location)
+                              sunrise_offset, sunset_offset,
+                              output_configurations, save_frame_information,
+                              archive_script)
 
         # All OK. Go get the service.
         return svc
