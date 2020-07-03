@@ -63,6 +63,8 @@
     </table>
     <p>Total Rainfall: {{ data.records.total_rainfall|round(1) }}mm</p>
 
+    <p><a href="{{ urls.root }}{{ urls.data_base }}noaayr.txt">Climate Summary for {{ data.this_year }}</a></p>
+
     <hr>
     <center>
         {% if data.prev_url -%}

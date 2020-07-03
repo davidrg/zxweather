@@ -1,0 +1,140 @@
+{# This template is for a year summary  #}
+
+{% extends "base.html" %}
+{% block title %}Summary for {{ data.this_year }}{% endblock %}
+{% block head %}{% endblock %}
+{% block content %}
+        <header>
+            <div class="row">
+                <div class="span6">
+                    <h1>Summary for {{ data.this_year }}</h1>
+                </div>
+                <div class="span6">
+                    <div class="btn-group nav-cluster">
+                        {% if urls.prev_url -%}
+                            <a href="{{ urls.prev_url }}" class="btn"><i class="icon-backward"></i> {{ data.prev_year }}</a>
+                        {%- else -%}
+                            <a href="#" class="btn disabled" onclick="return false;"><i class="icon-backward"></i> {{ data.prev_year }}</a>
+                        {%- endif %}
+                        <a href="../" class="btn">Station Overview</a>
+                        {% if urls.next_url -%}
+                            <a href="{{ urls.next_url }}" class="btn">{{ data.next_year }} <i class="icon-forward"></i></a>
+                        {%- else -%}
+                            <a href="#" class="btn disabled" onclick="return false;">{{ data.next_year }} <i class="icon-forward"></i></a>
+                        {%- endif %}
+                    </div>
+                </div>
+            </div>
+            <hr>
+        </header>
+
+        {% if summary_config %}<section>
+        <h2>Year Summary</h2>
+            <p>Heat Base: {{ summary_config.heatBase }}&deg;C, Cool Base: {{ summary_config.coolBase }}&deg;C,
+        Temperature units: &deg;{{ summary_config.tempUnits }}, Wind units: {{ summary_config.windUnits }},
+        Rainfall units: {{ summary_config.rainUnits }}</p>
+        <h3>Temperature</h3>
+            <table class="table">
+                <thead>
+                <tr>
+                    <th>Month</th>
+                    <th>Mean High</th>
+                    <th>Mean Low</th>
+                    <th>Mean</th>
+                    <th>Departure from Normal</th>
+                    <th>Heating Degree Days</th>
+                    <th>Cooling Degree Days</th>
+                    <th>High</th>
+                    <th>High Date</th>
+                    <th>Low</th>
+                    <th>Low Date</th>
+                    <!--<th></th>
+                    <th></th>
+                    <th></th>-->
+                </tr>
+                </thead>
+                <tbody>
+                {% for m in monthly_data %}{% if m.mean_max %}<tr>
+                    <td>{{ m.month }}</td>
+                    <td>{{ m.mean_max }}</td>
+                    <td>{{ m.mean_min }}</td>
+                    <td>{{ m.mean }}</td>
+                    <td>{{ m.dep_norm_temp }}</td>
+                    <td>{{ m.heat_dd }}</td>
+                    <td>{{ m.cool_dd }}</td>
+                    <td>{{ m.hi_temp }}</td>
+                    <td>{{ m.hi_temp_date }}</td>
+                    <td>{{ m.low_temp }}</td>
+                    <td>{{ m.low_temp_date }}</td>
+                    <!--<td>{{ m.max_high }}</td>
+                    <td>{{ m.max_low }}</td>
+                    <td>{{ m.min_high }}</td>
+                    <td>{{ m.min_low }}</td>-->
+                </tr>{% endif %}{% endfor %}
+                </tbody>
+            </table>
+        <h3>Rainfall</h3>
+            <table class="table">
+                <thead>
+                <tr>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th colspan="3" style="text-align: center;">Days of Rain Over</th>
+                </tr>
+                <tr>
+                    <th style="border: none;">Month</th>
+                    <th style="border: none;">Total</th>
+                    <th style="border: none;">Departure from Normal</th>
+                    <th style="border: none;">High One Day Rain</th>
+                    <th style="border: none;">High One Day Rain Date</th>
+                    {% if summary_config.rainUnits == "inches" %}<th style="border: none;">0.01</th>
+                    <th style="border: none;">0.1</th>
+                    <th style="border: none;">1</th>{% else %}<th style="border: none;">0.2mm</th>
+                    <th style="border: none;">2mm</th>
+                    <th style="border: none;">20mm</th>{% endif %}
+                </tr>
+                </thead>
+                <tbody>
+                {% for m in monthly_data %}{% if m.tot_rain %}<tr>
+                    <td>{{ m.month }}</td>
+                    <td>{{ m.tot_rain }}</td>
+                    <td>{{ m.dep_norm_rain }}</td>
+                    <td>{{ m.max_obs_rain }}</td>
+                    <td>{{ m.max_obs_rain_day }}</td>
+                    <td>{{ m.rain_02 }}</td>
+                    <td>{{ m.rain_2 }}</td>
+                    <td>{{ m.rain_20 }}</td>
+                </tr>{% endif %}{% endfor %}
+                </tbody>
+            </table>
+        <h3>Wind Speed</h3>
+            <table class="table">
+                <thead>
+                <tr>
+                    <th>Month</th>
+                    <th>Average</th>
+                    <th>High</th>
+                    <th>High Date</th>
+                    <th>Dominant Direction</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for m in monthly_data %}{% if m.avg_wind %}<tr>
+                    <td>{{ m.month }}</td>
+                    <td>{{ m.avg_wind }}</td>
+                    <td>{{ m.hi_wind }}</td>
+                    <td>{{ m.high_wind_day }}</td>
+                    <td>{{ m.dom_dir }}</td>
+                </tr>{% endif %}{% endfor %}
+                </tbody>
+            </table>
+        </section>{% else %}<section>
+        <h2>Year Summary</h2>
+        <p>Has not been configured for this station</p>
+        </section>{% endif %}
+{% endblock %}
+{% block scripts %}
+{% endblock %}

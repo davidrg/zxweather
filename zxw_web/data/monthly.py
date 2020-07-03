@@ -3,7 +3,7 @@
 Provides access to zxweather monthly data over HTTP in a number of formats.
 Used for generating charts in JavaScript, etc.
 """
-
+import chevron
 from datetime import date, datetime, timedelta
 from cache import cache_control_headers, rfcformat
 import os
@@ -13,7 +13,7 @@ from config import db
 import config
 from data.util import outdoor_sample_result_to_datatable, outdoor_sample_result_to_json, daily_records_result_to_datatable, daily_records_result_to_json
 from database import get_station_id, get_sample_interval, \
-    get_month_data_wp, get_month_data_wp_age, get_extra_sensors_enabled
+    get_month_data_wp, get_month_data_wp_age, get_extra_sensors_enabled, get_noaa_month_data
 
 __author__ = 'David Goodwin'
 
@@ -500,7 +500,9 @@ class data_ascii:
         if recs is None or len(recs) == 0:
             raise web.NotFound()
 
-        # No .txt files currently supported.
+        if dataset == "noaamo":
+            return self.noaa_month(station, int_year, int_month)
+
         raise web.NotFound()
 
         # if dataset == 'samples':
@@ -512,6 +514,30 @@ class data_ascii:
         #
         # web.header("Content-Type", "text/plain")
         # return result
+
+    def noaa_month(self, station, year, month):
+        template_dir = os.path.join(os.path.dirname(__file__),
+                                    os.path.join('templates'))
+
+        data = get_noaa_month_data(station, year, month)
+
+        if data is None:
+            raise web.NotFound()
+
+        monthly, daily_data, criteria = data
+
+        report_criteria = {
+            'daily': daily_data,
+            'month': monthly,
+            'criteria': criteria
+        }
+
+        with open(os.path.join(template_dir, 'noaamo.txt'), 'r') as f:
+            result = chevron.render(f, report_criteria)
+
+        web.header('Content-Type', 'text/plain; charset=utf-8')
+        web.header('Content-Length', str(len(result)))
+        return result
 
 
 class data_dat:

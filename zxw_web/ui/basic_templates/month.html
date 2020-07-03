@@ -74,6 +74,8 @@
     </table>
     <p>Total Rainfall: {{ data.records.total_rainfall|round(1) }}mm</p>
 
+    <p><a href="{{ urls.root }}{{ urls.data_base }}noaamo.txt">Climate Summary for {{ data.this_month }} {{ data.this_year }}</a></p>
+
     <a name="charts"></a>
     <h2>Monthly Charts</h2>
     <a href="temperature_tdp_large.png"><img src="temperature_tdp.png" alt="[Month Temperature and Dew Point]"></a>

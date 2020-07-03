@@ -47,6 +47,7 @@ urls = (
     '/data/(\w*)/(\d+)/datatable/(\w*).json', 'data.yearly.datatable_json',         # Yearly, DT
     '/data/(\w*)/(\w*).txt', 'data.station.data_ascii',                             # Station
     '/data/(\w*)/(\d+)/(\w*).json', 'data.yearly.data_json',                        # Yearly
+    '/data/(\w*)/(\d+)/(\w*).txt', 'data.yearly.data_text',                         # Yearly
     '/data/(\w*)/datatable/(\w*).json', 'data.station.datatable_json',              # Station, DT
     '/data/(\w*)/images/(\w*)/latest/(\w*)', 'data.station.latest_image',           # Link to latest image
     '/data/(\w*)/(\w*).json', 'data.station.data_json',                             # Station
@@ -59,7 +60,9 @@ urls = (
     '/(s|b|m|a)/(\w*)/(\d+)/(\w*)/(\d+)/(?:index\.html)?', 'ui.day_page.day', # A particular day
     '/(s|b|m|a)/(\w*)/(\d+)/(\w*)/(\d+)/indoor.html', 'ui.day_page.indoor_day', # indoor stats for a particular day.
     '/(?:s|b|m|a)/(?:\w*)/(?:\d+)/(?:\w*)/(?:\d+)', 'ui.dir_redirect',        # Redirect: day
+    '/(s|m|a)/(\w*)/(\d+)/(\w*)/summary\.html', 'ui.month_page.month_summary',  # A particular month
     '/(s|b|m|a)/(\w*)/(\d+)/(\w*)/(?:index\.html)?', 'ui.month_page.month',   # A particular month
+    '/(s|m|a)/(\w*)/(\d+)/summary\.html', 'ui.year_page.year_summary',        # A particular year
     '/(s|b|m|a)/(\w*)/(\d+)/(?:index\.html)?', 'ui.year_page.year',           # A particular year
     '/(?:s|b|m|a)/(?:\w*)/(?:\d+)/(?:\w*)', 'ui.dir_redirect',                # Redirect: month
     '/(?:s|b|m|a)/(?:\w*)/(?:\d+)', 'ui.dir_redirect',                        # Redirect: year

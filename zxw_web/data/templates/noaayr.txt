@@ -1,0 +1,34 @@
+                            ANNUAL CLIMATOLOGICAL SUMMARY
+
+{{#criteria}}NAME: {{title}}  CITY: {{city}}   STATE: {{state}}
+ELEV: {{altitude}} {{altitude_units}}  LAT: {{{latitude}}}  LONG: {{{longitude}}}
+
+               TEMPERATURE ({{temperature_units}}), HEAT BASE {{heat_base}}, COOL BASE {{cool_base}}{{/criteria}}
+                          DEP.  HEAT  COOL
+        MEAN  MEAN        FROM  DEG   DEG                        MAX  MAX  MIN  MIN
+ YR MO  MAX   MIN   MEAN  NORM  DAYS  DAYS  HI  DATE  LOW  DATE  {{#criteria}}{{{max_high_temp}}} {{{max_low_temp}}} {{{min_high_temp}}} {{{min_low_temp}}}{{/criteria}}
+------------------------------------------------------------------------------------
+{{#monthly}} {{year}} {{month}} {{mean_max}} {{mean_min}} {{mean}} {{dep_norm_temp}} {{heat_dd}} {{cool_dd}} {{hi_temp}}  {{hi_temp_date}} {{low_temp}}   {{low_temp_date}}   {{max_high}}   {{max_low}}   {{min_high}}   {{min_low}}
+{{/monthly}}
+------------------------------------------------------------------------------------
+       {{#yearly}}{{mean_max}} {{mean_min}} {{mean}} {{dep_norm_temp}} {{heat_dd}} {{cool_dd}} {{hi_temp}} {{hi_temp_date}} {{low_temp}}  {{low_temp_date}}  {{max_high}}  {{max_low}}  {{min_high}}  {{min_low}}{{/yearly}}
+
+{{#criteria}}                                PRECIPITATION ({{rain_units}}){{/criteria}}
+
+               DEP.   MAX        DAYS OF RAIN
+               FROM   OBS.          OVER
+ YR MO  TOTAL  NORM   DAY  DATE {{#criteria}}{{rain_02}}   {{rain_2}}  {{rain_20}}{{/criteria}}
+---------------------------------------------
+{{#monthly}} {{year}} {{month}} {{tot_rain}} {{dep_norm_rain}} {{max_obs_rain}}  {{max_obs_rain_day}}  {{rain_02}}  {{rain_2}}  {{rain_20}}
+{{/monthly}}
+---------------------------------------------
+     {{#yearly}}{{tot_rain}} {{dep_norm_rain}} {{max_obs_rain}}  {{max_obs_rain_day}}  {{rain_02}}  {{rain_2}}  {{rain_20}}{{/yearly}}
+
+{{#criteria}}                                WIND SPEED ({{wind_units}}){{/criteria}}
+                          DOM
+ YR MO   AVG.  HI   DATE  DIR
+---------------------------------
+{{#monthly}} {{year}} {{month}}  {{avg_wind}}  {{hi_wind}}   {{high_wind_day}}   {{dom_dir}}
+{{/monthly}}
+---------------------------------
+        {{#yearly}}{{avg_wind}}  {{hi_wind}}  {{high_wind_day}}  {{dom_dir}}{{/yearly}}

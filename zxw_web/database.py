@@ -5,7 +5,7 @@ Various common functions to get data from the database.
 import json
 
 from config import db
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import config
 
 __author__ = 'David Goodwin'
@@ -1835,3 +1835,1525 @@ order by cur.time_stamp asc"""
     params = dict(station=station_id, date=date, broadcast_id=broadcast_id)
 
     return db.query(query, params)
+
+
+def get_noaa_year_data(station_code, year, include_criteria=True):
+
+    if station_code not in config.report_settings or \
+            "noaa_year" not in config.report_settings[station_code]:
+        return None
+
+    params = config.report_settings[station_code]["noaa_year"]
+
+    stations = get_full_station_info(not config.hide_coordinates)
+
+    station_info = None
+    for x in stations:
+        if x['code'].lower() == station_code.lower():
+            station_info = x
+            break
+
+    if station_info is None:
+        return None
+
+    params.update({
+        "start": date(year=year, month=1, day=1),
+        "end": date(year=year, month=12, day=31),
+        "atDate": date(year=year, month=1, day=1),
+        "title": station_info['name'],
+        "altitude": station_info['coordinates']['altitude'],
+        "latitude": station_info['coordinates']['latitude'],
+        "longitude": station_info['coordinates']['longitude'],
+    })
+
+    # Changes from desktop version are limited to query parameter form
+    # ($parameter instead of :parameter)
+    yearly_query = """
+WITH parameters AS (
+   SELECT
+     $heatBase::float    	            AS heat_base,
+     $coolBase::float    	            AS cool_base,
+     $start::date                       AS start_date,
+     $end::date                         AS end_date,
+   	 $fahrenheit::boolean               AS fahrenheit, -- instead of celsius
+   	 $kmh::boolean                      AS kmh,	-- instead of m/s
+   	 $mph::boolean                      AS mph,	-- instead of m/s
+   	 $inches::boolean                   AS inches, -- instead of mm
+     $stationCode::varchar(5)           AS stationCode,
+     32::integer                        AS max_high_temp,
+     0::integer                         AS max_low_temp,
+     0::integer                         AS min_high_temp,
+     -18::integer                       AS min_low_temp,
+     0.2::float                         AS rain_02,
+     2.0::float                         AS rain_2,
+     20.0::float                        AS rain_20
+ ), compass_points AS (
+  SELECT
+    column1 AS idx,
+    column2 AS point
+  FROM (VALUES
+    (0, 'N'), (1, 'NNE'), (2, 'NE'), (3, 'ENE'), (4, 'E'), (5, 'ESE'), (6, 'SE'), (7, 'SSE'), (8, 'S'), (9, 'SSW'),
+    (10, 'SW'), (11, 'WSW'), (12, 'W'), (13, 'WNW'), (14, 'NW'), (15, 'NNW')) AS t
+), normal_readings as (
+  select
+    column1 as month,
+    column2 as temp,
+    column3 as rain
+  from (values
+      (1, $normJan::FLOAT, $normJanRain::FLOAT),
+      (2, $normFeb::FLOAT, $normFebRain::FLOAT),
+      (3, $normMar::FLOAT, $normMarRain::FLOAT),
+      (4, $normApr::FLOAT, $normAprRain::FLOAT),
+      (5, $normMay::FLOAT, $normMayRain::FLOAT),
+      (6, $normJun::FLOAT, $normJunRain::FLOAT),
+      (7, $normJul::FLOAT, $normJulRain::FLOAT),
+      (8, $normAug::FLOAT, $normAugRain::FLOAT),
+      (9, $normSep::FLOAT, $normSepRain::FLOAT),
+      (10, $normOct::FLOAT, $normOctRain::FLOAT),
+      (11, $normNov::FLOAT, $normNovRain::FLOAT),
+      (12, $normDec::FLOAT, $normDecRain::FLOAT)
+    ) as norm
+), daily_aggregates as (
+  select
+      -- Day info
+      aggregates.date                                         AS date,
+      aggregates.station_id                                   AS station_id,
+      -- Day Counts
+      case when aggregates.tot_rain >= parameters.rain_02
+        then 1 else 0 end                                     AS rain_over_02,
+      case when aggregates.tot_rain >= parameters.rain_2
+        then 1 else 0 end                                     AS rain_over_2,
+      case when aggregates.tot_rain >= parameters.rain_20
+        then 1 else 0 end                                     AS rain_over_20,
+      case when aggregates.max_temp >= parameters.max_high_temp
+        then 1 else 0 end                                     AS max_high_temp,
+      case when aggregates.max_temp <= parameters.max_low_temp
+        then 1 else 0 end                                     AS max_low_temp,
+      case when aggregates.min_temp <= parameters.min_high_temp
+        then 1 else 0 end                                     AS min_high_temp,
+      case when aggregates.min_temp <= parameters.min_low_temp
+        then 1 else 0 end                                     AS min_low_temp,
+      -- day aggregates
+      aggregates.max_temp                                     AS max_temp,
+      aggregates.min_temp                                     AS min_temp,
+      aggregates.avg_temp                                     AS avg_temp,
+      aggregates.tot_rain                                     AS tot_rain,
+      aggregates.avg_wind                                     AS avg_wind,
+      aggregates.max_wind                                     AS max_wind,
+      aggregates.tot_cool_degree_days                         AS tot_cool_degree_days,
+      aggregates.tot_heat_degree_days                         AS tot_heat_degree_days
+    from (
+      select   -- Various aggregates per day
+        s.time_stamp::date                          AS date,
+        s.station_id                                AS station_id,
+        round(max(temperature)::numeric,1)          AS max_temp,
+        round(min(temperature)::numeric,1)          AS min_temp,
+        round(avg(temperature)::numeric,1)          AS avg_temp,
+        round(sum(rainfall)::numeric,1)             AS tot_rain,
+        round(avg(average_wind_speed)::numeric,1)   AS avg_wind,
+        round(max(gust_wind_speed)::numeric,1)      AS max_wind,
+        sum(cool_degree_days)                       AS tot_cool_degree_days,
+        sum(heat_degree_days)                       AS tot_heat_degree_days
+      from (
+        select
+          time_stamp,
+          s.station_id,
+          temperature,
+          rainfall,
+          average_wind_speed,
+          gust_wind_speed,
+          case when temperature > p.cool_base
+            then temperature - p.cool_base
+          else 0 end * (stn.sample_interval :: NUMERIC / 86400.0) as cool_degree_days,
+          case when temperature < p.heat_base
+            then p.heat_base - temperature
+          else 0 end * (stn.sample_interval :: NUMERIC / 86400.0) as heat_degree_days
+        from parameters p, sample s
+        inner join station stn on stn.station_id = s.station_id
+        where stn.code = p.stationCode
+      ) s, parameters
+      where s.time_stamp::date between parameters.start_date::date and parameters.end_date::date
+      group by s.time_stamp::date, s.station_id
+    ) as aggregates, parameters
+  group by
+    aggregates.date, aggregates.tot_rain, aggregates.max_temp, aggregates.min_temp, aggregates.station_id,
+    aggregates.avg_temp, aggregates.avg_wind, aggregates.max_wind, aggregates.tot_cool_degree_days,
+    aggregates.tot_heat_degree_days, parameters.rain_02, parameters.rain_2, parameters.rain_20,
+    parameters.max_high_temp, parameters.max_low_temp, parameters.min_high_temp, parameters.min_low_temp
+),
+monthly_aggregates as (
+  select
+    date_trunc('month', agg.date)::date as date,
+    agg.station_id as station_id,
+
+    -- Monthly counts
+    sum(agg.rain_over_02)               as rain_over_02,
+    sum(agg.rain_over_2)                as rain_over_2,
+    sum(agg.rain_over_20)               as rain_over_20,
+    sum(agg.max_high_temp)              as max_high_temp,
+    sum(agg.max_low_temp)               as max_low_temp,
+    sum(agg.min_high_temp)              as min_high_temp,
+    sum(agg.min_low_temp)               as min_low_temp,
+
+    -- Monthly aggregates - temperature
+    avg(agg.max_temp)                   as max_avg_temp,
+    avg(agg.min_temp)                   as min_avg_temp,
+    avg(agg.avg_temp)                   as avg_temp,
+    avg(agg.avg_temp) - norm.temp       as dep_norm_temp,
+    sum(agg.tot_cool_degree_days)       as tot_cool_degree_days,
+    sum(agg.tot_heat_degree_days)       as tot_heat_degree_days,
+    max(agg.max_temp)                   as max_temp,
+    min(agg.min_temp)                   as min_temp,
+
+    -- Monthly aggregates - rainfall
+    sum(agg.tot_rain)                   as tot_rain,
+    sum(agg.tot_rain) - norm.rain       as dep_norm_rain,
+    max(agg.tot_rain)                   as max_rain,
+
+    -- Monthly aggregates - wind
+    avg(agg.avg_wind)                   as avg_wind,
+    max(agg.max_wind)                   as max_wind
+
+  from daily_aggregates as agg
+  inner join normal_readings norm on norm.month = extract(month from agg.date)
+  group by date_trunc('month', agg.date)::date, agg.station_id, norm.temp, norm.rain
+), yearly_aggregates as (
+  select
+    agg.station_id                      as station_id,
+    date_trunc('year', agg.date)::date  as year,
+
+    -- Monthly counts
+    sum(agg.rain_over_02)               as rain_over_02,
+    sum(agg.rain_over_2)                as rain_over_2,
+    sum(agg.rain_over_20)               as rain_over_20,
+    sum(agg.max_high_temp)              as max_high_temp,
+    sum(agg.max_low_temp)               as max_low_temp,
+    sum(agg.min_high_temp)              as min_high_temp,
+    sum(agg.min_low_temp)               as min_low_temp,
+
+    -- Monthly aggregates - temperature
+    avg(agg.max_avg_temp)               as max_avg_temp,
+    avg(agg.min_avg_temp)               as min_avg_temp,
+    avg(agg.avg_temp)                   as avg_temp,
+    avg(agg.dep_norm_temp)              as dep_norm_temp,
+    sum(agg.tot_cool_degree_days)       as tot_cool_degree_days,
+    sum(agg.tot_heat_degree_days)       as tot_heat_degree_days,
+    max(agg.max_temp)                   as max_temp,
+    min(agg.min_temp)                   as min_temp,
+
+    -- Monthly aggregates - rainfall
+    sum(agg.tot_rain)                   as tot_rain,
+    sum(agg.dep_norm_rain)              as dep_norm_rain,
+    max(agg.tot_rain)                   as max_rain,
+
+    -- Monthly aggregates - wind
+    avg(agg.avg_wind)                   as avg_wind,
+    max(agg.max_wind)                   as max_wind
+
+  from monthly_aggregates as agg
+  group by date_trunc('year', agg.date)::date, agg.station_id
+),dominant_wind_directions as (
+  WITH wind_directions AS (
+    SELECT
+      station_id,
+      date_trunc('year', time_stamp)::date as year,
+      wind_direction,
+      count(wind_direction) AS count
+    FROM sample s, parameters p
+    where date_trunc('year', s.time_stamp)::date between p.start_date and p.end_date and s.wind_direction is not null
+    GROUP BY date_trunc('year', s.time_stamp) :: DATE, station_id, wind_direction
+  ), max_count AS (
+    SELECT
+      station_id,
+      year,
+      max(count) AS max_count
+    FROM wind_directions AS counts
+    GROUP BY station_id, year
+  )
+  SELECT
+    d.station_id,
+    d.year,
+    min(wind_direction) AS wind_direction
+  FROM wind_directions d
+    INNER JOIN max_count mc ON mc.station_id = d.station_id AND mc.year = d.year AND mc.max_count = d.count
+  GROUP BY d.station_id, d.year
+)
+select
+  d.year                                                    as year,
+
+  -- Temperature
+  lpad(round(d.mean_max::numeric, 1)::varchar, 5, ' ')      as mean_max,
+  lpad(round(d.mean_min::numeric, 1)::varchar, 5, ' ')      as mean_min,
+  lpad(round(d.mean::numeric, 1)::varchar, 5, ' ')          as mean,
+  lpad(round(d.dep_norm_temp::numeric, 1)::varchar, 5, ' ') as dep_norm_temp,
+  lpad(round(d.heat_deg_days::numeric, 0)::varchar, 5, ' ') as heat_dd,
+  lpad(round(d.cool_deg_days::numeric, 0)::varchar, 5, ' ') as cool_dd,
+  lpad(round(d.hi_temp::numeric, 1)::varchar, 5, ' ')       as hi_temp,
+  lpad(d.hi_temp_date::varchar, 3, ' ')                     as hi_temp_date,
+  lpad(round(d.low::numeric, 1)::varchar, 5, ' ')           as low_temp,
+  lpad(d.low_date::varchar, 3, ' ')                         as low_temp_date,
+  lpad(d.max_high::varchar, 3, ' ')                         as max_high,
+  lpad(d.max_low::varchar, 3, ' ')                          as max_low,
+  lpad(d.min_high::varchar, 3, ' ')                         as min_high,
+  lpad(d.min_low::varchar, 3, ' ')                          as min_low,
+
+  -- Rain
+  lpad(case when p.inches
+    then round(d.tot_rain::numeric, 2)
+    else round(d.tot_rain::numeric, 1)
+    end::varchar, 7, ' ')                                   as tot_rain,
+  lpad(case when p.inches
+    then round(d.dep_norm_rain::numeric, 2)
+    else round(d.dep_norm_rain::numeric, 1)
+    end::varchar, 6, ' ')                                   as dep_norm_rain,
+  lpad(case when p.inches
+    then round(d.max_obs_rain::numeric, 2)
+    else round(d.max_obs_rain::numeric, 1)
+    end::varchar, 5, ' ')                                   as max_obs_rain,
+  lpad(d.max_obs_rain_day::varchar, 3, ' ')                 as max_obs_rain_day,
+  lpad(d.rain_02::varchar, 3, ' ')                          as rain_02,
+  lpad(d.rain_2::varchar, 3, ' ')                           as rain_2,
+  lpad(d.rain_20::varchar, 3, ' ')                          as rain_20,
+
+  -- Wind
+  lpad(round(d.avg_wind::numeric, 1)::varchar, 4, ' ')      as avg_wind,
+  lpad(round(d.max_wind::numeric, 1)::varchar, 4, ' ')      as hi_wind,
+  lpad(d.high_wind_day::varchar, 3, ' ')                    as high_wind_day,
+  lpad(d.dom_dir::varchar, 3, ' ')                          as dom_dir
+
+from (  -- This is unit-converted report data, d:
+  select
+    -- Common Columns
+    to_char(data.year, 'YY')                                                              as year,
+
+    -- Temperature Table
+    case when p.fahrenheit then data.max_avg_temp  * 1.8 + 32 else data.max_avg_temp  end as mean_max,
+    case when p.fahrenheit then data.min_avg_temp  * 1.8 + 32 else data.min_avg_temp  end as mean_min,
+    case when p.fahrenheit then data.avg_temp      * 1.8 + 32 else data.avg_temp      end as mean,
+    case when p.fahrenheit then data.dep_temp_norm * 1.8 + 32 else data.dep_temp_norm end as dep_norm_temp,
+    case when p.fahrenheit
+      then data.tot_heat_degree_days * 1.8 + 32 else data.tot_heat_degree_days        end as heat_deg_days,
+    case when p.fahrenheit
+      then data.tot_cool_degree_days * 1.8 + 32 else data.tot_cool_degree_days        end as cool_deg_days,
+    case when p.fahrenheit then data.max_temp      * 1.8 + 32 else data.max_temp      end as hi_temp,
+    to_char(data.max_temp_date, 'MON')                                                    as hi_temp_date,
+    case when p.fahrenheit then data.min_temp      * 1.8 + 32 else data.min_temp      end as low,
+    to_char(data.min_temp_date, 'MON')                                                    as low_date,
+    data.max_high_temp                                                                    as max_high,
+    data.max_low_temp                                                                     as max_low,
+    data.min_high_temp                                                                    as min_high,
+    data.min_low_temp                                                                     as min_low,
+
+    -- Rain table
+    case when p.inches then data.tot_rain      * 1.0/25.4 else data.tot_rain          end as tot_rain,
+    case when p.inches then data.dep_rain_norm * 1.0/25.4 else data.dep_rain_norm     end as dep_norm_rain,
+    case when p.inches then data.max_rain      * 1.0/25.4 else data.max_rain          end as max_obs_rain,
+    to_char(data.max_rain_date, 'MON')                                                    as max_obs_rain_day,
+    data.rain_over_02                                                                     as rain_02,
+    data.rain_over_2                                                                      as rain_2,
+    data.rain_over_20                                                                     as rain_20,
+
+    -- Wind table
+    case when p.kmh then round((data.avg_wind * 3.6)::numeric,1)
+         when p.mph then round((data.avg_wind * 2.23694)::numeric,1)
+         else            data.avg_wind                                                end as avg_wind,
+    case when p.kmh then round((data.max_wind * 3.6)::numeric, 1)
+         when p.mph then round((data.max_wind * 2.23694)::numeric, 1)
+         else            data.max_wind                                                end as max_wind,
+    to_char(data.max_wind_date, 'MON')                                                    as high_wind_day,
+    data.dom_wind_direction                                                               as dom_dir
+
+  from (
+    select
+      match.year,
+      match.station_id,
+
+      -- Rain counts
+      match.rain_over_02,
+      match.rain_over_2,
+      match.rain_over_20,
+
+      -- Temperature counts
+      match.max_high_temp,
+      match.max_low_temp,
+      match.min_high_temp,
+      match.min_low_temp,
+
+      -- Monthly aggregates - temperature
+      match.max_avg_temp,
+      match.min_avg_temp,
+      match.avg_temp,
+      match.dep_temp_norm,
+      match.tot_cool_degree_days,
+      match.tot_heat_degree_days,
+      match.max_temp,
+      match.min_temp,
+      max(match.max_temp_date) as max_temp_date,
+      max(match.min_temp_date) as min_temp_date,
+
+      -- Monthly aggregates - rain
+      match.tot_rain,
+      match.dep_rain_norm,
+      match.max_rain,
+      max(match.max_rain_date) as max_rain_date,
+
+      -- Monthly aggregates - wind
+      match.avg_wind,
+      match.max_wind,
+      max(match.max_wind_date) as max_wind_date,
+      match.dom_wind_direction
+    from (
+      select
+        yearly.year                    as year,
+        yearly.station_id              as station_id,
+
+        -- Rain counts
+        yearly.rain_over_02            as rain_over_02,
+        yearly.rain_over_2             as rain_over_2,
+        yearly.rain_over_20            as rain_over_20,
+
+        -- Temperature counts
+        yearly.max_high_temp           as max_high_temp,
+        yearly.max_low_temp            as max_low_temp,
+        yearly.min_high_temp           as min_high_temp,
+        yearly.min_low_temp            as min_low_temp,
+
+        -- Monthly aggregates - temperature
+        yearly.max_avg_temp            as max_avg_temp,
+        yearly.min_avg_temp            as min_avg_temp,
+        yearly.avg_temp                as avg_temp,
+        yearly.dep_norm_temp           as dep_temp_norm,
+        yearly.tot_cool_degree_days    as tot_cool_degree_days,
+        yearly.tot_heat_degree_days    as tot_heat_degree_days,
+        yearly.max_temp                as max_temp,
+        case when yearly.max_temp = monthly.max_temp
+          then monthly.date else null end as max_temp_date,
+        yearly.min_temp                as min_temp,
+        case when yearly.min_temp = monthly.min_temp
+          then monthly.date else null end as min_temp_date,
+
+        -- Monthly aggregates - rainfall
+        yearly.tot_rain                as tot_rain,
+        yearly.dep_norm_rain           as dep_rain_norm,
+        yearly.max_rain                as max_rain,
+        case when yearly.max_rain = monthly.tot_rain
+          then monthly.date else null end as max_rain_date,
+
+        -- Monthly aggregates - wind
+        yearly.avg_wind                as avg_wind,
+        yearly.max_wind                as max_wind,
+        case when yearly.max_wind = monthly.max_wind
+          then monthly.date else null end as max_wind_date,
+        point.point                     as dom_wind_direction
+
+      from yearly_aggregates yearly
+      inner join monthly_aggregates monthly ON
+          monthly.station_id = yearly.station_id
+          and (yearly.max_temp = monthly.max_temp
+               or yearly.min_temp = monthly.min_temp
+               or yearly.max_rain = monthly.tot_rain
+               or yearly.max_wind = monthly.max_wind)
+      left outer join dominant_wind_directions dwd on dwd.station_id = yearly.station_id and dwd.year = yearly.year
+      LEFT OUTER JOIN compass_points point ON point.idx = (((dwd.wind_direction * 100) + 1125) % 36000) / 2250
+    ) as match
+    group by
+      match.year, match.station_id, match.rain_over_02, match.rain_over_2, match.rain_over_20,
+      match.max_high_temp, match.max_low_temp, match.min_high_temp, match.min_low_temp, match.max_avg_temp,
+      match.min_avg_temp, match.avg_temp, match.dep_temp_norm, match.tot_cool_degree_days,
+      match.tot_heat_degree_days, match.max_temp, match.tot_rain, match.dep_rain_norm, match.max_rain,
+      match.avg_wind, match.max_wind, match.dom_wind_direction, match.min_temp
+    order by match.year, match.station_id
+  ) as data, parameters p
+) as d
+cross join parameters p;
+    """
+
+    monthly_query = """
+WITH parameters AS (
+   SELECT
+     $heatBase::float    	            AS heat_base,
+     $coolBase::float                   AS cool_base,
+     $start::date                       AS start_date,
+     $end::date                         AS end_date,
+   	 $fahrenheit::boolean               AS fahrenheit, -- instead of celsius
+   	 $kmh::boolean                      AS kmh,	-- instead of m/s
+   	 $mph::boolean                      AS mph,	-- instead of m/s
+   	 $inches::boolean                   AS inches, -- instead of mm
+     $stationCode::varchar(5)           AS stationCode,
+     32::integer                        AS max_high_temp,
+     0::integer                         AS max_low_temp,
+     0::integer                         AS min_high_temp,
+     -18::integer                       AS min_low_temp,
+     0.2::float                         AS rain_02,
+     2.0::float                         AS rain_2,
+     20.0::float                        AS rain_20
+ ), compass_points AS (
+  SELECT
+    column1 AS idx,
+    column2 AS point
+  FROM (VALUES
+    (0, 'N'), (1, 'NNE'), (2, 'NE'), (3, 'ENE'), (4, 'E'), (5, 'ESE'), (6, 'SE'), (7, 'SSE'), (8, 'S'), (9, 'SSW'),
+    (10, 'SW'), (11, 'WSW'), (12, 'W'), (13, 'WNW'), (14, 'NW'), (15, 'NNW')) AS t
+), normal_readings as (
+  select
+    column1 as month,
+    column2 as temp,
+    column3 as rain
+  from (values
+      (1, $normJan::FLOAT, $normJanRain::FLOAT),
+      (2, $normFeb::FLOAT, $normFebRain::FLOAT),
+      (3, $normMar::FLOAT, $normMarRain::FLOAT),
+      (4, $normApr::FLOAT, $normAprRain::FLOAT),
+      (5, $normMay::FLOAT, $normMayRain::FLOAT),
+      (6, $normJun::FLOAT, $normJunRain::FLOAT),
+      (7, $normJul::FLOAT, $normJulRain::FLOAT),
+      (8, $normAug::FLOAT, $normAugRain::FLOAT),
+      (9, $normSep::FLOAT, $normSepRain::FLOAT),
+      (10, $normOct::FLOAT, $normOctRain::FLOAT),
+      (11, $normNov::FLOAT, $normNovRain::FLOAT),
+      (12, $normDec::FLOAT, $normDecRain::FLOAT)
+    ) as norm
+), daily_aggregates as (
+  select
+      -- Day info
+      aggregates.date                                         AS date,
+      aggregates.station_id                                   AS station_id,
+      -- Day Counts
+      case when aggregates.tot_rain >= parameters.rain_02
+        then 1 else 0 end                                     AS rain_over_02,
+      case when aggregates.tot_rain >= parameters.rain_2
+        then 1 else 0 end                                     AS rain_over_2,
+      case when aggregates.tot_rain >= parameters.rain_20
+        then 1 else 0 end                                     AS rain_over_20,
+      case when aggregates.max_temp >= parameters.max_high_temp
+        then 1 else 0 end                                     AS max_high_temp,
+      case when aggregates.max_temp <= parameters.max_low_temp
+        then 1 else 0 end                                     AS max_low_temp,
+      case when aggregates.min_temp <= parameters.min_high_temp
+        then 1 else 0 end                                     AS min_high_temp,
+      case when aggregates.min_temp <= parameters.min_low_temp
+        then 1 else 0 end                                     AS min_low_temp,
+      -- day aggregates
+      aggregates.max_temp                                     AS max_temp,
+      aggregates.min_temp                                     AS min_temp,
+      aggregates.avg_temp                                     AS avg_temp,
+      aggregates.tot_rain                                     AS tot_rain,
+      aggregates.avg_wind                                     AS avg_wind,
+      aggregates.max_wind                                     AS max_wind,
+      aggregates.tot_cool_degree_days                         AS tot_cool_degree_days,
+      aggregates.tot_heat_degree_days                         AS tot_heat_degree_days
+    from (
+      select   -- Various aggregates per day
+        s.time_stamp::date                          AS date,
+        s.station_id                                AS station_id,
+        round(max(temperature)::numeric,1)          AS max_temp,
+        round(min(temperature)::numeric,1)          AS min_temp,
+        round(avg(temperature)::numeric,1)          AS avg_temp,
+        round(sum(rainfall)::numeric,1)             AS tot_rain,
+        round(avg(average_wind_speed)::numeric,1)   AS avg_wind,
+        round(max(gust_wind_speed)::numeric,1)      AS max_wind,
+        sum(cool_degree_days)                       AS tot_cool_degree_days,
+        sum(heat_degree_days)                       AS tot_heat_degree_days
+      from (
+        select
+          time_stamp,
+          s.station_id,
+          temperature,
+          rainfall,
+          average_wind_speed,
+          gust_wind_speed,
+          case when temperature > p.cool_base
+            then temperature - p.cool_base
+          else 0 end * (stn.sample_interval :: NUMERIC / 86400.0) as cool_degree_days,
+          case when temperature < p.heat_base
+            then p.heat_base - temperature
+          else 0 end * (stn.sample_interval :: NUMERIC / 86400.0) as heat_degree_days
+        from parameters p, sample s
+        inner join station stn on stn.station_id = s.station_id
+        where stn.code = p.stationCode
+      ) s, parameters
+      where s.time_stamp::date between parameters.start_date::date and parameters.end_date::date
+      group by s.time_stamp::date, s.station_id
+    ) as aggregates, parameters
+  group by
+    aggregates.date, aggregates.tot_rain, aggregates.max_temp, aggregates.min_temp, aggregates.station_id,
+    aggregates.avg_temp, aggregates.avg_wind, aggregates.max_wind, aggregates.tot_cool_degree_days,
+    aggregates.tot_heat_degree_days, parameters.rain_02, parameters.rain_2, parameters.rain_20,
+    parameters.max_high_temp, parameters.max_low_temp, parameters.min_high_temp, parameters.min_low_temp
+),
+monthly_aggregates as (
+  select
+    date_trunc('month', agg.date)::date as date,
+    agg.station_id as station_id,
+
+    -- Monthly counts
+    sum(agg.rain_over_02)               as rain_over_02,
+    sum(agg.rain_over_2)                as rain_over_2,
+    sum(agg.rain_over_20)               as rain_over_20,
+    sum(agg.max_high_temp)              as max_high_temp,
+    sum(agg.max_low_temp)               as max_low_temp,
+    sum(agg.min_high_temp)              as min_high_temp,
+    sum(agg.min_low_temp)               as min_low_temp,
+
+    -- Monthly aggregates - temperature
+    avg(agg.max_temp)                   as max_avg_temp,
+    avg(agg.min_temp)                   as min_avg_temp,
+    avg(agg.avg_temp)                   as avg_temp,
+
+    sum(agg.tot_cool_degree_days)       as tot_cool_degree_days,
+    sum(agg.tot_heat_degree_days)       as tot_heat_degree_days,
+    max(agg.max_temp)                   as max_temp,
+    min(agg.min_temp)                   as min_temp,
+
+    -- Monthly aggregates - rainfall
+    sum(agg.tot_rain)                   as tot_rain,
+
+    max(agg.tot_rain)                   as max_rain,
+
+    -- Monthly aggregates - wind
+    avg(agg.avg_wind)                   as avg_wind,
+    max(agg.max_wind)                   as max_wind
+
+  from daily_aggregates as agg
+  group by date_trunc('month', agg.date)::date, agg.station_id
+), dominant_wind_directions as (
+  WITH wind_directions AS (
+    SELECT
+      station_id,
+      date_trunc('month', time_stamp)::date as month,
+      wind_direction,
+      count(wind_direction) AS count
+    FROM sample s, parameters p
+    where date_trunc('month', s.time_stamp)::date between p.start_date and p.end_date and s.wind_direction is not null
+    GROUP BY date_trunc('month', s.time_stamp) :: DATE, station_id, wind_direction
+  ), max_count AS (
+    SELECT
+      station_id,
+      month,
+      max(count) AS max_count
+    FROM wind_directions AS counts
+    GROUP BY station_id, month
+  )
+  SELECT
+    d.station_id,
+    d.month,
+    min(wind_direction) AS wind_direction
+  FROM wind_directions d
+    INNER JOIN max_count mc ON mc.station_id = d.station_id AND mc.month = d.month AND mc.max_count = d.count
+  GROUP BY d.station_id, d.month
+), range as (
+  SELECT
+    to_char(start_date, 'YY') as year,
+    generate_series(1, 12, 1) as month
+  from parameters
+)
+select
+  r.year                                                    as year,
+  lpad(r.month::varchar, 2, ' ')                            as month,
+
+  -- Temperature
+  lpad(round(d.mean_max::numeric, 1)::varchar, 5, ' ')      as mean_max,
+  lpad(round(d.mean_min::numeric, 1)::varchar, 5, ' ')      as mean_min,
+  lpad(round(d.mean::numeric, 1)::varchar, 5, ' ')          as mean,
+  lpad(round(d.dep_norm_temp::numeric, 1)::varchar, 5, ' ') as dep_norm_temp,
+  lpad(round(d.heat_deg_days::numeric, 0)::varchar, 5, ' ') as heat_dd,
+  lpad(round(d.cool_deg_days::numeric, 0)::varchar, 5, ' ') as cool_dd,
+  lpad(round(d.hi_temp::numeric, 1)::varchar, 5, ' ')       as hi_temp,
+  lpad(d.hi_temp_date::varchar, 2, ' ')                     as hi_temp_date,
+  lpad(round(d.low::numeric, 1)::varchar, 5, ' ')           as low_temp,
+  lpad(d.low_date::varchar, 2, ' ')                         as low_temp_date,
+  lpad(d.max_high::varchar, 2, ' ')                         as max_high,
+  lpad(d.max_low::varchar, 2, ' ')                          as max_low,
+  lpad(d.min_high::varchar, 2, ' ')                         as min_high,
+  lpad(d.min_low::varchar, 2, ' ')                          as min_low,
+
+  -- Rain
+  lpad(case when p.inches
+    then round(d.tot_rain::numeric, 2)
+    else round(d.tot_rain::numeric, 1)
+    end::varchar, 5, ' ')                                   as tot_rain,
+  lpad(case when p.inches
+    then round(d.dep_norm_rain::numeric, 2)
+    else round(d.dep_norm_rain::numeric, 1)
+    end::varchar, 6, ' ')                                   as dep_norm_rain,
+  lpad(case when p.inches
+    then round(d.max_obs_rain::numeric, 2)
+    else round(d.max_obs_rain::numeric, 1)
+    end::varchar, 5, ' ')                                   as max_obs_rain,
+  lpad(d.max_obs_rain_day::varchar, 3, ' ')                 as max_obs_rain_day,
+  lpad(d.rain_02::varchar, 3, ' ')                          as rain_02,
+  lpad(d.rain_2::varchar, 3, ' ')                           as rain_2,
+  lpad(d.rain_20::varchar, 3, ' ')                          as rain_20,
+
+  -- Wind
+  lpad(round(d.avg_wind::numeric, 1)::varchar, 4, ' ')      as avg_wind,
+  lpad(round(d.max_wind::numeric, 1)::varchar, 4, ' ')      as hi_wind,
+  lpad(d.high_wind_day::varchar, 2, ' ')                    as high_wind_day,
+  lpad(d.dom_dir::varchar, 3, ' ')                          as dom_dir
+
+from range r
+left outer join (  -- This is unit-converted report data, d:
+  select
+    -- Common Columns
+    to_char(data.date, 'YY')                                                              as year,
+    extract(month from data.date)                                                         as month,
+
+    -- Temperature Table
+    case when p.fahrenheit then data.max_avg_temp  * 1.8 + 32 else data.max_avg_temp  end as mean_max,
+    case when p.fahrenheit then data.min_avg_temp  * 1.8 + 32 else data.min_avg_temp  end as mean_min,
+    case when p.fahrenheit then data.avg_temp      * 1.8 + 32 else data.avg_temp      end as mean,
+    case when p.fahrenheit then data.dep_temp_norm * 1.8 + 32 else data.dep_temp_norm end as dep_norm_temp,
+    case when p.fahrenheit
+      then data.tot_heat_degree_days * 1.8 + 32 else data.tot_heat_degree_days        end as heat_deg_days,
+    case when p.fahrenheit
+      then data.tot_cool_degree_days * 1.8 + 32 else data.tot_cool_degree_days        end as cool_deg_days,
+    case when p.fahrenheit then data.max_temp      * 1.8 + 32 else data.max_temp      end as hi_temp,
+    extract(day from data.max_temp_date)                                                  as hi_temp_date,
+    case when p.fahrenheit then data.min_temp      * 1.8 + 32 else data.min_temp      end as low,
+    extract(day from data.min_temp_date)                                                  as low_date,
+    data.max_high_temp                                                                    as max_high,
+    data.max_low_temp                                                                     as max_low,
+    data.min_high_temp                                                                    as min_high,
+    data.min_low_temp                                                                     as min_low,
+
+    -- Rain table
+    case when p.inches then data.tot_rain      * 1.0/25.4 else data.tot_rain          end as tot_rain,
+    case when p.inches then data.dep_rain_norm * 1.0/25.4 else data.dep_rain_norm     end as dep_norm_rain,
+    case when p.inches then data.max_rain      * 1.0/25.4 else data.max_rain          end as max_obs_rain,
+    extract(day from data.max_rain_date)                                                  as max_obs_rain_day,
+    data.rain_over_02                                                                     as rain_02,
+    data.rain_over_2                                                                      as rain_2,
+    data.rain_over_20                                                                     as rain_20,
+
+    -- Wind table
+    case when p.kmh then round((data.avg_wind * 3.6)::numeric,1)
+         when p.mph then round((data.avg_wind * 2.23694)::numeric,1)
+         else            data.avg_wind                                                end as avg_wind,
+    case when p.kmh then round((data.max_wind * 3.6)::numeric,1)
+         when p.mph then round((data.max_wind * 2.23694)::numeric,1)
+         else            data.max_wind                                                end as max_wind,
+    extract(day from data.max_wind_date)                                                  as high_wind_day,
+    data.dom_wind_direction                                                               as dom_dir
+
+  from (
+    select
+      match.date,
+      match.station_id,
+
+      -- Rain counts
+      match.rain_over_02,
+      match.rain_over_2,
+      match.rain_over_20,
+
+      -- Temperature counts
+      match.max_high_temp,
+      match.max_low_temp,
+      match.min_high_temp,
+      match.min_low_temp,
+
+      -- Monthly aggregates - temperature
+      match.max_avg_temp,
+      match.min_avg_temp,
+      match.avg_temp,
+      match.dep_temp_norm,
+      match.tot_cool_degree_days,
+      match.tot_heat_degree_days,
+      match.max_temp,
+      match.min_temp,
+      max(match.max_temp_date) as max_temp_date,
+      max(match.min_temp_date) as min_temp_date,
+
+      -- Monthly aggregates - rain
+      match.tot_rain,
+      match.dep_rain_norm,
+      match.max_rain,
+      max(match.max_rain_date) as max_rain_date,
+
+      -- Monthly aggregates - wind
+      match.avg_wind,
+      match.max_wind,
+      max(match.max_wind_date) as max_wind_date,
+      match.dom_wind_direction
+    from (
+      select
+        monthly.date as date,
+        monthly.station_id as station_id,
+
+        -- Rain counts
+        monthly.rain_over_02 as rain_over_02,
+        monthly.rain_over_2 as rain_over_2,
+        monthly.rain_over_20 as rain_over_20,
+
+        -- Temperature counts
+        monthly.max_high_temp as max_high_temp,
+        monthly.max_low_temp as max_low_temp,
+        monthly.min_high_temp as min_high_temp,
+        monthly.min_low_temp as min_low_temp,
+
+        -- Monthly aggregates - temperature
+        monthly.max_avg_temp as max_avg_temp,
+        monthly.min_avg_temp as min_avg_temp,
+        monthly.avg_temp as avg_temp,
+        monthly.avg_temp - norm.temp as dep_temp_norm,
+        monthly.tot_cool_degree_days as tot_cool_degree_days,
+        monthly.tot_heat_degree_days as tot_heat_degree_days,
+        monthly.max_temp as max_temp,
+        case when monthly.max_temp = daily.max_temp
+          then daily.date else null end as max_temp_date,
+        monthly.min_temp as min_temp,
+        case when monthly.min_temp = daily.min_temp
+          then daily.date else null end as min_temp_date,
+
+        -- Monthly aggregates - rainfall
+        monthly.tot_rain as tot_rain,
+        monthly.tot_rain - norm.rain as dep_rain_norm,
+        monthly.max_rain as max_rain,
+        case when monthly.max_rain = daily.tot_rain
+          then daily.date else null end as max_rain_date,
+
+        -- Monthly aggregates - wind
+        monthly.avg_wind as avg_wind,
+        monthly.max_wind as max_wind,
+        case when monthly.max_wind = daily.max_wind
+          then daily.date else null end as max_wind_date,
+        point.point as dom_wind_direction
+
+      from monthly_aggregates monthly
+      inner join normal_readings norm on norm.month = extract(month from monthly.date)
+      inner join daily_aggregates daily ON
+          daily.station_id = monthly.station_id
+        and ( monthly.max_temp = daily.max_temp
+          or monthly.min_temp = daily.min_temp
+          or monthly.max_rain = daily.tot_rain
+          or monthly.max_wind = daily.max_wind)
+      left outer join dominant_wind_directions dwd on dwd.station_id = monthly.station_id and dwd.month = monthly.date
+      LEFT OUTER JOIN compass_points point ON point.idx = (((dwd.wind_direction * 100) + 1125) % 36000) / 2250
+    ) as match
+    group by
+      match.date, match.station_id, match.rain_over_02, match.rain_over_2, match.rain_over_20,
+      match.max_high_temp, match.max_low_temp, match.min_high_temp, match.min_low_temp, match.max_avg_temp,
+      match.min_avg_temp, match.avg_temp, match.dep_temp_norm, match.tot_cool_degree_days,
+      match.tot_heat_degree_days, match.max_temp, match.tot_rain, match.dep_rain_norm, match.max_rain,
+      match.avg_wind, match.max_wind, match.dom_wind_direction, match.min_temp
+    order by match.date, match.station_id
+  ) as data, parameters p
+) as d on d.year = r.year and d.month = r.month
+cross join parameters p
+
+    """
+
+    # This is a bit ugly. Really we'd do all this work in Python but its easier
+    # to do it this way to keep
+    criteria_query = """
+    WITH parameters AS (
+  SELECT
+	$celsius::boolean		    AS celsius,
+	$fahrenheit::boolean    AS fahrenheit,
+	$kmh::boolean			      AS kmh,
+	$mph::boolean			      AS mph,
+	$inches::boolean		    AS inches,
+	$atDate::date      		  AS date,
+    $title::varchar		      AS title,
+    $city::varchar 			    AS city,
+    $state::varchar   		  AS state,
+    $altitude::FLOAT        AS altitude,
+    $latitude::FLOAT        AS latitude,
+    $longitude::FLOAT       AS longitude,
+	$altFeet::BOOLEAN       AS altitude_feet,
+	$coolBase::FLOAT		    AS cool_base,
+	$heatBase::FLOAT		    AS heat_base,
+	32::integer             AS max_high_temp,
+  0::integer              AS max_low_temp,
+  0::integer              AS min_high_temp,
+  -18::integer            AS min_low_temp,
+  0.2::numeric            AS rain_02,
+  2.0::numeric            AS rain_2,
+  20.0::numeric           AS rain_20
+),
+latitude_dms as (
+  select floor(abs(latitude)) as degrees,
+         floor(60 * (abs(latitude) - floor(abs(latitude)))) as minutes,
+         3600 * (abs(latitude) - floor(abs(latitude))) - 60 * floor(60 * (abs(latitude) - floor(abs(latitude)))) as seconds,
+         case when latitude < 0 then 'S' else 'N' end as direction
+  from parameters
+),
+longitude_dms as (
+  select floor(abs(longitude)) as degrees,
+         floor(60 * (abs(longitude) - floor(abs(longitude)))) as minutes,
+         3600 * (abs(longitude) - floor(abs(longitude))) - 60 * floor(60 * (abs(longitude) - floor(abs(longitude)))) as seconds,
+         case when longitude < 0 then 'W' else 'E' end as direction
+  from parameters
+)
+select
+  to_char(p.date, 'MON')                  AS month,
+  extract(year from p.date)               AS year,
+  p.title                                 AS title,
+  p.city                                  AS city,
+  p.state                                 AS state,
+  lpad(round((
+    CASE WHEN p.altitude_feet THEN p.altitude * 3.28084
+         ELSE p.altitude
+    END)::NUMERIC, 0)::varchar, 5, ' ')   AS altitude,
+  CASE WHEN p.altitude_feet THEN 'ft'
+       ELSE 'm '
+    END                                   AS altitude_units,
+  lpad(lat.degrees || '° ' || lat.minutes || ''' ' || round(lat.seconds::numeric, 0) || '" ' || lat.direction, 14, ' ')      AS latitude,
+  lpad(long.degrees || '° ' || long.minutes || ''' ' || round(long.seconds::numeric, 0) || '" ' || long.direction, 14, ' ')  AS longitude,
+  CASE WHEN p.celsius THEN '°C'
+       ELSE '°F' END                      AS temperature_units,
+  CASE WHEN p.inches THEN 'in'
+       ELSE 'mm' END                      AS rain_units,
+  CASE WHEN p.kmh THEN 'km/h'
+       WHEN p.mph THEN 'mph'
+       ELSE 'm/s' END                     AS wind_units,
+  lpad(round((
+	CASE WHEN p.celsius THEN p.cool_base
+	     ELSE p.cool_base * 1.8 + 32
+	END)::numeric, 1)::varchar, 4, ' ')   AS cool_base,
+  lpad(round((
+    CASE WHEN p.celsius THEN p.heat_base
+         ELSE p.heat_base * 1.8 + 32
+	END)::numeric, 1)::varchar, 4, ' ')   AS heat_base,
+  -- >=90 <=32 <=32 <=0
+  -- >=32 <=0  <=0  <=-18
+  '>=' || rpad(case when p.fahrenheit then (p.max_high_temp * 1.8 + 32)::integer
+   else p.max_high_temp end::varchar, 2, ' ') as max_high_temp,
+  '<=' || rpad(case when p.fahrenheit then (p.max_low_temp * 1.8 + 32)::integer
+   else p.max_low_temp end::varchar, 2, ' ') as max_low_temp,
+  '<=' || rpad(case when p.fahrenheit then (p.min_high_temp * 1.8 + 32)::integer
+   else p.min_high_temp end::varchar, 2, ' ') as min_high_temp,
+  '<=' || case when p.fahrenheit then (p.min_low_temp * 1.8 + 32)::integer
+   else p.min_low_temp end::varchar as min_low_temp,
+  lpad(case when p.inches then to_char(round(p.rain_02  * 1.0/25.4, 2), 'FM9.99') else to_char(p.rain_02, 'FM9.9') end::varchar, 3, ' ') as rain_02,
+  lpad(case when p.inches then to_char(round(p.rain_2   * 1.0/25.4, 1), 'FM9.9') else round(p.rain_2, 0)::varchar end::varchar, 2, ' ') as rain_2,
+  lpad(case when p.inches then round(p.rain_20  * 1.0/25.4, 0)  else round(p.rain_20, 0) end::varchar, 2, ' ') as rain_20
+from parameters p, latitude_dms as lat, longitude_dms as long;
+"""
+
+    yearly_data = db.query(yearly_query, params)[0]
+    monthly_data = list(db.query(monthly_query, params))
+    criteria_data = None
+    if include_criteria:
+        criteria_data = db.query(criteria_query, params)[0]
+
+    return monthly_data, yearly_data, criteria_data
+
+
+def get_noaa_month_data(station_code, year, month, include_criteria=True):
+    if station_code not in config.report_settings or \
+            "noaa_year" not in config.report_settings[station_code]:
+        return None
+
+    params = config.report_settings[station_code]["noaa_year"]
+
+    stations = get_full_station_info(not config.hide_coordinates)
+
+    station_info = None
+    for x in stations:
+        if x['code'].lower() == station_code.lower():
+            station_info = x
+            break
+
+    if station_info is None:
+        return None
+
+    params.update({
+        "start": date(year=year, month=month, day=1),
+        "end": date(year=year, month=month+1, day=1) - timedelta(days=1),
+        "atDate": date(year=year, month=month, day=1),
+        "title": station_info['name'],
+        "altitude": station_info['coordinates']['altitude'],
+        "latitude": station_info['coordinates']['latitude'],
+        "longitude": station_info['coordinates']['longitude'],
+    })
+
+    month_query = """
+    WITH parameters AS (
+   SELECT
+     $heatBase::float    	              AS heat_base,
+     $coolBase::float    	              AS cool_base,
+     $start::date                       AS start_date,
+     $end::date                         AS end_date,
+   	 $fahrenheit::boolean	              AS fahrenheit, -- instead of celsius
+   	 $kmh::boolean			                AS kmh,	-- instead of m/s
+   	 $mph::boolean			                AS mph,	-- instead of m/s
+   	 $inches::boolean		                AS inches, -- instead of mm
+     $stationCode::varchar(5)           AS stationCode,
+     32::integer                        AS max_high_temp,
+     0::integer                         AS max_low_temp,
+     0::integer                         AS min_high_temp,
+     -18::integer                       AS min_low_temp,
+     0.2::float                         AS rain_02,
+     2.0::float                         AS rain_2,
+     20.0::float                        AS rain_20
+ ), compass_points AS (
+  SELECT
+	column1 AS idx,
+	column2 AS point
+  FROM (VALUES
+    (0, 'N'), (1, 'NNE'), (2, 'NE'), (3, 'ENE'), (4, 'E'), (5, 'ESE'), (6, 'SE'), (7, 'SSE'), (8, 'S'), (9, 'SSW'),
+    (10, 'SW'), (11, 'WSW'), (12, 'W'), (13, 'WNW'), (14, 'NW'), (15, 'NNW')) AS t
+), daily_aggregates as (
+  select
+      -- Day info
+      aggregates.date                                         AS date,
+      aggregates.station_id                                   AS station_id,
+      -- Day Counts
+      case when aggregates.tot_rain >= parameters.rain_02
+        then 1 else 0 end                                     AS rain_over_02,
+      case when aggregates.tot_rain >= parameters.rain_2
+        then 1 else 0 end                                     AS rain_over_2,
+      case when aggregates.tot_rain >= parameters.rain_20
+        then 1 else 0 end                                     AS rain_over_20,
+      case when aggregates.max_temp >= parameters.max_high_temp
+        then 1 else 0 end                                     AS max_high_temp,
+      case when aggregates.max_temp <= parameters.max_low_temp
+        then 1 else 0 end                                     AS max_low_temp,
+      case when aggregates.min_temp <= parameters.min_high_temp
+        then 1 else 0 end                                     AS min_high_temp,
+      case when aggregates.min_temp <= parameters.min_low_temp
+        then 1 else 0 end                                     AS min_low_temp,
+      -- day aggregates
+      aggregates.max_temp                                     AS max_temp,
+      aggregates.min_temp                                     AS min_temp,
+      aggregates.avg_temp                                     AS avg_temp,
+      aggregates.tot_rain                                     AS tot_rain,
+      aggregates.avg_wind                                     AS avg_wind,
+      aggregates.max_wind                                     AS max_wind,
+      aggregates.tot_cool_degree_days                         AS tot_cool_degree_days,
+      aggregates.tot_heat_degree_days                         AS tot_heat_degree_days
+    from (
+      select   -- Various aggregates per day
+        s.time_stamp::date                          AS date,
+        s.station_id                                AS station_id,
+        round(max(temperature)::numeric,1)          AS max_temp,
+        round(min(temperature)::numeric,1)          AS min_temp,
+        round(avg(temperature)::numeric,1)          AS avg_temp,
+        round(sum(rainfall)::numeric,1)             AS tot_rain,
+        round(avg(average_wind_speed)::numeric,1)   AS avg_wind,
+        round(max(gust_wind_speed)::numeric,1)      AS max_wind,
+        sum(cool_degree_days)                       AS tot_cool_degree_days,
+        sum(heat_degree_days)                       AS tot_heat_degree_days
+      from (
+        select
+          time_stamp,
+          s.station_id,
+          temperature,
+          rainfall,
+          average_wind_speed,
+          gust_wind_speed,
+          case when temperature > p.cool_base
+            then temperature - p.cool_base
+          else 0 end * (stn.sample_interval :: NUMERIC / 86400.0) as cool_degree_days,
+          case when temperature < p.heat_base
+            then p.heat_base - temperature
+          else 0 end * (stn.sample_interval :: NUMERIC / 86400.0) as heat_degree_days
+        from parameters p, sample s
+        inner join station stn on stn.station_id = s.station_id
+        where stn.code = p.stationCode
+      ) s, parameters
+      where s.time_stamp::date between parameters.start_date::date and parameters.end_date::date
+      group by s.time_stamp::date, s.station_id
+    ) as aggregates, parameters
+  group by
+    aggregates.date, aggregates.tot_rain, aggregates.max_temp, aggregates.min_temp, aggregates.station_id,
+    aggregates.avg_temp, aggregates.avg_wind, aggregates.max_wind, aggregates.tot_cool_degree_days,
+    aggregates.tot_heat_degree_days, parameters.rain_02, parameters.rain_2, parameters.rain_20,
+    parameters.max_high_temp, parameters.max_low_temp, parameters.min_high_temp, parameters.min_low_temp
+),
+monthly_aggregates as (
+  select
+    date_trunc('month', agg.date)::date as date,
+    agg.station_id as station_id,
+
+    -- Monthly counts
+    sum(agg.rain_over_02)               as rain_over_02,
+    sum(agg.rain_over_2)                as rain_over_2,
+    sum(agg.rain_over_20)               as rain_over_20,
+    sum(agg.max_high_temp)              as max_high_temp,
+    sum(agg.max_low_temp)               as max_low_temp,
+    sum(agg.min_high_temp)              as min_high_temp,
+    sum(agg.min_low_temp)               as min_low_temp,
+
+    -- Monthly aggregates - temperature
+    avg(agg.avg_temp)                   as avg_temp,
+
+    sum(agg.tot_cool_degree_days)       as tot_cool_degree_days,
+    sum(agg.tot_heat_degree_days)       as tot_heat_degree_days,
+    max(agg.max_temp)                   as max_temp,
+    min(agg.min_temp)                   as min_temp,
+
+    -- Monthly aggregates - rainfall
+    sum(agg.tot_rain)                   as tot_rain,
+
+    max(agg.tot_rain)                   as max_rain,
+
+    -- Monthly aggregates - wind
+    avg(agg.avg_wind)                   as avg_wind,
+    max(agg.max_wind)                   as max_wind
+
+  from daily_aggregates as agg
+  group by date_trunc('month', agg.date)::date, agg.station_id
+), dominant_wind_directions as (
+  WITH wind_directions AS (
+    SELECT
+      station_id,
+      date_trunc('month', time_stamp)::date as month,
+      wind_direction,
+      count(wind_direction) AS count
+    FROM sample s, parameters p
+    where date_trunc('month', s.time_stamp)::date between p.start_date and p.end_date and s.wind_direction is not null
+    GROUP BY date_trunc('month', s.time_stamp) :: DATE, station_id, wind_direction
+  ), max_count AS (
+    SELECT
+      station_id,
+      month,
+      max(count) AS max_count
+    FROM wind_directions AS counts
+    GROUP BY station_id, month
+  )
+  SELECT
+    d.station_id,
+    d.month,
+    min(wind_direction) AS wind_direction
+  FROM wind_directions d
+    INNER JOIN max_count mc ON mc.station_id = d.station_id AND mc.month = d.month AND mc.max_count = d.count
+  GROUP BY d.station_id, d.month
+)
+select
+  -- Temperature
+  lpad(round(d.mean::numeric, 1)::varchar, 5, ' ')          as mean,
+  lpad(round(d.heat_deg_days::numeric, 1)::varchar, 5, ' ') as heat_dd,
+  lpad(round(d.cool_deg_days::numeric, 1)::varchar, 5, ' ') as cool_dd,
+  lpad(round(d.hi_temp::numeric, 1)::varchar, 5, ' ')       as hi_temp,
+  lpad(d.hi_temp_date::varchar, 2, ' ')                     as hi_temp_date,
+  lpad(round(d.low::numeric, 1)::varchar, 5, ' ')           as low_temp,
+  lpad(d.low_date::varchar, 2, ' ')                         as low_temp_date,
+  lpad(d.max_high::varchar, 2, ' ')                         as max_high,
+  lpad(d.max_low::varchar, 2, ' ')                          as max_low,
+  lpad(d.min_high::varchar, 2, ' ')                         as min_high,
+  lpad(d.min_low::varchar, 2, ' ')                          as min_low,
+
+  -- Rain
+  lpad(case when p.inches
+    then round(d.tot_rain::numeric, 2)
+    else round(d.tot_rain::numeric, 1)
+    end::varchar, 5, ' ')                                   as tot_rain,
+  lpad(case when p.inches
+    then round(d.max_obs_rain::numeric, 2)
+    else round(d.max_obs_rain::numeric, 1)
+    end::varchar, 5, ' ')                                   as max_obs_rain,
+  d.max_obs_rain_day::varchar                               as max_obs_rain_day,
+  lpad(d.rain_02::varchar, 2, ' ')                          as rain_02,
+  lpad(d.rain_2::varchar, 2, ' ')                           as rain_2,
+  lpad(d.rain_20::varchar, 2, ' ')                          as rain_20,
+
+  -- Wind
+  lpad(round(d.avg_wind::numeric, 1)::varchar, 4, ' ')      as avg_wind,
+  lpad(round(d.max_wind::numeric, 1)::varchar, 4, ' ')      as hi_wind,
+  lpad(d.high_wind_day::varchar, 2, ' ')                    as high_wind_day,
+  lpad(d.dom_dir::varchar, 3, ' ')                          as dom_dir
+
+from (  -- This is unit-converted report data, d:
+  select
+    -- Temperature Table
+    case when p.fahrenheit then data.avg_temp      * 1.8 + 32 else data.avg_temp      end as mean,
+    case when p.fahrenheit
+      then data.tot_heat_degree_days * 1.8 + 32 else data.tot_heat_degree_days        end as heat_deg_days,
+    case when p.fahrenheit
+      then data.tot_cool_degree_days * 1.8 + 32 else data.tot_cool_degree_days        end as cool_deg_days,
+    case when p.fahrenheit then data.max_temp      * 1.8 + 32 else data.max_temp      end as hi_temp,
+    extract(day from data.max_temp_date)                                                  as hi_temp_date,
+    case when p.fahrenheit then data.min_temp      * 1.8 + 32 else data.min_temp      end as low,
+    extract(day from data.min_temp_date)                                                  as low_date,
+    data.max_high_temp                                                                    as max_high,
+    data.max_low_temp                                                                     as max_low,
+    data.min_high_temp                                                                    as min_high,
+    data.min_low_temp                                                                     as min_low,
+
+    -- Rain table
+    case when p.inches then data.tot_rain      * 1.0/25.4 else data.tot_rain          end as tot_rain,
+    case when p.inches then data.max_rain      * 1.0/25.4 else data.max_rain          end as max_obs_rain,
+    data.max_rain_date::date                                                              as max_obs_rain_day,
+    data.rain_over_02                                                                     as rain_02,
+    data.rain_over_2                                                                      as rain_2,
+    data.rain_over_20                                                                     as rain_20,
+
+    -- Wind table
+    case when p.kmh then round((data.avg_wind * 3.6)::numeric,1)
+         when p.mph then round((data.avg_wind * 2.23694)::numeric,1)
+         else            data.avg_wind                                                end as avg_wind,
+    case when p.kmh then round((data.max_wind * 3.6)::numeric,1)
+         when p.mph then round((data.max_wind * 2.23694)::numeric,1)
+         else            data.max_wind                                                end as max_wind,
+    extract(day from data.max_wind_date)                                                  as high_wind_day,
+    data.dom_wind_direction                                                               as dom_dir
+
+  from (
+    select
+      match.date,
+      match.station_id,
+
+      -- Rain counts
+      match.rain_over_02,
+      match.rain_over_2,
+      match.rain_over_20,
+
+      -- Temperature counts
+      match.max_high_temp,
+      match.max_low_temp,
+      match.min_high_temp,
+      match.min_low_temp,
+
+      -- Monthly aggregates - temperature
+      match.avg_temp,
+      match.tot_cool_degree_days,
+      match.tot_heat_degree_days,
+      match.max_temp,
+      match.min_temp,
+      max(match.max_temp_date) as max_temp_date,
+      max(match.min_temp_date) as min_temp_date,
+
+      -- Monthly aggregates - rain
+      match.tot_rain,
+      match.max_rain,
+      max(match.max_rain_date) as max_rain_date,
+
+      -- Monthly aggregates - wind
+      match.avg_wind,
+      match.max_wind,
+      max(match.max_wind_date) as max_wind_date,
+      match.dom_wind_direction
+    from (
+      select
+        monthly.date as date,
+        monthly.station_id as station_id,
+
+        -- Rain counts
+        monthly.rain_over_02 as rain_over_02,
+        monthly.rain_over_2 as rain_over_2,
+        monthly.rain_over_20 as rain_over_20,
+
+        -- Temperature counts
+        monthly.max_high_temp as max_high_temp,
+        monthly.max_low_temp as max_low_temp,
+        monthly.min_high_temp as min_high_temp,
+        monthly.min_low_temp as min_low_temp,
+
+        -- Monthly aggregates - temperature
+        monthly.avg_temp as avg_temp,
+        monthly.tot_cool_degree_days as tot_cool_degree_days,
+        monthly.tot_heat_degree_days as tot_heat_degree_days,
+        monthly.max_temp as max_temp,
+        case when monthly.max_temp = daily.max_temp
+          then daily.date else null end as max_temp_date,
+        monthly.min_temp as min_temp,
+        case when monthly.min_temp = daily.min_temp
+          then daily.date else null end as min_temp_date,
+
+        -- Monthly aggregates - rainfall
+        monthly.tot_rain as tot_rain,
+        monthly.max_rain as max_rain,
+        case when monthly.max_rain = daily.tot_rain
+          then daily.date else null end as max_rain_date,
+
+        -- Monthly aggregates - wind
+        monthly.avg_wind as avg_wind,
+        monthly.max_wind as max_wind,
+        case when monthly.max_wind = daily.max_wind
+          then daily.date else null end as max_wind_date,
+        point.point as dom_wind_direction
+
+      from monthly_aggregates monthly
+      inner join daily_aggregates daily ON
+          daily.station_id = monthly.station_id
+        and ( monthly.max_temp = daily.max_temp
+          or monthly.min_temp = daily.min_temp
+          or monthly.max_rain = daily.tot_rain
+          or monthly.max_wind = daily.max_wind)
+      left outer join dominant_wind_directions dwd on dwd.station_id = monthly.station_id and dwd.month = monthly.date
+      LEFT OUTER JOIN compass_points point ON point.idx = (((dwd.wind_direction * 100) + 1125) % 36000) / 2250
+    ) as match
+    group by
+      match.date, match.station_id, match.rain_over_02, match.rain_over_2, match.rain_over_20,
+      match.max_high_temp, match.max_low_temp, match.min_high_temp, match.min_low_temp,
+      match.avg_temp, match.tot_cool_degree_days,
+      match.tot_heat_degree_days, match.max_temp, match.tot_rain, match.max_rain,
+      match.avg_wind, match.max_wind, match.dom_wind_direction, match.min_temp
+    order by match.date, match.station_id
+  ) as data, parameters p
+) as d
+cross join parameters p
+"""
+
+    day_query = """
+WITH parameters AS (
+  SELECT
+    $heatBase::float    	AS heat_base,
+    $coolBase::float    	AS cool_base,
+    $start::date  			AS start_date,
+    $end::date  			AS end_date,
+	$fahrenheit::boolean	AS fahrenheit, -- instead of celsius
+	$kmh::boolean			AS kmh,	-- instead of m/s
+	$mph::boolean			AS mph,	-- instead of m/s
+	$inches::boolean		AS inches -- instead of mm
+), compass_points AS (
+  SELECT
+	column1 AS idx,
+	column2 AS point
+  FROM (VALUES
+    (0, 'N'), (1, 'NNE'), (2, 'NE'), (3, 'ENE'), (4, 'E'), (5, 'ESE'), (6, 'SE'), (7, 'SSE'), (8, 'S'), (9, 'SSW'),
+    (10, 'SW'), (11, 'WSW'), (12, 'W'), (13, 'WNW'), (14, 'NW'), (15, 'NNW')) AS t
+)
+SELECT
+  lpad(extract(day from dates.date)::varchar, 2, ' ')					AS day,
+  lpad(round((
+	case when p.fahrenheit then records.avg_temp * 1.8 + 32
+		 else records.avg_temp
+	end)::numeric, 1)::varchar, 4, ' ')    								AS mean_temp,
+  lpad(round((
+	case when p.fahrenheit then records.high_temp * 1.8 + 32
+		 else records.high_temp
+	end)::numeric, 1)::varchar, 4, ' ')									AS high_temp,
+  lpad(to_char(records.high_temp_time, 'fmHH24:MI'), 5, ' ')			AS high_temp_time,
+  lpad(round((
+	case when p.fahrenheit then records.low_temp * 1.8 + 32
+		 else records.low_temp
+	end)::numeric, 1)::varchar, 4, ' ')									AS low_temp,
+  lpad(to_char(records.low_temp_time, 'fmHH24:MI'), 5, ' ')				AS low_temp_time,
+  lpad(round((
+	case when p.fahrenheit then records.heat_degree_days * 1.8 + 32
+		 else records.heat_degree_days
+	end)::numeric, 1)::varchar, 4, ' ')									AS heat_degree_days,
+  lpad(round((
+	case when p.fahrenheit then records.cool_degree_days * 1.8 + 32
+		 else records.cool_degree_days
+	end)::numeric, 1)::varchar, 4, ' ')									AS cool_degree_days,
+  lpad((
+	case when p.inches then round((records.rainfall * 1.0/25.4)::NUMERIC, 2)
+		 else round(records.rainfall::NUMERIC, 1)
+	end)::varchar, 4, ' ')												AS rain,
+  lpad(round(
+	case when p.mph then records.avg_wind * 2.23694
+		 when p.kmh then records.avg_wind * 3.6
+		 else records.avg_wind
+	end::NUMERIC, 1)::varchar, 4, ' ')									AS avg_wind_speed,
+  lpad(round((
+	case when p.mph then records.high_wind * 2.23694
+		 when p.kmh then records.high_wind * 3.6
+		 else records.high_wind
+	end)::NUMERIC, 1)::varchar, 4, ' ')									AS high_wind,
+  lpad(to_char(records.high_wind_time, 'fmHH24:MI'), 5, ' ' )			AS high_wind_time,
+  lpad(point.point::varchar, 3, ' ')									AS dom_wind_dir
+from parameters p, (
+  SELECT
+    generate_series(start_date, end_date, '1 day' :: INTERVAL) :: DATE as date,
+    (select station_id from station where lower(code) = lower(($stationCode)::varchar(5))) as station_id
+  from parameters
+) as dates
+LEFT OUTER JOIN (
+  SELECT
+    data.date_stamp                       AS date,
+    data.station_id,
+    data.max_gust_wind_speed              AS high_wind,
+    max(data.max_gust_wind_speed_ts)      AS high_wind_time,
+    data.min_temperature                  AS low_temp,
+    max(data.min_temperature_ts)          AS low_temp_time,
+    data.max_temperature                  AS high_temp,
+    max(data.max_temperature_ts)          AS high_temp_time,
+    data.avg_temperature                  AS avg_temp,
+    data.avg_wind_speed                   AS avg_wind,
+    data.rainfall                         AS rainfall,
+    data.heat_degree_days                 AS heat_degree_days,
+    data.cool_degree_days                 AS cool_degree_days
+  FROM (SELECT
+          dr.date_stamp,
+          dr.station_id,
+          dr.max_gust_wind_speed,
+          dr.avg_temperature,
+          dr.avg_wind_speed,
+          dr.rainfall,
+          dr.heat_degree_days,
+          dr.cool_degree_days,
+          CASE WHEN (s.gust_wind_speed = dr.max_gust_wind_speed)
+            THEN s.time_stamp
+          ELSE NULL :: TIMESTAMP WITH TIME ZONE END AS max_gust_wind_speed_ts,
+          dr.max_temperature,
+          CASE WHEN (s.temperature = dr.max_temperature)
+            THEN s.time_stamp
+          ELSE NULL :: TIMESTAMP WITH TIME ZONE END AS max_temperature_ts,
+          dr.min_temperature,
+          CASE WHEN (s.temperature = dr.min_temperature)
+            THEN s.time_stamp
+          ELSE NULL :: TIMESTAMP WITH TIME ZONE END AS min_temperature_ts
+        FROM (sample s
+          JOIN (SELECT
+                  (s.time_stamp) :: DATE                 AS date_stamp,
+                  s.station_id,
+                  max(s.gust_wind_speed)                 AS max_gust_wind_speed,
+                  min(s.temperature)                     AS min_temperature,
+                  max(s.temperature)                     AS max_temperature,
+                  avg(s.temperature)                     AS avg_temperature,
+                  avg(s.average_wind_speed)              AS avg_wind_speed,
+                  sum(s.rainfall)                        AS rainfall,
+                  sum(s.heat_dd)                         AS heat_degree_days,
+                  sum(s.cool_dd)                         AS cool_degree_days
+                FROM (
+                  SELECT
+                    x.time_stamp,
+                    x.station_id,
+                    x.temperature,
+                    x.average_wind_speed,
+                    x.gust_wind_speed,
+                    x.rainfall,
+                    CASE WHEN x.temperature > p.cool_base
+                      THEN x.temperature - p.cool_base
+                    ELSE 0
+                    END * (stn.sample_interval :: NUMERIC / 86400.0) AS cool_dd,
+                    CASE WHEN x.temperature < p.heat_base
+                      THEN p.heat_base - x.temperature
+                    ELSE 0
+                    END * (stn.sample_interval :: NUMERIC / 86400.0) AS heat_dd
+                  from parameters p, sample x
+                  inner join station stn on stn.station_id = x.station_id
+                  where x.time_stamp::date between p.start_date and p.end_date
+                ) s, parameters p
+                where s.time_stamp::date between p.start_date and p.end_date
+                GROUP BY s.time_stamp :: DATE, s.station_id
+               ) dr ON (s.time_stamp :: DATE = dr.date_stamp and s.station_id = dr.station_id))
+        WHERE s.gust_wind_speed = dr.max_gust_wind_speed OR
+                ((s.temperature = dr.max_temperature) OR (s.temperature = dr.min_temperature))
+       ) data
+  GROUP BY data.date_stamp, data.station_id, data.max_gust_wind_speed, data.max_temperature, data.min_temperature,
+    data.avg_wind_speed, data.avg_temperature, data.rainfall, data.heat_degree_days, data.cool_degree_days
+) as records on records.date = dates.date and records.station_id = dates.station_id
+LEFT OUTER JOIN (
+    WITH wind_directions AS (
+        SELECT
+          time_stamp :: DATE    AS date,
+          station_id,
+          wind_direction,
+          count(wind_direction) AS count
+        FROM sample s, parameters p
+        where s.time_stamp::date between p.start_date and p.end_date and s.wind_direction is not null
+        GROUP BY time_stamp :: DATE, station_id, wind_direction
+    ),
+        max_count AS (
+          SELECT
+            date,
+            station_id,
+            max(count) AS max_count
+          FROM wind_directions AS counts
+          GROUP BY date, station_id
+      )
+    SELECT
+      d.date,
+      d.station_id,
+      min(wind_direction) AS wind_direction
+    FROM wind_directions d
+      INNER JOIN max_count mc ON mc.date = d.date AND mc.station_id = d.station_id AND mc.max_count = d.count
+    GROUP BY d.date, d.station_id
+    ) as dwd on dwd.station_id = records.station_id and dwd.date = records.date
+LEFT OUTER JOIN compass_points point ON point.idx = (((dwd.wind_direction * 100) + 1125) % 36000) / 2250
+order by dates.date asc
+;
+    """
+
+    criteria_query = """
+WITH parameters AS (
+  SELECT
+	$celsius::boolean		AS celsius,
+	$fahrenheit::boolean    AS fahrenheit,
+	$kmh::boolean			AS kmh,
+	$mph::boolean			AS mph,
+	$inches::boolean		AS inches,
+	$atDate::date      		AS date,
+    $title::varchar		    AS title,
+    $city::varchar 			AS city,
+    $state::varchar   		AS state,
+    $altitude::FLOAT        AS altitude,
+    $latitude::FLOAT        AS latitude,
+    $longitude::FLOAT       AS longitude,
+	$altFeet::BOOLEAN       AS altitude_feet,
+	$coolBase::FLOAT		AS cool_base,
+	$heatBase::FLOAT		AS heat_base,
+	32::INTEGER             AS max_high_temp,
+    0::INTEGER              AS max_low_temp,
+    0::INTEGER              AS min_high_temp,
+    -18::INTEGER            AS min_low_temp,
+    0.2                     AS rain_02,
+    2.0                     AS rain_2,
+    20.0                    AS rain_20
+),
+latitude_dms as (
+  select floor(abs(latitude)) as degrees,
+         floor(60 * (abs(latitude) - floor(abs(latitude)))) as minutes,
+         3600 * (abs(latitude) - floor(abs(latitude))) - 60 * floor(60 * (abs(latitude) - floor(abs(latitude)))) as seconds,
+         case when latitude < 0 then 'S' else 'N' end as direction
+  from parameters
+),
+longitude_dms as (
+  select floor(abs(longitude)) as degrees,
+         floor(60 * (abs(longitude) - floor(abs(longitude)))) as minutes,
+         3600 * (abs(longitude) - floor(abs(longitude))) - 60 * floor(60 * (abs(longitude) - floor(abs(longitude)))) as seconds,
+         case when longitude < 0 then 'W' else 'E' end as direction
+  from parameters
+), ranges AS (
+  select
+    case when p.fahrenheit then (p.max_high_temp * 1.8 + 32)::integer
+         else p.max_high_temp end as max_high_temp,
+    case when p.fahrenheit then (p.max_low_temp * 1.8 + 32)::integer
+         else p.max_low_temp end as max_low_temp,
+    case when p.fahrenheit then (p.min_high_temp * 1.8 + 32)::integer
+         else p.min_high_temp end as min_high_temp,
+    case when p.fahrenheit then (p.min_low_temp * 1.8 + 32)::integer
+         else p.min_low_temp end as min_low_temp
+  from parameters p
+)
+select
+  to_char(p.date, 'MON')                  AS month,
+  extract(year from p.date)::integer      AS year,
+  p.title                                 AS title,
+  p.city                                  AS city,
+  p.state                                 AS state,
+  lpad(round((
+    CASE WHEN p.altitude_feet THEN p.altitude * 3.28084
+         ELSE p.altitude
+    END)::NUMERIC, 0)::varchar, 5, ' ')   AS altitude,
+  CASE WHEN p.altitude_feet THEN 'ft'
+       ELSE 'm '
+    END                                   AS altitude_units,
+  lpad(lat.degrees || '° ' || lat.minutes || ''' ' || round(lat.seconds::numeric, 0) || '" ' || lat.direction, 14, ' ')      AS latitude,
+  lpad(long.degrees || '° ' || long.minutes || ''' ' || round(long.seconds::numeric, 0) || '" ' || long.direction, 14, ' ')  AS longitude,
+  CASE WHEN p.celsius THEN '°C'
+       ELSE '°F' END                      AS temperature_units,
+  CASE WHEN p.inches THEN 'in'
+       ELSE 'mm' END                      AS rain_units,
+  CASE WHEN p.kmh THEN 'km/h'
+       WHEN p.mph THEN 'mph'
+       ELSE 'm/s' END                     AS wind_units,
+  lpad(round((
+	CASE WHEN p.celsius THEN p.cool_base
+	     ELSE p.cool_base * 1.8 + 32 
+	END)::numeric, 1)::varchar, 5, ' ')   AS cool_base,
+  lpad(round((
+    CASE WHEN p.celsius THEN p.heat_base
+         ELSE p.heat_base * 1.8 + 32 
+	END)::numeric, 1)::varchar, 5, ' ')   AS heat_base,
+  lpad(round(r.max_high_temp::numeric, 1)::varchar, 5, ' ') as max_high_temp,
+  lpad(round(r.max_low_temp::numeric, 1)::varchar, 5, ' ') as max_low_temp,
+  lpad(round(r.min_high_temp::numeric, 1)::varchar, 5, ' ') as min_high_temp,
+  lpad(round(r.min_low_temp::numeric, 1)::varchar, 5, ' ') as min_low_temp,
+  case when p.inches then to_char(round(p.rain_02  * 1.0/25.4, 2), 'FM9.99') || ' in' else to_char(p.rain_02, 'FM9.9') || ' mm' end as rain_02_value,
+  case when p.inches then to_char(round(p.rain_2   * 1.0/25.4, 1), 'FM9.9') || ' in' else round(p.rain_2, 0)   || ' mm' end as rain_2_value,
+  case when p.inches then round(p.rain_20  * 1.0/25.4, 0) || ' in' else round(p.rain_20, 0)  || ' mm' end as rain_20_value
+from parameters p, latitude_dms as lat, longitude_dms as long, ranges as r;
+    """
+
+    month_data = db.query(month_query, params)[0]
+    daily_data = list(db.query(day_query, params))
+    criteria_data = None
+    if include_criteria:
+        criteria_data = db.query(criteria_query, params)[0]
+
+    return month_data, daily_data, criteria_data

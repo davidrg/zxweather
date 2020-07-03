@@ -1,0 +1,91 @@
+{# This template is for a daily overview. #}
+
+{% extends "base.html" %}
+{% block title %}Summary for {{ data.this_month }}{% endblock %}
+{% block head %}{% endblock %}
+{% block content %}
+
+        <header>
+            <div class="row">
+                <div class="span6">
+                    <h1>Summary for {{ data.this_month }} {{ data.year_stamp }}</h1>
+                </div>
+                <div class="span6">
+                    <div class="btn-group nav-cluster">
+                        {% if data.prev_url -%}
+                            <a href="{{ data.prev_url }}" class="btn"><i class="icon-backward"></i> {{ data.prev_month }}</a>
+                        {%- else -%}
+                            <a href="#" class="btn disabled" onclick="return false;"><i class="icon-backward"></i> {{ data.prev_month }}</a>
+                        {%- endif %}
+                        <a href="../" class="btn">{{ data.this_year }}</a>
+                        {% if data.next_url -%}
+                            <a href="{{ data.next_url }}" class="btn">{{ data.next_month }} <i class="icon-forward"></i></a>
+                        {%- else -%}
+                            <a href="#" class="btn disabled" onclick="return false;">{{ data.next_month }} <i class="icon-forward"></i></a>
+                        {%- endif %}
+                    </div>
+                </div>
+            </div>
+            <hr>
+        </header>
+
+        <section id="month_summary">
+        <h2>Month Summary</h2>
+        <p>Heat Base: {{ summary_config.heatBase }}&deg;C, Cool Base: {{ summary_config.coolBase }}&deg;C,
+        Temperature units: &deg;{{ summary_config.tempUnits }}, Wind units: {{ summary_config.windUnits }},
+        Rainfall units: {{ summary_config.rainUnits }}</p>
+        <table class="table">
+            <thead>
+            <tr>
+                <th>Day</th>
+                <th>Mean Temp</th>
+                <th>High Temp</th>
+                <th>Time of High Temp</th>
+                <th>Low Temp</th>
+                <th>Time of Low Temp</th>
+                <th>Heating Degree Days</th>
+                <th>Cooling Degree Days</th>
+                <th>Rainfall</th>
+                <th>Average Wind Speed</th>
+                <th>High Wind Speed</th>
+                <th>Time of High Wind Speed</th>
+                <th>Dominant Direction</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for d in daily_data %}{% if d.mean_temp %}<tr>
+                <td>{{ d.day }}</td>
+                <td>{{ d.mean_temp }}</td>
+                <td>{{ d.high_temp }}</td>
+                <td>{{ d.high_temp_time }}</td>
+                <td>{{ d.low_temp }}</td>
+                <td>{{ d.low_temp_time }}</td>
+                <td>{{ d.heat_degree_days }}</td>
+                <td>{{ d.cool_degree_days }}</td>
+                <td>{{ d.rain }}</td>
+                <td>{{ d.avg_wind_speed }}</td>
+                <td>{{ d.high_wind }}</td>
+                <td>{{ d.high_wind_time }}</td>
+                <td>{{ d.dom_wind_dir }}</td>
+            </tr>{% endif %}{% endfor %}
+            <tr>
+                <th>Month</th>
+                <td>{{ month_data.mean }}</td>
+                <td>{{ month_data.hi_temp }}</td>
+                <td>{{ month_data.hi_temp_date }}</td>
+                <td>{{ month_data.low_temp }}</td>
+                <td>{{ month_data.low_temp_date }}</td>
+                <td>{{ month_data.heat_dd }}</td>
+                <td>{{ month_data.cool_dd }}</td>
+                <td>{{ month_data.tot_rain }}</td>
+                <td>{{ month_data.avg_wind }}</td>
+                <td>{{ month_data.hi_wind }}</td>
+                <td>{{ month_data.high_wind_day }}</td>
+                <td>{{ month_data.dom_dir }}</td>
+            </tr>
+            </tbody>
+        </table>
+        </section>
+{% endblock %}
+{% block scripts %}
+{% endblock %}

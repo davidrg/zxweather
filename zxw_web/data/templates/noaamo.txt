@@ -1,0 +1,24 @@
+{{#criteria}}                   MONTHLY CLIMATOLOGICAL SUMMARY for {{month}}. {{year}}
+
+NAME: {{title}}   CITY: {{city}}   STATE: {{state}}
+ELEV: {{altitude}} {{altitude_units}}  LAT: {{{latitude}}}  LONG: {{{longitude}}}
+
+                   TEMPERATURE ({{temperature_units}}), RAIN  ({{rain_units}}), WIND SPEED ({{wind_units}})
+{{/criteria}}
+
+                                      HEAT  COOL        AVG
+    MEAN                              DEG   DEG         WIND                 DOM
+DAY TEMP  HIGH   TIME   LOW    TIME   DAYS  DAYS  RAIN  SPEED HIGH   TIME    DIR
+------------------------------------------------------------------------------------
+{{#daily}}{{day}}  {{mean_temp}}  {{high_temp}}   {{high_temp_time}}  {{low_temp}}   {{low_temp_time}}  {{heat_degree_days}}  {{cool_degree_days}}  {{rain}}  {{avg_wind_speed}}  {{high_wind}}   {{high_wind_time}}   {{dom_wind_dir}}
+{{/daily}}
+-------------------------------------------------------------------------------------
+{{#month}}   {{mean}} {{hi_temp}}    {{hi_temp_date}}   {{low_temp}}    {{low_temp_date}}   {{heat_dd}} {{cool_dd}} {{tot_rain}}  {{avg_wind}}  {{hi_wind}}    {{high_wind_day}}     {{dom_dir}}{{/month}}
+
+Max >=  {{#criteria}}{{max_high_temp}}{{/criteria}}:  {{#month}}{{max_high}}{{/month}}
+Max <=  {{#criteria}}{{max_low_temp}}{{/criteria}}:  {{#month}}{{max_low}}{{/month}}
+Min <=  {{#criteria}}{{min_high_temp}}{{/criteria}}:  {{#month}}{{min_high}}{{/month}}
+Min <=  {{#criteria}}{{min_low_temp}}{{/criteria}}:  {{#month}}{{min_low}}{{/month}}
+Max Rain: {{#month}}{{max_obs_rain}} ON {{max_obs_rain_day}}{{/month}}
+Days of Rain: {{#month}}{{rain_02}}{{/month}} (>{{#criteria}}{{rain_02_value}}{{/criteria}}) {{#month}}{{rain_2}}{{/month}} (>{{#criteria}}{{rain_2_value}}{{/criteria}}) {{#month}}{{rain_20}}{{/month}} (>{{#criteria}}{{rain_20_value}}{{/criteria}})
+{{#criteria}}Heat Base: {{heat_base}}  Cool Base: {{cool_base}}  Method: Integration{{/criteria}}

@@ -25,6 +25,14 @@
                 </td>
             </tr>
 
+            {% if noaa_year_available %}<tr bgcolor="blanchedalmond">
+                <td>Text</td>
+                <td><a href="noaayr.txt">noaayr.txt</a></td>
+                <td>
+                    NOAA Yearly Summary report
+                </td>
+            </tr>{% endif %}
+
             <tr bgcolor="blanchedalmond">
                 <td>Google DataTable JSON</td>
                 <td><a href="datatable/daily_records.json">datatable/daily_records.json</a></td>

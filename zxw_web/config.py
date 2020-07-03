@@ -59,6 +59,9 @@ image_type_sort = None
 array_position_available = True
 
 
+report_settings = dict()
+
+
 def load_settings():
     """
     Loads settings from the configuration file.
@@ -70,7 +73,7 @@ def load_settings():
     global hide_coordinates, google_analytics_id, image_type_sort
     global cache_thumbnails, cache_directory, thumbnail_size, cache_videos
     global video_cache_directory, max_thumbnail_cache_size, max_video_cache_size
-    global cache_expiry_access_time
+    global cache_expiry_access_time, report_settings
 
     import ConfigParser
     config = ConfigParser.ConfigParser()
@@ -204,6 +207,88 @@ def load_settings():
     if cache_videos or cache_thumbnails:
         if config.has_option(S_T, "expire_cache_by_access_time"):
             cache_expiry_access_time = config.getboolean(S_T, "expire_cache_by_access_time")
+
+    station_report_sections = [s[8:] for s in config.sections() if s.startswith("reports_")]
+
+    for stn in station_report_sections:
+        section = "reports_" + stn
+
+        noaa_month = {
+            "city": "",
+            "state": "",
+            "heatBase": 18.3,
+            "coolBase": 18.3,
+            "celsius": True,
+            "fahrenheit": False,
+            "kmh": True,  # false=m/s
+            "mph": False,  # true=mph
+            "inches": False,
+            "altFeet": False,
+            "stationCode": stn
+        }
+
+        if config.has_option(section, "city"):
+            noaa_month["city"] = config.get(section, "city")
+
+        if config.has_option(section, "state"):
+            noaa_month["state"] = config.get(section, "state")
+
+        if config.has_option(section, "wind_kmh"):
+            noaa_month["kmh"] = config.getboolean(section, "wind_kmh")
+
+        if config.has_option(section, "heat_base"):
+            noaa_month["heatBase"] = config.getfloat(section, "heat_base")
+
+        if config.has_option(section, "cool_base"):
+            noaa_month["coolBase"] = config.getfloat(section, "cool_base")
+
+        report_settings[stn] = {
+            "noaa_month": noaa_month
+        }
+
+        if config.has_option(section, "normal_temperature") and \
+                config.has_option(section, "normal_rainfall"):
+
+            noaa_year = noaa_month.copy()
+
+            try :
+                normal_temps = [float(s.strip()) for s in config.get(section, "normal_temperature").split(",")]
+                normal_rainfall = [float(s.strip()) for s in config.get(section, "normal_rainfall").split(",")]
+
+                noaa_year.update({
+                    "normJan": normal_temps[0],
+                    "normJanRain": normal_rainfall[0],
+                    "normFeb": normal_temps[1],
+                    "normFebRain": normal_rainfall[1],
+                    "normMar": normal_temps[2],
+                    "normMarRain": normal_rainfall[2],
+                    "normApr": normal_temps[3],
+                    "normAprRain": normal_rainfall[3],
+                    "normMay": normal_temps[4],
+                    "normMayRain": normal_rainfall[4],
+                    "normJun": normal_temps[5],
+                    "normJunRain": normal_rainfall[5],
+                    "normJul": normal_temps[6],
+                    "normJulRain": normal_rainfall[6],
+                    "normAug": normal_temps[7],
+                    "normAugRain": normal_rainfall[7],
+                    "normSep": normal_temps[8],
+                    "normSepRain": normal_rainfall[8],
+                    "normOct": normal_temps[9],
+                    "normOctRain": normal_rainfall[9],
+                    "normNov": normal_temps[10],
+                    "normNovRain": normal_rainfall[10],
+                    "normDec": normal_temps[11],
+                    "normDecRain": normal_rainfall[11],
+                })
+
+                report_settings[stn]["noaa_year"] = noaa_year
+
+            except Exception as e:
+                print(e)
+                pass
+
+
 
 
 

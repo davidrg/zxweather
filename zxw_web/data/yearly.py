@@ -5,13 +5,16 @@ Used for generating charts in JavaScript, etc.
 """
 
 from datetime import date
+import chevron
+
+import config
 from cache import cache_control_headers
 import os
 import web
 from web.contrib.template import render_jinja
 from config import db
 from data.util import  daily_records_result_to_datatable, daily_records_result_to_json
-from database import get_station_id
+from database import get_station_id, get_noaa_year_data
 
 __author__ = 'David Goodwin'
 
@@ -22,6 +25,7 @@ __author__ = 'David Goodwin'
 #       daily records for the year.
 
 # TODO: round temperatures, etc.
+
 
 class datatable_json:
     """
@@ -61,6 +65,7 @@ class datatable_json:
         else:
             raise web.NotFound()
 
+
 class data_json:
     """
     Gets data for a particular month in a generic JSON format..
@@ -99,6 +104,70 @@ class data_json:
         else:
             raise web.NotFound()
 
+
+class data_text:
+    """
+    Gets data for a particular month in plain text format.
+    """
+
+    def GET(self, station, year, dataset):
+        """
+        Handles JSON data sources.
+        :param station: Station to get data for.
+        :param year: Year to get data for.
+        :param dataset: Dataset to get
+        :return: JSON data
+        :raise: web.NotFound if an invalid request is made.
+        """
+
+        station_id = get_station_id(station)
+
+        if station_id is None:
+            raise web.NotFound()
+
+        int_year = int(year)
+
+        # Make sure the year actually exists in the database before we go
+        # any further.
+        params = dict(year=int_year, station=station_id)
+        recs = db.query(
+            """select 42 from sample
+            where extract(year from time_stamp) = $year
+            and station_id = $station
+            limit 1""", params)
+        if recs is None or len(recs) == 0:
+            raise web.NotFound()
+
+        if dataset == 'noaayr':
+            return self.noaa_year(station.lower(), int_year)
+        else:
+            raise web.NotFound()
+
+    def noaa_year(self, station, year):
+        template_dir = os.path.join(os.path.dirname(__file__),
+                                    os.path.join('templates'))
+
+        data = get_noaa_year_data(station, year)
+
+        if data is None:
+            raise web.NotFound()
+
+        monthly, yearly, criteria = data
+
+        report_criteria = {
+            'monthly': monthly,
+            'yearly': yearly,
+            'criteria': criteria
+        }
+
+        with open(os.path.join(template_dir, 'noaayr.txt'), 'r') as f:
+            result = chevron.render(f, report_criteria)
+
+        web.header('Content-Type', 'text/plain; charset=utf-8')
+        web.header('Content-Length', str(len(result)))
+        return result
+
+
 class index:
     """ Year level data sources"""
     def GET(self, station, year):
@@ -136,8 +205,15 @@ class index:
         if not len(months):
             raise web.NotFound()
 
+        noaa_year_available = True
+        if station not in config.report_settings or \
+                "noaa_year" not in config.report_settings[station]:
+            noaa_year_available = False
+
         web.header('Content-Type', 'text/html')
-        return render.yearly_data_index(months=months)
+        return render.yearly_data_index(
+            months=months,
+            noaa_year_available=noaa_year_available)
 
 #
 # Daily records (year-level)

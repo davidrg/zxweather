@@ -122,3 +122,29 @@ cache_videos: False
 #         Note that this won't work if the filesystem the cache is stored on has been
 #         mounted with access times disabled (noatime mount option)
 expire_cache_by_access_time: False
+
+# Per-station report settings
+# Copy this section and rename for each station you want to configure replacing
+# "station-code-here" with the code of the station you're configuring reports
+# for
+#[reports_station-code-here]
+#
+# NOAA Month/Year settings. These settings also affect the Month Summary and
+# Year summary sections in the web interface.
+#city: Hamilton
+#state: New Zealand
+#
+# False for m/s
+#wind_kmh: True
+#
+# Heating and cooling degree base in celsius
+#heat_base: 18.3
+#cool_base: 18.3
+#
+# Normal/Mean temperature and rainfall figures for the stations location
+# One value per month (january, february, march, etc)
+# If you don't specify these the noaa year report and the year summary section
+# on the year-level page will be unavailable.
+# Temperature is in celsius, rainfall in millimeters
+#normal_temperature: 0,0,0,0,0,0,0,0,0,0,0,0
+#normal_rainfall: 0,0,0,0,0,0,0,0,0,0,0,0
