@@ -99,7 +99,7 @@ WITH parameters AS (
           else 0 end * (stn.sample_interval :: NUMERIC / 86400.0) as heat_degree_days
         from parameters p, sample s
         inner join station stn on stn.station_id = s.station_id
-        where stn.code = p.stationCode
+        where lower(stn.code) = lower(p.stationCode)
       ) s, parameters
       where s.time_stamp::date between parameters.start_date::date and parameters.end_date::date
       group by s.time_stamp::date, s.station_id

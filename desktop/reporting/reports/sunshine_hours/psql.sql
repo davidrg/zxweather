@@ -16,6 +16,6 @@ left outer join (
     group by time_stamp::date, image_source_id
     ) as image_dates on image_dates.date = s.time_stamp::date
                         and image_dates.image_source_id = i.image_source_id
- where stn.code = :stationCode
+ where lower(stn.code) = lower(:stationCode)
    and s.time_stamp between to_timestamp(:start_t) and to_timestamp(:end_t)
 order by time_stamp desc  

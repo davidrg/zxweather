@@ -92,6 +92,6 @@ SELECT
   round(ms.gale_days, 1) :: VARCHAR                        AS avg_gale_days
 FROM parameters p, month_summary ms
   INNER JOIN station stn ON stn.station_id = ms.station_id
-WHERE stn.code = :stationCode
+WHERE lower(stn.code) = lower(:stationCode)
 ORDER BY ms.month
 ASC;

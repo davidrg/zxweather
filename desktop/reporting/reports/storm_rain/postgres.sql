@@ -67,7 +67,7 @@ with marked_storm_rows as (
                     ) cp on cp.station_id = s.station_id and cp.cur = s.time_stamp
     inner join station stn on stn.station_id = s.station_id
   where s.rainfall > 0
-    and stn.code = :stationCode
+    and lower(stn.code) = lower(:stationCode)
 ), storm_terminators as (
   select
     this_time_stamp as time_stamp,

@@ -115,7 +115,7 @@ from storms storm
 inner join sample s on s.time_stamp between storm.storm_start_time and storm.storm_end_time
   and s.station_id = storm.station_id
 inner join station stn on stn.station_id = storm.station_id
-  where stn.code = :stationCode
+  where lower(stn.code) = lower(:stationCode)
   and storm.storm_start_time between :start_t and :end_t
 group by storm.storm_start_time, storm.storm_end_time, storm.station_id
 having sum(s.rainfall) > 0.2 -- Filter out storms smaller than 0.4mm - isolated rain clicks don't count

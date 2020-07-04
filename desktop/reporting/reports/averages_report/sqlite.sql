@@ -115,6 +115,6 @@ SELECT
   cast(round(ms.gale_days, 1) AS TEXT)             AS avg_gale_days
 FROM month_summary ms, parameters p
   INNER JOIN station stn ON stn.station_id = ms.station_id
-WHERE stn.code = :stationCode
+WHERE lower(stn.code) = lower(:stationCode)
 ORDER BY ms.month
   ASC;

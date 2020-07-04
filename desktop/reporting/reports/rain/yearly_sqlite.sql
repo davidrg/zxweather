@@ -49,7 +49,7 @@ from (
         sum(s.rainfall) as rainfall
       from sample s
       inner join station stn on stn.station_id = s.station_id
-      where stn.code = :stationCode
+      where lower(stn.code) = lower(:stationCode)
         and cast(strftime('%Y', s.time_stamp, 'unixepoch') as integer) between cast(strftime('%Y', :start_t, 'unixepoch') as integer) and cast(strftime('%Y', :end_t, 'unixepoch') as integer)
       group by year, month
     ) as rain_data

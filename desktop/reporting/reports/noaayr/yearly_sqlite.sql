@@ -103,7 +103,7 @@ WITH parameters AS (
           else 0.0 end * ((stn.sample_interval*60) / 86400.0) as heat_degree_days
         from parameters p, sample s
         inner join station stn on stn.station_id = s.station_id
-        where stn.code = p.stationCode
+        where lower(stn.code) = lower(p.stationCode)
       ) s, parameters
       where s.time_stamp between date(parameters.start_date, 'unixepoch', 'localtime')
                              and date(parameters.end_date, 'unixepoch', 'localtime')

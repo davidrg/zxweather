@@ -49,7 +49,7 @@ from (
         sum(s.rainfall) as rainfall
       from sample s
       inner join station stn on stn.station_id = s.station_id
-      where stn.code = :stationCode
+      where lower(stn.code) = lower(:stationCode)
         and s.time_stamp between to_timestamp(:start_t) and to_timestamp(:end_t)
       group by year, month
     ) as rain_data
