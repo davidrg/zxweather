@@ -605,6 +605,16 @@ void RunReportDialog::createReportCriteria() {
     QList<QWidget*> widgets = ui->custom_criteria_page->findChildren<QWidget*>(QString(), Qt::FindDirectChildrenOnly);
     #else
     QList<QWidget*> widgets = ui->custom_criteria_page->findChildren<QWidget*>();
+
+    // Filter the list to direct children only - deleting a parent will delete its children
+    // so leaving indirect children in the list will just result in some things getting
+    // deleted twice (resulting in a crash)
+    foreach(QWidget* w, widgets) {
+        if (w->parent() != ui->custom_criteria_page) {
+            widgets.removeAll(w);
+        }
+    }
+
     #endif
     foreach (QWidget* w, widgets) {
         ui->custom_criteria_page->layout()->removeWidget(w);
