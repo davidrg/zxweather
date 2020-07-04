@@ -722,7 +722,13 @@ void MainWindow::liveDataRefreshed(LiveDataSet lds) {
     clearWarningPopup();
 
     // If the hardware type hasn't changed then there isn't anything to do.
-    if (lds.hw_type == last_hw_type) return;
+    if (lds.hw_type == last_hw_type) {
+        return;
+    } else {
+        qDebug() << "Hardware type changed from" << last_hw_type << "to" << lds.hw_type;
+    }
+
+
 
     ui->forecast->setVisible(lds.hw_type == HW_DAVIS);
     ui->status->setVisible(lds.hw_type == HW_DAVIS);

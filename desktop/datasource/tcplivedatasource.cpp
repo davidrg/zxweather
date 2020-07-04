@@ -349,16 +349,22 @@ void TcpLiveDataSource::processStationInfo(QString line) {
     line = line.trimmed();
     if (line.isEmpty()) return; // Nothing to process.
 
+    stationInfoBuffer += line;
+
     bool ok;
+
+    QVariantMap result = Json::parse(stationInfoBuffer, ok).toMap();
+
+    if (!ok) {
+        qDebug() << "Failed to process station information - assuming more data required.";
+        qDebug() << "Received data:" << line;
+        qDebug() << "Buffer:" << stationInfoBuffer;
+        return;
+    }
 
     state = STATE_SUBSCRIBE;
 
-    QVariantMap result = Json::parse(line, ok).toMap();
-
-    if (!ok) {
-        qWarning() << "Failed to get station information";
-        return;
-    }
+    qDebug() << "Processing station info...";
 
     // Lots of other stuff is available in this map too such as station
     // name and description.
@@ -367,9 +373,13 @@ void TcpLiveDataSource::processStationInfo(QString line) {
     bool solar_available = false;
     QString station_name = result["name"].toString();
 
+    qDebug() << "Hardware type code:" << hardwareTypeCode;
+    qDebug() << "Station Name:" << station_name;
+
     if (hardwareTypeCode == "DAVIS") {
         hw_type = HW_DAVIS;
         solar_available = result["config"].toMap()["has_solar_and_uv"].toBool();
+        qDebug() << "Solar available:" << solar_available;
     }
     else if (hardwareTypeCode == "FOWH1080")
         hw_type = HW_FINE_OFFSET;
@@ -378,6 +388,7 @@ void TcpLiveDataSource::processStationInfo(QString line) {
 
     emit stationName(station_name);
     emit isSolarDataEnabled(solar_available);
+    stationInfoBuffer = "";
 }
 
 void TcpLiveDataSource::readyRead() {

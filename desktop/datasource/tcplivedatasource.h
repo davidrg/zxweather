@@ -39,6 +39,8 @@ private:
     QDateTime LastUpdate;
     bool liveDataEnabled;
 
+    QString stationInfoBuffer;
+
     hardware_type_t hw_type;
 
     void sendNextCommand();
