@@ -226,7 +226,7 @@ MainWindow::MainWindow(bool showConfigWizard, QWidget *parent) :
  * UI bits. So really we need a connect failed signal on AbstractDataSource. This will
  * probably be done as part of a larger refactoring of the data sources.
  */
-bool MainWindow::databaseCompatibilityChecks() {
+bool MainWindow::databaseCompatibilityChecks(bool samples, bool live) {
 
     using namespace DbUtil;
 
@@ -239,10 +239,7 @@ bool MainWindow::databaseCompatibilityChecks() {
         QMessageBox::warning(this, tr("Database Error"),
                              tr("Unable to determine database version. "
                              "Archive functions will not be available."));
-        ui->actionCharts->setEnabled(false);
-        ui->actionExport_Data->setEnabled(false);
-        ui->actionView_Data->setEnabled(false);
-        ui->actionImages->setEnabled(false);
+        disableDataSourceFunctionality(samples, live);
         QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
         return false;
     } else if (compatibility == DC_Unknown) {
@@ -265,7 +262,7 @@ bool MainWindow::databaseCompatibilityChecks() {
                              "desktop client.") + version + tr(" Database"
                              " functionality will be disabled."));
         QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
-        ui->actionCharts->setEnabled(false);
+        disableDataSourceFunctionality(samples, live);
         return false;
     }
     return true;
@@ -304,16 +301,37 @@ void MainWindow::checkDatabase() {
     }
 }
 
+void MainWindow::disableDataSourceFunctionality(bool samples, bool live) {
+    if (samples) {
+        ui->actionCharts->setEnabled(false);
+        ui->actionExport_Data->setEnabled(false);
+        ui->actionView_Data->setEnabled(false);
+        ui->actionImages->setEnabled(false);
+        ui->action_Reports->setEnabled(false);
+    }
+
+    if (live) {
+        ui->actionLive_Chart->setEnabled(false);
+    }
+}
+
+void MainWindow::enableDataSourceFunctionality() {
+    ui->actionCharts->setEnabled(true);
+    ui->actionExport_Data->setEnabled(true);
+    ui->actionView_Data->setEnabled(true);
+    ui->actionImages->setEnabled(true);
+    ui->action_Reports->setEnabled(true);
+    ui->actionLive_Chart->setEnabled(true);
+}
+
 void MainWindow::reconnectDatabase() {
     Settings& settings = Settings::getInstance();
 
-    // Just in case the database connection failed (causing it to be disabled)
-    // and then the user switched to the web data source:
-    ui->actionCharts->setEnabled(true);
+    bool dbLive = settings.liveDataSourceType() == Settings::DS_TYPE_DATABASE;
+    bool dbSamples = settings.sampleDataSourceType() == Settings::DS_TYPE_DATABASE;
 
     // Now check if we actually need to connect to a database.
-    if (settings.sampleDataSourceType() != Settings::DS_TYPE_DATABASE &&
-            settings.liveDataSourceType() != Settings::DS_TYPE_DATABASE) {
+    if (!dbSamples && !dbLive) {
         qDebug() << "Database disabled.";
 
         // Disconnect from the database if it was connected.
@@ -326,42 +344,44 @@ void MainWindow::reconnectDatabase() {
 
     if (QSqlDatabase::drivers().contains("QPSQL")) {
         QSqlDatabase db = QSqlDatabase::addDatabase("QPSQL");
-        db.setHostName(settings.databaseHostName());
-        db.setPort(settings.databasePort());
-        db.setDatabaseName(settings.databaseName());
-        db.setUserName(settings.databaseUsername());
-        db.setPassword(settings.databasePassword());
 
-        bool ok = db.open();
-        if (!ok) {
-            qDebug() << "Connect failed: " + db.lastError().driverText();
-            QMessageBox::warning(this, "Connect error",
-                                 "Failed to connect to the database. Charting and Reporting "
-                                 "functions will not be available. The error "
-                                 "was: " + db.lastError().driverText());
-            ui->actionCharts->setEnabled(false);
-            ui->actionExport_Data->setEnabled(false);
-            ui->actionView_Data->setEnabled(false);
-            ui->actionImages->setEnabled(false);
-            ui->action_Reports->setEnabled(false);
-        } else {
-            qDebug() << "Connect succeeded. Checking compatibility...";
-            bool result = databaseCompatibilityChecks();
-            if (result) {
-                reconfigureDataSource();
-                databaseChecker.start();
+        if (db.isValid()) {
+            db.setHostName(settings.databaseHostName());
+            db.setPort(settings.databasePort());
+            db.setDatabaseName(settings.databaseName());
+            db.setUserName(settings.databaseUsername());
+            db.setPassword(settings.databasePassword());
+
+            bool ok = db.open();
+            if (!ok) {
+                qDebug() << "Connect failed: " + db.lastError().driverText();
+                QMessageBox::warning(this, tr("Connect error"),
+                                     QString(tr("Failed to connect to the database. Charting and Reporting "
+                                     "functions will not be available. The error "
+                                     "was: %0").arg(db.lastError().driverText())));
+                disableDataSourceFunctionality(dbSamples, dbLive);
+            } else {
+                qDebug() << "Connect succeeded. Checking compatibility...";
+                bool result = databaseCompatibilityChecks(dbSamples, dbLive);
+                if (result) {
+                    reconfigureDataSource();
+                    databaseChecker.start();
+                }
             }
+        } else {
+            QMessageBox::warning(this, tr("Database Driver Error"),
+                                 QString(tr("The database driver failed to load. "
+                                            "The last error was: %0").arg(
+                                             db.lastError().driverText())));
+            disableDataSourceFunctionality(dbSamples, dbLive);
         }
     } else {
         qDebug() << QSqlDatabase::drivers();
-        QMessageBox::warning(this, "Driver not found",
-                             "The Qt PostgreSQL database driver was not found."
+        QMessageBox::warning(this, tr("Driver not found"),
+                             tr("The Qt PostgreSQL database driver was not found."
                              " Unable to connect to database. Charting "
-                             " functions will not be available.");
-        ui->actionCharts->setEnabled(false);
-        ui->actionExport_Data->setEnabled(false);
-        ui->actionView_Data->setEnabled(false);
-        ui->actionImages->setEnabled(false);
+                             " functions will not be available."));
+        disableDataSourceFunctionality(dbSamples, dbLive);
     }
 }
 // ------------------ ^^^ This should be in DatabaseDataSource ^^^ ------------------
@@ -409,6 +429,7 @@ bool MainWindow::showSettings() {
 
     if (result == QDialog::Accepted) {
         readSettings();
+        enableDataSourceFunctionality();
 
         liveMonitor->reconfigure();
 

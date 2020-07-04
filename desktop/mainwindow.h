@@ -186,12 +186,15 @@ private:
 
     void readSettings();
 
-    bool databaseCompatibilityChecks();
+    bool databaseCompatibilityChecks(bool samples, bool live);
 
     /** Reconnects to the datasource. Call this when ever data source
      * settings are changed.
      */
     void reconfigureDataSource();
+
+    void disableDataSourceFunctionality(bool samples, bool live);
+    void enableDataSourceFunctionality();
 
     DataSourceProxy* dataSource;
 
