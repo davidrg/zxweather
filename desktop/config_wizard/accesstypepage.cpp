@@ -42,14 +42,21 @@ AccessTypePage::AccessTypePage(QWidget *parent)
     optionHeading = new QLabel(tr("Access Type:"));
     rbLocal = new QRadioButton(tr("&Local"));
 
-    if (!QSqlDatabase::drivers().contains("QPSQL")) {
-        rbLocal->setEnabled(false);
-        rbLocal->setText("&Local (PostgreSQL database driver not found)");
-    }
-
 #ifdef NO_ECPG
     rbLocal->setEnabled(false);
-    rbLocal->setText("&Local (PostgreSQL live data support disabled at build time)");
+    rbLocal->setText(tr("&Local (PostgreSQL live data support disabled at build time)"));
+#else
+    if (!QSqlDatabase::drivers().contains("QPSQL")) {
+        rbLocal->setEnabled(false);
+        rbLocal->setText(tr("&Local (PostgreSQL database driver not found)"));
+    }
+    else {
+        QSqlDatabase test = QSqlDatabase::addDatabase("QPSQL", "psql_driver_load_test");
+        if (!test.isValid()) {
+            rbLocal->setEnabled(false);
+            rbLocal->setText(tr("&Local (PostgreSQL database driver not available)"));
+        }
+    }
 #endif
 
     rbLocal->setWhatsThis(tr("Access data from your local weather database. "

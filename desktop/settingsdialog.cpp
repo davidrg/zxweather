@@ -81,6 +81,23 @@ SettingsDialog::SettingsDialog(bool solarDataAvailable, QWidget *parent) :
     ui->rbLiveDatabase->setEnabled(false);
 #endif
 
+    // Using QSqlDatabase::isDriverAvailable("QPSQL") just tells us whether
+    // the driver is available - not whether it actually has all its dependencies
+    // present (eg, libpq) and works properly. So instead we've got to actually
+    // try loading the database driver and checking if that succeeded.
+    QSqlDatabase test = QSqlDatabase::addDatabase("QPSQL", "psql_driver_load_test");
+
+    if (!test.isValid()) {
+        qDebug() << "PostgreSQL driver not available - disabling database data source";
+        ui->rbLiveDatabase->setEnabled(false);
+        ui->rbSampleDatabase->setEnabled(false);
+        ui->rbLiveDatabase->setText(tr("Database (no driver available)"));
+        ui->rbSampleDatabase->setText(tr("Database (no driver available)"));
+    } else {
+        ui->rbLiveDatabase->setText(tr("Database"));
+        ui->rbSampleDatabase->setText(tr("Database"));
+    }
+
     loadSettings();
 
     if (Settings::getInstance().isStationCodeOverridden()) {
