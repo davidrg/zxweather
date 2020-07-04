@@ -310,6 +310,7 @@ notifications wdb_live_data_available() {
             n.new_image = true;
             n.image_id = atoi(notification->extra);
         } else if (strcmp(notification->relname, NEW_SAMPLE_CHANNEL) == 0) {
+            qDebug() << "New Sample available! Payload:" << notification->extra;
             /* A new sample is available! The payload is station_code:sample_id */
             char* part = strtok(notification->extra, ":");
             /* First bit should be station code */
@@ -461,7 +462,7 @@ live_data_record get_live_data_v2() {
 
     EXEC SQL END DECLARE SECTION;
 
-    qDebug() << "V2 data load for station id" << station_id_param;
+    //qDebug() << "V2 data load for station id" << station_id_param;
 
     check_data_connection();
 
