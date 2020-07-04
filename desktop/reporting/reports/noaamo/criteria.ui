@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>540</width>
+    <width>542</width>
     <height>399</height>
    </rect>
   </property>
@@ -204,14 +204,14 @@
       <item row="1" column="0">
        <widget class="QLabel" name="label_5">
         <property name="text">
-         <string>Cool Base</string>
+         <string>Cool Base:</string>
         </property>
        </widget>
       </item>
       <item row="0" column="0">
        <widget class="QLabel" name="label_4">
         <property name="text">
-         <string>Heat Base</string>
+         <string>Heat Base:</string>
         </property>
        </widget>
       </item>
@@ -358,8 +358,8 @@
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="bgTemperature"/>
   <buttongroup name="bgRainfall"/>
+  <buttongroup name="bgTemperature"/>
   <buttongroup name="bgWindSpeed"/>
  </buttongroups>
 </ui>

@@ -52,7 +52,7 @@
      <item row="10" column="0">
       <widget class="QLabel" name="uvIndex">
        <property name="text">
-        <string>UV Index</string>
+        <string>UV Index:</string>
        </property>
       </widget>
      </item>
@@ -167,7 +167,7 @@
      <item row="11" column="0">
       <widget class="QLabel" name="solarRadiation">
        <property name="text">
-        <string>Solar Radiation</string>
+        <string>Solar Radiation:</string>
        </property>
       </widget>
      </item>

@@ -190,7 +190,7 @@
           <item row="1" column="0">
            <widget class="QLabel" name="stationNameLabel">
             <property name="text">
-             <string>Station Code</string>
+             <string>Station Code:</string>
             </property>
            </widget>
           </item>
@@ -265,7 +265,7 @@
           <item row="1" column="0">
            <widget class="QLabel" name="label_15">
             <property name="text">
-             <string>Interval</string>
+             <string>Interval:</string>
             </property>
            </widget>
           </item>
@@ -353,7 +353,7 @@
           <item row="0" column="0">
            <widget class="QLabel" name="databaseLabel">
             <property name="text">
-             <string>Database</string>
+             <string>Database:</string>
             </property>
            </widget>
           </item>
@@ -370,7 +370,7 @@
           <item row="1" column="0">
            <widget class="QLabel" name="hostnameLabel">
             <property name="text">
-             <string>Hostname</string>
+             <string>Hostname:</string>
             </property>
            </widget>
           </item>
@@ -390,7 +390,7 @@
           <item row="2" column="0">
            <widget class="QLabel" name="portLabel">
             <property name="text">
-             <string>Port</string>
+             <string>Port:</string>
             </property>
            </widget>
           </item>
@@ -410,7 +410,7 @@
           <item row="3" column="0">
            <widget class="QLabel" name="usernameLabel">
             <property name="text">
-             <string>Username</string>
+             <string>Username:</string>
             </property>
            </widget>
           </item>
@@ -427,7 +427,7 @@
           <item row="4" column="0">
            <widget class="QLabel" name="passwordLabel">
             <property name="text">
-             <string>Password</string>
+             <string>Password:</string>
             </property>
            </widget>
           </item>
@@ -456,7 +456,7 @@
           <item row="1" column="0">
            <widget class="QLabel" name="UrlLabel">
             <property name="text">
-             <string>URL</string>
+             <string>URL:</string>
             </property>
            </widget>
           </item>
@@ -495,7 +495,7 @@
           <item row="0" column="0">
            <widget class="QLabel" name="label_3">
             <property name="text">
-             <string>Hostname</string>
+             <string>Hostname:</string>
             </property>
            </widget>
           </item>
@@ -509,7 +509,7 @@
           <item row="1" column="0">
            <widget class="QLabel" name="label_4">
             <property name="text">
-             <string>Port</string>
+             <string>Port:</string>
             </property>
            </widget>
           </item>
@@ -688,7 +688,7 @@
           <item row="2" column="0">
            <widget class="QLabel" name="label_29">
             <property name="text">
-             <string>Legend</string>
+             <string>Legend:</string>
             </property>
            </widget>
           </item>
@@ -766,7 +766,7 @@
           <item row="9" column="3">
            <widget class="QLabel" name="label_19">
             <property name="text">
-             <string>Gust Wind Speed</string>
+             <string>Gust Wind Speed:</string>
             </property>
            </widget>
           </item>
@@ -817,35 +817,35 @@
           <item row="5" column="3">
            <widget class="QLabel" name="label_12">
             <property name="text">
-             <string>Humidity (Indoor)</string>
+             <string>Humidity (Indoor):</string>
             </property>
            </widget>
           </item>
           <item row="9" column="0">
            <widget class="QLabel" name="label_17">
             <property name="text">
-             <string>Average Wind Speed</string>
+             <string>Average Wind Speed:</string>
             </property>
            </widget>
           </item>
           <item row="4" column="0">
            <widget class="QLabel" name="label_10">
             <property name="text">
-             <string>Dew Point</string>
+             <string>Dew Point:</string>
             </property>
            </widget>
           </item>
           <item row="11" column="0">
            <widget class="QLabel" name="lblSolarRadiation">
             <property name="text">
-             <string>Solar Radiation</string>
+             <string>Solar Radiation:</string>
             </property>
            </widget>
           </item>
           <item row="11" column="3">
            <widget class="QLabel" name="lblUVIndex">
             <property name="text">
-             <string>UV Index</string>
+             <string>UV Index:</string>
             </property>
            </widget>
           </item>
@@ -874,7 +874,7 @@
           <item row="5" column="0">
            <widget class="QLabel" name="label_11">
             <property name="text">
-             <string>Humidity</string>
+             <string>Humidity:</string>
             </property>
            </widget>
           </item>
@@ -988,7 +988,7 @@
           <item row="4" column="3">
            <widget class="QLabel" name="label_13">
             <property name="text">
-             <string>Pressure</string>
+             <string>Pressure:</string>
             </property>
            </widget>
           </item>
@@ -1077,7 +1077,7 @@
           <item row="2" column="3">
            <widget class="QLabel" name="label_9">
             <property name="text">
-             <string>Wind Chill</string>
+             <string>Wind Chill:</string>
             </property>
            </widget>
           </item>
@@ -1106,35 +1106,35 @@
           <item row="8" column="0">
            <widget class="QLabel" name="label_14">
             <property name="text">
-             <string>Rainfall</string>
+             <string>Rainfall:</string>
             </property>
            </widget>
           </item>
           <item row="0" column="0">
            <widget class="QLabel" name="label">
             <property name="text">
-             <string>Temperature</string>
+             <string>Temperature:</string>
             </property>
            </widget>
           </item>
           <item row="0" column="3">
            <widget class="QLabel" name="label_2">
             <property name="text">
-             <string>Temperature (Indoor)</string>
+             <string>Temperature (Indoor):</string>
             </property>
            </widget>
           </item>
           <item row="2" column="0">
            <widget class="QLabel" name="label_8">
             <property name="text">
-             <string>Apparent Temperature</string>
+             <string>Apparent Temperature:</string>
             </property>
            </widget>
           </item>
           <item row="8" column="3">
            <widget class="QLabel" name="label_18">
             <property name="text">
-             <string>Wind Direction</string>
+             <string>Wind Direction:</string>
             </property>
            </widget>
           </item>
@@ -1163,14 +1163,14 @@
           <item row="10" column="0">
            <widget class="QLabel" name="label_22">
             <property name="text">
-             <string>Reception</string>
+             <string>Reception:</string>
             </property>
            </widget>
           </item>
           <item row="10" column="3">
            <widget class="QLabel" name="label_23">
             <property name="text">
-             <string>Evapotranspiration</string>
+             <string>Evapotranspiration:</string>
             </property>
            </widget>
           </item>
@@ -1224,7 +1224,7 @@
           <item row="0" column="0">
            <widget class="QLabel" name="label_20">
             <property name="text">
-             <string>Title</string>
+             <string>Title:</string>
             </property>
            </widget>
           </item>
@@ -1266,7 +1266,7 @@
           <item row="0" column="3">
            <widget class="QLabel" name="label_21">
             <property name="text">
-             <string>Background</string>
+             <string>Background:</string>
             </property>
            </widget>
           </item>
