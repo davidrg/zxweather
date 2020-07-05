@@ -78,7 +78,8 @@ private slots:
     void errorSlot(QString errMsg); // also used by sample functions
     void isSolarDataEnabledSlot(bool enabled);
     void stationNameSlot(QString name);
-
+    void liveConnectFailedSlot(QString message);
+    void liveConnectedSlot();
 
     // Forward AbstractDataSource signals
     void samplesReadySlot(SampleSet samples);

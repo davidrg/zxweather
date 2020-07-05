@@ -59,6 +59,10 @@ void DataSourceProxy::connectDataSources() {
             this, SLOT(newImageSlot(NewImageInfo)));
     connect(liveSource, SIGNAL(newSample(Sample)),
             this, SLOT(newSampleSlot(Sample)));
+    connect(liveSource, SIGNAL(liveConnectFailed(QString)),
+            this, SLOT(liveConnectFailedSlot(QString)));
+    connect(liveSource, SIGNAL(liveConnected()),
+            this, SLOT(liveConnectedSlot()));
 
     // Hook up sample signals
     if (liveSource != sampleSource) {
@@ -292,6 +296,14 @@ void DataSourceProxy::activeImageSourcesAvailableSlot() {
 
 void DataSourceProxy::archivedImagesAvailableSlot() {
     emit archivedImagesAvailable();
+}
+
+void DataSourceProxy::liveConnectFailedSlot(QString message) {
+    emit liveConnectFailed(message);
+}
+
+void DataSourceProxy::liveConnectedSlot() {
+    emit liveConnected();
 }
 
 sample_range_t DataSourceProxy::getSampleRange() {

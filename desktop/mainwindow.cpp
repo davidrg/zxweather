@@ -148,6 +148,10 @@ MainWindow::MainWindow(bool showConfigWizard, QWidget *parent) :
             this, SLOT(setSolarDataAvailable(bool)));
     connect(dataSource, SIGNAL(error(QString)),
             this, SLOT(dataSourceError(QString)));
+    connect(dataSource, SIGNAL(liveConnectFailed(QString)),
+            this, SLOT(liveDataSourceConnectFailed(QString)));
+    connect(dataSource, SIGNAL(liveConnected()),
+            this, SLOT(liveConnected()));
     connect(dataSource, SIGNAL(newImage(NewImageInfo)),
             this, SLOT(newImage(NewImageInfo)));
     connect(dataSource, SIGNAL(activeImageSourcesAvailable()),
@@ -315,13 +319,18 @@ void MainWindow::disableDataSourceFunctionality(bool samples, bool live) {
     }
 }
 
-void MainWindow::enableDataSourceFunctionality() {
-    ui->actionCharts->setEnabled(true);
-    ui->actionExport_Data->setEnabled(true);
-    ui->actionView_Data->setEnabled(true);
-    ui->actionImages->setEnabled(true);
-    ui->action_Reports->setEnabled(true);
-    ui->actionLive_Chart->setEnabled(true);
+void MainWindow::enableDataSourceFunctionality(bool samples, bool live) {
+    if (samples) {
+        ui->actionCharts->setEnabled(true);
+        ui->actionExport_Data->setEnabled(true);
+        ui->actionView_Data->setEnabled(true);
+        ui->actionImages->setEnabled(true);
+        ui->action_Reports->setEnabled(true);
+    }
+
+    if (live) {
+        ui->actionLive_Chart->setEnabled(true);
+    }
 }
 
 void MainWindow::reconnectDatabase() {
@@ -850,4 +859,18 @@ void MainWindow::processMessages() {
         }
     }
     processingMessages = false;
+}
+
+
+void MainWindow::liveDataSourceConnectFailed(QString errorMessage) {
+    QMessageBox::warning(
+                this, tr("Live data connect failed"),
+                QString(tr("An error occurred connecting to the live data source. "
+                           "Current conditions and live charts will not be "
+                           "available. The error was: %0")).arg(errorMessage));
+    disableDataSourceFunctionality(false, true);
+}
+
+void MainWindow::liveConnected() {
+    enableDataSourceFunctionality(false, true);
 }

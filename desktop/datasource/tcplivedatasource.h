@@ -38,6 +38,7 @@ private:
     QTimer watchdog;
     QDateTime LastUpdate;
     bool liveDataEnabled;
+    bool firstError;
 
     QString stationInfoBuffer;
 

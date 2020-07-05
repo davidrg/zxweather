@@ -170,6 +170,9 @@ signals:
      */
     void error(QString errMsg);
 
+    void liveConnectFailed(QString errMsg);
+    void liveConnected();
+
     /** Emitted before the first live data record to indicate if Solar
      * and UV data are available.
      *

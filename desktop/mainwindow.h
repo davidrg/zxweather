@@ -158,6 +158,9 @@ private slots:
 
     void processMessages();
 
+    void liveDataSourceConnectFailed(QString errorMessage);
+    void liveConnected();
+
 protected:
     /**
      * @brief changeEvent handles minimising the window to the system tray if
@@ -194,7 +197,7 @@ private:
     void reconfigureDataSource();
 
     void disableDataSourceFunctionality(bool samples, bool live);
-    void enableDataSourceFunctionality();
+    void enableDataSourceFunctionality(bool samples=true, bool live=true);
 
     DataSourceProxy* dataSource;
 

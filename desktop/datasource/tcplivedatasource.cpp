@@ -48,6 +48,7 @@ TcpLiveDataSource::~TcpLiveDataSource() {
 
 void TcpLiveDataSource::enableLiveData() {
     liveDataEnabled = true;
+    firstError = true;
 
     if (!socket->isOpen()) {
         Settings& settings = Settings::getInstance();
@@ -86,6 +87,11 @@ void TcpLiveDataSource::error(QAbstractSocket::SocketError socketError) {
     qDebug() << "Reconnect attempt in 5";
     reconnectTimer.start();
     state = STATE_INIT;
+
+    if (firstError) {
+        emit liveConnectFailed(socket->errorString());
+        firstError = false;
+    }
 }
 
 void TcpLiveDataSource::sendNextCommand() {
