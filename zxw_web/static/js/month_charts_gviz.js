@@ -86,7 +86,7 @@ function drawSampleLineCharts(data,
 
     // Wind speed only (columns 7 and 8)
     var wind_speed = new google.visualization.DataView(data);
-    wind_speed.hideColumns([1,2,3,4,5,6,8,9,10]);
+    wind_speed.hideColumns([1,2,3,4,5,6,9,10]);
 
     var wind_speed_options = {
         title: 'Wind Speed (m/s)',
