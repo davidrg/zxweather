@@ -1,14 +1,17 @@
 ------------------------------------------------------------------------------
-zxweather README                                                   13-JAN-2013
+zxweather README                                                    6-JUL-2020
 ==============================================================================
 
-  This is a collection of weather software used on weather.zx.net.nz for use 
-  with the Fine Offset WH1080 weather station (and anything compatible with
-  it).
-
-  Version: 0.2 (alpha)
-
-  For documentation and information on current releases, see:
-     http://ftp2.zx.net.nz/pub/DGS/zxweather/readme.html
-
+  This is a collection of weather software used on weather.zx.net.nz. It
+  supports the following weather stations:
+	* Davis Vantage Pro2 (cabled or wireless, Plus models and extra sensors
+	  are supported. Data logger required.)
+	* Davis Vantage Vue (Data logger required)
+	* FineOffset WH1080 and compatible
+	
+  License is:
+    GPLv3 for the desktop client due to its dependency on QCustomPlot
+	GPLv2 for everything else
+  
+ 
 ==============================================================================
