@@ -124,6 +124,8 @@ def get_year(ui,station, year):
         prev_url = None
         next_url = None
 
+        wind_speed_kmh = config.wind_speed_kmh
+
         year_stamp = year
 
         next_year = year + 1

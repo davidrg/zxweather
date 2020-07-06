@@ -47,12 +47,12 @@
                         <tr>
                             <td>Gust Wind Speed</td>
                             <td class="no-value"></td>
-                            <td id="gws">{% if data.records and data.records.max_gust_wind_speed %}{{ data.records.max_gust_wind_speed|round(1) }} m/s at {{ data.records.max_gust_wind_speed_ts }}{% else %}--{% endif %}</td>
+                            <td id="gws">{% if data.records and data.records.max_gust_wind_speed %}{% if data.wind_speed_kmh %}{{ data.records.max_gust_wind_speed*3.6|round(1) }} km/h{% else %}{{ data.records.max_gust_wind_speed|round(1) }} m/s{% endif %} at {{ data.records.max_gust_wind_speed_ts }}{% else %}--{% endif %}</td>
                         </tr>
                         <tr>
                             <td>Average Wind Speed</td>
                             <td class="no-value"></td>
-                            <td id="aws">{% if data.records and data.records.max_average_wind_speed %}{{ data.records.max_average_wind_speed|round(1) }} m/s at {{ data.records.max_average_wind_speed_ts }}{% else %}--{% endif %}</td>
+                            <td id="aws">{% if data.records and data.records.max_average_wind_speed %}{% if data.wind_speed_kmh %}{{ data.records.max_average_wind_speed*3.6|round(1) }} km/h{% else %}{{ data.records.max_average_wind_speed|round(1) }} m/s{% endif %} at {{ data.records.max_average_wind_speed_ts }}{% else %}--{% endif %}</td>
                         </tr>
                         </tbody>
                     </table>

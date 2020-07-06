@@ -58,6 +58,7 @@ image_type_sort = None
 
 array_position_available = True
 
+wind_speed_kmh = False
 
 report_settings = dict()
 
@@ -73,7 +74,7 @@ def load_settings():
     global hide_coordinates, google_analytics_id, image_type_sort
     global cache_thumbnails, cache_directory, thumbnail_size, cache_videos
     global video_cache_directory, max_thumbnail_cache_size, max_video_cache_size
-    global cache_expiry_access_time, report_settings
+    global cache_expiry_access_time, report_settings, wind_speed_kmh
 
     import ConfigParser
     config = ConfigParser.ConfigParser()
@@ -118,6 +119,9 @@ def load_settings():
     default_ui = config.get(S_S, 'default_ui')
     site_name = config.get(S_S, 'site_name')
     static_data_dir = config.get(S_S, 'static_data_dir')
+
+    if config.has_option(S_S, 'wind_speed_kmh'):
+        wind_speed_kmh = config.getboolean(S_S, 'wind_speed_kmh')
 
     if config.has_option(S_S, 'disable_alt_ui'):
         disable_alt_ui = config.getboolean(S_S, 'disable_alt_ui')

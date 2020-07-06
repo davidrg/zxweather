@@ -61,6 +61,7 @@ def get_station_standard(ui, station):
         yesterday_month_s = month_name[yesterday.month]
         rainfall_7days_total = total_rainfall_in_last_7_days(now, station_id)
         sample_interval = get_sample_interval(station_id)
+        wind_speed_kmh = config.wind_speed_kmh
 
     data.current_data_ts, data.current_data, \
         data.nw_type = get_live_data(station_id)
@@ -196,6 +197,7 @@ def get_station_basic(station):
         yesterday = now - timedelta(1)
         yesterday_month_s = month_name[yesterday.month]
         rainfall_7days_total = total_rainfall_in_last_7_days(now, station_id)
+        wind_speed_kmh = config.wind_speed_kmh
 
     data.current_data_ts, data.current_data, \
         data.nw_type = get_live_data(station_id)

@@ -49,7 +49,11 @@ var pressureFormatter = function(y) {
     return y.toFixed(1) + ' hPa';
 };
 var windSpeedFormatter = function(y) {
-    return y.toFixed(1) + ' m/s';
+    if (wind_speed_kmh) {
+        return y.toFixed(1) + ' km/h';
+    } else {
+        return y.toFixed(1) + ' m/s';
+    }
 };
 var rainfallFormatter = function(y) {
     return y.toFixed(1) + 'mm';
@@ -117,12 +121,24 @@ function drawSampleLineCharts(jsondata,
      *  10 - Solar Radiation
      */
 
+    var wind_columns = selectColumns(data, [0,7,8]);
+    if (wind_speed_kmh) {
+        for (var i=0;i<wind_columns.length;i++) {
+            if (wind_columns[i][1] != null) {
+                wind_columns[i][1] = wind_columns[i][1] * 3.6;
+            }
+            if (wind_columns[i][2] != null) {
+                wind_columns[i][2] = wind_columns[i][2] * 3.6;
+            }
+        }
+    }
+
     var data_set = {
         tdp_data : selectColumns(data, [0,1,2]),
         awc_data : selectColumns(data, [0,3,4]),
         humidity_data : selectColumns(data, [0,5]),
         pressure_data : selectColumns(data, [0,6]),
-        wind_speed_data : selectColumns(data, [0,7,8]),
+        wind_speed_data : wind_columns,
         uv_index_data : null,
         solar_radiation_data : null,
         _graphs: {
@@ -263,6 +279,10 @@ function drawSampleLineCharts(jsondata,
             }
         )
     }
+    var wind_title = 'Wind Speed (m/s)'
+    if (wind_speed_kmh) {
+        wind_title = 'Wind Speed (km/h)'
+    }
 
     data_set._graphs.wind_speed_chart = new Dygraph(
         wind_speed_element,
@@ -272,10 +292,10 @@ function drawSampleLineCharts(jsondata,
             labelsDiv: wind_speed_key,
             animatedZooms: enable_animated_zooms,
             strokeWidth: strokeWidth,
-            title: 'Wind Speed (m/s)',
+            title: wind_title,
             axes: {
                 y: {
-                   valueFormatter: windSpeedFormatter
+                    valueFormatter: windSpeedFormatter
                 }
             },
             legend: 'always'
@@ -334,6 +354,16 @@ function drawRecordsLineCharts(jsondata,
     var pressure_data = selectColumns(data, [0,5,6]);
     var rainfall_data = selectColumns(data, [0,7]);
     var wind_speed_data = selectColumns(data, [0,8,9]);
+    if (wind_speed_kmh) {
+        for (var i=0;i<wind_speed_data.length;i++) {
+            if (wind_speed_data[i][1] != null) {
+                wind_speed_data[i][1] = wind_speed_data[i][1] * 3.6;
+            }
+            if (wind_speed_data[i][2] != null) {
+                wind_speed_data[i][2] = wind_speed_data[i][2] * 3.6;
+            }
+        }
+    }
 
     /* And the labels */
     var temp_labels = [labels[0],labels[1],labels[2]];
@@ -423,6 +453,10 @@ function drawRecordsLineCharts(jsondata,
             legend: 'always'
         });
 
+    var wind_title = 'Wind Speed (m/s)';
+    if (wind_speed_kmh) {
+        wind_title = 'Wind Speed (km/h)';
+    }
     var wind_speed_chart = new Dygraph(
         wind_speed_element,
         wind_speed_data,
@@ -431,7 +465,7 @@ function drawRecordsLineCharts(jsondata,
             labelsDiv: wind_speed_key,
             animatedZooms: enable_animated_zooms,
             strokeWidth: strokeWidth,
-            title: "Wind Speed (m/s)",
+            title: wind_title,
             axes: {
                 y: {
                     valueFormatter: windSpeedFormatter

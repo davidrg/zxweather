@@ -227,6 +227,8 @@ def get_month(ui, station, year, month):
         current_data = None
         this_year = year
 
+        wind_speed_kmh = config.wind_speed_kmh
+
         prev_url, next_url = month_nav_urls(ui,
                                             station,
                                             year,

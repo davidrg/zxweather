@@ -1015,6 +1015,11 @@ function parse_live_data(parts) {
     if (s < 10) s = '0' + s;
     var time = h + ':' + m + ':' + s;
 
+    var wind = parseFloat(parts[9]);
+    if (wind_speed_kmh) {
+        wind = wind * 3.6
+    }
+
     var result = {
         'temperature': parseFloat(parts[1]),
         'dew_point': parseFloat(parts[2]),
@@ -1024,7 +1029,7 @@ function parse_live_data(parts) {
         // Indoor temperature - 6
         // Indoor humidity - 7
         'absolute_pressure': parseFloat(parts[8]),
-        'average_wind_speed': parseFloat(parts[9]),
+        'average_wind_speed': wind,
         'wind_direction': parseInt(parts[10]),
         'hw_type': hw_type,
         'time_stamp': time,
@@ -1232,6 +1237,17 @@ function parse_sample(parts) {
     time_stamp.setMinutes(minute);
     time_stamp.setSeconds(second);
 
+    var wind = parseNoneableFloat(parts[10]);
+    var wind_gust = parseNoneableFloat(parts[11]);
+    if (wind_speed_kmh) {
+        if (wind != null) {
+            wind = wind * 3.6;
+        }
+        if (wind_gust != null) {
+            wind_gust = wind_gust * 3.6;
+        }
+    }
+
     // Note - samples are also constructed in build_average_point_for_ts()
     var sample = {
         // record type  // 0
@@ -1245,8 +1261,8 @@ function parse_sample(parts) {
         indoor_temperature: parseNoneableFloat(parts[7]),
         indoor_humidity: parseNoneableInt(parts[8]),
         pressure: parseNoneableFloat(parts[9]),
-        wind_speed: parseNoneableFloat(parts[10]),
-        gust_wind_speed: parseNoneableFloat(parts[11]),
+        wind_speed: wind,
+        gust_wind_speed: wind_gust,
         wind_direction: parseNoneableInt(parts[12]),
         rainfall: parseNoneableFloat(parts[13]),
         uv_index: null,
@@ -1966,6 +1982,13 @@ function data_arrived(data) {
 
 function poll_live_data() {
     $.getJSON(live_url, function (data) {
+        if (wind_speed_kmh) {
+            var wind = data['average_wind_speed'];
+            if (wind != null) {
+                wind = wind * 3.6;
+            }
+            data['average_wind_speed'] = wind;
+        }
         refresh_live_data(data);
     }).error(function() {
         show_live_data_error("Live data refresh failed - unable to contact the web server");
@@ -2384,7 +2407,12 @@ function refresh_live_data(data) {
         $("#live_wind_chill").html(wind_chill + '°C');
         $("#live_dew_point").html(dew_point + '°C');
         $("#live_absolute_pressure").html(absolute_pressure + ' hPa' + bar_trend);
-        $("#live_avg_wind_speed").html(wind_speed + ' m/s (' + bft_data[1] + ')');
+
+        if (wind_speed_kmh) {
+            $("#live_avg_wind_speed").html(wind_speed + ' km/h (' + bft_data[1] + ')');
+        } else {
+            $("#live_avg_wind_speed").html(wind_speed + ' m/s (' + bft_data[1] + ')');
+        }
         $("#live_wind_direction").html(wind_direction);
         $("#current_time").html(data['time_stamp']);
 
@@ -2467,14 +2495,30 @@ function update_records_table() {
     $("#rh_min").html(records.min_humidity + '% at ' + formatTime(records.min_humidity_ts));
     $("#rh_max").html(records.max_humidity + '% at ' + formatTime(records.max_humidity_ts));
 
-    $("#gws").html(records.max_gust_wind.toFixed(1) + ' m/s at ' + formatTime(records.max_gust_wind_ts));
-    $("#aws").html(records.max_wind.toFixed(1) + ' m/s at ' + formatTime(records.max_wind_ts));
+    var wind_unit = " m/s at ";
+    if (wind_speed_kmh) {
+        wind_unit = " km/h at ";
+    }
+    $("#gws").html(records.max_gust_wind.toFixed(1) + wind_unit + formatTime(records.max_gust_wind_ts));
+    $("#aws").html(records.max_wind.toFixed(1) + wind_unit + formatTime(records.max_wind_ts));
 }
 
 // This function refreshes the records object and updates the display.
 function reload_records() {
     $("#btn_records_refresh").button('loading');
     $.getJSON(records_url, function(data) {
+
+        var wind = data['max_average_wind_speed'];
+        var wind_gust = data['max_gust_wind_speed'];
+        if (wind_speed_kmh) {
+            if (wind != null) {
+                wind = wind * 3.6;
+            }
+            if (wind_gust != null) {
+                wind_gust = wind_gust * 3.6;
+            }
+        }
+
         records = {
             min_temp: data['min_temperature'],
             min_temp_ts: parseTime(data['min_temperature_ts']),
@@ -2506,9 +2550,9 @@ function reload_records() {
             max_humidity: data['max_humidity'],
             max_humidity_ts: parseTime(data['max_humidity_ts']),
 
-            max_gust_wind: data['max_gust_wind_speed'],
+            max_gust_wind: wind_gust,
             max_gust_wind_ts: parseTime(data['max_gust_wind_speed_ts']),
-            max_wind: data['max_average_wind_speed'],
+            max_wind: wind,
             max_wind_ts: parseTime(data['max_average_wind_speed_ts'])
         };
 

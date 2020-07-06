@@ -89,7 +89,7 @@ function drawSampleLineCharts(data,
     wind_speed.hideColumns([1,2,3,4,5,6,9,10]);
 
     var wind_speed_options = {
-        title: 'Wind Speed (m/s)',
+        title: 'Wind Speed (' + (wind_speed_kmh ? 'km/h' : 'm/s') + ')',
         legend: {position: 'none'}
 
     };
@@ -157,7 +157,7 @@ function drawRecordsLineCharts(record_data,
     wind_speed.hideColumns([1,2,3,4,5,6,7]);
 
     var wind_speed_options = {
-        title: 'Wind Speed (m/s)',
+        title: 'Wind Speed (' + (wind_speed_kmh ? 'km/h' : 'm/s') + ')',
         legend: {position: 'bottom'}
     };
     var wind_speed_chart = new google.visualization.LineChart(
@@ -180,6 +180,19 @@ function drawCharts() {
         // 6: abspressure
         var sampledata = new google.visualization.DataTable(data);
 
+        if (wind_speed_kmh) {
+            for (var i = 0, maxRows = sampledata.getNumberOfRows(); i < maxRows; i++) {
+                var wind = sampledata.getValue(i, 7);
+                if (wind != null) {
+                    sampledata.setValue(i, 7, wind * 3.6);
+                }
+                var gust = sampledata.getValue(i, 8);
+                if (gust != null) {
+                    sampledata.setValue(i, 8, gust * 3.6);
+                }
+            }
+        }
+
         // Do some formatting
         var temperatureFormatter = new google.visualization.NumberFormat(
             { pattern: '##.# °C'});
@@ -196,8 +209,12 @@ function drawCharts() {
             { pattern: '####.# hPa'});
         pressureFormatter.format(sampledata,6);
 
+        var windPattern = '##.# m/s';
+        if (wind_speed_kmh) {
+            windPattern = '###.# km/h';
+        }
         var windSpeedFormatter = new google.visualization.NumberFormat(
-            { pattern: '##.# m/s'});
+            { pattern: windPattern});
         windSpeedFormatter.format(sampledata,7);
         windSpeedFormatter.format(sampledata,8);
 
@@ -234,6 +251,19 @@ function drawCharts() {
         // 8: max average wind speed
         // 9: max gust wind speed
 
+        if (wind_speed_kmh) {
+            for (var i = 0, maxRows = record_data.getNumberOfRows(); i < maxRows; i++) {
+                var wind = record_data.getValue(i, 8);
+                if (wind != null) {
+                    record_data.setValue(i, 8, wind * 3.6);
+                }
+                var gust = record_data.getValue(i, 9);
+                if (gust != null) {
+                    record_data.setValue(i, 9, gust * 3.6);
+                }
+            }
+        }
+
         // Do some formatting
         var temperatureFormatter = new google.visualization.NumberFormat(
             { pattern: '##.# °C'});
@@ -254,8 +284,12 @@ function drawCharts() {
             {pattern: '##.# mm'});
         rainFormatter.format(record_data,7);
 
+        var windSpeedPattern = '##.# m/s';
+        if (wind_speed_kmh) {
+            windSpeedPattern = '###.# km/h'
+        }
         var windSpeedFormatter = new google.visualization.NumberFormat(
-            { pattern: '##.# m/s'});
+            { pattern: windSpeedPattern});
         windSpeedFormatter.format(record_data,8);
         windSpeedFormatter.format(record_data,9);
 

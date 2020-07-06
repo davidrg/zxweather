@@ -80,12 +80,12 @@
                     <tr>
                         <td>Gust Wind Speed</td>
                         <td class="no-value"></td>
-                        <td>{{ data.records.max_gust_wind_speed|round(1) }} m/s at {{ data.records.max_gust_wind_speed_ts }}</td>
+                        <td>{% if data.wind_speed_kmh %}{{ data.records.max_gust_wind_speed*3.6|round(1) }} km/h{% else %}{{ data.records.max_gust_wind_speed|round(1) }} m/s{% endif %} at {{ data.records.max_gust_wind_speed_ts }}</td>
                     </tr>
                     <tr>
                         <td>Average Wind Speed</td>
                         <td class="no-value"></td>
-                        <td>{{ data.records.max_average_wind_speed|round(1) }} m/s at {{ data.records.max_average_wind_speed_ts }}</td>
+                        <td>{% if data.wind_speed_kmh %}{{ data.records.max_average_wind_speed*3.6|round(1) }} km/h{% else %}{{ data.records.max_average_wind_speed|round(1) }} m/s{% endif %} at {{ data.records.max_average_wind_speed_ts }}</td>
                     </tr>
                 </tbody>
             </table>
@@ -151,6 +151,7 @@
 
     <script type="text/javascript">
     var daily_records_url = '{{ urls.daily_records }}';
+    var wind_speed_kmh = {% if data.wind_speed_kmh %}true{% else %}false{% endif %};
     </script>
     {% if ui and ui in ('s', 'm') -%}
     <script type="text/javascript" src="../../../js/dygraph-combined.js"></script>

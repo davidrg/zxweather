@@ -41,6 +41,9 @@ site_name: zxweather
 #static_data_dir: /opt/zxweather/zxw_web/static/
 #station_name: somewhere
 
+# Show wind speed in km/h instead of m/s
+wind_speed_kmh: True
+
 # The alternate UI (/a) uses the Google Visualisation API to produce its charts.
 # This API is only available online (google doesn't allow self-hosting it). This
 # means the alternate UI *requires* an internet connection and be able to access

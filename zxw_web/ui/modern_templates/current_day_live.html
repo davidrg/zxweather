@@ -58,7 +58,7 @@
                                 </tr>
                                 <tr>
                                     <td>Wind Speed</td>
-                                    <td id="live_avg_wind_speed">{% if data.current_data.average_wind_speed%}{{ data.current_data.average_wind_speed|round(1)  }} m/s{% else %}--{% endif %}</td>
+                                    <td id="live_avg_wind_speed">{% if data.current_data.average_wind_speed%}{% if data.wind_speed_kmh %}{{ data.current_data.average_wind_speed*3.6|round(1)  }} km/h{% else %}{{ data.current_data.average_wind_speed|round(1)  }} m/s{% endif %}{% else %}--{% endif %}</td>
                                 </tr>
                                 <tr>
                                     <td>Wind Direction</td>

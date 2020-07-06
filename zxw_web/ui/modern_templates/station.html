@@ -134,6 +134,7 @@
         var sample_interval = {{ data.sample_interval }};
         var thumbnail_width = {{ thumbnail_width }};
         var hw_type = '{{ hw_type }}';
+        var wind_speed_kmh = {% if data.wind_speed_kmh %}true{% else %}false{% endif %};
         var ui = '{{ ui }}';
         var ws_uri = null;
         var wss_uri = null;

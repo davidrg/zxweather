@@ -87,8 +87,9 @@ function drawAllLineCharts(data,
     var wind_speed = new google.visualization.DataView(data);
     wind_speed.hideColumns([1,2,3,4,5,6,9,10]);
 
+
     var wind_speed_options = {
-        title: 'Wind Speed (m/s)',
+        title: 'Wind Speed (' + (wind_speed_kmh ? 'km/h' : 'm/s') + ')',
         legend: {position: 'bottom'}
 
     };
@@ -116,8 +117,24 @@ function load_day_charts() {
         // 4: windchill
         // 5: humidity
         // 6: abspressure
+        // 7: Wind speed
+        // 8: Gust speed
+        // 9: Solar Radiation
 
         var sampledata = new google.visualization.DataTable(data);
+
+        if (wind_speed_kmh) {
+            for (var i = 0, maxRows = sampledata.getNumberOfRows(); i < maxRows; i++) {
+                var wind = sampledata.getValue(i, 7);
+                if (wind != null) {
+                    sampledata.setValue(i, 7, wind * 3.6);
+                }
+                var gust = sampledata.getValue(i, 8);
+                if (gust != null) {
+                    sampledata.setValue(i, 8, gust * 3.6);
+                }
+            }
+        }
 
         // Do some formatting
         var temperatureFormatter = new google.visualization.NumberFormat(
@@ -135,8 +152,12 @@ function load_day_charts() {
             { pattern: '####.# hPa'});
         pressureFormatter.format(sampledata,6);
 
+        var windPattern = '##.# m/s';
+        if (wind_speed_kmh) {
+            windPattern = '###.# km/h';
+        }
         var windSpeedFormatter = new google.visualization.NumberFormat(
-            { pattern: '##.# m/s'});
+            { pattern: windPattern});
         windSpeedFormatter.format(sampledata,7);
         windSpeedFormatter.format(sampledata,8);
 
@@ -238,6 +259,19 @@ function load_7day_charts() {
         // 6: abspressure
         var sampledata = new google.visualization.DataTable(data);
 
+        if (wind_speed_kmh) {
+            for (var i = 0, maxRows = sampledata.getNumberOfRows(); i < maxRows; i++) {
+                var wind = sampledata.getValue(i, 7);
+                if (wind != null) {
+                    sampledata.setValue(i, 7, wind * 3.6);
+                }
+                var gust = sampledata.getValue(i, 8);
+                if (gust != null) {
+                    sampledata.setValue(i, 8, gust * 3.6);
+                }
+            }
+        }
+
         // Do some formatting
         var temperatureFormatter = new google.visualization.NumberFormat(
             { pattern: '##.# °C'});
@@ -254,8 +288,12 @@ function load_7day_charts() {
             { pattern: '####.# hPa'});
         pressureFormatter.format(sampledata,6);
 
+        var windSpeedPattern = '##.# m/s';
+        if (wind_speed_kmh) {
+            windSpeedPattern = '###.# km/h'
+        }
         var windSpeedFormatter = new google.visualization.NumberFormat(
-            { pattern: '##.# m/s'});
+            { pattern: windSpeedPattern});
         windSpeedFormatter.format(sampledata,7);
         windSpeedFormatter.format(sampledata,8);
 

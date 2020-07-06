@@ -167,6 +167,7 @@ def get_day_page(ui, station, day):
         current_data = None
 
         hw_type = None
+        wind_speed_kmh = config.wind_speed_kmh
 
         prev_url = None
         next_url = None

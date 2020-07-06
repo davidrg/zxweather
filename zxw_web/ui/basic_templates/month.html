@@ -64,12 +64,12 @@
         <tr>
             <td bgcolor="blanchedalmond">Gust Wind Speed</td>
             <td></td>
-            <td bgcolor="blanchedalmond">{{ data.records.max_gust_wind_speed|round(1) }} m/s at {{ data.records.max_gust_wind_speed_ts }}</td>
+            <td bgcolor="blanchedalmond">{% if data.records and data.records.max_gust_wind_speed %}{% if data.wind_speed_kmh %}{{ data.records.max_gust_wind_speed*3.6|round(1) }} km/h{% else %}{{ data.records.max_gust_wind_speed|round(1) }} m/s{% endif %} at {{ data.records.max_gust_wind_speed_ts }}{% else %}--{% endif %}</td>
         </tr>
         <tr>
             <td bgcolor="blanchedalmond">Average Wind Speed</td>
             <td></td>
-            <td bgcolor="blanchedalmond">{{ data.records.max_average_wind_speed|round(1) }} m/s at {{ data.records.max_average_wind_speed_ts }}</td>
+            <td bgcolor="blanchedalmond">{% if data.records and data.records.max_average_wind_speed %}{% if data.wind_speed_kmh %}{{ data.records.max_average_wind_speed*3.6|round(1) }} km/h{% else %}{{ data.records.max_average_wind_speed|round(1) }} m/s{% endif %} at {{ data.records.max_average_wind_speed_ts }}{% else %}--{% endif %}</td>
         </tr>
     </table>
     <p>Total Rainfall: {{ data.records.total_rainfall|round(1) }}mm</p>

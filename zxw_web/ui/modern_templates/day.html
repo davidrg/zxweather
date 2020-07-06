@@ -149,6 +149,7 @@
         var live_auto_refresh;
         var hw_type = '{{ hw_type }}';
         var solar_and_uv_available = {% if solar_uv_available %}true{% else %}false{% endif %};
+        var wind_speed_kmh = {% if data.wind_speed_kmh %}true{% else %}false{% endif %};
         var ui = '{{ ui }}';
         {% if data.current_data -%}
 
