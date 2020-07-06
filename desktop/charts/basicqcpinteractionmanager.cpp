@@ -67,6 +67,7 @@ void BasicQCPInteractionManager::legendClick(QCPLegend *legend,
         // Any arbitrary selection range will select the whole lot plottable
         // when the selection mode is Whole
         plottable->setSelection(QCPDataSelection(QCPDataRange(0,1)));
+        emit graphSelected(true);
     }
 }
 
