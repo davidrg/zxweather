@@ -212,21 +212,8 @@ bool RangeRequestWebTask::processRangeResponse(QString data) {
     if (urlList.count() == 0) {
         // No URLs in need of fetching. Job done.
 
-        if (_select) {
-            // Put a task onto the end of the queue to grab the dataset from the cache
-            // database and hand it to the datasource.
-            SelectSamplesWebTask *selectTask = new SelectSamplesWebTask(_baseUrl,
-                                                                        _stationCode,
-                                                                        _requestData,
-                                                                        _dataSource);
-            emit queueTask(selectTask);
-            return true;
-        } else {
-            CachingFinishedWebTask *finishedTask = new CachingFinishedWebTask(_baseUrl,
-                                                                              _stationCode,
-                                                                              _dataSource);
-            emit queueTask(finishedTask);
-        }
+        completeWork();
+        return true;
     }
 
     // Chuck the names in a hashtable for use later.
@@ -300,25 +287,29 @@ bool RangeRequestWebTask::processHeadResponse(QNetworkReply *reply) {
     bool finished = _awaitingUrls == 0;
 
     if (finished) {
-        if (_select) {
-            // Put a task onto the end of the queue to grab the dataset from the cache
-            // database and hand it to the datasource.
-            SelectSamplesWebTask *selectTask = new SelectSamplesWebTask(_baseUrl,
-                                                                        _stationCode,
-                                                                        _requestData,
-                                                                        _dataSource);
-            emit queueTask(selectTask);
-        } else {
-            CachingFinishedWebTask *finishedTask = new CachingFinishedWebTask(_baseUrl,
-                                                                              _stationCode,
-                                                                              _dataSource);
-            emit queueTask(finishedTask);
-        }
+        completeWork();
     }
 
     return finished;
 }
 #endif
+
+void RangeRequestWebTask::completeWork() {
+    if (_select) {
+        // Put a task onto the end of the queue to grab the dataset from the cache
+        // database and hand it to the datasource.
+        SelectSamplesWebTask *selectTask = new SelectSamplesWebTask(_baseUrl,
+                                                                    _stationCode,
+                                                                    _requestData,
+                                                                    _dataSource);
+        emit queueTask(selectTask);
+    } else {
+        CachingFinishedWebTask *finishedTask = new CachingFinishedWebTask(_baseUrl,
+                                                                          _stationCode,
+                                                                          _dataSource);
+        emit queueTask(finishedTask);
+    }
+}
 
 #if QT_VERSION < 0x050600
 void RangeRequestWebTask::requestRedirected(QString oldUrl, QString newUrl) {

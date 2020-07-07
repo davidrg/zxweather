@@ -81,6 +81,8 @@ private:
                     QStringList& urlList, QStringList& nameList);
 
     void queueDownloadTasks(bool forceDownload);
+
+    void completeWork();
 };
 
 #endif // RANGEREQUESTWEBTASK_H
