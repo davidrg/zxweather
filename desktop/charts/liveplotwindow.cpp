@@ -36,6 +36,7 @@ LivePlotWindow::LivePlotWindow(bool solarAvailalble,
     ui->setupUi(this);
 
     imperial = Settings::getInstance().imperial();
+    kmh = Settings::getInstance().kmh();
 
     this->hwType = hardwareType;
     this->solarAvailable = solarAvailalble;
@@ -52,7 +53,11 @@ LivePlotWindow::LivePlotWindow(bool solarAvailalble,
     units[LV_Humidity] = UnitConversions::U_HUMIDITY;
     units[LV_IndoorHumidity] = UnitConversions::U_HUMIDITY;
     units[LV_Pressure] = UnitConversions::U_HECTOPASCALS;
-    units[LV_WindSpeed] = UnitConversions::U_METERS_PER_SECOND;
+    if (kmh) {
+        units[LV_WindSpeed] = UnitConversions::U_KILOMETERS_PER_HOUR;
+    } else {
+        units[LV_WindSpeed] = UnitConversions::U_METERS_PER_SECOND;
+    }
     units[LV_WindDirection] = UnitConversions::U_DEGREES;
     units[LV_StormRain] = UnitConversions::U_MILLIMETERS;
     units[LV_RainRate] = UnitConversions::U_MILLIMETERS_PER_HOUR;
@@ -712,10 +717,11 @@ void LivePlotWindow::updateGraph(LiveValue type, double key, double range, doubl
 
     if (imperial) {
         value = metricToImperial(type, value);
+    } else if (kmh && type == LV_WindSpeed) {
+        value = UnitConversions::metersPerSecondToKilometersPerHour(value);
     }
 
     if (graphs.contains(type)) {
-        qDebug() << "Update live plot graph" << type << "with value" << value;
         graphs[type]->data()->removeBefore(key - range);
         graphs[type]->addData(key, value);
         points[type]->data()->clear();

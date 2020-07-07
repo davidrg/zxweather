@@ -71,6 +71,7 @@ private:
     QMap<ExtraColumn, QString> extraColumnNames;
 
     bool imperial;
+    bool kmh;
 
     QMap<LiveValue, QCPGraph*> graphs;
     QMap<LiveValue, QCPGraph*> points;
