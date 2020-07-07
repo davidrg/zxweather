@@ -650,7 +650,7 @@ void LivePlotWindow::addLiveValue(LiveValue v) {
 }
 
 void LivePlotWindow::liveData(LiveDataSet ds) {
-    qDebug() << "New plot data!";
+    //qDebug() << "New plot data!";
     if (valuesToShow == LV_NoColumns) {
         return; // Nothing to do.
     }
@@ -715,7 +715,7 @@ void LivePlotWindow::updateGraph(LiveValue type, double key, double range, doubl
     }
 
     if (graphs.contains(type)) {
-        qDebug() << "Update live plot graph" << type << "with value" << value;
+        //qDebug() << "Update live plot graph" << type << "with value" << value;
         graphs[type]->data()->removeBefore(key - range);
         graphs[type]->addData(key, value);
         points[type]->data()->clear();

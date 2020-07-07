@@ -52,7 +52,15 @@ void AxisTag::setStyle(const GraphStyle &style) {
         switch (style.getLiveColumnType()) {
         case LV_WindDirection:
         case LV_Humidity:
-        case LV_IndoorHumidity :
+        case LV_IndoorHumidity:
+        case LV_LeafWetness1:
+        case LV_LeafWetness2:
+        case LV_SoilMoisture1:
+        case LV_SoilMoisture2:
+        case LV_SoilMoisture3:
+        case LV_SoilMoisture4:
+        case LV_ExtraHumidity1:
+        case LV_ExtraHumidity2:
             format = 'i';
             break;
 
@@ -68,6 +76,15 @@ void AxisTag::setStyle(const GraphStyle &style) {
         case LV_UVIndex:
         case LV_SolarRadiation:
         case LV_BatteryVoltage:
+        case LV_LeafTemperature1:
+        case LV_LeafTemperature2:
+        case LV_SoilTemperature1:
+        case LV_SoilTemperature2:
+        case LV_SoilTemperature3:
+        case LV_SoilTemperature4:
+        case LV_ExtraTemperature1:
+        case LV_ExtraTemperature2:
+        case LV_ExtraTemperature3:
         default:
             format = 'f';
             precision = 1;
@@ -76,12 +93,13 @@ void AxisTag::setStyle(const GraphStyle &style) {
         switch(style.getExtraColumnType()) {
         case EC_LeafWetness1:
         case EC_LeafWetness2:
-            format = 'i';
-            break;
         case EC_SoilMoisture1:
         case EC_SoilMoisture2:
         case EC_SoilMoisture3:
         case EC_SoilMoisture4:
+            qDebug() << "Leaf Wet/Soil Moist";
+            format = 'i';
+            break;
         case EC_LeafTemperature1:
         case EC_LeafTemperature2:
         case EC_SoilTemperature1:
