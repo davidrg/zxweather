@@ -42,7 +42,7 @@
      <x>0</x>
      <y>0</y>
      <width>799</width>
-     <height>20</height>
+     <height>21</height>
     </rect>
    </property>
   </widget>
@@ -83,6 +83,9 @@
    <property name="text">
     <string>Add Graph</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+A</string>
+   </property>
   </action>
   <action name="actionSave">
    <property name="icon">
@@ -92,6 +95,9 @@
    <property name="text">
     <string>Save</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+S</string>
+   </property>
   </action>
   <action name="actionCopy">
    <property name="icon">
@@ -100,6 +106,9 @@
    </property>
    <property name="text">
     <string>Copy</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+C</string>
    </property>
   </action>
   <action name="actionRemove_Graph">
@@ -113,6 +122,9 @@
    <property name="text">
     <string>Remove Graph</string>
    </property>
+   <property name="shortcut">
+    <string>Del</string>
+   </property>
   </action>
   <action name="actionTitle">
    <property name="checkable">
@@ -124,6 +136,9 @@
    </property>
    <property name="text">
     <string>Title</string>
+   </property>
+   <property name="shortcut">
+    <string>T</string>
    </property>
   </action>
   <action name="actionLegend">
@@ -137,6 +152,9 @@
    <property name="text">
     <string>Legend</string>
    </property>
+   <property name="shortcut">
+    <string>L</string>
+   </property>
   </action>
   <action name="actionOptions">
    <property name="icon">
@@ -145,6 +163,9 @@
    </property>
    <property name="text">
     <string>Options</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+O</string>
    </property>
   </action>
  </widget>
