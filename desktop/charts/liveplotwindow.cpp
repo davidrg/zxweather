@@ -715,7 +715,7 @@ void LivePlotWindow::updateGraph(LiveValue type, double key, double range, doubl
     }
 
     if (graphs.contains(type)) {
-        //qDebug() << "Update live plot graph" << type << "with value" << value;
+        qDebug() << "Update live plot graph" << type << "with value" << value;
         graphs[type]->data()->removeBefore(key - range);
         graphs[type]->addData(key, value);
         points[type]->data()->clear();
@@ -824,12 +824,14 @@ void LivePlotWindow::showAddGraphDialog(QString message, QString title) {
 
 void LivePlotWindow::graphRemoving(QCPGraph *graph) {
     QVariant prop = graph->property(PROP_GRAPH_TYPE);
-    if (prop.isNull() || !prop.isValid() || prop.type() != QVariant::Int) {
+    if (prop.isNull() || !prop.isValid() || prop.type() != QVariant::UInt) {
         return;
     }
 
     bool isPoint = graph->property(PROP_IS_POINT).toBool();
-    LiveValue graphType = (LiveValue)prop.toInt();
+    LiveValue graphType = (LiveValue)prop.toUInt();
+
+    qDebug() << "Graph" << graphType << "is being removed!";
 
     if (isPoint && graphs.contains(graphType)) {
         // Remove the owning graph too.
@@ -953,11 +955,11 @@ void LivePlotWindow::showOptions() {
 void LivePlotWindow::graphStyleChanged(QCPGraph *graph, GraphStyle &newStyle)
 {
     QVariant prop = graph->property(PROP_GRAPH_TYPE);
-    if (prop.isNull() || !prop.isValid() || prop.type() != QVariant::Int) {
+    if (prop.isNull() || !prop.isValid() || prop.type() != QVariant::UInt) {
         return;
     }
 
-    LiveValue graphType = (LiveValue)prop.toInt();
+    LiveValue graphType = (LiveValue)prop.toUInt();
 
     if (points.contains(graphType)) {
         points[graphType]->setPen(newStyle.getPen());
