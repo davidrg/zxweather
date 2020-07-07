@@ -39,7 +39,7 @@
 #include "scriptingengine.h"
 
 
-QByteArray readFile(QString name) {
+QByteArray readFile(QString name, bool text=false) {
     QStringList files;
 //    files << QDir::cleanPath("reports" + QString(QDir::separator()) + name);
 
@@ -64,7 +64,13 @@ QByteArray readFile(QString name) {
         if (file.exists()) {
             qDebug() << "found" << filename;
             if (file.open(QIODevice::ReadOnly)) {
-                return file.readAll();
+                if (text) {
+                    QTextStream in(&file);
+                    in.setCodec("UTF-8");
+                    return in.readAll().toLocal8Bit();
+                } else {
+                    return file.readAll();
+                }
             }
         }
     }
@@ -86,7 +92,7 @@ QIcon readIcon(QString name, QIcon defaultIcon) {
 }
 
 QString readTextFile(QString name) {
-    QByteArray data = readFile(name);
+    QByteArray data = readFile(name, true);
     if (data.isNull()) {
         return QString();
     }
@@ -123,7 +129,7 @@ Report::Report(QString name)
     }
 
     _title = doc["title"].toString();
-    _description = QString(readFile(reportDir + doc["description"].toString()));
+    _description = QString(readTextFile(reportDir + doc["description"].toString()));
 
     // Load the reports icon
     _icon = readIcon(reportDir + doc["icon"].toString(), QIcon(":/icons/report"));
@@ -363,7 +369,7 @@ Report::Report(QString name)
                            << "- no output_template specified for TEXT/HTML format output";
                 continue;
             }
-            output.output_template = readFile(reportDir + o["template"].toString());
+            output.output_template = readTextFile(reportDir + o["template"].toString());
             if (output.output_template.isNull()) {
                 qWarning() << "invalid output" << key
                            << "for report" << name
@@ -372,7 +378,7 @@ Report::Report(QString name)
             }
 
             if (o.contains("view_template")) {
-                output.view_output_template = readFile(reportDir + o["view_template"].toString());
+                output.view_output_template = readTextFile(reportDir + o["view_template"].toString());
             }
         } else if (output.format == OF_TABLE) {
             if (!o.contains("query") && !o.contains("dataset")) {
@@ -428,7 +434,7 @@ Report::Report(QString name)
         summary.name = "debug_summary";
         summary.title = "Debug Summary";
         summary.format = OF_HTML;
-        summary.output_template = readFile("debug_summary.html");
+        summary.output_template = readTextFile("debug_summary.html");
         this->outputs.append(summary);
 
         foreach (query_t q, this->queries) {
