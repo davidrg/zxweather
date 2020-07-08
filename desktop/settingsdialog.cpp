@@ -26,6 +26,12 @@
 #include "datasource/webcachedb.h"
 #include "datasource/webtasks/rangerequestwebtask.h"
 
+#ifdef SINGLE_INSTANCE
+#include "applock.h"
+#include "constants.h"
+#include <QMessageBox>
+#endif
+
 #include <QSqlDatabase>
 #include <QDebug>
 #include <QDir>
@@ -128,6 +134,35 @@ void SettingsDialog::changeEvent(QEvent *e)
 }
 
 void SettingsDialog::dialogAccepted() {
+#ifdef SINGLE_INSTANCE
+    // Check there isn't already another instance connected to the specified station
+    // We'll do this by trying to take out a lock on the station code and seeing if
+    // it succeeds.
+
+    QString stationCode = ui->stationNameLineEdit->text().toLower();
+
+    if (stationCode != Settings::getInstance().stationCode().toLower()) {
+        qDebug() << "Checking for other instances connected to station code" << stationCode;
+        AppLock *lock = new AppLock();
+        lock->lock(Constants::SINGLE_INSTANCE_LOCK_PREFIX + stationCode);
+        if (lock->isRunning()) {
+            // There is already another instance of zxweather running for
+            // that station code! Can't allow the user to proceed without
+            // risking corruption of the http cache or current conditions
+            // buffer.
+            QMessageBox::warning(
+                        this, tr("Station code already in use"),
+                        tr("Another instance of zxweather is already running on this "
+                           "computer connected to station '%0'. Only one instance of "
+                           "zxweather can run at a time for any given station. Please "
+                           "choose a different station to connect to.").arg(stationCode));
+            return;
+        } else {
+            qDebug() << "Station code is free!";
+        }
+    }
+#endif
+
     writeSettings();
     accept();
 }

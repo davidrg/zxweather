@@ -38,6 +38,13 @@ namespace Constants {
      */
     const QString ZXWEATHER_VERSION = APP_VERSION_STR;
 
+#ifdef SINGLE_INSTANCE
+    /** Prefix for the single instance lock name
+     *
+     */
+    const QString SINGLE_INSTANCE_LOCK_PREFIX = "zxw-desktop-";
+#endif
+
     // Size for image thumbnails.
     const int THUMBNAIL_WIDTH = 304;
     const int THUMBNAIL_HEIGHT = 171;

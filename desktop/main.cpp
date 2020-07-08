@@ -197,7 +197,7 @@ int main(int argc, char *argv[])
 
 #ifdef SINGLE_INSTANCE
     QString station_code = Settings::getInstance().stationCode();
-    QString app_id = "zxw-desktop-" + station_code.toLower();
+    QString app_id = Constants::SINGLE_INSTANCE_LOCK_PREFIX + station_code.toLower();
 
     AppLock lock;
     lock.lock(app_id);
