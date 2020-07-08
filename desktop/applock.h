@@ -21,6 +21,7 @@ class AppLock : public QObject
     Q_OBJECT
 public:
     explicit AppLock(QObject *parent = NULL);
+    ~AppLock();
 
     void lock(const QString &lockId);
 

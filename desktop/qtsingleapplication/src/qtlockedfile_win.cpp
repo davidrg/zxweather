@@ -174,6 +174,8 @@ bool QtLockedFile::lock(LockMode mode, bool block)
     return true;
 }
 
+// Note that this will only really work properly from the thread that locked
+// the file in the first place as thats the thread that owns the mutex.
 bool QtLockedFile::unlock()
 {
     if (!isOpen()) {
@@ -206,6 +208,11 @@ QtLockedFile::~QtLockedFile()
 {
     if (isOpen())
         unlock();
-    if (wmutex)
+    if (wmutex) {
+        // Closing the handle does not release the mutex! We must make sure
+        // to actually release it.
+        ReleaseMutex(wmutex);
         CloseHandle(wmutex);
+    }
+    remove();
 }

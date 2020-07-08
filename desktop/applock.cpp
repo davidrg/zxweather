@@ -18,6 +18,11 @@ void AppLock::lock(const QString &lockId) {
             SIGNAL(messageReceived(const QString&)));
 }
 
+AppLock::~AppLock() {
+    if (peer != NULL) {
+        delete peer;
+    }
+}
 
 bool AppLock::isRunning() {
     if (peer == NULL) {
