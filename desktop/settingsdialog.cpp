@@ -38,6 +38,7 @@
 #include <QFileInfo>
 #include <QDesktopServices>
 #include <QFontDialog>
+#include <QScopedPointer>
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
 #include <QtConcurrent>
@@ -143,7 +144,7 @@ void SettingsDialog::dialogAccepted() {
 
     if (stationCode != Settings::getInstance().stationCode().toLower()) {
         qDebug() << "Checking for other instances connected to station code" << stationCode;
-        AppLock *lock = new AppLock();
+        QScopedPointer<AppLock> lock(new AppLock());
         lock->lock(Constants::SINGLE_INSTANCE_LOCK_PREFIX + stationCode);
         if (lock->isRunning()) {
             // There is already another instance of zxweather running for
