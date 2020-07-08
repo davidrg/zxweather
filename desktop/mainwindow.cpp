@@ -52,8 +52,6 @@
 #include "datasource/dialogprogresslistener.h"
 #include "datasource/livebuffer.h"
 
-#include "config_wizard/configwizard.h"
-
 #include "imagewidget.h"
 
 #include "urlhandler.h"
@@ -63,7 +61,7 @@
 #include "constants.h"
 #endif
 
-MainWindow::MainWindow(bool showConfigWizard, QWidget *parent) :
+MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
@@ -166,22 +164,6 @@ MainWindow::MainWindow(bool showConfigWizard, QWidget *parent) :
             ui->latestImages, SLOT(imageReady(ImageInfo,QImage,QString)));
 
     Settings& settings = Settings::getInstance();
-
-    // Show the configuration wizard on the first run.
-    if (!settings.singleShotFirstRun() || showConfigWizard) {
-        ConfigWizard wiz;
-        if (wiz.exec() != QDialog::Accepted) {
-            // Config wizard was canceled. Show the settings dialog instead.
-            bool result = showSettings();
-            if (!result) {
-                // settings dialog was canceled. Not much we can do without config.
-                // exit instead.
-                QTimer::singleShot(1, this, SLOT(fail()));
-                return;
-            }
-        }
-        settings.setSingleShotFirstRun();
-    }
 
     qDebug() << "Read settings and connect...";
     readSettings();

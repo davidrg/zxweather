@@ -27,10 +27,12 @@
 #include <QCommandLineParser>
 #include <QCommandLineOption>
 #include <QVariantList>
+#include <QScopedPointer>
 #include "mainwindow.h"
 #include "settings.h"
 #include "constants.h"
 #include "json/json.h"
+#include "config_wizard/configwizard.h"
 
 #ifdef SINGLE_INSTANCE
 #include "applock.h"
@@ -149,18 +151,39 @@ int main(int argc, char *argv[])
         }
     }
 
+    Settings &settings = Settings::getInstance();
+
     // Change config file?
     if (parser.isSet(configFileOption)) {
-        Settings::getInstance().setConfigFile(parser.value(configFileOption));
+        settings.setConfigFile(parser.value(configFileOption));
     }
 
-    // Override station code?
-    if (parser.isSet(stationCodeOption)) {
-        Settings::getInstance().overrideStationCode(parser.value(stationCodeOption));
+    // We show the config wizard if either:
+    //  A) The single-shot event in the config file has not been run
+    //  B) The user has asked for it on the command-line
+    bool showConfigWizard = parser.isSet(showConfigWizardOption) || !settings.singleShotFirstRun();
+
+    if (showConfigWizard) {
+        if (parser.isSet(stationCodeOption)) {
+            qWarning() << "Station code parameter will be ignored as the config wizard is being run!";
+        }
+
+        QScopedPointer<ConfigWizard> wiz(new ConfigWizard());
+        if (wiz->exec() != QDialog::Accepted) {
+            // Config wizard was canceled. The app hasn't been configured
+            // so we can't continue startup.
+            qWarning() << "Config wizard canceled. Startup not possible. Exiting.";
+            return 1;
+        }
+
+        // Configuration successful! Make a note of that so we don't run it again
+        // on next startup.
+        settings.setSingleShotFirstRun();
+
+        // Now we can continue with normal application startup.
+    } else if (parser.isSet(stationCodeOption)) {
+        settings.overrideStationCode(parser.value(stationCodeOption));
     }
-
-    bool showConfigWizard = parser.isSet(showConfigWizardOption);
-
 
     // Gather together all settings that are handled in the MainWindow. These settings can be
     // redirected to a running instance if any.
@@ -209,7 +232,7 @@ int main(int argc, char *argv[])
     }
 #endif
 
-    MainWindow w(showConfigWizard);
+    MainWindow w;
 
 #ifdef SINGLE_INSTANCE
     lock.setWindow(&w);
