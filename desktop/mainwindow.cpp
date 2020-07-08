@@ -59,6 +59,10 @@
 #include "urlhandler.h"
 #include "json/json.h"
 
+#ifdef SINGLE_INSTANCE
+#include "constants.h"
+#endif
+
 MainWindow::MainWindow(bool showConfigWizard, QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
@@ -434,6 +438,10 @@ void MainWindow::changeEvent(QEvent *e)
 
 bool MainWindow::showSettings() {
     SettingsDialog sd(solarDataAvailable);
+
+    connect(&sd, SIGNAL(stationCodeChanging(QString)),
+            this, SLOT(stationCodeChanging(QString)));
+
     int result = sd.exec();
 
     if (result == QDialog::Accepted) {
@@ -874,3 +882,11 @@ void MainWindow::liveDataSourceConnectFailed(QString errorMessage) {
 void MainWindow::liveConnected() {
     enableDataSourceFunctionality(false, true);
 }
+
+#ifdef SINGLE_INSTANCE
+void MainWindow::stationCodeChanging(QString newCode) {
+    qDebug() << "Station code is changing! Relocking single instance.";
+    QString newAppId = Constants::SINGLE_INSTANCE_LOCK_PREFIX + newCode.toLower();
+    emit relockSingleInstance(newAppId);
+}
+#endif

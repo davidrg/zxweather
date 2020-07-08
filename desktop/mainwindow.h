@@ -71,6 +71,12 @@ public:
     // back on once you've turned it off besides deleting the window state from
     // your config file.
     QMenu* createPopupMenu() { return NULL; }
+
+#ifdef SINGLE_INSTANCE
+signals:
+    void relockSingleInstance(const QString &newAppId);
+#endif
+
 public slots:
     /**
      * @brief showSettings Shows the settings dialog.
@@ -134,6 +140,10 @@ public slots:
     void setSolarDataAvailable(bool available);   
 
     void messageReceived(const QString &parameters);
+
+#ifdef SINGLE_INSTANCE
+    void stationCodeChanging(QString newStationCode);
+#endif
 
 private slots:
     /** Mostly used to check for late live data.

@@ -24,6 +24,22 @@ AppLock::~AppLock() {
     }
 }
 
+
+void AppLock::relock(const QString &newLockId) {
+    if (peer != NULL) {
+        delete peer;
+        peer = NULL;
+    }
+
+    qDebug() << "relocking with new app Id" << newLockId;
+
+    lock(newLockId);
+
+    if (isRunning()) {
+        qWarning() << "Relock failed: another instance is already running with app id" << newLockId;
+    }
+}
+
 bool AppLock::isRunning() {
     if (peer == NULL) {
         // The lock hasn't been taken yet so safest to just assume an

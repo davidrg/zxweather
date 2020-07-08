@@ -159,6 +159,7 @@ void SettingsDialog::dialogAccepted() {
             return;
         } else {
             qDebug() << "Station code is free!";
+            emit stationCodeChanging(stationCode);
         }
     }
 #endif

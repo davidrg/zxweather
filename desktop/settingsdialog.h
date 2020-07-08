@@ -50,6 +50,9 @@ public:
      */
     ~SettingsDialog();
     
+signals:
+    void stationCodeChanging(QString newStationCode);
+
 protected:
     /**
      * @brief changeEvent retranslates the user interface if the language has

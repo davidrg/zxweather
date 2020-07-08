@@ -32,6 +32,8 @@ public:
 public slots:
     bool sendMessage(const QString &message, int timeout = 5000);
 
+    void relock(const QString &newLockId);
+
 signals:
     void messageReceived(const QString &message);
 

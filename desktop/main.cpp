@@ -215,6 +215,8 @@ int main(int argc, char *argv[])
     lock.setWindow(&w);
     QObject::connect(&lock, SIGNAL(messageReceived(const QString &)),
                      &w, SLOT(messageReceived(const QString&)));
+    QObject::connect(&w, SIGNAL(relockSingleInstance(const QString &)),
+                     &lock, SLOT(relock(const QString &)));
 #endif
 
     w.adjustSize();
