@@ -86,10 +86,10 @@ UnitConversions::UnitValue::operator QString() const {
     case U_FAHRENHEIT:
     case U_VOLTAGE:
     case U_HUMIDITY:
+    case U_DEGREES:
         return val + suffix;
 
     case U_UV_INDEX:
-    case U_DEGREES:
     case U_LEAF_WETNESS:
         return val;
 
