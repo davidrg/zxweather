@@ -34,6 +34,10 @@ ChartMouseTracker::ChartMouseTracker(PlotWidget *plotWidget) : QObject(plotWidge
 
 void ChartMouseTracker::setEnabled(bool enabled) {
     this->enabled = enabled;
+    if (!enabled) {
+        cleanupPointTracing();
+        this->chart->replot();
+    }
 }
 
 QCPItemText* ChartMouseTracker::makeAxisTag(QCPAxis* axis) {

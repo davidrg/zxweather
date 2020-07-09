@@ -330,6 +330,9 @@
    <property name="toolTip">
     <string>Highlights all points in line with the mouse cursor and shows their positions on the axis</string>
    </property>
+   <property name="shortcut">
+    <string>M</string>
+   </property>
   </action>
  </widget>
  <customwidgets>
