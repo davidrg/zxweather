@@ -258,51 +258,6 @@ void AppendNullSamples(SampleSet &samples, SampleColumns columns, QDateTime star
     }
 }
 
-UnitConversions::unit_t SampleColumnUnits(StandardColumn column) {
-    using namespace UnitConversions;
-
-    switch (column) {
-    case SC_Temperature:
-    case SC_IndoorTemperature:
-    case SC_ApparentTemperature:
-    case SC_WindChill:
-    case SC_DewPoint:
-    case SC_HighTemperature:
-    case SC_LowTemperature:
-        return U_CELSIUS;
-    case SC_Humidity:
-    case SC_IndoorHumidity:
-        return U_HUMIDITY;
-    case SC_Pressure:
-        return U_HECTOPASCALS;
-    case SC_Rainfall:
-    case SC_Evapotranspiration:
-        return U_MILLIMETERS;
-    case SC_AverageWindSpeed:
-    case SC_GustWindSpeed:
-        return U_METERS_PER_SECOND;
-    case SC_WindDirection:
-    case SC_GustWindDirection:
-        return U_DEGREES;
-    case SC_SolarRadiation:
-    case SC_HighSolarRadiation:
-        return U_WATTS_PER_SQUARE_METER;
-    case SC_UV_Index:
-    case SC_HighUVIndex:
-        return U_UV_INDEX;
-    case SC_HighRainRate:
-        return U_MILLIMETERS_PER_HOUR;
-
-    case SC_NoColumns:
-    case SC_Timestamp:
-    case SC_Reception:
-    case SC_ForecastRuleId:
-        return U_UNKNOWN;
-    }
-
-    return U_UNKNOWN;
-}
-
 QVector<double> SampleColumnInUnits(SampleSet samples, StandardColumn column, UnitConversions::unit_t units) {
     QVector<double> result;
 
@@ -367,38 +322,6 @@ QVector<double> SampleColumnInUnits(SampleSet samples, StandardColumn column, Un
     }
 
     return result;
-}
-
-UnitConversions::unit_t SampleColumnUnits(ExtraColumn column) {
-    using namespace UnitConversions;
-
-    switch (column) {
-    case EC_LeafTemperature1:
-    case EC_LeafTemperature2:
-    case EC_SoilTemperature1:
-    case EC_SoilTemperature2:
-    case EC_SoilTemperature3:
-    case EC_SoilTemperature4:
-    case EC_ExtraTemperature1:
-    case EC_ExtraTemperature2:
-    case EC_ExtraTemperature3:
-        return U_CELSIUS;
-    case EC_ExtraHumidity1:
-    case EC_ExtraHumidity2:
-        return U_HUMIDITY;
-    case EC_LeafWetness1:
-    case EC_LeafWetness2:
-        return U_LEAF_WETNESS;
-    case EC_SoilMoisture1:
-    case EC_SoilMoisture2:
-    case EC_SoilMoisture3:
-    case EC_SoilMoisture4:
-        return U_CENTIBAR;
-    default:
-        return U_UNKNOWN;
-    }
-
-    return U_UNKNOWN;
 }
 
 QVector<double> SampleColumnInUnits(SampleSet samples, ExtraColumn column, UnitConversions::unit_t units) {

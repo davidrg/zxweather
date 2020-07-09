@@ -82,18 +82,30 @@ namespace UnitConversions {
     } value_t;
 
     int metersPerSecondtoBFT(double ms);
-    double metersPerSecondToKilometersPerHour(double ms);
-    double metersPerSecondToMilesPerHour(double ms);
+    inline double metersPerSecondToKilometersPerHour(double ms) {
+        return ms * 3.6;
+    }
+    inline double metersPerSecondToMilesPerHour(double ms) {
+        return ms * 2.23694;
+    }
 
     UnitValue metersPerSecondToKilometersPerHour(const UnitValue &v);
     UnitValue toImperial(const UnitValue &v);
 
-    double celsiusToFahrenheit(double c);
+    inline double celsiusToFahrenheit(double c) {
+        return 1.8 * c + 32;
+    }
 
-    double hectopascalsToInchesOfMercury(double hpa);
+    inline double hectopascalsToInchesOfMercury(double hpa) {
+        return hpa * 0.02953;
+    }
 
-    double millimetersToCentimeters(double mm);
-    double millimetersToInches(double mm);
+    inline double millimetersToCentimeters(double mm) {
+        return mm * 0.1;
+    }
+    inline double millimetersToInches(double mm) {
+        return mm * 1.0/25.4;
+    }
 
     QString davisBarometerTrendLabel(int trend);
 

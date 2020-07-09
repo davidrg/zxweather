@@ -192,30 +192,6 @@ QString UnitConversions::davisBarometerTrendLabel(int trend) {
     }
 }
 
-inline double UnitConversions::metersPerSecondToKilometersPerHour(double ms) {
-    return ms * 3.6;
-}
-
-inline double UnitConversions::metersPerSecondToMilesPerHour(double ms) {
-    return ms * 2.23694;
-}
-
-inline double UnitConversions::celsiusToFahrenheit(double c) {
-    return 1.8 * c + 32;
-}
-
-inline double UnitConversions::hectopascalsToInchesOfMercury(double hpa) {
-    return hpa * 0.02953;
-}
-
-inline double UnitConversions::millimetersToInches(double mm) {
-    return mm * 1.0/25.4;
-}
-
-inline double UnitConversions::millimetersToCentimeters(double mm) {
-    return mm * 0.1;
-}
-
 UnitConversions::UnitValue UnitConversions::metersPerSecondToKilometersPerHour(const UnitValue &v) {
     if (v.unit != UnitConversions::U_METERS_PER_SECOND) {
         return v;
