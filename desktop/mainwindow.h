@@ -168,6 +168,7 @@ private slots:
     void processMessages();
 
     void liveDataSourceConnectFailed(QString errorMessage);
+    void samplesDataSourceConnectFailed(QString errorMessage);
     void liveConnected();
 
     void dataSourceChanged(Settings::DataSourceConfiguration newConfig);

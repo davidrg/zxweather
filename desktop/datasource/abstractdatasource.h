@@ -214,6 +214,13 @@ signals:
      *
      */
     void cachingFinished();
+
+    /** Emitted when connecting the samples data source fails.
+     *
+     * @param errMsg Error message
+     */
+    void samplesConnectFailed(QString errMsg);
+
 protected:
     QPointer<AbstractProgressListener> progressListener;
 };

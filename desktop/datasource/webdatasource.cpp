@@ -102,7 +102,14 @@ WebDataSource::WebDataSource(AbstractProgressListener *progressListener, QObject
     #endif
 
     if (!WebCacheDB::getInstance().stationKnown(stationURL())) {
-        queueTask(new FetchStationInfoWebTask(baseURL, stationCode, this));
+        FetchStationInfoWebTask* x = new FetchStationInfoWebTask(baseURL, stationCode, this);
+
+        // failed active image sources is used as a proxy for failed
+        // data source connect. Problem is that task won't run if this task
+        // fails so we'll treat its failure the same.
+        connect(x, SIGNAL(failed(QString)),
+                this, SLOT(activeImageSourcesFailed(QString)));
+        queueTask(x);
     }
 }
 
@@ -728,6 +735,18 @@ void WebDataSource::hasActiveImageSources() {
     connect(task, SIGNAL(archivedImagesAvailable()),
             this, SLOT(foundArchivedImages()));
 
+    // We use the hasActiveImageSources() to determine if the
+    // web data source can 'successfully connect'. We're really only
+    // doing it here this is only ever called by main window when
+    // its setting up the data source.
+    //
+    // In the future ideally we'd have a separate dedicated
+    // connectDataSource() function that would grab sysconfig and
+    // everything else as a single initialisation operation and emit
+    // success or failure.
+    connect(task, SIGNAL(failed(QString)),
+            this, SLOT(activeImageSourcesFailed(QString)));
+
     queueTask(task);
 }
 
@@ -737,6 +756,11 @@ void WebDataSource::foundActiveImageSource() {
 
 void WebDataSource::foundArchivedImages() {
     emit archivedImagesAvailable();
+}
+
+void WebDataSource::activeImageSourcesFailed(QString error) {
+    qDebug() << "Active image sources failed!";
+    emit samplesConnectFailed(error);
 }
 
 void WebDataSource::fetchLatestImages() {

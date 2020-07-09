@@ -162,6 +162,8 @@ MainWindow::MainWindow(QWidget *parent) :
             this, SLOT(archivedImagesAvailable()));
     connect(dataSource, SIGNAL(imageReady(ImageInfo,QImage,QString)),
             ui->latestImages, SLOT(imageReady(ImageInfo,QImage,QString)));
+    connect(dataSource, SIGNAL(samplesConnectFailed(QString)),
+            this, SLOT(samplesDataSourceConnectFailed(QString)));
 
     Settings& settings = Settings::getInstance();
 
@@ -666,6 +668,7 @@ void MainWindow::refreshRainWidget() {
 }
 
 void MainWindow::reconfigureDataSource() {   
+    qDebug() << "Reconfigure data source...";
 
     ui->actionImages->setVisible(false);
     Settings& settings = Settings::getInstance();
@@ -705,6 +708,8 @@ void MainWindow::reconfigureDataSource() {
         samplesType = DataSourceProxy::DST_WEB;
         break;
     }
+
+    qDebug() << "Connect data sources";
     dataSource->setDataSourceTypes(liveType, samplesType);
     dataSource->connectDataSources();
 
@@ -716,6 +721,7 @@ void MainWindow::reconfigureDataSource() {
         setFixedSize(size());
     }
 
+    qDebug() << "Refresh Main UI stuff";
     dataSource->enableLiveData();
     dataSource->fetchRainTotals();
     dataSource->hasActiveImageSources();
@@ -726,6 +732,7 @@ void MainWindow::reconfigureDataSource() {
         liveMonitor->disable();
     }
     ready = true;
+    qDebug() << "Ready!";
 }
 
 void MainWindow::setStationName(QString name) {
@@ -863,6 +870,16 @@ void MainWindow::liveDataSourceConnectFailed(QString errorMessage) {
                            "Current conditions and live charts will not be "
                            "available. The error was: %0")).arg(errorMessage));
     disableDataSourceFunctionality(false, true);
+}
+
+void MainWindow::samplesDataSourceConnectFailed(QString errorMessage) {
+    disableDataSourceFunctionality(true, false);
+    QMessageBox::warning(
+                this, tr("Sample data connect failed"),
+                QString(tr("An error occurred connecting to the sample data source. "
+                           "Features relying archive data (charts, export, "
+                           "view data, reports) will be unavailable. The error "
+                           "was: %0")).arg(errorMessage));
 }
 
 void MainWindow::liveConnected() {

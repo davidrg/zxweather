@@ -80,6 +80,7 @@ private slots:
     void stationNameSlot(QString name);
     void liveConnectFailedSlot(QString message);
     void liveConnectedSlot();
+    void samplesConnectFailedSlot(QString message);
 
     // Forward AbstractDataSource signals
     void samplesReadySlot(SampleSet samples);

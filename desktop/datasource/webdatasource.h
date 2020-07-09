@@ -81,6 +81,7 @@ private slots:
     // Called by ActiveImageSourcesWebTask
     void foundActiveImageSource();
     void foundArchivedImages();
+    void activeImageSourcesFailed(QString error);
 
     void fetchImageDateListComplete(QList<ImageDate> imageDates,
                                     QList<ImageSource> imageSources);
