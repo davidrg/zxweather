@@ -36,6 +36,7 @@
 #include "livemonitor.h"
 #include "datasource/abstractdatasource.h"
 #include "abstracturlhandler.h"
+#include "settings.h"
 
 namespace Ui {
 class MainWindow;
@@ -168,6 +169,8 @@ private slots:
 
     void liveDataSourceConnectFailed(QString errorMessage);
     void liveConnected();
+
+    void dataSourceChanged(Settings::DataSourceConfiguration newConfig);
 
 protected:
     /**

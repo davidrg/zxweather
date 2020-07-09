@@ -285,7 +285,7 @@ public:
 
 signals:
     void unitsChanged(bool imperial, bool kmh);
-    void dataSourceChanged(DataSourceConfiguration dsConfig);
+    void dataSourceChanged(Settings::DataSourceConfiguration dsConfig);
 
 private:
     Settings();

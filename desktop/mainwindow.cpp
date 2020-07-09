@@ -165,6 +165,9 @@ MainWindow::MainWindow(QWidget *parent) :
 
     Settings& settings = Settings::getInstance();
 
+    connect(&settings, SIGNAL(dataSourceChanged(Settings::DataSourceConfiguration)),
+            this, SLOT(dataSourceChanged(Settings::DataSourceConfiguration)));
+
     qDebug() << "Read settings and connect...";
     readSettings();
 
@@ -432,24 +435,25 @@ bool MainWindow::showSettings() {
 
         liveMonitor->reconfigure();
 
-        Settings& settings = Settings::getInstance();
-
-        if (settings.liveDataSourceType() != Settings::DS_TYPE_DATABASE
-                && settings.sampleDataSourceType() != Settings::DS_TYPE_DATABASE) {
-            // For the database live data source reconnectDatabase() will handle
-            // calling reconfigureDataSource() once the database is ready.
-            databaseChecker.stop();
-            reconfigureDataSource();
-        }
-
-        if (settings.liveDataSourceType() == Settings::DS_TYPE_DATABASE
-                || settings.sampleDataSourceType() == Settings::DS_TYPE_DATABASE) {
-            reconnectDatabase();
-        }
         return true;
     }
 
     return false;
+}
+
+void MainWindow::dataSourceChanged(Settings::DataSourceConfiguration newConfig) {
+    if (newConfig.liveDataSource != Settings::DS_TYPE_DATABASE
+            && newConfig.sampleDataSource != Settings::DS_TYPE_DATABASE) {
+        // For the database live data source reconnectDatabase() will handle
+        // calling reconfigureDataSource() once the database is ready.
+        databaseChecker.stop();
+        reconfigureDataSource();
+    }
+
+    if (newConfig.liveDataSource == Settings::DS_TYPE_DATABASE
+            || newConfig.sampleDataSource == Settings::DS_TYPE_DATABASE) {
+        reconnectDatabase();
+    }
 }
 
 void MainWindow::showWarningPopup(QString message, QString title, QString tooltip, bool setWarningIcon) {

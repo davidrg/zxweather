@@ -221,9 +221,17 @@ bool operator==(const Settings::DataSourceConfiguration &lhs, const Settings::Da
     // if the weather server config differs if its not being used as
     // the live data source.
 
-    bool common = lhs.stationCode == rhs.stationCode &&
+    bool common = lhs.stationCode.toLower() == rhs.stationCode.toLower() &&
             lhs.liveDataSource == rhs.liveDataSource &&
-            rhs.sampleDataSource == rhs.sampleDataSource;
+            lhs.sampleDataSource == rhs.sampleDataSource;
+
+    if (!common) {
+        // type or station code has changed. Not equal.
+        return common;
+    }
+
+    // Else station code and data source type are unchanged. Check if
+    // the data source connection details (hostname, etc) have changed.
 
     bool database = lhs.database.name == rhs.database.name &&
             lhs.database.hostname == rhs.database.hostname &&
