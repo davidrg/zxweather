@@ -188,6 +188,7 @@ void ChartMouseTracker::mouseMove(QMouseEvent* event) {
             }
 
             pointTracer->setGraphKey(graph->keyAxis()->pixelToCoord(event->pos().x()));
+            pointTracer->updatePosition();
 
             QCPAxis *xAxis = graph->keyAxis();
             QCPAxis *yAxis = graph->valueAxis();
