@@ -29,7 +29,7 @@ AddGraphDialog::~AddGraphDialog()
 
 SampleColumns AddGraphDialog::selectedColumns()
 {
-    ui->columnPicker->getNewColumns();
+    return ui->columnPicker->getNewColumns();
 }
 
 SampleColumns AddGraphDialog::supportedColumns(hardware_type_t hw_type, bool isWireless,
