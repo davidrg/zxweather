@@ -18,6 +18,9 @@ public:
     explicit TransparentItemTracer(QCustomPlot *parentPlot) : QCPItemTracer(parentPlot) {}
 
     double selectTest ( const QPointF &  pos, bool  onlySelectable, QVariant *  details = 0  ) const {
+        Q_UNUSED(pos)
+        Q_UNUSED(onlySelectable)
+        Q_UNUSED(details)
         return -1.0;
     }
 };
@@ -210,5 +213,7 @@ void ChartMouseTracker::mouseMove(QMouseEvent* event) {
 }
 
 void ChartMouseTracker::mouseLeave(QEvent *event) {
+    Q_UNUSED(event)
+
     cleanupPointTracing();
 }

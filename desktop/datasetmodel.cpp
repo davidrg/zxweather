@@ -200,6 +200,10 @@ QVariant DataSetModel::data(const QModelIndex &index, int role) const
 
         case U_UNKNOWN:
             break; // Don't know what it is - do nothing.
+
+        case U_LEAF_WETNESS:
+        case U_CENTIBAR:
+            break; // These never appear for a standard column
         }
 
         return value;
@@ -278,7 +282,6 @@ QVariant DataSetModel::data(const QModelIndex &index, int role) const
 
         unit_t currentUnits = SampleColumnUnits(column);
         bool imperial = Settings::getInstance().imperial();
-        bool kmh = imperial ? false : Settings::getInstance().kmh();
 
         switch(currentUnits) {
         case U_CELSIUS:
@@ -296,6 +299,26 @@ QVariant DataSetModel::data(const QModelIndex &index, int role) const
 
         case U_UNKNOWN:
             break; // Don't know what it is - do nothing.
+
+        case U_METERS_PER_SECOND:
+        case U_KILOMETERS_PER_HOUR:
+        case U_MILES_PER_HOUR:
+        case U_BFT:
+        case U_HECTOPASCALS:
+        case U_INCHES_OF_MERCURY:
+        case U_DAVIS_BAROMETER_TREND:
+        case U_MILLIMETERS:
+        case U_CENTIMETERS:
+        case U_INCHES:
+        case U_MILLIMETERS_PER_HOUR:
+        case U_CENTIMETERS_PER_HOUR:
+        case U_INCHES_PER_HOUR:
+        case U_WATTS_PER_SQUARE_METER:
+        case U_UV_INDEX:
+        case U_DEGREES:
+        case U_COMPASS_POINT:
+        case U_VOLTAGE:
+            break; // Not available as an extra column
         }
 
         return value;

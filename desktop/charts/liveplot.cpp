@@ -716,9 +716,8 @@ void LivePlot::showAxisContextMenu(QPoint point, QCPAxis *axis) {
     menu->addAction("&Rename",
                     this, SLOT(renameSelectedAxis()));
 
-    QAction *act;
-    act = menu->addAction(tr("&Change Label Font..."), this, SLOT(changeAxisLabelFont()));
-    act = menu->addAction(tr("&Change Tick Label Font..."), this, SLOT(changeAxisTickLabelFont()));
+    menu->addAction(tr("&Change Label Font..."), this, SLOT(changeAxisLabelFont()));
+    menu->addAction(tr("&Change Tick Label Font..."), this, SLOT(changeAxisTickLabelFont()));
 
     menu->popup(mapToGlobal(point));
 }
