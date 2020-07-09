@@ -39,6 +39,7 @@ WeatherValueWidget::WeatherValueWidget(QWidget *parent) : QWidget(parent)
 void WeatherValueWidget::unitsChanged(bool imperial, bool kmh) {
     this->imperial = imperial;
     this->kmh = kmh;
+    updateDisplay();
 }
 
 void WeatherValueWidget::setValue(
@@ -167,13 +168,6 @@ void WeatherValueWidget::showContextMenu(QPoint point) {
 
     menu->addAction(tr("Copy"), this, SLOT(copy()));
 
-    if (value1.unit == UnitConversions::U_METERS_PER_SECOND && !imperial) {
-        menu->addSeparator();
-        action = menu->addAction(tr("km/h"), this, SLOT(toggle_kmh()));
-        action->setCheckable(true);
-        action->setChecked(kmh);
-    }
-
     if (column1 != SC_NoColumns) {
         menu->addSeparator();
 
@@ -262,16 +256,6 @@ void WeatherValueWidget::copy() {
     clipboard->setText(this->label->text());
 }
 
-void WeatherValueWidget::toggle_kmh() {
-    kmh = !kmh;
-    if (!name.isNull()) {
-        Settings::getInstance().setWeatherValueWidgetSetting(name, "kmh", kmh);
-    }
-
-    updateDisplay();
-}
-
 void WeatherValueWidget::setName(QString name) {
     this->name = name;
-    kmh = Settings::getInstance().weatherValueWidgetSetting(name, "kmh", false).toBool();
 }

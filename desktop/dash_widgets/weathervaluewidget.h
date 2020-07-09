@@ -33,7 +33,6 @@ private slots:
     void showContextMenu(QPoint point);
     void plot();
     void copy();
-    void toggle_kmh();
     void unitsChanged(bool imperial, bool kmh);
 
 private:
