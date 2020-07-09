@@ -50,6 +50,8 @@ public:
      */
     ~SettingsDialog();
     
+    bool dataSourceWasChanged() { return dsChanged; }
+
 signals:
     void stationCodeChanging(QString newStationCode);
 
@@ -120,6 +122,7 @@ private:
     bool saveChartAxisLabelFont;
     bool saveChartTickLabelFont;
 
+    bool dsChanged;
 
     Ui::SettingsDialog *ui;
     QFutureWatcher<qint64> imagesDirWatcher;

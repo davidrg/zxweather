@@ -70,7 +70,10 @@ void ConfigWizard::accept() {
         DbUtil::StationInfo station = field(FIRST_STATION_FIELD).value<DbUtil::StationInfo>();
         stationCode = station.code;
     }
-    settings.setStationCode(stationCode);
+
+    Settings::DataSourceConfiguration dsConfig;
+
+    dsConfig.stationCode = stationCode;
 
     if (isLocal) {
         // save database settings.
@@ -80,13 +83,13 @@ void ConfigWizard::accept() {
         QString dbPassword = field(DATABASE_PASSWORD_FIELD).toString();
         QString dbName = field(DATABASE_FIELD).toString();
 
-        settings.setLiveDataSourceType(Settings::DS_TYPE_DATABASE);
-        settings.setSampleDataSourceType(Settings::DS_TYPE_DATABASE);
-        settings.setDatabaseName(dbName);
-        settings.setDatabaseHostname(dbHostname);
-        settings.setDatabasePort(dbPort);
-        settings.setDatabaseUsername(dbUser);
-        settings.setDatabasePassword(dbPassword);
+        dsConfig.liveDataSource = Settings::DS_TYPE_DATABASE;
+        dsConfig.sampleDataSource = Settings::DS_TYPE_DATABASE;
+        dsConfig.database.name = dbName;
+        dsConfig.database.hostname = dbHostname;
+        dsConfig.database.port = dbPort;
+        dsConfig.database.username = dbUser;
+        dsConfig.database.password = dbPassword;
     } else {
         // save web interface settings.
 
@@ -95,18 +98,20 @@ void ConfigWizard::accept() {
         QString serverHostname = field(SERVER_HOSTNAME).toString();
         int serverPort = field(SERVER_PORT).toInt();
 
-        settings.setSampleDataSourceType(Settings::DS_TYPE_WEB_INTERFACE);
-        settings.setWebInterfaceUrl(webUrl);
+        dsConfig.sampleDataSource = Settings::DS_TYPE_WEB_INTERFACE;
+        dsConfig.webServer.url = webUrl;
 
         if (!serverAvailable) {
-            settings.setLiveDataSourceType(Settings::DS_TYPE_WEB_INTERFACE);
+            dsConfig.liveDataSource = Settings::DS_TYPE_WEB_INTERFACE;
         } else {
             // Configure the weather server
-            settings.setLiveDataSourceType(Settings::DS_TYPE_SERVER);
-            settings.setServerHostname(serverHostname);
-            settings.setServerPort(serverPort);
+            dsConfig.liveDataSource = Settings::DS_TYPE_SERVER;
+            dsConfig.weatherServer.hostname = serverHostname;
+            dsConfig.weatherServer.port = serverPort;
         }
     }
+
+    settings.setDataSource(dsConfig);
 
     QDialog::accept();
 }

@@ -215,6 +215,45 @@ namespace SettingsKey {
     }
 }
 
+bool operator==(const Settings::DataSourceConfiguration &lhs, const Settings::DataSourceConfiguration &rhs) {
+
+    // Equality only considers effective configuration. It doesn't matter
+    // if the weather server config differs if its not being used as
+    // the live data source.
+
+    bool common = lhs.stationCode == rhs.stationCode &&
+            lhs.liveDataSource == rhs.liveDataSource &&
+            rhs.sampleDataSource == rhs.sampleDataSource;
+
+    bool database = lhs.database.name == rhs.database.name &&
+            lhs.database.hostname == rhs.database.hostname &&
+            lhs.database.port == rhs.database.port &&
+            lhs.database.username == rhs.database.username &&
+            lhs.database.password == rhs.database.password;
+
+    bool weatherServer = lhs.weatherServer.hostname == rhs.weatherServer.hostname &&
+            lhs.weatherServer.port == rhs.weatherServer.port;
+
+    bool webInterface = lhs.webServer.url == rhs.webServer.url;
+
+    bool result = common;
+    if (lhs.liveDataSource == Settings::DS_TYPE_SERVER) {
+        result = result && weatherServer;
+    }
+    if (lhs.liveDataSource == Settings::DS_TYPE_DATABASE || lhs.sampleDataSource == Settings::DS_TYPE_DATABASE) {
+        result = result && database;
+    }
+    if (lhs.liveDataSource == Settings::DS_TYPE_WEB_INTERFACE || lhs.sampleDataSource == Settings::DS_TYPE_WEB_INTERFACE) {
+        result = result && webInterface;
+    }
+
+    return result;
+}
+
+bool operator!=(const Settings::DataSourceConfiguration &lhs, const Settings::DataSourceConfiguration &rhs)  {
+    return !(lhs == rhs);
+}
+
 Settings::Settings() {
     settings = NULL;
     QString settingsFile;
@@ -529,6 +568,44 @@ int Settings::serverPort() {
 
 void Settings::setStationCode(QString name) {
     settings->setValue(SettingsKey::DataSource::STATION_NAME, name);
+}
+
+void Settings::setDataSource(DataSourceConfiguration dsConfig) {
+
+    DataSourceConfiguration currentConfig = getDataSource();
+
+    if (currentConfig != dsConfig) {
+        setDatabaseName(dsConfig.database.name);
+        setDatabaseHostname(dsConfig.database.hostname);
+        setDatabasePort(dsConfig.database.port);
+        setDatabaseUsername(dsConfig.database.username);
+        setDatabasePassword(dsConfig.database.password);
+        setWebInterfaceUrl(dsConfig.webServer.url);
+        setStationCode(dsConfig.stationCode);
+        setServerHostname(dsConfig.weatherServer.hostname);
+        setServerPort(dsConfig.weatherServer.port);
+        setLiveDataSourceType(dsConfig.liveDataSource);
+        setSampleDataSourceType(dsConfig.sampleDataSource);
+
+        emit dataSourceChanged(dsConfig);
+    }
+}
+
+Settings::DataSourceConfiguration Settings::getDataSource() {
+    DataSourceConfiguration dsConfig;
+    dsConfig.database.name = databaseName();
+    dsConfig.database.hostname = databaseHostName();
+    dsConfig.database.port = databasePort();
+    dsConfig.database.username = databaseUsername();
+    dsConfig.database.password = databasePassword();
+    dsConfig.webServer.url = webInterfaceUrl();
+    dsConfig.weatherServer.hostname = serverHostname();
+    dsConfig.weatherServer.port = serverPort();
+    dsConfig.stationCode = stationCode();
+    dsConfig.liveDataSource = liveDataSourceType();
+    dsConfig.sampleDataSource = sampleDataSourceType();
+
+    return dsConfig;
 }
 
 void Settings::setChartColours(ChartColours colours) {

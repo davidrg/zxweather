@@ -67,6 +67,8 @@ SettingsDialog::SettingsDialog(bool solarDataAvailable, QWidget *parent) :
     connect(ui->tbTickLabelsFont, SIGNAL(clicked()), this, SLOT(setChartTickLabelFont()));
     connect(ui->pbResetFonts, SIGNAL(clicked()), this, SLOT(resetFontsToDefaults()));
 
+    dsChanged = false;
+
     // Disable the samples database option if the Postgres driver isn't present.
     if (!QSqlDatabase::drivers().contains("QPSQL")) {
         ui->rbSampleDatabase->setEnabled(false);
@@ -194,27 +196,30 @@ void SettingsDialog::writeSettings() {
     settings.setUnits(ui->rbImperial->isChecked(), ui->cbKmh->isChecked());
 
     // Data source tab
-    settings.setDatabaseName(ui->databaseLineEdit->text());
-    settings.setDatabaseHostname(ui->hostnameLineEdit->text());
-    settings.setDatabasePort(ui->portSpinBox->value());
-    settings.setDatabaseUsername(ui->usernameLineEdit->text());
-    settings.setDatabasePassword(ui->passwordLineEdit->text());
-    settings.setWebInterfaceUrl(ui->UrlLineEdit->text());
-    settings.setStationCode(ui->stationNameLineEdit->text());
-    settings.setServerHostname(ui->serverHostnameLineEdit->text());
-    settings.setServerPort(ui->serverPortSpinBox->value());
+    Settings::DataSourceConfiguration dsConfig;
+    dsConfig.database.name = ui->databaseLineEdit->text();
+    dsConfig.database.hostname = ui->hostnameLineEdit->text();
+    dsConfig.database.port = ui->portSpinBox->value();
+    dsConfig.database.username = ui->usernameLineEdit->text();
+    dsConfig.database.password = ui->passwordLineEdit->text();
+    dsConfig.webServer.url = ui->UrlLineEdit->text();
+    dsConfig.stationCode = ui->stationNameLineEdit->text();
+    dsConfig.weatherServer.hostname = ui->serverHostnameLineEdit->text();
+    dsConfig.weatherServer.port = ui->serverPortSpinBox->value();
 
     if (ui->rbLiveDatabase->isChecked())
-        settings.setLiveDataSourceType(Settings::DS_TYPE_DATABASE);
+        dsConfig.liveDataSource = Settings::DS_TYPE_DATABASE;
     else if (ui->rbLiveWeb->isChecked())
-        settings.setLiveDataSourceType(Settings::DS_TYPE_WEB_INTERFACE);
+        dsConfig.liveDataSource = Settings::DS_TYPE_WEB_INTERFACE;
     else if (ui->rbLiveServer->isChecked())
-        settings.setLiveDataSourceType(Settings::DS_TYPE_SERVER);
+        dsConfig.liveDataSource = Settings::DS_TYPE_SERVER;
 
     if (ui->rbSampleDatabase->isChecked())
-        settings.setSampleDataSourceType(Settings::DS_TYPE_DATABASE);
+        dsConfig.sampleDataSource = Settings::DS_TYPE_DATABASE;
     else
-        settings.setSampleDataSourceType(Settings::DS_TYPE_WEB_INTERFACE);
+        dsConfig.sampleDataSource = Settings::DS_TYPE_WEB_INTERFACE;
+
+    settings.setDataSource(dsConfig);
 
     // Chart defaults tab
     if (resetFonts) {

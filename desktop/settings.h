@@ -104,6 +104,30 @@ public:
 
     enum data_source_type_t {DS_TYPE_DATABASE, DS_TYPE_WEB_INTERFACE, DS_TYPE_SERVER};
     
+    typedef struct _ds_configuration {
+        struct _db {
+            QString name;
+            QString hostname;
+            int port;
+            QString username;
+            QString password;
+        } database;
+
+        struct _weatherServer {
+            QString hostname;
+            int port;
+        } weatherServer;
+
+        struct _webServer {
+            QString url;
+        } webServer;
+
+        QString stationCode;
+
+        data_source_type_t liveDataSource;
+        data_source_type_t sampleDataSource;
+    } DataSourceConfiguration;
+
     /* General Settings */
     void setMinimiseToSysTray(bool enabled);
     bool miniseToSysTray();
@@ -112,38 +136,22 @@ public:
     bool closeToSysTray();
 
     /* Data Source */
-    void setLiveDataSourceType(Settings::data_source_type_t type);
+    void setDataSource(DataSourceConfiguration dsConfig);
+    DataSourceConfiguration getDataSource();
     Settings::data_source_type_t liveDataSourceType();
-
-    void setSampleDataSourceType(Settings::data_source_type_t type);
     Settings::data_source_type_t sampleDataSourceType();
-
-    void setWebInterfaceUrl(QString webInterfaceUrl);
     QString webInterfaceUrl();
-
-    void setDatabaseName(QString dbName);
     QString databaseName();
-
-    void setDatabaseHostname(QString hostName);
     QString databaseHostName();
-
-    void setDatabasePort(int port);
     int databasePort();
-
-    void setDatabaseUsername(QString username);
     QString databaseUsername();
-
-    void setDatabasePassword(QString password);
     QString databasePassword();
-
-    void setServerHostname(QString hostname);
     QString serverHostname();
-
-    void setServerPort(int port);
     int serverPort();
-
-    void setStationCode(QString name);
     QString stationCode();
+
+
+
 
     void setChartColours(ChartColours colours);
     ChartColours getChartColours();
@@ -277,6 +285,7 @@ public:
 
 signals:
     void unitsChanged(bool imperial, bool kmh);
+    void dataSourceChanged(DataSourceConfiguration dsConfig);
 
 private:
     Settings();
@@ -284,6 +293,18 @@ private:
 
     Settings(Settings const&); /* Not implemented. Don't use it. */
     void operator=(Settings const&); /* Not implemented. Don't use it. */
+
+    void setLiveDataSourceType(Settings::data_source_type_t type);
+    void setSampleDataSourceType(Settings::data_source_type_t type);
+    void setWebInterfaceUrl(QString webInterfaceUrl);
+    void setDatabaseName(QString dbName);
+    void setDatabaseHostname(QString hostName);
+    void setDatabasePort(int port);
+    void setDatabaseUsername(QString username);
+    void setDatabasePassword(QString password);
+    void setServerHostname(QString hostname);
+    void setServerPort(int port);
+    void setStationCode(QString name);
 
     QSettings *settings;
 
@@ -296,5 +317,8 @@ private:
 
     ChartColours defaultChartColours;
 };
+
+bool operator==(const Settings::DataSourceConfiguration &lhs, const Settings::DataSourceConfiguration &rhs);
+bool operator!=(const Settings::DataSourceConfiguration &lhs, const Settings::DataSourceConfiguration &rhs);
 
 #endif // SETTINGS_H
