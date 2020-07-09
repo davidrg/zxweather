@@ -17,6 +17,11 @@
 
 #include "internetsiteinfopage.h"
 
+#ifdef SINGLE_INSTANCE
+#include "applock.h"
+#include "constants.h"
+#endif
+
 /****************************************************************************
 ***************************** SELECT STATION PAGE ***************************
 *****************************************************************************
@@ -100,7 +105,16 @@ QLayout* SelectStationPage::createStationOption(DbUtil::StationInfo info) {
     rb->setProperty("stationCode", info.code);
     rb->setProperty("stationTitle", info.title);
 
-
+#ifdef SINGLE_INSTANCE
+    // Check nothing else is already using this station. We only allow one
+    // zxweather instance per station.
+    AppLock lock;
+    lock.lock(Constants::SINGLE_INSTANCE_LOCK_PREFIX + info.code.toLower());
+    if (lock.isRunning()) {
+        rb->setEnabled(false);
+        rb->setToolTip(tr("Another instance of zxweather is already connected to this weather station"));
+    }
+#endif
 
     QLabel *details = new QLabel(
                 QString("<a href=\"%1\">%2</a>").arg(
