@@ -19,6 +19,7 @@ typedef struct _data_file_t {
     bool isValid;
     bool expireExisting;
     bool hasSolarData;
+    bool isComplete;
 } data_file_t;
 
 typedef struct _image_set_t {
@@ -265,6 +266,13 @@ public:
      */
     station_info_t getStationInfo(QString url);
 
+    /** Gets the sample interval in minutes for the specified station
+     *
+     * @param url Station URL
+     * @return Sample interval in seconds
+     */
+    int getSampleInterval(QString url);
+
     /** Gets the range of samples available for the specified station
      *
      * @param url Station to get the range for
@@ -396,8 +404,9 @@ private:
      * @param fileId ID of the file record to update
      * @param lastModified The new last modified date of the file.
      * @param size The new size of the file.
+     * @param isComplete If the data file covers its full timespan completely (no gaps)
      */
-    void updateDataFile(int fileId, QDateTime lastModified, int size);
+    void updateDataFile(int fileId, QDateTime lastModified, int size, bool isComplete);
 
     /** Drops all cache data associated with the specified file from the
      * database.

@@ -12,16 +12,27 @@
 
 DataFileWebTask::DataFileWebTask(QString baseUrl, QString stationCode,
                                  request_data_t requestData, QString name,
-                                 QString url, bool forceDownload, WebDataSource *ds)
+                                 QString url, bool forceDownload,
+                                 int sampleInterval, WebDataSource *ds)
     : AbstractWebTask(baseUrl, stationCode, ds) {
     _requestData = requestData;
     _name = name;
     _url = url;
     _downloadingDataset = false; // We check the cache first.
     _forceDownload = forceDownload;
+    _sampleInterval = sampleInterval;
 }
 
 void DataFileWebTask::beginTask() {
+    data_file_t cache_info =
+            WebCacheDB::getInstance().getDataFileCacheInformation(_url);
+
+    if (cache_info.isValid && cache_info.isComplete && !_forceDownload) {
+        qDebug() << "Data file is marked COMPLETE in cache database - no server check required" << _url;
+        emit finished();
+        return;
+    }
+
     if (_forceDownload) {
         getDataset();
     } else {
@@ -167,6 +178,24 @@ data_file_t DataFileWebTask::loadDataFile(QStringList fileData,
     QList<QDateTime> ignoreTimeStamps;
     QList<QStringList> ignoreSampleParts;
 
+    /* How this should work:
+     *   We're downloading data for an entire month. That means the data file
+     *   should start within $archiveInterval minutes of 00:00 on the 1st.
+     *   From there there should be a new sample every $archiveInterval minutes
+     *   until we're within $archiveInterval minutes of the end of the month.
+     */
+
+    QDateTime previousTime = QDateTime();
+    QDateTime endTime = QDateTime();
+
+    // We'll let the largest gap be slightly larger than the sample interval
+    // to account for things like clocks being adjusted, etc.
+    qDebug() << "Station sample interval is" << _sampleInterval;
+    int archiveInterval = _sampleInterval + 0.5*_sampleInterval;
+    qDebug() << "Using" << archiveInterval << "as gap threshold.";
+
+    bool gapDetected = false;
+
     while (!fileData.isEmpty()) {
         QString line = fileData.takeFirst();
         QStringList parts = line.split(QRegExp("\\s+"));
@@ -177,6 +206,49 @@ data_file_t DataFileWebTask::loadDataFile(QStringList fileData,
         QString tsString = parts.takeFirst();
         tsString += " " + parts.takeFirst();
         QDateTime timestamp = QDateTime::fromString(tsString, Qt::ISODate);
+
+        if (!gapDetected) {
+            // -----------/ The Gap Detection Zone /-----------
+            // Here in The Gap Detection Zone our job is to figure out if the data
+            // file contains absolutely every sample it could contain. This means
+            // checking the gap between any two samples is no greater than the
+            // stations sample interval.
+
+            if (!previousTime.isValid()) {
+                // First sample in the file. Initialise previousTime to be the very
+                // start of the month and set the end time to be the very end of
+                // the month
+                previousTime = QDateTime(
+                            QDate(timestamp.date().year(),
+                                  timestamp.date().month(),
+                                  1),
+                            QTime(0,0,0));
+                endTime = previousTime.addMonths(1).addSecs(-1);
+                qDebug() << "Data file max range:" << previousTime << "to" << endTime;
+            }
+
+            qint64 previousSecs = previousTime.toSecsSinceEpoch();
+            qint64 thisSecs = timestamp.toSecsSinceEpoch();
+            if (thisSecs - previousSecs > archiveInterval) {
+                qDebug() << "GAP: This timestamp is" << timestamp << "previous was" << previousTime << ". Gap duration is" << thisSecs - previousSecs << "seconds.";
+                gapDetected = true;
+            }
+
+            if (fileData.isEmpty()) {
+                // Reached the end of the file. Current row is the last row.
+                // Check the final timestamp in the file is within archiveInterval
+                // seconds of the end of the month.
+                qint64 endSecs = endTime.toSecsSinceEpoch();
+                if (endSecs - thisSecs > archiveInterval) {
+                    qDebug() << "GAP (@end): The end is" << endTime << "last row was" << timestamp << ". Gap duration is" << endSecs - thisSecs << "seconds.";
+                    gapDetected = true;
+                }
+            }
+
+            previousTime = timestamp;
+
+            // ------------------------------------------------
+        }
 
         if (!cacheStats.isValid) {
             // No ignore range. Let it through.
@@ -197,6 +269,17 @@ data_file_t DataFileWebTask::loadDataFile(QStringList fileData,
     // ignore. Will we really ignore it?
 
     bool expireCache = false;
+
+    if (gapDetected) {
+        qDebug() << "----> Data file is INCOMPLETE: it contains one or more gaps!";
+    } else {
+        qDebug() << "----> Data file is COMPLETE: no gaps detected!";
+        // *this* data file is 100% complete. There should never be new rows
+        // to appear in it so the only reason we'd ever re-download it is if
+        // for some reason some values changed (data fixed some erroneous rain
+        // tips?). So we'll replace whatever is in the cache database with this.
+        expireCache = true;
+    }
 
     if (ignoreTimeStamps.count() == cacheStats.count) {
         // There is the same number of records between those timestamps in
@@ -309,6 +392,7 @@ data_file_t DataFileWebTask::loadDataFile(QStringList fileData,
     dataFile.samples = samples;
     dataFile.expireExisting = expireCache;
     dataFile.hasSolarData = _requestData.isSolarAvailable;
+    dataFile.isComplete = !gapDetected;
 
     return dataFile;
 }

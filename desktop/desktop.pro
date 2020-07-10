@@ -225,6 +225,7 @@ HEADERS  += mainwindow.h \
     charts/plotwidget/chartmousetracker.h \
     columnpickerwidget.h \
     database.h \
+    datasource/hardwaretype.h \
     livecolumnpickerwidget.h \
     reporting/jsconsole.h \
     samplecolumnpickerwidget.h \

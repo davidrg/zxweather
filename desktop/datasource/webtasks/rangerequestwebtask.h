@@ -69,6 +69,8 @@ private:
     bool _requestingRange;
     QHash<QString, QString> _urlNames;
 
+    int _sampleInterval;
+
 #ifdef PARALLEL_HEAD
     int _awaitingUrls;
     void headUrls();
@@ -76,6 +78,7 @@ private:
 #endif
 
     bool processRangeResponse(QString data);
+    bool buildUrlListAndQueue();
 
     static void getURLList(QString baseURL, QDateTime startTime, QDateTime endTime,
                     QStringList& urlList, QStringList& nameList);

@@ -4,6 +4,8 @@
 #include <QString>
 #include <QDateTime>
 
+#include "hardwaretype.h"
+
 typedef struct _station_info_t {
     QString title;
     QString description;
@@ -14,6 +16,7 @@ typedef struct _station_info_t {
     bool isWireless;
     bool hasSolarAndUV;
     bool isValid;
+    hardware_type_t hardwareType;
 } station_info_t;
 
 typedef struct _sample_range_t {

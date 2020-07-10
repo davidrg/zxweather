@@ -6,12 +6,7 @@
 #include <QDate>
 
 #include "sampleset.h"
-
-enum hardware_type_t {
-    HW_GENERIC = 0,
-    HW_FINE_OFFSET = 1,
-    HW_DAVIS = 2
-};
+#include "hardwaretype.h"
 
 struct _DavisLive {
     float stormRain;

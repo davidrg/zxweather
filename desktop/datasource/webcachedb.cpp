@@ -104,6 +104,7 @@ void WebCacheDB::openDatabase() {
             if (!runUpgradeScript(3, ":/cache_db/v3.sql", filename)) return; // v2 -> v3
             if (!runUpgradeScript(4, ":/cache_db/v4.sql", filename)) return; // v3 -> v4
             if (!runUpgradeScript(5, ":/cache_db/v5.sql", filename)) return; // v4 -> v5
+            if (!runUpgradeScript(6, ":/cache_db/v6.sql", filename)) return; // v5 -> v6
 
         } else {
             emit criticalError("Failed to determine version of cache database");
@@ -207,6 +208,7 @@ int WebCacheDB::getStationId(QString stationUrl) {
         if (!query.lastError().isValid())
             return getStationId(stationUrl);
         else
+            qDebug() << "Failed to get stationId for URL:" << stationUrl;
             return -1; // failure
     }
 }
@@ -225,12 +227,13 @@ int WebCacheDB::getDataFileId(QString dataFileUrl) {
 
 int WebCacheDB::createDataFile(data_file_t dataFile, int stationId) {
     QSqlQuery query(sampleCacheDb);
-    query.prepare("insert into data_file(station, url, last_modified, size) "
-                  "values(:station, :url, :last_modified, :size)");
+    query.prepare("insert into data_file(station, url, last_modified, size, is_complete) "
+                  "values(:station, :url, :last_modified, :size, :is_complete)");
     query.bindValue(":station", stationId);
     query.bindValue(":url", dataFile.filename);
     query.bindValue(":last_modified", dataFile.last_modified.toTime_t());
     query.bindValue(":size", dataFile.size);
+    query.bindValue(":is_complete", dataFile.isComplete);
     query.exec();
 
     if (!query.lastError().isValid()) {
@@ -243,14 +246,15 @@ int WebCacheDB::createDataFile(data_file_t dataFile, int stationId) {
     }
 }
 
-void WebCacheDB::updateDataFile(int fileId, QDateTime lastModified, int size) {
+void WebCacheDB::updateDataFile(int fileId, QDateTime lastModified, int size, bool isComplete) {
     qDebug() << "Updating data file details...";
     QSqlQuery query(sampleCacheDb);
     query.prepare("update data_file set last_modified = :last_modified, "
-                  "size = :size where id = :id");
+                  "size = :size, is_complete = :is_complete where id = :id");
     query.bindValue(":last_modified", lastModified.toTime_t());
     query.bindValue(":size", size);
     query.bindValue(":id", fileId);
+    query.bindValue(":is_complete", isComplete);
     query.exec();
 
     if (query.lastError().isValid())
@@ -272,7 +276,7 @@ data_file_t WebCacheDB::getDataFileCacheInformation(QString dataFileUrl) {
     qDebug() << "Querying cache stats for URL" << dataFileUrl;
 
     QSqlQuery query(sampleCacheDb);
-    query.prepare("select last_modified, size from data_file "
+    query.prepare("select last_modified, size, is_complete from data_file "
                   "where url =  :url");
     query.bindValue(":url", dataFileUrl);
     query.exec();
@@ -284,6 +288,7 @@ data_file_t WebCacheDB::getDataFileCacheInformation(QString dataFileUrl) {
         dataFile.last_modified = QDateTime::fromTime_t(
                     record.value(0).toInt());
         dataFile.size = record.value(1).toInt();
+        dataFile.isComplete = record.value(2).toBool();
 
         qDebug() << "Cache stats loaded from DB:"
                  << dataFile.last_modified << dataFile.size;
@@ -373,7 +378,8 @@ void WebCacheDB::cacheDataFile(data_file_t dataFile, QString stationUrl) {
         // data file exists. Update it.
         updateDataFile(dataFileId,
                        dataFile.last_modified,
-                       dataFile.size);
+                       dataFile.size,
+                       dataFile.isComplete);
     }
 
     if (dataFile.expireExisting) {
@@ -1500,6 +1506,10 @@ double nullableVariantDouble(QVariant v) {
     return result;
 }
 
+int WebCacheDB::getSampleInterval(QString url) {
+    return getSampleInterval(getStationId(url));
+}
+
 int WebCacheDB::getSampleInterval(int stationId) {
     QSqlQuery query(sampleCacheDb);
     query.prepare("select sample_interval * 60 from station where station_id = :id");
@@ -2057,9 +2067,13 @@ station_info_t WebCacheDB::getStationInfo(QString url) {
         return info;
     }
 
+    // TODO: Populate hardware type!
+
     QSqlQuery query(sampleCacheDb);
-    query.prepare("select title, description, latitude, longitude, altitude, solar_available, davis_broadcast_id "
-                  "from station where code = :url");
+    query.prepare("select s.title, s.description, s.latitude, s.longitude, "
+                  "s.altitude, s.solar_available, s.davis_broadcast_id, st.code as type_code "
+                  "from station s inner join station_type st on st.station_type_id = s.station_type_id "
+                  "where s.code = :url");
     query.bindValue(":url", url);
     if (query.exec()) {
         if (query.first()) {
@@ -2079,6 +2093,19 @@ station_info_t WebCacheDB::getStationInfo(QString url) {
 
             QVariant broadcastId = query.record().value("davis_broadcast_id");
             info.isWireless = !broadcastId.isNull() && broadcastId.toInt() != -1;
+
+            QString typeCode = query.record().value("type_code").toString().toUpper();
+            if (typeCode == "DAVIS") {
+                info.hardwareType = HW_DAVIS;
+            } else if (typeCode == "FOWH1080") {
+                info.hardwareType = HW_FINE_OFFSET;
+            } else if (typeCode == "GENERIC") {
+                info.hardwareType = HW_GENERIC;
+            } else {
+                qWarning() << "Unrecognised hardware type code" << typeCode << ". Treating has GENERIC.";
+                info.hardwareType = HW_GENERIC;
+            }
+
         }
     }
 
@@ -2090,6 +2117,9 @@ sample_range_t WebCacheDB::getSampleRange(QString url) {
     info.isValid = false;
 
     int id = getStationId(url);
+    if (id < 0) {
+        return info;
+    }
 
     QSqlQuery query(sampleCacheDb);
     query.prepare("select max(time_stamp) as end, min(time_stamp) as start from sample where station_id = :id");
@@ -2099,7 +2129,7 @@ sample_range_t WebCacheDB::getSampleRange(QString url) {
             info.start = QDateTime::fromTime_t(query.record().value("start").toInt());
             info.end = QDateTime::fromTime_t(query.record().value("end").toInt());
             info.isValid = info.start < info.end;
-            qDebug() << "Start" << info.start << "End" << info.end << "Valid" << info.isValid;
+            qDebug() << "Start" << info.start << "End" << info.end << "Valid" << info.isValid << "Station" << id;
             return info;
         }
     }

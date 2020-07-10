@@ -15,6 +15,7 @@ public:
      * @param baseUrl The base URL for the web interface
      * @param stationCode Station Code for the weather station being used
      * @param ds Parent data source that this task is doing work for
+     * @param sampleInterval Stations sample interval in seconds
      */
     explicit DataFileWebTask(QString baseUrl,
                              QString stationCode,
@@ -22,6 +23,7 @@ public:
                              QString name,
                              QString url,
                              bool forceDownload,
+                             int sampleInterval,
                              WebDataSource* ds);
 
     /** Starts processing this task.
@@ -72,6 +74,7 @@ private:
 
     bool _downloadingDataset;
     bool _forceDownload;
+    int _sampleInterval;
 
     void cacheStatusRequestFinished(QNetworkReply *reply);
     void downloadRequestFinished(QNetworkReply *reply);

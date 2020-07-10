@@ -44,6 +44,41 @@ RangeRequestWebTask::RangeRequestWebTask(QString baseUrl,
 }
 
 void RangeRequestWebTask::beginTask() {
+
+    // For gap detection
+    _sampleInterval = WebCacheDB::getInstance().getSampleInterval(_stationDataUrl);
+
+    // Before we go bothering the server asking it what timespan its got, lets
+    // see what timespan *we've* got.
+    sample_range_t cacheRange = WebCacheDB::getInstance().getSampleRange(_stationDataUrl);
+
+    qDebug() << "Request range:" << _requestData.startTime << _requestData.endTime;
+    qDebug() << "  Cache range:" << cacheRange.start << cacheRange.end;
+
+    if (cacheRange.isValid &&
+            _requestData.startTime >= cacheRange.start &&
+            _requestData.endTime <= cacheRange.end) {
+        // Requested timespan is covered by the cache database. This means we
+        // know the server is able to supply data for this entire range (its
+        // supplied it in the past). All we need to do now is fill in any
+        // gaps in the cache database (if any).
+
+        // We might be able to cover this entire data request without
+        // bothering the server once!
+
+        qDebug() << "Requested range is covered by the cache DB! Skipping server check.";
+
+        bool ok = buildUrlListAndQueue();
+
+        if (ok) {
+            emit finished();
+        }
+        return;
+    }
+
+    // If the requested timespan fits within the cache databases range then
+    // there is no reason to bother the server
+
     QString url = _stationBaseUrl + DATASET_RANGE;
 
     emit subtaskChanged("Validating data range...");
@@ -109,7 +144,7 @@ void RangeRequestWebTask::getURLList(QString baseURL, QDateTime startTime, QDate
     QDate startDate = startTime.date();
     QDate endDate = endTime.date();
 
-    qDebug() << "Building URLlist from" << startTime << "and" << endTime;
+    qDebug() << "Building URLlist from" << startTime << "to" << endTime;
 
     int startYear = startDate.year();
     int startMonth = startDate.month();
@@ -124,10 +159,20 @@ void RangeRequestWebTask::getURLList(QString baseURL, QDateTime startTime, QDate
 
     for(int year = startYear; year <= endYear; year++) {
         qDebug() << "Year:" << year;
-        int month = year == startYear ? startMonth : 1;
+
+        int month = 1;
+        if (year == startYear) {
+            month = startMonth;
+        }
+
         for(; month <= 12; month++) {
+            if (QDate(year, month, 1) > endDate) {
+                break; // we're finished
+            }
 
             QString monthName = monthToName(month);
+
+            qDebug() << "Build URL for" << year << monthName;
 
 #ifdef USE_GNUPLOT_DATA
             QString url = baseURL + QString::number(year) + "/" +
@@ -136,6 +181,14 @@ void RangeRequestWebTask::getURLList(QString baseURL, QDateTime startTime, QDate
             QString url = baseURL + QString::number(year) + "/" +
                     QString::number(month) + "/samples.dat";
 #endif
+
+            data_file_t cache_info =
+                    WebCacheDB::getInstance().getDataFileCacheInformation(url);
+
+            if (cache_info.isValid && cache_info.isComplete) {
+                qDebug() << "Data file is marked COMPLETE in cache database - no server check required" << url;
+                continue;
+            }
 
             if (RangeRequestWebTask::lastQuery.contains(url)) {
                 if (QDateTime::currentDateTime().toTime_t() -
@@ -153,8 +206,8 @@ void RangeRequestWebTask::getURLList(QString baseURL, QDateTime startTime, QDate
             nameList.append(monthName + " " + QString::number(year));
 
             // We're finished.
-            if (year == endYear && month == endMonth)
-                break;
+//            if (year == endYear && month == endMonth)
+//                break;
         }
     }
 }
@@ -196,12 +249,17 @@ bool RangeRequestWebTask::processRangeResponse(QString data) {
     _requestData.startTime = dlStartTime;
     _requestData.endTime = dlEndTime;
 
+    return buildUrlListAndQueue();
+}
+
+bool RangeRequestWebTask::buildUrlListAndQueue() {
+
     QStringList urlList;
     QStringList nameList;
     RangeRequestWebTask::getURLList(
                 _stationDataUrl,
-               dlStartTime,
-               dlEndTime,
+               _requestData.startTime,
+               _requestData.endTime,
                urlList /*OUT*/,
                nameList /*OUT*/
                );
@@ -240,6 +298,7 @@ void RangeRequestWebTask::queueDownloadTasks(bool forceDownload) {
         DataFileWebTask *task = new DataFileWebTask(_baseUrl, _stationCode,
                                                     _requestData, name, url,
                                                     forceDownload,
+                                                    _sampleInterval,
                                                     _dataSource);
         emit queueTask(task);
     }
@@ -280,6 +339,7 @@ bool RangeRequestWebTask::processHeadResponse(QNetworkReply *reply) {
         DataFileWebTask *task = new DataFileWebTask(_baseUrl, _stationCode,
                                                     _requestData, name, url,
                                                     true, // don't issue a HEAD, force download
+                                                    _sampleInterval,
                                                     _dataSource);
         emit queueTask(task);
     }

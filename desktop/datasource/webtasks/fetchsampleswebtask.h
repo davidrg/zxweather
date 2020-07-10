@@ -83,8 +83,12 @@ private:
     bool _isWireless;
     hardware_type_t _hwType;
 
+    // Cache
+    static QString lastSysConfig;
 
     bool processResponse(QByteArray responseData);
+
+    void finishWork();
 };
 
 #endif // FETCHSAMPLESWEBTASK_H

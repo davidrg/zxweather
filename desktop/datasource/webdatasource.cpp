@@ -24,7 +24,7 @@
 #include <float.h>
 #include <QDateTime>
 #include <QNetworkProxyFactory>
-
+#include <QCoreApplication>
 
 #if (QT_VERSION < QT_VERSION_CHECK(5,2,0))
 #include <limits>
@@ -836,6 +836,10 @@ void WebDataSource::makeProgress(QString message) {
     int value = progressListener->value() + 1;
     //int maxValue = progressListener->maximum();
     progressListener->setValue(value);
+
+    // Ensure the event loop gets some time in case all the queued tasks manage to
+    // do their jobs from the cache database and don't have to make any web requests.
+    QCoreApplication::processEvents();
 
     TQLOG << "Making progress:" << message;
 }

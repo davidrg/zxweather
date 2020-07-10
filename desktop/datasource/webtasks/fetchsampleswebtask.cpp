@@ -35,12 +35,30 @@ FetchSamplesWebTask::FetchSamplesWebTask(QString baseUrl,
     _select = select;
 }
 
+QString FetchSamplesWebTask::lastSysConfig;
+
 void FetchSamplesWebTask::beginTask() {
     QString url = _dataRootUrl + DATASET_SYSCONFIG;
 
-    QNetworkRequest request(url);
+    if (!lastSysConfig.isNull() && lastSysConfig == url) {
+        // We've already loaded sysconfig from the server once this session.
+        // Everything we need should be in the cache database. Just fetch it from there
+        // instead of bothering the server again.
 
-    emit httpGet(request);
+        qDebug() << "Already fetched SYSCONFIG recently. Loading from database instead.";
+
+        station_info_t stationInfo = WebCacheDB::getInstance().getStationInfo(_stationDataUrl);
+        _hwType = stationInfo.hardwareType;
+        _isSolarAvailable = stationInfo.hasSolarAndUV;
+        _isWireless = stationInfo.isWireless;
+        _stationName = stationInfo.title;
+
+        finishWork();
+    } else {
+        QNetworkRequest request(url);
+
+        emit httpGet(request);
+    }
 }
 
 void FetchSamplesWebTask::networkReplyReceived(QNetworkReply *reply) {
@@ -55,39 +73,44 @@ void FetchSamplesWebTask::networkReplyReceived(QNetworkReply *reply) {
 
         if (ok) {
             // Sysconfig data loaded! Queue up the next task!
-
-            // Firstly, filter out any columns that aren't valid:
-            if (_hwType != HW_DAVIS) {
-                _columns.standard = _columns.standard & ~DAVIS_COLUMNS;
-                _columns.extra = _columns.extra & ~DAVIS_EXTRA_COLUMNS;
-            } else {
-                // davis hardware. Turn off any columns not applicable for the
-                // model of hardware in use.
-                if (!_isSolarAvailable) {
-                    _columns.standard = _columns.standard & ~SOLAR_COLUMNS;
-                }
-                if (!_isWireless) {
-                    _columns.standard = _columns.standard & ~SC_Reception;
-                }
-            }
-
-            request_data_t request;
-            request.columns = _columns;
-            request.startTime = _startTime;
-            request.endTime = _endTime;
-            request.aggregateFunction = _aggregateFunction;
-            request.groupType = _groupType;
-            request.groupMinutes = _groupMinutes;
-            request.stationName = _stationName;
-            request.isSolarAvailable = _isSolarAvailable;
-            request.hwType = _hwType;
-
-            RangeRequestWebTask* task = new RangeRequestWebTask(
-                        _baseUrl, _stationCode, request, _select, _dataSource);
-            emit queueTask(task);
-            emit finished();
+            lastSysConfig = reply->url().toString();
+            finishWork();
         }
     }
+}
+
+void FetchSamplesWebTask::finishWork() {
+
+    // Firstly, filter out any columns that aren't valid:
+    if (_hwType != HW_DAVIS) {
+        _columns.standard = _columns.standard & ~DAVIS_COLUMNS;
+        _columns.extra = _columns.extra & ~DAVIS_EXTRA_COLUMNS;
+    } else {
+        // davis hardware. Turn off any columns not applicable for the
+        // model of hardware in use.
+        if (!_isSolarAvailable) {
+            _columns.standard = _columns.standard & ~SOLAR_COLUMNS;
+        }
+        if (!_isWireless) {
+            _columns.standard = _columns.standard & ~SC_Reception;
+        }
+    }
+
+    request_data_t request;
+    request.columns = _columns;
+    request.startTime = _startTime;
+    request.endTime = _endTime;
+    request.aggregateFunction = _aggregateFunction;
+    request.groupType = _groupType;
+    request.groupMinutes = _groupMinutes;
+    request.stationName = _stationName;
+    request.isSolarAvailable = _isSolarAvailable;
+    request.hwType = _hwType;
+
+    RangeRequestWebTask* task = new RangeRequestWebTask(
+                _baseUrl, _stationCode, request, _select, _dataSource);
+    emit queueTask(task);
+    emit finished();
 }
 
 bool FetchSamplesWebTask::processResponse(QByteArray responseData) {
