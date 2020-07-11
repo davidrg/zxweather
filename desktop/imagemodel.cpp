@@ -1316,8 +1316,6 @@ void ImageModel::imageListReady(QList<ImageInfo> imageList) {
 
 void ImageModel::thumbnailReady(int imageId, QImage thumbnail) {
     if (pendingThumbnails.contains(imageId)) {
-        emit layoutAboutToBeChanged();
-
         pendingThumbnails[imageId].thumbnailLoaded = true;
         ThumbnailRequest req = pendingThumbnails[imageId];
 
@@ -1329,8 +1327,6 @@ void ImageModel::thumbnailReady(int imageId, QImage thumbnail) {
 
         emit dataChanged(req.index, req.index);
         emit thumbnailReady(req.index);
-
-        emit layoutChanged();
     }
 }
 
