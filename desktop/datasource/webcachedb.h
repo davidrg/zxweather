@@ -285,7 +285,9 @@ public:
      *
      * @param imageDates List of images that have dates.
      */
-    void updateImageDateList(QString stationCode, QMap<QString, QList<QDate> > dates);
+    void updateImageDateList(QString stationCode, QMap<QString, QMap<QDate, int> > dates);
+
+    bool imageSourceDateIsCached(QString stationUrl, QString sourceCode, QDate date);
 
 signals:
     /** Emitted when an error occurs which would prevent the cache database

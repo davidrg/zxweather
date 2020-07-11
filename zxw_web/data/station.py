@@ -23,7 +23,7 @@ from database import get_years, get_live_data, get_station_id, \
     get_month_rainfall, get_year_rainfall, get_last_hour_rainfall, \
     get_10m_avg_bearing_max_gust, get_day_wind_run, get_cumulus_dayfile_data, \
     get_image_source_info, get_image_sources_by_date, get_rain_summary, \
-    get_latest_image_ts_for_source, get_images_in_last_minute
+    get_latest_image_ts_for_source, get_images_in_last_minute, get_image_source_date_counts
 import os
 
 import math
@@ -159,6 +159,8 @@ class data_json:
             return image_sources(station_id, station)
         elif dataset == 'image_sources_by_date':
             return image_sources_by_date(station_id)
+        elif dataset == 'image_source_date_counts':
+            return image_source_date_counts(station_id, station)
         elif dataset == 'rain_summary':
             return rain_summary(station_id)
         elif dataset == 'about':
@@ -383,7 +385,7 @@ def sample_range(station_id):
     return json.dumps(result)
 
 
-def image_sources(station_id, station_code):
+def image_sources(station_id, station_code, json_encoded=True):
     """
     Returns some basic information about each image source present for a given
     station id. This includes name, description, dates for first and last image
@@ -453,8 +455,10 @@ def image_sources(station_id, station_code):
                         extension=".json"
                     )
 
-    web.header('Content-Type', 'application/json')
-    return json.dumps(result)
+    if json_encoded:
+        web.header('Content-Type', 'application/json')
+        return json.dumps(result)
+    return result
 
 
 def image_sources_by_date(station_id):
@@ -466,6 +470,16 @@ def image_sources_by_date(station_id):
         result[row.date_stamp.isoformat()] = row.image_source_codes.split(',')
 
     # TODO: cache control?
+    web.header('Content-Type', 'application/json')
+    return json.dumps(result)
+
+
+def image_source_date_counts(station_id, station_code):
+    result = {
+        "date_counts": get_image_source_date_counts(station_id),
+        "sources": image_sources(station_id, station_code, False)
+    }
+
     web.header('Content-Type', 'application/json')
     return json.dumps(result)
 

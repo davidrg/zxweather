@@ -1185,6 +1185,38 @@ from image_source where upper(code) = upper($source) and station_id = $station""
     return None
 
 
+def get_image_source_date_counts(station_id):
+    """
+    Similar to image sources by date but gives the number of images for each
+    source on each date.
+    :param station_id: Station ID to get data for
+    """
+    count_query = """
+    select img.time_stamp::date as date_stamp,
+           upper(img_src.code) as src_code,
+           count(*) as date_source_count
+    from image img
+    inner join image_source img_src on img.image_source_id = img_src.image_source_id
+    where img_src.station_id = $station
+    group by img.time_stamp::date, upper(img_src.code)
+    order by img.time_stamp::date, upper(img_src.code)
+    """
+
+    result = db.query(count_query, dict(station=station_id))
+
+    if len(result) == 0:
+        return None
+
+    dates = dict()
+    for row in result:
+        date_stamp = row.date_stamp.isoformat()
+        if date_stamp not in dates:
+            dates[date_stamp] = dict()
+        dates[date_stamp][row.src_code] = row.date_source_count
+
+    return dates
+
+
 def get_day_images_for_source(source_id, image_date=None):
     """
     Returns a list of all images for the specified image source and date.

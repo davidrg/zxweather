@@ -38,6 +38,15 @@ void ListDayImagesWebTask::beginTask() {
     } else {
         // Skip 1 & 2, move onto 3: Get image list cache status
         _gotImageSourceInfo = true;
+
+        if (WebCacheDB::getInstance().imageSourceDateIsCached(
+                    _stationBaseUrl, _imageSourceCode, _date)){
+            // We've already got the full image list for this date and
+            // image source in the cache DB. Don't bother HEADing.
+            returnImageListAndFinish();
+            return;
+        }
+
         emit subtaskChanged("Checking image list cache status for " +
                             _date.toString(Qt::SystemLocaleShortDate));
         emit httpHead(QNetworkRequest(_url));

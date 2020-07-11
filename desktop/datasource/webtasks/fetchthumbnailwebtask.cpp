@@ -22,9 +22,23 @@ void FetchThumbnailWebTask::dealWithImage(QString filename) {
     if (_imageInfo.mimeType.startsWith("image/")) {
         QImage image(filename);
 
-        QImage thumbnailImage = image.scaled(Constants::THUMBNAIL_WIDTH,
-                                             Constants::THUMBNAIL_HEIGHT,
-                                             Qt::KeepAspectRatio);
+        QString thumbnailFile = getCacheFilename(true);
+
+        QFile file(thumbnailFile);
+        QImage thumbnailImage;
+
+        if (file.exists()) {
+            qDebug() << "Loading thumbnail from cache";
+            thumbnailImage.load(thumbnailFile);
+        }
+
+        if (thumbnailImage.isNull()) {
+            qDebug() << "Generating thumbnail";
+            thumbnailImage = image.scaled(Constants::THUMBNAIL_WIDTH,
+                                          Constants::THUMBNAIL_HEIGHT,
+                                          Qt::KeepAspectRatio);
+            thumbnailImage.save(thumbnailFile);
+        }
 
         _dataSource->fireThumbnailReady(_imageInfo.id, thumbnailImage);
         _dataSource->fireImageReady(_imageInfo, image, filename);

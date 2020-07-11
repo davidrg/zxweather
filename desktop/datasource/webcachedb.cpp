@@ -2144,13 +2144,14 @@ void WebCacheDB::optimise() {
     }
 }
 
-void WebCacheDB::updateImageDateList(QString stationCode, QMap<QString, QList<QDate> > dates) {
+void WebCacheDB::updateImageDateList(QString stationCode, QMap<QString, QMap<QDate, int> > dates) {
     int stationId = getStationId(stationCode);
 
     qDebug() << "Station" << stationCode << "ID" << stationId;
 
     QVariantList sourceIds;
     QVariantList dateValues;
+    QVariantList dateCounts;
 
     QTime timer;
     timer.start();
@@ -2167,9 +2168,16 @@ void WebCacheDB::updateImageDateList(QString stationCode, QMap<QString, QList<QD
         }
 
 
-        foreach(QDate date, dates[sourceCode]) {
+        foreach(QDate date, dates[sourceCode].keys()) {
             sourceIds.append(sourceId);
             dateValues.append(date.toString(Qt::ISODate));
+
+            int count = dates[sourceCode][date];
+            if (count < 0) {
+                dateCounts.append(QVariant());
+            } else {
+                dateCounts.append(count);
+            }
 
 //            qDebug() << "Station Code " << stationCode << "has ID" << stationId
 //                     << "source code" << sourceCode << "has ID" << sourceId
@@ -2178,9 +2186,10 @@ void WebCacheDB::updateImageDateList(QString stationCode, QMap<QString, QList<QD
     }
 
     QSqlQuery q(sampleCacheDb);
-    q.prepare("insert into image_dates(image_source_id, date) values(?, ?);");
+    q.prepare("insert into image_dates(image_source_id, date, server_image_count) values(?, ?, ?);");
     q.addBindValue(sourceIds);
     q.addBindValue(dateValues);
+    q.addBindValue(dateCounts);
     if (!q.execBatch()) {
         qWarning() << "Failed to store image dates";
     }
@@ -2192,4 +2201,51 @@ void WebCacheDB::updateImageDateList(QString stationCode, QMap<QString, QList<QD
 
     optimise();
 
+}
+
+bool WebCacheDB::imageSourceDateIsCached(QString stationUrl, QString sourceCode, QDate date) {
+    int stationId = getStationId(stationUrl);
+    int sourceId = getImageSourceId(stationId, sourceCode);
+
+    QSqlQuery q(sampleCacheDb);
+    q.prepare("select server_image_count from image_dates where image_source_id = :sourceId and date = :date");
+    q.bindValue(":sourceId", sourceId);
+    q.bindValue(":date", date.toString(Qt::ISODate));
+    q.exec();
+    if (!q.first()) {
+        qWarning() << "Failed to get server image count from cache database";
+        return false;
+    }
+
+    QVariant serverCountV = q.record().value("server_image_count");
+    if (serverCountV.isNull()) {
+        return false;
+    }
+    int serverCount = serverCountV.toInt();
+
+    // We're not interested in any images from the temporary set as they've only
+    // got partial metadata.
+    int temporarySetId = getImageSetId(TEMPORARY_IMAGE_SET + stationUrl);
+
+    q.prepare("select count(*) as count from image i where date = :date and source = :sourceId and image_set <> :temporarySetId");
+    q.bindValue(":date", date.toString(Qt::ISODate));
+    q.bindValue(":sourceId", sourceId);
+    q.bindValue(":temporarySetId", temporarySetId);
+    q.exec();
+    if (!q.first()) {
+        qDebug() << "Failed to get day image count from cache DB";
+        return false;
+    }
+
+    QVariant cacheCountV = q.record().value("count");
+    if (cacheCountV.isNull()) {
+        qDebug() << "No day image count from cache.";
+        return false;
+    }
+
+    int cacheCount = cacheCountV.toInt();
+
+    qDebug() << "Server count" << serverCount << "Cache count" << cacheCount;
+
+    return cacheCount == serverCount;
 }

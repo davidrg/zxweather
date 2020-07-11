@@ -196,7 +196,7 @@ void WebDataSource::fetchSamplesFromCache(DataSet dataSet) {
 void WebDataSource::primeCache(QDateTime start, QDateTime end, bool imageDates) {
     if (imageDates) {
         FetchImageDateListWebTask *dateListTask = new FetchImageDateListWebTask(
-                    baseURL, stationCode, this, true);
+                    baseURL, stationCode, this);
         queueTask(dateListTask, false, true);
     }
 

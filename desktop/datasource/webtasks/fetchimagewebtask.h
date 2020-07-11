@@ -60,7 +60,7 @@ public slots:
     void networkReplyReceived(QNetworkReply *reply);
 
 protected:
-    QString getCacheFilename();
+    QString getCacheFilename(bool thumbnail);
     virtual void dealWithImage(QString filename);
 
     bool needImage;

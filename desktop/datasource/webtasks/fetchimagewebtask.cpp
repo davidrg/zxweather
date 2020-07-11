@@ -24,7 +24,7 @@ FetchImageWebTask::FetchImageWebTask(
                                                         imageId);
 }
 
-QString FetchImageWebTask::getCacheFilename() {
+QString FetchImageWebTask::getCacheFilename(bool thumbnail) {
 #if QT_VERSION >= 0x050000
     QString filename = QStandardPaths::writableLocation(
                 QStandardPaths::CacheLocation);
@@ -32,7 +32,6 @@ QString FetchImageWebTask::getCacheFilename() {
     QString filename = QDesktopServices::storageLocation(
                 QDesktopServices::CacheLocation);
 #endif
-
     filename +=  QDir::separator() + QString("images") +  QDir::separator() +
             _stationCode + QDir::separator() +
             _imageInfo.imageSource.code.toLower() + QDir::separator() +
@@ -47,7 +46,8 @@ QString FetchImageWebTask::getCacheFilename() {
     filename += QString::number(_imageInfo.timeStamp.date().day()) + "_" +
             QString::number(_imageInfo.timeStamp.time().hour()) + "_" +
             QString::number(_imageInfo.timeStamp.time().minute()) + "_" +
-            QString::number(_imageInfo.timeStamp.time().second()) + "_full.";
+            QString::number(_imageInfo.timeStamp.time().second()) +
+            (thumbnail ? "_thumb." : "_full.");
 
     // Extension doesn't really matter too much
     if (_imageInfo.mimeType == "image/jpeg")
@@ -67,14 +67,12 @@ QString FetchImageWebTask::getCacheFilename() {
     else
         filename += "dat";
 
-
-
     return QDir::cleanPath(filename);
 }
 
 void FetchImageWebTask::beginTask() {
     // Firstly, see if the image exists on disk.
-    filename = getCacheFilename();
+    filename = getCacheFilename(false);
     qDebug() << "Cache filename:" << filename;
     QFile file(filename);
 
@@ -114,7 +112,7 @@ void FetchImageWebTask::networkReplyReceived(QNetworkReply *reply) {
     } else {
         qDebug() << "Got image";
 
-        filename = getCacheFilename();
+        filename = getCacheFilename(false);
         QFile file(filename);
         if (file.open(QIODevice::WriteOnly)) {
             file.write(reply->readAll());
