@@ -2,6 +2,7 @@
 #include "constants.h"
 
 #include <QDebug>
+#include <QFile>
 
 FetchThumbnailWebTask::FetchThumbnailWebTask(QString baseUrl, QString stationCode,
                            WebDataSource* ds, ImageInfo imageInfo)
