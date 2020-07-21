@@ -107,7 +107,7 @@ void DataSetsDialog::addDataSetToUI(DataSet s, QString name, bool axisVisible, b
         twi->setText(6, tr("Year"));
         break;
     case AGT_Custom:
-        twi->setText(6, tr("Custom (%0 minutes)").arg(s.customGroupMinutes));
+        twi->setText(6, tr("Custom (%1 minutes)").arg(s.customGroupMinutes));
     }
     ui->twDataSets->addTopLevelItem(twi);
 }
@@ -208,8 +208,8 @@ void DataSetsDialog::doRename() {
     bool ok;
     name = QInputDialog::getText(
                 this,
-                "Rename",
-                "New Axis Label:",
+                tr("Rename"),
+                tr("New Axis Label:"),
                 QLineEdit::Normal,
                 name,
                 &ok);

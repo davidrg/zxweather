@@ -18,7 +18,14 @@ ForecastWidget::~ForecastWidget()
 }
 
 void ForecastWidget::loadForecastRules() {
-    QFile f(":/data/forecast_rules");
+
+    // By marking the filename as translatable we should be able
+    // to swap out the built-in english version of the forecast
+    // rules with an external translated json version. This is
+    // untested.
+    QString filename = tr(":/data/forecast_rules");
+
+    QFile f(filename);
     if (!f.open(QIODevice::ReadOnly))
         return;
 

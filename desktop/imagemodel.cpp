@@ -13,6 +13,7 @@
 #include <QDir>
 #include <QTime>
 #include <QPainter>
+#include <QApplication>
 
 #include "settings.h"
 #include "constants.h"
@@ -78,7 +79,7 @@ TreeItem::TreeItem(ItemType type, QDate date, QString sourceCode, QString text,
         this->childItems.append(new TreeItem(IT_LOADING,
                                              date,
                                              sourceCode,
-                                             "Loading...",
+                                             QApplication::translate("ImageModel","Loading..."),
                                              this,
                                              -1));
     }
@@ -1019,7 +1020,7 @@ QVariant ImageModel::data(const QModelIndex &index, int role) const {
             case COL_TYPE: return tr("Loading");
             case COL_SIZE: return "";
             case COL_DESCRIPTION: {
-                return "Images for this date are being loaded...";
+                return tr("Images for this date are being loaded...");
             }
             case COL_MIME_TYPE: return "";
             case COL_IMAGE_SOURCE: return ""; // No source name available except on image nodes.
@@ -1041,7 +1042,7 @@ QVariant ImageModel::data(const QModelIndex &index, int role) const {
                 case IT_YEAR:
                     return tr("Year");
                 case IT_IMAGE_SOURCE:
-                    return tr("IUmage source");
+                    return tr("Image source");
                 default:
                     return "";
                 }

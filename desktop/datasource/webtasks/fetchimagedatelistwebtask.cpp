@@ -19,7 +19,7 @@ FetchImageDateListWebTask::FetchImageDateListWebTask(QString baseUrl,
 
 void FetchImageDateListWebTask::beginTask() {
     // Progress: Loading image source information
-    emit subtaskChanged("Downloading source dates...");
+    emit subtaskChanged(tr("Downloading source dates..."));
     emit httpGet(QNetworkRequest(_stationBaseUrl + DATASET_IMAGE_SOURCE_COUNTS));
 }
 
@@ -33,7 +33,7 @@ QList<ImageSource> FetchImageDateListWebTask::processSourceInfo(QVariantMap sour
     using namespace QtJson;
 
     // Progress:
-    emit subtaskChanged("Processing image source information");
+    emit subtaskChanged(tr("Processing image source information"));
 
     QList<ImageSource> result;
 
@@ -68,7 +68,7 @@ void FetchImageDateListWebTask::processDateList(QString data) {
 
     QList<ImageSource> imageSources = processSourceInfo(sources);
 
-    emit subtaskChanged("Processing source dates...");
+    emit subtaskChanged(tr("Processing source dates..."));
 
     foreach (QString key, dateCounts.keys()) {
         // Key is the date in ISO format. The value is a map of image source to image count

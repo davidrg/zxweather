@@ -47,7 +47,7 @@ bool FetchStationInfoWebTask::processResponse(QByteArray responseData) {
 
     if (!ok) {
         qDebug() << "sysconfig parse error. Data:" << responseData;
-        emit failed("JSON parsing failed while loading system configuration.");
+        emit failed(tr("JSON parsing failed while loading system configuration."));
         return false;
     }
 

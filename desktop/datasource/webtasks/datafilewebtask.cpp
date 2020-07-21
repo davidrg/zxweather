@@ -112,7 +112,7 @@ void DataFileWebTask::cacheStatusRequestFinished(QNetworkReply *reply) {
 
 void DataFileWebTask::getDataset() {
     _downloadingDataset = true;
-    emit subtaskChanged("Downloading data for " + _name);
+    emit subtaskChanged(QString(tr("Downloading data for %1")).arg(_name));
 
     QNetworkRequest request(_url);
     emit httpGet(request);
@@ -147,7 +147,7 @@ void DataFileWebTask::downloadRequestFinished(QNetworkReply *reply) {
     data_file_t dataFile = loadDataFile(fileData, lastModified, size,
                                         cacheStats);
 
-    emit subtaskChanged("Caching data for " + _name);
+    emit subtaskChanged(QString(tr("Caching data for %1")).arg(_name));
     WebCacheDB::getInstance().cacheDataFile(dataFile, _stationDataUrl);
     emit finished();
 }
@@ -167,7 +167,7 @@ double nullableDouble(QString v) {
 data_file_t DataFileWebTask::loadDataFile(QStringList fileData,
                                         QDateTime lastModified, int fileSize,
                                         cache_stats_t cacheStats) {
-    emit subtaskChanged("Processing data for " + _name);
+    emit subtaskChanged(QString(tr("Processing data for %1")).arg(_name));
 
     SampleSet samples;
 

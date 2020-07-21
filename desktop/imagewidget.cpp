@@ -483,11 +483,11 @@ void ImageWidget::saveAs(QWidget *parent, ImageInfo info, QImage image, QString 
 
     QString filter;
     if (info.mimeType.startsWith("video/")) {
-        filter = "Video files (*." + fileInfo.completeSuffix() + ")";
+        filter = QString(tr("Video files (*.%1)")).arg(fileInfo.completeSuffix());
     } else if (info.mimeType.startsWith("audio/")) {
-        filter = "Audio files (*." + fileInfo.completeSuffix() + ")";
+        filter = QString(tr("Audio files (*.%1)")).arg(fileInfo.completeSuffix());
     } else {
-        filter = "Image files (*." + fileInfo.completeSuffix() + ")";
+        filter = QString(tr("Image files (*.%1)")).arg(fileInfo.completeSuffix());
     }
 
     QString fn = QFileDialog::getSaveFileName(parent, tr("Save As..."),
@@ -529,7 +529,7 @@ void ImageWidget::contextMenuRequested(QPoint point) {
     if (!(videoSet && isIcon)) {
 #endif
 
-    QAction *act = menu->addAction("&Open in new window",
+    QAction *act = menu->addAction(tr("&Open in new window"),
                                        this, SLOT(popOut()));
     QFont f = act->font();
     f.setBold(true);
@@ -538,24 +538,24 @@ void ImageWidget::contextMenuRequested(QPoint point) {
     }
     QAction *act;
 #endif
-    act = menu->addAction("&View weather at time",
+    act = menu->addAction(tr("&View weather at time"),
                           this, SLOT(weatherDataAtTime()));
 
     menu->addSeparator();
 
     if (!videoSet) {
         // We're dealing with an image - offer the copy option
-        act = menu->addAction("&Copy",
+        act = menu->addAction(tr("&Copy"),
                         this, SLOT(copy()));
     }
 
-    act = menu->addAction("&Save As...",
+    act = menu->addAction(tr("&Save As..."),
                     this, SLOT(saveAs()));
 
 
     menu->addSeparator();
 
-    act = menu->addAction("&Properties",
+    act = menu->addAction(tr("&Properties"),
                     this, SLOT(showProperties()));
 
     menu->popup(mapToGlobal(point));

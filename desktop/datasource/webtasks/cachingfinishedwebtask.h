@@ -11,7 +11,7 @@ public:
     void beginTask();
 
     QString taskName() const {
-        return "Finished Caching";
+        return tr("Finished Caching");
     }
 
 public slots:

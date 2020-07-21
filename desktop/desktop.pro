@@ -386,3 +386,9 @@ RESOURCES += \
     reporting/reports/reports.qrc
 
 RC_FILE += desktop.rc
+
+# For translating, do something like this:
+# TRANSLATIONS = zxweather.mi_NZ.ts \       # Maori, New Zealand
+#                zxweather.fr_FR.ts \       # French, France
+#                zxweather.de_DE.ts         # German, Germany
+# etc.

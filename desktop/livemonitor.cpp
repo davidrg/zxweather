@@ -42,11 +42,10 @@ void LiveMonitor::timeout() {
         return; // Update was recent enough to be ok.
     }
 
-    emit showWarningPopup("No live data updates have been received since " +
-                          lastRefresh.toString() +
-                          ".",
-                          "Live data is late",
-                          "Live data is late",
+    emit showWarningPopup(QString(tr("No live data updates have been received since %1."))
+                          .arg(lastRefresh.toString()),
+                          tr("Live data is late", "title"),
+                          tr("Live data is late", "tool-tip"),
                           true);
 }
 

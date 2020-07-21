@@ -16,7 +16,7 @@ public:
     int subtasks() const { return 3; }
 
     QString taskName() const {
-        return "Loading image source information";
+        return tr("Loading image source information");
     }
 
 public slots:

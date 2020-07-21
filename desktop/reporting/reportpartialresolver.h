@@ -12,7 +12,7 @@ public:
     /** Returns the partial template with a given @p name. */
     virtual QString getPartial(const QString& name);
 private:
-    QString partialsDir;
+    QString reportName;
     QHash<QString, QString> cache;
 };
 #endif // REPORTPARTIALRESOLVER_H

@@ -95,7 +95,7 @@ void SelectStationPage::initializePage() {
 QLayout* SelectStationPage::createStationOption(DbUtil::StationInfo info) {
     QHBoxLayout *layout = new QHBoxLayout;
 
-    QRadioButton *rb = new QRadioButton(QString("%1 - %2")
+    QRadioButton *rb = new QRadioButton(QString(tr("%1 - %2"))
                                             .arg(info.code)
                                             .arg(info.title),
                                         this);
@@ -233,7 +233,7 @@ StationInfoDialog::StationInfoDialog(DbUtil::StationInfo info, QWidget *parent)
      |                                                 [ CLOSE ] |
      +-----------------------------------------------------------+    */
 
-    setWindowTitle("Station Information");
+    setWindowTitle(tr("Station Information"));
 
     QLabel *nameLabel = new QLabel(tr("Name:"), this);
     QLabel *codeLabel = new QLabel(tr("Code:"), this);
@@ -245,7 +245,7 @@ StationInfoDialog::StationInfoDialog(DbUtil::StationInfo info, QWidget *parent)
     code->setWhatsThis(tr("A short identifier for the weather station. This is"
                        " used to identify the station within zxweather."));
     QLabel *hwType = new QLabel(info.stationTypeName, this);
-    hwType->setWhatsThis("The type of hardware the weather station is using");
+    hwType->setWhatsThis(tr("The type of hardware the weather station is using"));
     QTextBrowser *description = new QTextBrowser(this);
     description->setHtml(info.description);
     QDialogButtonBox *buttonBox =

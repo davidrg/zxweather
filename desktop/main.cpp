@@ -28,6 +28,8 @@
 #include <QCommandLineOption>
 #include <QVariantList>
 #include <QScopedPointer>
+#include <QTranslator>
+
 #include "mainwindow.h"
 #include "settings.h"
 #include "constants.h"
@@ -77,15 +79,25 @@ void msgFileHandler(QtMsgType type, const QMessageLogContext &, const QString & 
 
 
 int main(int argc, char *argv[])
-{    
+{
+    QGuiApplication::setAttribute(Qt::AA_DisableHighDpiScaling);
+
     QApplication a(argc, argv);
     QCoreApplication::setOrganizationName("zxnet");
     QCoreApplication::setOrganizationDomain("zx.net.nz");
     QCoreApplication::setApplicationName(Constants::APP_NAME);
     QCoreApplication::setApplicationVersion(Constants::VERSION_STR);
 
+
+    QString locale = QLocale::system().name();
+    qDebug() << "Running with locale:" << locale;
+
+    QTranslator translator;
+    translator.load(QString("zxweather_") + locale);
+    a.installTranslator(&translator);
+
     QCommandLineParser parser;
-    parser.setApplicationDescription("zxweather desktop client");
+    parser.setApplicationDescription(QCoreApplication::translate("main", "zxweather desktop client"));
     parser.addHelpOption();
     parser.addVersionOption();
     parser.addPositionalArgument("url", QCoreApplication::translate("main", "Open internal url"));
@@ -145,7 +157,7 @@ int main(int argc, char *argv[])
     #endif
         } else {
     #ifdef Q_OS_WIN
-            fprintf(stderr, QString("Failed to open log file %1 for write+append. Log output will be sent to the debugger.").arg(log_filename).toLatin1());
+            fprintf(stderr, QString(QCoreApplication::translate("main", "Failed to open log file %1 for write+append. Log output will be sent to the debugger.")).arg(log_filename).toLatin1());
     #endif
             qWarning() << "Failed to open log file" << log_filename << "for write+append.";
         }
@@ -165,14 +177,14 @@ int main(int argc, char *argv[])
 
     if (showConfigWizard) {
         if (parser.isSet(stationCodeOption)) {
-            qWarning() << "Station code parameter will be ignored as the config wizard is being run!";
+            qWarning() << QCoreApplication::translate("main", "Station code parameter will be ignored as the config wizard is being run!");
         }
 
         QScopedPointer<ConfigWizard> wiz(new ConfigWizard());
         if (wiz->exec() != QDialog::Accepted) {
             // Config wizard was canceled. The app hasn't been configured
             // so we can't continue startup.
-            qWarning() << "Config wizard canceled. Startup not possible. Exiting.";
+            qWarning() << QCoreApplication::translate("main", "Config wizard canceled. Startup not possible. Exiting.");
             return 1;
         }
 

@@ -61,7 +61,7 @@ void AboutDialog::changeEvent(QEvent *e)
 
 void AboutDialog::showLicenses() {
     ReportDisplayWindow *w = new ReportDisplayWindow(
-                "Licenses",
+                tr("Licenses"),
                 QIcon(":/icons/about"),
                 new NullUrlHandler(),
                 this);

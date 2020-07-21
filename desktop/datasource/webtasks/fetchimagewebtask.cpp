@@ -120,7 +120,7 @@ void FetchImageWebTask::networkReplyReceived(QNetworkReply *reply) {
             needImage = false;
         } else {
             // Error?
-            emit failed("Failed to open cache file " + filename);
+            emit failed(QString(tr("Failed to open cache file %1")).arg(filename));
         }
     }
 

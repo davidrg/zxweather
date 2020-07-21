@@ -188,7 +188,7 @@ void ServerDetailsPage::validationComplete() {
 }
 
 void ServerDetailsPage::StationListError(QString message) {
-    showErrorPage("Server Error", "An error occurred validating server details",
+    showErrorPage(tr("Server Error"), tr("An error occurred validating server details"),
                   message);
 }
 
@@ -205,12 +205,12 @@ void ServerDetailsPage::StationListFinished(QStringList stations) {
     }
 
     if (!stations.contains(stationCode)) {
-        showErrorPage("Server Error",
-                      "The selected station was not available on the server",
-                      QString("The server specified does not cary data for the <i>%1</i> "
+        showErrorPage(tr("Server Error"),
+                      tr("The selected station was not available on the server"),
+                      QString(tr("The server specified does not cary data for the <i>%1</i> "
                               "station. Click the <b>Back</b> button and either enter "
                               "details for a different server that does carry data "
-                              "for this station or choose the <b>No Server</b> option.").arg(stationCode));
+                              "for this station or choose the <b>No Server</b> option.")).arg(stationCode));
         return;
     }
 

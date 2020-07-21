@@ -67,8 +67,8 @@ int DatabaseDataSource::getStationId() {
         stationId = query.value(0).toInt();
         stationCode = code;
     } else {
-        QMessageBox::warning(0,"Configuration Error",
-                             "Invalid station code " + code);
+        QMessageBox::warning(0,tr("Configuration Error"),
+                             QString(tr("Invalid station code %1")).arg(code));
     }
 
     return stationId;
@@ -643,8 +643,8 @@ void DatabaseDataSource::fetchSamples(SampleColumns columns,
                                       AggregateFunction aggregateFunction,
                                       AggregateGroupType groupType,
                                       uint32_t groupMinutes) {
-    progressListener->setTaskName("Loading...");
-    progressListener->setSubtaskName("Initialise...");
+    progressListener->setTaskName(tr("Loading..."));
+    progressListener->setSubtaskName(tr("Initialise..."));
     progressListener->setRange(0,5);
     progressListener->setValue(0);
 
@@ -667,7 +667,7 @@ void DatabaseDataSource::fetchSamples(SampleColumns columns,
         columns.standard = columns.standard & ~DAVIS_COLUMNS;
     }
 
-    progressListener->setSubtaskName("Count...");
+    progressListener->setSubtaskName(tr("Count..."));
     progressListener->setValue(1);
     if (progressListener->wasCanceled()) return;
 
@@ -681,7 +681,7 @@ void DatabaseDataSource::fetchSamples(SampleColumns columns,
 
     qDebug() << "Expected Row Count" << size;
 
-    progressListener->setSubtaskName("Query...");
+    progressListener->setSubtaskName(tr("Query..."));
     progressListener->setValue(2);
     if (progressListener->wasCanceled()) return;
 
@@ -752,7 +752,7 @@ void DatabaseDataSource::fetchSamples(SampleColumns columns,
         return;
     }
 
-    progressListener->setSubtaskName("Process...");
+    progressListener->setSubtaskName(tr("Process..."));
     progressListener->setValue(3);
 
     SampleSet samples;
@@ -925,7 +925,7 @@ void DatabaseDataSource::fetchSamples(SampleColumns columns,
         if (columns.extra.testFlag(EC_ExtraTemperature3))
             samples.extraTemperature3.append(nullableVariantDouble(record.value("extra_temperature_3")));
     }
-    progressListener->setSubtaskName("Draw...");
+    progressListener->setSubtaskName(tr("Draw..."));
     progressListener->setValue(4);
     if (progressListener->wasCanceled()) return;
 
@@ -1243,7 +1243,7 @@ void DatabaseDataSource::enableLiveData() {
             QVariantMap result = Json::parse(config, ok).toMap();
 
             if (!ok) {
-                emit error("JSON parsing failed");
+                emit error(tr("JSON parsing failed"));
                 return;
             }
 
@@ -1325,7 +1325,7 @@ QList<ImageDate> DatabaseDataSource::getImageDates(int stationId,
      * images.
      */
 
-    progressListener->setSubtaskName("Query...");
+    progressListener->setSubtaskName(tr("Query..."));
     progressListener->setValue(progressOffset + 1);
     if (progressListener->wasCanceled()) return QList<ImageDate>();
 
@@ -1353,7 +1353,7 @@ QList<ImageDate> DatabaseDataSource::getImageDates(int stationId,
         return QList<ImageDate>();
     }
 
-    progressListener->setSubtaskName("Process...");
+    progressListener->setSubtaskName(tr("Process..."));
     progressListener->setValue(progressOffset + 2);
 
     qDebug() << "Processing results...";
@@ -1382,7 +1382,7 @@ QList<ImageSource> DatabaseDataSource::getImageSources(int stationId,
      * images.
      */
 
-    progressListener->setSubtaskName("Query...");
+    progressListener->setSubtaskName(tr("Query..."));
     progressListener->setValue(progressOffset + 1);
     if (progressListener->wasCanceled()) return QList<ImageSource>();
 
@@ -1399,7 +1399,7 @@ QList<ImageSource> DatabaseDataSource::getImageSources(int stationId,
         return QList<ImageSource>();
     }
 
-    progressListener->setSubtaskName("Process...");
+    progressListener->setSubtaskName(tr("Process..."));
     progressListener->setValue(progressOffset + 2);
 
     qDebug() << "Processing results...";
@@ -1422,8 +1422,8 @@ QList<ImageSource> DatabaseDataSource::getImageSources(int stationId,
 
 void DatabaseDataSource::fetchImageDateList() {
 
-    progressListener->setTaskName("Loading...");
-    progressListener->setSubtaskName("Initialise...");
+    progressListener->setTaskName(tr("Loading..."));
+    progressListener->setSubtaskName(tr("Initialise..."));
 
     // 1 step in this function
     // 2 steps in getImageDates
@@ -1450,8 +1450,8 @@ void DatabaseDataSource::fetchImageDateList() {
 void DatabaseDataSource::fetchImageList(QDate date, QString imageSourceCode) {
     qDebug() << "Fetching list of images for" << imageSourceCode << "on" << date;
     progressListener->reset();
-    progressListener->setTaskName("Loading...");
-    progressListener->setSubtaskName("Initialise...");
+    progressListener->setTaskName(tr("Loading..."));
+    progressListener->setSubtaskName(tr("Initialise..."));
     progressListener->setRange(0, 5);
     progressListener->setValue(0);
 
@@ -1483,7 +1483,7 @@ void DatabaseDataSource::fetchImageList(QDate date, QString imageSourceCode) {
         return;
     }
 
-    progressListener->setSubtaskName("Process...");
+    progressListener->setSubtaskName(tr("Process..."));
     progressListener->setValue(2);
 
     qDebug() << "Processing results...";
@@ -1769,9 +1769,9 @@ void DatabaseDataSource::databaseError(QString source, QSqlError error,
     qDebug() << error.driverText();
     qDebug() << error.number() << error.text() << error.type();
     qDebug() << sql;
-    QString message = QString("Source: %1, Driver: %2, Database: %3").arg(
+    QString message = QString(tr("Source: %1, Driver: %2, Database: %3")).arg(
                 source, error.driverText(), error.databaseText());
-    QMessageBox::warning(NULL, "Database Error",
+    QMessageBox::warning(NULL, tr("Database Error"),
                          message);
 
 }
@@ -1810,7 +1810,7 @@ bool DatabaseDataSource::solarAvailable() {
             QVariantMap result = Json::parse(config, ok).toMap();
 
             if (!ok) {
-                emit error("JSON parsing failed");
+                emit error(tr("JSON parsing failed"));
                 return false;
             }
 
@@ -1848,14 +1848,14 @@ void DatabaseDataSource::loadSensorConfig() {
             QVariantMap result = Json::parse(config, ok).toMap();
 
             if (!ok) {
-                emit error("JSON parsing failed");
+                emit error(tr("JSON parsing failed"));
                 return;
             }
 
             if (result["has_solar_and_uv"].toBool()) {
                 sensor_config_t uv;
                 uv.system_name = "uv_index";
-                uv.display_name = "UV Index";
+                uv.display_name = tr("UV Index");
                 uv.enabled = true;
                 uv.isExtraColumn = false;
                 uv.extraColumn = EC_NoColumns;
@@ -1864,7 +1864,7 @@ void DatabaseDataSource::loadSensorConfig() {
 
                 sensor_config_t solar;
                 solar.system_name = "solar_radiation";
-                solar.display_name = "Solar Radiation";
+                solar.display_name = tr("Solar Radiation");
                 solar.enabled = true;
                 solar.isExtraColumn = false;
                 solar.extraColumn = EC_NoColumns;
@@ -1873,7 +1873,7 @@ void DatabaseDataSource::loadSensorConfig() {
 
                 sensor_config_t high_uv;
                 high_uv.system_name = "high_uv_index";
-                high_uv.display_name = "High UV Index";
+                high_uv.display_name = tr("High UV Index");
                 high_uv.enabled = true;
                 high_uv.isExtraColumn = false;
                 high_uv.extraColumn = EC_NoColumns;
@@ -1882,7 +1882,7 @@ void DatabaseDataSource::loadSensorConfig() {
 
                 sensor_config_t high_solar;
                 high_solar.system_name = "high_solar_radiation";
-                high_solar.display_name = "High Solar Radiation";
+                high_solar.display_name = tr("High Solar Radiation");
                 high_solar.enabled = true;
                 high_solar.isExtraColumn = false;
                 high_solar.extraColumn = EC_NoColumns;
@@ -1891,7 +1891,7 @@ void DatabaseDataSource::loadSensorConfig() {
 
                 sensor_config_t evapotranspiration;
                 evapotranspiration.system_name = "evapotranspiration";
-                evapotranspiration.display_name = "Evapotranspiration";
+                evapotranspiration.display_name = tr("Evapotranspiration");
                 evapotranspiration.enabled = true;
                 evapotranspiration.isExtraColumn = false;
                 evapotranspiration.extraColumn = EC_NoColumns;
@@ -1902,7 +1902,7 @@ void DatabaseDataSource::loadSensorConfig() {
             if (getHardwareType() == HW_DAVIS) {
                 sensor_config_t high_temperature;
                 high_temperature.system_name = "high_temperature";
-                high_temperature.display_name = "High Temperature";
+                high_temperature.display_name = tr("High Temperature");
                 high_temperature.enabled = true;
                 high_temperature.isExtraColumn = false;
                 high_temperature.extraColumn = EC_NoColumns;
@@ -1911,7 +1911,7 @@ void DatabaseDataSource::loadSensorConfig() {
 
                 sensor_config_t low_temperature;
                 low_temperature.system_name = "low_temperature";
-                low_temperature.display_name = "Low Temperature";
+                low_temperature.display_name = tr("Low Temperature");
                 low_temperature.enabled = true;
                 low_temperature.isExtraColumn = false;
                 low_temperature.extraColumn = EC_NoColumns;
@@ -1920,7 +1920,7 @@ void DatabaseDataSource::loadSensorConfig() {
 
                 sensor_config_t high_rain_rate;
                 high_rain_rate.system_name = "high_rain_rate";
-                high_rain_rate.display_name = "High Rain rate";
+                high_rain_rate.display_name = tr("High Rain rate");
                 high_rain_rate.enabled = true;
                 high_rain_rate.isExtraColumn = false;
                 high_rain_rate.extraColumn = EC_NoColumns;
@@ -1929,7 +1929,7 @@ void DatabaseDataSource::loadSensorConfig() {
 
                 sensor_config_t gust_wind_direction;
                 gust_wind_direction.system_name = "gust_wind_direction";
-                gust_wind_direction.display_name = "Gust Wind Direction";
+                gust_wind_direction.display_name = tr("Gust Wind Direction");
                 gust_wind_direction.enabled = true;
                 gust_wind_direction.isExtraColumn = false;
                 gust_wind_direction.extraColumn = EC_NoColumns;
@@ -1938,7 +1938,7 @@ void DatabaseDataSource::loadSensorConfig() {
 
                 sensor_config_t forecast_rule_id;
                 forecast_rule_id.system_name = "forecast_rule_id";
-                forecast_rule_id.display_name = "Forecast Rule ID";
+                forecast_rule_id.display_name = tr("Forecast Rule ID");
                 forecast_rule_id.enabled = true;
                 forecast_rule_id.isExtraColumn = false;
                 forecast_rule_id.extraColumn = EC_NoColumns;
@@ -1949,7 +1949,7 @@ void DatabaseDataSource::loadSensorConfig() {
             if (result["is_wireless"].toBool()) {
                 sensor_config_t wireless;
                 wireless.system_name = "reception";
-                wireless.display_name = "Reception";
+                wireless.display_name = tr("Reception");
                 wireless.enabled = true;
                 wireless.isExtraColumn = false;
                 wireless.extraColumn = EC_NoColumns;
@@ -2132,7 +2132,7 @@ station_info_t DatabaseDataSource::getStationInfo() {
                 QVariantMap result = Json::parse(hwConfig, ok).toMap();
 
                 if (!ok) {
-                    emit error("JSON parsing of station config document failed");
+                    emit error(tr("JSON parsing of station config document failed"));
                     qWarning() << "Failed to parse station config";
                 }
                 info.hasSolarAndUV = result["has_solar_and_uv"].toBool();

@@ -78,14 +78,14 @@ MainWindow::MainWindow(QWidget *parent) :
 
     sysTrayIcon.reset(new QSystemTrayIcon(this));
     sysTrayIcon->setIcon(QIcon(":/icons/systray_icon_warning"));
-    sysTrayIcon->setToolTip("No data");
+    sysTrayIcon->setToolTip(tr("No data"));
     sysTrayIcon->show();
     connect(sysTrayIcon.data(), SIGNAL(activated(QSystemTrayIcon::ActivationReason)),
             this, SLOT(trayIconActivated(QSystemTrayIcon::ActivationReason)));
 
     trayIconMenu.reset(new QMenu(this));
-    restoreAction.reset(new QAction("&Restore",trayIconMenu.data()));
-    quitAction.reset(new QAction("&Quit",trayIconMenu.data()));
+    restoreAction.reset(new QAction(tr("&Restore"),trayIconMenu.data()));
+    quitAction.reset(new QAction(tr("&Quit"),trayIconMenu.data()));
     trayIconMenu->addAction(restoreAction.data());
     trayIconMenu->addSeparator();
     trayIconMenu->addAction(quitAction.data());
@@ -180,7 +180,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     if (settings.stationCode().isEmpty()) {
         // We're probably migrating settings from v0.1.
-        QMessageBox::information(this, "Bad configuration", "The station name has not been configured. You will now be shown the settings dialog.");
+        QMessageBox::information(this, tr("Bad configuration"),
+                                 tr("The station name has not been configured. You will now be shown the settings dialog."));
         showSettings();
     }
     else {
@@ -247,15 +248,14 @@ bool MainWindow::databaseCompatibilityChecks(bool samples, bool live) {
         QString version = getMinimumAppVersion(db);
         if (!version.isNull()) {
             // This will only work on a v2+ schema (zxweather v0.2+)
-            version = tr(" Please upgrade to at least version ")
-                    + version + ".";
+            version = QString(tr(" Please upgrade to at least version %1.")).arg(version);
         }
 
         QMessageBox::warning(this, tr("Database Incompatible"),
-                             tr("The configured database is incompatible "
+                             QString(tr("The configured database is incompatible "
                              "with this version of the zxweather "
-                             "desktop client.") + version + tr(" Database"
-                             " functionality will be disabled."));
+                             "desktop client.%1 Database"
+                             " functionality will be disabled.")).arg(version));
         QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
         disableDataSourceFunctionality(samples, live);
         return false;
@@ -271,7 +271,7 @@ void MainWindow::checkDatabase() {
     if (!db.isOpen()) {
         qDebug() << "Lost database connection. Beginning reconnect...";
         if (!db.open()) {
-            dataSourceError("Failed to reconnect database");
+            dataSourceError(tr("Failed to reconnect database"));
             return;
         }
         qDebug() << "Reconnected!";
@@ -285,7 +285,7 @@ void MainWindow::checkDatabase() {
     if (!q.exec("select 1")) {
         qDebug() << "Lost database connection. Beginning reconnect...";
         if (!db.open()) {
-            dataSourceError("Failed to reconnect database");
+            dataSourceError(tr("Failed to reconnect database"));
             return;
         }
         qDebug() << "Reconnected!";
@@ -358,7 +358,7 @@ void MainWindow::reconnectDatabase() {
                 QMessageBox::warning(this, tr("Connect error"),
                                      QString(tr("Failed to connect to the database. Charting and Reporting "
                                      "functions will not be available. The error "
-                                     "was: %0").arg(db.lastError().driverText())));
+                                     "was: %1").arg(db.lastError().driverText())));
                 disableDataSourceFunctionality(dbSamples, dbLive);
             } else {
                 qDebug() << "Connect succeeded. Checking compatibility...";
@@ -371,7 +371,7 @@ void MainWindow::reconnectDatabase() {
         } else {
             QMessageBox::warning(this, tr("Database Driver Error"),
                                  QString(tr("The database driver failed to load. "
-                                            "The last error was: %0").arg(
+                                            "The last error was: %1").arg(
                                              db.lastError().driverText())));
             disableDataSourceFunctionality(dbSamples, dbLive);
         }
@@ -405,11 +405,11 @@ void MainWindow::changeEvent(QEvent *e)
                 minimise_to_systray) {
 
             if (!Settings::getInstance().singleShotMinimiseToSysTray()) {
-                QMessageBox::information(this, "zxweather",
-                                     "zxweather will minimise to the "
+                QMessageBox::information(this, tr("zxweather"),
+                                     tr("zxweather will minimise to the "
                                      "system tray. To restore it, click on the "
                                      "icon. This behaviour can be changed in the "
-                                     "settings dialog.");
+                                     "settings dialog."));
                 Settings::getInstance().setSingleShotMinimiseToSysTray();
             }
 
@@ -494,12 +494,12 @@ void MainWindow::closeEvent(QCloseEvent *event)
     if (sysTrayIcon->isVisible()) {
         if (close_to_systray) {
             if (!Settings::getInstance().singleShotCloseToSysTray()) {
-                QMessageBox::information(this, "zxweather",
-                                     "zxweather will keep running in the "
+                QMessageBox::information(this, tr("zxweather"),
+                                     tr("zxweather will keep running in the "
                                         "system tray. To restore it, click on the "
                                         "icon. To exit, right-click on the system tray "
                                         "icon and choose <b>Exit</b>. This behaviour "
-                                        "can be changed from the settings dialog.");
+                                        "can be changed from the settings dialog."));
                 Settings::getInstance().setSingleShotCloseToSysTray();
             }
             hide();
@@ -659,7 +659,7 @@ void MainWindow::updateSysTrayIcon(QIcon icon) {
 }
 
 void MainWindow::dataSourceError(QString message) {
-    showWarningPopup(message, "Error", "", false);
+    showWarningPopup(message, tr("Error"), "", false);
 }
 
 void MainWindow::refreshRainWidget() {
@@ -868,7 +868,7 @@ void MainWindow::liveDataSourceConnectFailed(QString errorMessage) {
                 this, tr("Live data connect failed"),
                 QString(tr("An error occurred connecting to the live data source. "
                            "Current conditions and live charts will not be "
-                           "available. The error was: %0")).arg(errorMessage));
+                           "available. The error was: %1")).arg(errorMessage));
     disableDataSourceFunctionality(false, true);
 }
 
@@ -879,7 +879,7 @@ void MainWindow::samplesDataSourceConnectFailed(QString errorMessage) {
                 QString(tr("An error occurred connecting to the sample data source. "
                            "Features relying archive data (charts, export, "
                            "view data, reports) will be unavailable. The error "
-                           "was: %0")).arg(errorMessage));
+                           "was: %1")).arg(errorMessage));
 }
 
 void MainWindow::liveConnected() {

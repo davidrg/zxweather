@@ -47,8 +47,8 @@ void ListDayImagesWebTask::beginTask() {
             return;
         }
 
-        emit subtaskChanged("Checking image list cache status for " +
-                            _date.toString(Qt::SystemLocaleShortDate));
+        emit subtaskChanged(QString(tr("Checking image list cache status for %1")).arg(
+                            _date.toString(Qt::SystemLocaleShortDate)));
         emit httpHead(QNetworkRequest(_url));
     }
 }
@@ -92,19 +92,19 @@ void ListDayImagesWebTask::imageSourceInfoRequestFinished(QNetworkReply *reply) 
         imageSource.description = src["description"].toString();
     } else {
         qDebug() << "Image source " << _imageSourceCode << "not found!";
-        emit failed("Image source not found: " + _imageSourceCode);
+        emit failed(QString(tr("Image source not found: %1")).arg(_imageSourceCode));
         return;
     }
 
     // 3: Get image list cache status
-    emit subtaskChanged("Checking image list cache status for " +
-                        _date.toString(Qt::SystemLocaleShortDate));
+    emit subtaskChanged(QString(tr("Checking image list cache status for %1")).arg(
+                        _date.toString(Qt::SystemLocaleShortDate)));
     emit httpHead(QNetworkRequest(_url));
 }
 
 void ListDayImagesWebTask::getDataset() {
-    emit subtaskChanged("Downloading image list for " +
-                        _date.toString(Qt::SystemLocaleShortDate));
+    emit subtaskChanged(QString(tr("Downloading image list for %1")).arg(
+                        _date.toString(Qt::SystemLocaleShortDate)));
 
     // 5: Download image list
     emit httpGet(QNetworkRequest(_url));
@@ -157,8 +157,8 @@ void ListDayImagesWebTask::downloadRequestFinished(QNetworkReply *reply) {
     qDebug() << "Download completed for" << _date << "[" << _url << "]";
     qDebug() << data;
 
-    emit subtaskChanged("Processing image list for " +
-                        _date.toString(Qt::SystemLocaleShortDate));
+    emit subtaskChanged(QString(tr("Processing image list for %1")).arg(
+                        _date.toString(Qt::SystemLocaleShortDate)));
 
     QDateTime lastModified = reply->header(
                 QNetworkRequest::LastModifiedHeader).toDateTime();
@@ -206,8 +206,8 @@ void ListDayImagesWebTask::downloadRequestFinished(QNetworkReply *reply) {
 
     imageSet.images = images;
 
-    emit subtaskChanged("Caching data for " +
-                        _date.toString(Qt::SystemLocaleShortDate));
+    emit subtaskChanged(QString(tr("Caching data for %1")).arg(
+                        _date.toString(Qt::SystemLocaleShortDate)));
     WebCacheDB::getInstance().cacheImageSet(imageSet);
 
     // TODO: return the non-cached version seeing as we've already got it
@@ -219,8 +219,8 @@ void ListDayImagesWebTask::downloadRequestFinished(QNetworkReply *reply) {
 
 // 7: Return List
 void ListDayImagesWebTask::returnImageListAndFinish() {
-    emit subtaskChanged("Building list for " +
-                        _date.toString(Qt::SystemLocaleShortDate));
+    emit subtaskChanged(QString(tr("Building list for %1")).arg(
+                        _date.toString(Qt::SystemLocaleShortDate)));
 
     QVector<ImageInfo> result = WebCacheDB::getInstance()
             .getImagesForDate(_date, _stationBaseUrl, _imageSourceCode);

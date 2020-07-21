@@ -24,10 +24,10 @@ void LiveColumnPickerWidget::configure(bool solarAvailable, hardware_type_t hw_t
 
 
     // Rename a few things
-    ui->cbRainfall->setText("Storm Rain");
-    ui->cbRainRate->setText("Rain Rate");
-    ui->cbWindSpeed->setText("Wind Speed");
-    ui->cbWindDirection->setText("Wind Direction");
+    ui->cbRainfall->setText(tr("Storm Rain"));
+    ui->cbRainRate->setText(tr("Rain Rate"));
+    ui->cbWindSpeed->setText(tr("Wind Speed"));
+    ui->cbWindDirection->setText(tr("Wind Direction"));
 
     // Nothing on this tab is ever available in a live data feed so just get rid of it.
     ui->tabWidget->removeTab(ui->tabWidget->indexOf(ui->tabHighsAndLows));

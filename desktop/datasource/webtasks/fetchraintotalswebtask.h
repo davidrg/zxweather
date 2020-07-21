@@ -17,7 +17,7 @@ public:
     void beginTask();
 
     QString supertaskName() const {
-        return "Downloading Rain Summary...";
+        return tr("Downloading Rain Summary...");
     }
 
     QString taskName() const {

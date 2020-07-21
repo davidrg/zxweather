@@ -121,5 +121,5 @@ void ViewDataSetWindow::samplesReady(SampleSet samples)
 
 void ViewDataSetWindow::samplesFailed(QString message)
 {
-    QMessageBox::critical(this, "Error", message);
+    QMessageBox::critical(this, tr("Error"), message);
 }

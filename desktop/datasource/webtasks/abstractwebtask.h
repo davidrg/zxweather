@@ -136,7 +136,7 @@ public slots:
      */
     virtual void networkError(QNetworkReply::NetworkError code) {
         Q_UNUSED(code)
-        emit failed("Network error");
+        emit failed(tr("Network error"));
     }
 
     /** Cancels whatever this task is doing

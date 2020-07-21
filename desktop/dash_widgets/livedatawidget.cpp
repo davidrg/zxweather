@@ -186,14 +186,14 @@ void LiveDataWidget::refreshSysTrayText(LiveDataSet lds) {
     if (imperial) {
         // Tool Tip Text
         if (lds.indoorDataAvailable) {
-            formatString = "Temperature: %1" IMPERIAL_TEMPERATURE_SYMBOL " (%2" IMPERIAL_TEMPERATURE_SYMBOL " inside)\nHumidity: %3% (%4% inside)";
+            formatString = tr("Temperature: %1" IMPERIAL_TEMPERATURE_SYMBOL " (%2" IMPERIAL_TEMPERATURE_SYMBOL " inside)\nHumidity: %3% (%4% inside)");
             iconText = formatString
                     .arg(QString::number(UnitConversions::celsiusToFahrenheit(lds.temperature), 'f', 1),
                          QString::number(UnitConversions::celsiusToFahrenheit(lds.indoorTemperature), 'f', 1),
                          QString::number(lds.humidity, 'f', 1),
                          QString::number(lds.indoorHumidity, 'f', 1));
         } else {
-            formatString = "Temperature: %1" IMPERIAL_TEMPERATURE_SYMBOL "\nHumidity: %3%";
+            formatString = tr("Temperature: %1" IMPERIAL_TEMPERATURE_SYMBOL "\nHumidity: %3%");
             iconText = formatString
                     .arg(QString::number(UnitConversions::celsiusToFahrenheit(lds.temperature), 'f', 1),
                          QString::number(lds.humidity, 'f', 1));
@@ -201,14 +201,14 @@ void LiveDataWidget::refreshSysTrayText(LiveDataSet lds) {
     } else {
         // Tool Tip Text
         if (lds.indoorDataAvailable) {
-            formatString = "Temperature: %1" TEMPERATURE_SYMBOL " (%2" TEMPERATURE_SYMBOL " inside)\nHumidity: %3% (%4% inside)";
+            formatString = tr("Temperature: %1" TEMPERATURE_SYMBOL " (%2" TEMPERATURE_SYMBOL " inside)\nHumidity: %3% (%4% inside)");
             iconText = formatString
                     .arg(QString::number(lds.temperature, 'f', 1),
                          QString::number(lds.indoorTemperature, 'f', 1),
                          QString::number(lds.humidity, 'f', 1),
                          QString::number(lds.indoorHumidity, 'f', 1));
         } else {
-            formatString = "Temperature: %1" TEMPERATURE_SYMBOL "\nHumidity: %3%";
+            formatString = tr("Temperature: %1" TEMPERATURE_SYMBOL "\nHumidity: %3%");
             iconText = formatString
                     .arg(QString::number(lds.temperature, 'f', 1),
                          QString::number(lds.humidity, 'f', 1));

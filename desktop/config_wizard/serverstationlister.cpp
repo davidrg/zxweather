@@ -21,7 +21,7 @@ ServerStationLister::ServerStationLister(QObject *parent) :
 
 void ServerStationLister::fetchStationList(QString server, int port) {
 
-    QString message = "Connecting to weather server...";
+    QString message = tr("Connecting to weather server...");
     qDebug() << message;
     emit statusUpdate(message);
 
@@ -33,14 +33,14 @@ void ServerStationLister::fetchStationList(QString server, int port) {
 }
 
 void ServerStationLister::connected() {
-    QString message = "Connected to server.";
+    QString message = tr("Connected to server.");
     qDebug() << message;
     emit statusUpdate(message);
     currentState = ST_CONNECTED;
 }
 
 void ServerStationLister::disconnected() {
-    QString message = "Disconnected from server.";
+    QString message = tr("Disconnected from server.");
     qDebug() << message;
 }
 
@@ -63,7 +63,7 @@ void ServerStationLister::sendNextCommand() {
 
     if (currentState == ST_CONNECTED) {
         // We need to setup the connection.
-        emit statusUpdate("Setting up connection...");
+        emit statusUpdate(tr("Setting up connection..."));
         QByteArray data = "set client \"desktop\"/version=\"" +
                 Constants::VERSION_STR + "\"\r\n";
         qDebug() << "SND:" << data;
@@ -71,7 +71,7 @@ void ServerStationLister::sendNextCommand() {
         currentState = ST_SETUP;
     } else if (currentState == ST_SETUP_COMPLETE){
         // Setup is finished. Request the station list.
-        emit statusUpdate("Requesting station list...");
+        emit statusUpdate(tr("Requesting station list..."));
         QByteArray data = "list stations/json\r\n";
         qDebug() << "SND:" << data;
         socket->write(data.constData(), data.length());
@@ -112,7 +112,7 @@ void ServerStationLister::readyRead() {
 }
 
 void ServerStationLister::processStationList(QString jsonData) {
-    emit statusUpdate("Processing station list...");
+    emit statusUpdate(tr("Processing station list..."));
     qDebug() << "Processing station list...";
 
     qDebug() << "JSON-encoded station data:" << jsonData;

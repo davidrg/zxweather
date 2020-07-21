@@ -37,14 +37,14 @@ public:
      *
      * @return Supertask name
      */
-    virtual QString supertaskName() const { return "Downloading data sets..."; }
+    virtual QString supertaskName() const { return tr("Downloading data sets..."); }
 
     /** Name of this task. Used as the first line in a one line progress dialog
      * or the second line (shared with subtasks) in a two-line progress dialog.
      *
      * @return Name of this task or this tasks first subtask.
      */
-    virtual QString taskName() const { return "Select dataset"; }
+    virtual QString taskName() const { return tr("Select dataset"); }
 
 public slots:
     /** Called when a network reply for a request this task submitted has
@@ -65,7 +65,7 @@ public slots:
      */
     virtual void networkError(QNetworkReply::NetworkError code) {
         Q_UNUSED(code)
-        emit failed("Network error");
+        emit failed(tr("Network error"));
     }
 
 private:

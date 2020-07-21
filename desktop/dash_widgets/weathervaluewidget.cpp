@@ -106,7 +106,7 @@ void WeatherValueWidget::updateDisplay() {
     }
 
     if (insideOutside) {
-        label->setText(QString("%0 (%1 inside)")
+        label->setText(QString(tr("%1 (%2 inside)"))
                        .arg(QString(v1))
                        .arg(QString(v2)));
     } else if (doubleValue) {
@@ -117,7 +117,7 @@ void WeatherValueWidget::updateDisplay() {
           // Degrees & compass point
           label->setText(QString(v1) + " " + v2s);
       } else {
-          label->setText(QString("%0 (%1)")
+          label->setText(QString(tr("%1 (%2)"))
                          .arg(QString(v1)).arg(v2s));
       }
     } else {
@@ -146,7 +146,7 @@ void WeatherValueWidget::updateDisplay() {
                 exposureCategory = tr("extreme");
             }
 
-            label->setText(QString("%1 (%2)").arg(QString(v1)).arg(exposureCategory));
+            label->setText(QString(tr("%1 (%2)")).arg(QString(v1)).arg(exposureCategory));
         } else {
             label->setText(v1);
         }

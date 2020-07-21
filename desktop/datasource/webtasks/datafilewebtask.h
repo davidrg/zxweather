@@ -44,7 +44,7 @@ public:
      * @return Name of this task or this tasks first subtask.
      */
     QString taskName() const {
-        return "Checking cache status of " + _name;
+        return QString(tr("Checking cache status of %1")).arg(_name);
     }
 
     /** Compares the result from an HTTP HEAD request to the cache database

@@ -36,7 +36,7 @@ void FetchRainTotalsWebTask::networkReplyReceived(QNetworkReply *reply) {
 
         if (!ok) {
             qDebug() << "rain summary parse error. Data:" << replyData;
-            emit failed("JSON parsing failed while loading rain summary.");
+            emit failed(tr("JSON parsing failed while loading rain summary."));
             return;
         }
 

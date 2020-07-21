@@ -81,7 +81,7 @@ void RangeRequestWebTask::beginTask() {
 
     QString url = _stationBaseUrl + DATASET_RANGE;
 
-    emit subtaskChanged("Validating data range...");
+    emit subtaskChanged(tr("Validating data range..."));
 
     QNetworkRequest request(url);
 
@@ -223,8 +223,8 @@ bool RangeRequestWebTask::processRangeResponse(QString data) {
     QVariantMap result = Json::parse(data, ok).toMap();
 
     if (!ok) {
-        emit failed("JSON parsing failed for timestamp range "
-                                  "request. Download aborted.");
+        emit failed(tr("JSON parsing failed for timestamp range "
+                                  "request. Download aborted."));
         qWarning() << "Failed parsing JSON response from timestamp range request";
 
         return false;
@@ -321,7 +321,7 @@ void RangeRequestWebTask::queueDownloadTasks(bool forceDownload) {
 
 #ifdef PARALLEL_HEAD
 void RangeRequestWebTask::headUrls() {
-    emit subtaskChanged("Checking Cache Status...");
+    emit subtaskChanged(tr("Checking Cache Status..."));
     foreach (QString url, _urlNames.keys()) {
         QNetworkRequest request(url);
         _awaitingUrls++;

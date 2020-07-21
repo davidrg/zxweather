@@ -159,7 +159,7 @@ ChartWindow::ChartWindow(QList<DataSet> dataSets, bool solarAvailable, bool isWi
             SLOT(legendDoubleClick(QCPLegend*,QCPAbstractLegendItem*,
                                    QMouseEvent*)));
 
-    setWindowTitle("Chart");
+    setWindowTitle(tr("Chart"));
 
     this->dataSets = dataSets;
 
@@ -284,8 +284,8 @@ void ChartWindow::axisDoubleClick(QCPAxis *axis, QCPAxis::SelectablePart part,
 
         QString newLabel = QInputDialog::getText(
                     this,
-                    defaultLabel + " Axis Label",
-                    "New axis label:",
+                    QString(tr("%1 Axis Label")).arg(defaultLabel),
+                    tr("New axis label:"),
                     QLineEdit::Normal,
                     axis->label(),
                     &ok);
@@ -527,34 +527,34 @@ void ChartWindow::showLegendContextMenu(QPoint point)
     menu->addSeparator();
 
     // Options to re-position the legend
-    menu->addAction("Move to top left",
+    menu->addAction(tr("Move to top left"),
                     this,
                     SLOT(moveLegend()))->setData((int)(Qt::AlignTop
                                                        | Qt::AlignLeft));
-    menu->addAction("Move to top center",
+    menu->addAction(tr("Move to top center"),
                     this,
                     SLOT(moveLegend()))->setData((int)(Qt::AlignTop
                                                        | Qt::AlignHCenter));
-    menu->addAction("Move to top right",
+    menu->addAction(tr("Move to top right"),
                     this,
                     SLOT(moveLegend()))->setData((int)(Qt::AlignTop
                                                        | Qt::AlignRight));
-    menu->addAction("Move to bottom right",
+    menu->addAction(tr("Move to bottom right"),
                     this,
                     SLOT(moveLegend()))->setData((int)(Qt::AlignBottom
                                                        | Qt::AlignRight));
-    menu->addAction("Move to bottom center",
+    menu->addAction(tr("Move to bottom center"),
                     this,
                     SLOT(moveLegend()))->setData((int)(Qt::AlignBottom
                                                        | Qt::AlignHCenter));
-    menu->addAction("Move to bottom left",
+    menu->addAction(tr("Move to bottom left"),
                     this,
                     SLOT(moveLegend()))->setData((int)(Qt::AlignBottom
                                                        | Qt::AlignLeft));
 
     // And an option to get rid of it entirely.
     menu->addSeparator();
-    menu->addAction("Hide", this, SLOT(showLegendToggle()));
+    menu->addAction(tr("Hide"), this, SLOT(showLegendToggle()));
 
     menu->popup(ui->chart->mapToGlobal(point));
 }
@@ -718,8 +718,8 @@ void ChartWindow::renameSelectedKeyAxis() {
     bool ok;
     QString name = QInputDialog::getText(
                 this,
-                "Rename Axis",
-                "New Axis Label:",
+                tr("Rename Axis"),
+                tr("New Axis Label:"),
                 QLineEdit::Normal,
                 keyAxis->label(),
                 &ok);
@@ -840,7 +840,7 @@ void ChartWindow::showValueAxisContextMenu(QPoint point, QCPAxis *axis) {
     QMenu* menu = new QMenu(this);
     menu->setAttribute(Qt::WA_DeleteOnClose);
 
-    menu->addAction("&Rename",
+    menu->addAction(tr("&Rename"),
                     this, SLOT(renameSelectedValueAxis()));
 
     menu->addAction(tr("&Change Label Font..."), this, SLOT(changeAxisLabelFont()));
@@ -882,8 +882,8 @@ void ChartWindow::renameSelectedValueAxis() {
     bool ok;
     QString name = QInputDialog::getText(
                 this,
-                "Rename Axis",
-                "New Axis Label:",
+                tr("Rename Axis"),
+                tr("New Axis Label:"),
                 QLineEdit::Normal,
                 valueAxis->label(),
                 &ok);
@@ -901,8 +901,8 @@ void ChartWindow::addTitle()
         // Title has never been set. Ask for a value.
         plotTitleValue = QInputDialog::getText(
                     this,
-                    "Chart Title",
-                    "New chart title:",
+                    tr("Chart Title"),
+                    tr("New chart title:"),
                     QLineEdit::Normal,
                     "",
                     &ok);
@@ -1074,8 +1074,8 @@ void ChartWindow::renameSelectedGraph()
         bool ok;
         QString title = QInputDialog::getText(
                     this,
-                    "Rename Graph",
-                    "New graph name:",
+                    tr("Rename Graph"),
+                    tr("New graph name:"),
                     QLineEdit::Normal,
                     graph->name(),
                     &ok);
@@ -1220,11 +1220,11 @@ void ChartWindow::copy() {
 
 void ChartWindow::save() {
 
-    QString pdfFilter = "Adobe Portable Document Format (*.pdf)";
-    QString pngFilter = "Portable Network Graphics (*.png)";
-    QString jpgFilter = "JPEG (*.jpg)";
-    QString bmpFilter = "Windows Bitmap (*.bmp)";
-    QString svgFilter = "Scalable Vector Graphics (*.svg)";
+    QString pdfFilter = tr("Adobe Portable Document Format (*.pdf)");
+    QString pngFilter = tr("Portable Network Graphics (*.png)");
+    QString jpgFilter = tr("JPEG (*.jpg)");
+    QString bmpFilter = tr("Windows Bitmap (*.bmp)");
+    QString svgFilter = tr("Scalable Vector Graphics (*.svg)");
 
     QString filter = pngFilter + ";;" + svgFilter + ";;" + pdfFilter + ";;" +
             jpgFilter + ";;" + bmpFilter;
@@ -1232,7 +1232,7 @@ void ChartWindow::save() {
     QString selectedFilter;
 
     QString fileName = QFileDialog::getSaveFileName(
-                this, "Save As" ,"", filter, &selectedFilter);
+                this, tr("Save As"), "", filter, &selectedFilter);
 
 
     qDebug() << selectedFilter;
@@ -1256,7 +1256,7 @@ void ChartWindow::save() {
         if (plotTitleEnabled) {
             generator.setTitle(plotTitleValue);
         } else {
-            generator.setTitle("Plot");
+            generator.setTitle(tr("Plot"));
         }
         generator.setDescription(tr("Generated by zxweather"));
         QCPPainter qcpPainter;
@@ -1270,7 +1270,7 @@ void ChartWindow::addDataSet() {
     ChartOptionsDialog options(solarDataAvailable, hw_type, isWireless,
                                extraColumns,
                                extraColumnNames);
-    options.setWindowTitle("Add Data Set");
+    options.setWindowTitle(tr("Add Data Set"));
     options.setWindowIcon(QIcon(":/icons/dataset-add"));
 
     int result = options.exec();

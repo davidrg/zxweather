@@ -47,8 +47,9 @@ public:
         else if (_imageInfo.mimeType.startsWith("audio/"))
             t = "recording";
 
-        return ("Downloading " + t + " " +
-                _imageInfo.timeStamp.toString(Qt::SystemLocaleShortDate));
+        return QString(tr("Downloading %1 %2"))
+                .arg(t)
+                .arg(_imageInfo.timeStamp.toString(Qt::SystemLocaleShortDate));
     }
 
 public slots:

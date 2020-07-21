@@ -51,11 +51,11 @@ DatabaseDetailsPage::DatabaseDetailsPage(QWidget *parent)
     registerField(DATABASE_PASSWORD_FIELD "*", password);
 
     QFormLayout* detailsPageLayout = new QFormLayout;
-    detailsPageLayout->addRow(tr("&Database Name"), databaseName);
-    detailsPageLayout->addRow(tr("Server &Host Name"), hostName);
-    detailsPageLayout->addRow(tr("Server P&ort"), port);
-    detailsPageLayout->addRow(tr("&Username"), userName);
-    detailsPageLayout->addRow(tr("&Password"), password);
+    detailsPageLayout->addRow(tr("&Database Name:"), databaseName);
+    detailsPageLayout->addRow(tr("Server &Host Name:"), hostName);
+    detailsPageLayout->addRow(tr("Server P&ort:"), port);
+    detailsPageLayout->addRow(tr("&Username:"), userName);
+    detailsPageLayout->addRow(tr("&Password:"), password);
 
     detailsPage = new QWidget;
     detailsPage->setLayout(detailsPageLayout);
@@ -65,7 +65,7 @@ DatabaseDetailsPage::DatabaseDetailsPage(QWidget *parent)
     progressBar->setMaximum(0);
     progressBar->setTextVisible(false);
     progress = new QLabel;
-    progress->setText("Connecting...");
+    progress->setText(tr("Connecting..."));
     progress->setAlignment(Qt::AlignHCenter);
 
     QVBoxLayout *progressPageLayout = new QVBoxLayout;
@@ -165,8 +165,10 @@ void DatabaseDetailsPage::showErrorPage(QString title, QString subtitle, QString
     errorLabel->setText(message);
 }
 
+// Does this ever happen now? Or does disabling the Database option on the access type page
+// prevent the application from ever getting here?
 bool DatabaseDetailsPage::checkDriver() {
-    progress->setText("Check driver");
+    progress->setText(tr("Check driver"));
     if (!QSqlDatabase::drivers().contains("QPSQL")) {
         QString subtitle = tr("Database Driver Not Found");
 #if defined(Q_OS_WIN) || defined(Q_OS_MAC) || defined(Q_OS_OS2) \
@@ -238,17 +240,18 @@ bool DatabaseDetailsPage::checkCompatibility(QSqlDatabase db) {
             QString minimumVersion = DbUtil::getMinimumAppVersion(db);
 
             if (!minimumVersion.isNull()) {
-                minimumVersion = tr(" You must obtain at version ")
-                        + minimumVersion + " or newer of the desktop client to"
-                        " connect to this database.";
+                minimumVersion = QString(
+                            tr(" You must obtain at version %1 or newer of the "
+                               "desktop client to connect to this database."))
+                        .arg(minimumVersion);
             }
 
             showErrorPage(tr("Error"), tr("Incompatible Database"),
-                      tr("The database you specified is "
+                      QString(tr("The database you specified is "
                          "incompatible with this version of the zxweather "
-                         "desktop client.") + minimumVersion + tr(" Click "
+                         "desktop client.%1 Click "
                          "<b>Back</b> to connect to another database or "
-                         "<b>Cancel</b> to exit this wizard."));
+                         "<b>Cancel</b> to exit this wizard.")).arg(minimumVersion));
         } else {
             // Database is corrupt or its not a real weather database.
             showErrorPage(tr("Error"), tr("Bad Schema Version"),
@@ -295,13 +298,12 @@ bool DatabaseDetailsPage::validatePage() {
          * database.
          */
         showErrorPage(tr("Error"), tr("No weather stations configured."),
-                  tr("There are no weather stations configured in this weather"
-                     " database. Consult the zxweather Installation Reference "
-                     "manual") + " (" +
-                  Constants::INSTALLATION_REFERENCE_MANUAL + ") " +
-                  tr("for database setup instructions.") +
-                  tr(" Click <b>Back</b> to connect to another database or "
-                     "<b>Cancel</b> to exit this wizard."));
+                  QString(tr("There are no weather stations configured in this weather"
+                             " database. Consult the zxweather Installation Reference "
+                             "manual (%1) for database setup instructions. Click "
+                             "<b>Back</b> to connect to another database or "
+                             "<b>Cancel</b> to exit this wizard."))
+                      .arg(Constants::INSTALLATION_REFERENCE_MANUAL));
         QSqlDatabase::removeDatabase(DB_NAME);
         return false;
     }

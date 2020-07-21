@@ -121,12 +121,12 @@ void ConfirmDetailsPage::initialiseForInternet() {
 
     table->setItem(0, 1, new QTableWidgetItem(tr("Internet")));
     table->setItem(1, 1, new QTableWidgetItem(webUrl));
-    table->setItem(2, 1, new QTableWidgetItem(serverAvailable ? "Yes" : "No"));
+    table->setItem(2, 1, new QTableWidgetItem(serverAvailable ? tr("Yes") : tr("No")));
     if (serverAvailable)
-        table->setItem(3, 1, new QTableWidgetItem(QString("%1:%2")
+        table->setItem(3, 1, new QTableWidgetItem(QString(tr("%1:%2"))
                                               .arg(serverHostname).arg(serverPort)));
     else
-        table->setItem(3, 1, new QTableWidgetItem("n/a"));
+        table->setItem(3, 1, new QTableWidgetItem(tr("n/a")));
 
     setStationName();
 }
@@ -143,7 +143,7 @@ void ConfirmDetailsPage::setStationName() {
 
         // The user had to choose a station on the station select screen.
         table->setItem(4, 1, new QTableWidgetItem(
-                           QString("%1 (%2)")
+                           QString(tr("%1 (%2)"))
                                .arg(stationTitle).arg(stationCode)));
     } else {
         // Only one station was available. Get the details set by the
@@ -151,7 +151,7 @@ void ConfirmDetailsPage::setStationName() {
         DbUtil::StationInfo station = field(FIRST_STATION_FIELD).value<DbUtil::StationInfo>();
 
         table->setItem(4, 1, new QTableWidgetItem(
-                           QString("%1 (%2)").arg(station.title)
+                           QString(tr("%1 (%2)")).arg(station.title)
                                 .arg(station.code)));
     }
 }

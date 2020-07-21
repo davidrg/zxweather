@@ -46,14 +46,14 @@ void StatusWidget::refreshLiveData(LiveDataSet lds) {
     // I can't find anything that explains the transmitter  battery status
     // byte but what I can find suggests that it gives the status for
     // transmitters 1-8. I'm assuming it must be a bitmap.
-    QString txStatus = "bad: ";
+    QString txStatus = tr("bad: ");
     char txStatusByte = (char)lds.davisHw.txBatteryStatus;
     for (int i = 0; i < 8; i++) {
         if (CHECK_BIT(txStatusByte, i))
             txStatus.append(QString::number(i) + ", ");
     }
-    if (txStatus == "bad: ")
-        txStatus = "ok";
+    if (txStatus == tr("bad: "))
+        txStatus = tr("ok");
     else
         txStatus = txStatus.mid(0, txStatus.length() - 2);
     ui->lblTxBattery->setText(txStatus);

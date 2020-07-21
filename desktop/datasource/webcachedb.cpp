@@ -50,7 +50,7 @@ void WebCacheDB::openDatabase() {
 
     db.setDatabaseName(filename);
     if (!db.open()) {
-        emit criticalError("Failed to open cache database");
+        emit criticalError(tr("Failed to open cache database"));
         return;
     }
 
@@ -107,7 +107,7 @@ void WebCacheDB::openDatabase() {
             if (!runUpgradeScript(6, ":/cache_db/v6.sql", filename)) return; // v5 -> v6
 
         } else {
-            emit criticalError("Failed to determine version of cache database");
+            emit criticalError(tr("Failed to determine version of cache database"));
         }
     }
     ready = true;
@@ -138,7 +138,7 @@ bool WebCacheDB::runUpgradeScript(int version, QString script, QString filename)
 
     if (!runDbScript(script)) {
         qWarning() << "v" + QString::number(version) + " upgrade failed.";
-        emit criticalError("Failed to upgrade cache database. Delete file " + filename + " manually to correct error.");
+        emit criticalError(QString(tr("Failed to upgrade cache database. Delete file %1 manually to correct error.")).arg(filename));
         return false;
     }
 
@@ -1609,7 +1609,7 @@ SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
     qDebug() << "Total Rows: " << query.numRowsAffected();
 
     if (progressListener != NULL) {
-        progressListener->setSubtaskName("Loading Results...");
+        progressListener->setSubtaskName(tr("Loading Results..."));
         progressListener->setMaximum(progressListener->maximum() + count / 100);
     }
 

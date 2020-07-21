@@ -14,6 +14,8 @@
 #include <QMap>
 #include <QDesktopServices>
 #include <QAbstractTableModel>
+#include <QCoreApplication>
+#include <QLocale>
 
 #if USE_QJSENGINE
 #include <QJSEngine>
@@ -39,23 +41,28 @@
 #include "scriptingengine.h"
 
 
-QByteArray readFile(QString name, bool text=false) {
+QByteArray readFile(QString name, QString reportName=QString(), bool text=false) {
     QStringList files;
-//    files << QDir::cleanPath("reports" + QString(QDir::separator()) + name);
 
-//    QStringList paths = Settings::getInstance().reportSearchPath();
-// #if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
-//    paths.append(QStandardPaths::standardLocations(QStandardPaths::AppDataLocation) + "/reports/");
-//    paths.append(QStandardPaths::standardLocations(QStandardPaths::AppLocalDataLocation) + "/reports/");
-//#else
-//    paths.append(QDesktopServices::storageLocation(QDesktopServices::DataLocation) + "/reports/");
+    if (reportName.isNull()) {
+        foreach (QString path, Settings::getInstance().reportSearchPath()) {
+            files << QDir::cleanPath(path + "/" + name);
+        }
+    } else {
+        QString locale = QLocale::system().name();
 
-// #endif
-    foreach (QString path, Settings::getInstance().reportSearchPath()) {
-        files << QDir::cleanPath(path + "/" + name);
+        // Prioritise report resources for the users current locale
+        foreach (QString path, Settings::getInstance().reportSearchPath()) {
+            files << QDir::cleanPath(path + "/" + reportName + "." + locale + "/" + name);
+        }
+
+        // If no locale-specific resources exist then go for the generic version.
+        foreach (QString path, Settings::getInstance().reportSearchPath()) {
+            files << QDir::cleanPath(path + "/" + reportName + "/" + name);
+        }
     }
 
-//    files << QDir::cleanPath(":/reports/" + name);
+    qDebug() << "Searching for one of" << files;
 
     foreach (QString filename, files) {
         qDebug() << "Checking for" << filename;
@@ -79,8 +86,8 @@ QByteArray readFile(QString name, bool text=false) {
     return QByteArray();
 }
 
-QIcon readIcon(QString name, QIcon defaultIcon) {
-    QByteArray data = readFile(name);
+QIcon readIcon(QString name, QString reportName, QIcon defaultIcon) {
+    QByteArray data = readFile(name, reportName);
     if (!data.isNull()) {
         QPixmap pix;
         if (pix.loadFromData(data)) {
@@ -91,8 +98,8 @@ QIcon readIcon(QString name, QIcon defaultIcon) {
     return defaultIcon;
 }
 
-QString readTextFile(QString name) {
-    QByteArray data = readFile(name, true);
+QString readTextFile(QString name, QString reportName=QString()) {
+    QByteArray data = readFile(name, reportName, true);
     if (data.isNull()) {
         return QString();
     }
@@ -109,9 +116,7 @@ Report::Report(QString name)
 
     qDebug() << "========== Load report " << name << "==========";
 
-    QString reportDir = name + QDir::separator() ;
-
-    QByteArray report = readFile(reportDir + "report.json");
+    QByteArray report = readFile("report.json", name, true);
 
     if (report.isNull()) {
         return; // Couldn't find the report.
@@ -129,10 +134,10 @@ Report::Report(QString name)
     }
 
     _title = doc["title"].toString();
-    _description = QString(readTextFile(reportDir + doc["description"].toString()));
+    _description = QString(readTextFile(doc["description"].toString(), name));
 
     // Load the reports icon
-    _icon = readIcon(reportDir + doc["icon"].toString(), QIcon(":/icons/report"));
+    _icon = readIcon(doc["icon"].toString(), name, QIcon(":/icons/report"));
 
     _tpType = TP_Timespan;
     if (doc.contains("time_picker")) {
@@ -228,7 +233,7 @@ Report::Report(QString name)
 
     _custom_criteria = doc.contains("criteria_ui");
     if (_custom_criteria) {
-        _ui = readFile(reportDir + doc["criteria_ui"].toString());
+        _ui = readFile(doc["criteria_ui"].toString(), name);
         _custom_criteria = !_ui.isNull();
     }
 
@@ -240,14 +245,14 @@ Report::Report(QString name)
         scripts.insert(0, "../lib.js");
 
         foreach (QVariant script, scripts) {
-            this->_scripts.append(reportDir + script.toString());
+            this->_scripts.append(script.toString());
         }
     }
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
-    this->scriptingEngine.reset(new ScriptingEngine(this->_scripts));
+    this->scriptingEngine.reset(new ScriptingEngine(this->_scripts, this->name()));
 #else
-    this->scriptingEngine = QSharedPointer<ScriptingEngine>(new ScriptingEngine(this->_scripts));
+    this->scriptingEngine = QSharedPointer<ScriptingEngine>(new ScriptingEngine(this->_scripts, this->name()));
 #endif
 
     // Load queries
@@ -264,8 +269,7 @@ Report::Report(QString name)
         if (q.contains("db")) {
             QVariantMap queryDetails = q["db"].toMap();
             if (queryDetails.contains("file") && queryDetails.contains("parameters")) {
-                query.db_query.query_text = readTextFile(
-                            reportDir + queryDetails["file"].toString());
+                query.db_query.query_text = readTextFile(queryDetails["file"].toString(), name);
                 query.db_query.parameters = QSet<QString>::fromList(
                             queryDetails["parameters"].toStringList());
             }
@@ -273,8 +277,7 @@ Report::Report(QString name)
         if (q.contains("web")) {
             QVariantMap queryDetails = q["web"].toMap();
             if (queryDetails.contains("file") && queryDetails.contains("parameters")) {
-                query.web_query.query_text = readTextFile(
-                            reportDir + queryDetails["file"].toString());
+                query.web_query.query_text = readTextFile(queryDetails["file"].toString(), name);
                 query.web_query.parameters = QSet<QString>::fromList(
                             queryDetails["parameters"].toStringList());
             }
@@ -347,7 +350,7 @@ Report::Report(QString name)
         output.title = o["title"].toString();
 
         if (o.contains("icon")) {
-            output.icon = readIcon(reportDir + o["icon"].toString(), QIcon());
+            output.icon = readIcon(o["icon"].toString(), name, QIcon());
         }
 
         QString format = o["format"].toString().toLower();
@@ -369,7 +372,7 @@ Report::Report(QString name)
                            << "- no output_template specified for TEXT/HTML format output";
                 continue;
             }
-            output.output_template = readTextFile(reportDir + o["template"].toString());
+            output.output_template = readTextFile(o["template"].toString(), name);
             if (output.output_template.isNull()) {
                 qWarning() << "invalid output" << key
                            << "for report" << name
@@ -378,7 +381,7 @@ Report::Report(QString name)
             }
 
             if (o.contains("view_template")) {
-                output.view_output_template = readTextFile(reportDir + o["view_template"].toString());
+                output.view_output_template = readTextFile(o["view_template"].toString(), name);
             }
         } else if (output.format == OF_TABLE) {
             if (!o.contains("query") && !o.contains("dataset")) {
@@ -479,8 +482,23 @@ QStringList findReportsIn(QString directory) {
         QFile f(reportFile);
 
         if (QFile(reportFile).exists()) {
-            result.append(d);
-            qDebug() << "Found report" << d;
+            // Its a report!
+            QString reportName = d;
+
+            // Report directories can be of the form:
+            //    FooReport
+            //    FooReport.en_NZ
+            // Where the part after the period is the locale.
+
+            if (d.contains(".")) {
+                reportName = d.split(".").first();
+                QString locale = d.split(".").last();
+                qDebug() << "Found report" << reportName << "for locale" << locale;
+            } else {
+                qDebug() << "Found report" << reportName;
+            }
+
+            result.append(reportName);
         }
     }
 
@@ -489,18 +507,7 @@ QStringList findReportsIn(QString directory) {
 
 QStringList Report::reports() {
      QStringList searchPaths = Settings::getInstance().reportSearchPath();
-//     searchPaths << "./";
 
-////#if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
-////     searchPaths.append(QStandardPaths::standardLocations(QStandardPaths::AppDataLocation) + "/reports");
-////     searchPaths.append(QStandardPaths::standardLocations(QStandardPaths::AppLocalDataLocation) + "/reports");
-////#else
-////     searchPaths.append(QDesktopServices::storageLocation(QDesktopServices::DataLocation) + "/reports");
-////#endif
-
-//     searchPaths.removeDuplicates();
-
-//     QStringList reports = findReportsIn(":/reports");
      QStringList reports;
 
      foreach (QString path, searchPaths) {
@@ -518,6 +525,13 @@ QList<Report> Report::loadReports() {
     QList<Report> reports;
 
     foreach (QString reportName, Report::reports()) {
+
+        // Check the report exists for the current locale
+        if (readFile("report.json", reportName).isNull()) {
+            qDebug() << "Report" << reportName << "does not exist in current locale! Skip.";
+            continue;
+        }
+
         reports.append(Report(reportName));
     }
 
@@ -1170,7 +1184,7 @@ QString getSaveDirectory(QWidget *parent) {
     // 3) The user selects a non-empty directory and chooses to continue anyway
     // 4) The user selects a non-empty directory and cancels
     while (true) {
-        QString dir = QFileDialog::getExistingDirectory(parent, QObject::tr("Save report to"));
+        QString dir = QFileDialog::getExistingDirectory(parent, QApplication::translate("Report", "Save report to"));
         if (dir.isEmpty()) {
             return QString(); // user canceled
         }
@@ -1180,10 +1194,10 @@ QString getSaveDirectory(QWidget *parent) {
             return dir;
         } else {
             QMessageBox msgBox(QMessageBox::Question,
-                               QObject::tr("Continue?"),
-                               QObject::tr("The selected directory is not empty. Some outputs may not be saved. Continue?"),
+                               QApplication::translate("Report", "Continue?"),
+                               QApplication::translate("Report", "The selected directory is not empty. Some outputs may not be saved. Continue?"),
                                QMessageBox::Save, parent);
-            msgBox.addButton(QObject::tr("&Choose Another Directory"),
+            msgBox.addButton(QApplication::translate("Report", "&Choose Another Directory"),
                              QMessageBox::ActionRole);
             msgBox.addButton(QMessageBox::Discard);
 
@@ -1206,7 +1220,7 @@ void Report::saveReport(QList<report_output_file_t> outputs, QWidget *parent) {
     } else if (outputs.count() == 1) {
         report_output_file_t f = outputs.first();
         f.default_filename = QFileDialog::getSaveFileName(parent,
-                                                          QObject::tr("Save Report"),
+                                                          QApplication::translate("Report", "Save Report"),
                                                           QString(),
                                                           f.dialog_filter);
         if (f.default_filename.isEmpty()) {
@@ -1259,11 +1273,11 @@ void Report::outputToUI(QMap<QString, QVariant> reportParameters,
             QString extension = "";
             if (output.format == OF_HTML) {
                 window->addHtmlTab(output.title, output.icon, viewResult);
-                filter = QObject::tr("HTML Files (*.html *.html)");
+                filter = QCoreApplication::translate("Report","HTML Files (*.html *.html)");
                 extension = ".html";
             } else if (output.format == OF_TEXT || output.format == OF_TEXT_WRAPPED) {
                 window->addPlainTab(output.title, output.icon, viewResult, output.format == OF_TEXT_WRAPPED);
-                filter = QObject::tr("Text Files (*.txt)");
+                filter = QCoreApplication::translate("Report","Text Files (*.txt)");
                 extension = ".txt";
             }
 
@@ -1301,7 +1315,7 @@ void Report::outputToUI(QMap<QString, QVariant> reportParameters,
 
             report_output_file_t output_file;
             output_file.default_filename = output.filename;
-            output_file.dialog_filter = QObject::tr("CSV Files (*.csv)");
+            output_file.dialog_filter = QCoreApplication::translate("Report","CSV Files (*.csv)");
             output_file.data = queryResultToCSV(queries[output.dataset_name], output.saveColumns);
             output_file.columnHeadings = output.saveColumns;
 
@@ -1335,10 +1349,10 @@ void Report::outputToDisk(QMap<QString, QVariant> reportParameters,
             QString filter = "";
             QString extension = "";
             if (output.format == OF_HTML) {
-                filter = QObject::tr("HTML Files (*.html *.html)");
+                filter = QCoreApplication::translate("Report","HTML Files (*.html *.html)");
                 extension = ".html";
             } else if (output.format == OF_TEXT || output.format == OF_TEXT_WRAPPED) {
-                filter = QObject::tr("Text Files (*.txt)");
+                filter = QCoreApplication::translate("Report","Text Files (*.txt)");
                 extension = ".txt";
             }
 
@@ -1356,7 +1370,7 @@ void Report::outputToDisk(QMap<QString, QVariant> reportParameters,
         } else if (output.format == OF_TABLE) {
             report_output_file_t output_file;
             output_file.default_filename = output.filename;
-            output_file.dialog_filter = QObject::tr("CSV Files (*.csv)");
+            output_file.dialog_filter = QCoreApplication::translate("Report","CSV Files (*.csv)");
             output_file.data = queryResultToCSV(queries[output.dataset_name], output.saveColumns);
             output_file.columnHeadings = output.saveColumns;
 

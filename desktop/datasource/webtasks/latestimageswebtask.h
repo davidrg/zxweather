@@ -30,7 +30,7 @@ public:
      *
      * @return Supertask name
      */
-    QString supertaskName() const { return "Get Latest Images"; }
+    QString supertaskName() const { return tr("Get Latest Images"); }
 
     /** Name of this task. Used as the first line in a one line progress dialog
      * or the second line (shared with subtasks) in a two-line progress dialog.
@@ -38,7 +38,7 @@ public:
      * @return Name of this task or this tasks first subtask.
      */
     QString taskName() const {
-        return "Downloading image source configuration data";
+        return tr("Downloading image source configuration data");
     }
 
 public slots:

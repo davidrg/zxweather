@@ -119,7 +119,7 @@ void ExportDialog::exportData() {
         selectedFilter = filters.at(1); // csv
 
     QString filename = QFileDialog::getSaveFileName(this,
-                                                    "Export data...",
+                                                    tr("Export data..."),
                                                     QString(),
                                                     FILTERS,
                                                     &selectedFilter);
@@ -153,15 +153,14 @@ void ExportDialog::samplesReady(SampleSet samples)
     qDebug() << "Export: samples ready.";
     int sampleCount = samples.timestamp.count();
     QProgressDialog progressDialog(this);
-    progressDialog.setWindowTitle("Exporting Data...");
+    progressDialog.setWindowTitle(tr("Exporting Data..."));
     progressDialog.setMaximum(sampleCount);
 
     QFile dataFile(targetFilename);
 
     if (!dataFile.open(QIODevice::WriteOnly)) {
-        QMessageBox::critical(this, "Error opening file",
-                              "Failed to open file for writing. " +
-                              dataFile.errorString());
+        QMessageBox::critical(this, tr("Error opening file"),
+                              QString(tr("Failed to open file for writing. %1")).arg(dataFile.errorString()));
         reject();
         return;
     }
@@ -348,7 +347,7 @@ void ExportDialog::samplesReady(SampleSet samples)
 
 void ExportDialog::samplesFailed(QString message)
 {
-    QMessageBox::critical(this, "Error", message);
+    QMessageBox::critical(this, tr("Error"), message);
     reject();
 }
 

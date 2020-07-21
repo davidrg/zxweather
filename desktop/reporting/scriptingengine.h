@@ -22,7 +22,7 @@ class ScriptingEngine : public QObject
 {
     Q_OBJECT
 public:
-    explicit ScriptingEngine(QStringList scriptFiles, QObject *parent = NULL);
+    explicit ScriptingEngine(QStringList scriptFiles, QString reportName, QObject *parent = NULL);
 
 
     ScriptValue globalObject();
@@ -39,6 +39,7 @@ public:
 private:
     void initialiseScriptEngine();
 
+    QString _reportName;
     QStringList _scripts;
 
 #if USE_QJSENGINE

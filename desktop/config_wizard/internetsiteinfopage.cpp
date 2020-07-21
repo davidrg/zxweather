@@ -50,7 +50,7 @@ InternetSiteInfoPage::InternetSiteInfoPage(QWidget* parent)
     progressBar->setMaximum(0);
     progressBar->setTextVisible(false);
     progress = new QLabel;
-    progress->setText("Connecting...");
+    progress->setText(tr("Connecting..."));
     progress->setAlignment(Qt::AlignHCenter);
 
     QVBoxLayout *progressPageLayout = new QVBoxLayout;
@@ -197,7 +197,7 @@ bool InternetSiteInfoPage::validatePage() {
 
     switchToSubPage(SL_ProgressPage);
 
-    progress->setText("Downloading system configuration...");
+    progress->setText(tr("Downloading system configuration..."));
 
     serverStationAvailability.clear();
     stations.clear();
@@ -299,9 +299,8 @@ void InternetSiteInfoPage::requestFinished(QNetworkReply *reply) {
         qDebug() << "Error response:" << reply->errorString();
         showErrorPage(tr("Error"),
                       tr("An error occurred while downloading system configuration"),
-                      tr("An error occurred while downloading system configuration"
-                         " from the remote website. The error was: ") +
-                      reply->errorString());
+                      QString(tr("An error occurred while downloading system configuration"
+                         " from the remote website. The error was: %1")).arg(reply->errorString()));
     }
 }
 

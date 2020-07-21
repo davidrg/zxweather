@@ -43,7 +43,7 @@ public:
      * @return Supertask name
      */
     QString supertaskName() const {
-        return "Downloading data sets...";
+        return tr("Downloading data sets...");
     }
 
     /** Name of this task. Used as the first line in a one line progress dialog
@@ -52,7 +52,7 @@ public:
      * @return Name of this task or this tasks first subtask.
      */
     QString taskName() const {
-        return "Loading system configuration";
+        return tr("Loading system configuration");
     }
 
 public slots:

@@ -19,12 +19,12 @@ public:
 
     void beginTask();
 
-    QString supertaskName() const { return "Get Image List"; }
+    QString supertaskName() const { return tr("Get Image List"); }
 
     int subtasks() const { return 5; }
 
     QString taskName() const {
-        return "Downloading image source configuration";
+        return tr("Downloading image source configuration");
     }
 
 

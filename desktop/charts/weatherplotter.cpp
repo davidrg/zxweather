@@ -82,33 +82,33 @@ void WeatherPlotter::addDataSet(DataSet dataSet) {
 
 void WeatherPlotter::populateAxisLabels() {
     if (Settings::getInstance().imperial()) {
-        axisLabels.insert(AT_HUMIDITY, "Humidity (%)");
-        axisLabels.insert(AT_PRESSURE, "Pressure (inHg)");
-        axisLabels.insert(AT_RAINFALL, "Rainfall (in)");
-        axisLabels.insert(AT_TEMPERATURE, "Temperature (" IMPERIAL_TEMPERATURE_SYMBOL ")");
-        axisLabels.insert(AT_WIND_SPEED, "Wind speed (mph)");
-        axisLabels.insert(AT_WIND_DIRECTION, "Wind direction (degrees)");
-        axisLabels.insert(AT_SOLAR_RADIATION, "Solar radiation (W/m" SQUARED_SYMBOL ")");
-        axisLabels.insert(AT_UV_INDEX, "UV Index");
-        axisLabels.insert(AT_RAIN_RATE, "Rain rate (in/h)");
-        axisLabels.insert(AT_RECEPTION, "Wireless reception (%)");
-        axisLabels.insert(AT_EVAPOTRANSPIRATION, "Evapotranspiration (in)");
+        axisLabels.insert(AT_HUMIDITY, tr("Humidity (%)"));
+        axisLabels.insert(AT_PRESSURE, tr("Pressure (inHg)"));
+        axisLabels.insert(AT_RAINFALL, tr("Rainfall (in)"));
+        axisLabels.insert(AT_TEMPERATURE, tr("Temperature (" IMPERIAL_TEMPERATURE_SYMBOL ")"));
+        axisLabels.insert(AT_WIND_SPEED, tr("Wind speed (mph)"));
+        axisLabels.insert(AT_WIND_DIRECTION, tr("Wind direction (degrees)"));
+        axisLabels.insert(AT_SOLAR_RADIATION, tr("Solar radiation (W/m" SQUARED_SYMBOL ")"));
+        axisLabels.insert(AT_UV_INDEX, tr("UV Index"));
+        axisLabels.insert(AT_RAIN_RATE, tr("Rain rate (in/h)"));
+        axisLabels.insert(AT_RECEPTION, tr("Wireless reception (%)"));
+        axisLabels.insert(AT_EVAPOTRANSPIRATION, tr("Evapotranspiration (in)"));
     } else {
         bool kmh = Settings::getInstance().kmh();
-        axisLabels.insert(AT_HUMIDITY, "Humidity (%)");
-        axisLabels.insert(AT_PRESSURE, "Pressure (hPa)");
-        axisLabels.insert(AT_RAINFALL, "Rainfall (mm)");
-        axisLabels.insert(AT_TEMPERATURE, "Temperature (" TEMPERATURE_SYMBOL ")");
-        axisLabels.insert(AT_WIND_SPEED, kmh ? "Wind speed (km/h)" : "Wind speed (m/s)");
-        axisLabels.insert(AT_WIND_DIRECTION, "Wind direction (degrees)");
-        axisLabels.insert(AT_SOLAR_RADIATION, "Solar radiation (W/m" SQUARED_SYMBOL ")");
-        axisLabels.insert(AT_UV_INDEX, "UV Index");
-        axisLabels.insert(AT_RAIN_RATE, "Rain rate (mm/h)");
-        axisLabels.insert(AT_RECEPTION, "Wireless reception (%)");
-        axisLabels.insert(AT_EVAPOTRANSPIRATION, "Evapotranspiration (mm)");
+        axisLabels.insert(AT_HUMIDITY, tr("Humidity (%)"));
+        axisLabels.insert(AT_PRESSURE, tr("Pressure (hPa)"));
+        axisLabels.insert(AT_RAINFALL, tr("Rainfall (mm)"));
+        axisLabels.insert(AT_TEMPERATURE, tr("Temperature (" TEMPERATURE_SYMBOL ")"));
+        axisLabels.insert(AT_WIND_SPEED, kmh ? tr("Wind speed (km/h)") : tr("Wind speed (m/s)"));
+        axisLabels.insert(AT_WIND_DIRECTION, tr("Wind direction (degrees)"));
+        axisLabels.insert(AT_SOLAR_RADIATION, tr("Solar radiation (W/m" SQUARED_SYMBOL ")"));
+        axisLabels.insert(AT_UV_INDEX, tr("UV Index"));
+        axisLabels.insert(AT_RAIN_RATE, tr("Rain rate (mm/h)"));
+        axisLabels.insert(AT_RECEPTION, tr("Wireless reception (%)"));
+        axisLabels.insert(AT_EVAPOTRANSPIRATION, tr("Evapotranspiration (mm)"));
     }
-    axisLabels.insert(AT_SOIL_MOISTURE, "Soil Moisture (cbar)");
-    axisLabels.insert(AT_LEAF_WETNESS, "Leaf Wetness");
+    axisLabels.insert(AT_SOIL_MOISTURE, tr("Soil Moisture (cbar)"));
+    axisLabels.insert(AT_LEAF_WETNESS, tr("Leaf Wetness"));
 }
 
 void WeatherPlotter::reload() {
@@ -1384,7 +1384,7 @@ QString WeatherPlotter::defaultLabelForAxis(QCPAxis *axis) {
         // Its an X axis. Its label comes from the dataset.
         //dataset_id_t dataSetId = type - AT_KEY;
         // TODO: Something else here
-        return "Time";
+        return tr("Time");
     } else {
         return axisLabels[type];
     }

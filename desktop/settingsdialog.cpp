@@ -72,9 +72,9 @@ SettingsDialog::SettingsDialog(bool solarDataAvailable, QWidget *parent) :
     // Disable the samples database option if the Postgres driver isn't present.
     if (!QSqlDatabase::drivers().contains("QPSQL")) {
         ui->rbSampleDatabase->setEnabled(false);
-        ui->rbSampleDatabase->setText("Database (driver not found)");
+        ui->rbSampleDatabase->setText(tr("Database (driver not found)"));
         ui->rbLiveDatabase->setEnabled(false);
-        ui->rbLiveDatabase->setText("Database (driver not found)");
+        ui->rbLiveDatabase->setText(tr("Database (driver not found)"));
         qDebug() << "PostgreSQL database driver unavailable. Database functionality disabled.";
         qDebug() << QSqlDatabase::drivers();
     }
@@ -156,7 +156,7 @@ void SettingsDialog::dialogAccepted() {
             QMessageBox::warning(
                         this, tr("Station code already in use"),
                         tr("Another instance of zxweather is already running on this "
-                           "computer connected to station '%0'. Only one instance of "
+                           "computer connected to station '%1'. Only one instance of "
                            "zxweather can run at a time for any given station. Please "
                            "choose a different station to connect to.").arg(stationCode));
             return;
@@ -260,20 +260,20 @@ void SettingsDialog::writeSettings() {
 
 QString fontDescription(QFont font) {
         // font, style, size, effects (strikeout, underline)
-    QString desc = QString(QObject::tr("%1, %2pt"))
+    QString desc = QString(QApplication::translate("SettingsDialog", "%1, %2pt"))
             .arg(font.family())
             .arg(font.pointSize());
 
     if (!font.styleName().isEmpty()) {
-        desc += ", " + font.styleName();
+        desc += QString(QApplication::translate("SettingsDialog", ", %1")).arg(font.styleName());
     }
 
     if (font.strikeOut()) {
-        desc += QObject::tr(", Strikeout");
+        desc += QApplication::translate("SettingsDialog", ", Strikeout");
     }
 
     if (font.underline()) {
-        desc += QObject::tr(", Underline");
+        desc += QApplication::translate("SettingsDialog", ", Underline");
     }
     return desc;
 }
@@ -370,7 +370,10 @@ qint64 getDirectorySize(QString dirname) {
 
 QString sizeToString(qint64 size) {
     QStringList units;
-    units << "Bytes" << "KB" << "MB" << "GB";
+    units << QApplication::translate("SettingsDialog", "Bytes")
+          << QApplication::translate("SettingsDialog", "KB")
+          << QApplication::translate("SettingsDialog", "MB")
+          << QApplication::translate("SettingsDialog", "GB");
 
     int i;
     double result = size;
@@ -383,7 +386,7 @@ QString sizeToString(qint64 size) {
         result = result / 1024;
     }
 
-    return QString("%0 %1").arg(result, 0, 'f', 2).arg(units[i]);
+    return QString(QApplication::translate("SettingsDialog", "%1 %2")).arg(result, 0, 'f', 2).arg(units[i]);
 }
 
 void SettingsDialog::getCacheInfo() {
@@ -410,7 +413,7 @@ void SettingsDialog::getCacheInfo() {
     if (db.exists()) {
         ui->lblDataSize->setText(sizeToString(db.size()));
     } else {
-        ui->lblDataSize->setText("0 Bytes");
+        ui->lblDataSize->setText(tr("0 Bytes"));
     }
 }
 

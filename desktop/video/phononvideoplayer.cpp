@@ -73,7 +73,7 @@ void PhononVideoPlayer::stop() {
 
 void PhononVideoPlayer::setFilename(QString filename) {
     mediaObject.setCurrentSource(Phonon::MediaSource(filename));
-    ui->lStatus->setText("Loading...");
+    ui->lStatus->setText(tr("Loading..."));
 }
 
 void PhononVideoPlayer::finished() {
@@ -123,24 +123,24 @@ void PhononVideoPlayer::stateChanged(Phonon::State newState) {
 
     switch(newState) {
     case Phonon::LoadingState:
-        ui->lStatus->setText("Loading...");
+        ui->lStatus->setText(tr("Loading..."));
         setControlsEnabled(false);
         resized = false;
         break;
     case Phonon::StoppedState:
-        ui->lStatus->setText("Stopped");
+        ui->lStatus->setText(tr("Stopped"));
         break;
     case Phonon::PlayingState:
-        ui->lStatus->setText("Playing");
+        ui->lStatus->setText(tr("Playing"));
         break;
     case Phonon::BufferingState:
-        ui->lStatus->setText("Buffering");
+        ui->lStatus->setText(tr("Buffering"));
         break;
     case Phonon::PausedState:
-        ui->lStatus->setText("Paused");
+        ui->lStatus->setText(tr("Paused"));
         break;
     case Phonon::ErrorState:
-        ui->lStatus->setText("Error: " + mediaObject.errorString());
+        ui->lStatus->setText(QString(tr("Error: %1")).arg(mediaObject.errorString()));
         setControlsEnabled(false);
         break;
     default:

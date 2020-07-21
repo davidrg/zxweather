@@ -299,12 +299,12 @@ void TcpLiveDataSource::processImageData(QStringList parts) {
     image.id = parts[6].toInt();
     image.timeStamp = QDateTime::fromString(parts[4], Qt::ISODate);
     image.imageTypeCode = parts[3];
-    image.title = "<unknown>";
-    image.description = "<partial metadata received via TCPLiveDataSource>";
+    image.title = tr("<unknown>");
+    image.description = tr("<partial metadata received via TCPLiveDataSource>");
     image.mimeType = parts[5];
     image.imageSource.code = parts[2];
-    image.imageSource.name = "<unknown>";
-    image.imageSource.description = "<partial metadata received via TCPLiveDataSource>";
+    image.imageSource.name = tr("<unknown>");
+    image.imageSource.description = tr("<partial metadata received via TCPLiveDataSource>");
 
     QString extension = "jpeg";
     if (image.mimeType == "image/jpeg")

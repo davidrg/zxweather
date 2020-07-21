@@ -3,7 +3,7 @@
 
 #include <QtDebug>
 
-#define tr(x) QObject::tr(x)
+#define tr(x) QCoreApplication::translate("GraphStyle", x)
 
 GraphStyle::GraphStyle(StandardColumn column) {
     this->column = column;

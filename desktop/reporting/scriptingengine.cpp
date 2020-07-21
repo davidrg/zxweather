@@ -2,10 +2,11 @@
 #include "jsconsole.h"
 #include <QtDebug>
 
-QString readTextFile(QString name); // defined in report.cpp
+QString readTextFile(QString name, QString reportName); // defined in report.cpp
 
-ScriptingEngine::ScriptingEngine(QStringList scriptFiles, QObject *parent) : QObject(parent)
+ScriptingEngine::ScriptingEngine(QStringList scriptFiles, QString reportName, QObject *parent) : QObject(parent)
 {
+    _reportName = _reportName;
     _scripts = scriptFiles;
 
     QJSValue consoleObj =  engine.newQObject(new JSConsole());
@@ -19,7 +20,7 @@ void ScriptingEngine::initialiseScriptEngine() {
     // Load all the script files
     QString script;
     foreach (QString file, _scripts) {
-        script += readTextFile(file) + "\n";
+        script += readTextFile(file, _reportName) + "\n";
     }
 
     // Perform any basic initialisation

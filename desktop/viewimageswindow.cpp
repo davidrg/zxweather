@@ -54,7 +54,7 @@ ViewImagesWindow::ViewImagesWindow(QDate atDate, QWidget *parent) :
 
     itemCount = new QLabel(this);
     ui->statusBar->addWidget(itemCount);
-    itemCount->setText("0 items");
+    itemCount->setText(tr("0 items"));
 
     Settings& settings = Settings::getInstance();
 
@@ -373,28 +373,28 @@ void ViewImagesWindow::contextMenu(QPoint point, QModelIndex idx, ContextMenuSou
             QMenu* menu = new QMenu(this);
             menu->setAttribute(Qt::WA_DeleteOnClose);
 
-            QMenu* viewMenu = menu->addMenu("&View");
-            QAction *act = viewMenu->addAction("&Thumbnails", this, SLOT(setViewModeMenuHandler()));
+            QMenu* viewMenu = menu->addMenu(tr("&View"));
+            QAction *act = viewMenu->addAction(tr("&Thumbnails"), this, SLOT(setViewModeMenuHandler()));
             act->setData((int)VIWM_Thumbnails);
             act->setCheckable(true);
             act->setChecked(currentViewMode == VIWM_Thumbnails);
 
-            act = viewMenu->addAction("&Small thumbnails", this, SLOT(setViewModeMenuHandler()));
+            act = viewMenu->addAction(tr("&Small thumbnails"), this, SLOT(setViewModeMenuHandler()));
                         act->setData((int)VIWM_SmallThumbnails);
                         act->setCheckable(true);
                         act->setChecked(currentViewMode == VIWM_SmallThumbnails);
 
-            act = viewMenu->addAction("&Icons", this, SLOT(setViewModeMenuHandler()));
+            act = viewMenu->addAction(tr("&Icons"), this, SLOT(setViewModeMenuHandler()));
             act->setData((int)VIWM_Icons);
             act->setCheckable(true);
             act->setChecked(currentViewMode == VIWM_Icons);
 
-            act = viewMenu->addAction("&List", this, SLOT(setViewModeMenuHandler()));
+            act = viewMenu->addAction(tr("&List"), this, SLOT(setViewModeMenuHandler()));
             act->setData((int)VIWM_SmallIcons);
             act->setCheckable(true);
             act->setChecked(currentViewMode == VIWM_SmallIcons);
 
-            act = viewMenu->addAction("&Detail", this, SLOT(setViewModeMenuHandler()));
+            act = viewMenu->addAction(tr("&Detail"), this, SLOT(setViewModeMenuHandler()));
             act->setData((int)VIWM_Detail);
             act->setCheckable(true);
             act->setChecked(currentViewMode == VIWM_Detail);
@@ -415,14 +415,14 @@ void ViewImagesWindow::contextMenu(QPoint point, QModelIndex idx, ContextMenuSou
         // Image node
         QMenu* menu = new QMenu(this);
         menu->setAttribute(Qt::WA_DeleteOnClose);
-        QAction *act = menu->addAction("&Open in new window",
+        QAction *act = menu->addAction(tr("&Open in new window"),
                                            this, SLOT(openImageInWindow()));
         QFont f = act->font();
         f.setBold(true);
         act->setFont(f);
         act->setData(source);
 
-        act = menu->addAction("&View weather at time",
+        act = menu->addAction(tr("&View weather at time"),
                               this, SLOT(viewWeather()));
         act->setData(source);
 
@@ -431,23 +431,23 @@ void ViewImagesWindow::contextMenu(QPoint point, QModelIndex idx, ContextMenuSou
         // Show copy option only if its not a video or audio file.
         ImageInfo ii = model.data()->imageInfo(idx);
         if (!ii.mimeType.startsWith("video/") && !ii.mimeType.startsWith("audio/")) {
-            act = menu->addAction("&Copy",
+            act = menu->addAction(tr("&Copy"),
                             this, SLOT(copy()));
             act->setData(source);
         }
 
-        act = menu->addAction("&Save As...",
+        act = menu->addAction(tr("&Save As..."),
                         this, SLOT(saveImageAs()));
         act->setData(source);
 
         menu->addSeparator();
 
-        act = menu->addAction("&Properties",
+        act = menu->addAction(tr("&Properties"),
                         this, SLOT(properties()));
         act->setData(source);
 
 #ifdef QT_DEBUG
-        act = menu->addAction("Test find index",
+        act = menu->addAction(tr("Test find index"),
                               this, SLOT(testFindIndex()));
         act->setData(source);
 #endif
@@ -465,7 +465,7 @@ void ViewImagesWindow::contextMenu(QPoint point, QModelIndex idx, ContextMenuSou
 
         QMenu* menu = new QMenu(this);
         menu->setAttribute(Qt::WA_DeleteOnClose);
-        QAction *act = menu->addAction("&Open",
+        QAction *act = menu->addAction(tr("&Open"),
                                            this, SLOT(openItem()));
         QFont f = act->font();
         f.setBold(true);
@@ -473,7 +473,7 @@ void ViewImagesWindow::contextMenu(QPoint point, QModelIndex idx, ContextMenuSou
         act->setData(source);
 
 #ifdef QT_DEBUG
-        act = menu->addAction("Test find index",
+        act = menu->addAction(tr("Test find index"),
                               this, SLOT(testFindIndex()));
         act->setData(source);
 #endif
@@ -485,10 +485,10 @@ void ViewImagesWindow::contextMenu(QPoint point, QModelIndex idx, ContextMenuSou
             // Tree only!
             menu->addSeparator();
 
-            act = menu->addAction("&Expand all",
+            act = menu->addAction(tr("&Expand all"),
                                   this, SLOT(expandRecursively()));
             act->setData(source);
-            act = menu->addAction("&Collapse all",
+            act = menu->addAction(tr("&Collapse all"),
                                   this, SLOT(collapseRecursively()));
             act->setData(source);
         }
@@ -863,8 +863,8 @@ void ViewImagesWindow::setViewIndex(QModelIndex index) {
 
 void ViewImagesWindow::updateLocation(QModelIndex index) {
     QString l = getCurrentLocation(index);
-    location->setText(QString("Location: %0").arg(l));
-    setWindowTitle(l + " - Images");
+    location->setText(QString(tr("Location: %1")).arg(l));
+    setWindowTitle(QString(tr("%1 - Images")).arg(l));
 }
 
 QString ViewImagesWindow::getCurrentLocation(QModelIndex index) {
@@ -882,7 +882,7 @@ QString ViewImagesWindow::getCurrentLocation(QModelIndex index) {
 
 void ViewImagesWindow::updateItemCount() {
     int number = model.data()->rowCount(ui->lvImageList->rootIndex());
-    itemCount->setText(QString("%0 items").arg(number));
+    itemCount->setText(QString(tr("%1 items")).arg(number));
 }
 
 void ViewImagesWindow::showHidePreviewPane(bool show) {

@@ -254,7 +254,7 @@ bool WebDataSource::LoadStationConfigData(QByteArray data) {
 
     if (!ok) {
         qDebug() << "sysconfig parse error. Data:" << data;
-        emit error("JSON parsing failed while loading system configuration.");
+        emit error(tr("JSON parsing failed while loading system configuration."));
         return false;
     }
 
@@ -374,7 +374,7 @@ void WebDataSource::liveDataReady(QNetworkReply *reply) {
         QVariantMap result = Json::parse(reply->readAll(), ok).toMap();
 
         if (!ok) {
-            emit error("JSON parsing failed");
+            emit error(tr("JSON parsing failed"));
             return;
         }
 

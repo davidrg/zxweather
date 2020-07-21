@@ -39,7 +39,7 @@ public:
      * @return Name of this task or this tasks first subtask.
      */
     QString taskName() const {
-        return "Checking data range";
+        return tr("Checking data range");
     }
 
     int subtasks() const { return 2; }

@@ -32,8 +32,8 @@ void ChartOptionsDialog::checkAndAccept() {
     SampleColumns columns = ui->columnPicker->getColumns();
 
     if (columns.standard == SC_NoColumns && columns.extra == EC_NoColumns) {
-        QMessageBox::information(this, "Data Sets",
-                                 "At least one data set must be selected");
+        QMessageBox::information(this, tr("Data Sets"),
+                                 tr("At least one data set must be selected"));
         return;
     }
 

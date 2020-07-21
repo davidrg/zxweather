@@ -55,7 +55,7 @@ RainfallWidget::RainfallWidget(QWidget *parent) : QWidget(parent)
     fL->setMargin(0);
     plotFrame->setLayout(fL);
 
-    label = new QLabel("<b>Rainfall</b>", this);
+    label = new QLabel(tr("<b>Rainfall</b>"), this);
     line = new QFrame(this);
     line->setFrameShape(QFrame::HLine);
     line->setFrameShadow(QFrame::Sunken);
@@ -444,9 +444,9 @@ void RainfallWidget::doPlot(bool shortRange, int type, bool runningTotal) {
             ds.endTime.setTime(endTime);
 
             if (type == K_RATE) {
-                ds.title = QString(tr("High rain rate for %0")).arg(ds.startTime.date().toString());
+                ds.title = QString(tr("High rain rate for %1")).arg(ds.startTime.date().toString());
             } else {
-                ds.title = QString(tr("Rainfall for %0")).arg(ds.startTime.date().toString());
+                ds.title = QString(tr("Rainfall for %1")).arg(ds.startTime.date().toString());
             }
         } else if (type == K_STORM) {
             if (!stormValid) {
@@ -455,7 +455,7 @@ void RainfallWidget::doPlot(bool shortRange, int type, bool runningTotal) {
 
             ds.startTime = QDateTime(stormStart, startTime);
             ds.endTime = QDateTime::currentDateTime();
-            ds.title = QString(tr("Storm starting %0")).arg(stormStart.toString());
+            ds.title = QString(tr("Storm starting %1")).arg(stormStart.toString());
         }
 
         if (type == K_RATE) {
@@ -478,12 +478,12 @@ void RainfallWidget::doPlot(bool shortRange, int type, bool runningTotal) {
             ds.endTime = QDateTime(today, endTime);
             ds.endTime = ds.endTime.addMonths(1);
             ds.endTime = ds.endTime.addDays(-1);
-            ds.title = QString(tr("Rain for %0").arg(ds.startTime.date().toString("MMMM yyyy")));
+            ds.title = QString(tr("Rain for %1").arg(ds.startTime.date().toString("MMMM yyyy")));
         } else if (type == K_YEAR) {
             int year = QDateTime::currentDateTime().date().year();
             ds.startTime = QDateTime(QDate(year, 1, 1), startTime);
             ds.endTime = QDateTime(QDate(year, 12, 31), endTime);
-            ds.title = QString(tr("Rain for %0")).arg(year);
+            ds.title = QString(tr("Rain for %1")).arg(year);
         }
 
         ds.aggregateFunction = runningTotal ? AF_RunningTotal : AF_Sum;
@@ -567,10 +567,10 @@ void RainfallWidget::plotRain() {
 }
 
 void RainfallWidget::save() {
-    QString pdfFilter = "Adobe Portable Document Format (*.pdf)";
-    QString pngFilter = "Portable Network Graphics (*.png)";
-    QString jpgFilter = "JPEG (*.jpg)";
-    QString bmpFilter = "Windows Bitmap (*.bmp)";
+    QString pdfFilter = tr("Adobe Portable Document Format (*.pdf)");
+    QString pngFilter = tr("Portable Network Graphics (*.png)");
+    QString jpgFilter = tr("JPEG (*.jpg)");
+    QString bmpFilter = tr("Windows Bitmap (*.bmp)");
 
     QString filter = pngFilter + ";;" + pdfFilter + ";;" +
             jpgFilter + ";;" + bmpFilter;
@@ -578,7 +578,7 @@ void RainfallWidget::save() {
     QString selectedFilter;
 
     QString fileName = QFileDialog::getSaveFileName(
-                this, "Save As" ,"", filter, &selectedFilter);
+                this, tr("Save As"), "", filter, &selectedFilter);
 
     if (selectedFilter == pdfFilter)
         plot->savePdf(fileName);

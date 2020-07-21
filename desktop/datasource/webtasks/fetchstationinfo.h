@@ -13,6 +13,8 @@
  */
 class FetchStationInfoWebTask : public AbstractWebTask
 {
+    Q_OBJECT
+
 public:
     /** Constucts a new task
      *
@@ -35,7 +37,7 @@ public:
      * @return Supertask name
      */
     QString supertaskName() const {
-        return "Loading system configuration...";
+        return tr("Loading system configuration...");
     }
 
     /** Name of this task. Used as the first line in a one line progress dialog
@@ -44,7 +46,7 @@ public:
      * @return Name of this task or this tasks first subtask.
      */
     QString taskName() const {
-        return "Loading system configuration";
+        return tr("Loading system configuration");
     }
 
     /** Loads sensor config from the station data section of the system config

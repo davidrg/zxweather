@@ -2,19 +2,21 @@
 
 #include <QDir>
 
-QString readTextFile(QString name); // defined in report.cpp
+QString readTextFile(QString name, QString reportName); // defined in report.cpp
 
 ReportPartialResolver::ReportPartialResolver(QString reportName) {
-    partialsDir = reportName + QDir::separator() + "partials" + QDir::separator();
+    this->reportName = reportName;
+
 }
 
 QString ReportPartialResolver::getPartial(const QString &name) {
-
     if (cache.contains(name)) {
         return cache[name];
     }
 
-    cache[name] = readTextFile(partialsDir + name + ".mustache");
+    QString partialsDir = QString("partials") + QDir::separator();
+
+    cache[name] = readTextFile(partialsDir + name + ".mustache", reportName);
 
     return cache[name];
 }
