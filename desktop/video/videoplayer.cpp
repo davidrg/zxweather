@@ -89,7 +89,7 @@ void VideoPlayer::setFilename(QString filename) {
     mediaObject->setMedia(QUrl::fromLocalFile(filename));
 
     if (!autoPlay) {
-        setStatus("Loading...");
+        setStatus(tr("Loading..."));
     }
 }
 
@@ -153,13 +153,13 @@ void VideoPlayer::mediaStatusChanged(QMediaPlayer::MediaStatus newStatus) {
     case QMediaPlayer::LoadingMedia:
         qDebug() << "mediaStatus: Loading Media";
         if (!autoPlay) {
-            setStatus("Loading...");
+            setStatus(tr("Loading..."));
         }
         setControlsEnabled(false);
         break;
     case QMediaPlayer::EndOfMedia:
         qDebug() << "mediaStatus: End Of Media";
-        setStatus("Paused");
+        setStatus(tr("Paused"));
         ui->tbPause->setChecked(true);
 
         /* What is this?
@@ -188,7 +188,7 @@ void VideoPlayer::mediaStatusChanged(QMediaPlayer::MediaStatus newStatus) {
          */
         if (mediaObject->position() != mediaObject->duration()) {
             qWarning() << "Faulty end of media position!";
-            setStatus("Media Player Failure - Reloading...");
+            setStatus(tr("Media Player Failure - Reloading..."));
 
             initialiseMediaPlayer();
             autoPlay = true;
@@ -199,7 +199,7 @@ void VideoPlayer::mediaStatusChanged(QMediaPlayer::MediaStatus newStatus) {
         break;
     case QMediaPlayer::LoadedMedia:
         qDebug() << "mediaStatus: Loaded Media";
-        setStatus("Stopped");
+        setStatus(tr("Stopped"));
         if (!controlsLocked) {
             setControlsEnabled(true);
         }
@@ -223,7 +223,7 @@ void VideoPlayer::mediaStatusChanged(QMediaPlayer::MediaStatus newStatus) {
         break;
     case QMediaPlayer::InvalidMedia:
         qDebug() << "mediaStatus: Invalid Media";
-        setStatus("Invalid Media");
+        setStatus(tr("Invalid Media"));
         setControlsEnabled(false);
 
         invalidMediaRetryCount++;
@@ -245,7 +245,7 @@ void VideoPlayer::mediaStatusChanged(QMediaPlayer::MediaStatus newStatus) {
     case QMediaPlayer::NoMedia:
     default:
         qDebug() << "mediaStatus: No Media";
-        setStatus("No Media");
+        setStatus(tr("No Media"));
         setControlsEnabled(false);
     }
 
@@ -266,11 +266,11 @@ void VideoPlayer::stateChanged(QMediaPlayer::State newState) {
     switch (newState) {
     case QMediaPlayer::PlayingState:
         qDebug() << "stateChanged: Playing";
-        setStatus("Playing");
+        setStatus(tr("Playing"));
         break;
     case QMediaPlayer::PausedState:
         qDebug() << "stateChanged: Paused";
-        setStatus("Paused");
+        setStatus(tr("Paused"));
         break;
     case QMediaPlayer::StoppedState:
         qDebug() << "stateChanged: Stopped";
@@ -282,7 +282,7 @@ void VideoPlayer::stateChanged(QMediaPlayer::State newState) {
 }
 
 void VideoPlayer::mediaError(QMediaPlayer::Error /*error*/) {
-    setStatus("Error: " + mediaObject->errorString());
+    setStatus(QString(tr("Error: %1")).arg(mediaObject->errorString()));
 }
 
 QSize VideoPlayer::sizeHint() const {

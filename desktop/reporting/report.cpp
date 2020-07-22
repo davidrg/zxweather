@@ -16,6 +16,7 @@
 #include <QAbstractTableModel>
 #include <QCoreApplication>
 #include <QLocale>
+#include <QApplication>
 
 #if USE_QJSENGINE
 #include <QJSEngine>
