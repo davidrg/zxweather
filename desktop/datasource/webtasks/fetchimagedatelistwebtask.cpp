@@ -63,6 +63,11 @@ void FetchImageDateListWebTask::processDateList(QString data) {
 
     QVariantMap result = Json::parse(data, ok).toMap();
 
+    if (!ok) {
+        qWarning() << "Failed to parse json document!";
+        qDebug() << data;
+    }
+
     QVariantMap dateCounts = result["date_counts"].toMap();
     QVariantMap sources = result["sources"].toMap();
 

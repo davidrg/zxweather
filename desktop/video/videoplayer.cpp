@@ -5,6 +5,7 @@
 
 #include <QTime>
 #include <QStyle>
+#include <QTimer>
 
 VideoPlayer::VideoPlayer(QWidget *parent) :
     AbstractVideoPlayer(parent),
@@ -28,24 +29,8 @@ VideoPlayer::VideoPlayer(QWidget *parent) :
     ui->frame->setPalette(QApplication::palette());
     ui->frame->setAutoFillBackground(true);
 
-    mediaObject.setVideoOutput(ui->player);
-
-    setTickInterval(1000);
-
-    connect(&mediaObject, SIGNAL(durationChanged(qint64)),
-            this, SLOT(updateTime()));
-    connect(&mediaObject, SIGNAL(positionChanged(qint64)),
-            this, SLOT(updateTime()));
-    connect(&mediaObject, SIGNAL(mediaStatusChanged(QMediaPlayer::MediaStatus)),
-            this, SLOT(mediaStatusChanged(QMediaPlayer::MediaStatus)));
-    connect(&mediaObject, SIGNAL(stateChanged(QMediaPlayer::State)),
-            this, SLOT(stateChanged(QMediaPlayer::State)));
-    connect(&mediaObject, SIGNAL(error(QMediaPlayer::Error)),
-            this, SLOT(mediaError(QMediaPlayer::Error)));
-    connect(&mediaObject, SIGNAL(positionChanged(qint64)),
-            this, SLOT(mediaPositionChanged(qint64)));
-
-    setControlsEnabled(false);
+    initialiseMediaPlayer();
+    autoPlay = false;
 }
 
 VideoPlayer::~VideoPlayer()
@@ -53,38 +38,69 @@ VideoPlayer::~VideoPlayer()
     delete ui;
 }
 
+void VideoPlayer::initialiseMediaPlayer() {
+    mediaObject.reset(new QMediaPlayer());
+
+    mediaObject->setVideoOutput(ui->player);
+
+    setTickInterval(1000);
+
+    connect(mediaObject.data(), SIGNAL(durationChanged(qint64)),
+            this, SLOT(updateTime()));
+    connect(mediaObject.data(), SIGNAL(positionChanged(qint64)),
+            this, SLOT(updateTime()));
+    connect(mediaObject.data(), SIGNAL(mediaStatusChanged(QMediaPlayer::MediaStatus)),
+            this, SLOT(mediaStatusChanged(QMediaPlayer::MediaStatus)));
+    connect(mediaObject.data(), SIGNAL(stateChanged(QMediaPlayer::State)),
+            this, SLOT(stateChanged(QMediaPlayer::State)));
+    connect(mediaObject.data(), SIGNAL(error(QMediaPlayer::Error)),
+            this, SLOT(mediaError(QMediaPlayer::Error)));
+    connect(mediaObject.data(), SIGNAL(positionChanged(qint64)),
+            this, SLOT(mediaPositionChanged(qint64)));
+
+    setControlsEnabled(false);
+}
+
 void VideoPlayer::setTickInterval(qint32 interval) {
-    mediaObject.setNotifyInterval(interval);
+    mediaObject->setNotifyInterval(interval);
 }
 
 void VideoPlayer::play() {
-    mediaObject.play();
+    qDebug() << "> PLAY <";
+    mediaObject->play();
     ui->tbPlay->setChecked(true);
 }
 
 void VideoPlayer::pause() {
-    mediaObject.pause();
+    qDebug() << "> PAUSE <";
+    mediaObject->pause();
     ui->tbPause->setChecked(true);
 }
 
 void VideoPlayer::stop() {
-    mediaObject.stop();
+    qDebug() << "> STOP <";
+    mediaObject->stop();
     ui->tbStop->setChecked(true);
 }
 
 void VideoPlayer::setFilename(QString filename) {
-    mediaObject.setMedia(QUrl::fromLocalFile(filename));
-    mediaObject.setPosition(0);
-    setStatus("Loading...");
+    qDebug() << "> LOAD <";
+    mediaFilename = filename;
+    mediaObject->setMedia(QUrl::fromLocalFile(filename));
+
+    if (!autoPlay) {
+        setStatus("Loading...");
+    }
 }
 
 void VideoPlayer::finished() {
+    qDebug() << "Finished!";
     ui->tbStop->setChecked(true);
 }
 
 void VideoPlayer::updateTime() {
-    ui->lTime->setText(timeString(mediaObject.duration(),
-                                  mediaObject.position()));
+    ui->lTime->setText(timeString(mediaObject->duration(),
+                                  mediaObject->position()));
 }
 
 bool VideoPlayer::controlsEnabled() const {
@@ -92,7 +108,7 @@ bool VideoPlayer::controlsEnabled() const {
 }
 
 void VideoPlayer::setControlsEnabled(bool enabled) {
-    if (mediaObject.mediaStatus() != QMediaPlayer::LoadedMedia) {
+    if (mediaObject->mediaStatus() != QMediaPlayer::LoadedMedia) {
         return; // Not valid to enable controls yet.
     }
 
@@ -102,55 +118,133 @@ void VideoPlayer::setControlsEnabled(bool enabled) {
 }
 
 void VideoPlayer::setStatus(QString status) {
-    qDebug() << status;
+    qDebug() << "setStatus: " << status;
     ui->lStatus->setText(status);
 }
 
 QSize VideoPlayer::videoSize() {
-    if (mediaObject.mediaStatus() == QMediaPlayer::LoadingMedia) {
+    if (mediaObject->mediaStatus() == QMediaPlayer::LoadingMedia) {
         return QSize();
     }
     return ui->player->sizeHint();
 }
 
 void VideoPlayer::mediaStatusChanged(QMediaPlayer::MediaStatus newStatus) {
-    qDebug() << "mediaStatusChanged";
+
+
+    switch(mediaObject->state()) {
+    case QMediaPlayer::StoppedState:
+        qDebug() << "mediaStatusChanged! State is: Stopped";
+        break;
+    case QMediaPlayer::PlayingState:
+        qDebug() << "mediaStatusChanged! State is: Playing";
+        break;
+    case QMediaPlayer::PausedState:
+        qDebug() << "mediaStatusChanged! State is: Paused";
+        break;
+    default:
+        qDebug() << "mediaStatusChanged!";
+    }
+
+    qDebug() << "Position:" << mediaObject->position();
+
+
     switch (newStatus) {
     case QMediaPlayer::LoadingMedia:
-        setStatus("Loading...");
+        qDebug() << "mediaStatus: Loading Media";
+        if (!autoPlay) {
+            setStatus("Loading...");
+        }
         setControlsEnabled(false);
         break;
     case QMediaPlayer::EndOfMedia:
+        qDebug() << "mediaStatus: End Of Media";
         setStatus("Paused");
         ui->tbPause->setChecked(true);
+
+        /* What is this?
+         * There seems to be a random chance of the QMediaPlayer instance starting
+         * off broken. There isn't any reliable way of reproducing the problem
+         * and there isn't any obvious cause. Its been observed on multiple
+         * computers and under multiple Qt versions. Perhaps caused by a codec
+         * issue?
+         *
+         * The symptoms are: The media loads fine but as soon as you hit play we
+         * get the EndOfMedia status nearly immediately. The players current
+         * position at this point is only a few seconds in - nowhere near the
+         * actual end of media. Hitting play again will cause another EndOfMedia
+         * status this time actually at the end of media. The player doesn't
+         * go back to the beginning so hitting play again just gets another
+         * EndOfMedia.
+         *
+         * Further clicking of Play/Pause/Stop randomly for a while may eventually
+         * make the video play but there doesn't appear to be any reliable sequence
+         * to make it behave.
+         *
+         * By far the easiest option when we notice this problem is just to delete
+         * and recreate the QMediaPlayer. Chances are the new one will work fine
+         * and play the video properly first try. So if we get an EndOfMedia
+         * status that isn't the real end of the media thats what we do!
+         */
+        if (mediaObject->position() != mediaObject->duration()) {
+            qWarning() << "Faulty end of media position!";
+            setStatus("Media Player Failure - Reloading...");
+
+            initialiseMediaPlayer();
+            autoPlay = true;
+
+            setFilename(mediaFilename);
+        }
+
         break;
     case QMediaPlayer::LoadedMedia:
+        qDebug() << "mediaStatus: Loaded Media";
         setStatus("Stopped");
         if (!controlsLocked) {
             setControlsEnabled(true);
         }
         emit ready();
+        if (autoPlay) {
+            autoPlay = false;
+            play();
+        }
         break;
     case QMediaPlayer::BufferingMedia:
-        qDebug() << "Buffering";
+        qDebug() << "mediaStatus: Buffering Media";
 //        setStatus("Buffering");
         break;
     case QMediaPlayer::StalledMedia:
-        qDebug() << "Stalled";
+        qDebug() << "mediaStatus: Stalled Media";
 //        setStatus("Stalled");
         break;
     case QMediaPlayer::BufferedMedia:
-        qDebug() << "buffered";
+        qDebug() << "mediaStatus: Buffered Media";
 //        setStatus("Buffered");
         break;
     case QMediaPlayer::InvalidMedia:
+        qDebug() << "mediaStatus: Invalid Media";
         setStatus("Invalid Media");
         setControlsEnabled(false);
+
+        invalidMediaRetryCount++;
+        if (invalidMediaRetryCount > 2) {
+            qDebug() << "Failed to load media after 2 attempts";
+            invalidMediaRetryCount = 0;
+            return;
+        } else {
+            // This might have been caused by trying to load the video before
+            // its been fully written to disk. Try re-loading it in a second -
+            // by then it should be done.
+            qDebug() << "Got invalid media status while loading file"
+                     << mediaFilename << "- attempting to reload.";
+            QTimer::singleShot(1000,this, SLOT(reload()));
+        }
         break;
     case QMediaPlayer::UnknownMediaStatus:
-        qDebug() << "Unkown media status";
+        qDebug() << "mediaStatus: Unknown Media Status";
     case QMediaPlayer::NoMedia:
     default:
+        qDebug() << "mediaStatus: No Media";
         setStatus("No Media");
         setControlsEnabled(false);
     }
@@ -171,12 +265,15 @@ void VideoPlayer::stateChanged(QMediaPlayer::State newState) {
     qDebug() << "State changed";
     switch (newState) {
     case QMediaPlayer::PlayingState:
+        qDebug() << "stateChanged: Playing";
         setStatus("Playing");
         break;
     case QMediaPlayer::PausedState:
+        qDebug() << "stateChanged: Paused";
         setStatus("Paused");
         break;
     case QMediaPlayer::StoppedState:
+        qDebug() << "stateChanged: Stopped";
         // We handle this via media status changed so we can handle
         // stopped vs end of media.
     default:
@@ -185,7 +282,7 @@ void VideoPlayer::stateChanged(QMediaPlayer::State newState) {
 }
 
 void VideoPlayer::mediaError(QMediaPlayer::Error /*error*/) {
-    setStatus("Error: " + mediaObject.errorString());
+    setStatus("Error: " + mediaObject->errorString());
 }
 
 QSize VideoPlayer::sizeHint() const {
@@ -199,6 +296,10 @@ QSize VideoPlayer::sizeHint() const {
 
 void VideoPlayer::mediaPositionChanged(qint64 pos) {
     emit positionChanged(pos);
+}
+
+void VideoPlayer::reload() {
+    setFilename(mediaFilename);
 }
 
 #endif

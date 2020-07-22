@@ -5,6 +5,7 @@
 
 #include <QWidget>
 #include <QMediaPlayer>
+#include <QScopedPointer>
 
 #include "abstractvideoplayer.h"
 
@@ -48,10 +49,17 @@ private slots:
     void mediaError(QMediaPlayer::Error error);
     void mediaPositionChanged(qint64 pos);
 
+    void reload();
+
 private:
     Ui::VideoPlayer *ui;
-    QMediaPlayer mediaObject;
+    QScopedPointer<QMediaPlayer> mediaObject;
     QSize oldSize;
+    int invalidMediaRetryCount = 0;
+    QString mediaFilename;
+    bool autoPlay;
+
+    void initialiseMediaPlayer();
 };
 
 #endif // NO_MULTIMEDIA
