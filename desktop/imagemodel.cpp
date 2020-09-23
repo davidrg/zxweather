@@ -1270,6 +1270,11 @@ void ImageModel::imageListReady(QList<ImageInfo> imageList) {
         return; // No images
     }
 
+    if (pendingThumbnails.isEmpty()) {
+        qDebug() << "Layout about to change!";
+        emit layoutAboutToBeChanged();
+    }
+
     // Sort the image list by time and type
     qSort(imageList.begin(), imageList.end(), imageLessThan);
 
@@ -1294,13 +1299,11 @@ void ImageModel::imageListReady(QList<ImageInfo> imageList) {
         TreeItem *item = new TreeItem(IT_IMAGE, req.date, req.imageSourceCode,
                                       title, req.treeItem, img.id);
         req.treeItem->appendChild(item);
-
         ThumbnailRequest thumbReq;
         thumbReq.index = index(i, 0, req.index);
         thumbReq.treeItem = item;
         thumbReq.imageLoaded = false;
         thumbReq.thumbnailLoaded = false;
-
         pendingThumbnails[img.id] = thumbReq;
         thumbnailIds.append(img.id);
         i++;
@@ -1328,6 +1331,11 @@ void ImageModel::thumbnailReady(int imageId, QImage thumbnail) {
 
         emit dataChanged(req.index, req.index);
         emit thumbnailReady(req.index);
+
+        if (pendingThumbnails.isEmpty()) {
+            qDebug() << "Layout Changed!";
+            emit layoutChanged();
+        }
     }
 }
 
@@ -1343,13 +1351,23 @@ void ImageModel::imageReady(ImageInfo info, QImage image, QString cacheFile) {
         pendingThumbnails[imageId].imageLoaded = true;
         ThumbnailRequest req = pendingThumbnails[imageId];
 
-        if (req.imageLoaded && req.thumbnailLoaded) {
+        if ((req.imageLoaded && req.thumbnailLoaded)
+                || info.mimeType.startsWith("video/") || info.mimeType.startsWith("audio/")) {
+
+            // If the image is actually video or audio there is no need to wait for a thumbnail.
+            // It will never come.
+
             pendingThumbnails.remove(imageId);
         }
 
         req.treeItem->setImage(info, image, cacheFile);
 
         emit imageReady(req.index);
+
+        if (pendingThumbnails.isEmpty()) {
+            qDebug() << "Layout Changed!";
+            emit layoutChanged();
+        }
 
         // We don't need to emit a model changed here as we're not
         // changing anything exposed to the view. Note that if the
