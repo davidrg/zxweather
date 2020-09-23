@@ -11,6 +11,10 @@ doc/desktop_reports/desktop_reports.synctex.gz
 doc/desktop_reports/*.pdf
 davis-logger/errors.csv
 zxw_web/config.cfg
+build-5101-release/*
+dist-5101/*
+desktop/config.tests/multimedia/.qmake.stash
+desktop/config.tests/multimedia/Makefile
 *.bat
 *.pyc
 *.obj
