@@ -6,7 +6,7 @@ QString readTextFile(QString name, QString reportName); // defined in report.cpp
 
 ScriptingEngine::ScriptingEngine(QStringList scriptFiles, QString reportName, QObject *parent) : QObject(parent)
 {
-    _reportName = _reportName;
+    _reportName = reportName;
     _scripts = scriptFiles;
 
     QJSValue consoleObj =  engine.newQObject(new JSConsole());
@@ -20,6 +20,7 @@ void ScriptingEngine::initialiseScriptEngine() {
     // Load all the script files
     QString script;
     foreach (QString file, _scripts) {
+        qDebug() << "Load script file" << file << "for report named" << _reportName;
         script += readTextFile(file, _reportName) + "\n";
     }
 
