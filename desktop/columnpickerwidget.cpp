@@ -62,6 +62,8 @@ void ColumnPickerWidget::configureUi(
 void ColumnPickerWidget::checkboxToggled(bool checked) {
     Q_UNUSED(checked);
 
+    emit columnSelectionChanged();
+
     QCheckBox *cb = qobject_cast<QCheckBox*>(sender());
 
     // Try and find the tab the checkbox is on

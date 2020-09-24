@@ -22,8 +22,12 @@ public:
     AggregateGroupType getAggregateGroupType();
     uint32_t getCustomMinutes();
 
+    void setRainEvapoOptionsEnabled(bool enabled);
+    bool isRainEvapoOptionsEnabled();
+
 private:
     Ui::AggregateOptionsWidget *ui;
+    bool rainEvapoOptionsEnabled;
 };
 
 #endif // AGGREGATEOPTIONSWIDGET_H

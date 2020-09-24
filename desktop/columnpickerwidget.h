@@ -20,6 +20,8 @@ public:
     explicit ColumnPickerWidget(QWidget *parent = NULL);
     ~ColumnPickerWidget();
 
+signals:
+    void columnSelectionChanged();
 
 
 public slots:
