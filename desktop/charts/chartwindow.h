@@ -82,6 +82,7 @@ private slots:
     void renameSelectedValueAxis();
     void hideSelectedKeyAxis();
     void changeSelectedKeyAxisTimespan();
+    void refreshSelectedKeyAxis();
     void removeSelectedKeyAxis();
     void removeDataSet(dataset_id_t dsId);
     void changeTitleFont();

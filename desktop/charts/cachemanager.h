@@ -34,6 +34,12 @@ public:
      */
     void flushCache();
 
+    /** Refreshes the specified dataset from the datasource.
+     *
+     * @param dataSet Dataset ID to refresh.
+     */
+    void refreshDataSet(dataset_id_t dataSetId);
+
 signals:
     /** Datasets fetched in response to a getDataSets() call
      *
@@ -94,6 +100,10 @@ private:
      * is what will be returned via the dataSetsReady() signal.
      */
     QList<dataset_id_t> requestedDataSets;
+
+    /** This is the list of datasets the user asked us to refresh.
+     */
+    QList<dataset_id_t> refreshingDataSets;
 };
 
 #endif // CACHEMANAGER_H

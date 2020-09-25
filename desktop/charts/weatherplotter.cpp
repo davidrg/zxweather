@@ -142,6 +142,11 @@ void WeatherPlotter::changeDataSetTimespan(dataset_id_t dataSetId, QDateTime sta
     cacheManager->getDataSets(dataSets.values());
 }
 
+void WeatherPlotter::refreshDataSet(dataset_id_t dataSetId) {
+    chart->clearPlottables();
+    cacheManager->refreshDataSet(dataSetId);
+}
+
 QPointer<QCPAxis> WeatherPlotter::createValueAxis(AxisType type) {
     Q_ASSERT_X(type < AT_KEY, "createValueAxis", "Axis type must not be for a key axis");
 

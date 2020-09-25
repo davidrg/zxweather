@@ -148,6 +148,12 @@ public slots:
      */
     void changeDataSetTimespan(dataset_id_t dataSetId, QDateTime start = QDateTime(), QDateTime end = QDateTime());
 
+    /** Refreshes the dataset from the datasource.
+     *
+     * @param dataSetId Dataset to refresh.
+     */
+    void refreshDataSet(dataset_id_t dataSetId);
+
     /** Flushes data caches and redraws the chart. This results in the
      * datasource being requeried which may be slow depending on the number
      * of datasets and timespans involved.

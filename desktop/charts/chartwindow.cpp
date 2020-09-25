@@ -646,6 +646,7 @@ void ChartWindow::showKeyAxisContextMenu(QPoint point, QCPAxis *axis) {
 
     menu->addAction(QIcon(":/icons/timespan"),tr("&Change Timespan..."),
                     this, SLOT(changeSelectedKeyAxisTimespan()));
+    menu->addAction(tr("Refresh"), this, SLOT(refreshSelectedKeyAxis()));
 
     menu->addSeparator();
 
@@ -796,6 +797,14 @@ void ChartWindow::changeDataSetTimeSpan(dataset_id_t dsId, QDateTime start, QDat
     dataSets[index].endTime = end;
     plotter->changeDataSetTimespan(dsId, start, end);
     emit dataSetTimeSpanChanged(dataSets[index].id, start, end);
+}
+
+void ChartWindow::refreshSelectedKeyAxis() {
+    dataset_id_t ds = getSelectedDataset();
+    if (ds == INVALID_DATASET_ID)
+        return;
+
+    plotter->refreshDataSet(ds);
 }
 
 void ChartWindow::removeSelectedKeyAxis() {

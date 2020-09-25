@@ -133,6 +133,18 @@ void CacheManager::getNextDataSet() {
     }
 }
 
+void CacheManager::refreshDataSet(dataset_id_t dataSetId) {
+    DataSet ds = datasetCache[dataSetId];
+    dataSetsToFetch.append(ds);
+    requestedDataSets.append(ds.id);
+    refreshingDataSets.append(ds.id);
+    dataSource->fetchSamples(ds.columns, ds.startTime, ds.endTime,
+                             ds.aggregateFunction, ds.groupType, ds.customGroupMinutes);
+
+    // TODO: We need to signal to samplesReady() somehow that we're refreshing the data set
+    // and it should treat the incoming samples as though the timespan has changed.
+}
+
 void CacheManager::samplesReady(SampleSet samples) {
     qDebug() << "Samples ready";
 
@@ -150,16 +162,26 @@ void CacheManager::samplesReady(SampleSet samples) {
 
         sampleCache[ds.id] = samples;
         datasetCache[ds.id] = ds;
+
+    } else if (refreshingDataSets.contains(ds.id)) {
+        // User is asking to refresh this dataset. We must reset the cached dataset
+        // to whatever the data source just gave us.
+        sampleCache[ds.id] = samples;
+        datasetCache[ds.id] = ds;
+        refreshingDataSets.removeAll(ds.id);
+
     } else if (ds.id == cachedDataSet.id) {
         // We have the dataset cached with matching timespan and id but the columns
         // are different. If any of the columns in the SampleSet are missing from
         // the cache then merge them in.
         if (((ds.columns.standard & cachedDataSet.columns.standard) != ds.columns.standard)
-                || ((ds.columns.extra & cachedDataSet.columns.extra) != ds.columns.extra))
+                || ((ds.columns.extra & cachedDataSet.columns.extra) != ds.columns.extra)) {
             mergeSampleSet(ds.id, samples, ds.columns);
-        else
+        } else {
             qDebug() << "Requested samples for data set" << ds.id
                      << "already in cache - no merge necessary";
+        }
+
     }
 
     if (dataSetsToFetch.isEmpty()) {
