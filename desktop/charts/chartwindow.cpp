@@ -458,14 +458,18 @@ void ChartWindow::showChartContextMenu(QPoint point) {
 
 #ifdef MULTI_DATA_SET
     // X Axis lock
-    action = menu->addAction(tr("Lock &X Axis"), this, SLOT(toggleXAxisLock()));
-    action->setCheckable(true);
-    action->setChecked(ui->actionLock_X_Axes->isChecked());
+    if (ui->actionLock_X_Axes->isEnabled()) {
+        action = menu->addAction(tr("Lock &X Axis"), this, SLOT(toggleXAxisLock()));
+        action->setCheckable(true);
+        action->setChecked(ui->actionLock_X_Axes->isChecked());
+    }
 #endif
     // Y Axis lock
-    action = menu->addAction(tr("Lock &Y Axis"), this, SLOT(toggleYAxisLock()));
-    action->setCheckable(true);
-    action->setChecked(ui->actionLock_Y_Axes->isChecked());
+    if (ui->actionLock_Y_Axes->isEnabled()) {
+        action = menu->addAction(tr("Lock &Y Axis"), this, SLOT(toggleYAxisLock()));
+        action->setCheckable(true);
+        action->setChecked(ui->actionLock_Y_Axes->isChecked());
+    }
 
 #ifdef FEATURE_PLUS_CURSOR
     action = menu->addAction(tr("Enable Crosshair"), this, SLOT(toggleCursor()));
