@@ -994,11 +994,11 @@ bool Settings::liveStormRain() const {
 }
 
 bool Settings::liveTagsEnabled() const {
-    return settings->value(SettingsKey::LiveChart::LIVE_TAGS, false).toBool();
+    return settings->value(SettingsKey::LiveChart::LIVE_TAGS, true).toBool();
 }
 
 bool Settings::liveMultipleAxisRectsEnabled() const {
-    return settings->value(SettingsKey::LiveChart::MULTI_RECT, false).toBool();
+    return settings->value(SettingsKey::LiveChart::MULTI_RECT, true).toBool();
 }
 
 void Settings::setLiveAggregateSeconds(int value) {
