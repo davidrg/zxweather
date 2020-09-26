@@ -243,9 +243,6 @@ void ChartWindow::dataSetRemoved(dataset_id_t dataSetId) {
 void ChartWindow::chartAxisCountChanged(int valueAxes, int keyAxes) {
     ui->actionLock_Y_Axes->setVisible(valueAxes > 1);
     ui->actionLock_X_Axes->setVisible(keyAxes > 1);
-
-    setYAxisLock();
-    setXAxisLock();
 }
 
 void ChartWindow::setYAxisLock() {
@@ -1249,7 +1246,6 @@ void ChartWindow::showAddGraph(dataset_id_t dsId) {
                        this);
     if (adg.exec() == QDialog::Accepted) {
         plotter->addGraphs(dsId, adg.selectedColumns());
-        setDataSetActionsEnabled(false);
     }
 }
 
