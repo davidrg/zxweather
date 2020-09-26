@@ -1402,8 +1402,12 @@ void ChartWindow::setDataSetVisibility(dataset_id_t dsId, bool visible) {
         if (id == dsId) {
             g->setVisible(visible);
             g->setSelection(QCPDataSelection(QCPDataRange(0, 1)));
-            QCPPlottableLegendItem *lip = ui->chart->legend->itemWithPlottable(g);
-            lip->setVisible(visible);
+
+            if (visible) {
+                g->addToLegend();
+            } else {
+                g->removeFromLegend();
+            }
         }
     }
 
