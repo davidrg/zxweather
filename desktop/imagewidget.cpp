@@ -111,6 +111,7 @@ void ImageWidget::setIcon(QIcon icon) {
 #endif
 
     setPixmap(icon.pixmap(32,32));
+    setToolTip(QString());
 }
 
 
