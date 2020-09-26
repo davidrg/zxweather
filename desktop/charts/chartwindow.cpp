@@ -5,6 +5,7 @@
 #include "graphstyledialog.h"
 #include "datasettimespandialog.h"
 #include "datasetsdialog.h"
+#include "axistickformatdialog.h"
 
 #include "datasource/webdatasource.h"
 #include "datasource/databasedatasource.h"
@@ -630,7 +631,8 @@ void ChartWindow::showKeyAxisContextMenu(QPoint point, QCPAxis *axis) {
                     this, SLOT(hideSelectedKeyAxis()));
 
     menu->addAction(tr("&Change Label Font..."), this, SLOT(changeAxisLabelFont()));
-    menu->addAction(tr("&Change Tick Label Font..."), this, SLOT(changeAxisTickLabelFont()));
+    menu->addAction(tr("&Change Tick Font..."), this, SLOT(changeAxisTickLabelFont()));
+    menu->addAction(tr("&Change Tick Format..."), this, SLOT(setSelectedKeyAxisTickFormat()));
 
     menu->addSeparator();
 
@@ -797,6 +799,29 @@ void ChartWindow::changeDataSetTimeSpan(dataset_id_t dsId, QDateTime start, QDat
     dataSets[index].endTime = end;
     plotter->changeDataSetTimespan(dsId, start, end);
     emit dataSetTimeSpanChanged(dataSets[index].id, start, end);
+}
+
+void ChartWindow::setSelectedKeyAxisTickFormat() {
+    dataset_id_t ds = getSelectedDataset();
+    if (ds == INVALID_DATASET_ID)
+        return;
+
+    setSelectedKeyAxisTickFormat(ds);
+}
+
+void ChartWindow::setSelectedKeyAxisTickFormat(dataset_id_t dsId) {
+    AxisTickFormatDialog atfd;
+
+    key_axis_tick_format_t currentFormat = plotter->getKeyAxisTickFormat(dsId);
+    QString currentFormatString = plotter->getKeyAxisTickFormatString(dsId);
+
+    atfd.setFormat(currentFormat, currentFormatString);
+
+    if (atfd.exec()) {
+        key_axis_tick_format_t format = atfd.getFormat();
+        QString formatString = atfd.getFormatString();
+        plotter->setKeyAxisFormat(dsId, format, formatString);
+    }
 }
 
 void ChartWindow::refreshSelectedKeyAxis() {

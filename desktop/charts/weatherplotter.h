@@ -21,6 +21,15 @@ typedef struct _graph_styles {
     QMap<ExtraColumn, GraphStyle> extraStyles;
 } graph_styles_t;
 
+typedef enum _key_axis_tick_format {
+    KATF_Default,
+    KATF_DefaultNoYear,
+    KATF_Time,
+    KATF_Date,
+    KATF_Custom
+} key_axis_tick_format_t;
+
+
 /** WeatherPlotter is responsible for plotting weather data in a QCustomPlot widget.
  *
  * Given a list of DataSets, each with a timespan and set of columns, WeatherPlotter
@@ -116,6 +125,16 @@ public:
      * @return Graph styles for the specified dataset.
      */
     graph_styles_t getGraphStyles(dataset_id_t dataSetId);
+
+    /** Sets the tick format for the specified key axis.
+     *
+     * @param dataSetId Key axis to set the format for.
+     * @param format New tick format
+     * @param customFormat custom format string if tick format is KATF_Custom
+     */
+    void setKeyAxisFormat(dataset_id_t dataSetId, key_axis_tick_format_t format, QString customFormat);
+    key_axis_tick_format_t getKeyAxisTickFormat(dataset_id_t dataSetId);
+    QString getKeyAxisTickFormatString(dataset_id_t dataSetId);
 
     GraphStyle& getStyleForGraph(dataset_id_t dataSetId, StandardColumn column);
     GraphStyle& getStyleForGraph(dataset_id_t dataSetId, ExtraColumn column);
@@ -322,6 +341,8 @@ private:
     QMap<AxisType, QPointer<QCPAxis> > configuredKeyAxes;
     QMap<QCPAxis*, AxisType> axisTypes;
     QMap<AxisType, int> axisReferences;
+    QMap<dataset_id_t, key_axis_tick_format_t> keyAxisTickFormats;
+    QMap<dataset_id_t, QString> keyAxisTickCustomFormats;
 
     /** Initialises the axisLabels dictionary.
      */

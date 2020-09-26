@@ -102,6 +102,8 @@ private slots:
     void changeDataSetTimeSpan(dataset_id_t dsId);
     void changeDataSetTimeSpan(dataset_id_t dsId, QDateTime start, QDateTime end);
     void showAddGraph(dataset_id_t dsId);
+    void setSelectedKeyAxisTickFormat();
+    void setSelectedKeyAxisTickFormat(dataset_id_t dsId);
 
     void setGraphActionsEnabled(bool enabled);
     void setDataSetActionsEnabled(bool enabled);

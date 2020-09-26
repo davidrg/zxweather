@@ -147,6 +147,53 @@ void WeatherPlotter::refreshDataSet(dataset_id_t dataSetId) {
     cacheManager->refreshDataSet(dataSetId);
 }
 
+void WeatherPlotter::setKeyAxisFormat(dataset_id_t dataSetId, key_axis_tick_format_t format, QString customFormat) {
+    keyAxisTickFormats[dataSetId] = format;
+    keyAxisTickCustomFormats[dataSetId] = customFormat;
+
+    // TODO: Actually change the tick format.
+    AxisType keyAxisType = (AxisType)(AT_KEY + dataSetId);
+    QPointer<QCPAxis> axis = configuredKeyAxes[keyAxisType];
+
+    // Ideally we'd use qobject_cast<>() but QCPAxisTickerDateTime isn't a QObject.
+    // This should still be safe enough as the key axis is always a timestamp.
+    QCPAxisTickerDateTime* ticker = (QCPAxisTickerDateTime*)axis->ticker().data();
+
+    QString formatString = "";
+    switch(format) {
+
+    case KATF_Default:
+        formatString = tr("hh:mm:ss\ndd.MM.yy");
+        break;
+    case KATF_DefaultNoYear:
+        formatString = tr("hh:mm:ss\ndd.MM");
+        break;
+    case KATF_Time:
+        formatString = tr("hh:mm:ss");
+        break;
+    case KATF_Date:
+        formatString = tr("dd.MM.yy");
+        break;
+    case KATF_Custom:
+        formatString = customFormat;
+        break;
+    default:
+        formatString = tr("hh:mm:ss\ndd.MM.yy");
+        break;
+    }
+
+    ticker->setDateTimeFormat(formatString);
+    chart->replot();
+}
+
+key_axis_tick_format_t WeatherPlotter::getKeyAxisTickFormat(dataset_id_t dataSetId) {
+    return keyAxisTickFormats[dataSetId];
+}
+
+QString WeatherPlotter::getKeyAxisTickFormatString(dataset_id_t dataSetId) {
+    return keyAxisTickCustomFormats[dataSetId];
+}
+
 QPointer<QCPAxis> WeatherPlotter::createValueAxis(AxisType type) {
     Q_ASSERT_X(type < AT_KEY, "createValueAxis", "Axis type must not be for a key axis");
 
@@ -267,6 +314,9 @@ QPointer<QCPAxis> WeatherPlotter::createKeyAxis(dataset_id_t dataSetId) {
 
     axis->setTickLabelFont(Settings::getInstance().defaultChartAxisTickLabelFont());
     axis->setLabelFont(Settings::getInstance().defaultChartAxisLabelFont());
+
+    keyAxisTickFormats[dataSetId] = KATF_Default;
+    keyAxisTickCustomFormats[dataSetId] = QString();
 
 #ifdef FEATURE_PLUS_CURSOR
     QPointer<QCPItemText> tag = new QCPItemText(chart);
