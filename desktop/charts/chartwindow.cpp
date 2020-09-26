@@ -867,6 +867,11 @@ void ChartWindow::removeDataSet(dataset_id_t dsId) {
 
 void ChartWindow::showValueAxisContextMenu(QPoint point, QCPAxis *axis) {
 
+    // Deselect all Y axis
+    foreach(QCPAxis* axis, ui->chart->axisRect()->axes(QCPAxis::atLeft | QCPAxis::atRight)) {
+        axis->setSelectedParts(QCPAxis::spNone);
+    }
+
     axis->setSelectedParts(QCPAxis::spAxis | QCPAxis::spTickLabels |
                            QCPAxis::spAxisLabel);
     ui->chart->replot();
