@@ -118,6 +118,7 @@ SOURCES += main.cpp\
     charts/axistickformatdialog.cpp \
     charts/datetimeformathelpdialog.cpp \
     charts/plotwidget/chartmousetracker.cpp \
+    charts/pluscursor.cpp \
     columnpickerwidget.cpp \
     livecolumnpickerwidget.cpp \
         mainwindow.cpp \
@@ -227,6 +228,7 @@ HEADERS  += mainwindow.h \
     charts/axistickformatdialog.h \
     charts/datetimeformathelpdialog.h \
     charts/plotwidget/chartmousetracker.h \
+    charts/pluscursor.h \
     columnpickerwidget.h \
     database.h \
     datasource/hardwaretype.h \

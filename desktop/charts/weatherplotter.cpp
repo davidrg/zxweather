@@ -10,6 +10,7 @@ WeatherPlotter::WeatherPlotter(PlotWidget *chart, QObject *parent) :
     QObject(parent)
 {
     this->chart = chart;
+    plusCursor = new PlusCursor(chart);
 
     setAxisGridVisible(true);
 
@@ -27,29 +28,10 @@ WeatherPlotter::WeatherPlotter(PlotWidget *chart, QObject *parent) :
     chart->xAxis2->setProperty(AXIS_DATASET, -1);
 
     currentScaleType = RS_YEAR; // Align on exact timestamp match.
+}
 
-#ifdef FEATURE_PLUS_CURSOR
-    connect(chart, SIGNAL(mouseMove(QMouseEvent*)),
-            this, SLOT(updateCursor(QMouseEvent*)));
-    connect(chart, SIGNAL(mouseLeave(QEvent*)),
-            this, SLOT(hideCursor()));
-
-    hCursor = new QCPItemLine(chart);
-    hCursor->setLayer("overlay");
-    hCursor->setVisible(false);
-    hCursor->setSelectable(false);
-    hCursor->start->setType(QCPItemPosition::ptAbsolute);
-    hCursor->end->setType(QCPItemPosition::ptAbsolute);
-
-    vCursor = new QCPItemLine(chart);
-    vCursor->setLayer("overlay");
-    vCursor->setVisible(false);
-    vCursor->setSelectable(false);
-    vCursor->start->setType(QCPItemPosition::ptAbsolute);
-    vCursor->end->setType(QCPItemPosition::ptAbsolute);
-
-    setCursorEnabled(true);
-#endif
+WeatherPlotter::~WeatherPlotter() {
+    delete plusCursor;
 }
 
 void WeatherPlotter::setDataSource(AbstractDataSource *dataSource)
@@ -231,24 +213,7 @@ QPointer<QCPAxis> WeatherPlotter::createValueAxis(AxisType type) {
     axis->setTickLabelFont(Settings::getInstance().defaultChartAxisTickLabelFont());
     axis->setLabelFont(Settings::getInstance().defaultChartAxisLabelFont());
 
-#ifdef FEATURE_PLUS_CURSOR
-    QPointer<QCPItemText> tag = new QCPItemText(chart);
-    tag->setLayer("overlay");
-    tag->setClipToAxisRect(false);
-    tag->setPadding(QMargins(3,0,3,0));
-    tag->setBrush(QBrush(Qt::white));
-    tag->setPen(QPen(Qt::black));
-    tag->setSelectable(false);
-    if (atLeft) {
-        tag->setPositionAlignment(Qt::AlignRight | Qt::AlignVCenter);
-    } else {
-        tag->setPositionAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-    }
-    tag->setText("0.0");
-    tag->position->setAxes(chart->xAxis, axis);
-
-    cursorAxisTags[type] = tag;
-#endif
+    plusCursor->registerValueAxis(type, axis, atLeft);
 
     emit axisCountChanged(configuredValueAxes.count(), configuredKeyAxes.count());
 
@@ -318,25 +283,7 @@ QPointer<QCPAxis> WeatherPlotter::createKeyAxis(dataset_id_t dataSetId) {
     keyAxisTickFormats[dataSetId] = KATF_Default;
     keyAxisTickCustomFormats[dataSetId] = QString();
 
-#ifdef FEATURE_PLUS_CURSOR
-    QPointer<QCPItemText> tag = new QCPItemText(chart);
-    tag->setLayer("overlay");
-    tag->setClipToAxisRect(false);
-    tag->setPadding(QMargins(3,0,3,0));
-    tag->setBrush(QBrush(Qt::white));
-    tag->setPen(QPen(Qt::black));
-    tag->setSelectable(false);
-    if (atTop) {
-        tag->setPositionAlignment(Qt::AlignHCenter | Qt::AlignBottom);
-    } else {
-        tag->setPositionAlignment(Qt::AlignHCenter | Qt::AlignTop);
-    }
-
-    tag->setText("0.0");
-    tag->position->setAxes(axis, chart->yAxis);
-
-    cursorAxisTags[type] = tag;
-#endif
+    plusCursor->registerKeyAxis(type, axis, atTop);
 
     emit axisCountChanged(configuredValueAxes.count(), configuredKeyAxes.count());
 
@@ -1078,16 +1025,7 @@ void WeatherPlotter::removeUnusedAxes()
             axisTypes.remove(axis);
             axisReferences.remove(type);
 
-#ifdef FEATURE_PLUS_CURSOR
-            if (cursorAxisTags.contains(type)) {
-                QPointer<QCPItemText> tag = cursorAxisTags[type];
-                if (!tag.isNull()) {
-                    chart->removeItem(tag.data());
-                    qDebug() << "Tag for axis" << type << "is null?" << tag.isNull();
-                }
-                cursorAxisTags.remove(type);
-            }
-#endif
+            plusCursor->unregisterAxis(type, axis);
 
             // And then the axis itself.
             if (axis == chart->yAxis) {
@@ -1482,156 +1420,3 @@ void WeatherPlotter::setGraphStyles(QMap<StandardColumn, GraphStyle> styles, dat
 void WeatherPlotter::setGraphStyles(QMap<ExtraColumn, GraphStyle> styles, dataset_id_t dataSetId) {
     extraGraphStyles[dataSetId] = styles;
 }
-
-#ifdef FEATURE_PLUS_CURSOR
-void WeatherPlotter::setCursorEnabled(bool enabled) {
-    this->cursorEnabled = enabled;
-
-    if (!enabled) {
-        hideCursor();
-    }
-}
-
-bool WeatherPlotter::isCursorEnabled() {
-    return cursorEnabled;
-}
-
-void WeatherPlotter::hideCursor() {
-    if (!hCursor.isNull()) {
-        hCursor->setVisible(false);
-    }
-    if (!vCursor.isNull()) {
-        vCursor->setVisible(false);
-    }
-
-    foreach (int type, cursorAxisTags.keys()) {
-        if (!cursorAxisTags[type].isNull()) {
-            cursorAxisTags[type]->setVisible(false);
-        }
-    }
-
-    chart->layer("overlay")->replot();
-}
-
-void WeatherPlotter::updateCursor(QMouseEvent *event) {
-
-    if (!this->cursorEnabled) {
-        return;
-    }
-
-    if (hCursor.isNull() || vCursor.isNull()) {
-        return; // Cursor not initialised.
-    }
-
-    if (configuredKeyAxes.isEmpty() || configuredValueAxes.isEmpty()) {
-        hCursor->setVisible(false);
-        vCursor->setVisible(false);
-        return; // There shouldn't be any graphs when there are no key or value axes.
-    }
-
-    if (!chart->rect().contains(event->pos())) {
-        // Mouse has left the widget. Hide the cursor
-        hideCursor();
-        return;
-    }
-
-    // Update the cursor
-    vCursor->start->setCoords(event->pos().x(),0);
-    vCursor->end->setCoords(event->pos().x(), chart->height());
-    vCursor->setVisible(true);
-
-    hCursor->start->setCoords(0, event->pos().y());
-    hCursor->end->setCoords(chart->width(), event->pos().y());
-    hCursor->setVisible(true);
-
-    // Update the tags
-    foreach (int type, cursorAxisTags.keys()) {
-        QPointer<QCPItemText> tag = cursorAxisTags[type];
-        if (tag.isNull()) {
-            qWarning() << "Tag for axis type" << type << "is null.";
-            continue;
-        }
-
-        if ((AxisType)type < AT_KEY) {
-            // Its a value axis (Y)
-            QCPAxis* axis = getValueAxis((AxisType)type, false);
-
-            QPointer<QCPAxis> keyAxis = tag->position->keyAxis();
-
-            double axisValue = axis->pixelToCoord(event->pos().y());
-
-            QCPRange range = axis->range();
-            if (axisValue < range.lower || axisValue > range.upper) {
-                tag->setVisible(false);
-            } else {
-                tag->setVisible(true);
-                if (type == AT_HUMIDITY) {
-                    tag->setText(QString::number(axisValue, 'f', 0));
-                } else {
-                    tag->setText(QString::number(axisValue, 'f', 1));
-                }
-
-                if (axis->axisType() == QCPAxis::atLeft) {
-                    tag->position->setCoords(
-                                keyAxis->pixelToCoord(chart->axisRect()->bottomLeft().x() - axis->offset()), axisValue);
-                } else {
-                    // +1 to align with axis rect border
-                    tag->position->setCoords(
-                                keyAxis->pixelToCoord(chart->axisRect()->bottomRight().x() + axis->offset() + 1),
-                                axisValue);
-                }
-            }
-
-        } else {
-            // Its a key axis (X)
-
-            dataset_id_t dataSet = type - AT_KEY;
-
-            QCPAxis* axis = getKeyAxis(dataSet, false);
-
-            double axisValue = axis->pixelToCoord(event->pos().x());
-
-            QCPRange r = axis->range();
-            if (axisValue < r.lower || axisValue > r.upper) {
-                tag->setVisible(false);
-            } else {
-                tag->setVisible(true);
-
-                tag->setText(QDateTime::fromMSecsSinceEpoch(axisValue * 1000).toString(Qt::SystemLocaleShortDate));
-
-                QPointer<QCPAxis> valueAxis = tag->position->valueAxis();
-                double valueZero = valueAxis->pixelToCoord(chart->axisRect()->bottomLeft().y());
-                double valueMax = valueAxis->pixelToCoord(chart->axisRect()->topRight().y() -1); // -1 to align with border
-
-                QFontMetrics m(tag->font());
-                double halfWidth = m.width(tag->text()) / 2;
-
-                double left = chart->axisRect()->bottomLeft().x();
-                double right = chart->axisRect()->bottomRight().x();
-
-
-                double minPos = axis->pixelToCoord(halfWidth + left);
-                double maxPos = axis->pixelToCoord(right - halfWidth);
-
-                // Prevent the tag from going off the end of the chart.
-                double xValue = axisValue;
-                if (xValue < minPos) {
-                    xValue = minPos;
-                } else if (xValue > maxPos) {
-                    xValue = maxPos;
-                }
-
-                if (axis->axisType() == QCPAxis::atTop) {
-                    // +1 to align with axis rect border
-                    tag->position->setCoords(xValue, valueMax);
-                } else {
-                    tag->position->setCoords(xValue, valueZero);
-                }
-            }
-        }
-
-    }
-
-    chart->layer("overlay")->replot();
-}
-#endif

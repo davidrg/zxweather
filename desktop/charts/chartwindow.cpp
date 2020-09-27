@@ -67,8 +67,8 @@ ChartWindow::ChartWindow(QList<DataSet> dataSets, bool solarAvailable, bool isWi
     setYAxisLock();
     setXAxisLock();
 
-    plotter->setCursorEnabled(settings.chartCursorEnabled());
-    ui->actionC_ursor->setChecked(plotter->isCursorEnabled());
+    plotter->cursor()->setEnabled(settings.chartCursorEnabled());
+    ui->actionC_ursor->setChecked(plotter->cursor()->isEnabled());
 
     // Hide the cursor while zooming (the tags drift with the zoom otherwise)
     connect(basicInteractionManager.data(), SIGNAL(zooming()),
@@ -474,7 +474,7 @@ void ChartWindow::showChartContextMenu(QPoint point) {
 #ifdef FEATURE_PLUS_CURSOR
     action = menu->addAction(tr("Enable Crosshair"), this, SLOT(toggleCursor()));
     action->setCheckable(true);
-    action->setChecked(plotter->isCursorEnabled());
+    action->setChecked(plotter->cursor()->isEnabled());
 #endif
 
     /******** Finished ********/
@@ -483,10 +483,10 @@ void ChartWindow::showChartContextMenu(QPoint point) {
 
 #ifdef FEATURE_PLUS_CURSOR
 void ChartWindow::toggleCursor() {
-    bool enabled = !plotter->isCursorEnabled();
+    bool enabled = !plotter->cursor()->isEnabled();
     Settings::getInstance().setChartCursorEnabled(enabled);
-    plotter->setCursorEnabled(enabled);
-    ui->actionC_ursor->setChecked(plotter->isCursorEnabled());
+    plotter->cursor()->setEnabled(enabled);
+    ui->actionC_ursor->setChecked(plotter->cursor()->isEnabled());
 }
 #endif
 
