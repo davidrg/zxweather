@@ -235,6 +235,7 @@ QPointer<QCPAxis> WeatherPlotter::getValueAxis(AxisType axisType, bool reference
         if (!axisReferences.contains(axisType))
             axisReferences.insert(axisType,0);
         axisReferences[axisType]++;
+        qDebug() << "Incremented reference count for axis" << axisType << "to" << axisReferences[axisType];
     }
 
     return axis;
@@ -306,6 +307,7 @@ QPointer<QCPAxis> WeatherPlotter::getKeyAxis(dataset_id_t dataSetId,
         if (!axisReferences.contains(axisType))
             axisReferences.insert(axisType,0);
         axisReferences[axisType]++;
+        qDebug() << "Incremented reference count for axis" << axisType << "to" << axisReferences[axisType];
     }
 
     return axis;
@@ -793,6 +795,12 @@ void WeatherPlotter::drawChart(QMap<dataset_id_t, SampleSet> sampleSets)
 {
     qDebug() << "Drawing Chart...";
 
+    // Clear out the current chart and re-add everything we've got data for.
+    chart->clearPlottables();
+    foreach(AxisType type, axisReferences.keys())
+        axisReferences[type] = 0;
+    removeUnusedAxes();
+
     addGraphs(sampleSets);
 
     bool legendWasVisible = chart->legend->visible();
@@ -1074,8 +1082,6 @@ SampleColumns WeatherPlotter::selectedColumns(dataset_id_t dataSetId) {
 void WeatherPlotter::addGraphs(dataset_id_t dataSetId, SampleColumns columns) {
     dataSets[dataSetId].columns.standard |= columns.standard;
     dataSets[dataSetId].columns.extra |= columns.extra;
-
-    chart->clearPlottables();
 
     cacheManager->getDataSets(dataSets.values());
 }
