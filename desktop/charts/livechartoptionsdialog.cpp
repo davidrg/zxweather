@@ -1,5 +1,6 @@
 #include "livechartoptionsdialog.h"
 #include "ui_livechartoptionsdialog.h"
+#include "settings.h"
 
 LiveChartOptionsDialog::LiveChartOptionsDialog(bool aggregate, int period, bool maxRainRate, bool stormRain,
         bool stormRainEnabled, int rangeMinutes, bool tags, bool multiRect,
@@ -17,6 +18,10 @@ LiveChartOptionsDialog::LiveChartOptionsDialog(bool aggregate, int period, bool 
     ui->sbTimespan->setValue(rangeMinutes);
     ui->cbAxisTags->setChecked(tags);
     ui->cbMultiAxisRect->setChecked(multiRect);
+
+    // Set the maximum timespan to be however large the
+    // live buffer is.
+    ui->sbTimespan->setMaximum(Settings::getInstance().liveBufferHours() * 60);
 }
 
 LiveChartOptionsDialog::~LiveChartOptionsDialog()

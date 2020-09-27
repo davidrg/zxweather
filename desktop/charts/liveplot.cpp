@@ -538,6 +538,12 @@ void LivePlot::chartContextMenuRequested(QPoint point)
                                                    QCPAxis::atRight);
     foreach (QCPAxis* axis, axes) {
         if (axis->selectTest(point, false) >= 0) {
+            // Deselect all axis
+            foreach(QCPAxisRect* rect, axisRects()) {
+                foreach(QCPAxis* otherAxis, rect->axes()) {
+                    otherAxis->setSelectedParts(QCPAxis::spNone);
+                }
+            }
             showAxisContextMenu(point, axis);
             return;
         }
@@ -705,7 +711,6 @@ void LivePlot::axisDoubleClicked(QCPAxis *axis, QCPAxis::SelectablePart part,
 }
 
 void LivePlot::showAxisContextMenu(QPoint point, QCPAxis *axis) {
-
     axis->setSelectedParts(QCPAxis::spAxis | QCPAxis::spTickLabels |
                            QCPAxis::spAxisLabel);
     replot();
