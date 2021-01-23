@@ -215,8 +215,8 @@ public:
      */
     bool kmh() const;
 
-//    QVariant weatherValueWidgetSetting(QString name, QString setting, QVariant defaultValue);
-//    void setWeatherValueWidgetSetting(QString name, QString setting, QVariant value);
+    QVariant weatherValueWidgetSetting(QString name, QString setting, QVariant defaultValue);
+    void setWeatherValueWidgetSetting(QString name, QString setting, QVariant value);
 
     // These are the last-used settings for the live chart window.
     int liveAggregateSeconds() const;

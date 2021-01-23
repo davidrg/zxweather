@@ -11,6 +11,7 @@ namespace UnitConversions {
         U_KILOMETERS_PER_HOUR,
         U_MILES_PER_HOUR,
         U_BFT,
+        U_KNOTS,
 
         // Temperature
         U_CELSIUS,
@@ -85,11 +86,16 @@ namespace UnitConversions {
     inline double metersPerSecondToKilometersPerHour(double ms) {
         return ms * 3.6;
     }
+    inline double metersPerSecondToKnots(double ms) {
+        double kmh = metersPerSecondToKilometersPerHour(ms);
+        return kmh / 1.852; // 1 knot is exactly 1.852 km/h
+    }
     inline double metersPerSecondToMilesPerHour(double ms) {
         return ms * 2.23694;
     }
 
     UnitValue metersPerSecondToKilometersPerHour(const UnitValue &v);
+    UnitValue metersPerSecondToKnots(const UnitValue &v);
     UnitValue toImperial(const UnitValue &v);
 
     inline double celsiusToFahrenheit(double c) {

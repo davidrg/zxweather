@@ -943,15 +943,15 @@ QStringList Settings::imageTypeSortOrder() {
     return imageTypePriority;
 }
 
-//QVariant Settings::weatherValueWidgetSetting(QString name, QString setting, QVariant defaultValue) {
-//    QString s = SettingsKey::WeatherValueWidgets::ROOT + "/" + name + "/" + setting;
-//    return settings->value(s, defaultValue);
-//}
+QVariant Settings::weatherValueWidgetSetting(QString name, QString setting, QVariant defaultValue) {
+    QString s = SettingsKey::WeatherValueWidgets::ROOT + "/" + name + "/" + setting;
+    return settings->value(s, defaultValue);
+}
 
-//void Settings::setWeatherValueWidgetSetting(QString name, QString setting, QVariant value) {
-//    QString s = SettingsKey::WeatherValueWidgets::ROOT + "/" + name + "/" + setting;
-//    settings->setValue(s, value);
-//}
+void Settings::setWeatherValueWidgetSetting(QString name, QString setting, QVariant value) {
+    QString s = SettingsKey::WeatherValueWidgets::ROOT + "/" + name + "/" + setting;
+    settings->setValue(s, value);
+}
 
 void Settings::setUnits(bool imperial, bool kmh) {
     bool i = this->imperial();

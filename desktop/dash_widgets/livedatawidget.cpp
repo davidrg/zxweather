@@ -161,8 +161,6 @@ LiveDataWidget::LiveDataWidget(QWidget *parent) :
     connect(ui->lblWindSpeed, SIGNAL(plotRequested(DataSet)),
             this, SLOT(childPlotRequested(DataSet)));
 
-    ui->lblWindSpeed->setName("ldw_wind_speed");
-
 //    ui->lblUVIndex->hide();
 //    ui->lblSolarRadiation->hide();
 //    ui->solarRadiation->hide();

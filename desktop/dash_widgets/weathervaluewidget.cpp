@@ -3,10 +3,21 @@
 #include <QMenu>
 #include <QApplication>
 #include <QClipboard>
+#include <QDebug>
 
 #include "weathervaluewidget.h"
 #include "unit_conversions.h"
 #include "settings.h"
+
+// Local units:
+//   The widget can optionally display wind speed using units other than the globally
+//   configured default
+#define LU_SETTING "units" // Setting the local override is saved under
+#define LU_MS "ms"
+#define LU_KMH "kmh"
+#define LU_MPH "mph"
+#define LU_KNOT "knots"
+#define LU_GLOBAL "default" // Use global setting (whatever that may be) - no local override
 
 WeatherValueWidget::WeatherValueWidget(QWidget *parent) : QWidget(parent)
 {
@@ -19,13 +30,17 @@ WeatherValueWidget::WeatherValueWidget(QWidget *parent) : QWidget(parent)
     setLayout(layout);
     label->setText("--");
 
+    name = parent == NULL ? objectName() : parent->objectName() + "." + objectName();
+
     insideOutside = false;
     doubleValue = false;
     connect(&Settings::getInstance(), SIGNAL(unitsChanged(bool,bool)),
             this, SLOT(unitsChanged(bool,bool)));
 
-    imperial = Settings::getInstance().imperial();
-    kmh = Settings::getInstance().kmh();
+
+    unitsChanged(Settings::getInstance().imperial(),
+                 Settings::getInstance().kmh());
+    changeUnits();
 
     column1 = SC_NoColumns;
     column2 = SC_NoColumns;
@@ -37,8 +52,13 @@ WeatherValueWidget::WeatherValueWidget(QWidget *parent) : QWidget(parent)
 }
 
 void WeatherValueWidget::unitsChanged(bool imperial, bool kmh) {
-    this->imperial = imperial;
-    this->kmh = kmh;
+    globalUnits = LU_MS;
+    if (Settings::getInstance().kmh()) {
+        globalUnits = LU_KMH;
+    } else if (Settings::getInstance().imperial()) {
+        globalUnits = LU_MPH;
+    }
+
     updateDisplay();
 }
 
@@ -87,23 +107,38 @@ void WeatherValueWidget::clear() {
     insideOutside = false;
     doubleValue = false;
     label->setText("--");
+    localUnits = "default";
 }
 
 void WeatherValueWidget::updateDisplay() {
     UnitConversions::UnitValue v1(value1);
     UnitConversions::UnitValue v2(value2);
 
-    if (imperial) {
+    if (v1.unit == UnitConversions::U_METERS_PER_SECOND || 
+            v2.unit == UnitConversions::U_METERS_PER_SECOND) {
+    
+    }
+    
+    QString displayUnits = localUnits == LU_GLOBAL ? globalUnits : localUnits;
+    
+    if (displayUnits == LU_MPH) {
         v1 = UnitConversions::toImperial(v1);
         v2 = UnitConversions::toImperial(v2);
-    } else if (kmh) {
+    } else if (displayUnits == LU_KMH) {
         if (v1.unit == UnitConversions::U_METERS_PER_SECOND) {
             v1 = UnitConversions::metersPerSecondToKilometersPerHour(v1);
         }
         if (v2.unit == UnitConversions::U_METERS_PER_SECOND) {
             v2 = UnitConversions::metersPerSecondToKilometersPerHour(v2);
         }
-    }
+    } else if (displayUnits == LU_KNOT) {
+        if (v1.unit == UnitConversions::U_METERS_PER_SECOND) {
+            v1 = UnitConversions::metersPerSecondToKnots(v1);
+        }
+        if (v2.unit == UnitConversions::U_METERS_PER_SECOND) {
+            v2 = UnitConversions::metersPerSecondToKnots(v2);
+        }
+    } // else: ms
 
     if (insideOutside) {
         label->setText(QString(tr("%1 (%2 inside)"))
@@ -139,7 +174,7 @@ void WeatherValueWidget::updateDisplay() {
             } else if ((float)v1 < 6.0) {
                 exposureCategory = tr("moderate");
             } else if ((float)v1 < 8.0) {
-                exposureCategory = tr("hHigh");
+                exposureCategory = tr("high");
             } else if ((float)v1 < 11.0) {
                 exposureCategory = tr("very high");
             } else {
@@ -168,6 +203,33 @@ void WeatherValueWidget::showContextMenu(QPoint point) {
 
     menu->addAction(tr("Copy"), this, SLOT(copy()));
 
+    if (column1 == SC_AverageWindSpeed) {
+        QMenu *units = menu->addMenu(tr("Units"));
+
+        action = units->addAction(globalUnits == LU_MS ? tr("m/s (default)") : tr("m/s"),
+                                  this, SLOT(changeUnits()));
+        action->setData(globalUnits == LU_MS ? LU_GLOBAL : LU_MS);
+        action->setCheckable(true);
+        action->setChecked(localUnits == LU_MS || (globalUnits == LU_MS && localUnits == LU_GLOBAL));
+
+        action = units->addAction(globalUnits == LU_KMH ? tr("km/h (default)") : tr("km/h"),
+                                  this, SLOT(changeUnits()));
+        action->setData(globalUnits == LU_KMH ? LU_GLOBAL : LU_KMH);
+        action->setCheckable(true);
+        action->setChecked(localUnits == LU_KMH || (globalUnits == LU_KMH && localUnits == LU_GLOBAL));
+
+        action = units->addAction(globalUnits == LU_MPH ? tr("mph (default)") : tr("mph"),
+                                  this, SLOT(changeUnits()));
+        action->setData(globalUnits == LU_MPH ? LU_GLOBAL : LU_MPH);
+        action->setCheckable(true);
+        action->setChecked(localUnits == LU_MPH || (globalUnits == LU_MPH && localUnits == LU_GLOBAL));
+
+        action = units->addAction(tr("knots"), this, SLOT(changeUnits()));
+        action->setData(LU_KNOT);
+        action->setCheckable(true);
+        action->setChecked(localUnits == LU_KNOT);
+    }
+
     if (column1 != SC_NoColumns) {
         menu->addSeparator();
 
@@ -192,6 +254,27 @@ void WeatherValueWidget::showContextMenu(QPoint point) {
     }
 
     menu->popup(this->mapToGlobal(point));
+}
+
+void WeatherValueWidget::changeUnits() {
+
+    if (QAction* menuAction = qobject_cast<QAction*>(sender())) {
+        // Changing units by context menu.
+        localUnits = menuAction->data().toString();
+
+        Settings::getInstance().setWeatherValueWidgetSetting(name, LU_SETTING, localUnits);
+    } else {
+        // Load units from settings. If no local override is saved then
+        // just use the global setting instead (LU_GLOBAL)
+        localUnits = Settings::getInstance().weatherValueWidgetSetting(
+                    name, LU_SETTING, LU_GLOBAL).toString();
+    }
+
+    updateDisplay();
+
+    qDebug() << "WVW Name" << name
+             << "Global units:" << globalUnits
+             << "Local units:" << localUnits;
 }
 
 void WeatherValueWidget::plot() {
@@ -256,6 +339,3 @@ void WeatherValueWidget::copy() {
     clipboard->setText(this->label->text());
 }
 
-void WeatherValueWidget::setName(QString name) {
-    this->name = name;
-}

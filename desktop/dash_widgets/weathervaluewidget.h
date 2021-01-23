@@ -23,7 +23,6 @@ public:
                         StandardColumn column1,
                         UnitConversions::UnitValue value2,
                         StandardColumn column2);
-    void setName(QString name);
     void clear();
 
 signals:
@@ -34,6 +33,7 @@ private slots:
     void plot();
     void copy();
     void unitsChanged(bool imperial, bool kmh);
+    void changeUnits();
 
 private:
     UnitConversions::UnitValue value1;
@@ -45,13 +45,20 @@ private:
     bool insideOutside;
     bool doubleValue;
 
+    void getDisplayUnits();
     void updateDisplay();
     QLabel *label;
 
     // Settings
     QString name;
-    bool kmh;
-    bool imperial;
+    QString globalUnits; // This is what the application is set to (mph, m/s or kmh)
+    QString localUnits; // This is what the widget is set to
+
+
+//    bool kmh;
+//    bool imperial;
+//    bool knots;
+//    QString setUnits;
 };
 
 #endif // WEATHERVALUEWIDGET_H

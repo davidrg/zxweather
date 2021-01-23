@@ -80,6 +80,7 @@ UnitConversions::UnitValue::operator QString() const {
     case U_INCHES_PER_HOUR:
     case U_WATTS_PER_SQUARE_METER:
     case U_CENTIBAR:
+    case U_KNOTS:
         return val + " " + suffix;
 
     case U_CELSIUS:
@@ -216,6 +217,17 @@ UnitConversions::UnitValue UnitConversions::metersPerSecondToKilometersPerHour(c
     return kmh;
 }
 
+UnitConversions::UnitValue UnitConversions::metersPerSecondToKnots(const UnitValue &v) {
+    if (v.unit != UnitConversions::U_METERS_PER_SECOND) {
+        return v;
+    }
+
+    UnitConversions::UnitValue knot = UnitConversions::metersPerSecondToKnots((double)v);
+    knot.unit = UnitConversions::U_KNOTS;
+
+    return knot;
+}
+
 UnitConversions::UnitValue UnitConversions::toImperial(const UnitValue &v) {
     switch(v.unit) {
     case UnitConversions::U_METERS_PER_SECOND: {
@@ -330,6 +342,8 @@ QString UnitConversions::unitString(UnitConversions::unit_t unit) {
         return QCoreApplication::translate("UnitConversions", "cbar");
     case U_LEAF_WETNESS:
         return ""; // no special units for leaf wentess
+    case U_KNOTS:
+        return QCoreApplication::translate("UnitConversions", "kn");
     case U_UNKNOWN:
     default:
         return "";

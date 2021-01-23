@@ -46,7 +46,6 @@ WeatherImageWindow::WeatherImageWindow(QWidget *parent) :
             this, SLOT(plotRequested(DataSet)));
     connect(ui->windSpeed, SIGNAL(plotRequested(DataSet)),
             this, SLOT(plotRequested(DataSet)));
-    ui->windSpeed->setName("ldw_wind_speed");
     connect(ui->windDirection, SIGNAL(plotRequested(DataSet)),
             this, SLOT(plotRequested(DataSet)));
     connect(ui->uvIndex, SIGNAL(plotRequested(DataSet)),
