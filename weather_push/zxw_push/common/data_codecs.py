@@ -294,10 +294,10 @@ _davis_extra_fields = [
     (2, "leaf_wetness_2", _INT_8, None, None, _INT_8_NULL),
     (3, "leaf_temperature_1", _INT_16, _float_encode, _float_decode, _INT_16_NULL),
     (4, "leaf_temperature_2", _INT_16, _float_encode, _float_decode, _INT_16_NULL),
-    (5, "soil_moisture_1", _INT_8, None, None, _INT_8_NULL), # values 0-200 in steps of 1
-    (6, "soil_moisture_2", _INT_8, None, None, _INT_8_NULL),
-    (7, "soil_moisture_3", _INT_8, None, None, _INT_8_NULL),
-    (8, "soil_moisture_4", _INT_8, None, None, _INT_8_NULL),
+    (5, "soil_moisture_1", _U_INT_8, None, None, _U_INT_8_NULL), # values 0-200 in steps of 1
+    (6, "soil_moisture_2", _U_INT_8, None, None, _U_INT_8_NULL),
+    (7, "soil_moisture_3", _U_INT_8, None, None, _U_INT_8_NULL),
+    (8, "soil_moisture_4", _U_INT_8, None, None, _U_INT_8_NULL),
     (9, "soil_temperature_1", _INT_16, _float_encode, _float_decode, _INT_16_NULL),
     (10, "soil_temperature_2", _INT_16, _float_encode, _float_decode, _INT_16_NULL),
     (11, "soil_temperature_3", _INT_16, _float_encode, _float_decode, _INT_16_NULL),
