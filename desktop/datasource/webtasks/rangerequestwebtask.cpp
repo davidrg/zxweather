@@ -62,6 +62,7 @@ void RangeRequestWebTask::beginTask() {
         // know the server is able to supply data for this entire range (its
         // supplied it in the past). All we need to do now is fill in any
         // gaps in the cache database (if any).
+        _requestingRange = false;
 
         // We might be able to cover this entire data request without
         // bothering the server once!
@@ -226,6 +227,7 @@ bool RangeRequestWebTask::processRangeResponse(QString data) {
         emit failed(tr("JSON parsing failed for timestamp range "
                                   "request. Download aborted."));
         qWarning() << "Failed parsing JSON response from timestamp range request";
+        qDebug() << "Received document:" << data;
 
         return false;
     }

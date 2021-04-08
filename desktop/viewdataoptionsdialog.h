@@ -30,6 +30,9 @@ public:
     uint32_t getCustomMinutes() const;
     SampleColumns getColumns() const;
 
+private slots:
+    void columnSelectionChanged();
+
 private:
     Ui::ViewDataOptionsDialog *ui;
 };

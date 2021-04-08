@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>551</width>
+    <width>553</width>
     <height>53</height>
    </rect>
   </property>
@@ -135,31 +135,12 @@
    </item>
    <item row="0" column="1">
     <widget class="QComboBox" name="cbMethod">
-     <item>
-      <property name="text">
-       <string>Average</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>Minimum</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>Maximum</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>Sum</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>Running Total</string>
-      </property>
-     </item>
+     <property name="minimumSize">
+      <size>
+       <width>97</width>
+       <height>0</height>
+      </size>
+     </property>
     </widget>
    </item>
   </layout>

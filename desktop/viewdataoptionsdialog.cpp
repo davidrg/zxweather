@@ -10,6 +10,7 @@ ViewDataOptionsDialog::ViewDataOptionsDialog(bool solarAvailable, hardware_type_
     ui->setupUi(this);
     connect(ui->pbSelectAll, SIGNAL(clicked(bool)), ui->columnPicker, SLOT(checkAll()));
     connect(ui->pbSelectNone, SIGNAL(clicked(bool)), ui->columnPicker, SLOT(uncheckAll()));
+    connect(ui->columnPicker, SIGNAL(columnSelectionChanged()), this, SLOT(columnSelectionChanged()));
 
     ui->columnPicker->configure(solarAvailable, hw_type, isWireless, extraColumns, extraColumnNames, true);
 
@@ -54,4 +55,15 @@ SampleColumns ViewDataOptionsDialog::getColumns() const {
     SampleColumns result = ui->columnPicker->getColumns();
     result.standard |= SC_Timestamp;
     return result;
+}
+
+void ViewDataOptionsDialog::columnSelectionChanged() {
+    SampleColumns columns = getColumns();
+
+    if (columns.standard.testFlag(SC_Evapotranspiration)
+            || columns.standard.testFlag(SC_Rainfall)) {
+        ui->aggregateWidget->setRainEvapoOptionsEnabled(true);
+    } else {
+        ui->aggregateWidget->setRainEvapoOptionsEnabled(false);
+    }
 }

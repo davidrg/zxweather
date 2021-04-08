@@ -82,6 +82,7 @@ private slots:
     void renameSelectedValueAxis();
     void hideSelectedKeyAxis();
     void changeSelectedKeyAxisTimespan();
+    void refreshSelectedKeyAxis();
     void removeSelectedKeyAxis();
     void removeDataSet(dataset_id_t dsId);
     void changeTitleFont();
@@ -101,6 +102,8 @@ private slots:
     void changeDataSetTimeSpan(dataset_id_t dsId);
     void changeDataSetTimeSpan(dataset_id_t dsId, QDateTime start, QDateTime end);
     void showAddGraph(dataset_id_t dsId);
+    void setSelectedKeyAxisTickFormat();
+    void setSelectedKeyAxisTickFormat(dataset_id_t dsId);
 
     void setGraphActionsEnabled(bool enabled);
     void setDataSetActionsEnabled(bool enabled);

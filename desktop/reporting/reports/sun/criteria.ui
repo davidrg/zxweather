@@ -3079,6 +3079,11 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>timeZone</tabstop>
+  <tabstop>latitude</tabstop>
+  <tabstop>longitude</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

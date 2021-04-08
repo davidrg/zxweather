@@ -115,7 +115,10 @@ isEmpty(ECPG_BIN) {
 
 SOURCES += main.cpp\
     applock.cpp \
+    charts/axistickformatdialog.cpp \
+    charts/datetimeformathelpdialog.cpp \
     charts/plotwidget/chartmousetracker.cpp \
+    charts/pluscursor.cpp \
     columnpickerwidget.cpp \
     livecolumnpickerwidget.cpp \
         mainwindow.cpp \
@@ -222,7 +225,10 @@ SOURCES += main.cpp\
 HEADERS  += mainwindow.h \
     abstracturlhandler.h \
     applock.h \
+    charts/axistickformatdialog.h \
+    charts/datetimeformathelpdialog.h \
     charts/plotwidget/chartmousetracker.h \
+    charts/pluscursor.h \
     columnpickerwidget.h \
     database.h \
     datasource/hardwaretype.h \
@@ -337,6 +343,8 @@ HEADERS  += mainwindow.h \
     datasource/livebuffer.h
 
 FORMS    += mainwindow.ui \
+    charts/axistickformatdialog.ui \
+    charts/datetimeformathelpdialog.ui \
     columnpickerwidget.ui \
     settingsdialog.ui \
     aboutdialog.ui \

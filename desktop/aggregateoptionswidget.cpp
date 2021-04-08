@@ -7,6 +7,7 @@ AggregateOptionsWidget::AggregateOptionsWidget(QWidget *parent) :
     ui(new Ui::AggregateOptionsWidget)
 {
     ui->setupUi(this);
+    setRainEvapoOptionsEnabled(true);
 }
 
 AggregateOptionsWidget::~AggregateOptionsWidget()
@@ -51,4 +52,35 @@ uint32_t AggregateOptionsWidget::getCustomMinutes() {
     if (ui->rbCustom->isChecked())
         return ui->sbCustomMinutes->value();
     return 0;
+}
+
+void AggregateOptionsWidget::setRainEvapoOptionsEnabled(bool enabled) {
+
+    if (enabled == rainEvapoOptionsEnabled) {
+        return; // Nothing to do.
+    }
+
+    int currentIndex = ui->cbMethod->currentIndex();
+
+    QStringList options;
+    options << tr("Average")
+            << tr("Minimum")
+            << tr("Maximum");
+
+    if (enabled) {
+        options << tr("Sum")
+                << tr("Running Total");
+    }
+
+    rainEvapoOptionsEnabled = enabled;
+    ui->cbMethod->clear();
+    ui->cbMethod->addItems(options);
+
+    if (currentIndex < ui->cbMethod->count()) {
+        ui->cbMethod->setCurrentIndex(currentIndex);
+    }
+}
+
+bool AggregateOptionsWidget::isRainEvapoOptionsEnabled() {
+    return rainEvapoOptionsEnabled;
 }

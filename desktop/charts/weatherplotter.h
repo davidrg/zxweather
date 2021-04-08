@@ -5,6 +5,7 @@
 #include "datasource/abstractdatasource.h"
 #include "graphstyle.h"
 #include "cachemanager.h"
+#include "pluscursor.h"
 
 #include <QPointer>
 
@@ -21,6 +22,15 @@ typedef struct _graph_styles {
     QMap<ExtraColumn, GraphStyle> extraStyles;
 } graph_styles_t;
 
+typedef enum _key_axis_tick_format {
+    KATF_Default,
+    KATF_DefaultNoYear,
+    KATF_Time,
+    KATF_Date,
+    KATF_Custom
+} key_axis_tick_format_t;
+
+
 /** WeatherPlotter is responsible for plotting weather data in a QCustomPlot widget.
  *
  * Given a list of DataSets, each with a timespan and set of columns, WeatherPlotter
@@ -35,6 +45,7 @@ class WeatherPlotter : public QObject
 
 public:
     explicit WeatherPlotter(PlotWidget* chart, QObject *parent = 0);
+    ~WeatherPlotter();
     
     /** Sets the data source to use. All data required for drawing charts will
      * be retrieved using the specified data source.
@@ -117,15 +128,21 @@ public:
      */
     graph_styles_t getGraphStyles(dataset_id_t dataSetId);
 
+    /** Sets the tick format for the specified key axis.
+     *
+     * @param dataSetId Key axis to set the format for.
+     * @param format New tick format
+     * @param customFormat custom format string if tick format is KATF_Custom
+     */
+    void setKeyAxisFormat(dataset_id_t dataSetId, key_axis_tick_format_t format, QString customFormat);
+    key_axis_tick_format_t getKeyAxisTickFormat(dataset_id_t dataSetId);
+    QString getKeyAxisTickFormatString(dataset_id_t dataSetId);
+
     GraphStyle& getStyleForGraph(dataset_id_t dataSetId, StandardColumn column);
     GraphStyle& getStyleForGraph(dataset_id_t dataSetId, ExtraColumn column);
 
 
     GraphStyle& getStyleForGraph(QCPGraph* graph);
-
-#ifdef FEATURE_PLUS_CURSOR
-     bool isCursorEnabled();
-#endif
 
      typedef enum {
          RS_TIME = 0, /*!< Align on time only ignoring year, month and day */
@@ -147,6 +164,12 @@ public slots:
      * @param end New end time (default is existing end)
      */
     void changeDataSetTimespan(dataset_id_t dataSetId, QDateTime start = QDateTime(), QDateTime end = QDateTime());
+
+    /** Refreshes the dataset from the datasource.
+     *
+     * @param dataSetId Dataset to refresh.
+     */
+    void refreshDataSet(dataset_id_t dataSetId);
 
     /** Flushes data caches and redraws the chart. This results in the
      * datasource being requeried which may be slow depending on the number
@@ -172,14 +195,7 @@ public slots:
     void rescaleByTimeOfYear();
     void rescaleByTimeOfDay();
 
-#ifdef FEATURE_PLUS_CURSOR
-    /****************
-     * Plus Cursor  *
-     ****************/
-    void setCursorEnabled(bool enabled);
-
-    void hideCursor();
-#endif
+    PlusCursor* cursor() {return plusCursor;}
 
 private slots:    
     /** Called by the CacheManager when its finished obtaining all the
@@ -194,13 +210,6 @@ private slots:
       * @param message Error message
       */
     void dataSourceError(QString message);
-
-#ifdef FEATURE_PLUS_CURSOR
-    /****************
-     * Plus Cursor  *
-     ****************/
-    void updateCursor(QMouseEvent *event);
-#endif
 
 private:
     /*************************************
@@ -300,7 +309,7 @@ private:
         AT_WIND_SPEED = 2, /*!< axis in m/s */
         AT_WIND_DIRECTION = 3, /* Axis for wind direction */
         AT_PRESSURE = 4, /*!< Axis for hPa */
-        AT_HUMIDITY = 5, /*!< Axis in % */
+        AT_HUMIDITY = 5, /*!< Axis in % */  /* NOTE: The value (type==5) is used in pluscursor.cpp*/
         AT_RAINFALL = 6, /*!< Axis in mm */
         AT_SOLAR_RADIATION = 7, /*!< Axis in W/m^2 */
         AT_UV_INDEX = 8, /*!< Axis for UV Index - no unit */
@@ -316,6 +325,8 @@ private:
     QMap<AxisType, QPointer<QCPAxis> > configuredKeyAxes;
     QMap<QCPAxis*, AxisType> axisTypes;
     QMap<AxisType, int> axisReferences;
+    QMap<dataset_id_t, key_axis_tick_format_t> keyAxisTickFormats;
+    QMap<dataset_id_t, QString> keyAxisTickCustomFormats;
 
     /** Initialises the axisLabels dictionary.
      */
@@ -375,28 +386,7 @@ private:
     AxisType axisTypeForColumn(StandardColumn column);
     AxisType axisTypeForColumn(ExtraColumn column);
 
-#ifdef FEATURE_PLUS_CURSOR
-    /****************
-     * Plus Cursor  *
-     ****************/
-
-    /** Set to true to enable the cursor, false to disable.
-     */
-    bool cursorEnabled;
-
-    /** The horizontal cursor line.
-     */
-    QPointer<QCPItemLine> hCursor;
-
-    /** The vertical cursor line.
-     */
-    QPointer<QCPItemLine> vCursor;
-
-    /** Axis value tags for the cursor.
-     * Key is an AxisType for value axes and AT_KEY+dataSetId for key axes.
-     */
-    QMap<int, QPointer<QCPItemText> > cursorAxisTags;
-#endif
+    PlusCursor *plusCursor;
 
     /*******************
      * Misc            *

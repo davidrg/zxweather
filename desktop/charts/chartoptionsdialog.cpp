@@ -18,8 +18,14 @@ ChartOptionsDialog::ChartOptionsDialog(bool solarAvailable,
     ui->columnPicker->configure(solarAvailable, hw_type, isWireless, extraColumns,
                                 extraColumnNames);
 
+    connect(ui->columnPicker, SIGNAL(columnSelectionChanged()),
+            this, SLOT(columnSelectionChanged()));
+
     // Buttons
     connect(this->ui->buttonBox, SIGNAL(accepted()), this, SLOT(checkAndAccept()));
+
+    // Make sure the rain/evapo aggregate options match the default column selection.
+    columnSelectionChanged();
 }
 
 ChartOptionsDialog::~ChartOptionsDialog()
@@ -72,3 +78,13 @@ SampleColumns ChartOptionsDialog::getColumns() const {
     return ui->columnPicker->getColumns();
 }
 
+void ChartOptionsDialog::columnSelectionChanged() {
+    SampleColumns columns = getColumns();
+
+    if (columns.standard.testFlag(SC_Evapotranspiration)
+            || columns.standard.testFlag(SC_Rainfall)) {
+        ui->aggregateWidget->setRainEvapoOptionsEnabled(true);
+    } else {
+        ui->aggregateWidget->setRainEvapoOptionsEnabled(false);
+    }
+}

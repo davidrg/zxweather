@@ -42,7 +42,7 @@
 #include "scriptingengine.h"
 
 
-QByteArray readFile(QString name, QString reportName=QString(), bool text=false) {
+QByteArray readFile(QString name, QString reportName=QString()) {
     QStringList files;
 
     if (reportName.isNull()) {
@@ -72,13 +72,7 @@ QByteArray readFile(QString name, QString reportName=QString(), bool text=false)
         if (file.exists()) {
             qDebug() << "found" << filename;
             if (file.open(QIODevice::ReadOnly)) {
-                if (text) {
-                    QTextStream in(&file);
-                    in.setCodec("UTF-8");
-                    return in.readAll().toLocal8Bit();
-                } else {
-                    return file.readAll();
-                }
+                return file.readAll();
             }
         }
     }
@@ -100,12 +94,14 @@ QIcon readIcon(QString name, QString reportName, QIcon defaultIcon) {
 }
 
 QString readTextFile(QString name, QString reportName=QString()) {
-    QByteArray data = readFile(name, reportName, true);
+    QByteArray data = readFile(name, reportName);
     if (data.isNull()) {
         return QString();
     }
 
-    return QString(data);
+    QTextStream in(data);
+    in.setCodec("UTF-8");
+    return in.readAll();
 }
 
 Report::Report(QString name)
@@ -117,7 +113,7 @@ Report::Report(QString name)
 
     qDebug() << "========== Load report " << name << "==========";
 
-    QByteArray report = readFile("report.json", name, true);
+    QString report = readTextFile("report.json", name);
 
     if (report.isNull()) {
         return; // Couldn't find the report.

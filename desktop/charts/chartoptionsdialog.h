@@ -33,6 +33,7 @@ public:
 
 private slots:
     void checkAndAccept();
+    void columnSelectionChanged();
 
 private:
     Ui::ChartOptionsDialog *ui;
