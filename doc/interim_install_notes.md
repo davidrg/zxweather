@@ -1,11 +1,11 @@
 # Installation
-At the moment installation is not easy and the process is largely undocumented. Full installation documentation will come eventually and until its available its probably not worth attempting if you're not familiar with Linux and Python. If htat hasn't discouraged you below are some notes on what you'll need to get started.
+At the moment installation is not easy and the process is largely undocumented. Full installation documentation will come eventually and until its available its probably not worth attempting if you're not familiar with Linux and Python. If that hasn't discouraged you below are some notes on what you'll need to get started. Its probably best to get in touch if you plan on attempting this.
 
 ## Requirements
 zxweather is tested and run against the following:
    - PostgreSQL 9.1 or higher   
-   - Python 2.7 for everything else
    - Qt 4.8 and higher for the desktop application
+   - Python 2.7 for everything else
    - wxtoimg for processing satellite images
 
 Hardware requirements:
@@ -41,7 +41,7 @@ At the moment installation is not easy. Proper setup documentation will come eve
 $ cd /opt
 $ git clone https://github.com/davidrg/zxweather.git
 $ cd zxweather
-$ python2.7 admin_tool/admin_too.py
+$ python2.7 admin_tool/admin_tool.py
 ```
 
 To get the web interface going, copy /opt/zxweather/zxw_web/config.cfg.sample to /etc/zxweather/web.cfg and edit it to suit your setup. Make sure all the requirements in /opt/zxweather/zxw_web/requirements.txt are installed. Apache can then be configured to serve up the web interface with something like the following:
@@ -56,9 +56,9 @@ WSGIScriptAlias / /opt/zxweather/zxw_web/zxweather.py
 </Location>
 ```
 
-To support WebSockets in the server application. Make sure the requirements listed in its requirements.txt file (/opt/zxweather/server/requirements.txt) are installed. Copy /opt/zxweather/server/config.cfg.sample to /etc/zxweather/server.cfg and customise it as necessary. Then install the systemd unit file (/opt/zxweather/server/systemd.service) to start and run the websocket endpoint server. Make sure you update the web interfaces config file to tell it the hostname and ports the server is listening on.
+To support live updates in the web interface (and in the desktop interface over the internet) the server application is required. Make sure the requirements listed in its requirements.txt file (/opt/zxweather/server/requirements.txt) are installed. Copy /opt/zxweather/server/config.cfg.sample to /etc/zxweather/server.cfg and customise it as necessary. Then install the systemd unit file (/opt/zxweather/server/systemd.service) to start and run the websocket endpoint server. Make sure you update the web interfaces config file to tell it the hostname and ports the server is listening on.
 
-The procedure for installing the other backend servics built using twisted is much the same.
+The procedure for installing the other backend services built using twisted is much the same.
 
 To build the desktop app you'll need the following installed:
    - A Qt SDK installed. Some recent release like 5.12 is probably a good choice but it should work with any release from 4.8 to 5.13. 
