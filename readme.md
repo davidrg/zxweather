@@ -4,7 +4,7 @@ zxweather is the suite of applications built to run weather.zx.net.nz. Compared 
 
   - All data is stored in a PostgreSQL database making it easily available for ad-hoc querying and use in other software
   - Data logging and display are separate roles performed by separate applications. No running a graphical application 24x7 on some windows PC just to keep a website up-to-date
-  - The desktop app is fully functional, works anywhere in the world and is 100% optional. It fills a similar role to the web interface - a way to look at your collected data. Acutally collecting and storing the data is done elsewhere.
+  - The desktop app is fully functional, works anywhere in the world and is 100% optional. It fills a similar role to the web interface - a way to look at your collected data. Actually collecting and storing the data is done elsewhere.
   - Data can be copied between databases using an efficient binary protocol. Internet traffic can be under a megabyte a day reporting current conditions every 2.5 seconds and archive records every 5 minutes. This makes running a remote weather station on a cellular modem a possibility without having to compromise on reporting frequency
    - Current conditions are current. Because zxweather can move weather data efficiently there is no reason to slow down how fast the web and desktop interfaces update. Everything updates at the same speed as the weather station itself - every 2.5 seconds for Davis hardware and 48 seconds for FineOffset.
    - Multiple weather stations are supported in one database. The web interface has a menu in the top-right for switching stations.
@@ -48,12 +48,13 @@ Installation is not easy. Proper install documentation hasn't been updated since
 ## Future Plans
 
  - First up: Finish off a stable documented release that people can run if its useful to them.
- - Next Python 2.7 really needs to go away given its unsupported now. 
- - The Web UI really needs rewriting as part of its port to python 3. I'd like to switch from webpy to Flask as its web framework while I'm at it and overhall the templates, etc.
+ - Next Python 2.7 really needs to go away given its unsupported now and going to become increasingly difficult to obtain.
+ - The Web UI really needs rewriting as part of its port to python 3. I'd like to switch from webpy to Flask as its web framework while I'm at it and overhaull the templates, etc.
  - The desktop app needs a heavy refactoring. Its grown fairly organically over the last several years and its code has become quite a mess. A clean up is long over due and should allow some new features I've got in mind to be supported once its done.
 
 ## Current Limitations
 
+- Much of the software currently requires Python 2.7 which is now out of support so getting this from a linux distributions package repository may be difficult. There are plans to port this to a modern verison of Python but there are a few complexities: some of my remote systems are stuck on python 2.7 for the forseeable future so I'd like to get some components feature-complete before dropping 2.7 support.
 - The Web Interface is fairly inflexible at the moment. The JavaScript is fairly tightly coupled to the templates so customing it isn't really realistic. There are plans to fix this (see: future plans, web UI rewrite)
 - This software primarily deals in data using metric units. Support for US units is limited to the desktop interface. The web interface may get support too some day but its not really a priority as most of the world uses metric.
 - Supporting new types of weather stations that have more sensors than something like the FineOffset WH1080 is quite difficult at the moment. The way extra sensors are stored in the database and handled through-out the rest of the software needs to be improved somewhat.
