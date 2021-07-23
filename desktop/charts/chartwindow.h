@@ -8,6 +8,7 @@
 #include <QDateTime>
 #include <QColor>
 #include <QSet>
+#include <QPointer>
 
 #include "chartoptionsdialog.h"
 #include "datasource/webdatasource.h"
@@ -17,11 +18,12 @@
 #include "weatherplotter.h"
 #include "datasetsdialog.h"
 
-#include "plotwidget/chartmousetracker.h"
-
 namespace Ui {
 class ChartWindow;
 }
+
+class ChartMouseTracker;
+class PlusCursor;
 
 class ChartWindow : public QMainWindow
 {
@@ -57,11 +59,7 @@ private slots:
     void setXAxisLock();
     void toggleXAxisLock();
     void toggleTitle();
-
-#ifdef FEATURE_PLUS_CURSOR
     void toggleCursor();
-#endif
-
 
     // Context menu related stuff
     void chartContextMenuRequested(QPoint point);
@@ -161,7 +159,8 @@ private:
     ExtraColumns extraColumns;
     QMap<ExtraColumn, QString> extraColumnNames;
 
-    ChartMouseTracker *mouseTracker;
+    QPointer<ChartMouseTracker> mouseTracker;
+    QPointer<PlusCursor> plusCursor;
 };
 
 #endif // CHARTWINDOW_H

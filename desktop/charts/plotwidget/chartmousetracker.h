@@ -5,8 +5,11 @@
 #include <QList>
 #include <QMap>
 
-#include "charts/qcp/qcustomplot.h"
-#include "charts/plotwidget.h"
+class PlotWidget;
+class QCPItemTracer;
+class QCPAxis;
+class QCPGraph;
+class TracingAxisTag;
 
 /** Highlights the point nearest the mouse cursors X coordinate on all
  * graphs in the default axis rect and tags those points coordinates on
@@ -18,9 +21,17 @@ class ChartMouseTracker : public QObject
 public:
     explicit ChartMouseTracker(PlotWidget *plotWidget);
 
+    /** If the Chart Mouse Tracker is currently enabled or not
+     *
+     * @return Current enabled state
+     */
     bool isEnabled() { return enabled; }
 
 public slots:
+    /** Turns the Chart Mouse Tracker on or off
+     *
+     * @param enabled New enabled state
+     */
     void setEnabled(bool enabled);
 
 private slots:
@@ -30,14 +41,11 @@ private slots:
 private:
     void setupPointTracing();
     void cleanupPointTracing();
-    QCPItemText* makeAxisTag(QCPAxis* axis);
-    void updateKeyAxisTag(QCPItemText* tag, double axisValue, QCPAxis *axis);
-    void updateValueAxisTag(QCPItemText* tag, double axisValue, QCPAxis *axis);
 
     bool enabled;
     QList<QCPItemTracer*> pointTracers;
-    QMap<QCPAxis*, QCPItemText*> keyAxisTags;
-    QMap<QCPGraph*, QCPItemText*> valueAxisTags;
+    QMap<QCPAxis*, TracingAxisTag*> keyAxisTags;
+    QMap<QCPGraph*, TracingAxisTag*> valueAxisTags;
 
     PlotWidget * chart;
 };

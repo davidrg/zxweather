@@ -117,8 +117,12 @@ SOURCES += main.cpp\
     applock.cpp \
     charts/axistickformatdialog.cpp \
     charts/datetimeformathelpdialog.cpp \
+    charts/plotwidget/abstractaxistag.cpp \
+    #charts/plotwidget/axisrangeannotation.cpp \
+    charts/plotwidget/basicaxistag.cpp \
     charts/plotwidget/chartmousetracker.cpp \
-    charts/pluscursor.cpp \
+    charts/plotwidget/pluscursor.cpp \
+    charts/plotwidget/tracingaxistag.cpp \
     columnpickerwidget.cpp \
     livecolumnpickerwidget.cpp \
         mainwindow.cpp \
@@ -227,8 +231,13 @@ HEADERS  += mainwindow.h \
     applock.h \
     charts/axistickformatdialog.h \
     charts/datetimeformathelpdialog.h \
+    charts/plotwidget/abstractaxistag.h \
+    #charts/plotwidget/axisrangeannotation.h \
+    charts/plotwidget/axistype.h \
+    charts/plotwidget/basicaxistag.h \
     charts/plotwidget/chartmousetracker.h \
-    charts/pluscursor.h \
+    charts/plotwidget/pluscursor.h \
+    charts/plotwidget/tracingaxistag.h \
     columnpickerwidget.h \
     database.h \
     datasource/hardwaretype.h \

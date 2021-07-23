@@ -6,6 +6,8 @@
 #include "datasettimespandialog.h"
 #include "datasetsdialog.h"
 #include "axistickformatdialog.h"
+#include "plotwidget/chartmousetracker.h"
+#include "plotwidget/pluscursor.h"
 
 #include "datasource/webdatasource.h"
 #include "datasource/databasedatasource.h"
@@ -44,6 +46,10 @@ ChartWindow::ChartWindow(QList<DataSet> dataSets, bool solarAvailable, bool isWi
     mouseTracker->setEnabled(settings.chartTracksMouseEnabled());
     ui->action_Track_Cursor->setChecked(mouseTracker->isEnabled());
 
+    plusCursor = new PlusCursor(ui->chart);
+    plusCursor->setEnabled(settings.chartCursorEnabled());
+    ui->actionC_ursor->setChecked(plusCursor->isEnabled());
+
     restoreGeometry(Settings::getInstance().chartWindowGeometry());
     restoreState(Settings::getInstance().chartWindowState());
 
@@ -59,6 +65,10 @@ ChartWindow::ChartWindow(QList<DataSet> dataSets, bool solarAvailable, bool isWi
     basicInteractionManager.reset(
             new BasicQCPInteractionManager(ui->chart, this));
 
+    // Hide the cursor while zooming (the tags drift with the zoom otherwise)
+    connect(basicInteractionManager.data(), SIGNAL(zooming()),
+            plusCursor, SLOT(hideCursor()));
+
     plotter.reset(new WeatherPlotter(ui->chart, this));
 
     // These will be turned back on later if they are needed.
@@ -66,13 +76,6 @@ ChartWindow::ChartWindow(QList<DataSet> dataSets, bool solarAvailable, bool isWi
     ui->actionLock_Y_Axes->setVisible(false);
     setYAxisLock();
     setXAxisLock();
-
-    plotter->cursor()->setEnabled(settings.chartCursorEnabled());
-    ui->actionC_ursor->setChecked(plotter->cursor()->isEnabled());
-
-    // Hide the cursor while zooming (the tags drift with the zoom otherwise)
-    connect(basicInteractionManager.data(), SIGNAL(zooming()),
-            plotter.data(), SLOT(hideCursor()));
 
     ChartColours colours = settings.getChartColours();
     plotTitleColour = colours.title;
@@ -104,9 +107,7 @@ ChartWindow::ChartWindow(QList<DataSet> dataSets, bool solarAvailable, bool isWi
     // ---
     connect(ui->actionLock_X_Axes, SIGNAL(triggered()), this, SLOT(setXAxisLock()));
     connect(ui->actionLock_Y_Axes, SIGNAL(triggered()), this, SLOT(setYAxisLock()));
-#ifdef FEATURE_PLUS_CURSOR
     connect(ui->actionC_ursor, SIGNAL(triggered()), this, SLOT(toggleCursor()));
-#endif
     connect(ui->action_Track_Cursor, SIGNAL(triggered(bool)), this, SLOT(setMouseTrackingEnabled(bool)));
 
     // ---
@@ -471,24 +472,20 @@ void ChartWindow::showChartContextMenu(QPoint point) {
         action->setChecked(ui->actionLock_Y_Axes->isChecked());
     }
 
-#ifdef FEATURE_PLUS_CURSOR
     action = menu->addAction(tr("Enable Crosshair"), this, SLOT(toggleCursor()));
     action->setCheckable(true);
-    action->setChecked(plotter->cursor()->isEnabled());
-#endif
+    action->setChecked(plusCursor->isEnabled());
 
     /******** Finished ********/
     menu->popup(ui->chart->mapToGlobal(point));
 }
 
-#ifdef FEATURE_PLUS_CURSOR
 void ChartWindow::toggleCursor() {
-    bool enabled = !plotter->cursor()->isEnabled();
+    bool enabled = !plusCursor->isEnabled();
     Settings::getInstance().setChartCursorEnabled(enabled);
-    plotter->cursor()->setEnabled(enabled);
-    ui->actionC_ursor->setChecked(plotter->cursor()->isEnabled());
+    plusCursor->setEnabled(enabled);
+    ui->actionC_ursor->setChecked(plusCursor->isEnabled());
 }
-#endif
 
 void ChartWindow::showLegendContextMenu(QPoint point)
 {

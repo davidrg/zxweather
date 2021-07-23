@@ -3,6 +3,8 @@
 
 #include "qcp/qcustomplot.h"
 
+#define AXIS_TYPE "AxisType"
+
 class PlotWidget: public QCustomPlot
 {
     Q_OBJECT

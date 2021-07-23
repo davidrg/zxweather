@@ -1,6 +1,7 @@
 #include "weatherplotter.h"
 #include "settings.h"
 #include "constants.h"
+#include "plotwidget/axistype.h"
 
 #include <QtDebug>
 #include <QMessageBox>
@@ -10,7 +11,6 @@ WeatherPlotter::WeatherPlotter(PlotWidget *chart, QObject *parent) :
     QObject(parent)
 {
     this->chart = chart;
-    plusCursor = new PlusCursor(chart);
 
     setAxisGridVisible(true);
 
@@ -31,7 +31,6 @@ WeatherPlotter::WeatherPlotter(PlotWidget *chart, QObject *parent) :
 }
 
 WeatherPlotter::~WeatherPlotter() {
-    delete plusCursor;
 }
 
 void WeatherPlotter::setDataSource(AbstractDataSource *dataSource)
@@ -212,8 +211,7 @@ QPointer<QCPAxis> WeatherPlotter::createValueAxis(AxisType type) {
 
     axis->setTickLabelFont(Settings::getInstance().defaultChartAxisTickLabelFont());
     axis->setLabelFont(Settings::getInstance().defaultChartAxisLabelFont());
-
-    plusCursor->registerValueAxis(type, axis, atLeft);
+    axis->setProperty(AXIS_TYPE, type);
 
     emit axisCountChanged(configuredValueAxes.count(), configuredKeyAxes.count());
 
@@ -280,11 +278,10 @@ QPointer<QCPAxis> WeatherPlotter::createKeyAxis(dataset_id_t dataSetId) {
 
     axis->setTickLabelFont(Settings::getInstance().defaultChartAxisTickLabelFont());
     axis->setLabelFont(Settings::getInstance().defaultChartAxisLabelFont());
+    axis->setProperty(AXIS_TYPE, type);
 
     keyAxisTickFormats[dataSetId] = KATF_Default;
     keyAxisTickCustomFormats[dataSetId] = QString();
-
-    plusCursor->registerKeyAxis(type, axis, atTop);
 
     emit axisCountChanged(configuredValueAxes.count(), configuredKeyAxes.count());
 
@@ -313,7 +310,7 @@ QPointer<QCPAxis> WeatherPlotter::getKeyAxis(dataset_id_t dataSetId,
     return axis;
 }
 
-WeatherPlotter::AxisType WeatherPlotter::axisTypeForColumn(StandardColumn column) {
+AxisType WeatherPlotter::axisTypeForColumn(StandardColumn column) {
     switch (column) {
     case SC_Temperature:
     case SC_IndoorTemperature:
@@ -368,7 +365,7 @@ WeatherPlotter::AxisType WeatherPlotter::axisTypeForColumn(StandardColumn column
     }
 }
 
-WeatherPlotter::AxisType WeatherPlotter::axisTypeForColumn(ExtraColumn column) {
+AxisType WeatherPlotter::axisTypeForColumn(ExtraColumn column) {
     switch (column) {
     case EC_LeafTemperature1:
     case EC_LeafTemperature2:
@@ -561,7 +558,7 @@ void WeatherPlotter::addRainfallGraph(DataSet dataSet, SampleSet samples, Standa
     Q_ASSERT_X(column == SC_Rainfall || column == SC_HighRainRate,
                "addRainfallGraph", "Unsupported column type (must be rainfall or high rain rate)");
 
-    WeatherPlotter::AxisType axisType = AT_RAINFALL;
+    AxisType axisType = AT_RAINFALL;
     if (column == SC_HighRainRate) {
         axisType = AT_RAIN_RATE;
     }
@@ -1032,8 +1029,6 @@ void WeatherPlotter::removeUnusedAxes()
 
             axisTypes.remove(axis);
             axisReferences.remove(type);
-
-            plusCursor->unregisterAxis(type, axis);
 
             // And then the axis itself.
             if (axis == chart->yAxis) {
