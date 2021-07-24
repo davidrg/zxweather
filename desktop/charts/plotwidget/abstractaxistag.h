@@ -81,7 +81,6 @@ protected:
 
     void setAxes(QCPAxis *keyAxis, QCPAxis *valueAxis);
 
-private:
     char format;
     int precision;
 };
