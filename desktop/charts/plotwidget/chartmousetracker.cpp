@@ -48,9 +48,9 @@ void ChartMouseTracker::setEnabled(bool enabled) {
     }
 }
 
-void ChartMouseTracker::setupPointTracing() {
-    for (int i = 0; i < chart->graphCount(); i++) {
-        QCPGraph *graph = chart->graph(i);
+void ChartMouseTracker::setupPointTracing(QCPAxisRect *rect) {
+    for (int i = 0; i < rect->graphs().count(); i++) {
+        QCPGraph *graph = rect->graphs().at(i);
 
         if (!graph->visible()) {
             pointTracers.append(NULL);
@@ -79,6 +79,7 @@ void ChartMouseTracker::setupPointTracing() {
             valueAxisTags[graph] = new TracingAxisTag(yAxis, false, pointTracer, this);
         }
     }
+    currentAxisRect = rect;
 }
 
 void ChartMouseTracker::cleanupPointTracing() {
@@ -96,16 +97,40 @@ void ChartMouseTracker::cleanupPointTracing() {
     while(!valueAxisTags.isEmpty()) {
         delete valueAxisTags.take(valueAxisTags.keys().first());
     }
+    currentAxisRect.clear();
     chart->replot();
 }
 
 void ChartMouseTracker::mouseMove(QMouseEvent* event) {
-    if (pointTracers.count() != chart->graphCount() && enabled) {
+     QCPAxisRect *rect = chart->axisRectAt(event->pos());
+
+     if (!chart->rect().contains(event->pos())) {
+         qDebug() << "Mouse outside chart - hide";
+         cleanupPointTracing();
+         return;
+     } else if (rect == NULL) {
+         qDebug() << "Mouse not in an axis rect! cleaning up and returning.";
+         cleanupPointTracing();
+         return;
+     } else if (currentAxisRect.data() != rect) {
+         qDebug() << "Mouse moved to a different axis rect - resetting";
+         // Mouse has moved to a different axis rect!
+         cleanupPointTracing();
+     }
+
+    if ((currentAxisRect.isNull()
+         || pointTracers.count() != currentAxisRect->graphs().count())
+            && enabled) {
         cleanupPointTracing();
-        setupPointTracing();
+        setupPointTracing(rect);
     }
+
+    if (currentAxisRect.isNull()) {
+        return;
+    }
+
     if (enabled) {
-        for(int i = 0; i < chart->graphCount(); i++) {
+        for(int i = 0; i < currentAxisRect->graphs().count(); i++) {
             QCPItemTracer *pointTracer = pointTracers.at(i);
             if (pointTracer == NULL) {
                 continue;

@@ -4,12 +4,14 @@
 #include <QObject>
 #include <QList>
 #include <QMap>
+#include <QPointer>
 
 class PlotWidget;
 class QCPItemTracer;
 class QCPAxis;
 class QCPGraph;
 class TracingAxisTag;
+class QCPAxisRect;
 
 /** Highlights the point nearest the mouse cursors X coordinate on all
  * graphs in the default axis rect and tags those points coordinates on
@@ -39,13 +41,17 @@ private slots:
     void mouseLeave(QEvent *event);
 
 private:
-    void setupPointTracing();
+    void setupPointTracing(QCPAxisRect *rect);
     void cleanupPointTracing();
 
     bool enabled;
     QList<QCPItemTracer*> pointTracers;
     QMap<QCPAxis*, TracingAxisTag*> keyAxisTags;
     QMap<QCPGraph*, TracingAxisTag*> valueAxisTags;
+
+    /** The axis rect the cursor is currently in
+     */
+    QPointer<QCPAxisRect> currentAxisRect;
 
     PlotWidget * chart;
 };
