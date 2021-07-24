@@ -302,38 +302,8 @@ QCPAxisRect* LivePlotWindow::createAxisRectForGraph(LiveValue type) {
         // Keep everything nice and aligned
         rect->setMarginGroup(QCP::msRight | QCP::msLeft, marginGroup);
 
-        if (axisRects.count() == 1) {
-            // We've just created the first axis rect. Also create a legend - hidden by
-            // default.
-
-            if (ui->plot->legend == NULL) {
-                qDebug() << "Create legend";
-                ui->plot->legend = new QCPLegend;
-                ui->plot->legend->setVisible(false);
-            }
-
-            if (legendLayout == NULL) {
-                qDebug() << "Create legend layout";
-                legendLayout = new QCPLayoutGrid;
-                legendLayout->setMargins(QMargins(5, 0, 5, 5));
-
-                // Chuck it in the layout to ensure the legend doesn't get separated
-                // from the plot when we reparent it.
-                ui->plot->plotLayout()->addElement(legendLayout);
-            }
-
-            qDebug() << "Reparent legend";
-            legendLayout->addElement(0, 0, ui->plot->legend);
-            ui->plot->legend->setFillOrder(QCPLegend::foColumnsFirst);
-        }
-
-        if (legendLayout != NULL) {
-            qDebug() << "Move legend layout to bottom of plot";
-            // Shift the legend to the bottom
-            ui->plot->plotLayout()->addElement(legendLayout);
-            ui->plot->plotLayout()->simplify();
-            ui->plot->plotLayout()->setRowStretchFactor(
-                        ui->plot->plotLayout()->rowCount() - 1, 0.001);
+        if (axisRects.count() > 1) {
+            ensureLegend();
         }
 
         return rect;
@@ -348,6 +318,76 @@ QCPAxisRect* LivePlotWindow::createAxisRectForGraph(LiveValue type) {
         qDebug() << "Default rect created";
 
         return ui->plot->axisRect();
+    }
+}
+
+void LivePlotWindow::legendVisibilityChanged(bool visible) {
+    if (multipleAxisRects) {
+        if (visible && ui->plot->legend == NULL) {
+            ensureLegend(true);
+            //ui->plot->legend->setVisible(true);
+        } else {
+            delete ui->plot->legend;
+            delete legendLayout;
+            legendLayout = NULL;
+            ui->plot->legend = NULL;
+            ui->plot->plotLayout()->simplify();
+        }
+    }
+
+    ui->actionLegend->setChecked(visible);
+}
+
+void LivePlotWindow::ensureLegend(bool show) {
+    bool legendCreated = false;
+
+    if (ui->plot->legend == NULL) {
+        qDebug() << "Create legend";
+        ui->plot->legend = new QCPLegend;
+        ui->plot->legend->setVisible(show);
+        legendCreated = true;
+    }
+
+    if (legendLayout == NULL) {
+        qDebug() << "Create legend layout";
+        legendLayout = new QCPLayoutGrid;
+        legendLayout->setMargins(QMargins(5, 0, 5, 5));
+
+        // Chuck it in the layout to ensure the legend doesn't get separated
+        // from the plot when we reparent it.
+        ui->plot->plotLayout()->addElement(legendLayout);
+    }
+
+    if (legendCreated) {
+        qDebug() << "Reparent legend";
+        legendLayout->addElement(0, 0, ui->plot->legend);
+        ui->plot->legend->setFillOrder(QCPLegend::foColumnsFirst);
+
+        qDebug() << "Populating legend";
+        for (int i = 0; i < ui->plot->graphCount(); i++) {
+            QCPGraph *g = ui->plot->graph(i);
+            if (!g->property(PROP_IS_POINT).toBool()) {
+                g->addToLegend(ui->plot->legend);
+            }
+        }
+
+    }
+
+    moveLegendToBottom();
+
+    if (legendCreated) {
+        ui->plot->replot(QCustomPlot::rpImmediateRefresh);
+    }
+}
+
+void LivePlotWindow::moveLegendToBottom() {
+    if (legendLayout != NULL) {
+        qDebug() << "Move legend layout to bottom of plot";
+        // Shift the legend to the bottom
+        ui->plot->plotLayout()->addElement(legendLayout);
+        ui->plot->plotLayout()->simplify();
+        ui->plot->plotLayout()->setRowStretchFactor(
+                    ui->plot->plotLayout()->rowCount() - 1, 0.001);
     }
 }
 
@@ -1025,7 +1065,7 @@ void LivePlotWindow::resetPlot() {
     connect(ui->plot, SIGNAL(titleVisibilityChanged(bool)),
             ui->actionTitle, SLOT(setChecked(bool)));
     connect(ui->plot, SIGNAL(legendVisibilityChanged(bool)),
-            ui->actionLegend, SLOT(setChecked(bool)));
+            this, SLOT(legendVisibilityChanged(bool)));
     connect(ui->plot, SIGNAL(graphStyleChanged(QCPGraph*,GraphStyle&)),
             this, SLOT(graphStyleChanged(QCPGraph*,GraphStyle&)));
 }

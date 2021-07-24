@@ -48,11 +48,13 @@ private slots:
 
     void showOptions();
 
+    void legendVisibilityChanged(bool visible);
+
 private:
     void updateGraph(LiveValue type, double key, double range, double value);
     void addLiveValues(LiveValues columns);
-    void moveLegend();
-    void ensureLegend();
+    void ensureLegend(bool show=false);
+    void moveLegendToBottom();
     void resetPlot();
     void resetData();
 

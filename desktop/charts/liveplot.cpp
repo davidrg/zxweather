@@ -339,7 +339,13 @@ void LivePlot::textElementDoubleClick(QMouseEvent *event)
 
 void LivePlot::toggleLegend()
 {
-    if (legend == NULL) return;
+    if (legend == NULL) {
+        // We don't have a legend! Someone must have deleted it!
+        // We'll let whoever did that deal with visibility changes
+        // via this signal:
+        emit legendVisibilityChanged(true);
+        return;
+    }
 
     legend->setVisible(!legend->visible());
     emit legendVisibilityChanged(legend->visible());
@@ -409,6 +415,10 @@ void LivePlot::changeTitleFont() {
 
 void LivePlot::moveLegend()
 {
+    if (legend == NULL) {
+        return;
+    }
+
     if (QAction* menuAction = qobject_cast<QAction*>(sender())) {
         // We were called by a context menu. We should have the necessary
         // data.
@@ -423,6 +433,10 @@ void LivePlot::moveLegend()
 }
 
 void LivePlot::changeLegendFont() {
+    if (legend == NULL) {
+        return;
+    }
+
     QFont current = legend->font();
     bool ok;
     QFont newFont = QFontDialog::getFont(&ok, current, this, tr("Legend Font"));
@@ -435,6 +449,10 @@ void LivePlot::changeLegendFont() {
 
 void LivePlot::showLegendContextMenu(QPoint point)
 {
+    if (legend == NULL) {
+        return;
+    }
+
     QMenu *menu = new QMenu(this);
     menu->setAttribute(Qt::WA_DeleteOnClose);
 
@@ -532,20 +550,25 @@ void LivePlot::chartContextMenuRequested(QPoint point)
     }
 
     // Check if an axis was right-clicked on
-    QList<QCPAxis*> axes = axisRectAt(point)->axes(QCPAxis::atTop |
-                                                   QCPAxis::atBottom |
-                                                   QCPAxis::atLeft |
-                                                   QCPAxis::atRight);
-    foreach (QCPAxis* axis, axes) {
-        if (axis->selectTest(point, false) >= 0) {
-            // Deselect all axis
-            foreach(QCPAxisRect* rect, axisRects()) {
-                foreach(QCPAxis* otherAxis, rect->axes()) {
-                    otherAxis->setSelectedParts(QCPAxis::spNone);
+    QCPAxisRect *rect = axisRectAt(point);
+
+    if (rect != NULL) {
+        QList<QCPAxis*> axes = rect->axes(QCPAxis::atTop |
+                                          QCPAxis::atBottom |
+                                          QCPAxis::atLeft |
+                                          QCPAxis::atRight);
+
+        foreach (QCPAxis* axis, axes) {
+            if (axis->selectTest(point, false) >= 0) {
+                // Deselect all axis
+                foreach(QCPAxisRect* rect, axisRects()) {
+                    foreach(QCPAxis* otherAxis, rect->axes()) {
+                        otherAxis->setSelectedParts(QCPAxis::spNone);
+                    }
                 }
+                showAxisContextMenu(point, axis);
+                return;
             }
-            showAxisContextMenu(point, axis);
-            return;
         }
     }
 
@@ -616,6 +639,11 @@ void LivePlot::removeSelectedGraph()
 
         // User removed the selected graph. Graph no longer selected.
         emit selectionChangedByUser();
+
+        if (legend != NULL && legend->visible() && graphCount() == 0) {
+            // No more graphs? Turn the legend off.
+            toggleLegend();
+        }
 
         replot();
     }
