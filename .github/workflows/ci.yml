@@ -1,0 +1,30 @@
+name: zxweather CI
+on: [push]
+jobs:
+  Desktop-Win32-Debug:
+    name: Win32 Desktop Client Build
+    runs-on: windows-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v2
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v2
+        with:
+          version: '5.13.0'
+          host: 'windows'
+          target: 'desktop'
+          arch: 'win32_mingw73'
+          dir: '${{ github.workspace }}/_build/'
+          install-deps: 'true'
+          modules: 'qtscript'
+          cached: 'false'
+          setup-python: 'true'
+          tools: ''
+          set-env: 'true'
+          tools-only: 'false'
+          aqtversion: '==1.2.4'
+          py7zrversion: '==0.14.0'
+          extra: '--external 7z'
+      - name: List Qt files
+        run: |
+          ls -lR ${{ github.workspace }}/_build
