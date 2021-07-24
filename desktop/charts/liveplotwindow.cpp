@@ -543,6 +543,7 @@ void LivePlotWindow::addLiveValue(LiveValue v) {
         points[v]->removeFromLegend();
         points[v]->setProperty(PROP_GRAPH_TYPE, v);
         points[v]->setProperty(PROP_IS_POINT, true);
+        points[v]->setSelectable(QCP::stNone);
 
         if (axisTags) {
             tags[v] = new ValueAxisTag(graphs[v], true, true, ui->plot);
