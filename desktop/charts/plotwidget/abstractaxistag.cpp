@@ -4,13 +4,13 @@
 
 #include <QtDebug>
 
-AbstractAxisTag::AbstractAxisTag(QCPAxis* keyAxis, QCPAxis* valueAxis, bool isValueTag, bool arrow, QObject *parent): QObject(parent)
+AbstractAxisTag::AbstractAxisTag(QCPAxis* keyAxis, QCPAxis* valueAxis, bool onValueAxis, bool arrow, QObject *parent): QObject(parent)
 {   
     this->keyAxis = keyAxis;
     this->valueAxis = valueAxis;
-    this->isValueTag = isValueTag;
+    this->onValueAxis = onValueAxis;
 
-    if (isValueTag) {
+    if (onValueAxis) {
         Q_ASSERT_X(valueAxis != NULL, "AbstractAxisTag", "Value Axis Tags must be constructed with a value axis");
     } else {
         Q_ASSERT_X(keyAxis != NULL, "AbstractAxisTag", "Key Axis Tags must be constructed with a key axis");
@@ -217,5 +217,5 @@ QString AbstractAxisTag::text() {
 }
 
 QCPAxis* AbstractAxisTag::axis() {
-    return isValueTag ? valueAxis.data() : keyAxis.data();
+    return onValueAxis ? valueAxis.data() : keyAxis.data();
 }

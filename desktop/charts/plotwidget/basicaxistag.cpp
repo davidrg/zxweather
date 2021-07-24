@@ -1,8 +1,8 @@
 #include "basicaxistag.h"
 #include "charts/plotwidget.h"
 
-BasicAxisTag::BasicAxisTag(QCPAxis* keyAxis, QCPAxis* valueAxis, bool isValueTag, bool arrow, QObject *parent):
-    AbstractAxisTag(keyAxis, valueAxis, isValueTag, arrow, parent)
+BasicAxisTag::BasicAxisTag(QCPAxis* keyAxis, QCPAxis* valueAxis, bool onValueAxis, bool arrow, QObject *parent):
+    AbstractAxisTag(keyAxis, valueAxis, onValueAxis, arrow, parent)
 {
 
 }

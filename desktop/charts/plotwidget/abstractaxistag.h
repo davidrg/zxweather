@@ -27,11 +27,11 @@ public:
      *
      * @param keyAxis Key axis to be associated with this axis tag. Required if the tag is against the key axis, optional otherwise.
      * @param valueAxis Value axis to be associated with this axis tag. Required if the tag is against the value axis, optional otherwise.
-     * @param isValueTag If the tag is against the value axis rather than key axis
+     * @param onValueAxis If the tag is against the value axis rather than key axis
      * @param arrow If the axis tag should include an arrow pointing to the axis
      * @param parent Parent object
      */
-    AbstractAxisTag(QCPAxis* keyAxis, QCPAxis* valueAxis, bool isValueTag, bool arrow, QObject *parent = 0);
+    AbstractAxisTag(QCPAxis* keyAxis, QCPAxis* valueAxis, bool onValueAxis, bool arrow, QObject *parent = 0);
     ~AbstractAxisTag();
 
     /** Sets the tags style according to the specified GraphStyle
@@ -71,7 +71,7 @@ protected:
     QPointer<QCPItemText> label;
     QPointer<QCPAxis> keyAxis;
     QPointer<QCPAxis> valueAxis;
-    bool isValueTag;
+    bool onValueAxis;
 
     void setAxes(QCPAxis *keyAxis, QCPAxis *valueAxis);
     QCPAxis* axis();

@@ -2,6 +2,8 @@
 
 #include "charts/plotwidget.h"
 
+#include <QtDebug>
+
 /*
  * The tracing axis tag makes the following assumptions:
  *      -> The item tracer will be managed externally and we'll be told whenever
@@ -15,17 +17,16 @@
 
 TracingAxisTag::TracingAxisTag(QCPAxis *axis, bool arrow, QCPItemTracer *itemTracer,
                                QObject *parent):
-    AbstractAxisTag(itemTracer->graph()->keyAxis(),
-                    itemTracer->graph()->valueAxis(),
-                    axis==itemTracer->graph()->valueAxis(),
+    AbstractAxisTag(itemTracer->graph() != NULL ? itemTracer->graph()->keyAxis() : itemTracer->position->keyAxis(),
+                    itemTracer->graph() != NULL ? itemTracer->graph()->valueAxis() : itemTracer->position->valueAxis(),
+                    axis==(itemTracer->graph() != NULL ? itemTracer->graph()->valueAxis() : itemTracer->position->valueAxis()),
                     arrow,
                     parent),
     tracer(itemTracer)
 {
     QCPGraph *graph = itemTracer->graph();
-
-    if (label) {
-        if (isValueTag) {
+    if (graph != NULL) {
+        if (label && onValueAxis) {
             setPen(graph->pen());
         }
     }
@@ -45,16 +46,21 @@ void TracingAxisTag::update() {
     }
 
     double axisValue;
-    if (isValueTag) {
+    if (onValueAxis) {
         axisValue = tracer->position->coords().y();
     } else {
         axisValue = tracer->position->coords().x();
     }
 
-    QCustomPlot *chart = tracer->graph()->parentPlot();
+    QCustomPlot *chart;
+    if (tracer->graph() != NULL) {
+        chart = tracer->graph()->parentPlot();
+    } else {
+        chart = tracer->position->keyAxis()->axisRect()->parentPlot();
+    }
 
     // This is for the Value axis:
-    if (isValueTag) {
+    if (onValueAxis) {
         QCPRange range = axis()->range();
         if (axisValue < range.lower || axisValue > range.upper) {
             label->setVisible(false);

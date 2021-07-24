@@ -16,7 +16,7 @@
 
 #define PROP_GRAPH_ID "GraphId"
 
-LivePlot::LivePlot(QWidget *parent) : QCustomPlot(parent)
+LivePlot::LivePlot(QWidget *parent) : PlotWidget(parent)
 {
     nextId = 0;
     plotTitleEnabled = false;

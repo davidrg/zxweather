@@ -1,7 +1,7 @@
 #ifndef LIVEPLOT_H
 #define LIVEPLOT_H
 
-#include "qcp/qcustomplot.h"
+#include "plotwidget.h"
 #include "graphstyle.h"
 
 #include <QMap>
@@ -31,7 +31,7 @@
  *   - Pan
  */
 
-class LivePlot : public QCustomPlot
+class LivePlot : public PlotWidget
 {
     Q_OBJECT
 

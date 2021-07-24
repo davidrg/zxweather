@@ -28,7 +28,7 @@ public slots:
      */
     void update();
 
-private:
+protected:
     QPointer<QCPItemTracer> tracer;
 
     void setCoords(double x, double y);

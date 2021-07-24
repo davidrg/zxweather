@@ -13,13 +13,13 @@ class BasicAxisTag : public AbstractAxisTag
 public:
     /** Constructs a BasicAxisTag
      *
-     * @param keyAxis The key axis the tag will be associated with. Required if isValueTag is false, optional otherwise.
-     * @param valueAxis The value axis the tag will be associated with. Required if isValueTag is true, optional otherwise.
-     * @param isValueTag If the tag should be placed on the value axis rather than the key axis
+     * @param keyAxis The key axis the tag will be associated with. Required if onValueAxis is false, optional otherwise.
+     * @param valueAxis The value axis the tag will be associated with. Required if onValueAxis is true, optional otherwise.
+     * @param onValueAxis If the tag should be placed on the value axis rather than the key axis
      * @param arrow If the tag should be rendered with an arrow pointing towards the axis.
      * @param parent Parent object
      */
-    BasicAxisTag(QCPAxis* keyAxis, QCPAxis* valueAxis, bool isValueTag, bool arrow, QObject *parent = 0);
+    BasicAxisTag(QCPAxis* keyAxis, QCPAxis* valueAxis, bool onValueAxis, bool arrow, QObject *parent = 0);
 
     /** Gets the tags current coordinates.
      *

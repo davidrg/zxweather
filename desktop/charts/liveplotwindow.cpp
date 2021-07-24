@@ -16,7 +16,7 @@
 #include "nonaggregatingliveaggregator.h"
 #include "averagedliveaggregator.h"
 #include "livechartoptionsdialog.h"
-#include "axistag.h"
+#include "plotwidget/valueaxistag.h"
 
 #define PROP_GRAPH_TYPE "graph_type"
 #define PROP_IS_POINT "is_point"
@@ -505,7 +505,7 @@ void LivePlotWindow::addLiveValue(LiveValue v) {
         points[v]->setProperty(PROP_IS_POINT, true);
 
         if (axisTags) {
-            tags[v] = new AxisTag(valueAxis, this);
+            tags[v] = new ValueAxisTag(graphs[v], true, true, ui->plot);
             tags[v]->setStyle(style);
         }
 
@@ -734,7 +734,7 @@ void LivePlotWindow::updateGraph(LiveValue type, double key, double range, doubl
         points[type]->addData(key, value);
 
         if (tags.contains(type)) {
-            tags[type]->setValue(value);
+            tags[type]->setValue(1, value);
         }
 
         if (units[type] == UnitConversions::U_LEAF_WETNESS) {

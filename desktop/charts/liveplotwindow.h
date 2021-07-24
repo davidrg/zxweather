@@ -20,7 +20,7 @@ class LivePlotWindow;
 class QCPGraph;
 class QCPAxis;
 class QCPMarginGroup;
-class AxisTag;
+class ValueAxisTag;
 
 class LivePlotWindow : public QMainWindow
 {
@@ -76,7 +76,7 @@ private:
 
     QMap<LiveValue, QCPGraph*> graphs;
     QMap<LiveValue, QCPGraph*> points;
-    QMap<LiveValue, AxisTag*> tags;
+    QMap<LiveValue, ValueAxisTag*> tags;
     QMap<LiveValue, QCPAxisRect*> axisRects;
     QSharedPointer<QCPAxisTicker> ticker;
     QCPLayoutGrid *legendLayout;

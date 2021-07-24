@@ -123,6 +123,7 @@ SOURCES += main.cpp\
     charts/plotwidget/chartmousetracker.cpp \
     charts/plotwidget/pluscursor.cpp \
     charts/plotwidget/tracingaxistag.cpp \
+    charts/plotwidget/valueaxistag.cpp \
     columnpickerwidget.cpp \
     livecolumnpickerwidget.cpp \
         mainwindow.cpp \
@@ -207,7 +208,6 @@ SOURCES += main.cpp\
     charts/averagedliveaggregator.cpp \
     charts/livechartoptionsdialog.cpp \
     charts/livedatarepeater.cpp \
-    charts/axistag.cpp \
     reporting/report.cpp \
     reporting/qt-mustache/mustache.cpp \
     reporting/runreportdialog.cpp \
@@ -238,6 +238,7 @@ HEADERS  += mainwindow.h \
     charts/plotwidget/chartmousetracker.h \
     charts/plotwidget/pluscursor.h \
     charts/plotwidget/tracingaxistag.h \
+    charts/plotwidget/valueaxistag.h \
     columnpickerwidget.h \
     database.h \
     datasource/hardwaretype.h \
@@ -331,7 +332,6 @@ HEADERS  += mainwindow.h \
     charts/averagedliveaggregator.h \
     charts/livechartoptionsdialog.h \
     charts/livedatarepeater.h \
-    charts/axistag.h \
     reporting/report.h \
     reporting/qt-mustache/mustache.h \
     reporting/runreportdialog.h \
