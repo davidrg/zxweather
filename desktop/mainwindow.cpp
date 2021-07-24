@@ -906,5 +906,8 @@ void MainWindow::stationCodeChanging(QString newCode) {
     qDebug() << "Station code is changing! Relocking single instance.";
     QString newAppId = Constants::SINGLE_INSTANCE_LOCK_PREFIX + newCode.toLower();
     emit relockSingleInstance(newAppId);
+
+    // Switch the live buffer to the new station code
+    LiveBuffer::getInstance().connectStation(newCode);
 }
 #endif
