@@ -9,7 +9,7 @@
 #define VERSION_REVISION 0
 #define VERSION_BUILD 0
 
-#define COPYRIGHT_YEAR 2018
+#define COPYRIGHT_YEAR 2021
 
 /* Version number with just the major and minor numbers */
 #define APP_VERSION_MAJ_MIN STR(VERSION_MAJOR) "." STR(VERSION_MINOR)
