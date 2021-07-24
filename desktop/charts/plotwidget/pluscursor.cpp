@@ -107,7 +107,7 @@ bool PlusCursor::setup(QCPAxisRect *rect) {
             qDebug() << "Creating value axis tag of type" << type;
         } else {
             k = axis;
-            v = NULL;
+            v = valueAxis;
             keyAxes[type] = axis;
             qDebug() << "Creating key axis tag of type" << type;
         }
@@ -126,6 +126,11 @@ bool PlusCursor::setup(QCPAxisRect *rect) {
     }
 
     currentAxisRect = rect;
+
+    vCursor->setClipAxisRect(rect);
+    hCursor->setClipAxisRect(rect);
+    vCursor->setClipToAxisRect(true);
+    hCursor->setClipToAxisRect(true);
     vCursor->setVisible(true);
     hCursor->setVisible(true);
 
@@ -199,7 +204,6 @@ void PlusCursor::mouseMove(QMouseEvent* event) {
     QCPAxisRect *rect = chart->axisRectAt(event->pos());
 
     if (!enabled) {
-        qDebug() << "Not enabled - cleaning up.";
         cleanup();
         return;
     } else if (!chart->rect().contains(event->pos())) {
@@ -259,7 +263,6 @@ void PlusCursor::mouseMove(QMouseEvent* event) {
             }
 
             double axisValue = axis->pixelToCoord(event->pos().y());
-            qDebug() << "Axis type" << type << "value" << axisValue << "from pos" << event->pos().y();
 
             QCPRange range = axis->range();
             if (axisValue < range.lower || axisValue > range.upper) {
@@ -289,11 +292,9 @@ void PlusCursor::mouseMove(QMouseEvent* event) {
         } else {
             // Its a key axis (X)
 
-            QCPAxis* axis = keyAxes[type];
+            double axisValue = tag->axis()->pixelToCoord(event->pos().x());
 
-            double axisValue = axis->pixelToCoord(event->pos().x());
-
-            QCPRange r = axis->range();
+            QCPRange r = tag->axis()->range();
             if (axisValue < r.lower || axisValue > r.upper) {
                 tag->setVisible(false);
             } else {
@@ -301,17 +302,11 @@ void PlusCursor::mouseMove(QMouseEvent* event) {
 
                 tag->setText(QDateTime::fromMSecsSinceEpoch(axisValue * 1000).toString(Qt::SystemLocaleShortDate));
 
-                // For key axes previously we always associated the label
-                // with the charts default y axis:
-                //  tag->position->setAxes(axis, chart->yAxis);
-                // Here we'll just fetch any key axis from the axis rect.
-                if ((currentAxisRect->axisCount(QCPAxis::atLeft) + currentAxisRect->axisCount(QCPAxis::atRight)) == 0) {
-                    qWarning() << "No value axis for axis rect!";
+                QPointer<QCPAxis> valueAxis = getVisibleValueAxis(currentAxisRect);
+                if (valueAxis.isNull()) {
+                    qDebug() << "No value axis for axis rect!";
                     return;
                 }
-
-                QPointer<QCPAxis> valueAxis = currentAxisRect->axes(QCPAxis::atLeft | QCPAxis::atRight).first();
-
 
                 double valueZero = valueAxis->pixelToCoord(currentAxisRect->bottomLeft().y());
                 double valueMax = valueAxis->pixelToCoord(currentAxisRect->topRight().y() -1); // -1 to align with border
@@ -319,8 +314,8 @@ void PlusCursor::mouseMove(QMouseEvent* event) {
                 QFontMetrics m(tag->font());
                 double halfWidth = m.width(tag->text()) / 2;
 
-                double minPos = axis->pixelToCoord(halfWidth + left);
-                double maxPos = axis->pixelToCoord(right - halfWidth);
+                double minPos = tag->axis()->pixelToCoord(halfWidth + left);
+                double maxPos = tag->axis()->pixelToCoord(right - halfWidth);
 
                 // Prevent the tag from going off the end of the chart.
                 double xValue = axisValue;
@@ -330,7 +325,7 @@ void PlusCursor::mouseMove(QMouseEvent* event) {
                     xValue = maxPos;
                 }
 
-                if (axis->axisType() == QCPAxis::atTop) {
+                if (tag->axis()->axisType() == QCPAxis::atTop) {
                     // +1 to align with axis rect border
                     tag->setCoords(xValue, valueMax);
                 } else {

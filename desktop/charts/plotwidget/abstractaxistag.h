@@ -58,6 +58,12 @@ public:
      */
     QString text();
 
+    /** The axis the tag is attached to
+     *
+     * @return Axis the tag is attached to
+     */
+    QCPAxis* axis();
+
 public slots:
     /** Sets the visibiltiy of the axis tag. This does not queue a replot - you'll
      *  likely want to do that yourself.
@@ -74,7 +80,6 @@ protected:
     bool onValueAxis;
 
     void setAxes(QCPAxis *keyAxis, QCPAxis *valueAxis);
-    QCPAxis* axis();
 
 private:
     char format;

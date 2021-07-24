@@ -42,7 +42,7 @@
      <x>0</x>
      <y>0</y>
      <width>799</width>
-     <height>21</height>
+     <height>20</height>
     </rect>
    </property>
   </widget>
@@ -71,6 +71,9 @@
    <addaction name="actionOptions"/>
    <addaction name="actionTitle"/>
    <addaction name="actionLegend"/>
+   <addaction name="separator"/>
+   <addaction name="actionCrosshair"/>
+   <addaction name="actionTrack_Cursor"/>
    <addaction name="separator"/>
    <addaction name="actionSave"/>
    <addaction name="actionCopy"/>
@@ -166,6 +169,39 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+O</string>
+   </property>
+  </action>
+  <action name="actionCrosshair">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../resources.qrc">
+     <normaloff>:/icons/crosshair</normaloff>:/icons/crosshair</iconset>
+   </property>
+   <property name="text">
+    <string>Crosshair</string>
+   </property>
+   <property name="shortcut">
+    <string>C</string>
+   </property>
+  </action>
+  <action name="actionTrack_Cursor">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../resources.qrc">
+     <normaloff>:/icons/cursor-tag</normaloff>:/icons/cursor-tag</iconset>
+   </property>
+   <property name="text">
+    <string>Track Cursor</string>
+   </property>
+   <property name="toolTip">
+    <string>Highlights all points in line with the mouse cursor and shows their positions in the axis</string>
+   </property>
+   <property name="shortcut">
+    <string>M</string>
    </property>
   </action>
  </widget>

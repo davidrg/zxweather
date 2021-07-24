@@ -57,6 +57,15 @@ void ChartMouseTracker::setupPointTracing(QCPAxisRect *rect) {
             continue;
         }
 
+        // Live plots add this property and set it to true for graphs
+        // that arent actually graphs but part of the point tracing thing.
+        // We want to ignore those
+        QVariant isPointProp = graph->property("is_point");
+        if (isPointProp.isValid() && isPointProp.toBool()) {
+            pointTracers.append(NULL);
+            continue;
+        }
+
         QCPItemTracer *pointTracer = new TransparentItemTracer(chart);
         pointTracer->setInterpolating(false);
         pointTracer->setStyle(QCPItemTracer::tsCircle);
@@ -65,7 +74,6 @@ void ChartMouseTracker::setupPointTracing(QCPAxisRect *rect) {
         pointTracer->setSize(7);
         pointTracer->setGraph(graph);
         pointTracer->setLayer("overlay");
-
         pointTracers.append(pointTracer);
 
         QCPAxis *xAxis = graph->keyAxis();
@@ -105,15 +113,12 @@ void ChartMouseTracker::mouseMove(QMouseEvent* event) {
      QCPAxisRect *rect = chart->axisRectAt(event->pos());
 
      if (!chart->rect().contains(event->pos())) {
-         qDebug() << "Mouse outside chart - hide";
          cleanupPointTracing();
          return;
      } else if (rect == NULL) {
-         qDebug() << "Mouse not in an axis rect! cleaning up and returning.";
          cleanupPointTracing();
          return;
      } else if (currentAxisRect.data() != rect) {
-         qDebug() << "Mouse moved to a different axis rect - resetting";
          // Mouse has moved to a different axis rect!
          cleanupPointTracing();
      }

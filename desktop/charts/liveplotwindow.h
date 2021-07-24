@@ -10,6 +10,7 @@
 #include "abstractliveaggregator.h"
 #include "livedatarepeater.h"
 #include "graphstyle.h"
+#include "charts/plotwidget/axistype.h"
 
 #include <QScopedPointer>
 
@@ -21,6 +22,8 @@ class QCPGraph;
 class QCPAxis;
 class QCPMarginGroup;
 class ValueAxisTag;
+class PlusCursor;
+class ChartMouseTracker;
 
 class LivePlotWindow : public QMainWindow
 {
@@ -49,6 +52,9 @@ private slots:
     void showOptions();
 
     void legendVisibilityChanged(bool visible);
+
+    void toggleCursor();
+    void setMouseTrackingEnabled(bool enabled);
 
 private:
     void updateGraph(LiveValue type, double key, double range, double value);
@@ -88,6 +94,7 @@ private:
     QMap<LiveValue, UnitConversions::unit_t> units;
     QMap<LiveValue, QString> valueNames;
     QMap<LiveValue, ExtraColumn> extraColumnMapping;
+    QMap<LiveValue, AxisType> axisTypes;
     QMap<UnitConversions::unit_t, QString> axisLabelUnitSuffixes;
     QMap<UnitConversions::unit_t, QString> axisLabels;
     QString axisLabel(LiveValue value);
@@ -103,6 +110,9 @@ private:
     bool axisTags;
     bool multipleAxisRects;
     QPointer<QCPMarginGroup> marginGroup;
+
+    QPointer<ChartMouseTracker> mouseTracker;
+    QPointer<PlusCursor> plusCursor;
 };
 
 #endif // LIVEPLOTWINDOW_H

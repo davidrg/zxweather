@@ -19,6 +19,7 @@ typedef enum {
     AT_EVAPOTRANSPIRATION = 11, /*!< Axis for Evapotrainspiration in mm */
     AT_SOIL_MOISTURE = 12, /*!< Axis for soil moisture in centibar */
     AT_LEAF_WETNESS = 13, /*!< Axis for leaf wetness */
+    AT_VOLTAGE = 14, /*!< Axis for console battery voltage (live data) */
     AT_KEY = 100 /*!< X Axis for DataSet 0. AT_KEY+1 for DataSet 1, etc. */
 } AxisType;
 

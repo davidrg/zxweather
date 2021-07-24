@@ -52,13 +52,6 @@ void TracingAxisTag::update() {
         axisValue = tracer->position->coords().x();
     }
 
-    QCustomPlot *chart;
-    if (tracer->graph() != NULL) {
-        chart = tracer->graph()->parentPlot();
-    } else {
-        chart = tracer->position->keyAxis()->axisRect()->parentPlot();
-    }
-
     // This is for the Value axis:
     if (onValueAxis) {
         QCPRange range = axis()->range();
@@ -69,11 +62,11 @@ void TracingAxisTag::update() {
             label->setText(QString::number(axisValue));
 
             if (axis()->axisType() == QCPAxis::atLeft) {
-                setCoords(keyAxis->pixelToCoord(chart->axisRect()->bottomLeft().x() - axis()->offset()),
+                setCoords(keyAxis->pixelToCoord(axis()->axisRect()->bottomLeft().x() - axis()->offset()),
                           axisValue);
             } else {
                 // +1 to align with axis rect border
-                setCoords(keyAxis->pixelToCoord(chart->axisRect()->bottomRight().x() + axis()->offset() + 1),
+                setCoords(keyAxis->pixelToCoord(axis()->axisRect()->bottomRight().x() + axis()->offset() + 1),
                           axisValue);
             }
         }
@@ -81,14 +74,14 @@ void TracingAxisTag::update() {
         label->setText(QDateTime::fromMSecsSinceEpoch(axisValue * 1000).toString(Qt::SystemLocaleShortDate));
 
         QPointer<QCPAxis> valueAxis = label->position->valueAxis();
-        double valueZero = valueAxis->pixelToCoord(chart->axisRect()->bottomLeft().y());
-        double valueMax = valueAxis->pixelToCoord(chart->axisRect()->topRight().y() -1); // -1 to align with border
+        double valueZero = valueAxis->pixelToCoord(axis()->axisRect()->bottomLeft().y());
+        double valueMax = valueAxis->pixelToCoord(axis()->axisRect()->topRight().y() -1); // -1 to align with border
 
         QFontMetrics m(font());
         double halfWidth = m.width(text()) / 2;
 
-        double left = chart->axisRect()->bottomLeft().x();
-        double right = chart->axisRect()->bottomRight().x();
+        double left = axis()->axisRect()->bottomLeft().x();
+        double right = axis()->axisRect()->bottomRight().x();
 
         double minPos = axis()->pixelToCoord(halfWidth + left);
         double maxPos = axis()->pixelToCoord(right - halfWidth);

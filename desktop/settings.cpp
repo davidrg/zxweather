@@ -87,6 +87,8 @@ namespace SettingsKey {
         const QString LIVE_TAGS = "LiveChart/live_tags";
         const QString MULTI_RECT = "LiveChart/multiple_axis_rects";
         const QString MULTI_RECT_AXIS_LABELS = "LiveChart/axis_labels_for_multi_axis_rects";
+        const QString TRACK_MOUSE_ENABLED = "LiveChart/track_mouse";
+        const QString CURSOR_ENABLED = "LiveChart/cursor";
     }
 
     namespace Chart {
@@ -1039,6 +1041,22 @@ void Settings::setLiveTagsEnabled(bool value) {
 
 void Settings::setLiveMultipleAxisRectsEnabled(bool value) {
     settings->setValue(SettingsKey::LiveChart::MULTI_RECT, value);
+}
+
+bool Settings::liveChartCursorEnabled() {
+    return settings->value(SettingsKey::LiveChart::CURSOR_ENABLED, false).toBool();
+}
+
+void Settings::setLiveChartCursorEnabled(bool enabled) {
+    settings->setValue(SettingsKey::LiveChart::CURSOR_ENABLED, enabled);
+}
+
+bool Settings::liveChartTracksMouseEnabled() {
+    return settings->value(SettingsKey::LiveChart::TRACK_MOUSE_ENABLED, true).toBool();
+}
+
+void Settings::setLiveChartTracksMouseEnabled(bool enabled) {
+    settings->setValue(SettingsKey::LiveChart::TRACK_MOUSE_ENABLED, enabled);
 }
 
 void Settings::saveMainWindowState(QByteArray state) {

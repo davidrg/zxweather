@@ -17,6 +17,8 @@
 #include "averagedliveaggregator.h"
 #include "livechartoptionsdialog.h"
 #include "plotwidget/valueaxistag.h"
+#include "plotwidget/chartmousetracker.h"
+#include "plotwidget/pluscursor.h"
 
 #define PROP_GRAPH_TYPE "graph_type"
 #define PROP_IS_POINT "is_point"
@@ -35,8 +37,15 @@ LivePlotWindow::LivePlotWindow(bool solarAvailalble,
 {
     ui->setupUi(this);
 
-    imperial = Settings::getInstance().imperial();
-    kmh = Settings::getInstance().kmh();
+    Settings& settings = Settings::getInstance();
+
+    connect(ui->actionCrosshair, SIGNAL(triggered()), this, SLOT(toggleCursor()));
+    connect(ui->actionTrack_Cursor, SIGNAL(triggered(bool)), this, SLOT(setMouseTrackingEnabled(bool)));
+    ui->actionTrack_Cursor->setChecked(settings.liveChartTracksMouseEnabled());
+    ui->actionCrosshair->setChecked(settings.liveChartCursorEnabled());
+
+    imperial = settings.imperial();
+    kmh = settings.kmh();
 
     this->hwType = hardwareType;
     this->solarAvailable = solarAvailalble;
@@ -44,7 +53,7 @@ LivePlotWindow::LivePlotWindow(bool solarAvailalble,
     this->extraColumns = extraColumns;
     this->extraColumnNames = extraColumnNames;
 
-    // All the possible axis types
+    // All the possible axis unit types
     units[LV_Temperature] = UnitConversions::U_CELSIUS;
     units[LV_IndoorTemperature] = UnitConversions::U_CELSIUS;
     units[LV_ApparentTemperature] = UnitConversions::U_CELSIUS;
@@ -82,6 +91,39 @@ LivePlotWindow::LivePlotWindow(bool solarAvailalble,
     units[LV_LeafWetness1] = UnitConversions::U_LEAF_WETNESS;
     units[LV_LeafWetness2] = UnitConversions::U_LEAF_WETNESS;
 
+    // Axis types. We need this for PlusCursor to work :(
+    axisTypes[LV_Temperature] = AT_TEMPERATURE;
+    axisTypes[LV_IndoorTemperature] = AT_TEMPERATURE;
+    axisTypes[LV_ApparentTemperature] = AT_TEMPERATURE;
+    axisTypes[LV_WindChill] = AT_TEMPERATURE;
+    axisTypes[LV_DewPoint] = AT_TEMPERATURE;
+    axisTypes[LV_Humidity] = AT_HUMIDITY;
+    axisTypes[LV_IndoorHumidity] = AT_HUMIDITY;
+    axisTypes[LV_Pressure] = AT_PRESSURE;
+    axisTypes[LV_WindSpeed] = AT_WIND_SPEED;
+    axisTypes[LV_WindDirection] = AT_WIND_DIRECTION;
+    axisTypes[LV_StormRain] = AT_RAINFALL;
+    axisTypes[LV_RainRate] = AT_RAIN_RATE;
+    axisTypes[LV_BatteryVoltage] = AT_VOLTAGE;
+    axisTypes[LV_UVIndex] = AT_UV_INDEX;
+    axisTypes[LV_SolarRadiation] = AT_SOLAR_RADIATION;
+    axisTypes[LV_SoilTemperature1] = AT_TEMPERATURE;
+    axisTypes[LV_SoilTemperature2] = AT_TEMPERATURE;
+    axisTypes[LV_SoilTemperature3] = AT_TEMPERATURE;
+    axisTypes[LV_SoilTemperature4] = AT_TEMPERATURE;
+    axisTypes[LV_LeafTemperature1] = AT_TEMPERATURE;
+    axisTypes[LV_LeafTemperature2] = AT_TEMPERATURE;
+    axisTypes[LV_ExtraTemperature1] = AT_TEMPERATURE;
+    axisTypes[LV_ExtraTemperature2] = AT_TEMPERATURE;
+    axisTypes[LV_ExtraTemperature3] = AT_TEMPERATURE;
+    axisTypes[LV_ExtraHumidity1] = AT_HUMIDITY;
+    axisTypes[LV_ExtraHumidity2] = AT_HUMIDITY;
+    axisTypes[LV_SoilMoisture1] = AT_SOIL_MOISTURE;
+    axisTypes[LV_SoilMoisture2] = AT_SOIL_MOISTURE;
+    axisTypes[LV_SoilMoisture3] = AT_SOIL_MOISTURE;
+    axisTypes[LV_SoilMoisture4] = AT_SOIL_MOISTURE;
+    axisTypes[LV_LeafWetness1] = AT_LEAF_WETNESS;
+    axisTypes[LV_LeafWetness2] = AT_LEAF_WETNESS;
 
     if (imperial) {
         imperialiseUnitDict(LV_Temperature);
@@ -180,7 +222,6 @@ LivePlotWindow::LivePlotWindow(bool solarAvailalble,
     extraColumnMapping[LV_ExtraHumidity1] = EC_ExtraHumidity1;
     extraColumnMapping[LV_ExtraHumidity2] = EC_ExtraHumidity2;
 
-    Settings &settings = Settings::getInstance();
     bool usingWebDs = false;
 
     switch(settings.liveDataSourceType()) {
@@ -340,6 +381,7 @@ QCPAxisRect* LivePlotWindow::createAxisRectForGraph(LiveValue type) {
         Settings& settings = Settings::getInstance();
 
         rect->axis(QCPAxis::atTop)->setVisible(false);
+        rect->axis(QCPAxis::atBottom)->setProperty(AXIS_TYPE, AT_KEY);
         rect->axis(axisTags ? QCPAxis::atLeft : QCPAxis::atRight)->setVisible(false);
 
         rect->axis(QCPAxis::atBottom)->setTicker(ticker);
@@ -369,6 +411,7 @@ QCPAxisRect* LivePlotWindow::createAxisRectForGraph(LiveValue type) {
         ui->plot->axisRect()->axis(QCPAxis::atLeft)->setVisible(false);
         ui->plot->axisRect()->axis(QCPAxis::atRight)->setVisible(false);
         ui->plot->axisRect()->axis(QCPAxis::atBottom)->setTicker(ticker);
+        ui->plot->axisRect()->axis(QCPAxis::atBottom)->setProperty(AXIS_TYPE, AT_KEY);
         axis.clear();
 
         qDebug() << "Default rect created";
@@ -568,6 +611,7 @@ QCPAxis* LivePlotWindow::valueAxisForGraph(LiveValue type) {
         // axis.
         axis->setVisible(true);
         axis->setTickLabels(true);
+        axis->setProperty(AXIS_TYPE, axisTypes[type]);
 
         axis->setLabel(axisLabel(type));
 
@@ -594,6 +638,8 @@ void LivePlotWindow::addLiveValue(LiveValue v) {
     // These will create any axes and axis rects if they don't already exist.
     QCPAxis *valueAxis = valueAxisForGraph(v);
     QCPAxis *keyAxis = keyAxisForGraph(v);
+
+    Q_ASSERT_X(valueAxis->axisRect() == keyAxis->axisRect(), "addLiveValue", "Axes must be on the same rect");
 
     ////////////////////// From here
 
@@ -1104,7 +1150,28 @@ void LivePlotWindow::graphStyleChanged(QCPGraph *graph, GraphStyle &newStyle)
     }
 }
 
+void LivePlotWindow::toggleCursor() {
+    if (plusCursor.isNull()) {
+        return; // can't toggle whats not there...
+    }
+
+    bool enabled = !plusCursor->isEnabled();
+    Settings::getInstance().setLiveChartCursorEnabled(enabled);
+    plusCursor->setEnabled(enabled);
+    ui->actionCrosshair->setChecked(plusCursor->isEnabled());
+}
+
+void LivePlotWindow::setMouseTrackingEnabled(bool enabled) {
+    if (mouseTracker.isNull()) {
+        return;
+    }
+    mouseTracker->setEnabled(enabled);
+    Settings::getInstance().setLiveChartTracksMouseEnabled(enabled);
+}
+
 void LivePlotWindow::resetPlot() {
+    Settings& settings = Settings::getInstance();
+
     // Its easier and safer to just trash the plot and start again rather than return it
     // to its original state manually.
     delete ui->plot;
@@ -1120,11 +1187,17 @@ void LivePlotWindow::resetPlot() {
     ui->plot->plotLayout()->setFillOrder(QCPLayoutGrid::foRowsFirst);
 
     // Configure the plot
-    ui->plot->setBackground(QBrush(Settings::getInstance().getChartColours().background));
+    ui->plot->setBackground(QBrush(settings.getChartColours().background));
 
     ticker.clear();
     ticker = QSharedPointer<QCPAxisTicker>(new QCPAxisTickerDateTime());
     ui->plot->plotLayout()->remove(ui->plot->axisRect());
+
+    mouseTracker = new ChartMouseTracker(ui->plot);
+    mouseTracker->setEnabled(settings.liveChartTracksMouseEnabled());
+
+    plusCursor = new PlusCursor(ui->plot);
+    plusCursor->setEnabled(settings.liveChartCursorEnabled());
 
     connect(ui->actionSave, SIGNAL(triggered(bool)),
             this->ui->plot, SLOT(save()));

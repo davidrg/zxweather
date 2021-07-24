@@ -243,6 +243,12 @@ public:
     void setLiveMultipleAxisRectsEnabled(bool value);
     void setLiveMultipleAxisRectsAxisLabelType(Settings::live_multi_axis_label_type_t value);
 
+    bool liveChartCursorEnabled();
+    void setLiveChartCursorEnabled(bool enabled);
+
+    bool liveChartTracksMouseEnabled();
+    void setLiveChartTracksMouseEnabled(bool enabled);
+
     void saveMainWindowState(QByteArray state);
     QByteArray mainWindowState() const;
 
