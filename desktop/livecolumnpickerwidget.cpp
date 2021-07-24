@@ -24,7 +24,13 @@ void LiveColumnPickerWidget::configure(bool solarAvailable, hardware_type_t hw_t
 
 
     // Rename a few things
-    ui->cbRainfall->setText(tr("Storm Rain"));
+    if (hw_type == HW_DAVIS) {
+        // Davis has storm rain.
+        ui->cbRainfall->setText(tr("Storm Rain"));
+    } else {
+        // Generic stations have no live rain data.
+        ui->gbRain->setVisible(false);
+    }
     ui->cbRainRate->setText(tr("Rain Rate"));
     ui->cbWindSpeed->setText(tr("Wind Speed"));
     ui->cbWindDirection->setText(tr("Wind Direction"));

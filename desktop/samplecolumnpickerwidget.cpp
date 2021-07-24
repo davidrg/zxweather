@@ -14,8 +14,10 @@ void SampleColumnPickerWidget::configure(bool solarAvailable, hardware_type_t hw
 
     configureUi(solarAvailable, hw_type, isWireless, extraColumns, extraColumnNames);
 
-    ui->cbForecastRule->setVisible(forecastRule);
-    ui->cbForecastRule->setEnabled(forecastRule);
+    if (hw_type == HW_DAVIS) {
+        ui->cbForecastRule->setVisible(forecastRule);
+        ui->cbForecastRule->setEnabled(forecastRule);
+    }
 }
 
 #define CHECK_COLUMN(cb, col) if (cb->isChecked()) { columns.standard |= col; }

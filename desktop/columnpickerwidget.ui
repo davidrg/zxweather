@@ -133,7 +133,7 @@
        <item row="0" column="2">
         <layout class="QVBoxLayout" name="verticalLayout_19">
          <item>
-          <widget class="QGroupBox" name="groupBox_2">
+          <widget class="QGroupBox" name="gbRain">
            <property name="title">
             <string>Rain</string>
            </property>

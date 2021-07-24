@@ -32,6 +32,8 @@ void ColumnPickerWidget::configureUi(
 
     if (hw_type != HW_DAVIS) {
         hideDavisOnlyColumns();
+        ui->tabWidget->removeTab(ui->tabWidget->indexOf(ui->tabLeafAndSoil));
+        ui->tabWidget->removeTab(ui->tabWidget->indexOf(ui->tabExtra));
     } else {
         // TODO: Get all this from the data sources column config
         if (!solarAvailable) {
@@ -146,6 +148,7 @@ void ColumnPickerWidget::hideDavisOnlyColumns() {
     ui->cbRainRate->setVisible(false);
     ui->cbGustDirection->setVisible(false);
     ui->cbConsoleBatteryVoltage->setVisible(false);
+    ui->cbForecastRule->setVisible(false);
 
     ui->gbTemperatureHighLow->setEnabled(false);
     ui->cbHighTemperature->setEnabled(false);
@@ -154,6 +157,7 @@ void ColumnPickerWidget::hideDavisOnlyColumns() {
     ui->cbRainRate->setEnabled(false);
     ui->cbGustDirection->setEnabled(false);
     ui->cbConsoleBatteryVoltage->setEnabled(false);
+    ui->cbForecastRule->setEnabled(false);
 
     // These are also davis-exclusive in zxweather for now.
     hideWirelessReceptionColumn();
