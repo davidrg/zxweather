@@ -274,6 +274,10 @@ QCPAxisRect* LivePlotWindow::createAxisRectForGraph(LiveValue type) {
             ui->plot->plotLayout()->remove(axisRects[type]);
         }
 
+        if (marginGroup.isNull()) {
+            marginGroup = new QCPMarginGroup(ui->plot);
+        }
+
         QCPAxisRect *rect = new QCPAxisRect(ui->plot);
         rect->setupFullAxesBox(true);
 
@@ -290,11 +294,13 @@ QCPAxisRect* LivePlotWindow::createAxisRectForGraph(LiveValue type) {
         rect->axis(QCPAxis::atRight)->setTickLabelFont(settings.defaultChartAxisTickLabelFont());
         rect->axis(QCPAxis::atRight)->setLabelFont(settings.defaultChartAxisLabelFont());
 
-
         axisRects[type] = rect;
 
         qDebug() << "Rect created. Adding to layout.";
         ui->plot->plotLayout()->addElement(rect);
+
+        // Keep everything nice and aligned
+        rect->setMarginGroup(QCP::msRight | QCP::msLeft, marginGroup);
 
         if (axisRects.count() == 1) {
             // We've just created the first axis rect. Also create a legend - hidden by

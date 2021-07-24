@@ -19,6 +19,7 @@ class LivePlotWindow;
 
 class QCPGraph;
 class QCPAxis;
+class QCPMarginGroup;
 class AxisTag;
 
 class LivePlotWindow : public QMainWindow
@@ -95,6 +96,7 @@ private:
 
     bool axisTags;
     bool multipleAxisRects;
+    QPointer<QCPMarginGroup> marginGroup;
 };
 
 #endif // LIVEPLOTWINDOW_H
