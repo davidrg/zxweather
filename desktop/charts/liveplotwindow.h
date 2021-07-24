@@ -86,7 +86,11 @@ private:
     QMap<UnitConversions::unit_t, QCPAxis*> axis;
 
     QMap<LiveValue, UnitConversions::unit_t> units;
+    QMap<LiveValue, QString> valueNames;
+    QMap<LiveValue, ExtraColumn> extraColumnMapping;
+    QMap<UnitConversions::unit_t, QString> axisLabelUnitSuffixes;
     QMap<UnitConversions::unit_t, QString> axisLabels;
+    QString axisLabel(LiveValue value);
 
     int timespanMinutes;
 

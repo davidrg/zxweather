@@ -86,6 +86,7 @@ namespace SettingsKey {
         const QString TIMESPAN_MINUTES = "LiveChart/timespan_minutes";
         const QString LIVE_TAGS = "LiveChart/live_tags";
         const QString MULTI_RECT = "LiveChart/multiple_axis_rects";
+        const QString MULTI_RECT_AXIS_LABELS = "LiveChart/axis_labels_for_multi_axis_rects";
     }
 
     namespace Chart {
@@ -999,6 +1000,17 @@ bool Settings::liveTagsEnabled() const {
 
 bool Settings::liveMultipleAxisRectsEnabled() const {
     return settings->value(SettingsKey::LiveChart::MULTI_RECT, true).toBool();
+}
+
+Settings::live_multi_axis_label_type_t Settings::liveMultipleAxisRectsAxisLabelType() const {
+    return (Settings::live_multi_axis_label_type_t)settings->value(
+                SettingsKey::LiveChart::MULTI_RECT_AXIS_LABELS,
+                (int)Settings::LMALT_TYPE
+                ).toInt();
+}
+
+void Settings::setLiveMultipleAxisRectsAxisLabelType(Settings::live_multi_axis_label_type_t value) {
+    settings->setValue(SettingsKey::LiveChart::MULTI_RECT_AXIS_LABELS, value);
 }
 
 void Settings::setLiveAggregateSeconds(int value) {

@@ -128,6 +128,12 @@ public:
         data_source_type_t sampleDataSource;
     } DataSourceConfiguration;
 
+    enum live_multi_axis_label_type_t {
+        LMALT_UNITS_ONLY = 0,
+        LMALT_TYPE = 1,
+        LMALT_SENSOR = 2
+    };
+
     /* General Settings */
     void setMinimiseToSysTray(bool enabled);
     bool miniseToSysTray();
@@ -226,6 +232,7 @@ public:
     bool liveStormRain() const;
     bool liveTagsEnabled() const;
     bool liveMultipleAxisRectsEnabled() const;
+    Settings::live_multi_axis_label_type_t liveMultipleAxisRectsAxisLabelType() const;
 
     void setLiveAggregateSeconds(int value);
     void setLiveTimespanMinutes(int value);
@@ -234,6 +241,7 @@ public:
     void setLiveStormRain(bool value);
     void setLiveTagsEnabled(bool value);
     void setLiveMultipleAxisRectsEnabled(bool value);
+    void setLiveMultipleAxisRectsAxisLabelType(Settings::live_multi_axis_label_type_t value);
 
     void saveMainWindowState(QByteArray state);
     QByteArray mainWindowState() const;

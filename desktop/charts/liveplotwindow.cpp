@@ -104,25 +104,81 @@ LivePlotWindow::LivePlotWindow(bool solarAvailalble,
         imperialiseUnitDict(LV_ExtraTemperature3);
     }
 
-    // And their labels
-    axisLabels[UnitConversions::U_CELSIUS] = tr("Temperature (" DEGREE_SYMBOL "C)");
-    axisLabels[UnitConversions::U_FAHRENHEIT] = tr("Fahrenheit (" DEGREE_SYMBOL "F)");
-    axisLabels[UnitConversions::U_HUMIDITY] = tr("Humidity (%)");
-    axisLabels[UnitConversions::U_HECTOPASCALS] = tr("Pressure (hPa)");
-    axisLabels[UnitConversions::U_INCHES_OF_MERCURY] = tr("Inches of Mercury (InHg)");
-    axisLabels[UnitConversions::U_METERS_PER_SECOND] = tr("Wind Speed (m/s)");
-    axisLabels[UnitConversions::U_KILOMETERS_PER_HOUR] = tr("Wind Speed (km/h)");
-    axisLabels[UnitConversions::U_MILES_PER_HOUR] = tr("Wind Speed (mph)");
-    axisLabels[UnitConversions::U_DEGREES] = tr("Wind direction (" DEGREE_SYMBOL ")");
-    axisLabels[UnitConversions::U_MILLIMETERS] = tr("Rainfall (mm)");
-    axisLabels[UnitConversions::U_INCHES] = tr("Rainfall (in)");
-    axisLabels[UnitConversions::U_MILLIMETERS_PER_HOUR] = tr("Rain Rate (mm/h)");
-    axisLabels[UnitConversions::U_INCHES_PER_HOUR] = tr("Rain rate (in/h)");
-    axisLabels[UnitConversions::U_VOLTAGE] = tr("Voltage (V)");
+    // Suffixes for axis labels based on type
+    axisLabelUnitSuffixes[UnitConversions::U_CELSIUS] = tr(DEGREE_SYMBOL "C");
+    axisLabelUnitSuffixes[UnitConversions::U_FAHRENHEIT] = tr(DEGREE_SYMBOL "F");
+    axisLabelUnitSuffixes[UnitConversions::U_HUMIDITY] = tr("%");
+    axisLabelUnitSuffixes[UnitConversions::U_HECTOPASCALS] = tr("hPa");
+    axisLabelUnitSuffixes[UnitConversions::U_INCHES_OF_MERCURY] = tr("InHg");
+    axisLabelUnitSuffixes[UnitConversions::U_METERS_PER_SECOND] = tr("m/s");
+    axisLabelUnitSuffixes[UnitConversions::U_KILOMETERS_PER_HOUR] = tr("km/h");
+    axisLabelUnitSuffixes[UnitConversions::U_MILES_PER_HOUR] = tr("mph");
+    axisLabelUnitSuffixes[UnitConversions::U_DEGREES] = tr(DEGREE_SYMBOL);
+    axisLabelUnitSuffixes[UnitConversions::U_MILLIMETERS] = tr("mm");
+    axisLabelUnitSuffixes[UnitConversions::U_INCHES] = tr("in");
+    axisLabelUnitSuffixes[UnitConversions::U_MILLIMETERS_PER_HOUR] = tr("mm/h");
+    axisLabelUnitSuffixes[UnitConversions::U_INCHES_PER_HOUR] = tr("in/h");
+    axisLabelUnitSuffixes[UnitConversions::U_VOLTAGE] = tr("V");
+    axisLabelUnitSuffixes[UnitConversions::U_UV_INDEX] = tr("");
+    axisLabelUnitSuffixes[UnitConversions::U_WATTS_PER_SQUARE_METER] = tr("W/m" SQUARED_SYMBOL);
+    axisLabelUnitSuffixes[UnitConversions::U_CENTIBAR] = tr("cbar");
+    axisLabelUnitSuffixes[UnitConversions::U_LEAF_WETNESS] = tr("");
+
+    // And the typed axis labels
+    axisLabels[UnitConversions::U_CELSIUS] = tr("Temperature");
+    axisLabels[UnitConversions::U_FAHRENHEIT] = tr("Fahrenheit");
+    axisLabels[UnitConversions::U_HUMIDITY] = tr("Humidity");
+    axisLabels[UnitConversions::U_HECTOPASCALS] = tr("Pressure");
+    axisLabels[UnitConversions::U_INCHES_OF_MERCURY] = tr("Inches of Mercury");
+    axisLabels[UnitConversions::U_METERS_PER_SECOND] = tr("Wind Speed");
+    axisLabels[UnitConversions::U_KILOMETERS_PER_HOUR] = tr("Wind Speed");
+    axisLabels[UnitConversions::U_MILES_PER_HOUR] = tr("Wind Speed");
+    axisLabels[UnitConversions::U_DEGREES] = tr("Wind direction");
+    axisLabels[UnitConversions::U_MILLIMETERS] = tr("Rainfall");
+    axisLabels[UnitConversions::U_INCHES] = tr("Rainfall");
+    axisLabels[UnitConversions::U_MILLIMETERS_PER_HOUR] = tr("Rain Rate");
+    axisLabels[UnitConversions::U_INCHES_PER_HOUR] = tr("Rain rate");
+    axisLabels[UnitConversions::U_VOLTAGE] = tr("Voltage");
     axisLabels[UnitConversions::U_UV_INDEX] = tr("UV Index");
-    axisLabels[UnitConversions::U_WATTS_PER_SQUARE_METER] = tr("Solar Radiation (W/m" SQUARED_SYMBOL ")");
-    axisLabels[UnitConversions::U_CENTIBAR] = tr("Soil Moisture (cbar)");
+    axisLabels[UnitConversions::U_WATTS_PER_SQUARE_METER] = tr("Solar Radiation");
+    axisLabels[UnitConversions::U_CENTIBAR] = tr("Soil Moisture");
     axisLabels[UnitConversions::U_LEAF_WETNESS] = tr("Leaf Wetness");
+
+    // Value name...
+    valueNames[LV_Temperature] = tr("Temperature");
+    valueNames[LV_IndoorTemperature] = tr("Inside Temperature");
+    valueNames[LV_ApparentTemperature] = tr("Apparent Temperature");
+    valueNames[LV_WindChill] = tr("Wind Chill");
+    valueNames[LV_DewPoint] = tr("Dew Point");
+    valueNames[LV_Humidity] = tr("Humidity");
+    valueNames[LV_IndoorHumidity] = tr("Indoor Humidity");
+    valueNames[LV_Pressure] = tr("Pressure");
+    valueNames[LV_WindSpeed] = tr("Wind Speed");
+    valueNames[LV_WindDirection] = tr("Wind Direction");
+    valueNames[LV_StormRain] = tr("Storm Rain");
+    valueNames[LV_RainRate] = tr("Rain Rate");
+    valueNames[LV_BatteryVoltage] = tr("Battery Voltage");
+    valueNames[LV_UVIndex] = tr("UV Index");
+    valueNames[LV_SolarRadiation] = tr("Solar Radiation");
+
+    // Really need a better way of handling this metadata...
+    extraColumnMapping[LV_SoilMoisture1] = EC_SoilMoisture1;
+    extraColumnMapping[LV_SoilMoisture2] = EC_SoilMoisture2;
+    extraColumnMapping[LV_SoilMoisture3] = EC_SoilMoisture3;
+    extraColumnMapping[LV_SoilMoisture4] = EC_SoilMoisture4;
+    extraColumnMapping[LV_SoilTemperature1] = EC_SoilTemperature1;
+    extraColumnMapping[LV_SoilTemperature2] = EC_SoilTemperature2;
+    extraColumnMapping[LV_SoilTemperature3] = EC_SoilTemperature3;
+    extraColumnMapping[LV_SoilTemperature4] = EC_SoilTemperature4;
+    extraColumnMapping[LV_LeafWetness1] = EC_LeafWetness1;
+    extraColumnMapping[LV_LeafWetness2] = EC_LeafWetness2;
+    extraColumnMapping[LV_LeafTemperature1] = EC_LeafTemperature1;
+    extraColumnMapping[LV_LeafTemperature2] = EC_LeafTemperature2;
+    extraColumnMapping[LV_ExtraTemperature1] = EC_ExtraTemperature1;
+    extraColumnMapping[LV_ExtraTemperature2] = EC_ExtraTemperature2;
+    extraColumnMapping[LV_ExtraTemperature3] = EC_ExtraTemperature3;
+    extraColumnMapping[LV_ExtraHumidity1] = EC_ExtraHumidity1;
+    extraColumnMapping[LV_ExtraHumidity2] = EC_ExtraHumidity2;
 
     Settings &settings = Settings::getInstance();
     bool usingWebDs = false;
@@ -425,6 +481,42 @@ QCPAxis* LivePlotWindow::keyAxisForGraph(LiveValue type) {
     return axis;
 }
 
+QString LivePlotWindow::axisLabel(LiveValue value) {
+    UnitConversions::unit_t u = units[value];
+
+    QString suffix = axisLabelUnitSuffixes[u];
+    QString base;
+
+    if (multipleAxisRects) {
+        switch(Settings::getInstance().liveMultipleAxisRectsAxisLabelType()) {
+        case Settings::LMALT_SENSOR:
+            if (valueNames.contains(value)) {
+                base = valueNames[value];
+            } else if (extraColumnMapping.contains(value)) {
+                base = extraColumnNames[extraColumnMapping[value]];
+            } else {
+                base = axisLabels[u];
+            }
+            break;
+        case Settings::LMALT_UNITS_ONLY:
+            base = suffix;
+            suffix = QString();
+            break;
+        case Settings::LMALT_TYPE:
+        default:
+            base = axisLabels[u];
+            break;
+        }
+    } else {
+        base = axisLabels[u];
+    }
+
+    if (suffix.isEmpty()) {
+        return base;
+    }
+    return QString("%1 (%2)").arg(base).arg(suffix);
+}
+
 QCPAxis* LivePlotWindow::valueAxisForGraph(LiveValue type) {
     bool newAxis = !axisRectExists(type);
 
@@ -476,7 +568,8 @@ QCPAxis* LivePlotWindow::valueAxisForGraph(LiveValue type) {
         // axis.
         axis->setVisible(true);
         axis->setTickLabels(true);
-        axis->setLabel(axisLabels[units[type]]);
+
+        axis->setLabel(axisLabel(type));
 
         if (axisTags) {
             axis->setPadding(10);
@@ -550,134 +643,110 @@ void LivePlotWindow::addLiveValue(LiveValue v) {
             tags[v]->setStyle(style);
         }
 
+        if (valueNames.contains(v)) {
+            graphs[v]->setName(valueNames[v]);
+        } else if (extraColumnMapping.contains(v)) {
+            graphs[v]->setName(extraColumnNames[extraColumnMapping[v]]);
+        } else {
+            graphs[v]->setName(tr("uknown graph"));
+        }
+
         switch(v) {
         case LV_Temperature:
-            graphs[v]->setName(tr("Temperature"));
             graphs[v]->setPen(QPen(colours.temperature));
             break;
         case LV_IndoorTemperature:
-            graphs[v]->setName(tr("Indoor Temperature"));
             graphs[v]->setPen(QPen(colours.indoorTemperature));
             break;
         case LV_ApparentTemperature:
-            graphs[v]->setName(tr("Apparent Temperature"));
             graphs[v]->setPen(QPen(colours.apparentTemperature));
             break;
         case LV_WindChill:
-            graphs[v]->setName(tr("Wind Chill"));
             graphs[v]->setPen(QPen(colours.windChill));
             break;
         case LV_DewPoint:
-            graphs[v]->setName(tr("Dew Point"));
             graphs[v]->setPen(QPen(colours.dewPoint));
             break;
         case LV_Humidity:
-            graphs[v]->setName(tr("Humidity"));
             graphs[v]->setPen(QPen(colours.humidity));
             break;
         case LV_IndoorHumidity:
-            graphs[v]->setName(tr("Indoor Humidity"));
             graphs[v]->setPen(QPen(colours.indoorHumidity));
             break;
         case LV_Pressure:
-            graphs[v]->setName(tr("Pressure"));
             graphs[v]->setPen(QPen(colours.pressure));
             break;
         case LV_WindSpeed:
-            graphs[v]->setName(tr("Wind Speed"));
             graphs[v]->setPen(QPen(colours.averageWindSpeed));
             break;
         case LV_WindDirection:
-            graphs[v]->setName(tr("Wind Direction"));
             graphs[v]->setPen(QPen(colours.windDirection));
             break;
         case LV_StormRain:
-            graphs[v]->setName(tr("Storm Rain"));
             graphs[v]->setPen(QPen(colours.rainfall));
             break;
         case LV_RainRate:
-            graphs[v]->setName(tr("Rain Rate"));
             graphs[v]->setPen(QPen(colours.rainRate));
             break;
         case LV_BatteryVoltage:
-            graphs[v]->setName(tr("Battery Voltage"));
             graphs[v]->setPen(QPen(colours.consoleBatteryVoltage));
             break;
         case LV_UVIndex:
-            graphs[v]->setName(tr("UV Index"));
             graphs[v]->setPen(QPen(colours.uvIndex));
             break;
         case LV_SolarRadiation:
-            graphs[v]->setName(tr("Solar Radiation"));
             graphs[v]->setPen(QPen(colours.solarRadiation));
             break;
 
         case LV_SoilMoisture1:
-            graphs[v]->setName(extraColumnNames.value(EC_SoilMoisture1));
             graphs[v]->setPen(QPen(colours.soilMoisture1));
             break;
         case LV_SoilMoisture2:
-            graphs[v]->setName(extraColumnNames.value(EC_SoilMoisture2));
             graphs[v]->setPen(QPen(colours.soilMoisture2));
             break;
         case LV_SoilMoisture3:
-            graphs[v]->setName(extraColumnNames.value(EC_SoilMoisture3));
             graphs[v]->setPen(QPen(colours.soilMoisture3));
             break;
         case LV_SoilMoisture4:
-            graphs[v]->setName(extraColumnNames.value(EC_SoilMoisture4));
             graphs[v]->setPen(QPen(colours.soilMoisture4));
             break;
         case LV_SoilTemperature1:
-            graphs[v]->setName(extraColumnNames.value(EC_SoilTemperature1));
             graphs[v]->setPen(QPen(colours.soilTemperature1));
             break;
         case LV_SoilTemperature2:
-            graphs[v]->setName(extraColumnNames.value(EC_SoilTemperature2));
             graphs[v]->setPen(QPen(colours.soilTemperature2));
             break;
         case LV_SoilTemperature3:
-            graphs[v]->setName(extraColumnNames.value(EC_SoilTemperature3));
             graphs[v]->setPen(QPen(colours.soilTemperature3));
             break;
         case LV_SoilTemperature4:
-            graphs[v]->setName(extraColumnNames.value(EC_SoilTemperature4));
             graphs[v]->setPen(QPen(colours.soilTemperature4));
             break;
         case LV_LeafWetness1:
-            graphs[v]->setName(extraColumnNames.value(EC_LeafWetness1));
             graphs[v]->setPen(QPen(colours.leafWetness1));
             break;
         case LV_LeafWetness2:
-            graphs[v]->setName(extraColumnNames.value(EC_LeafWetness2));
             graphs[v]->setPen(QPen(colours.leafWetness2));
             break;
         case LV_LeafTemperature1:
-            graphs[v]->setName(extraColumnNames.value(EC_LeafTemperature1));
             graphs[v]->setPen(QPen(colours.leafTemperature1));
             break;
         case LV_LeafTemperature2:
-            graphs[v]->setName(extraColumnNames.value(EC_LeafTemperature2));
             graphs[v]->setPen(QPen(colours.leafTemperature2));
             break;
         case LV_ExtraTemperature1:
-            graphs[v]->setName(extraColumnNames.value(EC_ExtraTemperature1));
             graphs[v]->setPen(QPen(colours.extraTemperature1));
             break;
         case LV_ExtraTemperature2:
-            graphs[v]->setName(extraColumnNames.value(EC_ExtraTemperature2));
             graphs[v]->setPen(QPen(colours.extraTemperature2));
             break;
         case LV_ExtraTemperature3:
-            graphs[v]->setName(extraColumnNames.value(EC_ExtraTemperature3));
             graphs[v]->setPen(QPen(colours.extraTemperature3));
             break;
         case LV_ExtraHumidity1:
-            graphs[v]->setName(extraColumnNames.value(EC_ExtraHumidity1));
             graphs[v]->setPen(QPen(colours.extraHumidity1));
             break;
         case LV_ExtraHumidity2:
-            graphs[v]->setName(extraColumnNames.value(EC_ExtraHumidity2));
             graphs[v]->setPen(QPen(colours.extraHumidity2));
             break;
 
@@ -935,9 +1004,15 @@ void LivePlotWindow::selectionChanged() {
 }
 
 void LivePlotWindow::showOptions() {
+
+    Settings &settings = Settings::getInstance();
+
+    Settings::live_multi_axis_label_type_t axis_labels = settings.liveMultipleAxisRectsAxisLabelType();
+
     LiveChartOptionsDialog lcod(aggregate, aggregateSeconds, maxRainRate, stormRain,
                                 hwType == HW_DAVIS, timespanMinutes, axisTags,
-                                multipleAxisRects, this);
+                                multipleAxisRects, axis_labels,
+                                this);
 
     if (lcod.exec() != QDialog::Accepted) {
         return;
@@ -982,6 +1057,11 @@ void LivePlotWindow::showOptions() {
         resetPlot = true;
     }
 
+    if (lcod.multipleAxisRectsEnabled() && lcod.multiAxisLabels() != axis_labels) {
+        settings.setLiveMultipleAxisRectsAxisLabelType(lcod.multiAxisLabels());
+        resetPlot = true;
+    }
+
     // changing either axis tags or the number of axis rects requires the entire plot
     // to be reset
     if (resetPlot) {
@@ -995,7 +1075,7 @@ void LivePlotWindow::showOptions() {
 
     resetData();
 
-    Settings &settings = Settings::getInstance();
+
     settings.setLiveAggregate(aggregate);
     settings.setLiveMaxRainRate(maxRainRate);
     settings.setLiveStormRain(stormRain);
@@ -1003,6 +1083,7 @@ void LivePlotWindow::showOptions() {
     settings.setLiveTimespanMinutes(timespanMinutes);
     settings.setLiveTagsEnabled(axisTags);
     settings.setLiveMultipleAxisRectsEnabled(multipleAxisRects);
+
 }
 
 void LivePlotWindow::graphStyleChanged(QCPGraph *graph, GraphStyle &newStyle)

@@ -1,14 +1,28 @@
 #include "livechartoptionsdialog.h"
 #include "ui_livechartoptionsdialog.h"
 #include "settings.h"
+#include "constants.h"
+
+#include <QtDebug>
 
 LiveChartOptionsDialog::LiveChartOptionsDialog(bool aggregate, int period, bool maxRainRate, bool stormRain,
         bool stormRainEnabled, int rangeMinutes, bool tags, bool multiRect,
+        Settings::live_multi_axis_label_type_t multiAxisLabels,
         QWidget *parent) :
     QDialog(parent),
     ui(new Ui::LiveChartOptionsDialog)
 {
     ui->setupUi(this);
+
+    ui->cmbMultiAxisLabels->addItem(
+                tr("Sensor Type - example: Temperature (" DEGREE_SYMBOL "C)"),
+                Settings::LMALT_TYPE);
+    ui->cmbMultiAxisLabels->addItem(
+                tr("Sensor Name - example: Inside Temperature (" DEGREE_SYMBOL "C)"),
+                Settings::LMALT_SENSOR);
+    ui->cmbMultiAxisLabels->addItem(
+                tr("Units only - example: " DEGREE_SYMBOL "C"),
+                Settings::LMALT_UNITS_ONLY);
 
     ui->cbAverageUpdates->setChecked(aggregate);
     ui->sbPeriod->setValue(period);
@@ -18,6 +32,10 @@ LiveChartOptionsDialog::LiveChartOptionsDialog(bool aggregate, int period, bool 
     ui->sbTimespan->setValue(rangeMinutes);
     ui->cbAxisTags->setChecked(tags);
     ui->cbMultiAxisRect->setChecked(multiRect);
+    ui->cmbMultiAxisLabels->setCurrentIndex(ui->cmbMultiAxisLabels->findData(multiAxisLabels));
+
+    ui->cmbMultiAxisLabels->setEnabled(multiRect);
+    ui->lblMultiAxisLabels->setEnabled(multiRect);
 
     // Set the maximum timespan to be however large the
     // live buffer is.
@@ -55,4 +73,9 @@ bool LiveChartOptionsDialog::tagsEnabled() const {
 
 bool LiveChartOptionsDialog::multipleAxisRectsEnabled() const {
     return ui->cbMultiAxisRect->isChecked();
+}
+
+Settings::live_multi_axis_label_type_t LiveChartOptionsDialog::multiAxisLabels() const {
+    qDebug() << "Current text" << ui->cmbMultiAxisLabels->currentText() << "data" << ui->cmbMultiAxisLabels->currentData();
+    return (Settings::live_multi_axis_label_type_t)ui->cmbMultiAxisLabels->currentData().toInt();
 }
