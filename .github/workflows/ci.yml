@@ -49,17 +49,16 @@ jobs:
           copy ..\desktop\qtcolorbutton\LGPL_EXCEPTION.txt
           copy ..\desktop\charts\qcp\GPL.txt LICENSE.gpl3
           copy ..\desktop\reporting\qt-mustache\license.txt LICENSE.qt-mustache
-          %Qt5_Dir%\bin\windeployqt zxweather.exe
+          %Qt5_Dir%\bin\windeployqt --compiler-runtime zxweather.exe
           del sqldrivers\qsqlodbc.dll
-          del sqldrivers\qsqlmysql.dll
           cd ..
-          7z a -tzip "zxweather-desktop.zip" dist
+          REM 7z a -tzip "zxweather-desktop.zip" dist
         shell: cmd
       - name: Upload a Build Artifact
         uses: actions/upload-artifact@v2.2.4
         with:
           name: desktop-windows-qt5132-release
-          path: zxweather-desktop.zip
-          error: distribution artifact not found!
+          path: dist
+          if-no-files-found: error
           retention-days: 7
           
