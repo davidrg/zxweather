@@ -14,7 +14,6 @@ jobs:
           host: 'windows'
           target: 'desktop'
           arch: 'win32_mingw73'
-          dir: '${{ github.workspace }}\_build_deps'
           install-deps: 'true'
           modules: 'qtscript'
           cached: 'false'
