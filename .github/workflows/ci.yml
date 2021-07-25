@@ -27,4 +27,5 @@ jobs:
           extra: '--external 7z'
       - name: List Qt files
         run: |
-          ls -lR ${{ github.workspace }}/_build
+          cd ${{ github.workspace }}\_build_deps
+          dir /s /b
