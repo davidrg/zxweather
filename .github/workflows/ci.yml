@@ -26,6 +26,7 @@ jobs:
           extra: '--external 7z'       
       - name: qmake
         run: |
+          set PATH=%IQTA_TOOLS%\mingw730_32\bin\;%PATH%
           cd ${{ github.workspace }}
           mkdir build_out
           cd build_out
