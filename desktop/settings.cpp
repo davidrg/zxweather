@@ -289,7 +289,7 @@ Settings::Settings() {
         }
     }
 #else
-    settingsFile = "~/.zxweather-desktop.ini"
+    settingsFile = "~/.zxweather-desktop.ini";
 #endif
 
 
