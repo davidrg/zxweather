@@ -463,6 +463,8 @@ void ImageModel::buildTree(QList<ImageDate> dates, QList<ImageSource> sources) {
 
     QMap<QString, ImageSource> imageSources = imageSourcesListToMap(sources);
 
+    QLocale locale;
+
     // Build the actual tree
     foreach (int year, sourceTree.keys()) {
         TreeItem* yearNode = new TreeItem(IT_YEAR,
@@ -473,7 +475,7 @@ void ImageModel::buildTree(QList<ImageDate> dates, QList<ImageSource> sources) {
                                           -1);
         rootNode->appendChild(yearNode);
         foreach (int month, sourceTree[year].keys()) {
-            QString monthName = QDate::longMonthName(month);
+            QString monthName = locale.monthName(month);
             TreeItem *monthNode = new TreeItem(IT_MONTH,
                                                QDate(year, month, 1),
                                                "",
@@ -598,6 +600,8 @@ void ImageModel::updateTree(QList<ImageDate> dates, QList<ImageSource> sources) 
 
     QMap<QString, ImageSource> imageSources = imageSourcesListToMap(sources);
 
+    QLocale locale;
+
     qDebug() << "======================== Updating Image Tree ========================";
 
     // Update the tree.
@@ -628,7 +632,7 @@ void ImageModel::updateTree(QList<ImageDate> dates, QList<ImageSource> sources) 
             bool monthCreated = false;
             if (monthNode == NULL) {
                 // Couldn't find the year. Create it.
-                QString monthName = QDate::longMonthName(month);
+                QString monthName = locale.monthName(month);
                 monthNode = new TreeItem(IT_MONTH,
                                          QDate(year, month, 1),
                                          "",
@@ -989,7 +993,7 @@ QVariant ImageModel::data(const QModelIndex &index, int role) const {
                 qint64 size = info.size();
 
                 float humanSize = size;
-                QString humanSuffix = QString::null;
+                QString humanSuffix = QString();
                 if (humanSize > 1024) {
                     humanSize /= 1024;
                     humanSuffix = tr("KiB");

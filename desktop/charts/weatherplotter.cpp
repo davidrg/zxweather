@@ -6,6 +6,7 @@
 #include <QtDebug>
 #include <QMessageBox>
 #include <QFontMetrics>
+#include <algorithm>
 
 WeatherPlotter::WeatherPlotter(PlotWidget *chart, QObject *parent) :
     QObject(parent)
@@ -178,30 +179,22 @@ QString WeatherPlotter::getKeyAxisTickFormatString(dataset_id_t dataSetId) {
 QPointer<QCPAxis> WeatherPlotter::createValueAxis(AxisType type) {
     Q_ASSERT_X(type < AT_KEY, "createValueAxis", "Axis type must not be for a key axis");
 
-    bool atLeft;
-
     QCPAxis* axis = NULL;
     if (configuredValueAxes.isEmpty()) {
 
         axis = chart->yAxis;
         axis->setVisible(true);
         axis->setTickLabels(true);
-
-        atLeft = true;
     } else if (configuredValueAxes.count() == 1) {
         axis = chart->yAxis2;
         axis->setVisible(true);
         axis->setTickLabels(true);
-
-        atLeft = false;
     } else {
         // Every second axis can go on the right.
         if (configuredValueAxes.count() % 2 == 0) {
             axis = chart->axisRect()->addAxis(QCPAxis::atLeft);
-            atLeft = true;
         } else {
             axis = chart->axisRect()->addAxis(QCPAxis::atRight);
-            atLeft = false;
         }
     }
     axis->grid()->setVisible(axisGridVisible());
@@ -242,27 +235,21 @@ QPointer<QCPAxis> WeatherPlotter::getValueAxis(AxisType axisType, bool reference
 QPointer<QCPAxis> WeatherPlotter::createKeyAxis(dataset_id_t dataSetId) {
     AxisType type = (AxisType)(AT_KEY + dataSetId);
 
-    bool atTop;
-
     QCPAxis* axis = NULL;
     if (configuredKeyAxes.isEmpty()) {
         axis = chart->xAxis;
         axis->setVisible(true);
         axis->setTickLabels(true);
-        atTop = false;
     } else if (configuredKeyAxes.count() == 1) {
         axis = chart->xAxis2;
         axis->setVisible(true);
         axis->setTickLabels(true);
-        atTop = true;
     } else {
         // Every second axis can go on the top.
         if (configuredKeyAxes.count() % 2 == 0) {
             axis = chart->axisRect()->addAxis(QCPAxis::atBottom);
-            atTop = false;
         } else {
             axis = chart->axisRect()->addAxis(QCPAxis::atTop);
-            atTop = true;
         }
     }
     QSharedPointer<QCPAxisTickerDateTime> ticker(new QCPAxisTickerDateTime());
@@ -606,7 +593,7 @@ void WeatherPlotter::addWindDirectionGraph(DataSet dataSet, SampleSet samples, S
 
     if (column == SC_WindDirection) {
         QList<uint> keys = samples.windDirection.keys();
-        qSort(keys.begin(), keys.end());
+        std::sort(keys.begin(), keys.end());
         QVector<double> timestamps;
         QVector<double> values;
         foreach(uint key, keys) {
@@ -616,7 +603,7 @@ void WeatherPlotter::addWindDirectionGraph(DataSet dataSet, SampleSet samples, S
         graph->setData(timestamps,values);
     } else { // SC_GustWindDirection
         QList<uint> keys = samples.gustWindDirection.keys();
-        qSort(keys.begin(), keys.end());
+        std::sort(keys.begin(), keys.end());
         QVector<double> timestamps;
         QVector<double> values;
         foreach(uint key, keys) {

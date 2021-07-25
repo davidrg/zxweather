@@ -189,6 +189,7 @@ QVariant DataSetModel::data(const QModelIndex &index, int role) const
         case U_INCHES_OF_MERCURY:
         case U_INCHES_PER_HOUR:
         case U_INCHES:
+        case U_KNOTS:
             break; // Already in imperial units
 
         case U_BFT:
@@ -304,6 +305,7 @@ QVariant DataSetModel::data(const QModelIndex &index, int role) const
         case U_KILOMETERS_PER_HOUR:
         case U_MILES_PER_HOUR:
         case U_BFT:
+        case U_KNOTS:
         case U_HECTOPASCALS:
         case U_INCHES_OF_MERCURY:
         case U_DAVIS_BAROMETER_TREND:

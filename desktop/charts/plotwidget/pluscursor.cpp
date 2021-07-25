@@ -312,7 +312,11 @@ void PlusCursor::mouseMove(QMouseEvent* event) {
                 double valueMax = valueAxis->pixelToCoord(currentAxisRect->topRight().y() -1); // -1 to align with border
 
                 QFontMetrics m(tag->font());
+#if (QT_VERSION >= QT_VERSION_CHECK(5,11,0))
+                double halfWidth = m.horizontalAdvance(tag->text()) / 2;
+#else
                 double halfWidth = m.width(tag->text()) / 2;
+#endif
 
                 double minPos = tag->axis()->pixelToCoord(halfWidth + left);
                 double maxPos = tag->axis()->pixelToCoord(right - halfWidth);

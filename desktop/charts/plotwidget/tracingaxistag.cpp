@@ -78,7 +78,11 @@ void TracingAxisTag::update() {
         double valueMax = valueAxis->pixelToCoord(axis()->axisRect()->topRight().y() -1); // -1 to align with border
 
         QFontMetrics m(font());
+#if (QT_VERSION >= QT_VERSION_CHECK(5,11,0))
+        double halfWidth = m.horizontalAdvance(text()) / 2;
+#else
         double halfWidth = m.width(text()) / 2;
+#endif
 
         double left = axis()->axisRect()->bottomLeft().x();
         double right = axis()->axisRect()->bottomRight().x();
