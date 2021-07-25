@@ -4,6 +4,8 @@ on:
     paths:
       - desktop/**
       - .github/workflows/desktop-build.yml
+  pull_request:
+    branches: [ master ]
 jobs:
   Desktop-Win32:
     name: Windows Build
