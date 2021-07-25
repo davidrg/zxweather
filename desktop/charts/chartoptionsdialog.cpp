@@ -3,7 +3,7 @@
 
 #include <QMessageBox>
 #include <QtDebug>
-#include <QCheckbox>
+#include <QCheckBox>
 
 ChartOptionsDialog::ChartOptionsDialog(bool solarAvailable,
                                        hardware_type_t hw_type, bool isWireless,
