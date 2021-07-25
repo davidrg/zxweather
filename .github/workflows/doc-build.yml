@@ -34,6 +34,7 @@ jobs:
             for texfile in *.tex ; do
               pdflatex $texfile
             done
+            cd ..
           done
       - name: Build Artifact
         run: |
