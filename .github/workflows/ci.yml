@@ -18,7 +18,7 @@ jobs:
           modules: 'qtscript qtmultimedia'
           cached: 'false'
           setup-python: 'true'
-          tools: 'tools_mingw,qt.tools.win32_mingw730'
+          tools: 'tools_mingw,7.3.0,qt.tools.win32_mingw730'
           set-env: 'true'
           tools-only: 'false'
           aqtversion: '==1.2.4'
