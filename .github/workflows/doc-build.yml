@@ -29,12 +29,13 @@ jobs:
       - name: Build Documentation
         run: |
           cd ${{ github.workspace }}/doc
+          shopt -s nullglob
           for dir in */ ; do
             cd $dir
             for texfile in *.tex ; do
-              echo "Build TeX document: $dir/$texfile"
+              echo "Build TeX document: $dir$texfile"
               pdflatex $texfile
-              echo "Build of TeX document finished: $dir/$texfile"
+              echo "Build of TeX document finished: $dir$texfile"
             done
             cd ..
           done
