@@ -31,6 +31,7 @@ jobs:
           mkdir build_out
           cd build_out
           qmake ../desktop
+        shell: cmd
       - name: Build
         run: |
           set PATH=%IQTA_TOOLS%\mingw730_32\bin\;%PATH%
