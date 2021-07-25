@@ -18,45 +18,49 @@ jobs:
           modules: 'qtscript qtmultimedia'
           cached: 'false'
           setup-python: 'true'
-          tools: ''
+          tools: 'tools_mingw,qt.tools.win32_mingw730'
           set-env: 'true'
           tools-only: 'false'
           aqtversion: '==1.2.4'
           py7zrversion: '==0.14.0'
           extra: '--external 7z'
-      - name: qmake
+      - name: dir-qt
         run: |
-          cd ${{ github.workspace }}
-          mkdir build_out
-          cd build_out
-          qmake ../desktop
-      - name: Build
-        run: |
-          cd ${{ github.workspace }}\build_out
-          mingw32-make
-      - name: Make distribution
-        run: |
-          cd ${{ github.workspace }}
-          mkdir dist
-          cd dist
-          copy ..\build_out\release\zxweather.exe
-          copy ..\desktop\lib\libpq-9.1-win32\libpq.dll
-          copy ..\desktop\lib\libecpg-9.1-win32\*.dll
-          copy ..\desktop\qtcolorbutton\license.txt LICENSE.qtcolorbutton
-          copy ..\desktop\qtcolorbutton\lgpl-2.1.txt LICENSE.lgpl-2.1
-          copy ..\desktop\qtcolorbutton\LGPL_EXCEPTION.txt
-          copy ..\desktop\charts\qcp\GPL.txt LICENSE.gpl3
-          copy ..\desktop\reporting\qt-mustache\license.txt LICENSE.qt-mustache
-          %QT_DIR%\windeployqt zxweather.exe
-          del sqldrivers\qsqlodbc.dll
-          del sqldrivers\qsqlmysql.dll
-          cd ..
-          zip -r -9 -o "zxweather-desktop.zip" dist
-      - name: Upload a Build Artifact
-        uses: actions/upload-artifact@v2.2.4
-        with:
-          name: desktop-windows-qt5132-release
-          path: zxweather-desktop.zip
-          error: distribution artifact not found!
-          retention-days: 7
+          dir %QT_DIR%/
+        
+#       - name: qmake
+#         run: |
+#           cd ${{ github.workspace }}
+#           mkdir build_out
+#           cd build_out
+#           qmake ../desktop
+#       - name: Build
+#         run: |
+#           cd ${{ github.workspace }}\build_out
+#           mingw32-make -j 2
+#       - name: Make distribution
+#         run: |
+#           cd ${{ github.workspace }}
+#           mkdir dist
+#           cd dist
+#           copy ..\build_out\release\zxweather.exe
+#           copy ..\desktop\lib\libpq-9.1-win32\libpq.dll
+#           copy ..\desktop\lib\libecpg-9.1-win32\*.dll
+#           copy ..\desktop\qtcolorbutton\license.txt LICENSE.qtcolorbutton
+#           copy ..\desktop\qtcolorbutton\lgpl-2.1.txt LICENSE.lgpl-2.1
+#           copy ..\desktop\qtcolorbutton\LGPL_EXCEPTION.txt
+#           copy ..\desktop\charts\qcp\GPL.txt LICENSE.gpl3
+#           copy ..\desktop\reporting\qt-mustache\license.txt LICENSE.qt-mustache
+#           %QT_DIR%\windeployqt zxweather.exe
+#           del sqldrivers\qsqlodbc.dll
+#           del sqldrivers\qsqlmysql.dll
+#           cd ..
+#           zip -r -9 -o "zxweather-desktop.zip" dist
+#       - name: Upload a Build Artifact
+#         uses: actions/upload-artifact@v2.2.4
+#         with:
+#           name: desktop-windows-qt5132-release
+#           path: zxweather-desktop.zip
+#           error: distribution artifact not found!
+#           retention-days: 7
           
