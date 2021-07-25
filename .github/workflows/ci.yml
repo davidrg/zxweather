@@ -32,8 +32,9 @@ jobs:
           qmake ../desktop
       - name: Build
         run: |
+          set PATH=%IQTA_TOOLS%\mingw730_32\bin\;%PATH%
           cd ${{ github.workspace }}\build_out
-          %IQTA_TOOLS%\mingw730_32\bin\mingw32-make.exe -j 2
+          mingw32-make.exe -j 2
         shell: cmd
       - name: Make distribution
         run: |
