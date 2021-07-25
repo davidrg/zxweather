@@ -30,6 +30,7 @@
 #include "charts/chartwindow.h"
 #include "charts/chartoptionsdialog.h"
 #include "charts/liveplotwindow.h"
+#include "charts/addlivegraphdialog.h"
 #include "exportdialog.h"
 #include "viewdataoptionsdialog.h"
 #include "viewdatasetwindow.h"
@@ -565,13 +566,27 @@ void MainWindow::showChartWindow() {
     cw->show();
 }
 
-void MainWindow::showLiveChartWindow() {
-    LivePlotWindow *lpt = new LivePlotWindow(solarDataAvailable,
-                                             last_hw_type,
-                                             this->dataSource->extraColumnsAvailable(),
-                                             this->dataSource->extraColumnNames());
-    lpt->setAttribute(Qt::WA_DeleteOnClose);
-    lpt->show();
+void MainWindow::showLiveChartWindow() {    
+    AddLiveGraphDialog algd(~(LiveValues)LV_NoColumns,
+                            solarDataAvailable,
+                            last_hw_type,
+                            this->dataSource->extraColumnsAvailable(),
+                            this->dataSource->extraColumnNames(),
+                            tr("Select the values to display in the live chart. More can be added "
+                               "later."),
+                            this);
+    algd.setWindowTitle(tr("Choose graphs"));
+
+    if (algd.exec() == QDialog::Accepted) {
+        LiveValues selectedGraphs = algd.selectedColumns();
+        LivePlotWindow *lpt = new LivePlotWindow(selectedGraphs,
+                                                 solarDataAvailable,
+                                                 last_hw_type,
+                                                 this->dataSource->extraColumnsAvailable(),
+                                                 this->dataSource->extraColumnNames());
+        lpt->setAttribute(Qt::WA_DeleteOnClose);
+        lpt->show();
+    }
 }
 
 void MainWindow::chartRequested(DataSet dataSet) {
@@ -891,5 +906,8 @@ void MainWindow::stationCodeChanging(QString newCode) {
     qDebug() << "Station code is changing! Relocking single instance.";
     QString newAppId = Constants::SINGLE_INSTANCE_LOCK_PREFIX + newCode.toLower();
     emit relockSingleInstance(newAppId);
+
+    // Switch the live buffer to the new station code
+    LiveBuffer::getInstance().connectStation(newCode);
 }
 #endif

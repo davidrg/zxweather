@@ -59,7 +59,7 @@ void TracingAxisTag::update() {
             label->setVisible(false);
         } else {
             label->setVisible(true);
-            label->setText(QString::number(axisValue));
+            label->setText(QString::number(axisValue, format, precision));
 
             if (axis()->axisType() == QCPAxis::atLeft) {
                 setCoords(keyAxis->pixelToCoord(axis()->axisRect()->bottomLeft().x() - axis()->offset()),

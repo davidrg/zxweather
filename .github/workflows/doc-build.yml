@@ -1,0 +1,53 @@
+# This is a basic workflow to help you get started with Actions
+
+name: Documentation Build
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  push:
+    paths:
+      - doc/**
+      - .github/workflows/doc-build.yml
+  pull_request:
+    branches: [ master ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Comple TeX Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v2
+      - name: Install LaTeX
+        run: |
+          sudo apt-get update
+          sudo apt-get install texlive-latex-extra texlive-extra-utils texlive-fonts-extra
+      - name: Build Documentation
+        run: |
+          cd ${{ github.workspace }}/doc
+          for dir in */ ; do
+            cd $dir
+            for texfile in *.tex ; do
+              pdflatex $texfile
+            done
+            cd ..
+          done
+      - name: Build Artifact
+        run: |
+          cd ${{ github.workspace }}
+          zip -r doc.zip doc *.pdf
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v2.2.4
+        with:
+          name: pdf-documentation
+          path: doc.zip
+          if-no-files-found: error
+          retention-days: 7
+          
+        
+        
+            

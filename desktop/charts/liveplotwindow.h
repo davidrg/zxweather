@@ -30,8 +30,8 @@ class LivePlotWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    explicit LivePlotWindow(bool solarAvailalble, hardware_type_t hardwareType,
-                            ExtraColumns extraColumns,
+    explicit LivePlotWindow(LiveValues initialGraphs, bool solarAvailalble,
+                            hardware_type_t hardwareType, ExtraColumns extraColumns,
                             QMap<ExtraColumn, QString> extraColumnNames,
                             QWidget *parent = 0);
     ~LivePlotWindow();
