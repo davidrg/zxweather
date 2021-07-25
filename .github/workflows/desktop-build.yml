@@ -3,6 +3,7 @@ on:
   push:
     paths:
       - desktop/**
+      - .github/workflows/desktop-build.yml
 jobs:
   Desktop-Win32:
     name: Windows Build
