@@ -1,24 +1,37 @@
 name: zxweather CI
 on: [push]
 jobs:
-  Desktop-Win32-Debug:
-    name: Win32 Desktop Client Build
+  Desktop-Windows:
+    name: ${{ matrix.config.name }}
     runs-on: windows-latest
+    strategy:
+      matrix:
+        config:
+        - {
+            name: "Windows 32bit Qt 5.13.2", 
+            artifact: "win32-qt5.13.2-release",
+            zip_name: "zxweather-desktop.zip",
+            qt: '5.13.2',
+            arch: 'win32_mingw73',
+            modules: 'qtscript qtmultimedia',
+            tools: 'tools_mingw,7.3.0,qt.tools.win32_mingw730',
+            compiler_path: "%IQTA_TOOLS%\mingw730_32\bin\"
+          }
     steps:
       - name: Check out repository code
         uses: actions/checkout@v2
       - name: Install Qt
         uses: jurplel/install-qt-action@v2
         with:
-          version: '5.13.2'
+          version: ${{ matrix.config.qt }}
           host: 'windows'
           target: 'desktop'
-          arch: 'win32_mingw73'
+          arch: ${{ matrix.config.arch }}
           install-deps: 'true'
-          modules: 'qtscript qtmultimedia'
+          modules: ${{ matrix.config.modules }}
           cached: 'false'
           setup-python: 'true'
-          tools: 'tools_mingw,7.3.0,qt.tools.win32_mingw730'
+          tools: ${{ matrix.config.tools }}
           set-env: 'true'
           tools-only: 'false'
           aqtversion: '==1.2.4'
@@ -26,7 +39,7 @@ jobs:
           extra: '--external 7z'       
       - name: qmake
         run: |
-          set PATH=%IQTA_TOOLS%\mingw730_32\bin\;%PATH%
+          set PATH=${{matrix.config.compiler_path}};%PATH%
           cd ${{ github.workspace }}
           mkdir build_out
           cd build_out
@@ -34,13 +47,13 @@ jobs:
         shell: cmd
       - name: Build
         run: |
-          set PATH=%IQTA_TOOLS%\mingw730_32\bin\;%PATH%
+          set PATH=%${{matrix.config.compiler_path}};%PATH%
           cd ${{ github.workspace }}\build_out
           mingw32-make.exe -j 2
         shell: cmd
       - name: Make distribution
         run: |
-          set PATH=%IQTA_TOOLS%\mingw730_32\bin\;%PATH%
+          set PATH=${{matrix.config.compiler_path}};%PATH%
           cd ${{ github.workspace }}
           mkdir dist
           cd dist
@@ -56,13 +69,13 @@ jobs:
           del sqldrivers\qsqlodbc.dll
           copy NUL zxweather.ini
           cd ..
-          7z a -tzip "zxweather-desktop.zip" dist
+          7z a -tzip "${{artifact.config.zip_name}}" dist
         shell: cmd
       - name: Upload a Build Artifact
         uses: actions/upload-artifact@v2.2.4
         with:
-          name: desktop-windows-qt5132-release
-          path: zxweather-desktop.zip
+          name: ${{ matrix.config.artifact }}
+          path: ${{artifact.config.zip_name}}
           if-no-files-found: error
           retention-days: 7
           
