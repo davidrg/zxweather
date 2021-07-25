@@ -9,7 +9,7 @@
 
 QString toHumanSize(quint64 size) {
     double humanSize = size;
-    QString humanSuffix = QString::null;
+    QString humanSuffix = QString();
     if (humanSize > 1024) {
         humanSize /= 1024;
         humanSuffix = QApplication::translate("ImagePropertiesDialog","KiB");

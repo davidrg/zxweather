@@ -124,8 +124,8 @@ private:
     // Gets the index for a tree node based on its timestamp and type. Does not
     // support finding IT_LOADING nodes.
     QModelIndex findIndex(ItemType type, int year=1, int month=1, int day=1,
-                          QString source=QString::null, QTime time=QTime());
-    QModelIndex findIndex(ItemType type, QDate date, QString source=QString::null,
+                          QString source=QString(), QTime time=QTime());
+    QModelIndex findIndex(ItemType type, QDate date, QString source=QString(),
                           QTime time=QTime());
     QModelIndex findIndex(QModelIndex index, ItemType type, QDate date,
                           QString source, QTime time);

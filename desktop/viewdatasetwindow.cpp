@@ -3,6 +3,7 @@
 #include <QDebug>
 #include <QFontMetrics>
 #include <QVariant>
+#include <algorithm>
 
 #include "viewdatasetwindow.h"
 #include "ui_viewdatasetwindow.h"
@@ -66,7 +67,7 @@ void ViewDataSetWindow::copySelection() {
     QItemSelectionModel * selectionModel = ui->tableView->selectionModel();
     QModelIndexList selectedIndexes = selectionModel->selectedIndexes();
 
-    qSort(selectedIndexes);
+    std::sort(selectedIndexes.begin(), selectedIndexes.end());
 
     if(selectedIndexes.size() < 1) {
         return;

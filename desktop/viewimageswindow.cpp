@@ -679,14 +679,14 @@ void ViewImagesWindow::expandDate(QDate date, bool expandDay) {
             ui->tvImageSet->expand(yearIdx);
             for (int j = 0; j < model->rowCount(yearIdx); j++) {
                 // Months
-                QModelIndex monthIdx = yearIdx.child(j, 0);
+                QModelIndex monthIdx = model->index(j, 0, yearIdx);
                 int month = model->itemDate(monthIdx).month();
                 qDebug() << "Found month" << month;
                 if (month == date.month()) {
                     ui->tvImageSet->expand(monthIdx);
                     if (expandDay) {
                         for (int k = 0; k < model->rowCount(monthIdx); k++) {
-                            QModelIndex dayIdx = monthIdx.child(k, 0);
+                            QModelIndex dayIdx = model->index(k, 0, monthIdx);
                             int day = model->itemDate(dayIdx).day();
                             qDebug() << "Found day" << day;
                             if (day == date.day()) {
@@ -740,7 +740,7 @@ void ViewImagesWindow::expandRecursively() {
         children << index;
         for ( int i = 0; i < children.size(); ++i ) {
             for ( int j = 0; j < model.data()->rowCount( children[i] ); ++j ) {
-                children << children[i].child( j, 0 );
+                children << model->index( j, 0, children[i] );
             }
         }
         qDebug() << "Found" << children.size() << "children";
@@ -777,7 +777,7 @@ void ViewImagesWindow::collapseRecursively() {
         children << index;
         for ( int i = 0; i < children.size(); ++i ) {
             for ( int j = 0; j < model.data()->rowCount( children[i] ); ++j ) {
-                children << children[i].child( j, 0 );
+                children << model->index( j, 0, children[i] );
             }
         }
         qDebug() << "Found" << children.size() << "children";
@@ -936,7 +936,7 @@ QModelIndex ViewImagesWindow::normaliseIndexColumn(QModelIndex index) {
     int row = index.row();
 
     if (index.parent().isValid()) {
-        return index.parent().child(row, ImageModel::COL_NAME);
+        return model.data()->index(row, ImageModel::COL_NAME, index.parent());
     } else {
         return model.data()->index(row, ImageModel::COL_NAME);
     }

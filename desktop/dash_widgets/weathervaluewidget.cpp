@@ -52,6 +52,9 @@ WeatherValueWidget::WeatherValueWidget(QWidget *parent) : QWidget(parent)
 }
 
 void WeatherValueWidget::unitsChanged(bool imperial, bool kmh) {
+    Q_UNUSED(imperial);
+    Q_UNUSED(kmh);
+
     globalUnits = LU_MS;
     if (Settings::getInstance().kmh()) {
         globalUnits = LU_KMH;

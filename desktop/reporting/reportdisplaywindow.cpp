@@ -14,6 +14,7 @@
 #include <QHeaderView>
 #include <QDate>
 #include <QtDebug>
+#include <algorithm>
 
 #include "sortproxymodel.h"
 #include "datasource/samplecolumns.h"
@@ -161,7 +162,7 @@ void ReportDisplayWindow::copyGridSelection() {
     QItemSelectionModel * selectionModel = tableView->selectionModel();
     QModelIndexList selectedIndexes = selectionModel->selectedIndexes();
 
-    qSort(selectedIndexes);
+    std::sort(selectedIndexes.begin(), selectedIndexes.end());
 
     if(selectedIndexes.size() < 1) {
         return;
