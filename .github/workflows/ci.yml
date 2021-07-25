@@ -73,8 +73,8 @@ jobs:
         uses: actions/checkout@v2
       - name: Install PostgreSQL build dependencies
         run: |
-          apt-get update
-          apt-get install libecpg-dev
+          sudo apt-get update
+          sudo apt-get install libecpg-dev
       - name: Install Qt
         uses: jurplel/install-qt-action@v2
         with:
