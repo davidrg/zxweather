@@ -10,7 +10,7 @@ jobs:
       - name: Install Qt
         uses: jurplel/install-qt-action@v2
         with:
-          version: '5.13.0'
+          version: '5.13.2'
           host: 'windows'
           target: 'desktop'
           arch: 'win32_mingw73'
@@ -25,7 +25,11 @@ jobs:
           aqtversion: '==1.2.4'
           py7zrversion: '==0.14.0'
           extra: '--external 7z'
-      - name: List Qt files
+      - name: qmake
         run: |
-          cd ${{ github.workspace }}\_build_deps
+          cd ${{ github.workspace }}
+          mkdir build_out
+          cd build_out
+          qmake ../desktop
           dir /s /b
+
