@@ -1,8 +1,11 @@
-name: zxweather CI
-on: [push]
+name: Desktop Client Build
+on:
+  push:
+    paths:
+      - desktop/**
 jobs:
   Desktop-Win32:
-    name: Win32 Desktop Client Build
+    name: Windows Build
     runs-on: windows-latest
     steps:
       - name: Check out repository code
@@ -66,7 +69,7 @@ jobs:
           if-no-files-found: error
           retention-days: 7
   Desktop-Linux:
-    name: Linux Desktop Client Build
+    name: Linux Build
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository code
