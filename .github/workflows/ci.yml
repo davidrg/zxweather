@@ -38,6 +38,7 @@ jobs:
         shell: cmd
       - name: Make distribution
         run: |
+          set PATH=%IQTA_TOOLS%\mingw730_32\bin\;%PATH%
           cd ${{ github.workspace }}
           mkdir dist
           cd dist
@@ -51,6 +52,7 @@ jobs:
           copy ..\desktop\reporting\qt-mustache\license.txt LICENSE.qt-mustache
           %Qt5_Dir%\bin\windeployqt --compiler-runtime zxweather.exe
           del sqldrivers\qsqlodbc.dll
+          copy NUL zxweather.ini
           cd ..
           REM 7z a -tzip "zxweather-desktop.zip" dist
         shell: cmd
