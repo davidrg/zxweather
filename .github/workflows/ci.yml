@@ -33,7 +33,8 @@ jobs:
       - name: Build
         run: |
           cd ${{ github.workspace }}\build_out
-          $env:IQTA_TOOLS\mingw730_32\bin\mingw32-make.exe -j 2
+          %IQTA_TOOLS%\mingw730_32\bin\mingw32-make.exe -j 2
+        shell: cmd
       - name: Make distribution
         run: |
           cd ${{ github.workspace }}
@@ -47,11 +48,12 @@ jobs:
           copy ..\desktop\qtcolorbutton\LGPL_EXCEPTION.txt
           copy ..\desktop\charts\qcp\GPL.txt LICENSE.gpl3
           copy ..\desktop\reporting\qt-mustache\license.txt LICENSE.qt-mustache
-          $env:Qt5_Dir\windeployqt zxweather.exe
+          %Qt5_Dir%\windeployqt zxweather.exe
           del sqldrivers\qsqlodbc.dll
           del sqldrivers\qsqlmysql.dll
           cd ..
           zip -r -9 -o "zxweather-desktop.zip" dist
+        shell: cmd
       - name: Upload a Build Artifact
         uses: actions/upload-artifact@v2.2.4
         with:
