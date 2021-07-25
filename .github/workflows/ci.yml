@@ -56,13 +56,13 @@ jobs:
           del sqldrivers\qsqlodbc.dll
           copy NUL zxweather.ini
           cd ..
-          REM 7z a -tzip "zxweather-desktop.zip" dist
+          7z a -tzip "zxweather-desktop.zip" dist
         shell: cmd
       - name: Upload a Build Artifact
         uses: actions/upload-artifact@v2.2.4
         with:
           name: desktop-windows-qt5132-release
-          path: dist
+          path: zxweather-desktop.zip
           if-no-files-found: error
           retention-days: 7
           
