@@ -21,6 +21,13 @@
 
 WeatherValueWidget::WeatherValueWidget(QWidget *parent) : QWidget(parent)
 {
+    column1 = SC_NoColumns;
+    column2 = SC_NoColumns;
+    column1ex = EC_NoColumns;
+    insideOutside = false;
+    doubleValue = false;
+    name = parent == NULL ? objectName() : parent->objectName() + "." + objectName();
+
     label = new QLabel(this);
 
     QHBoxLayout* layout = new QHBoxLayout(this);
@@ -30,23 +37,13 @@ WeatherValueWidget::WeatherValueWidget(QWidget *parent) : QWidget(parent)
     setLayout(layout);
     label->setText("--");
 
-    name = parent == NULL ? objectName() : parent->objectName() + "." + objectName();
-
-    insideOutside = false;
-    doubleValue = false;
-    connect(&Settings::getInstance(), SIGNAL(unitsChanged(bool,bool)),
-            this, SLOT(unitsChanged(bool,bool)));
-
-
     unitsChanged(Settings::getInstance().imperial(),
                  Settings::getInstance().kmh());
     changeUnits();
 
-    column1 = SC_NoColumns;
-    column2 = SC_NoColumns;
-    column1ex = EC_NoColumns;
-
     setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(&Settings::getInstance(), SIGNAL(unitsChanged(bool,bool)),
+            this, SLOT(unitsChanged(bool,bool)));
     connect(this, SIGNAL(customContextMenuRequested(QPoint)),
             this, SLOT(showContextMenu(QPoint)));
 }
