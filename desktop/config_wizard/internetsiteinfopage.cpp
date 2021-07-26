@@ -32,6 +32,8 @@ InternetSiteInfoPage::InternetSiteInfoPage(QWidget* parent)
 {
     validated = false;
     port = -1;
+    multipleStationsPresent = false;
+    serverAvailable = false;
 
     /*** Details page ***/
     baseUrlEdit = new QLineEdit("http://", this);
