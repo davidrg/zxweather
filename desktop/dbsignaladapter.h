@@ -28,7 +28,7 @@
 
 
 #include <QObject>
-#include <Qtimer>
+#include <QTimer>
 #include "database.h"
 
 /** The DBSignalAdapter class converts database errors and other events
