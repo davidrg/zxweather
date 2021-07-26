@@ -4,6 +4,11 @@ on:
     paths:
       - desktop/**
       - .github/workflows/desktop-build.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - desktop/**
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 jobs:
