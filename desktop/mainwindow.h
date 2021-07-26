@@ -32,6 +32,7 @@
 #include <QLayoutItem>
 #include <QHash>
 #include <QTimer>
+#include <QScopedPointer>
 
 #include "livemonitor.h"
 #include "datasource/abstractdatasource.h"
@@ -220,7 +221,7 @@ private:
     QLayoutItem* statusItem;
     QLayoutItem* forecastItem;
     QLayoutItem* spacerItem;
-    AbstractUrlHandler *urlHandler;
+    QScopedPointer<AbstractUrlHandler> urlHandler;
 
     bool solarDataAvailable;
 

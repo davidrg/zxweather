@@ -213,7 +213,7 @@ MainWindow::MainWindow(QWidget *parent) :
     policy.setVerticalStretch(1);
     ui->latestImages->setSizePolicy(policy);
 
-    urlHandler = new UrlHandler();
+    urlHandler.reset(new UrlHandler());
 }
 
 
@@ -813,7 +813,7 @@ void MainWindow::adjustSizeSlot() {
 }
 
 void MainWindow::showReports() {
-    RunReportDialog *rrd = new RunReportDialog(urlHandler);
+    RunReportDialog *rrd = new RunReportDialog(urlHandler.data());
     rrd->setAttribute(Qt::WA_DeleteOnClose);
     rrd->show();
 }
