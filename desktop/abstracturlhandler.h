@@ -5,6 +5,7 @@
 
 class AbstractUrlHandler {
 public:
+    virtual ~AbstractUrlHandler() {}
     virtual void handleUrl(QUrl url, bool solarDataAvailable, bool isWireless) = 0;
 };
 
