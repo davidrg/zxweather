@@ -82,12 +82,12 @@ private:
     bool imperial;
     bool kmh;
 
-    QMap<LiveValue, QCPGraph*> graphs;
-    QMap<LiveValue, QCPGraph*> points;
-    QMap<LiveValue, ValueAxisTag*> tags;
-    QMap<LiveValue, QCPAxisRect*> axisRects;
+    QMap<LiveValue, QPointer<QCPGraph> > graphs;
+    QMap<LiveValue, QPointer<QCPGraph> > points;
+    QMap<LiveValue, QPointer<ValueAxisTag> > tags;
+    QMap<LiveValue, QPointer<QCPAxisRect> > axisRects;
     QSharedPointer<QCPAxisTicker> ticker;
-    QCPLayoutGrid *legendLayout;
+    QPointer<QCPLayoutGrid> legendLayout;
 
     QMap<UnitConversions::unit_t, QCPAxis*> axis;
 
