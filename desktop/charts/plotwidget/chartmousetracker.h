@@ -45,7 +45,7 @@ private:
     void cleanupPointTracing();
 
     bool enabled;
-    QList<QCPItemTracer*> pointTracers;
+    QList<QPointer<QCPItemTracer> > pointTracers;
     QMap<QCPAxis*, TracingAxisTag*> keyAxisTags;
     QMap<QCPGraph*, TracingAxisTag*> valueAxisTags;
 

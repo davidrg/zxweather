@@ -136,8 +136,8 @@ void ChartMouseTracker::mouseMove(QMouseEvent* event) {
 
     if (enabled) {
         for(int i = 0; i < currentAxisRect->graphs().count(); i++) {
-            QCPItemTracer *pointTracer = pointTracers.at(i);
-            if (pointTracer == NULL) {
+            QPointer<QCPItemTracer> pointTracer = pointTracers.at(i);
+            if (pointTracer.isNull()) {
                 continue;
             }
 
