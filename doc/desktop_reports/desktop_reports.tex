@@ -1721,6 +1721,20 @@ All CSS 2.1 selector classes are supported except pseudo-class selectors like \v
 
 
 
+\chapter{Internationalisation}
+Reports support internationalisation by providing per-locale versions of individual report assets. Report directory names follow the format \verb|${ReportName}.${Locale}| for directories containing locale-specific assets and \verb|{ReportName}| for default/international assets. Directories for the users current locale are always searched before the international version of the report and assets outside of the desktop clients executable are always loaded in preference to assets bundled into the executable. So, for example, if the users locale is \verb|mi_NZ| then directories for the Leaf Wetness report will be searched for assets in the following order:
+
+\begin{itemize}
+\item \verb|reports/LeafWetness.mi_NZ|
+\item \verb|:reports/LeafWetness.mi_NZ|
+\item \verb|reports/LeafWetness|
+\item \verb|:reports/LeafWetness|
+\end{itemize}
+
+Where directories starting with a colon (:) are internal to the application (compiled into the executable). So to add a French translation for this reports description you could simply create the file \verb|reports/LeafWetness.fr_FR/description.html|. When the users locale is set to \verb|fr_FR| this file will be loaded in preference to the version bundled into the executable.
+
+This loading order applies to the report definition itself (\verb|report.json|) as well so an internationalised version of a report is free to change any detail about the report.
+
 \chapter{Built-in Reports}
 \label{app_built_in_reports}
 The zxweather Desktop Client implements a number of common reports which aim to produce output compatible with existing software such as WeatherLink where feasible in addition to its own unique reports. Built-in reports consist of the following:
