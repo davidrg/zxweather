@@ -9,8 +9,6 @@ on:
     paths:
       - doc/**
       - .github/workflows/doc-build.yml
-  pull_request:
-    branches: [ master ]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -29,17 +27,21 @@ jobs:
       - name: Build Documentation
         run: |
           cd ${{ github.workspace }}/doc
+          shopt -s nullglob
           for dir in */ ; do
             cd $dir
             for texfile in *.tex ; do
+              echo "Build TeX document: $dir$texfile"
               pdflatex $texfile
+              pdflatex $texfile
+              echo "Build of TeX document finished: $dir$texfile"
             done
             cd ..
           done
       - name: Build Artifact
         run: |
           cd ${{ github.workspace }}
-          zip -r doc.zip doc *.pdf
+          zip -r doc.zip doc -i *.pdf
       - name: Upload Artifact
         uses: actions/upload-artifact@v2.2.4
         with:

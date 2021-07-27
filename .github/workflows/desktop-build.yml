@@ -1,0 +1,138 @@
+name: Desktop Client Build
+on:
+  push:
+    paths:
+      - desktop/**
+      - .github/workflows/desktop-build.yml
+  pull_request:
+    paths:
+      - desktop/**
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+jobs:
+  Desktop-Win32:
+    name: Windows Build
+    runs-on: windows-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v2
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v2
+        with:
+          version: '5.13.2'
+          host: 'windows'
+          target: 'desktop'
+          arch: 'win32_mingw73'
+          install-deps: 'true'
+          modules: 'qtscript qtmultimedia'
+          cached: 'false'
+          setup-python: 'true'
+          tools: 'tools_mingw,7.3.0,qt.tools.win32_mingw730'
+          set-env: 'true'
+          tools-only: 'false'
+          aqtversion: '==1.2.4'
+          py7zrversion: '==0.14.0'
+          extra: '--external 7z'       
+      - name: qmake
+        run: |
+          set PATH=%IQTA_TOOLS%\mingw730_32\bin\;%PATH%
+          cd ${{ github.workspace }}
+          mkdir build_out
+          cd build_out
+          qmake ../desktop
+        shell: cmd
+      - name: Build
+        run: |
+          set PATH=%IQTA_TOOLS%\mingw730_32\bin\;%PATH%
+          cd ${{ github.workspace }}\build_out
+          mingw32-make.exe -j 2
+        shell: cmd
+      - name: Make distribution
+        run: |
+          set PATH=%IQTA_TOOLS%\mingw730_32\bin\;%PATH%
+          cd ${{ github.workspace }}
+          mkdir dist
+          cd dist
+          copy ..\build_out\release\zxweather.exe
+          copy ..\desktop\lib\libpq-9.1-win32\libpq.dll
+          copy ..\desktop\lib\libecpg-9.1-win32\*.dll
+          copy ..\desktop\qtcolorbutton\license.txt LICENSE.qtcolorbutton
+          copy ..\desktop\qtcolorbutton\lgpl-2.1.txt LICENSE.lgpl-2.1
+          copy ..\desktop\qtcolorbutton\LGPL_EXCEPTION.txt
+          copy ..\desktop\charts\qcp\GPL.txt LICENSE.gpl3
+          copy ..\desktop\reporting\qt-mustache\license.txt LICENSE.qt-mustache
+          %Qt5_Dir%\bin\windeployqt --compiler-runtime zxweather.exe
+          del sqldrivers\qsqlodbc.dll
+          copy NUL zxweather.ini
+          cd ..
+          7z a -tzip "zxweather-desktop.zip" dist
+        shell: cmd
+      - name: Upload a Build Artifact
+        uses: actions/upload-artifact@v2.2.4
+        with:
+          name: desktop-windows-qt5132-release
+          path: zxweather-desktop.zip
+          if-no-files-found: error
+          retention-days: 7
+  Desktop-Linux:
+    name: Linux Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v2
+      - name: Install PostgreSQL build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install libecpg-dev
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v2
+        with:
+          version: '5.13.2'
+          host: 'linux'
+          target: 'desktop'
+          install-deps: 'true'
+          modules: 'qtscript qtmultimedia'
+          cached: 'false'
+          setup-python: 'true'
+          set-env: 'true'
+          tools-only: 'false'
+          aqtversion: '==1.2.4'
+          py7zrversion: '==0.14.0'
+          extra: '--external 7z'       
+      - name: qmake
+        run: |
+          cd ${{ github.workspace }}
+          mkdir build_out
+          cd build_out
+          qmake ../desktop
+      - name: Build
+        run: |
+          cd ${{ github.workspace }}/build_out
+          make -j 2
+#       - name: Make distribution
+#         run: |
+#           set PATH=%IQTA_TOOLS%\mingw730_32\bin\;%PATH%
+#           cd ${{ github.workspace }}
+#           mkdir dist
+#           cd dist
+#           copy ..\build_out\release\zxweather.exe
+#           copy ..\desktop\lib\libpq-9.1-win32\libpq.dll
+#           copy ..\desktop\lib\libecpg-9.1-win32\*.dll
+#           copy ..\desktop\qtcolorbutton\license.txt LICENSE.qtcolorbutton
+#           copy ..\desktop\qtcolorbutton\lgpl-2.1.txt LICENSE.lgpl-2.1
+#           copy ..\desktop\qtcolorbutton\LGPL_EXCEPTION.txt
+#           copy ..\desktop\charts\qcp\GPL.txt LICENSE.gpl3
+#           copy ..\desktop\reporting\qt-mustache\license.txt LICENSE.qt-mustache
+#           %Qt5_Dir%\bin\windeployqt --compiler-runtime zxweather.exe
+#           del sqldrivers\qsqlodbc.dll
+#           copy NUL zxweather.ini
+#           cd ..
+#           7z a -tzip "zxweather-desktop.zip" dist
+#         shell: cmd
+#       - name: Upload a Build Artifact
+#         uses: actions/upload-artifact@v2.2.4
+#         with:
+#           name: desktop-windows-qt5132-release
+#           path: zxweather-desktop.zip
+#           if-no-files-found: error
+#           retention-days: 7
