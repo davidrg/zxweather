@@ -1,10 +1,14 @@
 name: Desktop Client Build
 on:
   push:
+    branches:
+      - master
     paths:
       - desktop/**
       - .github/workflows/desktop-build.yml
   pull_request:
+    branches:
+      - master
     paths:
       - desktop/**
   # Allows you to run this workflow manually from the Actions tab
