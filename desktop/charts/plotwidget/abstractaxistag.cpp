@@ -9,6 +9,8 @@ AbstractAxisTag::AbstractAxisTag(QCPAxis* keyAxis, QCPAxis* valueAxis, bool onVa
     this->keyAxis = keyAxis;
     this->valueAxis = valueAxis;
     this->onValueAxis = onValueAxis;
+    this->format = 'f';
+    this->precision = 1;
 
     if (onValueAxis) {
         Q_ASSERT_X(valueAxis != NULL, "AbstractAxisTag", "Value Axis Tags must be constructed with a value axis");
