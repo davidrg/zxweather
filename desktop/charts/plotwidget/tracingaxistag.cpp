@@ -45,6 +45,8 @@ void TracingAxisTag::update() {
         return;
     }
 
+    Q_ASSERT_X(format == 'f' || format == 'i', "TracingAxisTag::update", "Format must be f or i (unexpected format character)");
+
     double axisValue;
     if (onValueAxis) {
         axisValue = tracer->position->coords().y();

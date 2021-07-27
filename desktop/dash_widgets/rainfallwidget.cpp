@@ -26,9 +26,20 @@
 
 RainfallWidget::RainfallWidget(QWidget *parent) : QWidget(parent)
 {
+    day = 0;
+    month = 0;
+    year = 0;
+    storm = 0;
+    rate = 0;
+    rainExtra = 0;
+    lastStormRain = 0;
+    stormValid = false;
+    stormRateEnabled = false;
+    imperial = Settings::getInstance().imperial();
+
     connect(&Settings::getInstance(), SIGNAL(unitsChanged(bool,bool)),
             this, SLOT(unitsChanged(bool,bool)));
-    imperial = Settings::getInstance().imperial();
+
 
 
     // Create the basic UI

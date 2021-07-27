@@ -6,6 +6,7 @@ AggregateOptionsWidget::AggregateOptionsWidget(QWidget *parent) :
     QWidget(parent),
     ui(new Ui::AggregateOptionsWidget)
 {
+    rainEvapoOptionsEnabled = false;
     ui->setupUi(this);
     setRainEvapoOptionsEnabled(true);
 }

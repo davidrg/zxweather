@@ -683,6 +683,10 @@ void LivePlotWindow::addLiveValue(LiveValue v) {
         points[v]->setSelectable(QCP::stNone);
 
         if (axisTags) {
+            if (!tags[v].isNull()) {
+                delete tags[v];
+                tags.remove(v);
+            }
             tags[v] = new ValueAxisTag(graphs[v], true, true, ui->plot);
             tags[v]->setStyle(style);
         }

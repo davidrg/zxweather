@@ -35,6 +35,8 @@
 
 SelectStationPage::SelectStationPage(QWidget *parent): QWizardPage(parent) {
     optionListWidget = 0;
+    isLocal = false;
+    serverAvailable = false;
 
     setTitle(tr("Select Weather Station"));
     setSubTitle(tr("There are multiple weather stations available. Select the"
