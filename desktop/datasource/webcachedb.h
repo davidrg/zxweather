@@ -283,7 +283,9 @@ public:
     /** Stores the list of dates that have images available. This is
      * primarily for the benefit of reports.
      *
-     * @param imageDates List of images that have dates.
+     * @param stationCode Station the date list is being updated for.
+     * @param dates Map of dates that have images available and the number of images
+     *              available for those dates.
      */
     void updateImageDateList(QString stationCode, QMap<QString, QMap<QDate, int> > dates);
 
