@@ -586,10 +586,10 @@ QCPAxis* LivePlotWindow::valueAxisForGraph(LiveValue type) {
 
             // Use one of the initial axes if we're not doing axis tags and have less than
             // two axes allocated so far
-            if(!y1->visible() && !axisTags) {
+            if(y1 != NULL && !y1->visible() && !axisTags) {
                 this->axis[axisType] = y1;
                 y1->setVisible(true);
-            } else if (!y2->visible()) {
+            } else if (y2 != NULL && !y2->visible()) {
                 this->axis[axisType] = y2;
                 y2->setVisible(true);
             } else {
