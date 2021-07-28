@@ -50,7 +50,7 @@ LivePlotWindow::LivePlotWindow(LiveValues initialGraphs,
 
     this->hwType = hardwareType;
     this->solarAvailable = solarAvailalble;
-    this->valuesToShow = LV_NoColumns;
+    valuesToShow = initialGraphs;
     this->extraColumns = extraColumns;
     this->extraColumnNames = extraColumnNames;
 
@@ -273,9 +273,6 @@ LivePlotWindow::LivePlotWindow(LiveValues initialGraphs,
 
     connect(ui->actionOptions, SIGNAL(triggered(bool)),
             this, SLOT(showOptions()));
-
-    addLiveValues(initialGraphs);
-
 
     resetData();
 
@@ -1114,15 +1111,11 @@ void LivePlotWindow::showOptions() {
     // to be reset
     if (resetPlot) {
         qDebug() << "Resetting plot...";
-        LiveValues currentValues = valuesToShow;
-
         this->resetPlot();
-
-        addLiveValues(currentValues);
     }
 
+    // Load data into the chart from the live buffer.
     resetData();
-
 
     settings.setLiveAggregate(aggregate);
     settings.setLiveMaxRainRate(maxRainRate);
@@ -1181,6 +1174,7 @@ void LivePlotWindow::resetPlot() {
     points.clear();
     tags.clear();
     axisRects.clear();
+    axis.clear();
     legendLayout = 0;
 
     ui->plot = new LivePlot(ui->centralwidget);
@@ -1225,17 +1219,19 @@ void LivePlotWindow::resetPlot() {
             this, SLOT(legendVisibilityChanged(bool)));
     connect(ui->plot, SIGNAL(graphStyleChanged(QCPGraph*,GraphStyle&)),
             this, SLOT(graphStyleChanged(QCPGraph*,GraphStyle&)));
+
+    addLiveValues(valuesToShow);
 }
 
 void LivePlotWindow::resetData() {
     qDebug() << "Reset live plot data!";
+    ds->disableLiveData();
+    aggregator->reset();
+
     foreach (LiveValue v, graphs.keys()) {
         graphs[v]->data().clear();
         points[v]->data().clear();
     }
-
-    ds->disableLiveData();
-    aggregator->reset();
 
     QDateTime minTime = QDateTime::currentDateTime().addSecs(0-timespanMinutes*60);
     foreach (LiveDataSet lds, LiveBuffer::getInstance().getData()) {

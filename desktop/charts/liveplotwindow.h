@@ -89,7 +89,7 @@ private:
     QSharedPointer<QCPAxisTicker> ticker;
     QPointer<QCPLayoutGrid> legendLayout;
 
-    QMap<UnitConversions::unit_t, QCPAxis*> axis;
+    QMap<UnitConversions::unit_t, QPointer<QCPAxis>> axis;
 
     QMap<LiveValue, UnitConversions::unit_t> units;
     QMap<LiveValue, QString> valueNames;
