@@ -276,16 +276,6 @@ LivePlotWindow::LivePlotWindow(LiveValues initialGraphs,
 
     resetData();
 
-    // Load initial data
-//    QDateTime minTime = QDateTime::currentDateTime().addSecs(0-timespanMinutes*60);
-//    foreach (LiveDataSet lds, LiveBuffer::getInstance().getData()) {
-//        if (lds.timestamp > minTime) {
-//            //liveData(lds);
-//            qDebug() << "Initial live data: " << lds.timestamp;
-//            aggregator->incomingLiveData(lds);
-//        }
-//    }
-
     ds->enableLiveData();
 }
 
@@ -628,15 +618,9 @@ QCPAxis* LivePlotWindow::valueAxisForGraph(LiveValue type) {
 void LivePlotWindow::addLiveValue(LiveValue v) {
     valuesToShow |= v;
 
-    //UnitConversions::unit_t axisType = units[v];
-
     // These will create any axes and axis rects if they don't already exist.
     QCPAxis *valueAxis = valueAxisForGraph(v);
     QCPAxis *keyAxis = keyAxisForGraph(v);
-
-    Q_ASSERT_X(valueAxis->axisRect() == keyAxis->axisRect(), "addLiveValue", "Axes must be on the same rect");
-
-    ////////////////////// From here
 
     if (!graphs.contains(v)) {
         ChartColours colours = Settings::getInstance().getChartColours();
@@ -671,7 +655,6 @@ void LivePlotWindow::addLiveValue(LiveValue v) {
         graphs[v]->setProperty(PROP_IS_POINT, false);
 
         points[v] = new QCPGraph(keyAxis, valueAxis);
-
         points[v]->setLineStyle(QCPGraph::lsNone);
         points[v]->setScatterStyle(QCPScatterStyle::ssDisc);
         points[v]->removeFromLegend();
@@ -802,7 +785,6 @@ void LivePlotWindow::addLiveValue(LiveValue v) {
         }
 
         graphStyleChanged(graphs[v], style);
-
         points[v]->setPen(graphs[v]->pen());
         points[v]->setBrush(graphs[v]->pen().color());
 
