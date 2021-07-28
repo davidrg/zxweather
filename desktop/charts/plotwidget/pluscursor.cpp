@@ -346,6 +346,6 @@ void PlusCursor::mouseMove(QMouseEvent* event) {
 void PlusCursor::mouseLeave(QEvent *event) {
     Q_UNUSED(event)
 
-    qDebug() << "Mouse has left the widget! Triggering cleanup.";
+    //qDebug() << "Mouse has left the widget! Triggering cleanup.";
     cleanup();
 }
