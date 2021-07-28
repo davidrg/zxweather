@@ -897,7 +897,7 @@ void LivePlotWindow::updateGraph(LiveValue type, double key, double range, doubl
         }
 
         QCPRange oldRange = graphs[type]->valueAxis()->range();
-        graphs[type]->rescaleValueAxis();
+        graphs[type]->valueAxis()->rescale();
 
 
         // Add a bit of padding to the Y axis - the range tends to be relatively small
