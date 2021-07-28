@@ -78,7 +78,12 @@ void FetchImageWebTask::beginTask() {
 
     needMetadata = !_imageInfo.hasMetadata && !_imageInfo.metaUrl.isNull()
             && _imageInfo.metadata.isNull();
-    needImage = !file.exists() || file.size() == 0;
+
+    needImage = !file.exists();
+    if (file.exists() && file.size() == 0) {
+        file.remove();
+        needImage = true;
+    }
 
     if (needImage) {
         qDebug() << "Fetch image:" << _imageInfo.fullUrl;
