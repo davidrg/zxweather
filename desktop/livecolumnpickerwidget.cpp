@@ -9,7 +9,9 @@ LiveColumnPickerWidget::LiveColumnPickerWidget(QWidget *parent):
 }
 
 
-void LiveColumnPickerWidget::configure(bool solarAvailable, hardware_type_t hw_type,
+void LiveColumnPickerWidget::configure(bool solarAvailable,
+                                       bool indoorDataAvailable,
+                                       hardware_type_t hw_type,
                                        ExtraColumns extraColumns,
                                        QMap<ExtraColumn, QString> extraColumnNames) {
 
@@ -39,6 +41,7 @@ void LiveColumnPickerWidget::configure(bool solarAvailable, hardware_type_t hw_t
     ui->tabWidget->removeTab(ui->tabWidget->indexOf(ui->tabHighsAndLows));
 
     configureUi(solarAvailable,
+                indoorDataAvailable,
                 hw_type,
                 false, // No wireless reception readings for live data
                 extraColumns,

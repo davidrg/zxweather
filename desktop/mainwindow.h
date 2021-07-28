@@ -224,6 +224,7 @@ private:
     QScopedPointer<AbstractUrlHandler> urlHandler;
 
     bool solarDataAvailable;
+    bool indoorDataAvailable;
 
     bool ready;
     bool processingMessages;

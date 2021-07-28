@@ -48,14 +48,14 @@ protected:
      * @param extraColumns Enabled extra columns
      * @param extraColumnNames Names for enabled extra columns
      */
-    void configureUi(
-            bool solarAvailable, hardware_type_t hw_type, bool isWireless,
+    void configureUi(bool solarAvailable, bool indoorDataAvailable, hardware_type_t hw_type, bool isWireless,
             ExtraColumns extraColumns,
             QMap<ExtraColumn, QString> extraColumnNames);
 
     void hideSolarColumns();
     void hideWirelessReceptionColumn();
     void hideDavisOnlyColumns();
+    void hideIndoorColumns();
     void configureExtraColumns(ExtraColumns extraColumns,
                                QMap<ExtraColumn, QString> extraColumnNames);
 

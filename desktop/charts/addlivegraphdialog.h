@@ -16,6 +16,7 @@ class AddLiveGraphDialog : public QDialog
 public:
     explicit AddLiveGraphDialog(LiveValues availableColumns,
                                 bool solarAvailable,
+                                bool indoorDataAvailable,
                                 hardware_type_t hw_type,
                                 ExtraColumns extraColumns,
                                 QMap<ExtraColumn, QString> extraColumnNames,

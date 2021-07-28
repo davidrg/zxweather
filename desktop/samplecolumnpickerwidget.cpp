@@ -12,7 +12,7 @@ void SampleColumnPickerWidget::configure(bool solarAvailable, hardware_type_t hw
                                    QMap<ExtraColumn, QString> extraColumnNames,
                                    bool forecastRule) {
 
-    configureUi(solarAvailable, hw_type, isWireless, extraColumns, extraColumnNames);
+    configureUi(solarAvailable, true, hw_type, isWireless, extraColumns, extraColumnNames);
 
     if (hw_type == HW_DAVIS) {
         ui->cbForecastRule->setVisible(forecastRule);

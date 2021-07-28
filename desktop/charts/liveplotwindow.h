@@ -31,6 +31,7 @@ class LivePlotWindow : public QMainWindow
 
 public:
     explicit LivePlotWindow(LiveValues initialGraphs, bool solarAvailalble,
+                            bool indoorDataAvailable,
                             hardware_type_t hardwareType, ExtraColumns extraColumns,
                             QMap<ExtraColumn, QString> extraColumnNames,
                             QWidget *parent = 0);
@@ -76,6 +77,7 @@ private:
     LiveValues valuesToShow;
     hardware_type_t hwType;
     bool solarAvailable;
+    bool indoorDataAvailable;
     ExtraColumns extraColumns;
     QMap<ExtraColumn, QString> extraColumnNames;
 

@@ -26,9 +26,13 @@ ColumnPickerWidget::~ColumnPickerWidget()
 
 
 void ColumnPickerWidget::configureUi(
-        bool solarAvailable, hardware_type_t hw_type, bool isWireless,
+        bool solarAvailable, bool indoorDataAvailable, hardware_type_t hw_type, bool isWireless,
         ExtraColumns extraColumns,
         QMap<ExtraColumn, QString> extraColumnNames) {
+
+    if (!indoorDataAvailable) {
+        hideIndoorColumns();
+    }
 
     if (hw_type != HW_DAVIS) {
         hideDavisOnlyColumns();
@@ -162,6 +166,11 @@ void ColumnPickerWidget::hideDavisOnlyColumns() {
     // These are also davis-exclusive in zxweather for now.
     hideWirelessReceptionColumn();
     hideSolarColumns();
+}
+
+void ColumnPickerWidget::hideIndoorColumns() {
+    ui->cbIndoorHumidity->setVisible(false);
+    ui->cbIndoorTemperature->setVisible(false);
 }
 
 void ColumnPickerWidget::configureExtraColumns(ExtraColumns extraColumns, QMap<ExtraColumn, QString> extraColumnNames) {

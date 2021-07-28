@@ -28,7 +28,7 @@ UnitConversions::unit_t metricUnitToImperial(UnitConversions::unit_t unit);
 #define imperialiseUnitDict(type) units[type] = metricUnitToImperial(units[type])
 
 LivePlotWindow::LivePlotWindow(LiveValues initialGraphs,
-                               bool solarAvailalble,
+                               bool solarAvailalble, bool indoorDataAvailable,
                                hardware_type_t hardwareType,
                                ExtraColumns extraColumns,
                                QMap<ExtraColumn, QString> extraColumnNames,
@@ -50,6 +50,7 @@ LivePlotWindow::LivePlotWindow(LiveValues initialGraphs,
 
     this->hwType = hardwareType;
     this->solarAvailable = solarAvailalble;
+    this->indoorDataAvailable = indoorDataAvailable;
     valuesToShow = initialGraphs;
     this->extraColumns = extraColumns;
     this->extraColumnNames = extraColumnNames;
@@ -956,6 +957,7 @@ void LivePlotWindow::addLiveValues(LiveValues columns) {
 void LivePlotWindow::showAddGraphDialog(QString message, QString title) {
     AddLiveGraphDialog algd(~valuesToShow,
                             solarAvailable,
+                            indoorDataAvailable,
                             hwType,
                             extraColumns,
                             extraColumnNames,

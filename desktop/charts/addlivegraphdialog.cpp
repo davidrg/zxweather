@@ -3,6 +3,7 @@
 
 AddLiveGraphDialog::AddLiveGraphDialog(LiveValues availableColumns,
                                        bool solarAvailable,
+                                       bool indoorDataAvailable,
                                        hardware_type_t hw_type,
                                        ExtraColumns extraColumns,
                                        QMap<ExtraColumn, QString> extraColumnNames,
@@ -17,7 +18,8 @@ AddLiveGraphDialog::AddLiveGraphDialog(LiveValues availableColumns,
         ui->lblMessage->setText(message);
     }
 
-    ui->columnPicker->configure(solarAvailable, hw_type, extraColumns, extraColumnNames);
+    ui->columnPicker->configure(solarAvailable, indoorDataAvailable,
+                                hw_type, extraColumns, extraColumnNames);
 
     ui->columnPicker->checkAndLockColumns(~availableColumns);
 }

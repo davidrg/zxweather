@@ -74,6 +74,7 @@ MainWindow::MainWindow(QWidget *parent) :
     // The UI is configured for a Davis Vantage Pro 2 Plus by default
     last_hw_type = HW_DAVIS;
     solarDataAvailable = true;
+    indoorDataAvailable = true;
 
     setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 
@@ -569,6 +570,7 @@ void MainWindow::showChartWindow() {
 void MainWindow::showLiveChartWindow() {    
     AddLiveGraphDialog algd(~(LiveValues)LV_NoColumns,
                             solarDataAvailable,
+                            indoorDataAvailable,
                             last_hw_type,
                             this->dataSource->extraColumnsAvailable(),
                             this->dataSource->extraColumnNames(),
@@ -581,6 +583,7 @@ void MainWindow::showLiveChartWindow() {
         LiveValues selectedGraphs = algd.selectedColumns();
         LivePlotWindow *lpt = new LivePlotWindow(selectedGraphs,
                                                  solarDataAvailable,
+                                                 indoorDataAvailable,
                                                  last_hw_type,
                                                  this->dataSource->extraColumnsAvailable(),
                                                  this->dataSource->extraColumnNames());
@@ -774,7 +777,7 @@ void MainWindow::liveDataRefreshed(LiveDataSet lds) {
         qDebug() << "Hardware type changed from" << last_hw_type << "to" << lds.hw_type;
     }
 
-
+    indoorDataAvailable = lds.indoorDataAvailable;
 
     ui->forecast->setVisible(lds.hw_type == HW_DAVIS);
     ui->status->setVisible(lds.hw_type == HW_DAVIS);

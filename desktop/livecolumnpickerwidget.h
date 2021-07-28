@@ -31,7 +31,7 @@ public:
      * @param extraColumns Enabled extra columns
      * @param extraColumnNames Names for enabled extra columns
      */
-    void configure(bool solarAvailable, hardware_type_t hw_type,
+    void configure(bool solarAvailable, bool indoorDataAvailable, hardware_type_t hw_type,
                    ExtraColumns extraColumns,
                    QMap<ExtraColumn, QString> extraColumnNames);
 
