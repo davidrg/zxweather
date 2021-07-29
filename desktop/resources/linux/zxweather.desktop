@@ -1,5 +1,5 @@
 [Desktop Entry]
-Version=2.0.0
+Version=1.0.0
 Comment=Desktop client for zxweather
 Exec=zxweather
 GenericName=Weather Station
@@ -9,4 +9,3 @@ NoDisplay=false
 StartupNotify=true
 Terminal=false
 Type=Application
-Category=Accessories
