@@ -84,10 +84,11 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v2
-      - name: Install PostgreSQL build dependencies
+      - name: Install Build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install libecpg-dev
+          # gstreamer1.0-plugins-base is needed only for building the AppImage
+          sudo apt-get install libecpg-dev gstreamer1.0-plugins-base
       - name: Install Qt
         uses: jurplel/install-qt-action@v2
         with:
