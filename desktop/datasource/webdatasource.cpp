@@ -15,6 +15,7 @@
 #include "webtasks/request_data.h"
 #include "webtasks/selectsampleswebtask.h"
 #include "webtasks/fetchstationinfo.h"
+#include "webtasks/cachingfinishedwebtask.h"
 
 #include <QStringList>
 #include <QNetworkRequest>
@@ -136,6 +137,22 @@ QUrl redirectUrl(const QUrl& possibleRedirectUrl,
  **** SAMPLE DATA ************************************************************
  *****************************************************************************/
 
+bool timespanIsCached(QString baseURL, QString stationCode, QDateTime startTime, QDateTime endTime) {
+    // This is the same logic AbstractWebTask uses for computing
+    // the station data URL (which is used as the station URL in
+    // the cache DB).
+#ifdef USE_GNUPLOT_DATA
+    QString stationDataUrl = baseURL + "b/" + stationCode.toLower() + "/";
+#else
+    QString stationDataUrl = baseURL + "data/" + stationCode.toLower() + "/";;
+#endif
+
+    return WebCacheDB::getInstance().timespanIsCached(
+                stationDataUrl,
+                startTime,
+                endTime);
+}
+
 /** Fetches weather samples from the remote server. The samplesReady signal is
  * emitted when the samples have arrived.
  *
@@ -150,20 +167,55 @@ void WebDataSource::fetchSamples(SampleColumns columns,
                                  AggregateGroupType groupType,
                                  uint32_t groupMinutes) {
 
-    FetchSamplesWebTask* task = new FetchSamplesWebTask(
-                baseURL,
-                stationCode,
-                columns,
-                startTime,
-                endTime,
-                aggregateFunction,
-                groupType,
-                groupMinutes,
-                true,
-                this
-    );
+    bool isCached = timespanIsCached(baseURL, stationCode, startTime, endTime);
 
-    queueTask(task);
+    if (isCached) {
+        // Complete timespan exists in the cache DB already! We don't
+        // even need to ask the server. Just query it straight out.
+
+        // Ideally we'd just call fetchSamplesFromCache() but it wants a DataSet
+        // and constructing one of those is about as easy as constructing a
+        // request_data_t.
+        request_data_t request;
+        request.columns = columns;
+        request.startTime = startTime;
+        request.endTime = endTime;
+        request.aggregateFunction = aggregateFunction;
+        request.groupType = groupType;
+        request.groupMinutes = groupMinutes;
+
+        /* These values aren't used by SelectSamplesWebTask
+         *
+         * request.stationName = station_name;
+         * request.isSolarAvailable = isSolarDataAvailable;
+         * request.hwType = hwType;
+         */
+
+        SelectSamplesWebTask *selectTask = new SelectSamplesWebTask(
+                    baseURL,
+                    stationCode,
+                    request,
+                    this);
+
+        // Queue the task with low priority to ensure its processed *after* any
+        // primeCache() call.
+        queueTask(selectTask);
+    } else {
+        FetchSamplesWebTask* task = new FetchSamplesWebTask(
+                    baseURL,
+                    stationCode,
+                    columns,
+                    startTime,
+                    endTime,
+                    aggregateFunction,
+                    groupType,
+                    groupMinutes,
+                    true,
+                    this
+        );
+
+        queueTask(task);
+    }
 }
 
 void WebDataSource::fetchSamplesFromCache(DataSet dataSet) {
@@ -198,6 +250,16 @@ void WebDataSource::primeCache(QDateTime start, QDateTime end, bool imageDates) 
         FetchImageDateListWebTask *dateListTask = new FetchImageDateListWebTask(
                     baseURL, stationCode, this);
         queueTask(dateListTask, false, true);
+    }
+
+    bool isCached = timespanIsCached(baseURL, stationCode, start, end);
+
+    if (isCached) {
+        CachingFinishedWebTask *finishedTask = new CachingFinishedWebTask(baseURL,
+                                                                          stationCode,
+                                                                          this);
+        emit queueTask(finishedTask, true, false);
+        return; // Cache is already primed!
     }
 
     SampleColumns columns;

@@ -185,6 +185,7 @@ data_file_t DataFileWebTask::loadDataFile(QStringList fileData,
      *   until we're within $archiveInterval minutes of the end of the month.
      */
 
+    QDateTime startTime = QDateTime();
     QDateTime previousTime = QDateTime();
     QDateTime endTime = QDateTime();
 
@@ -195,6 +196,8 @@ data_file_t DataFileWebTask::loadDataFile(QStringList fileData,
     qDebug() << "Using" << archiveInterval << "as gap threshold.";
 
     bool gapDetected = false;
+    QDateTime startContiguousTo, endContiguousFrom;
+
 
     while (!fileData.isEmpty()) {
         QString line = fileData.takeFirst();
@@ -207,48 +210,67 @@ data_file_t DataFileWebTask::loadDataFile(QStringList fileData,
         tsString += " " + parts.takeFirst();
         QDateTime timestamp = QDateTime::fromString(tsString, Qt::ISODate);
 
-        if (!gapDetected) {
-            // -----------/ The Gap Detection Zone /-----------
-            // Here in The Gap Detection Zone our job is to figure out if the data
-            // file contains absolutely every sample it could contain. This means
-            // checking the gap between any two samples is no greater than the
-            // stations sample interval.
+        // -----------/ The Gap Detection Zone /-----------
+        // Here in The Gap Detection Zone our job is to figure out if the data
+        // file contains absolutely every sample it could contain. This means
+        // checking the gap between any two samples is no greater than the
+        // stations sample interval.
 
-            if (!previousTime.isValid()) {
-                // First sample in the file. Initialise previousTime to be the very
-                // start of the month and set the end time to be the very end of
-                // the month
-                previousTime = QDateTime(
-                            QDate(timestamp.date().year(),
-                                  timestamp.date().month(),
-                                  1),
-                            QTime(0,0,0));
-                endTime = previousTime.addMonths(1).addSecs(-1);
-                qDebug() << "Data file max range:" << previousTime << "to" << endTime;
+        if (!previousTime.isValid()) {
+            // First sample in the file. Initialise previousTime to be the very
+            // start of the month and set the end time to be the very end of
+            // the month
+            startTime = QDateTime(
+                        QDate(
+                            timestamp.date().year(),
+                            timestamp.date().month(),
+                            1),
+                        QTime(0,0,0));;
+            endTime = startTime.addMonths(1).addSecs(-1);
+            previousTime = startTime;
+            startContiguousTo = endTime;
+            endContiguousFrom = startTime;
+            qDebug() << "Data file max range:" << startTime << "to" << endTime;
+
+            if (timestamp != startTime) {
+                startContiguousTo = QDateTime(); // Start not contiguous
             }
+        }
 
-            qint64 previousSecs = previousTime.toSecsSinceEpoch();
-            qint64 thisSecs = timestamp.toSecsSinceEpoch();
-            if (thisSecs - previousSecs > archiveInterval) {
-                qDebug() << "GAP: This timestamp is" << timestamp << "previous was" << previousTime << ". Gap duration is" << thisSecs - previousSecs << "seconds.";
+        qint64 previousSecs = previousTime.toSecsSinceEpoch();
+        qint64 thisSecs = timestamp.toSecsSinceEpoch();
+        if (thisSecs - previousSecs > archiveInterval) {
+            qDebug() << "GAP: This timestamp is" << timestamp << "previous was" << previousTime << ". Gap duration is" << thisSecs - previousSecs << "seconds.";
+            gapDetected = true;
+            if (startContiguousTo.isValid() && previousTime < startContiguousTo) {
+                startContiguousTo = previousTime;
+                qDebug() << "Start contiguous to:" << startContiguousTo;
+            }
+            if (timestamp > endContiguousFrom) {
+                endContiguousFrom = timestamp;
+                qDebug() << "End contiguous to:" << endContiguousFrom;
+            }
+        }
+
+        if (fileData.isEmpty()) {
+            // Reached the end of the file. Current row is the last row.
+            // Check the final timestamp in the file is within archiveInterval
+            // seconds of the end of the month.
+            qint64 endSecs = endTime.toSecsSinceEpoch();
+            if (endSecs - thisSecs > archiveInterval) {
+                qDebug() << "GAP (@end): The end is" << endTime << "last row was" << timestamp << ". Gap duration is" << endSecs - thisSecs << "seconds.";
                 gapDetected = true;
-            }
-
-            if (fileData.isEmpty()) {
-                // Reached the end of the file. Current row is the last row.
-                // Check the final timestamp in the file is within archiveInterval
-                // seconds of the end of the month.
-                qint64 endSecs = endTime.toSecsSinceEpoch();
-                if (endSecs - thisSecs > archiveInterval) {
-                    qDebug() << "GAP (@end): The end is" << endTime << "last row was" << timestamp << ". Gap duration is" << endSecs - thisSecs << "seconds.";
-                    gapDetected = true;
+                endContiguousFrom = QDateTime(); // End is not contiguous.
+                if (startContiguousTo.isValid() && timestamp < startContiguousTo) {
+                    startContiguousTo = timestamp;
+                    qDebug() << "Start contiguous to:" << startContiguousTo;
                 }
             }
-
-            previousTime = timestamp;
-
-            // ------------------------------------------------
         }
+
+        previousTime = timestamp;
+
+        // ------------------------------------------------
 
         if (!cacheStats.isValid) {
             // No ignore range. Let it through.
@@ -272,6 +294,17 @@ data_file_t DataFileWebTask::loadDataFile(QStringList fileData,
 
     if (gapDetected) {
         qDebug() << "----> Data file is INCOMPLETE: it contains one or more gaps!";
+        if (startContiguousTo.isValid()) {
+            qDebug() << "Start of the file is contiguous to:" << startContiguousTo;
+        } else {
+            qDebug() << "Gap exists at start of file.";
+        }
+        if (endContiguousFrom.isValid()) {
+            qDebug() << "End of the file is contiguous from:" << endContiguousFrom;
+        } else {
+            qDebug() << "Gap exists at end of file.";
+        }
+
     } else {
         qDebug() << "----> Data file is COMPLETE: no gaps detected!";
         // *this* data file is 100% complete. There should never be new rows
@@ -393,6 +426,10 @@ data_file_t DataFileWebTask::loadDataFile(QStringList fileData,
     dataFile.expireExisting = expireCache;
     dataFile.hasSolarData = _requestData.isSolarAvailable;
     dataFile.isComplete = !gapDetected;
+    dataFile.start_contiguous_to = startContiguousTo;
+    dataFile.end_contiguous_from = endContiguousFrom;
+    dataFile.start_time = startTime;
+    dataFile.end_time = endTime;
 
     return dataFile;
 }

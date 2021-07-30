@@ -105,6 +105,7 @@ void WebCacheDB::openDatabase() {
             if (!runUpgradeScript(4, ":/cache_db/v4.sql", filename)) return; // v3 -> v4
             if (!runUpgradeScript(5, ":/cache_db/v5.sql", filename)) return; // v4 -> v5
             if (!runUpgradeScript(6, ":/cache_db/v6.sql", filename)) return; // v5 -> v6
+            if (!runUpgradeScript(7, ":/cache_db/v7.sql", filename)) return; // v6 -> v7
 
         } else {
             emit criticalError(tr("Failed to determine version of cache database"));
@@ -227,13 +228,26 @@ int WebCacheDB::getDataFileId(QString dataFileUrl) {
 
 int WebCacheDB::createDataFile(data_file_t dataFile, int stationId) {
     QSqlQuery query(sampleCacheDb);
-    query.prepare("insert into data_file(station, url, last_modified, size, is_complete) "
-                  "values(:station, :url, :last_modified, :size, :is_complete)");
+    query.prepare("insert into data_file(station, url, last_modified, size, is_complete, "
+                  "                      start_contiguous_to, end_contiguous_from, "
+                  "                      start_time, end_time) "
+                  "values(:station, :url, :last_modified, :size, :is_complete, "
+                  "       :start_contig_to, :end_contig_from, :start_time, :end_time)");
     query.bindValue(":station", stationId);
     query.bindValue(":url", dataFile.filename);
     query.bindValue(":last_modified", dataFile.last_modified.toTime_t());
     query.bindValue(":size", dataFile.size);
     query.bindValue(":is_complete", dataFile.isComplete);
+    if (dataFile.start_contiguous_to.isValid())
+        query.bindValue(":start_contig_to", dataFile.start_contiguous_to.toTime_t());
+    else
+        query.bindValue(":start_contig_to", QVariant());
+    if (dataFile.end_contiguous_from.isValid())
+        query.bindValue(":end_contig_from", dataFile.end_contiguous_from.toTime_t());
+    else
+        query.bindValue(":end_contig_from", QVariant());
+    query.bindValue(":start_time", dataFile.start_time.toTime_t());
+    query.bindValue(":end_time", dataFile.end_time.toTime_t());
     query.exec();
 
     if (!query.lastError().isValid()) {
@@ -246,15 +260,26 @@ int WebCacheDB::createDataFile(data_file_t dataFile, int stationId) {
     }
 }
 
-void WebCacheDB::updateDataFile(int fileId, QDateTime lastModified, int size, bool isComplete) {
+void WebCacheDB::updateDataFile(int fileId, QDateTime lastModified, int size, bool isComplete, QDateTime startContiguousTo, QDateTime endContiguousFrom) {
     qDebug() << "Updating data file details...";
     QSqlQuery query(sampleCacheDb);
     query.prepare("update data_file set last_modified = :last_modified, "
-                  "size = :size, is_complete = :is_complete where id = :id");
+                  "size = :size, is_complete = :is_complete, "
+                  "start_contiguous_to = :start_contig_to, "
+                  "end_contiguous_from = :end_contig_from where id = :id");
     query.bindValue(":last_modified", lastModified.toTime_t());
     query.bindValue(":size", size);
     query.bindValue(":id", fileId);
     query.bindValue(":is_complete", isComplete);
+    if (startContiguousTo.isValid())
+        query.bindValue(":start_contig_to", startContiguousTo.toTime_t());
+    else
+        query.bindValue(":start_contig_to", QVariant());
+    if (endContiguousFrom.isValid())
+        query.bindValue(":end_contig_from", endContiguousFrom.toTime_t());
+    else
+        query.bindValue(":end_contig_from", QVariant());
+
     query.exec();
 
     if (query.lastError().isValid())
@@ -379,7 +404,9 @@ void WebCacheDB::cacheDataFile(data_file_t dataFile, QString stationUrl) {
         updateDataFile(dataFileId,
                        dataFile.last_modified,
                        dataFile.size,
-                       dataFile.isComplete);
+                       dataFile.isComplete,
+                       dataFile.start_contiguous_to,
+                       dataFile.end_contiguous_from);
     }
 
     if (dataFile.expireExisting) {
@@ -640,6 +667,135 @@ void WebCacheDB::cacheDataSet(SampleSet samples,
 
     qDebug() << "Cache insert completed.";
 }
+
+bool WebCacheDB::timespanIsCached(QString stationUrl, QDateTime startTime, QDateTime endTime) {
+    int stationId = getStationId(stationUrl);
+    qDebug() << "Checking timespan" << startTime << "to" << endTime << "for station" << stationId << "is covered by cached data";
+
+    // Fetch out all the data file information
+    QSqlQuery query(sampleCacheDb);
+    query.prepare("select start_time, end_time, is_complete, start_contiguous_to,"
+                  "       end_contiguous_from, next_datafile_start "
+                  "from data_file_times where station = :station");
+    query.bindValue(":station", stationId);
+    query.exec();
+
+    if (query.first()) {
+        QDateTime expectedNextDataStartTime;
+        do {
+            QSqlRecord record = query.record();
+            QDateTime dataStartTime = QDateTime::fromTime_t(record.field(0).value().toInt());
+            QDateTime dataEndTime = QDateTime::fromTime_t(record.field(1).value().toInt());
+            bool isComplete = record.field(2).value().toBool();
+            QDateTime startContiguousTo, endContiguousFrom;
+            if (!record.field(3).value().isNull())
+                startContiguousTo = QDateTime::fromTime_t(record.field(3).value().toInt());
+            if (!record.field(4).value().isNull())
+                endContiguousFrom = QDateTime::fromTime_t(record.field(4).value().toInt());
+            QDateTime nextDataFileStart = QDateTime::fromTime_t(record.field(5).value().toInt());
+
+            if (dataEndTime < startTime)
+                continue; // Not interested in this data file - too old
+
+            if (dataStartTime > endTime)
+                continue; // Not interested in this data file - too new
+
+            // Data file is within the specified timespan. Check its sufficiently complete.
+
+            if (dataStartTime <= startTime && endTime <= dataEndTime) {
+                // Data file is greater than the timespan!
+                qDebug() << "Requested timespan is covered by single data file period starting" << dataStartTime;
+                if (isComplete) {
+                    qDebug() << "Single data file is complete! Timespan is cached.";
+                    return true;
+                } else {
+                    qDebug() << "Single data file is incomplete. Not possible to determine if gap falls within requested timespan. Possibly timespan is uncached. Failing.";
+                    qDebug() << "Timespan is not fully covered by cache - failed on incomplete covering datafile.";
+                    return false;
+                }
+            }
+            // Else timespan is covered by multiple data files.
+            //  * The first data file must be either complete
+            //    or contiguous from before startTime to the end of the period
+            //  * The last data file must be either complete or contiguous
+            //    from the start of the file to the end of the period
+            //  * All intermediate data files must be complete.
+
+
+            if (expectedNextDataStartTime.isNull()) {
+                // First data file we're interested in!
+                qDebug() << "First data file starts at" << dataStartTime;
+
+                expectedNextDataStartTime = dataStartTime;
+
+                // Check the start of the timespan falls within this file. If it doesn't
+                // then its probably in a missing data file.
+                if (dataStartTime > startTime) {
+                    qDebug() << "Timespan is not fully covered by cache - starting data file appears to be missing.";
+                    return false;
+                }
+
+                // This file contains the start of the requested timespan.
+                // So it needs to be either:
+                //  (A) Complete
+                // OR
+                //  (B) Have endContiguousFrom < startTime
+
+                if (!isComplete && (endContiguousFrom.isNull() || endContiguousFrom > startTime)) {
+                    qDebug() << "Data file for period starting"
+                             << dataStartTime
+                             << "is incomplete and there is a gap in the data somewhere between"
+                             << startTime << "and the file end. End contiguous from:"
+                             << endContiguousFrom;
+                    qDebug() << "Timespan is not fully covered by cache - failed on first datafile";
+                    return false;
+                }
+            } else if (dataStartTime > startTime && dataEndTime >= endTime) {
+                // Its the final data file we're interested in!
+                qDebug() << "Final data file covers the period" << dataStartTime << "to" << dataEndTime;
+
+                if (!isComplete && (startContiguousTo.isNull() || startContiguousTo < endTime)) {
+                    qDebug() << "Data file for period starting"
+                             << dataStartTime
+                             << "is incomplete and there is a gap in the data somewhere between"
+                             << "the start of the file and" << endTime
+                             << " - start is contiguous to:" << startContiguousTo;
+                    qDebug() << "Timespan not fully covered by cache - failed on final datafile";
+                    return false;
+                }
+            } else if (!isComplete) {
+                // If its not the
+                qDebug() << "Intermediate data file for period starting"
+                         << dataStartTime
+                         << "is incomplete.";
+                qDebug() << "Timespan is not fully covered by cache - failed on only or intermediate datafile";
+
+                return false;
+            }
+
+            if (dataStartTime != expectedNextDataStartTime) {
+                qDebug() << "Data file has period starting at" << dataStartTime
+                         << " - expected start time" << expectedNextDataStartTime;
+                qDebug() << "Timespan is not fully covered by cache - missing data file";
+                return false;
+            }
+
+            qDebug() << "Data file starting at" << dataStartTime << "OK!";
+
+            expectedNextDataStartTime = nextDataFileStart;
+
+            // If we got here then this data file is fine. On to the next.
+
+        } while (query.next());
+    } else {
+        qDebug() << "No data files!";
+        return false;
+    }
+
+    qDebug() << "Timespan is covered by the cache!";
+    return true;
+}
+
 
 int WebCacheDB::getImageSourceId(int stationId, QString code) {
     QSqlQuery query(sampleCacheDb);

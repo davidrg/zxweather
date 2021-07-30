@@ -20,6 +20,16 @@ typedef struct _data_file_t {
     bool expireExisting;
     bool hasSolarData;
     bool isComplete;
+    QDateTime start_contiguous_to;
+    QDateTime end_contiguous_from;
+
+    // This should be the very start of the day or month
+    // eg: 30-JUL-2021 00:00:00
+    QDateTime start_time;
+
+    // This should be the very end of the day or month
+    // eg: 30-JUL-2021 23:59:59
+    QDateTime end_time;
 } data_file_t;
 
 typedef struct _image_set_t {
@@ -291,6 +301,17 @@ public:
 
     bool imageSourceDateIsCached(QString stationUrl, QString sourceCode, QDate date);
 
+
+    /** Returns true if all samples from the specified start time to the specified
+     *  end time (inclusive) are present in the cache database.
+     *
+     * @param stationUrl Station to check cache for
+     * @param startTime start time of timespan
+     * @param endTime end time of timespan
+     * @return If all samples are available.
+     */
+    bool timespanIsCached(QString stationUrl, QDateTime startTime, QDateTime endTime);
+
 signals:
     /** Emitted when an error occurs which would prevent the cache database
      * from operating.
@@ -409,8 +430,15 @@ private:
      * @param lastModified The new last modified date of the file.
      * @param size The new size of the file.
      * @param isComplete If the data file covers its full timespan completely (no gaps)
+     * @param startContiguousTo There are no gaps between the start of the file and
+     *              this time (inclusive). If null/invalid then there is a gap at the
+     *              start of the file.
+     * @param endContiguousFrom There are no gaps between this time and the end of the
+     *              file (inclusive). If null/invlaid then there is a gap at the end of
+     *              the file.
      */
-    void updateDataFile(int fileId, QDateTime lastModified, int size, bool isComplete);
+    void updateDataFile(int fileId, QDateTime lastModified, int size, bool isComplete,
+                        QDateTime startContiguousTo, QDateTime endContiguousFrom);
 
     /** Drops all cache data associated with the specified file from the
      * database.
