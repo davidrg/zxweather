@@ -670,7 +670,11 @@ void WebCacheDB::cacheDataSet(SampleSet samples,
 
 bool WebCacheDB::timespanIsCached(QString stationUrl, QDateTime startTime, QDateTime endTime) {
     int stationId = getStationId(stationUrl);
-    qDebug() << "Checking timespan" << startTime << "to" << endTime << "for station" << stationId << "is covered by cached data";
+    qDebug() << "------------------------\n"
+             << "Checking timespan" << startTime
+             << "to" << endTime
+             << "for station" << stationId
+             << "is covered by cached data";
 
     // Fetch out all the data file information
     QSqlQuery query(sampleCacheDb);
@@ -679,6 +683,8 @@ bool WebCacheDB::timespanIsCached(QString stationUrl, QDateTime startTime, QDate
                   "from data_file_times where station = :station");
     query.bindValue(":station", stationId);
     query.exec();
+
+    bool foundInitialDataset = false;
 
     if (query.first()) {
         QDateTime expectedNextDataStartTime;
@@ -694,11 +700,15 @@ bool WebCacheDB::timespanIsCached(QString stationUrl, QDateTime startTime, QDate
                 endContiguousFrom = QDateTime::fromTime_t(record.field(4).value().toInt());
             QDateTime nextDataFileStart = QDateTime::fromTime_t(record.field(5).value().toInt());
 
-            if (dataEndTime < startTime)
+            if (dataEndTime < startTime) {
+                qDebug() << "Skip data file for period starting" << dataStartTime << "- period predates requested timespan";
                 continue; // Not interested in this data file - too old
+            }
 
-            if (dataStartTime > endTime)
+            if (dataStartTime > endTime) {
+                qDebug() << "Skip data file for period starting" << dataStartTime << "- period predates requested timespan";
                 continue; // Not interested in this data file - too new
+            }
 
             // Data file is within the specified timespan. Check its sufficiently complete.
 
@@ -722,10 +732,11 @@ bool WebCacheDB::timespanIsCached(QString stationUrl, QDateTime startTime, QDate
             //  * All intermediate data files must be complete.
 
 
-            if (expectedNextDataStartTime.isNull()) {
+            if (!foundInitialDataset) {
                 // First data file we're interested in!
                 qDebug() << "First data file starts at" << dataStartTime;
 
+                foundInitialDataset = true;
                 expectedNextDataStartTime = dataStartTime;
 
                 // Check the start of the timespan falls within this file. If it doesn't
@@ -789,6 +800,11 @@ bool WebCacheDB::timespanIsCached(QString stationUrl, QDateTime startTime, QDate
         } while (query.next());
     } else {
         qDebug() << "No data files!";
+        return false;
+    }
+
+    if(!foundInitialDataset) {
+        qDebug() << "Found no datasets covering requested timespan! Timespan is not covered by cache at all!";
         return false;
     }
 
