@@ -1,0 +1,41 @@
+<html>
+<head>
+<title>Data Gaps</title>
+</head>
+<body>
+<b>Data Gaps</b>
+<hr>
+<p>
+    This report displays all gaps in the weather stations historical record
+    along with their label if there is one.
+</p>
+<p>
+    A gap is anywhere where the time between two consecutive samples is twice
+    the sample interval or more. This indicates that at least one sample that
+    should have been produced by the weather station was not or was not
+    recorded.
+</p>
+<p>
+    Possible causes for gaps include:
+</p>
+<ul>
+    <li>Data logger experienced an error downloading one or more samples</li>
+    <li>Weather-Push hasn't replicated one or more samples yet</li>
+    <li>
+        Weather station failed to produce one or more samples due to being
+        offline (no power, in setup mode, etc)
+    </li>
+    <li>Data deleted from the database</li>
+</ul>
+<!--<p>
+    Any gap not marked as &quot;Known&quot; in the report results can affect
+    the Desktop Clients ability to cache data for the month(s) containing the
+    gap. If any of the reported gaps are known to be permanent (eg, station was
+    offline for a period and the data will never exist) you can use the
+    mark-gaps tool to mark these gaps as &quot;Known&quot; allowing the desktop
+    client to permanently cache the non-existence of this data. The mark-gaps
+    tool also allows you to give these gaps a label so you can keep a record
+    of why there is no data available for each period.
+</p>-->
+</body>
+</html>

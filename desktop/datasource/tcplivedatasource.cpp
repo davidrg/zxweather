@@ -152,6 +152,8 @@ void TcpLiveDataSource::processStreamLine(QString line) {
 #define NullableDouble(i) parts.at(i) == "None" ? qQNaN() : parts.at(i).toDouble();
 
 void TcpLiveDataSource::processLiveData(QStringList parts) {
+    Q_ASSERT_X(parts.length() > 0, "TcpLiveDataSource::processLiveData", "Must be at least one part");
+
     if (parts.at(0) != "l") {
         qDebug() << "Not a live update. Type:" << parts.at(0);
         return;
@@ -201,7 +203,7 @@ void TcpLiveDataSource::processLiveData(QStringList parts) {
         lds.davisHw.uvIndex = parts.at(19).toFloat();
         lds.davisHw.solarRadiation = parts.at(20).toFloat();
 
-        if (parts.length() > expectedLength) {
+        if (parts.length() == 38) {
             // We've got extra sensors!
             lds.davisHw.leafWetness1 = NullableDouble(21);
             lds.davisHw.leafWetness2 = NullableDouble(22);
