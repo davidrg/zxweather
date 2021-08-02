@@ -335,7 +335,7 @@ bool RangeRequestWebTask::processHeadResponse(QNetworkReply *reply) {
     QString url = reply->request().url().toString();
     _awaitingUrls--;
 
-    if (DataFileWebTask::UrlNeedsDownlodaing(reply)) {
+    if (DataFileWebTask::UrlNeedsDownloading(reply)) {
         QString name = _urlNames[url];
         qDebug() << "URL: " << name << url;
         DataFileWebTask *task = new DataFileWebTask(_baseUrl, _stationCode,

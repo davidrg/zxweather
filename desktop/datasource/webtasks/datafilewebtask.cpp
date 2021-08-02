@@ -33,7 +33,12 @@ void DataFileWebTask::beginTask() {
         return;
     }
 
-    if (_forceDownload) {
+    if (_forceDownload || (!cache_info.isComplete && cache_info.isValid)) {
+
+        if (!cache_info.isComplete) {
+            qDebug() << "Skipping HEAD request - cached data file is incomplete.";
+        }
+
         getDataset();
     } else {
         QNetworkRequest request(_url);
@@ -55,12 +60,17 @@ void DataFileWebTask::networkReplyReceived(QNetworkReply *reply) {
     }
 }
 
-bool DataFileWebTask::UrlNeedsDownlodaing(QNetworkReply *reply) {
+bool DataFileWebTask::UrlNeedsDownloading(QNetworkReply *reply) {
     QString url = reply->request().url().toString();
     data_file_t cache_info =
             WebCacheDB::getInstance().getDataFileCacheInformation(url);
 
     qDebug() << "Cache status request for url [" << url << "] finished.";
+
+    if (!cache_info.isComplete) {
+        qDebug() << "Cache is marked as incomplete. Possibly the server has more data";
+        return true;
+    }
 
     if (reply->hasRawHeader("X-Cache-Lookup")) {
         QString upstreamStatus = QString(reply->rawHeader("X-Cache-Lookup"));
@@ -97,7 +107,7 @@ bool DataFileWebTask::UrlNeedsDownlodaing(QNetworkReply *reply) {
 
 
 void DataFileWebTask::cacheStatusRequestFinished(QNetworkReply *reply) {
-    if (DataFileWebTask::UrlNeedsDownlodaing(reply)) {
+    if (DataFileWebTask::UrlNeedsDownloading(reply)) {
         getDataset();
     } else {
         // else the data file we have cached sounds the same as what is on the
@@ -148,7 +158,13 @@ void DataFileWebTask::downloadRequestFinished(QNetworkReply *reply) {
                                         cacheStats);
 
     emit subtaskChanged(QString(tr("Caching data for %1")).arg(_name));
-    WebCacheDB::getInstance().cacheDataFile(dataFile, _stationDataUrl);
+
+    if (dataFile.samples.timestamp.isEmpty()) {
+        qDebug() << "Skip caching datafile - no rows to cache.";
+    } else {
+        WebCacheDB::getInstance().cacheDataFile(dataFile, _stationDataUrl);
+
+    }
     emit finished();
 }
 
@@ -307,17 +323,24 @@ data_file_t DataFileWebTask::loadDataFile(QStringList fileData,
 
     } else {
         qDebug() << "----> Data file is COMPLETE: no gaps detected!";
+        qDebug() << "Expiring local cache and replacing with received data.";
         // *this* data file is 100% complete. There should never be new rows
         // to appear in it so the only reason we'd ever re-download it is if
         // for some reason some values changed (data fixed some erroneous rain
         // tips?). So we'll replace whatever is in the cache database with this.
+
+        // Add the samples the cache already has back into the set that will be
+        // inserted as we're replacing whats currently cached.
+        sampleParts.append(ignoreSampleParts);
+        timeStamps.append(ignoreTimeStamps);
         expireCache = true;
     }
 
-    if (ignoreTimeStamps.count() == cacheStats.count) {
+    if ((ignoreTimeStamps.count() == cacheStats.count)) {
         // There is the same number of records between those timestamps in
         // both the cache database and the data file. Probably safe to assume
         // none of them were changed so we'll just ignore them.
+        qDebug() << "Sample count in cache matches sample count for matching timespan in data file.";
         ignoreTimeStamps.clear();
         ignoreSampleParts.clear();
     } else {
@@ -325,6 +348,7 @@ data_file_t DataFileWebTask::loadDataFile(QStringList fileData,
         // available in the cache database. We'll take the downloaded data
         // file as authorative and dump what we currently have in the database
         // for this file.
+        qDebug() << "Sample count in cache timespan differs between DB and data file - expiring cache.";
         sampleParts.append(ignoreSampleParts);
         timeStamps.append(ignoreTimeStamps);
         expireCache = true;

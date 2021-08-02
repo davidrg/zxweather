@@ -53,7 +53,7 @@ public:
      * @param reply HTTP HEAD response
      * @return True if the cache is out-of-date and the URL needs to be downloaded
      */
-    static bool UrlNeedsDownlodaing(QNetworkReply *reply);
+    static bool UrlNeedsDownloading(QNetworkReply *reply);
 
 public slots:
     /** Called when a network reply for a request this task submitted has
