@@ -20,7 +20,7 @@ def print_station_list(cur):
 select lower(s.code) as code, lower(st.code) as type_code, s.title
 from station s
 inner join station_type st on st.station_type_id = s.station_type_id
-order by sort_order ASC
+order by sort_order
     """)
 
     results = cur.fetchall()
@@ -84,7 +84,7 @@ def get_new_station_info(cur, defaults):
     print("""
 Station Code is the short (up to 5 characters) name for your weather station
 that appears in all URLs. For example, if your station was called 'foo' your
-URLs would look something like http://example.com/s/foo/. The value you
+URLs would look something like https://example.com/s/foo/. The value you
 enter here *must* match the value currently in your zxweather configuration
 file (called station_name under the [site] section). This value can not be
 changed later without breaking any links within your site.""")
@@ -528,7 +528,6 @@ List order: {sort_order}""".format(**station_info))
 Station ID: {broadcast_id}
 """.format(**davis_info))
 
-
         print("""
 Description:
 {description}
@@ -544,10 +543,10 @@ Description:
                 station_config = json.dumps(station_info["davis_settings"])
 
             cur.execute("""
-        update station set title=%s, description=%s, sample_interval=%s,
-                           live_data_available=%s, sort_order=%s,
-                           station_config = %s, site_title = %s, latitude=%s,
-                           longitude=%s, altitude=%s
+        update station set title = %s, description = %s, sample_interval = %s,
+                           live_data_available = %s, sort_order = %s,
+                           station_config = %s, site_title = %s, latitude = %s,
+                           longitude = %s, altitude = %s
         where station_id = %s""", (
                 station_info["name"],
                 station_info["description"], station_info["interval"],
@@ -569,7 +568,7 @@ def set_station_message(con):
     :param con: Database connection
     """
 
-    print("\n\Set station message")
+    print("\nSet station message")
     print("------------\n\nThe following stations are available:")
     cur = con.cursor()
     codes = print_station_list(cur)
@@ -759,7 +758,7 @@ Choose sensor to configure:
             print("Saving configuration...")
             hw_config["sensor_config"] = sensor_config
 
-            cur.execute("update station set station_config=%s where lower(code) = lower(%s)",
+            cur.execute("update station set station_config = %s where lower(code) = lower(%s)",
                         (json.dumps(hw_config), selected_station_code))
             con.commit()
             cur.close()
@@ -806,7 +805,8 @@ Choose sensor to configure:
                 print("\nModify Sensor: {0}\n----------------------------------"
                       "--------------------------------------------\n"
                       "Display Name: {1}\nEnabled: {2}".format(
-                    system_name, sensor_config[sensor]["name"], sensor_config[sensor]["enabled"]))
+                        system_name, sensor_config[sensor]["name"],
+                        sensor_config[sensor]["enabled"]))
 
             def toggle_enabled():
                 sensor_config[sensor]["enabled"] = not sensor_config[sensor]["enabled"]
@@ -835,12 +835,12 @@ Choose sensor to configure:
                 ]
 
                 show_settings()
-                choice = menu(choices)
-                if choice == "1":
+                sub_choice = menu(choices)
+                if sub_choice == "1":
                     toggle_enabled()
-                elif choice == "2":
+                elif sub_choice == "2":
                     set_display_name()
-                elif choice == "0":
+                elif sub_choice == "0":
                     break
 
         if choice == "A":

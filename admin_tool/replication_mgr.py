@@ -53,4 +53,3 @@ update image_replication_status set retries = 0 where status in ('pending', 'awa
         print("Retry counts reset. ")
     else:
         print("** User Canceled")
-
