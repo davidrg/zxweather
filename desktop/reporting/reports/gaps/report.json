@@ -32,7 +32,7 @@
 				"last_missing_sample": "Last Missing Sample",
 				"gap_length": "Gap Length",
 				"missing_samples": "Total Missing Samples",
-				"is_known": "Is Known",
+                                "is_known": "Permanent?",
 				"label": "Label"
 			}
 		}
