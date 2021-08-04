@@ -720,6 +720,35 @@ class DavisService(service.Service):
                     # anything much we can do to terminate yet.
                     pass
 
+        result = yield self.database_pool.runQuery(
+            "select archived, st.code as hw_type from station s "
+            "inner join station_type st on s.station_type_id = st.station_type_id "
+            "where upper(s.code) = upper(%s)",
+            (self.station_code,))
+
+        archived = result[0][0]
+        hw_type = result[0][1].upper()
+
+        fail = False
+        if result[0][0]:
+            log.msg("*** ERROR: unable to log to station {0} - station is archived".format(
+                self.station_code))
+            fail = True
+        elif hw_type != 'DAVIS':
+            log.msg("*** ERROR: Incorrect hardware type for station {0}: {1}".format(
+                self.station_code, hw_type))
+            fail = True
+
+        if fail:
+            log.msg("Critical error: Terminating")
+            try:
+                reactor.stop()
+            except ReactorNotRunning:
+                # Don't care. We wanted it stopped, turns out it already is
+                # that or its not yet started in which case there isn't
+                # anything much we can do to terminate yet.
+                pass
+
         self.database_pool.runQuery(
             "select station_id, live_data_available "
             "from station where upper(code) = upper(%s)",
