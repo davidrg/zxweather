@@ -5,20 +5,15 @@ User interface routines
 
 __author__ = 'David Goodwin'
 
-# For python 2.7 & 3 compatibility
-try:
-    input = raw_input
-except NameError:
-    pass
+from typing import List, Dict, TypedDict, Callable, Optional
 
+MenuOption = TypedDict('MenuOption', {'key': str, 'name': str, 'type': str, 'func': Callable})
 
-def menu(choices, prompt="Select option"):
+def menu(choices: List[MenuOption], prompt: str="Select option") -> str:
     """
     Runs a menu getting choices from the user.
     :param choices: A dict describing the menu options.
-    :type choices: list
     :param prompt: Prompt to display to the user
-    :type prompt: str
     """
 
     while True:
@@ -43,14 +38,11 @@ def menu(choices, prompt="Select option"):
             print("Invalid option")
 
 
-def sub_menu(choices, prompt="Select option:"):
+def sub_menu(choices: List[MenuOption], prompt: str="Select option:") -> str:
     """
     Runs a sub-menu which only performs a single action before returning.
     :param choices: A dict describing the menu options.
-    :type choices: list
     :param prompt: The user prompt
-    :type prompt: str
-    :type choices: list
     """
 
     while True:
@@ -77,7 +69,7 @@ def sub_menu(choices, prompt="Select option:"):
             print("Invalid option")
 
 
-def __get_string_required(prompt):
+def __get_string_required(prompt: str) -> str:
     """
     Gets a string from the user
     """
@@ -90,30 +82,25 @@ def __get_string_required(prompt):
             print("You must enter a value.")
 
 
-def __get_string_optional(prompt, default):
+def __get_string_optional(prompt: str, default: Optional[str]) -> Optional[str]:
     value = input("{0} [{1}]: ".format(prompt, default))
     if value == '':
         value = default
     return value
 
 
-def get_string(prompt, default='', required=False, max_len=None, min_len=None):
+def get_string(prompt: str, default: Optional[str]='', required: bool=False,
+               max_len: Optional[int]=None, min_len: Optional[int]=None) -> Optional[str]:
     """
     Gets a string from the user. If a default value is supplied the user may
     just hit return to accept it. If required is true then the default value
     is ignored.
     :param prompt: User prompt
-    :type prompt: str or unicode
     :param default: Default value (if required is False)
-    :type default: str or None
     :param required: If the user is required to enter a value. Disables default value.
-    :type required: bool
     :param max_len: Maximum string length
-    :type max_len: int
     :param min_len: Minimum string length
-    :type min_len: int
     :returns: Value entered by user
-    :rtype: str
     """
 
     while True:
@@ -130,7 +117,7 @@ def get_string(prompt, default='', required=False, max_len=None, min_len=None):
             return val
 
 
-def _get_boolean_required(prompt):
+def _get_boolean_required(prompt: str) -> bool:
     """
     Forces the user to choose yes or no. No defaults.
     """
@@ -145,7 +132,7 @@ def _get_boolean_required(prompt):
             print("Enter yes or no.")
 
 
-def _get_boolean_optional(default, prompt):
+def _get_boolean_optional(default: bool, prompt: str) -> bool:
     """
     Gets an optional boolean value from the user. A default value can
     be supplied.
@@ -166,18 +153,14 @@ def _get_boolean_optional(default, prompt):
         return False
 
 
-def get_boolean(prompt, default=None, required=False):
+def get_boolean(prompt: str, default: Optional[bool]=None, required: bool=False) -> Optional[bool]:
     """
     Gets a yes/no response from the user. If required is true then the default
     value is ignored and the user is forced to enter a value.
     :param prompt: User prompt
-    :type prompt: str
     :param default: Default value (only used if required = False)
-    :type default: bool
     :param required: If a response is required or not. Overrides the default value
-    :type required: bool
     :returns: value chosen by the user
-    :rtype: bool or None
     """
 
     if required:
@@ -186,13 +169,11 @@ def get_boolean(prompt, default=None, required=False):
         return _get_boolean_optional(default, prompt)
 
 
-def __get_number_required(prompt):
+def __get_number_required(prompt: str) -> int:
     """
     Gets a required number
     :param prompt: The prompt for the user
-    :type prompt: string
     :return: An integer.
-    :rtype: int
     """
 
     response = None
@@ -210,16 +191,13 @@ def __get_number_required(prompt):
                 response = None
 
 
-def __get_number_optional(prompt, default):
+def __get_number_optional(prompt: str, default: Optional[int]) -> Optional[int]:
     """
     Gets an optional number
     :param prompt: The prompt for the user
-    :type prompt: string
     :param default: The default value for if the user hits enter without
     typing anything.
-    :type default: int or None
     :return: An integer.
-    :rtype: int
     """
 
     response = None
@@ -242,16 +220,13 @@ def __get_number_optional(prompt, default):
             response = None
 
 
-def get_number(prompt, default=None, required=False):
+def get_number(prompt: str, default: Optional[int]=None, required:bool=False) -> Optional[int]:
     """
     Gets a number from the user. If there is no default and the user does
     not enter anything None is returned.
     :param prompt: User prompt
-    :type prompt: string
     :param default: Default value if not required
-    :type default: int or None
     :param required: If it is required or not
-    :type required: bool
     """
 
     if required:
@@ -260,13 +235,11 @@ def get_number(prompt, default=None, required=False):
         return __get_number_optional(prompt, default)
 
 
-def __get_float_required(prompt):
+def __get_float_required(prompt: str) -> float:
     """
     Gets a required float
     :param prompt: The prompt for the user
-    :type prompt: string
     :return: An float.
-    :rtype: float
     """
 
     response = None
@@ -284,16 +257,13 @@ def __get_float_required(prompt):
                 response = None
 
 
-def __get_float_optional(prompt, default):
+def __get_float_optional(prompt: str, default: Optional[float]) -> Optional[float]:
     """
     Gets an optional float
     :param prompt: The prompt for the user
-    :type prompt: string
     :param default: The default value for if the user hits enter without
     typing anything.
-    :type default: float or None
     :return: An float.
-    :rtype: float
     """
 
     response = None
@@ -316,16 +286,13 @@ def __get_float_optional(prompt, default):
             response = None
 
 
-def get_float(prompt, default=None, required=False):
+def get_float(prompt: str, default: Optional[float]=None, required: bool=False) -> Optional[float]:
     """
     Gets a float from the user. If there is no default and the user does
     not enter anything None is returned.
     :param prompt: User prompt
-    :type prompt: string
     :param default: Default value if not required
-    :type default: float or None
     :param required: If it is required or not
-    :type required: bool
     """
 
     if required:
@@ -334,7 +301,7 @@ def get_float(prompt, default=None, required=False):
         return __get_float_optional(prompt, default)
 
 
-def __get_code_required(prompt, valid_codes):
+def __get_code_required(prompt: str, valid_codes: List[str]) -> str:
 
     valid_codes = [x.upper() for x in valid_codes]
 
@@ -349,7 +316,7 @@ def __get_code_required(prompt, valid_codes):
             print("Please enter a valid code.")
 
 
-def __get_code_optional(prompt, valid_codes, default):
+def __get_code_optional(prompt: str, valid_codes: List[str], default: Optional[str]) -> Optional[str]:
     valid_codes = [x.upper() for x in valid_codes]
 
     while True:
@@ -363,21 +330,16 @@ def __get_code_optional(prompt, valid_codes, default):
             print("Please enter a valid code.")
 
 
-def get_code(prompt, valid_codes, default=None, required=False):
+def get_code(prompt: str, valid_codes: List[str], default: Optional[str]=None, required: bool=False) -> Optional[str]:
     """
     Asks the user to enter a valid code.
     :param prompt: User prompt
-    :type prompt: str
     :param valid_codes: A list of all valid codes the user is allowed to enter.
                         Used only for validation (these are not displayed).
                         Values must be in uppercase.
-    :type valid_codes: [str]
     :param default: Default code
-    :type default: str
     :param required: If a response is required from the user.
-    :type required: bool
     :return: The code chosen by the user
-    :rtype: str
     """
 
     if required:
@@ -394,19 +356,15 @@ def pause():
     input("Hit return to continue")
 
 
-def get_string_with_length_indicator(prompt, default, max_len, required=False):
+def get_string_with_length_indicator(prompt: str, default: Optional[str],
+                                     max_len: int, required: bool=False) -> Optional[str]:
     """
     Gets a string showing an indicator of how long it is allowed to be
     :param prompt: User prompt
-    :type prompt: str
     :param default: Default value
-    :type default: str or None
     :param max_len: Maximum string length
-    :type max_len: int
     :param required: If the value is required or not
-    :type required: boolean
     :return: String entered by the user
-    :rtype: str
     """
 
     if not required:

@@ -2,6 +2,8 @@
 """
 Database deployment facility
 """
+from typing import Optional
+
 import psycopg2
 import psycopg2.extensions
 from ui import get_boolean, get_string_with_length_indicator, get_string, get_number
@@ -22,21 +24,15 @@ class DbInfo(object):
     """
     An object for storing database information
     """
-    def __init__(self, hostname, port, user, password, database):
+    def __init__(self, hostname: str, port: int, user: str, password: str, database: str):
         """
         Creates a new db_info instance.,
         :param hostname: Server hostname
-        :type hostname: str
         :param port: Server port
-        :type port: int
         :param user: Username to login as
-        :type user: str
         :param password: Users password
-        :type password: str
         :param database: Name of the database to use
-        :type database: str
         :returns: A new db_info instance
-        :rtype: DbInfo
         """
         self.hostname = hostname
         self.port = port
@@ -44,11 +40,10 @@ class DbInfo(object):
         self.password = password
         self.database = database
 
-    def to_connection_string(self):
+    def to_connection_string(self) -> str:
         """
         Converts the database info dict to a connection string
         :return: Database connection string
-        :rtype: str
         """
         conn_str = "host={host} port={port} user={user} password={password} " \
                    "dbname={name}".format(
@@ -61,7 +56,7 @@ class DbInfo(object):
         return conn_str
 
     @staticmethod
-    def prompt_db_config(new_db=False):
+    def prompt_db_config(new_db: bool = False) -> 'DbInfo':
         """
         Asks the user for details for the details of an existing weather database.
         :return: Database connection details
@@ -87,12 +82,11 @@ class DbInfo(object):
         return DbInfo(hostname, port, user, password, name)
 
 
-def upgrade_v0_2(con):
+def upgrade_v0_2(con: psycopg2.extensions.connection) -> bool:
     """
     Upgrades the v0.1 database to v0.2.
     :param con: Database connection
     :return: Success (true) or failure (false)
-    :rtype: bool
     """
     global v2_upgrade_script
 
@@ -176,12 +170,11 @@ You may now enter an optional short description for your weather station.""")
     return True
 
 
-def upgrade_v1_0(con):
+def upgrade_v1_0(con: psycopg2.extensions.connection) -> bool:
     """
     Upgrades the v0.2 database to v1.0.
     :param con: Database connection
     :return: Success (true) or failure (false)
-    :rtype: bool
     """
     global v2_upgrade_script
 
@@ -224,11 +217,10 @@ your database you will likely need to reapply these customisations.""")
     return True
 
 
-def get_db_version(cur):
+def get_db_version(cur: psycopg2.extensions.cursor) -> int:
     """
     Gets the database version number
     :param cur: database cursor
-    :return:
     """
     cur.execute("select * from information_schema.tables where "
                 "table_schema = 'public' and table_name = 'db_info'")
@@ -243,14 +235,13 @@ def get_db_version(cur):
     return int(result[0])
 
 
-def is_version_compatible(cur):
+def is_version_compatible(cur: psycopg2.extensions.cursor) -> bool:
     """
     Checks to see if the database claims to be compatible with this version
     of zxweather.
     :param cur: Database cursor
     :return: Returns if the database claims to be compatible with this version
              of zxweather.
-    :rtype: bool
     """
     global version_major, version_minor, version_revision
 
@@ -270,13 +261,11 @@ def is_version_compatible(cur):
     return compatible
 
 
-def connect_to_db(dbc):
+def connect_to_db(dbc: DbInfo) -> Optional[psycopg2.extensions.connection]:
     """
     Attempts to connect to the specified database.
     :param dbc: Database connection information
-    :type dbc: DbInfo
     :return: A database connection or None if there was an error
-    :rtype: psycopg2._psycopg2
     """
 
     conn_str = dbc.to_connection_string()
@@ -337,11 +326,10 @@ def connect_to_db(dbc):
     return con
 
 
-def create_db():
+def create_db() -> Optional[bool]:
     """
     Creates a new database.
     :return: Success (true) or failure (false)
-    :rtype: bool
     """
 
     global create_script

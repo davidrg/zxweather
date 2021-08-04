@@ -3,13 +3,40 @@
 Menus and routines for managing weather stations in the database.
 """
 import json
+from typing import Dict, TypedDict, Optional
+
+import psycopg2.extensions
+
 from ui import pause, get_string_with_length_indicator, get_string, get_code, \
     get_boolean, menu, get_number, get_float
 
 __author__ = 'david'
 
 
-def print_station_list(cur):
+class NewStationDavisSettings(TypedDict):
+    hardware_type: Optional[str]
+    broadcast_id: Optional[int]
+    has_solar_and_uv: bool
+    is_wireless: bool
+    sensor_config: Dict
+
+
+class NewStationInfo(TypedDict):
+    code: Optional[str]
+    name: Optional[str]
+    latitude: Optional[float]
+    longitude: Optional[float]
+    altitude: Optional[float]
+    site_title: Optional[str]
+    description: Optional[str]
+    type: Optional[str]
+    interval: Optional[int]
+    live: Optional[bool]
+    sort_order: Optional[int]
+    davis_settings: Optional[NewStationDavisSettings]
+
+
+def print_station_list(cur: psycopg2.extensions.cursor):
     """
     Prints out a list of all weather stations
     :param cur: Database cursor
@@ -41,7 +68,7 @@ order by sort_order
     return station_codes
 
 
-def get_station_codes(cur):
+def get_station_codes(cur: psycopg2.extensions.cursor):
     """
     Returns a list of station codes.
     :param cur: Database cursor
@@ -59,7 +86,7 @@ from station s
     return [result[0] for result in results]
 
 
-def list_stations(cur):
+def list_stations(cur: psycopg2.extensions.cursor):
     """
     Displays a list of all weather stations in the database.
     :param cur: Database cursor
@@ -72,7 +99,7 @@ def list_stations(cur):
     pause()
 
 
-def get_new_station_info(cur, defaults):
+def get_new_station_info(cur: psycopg2.extensions.cursor, defaults: NewStationInfo) -> NewStationInfo:
     """
     Gets the details for a new weather station
     :param cur: Database cursor
@@ -180,7 +207,7 @@ appear in a list of multiple weather stations. If there will only be one
 weather station in this database then you can leave this value as 0.""")
     sort_order = get_number("List order", defaults["sort_order"])
 
-    davis_settings = None
+    davis_settings: Optional[NewStationDavisSettings] = None
     if hardware_code == "DAVIS":
         # Prompt for extra configuration data used by davis weather stations
 
@@ -221,7 +248,7 @@ VUE      Vantage Vue
 
         sensor_config = dict()
 
-        davis_settings = {
+        davis_settings: NewStationDavisSettings = {
             "hardware_type": station,
             "is_wireless": is_wireless,
             "has_solar_and_uv": has_solar_and_uv,
@@ -245,7 +272,7 @@ VUE      Vantage Vue
     }
 
 
-def create_station(con):
+def create_station(con: psycopg2.extensions.connection):
     """
     Allows the user to create a new weather station.
     :param con: Database connection
@@ -367,7 +394,7 @@ returning station_id""", (
             return
 
 
-def get_updated_station_info(defaults):
+def get_updated_station_info(defaults: Dict) -> Dict:
     """
     Gets the details for a new weather station
     :param defaults: Default values
@@ -449,7 +476,7 @@ def get_updated_station_info(defaults):
     }
 
 
-def edit_station(con):
+def edit_station(con: psycopg2.extensions.connection):
     """
     Allows the user to edit an existing station
     :param con:
@@ -562,7 +589,7 @@ Description:
             return
 
 
-def set_station_message(con):
+def set_station_message(con: psycopg2.extensions.connection):
     """
     Allows the user to set a message for the station.
     :param con: Database connection
@@ -603,7 +630,7 @@ def set_station_message(con):
 
 # Sorry about this function. Its late and I just want to get something working.
 # This whole apps needs an overhaul sometime anyway.
-def configure_sensors(con):
+def configure_sensors(con: psycopg2.extensions.connection):
     print("\n\nConfigure sensors")
     print("------------\n\nThe following stations are available:")
     cur = con.cursor()
@@ -879,7 +906,7 @@ Choose sensor to configure:
             configure_sensor("extra_temperature_3")
 
 
-def mark_gaps(con):
+def mark_gaps(con: psycopg2.extensions.connection):
     print("\n\nMark Gaps\n------------")
     print("""
 This procedure scans a weather stations history for any unexpected gaps in the
@@ -922,7 +949,7 @@ replicated to.""")
        asg.missing_samples
 from get_all_sample_gaps(%s) as asg
 where not asg.is_known_gap
-order by asg.gap_start_time asc;""", (selected_station_code, ))
+order by asg.gap_start_time;""", (selected_station_code, ))
 
     gaps = cur.fetchall()
 
@@ -979,7 +1006,7 @@ run this procedure again on a future date once you're sure the gaps are
 permanent""")
 
 
-def manage_stations(con):
+def manage_stations(con: psycopg2.extensions.connection):
     """
     Runs a menu allowing the user to select various station management options.
     :param con: Database connection

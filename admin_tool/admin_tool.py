@@ -3,6 +3,11 @@
 zxweather admin tool.
 """
 from __future__ import print_function
+
+from typing import Optional
+
+from psycopg2.extensions import connection
+
 from about_mgr import upgrade_about
 from image_sources import manage_image_sources
 from database_mgr import create_db, connect_to_db, DbInfo
@@ -14,17 +19,13 @@ __author__ = 'David Goodwin'
 S_DB = 'database'   # Database configuration
 
 
-def read_db_config():
+def read_db_config() -> Optional[DbInfo]:
     """
     Attempts to read database connection details from the zxweather
     configuration file.
     :return: Database connection details
-    :rtype: DbInfo
     """
-    try:
-        from ConfigParser import ConfigParser, NoSectionError
-    except ImportError:
-        from configparser import ConfigParser, NoSectionError
+    from configparser import ConfigParser, NoSectionError
 
     config = ConfigParser()
     config.read(['config.cfg', '../zxw_web/config.cfg', 'zxw_web/config.cfg',
@@ -78,7 +79,7 @@ def db_menu():
     return None
 
 
-def get_db_connection():
+def get_db_connection() -> connection:
     """
     Gets a connection to a weather database. If connection details can not be
     obtained from a zxweather configuration file the user will be prompted for

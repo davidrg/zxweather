@@ -4,6 +4,7 @@ Manages upgrading about.html files.
 """
 from ui import get_string
 from station_mgr import get_station_codes
+from psycopg2.extensions import cursor
 import os
 
 __author__ = 'david'
@@ -122,7 +123,7 @@ template_end = """    <!-- END_USER_CONTENT -->
 </html>"""
 
 
-def upgrade_file(filename):
+def upgrade_file(filename: str):
     """
     Upgrades the specified about.html file
     :param filename: Name of the file to upgrade
@@ -152,7 +153,7 @@ def upgrade_file(filename):
     f.close()
 
 
-def upgrade_about(cur):
+def upgrade_about(cur: cursor):
     """
     Attempts to upgrade about pages automatically.
     :param cur: A database cursor
@@ -160,11 +161,7 @@ def upgrade_about(cur):
 
     static_dir = None
 
-    try:
-        from ConfigParser import ConfigParser, NoSectionError
-    except ImportError:
-        from configparser import ConfigParser, NoSectionError
-
+    from configparser import ConfigParser, NoSectionError
     config = ConfigParser()
 
     config.read(['config.cfg', '../zxw_web/config.cfg', 'zxw_web/config.cfg',

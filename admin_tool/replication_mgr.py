@@ -1,7 +1,9 @@
+import psycopg2.extras
+
 from ui import get_boolean
 
 
-def retry_failed_images(con):
+def retry_failed_images(con: psycopg2.extras.connection):
     print("""
 Retry Failed Images
 -------------------

@@ -1,10 +1,14 @@
+from typing import List, Dict
+
+import psycopg2.extensions
+
 from replication_mgr import retry_failed_images
 from station_mgr import print_station_list
 from ui import get_string_with_length_indicator, get_string, get_code, \
     get_boolean, menu
 
 
-def get_edit_image_source_info(defaults):
+def get_edit_image_source_info(defaults: Dict) -> Dict:
     if defaults["name"] is None:
         required = True
         default = None
@@ -34,7 +38,7 @@ def get_edit_image_source_info(defaults):
     }
 
 
-def get_new_image_source_info(cur, defaults):
+def get_new_image_source_info(cur: psycopg2.extensions.cursor, defaults: Dict) -> Dict:
     print("""
 The Image Source Code is a short (up to 5 characters) case-insensitive 
 unique identifier for your new image source. As it appears in URLs it can not 
@@ -77,7 +81,7 @@ be changed later.
     }
 
 
-def create_image_source(con):
+def create_image_source(con: psycopg2.extensions.connection):
 
     print("""
 Create Image Source
@@ -143,7 +147,7 @@ Description: {description}
             return
 
 
-def edit_image_source(con):
+def edit_image_source(con: psycopg2.extensions.connection):
 
     print("""
 
@@ -197,7 +201,7 @@ Description: {description}
             return
 
 
-def list_image_sources(cur):
+def list_image_sources(cur: psycopg2.extensions.cursor) -> List[str]:
     """
     Prints out a list of all image sources
     :param cur: Database cursor
@@ -235,7 +239,7 @@ order by i.code
     return station_codes
 
 
-def manage_image_sources(con):
+def manage_image_sources(con: psycopg2.extensions.connection):
     """
     Runs a menu allowing the user to select various image source management
     options.
