@@ -828,7 +828,7 @@ def get_full_station_info(include_coordinates=True):
            upper(st.code) as hw_type_code, st.title as hw_type_name,
            sr.min_ts, sr.max_ts, s.message,
            s.message_timestamp, s.station_config, s.site_title, s.latitude,
-           s.longitude, s.altitude, s.sample_interval
+           s.longitude, s.altitude, s.sample_interval, s.archived, s.archived_message, s.archived_time
         from station s
         inner join station_type st on st.station_type_id = s.station_type_id
         left outer join (
@@ -867,8 +867,15 @@ def get_full_station_info(include_coordinates=True):
                 'longitude': None,
                 'altitude': record.altitude
             },
-            'interval': record.sample_interval
+            'interval': record.sample_interval,
+            'is_archived': record.archived
         }
+
+        if record.archived:
+            station['archived'] = {
+                "time": record.archived_time.isoformat(),
+                "message": record.archived_message
+            }
 
         if include_coordinates:
             station['coordinates']['latitude'] = record.latitude
