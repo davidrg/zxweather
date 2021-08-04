@@ -883,7 +883,7 @@ from (
     from sample s
     group by date_stamp, s.station_id) as dr
   on s.time_stamp::date = dr.date_stamp
-    -- and s.station_id = dr.station_id
+    and s.station_id = dr.station_id
 
   -- Filter the samples down to only those with a maximum or minimum reading
   where ( s.gust_wind_speed = dr.max_gust_wind_speed
