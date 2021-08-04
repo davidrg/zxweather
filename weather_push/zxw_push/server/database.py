@@ -211,6 +211,7 @@ class ServerDatabase(object):
         from station s
         inner join station_type st on st.station_type_id = s.station_type_id
         -- This should give us a list of stations in the order they were created
+        where not s.archived -- Not interested in receiving data for archived stations
         order by s.station_id
         """
 
