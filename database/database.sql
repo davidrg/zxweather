@@ -56,7 +56,12 @@ CREATE TABLE station
   latitude real,
   longitude real,
   altitude real not null default 0,
-  CONSTRAINT pk_station PRIMARY KEY (station_id)
+  archived boolean not null default false,
+  archived_message character varying,
+  archived_time timestamptz,
+  CONSTRAINT pk_station PRIMARY KEY (station_id),
+  CONSTRAINT chk_archived CHECK ((not archived and archived_time is null and archived_message is null)
+                              or (archived and archived_time is not null))
 );
 
 COMMENT ON TABLE station is 'Information about a weather station in this database';
@@ -74,6 +79,9 @@ comment on column station.site_title is 'Web UI page title for weather station.'
 comment on column station.latitude is 'Coordinates - latitude';
 comment on column station.longitude is 'Coordinates - longitude';
 comment on column station.altitude is 'Barometer/pressure sensor altitude. Used for relative pressure calculation.';
+comment on column station.archived is 'If the station is archived. This means its data will never be updated again and there will never be live data for it.';
+comment on column station.archived_message is 'Description of why the station was archived. May be publicly visible in the desktop client.';
+comment on column station.archived_time is 'Date the station was archived.';
 
 -- Generic sample data. Anything that is specific to a particular station type
 -- is in that station-specific table.
