@@ -944,13 +944,13 @@ def get_stations():
     Gets a list of station code,name pairs for all stations in the database.
     :return:
     """
-    result = db.query("select upper(code) as code, title "
-                      "from station order by sort_order asc, title desc")
+    result = db.query("select upper(code) as code, title, archived "
+                      "from station order by archived, sort_order asc, title desc")
 
     stations = []
 
     for row in result:
-        station = (row.code, row.title)
+        station = (row.code, row.title, row.archived)
         stations.append(station)
 
     return stations

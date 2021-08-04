@@ -75,6 +75,7 @@ def make_station_switch_urls(station_list, current_url, validation_func=None,
     for station in station_list:
         code = station[0]
         name = station[1]
+        archived = station[2]
         station_id = get_station_id(code)
 
         is_valid = True
@@ -122,7 +123,7 @@ def make_station_switch_urls(station_list, current_url, validation_func=None,
                             latest_date=latest_date,
                             latest_url=latest_url)
 
-                new_station_list.append((new_url, name, code))
+                new_station_list.append((new_url, name, code, archived))
         else:
             target = '/*/' + code + '/'
 
@@ -131,7 +132,7 @@ def make_station_switch_urls(station_list, current_url, validation_func=None,
             target += '/'.join(current_url.split('/')[3:])
 
             new_url = relative_url(current_url, target)
-            new_station_list.append((new_url, name, code))
+            new_station_list.append((new_url, name, code, archived))
 
     return new_station_list
 
