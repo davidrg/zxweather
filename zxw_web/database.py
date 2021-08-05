@@ -10,6 +10,7 @@ import config
 
 __author__ = 'David Goodwin'
 
+
 def get_station_id(station):
     """
     Gets the ID for the specified station code.
@@ -28,6 +29,7 @@ def get_station_id(station):
     else:
         return None
 
+
 def get_station_code(station):
     """
     Gets the code for the specified station id.
@@ -45,6 +47,7 @@ def get_station_code(station):
         return result[0].code
     else:
         return None
+
 
 def get_sample_interval(station_id):
     """
@@ -128,6 +131,12 @@ def get_station_type_code(station_id):
         return None
 
 
+def station_archived_status(station_id):
+    query = """select archived, archived_message, archived_time 
+    from station where station_id = $station_id"""
+    result = db.query(query, dict(station_id=station_id))
+
+    return result[0]
 
 def get_station_config(station_id):
     """

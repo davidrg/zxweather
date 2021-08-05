@@ -25,6 +25,15 @@ def get_nav_urls(station, current_url):
     :type current_url: str
     """
 
+    if station is None:
+        return {
+        'home': "/",
+        'yesterday': None,
+        'this_month': None,
+        'this_year': None,
+        'about': None,
+        }
+
     now = datetime.now().date()
     yesterday = now - timedelta(1)
 
@@ -65,7 +74,7 @@ def make_station_switch_urls(station_list, current_url, validation_func=None,
             for. This should be a tuple containing one to three elements in
             the order year, month, day. A year only page would, of course, only
             supply (year,)
-    :type target_date: tuple
+    :type target_date: tuple or None
     :return: A similar station list to that supplied but the first item in
             each tuple will be the target URL instead of the station code.
     :rtype: list
