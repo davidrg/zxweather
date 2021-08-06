@@ -136,7 +136,8 @@ class overlay_file:
         if os.path.isdir(path_name):
             raise web.NotFound()
 
-        if os.path.exists(path_name) and path_name.endswith(".html"):
+        if os.path.exists(path_name) and path_name.endswith(".html") and \
+                not path_name.endswith("/about.html"):
             return self.render_static_html(file)
 
         return overlay_file.get_file(path_name)
