@@ -157,6 +157,21 @@ def get_station_config(station_id):
     return None
 
 
+def get_permanent_data_gaps(station_id):
+    """
+    Returns the set of known permanent gaps in the stations dataset. These are
+    marked via the admin-tool and used by the desktop client to know if a
+    received samples data file with detected gaps can be cached permanently or
+    not.
+    """
+    query = "select  start_time, end_time, missing_sample_count, label " \
+            "from sample_gap where station_id = $station_id"
+
+    result = db.query(query, dict(station_id=station_id))
+
+    return result
+
+
 def get_live_data_available(station_id):
     """
     Checks to see if live data is available for the specified station.
