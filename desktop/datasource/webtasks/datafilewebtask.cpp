@@ -185,6 +185,8 @@ data_file_t DataFileWebTask::loadDataFile(QStringList fileData,
                                         cache_stats_t cacheStats) {
     emit subtaskChanged(QString(tr("Processing data for %1")).arg(_name));
 
+    bool stationArchived = WebCacheDB::getInstance().stationIsArchived(_stationDataUrl);
+
     SampleSet samples;
 
     // Split & trim the data
@@ -214,7 +216,6 @@ data_file_t DataFileWebTask::loadDataFile(QStringList fileData,
     bool gapDetected = false;
     QDateTime startContiguousTo, endContiguousFrom;
 
-
     while (!fileData.isEmpty()) {
         QString line = fileData.takeFirst();
         QStringList parts = line.split(QRegExp("\\s+"));
@@ -226,67 +227,105 @@ data_file_t DataFileWebTask::loadDataFile(QStringList fileData,
         tsString += " " + parts.takeFirst();
         QDateTime timestamp = QDateTime::fromString(tsString, Qt::ISODate);
 
-        // -----------/ The Gap Detection Zone /-----------
-        // Here in The Gap Detection Zone our job is to figure out if the data
-        // file contains absolutely every sample it could contain. This means
-        // checking the gap between any two samples is no greater than the
-        // stations sample interval.
-
-        if (!previousTime.isValid()) {
-            // First sample in the file. Initialise previousTime to be the very
-            // start of the month and set the end time to be the very end of
-            // the month
+        if (startTime.isNull()) {
             startTime = QDateTime(
-                        QDate(
-                            timestamp.date().year(),
-                            timestamp.date().month(),
-                            1),
+                        QDate(timestamp.date().year(),
+                              timestamp.date().month(),
+                              1),
                         QTime(0,0,0));;
             endTime = startTime.addMonths(1).addSecs(-1);
-            previousTime = startTime;
-            startContiguousTo = endTime;
-            endContiguousFrom = startTime;
-            qDebug() << "Data file max range:" << startTime << "to" << endTime;
 
-            if (timestamp != startTime) {
-                startContiguousTo = QDateTime(); // Start not contiguous
+            if (stationArchived) {
+                qDebug() << "Station is marked as archived - not detecting gaps. "
+                            "Received data file assumed to be complete and will be "
+                            "cached as-is permanently.";
+                startContiguousTo = endTime;
+                endContiguousFrom = startTime;
+                gapDetected = false;
             }
         }
 
-        qint64 previousSecs = previousTime.toSecsSinceEpoch();
-        qint64 thisSecs = timestamp.toSecsSinceEpoch();
-        if (thisSecs - previousSecs > archiveInterval) {
-            qDebug() << "GAP: This timestamp is" << timestamp << "previous was" << previousTime << ". Gap duration is" << thisSecs - previousSecs << "seconds.";
-            gapDetected = true;
-            if (startContiguousTo.isValid() && previousTime < startContiguousTo) {
-                startContiguousTo = previousTime;
-                qDebug() << "Start contiguous to:" << startContiguousTo;
-            }
-            if (timestamp > endContiguousFrom) {
-                endContiguousFrom = timestamp;
-                qDebug() << "End contiguous to:" << endContiguousFrom;
-            }
-        }
+        // If a station is archived that means all data that will ever be available for it
+        // *is* available right now and the stations entire data-set is now read-only. This
+        // means that any gaps in the data set are permanent and will always be there if we
+        // were to download the file again at some point in the future. Because of this we
+        // can cache any files from archived stations permanently which makes searching them
+        // for gaps unnecessary.
+        if (!stationArchived) {
+            // -----------/ The Gap Detection Zone /-----------
+            // Here in The Gap Detection Zone our job is to figure out if the data
+            // file contains absolutely every sample it could contain. This means
+            // checking the gap between any two samples is no greater than the
+            // stations sample interval.
 
-        if (fileData.isEmpty()) {
-            // Reached the end of the file. Current row is the last row.
-            // Check the final timestamp in the file is within archiveInterval
-            // seconds of the end of the month.
-            qint64 endSecs = endTime.toSecsSinceEpoch();
-            if (endSecs - thisSecs > archiveInterval) {
-                qDebug() << "GAP (@end): The end is" << endTime << "last row was" << timestamp << ". Gap duration is" << endSecs - thisSecs << "seconds.";
-                gapDetected = true;
-                endContiguousFrom = QDateTime(); // End is not contiguous.
-                if (startContiguousTo.isValid() && timestamp < startContiguousTo) {
-                    startContiguousTo = timestamp;
-                    qDebug() << "Start contiguous to:" << startContiguousTo;
+            if (!previousTime.isValid()) {
+                // First sample in the file. Initialise previousTime to be the very
+                // start of the month and set the end time to be the very end of
+                // the month
+                startTime = QDateTime(
+                            QDate(
+                                timestamp.date().year(),
+                                timestamp.date().month(),
+                                1),
+                            QTime(0,0,0));;
+                endTime = startTime.addMonths(1).addSecs(-1);
+                previousTime = startTime;
+                startContiguousTo = endTime;
+                endContiguousFrom = startTime;
+                qDebug() << "Data file max range:" << startTime << "to" << endTime;
+
+                if (timestamp != startTime) {
+                    startContiguousTo = QDateTime(); // Start not contiguous
                 }
             }
+
+            qint64 previousSecs = previousTime.toSecsSinceEpoch();
+            qint64 thisSecs = timestamp.toSecsSinceEpoch();
+            if (thisSecs - previousSecs > archiveInterval) {
+                // Detected gap is (previousTime, timestamp). If we've got a record of this
+                // gap being marked as permanent we can ignore it.
+                if (WebCacheDB::getInstance().sampleGapIsKnown(_stationDataUrl, previousTime, timestamp)) {
+                    qDebug() << "Detected gap from " << previousTime << "to" << timestamp << "is known to be permanent. Ignoring.";
+                } else {
+                    qDebug() << "GAP: This timestamp is" << timestamp << "previous was" << previousTime << ". Gap duration is" << thisSecs - previousSecs << "seconds.";
+                    gapDetected = true;
+                    if (startContiguousTo.isValid() && previousTime < startContiguousTo) {
+                        startContiguousTo = previousTime;
+                        qDebug() << "Start contiguous to:" << startContiguousTo;
+                    }
+                    if (timestamp > endContiguousFrom) {
+                        endContiguousFrom = timestamp;
+                        qDebug() << "End contiguous to:" << endContiguousFrom;
+                    }
+                }
+            }
+
+            if (fileData.isEmpty()) {
+                // Reached the end of the file. Current row is the last row.
+                // Check the final timestamp in the file is within archiveInterval
+                // seconds of the end of the month.
+                qint64 endSecs = endTime.toSecsSinceEpoch();
+                if (endSecs - thisSecs > archiveInterval) {
+                    // Detected gap is (timestamp, endTime). Check with the DB to see if this gap is
+                    // known to be permanent. If so we can safely ignore it and cache the gap.
+                    if (WebCacheDB::getInstance().sampleGapIsKnown(_stationDataUrl, timestamp, endTime)) {
+                        qDebug() << "Gap at end of file from" << timestamp << "to" << endTime << "is known to be permanent. Ignoring.";
+                    } else {
+                        qDebug() << "GAP (@end): The end is" << endTime << "last row was" << timestamp << ". Gap duration is" << endSecs - thisSecs << "seconds.";
+                        gapDetected = true;
+                        endContiguousFrom = QDateTime(); // End is not contiguous.
+                        if (startContiguousTo.isValid() && timestamp < startContiguousTo) {
+                            startContiguousTo = timestamp;
+                            qDebug() << "Start contiguous to:" << startContiguousTo;
+                        }
+                    }
+                }
+            }
+
+            previousTime = timestamp;
+
+            // ------------------------------------------------
         }
-
-        previousTime = timestamp;
-
-        // ------------------------------------------------
 
         if (!cacheStats.isValid) {
             // No ignore range. Let it through.

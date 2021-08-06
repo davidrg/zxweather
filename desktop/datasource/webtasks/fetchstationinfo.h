@@ -73,7 +73,13 @@ public slots:
 
 
 private:
-    bool processResponse(QByteArray responseData);
+    bool processSysConfigResponse(QByteArray responseData);
+    bool processGapDataResponse(QByteArray responseData);
+
+    bool _have_sysconfig;
+    bool _have_gap_data;
+    QString _sysconfig_url;
+    QString _gaps_url;
 };
 
 #endif // FETCHSTATIONINFO_H

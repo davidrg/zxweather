@@ -79,6 +79,7 @@ class WeatherDatabase(BaseClientDatabase):
         self._connection_string = dsn
 
         self._remote_stations = None
+        self._local_stations = []
 
         self._confirmations = []
 
@@ -443,12 +444,43 @@ class WeatherDatabase(BaseClientDatabase):
         self._conn.runQuery(query, (station_code,)).addCallback(
             _process_result)
 
+    @defer.inlineCallbacks
+    def _check_station(self, station_code):
+        """
+        Checks if a station is not archived before processing data for it.
+        :param station_code: Station code to check
+        :return: True if the station is known and not archived, False if there is a problem and data should not be transmitted.
+        """
+        if station_code.upper() not in self._local_stations:
+            result = yield self._conn.runQuery("select archived from station "
+                                               "where upper(code) = upper(%s)", (station_code,))
+
+            if len(result) == 0:
+                log.msg("Warning: Received data for unknown station {0} but "
+                        "station could not be found in the database. Ignoring.".format(station_code))
+                defer.returnValue(False)
+            else:
+                is_archived = result[0][0]
+                if is_archived:
+                    log.msg("Warning: received data for archived station {0}. "
+                            "Archived stations can not transmit new data. Ignoring.".format(station_code))
+                    defer.returnValue(False)
+                else:
+                    log.msg("New station detected - {0}!".format(station_code))
+                    self._local_stations.append(station_code.upper())
+        defer.returnValue(True)
+
+    @defer.inlineCallbacks
     def _fetch_live(self, station_code):
         """
         Fetches live data for the specified weather station and sends it off
         to the UploadClient for uploading.
         :param station_code: Station to get live data for.
         """
+
+        station_ok = yield self._check_station(station_code)
+        if not station_ok:
+            return
 
         hw_type = self.station_code_hardware_type[station_code]
 
@@ -501,6 +533,10 @@ class WeatherDatabase(BaseClientDatabase):
         if not self._transmitter_ready:
             # Client is not connected yet.
             log.msg("Transmitter not yet ready - skip sample fetch for station {0}",format(station_code))
+            return
+
+        station_ok = yield self._check_station(station_code)
+        if not station_ok:
             return
 
         # Don't bother sending samples for stations the remote system doesn't
@@ -713,6 +749,11 @@ class WeatherDatabase(BaseClientDatabase):
                     "{0}.".format(
                 result[0][0]))
             reactor.stop()
+
+        result = yield self._conn.runQuery("select upper(code) from station where not archived")
+        for row in result:
+            self._local_stations.append(row[0])
+        log.msg("Found stations: {0}".format(self._local_stations))
 
         # Database checks ok.
 

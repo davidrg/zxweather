@@ -115,19 +115,36 @@
                 var current_station = $("#current_station");
                 current_station.html(data['station_name'] + current_station.html());
 
+                var state = 0;
+                var station_menu = $("#station_menu")
+
                 for (var i = 0; i < station_list.length; i++) {
                     var station = station_list[i];
                     var code = station[0];
                     var name = station[1];
+                    var archived = station[2];
+
+                    console.log(station);
+
+                    if (!archived && state === 0) {
+                        state = 1;
+                    } else if (archived && state === 1) {
+                        station_menu.append('<li class="divider"></li>');
+                        state = 2;
+                    }
+
+                    if (archived) {
+                        name = name + " (archived)";
+                    }
 
                     var url = "";
-                    if (code == data['station_code']) {
+                    if (code === data['station_code']) {
                         url = "#";
                     } else {
                         url = "../" + code + "/about.html";
                     }
 
-                    $("#station_menu").append('<li><a href="' + url + '">' + name + '</a></li>');
+                    station_menu.append('<li><a href="' + url + '">' + name + '</a></li>');
                 }
             }
         });

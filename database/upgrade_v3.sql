@@ -104,6 +104,19 @@ comment on column station.longitude is 'Coordinates - longitude';
 alter table station add column altitude real not null default 0;
 comment on column station.altitude is 'Barometer/pressure sensor altitude. Used for relative pressure calculation.';
 
+alter table station add column archived boolean not null default false;
+comment on column station.archived is 'If the station is archived. This means its data will never be updated again and there will never be live data for it.';
+
+alter table station add column archived_message character varying;
+comment on column station.archived_message is 'Description of why the station was archived. May be publicly visible in the desktop client.';
+
+alter table station add column archived_time timestamptz;
+comment on column station.archived_time is 'Date the station was archived.';
+
+alter table station add CONSTRAINT chk_archived
+    CHECK ((not archived and archived_time is null and archived_message is null)
+        or (archived and archived_time is not null));
+
 -- Adjust comment for wind direction.
 COMMENT ON COLUMN sample.wind_direction IS 'Prevailing wind direction in degrees.';
 COMMENT ON COLUMN sample.rainfall IS 'Rainfall in mm.';

@@ -19,6 +19,7 @@ public:
      * @param baseUrl The base URL for the web interface
      * @param stationCode Station Code for the weather station being used
      * @param ds Parent data source that this task is doing work for
+     * @param queryStationInfo
      */
     explicit FetchSamplesWebTask(QString baseUrl,
                                  QString stationCode,
@@ -85,8 +86,6 @@ private:
 
     // Cache
     static QString lastSysConfig;
-
-    bool processResponse(QByteArray responseData);
 
     void finishWork();
 };

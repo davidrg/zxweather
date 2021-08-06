@@ -1006,7 +1006,52 @@ run this procedure again on a future date once you're sure the gaps are
 permanent""")
 
 
+def archive_station(con: psycopg2.extensions.connection):
+    print("\n\nArchive Station\n------------")
+    print("""
+This procedure allows you to archive a weather station and optionally supply a
+description or reason for its archival.
+
+Archived stations are just that - archived. They can not receive new data or be
+replicated by WeatherPush. The Web Interface will display a station archived
+message in place of the regular station overview page and desktop client will
+do similar.
+
+Archiving a station is intended to be permanent. Some clients, once they notice
+a station is archived, may cache this and never attempt to retrieve fresh data
+again. Un-archiving a station can only be done through editing the database.
+""")
+
+    if not get_boolean("Would you like to archive an old weather station?", False):
+        print("** Operation Canceled **")
+        return
+
+    cur = con.cursor()
+    codes = print_station_list(cur)
+    selected_station_code = get_code("Station To Archive", codes, required=True)
+    description = get_string("Archival Reason/Description")
+
+    cur.execute("select title from station where lower(code) = lower(%s)",
+                (selected_station_code,))
+    station_info = cur.fetchone()
+
+    print("Station to be archived is {0} ({1}) with the description:\n\t{2}"
+          .format(station_info[0], selected_station_code, description))
+
+    if not get_boolean("Do you wish to proceed?", False):
+        print("** Operation Canceled **")
+        return
+
+    cur.execute("update station set archived = true, archived_message = %s, "
+                "archived_time=NOW() where lower(code) = lower(%s)",
+                (description, selected_station_code)
+                )
+    con.commit()
+    print("** Station Archived **")
+
+
 def manage_stations(con: psycopg2.extensions.connection):
+
     """
     Runs a menu allowing the user to select various station management options.
     :param con: Database connection
@@ -1048,6 +1093,12 @@ def manage_stations(con: psycopg2.extensions.connection):
             "name": "Mark data gaps",
             "type": "func",
             "func": lambda: mark_gaps(con)
+        },
+        {
+            "key": "7",
+            "name": "Archive station",
+            "type": "func",
+            "func": lambda: archive_station(con)
         },
         {
             "key": "0",

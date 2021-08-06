@@ -68,6 +68,7 @@ private:
     static QMap<QString, QDateTime> lastQuery;
     bool _requestingRange;
     QHash<QString, QString> _urlNames;
+    QHash<QString, QDate> _urlMonths;
 
     int _sampleInterval;
 
@@ -81,7 +82,7 @@ private:
     bool buildUrlListAndQueue();
 
     static void getURLList(QString baseURL, QDateTime startTime, QDateTime endTime,
-                    QStringList& urlList, QStringList& nameList);
+                    QStringList& urlList, QStringList& nameList, QList<QDate> &months);
 
     void queueDownloadTasks(bool forceDownload);
 

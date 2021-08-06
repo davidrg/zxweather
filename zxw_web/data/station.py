@@ -23,7 +23,7 @@ from database import get_years, get_live_data, get_station_id, \
     get_month_rainfall, get_year_rainfall, get_last_hour_rainfall, \
     get_10m_avg_bearing_max_gust, get_day_wind_run, get_cumulus_dayfile_data, \
     get_image_source_info, get_image_sources_by_date, get_rain_summary, \
-    get_latest_image_ts_for_source, get_images_in_last_minute, get_image_source_date_counts
+    get_latest_image_ts_for_source, get_images_in_last_minute, get_image_source_date_counts, get_permanent_data_gaps
 import os
 
 import math
@@ -166,6 +166,8 @@ class data_json:
         elif dataset == 'about':
             nav = about_nav()
             return nav.GET(station)
+        elif dataset == 'gaps':
+            return data_gaps(station_id)
         else:
             raise web.NotFound()
 
@@ -489,14 +491,31 @@ def rain_summary(station_id):
 
     rows = get_rain_summary(station_id)
 
-    for row in rows:
-        result[row.period] = {
-            'total': row.rainfall,
-            'start': row.start_time.isoformat(),
-            'end': row.end_time.isoformat()
-        }
+    if rows is not None:
+        for row in rows:
+            result[row.period] = {
+                'total': row.rainfall,
+                'start': row.start_time.isoformat(),
+                'end': row.end_time.isoformat()
+            }
 
     # TODO: cache control?
+    web.header('Content-Type', 'application/json')
+    return json.dumps(result)
+
+
+def data_gaps(station_id):
+    gaps = get_permanent_data_gaps(station_id)
+
+    result = []
+    for gap in gaps:
+        result.append({
+            "start_time": gap.start_time.isoformat(),
+            "end_time": gap.end_time.isoformat(),
+            "missing_sample_count": gap.missing_sample_count,
+            "label": gap.label
+        })
+
     web.header('Content-Type', 'application/json')
     return json.dumps(result)
 

@@ -10,11 +10,21 @@ from mimetypes import guess_type
 from wsgiref.handlers import format_date_time
 from time import mktime
 import web
+import re
+from web.contrib.template import render_jinja
+
 import config
 import os
-from database import get_station_id
+import ui
+from database import get_station_id, get_station_name, get_stations, get_site_name
 
 __author__ = 'David Goodwin'
+
+modern_template_dir = os.path.join(os.path.dirname(__file__),
+                                   "ui",
+                                   os.path.join('modern_templates'))
+modern_templates = render_jinja(modern_template_dir, encoding='utf-8')
+
 
 class overlay_file:
     """ Handles static overlay files. """
@@ -55,6 +65,56 @@ class overlay_file:
 
         return path_name
 
+    @staticmethod
+    def render_static_html(static_file, archive_mode=False, current_location=None):
+        path_name = config.static_data_dir + static_file
+
+        # Its an HTML file. Lets check if it needs
+        with open(path_name, 'r') as f:
+            content = f.read()
+
+            title_regex = r"<!-- TITLE:(.*)-->"
+
+            # This is kind of gross.
+            if "<html" in content[0:100]:
+                # HTML opening tag in the first few lines - return it as is.
+                return content
+            else:
+                station_code = None
+                station_name = "Select station"
+                site_name = config.site_name
+                if '/' in static_file:
+                    station_code = static_file.split('/')[0]
+                    station_id = get_station_id(station_code)
+                    station_name = get_station_name(station_id)
+                    site_name = get_site_name(station_id)
+
+                if current_location is None:
+                    current_location = "/*/{0}".format(static_file)
+
+                page_data = {
+                    "station_name": station_name,
+                    "stations": ui.make_station_switch_urls(
+                        get_stations(), current_location, None,
+                        None)
+                }
+
+                page_title = ""
+                first_line = content.split('\n', 1)[0]
+                match = re.match(title_regex, first_line, re.IGNORECASE)
+                if match and len(match.groups()) > 0:
+                    page_title = match.groups()[0].strip()
+
+                return modern_templates.template_file(
+                    switch_url=ui.build_alternate_ui_urls(current_location),
+                    page_data=page_data,
+                    archive_mode=archive_mode or station_code is None,
+                    sitename=site_name,
+                    nav=ui.get_nav_urls(station_code, current_location),
+                    title=page_title,
+                    content=content)
+
+
     def GET(self, file):
         """
         Gets the specified static file.
@@ -76,7 +136,12 @@ class overlay_file:
         if os.path.isdir(path_name):
             raise web.NotFound()
 
+        if os.path.exists(path_name) and path_name.endswith(".html") and \
+                not path_name.endswith("/about.html"):
+            return self.render_static_html(file)
+
         return overlay_file.get_file(path_name)
+
 
     def HEAD(self, file):
         """
@@ -124,7 +189,11 @@ class overlay_file:
             content_type = guess_type(filename)[0]
 
         web.header("Content-Type", content_type)
-        web.header("Content-Length", str(os.path.getsize(filename)))
+
+        if not filename.endswith(".html"):
+            # Don't include a length for HTML files as these might be served up
+            # wrapped in a header and footer when requested.
+            web.header("Content-Length", str(os.path.getsize(filename)))
 
         timestamp = datetime.fromtimestamp(os.path.getmtime(filename))
         web.header("Last-Modified",
