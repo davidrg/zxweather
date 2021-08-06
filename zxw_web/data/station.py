@@ -491,12 +491,13 @@ def rain_summary(station_id):
 
     rows = get_rain_summary(station_id)
 
-    for row in rows:
-        result[row.period] = {
-            'total': row.rainfall,
-            'start': row.start_time.isoformat(),
-            'end': row.end_time.isoformat()
-        }
+    if rows is not None:
+        for row in rows:
+            result[row.period] = {
+                'total': row.rainfall,
+                'start': row.start_time.isoformat(),
+                'end': row.end_time.isoformat()
+            }
 
     # TODO: cache control?
     web.header('Content-Type', 'application/json')
