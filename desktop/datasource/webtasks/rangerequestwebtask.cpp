@@ -93,7 +93,47 @@ void RangeRequestWebTask::networkReplyReceived(QNetworkReply *reply) {
     reply->deleteLater();
 
     if (reply->error() != QNetworkReply::NoError) {
-        emit failed(reply->errorString());
+        QString url = reply->request().url().toString();
+        if (reply->error() == QNetworkReply::ContentNotFoundError
+                && _urlMonths.contains(url)) {
+            qDebug() << "Requested URL" << url << "was not found on the server!";
+
+            QDate startDate = _urlMonths[url];
+
+            data_file_t dataFile;
+            dataFile.filename = url;
+            dataFile.isValid = true;
+            dataFile.last_modified = QDateTime::currentDateTime();
+            dataFile.size = 0;
+            //dataFile.samples;
+            dataFile.expireExisting = false;
+            dataFile.hasSolarData = false; // This is just used for caching the data (which we don't have)
+            dataFile.start_time = QDateTime(startDate, QTime(0,0));
+            dataFile.end_time = dataFile.start_time.addMonths(1).addSecs(-1);
+
+            if (WebCacheDB::getInstance().stationIsArchived(_stationDataUrl)) {
+                qDebug() << "Station is archived - treating 404 as permanent gap of 1 month.";
+                dataFile.isComplete = true;
+                dataFile.start_contiguous_to = dataFile.end_time;
+                dataFile.end_contiguous_from = dataFile.start_time;
+            } else {
+                dataFile.isComplete = false;
+                //dataFile.start_contiguous_to = QDateTime();
+                //dataFile.end_contiguous_from = endContiguousFrom;
+            }
+
+            WebCacheDB::getInstance().cacheDataFile(dataFile, _stationDataUrl);
+            _awaitingUrls--;
+
+
+            if (_awaitingUrls == 0) {
+                completeWork();
+                emit finished();
+            }
+
+        } else {
+            emit failed(reply->errorString());
+        }
     } else {
         QByteArray replyData = reply->readAll();
 
@@ -139,7 +179,7 @@ void RangeRequestWebTask::ClearURLCache() {
 }
 
 void RangeRequestWebTask::getURLList(QString baseURL, QDateTime startTime, QDateTime endTime,
-                QStringList& urlList, QStringList& nameList) {
+                QStringList& urlList, QStringList& nameList, QList<QDate>& months) {
 
 
     QDate startDate = startTime.date();
@@ -205,6 +245,7 @@ void RangeRequestWebTask::getURLList(QString baseURL, QDateTime startTime, QDate
 
             urlList.append(url);
             nameList.append(monthName + " " + QString::number(year));
+            months.append(QDate(year, month, 1));
 
             // We're finished.
 //            if (year == endYear && month == endMonth)
@@ -258,12 +299,14 @@ bool RangeRequestWebTask::buildUrlListAndQueue() {
 
     QStringList urlList;
     QStringList nameList;
+    QList<QDate> monthList;
     RangeRequestWebTask::getURLList(
                 _stationDataUrl,
                _requestData.startTime,
                _requestData.endTime,
                urlList /*OUT*/,
-               nameList /*OUT*/
+               nameList /*OUT*/,
+               monthList /*OUT*/
                );
 
     qDebug() << "URLs:" << urlList;
@@ -280,7 +323,9 @@ bool RangeRequestWebTask::buildUrlListAndQueue() {
     for (int i = 0; i < urlList.count(); i++) {
         QString url = urlList[i];
         QString name = nameList[i];
+        QDate month = monthList[i];
         _urlNames[url] = name;
+        _urlMonths[url] = month;
     }
 
 #ifdef PARALLEL_HEAD

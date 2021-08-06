@@ -32,6 +32,19 @@ typedef struct _data_file_t {
     QDateTime end_time;
 } data_file_t;
 
+typedef struct _sample_gap_t {
+    QDateTime start_time;
+    QDateTime end_time;
+    int missing_samples;
+    QString label;
+
+    bool operator==(struct _sample_gap_t const & rhs) const {
+        // As far as equality goes we really only care about the timespan.
+        // Missing sample count depends on timespan and label doesn't affect caching.
+        return this->start_time == rhs.start_time && this->end_time == this->end_time;
+    }
+} sample_gap_t;
+
 typedef struct _image_set_t {
     QString filename;
     int size;
@@ -228,6 +241,14 @@ public:
      */
     bool stationKnown(QString url);
 
+    /** Returns true if the specified station is known to the cache database
+     *  and marked as archived.
+     *
+     * @param url Station URL
+     * @return If the station exists and is marked as archived.
+     */
+    bool stationIsArchived(QString url);
+
     /** Updates extra data associated with a station. Aside from the solar and hardware type
      * parameters this is mostly for use by reports.
      *
@@ -246,7 +267,33 @@ public:
     void updateStation(QString url, QString title, QString description, QString type_code,
                        int interval, float latitude, float longitude, float altitude,
                        bool solar, int davis_broadcast_id,
-                       QMap<ExtraColumn, QString> extraColumnNames);
+                       QMap<ExtraColumn, QString> extraColumnNames, bool archived, QDateTime archivedTime, QString archivedMessage);
+
+
+    /** Updates the list of known permanent data gaps for the specified
+     *  station.
+     *
+     * @param url Station URL
+     * @param gaps Permanent data gap information.
+     */
+    void updateStationGaps(QString url, QList<sample_gap_t> gaps);
+
+    /** Gets the list of all known permanent data gaps for the specified station
+     *
+     * @param url Station to get data gaps for
+     * @return List of data gaps
+     */
+    QList<sample_gap_t> getStationGaps(QString url);
+
+    /** Checks the database to see if the specified timespan falls within
+     *  a known permanent gap in the stations full dataset.
+     *
+     * @param url Station URL
+     * @param gapStart Start of the timespan to check
+     * @param gapEnd End of the timespan to check
+     * @return If the timespan is or falls within a known permanent gap.
+     */
+    bool sampleGapIsKnown(QString url, QDateTime gapStart, QDateTime gapEnd);
 
     /** Gets the names for all enabled extra senosrs
      *

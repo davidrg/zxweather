@@ -106,6 +106,7 @@ void WebCacheDB::openDatabase() {
             if (!runUpgradeScript(5, ":/cache_db/v5.sql", filename)) return; // v4 -> v5
             if (!runUpgradeScript(6, ":/cache_db/v6.sql", filename)) return; // v5 -> v6
             if (!runUpgradeScript(7, ":/cache_db/v7.sql", filename)) return; // v6 -> v7
+            if (!runUpgradeScript(8, ":/cache_db/v8.sql", filename)) return; // v7 -> v8
 
         } else {
             emit criticalError(tr("Failed to determine version of cache database"));
@@ -429,7 +430,13 @@ void WebCacheDB::cacheDataSet(SampleSet samples,
                               int stationId,
                               int dataFileId,
                               bool hasSolarData) {
-    qDebug() << "Caching dataset of" << samples.sampleCount << "samples...";
+    if (samples.sampleCount == 0) {
+        qDebug() << "Data set is empty! Nothing to cache.";
+        return;
+    }
+
+    qDebug() << "Caching dataset of" << samples.sampleCount << "samples..."; 
+
     // First up, grab the list of samples that are missing from the database.
     QVariantList timestamps, temperature, dewPoint, apparentTemperature,
             windChill, indoorTemperature, humidity, indoorHumidity, pressure,
@@ -2032,14 +2039,41 @@ bool WebCacheDB::stationKnown(QString url) {
     return query.first();
 }
 
+bool WebCacheDB::stationIsArchived(QString url) {
+    QSqlQuery query(sampleCacheDb);
+    query.prepare("select archived from station where code = :url");
+    query.bindValue(":url", url);
+    query.exec();
+    if (query.first()) {
+        return query.record().field(0).value().toBool();
+    }
+    return false;
+}
+
 void WebCacheDB::updateStation(QString url, QString title, QString description,
                                QString type_code, int interval, float latitude,
                                float longitude, float altitude, bool solar,
                                int davis_broadcast_id,
-                               QMap<ExtraColumn, QString> extraColumnNames) {
+                               QMap<ExtraColumn, QString> extraColumnNames,
+                               bool archived, QDateTime archivedTime,
+                               QString archivedMessage) {
     if (!ready) {
         return;
     }
+
+    /* TODO:
+     * Might be worth checking that this station update won't un-archive the station.
+     * If the DB is currently archived and the incoming station data says its not archived
+     * then we've no idea of the validity of our cache and we really out to either error
+     * or dump the entire cache for this station.
+     *
+     * if (stationIsArchived(url) && !archived) {
+     *      qWarning() << "Station has been unarchived! This is not allowed - forcing cache purge";
+     *      // delete all samples, data files and images for the station
+     * }
+     *
+     */
+
 
     qDebug() << "Updating station info for" << url;
 
@@ -2051,7 +2085,9 @@ void WebCacheDB::updateStation(QString url, QString title, QString description,
                   "station_type_id = (select station_type_id from station_type where lower(code) = :type_code), "
                   "sample_interval = :interval, "
                   "latitude = :latitude, longitude = :longitude, altitude = :altitude, "
-                  "solar_available = :solar, davis_broadcast_id = :broadcast_id "
+                  "solar_available = :solar, davis_broadcast_id = :broadcast_id,  "
+                  "archived = :archived, archived_time = :archived_time, "
+                  "archived_message = :archived_message "
                   "where station_id = :station_id");
     query.bindValue(":title", title);
     query.bindValue(":description", description);
@@ -2080,7 +2116,13 @@ void WebCacheDB::updateStation(QString url, QString title, QString description,
         query.bindValue(":broadcast_id", QVariant(QVariant::Int));
     }
 
-    query.exec();
+    query.bindValue(":archived", archived);
+    query.bindValue(":archived_time", archivedTime.toTime_t());
+    query.bindValue(":archived_message", archivedMessage);
+
+    if (!query.exec()) {
+        qWarning() << "Failed to update station config! Error:" << query.lastError().databaseText();
+    }
 
     qDebug() << "Update sensor config";
     qDebug() << "Disable all sensors...";
@@ -2163,6 +2205,95 @@ void WebCacheDB::updateStation(QString url, QString title, QString description,
     sampleCacheDb.commit();
     qDebug() << "Station updated";
 }
+
+void WebCacheDB::updateStationGaps(QString url, QList<sample_gap_t> gaps) {
+    int station_id = getStationId(url);
+    QString query = "insert into sample_gap(station_id, start_time, end_time, "
+                    "                       missing_sample_count, label) "
+                    "values(?, ?, ?, ?, ?) "
+                    "on conflict (station_id, start_time, end_time) "
+                    "do update set label=excluded.label";
+
+    QVariantList stationIds;
+    QVariantList startTimes;
+    QVariantList endTimes;
+    QVariantList missingSampleCounts;
+    QVariantList labels;
+
+    QTime timer;
+    timer.start();
+    QSqlDatabase db = sampleCacheDb;
+    db.transaction();
+
+    foreach (sample_gap_t gap, gaps) {
+        stationIds << station_id;
+        startTimes << gap.start_time.toTime_t();
+        endTimes << gap.end_time.toTime_t();
+        missingSampleCounts << gap.missing_samples;
+        labels << gap.label;
+    }
+
+    QSqlQuery q(sampleCacheDb)  ;
+    q.prepare(query);
+    q.addBindValue(stationIds);
+    q.addBindValue(startTimes);
+    q.addBindValue(endTimes);
+    q.addBindValue(missingSampleCounts);
+    q.addBindValue(labels);
+
+    if (!q.execBatch()) {
+        qWarning() << "Failed to store one or more station gaps!";
+    }
+    if (!db.commit()) {
+        qWarning() << "Transaction commit failed. Gaps not stored.";
+    }
+    qDebug() << "Transaction committed at " << timer.elapsed() << "msecs";
+
+    optimise();
+}
+
+
+QList<sample_gap_t> WebCacheDB::getStationGaps(QString url) {
+    QList<sample_gap_t> gaps;
+
+    QSqlQuery q(sampleCacheDb);
+    q.prepare("select sg.start_time, sg.end_time, sg.missing_sample_count, sg.text "
+              "from sample_gap sg "
+              "inner join station s on sg.station_id = s.station_id "
+              "where lower(s.code) = lower(:station_code)");
+    q.bindValue(":station_code", url);
+
+    if (q.exec()) {
+        do {
+            QSqlRecord rec = q.record();
+            sample_gap_t gap;
+            gap.start_time = QDateTime::fromTime_t(rec.field(0).value().toInt());
+            gap.end_time = QDateTime::fromTime_t(rec.field(1).value().toInt());
+            gap.missing_samples = rec.field(2).value().toInt();
+            gap.label = rec.field(3).value().toString();
+            gaps.append(gap);
+        } while (q.next());
+    }
+
+    return gaps;
+}
+
+
+bool WebCacheDB::sampleGapIsKnown(QString url, QDateTime gapStart, QDateTime gapEnd) {
+    QSqlQuery q(sampleCacheDb);
+    q.prepare("select sample_gap_id "
+              "from sample_gap sg "
+              "inner join station s on s.station_id = sg.station_id "
+              "where lower(s.code) = lower(:station_code)"
+              "  and sg.start_time <= :start_ts "
+              "  and sg.end_time >= :end_ts");
+    q.bindValue(":station_code", url);
+    q.bindValue(":start_ts", gapStart.toTime_t());
+    q.bindValue(":end_ts", gapEnd.toTime_t());
+    q.exec();
+    return q.first();
+}
+
 
 QMap<ExtraColumn, QString> WebCacheDB::getExtraColumnNames(QString url) {
     int station_id = getStationId(url);
@@ -2336,7 +2467,7 @@ void WebCacheDB::updateImageDateList(QString stationCode, QMap<QString, QMap<QDa
         q.prepare("delete from image_dates where image_source_id = :id");
         q.bindValue(":id", sourceId);
         if (!q.exec()) {
-            qWarning() << "Failed to drop cacehed dates for source " << sourceCode << "with id" << sourceId;
+            qWarning() << "Failed to drop cached dates for source " << sourceCode << "with id" << sourceId;
         }
 
 

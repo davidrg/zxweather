@@ -55,28 +55,27 @@ void FetchSamplesWebTask::beginTask() {
 
         finishWork();
     } else {
-        QNetworkRequest request(url);
+        qDebug() << "Haven't fetched SYSCONFIG recently - queueing request and requeueing self.";
+        lastSysConfig = url;
 
-        emit httpGet(request);
+        FetchStationInfoWebTask* task = new FetchStationInfoWebTask(
+                    _baseUrl, _stationCode, _dataSource);
+
+        emit queueTask(task);
+
+        FetchSamplesWebTask *task2 = new FetchSamplesWebTask(
+                    _baseUrl, _stationCode, _columns, _startTime, _endTime,
+                    _aggregateFunction, _groupType, _groupMinutes, _select,
+                    _dataSource);
+        emit queueTask(task2);
+        emit finished();
     }
 }
 
+
 void FetchSamplesWebTask::networkReplyReceived(QNetworkReply *reply) {
+    // This task doesn't make any network requests.
     reply->deleteLater();
-
-    if (reply->error() != QNetworkReply::NoError) {
-        emit failed(reply->errorString());
-    } else {
-        QByteArray replyData = reply->readAll();
-
-        bool ok = processResponse(replyData);
-
-        if (ok) {
-            // Sysconfig data loaded! Queue up the next task!
-            lastSysConfig = reply->url().toString();
-            finishWork();
-        }
-    }
 }
 
 void FetchSamplesWebTask::finishWork() {
@@ -111,97 +110,5 @@ void FetchSamplesWebTask::finishWork() {
                 _baseUrl, _stationCode, request, _select, _dataSource);
     emit queueTask(task);
     emit finished();
-}
-
-bool FetchSamplesWebTask::processResponse(QByteArray responseData) {
-    using namespace QtJson;
-
-    bool ok;
-
-    QVariantMap result = Json::parse(responseData, ok).toMap();
-
-    if (!ok) {
-        qDebug() << "sysconfig parse error. Data:" << responseData;
-        emit failed(tr("JSON parsing failed while loading system configuration."));
-        return false;
-    }
-
-    qDebug() << "Parsing SYSCONFIG data";
-
-    QVariantList stations = result["stations"].toList();
-    foreach (QVariant station, stations) {
-        QVariantMap stationData = station.toMap();
-
-        qDebug() << "SYSCONFIG: Station:" << stationData["code"].toString();
-
-        if (stationData["code"].toString().toLower() == _stationCode) {
-            _stationName = stationData["name"].toString();
-            _isSolarAvailable = false;
-            _isWireless = false;
-
-            QString hw = stationData["hw_type"].toMap()["code"].toString().toUpper();
-
-            int davis_broadcast_id = -1;
-
-            if (hw == "DAVIS") {
-                _isSolarAvailable = stationData["hw_config"]
-                        .toMap()["has_solar_and_uv"].toBool();
-                _isWireless = stationData["hw_config"]
-                        .toMap()["is_wireless"].toBool();
-                _hwType = HW_DAVIS;
-
-                if (_isWireless) {
-                    bool ok;
-                    davis_broadcast_id = stationData["hw_config"].toMap()["broadcast_id"].toInt(&ok);
-                    if (!ok) {
-                        davis_broadcast_id = -1;
-                    }
-                }
-            } else if (hw == "FOWH1080") {
-                _hwType = HW_FINE_OFFSET;
-            } else {
-                _hwType = HW_GENERIC;
-            }
-
-            float latitude = FLT_MAX, longitude = FLT_MAX;
-            QVariantMap coordinates = stationData["coordinates"].toMap();
-            if (!coordinates["latitude"].isNull()) {
-                latitude = coordinates["latitude"].toFloat();
-            }
-            if (!coordinates["longitude"].isNull()) {
-                longitude = coordinates["longitude"].toFloat();
-            }
-
-            int sample_interval = 5;
-            if (stationData.contains("interval")) {
-                sample_interval = stationData["interval"].toInt() / 60;
-            }
-
-
-            QMap<ExtraColumn, QString> extraColumnNames;
-            ExtraColumns extraColumns;
-
-            FetchStationInfoWebTask::parseSensorConfig(
-                        stationData, &extraColumnNames, &extraColumns);
-
-            _dataSource->updateStation(
-                    _stationName,
-                    stationData["desc"].toString(),
-                    stationData["hw_type"].toMap()["code"].toString().toLower(),
-                    sample_interval,
-                    latitude,
-                    longitude,
-                    stationData["coordinates"].toMap()["altitude"].toFloat(),
-                    _isSolarAvailable,
-                    davis_broadcast_id,
-                    extraColumns,
-                    extraColumnNames
-            );
-
-            return true;
-        }
-    }
-
-    return false;
 }
 

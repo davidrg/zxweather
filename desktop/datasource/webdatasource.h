@@ -128,7 +128,8 @@ private:
                        int interval, float latitude, float longitude, float altitude,
                        bool solar, int davis_broadcast_id,
                        ExtraColumns extraColumns,
-                       QMap<ExtraColumn, QString> extraColumnNames);
+                       QMap<ExtraColumn, QString> extraColumnNames,
+                       bool archived, QDateTime archivedTime, QString archivedMessage);
 
     QString stationURL() const;
 
