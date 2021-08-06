@@ -1,0 +1,61 @@
+<html>
+<head>
+<title>Data Gaps</title>
+</head>
+<body>
+	<b>Data Gaps</b>
+    <hr>
+
+    {{#station_info}}
+    {{#archived}}
+    <p>This station is archived as of {{archived_time}} with the following message: {{archived_message}}</p>
+    {{/archived}}
+
+    {{#has_known_gaps}}
+    <p>
+        The following gaps in the station dataset have been marked as
+        permanent.
+    </p>
+    {{/has_known_gaps}}
+    {{^has_known_gaps}}
+    <p>
+        This station has no gaps in its dataset marked as permanent! If there
+        are any unmarked gaps in the stations dataset you know are permanent
+        (the data for them doesn't exist) you can mark them using the admin
+        tool. This will improve this applications caching performance when using
+        the Web Interface as the Sample Data Source.
+    </p>
+    {{/has_known_gaps}}
+
+    {{#has_known_gaps}}
+    <p></p>
+    <table border=1>
+        <thead>
+            <tr>
+                <th>Start Time</th>
+                <th>End Time</th>
+                <th>Duration</th>
+                <th>Missing Samples</th>
+                <th>Label</th>
+            </tr>
+        </thead>
+        <tbody>
+    {{/has_known_gaps}}
+    {{/station_info}}
+            {{#data_gaps}}
+            <tr>
+                <td>{{start_time}}</td>
+                <td>{{end_time}}</td>
+                <td>{{gap_length_minutes}} minutes</td>
+                <td>{{missing_sample_count}}</td>
+                <td>{{label}}</td>
+            </tr>
+            {{/data_gaps}}
+    {{#station_info}}
+    {{#has_known_gaps}}
+        </tbody>
+	</table>
+    {{/has_known_gaps}}
+    {{/station_info}}
+</body>
+</html>

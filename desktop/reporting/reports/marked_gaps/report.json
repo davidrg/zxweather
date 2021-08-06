@@ -1,0 +1,40 @@
+{
+	"title": "Data Gaps",
+	"description": "description.html",
+	"time_picker": "none",
+	"default_time_span": "today",
+	"supported_weather_stations": ["generic"],
+    "queries": {
+		"data_gaps": {
+            "web": {
+                "file": "gap_data_sqlite.sql",
+                "parameters": [
+                    "stationCode"
+                ]
+            }
+		},
+		"station_info": {
+            "web": {
+                "file": "station_info_sqlite.sql",
+                "parameters": [
+                    "stationCode"
+                ]
+            }
+		}
+	},
+	"output_type": "show",
+    "output_window_size": {
+		"height": 400,
+		"width": 800
+	},
+	"outputs": [
+		{
+			"name": "html",
+			"title": "Data Gaps",
+			"icon": "../../icons/report",
+			"format": "html",
+			"template": "report.html",
+			"filename": "marked_data_gaps.html"
+		}
+	]
+}
