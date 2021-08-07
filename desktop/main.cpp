@@ -80,7 +80,9 @@ void msgFileHandler(QtMsgType type, const QMessageLogContext &, const QString & 
 
 int main(int argc, char *argv[])
 {
+#if (QT_VERSION >= QT_VERSION_CHECK(5,6,0))
     QGuiApplication::setAttribute(Qt::AA_DisableHighDpiScaling);
+#endif
 
     QApplication a(argc, argv);
     QCoreApplication::setOrganizationName("zxnet");

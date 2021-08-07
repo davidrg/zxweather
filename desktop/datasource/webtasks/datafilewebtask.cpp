@@ -279,8 +279,14 @@ data_file_t DataFileWebTask::loadDataFile(QStringList fileData,
                 }
             }
 
+#if (QT_VERSION >= QT_VERSION_CHECK(5,8,0))
             qint64 previousSecs = previousTime.toSecsSinceEpoch();
             qint64 thisSecs = timestamp.toSecsSinceEpoch();
+#else
+            qint64 previousSecs = previousTime.toTime_t();
+            qint64 thisSecs = timestamp.toTime_t();
+#endif
+
             if (thisSecs - previousSecs > archiveInterval) {
                 // Detected gap is (previousTime, timestamp). If we've got a record of this
                 // gap being marked as permanent we can ignore it.
@@ -304,7 +310,11 @@ data_file_t DataFileWebTask::loadDataFile(QStringList fileData,
                 // Reached the end of the file. Current row is the last row.
                 // Check the final timestamp in the file is within archiveInterval
                 // seconds of the end of the month.
+#if (QT_VERSION >= QT_VERSION_CHECK(5,8,0))
                 qint64 endSecs = endTime.toSecsSinceEpoch();
+#else
+                qint64 endSecs = endTime.toTime_t();
+#endif
                 if (endSecs - thisSecs > archiveInterval) {
                     // Detected gap is (timestamp, endTime). Check with the DB to see if this gap is
                     // known to be permanent. If so we can safely ignore it and cache the gap.

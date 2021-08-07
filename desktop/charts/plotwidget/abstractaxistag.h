@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QPointer>
 
+#include "charts/plotwidget.h"
 
 class QCPAxis;
 class QCPItemLine;

@@ -12,6 +12,7 @@ class QCPAxis;
 class QCPGraph;
 class TracingAxisTag;
 class QCPAxisRect;
+class QMouseEvent;
 
 /** Highlights the point nearest the mouse cursors X coordinate on all
  * graphs in the default axis rect and tags those points coordinates on

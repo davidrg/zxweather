@@ -162,7 +162,12 @@ void PlusCursor::cleanup() {
 
     keyAxes.clear();
     valueAxes.clear();
+
+#if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
     currentAxisRect.clear();
+#else
+    currentAxisRect = NULL;
+#endif
 
     chart->layer("overlay")->replot();
 }

@@ -31,6 +31,11 @@ TEMPLATE = app
 ######################
 DEFINES += SINGLE_INSTANCE   # Only allow one instance per station code
 
+# We now require C++11 and at a minimum GCC 4.8 (though 4.6 *may* work)
+# This likely means using the 4.8.6 or 4.8.7 Qt SDK unless building Qt
+# from source.
+greaterThan(QT_MAJOR_VERSION, 5): CONFIG += c++11
+lessThan(QT_MAJOR_VERSION, 5): QMAKE_CXXFLAGS += -std=gnu++11
 
 ######################
 # Libraries          #

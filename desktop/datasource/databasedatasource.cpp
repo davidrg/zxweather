@@ -1767,7 +1767,10 @@ void DatabaseDataSource::databaseError(QString source, QSqlError error,
     qDebug() << "Database Error in" << source;
     qDebug() << error.databaseText();
     qDebug() << error.driverText();
-    qDebug() << error.nativeErrorCode() << error.text() << error.type();
+#if (QT_VERSION >= QT_VERSION_CHECK(5,5,0))
+    qDebug() << error.nativeErrorCode();
+#endif
+    qDebug() << error.text() << error.type();
     qDebug() << sql;
     QString message = QString(tr("Source: %1, Driver: %2, Database: %3")).arg(
                 source, error.driverText(), error.databaseText());
