@@ -19,6 +19,10 @@
 #include <QtCore/QStringList>
 #include <QtCore/QTextStream>
 
+#if (QT_VERSION >= QT_VERSION_CHECK(6,0,0))
+#include <QStringView>
+#endif
+
 using namespace Mustache;
 
 QString Mustache::renderTemplate(const QString& templateString, const QVariantHash& args)
@@ -274,11 +278,19 @@ QString Renderer::render(const QString& _template, int startPos, int endPos, Con
 
 	while (m_errorPos == -1) {
 		Tag tag = findTag(_template, lastTagEnd, endPos);
+#if (QT_VERSION >= QT_VERSION_CHECK(6,0,0))
+        if (tag.type == Tag::Null) {
+            output += QStringView{_template}.mid(lastTagEnd, endPos - lastTagEnd);
+            break;
+        }
+        output += QStringView{_template}.mid(lastTagEnd, tag.start - lastTagEnd);
+#else
 		if (tag.type == Tag::Null) {
 			output += _template.midRef(lastTagEnd, endPos - lastTagEnd);
 			break;
 		}
 		output += _template.midRef(lastTagEnd, tag.start - lastTagEnd);
+#endif
 		switch (tag.type) {
 		case Tag::Value:
 		{

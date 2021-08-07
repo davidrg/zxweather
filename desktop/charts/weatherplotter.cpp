@@ -2,11 +2,13 @@
 #include "settings.h"
 #include "constants.h"
 #include "plotwidget/axistype.h"
+#include "compat.h"
 
 #include <QtDebug>
 #include <QMessageBox>
 #include <QFontMetrics>
 #include <algorithm>
+
 
 WeatherPlotter::WeatherPlotter(PlotWidget *chart, QObject *parent) :
     QObject(parent)
@@ -639,10 +641,8 @@ void WeatherPlotter::addGraphs(QMap<dataset_id_t, SampleSet> sampleSets)
             continue;
         }
 
-        dataSetMinimumTime[dataSetId] = QDateTime::fromTime_t(
-                    samples.timestampUnix.first());
-        dataSetMaximumTime[dataSetId] = QDateTime::fromTime_t(
-                    samples.timestampUnix.last());
+        dataSetMinimumTime[dataSetId] = FROM_UNIX_TIME(samples.timestampUnix.first());
+        dataSetMaximumTime[dataSetId] = FROM_UNIX_TIME(samples.timestampUnix.last());
 
         qDebug() << "Adding graphs" << (int)ds.columns.standard << (int)ds.columns.extra << "for dataset" << ds.id;
 
@@ -834,8 +834,8 @@ void WeatherPlotter::multiRescale(RescaleType rs_type) {
     uint max_delta = 0;
     QDateTime max_range_ds_start;
     QDateTime max_range_ds_end;
-    QDateTime min_start = QDateTime(QDate(3000,12,12));
-    QDateTime max_end = QDateTime(QDate(0,1, 1));
+    QDateTime min_start = QDateTime(QDate(3000,12,12), QTime(0,0));
+    QDateTime max_end = QDateTime(QDate(0,1, 1), QTime(0,0));
     QTime min_time = QTime(23,59,59);
     int min_month = 12;
     int min_day_of_month = 31;
@@ -844,7 +844,7 @@ void WeatherPlotter::multiRescale(RescaleType rs_type) {
         QDateTime start = dataSetMinimumTime[id];
         QDateTime end = dataSetMaximumTime[id];
 
-        uint delta = end.toTime_t() - start.toTime_t();
+        auto delta = TO_UNIX_TIME(end) - TO_UNIX_TIME(start);
         if (delta > max_delta) {
             max_delta = delta;
             max_range_ds_start = start;
@@ -878,8 +878,8 @@ void WeatherPlotter::multiRescale(RescaleType rs_type) {
         // The range needs go from the earliest timestamp in the earliest
         // data set to the latest timestamp in the latest dataset so as to
         // include all data in all datasets.
-        range.lower = min_start.toTime_t();
-        range.upper = max_end.toTime_t();
+        range.lower = TO_UNIX_TIME(min_start);
+        range.upper = TO_UNIX_TIME(max_end);
 
         foreach (dataset_id_t id, dataSets.keys()) {
             QPointer<QCPAxis> axis = getKeyAxis(id, false);
@@ -915,7 +915,7 @@ void WeatherPlotter::multiRescale(RescaleType rs_type) {
             // Rescale the axis so we can get its min and max values
             axis->rescale();
             QCPRange axisRange = axis->range();
-            QDateTime min_ts = QDateTime::fromTime_t(axisRange.lower);
+            QDateTime min_ts = FROM_UNIX_TIME(axisRange.lower);
 
             QDateTime start_time;
 
@@ -931,7 +931,7 @@ void WeatherPlotter::multiRescale(RescaleType rs_type) {
                                                  min_time);
             }
 
-            axisRange.lower = start_time.toTime_t();
+            axisRange.lower = TO_UNIX_TIME(start_time);
             axis->setRange(axisRange);
         }
 
@@ -952,11 +952,10 @@ void WeatherPlotter::multiRescale(RescaleType rs_type) {
             QPointer<QCPAxis> axis = getKeyAxis(id, false);
 
             QCPRange axisRange = axis->range();
-            QDateTime end_time = QDateTime::fromTime_t(
-                        axisRange.lower + max_range);
+            QDateTime end_time = FROM_UNIX_TIME(axisRange.lower + max_range);
 
 
-            axisRange.upper = end_time.toTime_t();
+            axisRange.upper = TO_UNIX_TIME(end_time);
             axis->setRange(axisRange);
         }
     }

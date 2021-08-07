@@ -1,10 +1,12 @@
 #include "webcachedb.h"
+#include "compat.h"
 
 #include <QtSql>
 #include <QtDebug>
 #include <QDesktopServices>
 #include <cfloat>
 #include <QMap>
+#include <QElapsedTimer>
 
 #define SAMPLE_CACHE "sample-cache"
 #define sampleCacheDb QSqlDatabase::database(SAMPLE_CACHE)
@@ -236,19 +238,19 @@ int WebCacheDB::createDataFile(data_file_t dataFile, int stationId) {
                   "       :start_contig_to, :end_contig_from, :start_time, :end_time)");
     query.bindValue(":station", stationId);
     query.bindValue(":url", dataFile.filename);
-    query.bindValue(":last_modified", dataFile.last_modified.toTime_t());
+    query.bindValue(":last_modified", TO_UNIX_TIME(dataFile.last_modified));
     query.bindValue(":size", dataFile.size);
     query.bindValue(":is_complete", dataFile.isComplete);
     if (dataFile.start_contiguous_to.isValid())
-        query.bindValue(":start_contig_to", dataFile.start_contiguous_to.toTime_t());
+        query.bindValue(":start_contig_to", TO_UNIX_TIME(dataFile.start_contiguous_to));
     else
         query.bindValue(":start_contig_to", QVariant());
     if (dataFile.end_contiguous_from.isValid())
-        query.bindValue(":end_contig_from", dataFile.end_contiguous_from.toTime_t());
+        query.bindValue(":end_contig_from", TO_UNIX_TIME(dataFile.end_contiguous_from));
     else
         query.bindValue(":end_contig_from", QVariant());
-    query.bindValue(":start_time", dataFile.start_time.toTime_t());
-    query.bindValue(":end_time", dataFile.end_time.toTime_t());
+    query.bindValue(":start_time", TO_UNIX_TIME(dataFile.start_time));
+    query.bindValue(":end_time", TO_UNIX_TIME(dataFile.end_time));
     query.exec();
 
     if (!query.lastError().isValid()) {
@@ -268,16 +270,16 @@ void WebCacheDB::updateDataFile(int fileId, QDateTime lastModified, int size, bo
                   "size = :size, is_complete = :is_complete, "
                   "start_contiguous_to = :start_contig_to, "
                   "end_contiguous_from = :end_contig_from where id = :id");
-    query.bindValue(":last_modified", lastModified.toTime_t());
+    query.bindValue(":last_modified", TO_UNIX_TIME(lastModified));
     query.bindValue(":size", size);
     query.bindValue(":id", fileId);
     query.bindValue(":is_complete", isComplete);
     if (startContiguousTo.isValid())
-        query.bindValue(":start_contig_to", startContiguousTo.toTime_t());
+        query.bindValue(":start_contig_to", TO_UNIX_TIME(startContiguousTo));
     else
         query.bindValue(":start_contig_to", QVariant());
     if (endContiguousFrom.isValid())
-        query.bindValue(":end_contig_from", endContiguousFrom.toTime_t());
+        query.bindValue(":end_contig_from", TO_UNIX_TIME(endContiguousFrom));
     else
         query.bindValue(":end_contig_from", QVariant());
 
@@ -311,8 +313,8 @@ data_file_t WebCacheDB::getDataFileCacheInformation(QString dataFileUrl) {
         QSqlRecord record = query.record();
         dataFile.filename = dataFileUrl;
         dataFile.isValid = true;
-        dataFile.last_modified = QDateTime::fromTime_t(
-                    record.value(0).toInt());
+        dataFile.last_modified = FROM_UNIX_TIME(
+                    record.value(0).toLongLong());
         dataFile.size = record.value(1).toInt();
         dataFile.isComplete = record.value(2).toBool();
 
@@ -356,8 +358,8 @@ cache_stats_t WebCacheDB::getCacheStats(QString dataFileUrl) {
 
     if (query.first()) {
         QSqlRecord record = query.record();
-        cacheStats.start = QDateTime::fromTime_t(record.value(0).toInt());
-        cacheStats.end = QDateTime::fromTime_t(record.value(1).toInt());
+        cacheStats.start = FROM_UNIX_TIME(record.value(0).toLongLong());
+        cacheStats.end = FROM_UNIX_TIME(record.value(1).toLongLong());
         cacheStats.count = record.field(2).value().toInt();
         cacheStats.isValid = true;
     } else {
@@ -476,7 +478,7 @@ void WebCacheDB::cacheDataSet(SampleSet samples,
 
     qDebug() << "Preparing list of samples to insert...";
 
-    QTime timer;
+    QElapsedTimer  timer;
     timer.start();
 
     for (unsigned int i = 0; i < samples.sampleCount; i++) {
@@ -594,7 +596,7 @@ void WebCacheDB::cacheDataSet(SampleSet samples,
     db.transaction();
 
     qDebug() << "Inserting" << stationIds.count() << "samples...";
-    timer.start();
+    timer.restart();
     if (!timestamps.isEmpty()) {
         // We have data to store.
         QSqlQuery query(db);
@@ -697,15 +699,15 @@ bool WebCacheDB::timespanIsCached(QString stationUrl, QDateTime startTime, QDate
         QDateTime expectedNextDataStartTime;
         do {
             QSqlRecord record = query.record();
-            QDateTime dataStartTime = QDateTime::fromTime_t(record.field(0).value().toInt());
-            QDateTime dataEndTime = QDateTime::fromTime_t(record.field(1).value().toInt());
+            QDateTime dataStartTime = FROM_UNIX_TIME(record.field(0).value().toLongLong());
+            QDateTime dataEndTime = FROM_UNIX_TIME(record.field(1).value().toLongLong());
             bool isComplete = record.field(2).value().toBool();
             QDateTime startContiguousTo, endContiguousFrom;
             if (!record.field(3).value().isNull())
-                startContiguousTo = QDateTime::fromTime_t(record.field(3).value().toInt());
+                startContiguousTo = FROM_UNIX_TIME(record.field(3).value().toLongLong());
             if (!record.field(4).value().isNull())
-                endContiguousFrom = QDateTime::fromTime_t(record.field(4).value().toInt());
-            QDateTime nextDataFileStart = QDateTime::fromTime_t(record.field(5).value().toInt());
+                endContiguousFrom = FROM_UNIX_TIME(record.field(4).value().toLongLong());
+            QDateTime nextDataFileStart = FROM_UNIX_TIME(record.field(5).value().toLongLong());
 
             if (dataEndTime < startTime) {
                 qDebug() << "Skip data file for period starting" << dataStartTime << "- period predates requested timespan";
@@ -1466,8 +1468,8 @@ int WebCacheDB::getNonAggregatedRowCount(int stationId, QDateTime startTime, QDa
     QSqlQuery query(sampleCacheDb);
     query.prepare(qry);
     query.bindValue(":station_id", stationId);
-    query.bindValue(":start_time", startTime.toTime_t());
-    query.bindValue(":end_time", endTime.toTime_t());
+    query.bindValue(":start_time", TO_UNIX_TIME(startTime));
+    query.bindValue(":end_time", TO_UNIX_TIME(endTime));
     query.exec();
 
     if (!query.first()) {
@@ -1508,8 +1510,8 @@ int WebCacheDB::getAggregatedRowCount(int stationId,
     query.bindValue(":station_id", stationId);
     query.bindValue(":stationIdB", stationId);
     query.bindValue(":stationIdC", stationId);
-    query.bindValue(":start_time", startTime.toTime_t());
-    query.bindValue(":end_time", endTime.toTime_t());
+    query.bindValue(":start_time", TO_UNIX_TIME(startTime));
+    query.bindValue(":end_time", TO_UNIX_TIME(endTime));
 
     if (groupType == AGT_Custom) {
         query.bindValue(":groupSeconds", groupMinutes * 60);
@@ -1774,8 +1776,8 @@ SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
     }
 
     query.bindValue(":station_id", stationId);
-    query.bindValue(":start_time", startTime.toTime_t());
-    query.bindValue(":end_time", endTime.toTime_t());
+    query.bindValue(":start_time", TO_UNIX_TIME(startTime));
+    query.bindValue(":end_time", TO_UNIX_TIME(endTime));
     query.exec();
 
     QDateTime lastTs = startTime;
@@ -1811,9 +1813,9 @@ SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
             }
             QSqlRecord record = query.record();
 
-            int timeStamp = record.value("time_stamp").toInt();
+            auto timeStamp = record.value("time_stamp").toLongLong();
 
-            QDateTime ts = QDateTime::fromTime_t(timeStamp);
+            QDateTime ts = FROM_UNIX_TIME(timeStamp);
             if (gapGeneration) {
                 if (ts > lastTs.addSecs(thresholdSeconds)) {
                     // We skipped at least one sample! Generate same fake null samples.
@@ -2117,7 +2119,7 @@ void WebCacheDB::updateStation(QString url, QString title, QString description,
     }
 
     query.bindValue(":archived", archived);
-    query.bindValue(":archived_time", archivedTime.toTime_t());
+    query.bindValue(":archived_time", TO_UNIX_TIME(archivedTime));
     query.bindValue(":archived_message", archivedMessage);
 
     if (!query.exec()) {
@@ -2220,15 +2222,15 @@ void WebCacheDB::updateStationGaps(QString url, QList<sample_gap_t> gaps) {
     QVariantList missingSampleCounts;
     QVariantList labels;
 
-    QTime timer;
+    QElapsedTimer timer;
     timer.start();
     QSqlDatabase db = sampleCacheDb;
     db.transaction();
 
     foreach (sample_gap_t gap, gaps) {
         stationIds << station_id;
-        startTimes << gap.start_time.toTime_t();
-        endTimes << gap.end_time.toTime_t();
+        startTimes << TO_UNIX_TIME(gap.start_time);
+        endTimes << TO_UNIX_TIME(gap.end_time);
         missingSampleCounts << gap.missing_samples;
         labels << gap.label;
     }
@@ -2267,8 +2269,8 @@ QList<sample_gap_t> WebCacheDB::getStationGaps(QString url) {
         do {
             QSqlRecord rec = q.record();
             sample_gap_t gap;
-            gap.start_time = QDateTime::fromTime_t(rec.field(0).value().toInt());
-            gap.end_time = QDateTime::fromTime_t(rec.field(1).value().toInt());
+            gap.start_time = FROM_UNIX_TIME(rec.field(0).value().toLongLong());
+            gap.end_time = FROM_UNIX_TIME(rec.field(1).value().toLongLong());
             gap.missing_samples = rec.field(2).value().toInt();
             gap.label = rec.field(3).value().toString();
             gaps.append(gap);
@@ -2288,8 +2290,8 @@ bool WebCacheDB::sampleGapIsKnown(QString url, QDateTime gapStart, QDateTime gap
               "  and sg.start_time <= :start_ts "
               "  and sg.end_time >= :end_ts");
     q.bindValue(":station_code", url);
-    q.bindValue(":start_ts", gapStart.toTime_t());
-    q.bindValue(":end_ts", gapEnd.toTime_t());
+    q.bindValue(":start_ts", TO_UNIX_TIME(gapStart));
+    q.bindValue(":end_ts", TO_UNIX_TIME(gapEnd));
     q.exec();
     return q.first();
 }
@@ -2429,8 +2431,8 @@ sample_range_t WebCacheDB::getSampleRange(QString url) {
     query.bindValue(":id", id);
     if (query.exec()) {
         if (query.first()) {
-            info.start = QDateTime::fromTime_t(query.record().value("start").toInt());
-            info.end = QDateTime::fromTime_t(query.record().value("end").toInt());
+            info.start = FROM_UNIX_TIME(query.record().value("start").toLongLong());
+            info.end = FROM_UNIX_TIME(query.record().value("end").toLongLong());
             info.isValid = info.start < info.end;
             qDebug() << "Start" << info.start << "End" << info.end << "Valid" << info.isValid << "Station" << id;
             return info;
@@ -2456,7 +2458,7 @@ void WebCacheDB::updateImageDateList(QString stationCode, QMap<QString, QMap<QDa
     QVariantList dateValues;
     QVariantList dateCounts;
 
-    QTime timer;
+    QElapsedTimer timer;
     timer.start();
     QSqlDatabase db = sampleCacheDb;
     db.transaction();

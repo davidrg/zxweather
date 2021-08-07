@@ -1,9 +1,15 @@
 #include "datasource/webtasks/datafilewebtask.h"
 #include "datasource/webtasks/request_data.h"
 #include "datasource/webcachedb.h"
+#include "compat.h"
 
 #include <QtDebug>
 #include <QTimer>
+
+#if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
+#include <QRegularExpression>
+#endif
+
 
 #if (QT_VERSION < QT_VERSION_CHECK(5,2,0))
 #include <limits>
@@ -218,7 +224,11 @@ data_file_t DataFileWebTask::loadDataFile(QStringList fileData,
 
     while (!fileData.isEmpty()) {
         QString line = fileData.takeFirst();
+#if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
+        QStringList parts = line.split(QRegularExpression("\\s+"));
+#else
         QStringList parts = line.split(QRegExp("\\s+"));
+#endif
 
         if (parts.count() < 11) continue; // invalid record.
 
@@ -279,13 +289,8 @@ data_file_t DataFileWebTask::loadDataFile(QStringList fileData,
                 }
             }
 
-#if (QT_VERSION >= QT_VERSION_CHECK(5,8,0))
-            qint64 previousSecs = previousTime.toSecsSinceEpoch();
-            qint64 thisSecs = timestamp.toSecsSinceEpoch();
-#else
-            qint64 previousSecs = previousTime.toTime_t();
-            qint64 thisSecs = timestamp.toTime_t();
-#endif
+            qint64 previousSecs = TO_UNIX_TIME(previousTime);
+            qint64 thisSecs = TO_UNIX_TIME(timestamp);
 
             if (thisSecs - previousSecs > archiveInterval) {
                 // Detected gap is (previousTime, timestamp). If we've got a record of this
@@ -310,11 +315,7 @@ data_file_t DataFileWebTask::loadDataFile(QStringList fileData,
                 // Reached the end of the file. Current row is the last row.
                 // Check the final timestamp in the file is within archiveInterval
                 // seconds of the end of the month.
-#if (QT_VERSION >= QT_VERSION_CHECK(5,8,0))
-                qint64 endSecs = endTime.toSecsSinceEpoch();
-#else
-                qint64 endSecs = endTime.toTime_t();
-#endif
+                qint64 endSecs = TO_UNIX_TIME(endTime);
                 if (endSecs - thisSecs > archiveInterval) {
                     // Detected gap is (timestamp, endTime). Check with the DB to see if this gap is
                     // known to be permanent. If so we can safely ignore it and cache the gap.
@@ -412,7 +413,7 @@ data_file_t DataFileWebTask::loadDataFile(QStringList fileData,
 
     while (!timeStamps.isEmpty()) {
 
-        uint timestamp = timeStamps.takeFirst().toTime_t();
+        auto timestamp = TO_UNIX_TIME(timeStamps.takeFirst());
         samples.timestamp.append(timestamp);
         samples.timestampUnix.append(timestamp);
 

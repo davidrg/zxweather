@@ -256,7 +256,17 @@ void BasicQCPInteractionManager::mouseWheel(QWheelEvent* event) {
         // QCPAxisRect::wheelEvent(QWheelEvent*)
 
         // a single step delta is +/-120 usually
+#if QT_VERSION < QT_VERSION_CHECK(5, 0, 0)
         double wheelSteps = event->delta()/120.0;
+#else
+        double wheelSteps = event->angleDelta().y()/120.0;
+#endif
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+        const QPointF pos = event->pos();
+#else
+        const QPointF pos = event->position();
+#endif
+
         double verticalRangeZoomFactor =
                 plot->axisRect()->rangeZoomFactor(Qt::Vertical);
         double horizontalRangeZoomFactor =
@@ -268,7 +278,7 @@ void BasicQCPInteractionManager::mouseWheel(QWheelEvent* event) {
             // We don't want to scale y1 - QCustomPlot will handle that.
             if (axis != plot->yAxis) {
                 axis->scaleRange(factor,
-                                 axis->pixelToCoord(event->pos().y()));
+                                 axis->pixelToCoord(pos.y()));
             }
         }
 
@@ -280,7 +290,7 @@ void BasicQCPInteractionManager::mouseWheel(QWheelEvent* event) {
                 // We don't want to scale x1 - QCustomPlot will handle that.
                 if (axis != plot->xAxis) {
                     axis->scaleRange(factor,
-                                     axis->pixelToCoord(event->pos().x()));
+                                     axis->pixelToCoord(pos.x()));
                 }
             }
         }

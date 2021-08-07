@@ -296,7 +296,7 @@ void LiveBuffer::load() {
         }
 
         if (!buffer.isEmpty()) {
-            qSort(buffer.begin(), buffer.end(), ldsLessThan);
+            std::sort(buffer.begin(), buffer.end(), ldsLessThan);
         }
     }
 

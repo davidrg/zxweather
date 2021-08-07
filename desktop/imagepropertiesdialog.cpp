@@ -1,6 +1,7 @@
 #include "imagepropertiesdialog.h"
 #include "ui_imagepropertiesdialog.h"
 #include "json/json.h"
+#include "compat.h"
 
 #include <QStringList>
 #include <QLocale>
@@ -38,7 +39,7 @@ QString toHumanTime(uint time) {
         return seconds;
     }
 
-    QString hhmmss = QDateTime::fromTime_t(time).toUTC().toString("hh:mm:ss");
+    QString hhmmss = FROM_UNIX_TIME(time).toUTC().toString("hh:mm:ss");
 
     return QString(QApplication::translate("ImagePropertiesDialog","%1 (%2)")).arg(hhmmss).arg(seconds);
 }
@@ -123,8 +124,7 @@ ImagePropertiesDialog::ImagePropertiesDialog(ImageInfo info, quint64 size,
             }
             if (map.contains("aos_time")) {
                 addMetadata(tr("Signal acquisition"),
-                            QDateTime::fromTime_t(
-                                map["aos_time"].toInt()).toString(TS_FORMAT));
+                            FROM_UNIX_TIME(map["aos_time"].toInt()).toString(TS_FORMAT));
             }
             if (map.contains("azimuth")) {
                 addMetadata(tr("Azimuth"), map["azimuth"].toString() + "\xB0");

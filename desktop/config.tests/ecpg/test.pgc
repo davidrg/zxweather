@@ -1,0 +1,50 @@
+#include <string.h>
+#include <stdlib.h>
+#include <libpq-fe.h>
+#include <QtDebug>
+
+/*
+This is just some random bits copy&pasted from database.pgc. Something for ECPG to have a look at!
+*/
+
+/* Setup error handling */
+EXEC SQL WHENEVER SQLERROR CALL print_sqlca();
+
+/* In the event of a SQL error, print the details to stderr, roll back the
+ * transaction, disconnect from the server and exit */
+void print_sqlca()
+{
+    fprintf(stderr, "A database error has occurred.\n");
+    fprintf(stderr, "==== sqlca ====\n");
+    fprintf(stderr, "sqlcode: %ld\n", sqlca.sqlcode);
+    fprintf(stderr, "sqlerrm.sqlerrml: %d\n", sqlca.sqlerrm.sqlerrml);
+    fprintf(stderr, "sqlerrm.sqlerrmc: %s\n", sqlca.sqlerrm.sqlerrmc);
+    fprintf(stderr, "sqlerrd: %ld %ld %ld %ld %ld %ld\n", sqlca.sqlerrd[0],sqlca.sqlerrd[1],sqlca.sqlerrd[2],
+                                                          sqlca.sqlerrd[3],sqlca.sqlerrd[4],sqlca.sqlerrd[5]);
+    fprintf(stderr, "sqlwarn: %d %d %d %d %d %d %d %d\n", sqlca.sqlwarn[0], sqlca.sqlwarn[1], sqlca.sqlwarn[2],
+                                                          sqlca.sqlwarn[3], sqlca.sqlwarn[4], sqlca.sqlwarn[5],
+                                                          sqlca.sqlwarn[6], sqlca.sqlwarn[7]);
+    fprintf(stderr, "sqlstate: %5s\n", sqlca.sqlstate);
+    fprintf(stderr, "===============\n");
+
+    exit(EXIT_FAILURE);
+}
+
+void check_data_connection() {
+    PGconn* conn = ECPGget_PGconn("data_connection");
+    if (conn == NULL) {
+        qDebug() << "ERROR: NULL connection (primary)";
+    }
+
+    PQconsumeInput(conn);
+
+    if (PQstatus(conn) == CONNECTION_BAD) {
+        qDebug() << "Primary database connection seems to have gone bad. Attempting reset.";
+        PQreset(conn);
+        if (PQstatus(conn) == CONNECTION_BAD) {
+            qDebug() << "ERROR: Failed to reestablish primary database connection.";
+        } else {
+            qDebug() << "Primary reconnect succeeded.";
+        }
+    }
+}

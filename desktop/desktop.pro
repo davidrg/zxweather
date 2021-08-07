@@ -12,15 +12,22 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets printsupport concurrent uitools
 
 lessThan(QT_MAJOR_VERSION, 5): CONFIG += uitools
 
-# QML is currently used only for QJsEngine support
-equals(QT_MAJOR_VERSION, 5):!lessThan(QT_MINOR_VERSION,6) {
+# Currently this is required for QRegExp in qtlocalpeer.cpp. The replacement is QRegularExpression which
+#   is available from Qt 5.0+
+#greaterThan(QT_MAJOR_VERSION, 5): QT += core5compat
+
+
+lessThan(QT_MAJOR_VERSION, 5)|if(equals(QT_MAJOR_VERSION, 5):lessThan(QT_MINOR_VERSION,6)) {
+    # Qt 5.5 or older
+    message("Using QtScript for scripting")
+    QT += script
+} else {
+    # Qt 5.6 or newer
     message("Using QJSEngine for scripting")
     QT += qml
     DEFINES += USE_QJSENGINE
-} else {
-    message("Using QtScript for scripting")
-    QT += script
 }
+
 
 TARGET = zxweather
 TEMPLATE = app
@@ -30,6 +37,11 @@ TEMPLATE = app
 # Build Settings     #
 ######################
 DEFINES += SINGLE_INSTANCE   # Only allow one instance per station code
+
+# SortProxyModel: Using a regexp is faster at rejecting non-matches but
+#                 very slightly slower at parsing intervals
+# Requires QRegExp so currently incompatbile with Qt6+
+lessThan(QT_MAJOR_VERSION, 6): DEFINES += USE_INTERVAL_REGEXP
 
 # We now require C++11 and at a minimum GCC 4.8 (though 4.6 *may* work)
 # This likely means using the 4.8.6 or 4.8.7 Qt SDK unless building Qt
@@ -245,6 +257,7 @@ HEADERS  += mainwindow.h \
     charts/plotwidget/tracingaxistag.h \
     charts/plotwidget/valueaxistag.h \
     columnpickerwidget.h \
+    compat.h \
     database.h \
     datasource/hardwaretype.h \
     livecolumnpickerwidget.h \

@@ -85,7 +85,13 @@ public:
     QByteArray customCriteriaUi() const {return _ui;}
     bool supportsWebDS() const { return _web_ok; }
     bool supportsDBDS() const { return _db_ok; }
-    QSet<WeatherStationType> supportedWeatherStations() const { return QSet<WeatherStationType>::fromList(_weatherStations); }
+    QSet<WeatherStationType> supportedWeatherStations() const {
+#if (QT_VERSION >= QT_VERSION_CHECK(6,0,0))
+        return QSet<WeatherStationType>(_weatherStations.constBegin(), _weatherStations.constEnd());
+#else
+        return QSet<WeatherStationType>::fromList(_weatherStations);
+#endif
+    }
     QSet<QString> requiredSensors() const {return _requiredSensors;}
 
 //    void criteriaUICreated(QWidget* w);

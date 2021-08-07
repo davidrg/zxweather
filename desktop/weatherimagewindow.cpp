@@ -8,6 +8,7 @@
 #include "constants.h"
 #include "unit_conversions.h"
 #include "charts/chartwindow.h"
+#include "compat.h"
 
 #include <QtDebug>
 #include <QList>
@@ -235,7 +236,7 @@ void WeatherImageWindow::mediaPositionChanged(qint64 time) {
     int index = 0;
 
     for (int i = 0;  i < videoSamples.timestampUnix.count(); i++) {
-        QDateTime t = QDateTime::fromTime_t(videoSamples.timestampUnix[i]);
+        QDateTime t = FROM_UNIX_TIME(videoSamples.timestampUnix[i]);
         if (t > sampleTime) {
             // The previous sample is the correct one for this time.
             index = i - 1;
@@ -250,7 +251,7 @@ void WeatherImageWindow::mediaPositionChanged(qint64 time) {
 void WeatherImageWindow::displaySample(SampleSet samples, int i) {
     using namespace UnitConversions;
 
-    QDateTime dateTime = QDateTime::fromTime_t(samples.timestampUnix[i]);
+    QDateTime dateTime = FROM_UNIX_TIME(samples.timestampUnix[i]);
     ui->date->setText(dateTime.date().toString());
     ui->time->setText(dateTime.time().toString());
 

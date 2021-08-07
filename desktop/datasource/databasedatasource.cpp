@@ -4,6 +4,7 @@
 #include "database.h"
 #endif
 #include "json/json.h"
+#include "compat.h"
 
 #include <QMessageBox>
 #include <QSqlQuery>
@@ -14,6 +15,10 @@
 #include <QDesktopServices>
 #include <QFile>
 #include <QDir>
+
+#if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
+#include <QStandardPaths>
+#endif
 
 #if (QT_VERSION < QT_VERSION_CHECK(5,2,0))
 #include <limits>
@@ -788,7 +793,7 @@ void DatabaseDataSource::fetchSamples(SampleColumns columns,
         }
         lastTs = ts;
 
-        time_t timestamp = ts.toTime_t();
+        auto timestamp = TO_UNIX_TIME(ts);
         samples.timestamp.append(timestamp);
         samples.timestampUnix.append(timestamp); // Not sure why we need both.
 
@@ -992,7 +997,8 @@ void DatabaseDataSource::processLiveData(live_data_record rec) {
     lds.pressure = rec.absolute_pressure;
     lds.windSpeed = rec.average_wind_speed;
     lds.windDirection = rec.wind_direction;
-    lds.timestamp = QDateTime::fromTime_t(rec.download_timestamp);
+    lds.timestamp = FROM_UNIX_TIME(rec.download_timestamp);
+
     lds.indoorDataAvailable = true;
 
     lds.davisHw.leafTemperature1 = qQNaN();
@@ -1053,7 +1059,7 @@ void DatabaseDataSource::processLiveData(live_data_record rec) {
             lds.davisHw.forecastRule = rec.davis_data.forecast_rule;
             lds.davisHw.rainRate = rec.davis_data.rain_rate;
             lds.davisHw.stormRain = rec.davis_data.storm_rain;
-            lds.davisHw.stormStartDate = QDateTime::fromTime_t(rec.davis_data.current_storm_start_date).date();
+            lds.davisHw.stormStartDate = FROM_UNIX_TIME(rec.davis_data.current_storm_start_date).date();
             lds.davisHw.txBatteryStatus = rec.davis_data.tx_battery_status;
             lds.davisHw.stormDateValid = rec.davis_data.current_storm_start_date > 0;
             lds.davisHw.uvIndex = rec.davis_data.uv_index;
@@ -1518,7 +1524,7 @@ void DatabaseDataSource::fetchImageList(QDate date, QString imageSourceCode) {
 }
 
 QString cacheFilename(ImageInfo imageInfo, QString stationCode) {
-#if QT_VERSION >= 0x050000
+#if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
     QString filename = QStandardPaths::writableLocation(
                 QStandardPaths::CacheLocation);
 #else

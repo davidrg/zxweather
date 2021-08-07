@@ -63,7 +63,7 @@ RainfallWidget::RainfallWidget(QWidget *parent) : QWidget(parent)
 
     QGridLayout *fL = new QGridLayout();
     fL->addWidget(plot, 0, 0);
-    fL->setMargin(0);
+    fL->setContentsMargins(0,0,0,0);
     plotFrame->setLayout(fL);
 
     label = new QLabel(tr("<b>Rainfall</b>"), this);
@@ -77,7 +77,7 @@ RainfallWidget::RainfallWidget(QWidget *parent) : QWidget(parent)
     l->addWidget(line, 1, 0);
     l->addWidget(plotFrame, 2, 0);
 
-    l->setMargin(0);
+    l->setContentsMargins(0,0,0,0);
 
     setLayout(l);
 

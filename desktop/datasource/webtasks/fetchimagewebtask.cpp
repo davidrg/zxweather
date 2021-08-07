@@ -7,6 +7,10 @@
 #include <QDesktopServices>
 #include <QtDebug>
 
+#if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
+#include <QStandardPaths>
+#endif
+
 FetchImageWebTask::FetchImageWebTask(
         QString baseUrl, QString stationCode, WebDataSource* ds,
         ImageInfo imageInfo)
@@ -25,7 +29,7 @@ FetchImageWebTask::FetchImageWebTask(
 }
 
 QString FetchImageWebTask::getCacheFilename(bool thumbnail) {
-#if QT_VERSION >= 0x050000
+#if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
     QString filename = QStandardPaths::writableLocation(
                 QStandardPaths::CacheLocation);
 #else

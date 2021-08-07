@@ -19,6 +19,10 @@
 #include <QApplication>
 #include <QClipboard>
 
+#if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
+#include <QStandardPaths>
+#endif
+
 #include "imagepropertiesdialog.h"
 #include "weatherimagewindow.h"
 
@@ -195,7 +199,7 @@ void ImageWidget::setImage(QImage image, QString filename) {
         }
 
     } else {
-#if QT_VERSION >= 0x050000
+#if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
         QString tempFileName = QStandardPaths::writableLocation(
                     QStandardPaths::CacheLocation) + QDir::separator() + "temp";
 #else

@@ -4,7 +4,7 @@
 #include "selectsampleswebtask.h"
 #include "cachingfinishedwebtask.h"
 #include "datasource/webcachedb.h"
-
+#include "compat.h"
 #include "json/json.h"
 
 #include <QtDebug>
@@ -232,8 +232,8 @@ void RangeRequestWebTask::getURLList(QString baseURL, QDateTime startTime, QDate
             }
 
             if (RangeRequestWebTask::lastQuery.contains(url)) {
-                if (QDateTime::currentDateTime().toTime_t() -
-                        RangeRequestWebTask::lastQuery[url].toTime_t() < 86400) {
+                if (TO_UNIX_TIME(QDateTime::currentDateTime()) -
+                        TO_UNIX_TIME(RangeRequestWebTask::lastQuery[url]) < 86400) {
                     // URL was queried less than 24 hours ago. Skip.
                     if (year == endYear && month == endMonth)
                         break;

@@ -74,7 +74,7 @@ void msgFileHandler(QtMsgType type, const QMessageLogContext &, const QString & 
         output_line = QString("Fatal: %1").arg(msg);
     break;
     }
-    _log_stream << output_line << endl;
+    _log_stream << output_line << "\n";
 }
 
 

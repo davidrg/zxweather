@@ -38,7 +38,7 @@
 #include "reportcontext.h"
 #include "queryresultmodel.h"
 #include "reportpartialresolver.h"
-
+#include "compat.h"
 #include "scriptingengine.h"
 
 
@@ -100,7 +100,9 @@ QString readTextFile(QString name, QString reportName=QString()) {
     }
 
     QTextStream in(data);
+#if (QT_VERSION < QT_VERSION_CHECK(6,0,0))
     in.setCodec("UTF-8");
+#endif
     return in.readAll();
 }
 
@@ -267,16 +269,26 @@ Report::Report(QString name)
             QVariantMap queryDetails = q["db"].toMap();
             if (queryDetails.contains("file") && queryDetails.contains("parameters")) {
                 query.db_query.query_text = readTextFile(queryDetails["file"].toString(), name);
-                query.db_query.parameters = QSet<QString>::fromList(
-                            queryDetails["parameters"].toStringList());
+                auto parameters = queryDetails["parameters"].toStringList();
+#if (QT_VERSION >= QT_VERSION_CHECK(6,0,0))
+                query.db_query.parameters = QSet<QString>(parameters.constBegin(),
+                                                          parameters.constEnd());
+#else
+                query.db_query.parameters = QSet<QString>::fromList(parameters);
+#endif
             }
         }
         if (q.contains("web")) {
             QVariantMap queryDetails = q["web"].toMap();
             if (queryDetails.contains("file") && queryDetails.contains("parameters")) {
                 query.web_query.query_text = readTextFile(queryDetails["file"].toString(), name);
-                query.web_query.parameters = QSet<QString>::fromList(
-                            queryDetails["parameters"].toStringList());
+                auto parameters = queryDetails["parameters"].toStringList();
+#if (QT_VERSION >= QT_VERSION_CHECK(6,0,0))
+                query.web_query.parameters = QSet<QString>(parameters.constBegin(),
+                                                           parameters.constEnd());
+#else
+                query.web_query.parameters = QSet<QString>::fromList(parameters);
+#endif
             }
         }
 //        if (q.contains("script")) {
@@ -540,8 +552,8 @@ ReportFinisher* Report::run(AbstractDataSource *dataSource, AbstractUrlHandler *
 
     parameters["start"] = start;
     parameters["end"] = end;
-    parameters["start_t"] = start.toTime_t();
-    parameters["end_t"] = end.toTime_t();
+    parameters["start_t"] = TO_UNIX_TIME(start);
+    parameters["end_t"] = TO_UNIX_TIME(end);
 
     _dataSource = dataSource;
     _parameters = parameters;
@@ -563,8 +575,8 @@ ReportFinisher* Report::run(AbstractDataSource* dataSource, AbstractUrlHandler *
 
     parameters["start"] = start;
     parameters["end"] = end;
-    parameters["start_t"] = QDateTime(start, QTime(0, 0, 0)).toTime_t();
-    parameters["end_t"] = QDateTime(end, QTime(0, 0, 0)).toTime_t();
+    parameters["start_t"] = TO_UNIX_TIME(QDateTime(start, QTime(0, 0, 0)));
+    parameters["end_t"] = TO_UNIX_TIME(QDateTime(end, QTime(0, 0, 0)));
 
     _dataSource = dataSource;
     _parameters = parameters;
@@ -592,14 +604,14 @@ ReportFinisher* Report::run(AbstractDataSource* dataSource, AbstractUrlHandler *
     if (month) {
         parameters["start"] = QDateTime(dayOrMonth, QTime(0,0,0));
         parameters["end"] = QDateTime(dayOrMonth.addMonths(1).addDays(-1), QTime(23,59,59));
-        parameters["end_t"] = start.addMonths(1).addMSecs(-1).toTime_t();
+        parameters["end_t"] = TO_UNIX_TIME(start.addMonths(1).addMSecs(-1));
     } else {
         parameters["start"] = start;
         parameters["end"] = start.addDays(1).addMSecs(-1);
-        parameters["end_t"] = start.addDays(1).addMSecs(-1).toTime_t();
+        parameters["end_t"] = TO_UNIX_TIME(start.addDays(1).addMSecs(-1));
     }
 
-    parameters["start_t"] = start.toTime_t();
+    parameters["start_t"] = TO_UNIX_TIME(start);
 
 
     _dataSource = dataSource;
@@ -635,8 +647,8 @@ ReportFinisher* Report::run(AbstractDataSource* dataSource, AbstractUrlHandler *
     parameters["start"] = start;
     parameters["end"] = start.addYears(1).addMSecs(-1);
 
-    parameters["start_t"] = start.toTime_t();
-    parameters["end_t"] = start.addYears(1).addMSecs(-1).toTime_t();
+    parameters["start_t"] = TO_UNIX_TIME(start);
+    parameters["end_t"] = TO_UNIX_TIME(start.addYears(1).addMSecs(-1));
 
     _dataSource = dataSource;
     _parameters = parameters;
@@ -1025,16 +1037,14 @@ Report::query_result_t Report::runDataQuery(QString queryText,
             query.prepare(queryText);
         }
 
-        QVariantMap bv = query.boundValues();
-        QVariantList vals;
-        foreach (QString key, bv.keys()) {
-            QVariantMap m;
-            m["key"] = key;
-            vals.append(m);
-        }
-        debugInfo["parameters"] = vals;
         debugInfo["name"] = queryName;
     }
+
+#if (QT_VERSION >= QT_VERSION_CHECK(6,0,0))
+    // Qt 6 doesn't have a way of accessing bound parameters with
+    // their names. So we build up this debug info at binding time.
+    QVariantList boundParameters;
+#endif
 
     foreach (QString paramName, parameters.keys()) {
         if (!queryParameters.contains(paramName)) {
@@ -1044,7 +1054,23 @@ Report::query_result_t Report::runDataQuery(QString queryText,
         }
         query.bindValue(":" + paramName, parameters[paramName]);
         qDebug() << "Parameter" << paramName << "value" << parameters[paramName];
+
+#if (QT_VERSION >= QT_VERSION_CHECK(6,0,0))
+        if (_debug) {
+            QVariantMap m;
+            m["key"] = paramName;
+            m["value"] = parameters[paramName].toString();
+            boundParameters.append(m);
+        }
+#endif
     }
+
+#if (QT_VERSION >= QT_VERSION_CHECK(6,0,0))
+    if (_debug) {
+        debugInfo["bound_parameters"] = boundParameters;
+    }
+#endif
+
     query_result_t result;
     result.name = queryName;
     bool columnListPopulated=false;
@@ -1072,6 +1098,7 @@ Report::query_result_t Report::runDataQuery(QString queryText,
         qDebug() << "--- query";
         qDebug() << query.executedQuery();
         qDebug() << "---- /query";
+        success = true;
 
     } else {
         qWarning() << "===============================";
@@ -1092,7 +1119,8 @@ Report::query_result_t Report::runDataQuery(QString queryText,
         debugInfo["db_text"] = dbText.isEmpty() ? "none" : dbText;
         debugInfo["driver_text"] = driverText.isEmpty() ? "none" : driverText;
 
-        QVariantMap bv = query.boundValues();
+#if (QT_VERSION < QT_VERSION_CHECK(6,0,0))
+        QMap<QString,QVariant> bv = query.boundValues();
         QVariantList vals;
         foreach (QString key, bv.keys()) {
             QVariantMap m;
@@ -1101,6 +1129,7 @@ Report::query_result_t Report::runDataQuery(QString queryText,
             vals.append(m);
         }
         debugInfo["bound_parameters"] = vals;
+#endif
 
         queryDebugInfo.append(debugInfo);
     }
