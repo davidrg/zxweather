@@ -69,6 +69,8 @@ class overlay_file:
     def render_static_html(static_file, archive_mode=False, current_location=None):
         path_name = config.static_data_dir + static_file
 
+        web.header('Content-Type', 'text/html')
+
         # Its an HTML file. Lets check if it needs
         with open(path_name, 'r') as f:
             content = f.read()
