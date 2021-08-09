@@ -9,16 +9,21 @@ Building with the most recent Qt 5 release available is recommended at this time
 
 | Qt Version | Required Modules | Required Libraries                 | Notes |
 | ---------- | ---------------- | ---------------------------------- | ----- |
-| 4.8.x      |                  | SQLite 3.8.3 or newer, libpq, ECPG | QSQLite must be built with SQLite 3.8.3 or newer for all reports to work. The SDK version is built with SQLite 3.7.7.1. |
-| 5.0-5.5    | QtScript         | libpq, ECPG                        | |
-| 5.6-5.15   | QML              | libpq, ECPG                        | |
-| 6.0+       | QML              | libpq, ECPG                        | Not recommended yet |
+| 4.8.x      | QPSQL            | SQLite 3.8.3 or newer, libpq, ECPG | QSQLite must be built with SQLite 3.8.3 or newer for all reports to work. The SDK version is built with SQLite 3.7.7.1. |
+| 5.0-5.5    | QtScript, QPSQL  |                                    | |
+| 5.6-5.15   | QML, QPSQL       |                                    | |
+| 6.0+       | QML, QPSQL       |                                    | Not recommended yet |
 
 The compiler needs to support C++11. The Qt 4.8.7 SDK uses GCC 4.8 which works fine.
 
-At this time libpq, libecpg and the ecpg tool are required to support live data from the database. When ticket #132 is done it should be required only for building with Qt 4.8
+## SQL Drivers
+At runtime the Qt PostgreSQL SQL driver is required in order to support connecting directly to a database. Some newer Qt SDKs come with this driver pre-built and all you need to supply is a suitable copy of libpq. On older SDKs you may need to build the SQL driver yourself. The Qt documentation provides instructions on how to do this.
 
-## Future Support
+On windows assuming you have a prebuilt copy of the SQL driver a copy of libpq is available in the git repo under /desktop/lib. These should be suitable when building zxweather using MinGW. ECPG and the development libraries and headers are also available in here for building with Qt 4.8 under windows.
+
+If a SQL driver and libpq are not available at runtime or ECPG can not be found at build time the Database backend will be disabled. The application will still work but you'll only be able to connect to a weather station via the Web backend.
+
+## Future Support for Qt Versions
 Target Qt versions are currently decided based on whats available in the debian and ubuntu repos after the previous release is finished off. Clearly
 the last release was a _very_ long time ago given Qt 4.8 is down as a supported platform!
 
