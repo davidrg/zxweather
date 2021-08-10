@@ -42,7 +42,7 @@ DatabaseCompatibility DbUtil::checkDatabaseCompatibility(QSqlDatabase db) {
     } else if (version == 1) {
         qDebug() << "V1 database";
         /*
-         * While the live data bits of DatabaseDataSource all work fine with
+         * While the ECPG live data bits of DatabaseDataSource all work fine with
          * a v1 schema all the code dealing with samples assumes a v2 schema
          * (it relies on the station_id column) so until that is fixed the v1
          * schema is incompatible.

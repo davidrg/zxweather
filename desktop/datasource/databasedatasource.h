@@ -7,9 +7,14 @@
 #include "abstractdatasource.h"
 #include <QSqlError>
 
+#ifdef USE_ECPG_LIVE_DATA
 #ifndef NO_ECPG
 #include "dbsignaladapter.h"
 #include "database.h"
+#endif
+#else
+#include <QSqlDriver>
+#include <QVariant>
 #endif
 
 typedef struct _sensor_config {
@@ -71,8 +76,13 @@ public:
 
     sample_range_t getSampleRange();
 private slots:
+#ifdef USE_ECPG_LIVE_DATA
 #ifndef NO_ECPG
     void processLiveData(live_data_record record);
+#endif
+#else
+    void notification(QString, QSqlDriver::NotificationSource, QVariant payload);
+    void processLiveData();
 #endif
     void dbError(QString message);
 

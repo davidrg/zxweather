@@ -16,6 +16,12 @@
 #include <QFile>
 #include <QDir>
 
+#ifndef USE_ECPG_LIVE_DATA
+#include <QSqlDatabase>
+#include <QSqlDriver>
+#include <QStringList>
+#endif
+
 #if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
 #include <QStandardPaths>
 #endif
@@ -30,6 +36,7 @@
 DatabaseDataSource::DatabaseDataSource(AbstractProgressListener *progressListener, QObject *parent) :
     AbstractDataSource(progressListener, parent)
 {
+#ifdef USE_ECPG_LIVE_DATA
 #ifndef NO_ECPG
     connect(&DBSignalAdapter::getInstance(), SIGNAL(liveDataUpdated(live_data_record)),
             this, SLOT(processLiveData(live_data_record)));
@@ -37,6 +44,7 @@ DatabaseDataSource::DatabaseDataSource(AbstractProgressListener *progressListene
             this, SLOT(processNewImage(int)));
     connect(&DBSignalAdapter::getInstance(), SIGNAL(newSample(int)),
             this, SLOT(processNewSample(int)));
+#endif
 #endif
 
     sampleInterval = -1;
@@ -951,6 +959,12 @@ QSqlQuery DatabaseDataSource::query() {
     return QSqlQuery(QSqlDatabase::database());
 }
 
+void DatabaseDataSource::dbError(QString message) {
+    emit error(message);
+}
+
+
+#ifdef USE_ECPG_LIVE_DATA
 #ifndef NO_ECPG
 void DatabaseDataSource::connectToDB() {
     Settings& settings = Settings::getInstance();
@@ -974,13 +988,6 @@ void DatabaseDataSource::connectToDB() {
     // Fetching an instance will force a connect.
     DBSignalAdapter::connectInstance(target, username, password, station);
 }
-#endif
-
-void DatabaseDataSource::dbError(QString message) {
-    emit error(message);
-}
-
-#ifndef NO_ECPG
 
 void DatabaseDataSource::processLiveData(live_data_record rec) {
 
@@ -1087,7 +1094,180 @@ void DatabaseDataSource::processLiveData(live_data_record rec) {
 
     emit liveData(lds);
 }
-#endif
+#endif // NO_ECPG
+#else
+
+void DatabaseDataSource::processLiveData() {
+    // TODO: query out the live data and emit it as below
+
+    if (!liveDataEnabled) return;
+
+    QSqlQuery query;
+    QString queryText = "SELECT ld.indoor_temperature, "
+                  "  ld.indoor_relative_humidity, "
+                  "  ld.temperature, "
+                  "  ld.relative_humidity, "
+                  "  ld.dew_point, "
+                  "  ld.wind_chill, "
+                  "  ld.apparent_temperature, "
+                  "  ld.absolute_pressure, "
+                  "  ld.average_wind_speed, "
+                  "  ld.wind_direction, "
+                  "  extract(epoch from ld.download_timestamp)::integer, "
+                  "  dld.bar_trend, "
+                  "  dld.rain_rate, "
+                  "  dld.storm_rain, "
+                  "  coalesce(extract(epoch from dld.current_storm_start_date)::integer,0), "
+                  "  dld.transmitter_battery, "
+                  "  dld.console_battery_voltage, "
+                  "  dld.forecast_icon, "
+                  "  dld.forecast_rule_id, "
+                  "  coalesce(dld.uv_index, 0), "
+                  "  coalesce(dld.solar_radiation, 0), "
+                  "  dld.leaf_wetness_1, "
+                  "  dld.leaf_wetness_2, "
+                  "  dld.leaf_temperature_1, "
+                  "  dld.leaf_temperature_2, "
+                  "  dld.soil_moisture_1, "
+                  "  dld.soil_moisture_2, "
+                  "  dld.soil_moisture_3, "
+                  "  dld.soil_moisture_4, "
+                  "  dld.soil_temperature_1, "
+                  "  dld.soil_temperature_2, "
+                  "  dld.soil_temperature_3, "
+                  "  dld.soil_temperature_4, "
+                  "  dld.extra_temperature_1, "
+                  "  dld.extra_temperature_2, "
+                  "  dld.extra_temperature_3, "
+                  "  dld.extra_humidity_1, "
+                  "  dld.extra_humidity_2 "
+                  " from live_data ld "
+                  " left outer join davis_live_data dld on  dld.station_id = ld.station_id "
+                  " where ld.station_id = :station_id "
+                  " limit 1";
+    query.prepare(queryText);
+    query.bindValue(":station_id", getStationId());
+
+    if (!query.exec()) {
+        qWarning() << "Live data query failed: " << query.lastError();
+        qDebug() << "Query:" << queryText;
+        return;
+    }
+
+    query.first();
+    auto rec = query.record();
+
+    LiveDataSet lds;
+
+    lds.indoorTemperature = rec.value(0).toFloat();
+    lds.indoorHumidity = rec.value(1).toInt();
+    lds.temperature = rec.value(2).toFloat();
+    lds.humidity = rec.value(3).toInt();
+    lds.dewPoint = rec.value(4).toFloat();
+    lds.windChill = rec.value(5).toFloat();
+    lds.apparentTemperature = rec.value(6).toFloat();
+    lds.pressure = rec.value(7).toFloat();
+    lds.windSpeed = rec.value(8).toFloat();
+    lds.windDirection = rec.value(9).toInt();
+    lds.timestamp = FROM_UNIX_TIME(rec.value(10).toLongLong());
+    lds.indoorDataAvailable = true;
+    lds.hw_type = getHardwareType();
+
+    if (lds.hw_type == HW_DAVIS) {
+        lds.davisHw.barometerTrend = rec.value(11).toInt();
+        lds.davisHw.rainRate = rec.value(12).toFloat();
+        lds.davisHw.stormRain = rec.value(13).toFloat();
+        lds.davisHw.stormStartDate = FROM_UNIX_TIME(rec.value(14).toLongLong()).date();
+        lds.davisHw.stormDateValid = rec.value(14).toLongLong() > 0;
+        lds.davisHw.txBatteryStatus = rec.value(15).toInt();
+        lds.davisHw.consoleBatteryVoltage = rec.value(16).toFloat();
+        lds.davisHw.forecastIcon = rec.value(17).toInt();
+        lds.davisHw.forecastRule = rec.value(18).toInt();
+        lds.davisHw.uvIndex = rec.value(19).toFloat();
+        lds.davisHw.solarRadiation = rec.value(20).toFloat();
+        lds.davisHw.leafWetness1 = rec.value(21).toDouble();
+        lds.davisHw.leafWetness2 = rec.value(22).toDouble();
+        lds.davisHw.leafTemperature1 = rec.value(23).toDouble();
+        lds.davisHw.leafTemperature2 = rec.value(24).toDouble();
+        lds.davisHw.soilMoisture1 = rec.value(25).toDouble();
+        lds.davisHw.soilMoisture2 = rec.value(26).toDouble();
+        lds.davisHw.soilMoisture3 = rec.value(27).toDouble();
+        lds.davisHw.soilMoisture4 = rec.value(28).toDouble();
+        lds.davisHw.soilTemperature1 = rec.value(29).toDouble();
+        lds.davisHw.soilTemperature2 = rec.value(30).toDouble();
+        lds.davisHw.soilTemperature3 = rec.value(31).toDouble();
+        lds.davisHw.soilTemperature4 = rec.value(32).toDouble();
+        lds.davisHw.extraTemperature1 = rec.value(33).toDouble();
+        lds.davisHw.extraTemperature2 = rec.value(34).toDouble();
+        lds.davisHw.extraTemperature3 = rec.value(35).toDouble();
+        lds.davisHw.extraHumidity1 = rec.value(36).toDouble();
+        lds.davisHw.extraHumidity2 = rec.value(37).toDouble();
+    } else {
+        lds.davisHw.leafTemperature1 = qQNaN();
+        lds.davisHw.leafTemperature2 = qQNaN();
+        lds.davisHw.leafWetness1 = qQNaN();
+        lds.davisHw.leafWetness2 = qQNaN();
+        lds.davisHw.soilMoisture1 = qQNaN();
+        lds.davisHw.soilMoisture2 = qQNaN();
+        lds.davisHw.soilMoisture3 = qQNaN();
+        lds.davisHw.soilMoisture4 = qQNaN();
+        lds.davisHw.soilTemperature1 = qQNaN();
+        lds.davisHw.soilTemperature2 = qQNaN();
+        lds.davisHw.soilTemperature3 = qQNaN();
+        lds.davisHw.soilTemperature4 = qQNaN();
+        lds.davisHw.extraTemperature1 = qQNaN();
+        lds.davisHw.extraTemperature2 = qQNaN();
+        lds.davisHw.extraTemperature3 = qQNaN();
+        lds.davisHw.extraHumidity1 = qQNaN();
+        lds.davisHw.extraHumidity2 = qQNaN();
+    }
+
+    emit liveData(lds);
+}
+
+void DatabaseDataSource::notification(QString name, QSqlDriver::NotificationSource source,
+                                      QVariant payload) {
+
+    Q_UNUSED(source);
+
+    if (name == "live_data_updated") {
+        auto station = payload.toString();
+        if (station.toLower() == Settings::getInstance().stationCode().toLower()) {
+            //qDebug() << "Live data for station" << station;
+            processLiveData();
+        }
+        return;
+    } else if (name == "new_image") {
+        auto imageId = payload.toInt();
+        processNewImage(imageId);
+        return;
+    } else if (name == "new_sample_id") {
+        qDebug() << "New sample! Payload:" << payload;
+        QStringList bits = payload.toString().split(':');
+        if (bits.length() < 2) {
+            qWarning() << "Invalid new_sample payload:" << payload;
+            return;
+        }
+        QString station = bits.at(0);
+        bool ok = true;
+        int sampleId = bits.at(1).toInt(&ok);
+
+        if (!ok) {
+            qWarning() << "Failed to parse sampleId in payload:" << payload;
+        }
+
+        if (station.toLower() == Settings::getInstance().stationCode().toLower()) {
+            processNewSample(sampleId);
+        }else {
+            qDebug() << "Not interested in sample" << sampleId << "for station" << station;
+        }
+        return;
+    }
+
+    qDebug() << "Unrecognised notification" << name << "with payload" << payload;
+}
+
+#endif // USE_ECPG_LIVE_DATA
 
 void DatabaseDataSource::processNewImage(int imageId) {
     // Firstly, is it an image we care about?
@@ -1222,6 +1402,7 @@ where day_total.station_id = :stationId \
 }
 
 void DatabaseDataSource::enableLiveData() {
+#ifdef USE_ECPG_LIVE_DATA
 #ifndef NO_ECPG
     using namespace QtJson;
 
@@ -1279,6 +1460,26 @@ void DatabaseDataSource::enableLiveData() {
 #else
     emit error("Support for receiving live data from the database has not been compiled into this build of the application");
 #endif
+#else
+    auto db = QSqlDatabase::database(QSqlDatabase::defaultConnection);
+
+    auto driver = db.driver();
+    if (driver == nullptr) {
+        qWarning() << "No database driver while setting up live data!";
+        return;
+    }
+
+    connect(driver, SIGNAL(notification(QString,QSqlDriver::NotificationSource,QVariant)),
+            this, SLOT(notification(QString,QSqlDriver::NotificationSource,QVariant)));
+
+
+    driver->subscribeToNotification("live_data_updated");
+    driver->subscribeToNotification("new_image");
+    driver->subscribeToNotification("new_sample_id");
+
+    liveDataEnabled = true;
+
+#endif //USE_ECPG_LIVE_DATA
 }
 
 void DatabaseDataSource::disableLiveData() {
