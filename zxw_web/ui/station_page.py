@@ -12,9 +12,10 @@ from database import get_daily_records, get_years, \
     total_rainfall_in_last_7_days, day_exists, get_station_id, \
     get_station_name, in_archive_mode, get_station_type_code, get_stations, \
     get_live_data, get_station_message, no_data_in_24_hours, get_station_config, \
-    get_site_name, get_sample_interval
+    get_site_name, get_sample_interval, station_archived_status
 import os
 from months import month_name
+from static_overlays import overlay_file
 from ui import get_nav_urls, make_station_switch_urls, build_alternate_ui_urls
 from ui import validate_request, html_file
 from ui.day_page import get_station_day_images
@@ -29,6 +30,38 @@ modern_template_dir = os.path.join(os.path.dirname(__file__),
 
 basic_templates = render_jinja(basic_template_dir, encoding='utf-8')
 modern_templates = render_jinja(modern_template_dir, encoding='utf-8')
+
+
+def get_station_archived(station_code, station_id, archival_status,
+                         current_location):
+    static_message_file = "{0}/{1}/archived.html".format(
+        config.static_data_dir,
+        station_code
+    )
+
+    if os.path.exists(static_message_file):
+        return overlay_file.render_static_html(
+            "{0}/archived.html".format(station_code), True, current_location)
+
+    page_data = {
+        "station_name": get_station_name(station_id),
+        "stations": make_station_switch_urls(
+            get_stations(), current_location, None,
+            None)
+    }
+
+    return modern_templates.archived(
+        archived_time=archival_status.archived_time,
+        archived_message=archival_status.archived_message,
+        years=get_years(station_id),
+
+        switch_url=build_alternate_ui_urls(current_location),
+        page_data=page_data,
+        archive_mode=True,
+        sitename=get_site_name(station_id),
+        nav=get_nav_urls(station_code, current_location)
+    )
+
 
 def get_station_standard(ui, station):
     """
@@ -45,9 +78,14 @@ def get_station_standard(ui, station):
         # to the standard UI instead.
         web.seeother(config.site_root + 's' + '/' + station + '/')
 
+    station_id = get_station_id(station)
+    archival_status = station_archived_status(station_id)
+
     current_location = '/*/' + station + '/'
 
-    station_id = get_station_id(station)
+    if archival_status.archived:
+        return get_station_archived(station, station_id, archival_status,
+                                    current_location)
 
     now = datetime.now().date()
 
@@ -212,6 +250,18 @@ def get_station_basic(station):
         "no_content": data.records is None,
         "stations": get_stations()
     }
+
+    archival_status = station_archived_status(station_id)
+    if archival_status.archived:
+        return basic_templates.archived(
+            years=get_years(station_id),
+            station=station,
+            alt_ui_disabled=config.disable_alt_ui,
+            data=data,
+            page_data=page_data,
+            switch_url=build_alternate_ui_urls(current_location),
+            archived_time=archival_status.archived_time,
+            archived_message=archival_status.archived_message)
 
     day_cache_control(None, now, station_id)
     nav_urls = get_nav_urls(station, current_location)

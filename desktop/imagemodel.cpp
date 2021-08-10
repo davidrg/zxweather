@@ -15,6 +15,10 @@
 #include <QPainter>
 #include <QApplication>
 
+#if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
+#include <QStandardPaths>
+#endif
+
 #include "settings.h"
 #include "constants.h"
 
@@ -287,7 +291,7 @@ void TreeItem::setImage(ImageInfo info, QImage image, QString cacheFile) {
             qWarning() << "No cache file or image data for: " << cacheFile;
         }
 
-#if QT_VERSION >= 0x050000
+#if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
         QString filename = QStandardPaths::writableLocation(
                     QStandardPaths::CacheLocation) + QDir::separator() + "temp" + QDir::separator();
 #else
@@ -1280,7 +1284,7 @@ void ImageModel::imageListReady(QList<ImageInfo> imageList) {
     }
 
     // Sort the image list by time and type
-    qSort(imageList.begin(), imageList.end(), imageLessThan);
+    std::sort(imageList.begin(), imageList.end(), imageLessThan);
 
     ImageLoadRequest req = imageLoadRequestQueue.takeFirst();
     loadingImages = false;

@@ -1,10 +1,12 @@
 #include "webcachedb.h"
+#include "compat.h"
 
 #include <QtSql>
 #include <QtDebug>
 #include <QDesktopServices>
 #include <cfloat>
 #include <QMap>
+#include <QElapsedTimer>
 
 #define SAMPLE_CACHE "sample-cache"
 #define sampleCacheDb QSqlDatabase::database(SAMPLE_CACHE)
@@ -105,6 +107,8 @@ void WebCacheDB::openDatabase() {
             if (!runUpgradeScript(4, ":/cache_db/v4.sql", filename)) return; // v3 -> v4
             if (!runUpgradeScript(5, ":/cache_db/v5.sql", filename)) return; // v4 -> v5
             if (!runUpgradeScript(6, ":/cache_db/v6.sql", filename)) return; // v5 -> v6
+            if (!runUpgradeScript(7, ":/cache_db/v7.sql", filename)) return; // v6 -> v7
+            if (!runUpgradeScript(8, ":/cache_db/v8.sql", filename)) return; // v7 -> v8
 
         } else {
             emit criticalError(tr("Failed to determine version of cache database"));
@@ -227,13 +231,26 @@ int WebCacheDB::getDataFileId(QString dataFileUrl) {
 
 int WebCacheDB::createDataFile(data_file_t dataFile, int stationId) {
     QSqlQuery query(sampleCacheDb);
-    query.prepare("insert into data_file(station, url, last_modified, size, is_complete) "
-                  "values(:station, :url, :last_modified, :size, :is_complete)");
+    query.prepare("insert into data_file(station, url, last_modified, size, is_complete, "
+                  "                      start_contiguous_to, end_contiguous_from, "
+                  "                      start_time, end_time) "
+                  "values(:station, :url, :last_modified, :size, :is_complete, "
+                  "       :start_contig_to, :end_contig_from, :start_time, :end_time)");
     query.bindValue(":station", stationId);
     query.bindValue(":url", dataFile.filename);
-    query.bindValue(":last_modified", dataFile.last_modified.toTime_t());
+    query.bindValue(":last_modified", TO_UNIX_TIME(dataFile.last_modified));
     query.bindValue(":size", dataFile.size);
     query.bindValue(":is_complete", dataFile.isComplete);
+    if (dataFile.start_contiguous_to.isValid())
+        query.bindValue(":start_contig_to", TO_UNIX_TIME(dataFile.start_contiguous_to));
+    else
+        query.bindValue(":start_contig_to", QVariant());
+    if (dataFile.end_contiguous_from.isValid())
+        query.bindValue(":end_contig_from", TO_UNIX_TIME(dataFile.end_contiguous_from));
+    else
+        query.bindValue(":end_contig_from", QVariant());
+    query.bindValue(":start_time", TO_UNIX_TIME(dataFile.start_time));
+    query.bindValue(":end_time", TO_UNIX_TIME(dataFile.end_time));
     query.exec();
 
     if (!query.lastError().isValid()) {
@@ -246,15 +263,26 @@ int WebCacheDB::createDataFile(data_file_t dataFile, int stationId) {
     }
 }
 
-void WebCacheDB::updateDataFile(int fileId, QDateTime lastModified, int size, bool isComplete) {
+void WebCacheDB::updateDataFile(int fileId, QDateTime lastModified, int size, bool isComplete, QDateTime startContiguousTo, QDateTime endContiguousFrom) {
     qDebug() << "Updating data file details...";
     QSqlQuery query(sampleCacheDb);
     query.prepare("update data_file set last_modified = :last_modified, "
-                  "size = :size, is_complete = :is_complete where id = :id");
-    query.bindValue(":last_modified", lastModified.toTime_t());
+                  "size = :size, is_complete = :is_complete, "
+                  "start_contiguous_to = :start_contig_to, "
+                  "end_contiguous_from = :end_contig_from where id = :id");
+    query.bindValue(":last_modified", TO_UNIX_TIME(lastModified));
     query.bindValue(":size", size);
     query.bindValue(":id", fileId);
     query.bindValue(":is_complete", isComplete);
+    if (startContiguousTo.isValid())
+        query.bindValue(":start_contig_to", TO_UNIX_TIME(startContiguousTo));
+    else
+        query.bindValue(":start_contig_to", QVariant());
+    if (endContiguousFrom.isValid())
+        query.bindValue(":end_contig_from", TO_UNIX_TIME(endContiguousFrom));
+    else
+        query.bindValue(":end_contig_from", QVariant());
+
     query.exec();
 
     if (query.lastError().isValid())
@@ -285,8 +313,8 @@ data_file_t WebCacheDB::getDataFileCacheInformation(QString dataFileUrl) {
         QSqlRecord record = query.record();
         dataFile.filename = dataFileUrl;
         dataFile.isValid = true;
-        dataFile.last_modified = QDateTime::fromTime_t(
-                    record.value(0).toInt());
+        dataFile.last_modified = FROM_UNIX_TIME(
+                    record.value(0).toLongLong());
         dataFile.size = record.value(1).toInt();
         dataFile.isComplete = record.value(2).toBool();
 
@@ -330,8 +358,8 @@ cache_stats_t WebCacheDB::getCacheStats(QString dataFileUrl) {
 
     if (query.first()) {
         QSqlRecord record = query.record();
-        cacheStats.start = QDateTime::fromTime_t(record.value(0).toInt());
-        cacheStats.end = QDateTime::fromTime_t(record.value(1).toInt());
+        cacheStats.start = FROM_UNIX_TIME(record.value(0).toLongLong());
+        cacheStats.end = FROM_UNIX_TIME(record.value(1).toLongLong());
         cacheStats.count = record.field(2).value().toInt();
         cacheStats.isValid = true;
     } else {
@@ -379,7 +407,9 @@ void WebCacheDB::cacheDataFile(data_file_t dataFile, QString stationUrl) {
         updateDataFile(dataFileId,
                        dataFile.last_modified,
                        dataFile.size,
-                       dataFile.isComplete);
+                       dataFile.isComplete,
+                       dataFile.start_contiguous_to,
+                       dataFile.end_contiguous_from);
     }
 
     if (dataFile.expireExisting) {
@@ -402,7 +432,13 @@ void WebCacheDB::cacheDataSet(SampleSet samples,
                               int stationId,
                               int dataFileId,
                               bool hasSolarData) {
-    qDebug() << "Caching dataset of" << samples.sampleCount << "samples...";
+    if (samples.sampleCount == 0) {
+        qDebug() << "Data set is empty! Nothing to cache.";
+        return;
+    }
+
+    qDebug() << "Caching dataset of" << samples.sampleCount << "samples..."; 
+
     // First up, grab the list of samples that are missing from the database.
     QVariantList timestamps, temperature, dewPoint, apparentTemperature,
             windChill, indoorTemperature, humidity, indoorHumidity, pressure,
@@ -442,7 +478,7 @@ void WebCacheDB::cacheDataSet(SampleSet samples,
 
     qDebug() << "Preparing list of samples to insert...";
 
-    QTime timer;
+    QElapsedTimer  timer;
     timer.start();
 
     for (unsigned int i = 0; i < samples.sampleCount; i++) {
@@ -560,7 +596,7 @@ void WebCacheDB::cacheDataSet(SampleSet samples,
     db.transaction();
 
     qDebug() << "Inserting" << stationIds.count() << "samples...";
-    timer.start();
+    timer.restart();
     if (!timestamps.isEmpty()) {
         // We have data to store.
         QSqlQuery query(db);
@@ -640,6 +676,151 @@ void WebCacheDB::cacheDataSet(SampleSet samples,
 
     qDebug() << "Cache insert completed.";
 }
+
+bool WebCacheDB::timespanIsCached(QString stationUrl, QDateTime startTime, QDateTime endTime) {
+    int stationId = getStationId(stationUrl);
+    qDebug() << "------------------------\n"
+             << "Checking timespan" << startTime
+             << "to" << endTime
+             << "for station" << stationId
+             << "is covered by cached data";
+
+    // Fetch out all the data file information
+    QSqlQuery query(sampleCacheDb);
+    query.prepare("select start_time, end_time, is_complete, start_contiguous_to,"
+                  "       end_contiguous_from, next_datafile_start "
+                  "from data_file_times where station = :station");
+    query.bindValue(":station", stationId);
+    query.exec();
+
+    bool foundInitialDataset = false;
+
+    if (query.first()) {
+        QDateTime expectedNextDataStartTime;
+        do {
+            QSqlRecord record = query.record();
+            QDateTime dataStartTime = FROM_UNIX_TIME(record.field(0).value().toLongLong());
+            QDateTime dataEndTime = FROM_UNIX_TIME(record.field(1).value().toLongLong());
+            bool isComplete = record.field(2).value().toBool();
+            QDateTime startContiguousTo, endContiguousFrom;
+            if (!record.field(3).value().isNull())
+                startContiguousTo = FROM_UNIX_TIME(record.field(3).value().toLongLong());
+            if (!record.field(4).value().isNull())
+                endContiguousFrom = FROM_UNIX_TIME(record.field(4).value().toLongLong());
+            QDateTime nextDataFileStart = FROM_UNIX_TIME(record.field(5).value().toLongLong());
+
+            if (dataEndTime < startTime) {
+                qDebug() << "Skip data file for period starting" << dataStartTime << "- period predates requested timespan";
+                continue; // Not interested in this data file - too old
+            }
+
+            if (dataStartTime > endTime) {
+                qDebug() << "Skip data file for period starting" << dataStartTime << "- period predates requested timespan";
+                continue; // Not interested in this data file - too new
+            }
+
+            // Data file is within the specified timespan. Check its sufficiently complete.
+
+            if (dataStartTime <= startTime && endTime <= dataEndTime) {
+                // Data file is greater than the timespan!
+                qDebug() << "Requested timespan is covered by single data file period starting" << dataStartTime;
+                if (isComplete) {
+                    qDebug() << "Single data file is complete! Timespan is cached.";
+                    return true;
+                } else {
+                    qDebug() << "Single data file is incomplete. Not possible to determine if gap falls within requested timespan. Possibly timespan is uncached. Failing.";
+                    qDebug() << "Timespan is not fully covered by cache - failed on incomplete covering datafile.";
+                    return false;
+                }
+            }
+            // Else timespan is covered by multiple data files.
+            //  * The first data file must be either complete
+            //    or contiguous from before startTime to the end of the period
+            //  * The last data file must be either complete or contiguous
+            //    from the start of the file to the end of the period
+            //  * All intermediate data files must be complete.
+
+
+            if (!foundInitialDataset) {
+                // First data file we're interested in!
+                qDebug() << "First data file starts at" << dataStartTime;
+
+                foundInitialDataset = true;
+                expectedNextDataStartTime = dataStartTime;
+
+                // Check the start of the timespan falls within this file. If it doesn't
+                // then its probably in a missing data file.
+                if (dataStartTime > startTime) {
+                    qDebug() << "Timespan is not fully covered by cache - starting data file appears to be missing.";
+                    return false;
+                }
+
+                // This file contains the start of the requested timespan.
+                // So it needs to be either:
+                //  (A) Complete
+                // OR
+                //  (B) Have endContiguousFrom < startTime
+
+                if (!isComplete && (endContiguousFrom.isNull() || endContiguousFrom > startTime)) {
+                    qDebug() << "Data file for period starting"
+                             << dataStartTime
+                             << "is incomplete and there is a gap in the data somewhere between"
+                             << startTime << "and the file end. End contiguous from:"
+                             << endContiguousFrom;
+                    qDebug() << "Timespan is not fully covered by cache - failed on first datafile";
+                    return false;
+                }
+            } else if (dataStartTime > startTime && dataEndTime >= endTime) {
+                // Its the final data file we're interested in!
+                qDebug() << "Final data file covers the period" << dataStartTime << "to" << dataEndTime;
+
+                if (!isComplete && (startContiguousTo.isNull() || startContiguousTo < endTime)) {
+                    qDebug() << "Data file for period starting"
+                             << dataStartTime
+                             << "is incomplete and there is a gap in the data somewhere between"
+                             << "the start of the file and" << endTime
+                             << " - start is contiguous to:" << startContiguousTo;
+                    qDebug() << "Timespan not fully covered by cache - failed on final datafile";
+                    return false;
+                }
+            } else if (!isComplete) {
+                // If its not the
+                qDebug() << "Intermediate data file for period starting"
+                         << dataStartTime
+                         << "is incomplete.";
+                qDebug() << "Timespan is not fully covered by cache - failed on only or intermediate datafile";
+
+                return false;
+            }
+
+            if (dataStartTime != expectedNextDataStartTime) {
+                qDebug() << "Data file has period starting at" << dataStartTime
+                         << " - expected start time" << expectedNextDataStartTime;
+                qDebug() << "Timespan is not fully covered by cache - missing data file";
+                return false;
+            }
+
+            qDebug() << "Data file starting at" << dataStartTime << "OK!";
+
+            expectedNextDataStartTime = nextDataFileStart;
+
+            // If we got here then this data file is fine. On to the next.
+
+        } while (query.next());
+    } else {
+        qDebug() << "No data files!";
+        return false;
+    }
+
+    if(!foundInitialDataset) {
+        qDebug() << "Found no datasets covering requested timespan! Timespan is not covered by cache at all!";
+        return false;
+    }
+
+    qDebug() << "Timespan is covered by the cache!";
+    return true;
+}
+
 
 int WebCacheDB::getImageSourceId(int stationId, QString code) {
     QSqlQuery query(sampleCacheDb);
@@ -1287,8 +1468,8 @@ int WebCacheDB::getNonAggregatedRowCount(int stationId, QDateTime startTime, QDa
     QSqlQuery query(sampleCacheDb);
     query.prepare(qry);
     query.bindValue(":station_id", stationId);
-    query.bindValue(":start_time", startTime.toTime_t());
-    query.bindValue(":end_time", endTime.toTime_t());
+    query.bindValue(":start_time", TO_UNIX_TIME(startTime));
+    query.bindValue(":end_time", TO_UNIX_TIME(endTime));
     query.exec();
 
     if (!query.first()) {
@@ -1329,8 +1510,8 @@ int WebCacheDB::getAggregatedRowCount(int stationId,
     query.bindValue(":station_id", stationId);
     query.bindValue(":stationIdB", stationId);
     query.bindValue(":stationIdC", stationId);
-    query.bindValue(":start_time", startTime.toTime_t());
-    query.bindValue(":end_time", endTime.toTime_t());
+    query.bindValue(":start_time", TO_UNIX_TIME(startTime));
+    query.bindValue(":end_time", TO_UNIX_TIME(endTime));
 
     if (groupType == AGT_Custom) {
         query.bindValue(":groupSeconds", groupMinutes * 60);
@@ -1595,8 +1776,8 @@ SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
     }
 
     query.bindValue(":station_id", stationId);
-    query.bindValue(":start_time", startTime.toTime_t());
-    query.bindValue(":end_time", endTime.toTime_t());
+    query.bindValue(":start_time", TO_UNIX_TIME(startTime));
+    query.bindValue(":end_time", TO_UNIX_TIME(endTime));
     query.exec();
 
     QDateTime lastTs = startTime;
@@ -1632,9 +1813,9 @@ SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
             }
             QSqlRecord record = query.record();
 
-            int timeStamp = record.value("time_stamp").toInt();
+            auto timeStamp = record.value("time_stamp").toLongLong();
 
-            QDateTime ts = QDateTime::fromTime_t(timeStamp);
+            QDateTime ts = FROM_UNIX_TIME(timeStamp);
             if (gapGeneration) {
                 if (ts > lastTs.addSecs(thresholdSeconds)) {
                     // We skipped at least one sample! Generate same fake null samples.
@@ -1860,14 +2041,41 @@ bool WebCacheDB::stationKnown(QString url) {
     return query.first();
 }
 
+bool WebCacheDB::stationIsArchived(QString url) {
+    QSqlQuery query(sampleCacheDb);
+    query.prepare("select archived from station where code = :url");
+    query.bindValue(":url", url);
+    query.exec();
+    if (query.first()) {
+        return query.record().field(0).value().toBool();
+    }
+    return false;
+}
+
 void WebCacheDB::updateStation(QString url, QString title, QString description,
                                QString type_code, int interval, float latitude,
                                float longitude, float altitude, bool solar,
                                int davis_broadcast_id,
-                               QMap<ExtraColumn, QString> extraColumnNames) {
+                               QMap<ExtraColumn, QString> extraColumnNames,
+                               bool archived, QDateTime archivedTime,
+                               QString archivedMessage) {
     if (!ready) {
         return;
     }
+
+    /* TODO:
+     * Might be worth checking that this station update won't un-archive the station.
+     * If the DB is currently archived and the incoming station data says its not archived
+     * then we've no idea of the validity of our cache and we really out to either error
+     * or dump the entire cache for this station.
+     *
+     * if (stationIsArchived(url) && !archived) {
+     *      qWarning() << "Station has been unarchived! This is not allowed - forcing cache purge";
+     *      // delete all samples, data files and images for the station
+     * }
+     *
+     */
+
 
     qDebug() << "Updating station info for" << url;
 
@@ -1879,7 +2087,9 @@ void WebCacheDB::updateStation(QString url, QString title, QString description,
                   "station_type_id = (select station_type_id from station_type where lower(code) = :type_code), "
                   "sample_interval = :interval, "
                   "latitude = :latitude, longitude = :longitude, altitude = :altitude, "
-                  "solar_available = :solar, davis_broadcast_id = :broadcast_id "
+                  "solar_available = :solar, davis_broadcast_id = :broadcast_id,  "
+                  "archived = :archived, archived_time = :archived_time, "
+                  "archived_message = :archived_message "
                   "where station_id = :station_id");
     query.bindValue(":title", title);
     query.bindValue(":description", description);
@@ -1908,7 +2118,13 @@ void WebCacheDB::updateStation(QString url, QString title, QString description,
         query.bindValue(":broadcast_id", QVariant(QVariant::Int));
     }
 
-    query.exec();
+    query.bindValue(":archived", archived);
+    query.bindValue(":archived_time", TO_UNIX_TIME(archivedTime));
+    query.bindValue(":archived_message", archivedMessage);
+
+    if (!query.exec()) {
+        qWarning() << "Failed to update station config! Error:" << query.lastError().databaseText();
+    }
 
     qDebug() << "Update sensor config";
     qDebug() << "Disable all sensors...";
@@ -1991,6 +2207,95 @@ void WebCacheDB::updateStation(QString url, QString title, QString description,
     sampleCacheDb.commit();
     qDebug() << "Station updated";
 }
+
+void WebCacheDB::updateStationGaps(QString url, QList<sample_gap_t> gaps) {
+    int station_id = getStationId(url);
+    QString query = "insert into sample_gap(station_id, start_time, end_time, "
+                    "                       missing_sample_count, label) "
+                    "values(?, ?, ?, ?, ?) "
+                    "on conflict (station_id, start_time, end_time) "
+                    "do update set label=excluded.label";
+
+    QVariantList stationIds;
+    QVariantList startTimes;
+    QVariantList endTimes;
+    QVariantList missingSampleCounts;
+    QVariantList labels;
+
+    QElapsedTimer timer;
+    timer.start();
+    QSqlDatabase db = sampleCacheDb;
+    db.transaction();
+
+    foreach (sample_gap_t gap, gaps) {
+        stationIds << station_id;
+        startTimes << TO_UNIX_TIME(gap.start_time);
+        endTimes << TO_UNIX_TIME(gap.end_time);
+        missingSampleCounts << gap.missing_samples;
+        labels << gap.label;
+    }
+
+    QSqlQuery q(sampleCacheDb)  ;
+    q.prepare(query);
+    q.addBindValue(stationIds);
+    q.addBindValue(startTimes);
+    q.addBindValue(endTimes);
+    q.addBindValue(missingSampleCounts);
+    q.addBindValue(labels);
+
+    if (!q.execBatch()) {
+        qWarning() << "Failed to store one or more station gaps!";
+    }
+    if (!db.commit()) {
+        qWarning() << "Transaction commit failed. Gaps not stored.";
+    }
+    qDebug() << "Transaction committed at " << timer.elapsed() << "msecs";
+
+    optimise();
+}
+
+
+QList<sample_gap_t> WebCacheDB::getStationGaps(QString url) {
+    QList<sample_gap_t> gaps;
+
+    QSqlQuery q(sampleCacheDb);
+    q.prepare("select sg.start_time, sg.end_time, sg.missing_sample_count, sg.text "
+              "from sample_gap sg "
+              "inner join station s on sg.station_id = s.station_id "
+              "where lower(s.code) = lower(:station_code)");
+    q.bindValue(":station_code", url);
+
+    if (q.exec()) {
+        do {
+            QSqlRecord rec = q.record();
+            sample_gap_t gap;
+            gap.start_time = FROM_UNIX_TIME(rec.field(0).value().toLongLong());
+            gap.end_time = FROM_UNIX_TIME(rec.field(1).value().toLongLong());
+            gap.missing_samples = rec.field(2).value().toInt();
+            gap.label = rec.field(3).value().toString();
+            gaps.append(gap);
+        } while (q.next());
+    }
+
+    return gaps;
+}
+
+
+bool WebCacheDB::sampleGapIsKnown(QString url, QDateTime gapStart, QDateTime gapEnd) {
+    QSqlQuery q(sampleCacheDb);
+    q.prepare("select sample_gap_id "
+              "from sample_gap sg "
+              "inner join station s on s.station_id = sg.station_id "
+              "where lower(s.code) = lower(:station_code)"
+              "  and sg.start_time <= :start_ts "
+              "  and sg.end_time >= :end_ts");
+    q.bindValue(":station_code", url);
+    q.bindValue(":start_ts", TO_UNIX_TIME(gapStart));
+    q.bindValue(":end_ts", TO_UNIX_TIME(gapEnd));
+    q.exec();
+    return q.first();
+}
+
 
 QMap<ExtraColumn, QString> WebCacheDB::getExtraColumnNames(QString url) {
     int station_id = getStationId(url);
@@ -2126,8 +2431,8 @@ sample_range_t WebCacheDB::getSampleRange(QString url) {
     query.bindValue(":id", id);
     if (query.exec()) {
         if (query.first()) {
-            info.start = QDateTime::fromTime_t(query.record().value("start").toInt());
-            info.end = QDateTime::fromTime_t(query.record().value("end").toInt());
+            info.start = FROM_UNIX_TIME(query.record().value("start").toLongLong());
+            info.end = FROM_UNIX_TIME(query.record().value("end").toLongLong());
             info.isValid = info.start < info.end;
             qDebug() << "Start" << info.start << "End" << info.end << "Valid" << info.isValid << "Station" << id;
             return info;
@@ -2153,7 +2458,7 @@ void WebCacheDB::updateImageDateList(QString stationCode, QMap<QString, QMap<QDa
     QVariantList dateValues;
     QVariantList dateCounts;
 
-    QTime timer;
+    QElapsedTimer timer;
     timer.start();
     QSqlDatabase db = sampleCacheDb;
     db.transaction();
@@ -2164,7 +2469,7 @@ void WebCacheDB::updateImageDateList(QString stationCode, QMap<QString, QMap<QDa
         q.prepare("delete from image_dates where image_source_id = :id");
         q.bindValue(":id", sourceId);
         if (!q.exec()) {
-            qWarning() << "Failed to drop cacehed dates for source " << sourceCode << "with id" << sourceId;
+            qWarning() << "Failed to drop cached dates for source " << sourceCode << "with id" << sourceId;
         }
 
 

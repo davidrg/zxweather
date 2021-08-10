@@ -11,3 +11,5 @@ pika==0.11.2
 # optional - only used by the client if pushing data via SSH
 cryptography
 pyasn1
+
+# On windows the following is also required: pywin32

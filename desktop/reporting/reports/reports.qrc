@@ -94,5 +94,13 @@
         <file>soil_temp_hours/libs/moment.js</file>
         <file>soil_temp_hours/libs/moment-timezone-with-data-2012-2022.js</file>
         <file>leaf_wet_hours/leaf.png</file>
+        <file>gaps/description.html</file>
+        <file>gaps/psql.sql</file>
+        <file>gaps/report.json</file>
+        <file>marked_gaps/description.html</file>
+        <file>marked_gaps/gap_data_sqlite.sql</file>
+        <file>marked_gaps/report.html</file>
+        <file>marked_gaps/report.json</file>
+        <file>marked_gaps/station_info_sqlite.sql</file>
     </qresource>
 </RCC>

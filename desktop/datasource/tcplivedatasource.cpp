@@ -3,6 +3,7 @@
 #include "constants.h"
 #include "json/json.h"
 #include "webcachedb.h"
+#include "compat.h"
 
 #include <QVariantMap>
 
@@ -96,25 +97,27 @@ void TcpLiveDataSource::error(QAbstractSocket::SocketError socketError) {
 
 void TcpLiveDataSource::sendNextCommand() {
     if (state == STATE_INIT) {
-        QByteArray data = "set client \"desktop\"/version=\"" +
+        QString command = "set client \"desktop\"/version=\"" +
                 Constants::VERSION_STR + "\"\r\n";
-        qDebug() << "SND:" << data;
+        qDebug() << "SND:" << command;
+        QByteArray data = command.toLocal8Bit();
         socket->write(data.constData(), data.length());
-
         state = STATE_STATION_INFO;
     } else if (state == STATE_STATION_INFO) {
-        QByteArray data = "show station \"";
-        data += stationCode ;
-        data += "\"/json\r\n";
-        qDebug() << "SND:" << data;
+        QString command = "show station \"";
+        command += stationCode ;
+        command += "\"/json\r\n";
+        qDebug() << "SND:" << command;
+        QByteArray data = command.toLocal8Bit();
         socket->write(data.constData(), data.length());
         state = STATE_STATION_INFO_RESPONSE;
     } else if (state == STATE_SUBSCRIBE) {
         // We've sent client details. Now to start streaming.
-        QByteArray data("subscribe \"");
-        data.append(stationCode);
-        data.append("\"/live/samples/any_order/images\r\n");
-        qDebug() << "SND:" << data;
+        QString command("subscribe \"");
+        command.append(stationCode);
+        command.append("\"/live/samples/any_order/images\r\n");
+        qDebug() << "SND:" << command;
+        QByteArray data = command.toLocal8Bit();
         socket->write(data.constData(), data.length());
         state = STATE_STREAMING;
     }
@@ -152,6 +155,8 @@ void TcpLiveDataSource::processStreamLine(QString line) {
 #define NullableDouble(i) parts.at(i) == "None" ? qQNaN() : parts.at(i).toDouble();
 
 void TcpLiveDataSource::processLiveData(QStringList parts) {
+    Q_ASSERT_X(parts.length() > 0, "TcpLiveDataSource::processLiveData", "Must be at least one part");
+
     if (parts.at(0) != "l") {
         qDebug() << "Not a live update. Type:" << parts.at(0);
         return;
@@ -201,7 +206,7 @@ void TcpLiveDataSource::processLiveData(QStringList parts) {
         lds.davisHw.uvIndex = parts.at(19).toFloat();
         lds.davisHw.solarRadiation = parts.at(20).toFloat();
 
-        if (parts.length() > expectedLength) {
+        if (parts.length() == 38) {
             // We've got extra sensors!
             lds.davisHw.leafWetness1 = NullableDouble(21);
             lds.davisHw.leafWetness2 = NullableDouble(22);
@@ -423,7 +428,7 @@ hardware_type_t TcpLiveDataSource::getHardwareType() {
 }
 
 void TcpLiveDataSource::checkConnection() {
-    int delta = QDateTime::currentDateTime().toTime_t() - LastUpdate.toTime_t();
+    auto delta = TO_UNIX_TIME(QDateTime::currentDateTime()) - TO_UNIX_TIME(LastUpdate);
 
     if (delta > 300) {
         // So we don't try reconnecting for another five minutes

@@ -3,6 +3,7 @@
 #include "charts/plotwidget.h"
 
 #include <QtDebug>
+#include <QLocale>
 
 /*
  * The tracing axis tag makes the following assumptions:
@@ -73,7 +74,13 @@ void TracingAxisTag::update() {
             }
         }
     } else {
+#if (QT_VERSION >= QT_VERSION_CHECK(6,0,0))
+        QLocale locale;
+        auto ts = QDateTime::fromMSecsSinceEpoch(axisValue * 1000);
+        label->setText(locale.toString(ts, locale.dateFormat(QLocale::ShortFormat)));
+#else
         label->setText(QDateTime::fromMSecsSinceEpoch(axisValue * 1000).toString(Qt::SystemLocaleShortDate));
+#endif
 
         QPointer<QCPAxis> valueAxis = label->position->valueAxis();
         double valueZero = valueAxis->pixelToCoord(axis()->axisRect()->bottomLeft().y());

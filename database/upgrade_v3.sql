@@ -104,6 +104,19 @@ comment on column station.longitude is 'Coordinates - longitude';
 alter table station add column altitude real not null default 0;
 comment on column station.altitude is 'Barometer/pressure sensor altitude. Used for relative pressure calculation.';
 
+alter table station add column archived boolean not null default false;
+comment on column station.archived is 'If the station is archived. This means its data will never be updated again and there will never be live data for it.';
+
+alter table station add column archived_message character varying;
+comment on column station.archived_message is 'Description of why the station was archived. May be publicly visible in the desktop client.';
+
+alter table station add column archived_time timestamptz;
+comment on column station.archived_time is 'Date the station was archived.';
+
+alter table station add CONSTRAINT chk_archived
+    CHECK ((not archived and archived_time is null and archived_message is null)
+        or (archived and archived_time is not null));
+
 -- Adjust comment for wind direction.
 COMMENT ON COLUMN sample.wind_direction IS 'Prevailing wind direction in degrees.';
 COMMENT ON COLUMN sample.rainfall IS 'Rainfall in mm.';
@@ -627,6 +640,22 @@ comment on column davis_live_data.extra_temperature_1 is 'First extra temperatur
 comment on column davis_live_data.extra_temperature_2 is 'Second extra temperature';
 comment on column davis_live_data.extra_temperature_3 is 'Third extra temperature sensor';
 
+create table sample_gap (
+    sample_gap_id serial not null primary key,
+    station_id integer not null references station(station_id),
+    start_time timestamptz not null,
+    end_time timestamptz not null,
+    missing_sample_count integer not null,
+    label character varying
+);
+
+comment on table sample_gap is 'Documents known permanent gaps in the sample table. This allows clients that may cache data to know that the gap is to be expected and its ok to cache its existence forever.';
+comment on column sample_gap.station_id is 'Station the gap is for';
+comment on column sample_gap.start_time is 'The timestamp of the sample directly before the gap. The first missing sample will be start_time + sample_interval';
+comment on column sample_gap.end_time is 'The timestamp of the sample directly after the gap. The last missing sample will be end_time - sample_interval';
+comment on column sample_gap.missing_sample_count is 'The number of samples that are missing';
+comment on column sample_gap.label is 'Optional label/description for the gap - why it exists, etc.';
+
 ----------------------------------------------------------------------
 -- CONSTRAINTS -------------------------------------------------------
 ----------------------------------------------------------------------
@@ -839,6 +868,48 @@ BEGIN
 END;$BODY$
 LANGUAGE plpgsql VOLATILE;
 COMMENT ON FUNCTION live_data_update() IS 'Calculates values for all calculated fields.';
+
+
+create or replace function get_all_sample_gaps(character varying)
+    returns table (
+        station_id integer,
+        sample_interval interval,
+        gap_start_time timestamptz,
+        gap_end_time timestamptz,
+        gap_length interval,
+        missing_samples integer,
+        is_known_gap boolean,
+        sample_gap_id integer,
+        label character varying) as $$ with ts_calc as (
+    select lag(time_stamp) over (order by time_stamp)              as prev_ts,
+           time_stamp                                              as row_ts,
+           time_stamp - lag(time_stamp) over (order by time_stamp) as delta,
+           (stn.sample_interval || ' seconds')::interval           as sample_interval,
+           stn.station_id                                          as station_id
+    from sample s
+             inner join station stn on s.station_id = stn.station_id
+    where lower(stn.code) = lower($1)
+)
+select tsc.station_id                                                   as station_id,
+       tsc.sample_interval                                              as sample_interval,
+       tsc.prev_ts                                                      as gap_start_time,
+       tsc.row_ts                                                       as gap_end_time,
+       tsc.delta - tsc.sample_interval                                  as gap_length,
+       (extract(epoch from tsc.delta - tsc.sample_interval) / extract(epoch from tsc.sample_interval))::integer
+                                                                        as missing_samples,
+       case when gap.sample_gap_id is null then false else true end     as is_known_gap,
+       gap.sample_gap_id                                                as sample_gap_id,
+       gap.label                                                        as label
+from ts_calc tsc
+         left outer join sample_gap gap on gap.station_id = tsc.station_id
+                                           and gap.start_time = tsc.prev_ts
+                                           and gap.end_time = tsc.row_ts
+where delta >= sample_interval * 2
+-- gaps of less than 2 sample interval we'll ignore as they're probably a result of clock adjustments.
+$$ language SQL;
+
+comment on function get_all_sample_gaps(character varying) is 'Finds all gaps in the sample table greater than twice the sample interval for the specified station. Result includes if the gap is known (record present in sample_gap table) and its label if it has one. Gaps less than twice the sample interval are ignored as they''re unlikely to be missing data - just a result of things like clock adjustments';
+
 
 ----------------------------------------------------------------------
 -- VIEWS -------------------------------------------------------------

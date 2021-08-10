@@ -1,0 +1,40 @@
+{
+	"title": "Data Gaps",
+	"description": "description.html",
+	"time_picker": "none",
+	"default_time_span": "all_time",
+	"supported_weather_stations": ["generic"],
+    "queries": {
+		"data_gaps": {
+            "db": {
+                "file": "psql.sql",
+                "parameters": [
+                    "stationCode"
+                ]
+            }
+		}
+	},
+	"output_type": "show",
+    "output_window_size": {
+		"height": 400,
+		"width": 800
+	},
+	"outputs": [
+		{
+			"name": "grid",
+			"title": "Data Gaps",
+			"icon": "../../icons/table",
+			"format": "table",
+			"query": "data_gaps",
+			"filename": "data_gaps.csv",
+			"view_columns": {
+				"first_missing_sample": "First Missing Sample",
+				"last_missing_sample": "Last Missing Sample",
+				"gap_length": "Gap Length",
+				"missing_samples": "Total Missing Samples",
+                                "is_known": "Permanent?",
+				"label": "Label"
+			}
+		}
+	]
+}

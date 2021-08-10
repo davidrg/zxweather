@@ -2,6 +2,7 @@
 #include "settings.h"
 
 #include <QtDebug>
+#include <QCoreApplication>
 
 #define tr(x) QCoreApplication::translate("GraphStyle", x)
 

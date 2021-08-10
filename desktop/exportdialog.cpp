@@ -4,6 +4,7 @@
 #include "datasource/webdatasource.h"
 #include "datasource/databasedatasource.h"
 #include "datasource/dialogprogresslistener.h"
+#include "compat.h"
 
 #include <QFileDialog>
 #include <QMessageBox>
@@ -166,7 +167,9 @@ void ExportDialog::samplesReady(SampleSet samples)
     }
 
     QTextStream streamDataFile(&dataFile);
+#if (QT_VERSION < QT_VERSION_CHECK(6,0,0))
     streamDataFile.setCodec("UTF-8");
+#endif
 
     SampleColumns columns = ui->columnPicker->getColumns();
     columns.standard |= SC_Timestamp;
@@ -196,12 +199,10 @@ void ExportDialog::samplesReady(SampleSet samples)
 
         if (columns.standard.testFlag(SC_Timestamp)) {
             if (isoTime) {
-                rowData.append(QDateTime::fromTime_t(
-                                   samples.timestampUnix.at(i))
+                rowData.append(FROM_UNIX_TIME(samples.timestampUnix.at(i))
                                .toString(Qt::ISODate));
             } else {
-                rowData.append(QDateTime::fromTime_t(
-                                   samples.timestampUnix.at(i))
+                rowData.append(FROM_UNIX_TIME(samples.timestampUnix.at(i))
                                .toString("yyyy-MM-dd HH:mm:ss"));
             }
         } if (columns.standard.testFlag(SC_Temperature)) {

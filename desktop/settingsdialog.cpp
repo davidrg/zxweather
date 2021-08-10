@@ -86,8 +86,10 @@ SettingsDialog::SettingsDialog(bool solarDataAvailable, QWidget *parent) :
         ui->qcpSolarRadiation->setVisible(false);
     }
 
+#ifdef USE_ECPG_LIVE_DATA
 #ifdef NO_ECPG
     ui->rbLiveDatabase->setEnabled(false);
+#endif
 #endif
 
     // Using QSqlDatabase::isDriverAvailable("QPSQL") just tells us whether

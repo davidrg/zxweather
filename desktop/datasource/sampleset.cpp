@@ -1,5 +1,6 @@
 #include "sampleset.h"
 #include <QtDebug>
+#include "compat.h"
 
 #if (QT_VERSION < QT_VERSION_CHECK(5,2,0))
 #include <limits>
@@ -129,9 +130,9 @@ void ReserveSampleSetSpace(SampleSet& samples, int size, SampleColumns columns)
 }
 
 void AppendNullSample(SampleSet &samples, SampleColumns columns, QDateTime time) {
-    samples.timestampUnix.append(time.toTime_t());
+    samples.timestampUnix.append(TO_UNIX_TIME(time));
     samples.sampleCount++;
-    samples.timestamp.append(time.toTime_t());
+    samples.timestamp.append(TO_UNIX_TIME(time));
 
     if (columns.standard.testFlag(SC_Temperature))
         samples.temperature.append(qQNaN());

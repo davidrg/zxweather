@@ -76,6 +76,11 @@ bool LiveChartOptionsDialog::multipleAxisRectsEnabled() const {
 }
 
 Settings::live_multi_axis_label_type_t LiveChartOptionsDialog::multiAxisLabels() const {
+#if (QT_VERSION >= QT_VERSION_CHECK(5,2,0))
     qDebug() << "Current text" << ui->cmbMultiAxisLabels->currentText() << "data" << ui->cmbMultiAxisLabels->currentData();
     return (Settings::live_multi_axis_label_type_t)ui->cmbMultiAxisLabels->currentData().toInt();
+#else
+    qDebug() << "Current text" << ui->cmbMultiAxisLabels->currentText() << "data" << ui->cmbMultiAxisLabels->itemData(ui->cmbMultiAxisLabels->currentIndex());
+    return (Settings::live_multi_axis_label_type_t)ui->cmbMultiAxisLabels->itemData(ui->cmbMultiAxisLabels->currentIndex()).toInt();
+#endif
 }

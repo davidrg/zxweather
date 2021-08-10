@@ -254,7 +254,7 @@ void InternetSiteInfoPage::requestFinished(QNetworkReply *reply) {
             stations.append(stationInfo);
         }
 
-        qSort(stations.begin(), stations.end(), compareStationInfo);
+        std::sort(stations.begin(), stations.end(), compareStationInfo);
 
         if (result.contains("zxweatherd_host"))
             serverHostname = result.value("zxweatherd_host").toString();

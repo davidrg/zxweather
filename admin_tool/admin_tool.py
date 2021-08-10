@@ -2,45 +2,53 @@
 """
 zxweather admin tool.
 """
+from __future__ import print_function
 from about_mgr import upgrade_about
 from image_sources import manage_image_sources
-from database_mgr import  create_db, connect_to_db, db_info
-from station_mgr import  manage_stations
+from database_mgr import create_db, connect_to_db, DbInfo
+from station_mgr import manage_stations
 from ui import menu
 
 __author__ = 'David Goodwin'
+
+S_DB = 'database'   # Database configuration
+
 
 def read_db_config():
     """
     Attempts to read database connection details from the zxweather
     configuration file.
     :return: Database connection details
-    :rtype: db_info
+    :rtype: DbInfo
     """
-    import ConfigParser
-    config = ConfigParser.ConfigParser()
-    config.read(['config.cfg','../zxw_web/config.cfg', 'zxw_web/config.cfg', '/etc/zxweather.cfg'])
+    try:
+        from ConfigParser import ConfigParser, NoSectionError
+    except ImportError:
+        from configparser import ConfigParser, NoSectionError
 
-    S_DB = 'database'   # Database configuration
+    config = ConfigParser()
+    config.read(['config.cfg', '../zxw_web/config.cfg', 'zxw_web/config.cfg',
+                 '/etc/zxweather.cfg'])
 
     try:
         # Database
-        return db_info(
+        return DbInfo(
             config.get(S_DB, 'host'),
             config.getint(S_DB, 'port'),
             config.get(S_DB, 'user'),
             config.get(S_DB, 'password'),
             config.get(S_DB, 'database'))
 
-    except ConfigParser.NoSectionError:
+    except NoSectionError:
         return None
+
 
 def db_menu():
     """
     Asks the user to choose how to connect to the database and then obtains
     connection details from the user.
     :return: Database connection details
-    :rtype: db_info or None
+    :rtype: DbInfo or None
     """
     choices = [
         {
@@ -61,13 +69,14 @@ def db_menu():
         }
     ]
     result = menu(choices)
-    print result
+    print(result)
     if result == "1":
         return create_db()
     elif result == "2":
-        return db_info.prompt_db_config()
+        return DbInfo.prompt_db_config()
 
     return None
+
 
 def get_db_connection():
     """
@@ -96,11 +105,12 @@ def get_db_connection():
 
     return db
 
+
 def main():
     """
     Program entry point
     """
-    print("ZXWeather v1.0 admin tool\n\t(C) Copyright David Goodwin, 2013\n")
+    print("ZXWeather v1.0 admin tool\n\t(C) Copyright David Goodwin, 2013-2021\n")
 
     db = get_db_connection()
 
@@ -137,4 +147,6 @@ def main():
         elif result == "3":
             upgrade_about(db.cursor())
 
-if __name__ == "__main__": main()
+
+if __name__ == "__main__":
+    main()

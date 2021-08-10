@@ -131,7 +131,7 @@ Description: {description}
                             source_info['station_id'],
                             source_info['name'],
                             source_info['description']
-            ))
+                        ))
 
             con.commit()
             cur.close()
@@ -141,8 +141,6 @@ Description: {description}
         elif not get_boolean("Do you wish to correct it? (Answering no will "
                              "cancel)", True):
             return
-
-    return
 
 
 def edit_image_source(con):
@@ -198,8 +196,6 @@ Description: {description}
                              "cancel)", True):
             return
 
-    return
-
 
 def list_image_sources(cur):
     """
@@ -215,14 +211,18 @@ select lower(i.code),
        i.source_name
 from image_source i
 inner join station stn on stn.station_id = i.station_id
-order by i.code asc
+order by i.code
     """)
 
     results = cur.fetchall()
 
-    print("Code  Station  Name")
-    print("----- -------- -----------------------------------------------"
-          "---------------")
+    def heading_line(headings):
+        if headings:
+            print("Code  Station  Name")
+        print("----- -------- -----------------------------------------------"
+              "---------------")
+
+    heading_line(True)
 
     station_codes = []
 
@@ -230,8 +230,7 @@ order by i.code asc
         station_codes.append(result[0])
         print("{0:<5} {1:<8} {2}".format(result[0], result[1], result[2]))
 
-    print("----- -------- -----------------------------------------------"
-          "---------------")
+    heading_line(False)
 
     return station_codes
 

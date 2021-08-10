@@ -3,6 +3,7 @@
 Database deployment facility
 """
 import psycopg2
+import psycopg2.extensions
 from ui import get_boolean, get_string_with_length_indicator, get_string, get_number
 
 __author__ = 'David Goodwin'
@@ -17,7 +18,7 @@ v3_upgrade_script = "database/upgrade_v3.sql"
 create_script = "database/database.sql"
 
 
-class db_info(object):
+class DbInfo(object):
     """
     An object for storing database information
     """
@@ -35,7 +36,7 @@ class db_info(object):
         :param database: Name of the database to use
         :type database: str
         :returns: A new db_info instance
-        :rtype: db_info
+        :rtype: DbInfo
         """
         self.hostname = hostname
         self.port = port
@@ -51,12 +52,11 @@ class db_info(object):
         """
         conn_str = "host={host} port={port} user={user} password={password} " \
                    "dbname={name}".format(
-            host=self.hostname,
-            port=self.port,
-            user=self.user,
-            password=self.password,
-            name=self.database
-        )
+                    host=self.hostname,
+                    port=self.port,
+                    user=self.user,
+                    password=self.password,
+                    name=self.database)
 
         return conn_str
 
@@ -65,7 +65,7 @@ class db_info(object):
         """
         Asks the user for details for the details of an existing weather database.
         :return: Database connection details
-        :rtype: db_info
+        :rtype: DbInfo
         """
         print("You will now be prompted for database configuration details.")
         hostname = get_string("Hostname", "localhost")
@@ -84,7 +84,7 @@ class db_info(object):
         user = get_string("Username", "postgres")
         password = get_string("Password", required=True)
 
-        return db_info(hostname, port, user, password, name)
+        return DbInfo(hostname, port, user, password, name)
 
 
 def upgrade_v0_2(con):
@@ -113,7 +113,7 @@ your database you will likely need to reapply these customisations.""")
 
     # Make sure the user has proper backups.
     backups = get_boolean("Are you satisfied with the state of your backups? (y/n)",
-        required=True)
+                          required=True)
     if not backups:
         print("Upgrade canceled.")
         return False
@@ -131,7 +131,7 @@ You will now be prompted for some information about your weather station:
 
 Station Code is the short (up to 5 characters) name for your weather station
 that appears in all URLs. For example, if your station was called 'foo' your
-URLs would look something like http://example.com/s/foo/. The value you
+URLs would look something like https://example.com/s/foo/. The value you
 enter here *must* match the value currently in your zxweather configuration
 file (called station_name under the [site] section). This value can not be
 changed later without breaking any links within your site.""")
@@ -162,13 +162,13 @@ You may now enter an optional short description for your weather station.""")
         #
         # We will just overwrite these default values with those chosen by the
         # user.
-        cur.execute("UPDATE station SET code = upper(%s), title = %s, description = %s;",
-            (station_code, station_name, station_description))
+        cur.execute("UPDATE station SET code = upper(%s), title = %s, description = %s where true;",
+                    (station_code, station_name, station_description))
         con.commit()
 
         cur.close()
     except psycopg2.InternalError as inst:
-        print("Upgrade failed. Error: {0}".format(inst.message))
+        print("Upgrade failed. Error: {0}".format(inst))
         cur.close()
         return False
 
@@ -216,12 +216,13 @@ your database you will likely need to reapply these customisations.""")
         con.commit()
         cur.close()
     except psycopg2.InternalError as inst:
-        print("Upgrade failed. Error: {0}".format(inst.message))
+        print("Upgrade failed. Error: {0}".format(inst))
         cur.close()
         return False
 
     print("Upgrade completed successfully.")
     return True
+
 
 def get_db_version(cur):
     """
@@ -241,6 +242,7 @@ def get_db_version(cur):
     result = cur.fetchone()
     return int(result[0])
 
+
 def is_version_compatible(cur):
     """
     Checks to see if the database claims to be compatible with this version
@@ -253,7 +255,7 @@ def is_version_compatible(cur):
     global version_major, version_minor, version_revision
 
     cur.execute("select version_check('admin_tool',%s,%s,%s)",
-                 (version_major, version_minor, version_revision))
+                (version_major, version_minor, version_revision))
     compatible = cur.fetchone()[0]
 
     if not compatible:
@@ -267,11 +269,12 @@ def is_version_compatible(cur):
 
     return compatible
 
+
 def connect_to_db(dbc):
     """
     Attempts to connect to the specified database.
     :param dbc: Database connection information
-    :type dbc: db_info
+    :type dbc: DbInfo
     :return: A database connection or None if there was an error
     :rtype: psycopg2._psycopg2
     """
@@ -290,7 +293,7 @@ def connect_to_db(dbc):
         db_version = get_db_version(cur)
 
         # Database is for an older version of zxweather and must be upgraded.
-        if db_version in (1,2):
+        if db_version in (1, 2):
             print("This database is for zxweather v0.x. It must be upgraded "
                   "to v1.0 to be\ncompatible with this tool.")
 
@@ -317,7 +320,6 @@ def connect_to_db(dbc):
                 print("Database upgrade failed.")
                 return None  # Its still a v0.2 database
 
-
         # The database is for some newer version of zxweather and cant be used.
         elif db_version > 2 and not is_version_compatible(cur):
             # Database claims to require a newer version of zxweather. The
@@ -327,12 +329,13 @@ def connect_to_db(dbc):
 
     # Connect failed for some reason.
     except psycopg2.OperationalError as oe:
-        print("Failed to connect to database: {0}".format(oe.message))
+        print("Failed to connect to database: {0}".format(oe))
         return None
 
     # Database claims to be compatible with this version of zxweather or we've
     # upgraded it to something that is compatible.
     return con
+
 
 def create_db():
     """
@@ -349,7 +352,7 @@ def create_db():
 
     while con is None:
         print("Enter the details for the database you wish to create")
-        dbc = db_info.prompt_db_config(True)
+        dbc = DbInfo.prompt_db_config(True)
 
         new_db_name = dbc.database
         dbc.database = "postgres"
@@ -365,7 +368,7 @@ def create_db():
 
         # Connect failed for some reason.
         except psycopg2.OperationalError as oe:
-            print("Failed to connect to database: {0}".format(oe.message))
+            print("Failed to connect to database: {0}".format(oe))
 
             if not get_boolean("Do you wish to try to connect to another database server?", False):
                 # User canceled
@@ -408,6 +411,5 @@ def create_db():
         return dbc
 
     except psycopg2.OperationalError as oe:
-        print("Failed to connect to new database: {0}".format(oe.message))
+        print("Failed to connect to new database: {0}".format(oe))
         return None
-

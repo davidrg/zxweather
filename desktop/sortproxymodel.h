@@ -7,7 +7,8 @@
 // Comment this out to use a different interval parsing function.
 // The regexp code is faster at rejecting non-matches but very slightly
 // slower at parsing intervals.
-#define USE_INTERVAL_REGEXP
+//  >> Set in project file
+//#define USE_INTERVAL_REGEXP
 
 // Comment this out to disable additional sorting behaviours beyond
 // the standard QSortFilterProxyModel sorting

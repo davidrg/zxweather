@@ -2,6 +2,8 @@
 #include "charts/plotwidget.h"
 #include "tracingaxistag.h"
 
+#include <QMouseEvent>
+
 /* TODO:
  *  -> It would be nice if this could be done per-axis-rect. The current implementation
  *     only supports the default so its not much good for plots with multiple axis rects.
@@ -105,7 +107,11 @@ void ChartMouseTracker::cleanupPointTracing() {
     while(!valueAxisTags.isEmpty()) {
         delete valueAxisTags.take(valueAxisTags.keys().first());
     }
+#if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
     currentAxisRect.clear();
+#else
+    currentAxisRect = NULL;
+#endif
     chart->replot();
 }
 

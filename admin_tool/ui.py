@@ -5,6 +5,12 @@ User interface routines
 
 __author__ = 'David Goodwin'
 
+# For python 2.7 & 3 compatibility
+try:
+    input = raw_input
+except NameError:
+    pass
+
 
 def menu(choices, prompt="Select option"):
     """
@@ -24,17 +30,18 @@ def menu(choices, prompt="Select option"):
             print("\t{0}. {1}".format(choice['key'], choice['name']))
             options_by_key[choice['key']] = choice
 
-        result = raw_input("Choice> ")
+        result = input("Choice> ")
 
         if result in options_by_key.keys():
             if options_by_key[result]['type'] == 'return':
                 return result
             elif options_by_key[result]['type'] == 'func' and \
-                 'func' in options_by_key[result].keys():
+                    'func' in options_by_key[result].keys():
                 func = options_by_key[result]['func']
                 func()
         else:
             print("Invalid option")
+
 
 def sub_menu(choices, prompt="Select option:"):
     """
@@ -55,13 +62,13 @@ def sub_menu(choices, prompt="Select option:"):
             print("\t{0}. {1}".format(choice['key'], choice['name']))
             options_by_key[choice['key']] = choice
 
-        result = raw_input("Choice> ")
+        result = input("Choice> ")
 
         if result in options_by_key.keys():
             if options_by_key[result]['type'] == 'return':
                 return result
             elif options_by_key[result]['type'] == 'func' and\
-                 'func' in options_by_key[result].keys():
+                    'func' in options_by_key[result].keys():
                 func = options_by_key[result]['func']
                 func()
 
@@ -76,17 +83,19 @@ def __get_string_required(prompt):
     """
 
     while True:
-        value = raw_input("{0}: ".format(prompt))
+        value = input("{0}: ".format(prompt))
         if value != "":
             return value
         else:
             print("You must enter a value.")
 
+
 def __get_string_optional(prompt, default):
-    value = raw_input("{0} [{1}]: ".format(prompt,default))
+    value = input("{0} [{1}]: ".format(prompt, default))
     if value == '':
         value = default
     return value
+
 
 def get_string(prompt, default='', required=False, max_len=None, min_len=None):
     """
@@ -111,7 +120,7 @@ def get_string(prompt, default='', required=False, max_len=None, min_len=None):
         if required:
             val = __get_string_required(prompt)
         else:
-            val = __get_string_optional(prompt,default)
+            val = __get_string_optional(prompt, default)
 
         if max_len is not None and len(val) > max_len:
             print("Response can not be longer than {0} characters".format(max_len))
@@ -121,30 +130,16 @@ def get_string(prompt, default='', required=False, max_len=None, min_len=None):
             return val
 
 
-def get_multi_line_text(prompt, default=''):
-    """
-    Gets multi-line text input from the user.
-    :param prompt: The user prompt
-    :type prompt: str
-    :param default: Default value
-    :type default: str
-    """
-
-    print("TODO: Implement get_multi_line_text")
-    print("Field {0} ignored".format(prompt))
-    return ''
-
-
 def _get_boolean_required(prompt):
     """
     Forces the user to choose yes or no. No defaults.
     """
 
     while True:
-        value = raw_input("{0}: ".format(prompt)).lower()
-        if value in ['y','yes']:
+        value = input("{0}: ".format(prompt)).lower()
+        if value in ['y', 'yes']:
             return True
-        elif value in ['n','no']:
+        elif value in ['n', 'no']:
             return False
         else:
             print("Enter yes or no.")
@@ -162,7 +157,7 @@ def _get_boolean_optional(default, prompt):
             disp_default = 'no'
     else:
         disp_default = ''
-    value = raw_input("{0} (yes/no) [{1}]: ".format(prompt, disp_default))
+    value = input("{0} (yes/no) [{1}]: ".format(prompt, disp_default))
     if value == '':
         return default
     elif value in ['y', 'yes']:
@@ -214,6 +209,7 @@ def __get_number_required(prompt):
                 print("Please enter a number.")
                 response = None
 
+
 def __get_number_optional(prompt, default):
     """
     Gets an optional number
@@ -245,6 +241,7 @@ def __get_number_optional(prompt, default):
             print("Please enter a number.")
             response = None
 
+
 def get_number(prompt, default=None, required=False):
     """
     Gets a number from the user. If there is no default and the user does
@@ -260,7 +257,7 @@ def get_number(prompt, default=None, required=False):
     if required:
         return __get_number_required(prompt)
     else:
-        return __get_number_optional(prompt,default)
+        return __get_number_optional(prompt, default)
 
 
 def __get_float_required(prompt):
@@ -334,7 +331,7 @@ def get_float(prompt, default=None, required=False):
     if required:
         return __get_float_required(prompt)
     else:
-        return __get_float_optional(prompt,default)
+        return __get_float_optional(prompt, default)
 
 
 def __get_code_required(prompt, valid_codes):
@@ -350,6 +347,7 @@ def __get_code_required(prompt, valid_codes):
             return val
         else:
             print("Please enter a valid code.")
+
 
 def __get_code_optional(prompt, valid_codes, default):
     valid_codes = [x.upper() for x in valid_codes]
@@ -393,7 +391,8 @@ def pause():
     Waits for the user to hit return.
     """
 
-    raw_input("Hit return to continue")
+    input("Hit return to continue")
+
 
 def get_string_with_length_indicator(prompt, default, max_len, required=False):
     """
@@ -417,7 +416,7 @@ def get_string_with_length_indicator(prompt, default, max_len, required=False):
         if default is not None:
             padding += len(default)
         else:
-            padding += 4 # "None"
+            padding += 4  # "None"
 
     else:
         padding = len(prompt) + 2

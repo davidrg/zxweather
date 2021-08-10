@@ -151,6 +151,7 @@ def upgrade_file(filename):
     f.write(new_file)
     f.close()
 
+
 def upgrade_about(cur):
     """
     Attempts to upgrade about pages automatically.
@@ -159,14 +160,19 @@ def upgrade_about(cur):
 
     static_dir = None
 
+    try:
+        from ConfigParser import ConfigParser, NoSectionError
+    except ImportError:
+        from configparser import ConfigParser, NoSectionError
 
-    import ConfigParser
-    config = ConfigParser.ConfigParser()
-    config.read(['config.cfg','../zxw_web/config.cfg', 'zxw_web/config.cfg', '/etc/zxweather.cfg'])
+    config = ConfigParser()
+
+    config.read(['config.cfg', '../zxw_web/config.cfg', 'zxw_web/config.cfg',
+                 '/etc/zxweather.cfg'])
 
     try:
         static_dir = config.get("site", "static_data_dir")
-    except ConfigParser.NoSectionError:
+    except NoSectionError:
         pass
 
     print("""

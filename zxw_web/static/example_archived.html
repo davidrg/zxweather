@@ -1,0 +1,55 @@
+<!-- title: Station Archived -->
+
+<!-- ---------------------- Example Archived Station Page ----------------------
+This is an example "archived station" page. If you've got an archived weather
+station and would like to put a bit more detail on its "station archived" page
+than the date and a short message you can:
+  1. Copy this file into the folder for your station and rename it to
+     "archived.html". So if you're station code is "rua" then copy it to:
+     ./rua/archived.html
+  2. Set the title in the comment at the top of this file to whatever you'd like
+  3. Replace the rest of the files content with whatever you'd like
+
+Whenever the overview page for your archived station is requested this page will
+be served up instead of the default archived station page!
+
+If you want to keep the year list in the provided Weather History section you
+need to put the code for your station into the block of javascript!
+-->
+    <h1>Station Archived!</h1>
+    <p>
+        This is where you can put some information about the station. When it
+        was archived, why, etc.
+    </p>
+
+    <!-- With the help of some JavaScript this will show a list of links to each
+     year the station was operating. For it to work you'll need to add
+     -->
+    <section id="history">
+        <h2>Weather History</h2>
+        <p>Weather data recorded by this station while it was operating
+            remains available. You can browse this data at the day, month or
+            year level starting from your desired year:<br>
+            <span id="year_list"></span>
+        </p>
+    </section>
+    <script type="text/javascript" src="../../js/jquery.min.js"></script>
+    <script type="text/javascript">
+        // Put the code for archived station below to make the year list work:
+        var archived_station_code = "YOUR_STATION_CODE_HERE";
+
+        $.getJSON('../../data/' + archived_station_code + '/samplerange.json', function(data) {
+            var start = (new Date(data["oldest"])).getFullYear();
+            var end = (new Date(data["latest"])).getFullYear();
+
+            var year_list = "";
+
+            for (var year = start; year <= end; year++) {
+                year_list += "<a href=\"" + year + "/\">" + year + "</a>";
+                if (year < end) {
+                    year_list += ", ";
+                }
+            }
+            $("#year_list").html(year_list);
+        });
+    </script>

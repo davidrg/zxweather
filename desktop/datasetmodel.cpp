@@ -1,6 +1,7 @@
 #include "datasetmodel.h"
 #include <cmath>
 #include "settings.h"
+#include "compat.h"
 
 DataSetModel::DataSetModel(DataSet dataSet, SampleSet sampleSet, QMap<ExtraColumn, QString> extraColumnNames,
                            QObject *parent)
@@ -97,7 +98,7 @@ QVariant DataSetModel::data(const QModelIndex &index, int role) const
             if (role == DSM_SORT_ROLE) {
                 return sampleSet.timestampUnix[row];
             }
-            return QDateTime::fromTime_t(sampleSet.timestampUnix[row]);
+            return FROM_UNIX_TIME(sampleSet.timestampUnix[row]);
         case SC_Reception:
             value = sampleSet.reception[row];
             break;

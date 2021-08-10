@@ -20,7 +20,7 @@ def print_station_list(cur):
 select lower(s.code) as code, lower(st.code) as type_code, s.title
 from station s
 inner join station_type st on st.station_type_id = s.station_type_id
-order by sort_order ASC
+order by sort_order
     """)
 
     results = cur.fetchall()
@@ -84,7 +84,7 @@ def get_new_station_info(cur, defaults):
     print("""
 Station Code is the short (up to 5 characters) name for your weather station
 that appears in all URLs. For example, if your station was called 'foo' your
-URLs would look something like http://example.com/s/foo/. The value you
+URLs would look something like https://example.com/s/foo/. The value you
 enter here *must* match the value currently in your zxweather configuration
 file (called station_name under the [site] section). This value can not be
 changed later without breaking any links within your site.""")
@@ -528,7 +528,6 @@ List order: {sort_order}""".format(**station_info))
 Station ID: {broadcast_id}
 """.format(**davis_info))
 
-
         print("""
 Description:
 {description}
@@ -544,10 +543,10 @@ Description:
                 station_config = json.dumps(station_info["davis_settings"])
 
             cur.execute("""
-        update station set title=%s, description=%s, sample_interval=%s,
-                           live_data_available=%s, sort_order=%s,
-                           station_config = %s, site_title = %s, latitude=%s,
-                           longitude=%s, altitude=%s
+        update station set title = %s, description = %s, sample_interval = %s,
+                           live_data_available = %s, sort_order = %s,
+                           station_config = %s, site_title = %s, latitude = %s,
+                           longitude = %s, altitude = %s
         where station_id = %s""", (
                 station_info["name"],
                 station_info["description"], station_info["interval"],
@@ -569,7 +568,7 @@ def set_station_message(con):
     :param con: Database connection
     """
 
-    print("\n\Set station message")
+    print("\nSet station message")
     print("------------\n\nThe following stations are available:")
     cur = con.cursor()
     codes = print_station_list(cur)
@@ -759,7 +758,7 @@ Choose sensor to configure:
             print("Saving configuration...")
             hw_config["sensor_config"] = sensor_config
 
-            cur.execute("update station set station_config=%s where lower(code) = lower(%s)",
+            cur.execute("update station set station_config = %s where lower(code) = lower(%s)",
                         (json.dumps(hw_config), selected_station_code))
             con.commit()
             cur.close()
@@ -806,7 +805,8 @@ Choose sensor to configure:
                 print("\nModify Sensor: {0}\n----------------------------------"
                       "--------------------------------------------\n"
                       "Display Name: {1}\nEnabled: {2}".format(
-                    system_name, sensor_config[sensor]["name"], sensor_config[sensor]["enabled"]))
+                        system_name, sensor_config[sensor]["name"],
+                        sensor_config[sensor]["enabled"]))
 
             def toggle_enabled():
                 sensor_config[sensor]["enabled"] = not sensor_config[sensor]["enabled"]
@@ -835,12 +835,12 @@ Choose sensor to configure:
                 ]
 
                 show_settings()
-                choice = menu(choices)
-                if choice == "1":
+                sub_choice = menu(choices)
+                if sub_choice == "1":
                     toggle_enabled()
-                elif choice == "2":
+                elif sub_choice == "2":
                     set_display_name()
-                elif choice == "0":
+                elif sub_choice == "0":
                     break
 
         if choice == "A":
@@ -879,6 +879,150 @@ Choose sensor to configure:
             configure_sensor("extra_temperature_3")
 
 
+def mark_gaps(con):
+    print("\n\nMark Gaps\n------------")
+    print("""
+This procedure scans a weather stations history for any unexpected gaps in the
+data. If a gap is known to be permanent (perhaps a result of the weather station
+being offline temporarily) you can mark it as known. This will enable the Desktop
+Client to cache the non-existence of data during the gaps timespan. You can also
+optionally provide a label for the gap allowing you to keep a record of why there
+is no data available for each period.
+
+You can view a list of all gaps, marked or otherwise, along with their labels
+using the Data Gaps report in the Desktop Client.
+
+Which station would you like to mark gaps for?""")
+
+    cur = con.cursor()
+    codes = print_station_list(cur)
+    selected_station_code = get_code("Station", codes, required=True)
+
+    cur.execute("""select time_stamp
+from replication_status rs
+inner join sample s on s.sample_id = rs.sample_id
+inner join station stn on stn.station_id = s.station_id
+where lower(stn.code) = lower(%s)
+limit 1""", (selected_station_code,))
+
+    if len(cur.fetchall()) > 0:
+        print("""This station is setup for replication to a remote location via WeatherPush. 
+WeatherPush does not currently transmit gap information so any gaps you mark
+here must also be marked in all remote databases this weather stations data is
+replicated to.""")
+        pause()
+
+    print("Searching for gaps...")
+    cur.execute("""select asg.gap_start_time,
+       asg.gap_end_time,
+       asg.station_id,
+       asg.gap_start_time + asg.sample_interval as first_missing_sample,
+       asg.gap_end_time - asg.sample_interval as last_missing_sample,
+       asg.gap_length,
+       asg.missing_samples
+from get_all_sample_gaps(%s) as asg
+where not asg.is_known_gap
+order by asg.gap_start_time asc;""", (selected_station_code, ))
+
+    gaps = cur.fetchall()
+
+    if len(gaps) == 0:
+        print("No unmarked gaps found!")
+        pause()
+        return
+
+    if not get_boolean("{0} unmarked gaps were found. Would you like to mark "
+                       "these now?".format(len(gaps)), True):
+        print("Operation canceled.")
+        return
+
+    for idx, gap in enumerate(gaps):
+        start_ts = gap[0]
+        end_ts = gap[1]
+        station_id = gap[2]
+        first_missing = gap[3]
+        last_missing = gap[4]
+        length = gap[5]
+        missing_samples = gap[6]
+        print("Gap {0}/{1}: From {2} to {3}\n\t"
+              "Length: {7}\n\t"
+              "First Missing Sample: {4}\n\t"
+              "Last Missing Sample: {5}\n\t"
+              "Total Missing Samples: {6}\n".format(idx+1, len(gaps), start_ts,
+                                                    end_ts, first_missing,
+                                                    last_missing,
+                                                    missing_samples,
+                                                    length))
+
+        if get_boolean("Would you like to mark this gap as permanent?", False):
+            label = get_string("Label for gap", "")
+
+            print("\nGap will be marked as permanent with label:\n\t{0}".format(label))
+            print("""Note that this can not be undone easily. If you are unsure about the cause of
+this gap and its permanence, especially if the gap is recent, you can cancel
+now.
+""")
+
+            if get_boolean("Confirm gap and mark in database?", False):
+                cur.execute("""
+                    insert into sample_gap(station_id, start_time, end_time, 
+                                           missing_sample_count, label)
+                    values(%s, %s, %s, %s, %s) 
+                    returning sample_gap_id
+                """, (station_id, start_ts, end_ts, missing_samples, label))
+                result = cur.fetchone()
+                con.commit()
+                print("Gap saved with ID {0}.".format(result[0]))
+
+    print("""Procedure finished. If there were any gaps you chose not to mark you can always 
+run this procedure again on a future date once you're sure the gaps are 
+permanent""")
+
+
+def archive_station(con):
+    print("\n\nArchive Station\n------------")
+    print("""
+This procedure allows you to archive a weather station and optionally supply a
+description or reason for its archival.
+
+Archived stations are just that - archived. They can not receive new data or be
+replicated by WeatherPush. The Web Interface will display a station archived
+message in place of the regular station overview page and desktop client will
+do similar.
+
+Archiving a station is intended to be permanent. Some clients, once they notice
+a station is archived, may cache this and never attempt to retrieve fresh data
+again. Un-archiving a station can only be done through editing the database.
+""")
+
+    if not get_boolean("Would you like to archive an old weather station?", False):
+        print("** Operation Canceled **")
+        return
+
+    cur = con.cursor()
+    codes = print_station_list(cur)
+    selected_station_code = get_code("Station To Archive", codes, required=True)
+    description = get_string("Archival Reason/Description")
+
+    cur.execute("select title from station where lower(code) = lower(%s)",
+                (selected_station_code,))
+    station_info = cur.fetchone()
+
+    print("Station to be archived is {0} ({1}) with the description:\n\t{2}"
+          .format(station_info[0], selected_station_code, description))
+
+    if not get_boolean("Do you wish to proceed?", False):
+        print("** Operation Canceled **")
+        return
+
+    cur.execute("update station set archived = true, archived_message = %s, "
+                "archived_time=NOW() where lower(code) = lower(%s)",
+                (description, selected_station_code)
+                )
+    con.commit()
+    print("** Station Archived **")
+
+
 def manage_stations(con):
     """
     Runs a menu allowing the user to select various station management options.
@@ -915,6 +1059,18 @@ def manage_stations(con):
             "name": "Configure extra sensors",
             "type": "func",
             "func": lambda: configure_sensors(con)
+        },
+        {
+            "key": "6",
+            "name": "Mark data gaps",
+            "type": "func",
+            "func": lambda: mark_gaps(con)
+        },
+        {
+            "key": "7",
+            "name": "Archive station",
+            "type": "func",
+            "func": lambda: archive_station(con)
         },
         {
             "key": "0",

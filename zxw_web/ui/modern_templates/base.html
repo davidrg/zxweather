@@ -80,8 +80,11 @@
                         <li class="dropdown">
                             <a href="#" class="dropdown-toggle" data-toggle="dropdown">{{ page_data["station_name"] }}<b class="caret"></b></a>
                             <ul class="dropdown-menu" id="station_switch_menu">
+                                {% set group={'g':0} %}
                                 {%- for station in page_data["stations"] %}
-                                <li><a href="{{ station[0]|lower }}" data-station-code="{{ station[2]|lower }}">{{ station[1] }}</a></li>
+                                {%- if not station[3] and group['g']==0 %}{% if group.update({'g':1}) %}{% endif %}{% elif station[3] and group['g']==1 %}
+                                <li class="divider"></li>{% if group.update({'g':2}) %}{% endif %}{% endif %}
+                                <li><a href="{{ station[0]|lower }}" data-station-code="{{ station[2]|lower }}">{{ station[1] }}{% if station[3] %} (archived){% endif %}</a></li>
                                 {%- endfor %}
                             </ul>
                         </li>

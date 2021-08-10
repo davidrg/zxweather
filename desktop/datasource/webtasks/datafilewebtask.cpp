@@ -1,9 +1,15 @@
 #include "datasource/webtasks/datafilewebtask.h"
 #include "datasource/webtasks/request_data.h"
 #include "datasource/webcachedb.h"
+#include "compat.h"
 
 #include <QtDebug>
 #include <QTimer>
+
+#if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
+#include <QRegularExpression>
+#endif
+
 
 #if (QT_VERSION < QT_VERSION_CHECK(5,2,0))
 #include <limits>
@@ -33,7 +39,12 @@ void DataFileWebTask::beginTask() {
         return;
     }
 
-    if (_forceDownload) {
+    if (_forceDownload || (!cache_info.isComplete && cache_info.isValid)) {
+
+        if (!cache_info.isComplete) {
+            qDebug() << "Skipping HEAD request - cached data file is incomplete.";
+        }
+
         getDataset();
     } else {
         QNetworkRequest request(_url);
@@ -55,12 +66,17 @@ void DataFileWebTask::networkReplyReceived(QNetworkReply *reply) {
     }
 }
 
-bool DataFileWebTask::UrlNeedsDownlodaing(QNetworkReply *reply) {
+bool DataFileWebTask::UrlNeedsDownloading(QNetworkReply *reply) {
     QString url = reply->request().url().toString();
     data_file_t cache_info =
             WebCacheDB::getInstance().getDataFileCacheInformation(url);
 
     qDebug() << "Cache status request for url [" << url << "] finished.";
+
+    if (!cache_info.isComplete) {
+        qDebug() << "Cache is marked as incomplete. Possibly the server has more data";
+        return true;
+    }
 
     if (reply->hasRawHeader("X-Cache-Lookup")) {
         QString upstreamStatus = QString(reply->rawHeader("X-Cache-Lookup"));
@@ -97,7 +113,7 @@ bool DataFileWebTask::UrlNeedsDownlodaing(QNetworkReply *reply) {
 
 
 void DataFileWebTask::cacheStatusRequestFinished(QNetworkReply *reply) {
-    if (DataFileWebTask::UrlNeedsDownlodaing(reply)) {
+    if (DataFileWebTask::UrlNeedsDownloading(reply)) {
         getDataset();
     } else {
         // else the data file we have cached sounds the same as what is on the
@@ -148,7 +164,13 @@ void DataFileWebTask::downloadRequestFinished(QNetworkReply *reply) {
                                         cacheStats);
 
     emit subtaskChanged(QString(tr("Caching data for %1")).arg(_name));
-    WebCacheDB::getInstance().cacheDataFile(dataFile, _stationDataUrl);
+
+    if (dataFile.samples.timestamp.isEmpty()) {
+        qDebug() << "Skip caching datafile - no rows to cache.";
+    } else {
+        WebCacheDB::getInstance().cacheDataFile(dataFile, _stationDataUrl);
+
+    }
     emit finished();
 }
 
@@ -169,6 +191,8 @@ data_file_t DataFileWebTask::loadDataFile(QStringList fileData,
                                         cache_stats_t cacheStats) {
     emit subtaskChanged(QString(tr("Processing data for %1")).arg(_name));
 
+    bool stationArchived = WebCacheDB::getInstance().stationIsArchived(_stationDataUrl);
+
     SampleSet samples;
 
     // Split & trim the data
@@ -185,6 +209,7 @@ data_file_t DataFileWebTask::loadDataFile(QStringList fileData,
      *   until we're within $archiveInterval minutes of the end of the month.
      */
 
+    QDateTime startTime = QDateTime();
     QDateTime previousTime = QDateTime();
     QDateTime endTime = QDateTime();
 
@@ -195,10 +220,15 @@ data_file_t DataFileWebTask::loadDataFile(QStringList fileData,
     qDebug() << "Using" << archiveInterval << "as gap threshold.";
 
     bool gapDetected = false;
+    QDateTime startContiguousTo, endContiguousFrom;
 
     while (!fileData.isEmpty()) {
         QString line = fileData.takeFirst();
+#if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
+        QStringList parts = line.split(QRegularExpression("\\s+"));
+#else
         QStringList parts = line.split(QRegExp("\\s+"));
+#endif
 
         if (parts.count() < 11) continue; // invalid record.
 
@@ -207,7 +237,31 @@ data_file_t DataFileWebTask::loadDataFile(QStringList fileData,
         tsString += " " + parts.takeFirst();
         QDateTime timestamp = QDateTime::fromString(tsString, Qt::ISODate);
 
-        if (!gapDetected) {
+        if (startTime.isNull()) {
+            startTime = QDateTime(
+                        QDate(timestamp.date().year(),
+                              timestamp.date().month(),
+                              1),
+                        QTime(0,0,0));;
+            endTime = startTime.addMonths(1).addSecs(-1);
+
+            if (stationArchived) {
+                qDebug() << "Station is marked as archived - not detecting gaps. "
+                            "Received data file assumed to be complete and will be "
+                            "cached as-is permanently.";
+                startContiguousTo = endTime;
+                endContiguousFrom = startTime;
+                gapDetected = false;
+            }
+        }
+
+        // If a station is archived that means all data that will ever be available for it
+        // *is* available right now and the stations entire data-set is now read-only. This
+        // means that any gaps in the data set are permanent and will always be there if we
+        // were to download the file again at some point in the future. Because of this we
+        // can cache any files from archived stations permanently which makes searching them
+        // for gaps unnecessary.
+        if (!stationArchived) {
             // -----------/ The Gap Detection Zone /-----------
             // Here in The Gap Detection Zone our job is to figure out if the data
             // file contains absolutely every sample it could contain. This means
@@ -218,30 +272,64 @@ data_file_t DataFileWebTask::loadDataFile(QStringList fileData,
                 // First sample in the file. Initialise previousTime to be the very
                 // start of the month and set the end time to be the very end of
                 // the month
-                previousTime = QDateTime(
-                            QDate(timestamp.date().year(),
-                                  timestamp.date().month(),
-                                  1),
-                            QTime(0,0,0));
-                endTime = previousTime.addMonths(1).addSecs(-1);
-                qDebug() << "Data file max range:" << previousTime << "to" << endTime;
+                startTime = QDateTime(
+                            QDate(
+                                timestamp.date().year(),
+                                timestamp.date().month(),
+                                1),
+                            QTime(0,0,0));;
+                endTime = startTime.addMonths(1).addSecs(-1);
+                previousTime = startTime;
+                startContiguousTo = endTime;
+                endContiguousFrom = startTime;
+                qDebug() << "Data file max range:" << startTime << "to" << endTime;
+
+                if (timestamp != startTime) {
+                    startContiguousTo = QDateTime(); // Start not contiguous
+                }
             }
 
-            qint64 previousSecs = previousTime.toSecsSinceEpoch();
-            qint64 thisSecs = timestamp.toSecsSinceEpoch();
+            qint64 previousSecs = TO_UNIX_TIME(previousTime);
+            qint64 thisSecs = TO_UNIX_TIME(timestamp);
+
             if (thisSecs - previousSecs > archiveInterval) {
-                qDebug() << "GAP: This timestamp is" << timestamp << "previous was" << previousTime << ". Gap duration is" << thisSecs - previousSecs << "seconds.";
-                gapDetected = true;
+                // Detected gap is (previousTime, timestamp). If we've got a record of this
+                // gap being marked as permanent we can ignore it.
+                if (WebCacheDB::getInstance().sampleGapIsKnown(_stationDataUrl, previousTime, timestamp)) {
+                    qDebug() << "Detected gap from " << previousTime << "to" << timestamp << "is known to be permanent. Ignoring.";
+                } else {
+                    qDebug() << "GAP: This timestamp is" << timestamp << "previous was" << previousTime << ". Gap duration is" << thisSecs - previousSecs << "seconds.";
+                    gapDetected = true;
+                    if (startContiguousTo.isValid() && previousTime < startContiguousTo) {
+                        startContiguousTo = previousTime;
+                        qDebug() << "Start contiguous to:" << startContiguousTo;
+                    }
+                    if (timestamp > endContiguousFrom) {
+                        endContiguousFrom = timestamp;
+                        qDebug() << "End contiguous to:" << endContiguousFrom;
+                    }
+                }
             }
 
             if (fileData.isEmpty()) {
                 // Reached the end of the file. Current row is the last row.
                 // Check the final timestamp in the file is within archiveInterval
                 // seconds of the end of the month.
-                qint64 endSecs = endTime.toSecsSinceEpoch();
+                qint64 endSecs = TO_UNIX_TIME(endTime);
                 if (endSecs - thisSecs > archiveInterval) {
-                    qDebug() << "GAP (@end): The end is" << endTime << "last row was" << timestamp << ". Gap duration is" << endSecs - thisSecs << "seconds.";
-                    gapDetected = true;
+                    // Detected gap is (timestamp, endTime). Check with the DB to see if this gap is
+                    // known to be permanent. If so we can safely ignore it and cache the gap.
+                    if (WebCacheDB::getInstance().sampleGapIsKnown(_stationDataUrl, timestamp, endTime)) {
+                        qDebug() << "Gap at end of file from" << timestamp << "to" << endTime << "is known to be permanent. Ignoring.";
+                    } else {
+                        qDebug() << "GAP (@end): The end is" << endTime << "last row was" << timestamp << ". Gap duration is" << endSecs - thisSecs << "seconds.";
+                        gapDetected = true;
+                        endContiguousFrom = QDateTime(); // End is not contiguous.
+                        if (startContiguousTo.isValid() && timestamp < startContiguousTo) {
+                            startContiguousTo = timestamp;
+                            qDebug() << "Start contiguous to:" << startContiguousTo;
+                        }
+                    }
                 }
             }
 
@@ -272,19 +360,37 @@ data_file_t DataFileWebTask::loadDataFile(QStringList fileData,
 
     if (gapDetected) {
         qDebug() << "----> Data file is INCOMPLETE: it contains one or more gaps!";
+        if (startContiguousTo.isValid()) {
+            qDebug() << "Start of the file is contiguous to:" << startContiguousTo;
+        } else {
+            qDebug() << "Gap exists at start of file.";
+        }
+        if (endContiguousFrom.isValid()) {
+            qDebug() << "End of the file is contiguous from:" << endContiguousFrom;
+        } else {
+            qDebug() << "Gap exists at end of file.";
+        }
+
     } else {
         qDebug() << "----> Data file is COMPLETE: no gaps detected!";
+        qDebug() << "Expiring local cache and replacing with received data.";
         // *this* data file is 100% complete. There should never be new rows
         // to appear in it so the only reason we'd ever re-download it is if
         // for some reason some values changed (data fixed some erroneous rain
         // tips?). So we'll replace whatever is in the cache database with this.
+
+        // Add the samples the cache already has back into the set that will be
+        // inserted as we're replacing whats currently cached.
+        sampleParts.append(ignoreSampleParts);
+        timeStamps.append(ignoreTimeStamps);
         expireCache = true;
     }
 
-    if (ignoreTimeStamps.count() == cacheStats.count) {
+    if ((ignoreTimeStamps.count() == cacheStats.count)) {
         // There is the same number of records between those timestamps in
         // both the cache database and the data file. Probably safe to assume
         // none of them were changed so we'll just ignore them.
+        qDebug() << "Sample count in cache matches sample count for matching timespan in data file.";
         ignoreTimeStamps.clear();
         ignoreSampleParts.clear();
     } else {
@@ -292,6 +398,7 @@ data_file_t DataFileWebTask::loadDataFile(QStringList fileData,
         // available in the cache database. We'll take the downloaded data
         // file as authorative and dump what we currently have in the database
         // for this file.
+        qDebug() << "Sample count in cache timespan differs between DB and data file - expiring cache.";
         sampleParts.append(ignoreSampleParts);
         timeStamps.append(ignoreTimeStamps);
         expireCache = true;
@@ -306,7 +413,7 @@ data_file_t DataFileWebTask::loadDataFile(QStringList fileData,
 
     while (!timeStamps.isEmpty()) {
 
-        uint timestamp = timeStamps.takeFirst().toTime_t();
+        auto timestamp = TO_UNIX_TIME(timeStamps.takeFirst());
         samples.timestamp.append(timestamp);
         samples.timestampUnix.append(timestamp);
 
@@ -393,6 +500,10 @@ data_file_t DataFileWebTask::loadDataFile(QStringList fileData,
     dataFile.expireExisting = expireCache;
     dataFile.hasSolarData = _requestData.isSolarAvailable;
     dataFile.isComplete = !gapDetected;
+    dataFile.start_contiguous_to = startContiguousTo;
+    dataFile.end_contiguous_from = endContiguousFrom;
+    dataFile.start_time = startTime;
+    dataFile.end_time = endTime;
 
     return dataFile;
 }

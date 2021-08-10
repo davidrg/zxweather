@@ -74,13 +74,15 @@ void msgFileHandler(QtMsgType type, const QMessageLogContext &, const QString & 
         output_line = QString("Fatal: %1").arg(msg);
     break;
     }
-    _log_stream << output_line << endl;
+    _log_stream << output_line << "\n";
 }
 
 
 int main(int argc, char *argv[])
 {
+#if (QT_VERSION >= QT_VERSION_CHECK(5,6,0))
     QGuiApplication::setAttribute(Qt::AA_DisableHighDpiScaling);
+#endif
 
     QApplication a(argc, argv);
     QCoreApplication::setOrganizationName("zxnet");

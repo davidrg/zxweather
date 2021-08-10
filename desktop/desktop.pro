@@ -12,15 +12,22 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets printsupport concurrent uitools
 
 lessThan(QT_MAJOR_VERSION, 5): CONFIG += uitools
 
-# QML is currently used only for QJsEngine support
-equals(QT_MAJOR_VERSION, 5):!lessThan(QT_MINOR_VERSION,6) {
+# Currently this is required for QRegExp in qtlocalpeer.cpp. The replacement is QRegularExpression which
+#   is available from Qt 5.0+
+#greaterThan(QT_MAJOR_VERSION, 5): QT += core5compat
+
+
+lessThan(QT_MAJOR_VERSION, 5)|if(equals(QT_MAJOR_VERSION, 5):lessThan(QT_MINOR_VERSION,6)) {
+    # Qt 5.5 or older
+    message("Using QtScript for scripting")
+    QT += script
+} else {
+    # Qt 5.6 or newer
     message("Using QJSEngine for scripting")
     QT += qml
     DEFINES += USE_QJSENGINE
-} else {
-    message("Using QtScript for scripting")
-    QT += script
 }
+
 
 TARGET = zxweather
 TEMPLATE = app
@@ -31,6 +38,18 @@ TEMPLATE = app
 ######################
 DEFINES += SINGLE_INSTANCE   # Only allow one instance per station code
 
+# SortProxyModel: Using a regexp is faster at rejecting non-matches but
+#                 very slightly slower at parsing intervals
+# Requires QRegExp so currently incompatbile with Qt6+
+lessThan(QT_MAJOR_VERSION, 6): DEFINES += USE_INTERVAL_REGEXP
+
+lessThan(QT_MAJOR_VERSION, 5): DEFINES += USE_ECPG_LIVE_DATA
+
+# We now require C++11 and at a minimum GCC 4.8 (though 4.6 *may* work)
+# This likely means using the 4.8.6 or 4.8.7 Qt SDK unless building Qt
+# from source.
+greaterThan(QT_MAJOR_VERSION, 4): CONFIG += c++11
+lessThan(QT_MAJOR_VERSION, 5): QMAKE_CXXFLAGS += -std=gnu++11
 
 ######################
 # Libraries          #
@@ -87,53 +106,66 @@ unix {
 #################################
 # ECPG support for DB Live Data #
 #################################
-# Try to find the ECPG binary. If it can't be found we'll disable database live data support.
-win32 {
-    #ECPG_BIN = $$system(where ecpg)
-    #isEmpty(ECPG_BIN) {
-    #    # No system ECPG, use repository version
-    #    ECPG_BIN = ../desktop/tools/ecpg-9.1-win32/ecpg.exe
-    #}
+# This is only used to support Qt 4.8 as it doesn't support receiving a
+# payload with an asyc notification.
+lessThan(QT_MAJOR_VERSION, 5) {
+    # Try to find the ECPG binary. If it can't be found we'll disable database live data support.
+    win32 {
+        #ECPG_BIN = $$system(where ecpg)
+        #isEmpty(ECPG_BIN) {
+        #    # No system ECPG, use repository version
+        #    ECPG_BIN = ../desktop/tools/ecpg-9.1-win32/ecpg.exe
+        #}
 
-    ECPG_BIN = ../desktop/tools/ecpg-9.1-win32/ecpg.exe
-}
-unix|mac {
-    ECPG_BIN = $$system(which ecpg)
-}
+        ECPG_BIN = ../desktop/tools/ecpg-9.1-win32/ecpg.exe
+    }
+    unix|mac {
+        ECPG_BIN = $$system(which ecpg)
+    }
 
-isEmpty(ECPG_BIN) {
-    message("ECPG Not found. Database support disabled.")
+    isEmpty(ECPG_BIN) {
+        message("ECPG Not found. Database support disabled.")
+        DEFINES += NO_ECPG
+    }
+
+    !isEmpty(ECPG_BIN) {
+        message("Database support enabled - found ECPG in " $$ECPG_BIN)
+
+        # For building pgc sources with ECPG. For UNIX systems it assumes ecpg is
+        # installed in the path.
+        ecpg.name = Process Embedded SQL sources
+        ecpg.input = ECPG_SOURCES
+        ecpg.output = ${QMAKE_FILE_BASE}.cpp
+        #win32:ecpg.commands = ../desktop/tools/ecpg-9.1-win32/ecpg.exe -o ${QMAKE_FILE_OUT} ${QMAKE_FILE_IN}
+        #unix: ecpg.commands = ecpg -o ${QMAKE_FILE_OUT} ${QMAKE_FILE_IN}
+        ecpg.commands = $$ECPG_BIN -o ${QMAKE_FILE_OUT} ${QMAKE_FILE_IN}
+        ecpg.variable_out = SOURCES
+        ecpg.dependency_type = TYPE_CXX
+        QMAKE_EXTRA_COMPILERS += ecpg
+
+        win32 { # Use bundled postgres libraries
+            LIBS += -L../desktop/lib/libecpg-9.1-win32 -lecpg
+            LIBS += -L../desktop/lib/libpq-9.1-win32 -lpq
+            #INCLUDEPATH += $$PWD/lib/libecpg-9.1-win32/include
+            INCLUDEPATH += lib/libecpg-9.1-win32/include
+        }
+        unix { # Assumes libecpg and libpq have been installed in /usr/lib
+            LIBS += -L/usr/lib -lpq
+            LIBS += -L/usr/lib -lecpg
+            INCLUDEPATH += /usr/include/postgresql
+        }
+
+        ECPG_SOURCES += database.pgc
+    }
+} else {
     DEFINES += NO_ECPG
-}
 
-!isEmpty(ECPG_BIN) {
-    message("Database support enabled - found ECPG in " $$ECPG_BIN)
-
-    # For building pgc sources with ECPG. For UNIX systems it assumes ecpg is
-    # installed in the path.
-    ecpg.name = Process Embedded SQL sources
-    ecpg.input = ECPG_SOURCES
-    ecpg.output = ${QMAKE_FILE_BASE}.cpp
-    #win32:ecpg.commands = ../desktop/tools/ecpg-9.1-win32/ecpg.exe -o ${QMAKE_FILE_OUT} ${QMAKE_FILE_IN}
-    #unix: ecpg.commands = ecpg -o ${QMAKE_FILE_OUT} ${QMAKE_FILE_IN}
-    ecpg.commands = $$ECPG_BIN -o ${QMAKE_FILE_OUT} ${QMAKE_FILE_IN}
-    ecpg.variable_out = SOURCES
-    ecpg.dependency_type = TYPE_CXX
-    QMAKE_EXTRA_COMPILERS += ecpg
-
-    win32 { # Use bundled postgres libraries
-        LIBS += -L../desktop/lib/libecpg-9.1-win32 -lecpg
-        LIBS += -L../desktop/lib/libpq-9.1-win32 -lpq
-        #INCLUDEPATH += $$PWD/lib/libecpg-9.1-win32/include
-        INCLUDEPATH += lib/libecpg-9.1-win32/include
-    }
-    unix { # Assumes libecpg and libpq have been installed in /usr/lib
-        LIBS += -L/usr/lib -lpq
-        LIBS += -L/usr/lib -lecpg
-        INCLUDEPATH += /usr/include/postgresql
-    }
-
-    ECPG_SOURCES += database.pgc
+#    win32 { # Use bundled postgres libraries
+#        LIBS += -L../desktop/lib/libpq-9.1-win32 -lpq
+#    }
+#    unix { # Assumes libecpg and libpq have been installed in /usr/lib
+#        LIBS += -L/usr/lib -lpq
+#    }
 }
 
 SOURCES += main.cpp\
@@ -263,6 +295,7 @@ HEADERS  += mainwindow.h \
     charts/plotwidget/tracingaxistag.h \
     charts/plotwidget/valueaxistag.h \
     columnpickerwidget.h \
+    compat.h \
     database.h \
     datasource/hardwaretype.h \
     livecolumnpickerwidget.h \

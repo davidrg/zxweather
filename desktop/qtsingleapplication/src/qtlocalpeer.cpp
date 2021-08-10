@@ -44,6 +44,10 @@
 #include <QDataStream>
 #include <QTime>
 
+#if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
+#include <QRegularExpression>
+#endif
+
 #if defined(Q_OS_WIN)
 #include <QLibrary>
 #include <qt_windows.h>
@@ -78,7 +82,12 @@ QtLocalPeer::QtLocalPeer(QObject* parent, const QString &appId)
 #endif
         prefix = id.section(QLatin1Char('/'), -1);
     }
+
+#if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
+    prefix.remove(QRegularExpression("[^a-zA-Z]"));
+#else
     prefix.remove(QRegExp("[^a-zA-Z]"));
+#endif
     prefix.truncate(6);
 
     QByteArray idc = id.toUtf8();

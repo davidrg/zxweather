@@ -15,30 +15,84 @@
 
 FetchStationInfoWebTask::FetchStationInfoWebTask(QString baseUrl, QString stationCode, WebDataSource *ds)
     : AbstractWebTask(baseUrl, stationCode, ds) {
-
+    _have_sysconfig = false;
+    _have_gap_data = false;
+    _sysconfig_url = _dataRootUrl + DATASET_SYSCONFIG;
+    _gaps_url = _stationDataUrl + "gaps.json";
 }
 
 
 void FetchStationInfoWebTask::beginTask() {
-    QString url = _dataRootUrl + DATASET_SYSCONFIG;
-
-    QNetworkRequest request(url);
-
-    emit httpGet(request);
+    QNetworkRequest sysConfigRequest(_sysconfig_url);
+    emit httpGet(sysConfigRequest);
+    QNetworkRequest gapsRequest(_gaps_url);
+    emit httpGet(gapsRequest);
 }
 
 void FetchStationInfoWebTask::networkReplyReceived(QNetworkReply *reply) {
     reply->deleteLater();
 
+    bool isSysConfigResponse = reply->request().url() == _sysconfig_url;
+
     if (reply->error() != QNetworkReply::NoError) {
-        emit failed(reply->errorString());
+        if (isSysConfigResponse) {
+            emit failed(reply->errorString());
+        } else {
+            // The zxweather web UI didn't support marked gaps until august 2021
+            // so if we get an error fetching the gaps file its probably just
+            // because the server hasn't been upgraded. And even if the Web UI
+            // does support supplying gap data and we really did fail to fetch it
+            // for some reason its not a big deal - it only impacts how well we can
+            // cache data files with known gaps. Not something worth failing the
+            // entire process over.
+            _have_gap_data = true;
+        }
     } else {
-        processResponse(reply->readAll());
-        emit finished();
+        if (isSysConfigResponse) {
+            processSysConfigResponse(reply->readAll());
+            _have_sysconfig = true;
+        } else { // Must be gap data
+            processGapDataResponse(reply->readAll());
+            _have_gap_data = true;
+        }
+
+        if (_have_gap_data && _have_sysconfig) {
+            emit finished();
+        }
     }
 }
 
-bool FetchStationInfoWebTask::processResponse(QByteArray responseData) {
+bool FetchStationInfoWebTask::processGapDataResponse(QByteArray responseData) {
+    using namespace QtJson;
+
+    bool ok;
+
+    QVariantList result = Json::parse(responseData, ok).toList();
+
+    if (!ok) {
+        qDebug() << "gaps.json parse error. Data:" << responseData;
+        return false;
+    }
+
+    qDebug() << "Parsing GAPS data";
+
+    QList<sample_gap_t> gaps;
+
+    foreach(QVariant gapv, result) {
+        QVariantMap gap = gapv.toMap();
+        sample_gap_t sample_gap;
+        sample_gap.start_time = gap["start_time"].toDateTime();
+        sample_gap.end_time = gap["end_time"].toDateTime();
+        sample_gap.missing_samples = gap["missing_sample_count"].toInt();
+        sample_gap.label = gap["label"].toString();
+        gaps.append(sample_gap);
+    }
+
+    WebCacheDB::getInstance().updateStationGaps(_stationDataUrl, gaps);
+    return true;
+}
+
+bool FetchStationInfoWebTask::processSysConfigResponse(QByteArray responseData) {
     using namespace QtJson;
 
     bool ok;
@@ -63,6 +117,9 @@ bool FetchStationInfoWebTask::processResponse(QByteArray responseData) {
             QString stationName = stationData["name"].toString();
             bool isSolarAvailable = false;
             bool isWireless = false;
+            bool isArchived = false;
+            QDateTime archivedTime;
+            QString archivedMessage;
 
             QString hw = stationData["hw_type"].toMap()["code"].toString().toUpper();
 
@@ -103,6 +160,15 @@ bool FetchStationInfoWebTask::processResponse(QByteArray responseData) {
             FetchStationInfoWebTask::parseSensorConfig(
                         stationData, &extraColumnNames, &extraColumns);
 
+            if (stationData.contains("is_archived")) {
+                isArchived = stationData["is_archived"].toBool();
+
+                QVariantMap archiveInfo = stationData["archived"].toMap();
+
+                archivedTime = archiveInfo["time"].toDateTime();
+                archivedMessage = archiveInfo["message"].toString();
+            }
+
             _dataSource->updateStation(
                     stationName,
                     stationData["desc"].toString(),
@@ -114,7 +180,10 @@ bool FetchStationInfoWebTask::processResponse(QByteArray responseData) {
                     isSolarAvailable,
                     davis_broadcast_id,
                     extraColumns,
-                    extraColumnNames
+                    extraColumnNames,
+                    isArchived,
+                    archivedTime,
+                    archivedMessage
             );
 
             return true;

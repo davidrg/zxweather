@@ -10,6 +10,7 @@ import config
 
 __author__ = 'David Goodwin'
 
+
 def get_station_id(station):
     """
     Gets the ID for the specified station code.
@@ -28,6 +29,7 @@ def get_station_id(station):
     else:
         return None
 
+
 def get_station_code(station):
     """
     Gets the code for the specified station id.
@@ -45,6 +47,7 @@ def get_station_code(station):
         return result[0].code
     else:
         return None
+
 
 def get_sample_interval(station_id):
     """
@@ -128,6 +131,12 @@ def get_station_type_code(station_id):
         return None
 
 
+def station_archived_status(station_id):
+    query = """select archived, archived_message, archived_time 
+    from station where station_id = $station_id"""
+    result = db.query(query, dict(station_id=station_id))
+
+    return result[0]
 
 def get_station_config(station_id):
     """
@@ -146,6 +155,21 @@ def get_station_config(station_id):
             return None
         return json.loads(data)
     return None
+
+
+def get_permanent_data_gaps(station_id):
+    """
+    Returns the set of known permanent gaps in the stations dataset. These are
+    marked via the admin-tool and used by the desktop client to know if a
+    received samples data file with detected gaps can be cached permanently or
+    not.
+    """
+    query = "select  start_time, end_time, missing_sample_count, label " \
+            "from sample_gap where station_id = $station_id"
+
+    result = db.query(query, dict(station_id=station_id))
+
+    return result
 
 
 def get_live_data_available(station_id):
@@ -828,7 +852,7 @@ def get_full_station_info(include_coordinates=True):
            upper(st.code) as hw_type_code, st.title as hw_type_name,
            sr.min_ts, sr.max_ts, s.message,
            s.message_timestamp, s.station_config, s.site_title, s.latitude,
-           s.longitude, s.altitude, s.sample_interval
+           s.longitude, s.altitude, s.sample_interval, s.archived, s.archived_message, s.archived_time
         from station s
         inner join station_type st on st.station_type_id = s.station_type_id
         left outer join (
@@ -867,8 +891,15 @@ def get_full_station_info(include_coordinates=True):
                 'longitude': None,
                 'altitude': record.altitude
             },
-            'interval': record.sample_interval
+            'interval': record.sample_interval,
+            'is_archived': record.archived
         }
+
+        if record.archived:
+            station['archived'] = {
+                "time": record.archived_time.isoformat(),
+                "message": record.archived_message
+            }
 
         if include_coordinates:
             station['coordinates']['latitude'] = record.latitude
@@ -937,13 +968,13 @@ def get_stations():
     Gets a list of station code,name pairs for all stations in the database.
     :return:
     """
-    result = db.query("select upper(code) as code, title "
-                      "from station order by sort_order asc, title desc")
+    result = db.query("select upper(code) as code, title, archived "
+                      "from station order by archived, sort_order asc, title desc")
 
     stations = []
 
     for row in result:
-        station = (row.code, row.title)
+        station = (row.code, row.title, row.archived)
         stations.append(station)
 
     return stations

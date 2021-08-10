@@ -20,7 +20,30 @@ typedef struct _data_file_t {
     bool expireExisting;
     bool hasSolarData;
     bool isComplete;
+    QDateTime start_contiguous_to;
+    QDateTime end_contiguous_from;
+
+    // This should be the very start of the day or month
+    // eg: 30-JUL-2021 00:00:00
+    QDateTime start_time;
+
+    // This should be the very end of the day or month
+    // eg: 30-JUL-2021 23:59:59
+    QDateTime end_time;
 } data_file_t;
+
+typedef struct _sample_gap_t {
+    QDateTime start_time;
+    QDateTime end_time;
+    int missing_samples;
+    QString label;
+
+    bool operator==(struct _sample_gap_t const & rhs) const {
+        // As far as equality goes we really only care about the timespan.
+        // Missing sample count depends on timespan and label doesn't affect caching.
+        return this->start_time == rhs.start_time && this->end_time == this->end_time;
+    }
+} sample_gap_t;
 
 typedef struct _image_set_t {
     QString filename;
@@ -218,6 +241,14 @@ public:
      */
     bool stationKnown(QString url);
 
+    /** Returns true if the specified station is known to the cache database
+     *  and marked as archived.
+     *
+     * @param url Station URL
+     * @return If the station exists and is marked as archived.
+     */
+    bool stationIsArchived(QString url);
+
     /** Updates extra data associated with a station. Aside from the solar and hardware type
      * parameters this is mostly for use by reports.
      *
@@ -236,7 +267,33 @@ public:
     void updateStation(QString url, QString title, QString description, QString type_code,
                        int interval, float latitude, float longitude, float altitude,
                        bool solar, int davis_broadcast_id,
-                       QMap<ExtraColumn, QString> extraColumnNames);
+                       QMap<ExtraColumn, QString> extraColumnNames, bool archived, QDateTime archivedTime, QString archivedMessage);
+
+
+    /** Updates the list of known permanent data gaps for the specified
+     *  station.
+     *
+     * @param url Station URL
+     * @param gaps Permanent data gap information.
+     */
+    void updateStationGaps(QString url, QList<sample_gap_t> gaps);
+
+    /** Gets the list of all known permanent data gaps for the specified station
+     *
+     * @param url Station to get data gaps for
+     * @return List of data gaps
+     */
+    QList<sample_gap_t> getStationGaps(QString url);
+
+    /** Checks the database to see if the specified timespan falls within
+     *  a known permanent gap in the stations full dataset.
+     *
+     * @param url Station URL
+     * @param gapStart Start of the timespan to check
+     * @param gapEnd End of the timespan to check
+     * @return If the timespan is or falls within a known permanent gap.
+     */
+    bool sampleGapIsKnown(QString url, QDateTime gapStart, QDateTime gapEnd);
 
     /** Gets the names for all enabled extra senosrs
      *
@@ -283,11 +340,24 @@ public:
     /** Stores the list of dates that have images available. This is
      * primarily for the benefit of reports.
      *
-     * @param imageDates List of images that have dates.
+     * @param stationCode Station the date list is being updated for.
+     * @param dates Map of dates that have images available and the number of images
+     *              available for those dates.
      */
     void updateImageDateList(QString stationCode, QMap<QString, QMap<QDate, int> > dates);
 
     bool imageSourceDateIsCached(QString stationUrl, QString sourceCode, QDate date);
+
+
+    /** Returns true if all samples from the specified start time to the specified
+     *  end time (inclusive) are present in the cache database.
+     *
+     * @param stationUrl Station to check cache for
+     * @param startTime start time of timespan
+     * @param endTime end time of timespan
+     * @return If all samples are available.
+     */
+    bool timespanIsCached(QString stationUrl, QDateTime startTime, QDateTime endTime);
 
 signals:
     /** Emitted when an error occurs which would prevent the cache database
@@ -407,8 +477,15 @@ private:
      * @param lastModified The new last modified date of the file.
      * @param size The new size of the file.
      * @param isComplete If the data file covers its full timespan completely (no gaps)
+     * @param startContiguousTo There are no gaps between the start of the file and
+     *              this time (inclusive). If null/invalid then there is a gap at the
+     *              start of the file.
+     * @param endContiguousFrom There are no gaps between this time and the end of the
+     *              file (inclusive). If null/invlaid then there is a gap at the end of
+     *              the file.
      */
-    void updateDataFile(int fileId, QDateTime lastModified, int size, bool isComplete);
+    void updateDataFile(int fileId, QDateTime lastModified, int size, bool isComplete,
+                        QDateTime startContiguousTo, QDateTime endContiguousFrom);
 
     /** Drops all cache data associated with the specified file from the
      * database.

@@ -162,7 +162,12 @@ void PlusCursor::cleanup() {
 
     keyAxes.clear();
     valueAxes.clear();
+
+#if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
     currentAxisRect.clear();
+#else
+    currentAxisRect = NULL;
+#endif
 
     chart->layer("overlay")->replot();
 }
@@ -300,7 +305,13 @@ void PlusCursor::mouseMove(QMouseEvent* event) {
             } else {
                 tag->setVisible(true);
 
+#if (QT_VERSION >= QT_VERSION_CHECK(6,0,0))
+                QLocale locale;
+                auto ts = QDateTime::fromMSecsSinceEpoch(axisValue * 1000);
+                tag->setText(locale.toString(ts, locale.dateFormat(QLocale::ShortFormat)));
+#else
                 tag->setText(QDateTime::fromMSecsSinceEpoch(axisValue * 1000).toString(Qt::SystemLocaleShortDate));
+#endif
 
                 QPointer<QCPAxis> valueAxis = getVisibleValueAxis(currentAxisRect);
                 if (valueAxis.isNull()) {

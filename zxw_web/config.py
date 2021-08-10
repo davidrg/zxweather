@@ -167,20 +167,21 @@ def load_settings():
     if config.has_option(S_T, "cache_thumbnails"):
         cache_thumbnails = config.getboolean(S_T, "cache_thumbnails")
 
-        if config.has_option(S_T, "max_thumbnail_cache_size"):
-            max_thumbnail_cache_size = config.getint(S_T, "max_thumbnail_cache_size")
+        if cache_thumbnails:
+            if config.has_option(S_T, "max_thumbnail_cache_size"):
+                max_thumbnail_cache_size = config.getint(S_T, "max_thumbnail_cache_size")
 
-        if config.has_option(S_T, "cache_directory"):
-            cache_directory = config.get(S_T, "cache_directory")
+            if config.has_option(S_T, "cache_directory"):
+                cache_directory = config.get(S_T, "cache_directory")
 
-            if not cache_directory.endswith(os.path.sep):
-                cache_directory += os.path.sep
-            cache_directory += "thumbnails" + os.path.sep
+                if not cache_directory.endswith(os.path.sep):
+                    cache_directory += os.path.sep
+                cache_directory += "thumbnails" + os.path.sep
 
-            if not os.path.exists(cache_directory):
-                        os.makedirs(cache_directory)
-        else:
-            raise Exception("Thumbnail cache directory not set")
+                if not os.path.exists(cache_directory):
+                            os.makedirs(cache_directory)
+            else:
+                raise Exception("Thumbnail cache directory not set")
 
     if config.has_option(S_T, "thumbnail_size"):
         val = config.get(S_T, "thumbnail_size")
@@ -192,21 +193,21 @@ def load_settings():
 
     if config.has_option(S_T, "cache_videos"):
         cache_videos = config.getboolean(S_T, "cache_thumbnails")
+        if cache_videos:
+            if config.has_option(S_T, "max_video_cache_size"):
+                max_video_cache_size = config.getint(S_T, "max_video_cache_size")
 
-        if config.has_option(S_T, "max_video_cache_size"):
-            max_video_cache_size = config.getint(S_T, "max_video_cache_size")
+            if config.has_option(S_T, "cache_directory"):
+                video_cache_directory = config.get(S_T, "cache_directory")
 
-        if config.has_option(S_T, "cache_directory"):
-            video_cache_directory = config.get(S_T, "cache_directory")
+                if not video_cache_directory.endswith(os.path.sep):
+                    video_cache_directory += os.path.sep
+                    video_cache_directory += "videos" + os.path.sep
 
-            if not video_cache_directory.endswith(os.path.sep):
-                video_cache_directory += os.path.sep
-                video_cache_directory += "videos" + os.path.sep
-
-            if not os.path.exists(video_cache_directory):
-                os.makedirs(video_cache_directory)
-        else:
-            raise Exception("Thumbnail cache directory not set")
+                if not os.path.exists(video_cache_directory):
+                    os.makedirs(video_cache_directory)
+            else:
+                raise Exception("Thumbnail cache directory not set")
 
     if cache_videos or cache_thumbnails:
         if config.has_option(S_T, "expire_cache_by_access_time"):

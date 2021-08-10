@@ -1,0 +1,29 @@
+{# This template is used for wrapping static HTML content with the nav menu
+   and site-wide footer.#}
+{% extends "base.html" %}
+{% block title %}Station Archived{% endblock %}
+{% block head %}{% endblock %}
+{% block content %}
+    <h1>Station Archived - {{ page_data['station_name'] }}</h1>
+    <p>This station was permanently archived on {{ archived_time }}{% if archived_message %} with the following note:{% else %}.{% endif %}</p>
+    {% if archived_message %}<p>{{ archived_message }}</p>{% endif %}
+    <p>
+        This station is no longer operating and no new data will be made available
+        through this site.
+    </p>
+
+    <section id="history">
+        <h2>Weather History</h2>
+        <p>Weather data recorded by this station while it was operating
+            remains available. You can browse this data at the day, month or
+            year level starting from your desired year:<br>
+            {% set i = 0 -%}
+            {%- for year in years -%}
+                {%- set i = i + 1 -%}
+                <a href="{{ year }}/">{{ year }}</a>{% if i < years|length %}, {% endif %}
+            {%- endfor %}
+        </p>
+    </section>
+{% endblock %}
+{% block scripts %}
+{% endblock %}

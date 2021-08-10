@@ -47,9 +47,17 @@ public:
         else if (_imageInfo.mimeType.startsWith("audio/"))
             t = "recording";
 
+        QString date;
+#if (QT_VERSION >= QT_VERSION_CHECK(6,0,0))
+        QLocale locale;
+        date = locale.toString(_imageInfo.timeStamp, locale.dateFormat(QLocale::ShortFormat));
+#else
+        date=_imageInfo.timeStamp.toString(Qt::SystemLocaleShortDate);
+#endif
+
         return QString(tr("Downloading %1 %2"))
                 .arg(t)
-                .arg(_imageInfo.timeStamp.toString(Qt::SystemLocaleShortDate));
+                .arg(date);
     }
 
 public slots:
