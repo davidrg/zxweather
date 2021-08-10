@@ -3,7 +3,7 @@
  Total Hours: {{total_hours}}
  Start Date: {{start_date}}
  End Date: {{end_date}}
-  Threshold: {{threshold}} W/m²
+  Threshold: {{threshold}} %
 
  Hours for last {{count}} days...{{/info}}
 {{#txt_day_summary}}
