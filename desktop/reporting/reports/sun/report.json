@@ -16,7 +16,7 @@
 	"outputs": [
 		{
 			"name": "html",
-			"title": "Sunrise & Sunset",
+			"title": "Sunrise && Sunset",
 			"icon": "../../icons/report",
 			"format": "html",
 			"template": "sun.html",
