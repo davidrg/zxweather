@@ -317,6 +317,7 @@ void ChartWindow::textElementDoubleClick(QMouseEvent *event)
             }
             element->setText(newTitle);
             plotTitleValue = newTitle;
+            setWindowTitle(tr("%1 - Chart").arg(newTitle));
             ui->chart->replot();
         }
     }
