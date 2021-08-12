@@ -292,6 +292,18 @@ void ChartWindow::axisDoubleClick(QCPAxis *axis, QCPAxis::SelectablePart part,
             axis->setLabel(newLabel);
             ui->chart->replot();
         }
+    } else if (part == QCPAxis::spAxis || part == QCPAxis::spTickLabels) {
+        // If the user double-clicked a key axis or its tick labels. We'll
+        // offer up the change timespan dialog.
+        //
+        // We could offer to change tick label fomatting for double-clicking on
+        // the tick labels and only offer the timespan dialog when double-clicking
+        // on the axis itself but the axis is kind of a hard target to double-click
+        // and changing the timespan is probably a more common operation than
+        // changing the tick label format.
+        if (ui->chart->axisRect()->axes(QCPAxis::atTop | QCPAxis::atBottom).contains(axis)) {
+            changeSelectedKeyAxisTimespan();
+        }
     }
 }
 
