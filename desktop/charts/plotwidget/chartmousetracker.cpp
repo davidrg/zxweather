@@ -76,6 +76,7 @@ void ChartMouseTracker::setupPointTracing(QCPAxisRect *rect) {
         pointTracer->setSize(7);
         pointTracer->setGraph(graph);
         pointTracer->setLayer("overlay");
+        pointTracer->setClipAxisRect(rect);
         pointTracers.append(pointTracer);
 
         QCPAxis *xAxis = graph->keyAxis();
