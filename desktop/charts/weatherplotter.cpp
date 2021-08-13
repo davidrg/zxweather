@@ -59,9 +59,7 @@ void WeatherPlotter::drawChart(QList<DataSet> dataSets)
 
 void WeatherPlotter::addDataSet(DataSet dataSet) {
     this->dataSets[dataSet.id] = dataSet;
-    QList<DataSet> foo;
-    foo.append(dataSet);
-    cacheManager->getDataSets(foo);
+    cacheManager->getDataSets(dataSets.values());
 }
 
 void WeatherPlotter::populateAxisLabels() {
@@ -779,6 +777,11 @@ void WeatherPlotter::drawChart(QMap<dataset_id_t, SampleSet> sampleSets)
 {
     qDebug() << "Drawing Chart...";
 
+    foreach (dataset_id_t k, sampleSets.keys()) {
+        SampleSet ss = sampleSets[k];
+        qDebug() << "SampleSet ID" << k << "StartTime" << FROM_UNIX_TIME(ss.timestampUnix.first()) << "EndTime" << FROM_UNIX_TIME(ss.timestampUnix.last());
+    }
+
     // Clear out the current chart and re-add everything we've got data for.
     chart->clearPlottables();
     foreach(AxisType type, axisReferences.keys())
@@ -798,6 +801,8 @@ void WeatherPlotter::drawChart(QMap<dataset_id_t, SampleSet> sampleSets)
     if (legendIsVisible != legendWasVisible) {
         emit legendVisibilityChanged(legendIsVisible);
     }
+
+    qDebug() << "There are" << this->dataSets.count() << "datasets in the plot";
 
     multiRescale();
     chart->replot();
