@@ -875,6 +875,10 @@ void LivePlotWindow::updateGraph(LiveValue type, double key, double range, doubl
             tags[type]->setValue(1, value);
         }
 
+        if (!mouseTracker.isNull()) {
+            mouseTracker->update();
+        }
+
         if (units[type] == UnitConversions::U_LEAF_WETNESS) {
             return; // Range is fixed 0-15 on axis creation.
         }

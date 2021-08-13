@@ -140,29 +140,35 @@ void ChartMouseTracker::mouseMove(QMouseEvent* event) {
         return;
     }
 
-    if (enabled) {
-        for(int i = 0; i < currentAxisRect->graphs().count(); i++) {
-            QPointer<QCPItemTracer> pointTracer = pointTracers.at(i);
-            if (pointTracer.isNull()) {
-                continue;
-            }
+    currentXCoord = event->pos().x();
 
-            QCPGraph* graph = pointTracer->graph();
-            if (!graph->visible()) {
-                continue;
-            }
+    update();
+    chart->replot();
+}
 
-            QCPAxis *keyAxis = graph->keyAxis();
+void ChartMouseTracker::update() {
+    if (!enabled || currentAxisRect.isNull()) return;
 
-            pointTracer->setGraphKey(keyAxis->pixelToCoord(event->pos().x()));
-            pointTracer->updatePosition();
-
-            if (keyAxis->visible()) {
-                keyAxisTags[keyAxis]->update();
-            }
-            valueAxisTags[graph]->update();
+    for(int i = 0; i < currentAxisRect->graphs().count(); i++) {
+        QPointer<QCPItemTracer> pointTracer = pointTracers.at(i);
+        if (pointTracer.isNull()) {
+            continue;
         }
-        chart->replot();
+
+        QCPGraph* graph = pointTracer->graph();
+        if (!graph->visible()) {
+            continue;
+        }
+
+        QCPAxis *keyAxis = graph->keyAxis();
+
+        pointTracer->setGraphKey(keyAxis->pixelToCoord(currentXCoord));
+        pointTracer->updatePosition();
+
+        if (keyAxis->visible()) {
+            keyAxisTags[keyAxis]->update();
+        }
+        valueAxisTags[graph]->update();
     }
 }
 

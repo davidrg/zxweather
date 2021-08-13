@@ -37,6 +37,12 @@ public slots:
      */
     void setEnabled(bool enabled);
 
+    /** Updates the positions of the axis tags and the point
+     *  under the cursor. Call this whenever the plots data
+     *  changes.
+     */
+    void update();
+
 private slots:
     void mouseMove(QMouseEvent *event);
     void mouseLeave(QEvent *event);
@@ -55,6 +61,8 @@ private:
     QPointer<QCPAxisRect> currentAxisRect;
 
     PlotWidget * chart;
+
+    int currentXCoord;
 };
 
 #endif // CHARTMOUSETRACKER_H
