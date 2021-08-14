@@ -51,7 +51,10 @@ jobs:
           cd server
           python -m pip install --upgrade pip
           pip install flake8 pytest
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          # Sever tsts currently just cover the command processor. Requirements are
+          # currently failing to install on ubuntu-latest (old pyopenssl) so we'll
+          # just skip them
+          # if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
       - name: Lint with flake8
         run: |
           cd server
