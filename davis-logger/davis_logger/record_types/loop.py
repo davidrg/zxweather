@@ -299,18 +299,20 @@ def serialise_loop(loop, rainCollectorSize=0.2):
     else:
         solarRadiation = loop.solarRadiation
 
-    packed = struct.pack(
+    result = bytearray()
+
+    result.extend(struct.pack(
         loop_format,
-        'LOO',  # Magic number
+        b'LOO',  # Magic number
         loop.barTrend,
         0,  # Packet type. 0 = LOOP
         loop.nextRecord,
-        mb_to_inhg(loop.barometer * 1000),
+        int(mb_to_inhg(loop.barometer * 1000)),
         serialise_16bit_temp(loop.insideTemperature),
         dash_8bit(loop.insideHumidity),
         serialise_16bit_temp(loop.outsideTemperature),
-        ms_to_mph(loop.windSpeed),
-        ms_to_mph(loop.averageWindSpeed10min),
+        int(ms_to_mph(loop.windSpeed)),
+        int(ms_to_mph(loop.averageWindSpeed10min)),
         loop.windDirection,
         serialise_8bit_temp(loop.extraTemperatures[0]),
         serialise_8bit_temp(loop.extraTemperatures[1]),
@@ -335,17 +337,17 @@ def serialise_loop(loop, rainCollectorSize=0.2):
         dash_8bit(loop.extraHumidities[4]),
         dash_8bit(loop.extraHumidities[5]),
         dash_8bit(loop.extraHumidities[6]),
-        loop.rainRate / rainCollectorSize,
+        int(loop.rainRate / rainCollectorSize),
         dash_8bit(loop.UV),
         solarRadiation,
-        mm_to_inch(loop.stormRain) * 100,
+        int(mm_to_inch(loop.stormRain) * 100),
         encode_current_storm_date(loop.startDateOfCurrentStorm),
         int(loop.dayRain / rainCollectorSize),
         int(loop.monthRain / rainCollectorSize),
         int(loop.yearRain / rainCollectorSize),
-        mm_to_inch(loop.dayET) * 1000,
-        mm_to_inch(loop.monthET) * 100,
-        mm_to_inch(loop.yearET) * 100,
+        int(mm_to_inch(loop.dayET) * 1000),
+        int(mm_to_inch(loop.monthET) * 100),
+        int(mm_to_inch(loop.yearET) * 100),
         dash_8bit(loop.soilMoistures[0]),
         dash_8bit(loop.soilMoistures[1]),
         dash_8bit(loop.soilMoistures[2]),
@@ -376,11 +378,13 @@ def serialise_loop(loop, rainCollectorSize=0.2):
         loop.forecastRuleNumber,
         encode_time(loop.timeOfSunrise),
         encode_time(loop.timeOfSunset)
-    )
+    ))
 
-    packed += '\n\r'
+    result.extend(b'\n\r')
 
-    crc = CRC.calculate_crc(packed)
+    crc = CRC.calculate_crc(result)
     packed_crc = struct.pack(CRC.FORMAT, crc)
 
-    return packed + packed_crc
+    result.extend(packed_crc)
+
+    return result

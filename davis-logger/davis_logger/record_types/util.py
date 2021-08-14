@@ -38,6 +38,7 @@ def inch_to_mm(inch):
     """Inches to millimeters"""
     return inch * 25.4
 
+
 def inhg_to_mb(inhg):
     """
     Convert inches of mercury (in Hg) to hectopascals (hPa, aka millibars)
@@ -45,10 +46,12 @@ def inhg_to_mb(inhg):
     return (inhg * 1013.25) / 29.92
     #return inhg * (1015.92 / 30.0)
 
+
 def mb_to_inhg(mb):
     """ Convert hectopascals to inches of mercury """
     return (29.92 * mb) / 1013.25
     #return mb * (30.0 / 1015.92)
+
 
 class CRC(object):
     """
@@ -100,15 +103,14 @@ class CRC(object):
         """
         Calculates the CRC value for the supplied string.
         :param byte_string: The string of bytes to calculate the CRC for
-        :type byte_string: str
+        :type byte_string: bytes
         :return: The CRC value
         :rtype: int
         """
 
         crc = 0
 
-        for byte in byte_string:
-            data = ord(byte)
+        for data in byte_string:
             table_idx = ((crc >> 8) ^ data) & 0xffff
             crc = (CRC.crc_table[table_idx] ^ (crc << 8)) & 0xffff
 

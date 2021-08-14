@@ -100,9 +100,10 @@ def split_page(page_string):
     Splits a DMP page into its three components: the page sequence, record
     set (5 records) and its CRC.
     :param page_string:
+    :type page_string: bytes
     :return:
     """
-    page_number = ord(page_string[0])
+    page_number = ord(page_string[0:1])
 
     recordA = page_string[1:53]
     recordB = page_string[53:105]
@@ -129,14 +130,16 @@ def build_page(page_number, records):
     assert(len(records) == 5)
     assert(0 <= page_number <= 255)
 
-    page = struct.pack('B', page_number)
+    page = bytearray()
+
+    page.extend(struct.pack('B', page_number))
     for record in records:
-        page += record
-    page += '\xff\xff\xff\xff'
+        page.extend(record)
+    page.extend(b'\xff\xff\xff\xff')
 
     crc = CRC.calculate_crc(page)
 
-    page += struct.pack(CRC.FORMAT, crc)
+    page.extend(struct.pack(CRC.FORMAT, crc))
 
     return page
 
@@ -202,7 +205,7 @@ def decode_time(binary_val):
     if binary_val == 0xFFFF:
         return None
 
-    hour = binary_val / 100
+    hour = binary_val // 100
     minute = binary_val - (hour * 100)
 
     return datetime.time(hour=hour, minute=minute)
@@ -275,7 +278,7 @@ def deserialise_dmp(dmp_string, rainCollectorSize=0.2):
     """
     Deserialised a dmp string into a Dmp tuple.
     :param dmp_string: DMP record in string format as sent by the console
-    :type dmp_string: str
+    :type dmp_string: bytes
     :param rainCollectorSize: Size of the rain collector in millimeters
     :type rainCollectorSize: float
     :return: The DMP record as a named tuple.
@@ -389,7 +392,7 @@ def serialise_dmp(dmp, rainCollectorSize=0.2):
     :param rainCollectorSize: Size of the rain collector in millimeters
     :type rainCollectorSize: float
     :return: The Dmp tuple packed into a string.
-    :rtype: str
+    :rtype: bytes
     """
 
     dmp_format = '<HHhhhHHHHHhBBBBBBBBHBB2B2B4BB2B3B4B'
@@ -407,14 +410,14 @@ def serialise_dmp(dmp, rainCollectorSize=0.2):
     if dmp.averageWindSpeed is None:
         averageWindSpeed = 255
     else:
-        averageWindSpeed = ms_to_mph(dmp.averageWindSpeed)
+        averageWindSpeed = int(ms_to_mph(dmp.averageWindSpeed))
 
     if dmp.averageUVIndex is None:
         averageUVIndex = 255
     else:
-        averageUVIndex = dmp.averageUVIndex / 10
+        averageUVIndex = int(dmp.averageUVIndex / 10)
 
-    highUVIndex = dmp.highUVIndex * 10
+    highUVIndex = int(dmp.highUVIndex * 10)
 
     packed = struct.pack(
         dmp_format,
@@ -425,18 +428,18 @@ def serialise_dmp(dmp, rainCollectorSize=0.2):
         serialise_16bit_temp(dmp.lowOutsideTemperature),
         int(dmp.rainfall / rainCollectorSize),
         int(dmp.highRainRate / rainCollectorSize),
-        mb_to_inhg(dmp.barometer * 1000),
+        int(mb_to_inhg(dmp.barometer * 1000)),
         solarRadiation,
         dmp.numberOfWindSamples,
         serialise_16bit_temp(dmp.insideTemperature),
         dash_8bit(dmp.insideHumidity),
         dash_8bit(dmp.outsideHumidity),
         averageWindSpeed,
-        ms_to_mph(dmp.highWindSpeed),
+        int(ms_to_mph(dmp.highWindSpeed)),
         _serialise_wind_direction_code(dmp.highWindSpeedDirection),
         _serialise_wind_direction_code(dmp.prevailingWindDirection),
         averageUVIndex,
-        mm_to_inch(dmp.ET),
+        int(mm_to_inch(dmp.ET)),
         highSolarRadiation,
         highUVIndex,
         dmp.forecastRule,

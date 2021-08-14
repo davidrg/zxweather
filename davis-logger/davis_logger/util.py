@@ -45,12 +45,13 @@ class Event(object):
         to_remove = []
 
         for handler in self._handlers:
-            if hasattr(handler, 'im_self'):
-                if handler.im_self == parent_object:
+            if hasattr(handler, '__self__'):
+                if handler.__self__ == parent_object:
                     to_remove.append(handler)
 
         for handler in to_remove:
-            self.__isub__(handler)
+            self._handlers.remove(handler)
+
 
 def toHexString(string):
     """

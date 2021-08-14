@@ -57,7 +57,7 @@ class DstSwitcherTests(unittest.TestCase):
         Checks the DstSwither returns a sample
         """
 
-        sample = TestDmp(datetime(2015, 01, 05, 5, 20, 0), 'a')
+        sample = TestDmp(datetime(2015, 1, 5, 5, 20, 0), 'a')
         dst_info = FakeDstInfo()
 
         switcher = DstSwitcher(dst_info, 5, datetime.now())
@@ -86,7 +86,7 @@ class DstSwitcherTests(unittest.TestCase):
         cross a DST switch threshold.
         """
 
-        start_ts = datetime(2015, 01, 05, 5, 20, 0)
+        start_ts = datetime(2015, 1, 5, 5, 20, 0)
 
         samples = self._make_samples(start_ts, 5, None, 10)
 
