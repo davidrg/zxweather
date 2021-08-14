@@ -32,3 +32,4 @@ test.tac
 *.orig
 *_test.tac
 *.rej
+*.cache
