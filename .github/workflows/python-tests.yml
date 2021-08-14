@@ -32,4 +32,4 @@ jobs:
       - name: Test with pytest
         run: |
           cd davis-logger
-          pytest test\dmp_tests.py test\dst_tests.py test\loop_tests.py test\util.py
+          pytest test/dmp_tests.py test/dst_tests.py test/loop_tests.py test/util.py
