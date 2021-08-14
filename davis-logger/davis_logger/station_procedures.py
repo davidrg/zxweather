@@ -17,7 +17,7 @@ class Procedure(object):
     """
 
     _STATE_READY = 0  # Type: int
-    _ACK = '\x06'  # Type: str
+    _ACK = b'\x06'  # Type: str
 
     def __init__(self, write_callback):
         """
@@ -27,7 +27,7 @@ class Procedure(object):
         :type write_callback: Callable
         """
         self.finished = Event()
-        self._buffer = ""
+        self._buffer = bytearray()
         self._handlers = []
         self._state = self._STATE_READY
         self._write = write_callback
@@ -36,7 +36,7 @@ class Procedure(object):
         """
         Pass data into the procedure.
         :param data: Data from weather station
-        :type data: str
+        :type data: bytes
         """
         self._buffer += data
 
@@ -94,11 +94,11 @@ class DstSwitchProcedure(Procedure):
         """
         Send the specified data to the station then transition to the next state
         :param data: Data to send
-        :type data: str or None
+        :type data: bytes
         """
         # Completely linear!
         self._state += 1
-        self._buffer = ""
+        self._buffer = bytearray()
 
         if data is not None:
             self._write(data)
@@ -128,7 +128,7 @@ class DstSwitchProcedure(Procedure):
         # > data
         # < ACK
 
-        self._transition("EEBWR 13 1\n")
+        self._transition(b"EEBWR 13 1\n")
 
     def _send_new_eeprom_value(self):
         """
@@ -151,18 +151,20 @@ class DstSwitchProcedure(Procedure):
         # > data
         # < ACK
 
-        assert self._buffer[0] == self._ACK
+        assert self._buffer[0:1] == self._ACK
+
+        data = bytearray()
 
         if self._new_dst_value:
-            data = chr(1)
+            data.append(1)
         else:
-            data = chr(0)
+            data.append(0)
 
         crc = CRC.calculate_crc(data)
 
         packed_crc = struct.pack(CRC.FORMAT, crc)
 
-        data += packed_crc
+        data.extend(packed_crc)
 
         self._transition(data)
 
@@ -188,9 +190,9 @@ class DstSwitchProcedure(Procedure):
         # > data
         # < ACK
 
-        assert self._buffer[0] == self._ACK
+        assert self._buffer[0:1] == self._ACK
 
-        self._transition("GETTIME\n")
+        self._transition(b"GETTIME\n")
 
     def _calculate_new_time(self):
         """
@@ -216,7 +218,7 @@ class DstSwitchProcedure(Procedure):
         # > data
         # < ACK
 
-        assert self._buffer[0] == self._ACK
+        assert self._buffer[0:1] == self._ACK
 
         packet_crc = struct.unpack(CRC.FORMAT, self._buffer[7:9])[0]
         calculated_crc = CRC.calculate_crc(self._buffer[1:7])
@@ -225,12 +227,12 @@ class DstSwitchProcedure(Procedure):
             log.msg("CRC Error: {0} != {1}".format(packet_crc, calculated_crc))
             assert packet_crc != calculated_crc
 
-        seconds = ord(self._buffer[1])
-        minutes = ord(self._buffer[2])
-        hour = ord(self._buffer[3])
-        day = ord(self._buffer[4])
-        month = ord(self._buffer[5])
-        year = ord(self._buffer[6]) + 1900
+        seconds = self._buffer[1]
+        minutes = self._buffer[2]
+        hour = self._buffer[3]
+        day = self._buffer[4]
+        month = self._buffer[5]
+        year = self._buffer[6] + 1900
 
         self._new_time = datetime.datetime(year=year, month=month, day=day,
                                            hour=hour, minute=minutes,
@@ -243,7 +245,7 @@ class DstSwitchProcedure(Procedure):
             # Turning DST OFF. Put clock back
             self._new_time -= datetime.timedelta(hours=1)
 
-        self._transition("SETTIME\n")
+        self._transition(b"SETTIME\n")
 
     def _set_new_time(self):
         """
@@ -266,17 +268,17 @@ class DstSwitchProcedure(Procedure):
         # > data         <-- This function
         # < ACK
 
-        assert self._buffer[0] == self._ACK
+        assert self._buffer[0:1] == self._ACK
 
-        seconds = chr(self._new_time.second)
-        minutes = chr(self._new_time.minute)
-        hour = chr(self._new_time.hour)
-        day = chr(self._new_time.day)
-        month = chr(self._new_time.month)
-        year = chr(self._new_time.year - 1900)
+        data = bytearray()
+        data.append(self._new_time.second)
+        data.append(self._new_time.minute)
+        data.append(self._new_time.hour)
+        data.append(self._new_time.day)
+        data.append(self._new_time.month)
+        data.append(self._new_time.year - 1900)
 
-        data = seconds + minutes + hour + day + month + year
-        data += struct.pack(CRC.FORMAT, CRC.calculate_crc(data))
+        data.extend(struct.pack(CRC.FORMAT, CRC.calculate_crc(data)))
 
         self._transition(data)
 
@@ -301,7 +303,7 @@ class DstSwitchProcedure(Procedure):
         # > data
         # < ACK          <-- This function
 
-        assert self._buffer[0] == self._ACK
+        assert self._buffer[0:1] == self._ACK
         log.msg("DST changed.")
         self._state = self._STATE_READY
         self._complete()
