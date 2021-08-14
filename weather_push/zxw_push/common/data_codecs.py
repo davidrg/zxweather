@@ -400,7 +400,7 @@ _davis_live_fields = [                                      # Update Frequency
     _generic_live_fields[5],  # humidity                      50 seconds
     _generic_live_fields[6],  # pressure
     _generic_live_fields[7],  # average wind speed            2.5 seconds
-    _generic_live_fields[8],  # gust wind speed               2.5 seconds ???
+    _generic_live_fields[8],  # gust wind speed               Not used by Davis stations.
     _generic_live_fields[9],  # wind direction                2.5 seconds
     (10, "bar_trend", _INT_8, None, None, _INT_8_NULL),
     (11, "rain_rate", _U_INT_16, _float_encode, _float_decode, _U_INT_16_NULL),
