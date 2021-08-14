@@ -6,7 +6,7 @@ import struct
 import datetime
 from twisted.python import log
 from davis_logger.record_types.util import CRC
-from davis_logger.util import Event, toHexString
+from davis_logger.util import Event, to_hex_string
 
 __author__ = 'david'
 

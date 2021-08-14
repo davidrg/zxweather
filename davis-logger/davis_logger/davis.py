@@ -13,7 +13,7 @@ from davis_logger.record_types.dmp import encode_date, encode_time, \
 from davis_logger.record_types.loop import deserialise_loop
 from davis_logger.record_types.util import CRC
 from davis_logger.station_procedures import DstSwitchProcedure
-from davis_logger.util import Event, toHexString
+from davis_logger.util import Event, to_hex_string
 
 __author__ = 'david'
 
@@ -168,7 +168,7 @@ class DavisWeatherStation(object):
         # Hand the data off to the function for the current state.
         if self._state not in self._state_data_handlers:
             log.msg('WARNING: Data discarded for state {0}: {1}'.format(
-                self._state, toHexString(data)))
+                self._state, to_hex_string(data)))
             return
 
         self._state_data_handlers[self._state](data)
@@ -517,7 +517,7 @@ class DavisWeatherStation(object):
             # say the attempt to enter LPS mode failed and we'll make another
             # attempt.
             log.msg('WARNING: LPS mode not acknowledged. Retrying...\n'
-                    'Trigger data was: {0}'.format(toHexString(data)))
+                    'Trigger data was: {0}'.format(to_hex_string(data)))
             self._state = STATE_AWAKE
             self.getLoopPackets(self._lps_packets_remaining)
             return
@@ -551,8 +551,8 @@ class DavisWeatherStation(object):
                         'Discarding. Expected: {0}, got: {1}. '
                         'This is CRC Error #{4}, last was {5}\n'
                         'Packet data: {2}\nBuffer data: {3}'.format(
-                        packet_crc, crc, toHexString(packet_data),
-                        toHexString(self._lps_buffer), self._crc_errors,
+                        packet_crc, crc, to_hex_string(packet_data),
+                        to_hex_string(self._lps_buffer), self._crc_errors,
                         last_crc))
                 self._last_crc_error = datetime.datetime.now()
 
@@ -612,7 +612,7 @@ class DavisWeatherStation(object):
             log.msg("WARNING: Buffer contents is invalid. Discarding and "
                     "resetting LOOP process...")
             log.msg("Buffer contents: {0}".format(
-                toHexString(self._lps_buffer)))
+                to_hex_string(self._lps_buffer)))
             self._lpsFaultReset()
             return
         elif self._lps_buffer.find("\r\n") >= 0 or \

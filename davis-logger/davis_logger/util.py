@@ -4,6 +4,7 @@ Misc utility stuff
 """
 __author__ = 'david'
 
+
 class Event(object):
     """
     A basic event system. Looks kind of like the .net one:
@@ -34,7 +35,7 @@ class Event(object):
         for handler in self._handlers:
             handler(*args, **kwargs)
 
-    def removeHandlers(self, parent_object):
+    def remove_handlers(self, parent_object):
         """
         Clears all handlers that belong to the supplied parent object.
         :param parent_object: The object to clear handlers for
@@ -53,16 +54,16 @@ class Event(object):
             self._handlers.remove(handler)
 
 
-def toHexString(string):
+def to_hex_string(string):
     """
     Converts the supplied string to hex.
     :param string: Input string
+    :type string: bytes
     :return:
     """
     result = ""
     for char in string:
-
-        hex_encoded = hex(ord(char))[2:]
+        hex_encoded = hex(char)[2:]  # Type: str
         if len(hex_encoded) == 1:
             hex_encoded = '0' + hex_encoded
 
