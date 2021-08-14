@@ -16,10 +16,16 @@ class Procedure(object):
     Super class for procedures.
     """
 
-    _STATE_READY = 0
-    _ACK = '\x06'
+    _STATE_READY = 0  # Type: int
+    _ACK = '\x06'  # Type: str
 
     def __init__(self, write_callback):
+        """
+        Constructs a new procedure
+        :param write_callback: Function that receives data from the procedure
+                and sends it to the weather station
+        :type write_callback: Callable
+        """
         self.finished = Event()
         self._buffer = ""
         self._handlers = []
@@ -38,7 +44,16 @@ class Procedure(object):
         if handler is not None:
             handler()
 
+    def start(self):
+        """
+        Starts the procedure.
+        """
+        pass
+
     def _complete(self):
+        """
+        Call when the procedure is complete to fire the finished event.
+        """
         self.finished.fire()
 
 
@@ -57,7 +72,6 @@ class DstSwitchProcedure(Procedure):
 
     def __init__(self, write_callback, new_dst_value):
         """
-
         :param write_callback: Function to send data to the weather station
         :type write_callback: callable
         :param new_dst_value: If DST should be turned on or off
@@ -77,6 +91,11 @@ class DstSwitchProcedure(Procedure):
         self._new_dst_value = new_dst_value
 
     def _transition(self, data=None):
+        """
+        Send the specified data to the station then transition to the next state
+        :param data: Data to send
+        :type data: str or None
+        """
         # Completely linear!
         self._state += 1
         self._buffer = ""
@@ -92,6 +111,10 @@ class DstSwitchProcedure(Procedure):
         self._start_eeprom_write()
 
     def _start_eeprom_write(self):
+        """
+        Step 01: Starts the EEPROM write process to switch the DST setting on
+        or off
+        """
         # Basic procedure to set DST:
         # > EEBWR 13 1   <-- This function
         # < ACK
@@ -108,7 +131,10 @@ class DstSwitchProcedure(Procedure):
         self._transition("EEBWR 13 1\n")
 
     def _send_new_eeprom_value(self):
-
+        """
+        Step 02: Receives the ACK from the station acknowledging the EEPROM
+        Write command. Then it sends the new data to be written to the EEPROM.
+        """
         if len(self._buffer) < 1:
             return  # Wait for data.
 
@@ -141,7 +167,11 @@ class DstSwitchProcedure(Procedure):
         self._transition(data)
 
     def _get_current_time(self):
-
+        """
+        Step 03: Receives the ACK from the station indicating the EEPROM write
+        data was successfully received and committed, then asks the station for
+        the current time.
+        """
         if len(self._buffer) < 1:
             return  # Wait for data.
 
@@ -163,7 +193,13 @@ class DstSwitchProcedure(Procedure):
         self._transition("GETTIME\n")
 
     def _calculate_new_time(self):
-
+        """
+        Step 04: Receives the ACK from the station indicating it received our
+        GETTIME request, then receives the current time from the station. It
+        then calculates what the new time should be given the new DST setting
+        and issues a SETTIME command to the station to begin the clock update
+        process.
+        """
         if len(self._buffer) < 9:
             return  # Not enough data yet. Wait for more.
 
@@ -210,7 +246,10 @@ class DstSwitchProcedure(Procedure):
         self._transition("SETTIME\n")
 
     def _set_new_time(self):
-
+        """
+        Step 05: Receives an ACK from the station indicating it received the
+        SETTIME command then sends the new time
+        """
         if len(self._buffer) < 1:
             return  # Wait for data.
 
@@ -225,7 +264,7 @@ class DstSwitchProcedure(Procedure):
         # > SETTIME
         # < ACK          <-- This function
         # > data         <-- This function
-        # < ACK          <-- This function
+        # < ACK
 
         assert self._buffer[0] == self._ACK
 
@@ -242,7 +281,10 @@ class DstSwitchProcedure(Procedure):
         self._transition(data)
 
     def _finished(self):
-
+        """
+        Step 06: Receives the confirmation ACK from the station indicating the
+        clock has been changed then completes the procedure.
+        """
         if len(self._buffer) < 1:
             return  # Wait for data.
 
