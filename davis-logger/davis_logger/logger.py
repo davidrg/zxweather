@@ -627,8 +627,12 @@ class DavisService(service.Service):
                 reactor, twisted_connection.TwistedProtocolConnection,
                 parameters)
 
+            def conn_ready(c):
+                c.ready.addCallback(lambda _: c)
+                return c.ready
+
             d = cc.connectTCP(self._mq_host, self._mq_port)
-            d.addCallback(lambda protocol: protocol.ready)
+            d.addCallback(conn_ready)
             d.addCallback(self._mq_setup)
 
         except ImportError:

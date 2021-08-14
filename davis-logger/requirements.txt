@@ -1,9 +1,16 @@
-psycopg2==2.6.2
-twisted==16.4.1
+# Python 2.7 support was dropped in psycopg 2.9
+psycopg2==2.8.6
+
+# 20.3.0 is the last version supporting python 2.7
+twisted==20.3.0
 pytz
-pyserial==2.7.0
-pyopenssl==16.2.0
+pyserial
+pyopenssl
 service_identity
 
-# only required if using RabbitMQ
-pika==0.11.2
+# On windows only for pyserial version 2.5 and older:
+#pywin32
+
+# only required if using RabbitMQ. Version 1.1.0 is the last release to support
+# Python 2.7.
+pika==1.1.0
