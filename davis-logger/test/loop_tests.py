@@ -24,6 +24,7 @@ def toHexString(string):
         result += r'\x{0}'.format(hex_encoded)
     return result
 
+
 class loop_tests(unittest.TestCase):
 
     loop_packets = [

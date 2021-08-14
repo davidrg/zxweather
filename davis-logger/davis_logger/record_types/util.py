@@ -99,6 +99,17 @@ class CRC(object):
     FORMAT = '>H'
 
     @staticmethod
+    def calculate_str_crc(byte_string):
+        crc = 0
+
+        for byte in byte_string:
+            data = ord(byte)
+            table_idx = ((crc >> 8) ^ data) & 0xffff
+            crc = (CRC.crc_table[table_idx] ^ (crc << 8)) & 0xffff
+
+        return crc
+
+    @staticmethod
     def calculate_crc(byte_string):
         """
         Calculates the CRC value for the supplied string.
@@ -107,6 +118,9 @@ class CRC(object):
         :return: The CRC value
         :rtype: int
         """
+
+        if isinstance(byte_string, str):
+            return CRC.calculate_str_crc(byte_string)
 
         crc = 0
 

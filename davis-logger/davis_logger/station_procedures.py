@@ -55,8 +55,14 @@ class DstSwitchProcedure(Procedure):
     _STATE_FINISHED = 5
     _STATE_COMPLETE = 6
 
-
     def __init__(self, write_callback, new_dst_value):
+        """
+
+        :param write_callback: Function to send data to the weather station
+        :type write_callback: callable
+        :param new_dst_value: If DST should be turned on or off
+        :type new_dst_value: bool
+        """
         super(DstSwitchProcedure, self).__init__(write_callback)
 
         self._handlers = {
