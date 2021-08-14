@@ -1,10 +1,14 @@
 # coding=utf-8
-import ConfigParser
+try:
+    from ConfigParser import ConfigParser
+except ImportError:
+    from configparser import ConfigParser
+
 from davis_logger.logger import DavisService
 
 __author__ = 'david'
 
-from zope.interface import implements
+from zope.interface import implements, implementer
 
 from twisted.python import usage
 from twisted.plugin import IPlugin
@@ -17,12 +21,13 @@ class Options(usage.Options):
     ]
 
 
+@implementer(IServiceMaker, IPlugin)
 class DavisLoggerServiceMaker(object):
     """
     Creates the zxweather WeatherPush service. Or, rather, prepares it from the
     supplied command-line arguments.
     """
-    implements(IServiceMaker, IPlugin)
+
     tapname = "davis_logger"
     description = "Service logging data from a Davis Weather Station"
     options = Options
@@ -34,7 +39,7 @@ class DavisLoggerServiceMaker(object):
         S_LOGGER = 'logger'
         S_DST = 'dst'
 
-        config = ConfigParser.ConfigParser()
+        config = ConfigParser()
         config.read([filename])
 
         dsn = config.get(S_DATABASE, 'dsn')
