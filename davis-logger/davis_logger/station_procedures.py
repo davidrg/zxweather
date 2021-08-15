@@ -405,6 +405,8 @@ class GetConsoleInformationProcedure(SequentialProcedure):
                 self.hw_type = "Vantage Pro, Vantage Pro2"
             elif self.station_type == 17:
                 self.hw_type = "Vantage Vue"
+                self.lps_supported = True
+                self.self_firmware_upgrade_supported = True
 
             self._transition(b'VER\n')
 
@@ -422,12 +424,13 @@ class GetConsoleInformationProcedure(SequentialProcedure):
                 month = self._MONTHS.index(month_name) + 1
                 self.version_date_d = datetime.date(year=year, month=month, day=day)
 
-                v190_date = datetime.date(year=2009, month=12, day=31)
-                ancient_fw_date = datetime.date(year=2005, month=11, day=28)
+                if self.lps_supported is None:
+                    v190_date = datetime.date(year=2009, month=12, day=31)
+                    ancient_fw_date = datetime.date(year=2005, month=11, day=28)
 
-                # Need firmware v1.90 (dated 31-DEC-2009) to support LPS
-                self.lps_supported = self.version_date_d >= v190_date
-                self.self_firmware_upgrade_supported = self.version_date_d >= ancient_fw_date
+                    # Need firmware v1.90 (dated 31-DEC-2009) to support LPS
+                    self.lps_supported = self.version_date_d >= v190_date
+                    self.self_firmware_upgrade_supported = self.version_date_d >= ancient_fw_date
             except:
                 self.version_date_d = None
                 self.lps_supported = False

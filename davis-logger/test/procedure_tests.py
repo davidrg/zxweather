@@ -223,7 +223,7 @@ class TestGetConsoleInformationProcedure(unittest.TestCase):
 
         self.assertEqual(b'WRD\x12\x4D\n', recv.Data)
         proc.data_received(self._ACK)
-        proc.data_received(bytes([type_number]))
+        proc.data_received(bytearray([type_number]))
         return proc.hw_type
 
     def test_hw_type_wizard_III(self):
@@ -261,7 +261,7 @@ class TestGetConsoleInformationProcedure(unittest.TestCase):
         proc.start()
 
         proc.data_received(self._ACK)
-        proc.data_received(bytes([16]))
+        proc.data_received(bytearray([16]))
         self.assertEqual(b'VER\n', recv.Data)
         proc.data_received(b'\r\nOK\r\nJan 22 2018\r\n')
         self.assertEqual("Jan 22 2018", proc.version_date)
@@ -274,7 +274,7 @@ class TestGetConsoleInformationProcedure(unittest.TestCase):
         proc.start()
 
         proc.data_received(self._ACK)
-        proc.data_received(bytes([16]))
+        proc.data_received(bytearray([16]))
         proc.data_received(b'\r\nOK\r\nJan 22 2018\r\n')
         self.assertEqual(b"NVER\n", recv.Data)
         proc.data_received(b"\n\rOK\n\r3.83\n\r")
@@ -291,7 +291,7 @@ class TestGetConsoleInformationProcedure(unittest.TestCase):
         self.assertFalse(fd.IsFinished)
         proc.data_received(self._ACK)
         self.assertFalse(fd.IsFinished)
-        proc.data_received(bytes([16]))
+        proc.data_received(bytearray([16]))
         self.assertFalse(fd.IsFinished)
         proc.data_received(b'\r\nOK\r\nJan 22 2018\r\n')
         self.assertFalse(fd.IsFinished)
@@ -320,7 +320,7 @@ class TestGetConsoleInformationProcedure(unittest.TestCase):
         proc.start()
 
         proc.data_received(self._ACK)
-        proc.data_received(bytes([16]))
+        proc.data_received(bytearray([16]))
         proc.data_received(b'\r\nOK\r\nJan 22 2018\r\n')
         proc.data_received(b"\n\rOK\n\r3.83\n\r")
         self.assertTrue(proc.lps_supported)
@@ -333,7 +333,7 @@ class TestGetConsoleInformationProcedure(unittest.TestCase):
         proc.start()
 
         proc.data_received(self._ACK)
-        proc.data_received(bytes([16]))
+        proc.data_received(bytearray([16]))
         proc.data_received(b'\r\nOK\r\nDec 30 2008\r\n')
         self.assertIsNotNone(proc.lps_supported)
         self.assertFalse(proc.lps_supported)
@@ -349,7 +349,7 @@ class TestGetConsoleInformationProcedure(unittest.TestCase):
         self.assertFalse(fd.IsFinished)
         proc.data_received(self._ACK)
         self.assertFalse(fd.IsFinished)
-        proc.data_received(bytes([16]))
+        proc.data_received(bytearray([16]))
         self.assertFalse(fd.IsFinished)
         recv.Data = None
         proc.data_received(b'\r\nOK\r\nDec 30 2008\r\n')
@@ -363,7 +363,7 @@ class TestGetConsoleInformationProcedure(unittest.TestCase):
 
         proc.start()
         proc.data_received(self._ACK)
-        proc.data_received(bytes([16]))
+        proc.data_received(bytearray([16]))
 
         # Firmware dated 28 November 2005 or newer supports firmware upgrades
         # from the PC
@@ -378,7 +378,7 @@ class TestGetConsoleInformationProcedure(unittest.TestCase):
 
         proc.start()
         proc.data_received(self._ACK)
-        proc.data_received(bytes([16]))
+        proc.data_received(bytearray([16]))
 
         # A special tool is required for upgrading from firmware dated prior to
         # 28 November 2005.
@@ -393,7 +393,7 @@ class TestGetConsoleInformationProcedure(unittest.TestCase):
 
         proc.start()
         proc.data_received(self._ACK)
-        proc.data_received(bytes([17]))
+        proc.data_received(bytearray([17]))
 
         proc.data_received(b'\r\nOK\r\nNov 13 2004\r\n')
         self.assertEqual(b"NVER\n", recv.Data)
@@ -408,7 +408,7 @@ class TestGetConsoleInformationProcedure(unittest.TestCase):
 
         proc.start()
         proc.data_received(self._ACK)
-        proc.data_received(bytes([17]))
+        proc.data_received(bytearray([17]))
 
         proc.data_received(b'\r\nOK\r\nNov 13 2004\r\n')
         proc.data_received(b"\n\rOK\n\r1.0\n\r")
@@ -422,7 +422,7 @@ class TestGetConsoleInformationProcedure(unittest.TestCase):
 
         proc.start()
         proc.data_received(self._ACK)
-        proc.data_received(bytes([17]))
+        proc.data_received(bytearray([17]))
 
         # A special tool is required for upgrading from firmware dated prior to
         # 28 November 2005.
