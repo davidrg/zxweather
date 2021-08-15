@@ -28,6 +28,7 @@ class Procedure(object):
         """
         self.finished = Event()
         self._buffer = bytearray()
+        self._str_buffer = ''
         self._handlers = []
         self._state = self._STATE_READY
         self._write = write_callback
@@ -38,7 +39,8 @@ class Procedure(object):
         :param data: Data from weather station
         :type data: bytes
         """
-        self._buffer += data
+        self._buffer.extend(data)
+        self._str_buffer += data
 
         handler = self._handlers[self._state]
         if handler is not None:
@@ -57,7 +59,27 @@ class Procedure(object):
         self.finished.fire()
 
 
-class DstSwitchProcedure(Procedure):
+class SequentialProcedure(Procedure):
+    """
+    A procedure that works through its states sequentially.
+    """
+
+    def _transition(self, data=None):
+        """
+        Send the specified data to the station then transition to the next state
+        :param data: Data to send
+        :type data: bytes
+        """
+        # Completely linear!
+        self._state += 1
+        self._buffer = bytearray()
+        self._str_buffer = ''
+
+        if data is not None:
+            self._write(data)
+
+
+class DstSwitchProcedure(SequentialProcedure):
     """
     Handles the process of turning daylight savings on or off and adjusting
     the clock as required.
@@ -89,19 +111,6 @@ class DstSwitchProcedure(Procedure):
         }
 
         self._new_dst_value = new_dst_value
-
-    def _transition(self, data=None):
-        """
-        Send the specified data to the station then transition to the next state
-        :param data: Data to send
-        :type data: bytes
-        """
-        # Completely linear!
-        self._state += 1
-        self._buffer = bytearray()
-
-        if data is not None:
-            self._write(data)
 
     def start(self):
         """
@@ -307,3 +316,118 @@ class DstSwitchProcedure(Procedure):
         log.msg("DST changed.")
         self._state = self._STATE_READY
         self._complete()
+
+
+class GetConsoleInformationProcedure(SequentialProcedure):
+    """
+    Gets the console type and firmware version
+    """
+
+    _STATE_CONSOLE_TYPE_REQUEST = 1
+    _STATE_RECEIVE_CONSOLE_TYPE = 2
+    _STATE_RECEIVE_VERSION_DATE = 3
+    _STATE_RECEIVE_VERSION_NUMBER = 4
+    _STATE_COMPLETE = 6
+
+    _MONTHS = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct',
+        'Nov', 'Dec'
+    ]
+
+    def __init__(self, write_callback):
+        """
+        :param write_callback: Function to send data to the weather station
+        :type write_callback: callable
+        :param new_dst_value: If DST should be turned on or off
+        :type new_dst_value: bool
+        """
+        super(GetConsoleInformationProcedure, self).__init__(write_callback)
+
+        self._handlers = {
+            self._STATE_READY: None,
+            self._STATE_CONSOLE_TYPE_REQUEST: self._send_console_type_request,
+            self._STATE_RECEIVE_CONSOLE_TYPE: self._receive_console_type,
+            self._STATE_RECEIVE_VERSION_DATE: self._receive_version_date,
+            self._STATE_RECEIVE_VERSION_NUMBER: self._receive_version_number
+        }
+
+        self.hw_type = None
+        self.version_date = None
+        self.version = None
+        self.lps_supported = None
+        self.self_firmware_upgrade_supported = None
+
+    def start(self):
+        self.hw_type = "Unknown"
+        self._state = self._STATE_CONSOLE_TYPE_REQUEST
+        self._send_console_type_request()
+
+    def _send_console_type_request(self):
+        self._transition('WRD\x12\x4D\n')
+
+    def _receive_console_type(self):
+        if len(self._str_buffer) == 2:
+            assert self._str_buffer[0] == self._ACK
+
+            self.station_type = ord(self._str_buffer[1])
+            self._str_buffer = ''
+
+            self.hw_type = "Unknown"
+            if self.station_type == 0:
+                self.hw_type = "Wizard III"
+            elif self.station_type == 1:
+                self.hw_type = "Wizard II"
+            elif self.station_type == 2:
+                self.hw_type = "Monitor"
+            elif self.station_type == 3:
+                self.hw_type = "Perception"
+            elif self.station_type == 4:
+                self.hw_type = "GroWeather"
+            elif self.station_type == 5:
+                self.hw_type = "Energy Enviromonitor"
+            elif self.station_type == 6:
+                self.hw_type = "Health Enviromonitor"
+            elif self.station_type == 16:
+                self.hw_type = "Vantage Pro, Vantage Pro2"
+            elif self.station_type == 17:
+                self.hw_type = "Vantage Vue"
+
+            self._transition('VER\n')
+
+    def _receive_version_date(self):
+        if self._str_buffer.count('\n') == 3:
+            self.version_date = str(self._str_buffer).split('\n')[2].strip()
+            self._str_buffer = ''
+
+            try:
+                bits = self.version_date.split(" ")
+                month_name = bits[0]
+                day = int(bits[1])
+                year = int(bits[2])
+                month = self._MONTHS.index(month_name) + 1
+                self.version_date_d = datetime.date(year=year, month=month, day=day)
+
+                v190_date = datetime.date(year=2009, month=12, day=31)
+                ancient_fw_date = datetime.date(year=2005, month=11, day=28)
+
+                # Need firmware v1.90 (dated 31-DEC-2009) to support LPS
+                self.lps_supported = self.version_date_d >= v190_date
+                self.self_firmware_upgrade_supported = self.version_date_d >= ancient_fw_date
+            except:
+                self.version_date_d = None
+                self.lps_supported = False
+                self.self_firmware_upgrade_supported = None  # Don't know
+
+            if self.station_type in [16, 17] and self.lps_supported:
+                # NVER is only supported on the Vantage Vue or Vantage Pro2
+                self._transition('NVER\n')
+            else:
+                # Done!
+                self._state = self._STATE_READY
+                self._complete()
+
+    def _receive_version_number(self):
+        if self._str_buffer.count('\n') == 3:
+            self.version = self._str_buffer.split('\n')[2].strip()
+            self._state = self._STATE_READY
+            self._complete()
