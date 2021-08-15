@@ -297,6 +297,7 @@ class DavisWeatherStation(object):
         self._station_type = procedure.station_type
         self._lps_supported = procedure.lps_supported
 
+        # TODO: Move these warnings out of here
         if procedure.station_type not in [16, 17]:
             log.msg("WARNING: Unsupported hardware type '{0}' - correct "
                     "functionality not guaranteed!".format(self._hw_type))

@@ -6,7 +6,7 @@ import struct
 import datetime
 from twisted.python import log
 from davis_logger.record_types.util import CRC
-from davis_logger.util import Event, to_hex_string
+from davis_logger.util import Event
 
 __author__ = 'david'
 
@@ -350,8 +350,6 @@ class GetConsoleInformationProcedure(SequentialProcedure):
         """
         :param write_callback: Function to send data to the weather station
         :type write_callback: callable
-        :param new_dst_value: If DST should be turned on or off
-        :type new_dst_value: bool
         """
         super(GetConsoleInformationProcedure, self).__init__(write_callback)
 
@@ -372,6 +370,9 @@ class GetConsoleInformationProcedure(SequentialProcedure):
         self.Name = "Get console type & firmware version"
 
     def start(self):
+        """
+        Starts the procedure
+        """
         self.hw_type = "Unknown"
         self._state = self._STATE_CONSOLE_TYPE_REQUEST
         self._send_console_type_request()
@@ -416,25 +417,20 @@ class GetConsoleInformationProcedure(SequentialProcedure):
             self.version_date = str_buffer.split('\n')[2].strip()
             self._buffer = bytearray()
 
-            try:
-                bits = self.version_date.split(" ")
-                month_name = bits[0]
-                day = int(bits[1])
-                year = int(bits[2])
-                month = self._MONTHS.index(month_name) + 1
-                self.version_date_d = datetime.date(year=year, month=month, day=day)
+            bits = self.version_date.split(" ")
+            month_name = bits[0]
+            day = int(bits[1])
+            year = int(bits[2])
+            month = self._MONTHS.index(month_name) + 1
+            self.version_date_d = datetime.date(year=year, month=month, day=day)
 
-                if self.lps_supported is None:
-                    v190_date = datetime.date(year=2009, month=12, day=31)
-                    ancient_fw_date = datetime.date(year=2005, month=11, day=28)
+            if self.lps_supported is None:
+                v190_date = datetime.date(year=2009, month=12, day=31)
+                ancient_fw_date = datetime.date(year=2005, month=11, day=28)
 
-                    # Need firmware v1.90 (dated 31-DEC-2009) to support LPS
-                    self.lps_supported = self.version_date_d >= v190_date
-                    self.self_firmware_upgrade_supported = self.version_date_d >= ancient_fw_date
-            except:
-                self.version_date_d = None
-                self.lps_supported = False
-                self.self_firmware_upgrade_supported = None  # Don't know
+                # Need firmware v1.90 (dated 31-DEC-2009) to support LPS
+                self.lps_supported = self.version_date_d >= v190_date
+                self.self_firmware_upgrade_supported = self.version_date_d >= ancient_fw_date
 
             if self.station_type in [16, 17] and self.lps_supported:
                 # NVER is only supported on the Vantage Vue or Vantage Pro2
