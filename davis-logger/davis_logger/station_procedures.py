@@ -13,7 +13,10 @@ __author__ = 'david'
 
 class Procedure(object):
     """
-    Super class for procedures.
+    Super class for procedures. A procedure represents a particular interaction
+    with the station hardware. It has its own receive buffer which is used to
+    receive data from the station and it is able to send data back to the
+    station. Once complete it is expected to fire the finished event.
     """
 
     _STATE_READY = 0  # Type: int
@@ -32,6 +35,7 @@ class Procedure(object):
         self._handlers = []
         self._state = self._STATE_READY
         self._write = write_callback
+        self.Name = "unknown procedure"
 
     def data_received(self, data):
         """
@@ -115,6 +119,7 @@ class DstSwitchProcedure(SequentialProcedure):
         }
 
         self._new_dst_value = new_dst_value
+        self.Name = "DST Switch (to {0})".format(new_dst_value)
 
     def start(self):
         """
@@ -324,7 +329,10 @@ class DstSwitchProcedure(SequentialProcedure):
 
 class GetConsoleInformationProcedure(SequentialProcedure):
     """
-    Gets the console type and firmware version
+    Gets basic station information: Hardware type, firmware date and (if
+    possbile) firmware version. It also indicates if, in the case of a Vantage
+    Pro2, the firmware supports the LPS command and if it is new enough to be
+    upgraded through software (rather than the special firmware upgrade device)
     """
 
     _STATE_CONSOLE_TYPE_REQUEST = 1
@@ -355,11 +363,13 @@ class GetConsoleInformationProcedure(SequentialProcedure):
             self._STATE_RECEIVE_VERSION_NUMBER: self._receive_version_number
         }
 
-        self.hw_type = None
-        self.version_date = None
-        self.version = None
-        self.lps_supported = None
-        self.self_firmware_upgrade_supported = None
+        self.hw_type = None  # Type: str
+        self.version_date = None  # Type: str
+        self.version_date_d = None  # Type: datetime.date
+        self.version = None  # Type: str
+        self.lps_supported = None  # Type: bool
+        self.self_firmware_upgrade_supported = None  # Type: bool
+        self.Name = "Get console type & firmware version"
 
     def start(self):
         self.hw_type = "Unknown"

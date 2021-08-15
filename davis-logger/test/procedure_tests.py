@@ -386,3 +386,47 @@ class TestGetConsoleInformationProcedure(unittest.TestCase):
         self.assertIsNotNone(proc.self_firmware_upgrade_supported)
         self.assertFalse(proc.self_firmware_upgrade_supported)
 
+    def test_vue_firmware_always_requests_version_number(self):
+        recv = WriteReceiver()
+
+        proc = GetConsoleInformationProcedure(recv.write)
+
+        proc.start()
+        proc.data_received(self._ACK)
+        proc.data_received(bytes([17]))
+
+        proc.data_received(b'\r\nOK\r\nNov 13 2004\r\n')
+        self.assertEqual(b"NVER\n", recv.Data)
+        proc.data_received(b"\n\rOK\n\r1.0\n\r")
+        self.assertIsNotNone(proc.lps_supported)
+        self.assertTrue(proc.lps_supported)
+
+    def test_vue_firmware_always_upgradable(self):
+        recv = WriteReceiver()
+
+        proc = GetConsoleInformationProcedure(recv.write)
+
+        proc.start()
+        proc.data_received(self._ACK)
+        proc.data_received(bytes([17]))
+
+        proc.data_received(b'\r\nOK\r\nNov 13 2004\r\n')
+        proc.data_received(b"\n\rOK\n\r1.0\n\r")
+        self.assertIsNotNone(proc.self_firmware_upgrade_supported)
+        self.assertTrue(proc.self_firmware_upgrade_supported)
+
+    def test_vue_firmware_always_supports_lps(self):
+        recv = WriteReceiver()
+
+        proc = GetConsoleInformationProcedure(recv.write)
+
+        proc.start()
+        proc.data_received(self._ACK)
+        proc.data_received(bytes([17]))
+
+        # A special tool is required for upgrading from firmware dated prior to
+        # 28 November 2005.
+        proc.data_received(b'\r\nOK\r\nNov 13 2004\r\n')
+        proc.data_received(b"\n\rOK\n\r1.0\n\r")
+        self.assertIsNotNone(proc.lps_supported)
+        self.assertTrue(proc.lps_supported)

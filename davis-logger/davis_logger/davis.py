@@ -12,7 +12,7 @@ from davis_logger.record_types.dmp import encode_date, encode_time, \
     split_page, deserialise_dmp
 from davis_logger.record_types.loop import deserialise_loop
 from davis_logger.record_types.util import CRC
-from davis_logger.station_procedures import DstSwitchProcedure
+from davis_logger.station_procedures import DstSwitchProcedure, GetConsoleInformationProcedure
 from davis_logger.util import Event, to_hex_string
 
 __author__ = 'david'
@@ -36,15 +36,6 @@ STATE_DMPAFT_INIT_2 = 4
 
 # Receiving dump pages.
 STATE_DMPAFT_RECV = 5
-
-# init-1: Getting station type
-INIT_1_STATE_GET_STATION_TYPE = 6
-
-# init-2: Get version date
-INIT_2_GET_VERSION_DATE = 7
-
-# init-3: Get version
-INIT_3_GET_VERSION = 8
 
 # init-4: Get time
 INIT_4_GET_TIME = 9
@@ -120,18 +111,20 @@ class DavisWeatherStation(object):
             STATE_DMPAFT_INIT_1: self._dmpaftInit1DataReceived,
             STATE_DMPAFT_INIT_2: self._dmpaftInit2DataReceived,
             STATE_DMPAFT_RECV: self._dmpaftRecvDataReceived,
-            INIT_1_STATE_GET_STATION_TYPE: self._stationTypeDataReceived,
-            INIT_2_GET_VERSION_DATE: self._versionDateInfoReceived,
-            INIT_3_GET_VERSION: self._versionInfoReceived,
+
             INIT_4_GET_TIME: self._timeInfoReceived,
             INIT_5_GET_RAIN_SIZE: self._rainSizeReceived,
             INIT_6_GET_ARCHIVE_INTERVAL: self._archiveIntervalReceived,
             INIT_7_GET_DAYLIGHT_SAVINGS_TYPE: self._daylightSavingsTypeReceived,
             INIT_8_GET_DAYLIGHT_SAVINGS_STATUS: self._daylightSavingsStatusReceived,
+
             STATE_IN_PROCEDURE: self._procedure_data_received,
         }
 
         self._reset_state()
+
+    def _invalid_state(self):
+        raise Exception("INVALID STATE: {0}".format(self._state))
 
     def _reset_state(self):
         # Initialise other fields.
@@ -175,9 +168,29 @@ class DavisWeatherStation(object):
 
     def setManualDaylightSavingsState(self, new_dst_state, callback=None):
         log.msg("Switching DST mode to {0}".format(new_dst_state))
-        self._procedure = DstSwitchProcedure(self._write, new_dst_state)
-        self._procedure_callback = callback
+        procedure = DstSwitchProcedure(self._write, new_dst_state)
+        self._run_procedure(procedure, lambda proc: callback)
+
+    def _run_procedure(self, procedure, finished_callback):
+        """
+        Runs a Procedure subclass. These represent an interaction or sequence
+        of interactions with the station hardware. Each procedure has its own
+        buffer for reciving data from the console and, when finished, raises
+        its finished event.
+        :param procedure: The procedure to run
+        :type procedure: Procedure
+        :param finished_callback: Function to call on completion. The finished
+            procedure is supplied as a parameter
+        :type finished_callback: Callable
+        """
+        self._procedure = procedure
+
+        # We don't just attach the finished callback to the procedure finished
+        # event as the procedure needs to be cleaned up before the callback
+        # runs (in case the callback wants to start another procedure)
+        self._procedure_callback = finished_callback
         self._procedure.finished += self._procedure_finished
+
         self._wakeUp(self._start_procedure)
 
     def _start_procedure(self):
@@ -186,17 +199,25 @@ class DavisWeatherStation(object):
 
     def _procedure_data_received(self, data):
         if self._procedure is not None:
-            self._procedure.data_received(data)
+            # Procedures expect bytes - not strings
+            if isinstance(data, str):
+                self._procedure.data_received(data.encode('ascii'))
+            else:
+                self._procedure.data_received(data)
+
 
     def _procedure_finished(self):
-        log.msg("Procedure completed.")
+        log.msg("Procedure completed: {0}".format(self._procedure.Name))
         self._state = STATE_AWAKE
+        proc = self._procedure
         self._procedure = None
+
+        # Call callback (if we have one) once the finished procedure has been
+        # cleaned up.
         if self._procedure_callback is not None:
             cb = self._procedure_callback
             self._procedure_callback = None
-            cb()
-
+            cb(proc)
 
     def getLoopPackets(self, packet_count):
         """
@@ -259,72 +280,43 @@ class DavisWeatherStation(object):
         Gets the station type.
         :return:
         """
-        self._wakeUp(self._getStationTypeCallback)
+        procedure = GetConsoleInformationProcedure(self._write)
+        self._run_procedure(procedure, self._console_info_ready)
 
-    def _getStationTypeCallback(self):
-        self._state = INIT_1_STATE_GET_STATION_TYPE
-        self._buffer = ''
-        self._write('WRD\x12\x4D\n')
+    def _console_info_ready(self, procedure):
+        """
+        Stage one initialisation finished: procedure to get basic console info.
+        :param procedure: A completed console information procedure
+        :type procedure: GetConsoleInformationProcedure
+        :return:
+        """
 
-    def _stationTypeDataReceived(self, data):
-        self._buffer += data
+        self._version = procedure.version
+        self._version_date = procedure.version_date
+        self._hw_type = procedure.hw_type
+        self._station_type = procedure.station_type
+        self._lps_supported = procedure.lps_supported
 
-        if len(self._buffer) == 2:
-            assert self._buffer[0] == self._ACK
+        if procedure.station_type not in [16, 17]:
+            log.msg("WARNING: Unsupported hardware type '{0}' - correct "
+                    "functionality not guaranteed!".format(self._hw_type))
 
-            station_type = ord(self._buffer[1])
-            self._buffer = ''
-
-            hw_type = "Unknown"
-            if station_type == 0:
-                hw_type = "Wizard III"
-            elif station_type == 1:
-                hw_type = "Wizard II"
-            elif station_type == 2:
-                hw_type = "Monitor"
-            elif station_type == 3:
-                hw_type = "Perception"
-            elif station_type == 4:
-                hw_type = "GroWeather"
-            elif station_type == 5:
-                hw_type = "Energy Enviromonitor"
-            elif station_type == 6:
-                hw_type = "Health Enviromonitor"
-            elif station_type == 16:
-                hw_type = "Vantage Pro, Vantage Pro2"
-            elif station_type == 17:
-                hw_type = "Vantage Vue"
-
-            self._hw_type = hw_type
-            self._station_type = station_type
-
-            self._state = INIT_2_GET_VERSION_DATE
-            self._write('VER\n')
-
-    def _versionDateInfoReceived(self, data):
-        self._buffer += data
-
-        if self._buffer.count('\n') == 3:
-            self._version_date = self._buffer.split('\n')[2].strip()
-            self._buffer = ''
-
-            if self._station_type in [16,17]:
-                # NVER is only supported on the Vantage Vue or Vantage Pro2
-                self._state = INIT_3_GET_VERSION
-                self._write('NVER\n')
+        if not procedure.lps_supported:
+            if procedure.self_firmware_upgrade_supported:
+                log.msg("WARNING: Console firmware is *very* old. Upgrade to "
+                        "at least version 1.90 (released 31 December 2009) for "
+                        "full functionality")
             else:
-                self._version = None
-                self._state = INIT_4_GET_TIME
-                self._write('GETTIME\n')
+                log.msg("WARNING: Console firmware is *very* old. To support "
+                        "full functionality at least version 1.90 is required. "
+                        "Your console firmware is not recent enough to support "
+                        "PC firmware upgrades - a special firmware upgrade "
+                        "device must be obtained.")
 
-    def _versionInfoReceived(self, data):
-        self._buffer += data
-
-        if self._buffer.count('\n') == 3:
-            self._version = self._buffer.split('\n')[2].strip()
-            self._buffer = ''
-            self._state = INIT_4_GET_TIME
-            self._write('GETTIME\n')
+        # Continue with init - get config data
+        self._buffer = ''
+        self._state = INIT_4_GET_TIME
+        self._write('GETTIME\n')
 
     def _decodeTimeInBuffer(self):
         seconds = ord(self._buffer[1])
