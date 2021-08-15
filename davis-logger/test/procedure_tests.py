@@ -202,7 +202,7 @@ class TestGetConsoleInformationProcedure(unittest.TestCase):
     # > version-number
 
     def setUp(self):
-        self._ACK = '\x06'
+        self._ACK = b'\x06'
 
     def test_all_information_unknown_at_start(self):
         recv = WriteReceiver()
@@ -221,9 +221,9 @@ class TestGetConsoleInformationProcedure(unittest.TestCase):
 
         proc.start()
 
-        self.assertEqual('WRD\x12\x4D\n', recv.Data)
+        self.assertEqual(b'WRD\x12\x4D\n', recv.Data)
         proc.data_received(self._ACK)
-        proc.data_received(chr(type_number))
+        proc.data_received(bytes([type_number]))
         return proc.hw_type
 
     def test_hw_type_wizard_III(self):
@@ -261,9 +261,9 @@ class TestGetConsoleInformationProcedure(unittest.TestCase):
         proc.start()
 
         proc.data_received(self._ACK)
-        proc.data_received(chr(16))
-        self.assertEqual('VER\n', recv.Data)
-        proc.data_received('\r\nOK\r\nJan 22 2018\r\n')
+        proc.data_received(bytes([16]))
+        self.assertEqual(b'VER\n', recv.Data)
+        proc.data_received(b'\r\nOK\r\nJan 22 2018\r\n')
         self.assertEqual("Jan 22 2018", proc.version_date)
 
     def test_version(self):
@@ -274,10 +274,10 @@ class TestGetConsoleInformationProcedure(unittest.TestCase):
         proc.start()
 
         proc.data_received(self._ACK)
-        proc.data_received(chr(16))
-        proc.data_received('\r\nOK\r\nJan 22 2018\r\n')
-        self.assertEqual("NVER\n", recv.Data)
-        proc.data_received("\n\rOK\n\r3.83\n\r")
+        proc.data_received(bytes([16]))
+        proc.data_received(b'\r\nOK\r\nJan 22 2018\r\n')
+        self.assertEqual(b"NVER\n", recv.Data)
+        proc.data_received(b"\n\rOK\n\r3.83\n\r")
         self.assertEqual(proc.version, '3.83')
 
     def test_finished_only_after_entire_procedure(self):
@@ -291,11 +291,11 @@ class TestGetConsoleInformationProcedure(unittest.TestCase):
         self.assertFalse(fd.IsFinished)
         proc.data_received(self._ACK)
         self.assertFalse(fd.IsFinished)
-        proc.data_received(chr(16))
+        proc.data_received(bytes([16]))
         self.assertFalse(fd.IsFinished)
-        proc.data_received('\r\nOK\r\nJan 22 2018\r\n')
+        proc.data_received(b'\r\nOK\r\nJan 22 2018\r\n')
         self.assertFalse(fd.IsFinished)
-        proc.data_received("\n\rOK\n\r3.83\n\r")
+        proc.data_received(b"\n\rOK\n\r3.83\n\r")
         self.assertTrue(fd.IsFinished)
 
     def test_buffering(self):
@@ -305,11 +305,11 @@ class TestGetConsoleInformationProcedure(unittest.TestCase):
 
         proc.start()
         proc.data_received(self._ACK)
-        proc.data_received(chr(16))
+        proc.data_received(b'\x10')
         self.assertEqual("Vantage Pro, Vantage Pro2", proc.hw_type)
-        byte_at_a_time_send(proc, '\r\nOK\r\nJan 22 2018\r\n')
-        self.assertEqual("NVER\n", recv.Data)
-        byte_at_a_time_send(proc, "\n\rOK\n\r3.83\n\r")
+        byte_at_a_time_send(proc, b'\r\nOK\r\nJan 22 2018\r\n')
+        self.assertEqual(b"NVER\n", recv.Data)
+        byte_at_a_time_send(proc, b"\n\rOK\n\r3.83\n\r")
         self.assertEqual(proc.version, '3.83')
 
     def test_post_190_firmware_marked_as_supporting_lps(self):
@@ -320,9 +320,9 @@ class TestGetConsoleInformationProcedure(unittest.TestCase):
         proc.start()
 
         proc.data_received(self._ACK)
-        proc.data_received(chr(16))
-        proc.data_received('\r\nOK\r\nJan 22 2018\r\n')
-        proc.data_received("\n\rOK\n\r3.83\n\r")
+        proc.data_received(bytes([16]))
+        proc.data_received(b'\r\nOK\r\nJan 22 2018\r\n')
+        proc.data_received(b"\n\rOK\n\r3.83\n\r")
         self.assertTrue(proc.lps_supported)
 
     def test_pre_190_firmware_marked_as_not_supporting_lps(self):
@@ -333,8 +333,8 @@ class TestGetConsoleInformationProcedure(unittest.TestCase):
         proc.start()
 
         proc.data_received(self._ACK)
-        proc.data_received(chr(16))
-        proc.data_received('\r\nOK\r\nDec 30 2008\r\n')
+        proc.data_received(bytes([16]))
+        proc.data_received(b'\r\nOK\r\nDec 30 2008\r\n')
         self.assertIsNotNone(proc.lps_supported)
         self.assertFalse(proc.lps_supported)
 
@@ -349,10 +349,10 @@ class TestGetConsoleInformationProcedure(unittest.TestCase):
         self.assertFalse(fd.IsFinished)
         proc.data_received(self._ACK)
         self.assertFalse(fd.IsFinished)
-        proc.data_received(chr(16))
+        proc.data_received(bytes([16]))
         self.assertFalse(fd.IsFinished)
         recv.Data = None
-        proc.data_received('\r\nOK\r\nDec 30 2008\r\n')
+        proc.data_received(b'\r\nOK\r\nDec 30 2008\r\n')
         self.assertIsNone(recv.Data)
         self.assertTrue(fd.IsFinished)
 
@@ -363,11 +363,11 @@ class TestGetConsoleInformationProcedure(unittest.TestCase):
 
         proc.start()
         proc.data_received(self._ACK)
-        proc.data_received(chr(16))
+        proc.data_received(bytes([16]))
 
         # Firmware dated 28 November 2005 or newer supports firmware upgrades
         # from the PC
-        proc.data_received('\r\nOK\r\nNov 28 2005\r\n')
+        proc.data_received(b'\r\nOK\r\nNov 28 2005\r\n')
         self.assertIsNotNone(proc.self_firmware_upgrade_supported)
         self.assertTrue(proc.self_firmware_upgrade_supported)
 
@@ -378,11 +378,11 @@ class TestGetConsoleInformationProcedure(unittest.TestCase):
 
         proc.start()
         proc.data_received(self._ACK)
-        proc.data_received(chr(16))
+        proc.data_received(bytes([16]))
 
         # A special tool is required for upgrading from firmware dated prior to
         # 28 November 2005.
-        proc.data_received('\r\nOK\r\nNov 13 2004\r\n')
+        proc.data_received(b'\r\nOK\r\nNov 13 2004\r\n')
         self.assertIsNotNone(proc.self_firmware_upgrade_supported)
         self.assertFalse(proc.self_firmware_upgrade_supported)
 

@@ -40,7 +40,11 @@ class Procedure(object):
         :type data: bytes
         """
         self._buffer.extend(data)
-        self._str_buffer += data
+
+        if isinstance(data, str):
+            self._str_buffer += data
+        else:
+            self._str_buffer += str(data)
 
         handler = self._handlers[self._state]
         if handler is not None:
@@ -363,14 +367,14 @@ class GetConsoleInformationProcedure(SequentialProcedure):
         self._send_console_type_request()
 
     def _send_console_type_request(self):
-        self._transition('WRD\x12\x4D\n')
+        self._transition(b'WRD\x12\x4D\n')
 
     def _receive_console_type(self):
-        if len(self._str_buffer) == 2:
-            assert self._str_buffer[0] == self._ACK
+        if len(self._buffer) == 2:
+            assert self._buffer[0:1] == self._ACK
 
-            self.station_type = ord(self._str_buffer[1])
-            self._str_buffer = ''
+            self.station_type = self._buffer[1]
+            self._buffer = bytearray()
 
             self.hw_type = "Unknown"
             if self.station_type == 0:
@@ -392,12 +396,13 @@ class GetConsoleInformationProcedure(SequentialProcedure):
             elif self.station_type == 17:
                 self.hw_type = "Vantage Vue"
 
-            self._transition('VER\n')
+            self._transition(b'VER\n')
 
     def _receive_version_date(self):
-        if self._str_buffer.count('\n') == 3:
-            self.version_date = str(self._str_buffer).split('\n')[2].strip()
-            self._str_buffer = ''
+        if self._buffer.count(b'\n') == 3:
+            str_buffer = self._buffer.decode('ascii')
+            self.version_date = str_buffer.split('\n')[2].strip()
+            self._buffer = bytearray()
 
             try:
                 bits = self.version_date.split(" ")
@@ -420,14 +425,14 @@ class GetConsoleInformationProcedure(SequentialProcedure):
 
             if self.station_type in [16, 17] and self.lps_supported:
                 # NVER is only supported on the Vantage Vue or Vantage Pro2
-                self._transition('NVER\n')
+                self._transition(b'NVER\n')
             else:
                 # Done!
                 self._state = self._STATE_READY
                 self._complete()
 
     def _receive_version_number(self):
-        if self._str_buffer.count('\n') == 3:
-            self.version = self._str_buffer.split('\n')[2].strip()
+        if self._buffer.count(b'\n') == 3:
+            self.version = self._buffer.decode('ascii').split('\n')[2].strip()
             self._state = self._STATE_READY
             self._complete()
