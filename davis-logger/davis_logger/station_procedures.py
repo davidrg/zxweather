@@ -475,6 +475,8 @@ class GetConsoleConfigurationProcedure(SequentialProcedure):
         # If Daylight Savings Time is on or off
         self.DSTOn = None
 
+        self.Name = "Get console configuration"
+
         self._handlers = {
             self._STATE_READY: None,
             self._STATE_RECEIVE_TIME: self._receive_time,

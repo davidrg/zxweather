@@ -12,7 +12,8 @@ from davis_logger.record_types.dmp import encode_date, encode_time, \
     split_page, deserialise_dmp
 from davis_logger.record_types.loop import deserialise_loop
 from davis_logger.record_types.util import CRC
-from davis_logger.station_procedures import DstSwitchProcedure, GetConsoleInformationProcedure
+from davis_logger.station_procedures import DstSwitchProcedure, GetConsoleInformationProcedure, \
+    GetConsoleConfigurationProcedure
 from davis_logger.util import Event, to_hex_string
 
 __author__ = 'david'
@@ -36,21 +37,6 @@ STATE_DMPAFT_INIT_2 = 4
 
 # Receiving dump pages.
 STATE_DMPAFT_RECV = 5
-
-# init-4: Get time
-INIT_4_GET_TIME = 9
-
-# init-5: Get rain collector size.
-INIT_5_GET_RAIN_SIZE = 10
-
-# init-6: Get the archive interval
-INIT_6_GET_ARCHIVE_INTERVAL = 11
-
-# init-7: Get daylight savings type (automatic or manual)
-INIT_7_GET_DAYLIGHT_SAVINGS_TYPE = 12
-
-# init-8: Get daylight manual daylight savings mode (on, off or undefined)
-INIT_8_GET_DAYLIGHT_SAVINGS_STATUS = 13
 
 # For generic procedure type things
 STATE_IN_PROCEDURE = 14
@@ -111,12 +97,6 @@ class DavisWeatherStation(object):
             STATE_DMPAFT_INIT_1: self._dmpaftInit1DataReceived,
             STATE_DMPAFT_INIT_2: self._dmpaftInit2DataReceived,
             STATE_DMPAFT_RECV: self._dmpaftRecvDataReceived,
-
-            INIT_4_GET_TIME: self._timeInfoReceived,
-            INIT_5_GET_RAIN_SIZE: self._rainSizeReceived,
-            INIT_6_GET_ARCHIVE_INTERVAL: self._archiveIntervalReceived,
-            INIT_7_GET_DAYLIGHT_SAVINGS_TYPE: self._daylightSavingsTypeReceived,
-            INIT_8_GET_DAYLIGHT_SAVINGS_STATUS: self._daylightSavingsStatusReceived,
 
             STATE_IN_PROCEDURE: self._procedure_data_received,
         }
@@ -201,7 +181,12 @@ class DavisWeatherStation(object):
         if self._procedure is not None:
             # Procedures expect bytes - not strings
             if isinstance(data, str):
-                self._procedure.data_received(data.encode('ascii'))
+                try:
+                    encoded = data.encode('ascii')
+                except:
+                    encoded = data
+
+                self._procedure.data_received(encoded)
             else:
                 self._procedure.data_received(data)
 
@@ -314,120 +299,30 @@ class DavisWeatherStation(object):
                         "PC firmware upgrades - a special firmware upgrade "
                         "device must be obtained.")
 
-        # Continue with init - get config data
-        self._buffer = ''
-        self._state = INIT_4_GET_TIME
-        self._write('GETTIME\n')
+        procedure = GetConsoleConfigurationProcedure(self._write)
+        self._run_procedure(procedure, self._console_config_ready)
 
-    def _decodeTimeInBuffer(self):
-        seconds = ord(self._buffer[1])
-        minutes = ord(self._buffer[2])
-        hour = ord(self._buffer[3])
-        day = ord(self._buffer[4])
-        month = ord(self._buffer[5])
-        year = ord(self._buffer[6]) + 1900
-        return datetime.datetime(year=year, month=month, day=day, hour=hour,
-                                 minute=minutes, second=seconds)
+    def _console_config_ready(self, procedure):
+        """
+        Stage two initialisation finished: procedure to get console config.
+        :param procedure: A completed console configuration procedure
+        :type procedure: GetConsoleConfigurationProcedure
+        """
 
-    def _timeInfoReceived(self, data):
-        self._buffer += data
+        self._station_time = procedure.CurrentStationTime
+        self._rainCollectorSizeName = procedure.RainSizeString
+        self._rainCollectorSize = procedure.RainSizeMM
+        self._archive_interval = procedure.ArchiveIntervalMinutes
+        self._auto_dst_enabled = procedure.AutoDSTEnabled
+        dst_on = procedure.DSTOn
 
-        if len(self._buffer) == 9:
-            self._station_time = self._decodeTimeInBuffer()
-
-            self._buffer = ''
-            self._state = INIT_5_GET_RAIN_SIZE
-            self._write('EEBRD 2B 01\n')
-
-    def _rainSizeReceived(self, data):
-        self._buffer += data
-
-        if len(self._buffer) == 4:
-            assert self._buffer[0] == self._ACK
-
-            setup_byte = ord(data[1])
-            rainCollectorSize = (setup_byte & 0x30) >> 4
-            sizeString = "Unknown - assuming 0.2mm"
-            self._rainCollectorSize = 0.2
-            if rainCollectorSize == 0:
-                sizeString = "0.01 Inches"
-                self._rainCollectorSize = 0.254
-            elif rainCollectorSize == 1:
-                sizeString = "0.2mm"
-                self._rainCollectorSize = 0.2
-            elif rainCollectorSize == 2:
-                sizeString = "0.1mm"
-                self._rainCollectorSize = 0.1
-            self._rainCollectorSizeName = sizeString
-
-            self._buffer = ''
-            self._state = INIT_6_GET_ARCHIVE_INTERVAL
-            self._write("EEBRD 2D 01\n")
-
-    def _archiveIntervalReceived(self, data):
-        self._buffer += data
-
-        if len(self._buffer) == 4:
-            assert self._buffer[0] == self._ACK
-
-            self._archive_interval = ord(data[1])
-
-            self._buffer = ''
-            self._state = INIT_7_GET_DAYLIGHT_SAVINGS_TYPE
-            self._write("EEBRD 12 1\n")
-
-    def _daylightSavingsTypeReceived(self, data):
-        self._buffer += data
-
-        if len(self._buffer) == 4:
-            assert self._buffer[0] == self._ACK
-
-            data = self._buffer[1]
-
-            packet_crc = struct.unpack(CRC.FORMAT, self._buffer[2:])[0]
-            calculated_crc = CRC.calculate_crc(data)
-
-            assert packet_crc == calculated_crc
-
-            result = ord(data)
-            if result == 1:
-                self._auto_dst_enabled = False
-            elif result == 0:
-                self._auto_dst_enabled = True
-
-            self._buffer = ''
-            self._state = INIT_8_GET_DAYLIGHT_SAVINGS_STATUS
-            self._write("EEBRD 13 1\n")
-
-    def _daylightSavingsStatusReceived(self, data):
-        self._buffer += data
-
-        if len(self._buffer) == 4:
-            assert self._buffer[0] == self._ACK
-
-            data = self._buffer[1]
-
-            packet_crc = struct.unpack(CRC.FORMAT, self._buffer[2:])[0]
-            calculated_crc = CRC.calculate_crc(data)
-
-            assert packet_crc == calculated_crc
-
-            result = ord(data)
-
-            if result == 1:
-                dst_on = True
-            else:
-                dst_on = False
-
-            self._buffer = ''
-            self._state = STATE_AWAKE
-            self.InitCompleted.fire(self._station_type, self._hw_type,
-                                    self._version, self._version_date,
-                                    self._station_time,
-                                    self._rainCollectorSizeName,
-                                    self._archive_interval,
-                                    self._auto_dst_enabled,
-                                    dst_on)
+        self.InitCompleted.fire(self._station_type, self._hw_type,
+                                self._version, self._version_date,
+                                self._station_time,
+                                self._rainCollectorSizeName,
+                                self._archive_interval,
+                                self._auto_dst_enabled,
+                                dst_on)
 
     def _write(self, data):
         # TODO: store current time so we know if the console has gone back to
