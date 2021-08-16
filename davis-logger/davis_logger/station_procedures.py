@@ -445,3 +445,139 @@ class GetConsoleInformationProcedure(SequentialProcedure):
             self.version = self._buffer.decode('ascii').split('\n')[2].strip()
             self._state = self._STATE_READY
             self._complete()
+
+
+class GetConsoleConfigurationProcedure(SequentialProcedure):
+    """
+    Gets basic station console configuration: rain gauge measurement size,
+    archive interval, DST setting and current clock time.
+    """
+
+    _STATE_READY = 1
+    _STATE_RECEIVE_TIME = 2
+    _STATE_RECEIVE_RAIN_SIZE = 3
+    _STATE_RECEIVE_ARCHIVE_INTERVAL = 4
+    _STATE_RECEIVE_AUTO_DST_ENABLED = 5
+    _STATE_RECEIVE_MANUAL_DST_STATUS = 6
+
+    def __init__(self, write_callback):
+        super(GetConsoleConfigurationProcedure, self).__init__(write_callback)
+
+        self.CurrentStationTime = None
+
+        self.RainSizeString = "Unknown"
+        self.RainSizeMM = None
+        self.ArchiveIntervalMinutes = None
+
+        # If daylight savings mode is automatic or manual
+        self.AutoDSTEnabled = None
+
+        # If Daylight Savings Time is on or off
+        self.DSTOn = None
+
+        self._handlers = {
+            self._STATE_READY: None,
+            self._STATE_RECEIVE_TIME: self._receive_time,
+            self._STATE_RECEIVE_RAIN_SIZE: self._receive_rain_size,
+            self._STATE_RECEIVE_ARCHIVE_INTERVAL: self._receive_archive_interval,
+            self._STATE_RECEIVE_AUTO_DST_ENABLED: self._receive_auto_dst_enabled,
+            self._STATE_RECEIVE_MANUAL_DST_STATUS: self._daylight_savings_status_received
+        }
+
+    def start(self):
+        """
+        Starts the procedure
+        """
+        self._transition('GETTIME\n')
+
+    def _decodeTimeInBuffer(self):
+        seconds = ord(self._str_buffer[1])
+        minutes = ord(self._str_buffer[2])
+        hour = ord(self._str_buffer[3])
+        day = ord(self._str_buffer[4])
+        month = ord(self._str_buffer[5])
+        year = ord(self._str_buffer[6]) + 1900
+        return datetime.datetime(year=year, month=month, day=day, hour=hour,
+                                 minute=minutes, second=seconds)
+
+    def _receive_time(self):
+        if len(self._str_buffer) == 9:
+            assert self._str_buffer[0] == self._ACK
+            self.CurrentStationTime = self._decodeTimeInBuffer()
+
+            self._str_buffer = ''
+            self._transition('EEBRD 2B 01\n')
+
+    def _receive_rain_size(self):
+        if len(self._str_buffer) == 4:
+            assert self._str_buffer[0] == self._ACK
+
+            setup_byte = ord(self._str_buffer[1])
+            rainCollectorSize = (setup_byte & 0x30) >> 4
+            self.RainSizeString = "Unknown - assuming 0.2mm"
+            self.RainSizeMM = 0.2
+            if rainCollectorSize == 0:
+                self.RainSizeString = "0.01 Inches"
+                self.RainSizeMM = 0.254
+            elif rainCollectorSize == 1:
+                self.RainSizeString = "0.2mm"
+                self.RainSizeMM = 0.2
+            elif rainCollectorSize == 2:
+                self.RainSizeString = "0.1mm"
+                self.RainSizeMM = 0.1
+
+            self._str_buffer = ''
+            self._transition("EEBRD 2D 01\n")
+
+    def _receive_archive_interval(self):
+        if len(self._str_buffer) == 4:
+            assert self._str_buffer[0] == self._ACK
+
+            self.ArchiveIntervalMinutes = ord(self._str_buffer[1])
+
+            self._str_buffer = ''
+            self._transition("EEBRD 12 1\n")
+
+    def _receive_auto_dst_enabled(self):
+        if len(self._str_buffer) == 4:
+            assert self._str_buffer[0] == self._ACK
+
+            data = self._str_buffer[1]
+
+            packet_crc = struct.unpack(CRC.FORMAT, self._str_buffer[2:])[0]
+            calculated_crc = CRC.calculate_crc(data)
+
+            assert packet_crc == calculated_crc
+
+            result = ord(data)
+            if result == 1:
+                self.AutoDSTEnabled = False
+            elif result == 0:
+                self.AutoDSTEnabled = True
+                self._complete()
+                return
+
+            # Auto DST is off, DST is being done manually. Check to see if
+            # DST is turned on or off.
+            self._str_buffer = ''
+            self._transition("EEBRD 13 1\n")
+
+    def _daylight_savings_status_received(self):
+        if len(self._str_buffer) == 4:
+            assert self._str_buffer[0] == self._ACK
+
+            data = self._str_buffer[1]
+
+            packet_crc = struct.unpack(CRC.FORMAT, self._str_buffer[2:])[0]
+            calculated_crc = CRC.calculate_crc(data)
+
+            assert packet_crc == calculated_crc
+
+            result = ord(data)
+
+            if result == 1:
+                self.DSTOn = True
+            else:
+                self.DSTOn = False
+
+            self._complete()

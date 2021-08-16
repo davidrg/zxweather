@@ -1,11 +1,13 @@
 """
 Tests station procedures
 """
+import datetime
 import struct
 import unittest
 
 from davis_logger.record_types.util import CRC
-from davis_logger.station_procedures import DstSwitchProcedure, GetConsoleInformationProcedure
+from davis_logger.station_procedures import DstSwitchProcedure, GetConsoleInformationProcedure, \
+    GetConsoleConfigurationProcedure
 
 
 class WriteReceiver(object):
@@ -430,3 +432,292 @@ class TestGetConsoleInformationProcedure(unittest.TestCase):
         proc.data_received(b"\n\rOK\n\r1.0\n\r")
         self.assertIsNotNone(proc.lps_supported)
         self.assertTrue(proc.lps_supported)
+
+
+
+# Next procedure: Station config
+# Should be fairly simple - just read four bytes from EEPROM and report the
+# values back:
+#       Current time
+#       Rain gauge size (options: 0=0.01 inches, 1=0.2mm, 2=0.1mm)
+#       Archive interval (options: 1, 5, 10, 15, 30, 60, 120 minutes)
+#       DST type (auto or manual)
+#       Manual DST status (on or off) - ignored if DST type is auto
+# Basic procedure is:
+#       > Send to Station
+#       < Receive from Station
+# > GETTIME\n
+# < current-time
+# > EEBRD 2B 01\n           Get rain gauge size
+# < ACK
+# < rain gauge size
+# < CRC (two bytes)         (not currently checked)
+# > EEBRD 2D 01\n           Get archive interval
+# < ACK
+# < archive interval
+# < CRC (two bytes)         (not currently checked)
+# > EEBRD 12 1\n            Get daylight savings type
+# < ACK
+# < daylight-savings-type
+# < CRC (two bytes)
+# > EEBRD 13 1\n            Get daylight savings status
+# < ACK
+# < daylight-savings-status
+# < CRC (two bytes)
+
+
+class TestGetConsoleConfigurationProcedure(unittest.TestCase):
+    # Basic procedure is:
+    #       > Send to Station
+    #       < Receive from Station
+    # > GETTIME\n               Get the current station time
+    # < current-time
+    # > EEBRD 2B 01\n           Get rain gauge size
+    # < ACK
+    # < rain gauge size
+    # < CRC (two bytes)         (not currently checked)
+    # > EEBRD 2D 01\n           Get archive interval
+    # < ACK
+    # < archive interval
+    # < CRC (two bytes)         (not currently checked)
+    # > EEBRD 12 1\n            Get daylight savings type
+    # < ACK
+    # < daylight-savings-type
+    # < CRC (two bytes)
+    # > EEBRD 13 1\n            Get daylight savings status
+    # < ACK
+    # < daylight-savings-status
+    # < CRC (two bytes)
+
+    def test_decodes_current_time(self):
+        recv = WriteReceiver()
+
+        proc = GetConsoleConfigurationProcedure(recv.write)
+
+        proc.start()
+        self.assertEqual('GETTIME\n', recv.Data)
+        proc.data_received('\x06')  # ACK
+        # Current time: 2021-08-16 22:21:37
+        proc.data_received('%\x15\x16\x10\x08yHN')
+        self.assertEqual(
+            datetime.datetime(year=2021, month=8, day=16,
+                              hour=22, minute=21, second=37),
+            proc.CurrentStationTime)
+
+    def test_point_01_inch_rain_gauge(self):
+        recv = WriteReceiver()
+
+        proc = GetConsoleConfigurationProcedure(recv.write)
+
+        proc.start()
+        proc.data_received('\x06')  # ACK
+        proc.data_received('\x0f\x15\x06\x0e\x08r\t\xea')
+        self.assertEqual('EEBRD 2B 01\n', recv.Data)  # Read rain gauge size
+        # Size is in setup bits 5 and 4. 0 = 0.01 inches. So a setup byte of 0.
+        proc.data_received('\x06')  # ACK
+        proc.data_received('\x00\x00\x00')
+        self.assertEqual("0.01 Inches", proc.RainSizeString)
+        self.assertEqual(0.254, proc.RainSizeMM)
+
+    def test_point02_mm_rain_gauge(self):
+        recv = WriteReceiver()
+
+        proc = GetConsoleConfigurationProcedure(recv.write)
+
+        proc.start()
+        proc.data_received('\x06')  # ACK
+        proc.data_received('\x0f\x15\x06\x0e\x08r\t\xea')
+        self.assertEqual('EEBRD 2B 01\n', recv.Data)  # Read rain gauge size
+        # Size is in setup bits 5 and 4. 1 = 0.2mm. So a setup byte of 0x10.
+        proc.data_received('\x06')  # ACK
+        proc.data_received('\x10\x121')
+        self.assertEqual("0.2mm", proc.RainSizeString)
+        self.assertEqual(0.2, proc.RainSizeMM)
+
+    def test_point_01_mm_rain_gauge(self):
+        recv = WriteReceiver()
+
+        proc = GetConsoleConfigurationProcedure(recv.write)
+
+        proc.start()
+        proc.data_received('\x06')  # ACK
+        proc.data_received('\x0f\x15\x06\x0e\x08r\t\xea')
+        self.assertEqual('EEBRD 2B 01\n', recv.Data)  # Read rain gauge size
+        # Size is in setup bits 5 and 4. 2 = 0.1mm. So a setup byte of 0x30.
+        proc.data_received('\x06')  # ACK
+        proc.data_received(' $b')
+        self.assertEqual("0.1mm", proc.RainSizeString)
+        self.assertEqual(0.1, proc.RainSizeMM)
+
+    def test_decodes_archive_intervals(self):
+        recv = WriteReceiver()
+
+        def test_interval(interval):
+            proc = GetConsoleConfigurationProcedure(recv.write)
+
+            proc.start()
+            proc.data_received('\x06')  # ACK
+            proc.data_received('\x0f\x15\x06\x0e\x08r\t\xea')  # Time
+            proc.data_received('\x06')  # ACK
+            proc.data_received('\x10\x121')  # Rain gauge size (0.2mm)
+            self.assertEqual("EEBRD 2D 01\n", recv.Data)  # Read archive interval
+            proc.data_received('\x06')  # ACK
+            proc.data_received(chr(interval) + struct.pack(
+                CRC.FORMAT,
+                CRC.calculate_crc(chr(interval))))
+            self.assertEqual(interval, proc.ArchiveIntervalMinutes)
+
+        # These are all the valid archive intervals
+        interval_options = [1, 5, 10, 15, 30, 60, 120]
+
+        for option in interval_options:
+            test_interval(option)
+
+    def test_auto_dst(self):
+        recv = WriteReceiver()
+
+        proc = GetConsoleConfigurationProcedure(recv.write)
+
+        proc.start()
+        proc.data_received('\x06')  # ACK
+        proc.data_received('\x0f\x15\x06\x0e\x08r\t\xea')  # Time
+        proc.data_received('\x06')  # ACK
+        proc.data_received('\x10\x121')  # Rain gauge size (0.2mm)
+        proc.data_received('\x06')  # ACK
+        proc.data_received('\x05P\xa5')  # 5 minutes
+        self.assertEqual('EEBRD 12 1\n', recv.Data)  # Get DST Mode
+        proc.data_received('\x06')  # ACK
+        proc.data_received('\x00\x00\x00')  # Auto DST = 0
+        self.assertEqual(True, proc.AutoDSTEnabled)
+        self.assertIsNone(proc.DSTOn)
+
+    def test_finished_after_detecting_auto_dst(self):
+        recv = WriteReceiver()
+        fd = FinishedDetector()
+
+        proc = GetConsoleConfigurationProcedure(recv.write)
+        proc.finished += fd.finished
+
+        proc.start()
+        self.assertFalse(fd.IsFinished)
+        proc.data_received('\x06')  # ACK
+        self.assertFalse(fd.IsFinished)
+        proc.data_received('\x0f\x15\x06\x0e\x08r\t\xea')  # Time
+        self.assertFalse(fd.IsFinished)
+        proc.data_received('\x06')  # ACK
+        self.assertFalse(fd.IsFinished)
+        proc.data_received('\x10\x121')  # Rain gauge size (0.2mm)
+        self.assertFalse(fd.IsFinished)
+        proc.data_received('\x06')  # ACK
+        self.assertFalse(fd.IsFinished)
+        proc.data_received('\x05P\xa5')  # 5 minutes
+        self.assertFalse(fd.IsFinished)
+        proc.data_received('\x06')  # ACK
+        self.assertFalse(fd.IsFinished)
+        proc.data_received('\x00\x00\x00')  # Auto DST = 0
+
+        # Procedure should finish after confirming DST mode is Auto
+        self.assertTrue(fd.IsFinished)
+
+    def test_manual_dst(self):
+        recv = WriteReceiver()
+
+        proc = GetConsoleConfigurationProcedure(recv.write)
+
+        proc.start()
+        proc.data_received('\x06')  # ACK
+        proc.data_received('\x0f\x15\x06\x0e\x08r\t\xea')  # Time
+        proc.data_received('\x06')  # ACK
+        proc.data_received('\x10\x121')  # Rain gauge size (0.2mm)
+        proc.data_received('\x06')  # ACK
+        proc.data_received('\x05P\xa5')  # 5 minutes
+        self.assertEqual('EEBRD 12 1\n', recv.Data)  # Get DST Mode
+        proc.data_received('\x06')  # ACK
+        proc.data_received('\x01\x10!')  # Manual DST = 1
+        self.assertFalse(proc.AutoDSTEnabled)
+
+    def test_manual_dst_checks_dst_status(self):
+        recv = WriteReceiver()
+
+        proc = GetConsoleConfigurationProcedure(recv.write)
+
+        proc.start()
+        proc.data_received('\x06')  # ACK
+        proc.data_received('\x0f\x15\x06\x0e\x08r\t\xea')  # Time
+        proc.data_received('\x06')  # ACK
+        proc.data_received('\x10\x121')  # Rain gauge size (0.2mm)
+        proc.data_received('\x06')  # ACK
+        proc.data_received('\x05P\xa5')  # 5 minutes
+        proc.data_received('\x06')  # ACK
+        proc.data_received('\x01\x10!')  # Manual DST = 1
+        self.assertEqual('EEBRD 13 1\n', recv.Data)  # Get manual DST ON
+
+    def test_manual_dst_on(self):
+        recv = WriteReceiver()
+
+        proc = GetConsoleConfigurationProcedure(recv.write)
+
+        proc.start()
+        proc.data_received('\x06')  # ACK
+        proc.data_received('\x0f\x15\x06\x0e\x08r\t\xea')  # Time
+        proc.data_received('\x06')  # ACK
+        proc.data_received('\x10\x121')  # Rain gauge size (0.2mm)
+        proc.data_received('\x06')  # ACK
+        proc.data_received('\x05P\xa5')  # 5 minutes
+        proc.data_received('\x06')  # ACK
+        proc.data_received('\x01\x10!')  # Manual DST = 1
+        self.assertEqual('EEBRD 13 1\n', recv.Data)  # Get manual DST ON
+        proc.data_received('\x06')  # ACK
+        proc.data_received('\x01\x10!')  # DST mode is ON
+        self.assertTrue(proc.DSTOn)
+
+    def test_manual_dst_off(self):
+        recv = WriteReceiver()
+
+        proc = GetConsoleConfigurationProcedure(recv.write)
+
+        proc.start()
+        proc.data_received('\x06')  # ACK
+        proc.data_received('\x0f\x15\x06\x0e\x08r\t\xea')  # Time
+        proc.data_received('\x06')  # ACK
+        proc.data_received('\x10\x121')  # Rain gauge size (0.2mm)
+        proc.data_received('\x06')  # ACK
+        proc.data_received('\x05P\xa5')  # 5 minutes
+        proc.data_received('\x06')  # ACK
+        proc.data_received('\x01\x10!')  # Manual DST = 1
+        self.assertEqual('EEBRD 13 1\n', recv.Data)  # Get manual DST ON
+        proc.data_received('\x06')  # ACK
+        proc.data_received('\x00\x00\x00')  # DST mode is OFF
+        self.assertFalse(proc.DSTOn)
+
+    def test_finished_after_getting_manual_dst_status(self):
+        recv = WriteReceiver()
+        fd = FinishedDetector()
+
+        proc = GetConsoleConfigurationProcedure(recv.write)
+        proc.finished += fd.finished
+
+        proc.start()
+        self.assertFalse(fd.IsFinished)
+        proc.data_received('\x06')  # ACK
+        self.assertFalse(fd.IsFinished)
+        proc.data_received('\x0f\x15\x06\x0e\x08r\t\xea')  # Time
+        self.assertFalse(fd.IsFinished)
+        proc.data_received('\x06')  # ACK
+        self.assertFalse(fd.IsFinished)
+        proc.data_received('\x10\x121')  # Rain gauge size (0.2mm)
+        self.assertFalse(fd.IsFinished)
+        proc.data_received('\x06')  # ACK
+        self.assertFalse(fd.IsFinished)
+        proc.data_received('\x05P\xa5')  # 5 minutes
+        self.assertFalse(fd.IsFinished)
+        proc.data_received('\x06')  # ACK
+        self.assertFalse(fd.IsFinished)
+        proc.data_received('\x01\x10!')  # Manual DST = 1
+        self.assertFalse(fd.IsFinished)
+        proc.data_received('\x06')  # ACK
+        self.assertFalse(fd.IsFinished)
+        proc.data_received('\x00\x00\x00')  # DST mode is OFF
+
+        self.assertTrue(fd.IsFinished)
+
