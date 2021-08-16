@@ -488,31 +488,31 @@ class GetConsoleConfigurationProcedure(SequentialProcedure):
         """
         Starts the procedure
         """
-        self._transition('GETTIME\n')
+        self._transition(b'GETTIME\n')
 
     def _decodeTimeInBuffer(self):
-        seconds = ord(self._str_buffer[1])
-        minutes = ord(self._str_buffer[2])
-        hour = ord(self._str_buffer[3])
-        day = ord(self._str_buffer[4])
-        month = ord(self._str_buffer[5])
-        year = ord(self._str_buffer[6]) + 1900
+        seconds = self._buffer[1]
+        minutes = self._buffer[2]
+        hour = self._buffer[3]
+        day = self._buffer[4]
+        month = self._buffer[5]
+        year = self._buffer[6] + 1900
         return datetime.datetime(year=year, month=month, day=day, hour=hour,
                                  minute=minutes, second=seconds)
 
     def _receive_time(self):
-        if len(self._str_buffer) == 9:
-            assert self._str_buffer[0] == self._ACK
+        if len(self._buffer) == 9:
+            assert self._buffer[0:1] == self._ACK
             self.CurrentStationTime = self._decodeTimeInBuffer()
 
-            self._str_buffer = ''
-            self._transition('EEBRD 2B 01\n')
+            self._buffer = bytearray()
+            self._transition(b'EEBRD 2B 01\n')
 
     def _receive_rain_size(self):
-        if len(self._str_buffer) == 4:
-            assert self._str_buffer[0] == self._ACK
+        if len(self._buffer) == 4:
+            assert self._buffer[0:1] == self._ACK
 
-            setup_byte = ord(self._str_buffer[1])
+            setup_byte = self._buffer[1]
             rainCollectorSize = (setup_byte & 0x30) >> 4
             self.RainSizeString = "Unknown - assuming 0.2mm"
             self.RainSizeMM = 0.2
@@ -526,30 +526,28 @@ class GetConsoleConfigurationProcedure(SequentialProcedure):
                 self.RainSizeString = "0.1mm"
                 self.RainSizeMM = 0.1
 
-            self._str_buffer = ''
-            self._transition("EEBRD 2D 01\n")
+            self._buffer = bytearray()
+            self._transition(b"EEBRD 2D 01\n")
 
     def _receive_archive_interval(self):
-        if len(self._str_buffer) == 4:
-            assert self._str_buffer[0] == self._ACK
+        if len(self._buffer) == 4:
+            assert self._buffer[0:1] == self._ACK
 
-            self.ArchiveIntervalMinutes = ord(self._str_buffer[1])
+            self.ArchiveIntervalMinutes = self._buffer[1]
 
-            self._str_buffer = ''
-            self._transition("EEBRD 12 1\n")
+            self._buffer = bytearray()
+            self._transition(b"EEBRD 12 1\n")
 
     def _receive_auto_dst_enabled(self):
-        if len(self._str_buffer) == 4:
-            assert self._str_buffer[0] == self._ACK
+        if len(self._buffer) == 4:
+            assert self._buffer[0:1] == self._ACK
 
-            data = self._str_buffer[1]
-
-            packet_crc = struct.unpack(CRC.FORMAT, self._str_buffer[2:])[0]
-            calculated_crc = CRC.calculate_crc(data)
+            packet_crc = struct.unpack(CRC.FORMAT, self._buffer[2:])[0]
+            calculated_crc = CRC.calculate_crc(bytes(self._buffer[1:2]))
 
             assert packet_crc == calculated_crc
 
-            result = ord(data)
+            result = self._buffer[1]
             if result == 1:
                 self.AutoDSTEnabled = False
             elif result == 0:
@@ -559,21 +557,19 @@ class GetConsoleConfigurationProcedure(SequentialProcedure):
 
             # Auto DST is off, DST is being done manually. Check to see if
             # DST is turned on or off.
-            self._str_buffer = ''
-            self._transition("EEBRD 13 1\n")
+            self._buffer = bytearray()
+            self._transition(b"EEBRD 13 1\n")
 
     def _daylight_savings_status_received(self):
-        if len(self._str_buffer) == 4:
-            assert self._str_buffer[0] == self._ACK
+        if len(self._buffer) == 4:
+            assert self._buffer[0:1] == self._ACK
 
-            data = self._str_buffer[1]
-
-            packet_crc = struct.unpack(CRC.FORMAT, self._str_buffer[2:])[0]
-            calculated_crc = CRC.calculate_crc(data)
+            packet_crc = struct.unpack(CRC.FORMAT, self._buffer[2:])[0]
+            calculated_crc = CRC.calculate_crc(bytes(self._buffer[1:2]))
 
             assert packet_crc == calculated_crc
 
-            result = ord(data)
+            result = self._buffer[1]
 
             if result == 1:
                 self.DSTOn = True
