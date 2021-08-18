@@ -18,29 +18,16 @@ Because the desktop app (pictured below) works just as well over the internet as
 
 ### The Desktop App
 The desktop app, pictured above, can do lots of things! A lot more than the fairly inflexible web interface:
-   - Plot current conditions in a chart. One data point every 2.5 seconds updated live as new data comes in.
-   - Plot archive data however you like. Any variables over any timespan. You can even have multiple X axes covering different timespans allowing you to, for example, plot this years rainfall over the top of last years.
-   - Export data to CSV and load it into Excel if the built-in charts aren't quite what you want
-   - View data in a sortable grid. Same options as with charts. Copy&Paste to excel works as you'd expect.
+   - [Plot current conditions in a chart](https://github.com/davidrg/zxweather/wiki/Desktop-Client-Live-Charts). One data point every 2.5 seconds updated live as new data comes in.
+   - [Plot archive data however you like](https://github.com/davidrg/zxweather/wiki/Desktop-Client-Charts). Any variables over any timespan. You can even have multiple X axes covering different timespans allowing you to, for example, plot this years rainfall over the top of last years.
+   - [Export data to CSV](https://github.com/davidrg/zxweather/wiki/Desktop-Client---Export-Data) and load it into Excel if the built-in charts aren't quite what you want
+   - [View data in a sortable grid](https://github.com/davidrg/zxweather/wiki/Desktop-Client---View-Data). Same options as with charts. Copy&Paste to excel works as you'd expect.
    - Both charts and view data support aggregates. You can use this to plot a running total of rainfall or turn multiple data points into one giving you a chart or table of hourly highs or 30 minute lows, daily rainfall totals, etc.
-   - The Images window lets you conveniently browse all captured images and time-lapse videos in the database. It can show the conditions at the time the image was taken. This works for time-lapse videos too where the conditions shown change as the video plays
+   - [The Images window](https://github.com/davidrg/zxweather/wiki/Images-Window) lets you conveniently browse all captured images and time-lapse videos in the database. It can show the conditions at the time the image was taken. This works for time-lapse videos too where the conditions shown change as the video plays
    
 It also contains a basic reporting engine allowing you to build custom reports producing outputs in HTML, Plain Text or a sortable grid. The supplied built-in reports are made with the same tools and live under the same constraints so anything a built-in report can do a custom report can do too. 
 
-The following WeatherLink-compatible reports are supplied:
-
-   - Leaf Wet Hours (requires Vantage Pro2 with leaf wetness sensor)
-   - NOAA Month Summary
-   - NOAA Year Summary
-   - Rainfall totals
-   - Soil Temperature Hours
-   - Sunrise & Sunset. This report also provides an HTML view with daylight savings changes and the current day highlighted.
-   - Sunshine hours. This report uses a more advanced algorithm than the equivalent WeatherLink report and provides a links to plot a solar radiation chart or view images for each day.
-
-Plus some extras:
-   - Monthly Averages: gives numbers like Average January rainfall, daily mean for february, etc.
-   - Station Records: all time highs and lows per sensor
-   - Storm Rain: Gives you all the past rain storm events calculated using a similar algorithm to Davis weather stations. A link to plot a rainfall chart is provided for each storm
+The built-in reports are [documented on the wiki](https://github.com/davidrg/zxweather/wiki/Reports).
 
 ## Installation
 Installation is not easy. Proper install documentation hasn't been updated since 2013 and a lot has changed since then. Until I get around to updating the documentation there are [some very brief notes](doc/interim_install_notes.md) that might be ok if you know linux and python and are up for the challenge.
