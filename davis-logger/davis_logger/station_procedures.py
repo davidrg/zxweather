@@ -5,6 +5,8 @@ Various procedures for interacting with davis weather stations
 import struct
 import datetime
 from twisted.python import log
+
+from davis_logger.record_types.dmp import encode_date, encode_time, split_page, deserialise_dmp
 from davis_logger.record_types.util import CRC
 from davis_logger.util import Event
 
@@ -22,12 +24,14 @@ class Procedure(object):
     _STATE_READY = 0  # Type: int
     _ACK = b'\x06'  # Type: str
 
-    def __init__(self, write_callback):
+    def __init__(self, write_callback, log_callback=None):
         """
         Constructs a new procedure
         :param write_callback: Function that receives data from the procedure
                 and sends it to the weather station
         :type write_callback: Callable
+        :param log_callback: Function to output log messages
+        :type log_callback: Callable
         """
         self.finished = Event()
         self._buffer = bytearray()
@@ -36,6 +40,14 @@ class Procedure(object):
         self._state = self._STATE_READY
         self._write = write_callback
         self.Name = "unknown procedure"
+
+        if log_callback is not None:
+            self._log = log_callback
+        else:
+            def log(msg):
+                """Default no-op log function"""
+                pass
+            self._log = log
 
     def data_received(self, data):
         """
@@ -579,3 +591,231 @@ class GetConsoleConfigurationProcedure(SequentialProcedure):
                 self.DSTOn = False
 
             self._complete()
+
+
+class DmpProcedure(SequentialProcedure):
+    """
+    Retrieves archive records from the console starting from the specified
+    time.
+    """
+    _STATE_READY = 1
+    _STATE_SEND_START_TIME = 2
+    _STATE_RECEIVE_PAGE_COUNT = 3
+    _RECEIVE_ARCHIVE_RECORDS = 4
+
+    # The console uses '!' as a NAK character to signal invalid parameters.
+    _NAK = '\x21'  # TODO: Some other software uses \x15 here claiming the
+                   # documentation is wrong. Further investigation required.
+
+    # Used to signal to the console that its response did not pass the CRC
+    # check. Sending this back will make the console resend its last message.
+    _CANCEL = '\x18'
+
+    # Used to cancel the download of further DMP packets.
+    _ESC = '\x1B'
+
+    def __init__(self, write_callback, log_callback, from_time,
+                 rain_collector_size):
+        """
+        Fetches archive records from the station console/envoy
+        :param write_callback: Callback to send data to the station
+        :type write_callback: Callable
+        :param log_callback: Callback to produce log messages
+        :type log_callback: Callable
+        :param from_time: Timestamp for first record to download
+        :type from_time: datetime.datetime
+        :param rain_collector_size: Rain collector size in millimeters
+        :type rain_collector_size: float
+        """
+        super(DmpProcedure, self).__init__(write_callback, log_callback)
+
+        self.ArchiveRecords = None
+        self._from_time = from_time
+        self._rain_collector_size = rain_collector_size
+        self._max_dst_offset = datetime.timedelta(hours=2)
+
+        self.Name = "Get all archive records since: {0}".format(from_time)
+
+        self._handlers = {
+            self._STATE_READY: None,
+            self._STATE_SEND_START_TIME: self._send_start_time,
+            self._STATE_RECEIVE_PAGE_COUNT: self._receive_page_count,
+            self._RECEIVE_ARCHIVE_RECORDS: self._receive_archive_records
+        }
+
+    def start(self):
+        """Starts the procedure."""
+        self._transition('DMPAFT\n')
+
+    def _send_start_time(self):
+        if self._str_buffer != self._ACK:
+            self._log('Warning: Expected ACK')
+            # TODO: What should we do here? Retry? Signal failure?
+            return
+
+        assert(isinstance(self._from_time, datetime.datetime))
+            # Now we send the timestamp.
+        #if isinstance(self._dmp_timestamp, datetime.datetime):
+        date_stamp = encode_date(self._from_time.date())
+        time_stamp = encode_time(self._from_time.time())
+        packed = struct.pack('<HH', date_stamp, time_stamp)
+        # else:
+        #     packed = struct.pack('<HH',
+        #                          self._dmp_timestamp[0],
+        #                          self._dmp_timestamp[1])
+
+        self._str_buffer = ''
+        crc = CRC.calculate_crc(packed)
+        packed += struct.pack(CRC.FORMAT, crc)
+        self._transition(packed)
+
+    def _receive_page_count(self):
+        if self._str_buffer[0] == self._CANCEL:
+            # CRC check failed. Try again.
+            self._log("CRC check failed - retrying.")
+            self.start()
+            return
+        elif self._str_buffer[0] == self._NAK:
+            # The manuals says this happens if we didn't send a full
+            # timestamp+CRC. This should never happen. I hope.
+            self._log("NAK received, DMPAFT state 2 - retrying.")
+            self.start()
+            return
+
+        if len(self._str_buffer) < 7:
+            return
+
+        # Consume the ACK
+        assert self._str_buffer[0] == self._ACK
+        self._str_buffer = self._str_buffer[1:]
+
+        payload = self._str_buffer[0:4]
+
+        crc = struct.unpack(CRC.FORMAT, self._str_buffer[4:])[0]
+        calculated_crc = CRC.calculate_crc(payload)  # Skip over the ACK
+
+        if crc != calculated_crc:
+            self._log('CRC mismatch for DMPAFT page count')
+            # I assume we just start again from scratch if this particular CRC
+            # is bad. Thats what we have to do for the other one at least.
+            self.start()
+            return
+
+        page_count, first_record_location = struct.unpack('<HH', payload)
+
+        self._log('Pages: {0}, First Record: {1}'.format(
+            page_count, first_record_location))
+
+        self._dmp_page_count = page_count
+        self._dmp_remaining_pages = page_count
+        self._dmp_first_record = first_record_location
+        self._str_buffer = ''
+        self._dmp_records = []
+
+        if page_count > 0:
+            self._transition()
+
+        # Request the console start streaming data to us (at this point we
+        # could instead cancel the download by sending 0x1B)
+        self._write(self._ACK)
+
+        if page_count <= 0:
+            # Let everyone know we're done.
+            self._complete()
+
+    def _receive_archive_records(self):
+
+        if len(self._str_buffer) >= 267:
+            page = self._str_buffer[0:267]
+            self._str_buffer = self._str_buffer[267:]
+            page_number, records, crc = split_page(page)
+            if crc == CRC.calculate_crc(page[0:265]):
+                # CRC checks out.
+
+                if self._dmp_remaining_pages == self._dmp_page_count:
+                    # Skip any 'old' records if the first record of the dump
+                    # isn't also the first record of the first page.
+                    self._dmp_records += records[self._dmp_first_record:]
+                else:
+                    self._dmp_records += records
+                self._dmp_remaining_pages -= 1
+
+                # Ask for the next page.
+                self._write(self._ACK)
+
+                # If there are no more pages coming then its time to process
+                # it all and reset our state.
+                if self._dmp_remaining_pages == 0:
+                    self._state = self._STATE_READY
+                    self._process_dmp_records()
+            else:
+                log.msg('CRC Failed')
+                # CRC failed. Ask for the page to be sent again.
+                self._write(self._NAK)
+
+    def _process_dmp_records(self):
+        decoded_records = []
+        last_ts = None
+
+        for index, record in enumerate(self._dmp_records):
+            decoded = deserialise_dmp(record, self._rain_collector_size)
+
+            if decoded.dateStamp is None or decoded.timeStamp is None:
+                # An empty record indicates we've gone past the last record
+                # in archive memory (which has been cleared sometime recently).
+                # We should just discard it and not bother looking at the rest.
+                if index >= len(self._dmp_records) - 5:
+                    break
+                else:
+                    # Except we're not in the final page of data! The station
+                    # thinks there is still more 'new' data for us to receive.
+                    # This should never happen - are we actually talking to
+                    # a real Vantage console or envoy? We'll just throw this
+                    # record away and continue processing just in case.
+                    self._log(
+                        "WARNING: Encountered an empty record before the final "
+                        "page of data. This should not happen. Empty record "
+                        "will be ignored. Check database to ensure any further"
+                        " data received is valid.")
+                    continue
+
+            decoded_ts = datetime.datetime.combine(decoded.dateStamp,
+                                                   decoded.timeStamp)
+
+            if last_ts is None:
+                last_ts = decoded_ts
+
+            # We will ignore it if the time jumps back a little bit as its
+            # probably just daylight savings ending.
+            if decoded_ts < (last_ts - self._max_dst_offset):
+                # The clock has jumped back more than we'd expect for a daylight
+                # savings change. We've likely gone past the last new record
+                # in the archive memory and now we're looking at old data.
+
+                if index >= len(self._dmp_records) - 5:
+                    # We're within the final page of data so yep, its old data.
+                    # We'll just discard it and not bother looking at the rest.
+                    break
+                else:
+                    # Nope - we're not in the final page. The weather station
+                    # still thinks there is more 'new' data for us to download.
+                    # probably the user just put the clock back. We'll ignore
+                    # it.
+                    self._log(
+                        "Time for record {0}/{4} is set back {1} from previous "
+                        "record ({2} to {3}). This usually signals end of data "
+                        "but that should only occur within the final five "
+                        "records received from the station. Perhaps the user "
+                        "has set the clock back? We'll just ignore this."
+                        .format(index,
+                                decoded_ts - last_ts,
+                                last_ts,
+                                decoded_ts,
+                                len(self._dmp_records)))
+
+            # Record seems OK. Add it to the list and continue on.
+            last_ts = decoded_ts
+            decoded_records.append(decoded)
+
+        self.ArchiveRecords = decoded_records
+        self._complete()

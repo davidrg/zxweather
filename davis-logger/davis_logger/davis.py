@@ -13,7 +13,7 @@ from davis_logger.record_types.dmp import encode_date, encode_time, \
 from davis_logger.record_types.loop import deserialise_loop
 from davis_logger.record_types.util import CRC
 from davis_logger.station_procedures import DstSwitchProcedure, GetConsoleInformationProcedure, \
-    GetConsoleConfigurationProcedure
+    GetConsoleConfigurationProcedure, DmpProcedure
 from davis_logger.util import Event, to_hex_string
 
 __author__ = 'david'
@@ -28,15 +28,6 @@ STATE_AWAKE = 1
 # When the console is busy executing the LPS command. To abort run the wake up
 # procedure.
 STATE_LPS = 2
-
-# First stage of executing DMPAFT: waiting for the ACK
-STATE_DMPAFT_INIT_1 = 3
-
-# Second stage of executing DMPAFT: timestamp sent, waiting for ACK, etc
-STATE_DMPAFT_INIT_2 = 4
-
-# Receiving dump pages.
-STATE_DMPAFT_RECV = 5
 
 # For generic procedure type things
 STATE_IN_PROCEDURE = 14
@@ -94,16 +85,13 @@ class DavisWeatherStation(object):
         self._state_data_handlers = {
             STATE_SLEEPING: self._sleepingStateDataReceived,
             STATE_LPS: self._lpsStateDataReceived,
-            STATE_DMPAFT_INIT_1: self._dmpaftInit1DataReceived,
-            STATE_DMPAFT_INIT_2: self._dmpaftInit2DataReceived,
-            STATE_DMPAFT_RECV: self._dmpaftRecvDataReceived,
 
             STATE_IN_PROCEDURE: self._procedure_data_received,
         }
 
         self._reset_state()
 
-    def _invalid_state(self):
+    def _invalid_state(self, data):
         raise Exception("INVALID STATE: {0}".format(self._state))
 
     def _reset_state(self):
@@ -190,7 +178,6 @@ class DavisWeatherStation(object):
             else:
                 self._procedure.data_received(data)
 
-
     def _procedure_finished(self):
         log.msg("Procedure completed: {0}".format(self._procedure.Name))
         self._state = STATE_AWAKE
@@ -242,23 +229,20 @@ class DavisWeatherStation(object):
         Gets all new samples (archive records) logged after the supplied
         timestamp.
         :param timestamp: Timestamp to get all samples after
-        :type timestamp: datetime.datetime or tuple
+        :type timestamp: datetime.datetime
         """
-        self._dmp_timestamp = timestamp
 
-        self._wakeUp(self._getSamplesCallback)
+        procedure = DmpProcedure(self._write, log.msg, timestamp,
+                                 self._rainCollectorSize)
 
-    def _getSamplesCallback(self):
-        self._state = STATE_DMPAFT_INIT_1
+        def _samples_ready(proc):
+            """
+            :param proc: DmpProcedure
+            :type proc: DmpProcedure
+            """
+            self.dumpFinished.fire(proc.ArchiveRecords)
 
-        # Reset everything else used by the various dump processing states.
-        self._dmp_buffer = ''
-        self._dmp_first_record = None
-        self._dmp_records = []
-        self._dmp_page_count = None
-        self._dmp_remaining_pages = None
-
-        self._write('DMPAFT\n')
+        self._run_procedure(procedure, _samples_ready)
 
     def initialise(self):
         """
@@ -537,145 +521,3 @@ class DavisWeatherStation(object):
                 log.msg("Recovery failed. Resetting LOOP process...")
                 self._lpsFaultReset()
                 return
-
-    def _dmpaftInit1DataReceived(self, data):
-        if data != self._ACK:
-            log.msg('Warning: Expected ACK')
-            return
-
-        # Now we send the timestamp.
-        if isinstance(self._dmp_timestamp, datetime.datetime):
-            date_stamp = encode_date(self._dmp_timestamp.date())
-            time_stamp = encode_time(self._dmp_timestamp.time())
-            packed = struct.pack('<HH', date_stamp, time_stamp)
-        else:
-            packed = struct.pack('<HH',
-                                 self._dmp_timestamp[0],
-                                 self._dmp_timestamp[1])
-
-        crc = CRC.calculate_crc(packed)
-        packed += struct.pack(CRC.FORMAT, crc)
-        self._state = STATE_DMPAFT_INIT_2
-        self._write(packed)
-
-    def _dmpaftInit2DataReceived(self, data):
-
-        if data[0] == self._CANCEL:
-            # CRC check failed. Try again.
-            self.getSamples(self._dmp_timestamp)
-            return
-        elif data[0] == self._NAK:
-            # The manuals says this happens if we didn't send a full
-            # timestamp+CRC. This should never happen. I hope.
-            raise Exception('NAK received, DMPAFT state 2')
-
-        self._dmp_buffer += data
-
-        if len(self._dmp_buffer) < 7:
-            return
-
-        # Consume the ACK
-        assert self._dmp_buffer[0] == self._ACK
-        self._dmp_buffer = self._dmp_buffer[1:]
-
-        payload = self._dmp_buffer[0:4]
-
-        crc = struct.unpack(CRC.FORMAT, self._dmp_buffer[4:])[0]
-        calculated_crc = CRC.calculate_crc(payload)  # Skip over the ACK
-
-        if crc != calculated_crc:
-            log.msg('CRC mismatch for DMPAFT page count')
-            # I assume we just start again from scratch if this particular CRC
-            # is bad. Thats what we have to do for the other one at least.
-            self.getSamples(self._dmp_timestamp)
-            return
-
-        page_count, first_record_location = struct.unpack(
-            '<HH', payload)
-
-        log.msg('Pages: {0}, First Record: {1}'.format(
-            page_count, first_record_location))
-
-        self._dmp_page_count = page_count
-        self._dmp_remaining_pages = page_count
-        self._dmp_first_record = first_record_location
-        self._dmp_buffer = ''
-        self._dmp_records = []
-
-        if page_count > 0:
-            self._state = STATE_DMPAFT_RECV
-        else:
-            # Nothing to download
-            self._state = STATE_AWAKE
-
-        self._write(self._ACK)
-
-        if page_count <= 0:
-            # Let everyone know we're done.
-            self.dumpFinished.fire([])
-
-    def _process_dmp_records(self):
-
-        decoded_records = []
-
-        last_ts = None
-
-        for record in self._dmp_records:
-            decoded = deserialise_dmp(record, self._rainCollectorSize)
-
-            if decoded.dateStamp is None or decoded.timeStamp is None:
-                # We've gone past the last record in archive memory (which was
-                # cleared sometime recently). This record is blank so we should
-                # discard it and not bother looking at the rest.
-                break
-
-            decoded_ts = datetime.datetime.combine(decoded.dateStamp,
-                                                   decoded.timeStamp)
-            if last_ts is None:
-                last_ts = decoded_ts
-
-            # We will ignore it if the time jumps back a little bit as its
-            # probably just daylight savings ending.
-            if decoded_ts < (last_ts - self._max_dst_offset):
-                # We've gone past the last record in archive memory and now
-                # we're looking at old data. We should discard this record
-                # and not bother looking at the rest.
-                break
-
-            # Record seems OK. Add it to the list and continue on.
-            last_ts = decoded_ts
-            decoded_records.append(decoded)
-
-        self.dumpFinished.fire(decoded_records)
-
-    def _dmpaftRecvDataReceived(self, data):
-        self._dmp_buffer += data
-
-        if len(self._dmp_buffer) >= 267:
-            page = self._dmp_buffer[0:267]
-            self._dmp_buffer = self._dmp_buffer[267:]
-            page_number, records, crc = split_page(page)
-            if crc == CRC.calculate_crc(page[0:265]):
-                # CRC checks out.
-
-                if self._dmp_remaining_pages == self._dmp_page_count:
-                    # Skip any 'old' records if the first record of the dump
-                    # isn't also the first record of the first page.
-                    self._dmp_records += records[self._dmp_first_record:]
-                else:
-                    self._dmp_records += records
-                self._dmp_remaining_pages -= 1
-
-                # Ask for the next page.
-                self._write(self._ACK)
-
-                # If there are no more pages coming then its time to process
-                # it all and reset our state.
-                if self._dmp_remaining_pages == 0:
-                    self._state = STATE_AWAKE
-                    self._process_dmp_records()
-            else:
-                log.msg('CRC Failed')
-                # CRC failed. Ask for the page to be sent again.
-                self._write(self._NAK)
-

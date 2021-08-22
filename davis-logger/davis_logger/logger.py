@@ -24,6 +24,8 @@ from davis_logger.dst_switcher import DstInfo, DstSwitcher, NullDstSwitcher
 __author__ = 'david'
 
 # 8 pm 10-feb-2012:
+from davis_logger.record_types.dmp import decode_date, decode_time
+
 
 class DavisLoggerProtocol(Protocol):
     """
@@ -147,7 +149,10 @@ class DavisLoggerProtocol(Protocol):
         self.station.getLoopPackets(self._loopPacketRequestSize)
 
     def _fetch_samples(self):
-        self.station.getSamples((self._latest_date, self._latest_time))
+        date = decode_date(self._latest_date)
+        time = decode_time(self._latest_time)
+
+        self.station.getSamples(datetime.combine(date, time))
 
     def _loopPacketReceived(self, loop):
         self._publish_live(loop)

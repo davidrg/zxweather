@@ -1,13 +1,17 @@
 """
 Tests station procedures
 """
+import random
+
 import datetime
 import struct
 import unittest
 
+from davis_logger.record_types.dmp import Dmp, encode_date, encode_time, build_page, serialise_dmp, _compass_points, \
+    deserialise_dmp
 from davis_logger.record_types.util import CRC
 from davis_logger.station_procedures import DstSwitchProcedure, GetConsoleInformationProcedure, \
-    GetConsoleConfigurationProcedure
+    GetConsoleConfigurationProcedure, DmpProcedure
 
 
 class WriteReceiver(object):
@@ -25,6 +29,34 @@ class WriteReceiver(object):
         :type data: bytes
         """
         self.Data = data
+
+    def read(self):
+        """
+        Returns and wipes the buffer.
+        :return: Buffer contents
+        :rtype: bytes
+        """
+        data = self.Data
+        self.Data = bytes()
+        return data
+
+
+class LogReceiver(object):
+    """
+    Helper for receiving log messages from a procedure
+    """
+    def __init__(self):
+        self.LastMessage = ''
+
+    def log(self, msg):
+        """
+        Log callback to provide to the procedure. The most recent log message
+        will appear in the LastMessage property.
+        :param msg: Log message
+        :type msg: str
+        """
+        print("Log: {0}".format(msg))
+        self.LastMessage = msg
 
 
 class FinishedDetector(object):
@@ -435,37 +467,6 @@ class TestGetConsoleInformationProcedure(unittest.TestCase):
 
 
 
-# Next procedure: Station config
-# Should be fairly simple - just read four bytes from EEPROM and report the
-# values back:
-#       Current time
-#       Rain gauge size (options: 0=0.01 inches, 1=0.2mm, 2=0.1mm)
-#       Archive interval (options: 1, 5, 10, 15, 30, 60, 120 minutes)
-#       DST type (auto or manual)
-#       Manual DST status (on or off) - ignored if DST type is auto
-# Basic procedure is:
-#       > Send to Station
-#       < Receive from Station
-# > GETTIME\n
-# < current-time
-# > EEBRD 2B 01\n           Get rain gauge size
-# < ACK
-# < rain gauge size
-# < CRC (two bytes)         (not currently checked)
-# > EEBRD 2D 01\n           Get archive interval
-# < ACK
-# < archive interval
-# < CRC (two bytes)         (not currently checked)
-# > EEBRD 12 1\n            Get daylight savings type
-# < ACK
-# < daylight-savings-type
-# < CRC (two bytes)
-# > EEBRD 13 1\n            Get daylight savings status
-# < ACK
-# < daylight-savings-status
-# < CRC (two bytes)
-
-
 class TestGetConsoleConfigurationProcedure(unittest.TestCase):
     # Basic procedure is:
     #       > Send to Station
@@ -722,3 +723,1033 @@ class TestGetConsoleConfigurationProcedure(unittest.TestCase):
 
         self.assertTrue(fd.IsFinished)
 
+class TestDmpProcedure(unittest.TestCase):
+    # Basic procedure is:
+    #       > Send to Station
+    #       < Receive from Station
+    # > DMPAFT\n                Get archive records since timestamp
+    # < ACK
+    # > Time+Date+CRC
+    # If CRC Bad: < CANCEL      Console sends CANCEL on bad CRC. Go to start.
+    # If bad TS:  < NAK         NAK if we didn't send a full timestamp+CRC
+    # < ACK
+    # < page count
+    # < first record location
+    # IF CRC Bad: go to start.
+    # IF page count == 0: finished
+    # < receive data
+
+    def test_sends_start_time(self):
+        recv = WriteReceiver()
+        log = LogReceiver()
+
+        proc = DmpProcedure(recv.write, log.log,
+                            datetime.datetime(2021, 8, 18, 20, 42),
+                            0.2)
+
+        proc.start()
+        self.assertEqual('DMPAFT\n', recv.Data)
+        proc.data_received(b'\x06')  # ACK
+
+        # datetime.datetime(2021, 8, 18, 20, 42)
+        # encoded date: 11026
+        # encoded time: 2042
+        # Packed: '\x12+\xfa\x07'
+        # CRC: '\x0c\x15'
+        # Full TS: '\x12+\xfa\x07\x0c\x15'
+        self.assertEqual('\x12+\xfa\x07\x0c\x15', recv.Data)
+
+    def test_retries_on_failed_timestamp_crc(self):
+        recv = WriteReceiver()
+        log = LogReceiver()
+
+        proc = DmpProcedure(recv.write, log.log,
+                            datetime.datetime(2021, 8, 18, 20, 42),
+                            0.2)
+
+        proc.start()
+        self.assertEqual('DMPAFT\n', recv.Data)
+        proc.data_received('\x06')  # ACK
+        # Receive: '\x12+\xfa\x07\x0c\x15' (timestamp)
+        proc.data_received(DmpProcedure._CANCEL)  # Signal CRC error
+        self.assertEqual('DMPAFT\n', recv.Data)
+
+    def test_retries_on_nak(self):
+        recv = WriteReceiver()
+        log = LogReceiver()
+
+        proc = DmpProcedure(recv.write, log.log,
+                            datetime.datetime(2021, 8, 18, 20, 42),
+                            0.2)
+
+        proc.start()
+        self.assertEqual('DMPAFT\n', recv.Data)
+        proc.data_received('\x06')  # ACK
+        # Receive: '\x12+\xfa\x07\x0c\x15' (timestamp)
+        proc.data_received(DmpProcedure._NAK)
+        self.assertEqual('DMPAFT\n', recv.Data)
+
+    def test_decodes_page_count(self):
+        recv = WriteReceiver()
+        log = LogReceiver()
+
+        proc = DmpProcedure(recv.write, log.log,
+                            datetime.datetime(2021, 8, 18, 20, 42),
+                            0.2)
+
+        proc.start()
+        self.assertEqual('DMPAFT\n', recv.Data)
+        proc.data_received('\x06')  # ACK
+        # Receive: '\x12+\xfa\x07\x0c\x15' (timestamp)
+        proc.data_received('\x06')  # ACK
+
+        page_data = struct.pack('<HH', 2, 3)
+        page_data += struct.pack(CRC.FORMAT, CRC.calculate_crc(page_data))
+        proc.data_received(page_data)
+        self.assertEqual(2, proc._dmp_page_count)
+        self.assertEqual(3, proc._dmp_first_record)
+
+    def test_restarts_on_failed_page_count_crc(self):
+        recv = WriteReceiver()
+        log = LogReceiver()
+
+        proc = DmpProcedure(recv.write, log.log,
+                            datetime.datetime(2021, 8, 18, 20, 42),
+                            0.2)
+
+        proc.start()
+        self.assertEqual('DMPAFT\n', recv.Data)
+        proc.data_received('\x06')  # ACK
+        # Receive: '\x12+\xfa\x07\x0c\x15' (timestamp)
+        proc.data_received('\x06')  # ACK
+
+        page_data = struct.pack('<HH', 2, 3)
+        page_data += struct.pack(CRC.FORMAT, 
+                                 CRC.calculate_crc(struct.pack('<HH', 3, 3)))
+        proc.data_received(page_data)
+        self.assertEqual('DMPAFT\n', recv.Data)
+
+    def test_finishes_when_no_new_data(self):
+        recv = WriteReceiver()
+        log = LogReceiver()
+        fd = FinishedDetector()
+
+        proc = DmpProcedure(recv.write, log.log,
+                            datetime.datetime(2021, 8, 18, 20, 42),
+                            0.2)
+        proc.finished += fd.finished
+
+        self.assertFalse(fd.IsFinished)
+        proc.start()
+        self.assertFalse(fd.IsFinished)
+        self.assertEqual('DMPAFT\n', recv.Data)
+        proc.data_received('\x06')  # ACK
+        self.assertFalse(fd.IsFinished)
+        # Receive: '\x12+\xfa\x07\x0c\x15' (timestamp)
+        proc.data_received('\x06')  # ACK
+        self.assertFalse(fd.IsFinished)
+
+        page_data = struct.pack('<HH', 0, 1)
+        page_data += struct.pack(CRC.FORMAT, CRC.calculate_crc(page_data))
+        proc.data_received(page_data)
+        self.assertTrue(fd.IsFinished)
+
+    @staticmethod
+    def _make_archive_records(start_time, archive_interval, count, rain_collector_size):
+        """
+        Creates the specified number of Dmp records populated with random data.
+
+        :param start_time: Timestamp for first record
+        :type start_time: datetime.datetime
+        :param archive_interval: Timestamp increment in minutes
+        :type archive_interval: int
+        :param count: Number of records to generate
+        :type count: int
+        :param rain_collector_size: Rain collector size (in mm)
+        :type rain_collector_size: float
+        :return: List of Dmp records
+        :rtype: List of Dmp
+        """
+        records = []
+        ts = start_time
+
+        station_id = 1
+        max_wind_samples = archive_interval * 60 / (41 + station_id - 1/16)
+
+        for i in range(0, count):
+            wind_speed = random.uniform(0, 22)
+            wind_direction = None
+            gust_wind_speed = random.uniform(0, 22)
+            gust_direction = None
+
+            if wind_speed > 0:
+                wind_direction = random.choice(_compass_points)
+            if gust_wind_speed > 0:
+                gust_direction = random.choice(_compass_points)
+
+            d = Dmp(dateStamp=ts.date(),
+                    timeStamp=ts.time(),
+                    timeZone=None,
+                    dateInteger=encode_date(ts.date()),
+                    timeInteger=encode_time(ts.time()),
+                    outsideTemperature=round(random.uniform(-3, 35), 1),
+                    highOutsideTemperature=round(random.uniform(-3, 35), 1),
+                    lowOutsideTemperature=round(random.uniform(-3, 35), 1),
+                    rainfall=round(random.uniform(0, 300), 1),
+                    highRainRate=round(random.uniform(0, 500), 1),
+                    barometer=round(random.uniform(985.9, 1039.3), 1),
+                    solarRadiation=int(random.uniform(0, 1628)),
+                    numberOfWindSamples=int(random.uniform(0, max_wind_samples)),
+                    insideTemperature=round(random.uniform(-3, 35), 1),
+                    insideHumidity=int(random.uniform(0, 100)),
+                    outsideHumidity=int(random.uniform(0, 100)),
+                    averageWindSpeed=wind_speed,
+                    highWindSpeed=gust_wind_speed,
+                    highWindSpeedDirection=gust_direction,
+                    prevailingWindDirection=wind_direction,
+                    averageUVIndex=round(random.uniform(0, 14), 1),
+                    ET=round(random.uniform(0, 1), 1),
+                    highSolarRadiation=int(random.uniform(0, 1628)),
+                    highUVIndex=round(random.uniform(0, 14), 1),
+                    forecastRule=int(random.uniform(0, 196)),
+                    leafTemperature=[
+                        round(random.uniform(-3, 35), 1),
+                        round(random.uniform(-3, 35), 1)
+                    ],
+                    leafWetness=[
+                        int(random.uniform(0, 15)),
+                        int(random.uniform(0, 15))
+                    ],
+                    soilTemperatures=[
+                        round(random.uniform(-3, 35), 1),
+                        round(random.uniform(-3, 35), 1),
+                        round(random.uniform(-3, 35), 1),
+                        round(random.uniform(-3, 35), 1)
+                    ],
+                    extraHumidities=[
+                        int(random.uniform(0, 100)),
+                        int(random.uniform(0, 100))
+                    ],
+                    extraTemperatures=[
+                        round(random.uniform(-3, 35), 1),
+                        round(random.uniform(-3, 35), 1),
+                        round(random.uniform(-3, 35), 1)
+                    ],
+                    soilMoistures=[
+                        round(random.uniform(0, 254), 1),
+                        round(random.uniform(0, 254), 1),
+                        round(random.uniform(0, 254), 1),
+                        round(random.uniform(0, 254), 1)
+                    ])
+
+            # Pass the data through the DMP binary format which will result in
+            # Metric -> US Imperial -> Metric conversion. We do this here so
+            # we don't trip up any unit tests.
+            d = deserialise_dmp(serialise_dmp(d, rain_collector_size), rain_collector_size)
+            records.append(d)
+
+            ts = ts + datetime.timedelta(minutes=archive_interval)
+        return records
+
+    def _assertDmpEqual(self, a, b, index):
+        """
+        Asserts the two Dmp records are equal. Floating point values within
+        each Dmp record are checked using
+        :param a: Dmp record A
+        :type a: Dmp
+        :param b: Dmp record B
+        :type b: Dmp
+        :param index: record ID
+        :type index: int
+        """
+
+        def X(x, y):
+            return x
+
+        def _assert_field_equal(i, field_name, a_value, b_value, places=1):
+            if isinstance(a_value, float):
+                self.assertAlmostEqual(
+                    a_value, b_value,
+                    places=places,
+                    msg="index {0} field {1}:{5} differs to {4} places - a={2}, b={3}".format(
+                        i, field_name, round(a_value, places),
+                        round(b_value, places), places, type(a_value).__name__))
+            else:
+                self.assertEqual(a_value, b_value,
+                                 msg="index {0} field {1}:{4} differs - a={2}, b={3}".format(
+                                     i, field_name, a_value, b_value,
+                                     type(a_value).__name__))
+
+        _assert_field_equal(index, "dateStamp", a.dateStamp, b.dateStamp)
+        _assert_field_equal(index, "timeStamp", a.timeStamp, b.timeStamp)
+        _assert_field_equal(index, "timeZone", a.timeZone, b.timeZone)
+        _assert_field_equal(index, "dateInteger", a.dateInteger, b.dateInteger)
+        _assert_field_equal(index, "timeInteger", a.timeInteger, b.timeInteger)
+        _assert_field_equal(index, "outsideTemperature", a.outsideTemperature, b.outsideTemperature)
+        _assert_field_equal(index, "highOutsideTemperature", a.highOutsideTemperature, b.highOutsideTemperature)
+        _assert_field_equal(index, "lowOutsideTemperature", a.lowOutsideTemperature, b.lowOutsideTemperature)
+        _assert_field_equal(index, "rainfall", a.rainfall, b.rainfall)
+        _assert_field_equal(index, "highRainRate", a.highRainRate, b.highRainRate)
+        _assert_field_equal(index, "barometer", a.barometer, b.barometer)
+        _assert_field_equal(index, "solarRadiation", a.solarRadiation, b.solarRadiation)
+        _assert_field_equal(index, "numberOfWindSamples", a.numberOfWindSamples, b.numberOfWindSamples)
+        _assert_field_equal(index, "insideTemperature", a.insideTemperature, b.insideTemperature)
+        _assert_field_equal(index, "insideHumidity", a.insideHumidity, b.insideHumidity)
+        _assert_field_equal(index, "outsideHumidity", a.outsideHumidity, b.outsideHumidity)
+        _assert_field_equal(index, "averageWindSpeed", a.averageWindSpeed, b.averageWindSpeed)
+        _assert_field_equal(index, "highWindSpeed", a.highWindSpeed, b.highWindSpeed)
+        _assert_field_equal(index, "highWindSpeedDirection", a.highWindSpeedDirection, b.highWindSpeedDirection)
+        _assert_field_equal(index, "prevailingWindDirection", a.prevailingWindDirection, b.prevailingWindDirection)
+        _assert_field_equal(index, "highUVIndex", a.highUVIndex, b.highUVIndex)
+        _assert_field_equal(index, "forecastRule", a.forecastRule, b.forecastRule)
+        _assert_field_equal(index, "leafTemperature[0]", a.leafTemperature[0], b.leafTemperature[0])
+        _assert_field_equal(index, "leafTemperature[1]", a.leafTemperature[1], b.leafTemperature[1])
+        _assert_field_equal(index, "leafWetness[0]", a.leafWetness[0], b.leafWetness[0])
+        _assert_field_equal(index, "leafWetness[1]", a.leafWetness[1], b.leafWetness[1])
+        _assert_field_equal(index, "soilTemperatures[0]", a.soilTemperatures[0], b.soilTemperatures[0])
+        _assert_field_equal(index, "soilTemperatures[1]", a.soilTemperatures[1], b.soilTemperatures[1])
+        _assert_field_equal(index, "soilTemperatures[2]", a.soilTemperatures[2], b.soilTemperatures[2])
+        _assert_field_equal(index, "soilTemperatures[3]", a.soilTemperatures[3], b.soilTemperatures[3])
+        _assert_field_equal(index, "extraHumidities[0]", a.extraHumidities[0], b.extraHumidities[0])
+        _assert_field_equal(index, "extraHumidities[1]", a.extraHumidities[1], b.extraHumidities[1])
+        _assert_field_equal(index, "extraTemperatures[0]", a.extraTemperatures[0], b.extraTemperatures[0])
+        _assert_field_equal(index, "extraTemperatures[1]", a.extraTemperatures[1], b.extraTemperatures[1])
+        _assert_field_equal(index, "extraTemperatures[2]", a.extraTemperatures[2], b.extraTemperatures[2])
+        _assert_field_equal(index, "soilMoistures[0]", a.soilMoistures[0], b.soilMoistures[0])
+        _assert_field_equal(index, "soilMoistures[1]", a.soilMoistures[1], b.soilMoistures[1])
+        _assert_field_equal(index, "soilMoistures[2]", a.soilMoistures[2], b.soilMoistures[2])
+        _assert_field_equal(index, "soilMoistures[3]", a.soilMoistures[3], b.soilMoistures[3])
+
+    def test_dmp_serialise_round_trip(self):
+        """
+        This test is to check we can encode and decode a DMP record and not find
+        any differences in any fields with a precision of 1dp.
+
+        This is mostly to test the _assertDmpEqual test function that is used
+        by many of the other tests in this TestCase.
+        """
+        count = 500
+        records = TestDmpProcedure._make_archive_records(
+            datetime.datetime(2021, 8, 18, 20, 45), 5, count, 0.2)
+        for i, rec in enumerate(records):
+            rec2 = deserialise_dmp(serialise_dmp(rec))
+            self._assertDmpEqual(rec, rec2, i)
+
+    def test_decodes_one_full_page(self):
+        recv = WriteReceiver()
+        log = LogReceiver()
+        fd = FinishedDetector()
+
+        proc = DmpProcedure(recv.write, log.log,
+                            datetime.datetime(2021, 8, 18, 20, 42),
+                            0.2)
+        proc.finished += fd.finished
+
+        proc.start()
+        self.assertEqual('DMPAFT\n', recv.Data)
+        proc.data_received('\x06')  # ACK
+        # Receive: '\x12+\xfa\x07\x0c\x15' (timestamp)
+        proc.data_received('\x06')  # ACK
+
+        page_data = struct.pack('<HH', 1, 0)
+        page_data += struct.pack(CRC.FORMAT, CRC.calculate_crc(page_data))
+        proc.data_received(page_data)
+
+        records = TestDmpProcedure._make_archive_records(
+            datetime.datetime(2021, 8, 18, 20, 45), 5, 5, 0.2)
+        encoded_records = [serialise_dmp(r) for r in records]
+
+        # Builds a page complete with CRC. Handy!
+        page = build_page(
+            1,  # Sequence
+            encoded_records)
+
+        self.assertFalse(fd.IsFinished)
+        proc.data_received(page)
+        self.assertTrue(fd.IsFinished)
+
+        self.assertEqual(5, len(proc.ArchiveRecords))
+        for i in range(0, len(proc.ArchiveRecords)):
+            self._assertDmpEqual(records[i], proc.ArchiveRecords[i], i)
+
+    def test_decodes_one_partial_page(self):
+        recv = WriteReceiver()
+        log = LogReceiver()
+        fd = FinishedDetector()
+
+        proc = DmpProcedure(recv.write, log.log,
+                            datetime.datetime(2021, 8, 18, 20, 42),
+                            0.2)
+        proc.finished += fd.finished
+
+        proc.start()
+        self.assertEqual('DMPAFT\n', recv.Data)
+        proc.data_received('\x06')  # ACK
+        # Receive: '\x12+\xfa\x07\x0c\x15' (timestamp)
+        proc.data_received('\x06')  # ACK
+
+        page_data = struct.pack('<HH',
+                                1,  # Number of pages
+                                2)  # Location of first record in first page
+        page_data += struct.pack(CRC.FORMAT, CRC.calculate_crc(page_data))
+        proc.data_received(page_data)
+
+        records = TestDmpProcedure._make_archive_records(
+            datetime.datetime(2021, 8, 18, 20, 45), 5, 5, 0.2)
+        encoded_records = [serialise_dmp(r) for r in records]
+
+        # Builds a page complete with CRC. Handy!
+        page = build_page(
+            1,  # Sequence
+            encoded_records)
+
+        self.assertFalse(fd.IsFinished)
+        proc.data_received(page)
+        self.assertTrue(fd.IsFinished)
+
+        self.assertEqual(3, len(proc.ArchiveRecords))
+        for i in range(0, len(proc.ArchiveRecords)):
+            self._assertDmpEqual(records[i+2], proc.ArchiveRecords[i], i)
+
+    def test_decodes_one_partial_and_one_complete_page(self):
+        recv = WriteReceiver()
+        log = LogReceiver()
+        fd = FinishedDetector()
+
+        proc = DmpProcedure(recv.write, log.log,
+                            datetime.datetime(2021, 8, 18, 20, 42),
+                            0.2)
+        proc.finished += fd.finished
+
+        proc.start()
+        self.assertEqual('DMPAFT\n', recv.Data)
+        proc.data_received('\x06')  # ACK
+        # Receive: '\x12+\xfa\x07\x0c\x15' (timestamp)
+        proc.data_received('\x06')  # ACK
+
+        page_data = struct.pack('<HH',
+                                2,  # Number of pages
+                                2)  # Location of first record in first page
+        page_data += struct.pack(CRC.FORMAT, CRC.calculate_crc(page_data))
+        proc.data_received(page_data)
+
+        records = TestDmpProcedure._make_archive_records(
+            datetime.datetime(2021, 8, 18, 20, 45), 5, 10, 0.2)
+        encoded_records = [serialise_dmp(r) for r in records]
+
+        # Builds a page complete with CRC. Handy!
+        page_1 = build_page(
+            1,  # Sequence
+            encoded_records[0:5])
+        page_2 = build_page(
+            2,
+            encoded_records[5:]
+        )
+
+        proc.data_received(page_1)
+        self.assertEqual('\x06', recv.read())
+
+        self.assertFalse(fd.IsFinished)
+        proc.data_received(page_2)
+        self.assertEqual('\x06', recv.read())
+        self.assertTrue(fd.IsFinished)
+
+        self.assertEqual(8, len(proc.ArchiveRecords))
+        for i in range(0, len(proc.ArchiveRecords)):
+            self._assertDmpEqual(records[i + 2], proc.ArchiveRecords[i], i)
+
+    def test_decodes_two_partial_pages_in_blank_logger(self):
+        recv = WriteReceiver()
+        log = LogReceiver()
+        fd = FinishedDetector()
+
+        proc = DmpProcedure(recv.write, log.log,
+                            datetime.datetime(2021, 8, 18, 20, 42),
+                            0.2)
+        proc.finished += fd.finished
+
+        proc.start()
+        self.assertEqual('DMPAFT\n', recv.Data)
+        proc.data_received('\x06')  # ACK
+        # Receive: '\x12+\xfa\x07\x0c\x15' (timestamp)
+        proc.data_received('\x06')  # ACK
+
+        page_data = struct.pack('<HH',
+                                2,  # Number of pages
+                                2)  # Location of first record in first page
+        page_data += struct.pack(CRC.FORMAT, CRC.calculate_crc(page_data))
+        proc.data_received(page_data)
+
+        records = TestDmpProcedure._make_archive_records(
+            datetime.datetime(2021, 8, 18, 20, 45), 5, 8, 0.2)
+        encoded_records = [serialise_dmp(r) for r in records]
+
+        empty_record = '\xFF' * 52
+        encoded_records.append(empty_record)
+        encoded_records.append(empty_record)
+
+        # Builds a page complete with CRC. Handy!
+        page_1 = build_page(
+            1,  # Sequence
+            encoded_records[0:5])
+        page_2 = build_page(
+            2,
+            encoded_records[5:]
+        )
+
+        proc.data_received(page_1)
+        self.assertEqual('\x06', recv.read())
+
+        self.assertFalse(fd.IsFinished)
+        proc.data_received(page_2)
+        self.assertEqual('\x06', recv.read())
+        self.assertTrue(fd.IsFinished)
+
+        self.assertEqual(6, len(proc.ArchiveRecords))
+        for i in range(0, len(proc.ArchiveRecords)):
+            self._assertDmpEqual(records[i + 2], proc.ArchiveRecords[i], i)
+
+    def test_decodes_two_partial_pages(self):
+        # The next page after the final data record in the last page
+        # will have an older timestamp.
+        recv = WriteReceiver()
+        log = LogReceiver()
+        fd = FinishedDetector()
+
+        proc = DmpProcedure(recv.write, log.log,
+                            datetime.datetime(2021, 8, 18, 20, 42),
+                            0.2)
+        proc.finished += fd.finished
+
+        proc.start()
+        self.assertEqual('DMPAFT\n', recv.Data)
+        proc.data_received('\x06')  # ACK
+        # Receive: '\x12+\xfa\x07\x0c\x15' (timestamp)
+        proc.data_received('\x06')  # ACK
+
+        page_data = struct.pack('<HH',
+                                2,  # Number of pages
+                                2)  # Location of first record in first page
+        page_data += struct.pack(CRC.FORMAT, CRC.calculate_crc(page_data))
+        proc.data_received(page_data)
+
+        records = TestDmpProcedure._make_archive_records(
+            datetime.datetime(2021, 8, 18, 20, 45), 5, 8, 0.2)
+        records += TestDmpProcedure._make_archive_records(
+            datetime.datetime(2021, 8, 10, 20, 45), 5, 2, 0.2)
+        encoded_records = [serialise_dmp(r) for r in records]
+
+        # Builds a page complete with CRC. Handy!
+        page_1 = build_page(
+            1,  # Sequence
+            encoded_records[0:5])
+        page_2 = build_page(
+            2,
+            encoded_records[5:]
+        )
+
+        proc.data_received(page_1)
+        self.assertEqual('\x06', recv.read())
+
+        self.assertFalse(fd.IsFinished)
+        proc.data_received(page_2)
+        self.assertEqual('\x06', recv.read())
+        self.assertTrue(fd.IsFinished)
+
+        self.assertEqual(6, len(proc.ArchiveRecords))
+        for i in range(0, len(proc.ArchiveRecords)):
+            self._assertDmpEqual(records[i + 2], proc.ArchiveRecords[i], i)
+
+    def test_decodes_page_containing_dst_clock_back(self):
+        # Check it doesn't treat clocks being put back for daylight savings as
+        # being the end of the data
+        recv = WriteReceiver()
+        log = LogReceiver()
+
+        proc = DmpProcedure(recv.write, log.log,
+                            datetime.datetime(2021, 8, 18, 20, 42),
+                            0.2)
+
+        proc.start()
+        self.assertEqual('DMPAFT\n', recv.Data)
+        proc.data_received('\x06')  # ACK
+        # Receive: '\x12+\xfa\x07\x0c\x15' (timestamp)
+        proc.data_received('\x06')  # ACK
+
+        page_data = struct.pack('<HH',
+                                2,  # Number of pages
+                                2)  # Location of first record in first page
+        page_data += struct.pack(CRC.FORMAT, CRC.calculate_crc(page_data))
+        proc.data_received(page_data)
+
+        records = TestDmpProcedure._make_archive_records(
+            datetime.datetime(2021, 8, 18, 20, 45), 5, 8, 0.2)
+
+        # Then we put the clock back an hour for the final two records
+        last_ts = datetime.datetime.combine(
+            records[-1].dateStamp, records[-1].timeStamp)
+        records += TestDmpProcedure._make_archive_records(
+            last_ts - datetime.timedelta(hours=1),
+            5, 2, 0.2)
+        encoded_records = [serialise_dmp(r) for r in records]
+
+        # Builds a page complete with CRC. Handy!
+        page_1 = build_page(
+            1,  # Sequence
+            encoded_records[0:5])
+        page_2 = build_page(
+            2,
+            encoded_records[5:]
+        )
+
+        proc.data_received(page_1)
+        self.assertEqual('\x06', recv.read())
+        proc.data_received(page_2)
+        self.assertEqual('\x06', recv.read())
+
+        self.assertEqual(8, len(proc.ArchiveRecords))
+        for i in range(0, len(proc.ArchiveRecords)):
+            self._assertDmpEqual(records[i + 2], proc.ArchiveRecords[i], i)
+
+    def test_clock_back_end_must_be_in_final_page(self):
+        # It should ignore clocks being put back in any page except the final.
+        recv = WriteReceiver()
+        log = LogReceiver()
+
+        proc = DmpProcedure(recv.write, log.log,
+                            datetime.datetime(2021, 8, 18, 20, 42),
+                            0.2)
+
+        proc.start()
+        self.assertEqual('DMPAFT\n', recv.Data)
+        proc.data_received('\x06')  # ACK
+        # Receive: '\x12+\xfa\x07\x0c\x15' (timestamp)
+        proc.data_received('\x06')  # ACK
+
+        page_data = struct.pack('<HH',
+                                3,  # Number of pages
+                                2)  # Location of first record in first page
+        page_data += struct.pack(CRC.FORMAT, CRC.calculate_crc(page_data))
+        proc.data_received(page_data)
+
+        records = TestDmpProcedure._make_archive_records(
+            datetime.datetime(2021, 8, 18, 20, 45), 5, 8, 0.2)
+
+        # Then we put the clock back an hour for the final two records
+        last_ts = datetime.datetime.combine(
+            records[-1].dateStamp, records[-1].timeStamp)
+        records += TestDmpProcedure._make_archive_records(
+            last_ts - datetime.timedelta(hours=3),
+            5, 7, 0.2)
+        encoded_records = [serialise_dmp(r) for r in records]
+
+        # Builds a page complete with CRC. Handy!
+        page_1 = build_page(
+            1,  # Sequence
+            encoded_records[0:5])
+        page_2 = build_page(
+            2,
+            encoded_records[5:10]
+        )
+        page_3 = build_page(
+            3,
+            encoded_records[10:]
+        )
+
+        proc.data_received(page_1)
+        self.assertEqual('\x06', recv.read())
+        proc.data_received(page_2)
+        self.assertEqual('\x06', recv.read())
+        proc.data_received(page_3)
+        self.assertEqual('\x06', recv.read())
+
+        self.assertEqual(13, len(proc.ArchiveRecords))
+        for i in range(0, len(proc.ArchiveRecords)):
+            self._assertDmpEqual(records[i + 2], proc.ArchiveRecords[i], i)
+
+    def test_handling_of_null_record_before_end(self):
+        # What happens if a null record is encountered in a page that isn't the
+        # final page? This probably isn't a scenario that is possible with a
+        # real console.
+
+        recv = WriteReceiver()
+        log = LogReceiver()
+
+        proc = DmpProcedure(recv.write, log.log,
+                            datetime.datetime(2021, 8, 18, 20, 42),
+                            0.2)
+
+        proc.start()
+        self.assertEqual('DMPAFT\n', recv.Data)
+        proc.data_received('\x06')  # ACK
+        # Receive: '\x12+\xfa\x07\x0c\x15' (timestamp)
+        proc.data_received('\x06')  # ACK
+
+        page_data = struct.pack('<HH',
+                                3,  # Number of pages
+                                2)  # Location of first record in first page
+        page_data += struct.pack(CRC.FORMAT, CRC.calculate_crc(page_data))
+        proc.data_received(page_data)
+
+        records = TestDmpProcedure._make_archive_records(
+            datetime.datetime(2021, 8, 18, 20, 45), 5, 8, 0.2)
+        encoded_records = [serialise_dmp(r) for r in records]
+
+        # Stick a null record in slot 4 of the middle page
+        encoded_records.append('\xFF' * 52)
+
+        last_ts = datetime.datetime.combine(
+            records[-1].dateStamp, records[-1].timeStamp)
+        records_2 = TestDmpProcedure._make_archive_records(
+            # +10 minutes to account for the null page
+            last_ts + datetime.timedelta(minutes=10),
+            5, 6, 0.2)
+        encoded_records += [serialise_dmp(r) for r in records_2]
+        records += records_2
+
+        # Builds a page complete with CRC. Handy!
+        page_1 = build_page(
+            1,  # Sequence
+            encoded_records[0:5])
+        page_2 = build_page(
+            2,
+            encoded_records[5:10]
+        )
+        page_3 = build_page(
+            3,
+            encoded_records[10:]
+        )
+
+        proc.data_received(page_1)
+        self.assertEqual('\x06', recv.read())
+        proc.data_received(page_2)
+        self.assertEqual('\x06', recv.read())
+        proc.data_received(page_3)
+        self.assertEqual('\x06', recv.read())
+
+        self.assertEqual(12, len(proc.ArchiveRecords))
+        for i in range(0, len(proc.ArchiveRecords)):
+            self._assertDmpEqual(records[i + 2], proc.ArchiveRecords[i], i)
+
+    def test_bad_page_crc_detected(self):
+        # We should get a NAK back asking to retransmit.
+        recv = WriteReceiver()
+        log = LogReceiver()
+
+        proc = DmpProcedure(recv.write, log.log,
+                            datetime.datetime(2021, 8, 18, 20, 42),
+                            0.2)
+
+        proc.start()
+        self.assertEqual('DMPAFT\n', recv.Data)
+        proc.data_received('\x06')  # ACK
+        # Receive: '\x12+\xfa\x07\x0c\x15' (timestamp)
+        proc.data_received('\x06')  # ACK
+
+        page_data = struct.pack('<HH',
+                                3,  # Number of pages
+                                2)  # Location of first record in first page
+        page_data += struct.pack(CRC.FORMAT, CRC.calculate_crc(page_data))
+        proc.data_received(page_data)
+
+        records = TestDmpProcedure._make_archive_records(
+            datetime.datetime(2021, 8, 18, 20, 45), 5, 15, 0.2)
+        encoded_records = [serialise_dmp(r) for r in records]
+
+        # Builds a page complete with CRC. Handy!
+        page_1 = build_page(
+            1,  # Sequence
+            encoded_records[0:5])
+        page_2 = build_page(
+            2,
+            encoded_records[5:10]
+        )
+        page_3 = build_page(
+            3,
+            encoded_records[10:]
+        )
+
+        # Corrupt page 2:
+        bad_page_2 = page_2[0:10] + "Hello, World!" + page_2[23:]
+
+        proc.data_received(page_1)
+        self.assertEqual('\x06', recv.read())
+
+        # Send the corrupted page. We should get ! back to indicate its garbage
+        proc.data_received(bad_page_2)
+        self.assertEqual('!', recv.read())
+
+        # Send the uncorrupted page
+        proc.data_received(page_2)
+        self.assertEqual('\x06', recv.read())
+
+        proc.data_received(page_3)
+        self.assertEqual('\x06', recv.read())
+
+        self.assertEqual(13, len(proc.ArchiveRecords))
+        for i in range(0, len(proc.ArchiveRecords)):
+            self._assertDmpEqual(records[i + 2], proc.ArchiveRecords[i], i)
+
+    def test_full_logger_download(self):
+        # Check it properly handles a data logger full of data that needs
+        # downloading in its entirety.
+        recv = WriteReceiver()
+        log = LogReceiver()
+        fd = FinishedDetector()
+
+        proc = DmpProcedure(recv.write, log.log,
+                            datetime.datetime(2021, 8, 18, 20, 42),
+                            0.2)
+        proc.finished += fd.finished
+
+        proc.start()
+        self.assertEqual('DMPAFT\n', recv.Data)
+        proc.data_received('\x06')  # ACK
+        # Receive: '\x12+\xfa\x07\x0c\x15' (timestamp)
+        proc.data_received('\x06')  # ACK
+
+        # The logger stores 512 pages of data. A Full download sends the first
+        # page twice (once at the start and again at the end). So total pages
+        # that will be sent is 513.
+        page_data = struct.pack('<HH',
+                                513,  # Number of pages
+                                2)  # Location of first record in first page
+        page_data += struct.pack(CRC.FORMAT, CRC.calculate_crc(page_data))
+        proc.data_received(page_data)
+
+        # The logger stores up to 2560 records in 512 pages.
+        records = TestDmpProcedure._make_archive_records(
+            datetime.datetime(2021, 8, 18, 20, 45), 5, 2560, 0.2)
+        encoded_records = [serialise_dmp(r) for r in records]
+
+        # The first two records in the first page transmitted are 'old' records.
+        # So we need to grab these from the end of the record set and move them
+        # to the start.
+        encoded_records.insert(0, encoded_records.pop(len(encoded_records) - 1))
+        encoded_records.insert(0, encoded_records.pop(len(encoded_records) - 1))
+
+        pages = []
+        start_page = 5
+        current_page = start_page
+        while len(encoded_records) > 0:
+            page_records = []
+            while len(page_records) < 5:
+                page_records.append(encoded_records.pop(0))
+
+            pages.append(build_page(current_page, page_records))
+            current_page += 1
+            if current_page > 255:
+                current_page = 0
+
+        # The final page transmitted is a repeat of the first page. So:
+        pages.append(pages[0])
+
+        self.assertFalse(fd.IsFinished)
+
+        for page in pages:
+            proc.data_received(page)
+            self.assertEqual('\x06', recv.read())
+
+        self.assertEqual(2560, len(proc.ArchiveRecords))
+        for i in range(0, len(proc.ArchiveRecords)):
+            self._assertDmpEqual(records[i], proc.ArchiveRecords[i], i)
+
+        self.assertTrue(fd.IsFinished)
+
+    def test_point_01_mm_rain_size(self):
+        recv = WriteReceiver()
+        log = LogReceiver()
+
+        proc = DmpProcedure(recv.write, log.log,
+                            datetime.datetime(2021, 8, 18, 20, 42),
+                            0.1)
+
+        proc.start()
+        self.assertEqual('DMPAFT\n', recv.Data)
+        proc.data_received('\x06')  # ACK
+        # Receive: '\x12+\xfa\x07\x0c\x15' (timestamp)
+        proc.data_received('\x06')  # ACK
+
+        page_data = struct.pack('<HH', 1, 0)
+        page_data += struct.pack(CRC.FORMAT, CRC.calculate_crc(page_data))
+        proc.data_received(page_data)
+
+        records = TestDmpProcedure._make_archive_records(
+            datetime.datetime(2021, 8, 18, 20, 45), 5, 5, 0.1)
+        encoded_records = [serialise_dmp(r, 0.1) for r in records]
+
+        # Builds a page complete with CRC. Handy!
+        page = build_page(
+            1,  # Sequence
+            encoded_records)
+
+        proc.data_received(page)
+
+        self.assertEqual(5, len(proc.ArchiveRecords))
+        for i in range(0, len(proc.ArchiveRecords)):
+            self._assertDmpEqual(records[i], proc.ArchiveRecords[i], i)
+
+    def test_point_01_inch_rain_size(self):
+        recv = WriteReceiver()
+        log = LogReceiver()
+
+        proc = DmpProcedure(recv.write, log.log,
+                            datetime.datetime(2021, 8, 18, 20, 42),
+                            0.254)
+
+        proc.start()
+        self.assertEqual('DMPAFT\n', recv.Data)
+        proc.data_received('\x06')  # ACK
+        # Receive: '\x12+\xfa\x07\x0c\x15' (timestamp)
+        proc.data_received('\x06')  # ACK
+
+        page_data = struct.pack('<HH', 1, 0)
+        page_data += struct.pack(CRC.FORMAT, CRC.calculate_crc(page_data))
+        proc.data_received(page_data)
+
+        records = TestDmpProcedure._make_archive_records(
+            datetime.datetime(2021, 8, 18, 20, 45), 5, 5, 0.254)
+        encoded_records = [serialise_dmp(r, 0.254) for r in records]
+
+        # Builds a page complete with CRC. Handy!
+        page = build_page(
+            1,  # Sequence
+            encoded_records)
+
+        proc.data_received(page)
+
+        self.assertEqual(5, len(proc.ArchiveRecords))
+        for i in range(0, len(proc.ArchiveRecords)):
+            self._assertDmpEqual(records[i], proc.ArchiveRecords[i], i)
+
+    def test_null_dmp_round_trip(self):
+        ts = datetime.datetime(2021, 8, 18, 20, 42)
+
+        # Specs only list the date stamp and time stamp fields as having no
+        # 'dashed' value. We'll take that to mean everything else could come
+        # back null. The deserialiser however doesn't always deserialise dashed
+        # values to None for the purpose of making the database easy to deal
+        # with. These situations are noted below.
+        expected = Dmp(
+            dateStamp=ts.date(),
+            timeStamp=ts.time(),
+            timeZone=None,
+            dateInteger=encode_date(ts.date()),
+            timeInteger=encode_time(ts.time()),
+            outsideTemperature=None,
+            highOutsideTemperature=None,
+            lowOutsideTemperature=None,
+            rainfall=0,  # Null is deserialised to 0
+            highRainRate=0,  # Null is deserialised to 0
+            barometer=0,  # Null is deserialised to 0
+            solarRadiation=None,
+            numberOfWindSamples=0,  # Null is deserialised to 0
+            insideTemperature=None,
+            insideHumidity=None,
+            outsideHumidity=None,
+            averageWindSpeed=None,
+            highWindSpeed=0,  # Null is deserialised to 0
+            highWindSpeedDirection=None,
+            prevailingWindDirection=None,
+            averageUVIndex=None,
+            ET=None,
+            highSolarRadiation=None,
+            highUVIndex=0,  # Null is deserialised to 0
+            forecastRule=193,  # Null is deserialised to 193 (a specific rule)
+            leafTemperature=[
+                None,
+                None
+            ],
+            leafWetness=[
+                None,
+                None
+            ],
+            soilTemperatures=[
+                None,
+                None,
+                None,
+                None
+            ],
+            extraHumidities=[
+                None,
+                None
+            ],
+            extraTemperatures=[
+                None,
+                None,
+                None
+            ],
+            soilMoistures=[
+                None,
+                None,
+                None,
+                None
+            ])
+
+        null_dmp = Dmp(
+            dateStamp=ts.date(),
+            timeStamp=ts.time(),
+            timeZone=None,
+            dateInteger=encode_date(ts.date()),
+            timeInteger=encode_time(ts.time()),
+            outsideTemperature=None,
+            highOutsideTemperature=None,
+            lowOutsideTemperature=None,
+            rainfall=None,
+            highRainRate=None,
+            barometer=None,
+            solarRadiation=None,
+            numberOfWindSamples=None,
+            insideTemperature=None,
+            insideHumidity=None,
+            outsideHumidity=None,
+            averageWindSpeed=None,
+            highWindSpeed=None,
+            highWindSpeedDirection=None,
+            prevailingWindDirection=None,
+            averageUVIndex=None,
+            ET=None,
+            highSolarRadiation=None,
+            highUVIndex=None,
+            forecastRule=None,
+            leafTemperature=[
+                None,
+                None
+            ],
+            leafWetness=[
+                None,
+                None
+            ],
+            soilTemperatures=[
+                None,
+                None,
+                None,
+                None
+            ],
+            extraHumidities=[
+                None,
+                None
+            ],
+            extraTemperatures=[
+                None,
+                None,
+                None
+            ],
+            soilMoistures=[
+                None,
+                None,
+                None,
+                None
+            ])
+
+        serialised = serialise_dmp(null_dmp)
+        deserialised = deserialise_dmp(serialised)
+
+        self._assertDmpEqual(expected, deserialised, 0)
+
+
+# TODO: Query console for enabled sensors & any other useful config
+# TODO: Check test coverage for everything
+# TODO: check CRC error handling for all procedures except DMP (it already handles it)
+# TODO: LOOP
+# TODO: DavisWeatherStation

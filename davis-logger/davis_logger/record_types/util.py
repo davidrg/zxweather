@@ -155,7 +155,7 @@ def serialise_8bit_temp(temp):
     if temp is None:
         return 255
 
-    return int(c_to_f(temp) + 90)
+    return int(round(c_to_f(temp) + 90, 0))
 
 
 def undash_8bit(value):
@@ -217,4 +217,4 @@ def serialise_16bit_temp(temp, minDashed=False):
     elif temp is None:
         return 32767
 
-    return int(c_to_f(temp) * 10.0)
+    return int(round(c_to_f(temp) * 10.0, 0))
