@@ -604,15 +604,15 @@ class DmpProcedure(SequentialProcedure):
     _RECEIVE_ARCHIVE_RECORDS = 4
 
     # The console uses '!' as a NAK character to signal invalid parameters.
-    _NAK = '\x21'  # TODO: Some other software uses \x15 here claiming the
+    _NAK = b'\x21'  # TODO: Some other software uses \x15 here claiming the
                    # documentation is wrong. Further investigation required.
 
     # Used to signal to the console that its response did not pass the CRC
     # check. Sending this back will make the console resend its last message.
-    _CANCEL = '\x18'
+    _CANCEL = b'\x18'
 
     # Used to cancel the download of further DMP packets.
-    _ESC = '\x1B'
+    _ESC = b'\x1B'
 
     def __init__(self, write_callback, log_callback, from_time,
                  rain_collector_size):
@@ -645,10 +645,10 @@ class DmpProcedure(SequentialProcedure):
 
     def start(self):
         """Starts the procedure."""
-        self._transition('DMPAFT\n')
+        self._transition(b'DMPAFT\n')
 
     def _send_start_time(self):
-        if self._str_buffer != self._ACK:
+        if self._buffer != self._ACK:
             self._log('Warning: Expected ACK')
             # TODO: What should we do here? Retry? Signal failure?
             return
@@ -664,34 +664,34 @@ class DmpProcedure(SequentialProcedure):
         #                          self._dmp_timestamp[0],
         #                          self._dmp_timestamp[1])
 
-        self._str_buffer = ''
+        self._buffer = bytearray()
         crc = CRC.calculate_crc(packed)
         packed += struct.pack(CRC.FORMAT, crc)
         self._transition(packed)
 
     def _receive_page_count(self):
-        if self._str_buffer[0] == self._CANCEL:
+        if self._buffer[0:1] == self._CANCEL:
             # CRC check failed. Try again.
             self._log("CRC check failed - retrying.")
             self.start()
             return
-        elif self._str_buffer[0] == self._NAK:
+        elif self._buffer[0:1] == self._NAK:
             # The manuals says this happens if we didn't send a full
             # timestamp+CRC. This should never happen. I hope.
             self._log("NAK received, DMPAFT state 2 - retrying.")
             self.start()
             return
 
-        if len(self._str_buffer) < 7:
+        if len(self._buffer) < 7:
             return
 
         # Consume the ACK
-        assert self._str_buffer[0] == self._ACK
-        self._str_buffer = self._str_buffer[1:]
+        assert self._buffer[0:1] == self._ACK
+        self._buffer = self._buffer[1:]
 
-        payload = self._str_buffer[0:4]
+        payload = self._buffer[0:4]
 
-        crc = struct.unpack(CRC.FORMAT, self._str_buffer[4:])[0]
+        crc = struct.unpack(CRC.FORMAT, self._buffer[4:])[0]
         calculated_crc = CRC.calculate_crc(payload)  # Skip over the ACK
 
         if crc != calculated_crc:
@@ -709,7 +709,7 @@ class DmpProcedure(SequentialProcedure):
         self._dmp_page_count = page_count
         self._dmp_remaining_pages = page_count
         self._dmp_first_record = first_record_location
-        self._str_buffer = ''
+        self._buffer = bytearray()
         self._dmp_records = []
 
         if page_count > 0:
@@ -725,9 +725,9 @@ class DmpProcedure(SequentialProcedure):
 
     def _receive_archive_records(self):
 
-        if len(self._str_buffer) >= 267:
-            page = self._str_buffer[0:267]
-            self._str_buffer = self._str_buffer[267:]
+        if len(self._buffer) >= 267:
+            page = self._buffer[0:267]
+            self._buffer = self._buffer[267:]
             page_number, records, crc = split_page(page)
             if crc == CRC.calculate_crc(page[0:265]):
                 # CRC checks out.

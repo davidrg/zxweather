@@ -748,7 +748,7 @@ class TestDmpProcedure(unittest.TestCase):
                             0.2)
 
         proc.start()
-        self.assertEqual('DMPAFT\n', recv.Data)
+        self.assertEqual(b'DMPAFT\n', recv.Data)
         proc.data_received(b'\x06')  # ACK
 
         # datetime.datetime(2021, 8, 18, 20, 42)
@@ -757,7 +757,7 @@ class TestDmpProcedure(unittest.TestCase):
         # Packed: '\x12+\xfa\x07'
         # CRC: '\x0c\x15'
         # Full TS: '\x12+\xfa\x07\x0c\x15'
-        self.assertEqual('\x12+\xfa\x07\x0c\x15', recv.Data)
+        self.assertEqual(b'\x12+\xfa\x07\x0c\x15', recv.Data)
 
     def test_retries_on_failed_timestamp_crc(self):
         recv = WriteReceiver()
@@ -768,11 +768,11 @@ class TestDmpProcedure(unittest.TestCase):
                             0.2)
 
         proc.start()
-        self.assertEqual('DMPAFT\n', recv.Data)
-        proc.data_received('\x06')  # ACK
+        self.assertEqual(b'DMPAFT\n', recv.Data)
+        proc.data_received(b'\x06')  # ACK
         # Receive: '\x12+\xfa\x07\x0c\x15' (timestamp)
         proc.data_received(DmpProcedure._CANCEL)  # Signal CRC error
-        self.assertEqual('DMPAFT\n', recv.Data)
+        self.assertEqual(b'DMPAFT\n', recv.Data)
 
     def test_retries_on_nak(self):
         recv = WriteReceiver()
@@ -783,11 +783,11 @@ class TestDmpProcedure(unittest.TestCase):
                             0.2)
 
         proc.start()
-        self.assertEqual('DMPAFT\n', recv.Data)
-        proc.data_received('\x06')  # ACK
+        self.assertEqual(b'DMPAFT\n', recv.Data)
+        proc.data_received(b'\x06')  # ACK
         # Receive: '\x12+\xfa\x07\x0c\x15' (timestamp)
         proc.data_received(DmpProcedure._NAK)
-        self.assertEqual('DMPAFT\n', recv.Data)
+        self.assertEqual(b'DMPAFT\n', recv.Data)
 
     def test_decodes_page_count(self):
         recv = WriteReceiver()
@@ -798,14 +798,12 @@ class TestDmpProcedure(unittest.TestCase):
                             0.2)
 
         proc.start()
-        self.assertEqual('DMPAFT\n', recv.Data)
-        proc.data_received('\x06')  # ACK
+        self.assertEqual(b'DMPAFT\n', recv.Data)
+        proc.data_received(b'\x06')  # ACK
         # Receive: '\x12+\xfa\x07\x0c\x15' (timestamp)
-        proc.data_received('\x06')  # ACK
+        proc.data_received(b'\x06')  # ACK
 
-        page_data = struct.pack('<HH', 2, 3)
-        page_data += struct.pack(CRC.FORMAT, CRC.calculate_crc(page_data))
-        proc.data_received(page_data)
+        proc.data_received(TestDmpProcedure._page_count(2, 3))
         self.assertEqual(2, proc._dmp_page_count)
         self.assertEqual(3, proc._dmp_first_record)
 
@@ -818,16 +816,17 @@ class TestDmpProcedure(unittest.TestCase):
                             0.2)
 
         proc.start()
-        self.assertEqual('DMPAFT\n', recv.Data)
-        proc.data_received('\x06')  # ACK
+        self.assertEqual(b'DMPAFT\n', recv.Data)
+        proc.data_received(b'\x06')  # ACK
         # Receive: '\x12+\xfa\x07\x0c\x15' (timestamp)
-        proc.data_received('\x06')  # ACK
+        proc.data_received(b'\x06')  # ACK
 
-        page_data = struct.pack('<HH', 2, 3)
-        page_data += struct.pack(CRC.FORMAT, 
-                                 CRC.calculate_crc(struct.pack('<HH', 3, 3)))
+        page_data = bytearray()
+        page_data.extend(struct.pack('<HH', 2, 3))
+        page_data.extend(struct.pack(CRC.FORMAT,
+                                 CRC.calculate_crc(struct.pack('<HH', 3, 3))))
         proc.data_received(page_data)
-        self.assertEqual('DMPAFT\n', recv.Data)
+        self.assertEqual(b'DMPAFT\n', recv.Data)
 
     def test_finishes_when_no_new_data(self):
         recv = WriteReceiver()
@@ -842,16 +841,14 @@ class TestDmpProcedure(unittest.TestCase):
         self.assertFalse(fd.IsFinished)
         proc.start()
         self.assertFalse(fd.IsFinished)
-        self.assertEqual('DMPAFT\n', recv.Data)
-        proc.data_received('\x06')  # ACK
+        self.assertEqual(b'DMPAFT\n', recv.Data)
+        proc.data_received(b'\x06')  # ACK
         self.assertFalse(fd.IsFinished)
         # Receive: '\x12+\xfa\x07\x0c\x15' (timestamp)
-        proc.data_received('\x06')  # ACK
+        proc.data_received(b'\x06')  # ACK
         self.assertFalse(fd.IsFinished)
 
-        page_data = struct.pack('<HH', 0, 1)
-        page_data += struct.pack(CRC.FORMAT, CRC.calculate_crc(page_data))
-        proc.data_received(page_data)
+        proc.data_received(TestDmpProcedure._page_count(0, 1))
         self.assertTrue(fd.IsFinished)
 
     @staticmethod
@@ -936,10 +933,10 @@ class TestDmpProcedure(unittest.TestCase):
                         round(random.uniform(-3, 35), 1)
                     ],
                     soilMoistures=[
-                        round(random.uniform(0, 254), 1),
-                        round(random.uniform(0, 254), 1),
-                        round(random.uniform(0, 254), 1),
-                        round(random.uniform(0, 254), 1)
+                        int(round(random.uniform(0, 254), 0)),
+                        int(round(random.uniform(0, 254), 0)),
+                        int(round(random.uniform(0, 254), 0)),
+                        int(round(random.uniform(0, 254), 0))
                     ])
 
             # Pass the data through the DMP binary format which will result in
@@ -962,9 +959,6 @@ class TestDmpProcedure(unittest.TestCase):
         :param index: record ID
         :type index: int
         """
-
-        def X(x, y):
-            return x
 
         def _assert_field_equal(i, field_name, a_value, b_value, places=1):
             if isinstance(a_value, float):
@@ -1035,6 +1029,15 @@ class TestDmpProcedure(unittest.TestCase):
             rec2 = deserialise_dmp(serialise_dmp(rec))
             self._assertDmpEqual(rec, rec2, i)
 
+    @staticmethod
+    def _page_count(page_count, first_record):
+        page_data = bytearray()
+        page_data.extend(struct.pack('<HH',
+                                     page_count,  # Number of pages
+                                     first_record))  # Location of first record in first page
+        page_data.extend(struct.pack(CRC.FORMAT, CRC.calculate_crc(page_data)))
+        return page_data
+
     def test_decodes_one_full_page(self):
         recv = WriteReceiver()
         log = LogReceiver()
@@ -1046,14 +1049,12 @@ class TestDmpProcedure(unittest.TestCase):
         proc.finished += fd.finished
 
         proc.start()
-        self.assertEqual('DMPAFT\n', recv.Data)
-        proc.data_received('\x06')  # ACK
+        self.assertEqual(b'DMPAFT\n', recv.Data)
+        proc.data_received(b'\x06')  # ACK
         # Receive: '\x12+\xfa\x07\x0c\x15' (timestamp)
-        proc.data_received('\x06')  # ACK
+        proc.data_received(b'\x06')  # ACK
 
-        page_data = struct.pack('<HH', 1, 0)
-        page_data += struct.pack(CRC.FORMAT, CRC.calculate_crc(page_data))
-        proc.data_received(page_data)
+        proc.data_received(TestDmpProcedure._page_count(1, 0))
 
         records = TestDmpProcedure._make_archive_records(
             datetime.datetime(2021, 8, 18, 20, 45), 5, 5, 0.2)
@@ -1083,16 +1084,12 @@ class TestDmpProcedure(unittest.TestCase):
         proc.finished += fd.finished
 
         proc.start()
-        self.assertEqual('DMPAFT\n', recv.Data)
-        proc.data_received('\x06')  # ACK
+        self.assertEqual(b'DMPAFT\n', recv.Data)
+        proc.data_received(b'\x06')  # ACK
         # Receive: '\x12+\xfa\x07\x0c\x15' (timestamp)
-        proc.data_received('\x06')  # ACK
+        proc.data_received(b'\x06')  # ACK
 
-        page_data = struct.pack('<HH',
-                                1,  # Number of pages
-                                2)  # Location of first record in first page
-        page_data += struct.pack(CRC.FORMAT, CRC.calculate_crc(page_data))
-        proc.data_received(page_data)
+        proc.data_received(TestDmpProcedure._page_count(1, 2))
 
         records = TestDmpProcedure._make_archive_records(
             datetime.datetime(2021, 8, 18, 20, 45), 5, 5, 0.2)
@@ -1122,16 +1119,12 @@ class TestDmpProcedure(unittest.TestCase):
         proc.finished += fd.finished
 
         proc.start()
-        self.assertEqual('DMPAFT\n', recv.Data)
-        proc.data_received('\x06')  # ACK
+        self.assertEqual(b'DMPAFT\n', recv.Data)
+        proc.data_received(b'\x06')  # ACK
         # Receive: '\x12+\xfa\x07\x0c\x15' (timestamp)
-        proc.data_received('\x06')  # ACK
+        proc.data_received(b'\x06')  # ACK
 
-        page_data = struct.pack('<HH',
-                                2,  # Number of pages
-                                2)  # Location of first record in first page
-        page_data += struct.pack(CRC.FORMAT, CRC.calculate_crc(page_data))
-        proc.data_received(page_data)
+        proc.data_received(TestDmpProcedure._page_count(2, 2))
 
         records = TestDmpProcedure._make_archive_records(
             datetime.datetime(2021, 8, 18, 20, 45), 5, 10, 0.2)
@@ -1147,11 +1140,11 @@ class TestDmpProcedure(unittest.TestCase):
         )
 
         proc.data_received(page_1)
-        self.assertEqual('\x06', recv.read())
+        self.assertEqual(b'\x06', recv.read())
 
         self.assertFalse(fd.IsFinished)
         proc.data_received(page_2)
-        self.assertEqual('\x06', recv.read())
+        self.assertEqual(b'\x06', recv.read())
         self.assertTrue(fd.IsFinished)
 
         self.assertEqual(8, len(proc.ArchiveRecords))
@@ -1169,22 +1162,18 @@ class TestDmpProcedure(unittest.TestCase):
         proc.finished += fd.finished
 
         proc.start()
-        self.assertEqual('DMPAFT\n', recv.Data)
-        proc.data_received('\x06')  # ACK
+        self.assertEqual(b'DMPAFT\n', recv.Data)
+        proc.data_received(b'\x06')  # ACK
         # Receive: '\x12+\xfa\x07\x0c\x15' (timestamp)
-        proc.data_received('\x06')  # ACK
+        proc.data_received(b'\x06')  # ACK
 
-        page_data = struct.pack('<HH',
-                                2,  # Number of pages
-                                2)  # Location of first record in first page
-        page_data += struct.pack(CRC.FORMAT, CRC.calculate_crc(page_data))
-        proc.data_received(page_data)
+        proc.data_received(TestDmpProcedure._page_count(2, 2))
 
         records = TestDmpProcedure._make_archive_records(
             datetime.datetime(2021, 8, 18, 20, 45), 5, 8, 0.2)
         encoded_records = [serialise_dmp(r) for r in records]
 
-        empty_record = '\xFF' * 52
+        empty_record = b'\xFF' * 52
         encoded_records.append(empty_record)
         encoded_records.append(empty_record)
 
@@ -1198,11 +1187,11 @@ class TestDmpProcedure(unittest.TestCase):
         )
 
         proc.data_received(page_1)
-        self.assertEqual('\x06', recv.read())
+        self.assertEqual(b'\x06', recv.read())
 
         self.assertFalse(fd.IsFinished)
         proc.data_received(page_2)
-        self.assertEqual('\x06', recv.read())
+        self.assertEqual(b'\x06', recv.read())
         self.assertTrue(fd.IsFinished)
 
         self.assertEqual(6, len(proc.ArchiveRecords))
@@ -1222,16 +1211,12 @@ class TestDmpProcedure(unittest.TestCase):
         proc.finished += fd.finished
 
         proc.start()
-        self.assertEqual('DMPAFT\n', recv.Data)
-        proc.data_received('\x06')  # ACK
+        self.assertEqual(b'DMPAFT\n', recv.Data)
+        proc.data_received(b'\x06')  # ACK
         # Receive: '\x12+\xfa\x07\x0c\x15' (timestamp)
-        proc.data_received('\x06')  # ACK
+        proc.data_received(b'\x06')  # ACK
 
-        page_data = struct.pack('<HH',
-                                2,  # Number of pages
-                                2)  # Location of first record in first page
-        page_data += struct.pack(CRC.FORMAT, CRC.calculate_crc(page_data))
-        proc.data_received(page_data)
+        proc.data_received(TestDmpProcedure._page_count(2, 2))
 
         records = TestDmpProcedure._make_archive_records(
             datetime.datetime(2021, 8, 18, 20, 45), 5, 8, 0.2)
@@ -1249,11 +1234,11 @@ class TestDmpProcedure(unittest.TestCase):
         )
 
         proc.data_received(page_1)
-        self.assertEqual('\x06', recv.read())
+        self.assertEqual(b'\x06', recv.read())
 
         self.assertFalse(fd.IsFinished)
         proc.data_received(page_2)
-        self.assertEqual('\x06', recv.read())
+        self.assertEqual(b'\x06', recv.read())
         self.assertTrue(fd.IsFinished)
 
         self.assertEqual(6, len(proc.ArchiveRecords))
@@ -1271,16 +1256,12 @@ class TestDmpProcedure(unittest.TestCase):
                             0.2)
 
         proc.start()
-        self.assertEqual('DMPAFT\n', recv.Data)
-        proc.data_received('\x06')  # ACK
+        self.assertEqual(b'DMPAFT\n', recv.Data)
+        proc.data_received(b'\x06')  # ACK
         # Receive: '\x12+\xfa\x07\x0c\x15' (timestamp)
-        proc.data_received('\x06')  # ACK
+        proc.data_received(b'\x06')  # ACK
 
-        page_data = struct.pack('<HH',
-                                2,  # Number of pages
-                                2)  # Location of first record in first page
-        page_data += struct.pack(CRC.FORMAT, CRC.calculate_crc(page_data))
-        proc.data_received(page_data)
+        proc.data_received(TestDmpProcedure._page_count(2, 2))
 
         records = TestDmpProcedure._make_archive_records(
             datetime.datetime(2021, 8, 18, 20, 45), 5, 8, 0.2)
@@ -1303,9 +1284,9 @@ class TestDmpProcedure(unittest.TestCase):
         )
 
         proc.data_received(page_1)
-        self.assertEqual('\x06', recv.read())
+        self.assertEqual(b'\x06', recv.read())
         proc.data_received(page_2)
-        self.assertEqual('\x06', recv.read())
+        self.assertEqual(b'\x06', recv.read())
 
         self.assertEqual(8, len(proc.ArchiveRecords))
         for i in range(0, len(proc.ArchiveRecords)):
@@ -1321,16 +1302,12 @@ class TestDmpProcedure(unittest.TestCase):
                             0.2)
 
         proc.start()
-        self.assertEqual('DMPAFT\n', recv.Data)
-        proc.data_received('\x06')  # ACK
+        self.assertEqual(b'DMPAFT\n', recv.Data)
+        proc.data_received(b'\x06')  # ACK
         # Receive: '\x12+\xfa\x07\x0c\x15' (timestamp)
-        proc.data_received('\x06')  # ACK
+        proc.data_received(b'\x06')  # ACK
 
-        page_data = struct.pack('<HH',
-                                3,  # Number of pages
-                                2)  # Location of first record in first page
-        page_data += struct.pack(CRC.FORMAT, CRC.calculate_crc(page_data))
-        proc.data_received(page_data)
+        proc.data_received(TestDmpProcedure._page_count(3, 2))
 
         records = TestDmpProcedure._make_archive_records(
             datetime.datetime(2021, 8, 18, 20, 45), 5, 8, 0.2)
@@ -1357,11 +1334,11 @@ class TestDmpProcedure(unittest.TestCase):
         )
 
         proc.data_received(page_1)
-        self.assertEqual('\x06', recv.read())
+        self.assertEqual(b'\x06', recv.read())
         proc.data_received(page_2)
-        self.assertEqual('\x06', recv.read())
+        self.assertEqual(b'\x06', recv.read())
         proc.data_received(page_3)
-        self.assertEqual('\x06', recv.read())
+        self.assertEqual(b'\x06', recv.read())
 
         self.assertEqual(13, len(proc.ArchiveRecords))
         for i in range(0, len(proc.ArchiveRecords)):
@@ -1380,23 +1357,19 @@ class TestDmpProcedure(unittest.TestCase):
                             0.2)
 
         proc.start()
-        self.assertEqual('DMPAFT\n', recv.Data)
-        proc.data_received('\x06')  # ACK
+        self.assertEqual(b'DMPAFT\n', recv.Data)
+        proc.data_received(b'\x06')  # ACK
         # Receive: '\x12+\xfa\x07\x0c\x15' (timestamp)
-        proc.data_received('\x06')  # ACK
+        proc.data_received(b'\x06')  # ACK
 
-        page_data = struct.pack('<HH',
-                                3,  # Number of pages
-                                2)  # Location of first record in first page
-        page_data += struct.pack(CRC.FORMAT, CRC.calculate_crc(page_data))
-        proc.data_received(page_data)
+        proc.data_received(TestDmpProcedure._page_count(3, 2))
 
         records = TestDmpProcedure._make_archive_records(
             datetime.datetime(2021, 8, 18, 20, 45), 5, 8, 0.2)
         encoded_records = [serialise_dmp(r) for r in records]
 
         # Stick a null record in slot 4 of the middle page
-        encoded_records.append('\xFF' * 52)
+        encoded_records.append(b'\xFF' * 52)
 
         last_ts = datetime.datetime.combine(
             records[-1].dateStamp, records[-1].timeStamp)
@@ -1421,11 +1394,11 @@ class TestDmpProcedure(unittest.TestCase):
         )
 
         proc.data_received(page_1)
-        self.assertEqual('\x06', recv.read())
+        self.assertEqual(b'\x06', recv.read())
         proc.data_received(page_2)
-        self.assertEqual('\x06', recv.read())
+        self.assertEqual(b'\x06', recv.read())
         proc.data_received(page_3)
-        self.assertEqual('\x06', recv.read())
+        self.assertEqual(b'\x06', recv.read())
 
         self.assertEqual(12, len(proc.ArchiveRecords))
         for i in range(0, len(proc.ArchiveRecords)):
@@ -1441,16 +1414,12 @@ class TestDmpProcedure(unittest.TestCase):
                             0.2)
 
         proc.start()
-        self.assertEqual('DMPAFT\n', recv.Data)
-        proc.data_received('\x06')  # ACK
+        self.assertEqual(b'DMPAFT\n', recv.Data)
+        proc.data_received(b'\x06')  # ACK
         # Receive: '\x12+\xfa\x07\x0c\x15' (timestamp)
-        proc.data_received('\x06')  # ACK
+        proc.data_received(b'\x06')  # ACK
 
-        page_data = struct.pack('<HH',
-                                3,  # Number of pages
-                                2)  # Location of first record in first page
-        page_data += struct.pack(CRC.FORMAT, CRC.calculate_crc(page_data))
-        proc.data_received(page_data)
+        proc.data_received(TestDmpProcedure._page_count(3, 2))
 
         records = TestDmpProcedure._make_archive_records(
             datetime.datetime(2021, 8, 18, 20, 45), 5, 15, 0.2)
@@ -1470,21 +1439,24 @@ class TestDmpProcedure(unittest.TestCase):
         )
 
         # Corrupt page 2:
-        bad_page_2 = page_2[0:10] + "Hello, World!" + page_2[23:]
+        bad_page_2 = bytearray()
+        bad_page_2.extend(page_2[0:10])
+        bad_page_2.extend(b"Hello, World!")
+        bad_page_2.extend(page_2[23:])
 
         proc.data_received(page_1)
-        self.assertEqual('\x06', recv.read())
+        self.assertEqual(b'\x06', recv.read())
 
         # Send the corrupted page. We should get ! back to indicate its garbage
         proc.data_received(bad_page_2)
-        self.assertEqual('!', recv.read())
+        self.assertEqual(b'!', recv.read())
 
         # Send the uncorrupted page
         proc.data_received(page_2)
-        self.assertEqual('\x06', recv.read())
+        self.assertEqual(b'\x06', recv.read())
 
         proc.data_received(page_3)
-        self.assertEqual('\x06', recv.read())
+        self.assertEqual(b'\x06', recv.read())
 
         self.assertEqual(13, len(proc.ArchiveRecords))
         for i in range(0, len(proc.ArchiveRecords)):
@@ -1503,19 +1475,15 @@ class TestDmpProcedure(unittest.TestCase):
         proc.finished += fd.finished
 
         proc.start()
-        self.assertEqual('DMPAFT\n', recv.Data)
-        proc.data_received('\x06')  # ACK
+        self.assertEqual(b'DMPAFT\n', recv.Data)
+        proc.data_received(b'\x06')  # ACK
         # Receive: '\x12+\xfa\x07\x0c\x15' (timestamp)
-        proc.data_received('\x06')  # ACK
+        proc.data_received(b'\x06')  # ACK
 
         # The logger stores 512 pages of data. A Full download sends the first
         # page twice (once at the start and again at the end). So total pages
         # that will be sent is 513.
-        page_data = struct.pack('<HH',
-                                513,  # Number of pages
-                                2)  # Location of first record in first page
-        page_data += struct.pack(CRC.FORMAT, CRC.calculate_crc(page_data))
-        proc.data_received(page_data)
+        proc.data_received(TestDmpProcedure._page_count(513, 2))
 
         # The logger stores up to 2560 records in 512 pages.
         records = TestDmpProcedure._make_archive_records(
@@ -1548,7 +1516,7 @@ class TestDmpProcedure(unittest.TestCase):
 
         for page in pages:
             proc.data_received(page)
-            self.assertEqual('\x06', recv.read())
+            self.assertEqual(b'\x06', recv.read())
 
         self.assertEqual(2560, len(proc.ArchiveRecords))
         for i in range(0, len(proc.ArchiveRecords)):
@@ -1565,14 +1533,12 @@ class TestDmpProcedure(unittest.TestCase):
                             0.1)
 
         proc.start()
-        self.assertEqual('DMPAFT\n', recv.Data)
-        proc.data_received('\x06')  # ACK
+        self.assertEqual(b'DMPAFT\n', recv.Data)
+        proc.data_received(b'\x06')  # ACK
         # Receive: '\x12+\xfa\x07\x0c\x15' (timestamp)
-        proc.data_received('\x06')  # ACK
+        proc.data_received(b'\x06')  # ACK
 
-        page_data = struct.pack('<HH', 1, 0)
-        page_data += struct.pack(CRC.FORMAT, CRC.calculate_crc(page_data))
-        proc.data_received(page_data)
+        proc.data_received(TestDmpProcedure._page_count(1, 0))
 
         records = TestDmpProcedure._make_archive_records(
             datetime.datetime(2021, 8, 18, 20, 45), 5, 5, 0.1)
@@ -1598,14 +1564,12 @@ class TestDmpProcedure(unittest.TestCase):
                             0.254)
 
         proc.start()
-        self.assertEqual('DMPAFT\n', recv.Data)
-        proc.data_received('\x06')  # ACK
+        self.assertEqual(b'DMPAFT\n', recv.Data)
+        proc.data_received(b'\x06')  # ACK
         # Receive: '\x12+\xfa\x07\x0c\x15' (timestamp)
-        proc.data_received('\x06')  # ACK
+        proc.data_received(b'\x06')  # ACK
 
-        page_data = struct.pack('<HH', 1, 0)
-        page_data += struct.pack(CRC.FORMAT, CRC.calculate_crc(page_data))
-        proc.data_received(page_data)
+        proc.data_received(TestDmpProcedure._page_count(1, 0))
 
         records = TestDmpProcedure._make_archive_records(
             datetime.datetime(2021, 8, 18, 20, 45), 5, 5, 0.254)
