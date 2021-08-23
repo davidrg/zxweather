@@ -63,7 +63,7 @@ def to_hex_string(string):
     """
     result = ""
     for char in string:
-        hex_encoded = hex(char)[2:]  # Type: str
+        hex_encoded = hex(ord(char))[2:]  # Type: str
         if len(hex_encoded) == 1:
             hex_encoded = '0' + hex_encoded
 

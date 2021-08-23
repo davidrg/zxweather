@@ -9,9 +9,10 @@ import unittest
 
 from davis_logger.record_types.dmp import Dmp, encode_date, encode_time, build_page, serialise_dmp, _compass_points, \
     deserialise_dmp
+from davis_logger.record_types.loop import Loop, serialise_loop, deserialise_loop
 from davis_logger.record_types.util import CRC
 from davis_logger.station_procedures import DstSwitchProcedure, GetConsoleInformationProcedure, \
-    GetConsoleConfigurationProcedure, DmpProcedure
+    GetConsoleConfigurationProcedure, DmpProcedure, LpsProcedure
 
 
 class WriteReceiver(object):
@@ -71,6 +72,22 @@ class FinishedDetector(object):
         Bind this to the procedures finished event
         """
         self.IsFinished = True
+
+
+class LoopReceiver(object):
+    """
+    Helper class for receiving loop packet broadcasts from the LpsProcedure
+    """
+    def __init__(self):
+        self.LoopRecords = []
+
+    def receiveLoop(self, loop_record):
+        """
+        Receives a loop record from the LpsProcedure
+        :param loop_record: received loop packet
+        :type loop_record: Loop
+        """
+        self.LoopRecords.append(loop_record)
 
 
 def byte_at_a_time_send(procedure, data):
@@ -466,7 +483,6 @@ class TestGetConsoleInformationProcedure(unittest.TestCase):
         self.assertTrue(proc.lps_supported)
 
 
-
 class TestGetConsoleConfigurationProcedure(unittest.TestCase):
     # Basic procedure is:
     #       > Send to Station
@@ -722,6 +738,7 @@ class TestGetConsoleConfigurationProcedure(unittest.TestCase):
         proc.data_received(b'\x00\x00\x00')  # DST mode is OFF
 
         self.assertTrue(fd.IsFinished)
+
 
 class TestDmpProcedure(unittest.TestCase):
     # Basic procedure is:
@@ -1711,6 +1728,909 @@ class TestDmpProcedure(unittest.TestCase):
 
         self._assertDmpEqual(expected, deserialised, 0)
 
+
+class TestLpsProcedure(unittest.TestCase):
+    @staticmethod
+    def _make_loop_records(count, rain_collector_size):
+        """
+        Creates the specified number of Loop records populated with random data.
+
+        :param count: Number of records to generate
+        :type count: int
+        :param rain_collector_size: Rain collector size (in mm)
+        :type rain_collector_size: float
+        :return: List of Loop records
+        :rtype: List of Loop
+        """
+        records = []
+
+        bar_trend_options = [-60, -20, -0, 20, 60]
+        forecast_icon_options = [8, 6, 2, 3, 18, 19, 7, 22, 23]
+
+        for i in range(0, count):
+            wind_speed = random.uniform(0, 22)
+            wind_direction = None
+
+            if wind_speed > 0:
+                wind_direction = random.choice(_compass_points)
+
+            stormRain = round(random.uniform(0, 300), 1)
+            stormStartDate = None
+            if stormRain > 0:
+                end_date = datetime.datetime.now().date()
+                start_date = end_date - datetime.timedelta(days=30)
+                random_days = random.randrange((end_date - start_date).days)
+                stormStartDate = start_date + datetime.timedelta(days=random_days)
+
+            l = Loop(barTrend=random.choice(bar_trend_options),
+                     nextRecord=int(round(random.uniform(0, 2560), 0)),
+                     barometer=round(random.uniform(985.9, 1039.3), 1),
+                     insideTemperature=round(random.uniform(-3, 35), 1),
+                     insideHumidity=int(random.uniform(0, 100)),
+                     outsideTemperature=round(random.uniform(-3, 35), 1),
+                     windSpeed=wind_speed,
+                     averageWindSpeed10min=random.uniform(0, 22),
+                     windDirection=wind_direction,
+                     extraTemperatures=[
+                         round(random.uniform(-3, 35), 1),
+                         round(random.uniform(-3, 35), 1),
+                         round(random.uniform(-3, 35), 1),
+                         round(random.uniform(-3, 35), 1),
+                         round(random.uniform(-3, 35), 1),
+                         round(random.uniform(-3, 35), 1),
+                         round(random.uniform(-3, 35), 1)
+                     ],
+                     soilTemperatures=[
+                         round(random.uniform(-3, 35), 1),
+                         round(random.uniform(-3, 35), 1),
+                         round(random.uniform(-3, 35), 1),
+                         round(random.uniform(-3, 35), 1)
+                     ],
+                     leafTemperatures=[
+                         round(random.uniform(-3, 35), 1),
+                         round(random.uniform(-3, 35), 1),
+                         round(random.uniform(-3, 35), 1),
+                         round(random.uniform(-3, 35), 1)
+                     ],
+                     outsideHumidity=int(random.uniform(0, 100)),
+                     extraHumidities=[
+                         int(random.uniform(0, 100)),
+                         int(random.uniform(0, 100)),
+                         int(random.uniform(0, 100)),
+                         int(random.uniform(0, 100)),
+                         int(random.uniform(0, 100)),
+                         int(random.uniform(0, 100)),
+                         int(random.uniform(0, 100))
+                     ],
+                     rainRate=round(random.uniform(0, 500), 1),
+                     UV=round(random.uniform(0, 14), 1),
+                     solarRadiation=int(random.uniform(0, 1628)),
+                     stormRain=stormRain,
+                     startDateOfCurrentStorm=stormStartDate,
+                     dayRain=round(random.uniform(0, 300), 1),
+                     monthRain=round(random.uniform(0, 300), 1),
+                     yearRain=round(random.uniform(0, 300), 1),
+                     dayET=round(random.uniform(0, 10), 1),
+                     monthET=round(random.uniform(0, 100), 1),
+                     yearET=round(random.uniform(0, 1000), 1),
+                     soilMoistures=[
+                         int(round(random.uniform(0, 254), 0)),
+                         int(round(random.uniform(0, 254), 0)),
+                         int(round(random.uniform(0, 254), 0)),
+                         int(round(random.uniform(0, 254), 0))
+                     ],
+                     leafWetness=[
+                         int(random.uniform(0, 15)),
+                         int(random.uniform(0, 15)),
+                         int(random.uniform(0, 15)),
+                         int(random.uniform(0, 15))
+                     ],
+                     insideAlarms=0,
+                     rainAlarms=0,
+                     outsideAlarms=[0, 0],
+                     extraTempHumAlarms=[0, 0, 0, 0, 0, 0, 0, 0],
+                     soilAndLeafAlarms=[0, 0, 0, 0],
+                     transmitterBatteryStatus=2,  # Transmitter #2 out I guess
+                     consoleBatteryVoltage=round(random.uniform(2, 4), 2),
+                     forecastIcons=random.choice(forecast_icon_options),
+                     forecastRuleNumber=int(random.uniform(0, 196)),
+                     timeOfSunrise=datetime.time(hour=6, minute=42),
+                     timeOfSunset=datetime.time(hour=18, minute=23)
+                     )
+
+            # Pass the data through the DMP binary format which will result in
+            # Metric -> US Imperial -> Metric conversion. We do this here so
+            # we don't trip up any unit tests.
+            d = deserialise_loop(serialise_loop(l, rain_collector_size, False), rain_collector_size)
+            records.append(d)
+
+        return records
+
+    def _assertLoopEqual(self, a, b, index):
+        """
+        Asserts the two Loop records are equal. Floating point values within
+        each Loop record are checked using assertAlmostEqual
+        :param a: Loop record A
+        :type a: Loop
+        :param b: Loop record B
+        :type b: Loop
+        :param index: record ID
+        :type index: int
+        """
+
+        def _assert_field_equal(i, field_name, a_value, b_value, places=1):
+            if isinstance(a_value, float):
+                self.assertAlmostEqual(
+                    a_value, b_value,
+                    places=places,
+                    msg="index {0} field {1}:{5} differs to {4} places - a={2}, b={3}".format(
+                        i, field_name, round(a_value, places),
+                        round(b_value, places), places, type(a_value).__name__))
+            else:
+                self.assertEqual(a_value, b_value,
+                                 msg="index {0} field {1}:{4} differs - a={2}, b={3}".format(
+                                     i, field_name, a_value, b_value,
+                                     type(a_value).__name__))
+
+        _assert_field_equal(index, 'barTrend', a.barTrend, b.barTrend)
+        _assert_field_equal(index, 'nextRecord', a.nextRecord, b.nextRecord)
+        _assert_field_equal(index, 'barometer', a.barometer, b.barometer)
+        _assert_field_equal(index, 'insideTemperature', a.insideTemperature, b.insideTemperature)
+        _assert_field_equal(index, 'insideHumidity', a.insideHumidity, b.insideHumidity)
+        _assert_field_equal(index, 'outsideTemperature', a.outsideTemperature, b.outsideTemperature)
+        _assert_field_equal(index, 'windSpeed', a.windSpeed, b.windSpeed)
+        _assert_field_equal(index, 'averageWindSpeed10min', a.averageWindSpeed10min, b.averageWindSpeed10min)
+        _assert_field_equal(index, 'windDirection', a.windDirection, b.windDirection)
+        _assert_field_equal(index, 'extraTemperatures', a.extraTemperatures, b.extraTemperatures)
+        _assert_field_equal(index, 'soilTemperatures', a.soilTemperatures, b.soilTemperatures)
+        _assert_field_equal(index, 'leafTemperatures', a.leafTemperatures, b.leafTemperatures)
+        _assert_field_equal(index, 'outsideHumidity', a.outsideHumidity, b.outsideHumidity)
+        _assert_field_equal(index, 'extraHumidities', a.extraHumidities, b.extraHumidities)
+        _assert_field_equal(index, 'rainRate', a.rainRate, b.rainRate)
+        _assert_field_equal(index, 'UV', a.UV, b.UV)
+        _assert_field_equal(index, 'solarRadiation', a.solarRadiation, b.solarRadiation)
+        _assert_field_equal(index, 'stormRain', a.stormRain, b.stormRain)
+        _assert_field_equal(index, 'startDateOfCurrentStorm', a.startDateOfCurrentStorm, b.startDateOfCurrentStorm)
+        _assert_field_equal(index, 'dayRain', a.dayRain, b.dayRain)
+        _assert_field_equal(index, 'monthRain', a.monthRain, b.monthRain)
+        _assert_field_equal(index, 'yearRain', a.yearRain, b.yearRain)
+        _assert_field_equal(index, 'dayET', a.dayET, b.dayET)
+        _assert_field_equal(index, 'monthET', a.monthET, b.monthET)
+        _assert_field_equal(index, 'yearET', a.yearET, b.yearET)
+        _assert_field_equal(index, 'soilMoistures', a.soilMoistures, b.soilMoistures)
+        _assert_field_equal(index, 'leafWetness', a.leafWetness, b.leafWetness)
+        _assert_field_equal(index, 'insideAlarms', a.insideAlarms, b.insideAlarms)
+        _assert_field_equal(index, 'rainAlarms', a.rainAlarms, b.rainAlarms)
+        _assert_field_equal(index, 'outsideAlarms', a.outsideAlarms, b.outsideAlarms)
+        _assert_field_equal(index, 'extraTempHumAlarms', a.extraTempHumAlarms, b.extraTempHumAlarms)
+        _assert_field_equal(index, 'soilAndLeafAlarms', a.soilAndLeafAlarms, b.soilAndLeafAlarms)
+        _assert_field_equal(index, 'transmitterBatteryStatus', a.transmitterBatteryStatus, b.transmitterBatteryStatus)
+        _assert_field_equal(index, 'consoleBatteryVoltage', a.consoleBatteryVoltage, b.consoleBatteryVoltage)
+        _assert_field_equal(index, 'forecastIcons', a.forecastIcons, b.forecastIcons)
+        _assert_field_equal(index, 'forecastRuleNumber', a.forecastRuleNumber, b.forecastRuleNumber)
+        _assert_field_equal(index, 'timeOfSunrise', a.timeOfSunrise, b.timeOfSunrise)
+        _assert_field_equal(index, 'timeOfSunset', a.timeOfSunset, b.timeOfSunset)
+
+    def test_loop_serialise_round_trip(self):
+        """
+        This test is to check we can encode and decode a Loop record and not find
+        any differences in any fields with a precision of 1dp.
+
+        This is mostly to test the _assertLoopEqual test function that is used
+        by many of the other tests in this TestCase.
+        """
+        count = 500
+        records = TestLpsProcedure._make_loop_records(count, 0.2)
+        for i, rec in enumerate(records):
+            rec2 = deserialise_loop(serialise_loop(rec, include_crc=False))
+            self._assertLoopEqual(rec, rec2, i)
+
+    def test_sends_lps_when_supported(self):
+        recv = WriteReceiver()
+        log = LogReceiver()
+
+        proc = LpsProcedure(recv.write, log.log, True, 0.2, 5)
+
+        proc.start()
+        self.assertEquals("LPS 1 5\n", recv.read())
+
+    def test_sends_loop_when_lps_not_supported(self):
+        recv = WriteReceiver()
+        log = LogReceiver()
+
+        proc = LpsProcedure(recv.write, log.log, False, 0.2, 6)
+
+        proc.start()
+        self.assertEquals("LOOP 6\n", recv.read())
+
+    def test_consumes_ack(self):
+        recv = WriteReceiver()
+        log = LogReceiver()
+
+        proc = LpsProcedure(recv.write, log.log, True, 0.2, 5)
+
+        proc.start()
+        # receive: LPS 1 5\n
+        proc.data_received('\x06')
+        self.assertEqual('', proc._str_buffer)
+
+    def test_restarts_on_unexpected_non_ack(self):
+        recv = WriteReceiver()
+        log = LogReceiver()
+
+        proc = LpsProcedure(recv.write, log.log, True, 0.2, 5)
+
+        proc.start()
+        self.assertEquals("LPS 1 5\n", recv.read())
+        proc.data_received('Hello!')
+        self.assertEquals("LPS 1 5\n", recv.read())
+
+    def test_decodes_one_packet(self):
+        recv = WriteReceiver()
+        log = LogReceiver()
+        looper = LoopReceiver()
+
+        proc = LpsProcedure(recv.write, log.log, True, 0.2, 1)
+        proc.loopDataReceived += looper.receiveLoop
+
+        record = TestLpsProcedure._make_loop_records(1, 0.2)[0]
+
+        proc.start()
+        # receive: LPS 1 5\n
+        proc.data_received('\x06')
+        proc.data_received(serialise_loop(record, 0.2))
+
+        self.assertEqual(1, len(looper.LoopRecords))
+        self._assertLoopEqual(record, looper.LoopRecords[0], 1)
+
+    def test_decodes_multiple_packets(self):
+        recv = WriteReceiver()
+        log = LogReceiver()
+        looper = LoopReceiver()
+
+        proc = LpsProcedure(recv.write, log.log, True, 0.2, 10)
+        proc.loopDataReceived += looper.receiveLoop
+
+        records = TestLpsProcedure._make_loop_records(10, 0.2)
+
+        proc.start()
+        # receive: LPS 1 5\n
+        proc.data_received('\x06')
+        
+        for record in records:
+            proc.data_received(serialise_loop(record, 0.2))
+
+        self.assertEqual(len(records), len(looper.LoopRecords))
+        
+        for i, record in enumerate(records):
+            self._assertLoopEqual(record, looper.LoopRecords[i], i)
+
+    def test_additional_packets_after_requested_count_are_ignored(self):
+        recv = WriteReceiver()
+        log = LogReceiver()
+        looper = LoopReceiver()
+
+        proc = LpsProcedure(recv.write, log.log, True, 0.2, 5)
+        proc.loopDataReceived += looper.receiveLoop
+
+        records = TestLpsProcedure._make_loop_records(10, 0.2)
+
+        proc.start()
+        # receive: LPS 1 5\n
+        proc.data_received('\x06')
+
+        for record in records:
+            proc.data_received(serialise_loop(record, 0.2))
+
+        self.assertEqual(5, len(looper.LoopRecords))
+
+        for i, record in enumerate(records[0:5]):
+            self._assertLoopEqual(record, looper.LoopRecords[i], i)
+
+    def test_raises_finished_event_when_all_packets_received(self):
+        recv = WriteReceiver()
+        log = LogReceiver()
+        looper = LoopReceiver()
+        fd = FinishedDetector()
+
+        proc = LpsProcedure(recv.write, log.log, True, 0.2, 5)
+        proc.loopDataReceived += looper.receiveLoop
+        proc.finished += fd.finished
+
+        records = TestLpsProcedure._make_loop_records(5, 0.2)
+
+        proc.start()
+        # receive: LPS 1 5\n
+        proc.data_received('\x06')
+
+        for record in records:
+            self.assertFalse(fd.IsFinished)
+            proc.data_received(serialise_loop(record, 0.2))
+
+        self.assertEqual(len(records), len(looper.LoopRecords))
+        for i, rec in enumerate(records):
+            self._assertLoopEqual(rec, looper.LoopRecords[i], i)
+        self.assertTrue(fd.IsFinished)
+
+    def test_discards_packet_with_bad_crc(self):
+        recv = WriteReceiver()
+        log = LogReceiver()
+        looper = LoopReceiver()
+        fd = FinishedDetector()
+
+        proc = LpsProcedure(recv.write, log.log, True, 0.2, 5)
+        proc.loopDataReceived += looper.receiveLoop
+        proc.finished += fd.finished
+
+        records = TestLpsProcedure._make_loop_records(5, 0.2)
+
+        proc.start()
+        # receive: LPS 1 5\n
+        proc.data_received('\x06')
+
+        serialised_records = [serialise_loop(record, 0.2) for record in records]
+
+        # Corrupt record 2 by overwriting some of it with garbage
+        rec_2 = serialised_records[2]
+        rec_2 = rec_2[0:50] + 'Hello, World!' + rec_2[63:]
+        serialised_records[2] = rec_2
+
+        # and throw away the corrupted record from the list of what we're
+        # expecting back.
+        del records[2]
+
+        for record in serialised_records:
+            self.assertFalse(fd.IsFinished)
+            proc.data_received(record)
+
+        self.assertEqual(len(records), len(looper.LoopRecords))
+        for i, rec in enumerate(records):
+            self._assertLoopEqual(rec, looper.LoopRecords[i], i)
+        self.assertTrue(fd.IsFinished)
+
+    def test_on_bad_crc_restarts_if_short_packet_and_start_is_garbage(self):
+        # If the packets CRC is garbage and:
+        #   - One or more bytes are missing from the packet
+        #   - There is no packet header after the end of the current packet
+        #   - The start of the current packet is not 'LOO'
+        # then this indicates the buffer is full of unrecoverable garbage. The
+        # procedure should re-issue the LPS command asking for however many
+        # packets are remaining to restart the whole thing.
+
+        recv = WriteReceiver()
+        log = LogReceiver()
+        looper = LoopReceiver()
+        fd = FinishedDetector()
+
+        proc = LpsProcedure(recv.write, log.log, True, 0.2, 5)
+        proc.loopDataReceived += looper.receiveLoop
+        proc.finished += fd.finished
+
+        records = TestLpsProcedure._make_loop_records(5, 0.2)
+
+        proc.start()
+        self.assertEqual(recv.read(), 'LPS 1 5\n')
+        proc.data_received('\x06')
+
+        serialised_records = [serialise_loop(record, 0.2) for record in records]
+
+        print("> one good packet")
+        self.assertFalse(fd.IsFinished)
+        proc.data_received(serialised_records.pop(0))
+        self.assertEqual(1, len(looper.LoopRecords))
+
+        # Corrupt record 2 by overwriting some of it with garbage
+        rec_2 = serialised_records.pop(0)
+        rec_2 = 'XYZ' + rec_2[5:-2] + "XYZY"
+        print(len(rec_2))
+        assert(len(rec_2) == 99)
+        del records[1]
+
+        print("> one garbage packet")
+        self.assertFalse(fd.IsFinished)
+        proc.data_received(rec_2)
+        self.assertEqual(1, len(looper.LoopRecords))
+        self.assertEqual(recv.read(), 'LPS 1 3\n')
+        proc.data_received('\x06')
+
+        for record in serialised_records:
+            print("> one good packet")
+            self.assertFalse(fd.IsFinished)
+            self.assertEqual(recv.read(), '')
+            proc.data_received(record)
+
+        print("> done")
+        self.assertEqual(recv.read(), '')
+        self.assertEqual(len(records), len(looper.LoopRecords))
+        for i, rec in enumerate(records):
+            self._assertLoopEqual(rec, looper.LoopRecords[i], i)
+        self.assertTrue(fd.IsFinished)
+
+    def test_on_bad_crc_finds_second_packet_header_in_buffer_and_decodes(self):
+        # There are two packets in the buffer but the first packet has some
+        # bytes in the middle completely missing (its less than 99 bytes long).
+        # This should result in the CRC for the first packet failing. When this
+        # is detected the second packet header should be found, the first short
+        # packet discarded and the second packet decoded successfully.
+        recv = WriteReceiver()
+        log = LogReceiver()
+        looper = LoopReceiver()
+        fd = FinishedDetector()
+
+        proc = LpsProcedure(recv.write, log.log, True, 0.2, 5)
+        proc.loopDataReceived += looper.receiveLoop
+        proc.finished += fd.finished
+
+        records = TestLpsProcedure._make_loop_records(5, 0.2)
+
+        proc.start()
+        self.assertEqual(recv.read(), 'LPS 1 5\n')
+        proc.data_received('\x06')
+
+        serialised_records = [serialise_loop(record, 0.2) for record in records]
+
+        print("> one good packet")
+        self.assertFalse(fd.IsFinished)
+        proc.data_received(serialised_records.pop(0))
+        self.assertEqual(1, len(looper.LoopRecords))
+        self.assertEqual(recv.read(), '')
+
+        # Corrupt record deleting a chunk from the middle
+        rec_2 = serialised_records.pop(0)
+        rec_2 = rec_2[:10] + rec_2[20:]
+        del records[1]
+
+        print("> one short packet combined with a good one")
+        self.assertFalse(fd.IsFinished)
+        proc.data_received(rec_2 + serialised_records.pop(0))
+
+        for record in serialised_records:
+            print("> one good packet")
+            self.assertFalse(fd.IsFinished)
+            self.assertEqual(recv.read(), '')
+            proc.data_received(record)
+
+        print("> done")
+        self.assertEqual(recv.read(), '')
+        self.assertEqual(len(records), len(looper.LoopRecords))
+        for i, rec in enumerate(records):
+            self._assertLoopEqual(rec, looper.LoopRecords[i], i)
+        self.assertTrue(fd.IsFinished)
+
+    def test_on_bad_crc_finds_second_partial_packet_in_buffer_and_decodes(self):
+        # This is pretty much the same as:
+        #   test_on_bad_crc_finds_second_packet_header_in_buffer_and_decodes
+        # except we send a broken packet with missing data, half a packet then
+        # the second half of that second packet.
+        recv = WriteReceiver()
+        log = LogReceiver()
+        looper = LoopReceiver()
+        fd = FinishedDetector()
+
+        proc = LpsProcedure(recv.write, log.log, True, 0.2, 5)
+        proc.loopDataReceived += looper.receiveLoop
+        proc.finished += fd.finished
+
+        records = TestLpsProcedure._make_loop_records(5, 0.2)
+
+        proc.start()
+        self.assertEqual(recv.read(), 'LPS 1 5\n')
+        proc.data_received('\x06')
+
+        serialised_records = [serialise_loop(record, 0.2) for record in records]
+
+        print("> one good packet")
+        self.assertFalse(fd.IsFinished)
+        proc.data_received(serialised_records.pop(0))
+        self.assertEqual(1, len(looper.LoopRecords))
+        self.assertEqual(recv.read(), '')
+
+        # Corrupt record deleting a chunk from the middle
+        rec_2 = serialised_records.pop(0)
+        rec_2 = rec_2[:10] + rec_2[20:]
+        del records[1]
+
+        print("> one short packet combined with a good one")
+        self.assertFalse(fd.IsFinished)
+        rec_3 = serialised_records.pop(0)
+        proc.data_received(rec_2 + rec_3[:50])
+        self.assertEqual(1, len(looper.LoopRecords))
+        proc.data_received(rec_3[50:])
+
+        for record in serialised_records:
+            print("> one good packet")
+            self.assertFalse(fd.IsFinished)
+            self.assertEqual(recv.read(), '')
+            proc.data_received(record)
+
+        print("> done")
+        self.assertEqual(recv.read(), '')
+        self.assertEqual(len(records), len(looper.LoopRecords))
+        for i, rec in enumerate(records):
+            self._assertLoopEqual(rec, looper.LoopRecords[i], i)
+        self.assertTrue(fd.IsFinished)
+
+    def test_start_of_buffer_is_garbage_causes_restart(self):
+        # If a small chunk of data is received (less than 99 bytes) and the
+        # start of the buffer is garbage then the procedure should restart with
+        # however many packets are remaining
+        recv = WriteReceiver()
+        log = LogReceiver()
+        looper = LoopReceiver()
+        fd = FinishedDetector()
+
+        proc = LpsProcedure(recv.write, log.log, True, 0.2, 5)
+        proc.loopDataReceived += looper.receiveLoop
+        proc.finished += fd.finished
+
+        records = TestLpsProcedure._make_loop_records(5, 0.2)
+
+        proc.start()
+        self.assertEqual(recv.read(), 'LPS 1 5\n')
+        proc.data_received('\x06')
+
+        serialised_records = [serialise_loop(record, 0.2) for record in records]
+
+        print("> one good packet")
+        self.assertFalse(fd.IsFinished)
+        proc.data_received(serialised_records.pop(0))
+        self.assertEqual(1, len(looper.LoopRecords))
+
+        print("> Some garbage")
+        self.assertFalse(fd.IsFinished)
+        proc.data_received("Hello, World!")
+        self.assertEqual(1, len(looper.LoopRecords))
+        self.assertEqual(recv.read(), 'LPS 1 4\n')
+        proc.data_received('\x06')
+
+        for record in serialised_records:
+            print("> one good packet")
+            self.assertFalse(fd.IsFinished)
+            self.assertEqual(recv.read(), '')
+            proc.data_received(record)
+
+        print("> done")
+        self.assertEqual(recv.read(), '')
+        self.assertEqual(len(records), len(looper.LoopRecords))
+        for i, rec in enumerate(records):
+            self._assertLoopEqual(rec, looper.LoopRecords[i], i)
+        self.assertTrue(fd.IsFinished)
+
+    def test_short_buffer_tail_detection_restarts_if_fewer_than_5_packets_remaining(self):
+        # If there is less than a full packet in the buffer but the end of
+        # packet sequence is found then it should restart if there are fewer
+        # than 5 packets remaining
+        # If a small chunk of data is received (less than 99 bytes) and the
+        # start of the buffer is garbage then the procedure should restart with
+        # however many packets are remaining
+        recv = WriteReceiver()
+        log = LogReceiver()
+        looper = LoopReceiver()
+        fd = FinishedDetector()
+
+        proc = LpsProcedure(recv.write, log.log, True, 0.2, 5)
+        proc.loopDataReceived += looper.receiveLoop
+        proc.finished += fd.finished
+
+        # Only generate 4 packets - we'll fake one
+        records = TestLpsProcedure._make_loop_records(4, 0.2)
+
+        proc.start()
+        self.assertEqual(recv.read(), 'LPS 1 5\n')
+        proc.data_received('\x06')
+
+        serialised_records = [serialise_loop(record, 0.2) for record in records]
+
+        print("> one good packet")
+        self.assertFalse(fd.IsFinished)
+        proc.data_received(serialised_records.pop(0))
+        self.assertEqual(1, len(looper.LoopRecords))
+
+        print("> Some garbage")
+        self.assertFalse(fd.IsFinished)
+        proc.data_received("\n\r")
+        self.assertEqual(1, len(looper.LoopRecords))
+        self.assertEqual(recv.read(), 'LPS 1 3\n')
+        proc.data_received('\x06')
+
+        for record in serialised_records:
+            print("> one good packet")
+            self.assertFalse(fd.IsFinished)
+            self.assertEqual(recv.read(), '')
+            proc.data_received(record)
+
+        print("> done")
+        self.assertEqual(recv.read(), '')
+        self.assertEqual(len(records), len(looper.LoopRecords))
+        for i, rec in enumerate(records):
+            self._assertLoopEqual(rec, looper.LoopRecords[i], i)
+        self.assertTrue(fd.IsFinished)
+
+    def test_short_buffer_head_detection_restarts_if_fewer_than_5_packets_remaining(self):
+        # If there is less than a full packet in the buffer but a second packet
+        # header are found then it should restart if there are fewer than 5
+        # packets remaining
+        recv = WriteReceiver()
+        log = LogReceiver()
+        looper = LoopReceiver()
+        fd = FinishedDetector()
+
+        proc = LpsProcedure(recv.write, log.log, True, 0.2, 5)
+        proc.loopDataReceived += looper.receiveLoop
+        proc.finished += fd.finished
+
+        records = TestLpsProcedure._make_loop_records(5, 0.2)
+
+        proc.start()
+        self.assertEqual(recv.read(), 'LPS 1 5\n')
+        proc.data_received('\x06')
+
+        serialised_records = [serialise_loop(record, 0.2) for record in records]
+
+        print("> one good packet")
+        self.assertFalse(fd.IsFinished)
+        proc.data_received(serialised_records.pop(0))
+        self.assertEqual(1, len(looper.LoopRecords))
+
+        print("> Some garbage")
+        self.assertFalse(fd.IsFinished)
+        proc.data_received("LOO LOO")
+        self.assertEqual(1, len(looper.LoopRecords))
+        self.assertEqual(recv.read(), 'LPS 1 4\n')
+        proc.data_received('\x06')
+
+        for record in serialised_records:
+            print("> one good packet")
+            self.assertFalse(fd.IsFinished)
+            self.assertEqual(recv.read(), '')
+            proc.data_received(record)
+
+        print("> done")
+        self.assertEqual(recv.read(), '')
+        self.assertEqual(len(records), len(looper.LoopRecords))
+        for i, rec in enumerate(records):
+            self._assertLoopEqual(rec, looper.LoopRecords[i], i)
+        self.assertTrue(fd.IsFinished)
+
+    def test_short_buffer_head_or_tail_detection_patches_buffer(self):
+        # If there is less than a full packet in the buffer but the end of
+        # packet sequence or a second packet header are found then it should
+        # discard the initial short packet.
+        recv = WriteReceiver()
+        log = LogReceiver()
+        looper = LoopReceiver()
+        fd = FinishedDetector()
+
+        proc = LpsProcedure(recv.write, log.log, True, 0.2, 10)
+        proc.loopDataReceived += looper.receiveLoop
+        proc.finished += fd.finished
+
+        # We only generate 9 records as one record will be 'consumed' by the
+        # garbage data test
+        records = TestLpsProcedure._make_loop_records(9, 0.2)
+
+        proc.start()
+        self.assertEqual(recv.read(), 'LPS 1 10\n')
+        proc.data_received('\x06')
+
+        serialised_records = [serialise_loop(record, 0.2) for record in records]
+
+        print("> one good packet")
+        self.assertFalse(fd.IsFinished)
+        proc.data_received(serialised_records.pop(0))
+        self.assertEqual(1, len(looper.LoopRecords))
+
+        print("> Some garbage")
+        self.assertFalse(fd.IsFinished)
+        rec_2 = serialised_records.pop(0)
+        rec_2_a = "LOO " + rec_2[0:50]
+        rec_2_b = rec_2[50:]
+
+        proc.data_received(rec_2_a)
+        self.assertEqual(1, len(looper.LoopRecords))
+        proc.data_received(rec_2_b)
+        self.assertEqual(2, len(looper.LoopRecords))
+
+        for record in serialised_records:
+            print("> one good packet")
+            self.assertFalse(fd.IsFinished)
+            self.assertEqual(recv.read(), '')
+            proc.data_received(record)
+
+        print("> done")
+        self.assertEqual(recv.read(), '')
+        self.assertEqual(len(records), len(looper.LoopRecords))
+        for i, rec in enumerate(records):
+            self._assertLoopEqual(rec, looper.LoopRecords[i], i)
+        self.assertTrue(fd.IsFinished)
+
+    def test_multiple_crc_errors_are_handled(self):
+        recv = WriteReceiver()
+        log = LogReceiver()
+        looper = LoopReceiver()
+        fd = FinishedDetector()
+
+        proc = LpsProcedure(recv.write, log.log, True, 0.2, 5)
+        proc.loopDataReceived += looper.receiveLoop
+        proc.finished += fd.finished
+
+        records = TestLpsProcedure._make_loop_records(5, 0.2)
+
+        proc.start()
+        # receive: LPS 1 5\n
+        proc.data_received('\x06')
+
+        serialised_records = [serialise_loop(record, 0.2) for record in records]
+
+        # Corrupt record 2 by overwriting some of it with garbage
+        rec_2 = serialised_records[2]
+        rec_2 = rec_2[0:50] + 'Hello, World!' + rec_2[63:]
+        serialised_records[2] = rec_2
+
+        # and throw away the corrupted record from the list of what we're
+        # expecting back.
+        del records[2]
+
+        rec_3 = serialised_records[3]
+        rec_3 = rec_3[0:50] + 'Hello, World!' + rec_3[63:]
+        serialised_records[3] = rec_3
+
+        # and throw away the corrupted record from the list of what we're
+        # expecting back. This ones ID is #2 as well becuase we deleted the last
+        # one.
+        del records[2]
+
+        for record in serialised_records:
+            self.assertFalse(fd.IsFinished)
+            proc.data_received(record)
+
+        self.assertEqual(len(records), len(looper.LoopRecords))
+        for i, rec in enumerate(records):
+            self._assertLoopEqual(rec, looper.LoopRecords[i], i)
+        self.assertTrue(fd.IsFinished)
+
+    def test_short_buffer_tail_detection_restarts_garbage_follows(self):
+        # If there is less than a full packet in the buffer but the end of
+        # packet sequence is found then it should restart if there are fewer
+        # than 5 packets remaining
+        # If a small chunk of data is received (less than 99 bytes) and the
+        # start of the buffer is garbage then the procedure should restart with
+        # however many packets are remaining
+        recv = WriteReceiver()
+        log = LogReceiver()
+        looper = LoopReceiver()
+        fd = FinishedDetector()
+
+        proc = LpsProcedure(recv.write, log.log, True, 0.2, 10)
+        proc.loopDataReceived += looper.receiveLoop
+        proc.finished += fd.finished
+
+        # Only generate 9 packets - we'll fake one.
+        records = TestLpsProcedure._make_loop_records(9, 0.2)
+
+        proc.start()
+        self.assertEqual(recv.read(), 'LPS 1 10\n')
+        proc.data_received('\x06')
+
+        serialised_records = [serialise_loop(record, 0.2) for record in records]
+
+        print("> one good packet")
+        self.assertFalse(fd.IsFinished)
+        proc.data_received(serialised_records.pop(0))
+        self.assertEqual(1, len(looper.LoopRecords))
+
+        print("> Some garbage")
+        self.assertFalse(fd.IsFinished)
+        proc.data_received("LOO\n\rHELLO!")
+        self.assertEqual(1, len(looper.LoopRecords))
+        self.assertEqual(recv.read(), 'LPS 1 8\n')
+        proc.data_received('\x06')
+
+        for record in serialised_records:
+            print("> one good packet")
+            self.assertFalse(fd.IsFinished)
+            self.assertEqual(recv.read(), '')
+            proc.data_received(record)
+            print("Recv pkt: {0}".format(len(looper.LoopRecords)))
+
+        print("> done")
+        self.assertEqual(recv.read(), '')
+        self.assertEqual(len(records), len(looper.LoopRecords))
+        for i, rec in enumerate(records):
+            self._assertLoopEqual(rec, looper.LoopRecords[i], i)
+        self.assertTrue(fd.IsFinished)
+
+    def test_finishes_on_fault_reset_if_waiting_for_last_packet(self):
+        recv = WriteReceiver()
+        log = LogReceiver()
+        looper = LoopReceiver()
+        fd = FinishedDetector()
+
+        proc = LpsProcedure(recv.write, log.log, True, 0.2, 2)
+        proc.loopDataReceived += looper.receiveLoop
+        proc.finished += fd.finished
+
+        records = TestLpsProcedure._make_loop_records(2, 0.2)
+
+        proc.start()
+        self.assertEqual(recv.read(), 'LPS 1 2\n')
+        proc.data_received('\x06')
+
+        serialised_records = [serialise_loop(record, 0.2) for record in records]
+
+        print("> one good packet")
+        self.assertFalse(fd.IsFinished)
+        proc.data_received(serialised_records.pop(0))
+        self.assertEqual(1, len(looper.LoopRecords))
+
+        print("> Some garbage")
+        self.assertFalse(fd.IsFinished)
+        proc.data_received("LOO\n\rHELLO!")
+        self.assertEqual('', recv.read())
+        self.assertEqual(1, len(looper.LoopRecords))
+        self._assertLoopEqual(records[0], looper.LoopRecords[0], 1)
+        self.assertTrue(fd.IsFinished)
+
+    def test_cancel(self):
+        # On cancel it should send the cancel sequence to the station and stop
+        # processing any further received LOOP packets. The finished event
+        # should fire once this is done.
+
+        recv = WriteReceiver()
+        log = LogReceiver()
+        looper = LoopReceiver()
+        fd = FinishedDetector()
+
+        proc = LpsProcedure(recv.write, log.log, True, 0.2, 10)
+        proc.loopDataReceived += looper.receiveLoop
+        proc.finished += fd.finished
+
+        records = TestLpsProcedure._make_loop_records(10, 0.2)
+
+        proc.start()
+        # receive: LPS 1 5\n
+        proc.data_received('\x06')
+
+        for record in records[0:5]:
+            proc.data_received(serialise_loop(record, 0.2))
+
+        self.assertFalse(fd.IsFinished)
+        self.assertEqual(5, len(looper.LoopRecords))
+        for i, record in enumerate(records[0:5]):
+            self._assertLoopEqual(record, looper.LoopRecords[i], i)
+
+        proc.cancel()
+        self.assertEqual('\n', recv.read())
+        self.assertTrue(fd.IsFinished)
+        self.assertEqual(5, len(looper.LoopRecords))
+        for i, record in enumerate(records[0:5]):
+            self._assertLoopEqual(record, looper.LoopRecords[i], i)
+
+    def test_cancel_does_nothing_if_finished_or_not_started(self):
+        recv = WriteReceiver()
+        log = LogReceiver()
+        looper = LoopReceiver()
+        fd = FinishedDetector()
+
+        proc = LpsProcedure(recv.write, log.log, True, 0.2, 10)
+        proc.loopDataReceived += looper.receiveLoop
+        proc.finished += fd.finished
+
+        records = TestLpsProcedure._make_loop_records(10, 0.2)
+
+        proc.cancel()
+        self.assertEqual('', recv.read())
+
+        proc.start()
+        # receive: LPS 1 5\n
+        proc.data_received('\x06')
+
+        for record in records:
+            proc.data_received(serialise_loop(record, 0.2))
+
+        recv.read()  # Clear the receive buffer
+        proc.cancel()
+        self.assertEqual('', recv.read())
 
 # TODO: Query console for enabled sensors & any other useful config
 # TODO: Check test coverage for everything

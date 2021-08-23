@@ -7,8 +7,9 @@ import datetime
 from twisted.python import log
 
 from davis_logger.record_types.dmp import encode_date, encode_time, split_page, deserialise_dmp
+from davis_logger.record_types.loop import deserialise_loop
 from davis_logger.record_types.util import CRC
-from davis_logger.util import Event
+from davis_logger.util import Event, to_hex_string
 
 __author__ = 'david'
 
@@ -137,7 +138,7 @@ class DstSwitchProcedure(SequentialProcedure):
         """
         Starts the procedure
         """
-        log.msg("Started changing DST setting")
+        self._log("Started changing DST setting")
         self._start_eeprom_write()
 
     def _start_eeprom_write(self):
@@ -254,7 +255,7 @@ class DstSwitchProcedure(SequentialProcedure):
         calculated_crc = CRC.calculate_crc(self._buffer[1:7])
 
         if packet_crc != calculated_crc:
-            log.msg("CRC Error: {0} != {1}".format(packet_crc, calculated_crc))
+            self._log("CRC Error: {0} != {1}".format(packet_crc, calculated_crc))
             assert packet_crc != calculated_crc
 
         seconds = self._buffer[1]
@@ -334,7 +335,7 @@ class DstSwitchProcedure(SequentialProcedure):
         # < ACK          <-- This function
 
         assert self._buffer[0:1] == self._ACK
-        log.msg("DST changed.")
+        self._log("DST changed.")
         self._state = self._STATE_READY
         self._complete()
 
@@ -654,15 +655,11 @@ class DmpProcedure(SequentialProcedure):
             return
 
         assert(isinstance(self._from_time, datetime.datetime))
-            # Now we send the timestamp.
-        #if isinstance(self._dmp_timestamp, datetime.datetime):
+
+        # Now we send the timestamp.
         date_stamp = encode_date(self._from_time.date())
         time_stamp = encode_time(self._from_time.time())
         packed = struct.pack('<HH', date_stamp, time_stamp)
-        # else:
-        #     packed = struct.pack('<HH',
-        #                          self._dmp_timestamp[0],
-        #                          self._dmp_timestamp[1])
 
         self._buffer = bytearray()
         crc = CRC.calculate_crc(packed)
@@ -749,7 +746,7 @@ class DmpProcedure(SequentialProcedure):
                     self._state = self._STATE_READY
                     self._process_dmp_records()
             else:
-                log.msg('CRC Failed')
+                self._log('CRC Failed')
                 # CRC failed. Ask for the page to be sent again.
                 self._write(self._NAK)
 
@@ -819,3 +816,236 @@ class DmpProcedure(SequentialProcedure):
 
         self.ArchiveRecords = decoded_records
         self._complete()
+
+
+class LpsProcedure(SequentialProcedure):
+    """
+    Receives LOOP (and, when supported, LOOP2) data from the station
+    """
+    _STATE_READY = 1
+    _STATE_RECEIVING = 2
+
+    def __init__(self, write_callback, log_callback, lps_supported,
+                 rain_collector_size, packet_count):
+        """
+        Fetches archive records from the station console/envoy
+        :param write_callback: Callback to send data to the station
+        :type write_callback: Callable
+        :param log_callback: Callback to produce log messages
+        :type log_callback: Callable
+        :param lps_supported: If the LPS command (and LOOP2 structure) is supported
+        :type lps_supported: bool
+        :param rain_collector_size: Rain collector size in millimeters
+        :type rain_collector_size: float
+        :param packet_count: Number of packets to request
+        :type packet_count: int
+        """
+        super(LpsProcedure, self).__init__(write_callback, log_callback)
+
+        self.loopDataReceived = Event()
+
+        self._rain_collector_size = rain_collector_size
+        self._lps_supported = lps_supported
+        self._lps_packets_remaining = packet_count
+
+        self._crc_errors = 0
+        self._last_crc_error = None
+
+        assert(packet_count <= 200)
+
+        self.Name = "Receive live data"
+
+        self._handlers = {
+            self._STATE_READY: None,
+            self._STATE_RECEIVING: self._receive_lps_data
+        }
+
+        self._lps_acknowledged = False
+
+    def start(self):
+        """Starts the procedure."""
+        self._state = self._STATE_READY
+        self._str_buffer = ""
+        self._buffer = bytes()
+        self._lps_acknowledged = False
+
+        if self._lps_supported:
+            self._transition('LPS 1 ' + str(self._lps_packets_remaining) + '\n')
+        else:
+            self._transition('LOOP ' + str(self._lps_packets_remaining) + '\n')
+
+    def cancel(self):
+        """
+        Cancels the current LOOP process and raises the finished event.
+        """
+        if self._state == self._STATE_READY:
+            return  # Nothing to cancel.
+
+        self._lps_packets_remaining = 0
+        self._write('\n')
+        self._state = self._STATE_READY
+        self._complete()
+
+    def _lpsFaultReset(self):
+        """
+        Resets the current LPS command. For when things go badly wrong and there
+        isn't any other safe way to recover.
+        :return:
+        """
+        if self._lps_packets_remaining <= 0:
+            self._log("No more packets to requst - completing.")
+            self._complete()
+            return
+        self.start()
+
+    def _receive_lps_data(self):
+        """
+        Handles data while in the LPS state (receiving LOOP packets)
+        """
+
+        if not self._lps_acknowledged and self._str_buffer[0:1] == self._ACK:
+            self._lps_acknowledged = True
+            self._str_buffer = self._str_buffer[1:]
+            # TODO: Update test_consumes_ack when switching from _str_buffer to _buffer.
+
+        # The LPS command hasn't been acknowledged yet so we're not *really*
+        # in LPS mode just yet. Who knows what data we received to end up
+        # here but this is probably bad. We'll just try to enter LPS mode again.
+        if not self._lps_acknowledged:
+            # If we've gotten here that means an attempt has just been made to
+            # enter LPS mode. The current value in _lps_packets_remaining should
+            # be the number of LPS packets originally requested. So We'll just
+            # say the attempt to enter LPS mode failed and we'll make another
+            # attempt.
+            self._log('WARNING: LPS mode not acknowledged. Retrying...\n'
+                    'Buffer contents is: {0}'.format(to_hex_string(self._str_buffer)))
+            self.start()
+            return
+
+        if len(self._str_buffer) > 98:
+            while len(self._str_buffer) > 98:
+                # self._log('LOOP_DEC. BufferLen={0}, Pkt={1}, Buffer={2}'.format(
+                #     len(self._str_buffer), self._lps_packets_remaining,
+                #     toHexString(self._str_buffer)
+                # ))
+
+                # We have at least one full LOOP packet
+                packet = self._str_buffer[0:99]
+                self._str_buffer = self._str_buffer[99:]
+
+                self._lps_packets_remaining -= 1
+
+                packet_data = packet[0:97]
+                packet_crc = struct.unpack(CRC.FORMAT, packet[97:])[0]
+
+                crc = CRC.calculate_crc(packet_data)
+                if crc != packet_crc:
+                    self._crc_errors += 1
+                    if self._last_crc_error is None:
+                        last_crc = 'Never'
+                    else:
+                        last_crc = str(self._last_crc_error)
+                    self._log('Warning: CRC validation failed for LOOP packet. '
+                              'Discarding. Expected: {0}, got: {1}. '
+                              'This is CRC Error #{4}, last was {5}\n'
+                              'Packet data: {2}\nBuffer data: {3}'.format(
+                        packet_crc, crc, to_hex_string(packet_data),
+                        to_hex_string(self._str_buffer), self._crc_errors,
+                        last_crc))
+                    self._last_crc_error = datetime.datetime.now()
+
+                    # Now, at this point its possible a mess may have been made. The
+                    # errors I see come through are where some data was lost in
+                    # transmission resulting in a very short loop packet. Part of
+                    # the next loop packet ends up being stolen by the corrupt one
+                    # resulting in all subsequent loop packets being broken too.
+                    # So to take care of this situation we will search back through
+                    # the bad loop packet looking for the string "LOO" and insert
+                    # everything from that point back into the start of the buffer.
+
+                    # Every LOOP packet should end with \n\r followed by its
+                    # two-byte CRC. If this packet doesn't do that then some of it
+                    # was probably lost in transmission and part of it actually
+                    # belongs to the next packet.
+                    if packet[-4:-2] != '\n\r':
+                        # the packet is short. Go looking a second packet header.
+
+                        self._log('WARNING! End of current packet is corrupt.')
+                        end_of_packet = packet.find('\n\r')
+                        next_packet = packet.find('LOO', end_of_packet)
+
+                        if next_packet >= 0:
+                            self._log("WARNING! Found next packet data within current "
+                                      "packet at position {0}. Current packet is {1} "
+                                      "bytes short. Attempting to patch up buffer."
+                                      .format(next_packet, (99 - next_packet)))
+                            next_packet_data = packet[next_packet:]
+                            self._str_buffer = next_packet_data + self._str_buffer
+
+                        # If we didn't find a second packet header then something
+                        # is properly wrong. Just restart the LOOP command and
+                        # everything *should* be OK.
+                        if len(self._str_buffer) < 3 or \
+                                self._str_buffer[0:3] != "LOO":
+                            self._log('WARNING! Buffer is corrupt. Attempting to '
+                                      'recover by restarting LOOP command.')
+                            self._lpsFaultReset()
+                            return
+
+                else:
+                    # CRC checks out. Data should be good
+                    loop = deserialise_loop(packet_data, self._rain_collector_size)
+
+                    self.loopDataReceived.fire(loop)
+
+                if self._lps_packets_remaining <= 0:
+                    self._state = self._STATE_READY
+                    self._complete()
+        elif len(self._str_buffer) > 3 and self._str_buffer[0:3] != "LOO":
+            # The packet buffer is corrupt. It should *always* start with the
+            # string "LOO" (as all LOOP packets start with that).
+            # It isn't really safe to assume anything about the state of the
+            # LOOP command at this point. Best just to reset it and continue
+            # on.
+            self._log("WARNING: Buffer contents is invalid. Discarding and "
+                      "resetting LOOP process...")
+            self._log("Buffer contents: {0}".format(
+                to_hex_string(self._str_buffer)))
+            self._lpsFaultReset()
+            return
+        elif self._str_buffer.find("\n\r") >= 0 or \
+                self._str_buffer[3:].find("LOO") >= 0:
+            # 1. The current packet terminated early (length is <98 and we found
+            #    the end-of-packet marker)
+            # OR
+            # 2. We found the start of a second packet in the current packet
+            #    buffer
+            # Either way some data has gone missing and the packet buffer
+            # is full of garbage. We'll try to throw out the first (bad) packet.
+
+            next_packet = self._str_buffer.find('LOO', 3)
+            if next_packet >= 0:
+                # Its not safe to try and patch if we're running out of LOOP
+                # packets.
+                if self._lps_packets_remaining < 5:
+                    self._log("WARNING: A second packet header was detected in the"
+                              "buffer. Resetting LOOP process...")
+                    self._lpsFaultReset()
+                    return
+
+                self._log("WARNING! A second packet header was detected in the "
+                          "buffer. First packet is corrupt. Attempting to fix "
+                          "buffer...")
+
+                self._log("Found second packet in buffer at position {0}. "
+                          "Current packet is {1} bytes short.".format(
+                    next_packet, (99 - next_packet)))
+                self._str_buffer = self._str_buffer[next_packet:]
+                self._lps_packets_remaining -= 1
+            else:
+                self._log("End of packet sequence was detected but no "
+                          "subsequent packet could be found in buffer. "
+                          "Resetting LOOP process...")
+                self._lps_packets_remaining -= 1
+                self._lpsFaultReset()
+                return
