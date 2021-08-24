@@ -2602,10 +2602,12 @@ class TestLpsProcedure(unittest.TestCase):
         log = LogReceiver()
         looper = LoopReceiver()
         fd = FinishedDetector()
+        cd = FinishedDetector()
 
         proc = LpsProcedure(recv.write, log.log, True, 0.2, 10)
         proc.loopDataReceived += looper.receiveLoop
         proc.finished += fd.finished
+        proc.canceled += cd.finished
 
         records = TestLpsProcedure._make_loop_records(10, 0.2)
 
@@ -2617,15 +2619,18 @@ class TestLpsProcedure(unittest.TestCase):
             proc.data_received(serialise_loop(record, 0.2))
 
         self.assertFalse(fd.IsFinished)
+        self.assertFalse(cd.IsFinished)
         self.assertEqual(5, len(looper.LoopRecords))
         for i, record in enumerate(records[0:5]):
             self._assertLoopEqual(record, looper.LoopRecords[i], i)
 
         proc.cancel()
         self.assertFalse(fd.IsFinished)
+        self.assertFalse(cd.IsFinished)
         self.assertEqual('\n', recv.read())
         proc.data_received("\n\r")
-        self.assertTrue(fd.IsFinished)
+        self.assertTrue(cd.IsFinished)
+        self.assertFalse(fd.IsFinished)
         self.assertEqual(5, len(looper.LoopRecords))
         for i, record in enumerate(records[0:5]):
             self._assertLoopEqual(record, looper.LoopRecords[i], i)

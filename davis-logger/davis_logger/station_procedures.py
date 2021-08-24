@@ -849,6 +849,7 @@ class LpsProcedure(SequentialProcedure):
         self._lps_supported = lps_supported
         self._request_size = packet_count
         self._lps_packets_remaining = packet_count
+        self.canceled = Event()
 
         self._crc_errors = 0
         self._last_crc_error = None
@@ -924,7 +925,7 @@ class LpsProcedure(SequentialProcedure):
             # be the number of LPS packets originally requested. So We'll just
             # say the attempt to enter LPS mode failed and we'll make another
             # attempt.
-            self._log('WARNING: LPS mode not acknowledged. Retrying...\n'
+            self._log('LPS mode not acknowledged. Retrying...\n'
                     'Buffer contents is: {0}'.format(to_hex_string(self._str_buffer)))
             self.start()
             return
@@ -932,7 +933,7 @@ class LpsProcedure(SequentialProcedure):
         if self._canceling and self._str_buffer == '\n\r':
             self._canceling = False
             self._state = self._STATE_READY
-            self._complete()
+            self.canceled.fire()
             return
 
         if len(self._str_buffer) > 98:
