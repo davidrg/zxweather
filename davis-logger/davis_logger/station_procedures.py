@@ -846,6 +846,7 @@ class LpsProcedure(SequentialProcedure):
 
         self._rain_collector_size = rain_collector_size
         self._lps_supported = lps_supported
+        self._request_size = packet_count
         self._lps_packets_remaining = packet_count
 
         self._crc_errors = 0
@@ -868,6 +869,9 @@ class LpsProcedure(SequentialProcedure):
         self._str_buffer = ""
         self._buffer = bytes()
         self._lps_acknowledged = False
+
+        if self._lps_packets_remaining <= 0:
+            self._lps_packets_remaining = self._request_size
 
         if self._lps_supported:
             self._transition('LPS 1 ' + str(self._lps_packets_remaining) + '\n')

@@ -2632,6 +2632,45 @@ class TestLpsProcedure(unittest.TestCase):
         proc.cancel()
         self.assertEqual('', recv.read())
 
+    def test_can_be_restarted(self):
+        recv = WriteReceiver()
+        log = LogReceiver()
+        looper = LoopReceiver()
+        fd = FinishedDetector()
+
+        proc = LpsProcedure(recv.write, log.log, True, 0.2, 5)
+        proc.loopDataReceived += looper.receiveLoop
+        proc.finished += fd.finished
+
+        records = TestLpsProcedure._make_loop_records(5, 0.2)
+
+        proc.start()
+        # receive: LPS 1 5\n
+        proc.data_received('\x06')
+
+        for record in records:
+            proc.data_received(serialise_loop(record, 0.2))
+
+        self.assertTrue(fd.IsFinished)
+        self.assertEqual(5, len(looper.LoopRecords))
+        for i, record in enumerate(records):
+            self._assertLoopEqual(record, looper.LoopRecords[i], i)
+
+        records_2 = TestLpsProcedure._make_loop_records(5, 0.2)
+        proc.start()
+        # receive: LPS 1 5\n
+        proc.data_received('\x06')
+
+        for record in records_2:
+            proc.data_received(serialise_loop(record, 0.2))
+
+        records += records_2
+
+        self.assertTrue(fd.IsFinished)
+        self.assertEqual(10, len(looper.LoopRecords))
+        for i, record in enumerate(records):
+            self._assertLoopEqual(record, looper.LoopRecords[i], i)
+
 # TODO: Query console for enabled sensors & any other useful config
 # TODO: Check test coverage for everything
 # TODO: check CRC error handling for all procedures except DMP (it already handles it)
