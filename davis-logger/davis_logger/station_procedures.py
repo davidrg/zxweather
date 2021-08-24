@@ -863,6 +863,7 @@ class LpsProcedure(SequentialProcedure):
         }
 
         self._lps_acknowledged = False
+        self._canceling = False
 
     def start(self):
         """Starts the procedure."""
@@ -884,12 +885,13 @@ class LpsProcedure(SequentialProcedure):
         Cancels the current LOOP process and raises the finished event.
         """
         if self._state == self._STATE_READY:
+            self._log("Loop cancel: not looping, nothing to cancel.")
             return  # Nothing to cancel.
 
+        self._log("Loop canceled.")
         self._lps_packets_remaining = 0
+        self._canceling = True
         self._write('\n')
-        self._state = self._STATE_READY
-        self._complete()
 
     def _lpsFaultReset(self):
         """
@@ -925,6 +927,12 @@ class LpsProcedure(SequentialProcedure):
             self._log('WARNING: LPS mode not acknowledged. Retrying...\n'
                     'Buffer contents is: {0}'.format(to_hex_string(self._str_buffer)))
             self.start()
+            return
+
+        if self._canceling and self._str_buffer == '\n\r':
+            self._canceling = False
+            self._state = self._STATE_READY
+            self._complete()
             return
 
         if len(self._str_buffer) > 98:

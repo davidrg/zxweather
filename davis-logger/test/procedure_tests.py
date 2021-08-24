@@ -2622,7 +2622,9 @@ class TestLpsProcedure(unittest.TestCase):
             self._assertLoopEqual(record, looper.LoopRecords[i], i)
 
         proc.cancel()
+        self.assertFalse(fd.IsFinished)
         self.assertEqual('\n', recv.read())
+        proc.data_received("\n\r")
         self.assertTrue(fd.IsFinished)
         self.assertEqual(5, len(looper.LoopRecords))
         for i, record in enumerate(records[0:5]):
