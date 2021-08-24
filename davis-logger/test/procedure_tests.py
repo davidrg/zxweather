@@ -1728,6 +1728,28 @@ class TestDmpProcedure(unittest.TestCase):
 
         self._assertDmpEqual(expected, deserialised, 0)
 
+    def test_no_pages_to_download(self):
+        recv = WriteReceiver()
+        log = LogReceiver()
+        fd = FinishedDetector()
+
+        proc = DmpProcedure(recv.write, log.log,
+                            datetime.datetime(2021, 8, 18, 20, 42),
+                            0.2)
+        proc.finished += fd.finished
+
+        proc.start()
+        self.assertEqual(b'DMPAFT\n', recv.Data)
+        proc.data_received(b'\x06')  # ACK
+        # Receive: '\x12+\xfa\x07\x0c\x15' (timestamp)
+        proc.data_received(b'\x06')  # ACK
+
+        proc.data_received(TestDmpProcedure._page_count(0, 0))
+
+        self.assertTrue(fd.IsFinished)
+
+        self.assertEqual(0, len(proc.ArchiveRecords))
+        self.assertListEqual([], proc.ArchiveRecords)
 
 class TestLpsProcedure(unittest.TestCase):
     @staticmethod

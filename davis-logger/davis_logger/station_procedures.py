@@ -718,6 +718,7 @@ class DmpProcedure(SequentialProcedure):
 
         if page_count <= 0:
             # Let everyone know we're done.
+            self.ArchiveRecords = []  # No archive records.
             self._complete()
 
     def _receive_archive_records(self):
