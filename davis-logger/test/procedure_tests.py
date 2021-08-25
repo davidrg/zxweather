@@ -2905,8 +2905,3 @@ class TestLpsProcedure(unittest.TestCase):
         for i, record in enumerate(records):
             self._assertLoopEqual(record, looper.LoopRecords[i], i)
 
-# TODO: Query console for enabled sensors & any other useful config
-# TODO: Check test coverage for everything
-# TODO: check CRC error handling for all procedures except DMP (it already handles it)
-# TODO: LOOP
-# TODO: DavisWeatherStation

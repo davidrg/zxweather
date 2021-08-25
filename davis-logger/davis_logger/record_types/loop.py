@@ -126,7 +126,7 @@ def decode_time(int_time):
         string = '0' + string
 
     if len(string) != 4:
-        raise Exception('invalid timestamp')
+        raise Exception('invalid timestamp: {0}'.format(int_time))
 
     hour = string[0:2]
     minute = string[2:]

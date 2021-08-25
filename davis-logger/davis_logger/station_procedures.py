@@ -716,9 +716,6 @@ class DmpProcedure(SequentialProcedure):
             # Let everyone know we're done.
             self.ArchiveRecords = []  # No archive records.
 
-            # No data to receive. Cancel the op.
-            self._write('\x1B')
-
             self._complete()
             return
 
@@ -906,10 +903,10 @@ class LpsProcedure(SequentialProcedure):
         Cancels the current LOOP process and raises the canceled event.
         """
         if self._state == self._STATE_READY:
-            self._log("Loop cancel: not looping, nothing to cancel.")
+            # self._log("Loop cancel: not looping, nothing to cancel.")
             return  # Nothing to cancel.
 
-        self._log("Canceling loop...")
+        #self._log("Canceling loop...")
         self._canceling = True
         self._write('\n')
 
@@ -918,6 +915,7 @@ class LpsProcedure(SequentialProcedure):
 
     def _cancel_check(self):
         if self._canceling:
+            self._log("Retrying cancel")
             # Cancel hasn't completed after 3 seconds. Something probably went
             # wrong - perhaps the \n went missing due to line noise. Try again.
             self.cancel()
@@ -941,7 +939,7 @@ class LpsProcedure(SequentialProcedure):
             return
 
         if self._lps_packets_remaining <= 0:
-            self._log("No more packets to requst - completing.")
+            self._log("No more packets to request - completing.")
             self._complete()
             return
         self.start()
