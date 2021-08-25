@@ -19,8 +19,8 @@ def f_to_c(f):
 
 def mph_to_ms(mph):
     """Miles per hour to meters per second"""
-    metersInMile = (3600.0 / 3937.0) * 1760.0
-    mh = mph * metersInMile
+    meters_in_mile = (3600.0 / 3937.0) * 1760.0
+    mh = mph * meters_in_mile
     return mh / 3600.0
 
 
@@ -44,13 +44,11 @@ def inhg_to_mb(inhg):
     Convert inches of mercury (in Hg) to hectopascals (hPa, aka millibars)
     """
     return (inhg * 1013.25) / 29.92
-    #return inhg * (1015.92 / 30.0)
 
 
 def mb_to_inhg(mb):
     """ Convert hectopascals to inches of mercury """
     return (29.92 * mb) / 1013.25
-    #return mb * (30.0 / 1015.92)
 
 
 class CRC(object):
@@ -99,7 +97,7 @@ class CRC(object):
     FORMAT = '>H'
 
     @staticmethod
-    def calculate_str_crc(byte_string):
+    def _calculate_str_crc(byte_string):
         crc = 0
 
         for byte in byte_string:
@@ -120,7 +118,7 @@ class CRC(object):
         """
 
         if isinstance(byte_string, str):
-            return CRC.calculate_str_crc(byte_string)
+            return CRC._calculate_str_crc(byte_string)
 
         crc = 0
 
@@ -180,39 +178,39 @@ def dash_8bit(value):
         return value
 
 
-def deserialise_16bit_temp(temp, minDashed=False):
+def deserialise_16bit_temp(temp, min_dashed=False):
     """
     Converts the 16bit temperature value to degrees C. If its dashed it
     converts it to None instead.
     :param temp: Temperature to convert
     :type temp: int
-    :param minDashed: If the minimum dashed value (-32768) should be used
+    :param min_dashed: If the minimum dashed value (-32768) should be used
     instead
-    :type minDashed: bool
+    :type min_dashed: bool
     :return: Temperature in degrees C
     :rtype: float or None
     """
 
-    if temp == 32767 and not minDashed:
+    if temp == 32767 and not min_dashed:
         return None
-    elif temp == -32768 and minDashed:
+    elif temp == -32768 and min_dashed:
         return None
     else:
         return f_to_c(temp / 10.0)
 
 
-def serialise_16bit_temp(temp, minDashed=False):
+def serialise_16bit_temp(temp, min_dashed=False):
     """
     Converts the supplied 16bit temperature to the format used by DMP records.
     :param temp: The temperature to convert
     :type temp: float
-    :param minDashed: If the minimum dashed value should be used
-    :type minDashed: bool
+    :param min_dashed: If the minimum dashed value should be used
+    :type min_dashed: bool
     :return: temp value
     :rtype: int
     """
 
-    if temp is None and minDashed:
+    if temp is None and min_dashed:
         return -32768
     elif temp is None:
         return 32767

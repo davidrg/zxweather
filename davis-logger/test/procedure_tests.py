@@ -929,55 +929,55 @@ class TestDmpProcedure(unittest.TestCase):
             if gust_wind_speed > 0:
                 gust_direction = random.choice(_compass_points)
 
-            d = Dmp(dateStamp=ts.date(),
-                    timeStamp=ts.time(),
-                    timeZone=None,
-                    dateInteger=encode_date(ts.date()),
-                    timeInteger=encode_time(ts.time()),
-                    outsideTemperature=round(random.uniform(-3, 35), 1),
-                    highOutsideTemperature=round(random.uniform(-3, 35), 1),
-                    lowOutsideTemperature=round(random.uniform(-3, 35), 1),
+            d = Dmp(date_stamp=ts.date(),
+                    time_stamp=ts.time(),
+                    time_zone=None,
+                    date_integer=encode_date(ts.date()),
+                    time_integer=encode_time(ts.time()),
+                    outside_temperature=round(random.uniform(-3, 35), 1),
+                    high_outside_temperature=round(random.uniform(-3, 35), 1),
+                    low_outside_temperature=round(random.uniform(-3, 35), 1),
                     rainfall=round(random.uniform(0, 300), 1),
-                    highRainRate=round(random.uniform(0, 500), 1),
+                    high_rain_rate=round(random.uniform(0, 500), 1),
                     barometer=round(random.uniform(985.9, 1039.3), 1),
-                    solarRadiation=int(random.uniform(0, 1628)),
-                    numberOfWindSamples=int(random.uniform(0, max_wind_samples)),
-                    insideTemperature=round(random.uniform(-3, 35), 1),
-                    insideHumidity=int(random.uniform(0, 100)),
-                    outsideHumidity=int(random.uniform(0, 100)),
-                    averageWindSpeed=wind_speed,
-                    highWindSpeed=gust_wind_speed,
-                    highWindSpeedDirection=gust_direction,
-                    prevailingWindDirection=wind_direction,
-                    averageUVIndex=round(random.uniform(0, 14), 1),
-                    ET=round(random.uniform(0, 1), 1),
-                    highSolarRadiation=int(random.uniform(0, 1628)),
-                    highUVIndex=round(random.uniform(0, 14), 1),
-                    forecastRule=int(random.uniform(0, 196)),
-                    leafTemperature=[
+                    solar_radiation=int(random.uniform(0, 1628)),
+                    number_of_wind_samples=int(random.uniform(0, max_wind_samples)),
+                    inside_temperature=round(random.uniform(-3, 35), 1),
+                    inside_humidity=int(random.uniform(0, 100)),
+                    outside_humidity=int(random.uniform(0, 100)),
+                    average_wind_speed=wind_speed,
+                    high_wind_speed=gust_wind_speed,
+                    high_wind_speed_direction=gust_direction,
+                    prevailing_wind_direction=wind_direction,
+                    average_uv_index=round(random.uniform(0, 14), 1),
+                    evapotranspiration=round(random.uniform(0, 1), 1),
+                    high_solar_radiation=int(random.uniform(0, 1628)),
+                    high_uv_index=round(random.uniform(0, 14), 1),
+                    forecast_rule=int(random.uniform(0, 196)),
+                    leaf_temperatures=[
                         round(random.uniform(-3, 35), 1),
                         round(random.uniform(-3, 35), 1)
                     ],
-                    leafWetness=[
+                    leaf_wetness=[
                         int(random.uniform(0, 15)),
                         int(random.uniform(0, 15))
                     ],
-                    soilTemperatures=[
+                    soil_temperatures=[
                         round(random.uniform(-3, 35), 1),
                         round(random.uniform(-3, 35), 1),
                         round(random.uniform(-3, 35), 1),
                         round(random.uniform(-3, 35), 1)
                     ],
-                    extraHumidities=[
+                    extra_humidities=[
                         int(random.uniform(0, 100)),
                         int(random.uniform(0, 100))
                     ],
-                    extraTemperatures=[
+                    extra_temperatures=[
                         round(random.uniform(-3, 35), 1),
                         round(random.uniform(-3, 35), 1),
                         round(random.uniform(-3, 35), 1)
                     ],
-                    soilMoistures=[
+                    soil_moistures=[
                         int(round(random.uniform(0, 254), 0)),
                         int(round(random.uniform(0, 254), 0)),
                         int(round(random.uniform(0, 254), 0)),
@@ -1649,55 +1649,55 @@ class TestDmpProcedure(unittest.TestCase):
         # values to None for the purpose of making the database easy to deal
         # with. These situations are noted below.
         expected = Dmp(
-            dateStamp=ts.date(),
-            timeStamp=ts.time(),
-            timeZone=None,
-            dateInteger=encode_date(ts.date()),
-            timeInteger=encode_time(ts.time()),
-            outsideTemperature=None,
-            highOutsideTemperature=None,
-            lowOutsideTemperature=None,
+            date_stamp=ts.date(),
+            time_stamp=ts.time(),
+            time_zone=None,
+            date_integer=encode_date(ts.date()),
+            time_integer=encode_time(ts.time()),
+            outside_temperature=None,
+            high_outside_temperature=None,
+            low_outside_temperature=None,
             rainfall=0,  # Null is deserialised to 0
-            highRainRate=0,  # Null is deserialised to 0
+            high_rain_rate=0,  # Null is deserialised to 0
             barometer=0,  # Null is deserialised to 0
-            solarRadiation=None,
-            numberOfWindSamples=0,  # Null is deserialised to 0
-            insideTemperature=None,
-            insideHumidity=None,
-            outsideHumidity=None,
-            averageWindSpeed=None,
-            highWindSpeed=0,  # Null is deserialised to 0
-            highWindSpeedDirection=None,
-            prevailingWindDirection=None,
-            averageUVIndex=None,
-            ET=None,
-            highSolarRadiation=None,
-            highUVIndex=0,  # Null is deserialised to 0
-            forecastRule=193,  # Null is deserialised to 193 (a specific rule)
-            leafTemperature=[
+            solar_radiation=None,
+            number_of_wind_samples=0,  # Null is deserialised to 0
+            inside_temperature=None,
+            inside_humidity=None,
+            outside_humidity=None,
+            average_wind_speed=None,
+            high_wind_speed=0,  # Null is deserialised to 0
+            high_wind_speed_direction=None,
+            prevailing_wind_direction=None,
+            average_uv_index=None,
+            evapotranspiration=None,
+            high_solar_radiation=None,
+            high_uv_index=0,  # Null is deserialised to 0
+            forecast_rule=193,  # Null is deserialised to 193 (a specific rule)
+            leaf_temperatures=[
                 None,
                 None
             ],
-            leafWetness=[
+            leaf_wetness=[
                 None,
                 None
             ],
-            soilTemperatures=[
+            soil_temperatures=[
                 None,
-                None,
-                None,
-                None
-            ],
-            extraHumidities=[
-                None,
-                None
-            ],
-            extraTemperatures=[
                 None,
                 None,
                 None
             ],
-            soilMoistures=[
+            extra_humidities=[
+                None,
+                None
+            ],
+            extra_temperatures=[
+                None,
+                None,
+                None
+            ],
+            soil_moistures=[
                 None,
                 None,
                 None,
@@ -1705,55 +1705,55 @@ class TestDmpProcedure(unittest.TestCase):
             ])
 
         null_dmp = Dmp(
-            dateStamp=ts.date(),
-            timeStamp=ts.time(),
-            timeZone=None,
-            dateInteger=encode_date(ts.date()),
-            timeInteger=encode_time(ts.time()),
-            outsideTemperature=None,
-            highOutsideTemperature=None,
-            lowOutsideTemperature=None,
+            date_stamp=ts.date(),
+            time_stamp=ts.time(),
+            time_zone=None,
+            date_integer=encode_date(ts.date()),
+            time_integer=encode_time(ts.time()),
+            outside_temperature=None,
+            high_outside_temperature=None,
+            low_outside_temperature=None,
             rainfall=None,
-            highRainRate=None,
+            high_rain_rate=None,
             barometer=None,
-            solarRadiation=None,
-            numberOfWindSamples=None,
-            insideTemperature=None,
-            insideHumidity=None,
-            outsideHumidity=None,
-            averageWindSpeed=None,
-            highWindSpeed=None,
-            highWindSpeedDirection=None,
-            prevailingWindDirection=None,
-            averageUVIndex=None,
-            ET=None,
-            highSolarRadiation=None,
-            highUVIndex=None,
-            forecastRule=None,
-            leafTemperature=[
+            solar_radiation=None,
+            number_of_wind_samples=None,
+            inside_temperature=None,
+            inside_humidity=None,
+            outside_humidity=None,
+            average_wind_speed=None,
+            high_wind_speed=None,
+            high_wind_speed_direction=None,
+            prevailing_wind_direction=None,
+            average_uv_index=None,
+            evapotranspiration=None,
+            high_solar_radiation=None,
+            high_uv_index=None,
+            forecast_rule=None,
+            leaf_temperatures=[
                 None,
                 None
             ],
-            leafWetness=[
+            leaf_wetness=[
                 None,
                 None
             ],
-            soilTemperatures=[
+            soil_temperatures=[
                 None,
-                None,
-                None,
-                None
-            ],
-            extraHumidities=[
-                None,
-                None
-            ],
-            extraTemperatures=[
                 None,
                 None,
                 None
             ],
-            soilMoistures=[
+            extra_humidities=[
+                None,
+                None
+            ],
+            extra_temperatures=[
+                None,
+                None,
+                None
+            ],
+            soil_moistures=[
                 None,
                 None,
                 None,

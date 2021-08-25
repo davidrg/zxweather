@@ -2,10 +2,8 @@
 """
 The format used by the DMP and DMPAFT commands.
 """
-from collections import namedtuple
 import struct
 import datetime
-from twisted.python import log
 from davis_logger.record_types.util import inhg_to_mb, mph_to_ms, \
     inch_to_mm, mb_to_inhg, ms_to_mph, mm_to_inch, CRC, deserialise_8bit_temp, \
     serialise_8bit_temp, undash_8bit, dash_8bit, deserialise_16bit_temp, \
@@ -13,87 +11,51 @@ from davis_logger.record_types.util import inhg_to_mb, mph_to_ms, \
 
 __author__ = 'david'
 
-# Dmp = namedtuple(
-#     'Dmp',
-#     (
-#         'dateStamp',
-#         'timeStamp',
-#         'timeZone',
-#         'dateInteger',
-#         'timeInteger',
-#         'outsideTemperature',
-#         'highOutsideTemperature',
-#         'lowOutsideTemperature',
-#         'rainfall',
-#         'highRainRate',
-#         'barometer',
-#         'solarRadiation',
-#         'numberOfWindSamples',
-#         'insideTemperature',
-#         'insideHumidity',
-#         'outsideHumidity',
-#         'averageWindSpeed',
-#         'highWindSpeed',
-#         'highWindSpeedDirection',
-#         'prevailingWindDirection',
-#         'averageUVIndex',
-#         'ET',
-#         'highSolarRadiation',
-#         'highUVIndex',
-#         'forecastRule',
-#         'leafTemperature',
-#         'leafWetness',
-#         'soilTemperatures',
-#         # download record type
-#         'extraHumidities',
-#         'extraTemperatures',
-#         'soilMoistures'
-#     )
-# )
-from davis_logger.util import to_hex_string
-
 
 class Dmp(object):
-    def __init__(self, dateStamp, timeStamp, timeZone, dateInteger, timeInteger,
-        outsideTemperature, highOutsideTemperature, lowOutsideTemperature,
-        rainfall, highRainRate, barometer, solarRadiation, numberOfWindSamples,
-        insideTemperature, insideHumidity, outsideHumidity, averageWindSpeed,
-        highWindSpeed, highWindSpeedDirection, prevailingWindDirection,
-        averageUVIndex, ET, highSolarRadiation, highUVIndex, forecastRule,
-        leafTemperature, leafWetness, soilTemperatures, extraHumidities,
-        extraTemperatures, soilMoistures):
+    """
+    An archive record from a Vantage Pro2 or Vue weather station
+    """
+    def __init__(self, date_stamp, time_stamp, time_zone, date_integer, time_integer,
+                 outside_temperature, high_outside_temperature, low_outside_temperature,
+                 rainfall, high_rain_rate, barometer, solar_radiation, number_of_wind_samples,
+                 inside_temperature, inside_humidity, outside_humidity, average_wind_speed,
+                 high_wind_speed, high_wind_speed_direction, prevailing_wind_direction,
+                 average_uv_index, evapotranspiration, high_solar_radiation, high_uv_index,
+                 forecast_rule, leaf_temperatures, leaf_wetness, soil_temperatures,
+                 extra_humidities, extra_temperatures, soil_moistures):
 
-        self.dateStamp = dateStamp
-        self.timeStamp = timeStamp
-        self.timeZone = timeZone
-        self.dateInteger = dateInteger
-        self.timeInteger = timeInteger
-        self.outsideTemperature = outsideTemperature
-        self.highOutsideTemperature = highOutsideTemperature
-        self.lowOutsideTemperature = lowOutsideTemperature
+        self.dateStamp = date_stamp
+        self.timeStamp = time_stamp
+        self.timeZone = time_zone
+        self.dateInteger = date_integer
+        self.timeInteger = time_integer
+        self.outsideTemperature = outside_temperature
+        self.highOutsideTemperature = high_outside_temperature
+        self.lowOutsideTemperature = low_outside_temperature
         self.rainfall = rainfall
-        self.highRainRate = highRainRate
+        self.highRainRate = high_rain_rate
         self.barometer = barometer
-        self.solarRadiation = solarRadiation
-        self.numberOfWindSamples = numberOfWindSamples
-        self.insideTemperature = insideTemperature
-        self.insideHumidity = insideHumidity
-        self.outsideHumidity = outsideHumidity
-        self.averageWindSpeed = averageWindSpeed
-        self.highWindSpeed = highWindSpeed
-        self.highWindSpeedDirection = highWindSpeedDirection
-        self.prevailingWindDirection = prevailingWindDirection
-        self.averageUVIndex = averageUVIndex
-        self.ET = ET
-        self.highSolarRadiation = highSolarRadiation
-        self.highUVIndex = highUVIndex
-        self.forecastRule = forecastRule
-        self.leafTemperature = leafTemperature
-        self.leafWetness = leafWetness
-        self.soilTemperatures = soilTemperatures
-        self.extraHumidities = extraHumidities
-        self.extraTemperatures = extraTemperatures
-        self.soilMoistures = soilMoistures
+        self.solarRadiation = solar_radiation
+        self.numberOfWindSamples = number_of_wind_samples
+        self.insideTemperature = inside_temperature
+        self.insideHumidity = inside_humidity
+        self.outsideHumidity = outside_humidity
+        self.averageWindSpeed = average_wind_speed
+        self.highWindSpeed = high_wind_speed
+        self.highWindSpeedDirection = high_wind_speed_direction
+        self.prevailingWindDirection = prevailing_wind_direction
+        self.averageUVIndex = average_uv_index
+        self.ET = evapotranspiration
+        self.highSolarRadiation = high_solar_radiation
+        self.highUVIndex = high_uv_index
+        self.forecastRule = forecast_rule
+        self.leafTemperature = leaf_temperatures
+        self.leafWetness = leaf_wetness
+        self.soilTemperatures = soil_temperatures
+        self.extraHumidities = extra_humidities
+        self.extraTemperatures = extra_temperatures
+        self.soilMoistures = soil_moistures
 
     # This doesn't really work due to difficulty comparing floating point
     # numbers. Python 3.5 adds math.isclose which should solve the problem once
@@ -381,13 +343,15 @@ def _serialise_wind_direction_code(value):
     return _compass_points.index(value)
 
 
-def deserialise_dmp(dmp_string, rainCollectorSize=0.2, rev_b_firmware=True):
+def deserialise_dmp(dmp_record, rain_collector_size=0.2, rev_b_firmware=True):
     """
     Deserialised a dmp string into a Dmp tuple.
-    :param dmp_string: DMP record in string format as sent by the console
-    :type dmp_string: bytes
-    :param rainCollectorSize: Size of the rain collector in millimeters
-    :type rainCollectorSize: float
+    :param dmp_record: DMP record in string format as sent by the console
+    :type dmp_record: bytes
+    :param rain_collector_size: Size of the rain collector in millimeters
+    :type rain_collector_size: float
+    :param rev_b_firmware: If this station is using Rev. B firmware.
+    :type rev_b_firmware: bool
     :return: The DMP record as a named tuple.
     :rtype: Dmp
     """
@@ -396,136 +360,136 @@ def deserialise_dmp(dmp_string, rainCollectorSize=0.2, rev_b_firmware=True):
     dmp_format_b = '<HHhhhHHHHHhBBBBBBBBHBB2B2B4BB2B3B4B'
 
     # byte 42 is guaranteed to be 0 for revision B and 0xFF for revision A.
-    is_rev_a = dmp_string[42] == b'\xFF'
+    is_rev_a = dmp_record[42] == b'\xFF'
 
     if not is_rev_a:
-        dateStamp, timeStamp, outsideTemperature, highOutsideTemperature, \
-            lowOutsideTemperature, rainfall, highRainRate, barometer, \
-            solarRadiation, numberOfWindSamples, insideTemperature, \
-            insideHumidity, outsideHumidity, averageWindSpeed, highWindSpeed, \
-            highWindSpeedDirection, prevailingWindDirection, averageUVIndex, ET, \
-            highSolarRadiation, highUVIndex, forecastRule, leafTemperature_1, \
-            leafTemperature_2, leafWetness_1, leafWetness_2, soilTemperature_1, \
-            soilTemperature_2, soilTemperature_3, soilTemperature_4, \
-            downloadRecordType, extraHumidity_1, extraHumidity_2, \
-            extraTemperature_1, extraTemperature_2, extraTemperature_3,\
-            soilMoisture_1, soilMoisture_2, soilMoisture_3, soilMoisture_4 = \
-            struct.unpack(dmp_format_b, dmp_string)
+        date_stamp, time_stamp, outside_temperature, high_outside_temperature, \
+            low_outside_temperature, rainfall, high_rain_rate, barometer, \
+            solar_radiation, number_of_wind_samples, inside_temperature, \
+            inside_humidity, outside_humidity, average_wind_speed, high_wind_speed, \
+            high_wind_speed_direction, prevailing_wind_direction, average_uv_index, et, \
+            high_solar_radiation, high_uv_index, forecast_rule, leaf_temperature_1, \
+            leaf_temperature_2, leaf_wetness_1, leaf_wetness_2, soil_temperature_1, \
+            soil_temperature_2, soil_temperature_3, soil_temperature_4, \
+            download_record_type, extra_humidity_1, extra_humidity_2, \
+            extra_temperature_1, extra_temperature_2, extra_temperature_3,\
+            soil_moisture_1, soil_moisture_2, soil_moisture_3, soil_moisture_4 = \
+            struct.unpack(dmp_format_b, dmp_record)
     else:
         # This has never been tested. It may not work.
         assert not rev_b_firmware
-        dateStamp, timeStamp, outsideTemperature, highOutsideTemperature, \
-            lowOutsideTemperature, rainfall, highRainRate, barometer, \
-            solarRadiation, numberOfWindSamples, insideTemperature, \
-            insideHumidity, outsideHumidity, averageWindSpeed, highWindSpeed, \
-            highWindSpeedDirection, prevailingWindDirection, averageUVIndex, ET, \
-            reserved_a, soilMoisture_1, soilMoisture_2, soilMoisture_3, soilMoisture_4, \
-            soilTemperature_1, soilTemperature_2, soilTemperature_3, soilTemperature_4, \
-            leafWetness_1, leafWetness_2, leafWetness_3, leafWetness_4, \
-            extraTemperature_1, extraTemperature_2, extraHumidity_1, extraHumidity_2, \
+        date_stamp, time_stamp, outside_temperature, high_outside_temperature, \
+            low_outside_temperature, rainfall, high_rain_rate, barometer, \
+            solar_radiation, number_of_wind_samples, inside_temperature, \
+            inside_humidity, outside_humidity, average_wind_speed, high_wind_speed, \
+            high_wind_speed_direction, prevailing_wind_direction, average_uv_index, et, \
+            reserved_a, soil_moisture_1, soil_moisture_2, soil_moisture_3, soil_moisture_4, \
+            soil_temperature_1, soil_temperature_2, soil_temperature_3, soil_temperature_4, \
+            leaf_wetness_1, leaf_wetness_2, leaf_wetness_3, leaf_wetness_4, \
+            extra_temperature_1, extra_temperature_2, extra_humidity_1, extra_humidity_2, \
             reed_closed_count, reed_opened_count, reserved_b \
-                = struct.unpack(dmp_format_a, dmp_string)
+            = struct.unpack(dmp_format_a, dmp_record)
 
         # These fields are unsupported in Rev. A dump records so we'll just
         # pretend they're null.
-        highSolarRadiation = 32767
-        highUVIndex = 255
-        forecastRule = None
-        leafTemperature_1 = 255
-        leafTemperature_2 = 255
-        extraTemperature_3 = 255
+        high_solar_radiation = 32767
+        high_uv_index = 255
+        forecast_rule = None
+        leaf_temperature_1 = 255
+        leaf_temperature_2 = 255
+        extra_temperature_3 = 255
 
-    if solarRadiation == 32767:
-        solarRadiation = None
+    if solar_radiation == 32767:
+        solar_radiation = None
 
-    if highSolarRadiation == 32767:
-        highSolarRadiation = None
+    if high_solar_radiation == 32767:
+        high_solar_radiation = None
 
-    if averageWindSpeed == 255:
-        averageWindSpeed = None
+    if average_wind_speed == 255:
+        average_wind_speed = None
     else:
-        averageWindSpeed = mph_to_ms(averageWindSpeed)
+        average_wind_speed = mph_to_ms(average_wind_speed)
 
-    if averageUVIndex == 255:
-        averageUVIndex = None
+    if average_uv_index == 255:
+        average_uv_index = None
     else:
-        averageUVIndex /= 10.0
+        average_uv_index /= 10.0
 
-    highUVIndex /= 10.0
+    high_uv_index /= 10.0
 
-    ET = inch_to_mm(ET / 1000.0)
+    et = inch_to_mm(et / 1000.0)
 
     unpacked = Dmp(
-        dateStamp=decode_date(dateStamp),
-        timeStamp=decode_time(timeStamp),
-        timeZone=None,
-        dateInteger=dateStamp,
-        timeInteger=timeStamp,
-        outsideTemperature=deserialise_16bit_temp(outsideTemperature),
-        highOutsideTemperature=deserialise_16bit_temp(
-            highOutsideTemperature, True),
-        lowOutsideTemperature=deserialise_16bit_temp(lowOutsideTemperature),
-        rainfall=rainfall * rainCollectorSize,
-        highRainRate=highRainRate * rainCollectorSize,
+        date_stamp=decode_date(date_stamp),
+        time_stamp=decode_time(time_stamp),
+        time_zone=None,
+        date_integer=date_stamp,
+        time_integer=time_stamp,
+        outside_temperature=deserialise_16bit_temp(outside_temperature),
+        high_outside_temperature=deserialise_16bit_temp(
+            high_outside_temperature, True),
+        low_outside_temperature=deserialise_16bit_temp(low_outside_temperature),
+        rainfall=rainfall * rain_collector_size,
+        high_rain_rate=high_rain_rate * rain_collector_size,
         barometer=inhg_to_mb(barometer / 1000.0),
-        solarRadiation=solarRadiation,
-        numberOfWindSamples=numberOfWindSamples,
-        insideTemperature=deserialise_16bit_temp(insideTemperature),
-        insideHumidity=undash_8bit(insideHumidity),
-        outsideHumidity=undash_8bit(outsideHumidity),
-        averageWindSpeed=averageWindSpeed,
-        highWindSpeed=mph_to_ms(highWindSpeed),
-        highWindSpeedDirection=_deserialise_wind_direction_code(
-            highWindSpeedDirection),
-        prevailingWindDirection=_deserialise_wind_direction_code(
-            prevailingWindDirection),
-        averageUVIndex=averageUVIndex,
-        ET=ET,
-        highSolarRadiation=highSolarRadiation,
-        highUVIndex=undash_8bit(highUVIndex),
-        forecastRule=forecastRule,
-        leafTemperature=[
-            deserialise_8bit_temp(leafTemperature_1),
-            deserialise_8bit_temp(leafTemperature_2)
+        solar_radiation=solar_radiation,
+        number_of_wind_samples=number_of_wind_samples,
+        inside_temperature=deserialise_16bit_temp(inside_temperature),
+        inside_humidity=undash_8bit(inside_humidity),
+        outside_humidity=undash_8bit(outside_humidity),
+        average_wind_speed=average_wind_speed,
+        high_wind_speed=mph_to_ms(high_wind_speed),
+        high_wind_speed_direction=_deserialise_wind_direction_code(
+            high_wind_speed_direction),
+        prevailing_wind_direction=_deserialise_wind_direction_code(
+            prevailing_wind_direction),
+        average_uv_index=average_uv_index,
+        evapotranspiration=et,
+        high_solar_radiation=high_solar_radiation,
+        high_uv_index=undash_8bit(high_uv_index),
+        forecast_rule=forecast_rule,
+        leaf_temperatures=[
+            deserialise_8bit_temp(leaf_temperature_1),
+            deserialise_8bit_temp(leaf_temperature_2)
         ],
-        leafWetness=[
-            undash_8bit(leafWetness_1),
-            undash_8bit(leafWetness_2)
+        leaf_wetness=[
+            undash_8bit(leaf_wetness_1),
+            undash_8bit(leaf_wetness_2)
         ],
-        soilTemperatures=[
-            deserialise_8bit_temp(soilTemperature_1),
-            deserialise_8bit_temp(soilTemperature_2),
-            deserialise_8bit_temp(soilTemperature_3),
-            deserialise_8bit_temp(soilTemperature_4)
+        soil_temperatures=[
+            deserialise_8bit_temp(soil_temperature_1),
+            deserialise_8bit_temp(soil_temperature_2),
+            deserialise_8bit_temp(soil_temperature_3),
+            deserialise_8bit_temp(soil_temperature_4)
         ],
-        extraHumidities=[
-            undash_8bit(extraHumidity_1),
-            undash_8bit(extraHumidity_2)
+        extra_humidities=[
+            undash_8bit(extra_humidity_1),
+            undash_8bit(extra_humidity_2)
         ],
-        extraTemperatures=[
-            deserialise_8bit_temp(extraTemperature_1),
-            deserialise_8bit_temp(extraTemperature_2),
-            deserialise_8bit_temp(extraTemperature_3)
+        extra_temperatures=[
+            deserialise_8bit_temp(extra_temperature_1),
+            deserialise_8bit_temp(extra_temperature_2),
+            deserialise_8bit_temp(extra_temperature_3)
         ],
-        soilMoistures=[
-            undash_8bit(soilMoisture_1),
-            undash_8bit(soilMoisture_2),
-            undash_8bit(soilMoisture_3),
-            undash_8bit(soilMoisture_4)
+        soil_moistures=[
+            undash_8bit(soil_moisture_1),
+            undash_8bit(soil_moisture_2),
+            undash_8bit(soil_moisture_3),
+            undash_8bit(soil_moisture_4)
         ]
     )
 
     return unpacked
 
 
-def serialise_dmp(dmp, rainCollectorSize=0.2):
+def serialise_dmp(dmp, rain_collector_size=0.2):
     """
     Takes data from a DMP packet and converts it into the string format
     used by the console.
     :param dmp: DMP packet data
     :type dmp: Dmp
-    :param rainCollectorSize: Size of the rain collector in millimeters
-    :type rainCollectorSize: float
+    :param rain_collector_size: Size of the rain collector in millimeters
+    :type rain_collector_size: float
     :return: The Dmp tuple packed into a string.
     :rtype: bytes
     """
@@ -533,39 +497,39 @@ def serialise_dmp(dmp, rainCollectorSize=0.2):
     dmp_format = '<HHhhhHHHHHhBBBBBBBBHBB2B2B4BB2B3B4B'
 
     if dmp.solarRadiation is None:
-        solarRadiation = 32767
+        solar_radiation = 32767
     else:
-        solarRadiation = dmp.solarRadiation
+        solar_radiation = dmp.solarRadiation
 
     if dmp.highSolarRadiation is None:
-        highSolarRadiation = 32767
+        high_solar_radiation = 32767
     else:
-        highSolarRadiation = dmp.highSolarRadiation
+        high_solar_radiation = dmp.highSolarRadiation
 
     if dmp.averageWindSpeed is None:
-        averageWindSpeed = 255
+        average_wind_speed = 255
     else:
-        averageWindSpeed = int(round(ms_to_mph(dmp.averageWindSpeed), 0))
+        average_wind_speed = int(round(ms_to_mph(dmp.averageWindSpeed), 0))
 
     if dmp.averageUVIndex is None:
-        averageUVIndex = 255
+        average_uv_index = 255
     else:
-        averageUVIndex = int(round(dmp.averageUVIndex / 10, 0))
+        average_uv_index = int(round(dmp.averageUVIndex / 10, 0))
 
     if dmp.highUVIndex is None:
-        highUVIndex = 0
+        high_uv_index = 0
     else:
-        highUVIndex = int(round(dmp.highUVIndex * 10, 0))
+        high_uv_index = int(round(dmp.highUVIndex * 10, 0))
 
     if dmp.rainfall is None:
         rainfall = 0
     else:
-        rainfall = int(round(dmp.rainfall / rainCollectorSize, 0))
+        rainfall = int(round(dmp.rainfall / rain_collector_size, 0))
 
     if dmp.highRainRate is None:
-        highRainRate = 0
+        high_rain_rate = 0
     else:
-        highRainRate = int(round(dmp.highRainRate / rainCollectorSize, 0))
+        high_rain_rate = int(round(dmp.highRainRate / rain_collector_size, 0))
 
     if dmp.barometer is None:
         barometer = 0
@@ -573,9 +537,9 @@ def serialise_dmp(dmp, rainCollectorSize=0.2):
         barometer = int(round(mb_to_inhg(dmp.barometer * 1000), 0))
 
     if dmp.highWindSpeed is None:
-        highWindSpeed = 0
+        high_wind_speed = 0
     else:
-        highWindSpeed = int(round(ms_to_mph(dmp.highWindSpeed), 0))
+        high_wind_speed = int(round(ms_to_mph(dmp.highWindSpeed), 0))
 
     if dmp.ET is None:
         evapotranspiration = 0
@@ -600,21 +564,21 @@ def serialise_dmp(dmp, rainCollectorSize=0.2):
         serialise_16bit_temp(dmp.highOutsideTemperature, True),
         serialise_16bit_temp(dmp.lowOutsideTemperature),
         rainfall,
-        highRainRate,
+        high_rain_rate,
         barometer,
-        solarRadiation,
+        solar_radiation,
         number_of_wind_samples,
         serialise_16bit_temp(dmp.insideTemperature),
         dash_8bit(dmp.insideHumidity),
         dash_8bit(dmp.outsideHumidity),
-        averageWindSpeed,
-        highWindSpeed,
+        average_wind_speed,
+        high_wind_speed,
         _serialise_wind_direction_code(dmp.highWindSpeedDirection),
         _serialise_wind_direction_code(dmp.prevailingWindDirection),
-        averageUVIndex,
+        average_uv_index,
         evapotranspiration,
-        highSolarRadiation,
-        highUVIndex,
+        high_solar_radiation,
+        high_uv_index,
         forecast_rule,
         serialise_8bit_temp(dmp.leafTemperature[0]),
         serialise_8bit_temp(dmp.leafTemperature[1]),

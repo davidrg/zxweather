@@ -177,7 +177,7 @@ def loop_fmt(split_arrays=False):
         ('7B', 'Extra humidities 1-7'),
         ('H', 'Rain rate'),  # ('h', 'Rain rate'),
         ('B', 'UV index'),
-        ('H', 'Solar radiation'), # ('h', 'Solar radiation'),
+        ('H', 'Solar radiation'),  # ('h', 'Solar radiation'),
         ('H', 'Storm rain'),  # ('h', 'Storm rain'),
         ('H', 'Current storm start date'),  # ('h', 'Current storm start date'),
         ('H', 'Day rain'),  # ('h', 'Day rain'),
@@ -220,17 +220,17 @@ def loop_fmt(split_arrays=False):
     return alignment + ''.join([x[0] for x in parts])
 
 
-def deserialise_loop(loop_string, rainCollectorSize=0.2):
+def deserialise_loop(loop_string, rain_collector_size=0.2):
     """
     Takes a LOOP packet from the console and converts it into a namedtuple.
     :param loop_string: 97-character string from the console (packet minus CRC)
     :type loop_string: str
-    :param rainCollectorSize: Size of the rain collector in millimeters
-    :type rainCollectorSize: float
+    :param rain_collector_size: Size of the rain collector in millimeters
+    :type rain_collector_size: float
     :return: loop packet
     :rtype: Loop
     """
-    #loop_format = '<3sbBhhhBhBBh7B4B4BB7BhBhhhhhhhhh4B4BBB2B8B4BBhBBHH2s'
+    #  loop_format = '<3sbBhhhBhBBh7B4B4BB7BhBhhhhhhhhh4B4BBB2B8B4BBhBBHH2s'
     loop_format = loop_fmt()
 
     # Here we unpack the loop packet using that nasty format string above.
@@ -244,10 +244,10 @@ def deserialise_loop(loop_string, rainCollectorSize=0.2):
         ext_humid_2, ext_humid_3, ext_humid_4, ext_humid_5, ext_humid_6, \
         ext_humid_7, rain_rate, uv, solar_radiation, storm_rain, \
         current_storm_start_date, day_rain, month_rain, year_rain, \
-        day_ET, month_ET, year_ET, soil_moisture_1, soil_moisture_2, \
+        day_et, month_et, year_et, soil_moisture_1, soil_moisture_2, \
         soil_moisture_3, soil_moisture_4, leaf_wetness_1, leaf_wetness_2, \
         leaf_wetness_3, leaf_wetness_4, inside_alarms, rain_alarms, \
-        outside_alarms_A, outside_alarms_B, ext_th_alarms_1, ext_th_alarms_2, \
+        outside_alarms_a, outside_alarms_b, ext_th_alarms_1, ext_th_alarms_2, \
         ext_th_alarms_3, ext_th_alarms_4, ext_th_alarms_5, ext_th_alarms_6, \
         ext_th_alarms_7, ext_th_alarms_8, soil_leaf_alarm_1, soil_leaf_alarm_2,\
         soil_leaf_alarm_3, soil_leaf_alarm_4, tx_battery_status, \
@@ -307,19 +307,19 @@ def deserialise_loop(loop_string, rainCollectorSize=0.2):
             undash_8bit(ext_humid_5),
             undash_8bit(ext_humid_6),
             undash_8bit(ext_humid_7)],
-        rainRate=rain_rate * rainCollectorSize,
+        rainRate=rain_rate * rain_collector_size,
         UV=decoded_uv,
         solarRadiation=solar_radiation,
         # Manual says this is 100ths of an inch. The manual is wrong:
-        stormRain=storm_rain * rainCollectorSize,
+        stormRain=storm_rain * rain_collector_size,
         startDateOfCurrentStorm=decode_current_storm_date(
             current_storm_start_date),
-        dayRain=day_rain * rainCollectorSize,
-        monthRain=month_rain * rainCollectorSize,
-        yearRain=year_rain * rainCollectorSize,
-        dayET=inch_to_mm(day_ET * 1000),
-        monthET=inch_to_mm(month_ET * 100),
-        yearET=inch_to_mm(year_ET * 100),
+        dayRain=day_rain * rain_collector_size,
+        monthRain=month_rain * rain_collector_size,
+        yearRain=year_rain * rain_collector_size,
+        dayET=inch_to_mm(day_et * 1000),
+        monthET=inch_to_mm(month_et * 100),
+        yearET=inch_to_mm(year_et * 100),
         soilMoistures=[
             undash_8bit(soil_moisture_1),
             undash_8bit(soil_moisture_2),
@@ -333,8 +333,8 @@ def deserialise_loop(loop_string, rainCollectorSize=0.2):
         insideAlarms=inside_alarms,
         rainAlarms=rain_alarms,
         outsideAlarms=[
-            outside_alarms_A,
-            outside_alarms_B],
+            outside_alarms_a,
+            outside_alarms_b],
         extraTempHumAlarms=[
             ext_th_alarms_1,
             ext_th_alarms_2,
@@ -359,13 +359,13 @@ def deserialise_loop(loop_string, rainCollectorSize=0.2):
     return loop
 
 
-def serialise_loop(loop, rainCollectorSize=0.2, include_crc=True):
+def serialise_loop(loop, rain_collector_size=0.2, include_crc=True):
     """
     Converts LOOP data into the string representation used by the console
     :param loop: Loop data
     :type loop: Loop
-    :param rainCollectorSize: Size of the rain collector in millimeters
-    :type rainCollectorSize: float
+    :param rain_collector_size: Size of the rain collector in millimeters
+    :type rain_collector_size: float
     :param include_crc: Calculate the CRC code and return with the Loop data
     :type include_crc: bool
     :returns: The loop thing as a string
@@ -375,9 +375,9 @@ def serialise_loop(loop, rainCollectorSize=0.2, include_crc=True):
     loop_format = loop_fmt()
 
     if loop.solarRadiation is None:
-        solarRadiation = 32767
+        solar_radiation = 32767
     else:
-        solarRadiation = loop.solarRadiation
+        solar_radiation = loop.solarRadiation
 
     if loop.UV is None:
         uv = 255
@@ -426,14 +426,14 @@ def serialise_loop(loop, rainCollectorSize=0.2, include_crc=True):
         dash_8bit(loop.extraHumidities[4]),
         dash_8bit(loop.extraHumidities[5]),
         dash_8bit(loop.extraHumidities[6]),
-        int(round(loop.rainRate / rainCollectorSize, 0)),
+        int(round(loop.rainRate / rain_collector_size, 0)),
         uv,
-        solarRadiation,
-        int(round(loop.stormRain / rainCollectorSize, 0)),
+        solar_radiation,
+        int(round(loop.stormRain / rain_collector_size, 0)),
         encode_current_storm_date(loop.startDateOfCurrentStorm),
-        int(round(loop.dayRain / rainCollectorSize, 0)),
-        int(round(loop.monthRain / rainCollectorSize, 0)),
-        int(round(loop.yearRain / rainCollectorSize, 0)),
+        int(round(loop.dayRain / rain_collector_size, 0)),
+        int(round(loop.monthRain / rain_collector_size, 0)),
+        int(round(loop.yearRain / rain_collector_size, 0)),
         int(round(mm_to_inch(loop.dayET) / 1000.0, 0)),
         int(round(mm_to_inch(loop.monthET) / 100.0, 0)),
         int(round(mm_to_inch(loop.yearET) / 100.0, 0)),
