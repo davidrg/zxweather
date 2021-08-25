@@ -86,7 +86,7 @@ class EventTests(unittest.TestCase):
         event, result_list = instance.add_handlers(self.event)
         self.assertListEqual(event._handlers, result_list)
 
-        event.removeHandlers(instance)
+        event.remove_handlers(instance)
         self.assertListEqual(event._handlers, [])
 
     def test_clear_handlers_only_clears_objects_handlers(self):
@@ -111,5 +111,5 @@ class EventTests(unittest.TestCase):
 
         self.assertListEqual(event._handlers, result)
 
-        event.removeHandlers(instance)
+        event.remove_handlers(instance)
         self.assertListEqual(event._handlers, [_foo_handler])

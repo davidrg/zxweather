@@ -1,6 +1,6 @@
 # coding=utf-8
 """
-Data logger for Davis Vantage Vue weather stations.
+Data logger for Davis Vantage Pro2 and Vue weather stations.
 """
 import csv
 from datetime import datetime, timedelta, time
@@ -19,21 +19,17 @@ from twisted.python import log
 
 from davis_logger.davis import DavisWeatherStation
 from davis_logger.dst_switcher import DstInfo, DstSwitcher, NullDstSwitcher
-
+from davis_logger.record_types.dmp import decode_date, decode_time
 
 __author__ = 'david'
 
-# 8 pm 10-feb-2012:
 
+# Classic style class is required by twisted - not something we can fix.
+# noinspection PyClassicStyleClass
 class DavisLoggerProtocol(Protocol):
     """
     Bridges communications with the weather station and handles logging data.
     """
-
-    # The number of loop packets to request. Apparently there is an undocumented
-    # maximum value of around 220. Probably best to keep this number 200 or
-    # lower.
-    _loopPacketRequestSize = 100
 
     def __init__(self, database_pool, station_id, latest_date, latest_time,
                  sample_error_file, auto_dst, time_zone, latest_ts,
@@ -59,17 +55,14 @@ class DavisLoggerProtocol(Protocol):
         self._latest_time = latest_time
 
         # Subscribe to outgoing data event
-        self.station.sendData += self._sendData
+        self.station.sendData += self._send_data
 
         # This is fired when ever a loop packet arrives
-        self.station.loopDataReceived += self._loopPacketReceived
+        self.station.loopDataReceived += self._loop_packet_received
 
         # Called when ever new samples are ready (the DMPAFT / getSamples()
         # command has finished).
-        self.station.dumpFinished += self._samplesArrived
-
-        # Fired when ever the loop packet subscription expires.
-        self.station.loopFinished += self._loopFinished
+        self.station.dumpFinished += self._samples_arrived
 
         # Fired when the init stuff has completed.
         self.station.InitCompleted += self._init_completed
@@ -84,11 +77,11 @@ class DavisLoggerProtocol(Protocol):
         :param data: Data to pass on
         """
         # log.msg('>> {0}'.format(toHexString(data)))
-        self.station.dataReceived(data)
+        self.station.data_received(data)
 
         self._data_last_received = datetime.now()
 
-    def _sendData(self, data):
+    def _send_data(self, data):
         # log.msg('<< {0}'.format(toHexString(data)))
         self.transport.write(data)
 
@@ -101,25 +94,25 @@ class DavisLoggerProtocol(Protocol):
 
         self.station.initialise()
 
-    def _init_completed(self, stationType, hardwareType, version, versionDate,
-                        stationTime, rainCollectorSizeName, archiveInterval,
+    def _init_completed(self, station_type, hardware_type, version, version_date,
+                        station_time, rain_collector_size_name, archive_interval,
                         auto_dst_on, dst_on):
 
-        log.msg('Station Type: {0} - {1}'.format(stationType, hardwareType))
+        log.msg('Station Type: {0} - {1}'.format(station_type, hardware_type))
 
-        log.msg('Firmware Version: {0} ({1})'.format(versionDate, version))
-        log.msg('Station Time: {0}'.format(stationTime))
-        log.msg('Rain Collector Size: {0}'.format(rainCollectorSizeName))
-        log.msg('Archive Interval: {0} minutes'.format(archiveInterval))
+        log.msg('Firmware Version: {0} ({1})'.format(version_date, version))
+        log.msg('Station Time: {0}'.format(station_time))
+        log.msg('Rain Collector Size: {0}'.format(rain_collector_size_name))
+        log.msg('Archive Interval: {0} minutes'.format(archive_interval))
         log.msg('Station Auto DST Enabled: {0}'.format(auto_dst_on))
         log.msg('Station Manual Daylight Savings - DST On: {0}'.format(dst_on))
 
-        if archiveInterval != 5:
+        if archive_interval != 5:
             log.msg('WARNING: Archive interval should be set to\n5 minutes. '
                     'While your current setting of {0} will probably work as '
                     'long as the\nsetting for this station in the database '
                     'matches it is untested. It is\nrecommended that you change'
-                    'it to 5 minutes via WeatherLink.'.format(archiveInterval))
+                    'it to 5 minutes via WeatherLink.'.format(archive_interval))
 
         dst_is_off = not dst_on
         self._suppress_dst_fix = auto_dst_on
@@ -133,7 +126,7 @@ class DavisLoggerProtocol(Protocol):
                         " any incoming samples with an incorrect timestamp.")
 
             dst_info = DstInfo(self._time_zone)
-            self._dst_switcher = DstSwitcher(dst_info, archiveInterval,
+            self._dst_switcher = DstSwitcher(dst_info, archive_interval,
                                              self._latest_ts)
             if dst_is_off:
                 self._dst_switcher.suppress_dst_off()
@@ -144,47 +137,38 @@ class DavisLoggerProtocol(Protocol):
 
         # Bring the database up-to-date
         self._lastRecord = -1
-        self.station.getLoopPackets(self._loopPacketRequestSize)
+        self.station.start_live_data()
 
     def _fetch_samples(self):
-        self.station.getSamples((self._latest_date, self._latest_time))
+        d = decode_date(self._latest_date)
+        t = decode_time(self._latest_time)
 
-    def _loopPacketReceived(self, loop):
+        self.station.get_samples(datetime.combine(d, t))
+
+    def _loop_packet_received(self, loop):
         self._publish_live(loop)
 
-        nextRec = loop.nextRecord
-        if nextRec != self._lastRecord:
+        next_rec = loop.nextRecord
+        if next_rec != self._lastRecord:
             log.msg('New Page. Fetch Samples...')
-            self._lastRecord = nextRec
-            # self.station.cancelLoop()
+            self._lastRecord = next_rec
             self._fetch_samples()
 
-    def _loopFinished(self):
-        self.station.getLoopPackets(self._loopPacketRequestSize)
-
-    def _start_loop(self):
-        self.station.getLoopPackets(self._loopPacketRequestSize)
-
-    def _samplesArrived(self, sampleList):
-
-        if len(sampleList) == 0:
-            self._start_loop()
-            return  # Nothing to do
+    def _samples_arrived(self, sample_list):
+        if len(sample_list) == 0:
+            log.msg("No new samples received.")
+            return
 
         adjusted_samples = [self._dst_switcher.process_sample(sample)
-                            for sample in sampleList]
-
-        loop = True
+                            for sample in sample_list]
 
         if self._dst_switcher.station_time_needs_adjusting and \
                 not self._suppress_dst_fix:
-            # Don't start looping once the samples have been processed
-            loop = False
 
-            # Because we need the station to turn off daylight savings first.
-            # When its finished doing that it will call _start_loop for us.
-            self.station.setManualDaylightSavingsState(
-                self._dst_switcher.new_dst_state_is_on, self._start_loop)
+            # This will automatically pause looping while it adjusts config and
+            # resume once its finished.
+            self.station.set_manual_daylight_savings_state(
+                self._dst_switcher.new_dst_state_is_on, None)
 
         if self._error_state:
             self._write_samples_to_error_log(adjusted_samples)
@@ -215,9 +199,6 @@ class DavisLoggerProtocol(Protocol):
         last_sample = adjusted_samples[-1]
         self._latest_ts = datetime.combine(last_sample.dateStamp,
                                            last_sample.timeStamp)
-
-        if loop:
-            self._start_loop()
 
     def _write_samples_to_error_log(self, samples):
         with open(self.sample_error_file, "ab") as csvfile:
@@ -538,6 +519,9 @@ class MQPublisher(object):
 
 
 class DavisService(service.Service):
+    """
+    twistd service for the Davis Vantage Data Logger
+    """
     def __init__(self, database, station, port, baud, sample_error_file,
                  auto_dst, time_zone, mq_host, mq_port, mq_exchange,
                  mq_username, mq_password, mq_vhost):
@@ -570,11 +554,17 @@ class DavisService(service.Service):
                     self.sample_error_file))
 
     def startService(self):
+        """
+        Starts the service
+        """
         # This will kick off everything else.
         self._database_connect()
         service.Service.startService(self)
 
     def stopService(self):
+        """
+        Stops the service
+        """
         service.Service.stopService(self)
         # We don't really need to do anything to shutdown the logger service.
         # All we could really do is disconnect from the DB and tell the
@@ -627,12 +617,12 @@ class DavisService(service.Service):
                 reactor, twisted_connection.TwistedProtocolConnection,
                 parameters)
 
-            def conn_ready(c):
+            def _conn_ready(c):
                 c.ready.addCallback(lambda _: c)
                 return c.ready
 
             d = cc.connectTCP(self._mq_host, self._mq_port)
-            d.addCallback(conn_ready)
+            d.addCallback(_conn_ready)
             d.addCallback(self._mq_setup)
 
         except ImportError:
@@ -652,7 +642,6 @@ class DavisService(service.Service):
                              self.serial_port,
                              reactor,
                              baudrate=self.baud_rate)
-
 
     def _store_station_id(self, result):
         self._station_id = result[0][0]
@@ -716,7 +705,7 @@ class DavisService(service.Service):
                         "incompatible with the configured database. The "
                         "minimum davis-logger (or zxweather) version supported "
                         "by this database is: {0}.".format(
-                    result[0][0]))
+                            result[0][0]))
                 try:
                     reactor.stop()
                 except ReactorNotRunning:
@@ -735,7 +724,7 @@ class DavisService(service.Service):
         hw_type = result[0][1].upper()
 
         fail = False
-        if result[0][0]:
+        if archived:
             log.msg("*** ERROR: unable to log to station {0} - station is archived".format(
                 self.station_code))
             fail = True
@@ -763,4 +752,3 @@ class DavisService(service.Service):
         self.database_pool = adbapi.ConnectionPool("psycopg2", self.dbc)
 
         self._check_db()
-

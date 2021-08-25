@@ -1,9 +1,15 @@
 # coding=utf-8
+"""
+Handles detecting when the stations clock needs to be adjusted for daylight
+savings time and adjusting samples that were generated with incorrect timestamps
+due to the clock not being updated in time.
+"""
 from datetime import timedelta, datetime
 from pytz import timezone
 from twisted.python import log
 
 __author__ = 'david'
+
 
 class DstInfo(object):
     """
@@ -31,7 +37,7 @@ class DstInfo(object):
 
         :param time_zone: The timezone to supply information for. This should
         be of the form Pacific/Auckland. You can find a list of timezones on
-        Wikipedia at http://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+        Wikipedia at https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
         :type time_zone: str
         :param time_source: Function that returns the current datetime. By
         default this is datetime.now(). This parameter exists only to allow for
@@ -231,7 +237,8 @@ class DstSwitcher(NullDstSwitcher):
         # or the application is restarted
         self._suppress_dst_off = False
 
-    def _log(self, msg):
+    @staticmethod
+    def _log(msg):
         log.msg(msg)
 
     def _adjust_sample(self, sample):
@@ -373,7 +380,6 @@ class DstSwitcher(NullDstSwitcher):
                 sample = self._set_sample_timezone(sample)
 
                 self._enter_dst_mode(False, time_stamp)
-
 
         elif self._init and self._previous_timestamp < self._dst_info.dst_start <= time_stamp:
             # self._init is set to True only by the constructor. If we get

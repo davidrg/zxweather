@@ -72,7 +72,7 @@ def decode_current_storm_date(binary_val):
     #    15  14  13  11  12  11  10   9   8   7   6   5   4   3   2   1   0
 
     # 0xFFFF (-1 as a signed short) is the dashed value.
-    if binary_val == -1:
+    if binary_val == 0xFFFF:
         return None
 
     month_mask = 0xF000
@@ -100,7 +100,7 @@ def encode_current_storm_date(storm_date):
 
     # -1 (0xFFFF) is the dashed value.
     if storm_date is None:
-        return -1
+        return 0xFFFF
 
     year = storm_date.year
     year -= 2000
@@ -126,7 +126,7 @@ def decode_time(int_time):
         string = '0' + string
 
     if len(string) != 4:
-        raise Exception('invalid timestamp')
+        raise Exception('invalid timestamp: {0}'.format(int_time))
 
     hour = string[0:2]
     minute = string[2:]
@@ -149,17 +149,89 @@ def encode_time(timestamp):
     return hour * 100 + minute
 
 
-def deserialise_loop(loop_string, rainCollectorSize=0.2):
+def loop_fmt(split_arrays=False):
+    """
+    Builds the loop format string
+    :param split_arrays: If a separate character should be included for each field (no BBB instead of 3B)
+    :type split_arrays: bool
+    :return: struct format string
+    :rtype: str
+    """
+    alignment = '<'
+    parts = [
+        ('3s', 'Magic number ("LOO")'),
+        ('b', 'Bar trend'),
+        ('B', 'Packet type'),
+        ('H', 'Next record ID'),  # ('h', 'Next record ID'),
+        ('H', 'Barometer'),  # ('h', 'Barometer'),
+        ('h', 'Inside temperature'),
+        ('B', 'Inside humidity'),
+        ('h', 'Outside temperature'),
+        ('B', 'Wind speed'),
+        ('B', 'Average wind speed 10m'),
+        ('H', 'Wind direction'),  # ('h', 'Wind direction'),
+        ('7B', 'Extra temperatures 1-7'),
+        ('4B', 'Soil temperatures 1-4'),
+        ('4B', 'Leaf temperatures 1-4'),
+        ('B', 'Outside humidity'),
+        ('7B', 'Extra humidities 1-7'),
+        ('H', 'Rain rate'),  # ('h', 'Rain rate'),
+        ('B', 'UV index'),
+        ('H', 'Solar radiation'),  # ('h', 'Solar radiation'),
+        ('H', 'Storm rain'),  # ('h', 'Storm rain'),
+        ('H', 'Current storm start date'),  # ('h', 'Current storm start date'),
+        ('H', 'Day rain'),  # ('h', 'Day rain'),
+        ('H', 'Month rain'),  # ('h', 'Month rain'),
+        ('H', 'Year rain'),  # ('h', 'Year rain'),
+        ('H', 'Day ET'),  # ('h', 'Day ET'),
+        ('H', 'Month ET'),  # ('h', 'Month ET'),
+        ('H', 'Year ET'),  # ('h', 'Year ET'),
+        ('4B', 'Soil moisture 1-4'),
+        ('4B', 'Leaf wetness 1-4'),
+        ('B', 'Inside alarms'),
+        ('B', 'Rain alarms'),
+        ('2B', 'Outside alarms'),
+        ('8B', 'Extra temperature+humidity alarms 1-8'),
+        ('4B', 'Leaf+Soil alarms 1-4'),
+        ('B', 'TX battery status'),
+        ('H', 'Console battery voltage'),  # ('h', 'Console battery voltage'),
+        ('B', 'Forecast icons'),
+        ('B', 'Forecast rule number'),
+        ('H', 'Time of sunrise'),
+        ('H', 'Time of sunset'),
+        ('2s', 'Terminator'),
+    ]
+
+    if split_arrays:
+        x = []
+        for item in parts:
+            fmt = item[0]
+            desc = item[1]
+
+            try:
+                count = int(fmt[0])
+                f = fmt[1]
+                fmt = f * count
+            except ValueError:
+                pass  # Don't care
+            x.append((fmt, desc))
+        parts = x
+
+    return alignment + ''.join([x[0] for x in parts])
+
+
+def deserialise_loop(loop_string, rain_collector_size=0.2):
     """
     Takes a LOOP packet from the console and converts it into a namedtuple.
     :param loop_string: 97-character string from the console (packet minus CRC)
     :type loop_string: str
-    :param rainCollectorSize: Size of the rain collector in millimeters
-    :type rainCollectorSize: float
+    :param rain_collector_size: Size of the rain collector in millimeters
+    :type rain_collector_size: float
     :return: loop packet
     :rtype: Loop
     """
-    loop_format = '<3sbBhhhBhBBh7B4B4BB7BhBhhhhhhhhh4B4BBB2B8B4BBhBBHH2s'
+    #  loop_format = '<3sbBhhhBhBBh7B4B4BB7BhBhhhhhhhhh4B4BBB2B8B4BBhBBHH2s'
+    loop_format = loop_fmt()
 
     # Here we unpack the loop packet using that nasty format string above.
     # Oh what a lot of variables.
@@ -172,10 +244,10 @@ def deserialise_loop(loop_string, rainCollectorSize=0.2):
         ext_humid_2, ext_humid_3, ext_humid_4, ext_humid_5, ext_humid_6, \
         ext_humid_7, rain_rate, uv, solar_radiation, storm_rain, \
         current_storm_start_date, day_rain, month_rain, year_rain, \
-        day_ET, month_ET, year_ET, soil_moisture_1, soil_moisture_2, \
+        day_et, month_et, year_et, soil_moisture_1, soil_moisture_2, \
         soil_moisture_3, soil_moisture_4, leaf_wetness_1, leaf_wetness_2, \
         leaf_wetness_3, leaf_wetness_4, inside_alarms, rain_alarms, \
-        outside_alarms_A, outside_alarms_B, ext_th_alarms_1, ext_th_alarms_2, \
+        outside_alarms_a, outside_alarms_b, ext_th_alarms_1, ext_th_alarms_2, \
         ext_th_alarms_3, ext_th_alarms_4, ext_th_alarms_5, ext_th_alarms_6, \
         ext_th_alarms_7, ext_th_alarms_8, soil_leaf_alarm_1, soil_leaf_alarm_2,\
         soil_leaf_alarm_3, soil_leaf_alarm_4, tx_battery_status, \
@@ -189,6 +261,12 @@ def deserialise_loop(loop_string, rainCollectorSize=0.2):
     decoded_uv = undash_8bit(uv)
     if decoded_uv is not None:
         decoded_uv /= 10.0
+
+    if bar_trend == 80:
+        # Revision A LOOP packet - offset 3 is the letter 'P' instead of the
+        # 3-hour barometer trend. This makes for a header of "LOOP". No bar
+        # trend is available for this station.
+        bar_trend = None
 
     # Now pack all those variables into something a little more workable.
     # We'll to unit conversions, etc, at the same time.
@@ -229,19 +307,19 @@ def deserialise_loop(loop_string, rainCollectorSize=0.2):
             undash_8bit(ext_humid_5),
             undash_8bit(ext_humid_6),
             undash_8bit(ext_humid_7)],
-        rainRate=rain_rate * rainCollectorSize,
+        rainRate=rain_rate * rain_collector_size,
         UV=decoded_uv,
         solarRadiation=solar_radiation,
         # Manual says this is 100ths of an inch. The manual is wrong:
-        stormRain=storm_rain * rainCollectorSize,
+        stormRain=storm_rain * rain_collector_size,
         startDateOfCurrentStorm=decode_current_storm_date(
             current_storm_start_date),
-        dayRain=day_rain * rainCollectorSize,
-        monthRain=month_rain * rainCollectorSize,
-        yearRain=year_rain * rainCollectorSize,
-        dayET=inch_to_mm(day_ET * 1000),
-        monthET=inch_to_mm(month_ET * 100),
-        yearET=inch_to_mm(year_ET * 100),
+        dayRain=day_rain * rain_collector_size,
+        monthRain=month_rain * rain_collector_size,
+        yearRain=year_rain * rain_collector_size,
+        dayET=inch_to_mm(day_et * 1000),
+        monthET=inch_to_mm(month_et * 100),
+        yearET=inch_to_mm(year_et * 100),
         soilMoistures=[
             undash_8bit(soil_moisture_1),
             undash_8bit(soil_moisture_2),
@@ -255,8 +333,8 @@ def deserialise_loop(loop_string, rainCollectorSize=0.2):
         insideAlarms=inside_alarms,
         rainAlarms=rain_alarms,
         outsideAlarms=[
-            outside_alarms_A,
-            outside_alarms_B],
+            outside_alarms_a,
+            outside_alarms_b],
         extraTempHumAlarms=[
             ext_th_alarms_1,
             ext_th_alarms_2,
@@ -281,36 +359,49 @@ def deserialise_loop(loop_string, rainCollectorSize=0.2):
     return loop
 
 
-def serialise_loop(loop, rainCollectorSize=0.2):
+def serialise_loop(loop, rain_collector_size=0.2, include_crc=True):
     """
     Converts LOOP data into the string representation used by the console
     :param loop: Loop data
     :type loop: Loop
-    :param rainCollectorSize: Size of the rain collector in millimeters
-    :type rainCollectorSize: float
+    :param rain_collector_size: Size of the rain collector in millimeters
+    :type rain_collector_size: float
+    :param include_crc: Calculate the CRC code and return with the Loop data
+    :type include_crc: bool
     :returns: The loop thing as a string
-    :rtype: str
+    :rtype: bytes
     """
 
-    loop_format = '<3sbBhhhBhBBh7B4B4BB7BhBhhhhhhhhh4B4BBB2B8B4BBhBBHH'
+    loop_format = loop_fmt()
 
     if loop.solarRadiation is None:
-        solarRadiation = 32767
+        solar_radiation = 32767
     else:
-        solarRadiation = loop.solarRadiation
+        solar_radiation = loop.solarRadiation
 
-    packed = struct.pack(
+    if loop.UV is None:
+        uv = 255
+    else:
+        uv = int(round(loop.UV * 10.0, 0))
+
+    barometer = 0
+    if loop.barometer is not None:
+        barometer = int(round(mb_to_inhg(loop.barometer * 1000), 0))
+
+    result = bytearray()
+
+    result.extend(struct.pack(
         loop_format,
-        'LOO',  # Magic number
+        b'LOO',  # Magic number
         loop.barTrend,
         0,  # Packet type. 0 = LOOP
         loop.nextRecord,
-        mb_to_inhg(loop.barometer * 1000),
+        barometer,
         serialise_16bit_temp(loop.insideTemperature),
         dash_8bit(loop.insideHumidity),
         serialise_16bit_temp(loop.outsideTemperature),
-        ms_to_mph(loop.windSpeed),
-        ms_to_mph(loop.averageWindSpeed10min),
+        int(round(ms_to_mph(loop.windSpeed), 0)),
+        int(round(ms_to_mph(loop.averageWindSpeed10min), 0)),
         loop.windDirection,
         serialise_8bit_temp(loop.extraTemperatures[0]),
         serialise_8bit_temp(loop.extraTemperatures[1]),
@@ -335,17 +426,17 @@ def serialise_loop(loop, rainCollectorSize=0.2):
         dash_8bit(loop.extraHumidities[4]),
         dash_8bit(loop.extraHumidities[5]),
         dash_8bit(loop.extraHumidities[6]),
-        loop.rainRate / rainCollectorSize,
-        dash_8bit(loop.UV),
-        solarRadiation,
-        mm_to_inch(loop.stormRain) * 100,
+        int(round(loop.rainRate / rain_collector_size, 0)),
+        uv,
+        solar_radiation,
+        int(round(loop.stormRain / rain_collector_size, 0)),
         encode_current_storm_date(loop.startDateOfCurrentStorm),
-        int(loop.dayRain / rainCollectorSize),
-        int(loop.monthRain / rainCollectorSize),
-        int(loop.yearRain / rainCollectorSize),
-        mm_to_inch(loop.dayET) * 1000,
-        mm_to_inch(loop.monthET) * 100,
-        mm_to_inch(loop.yearET) * 100,
+        int(round(loop.dayRain / rain_collector_size, 0)),
+        int(round(loop.monthRain / rain_collector_size, 0)),
+        int(round(loop.yearRain / rain_collector_size, 0)),
+        int(round(mm_to_inch(loop.dayET) / 1000.0, 0)),
+        int(round(mm_to_inch(loop.monthET) / 100.0, 0)),
+        int(round(mm_to_inch(loop.yearET) / 100.0, 0)),
         dash_8bit(loop.soilMoistures[0]),
         dash_8bit(loop.soilMoistures[1]),
         dash_8bit(loop.soilMoistures[2]),
@@ -371,16 +462,18 @@ def serialise_loop(loop, rainCollectorSize=0.2):
         loop.soilAndLeafAlarms[2],
         loop.soilAndLeafAlarms[3],
         loop.transmitterBatteryStatus,
-        int(((loop.consoleBatteryVoltage / 300.0) * 512) * 100),
+        int(round(((loop.consoleBatteryVoltage / 300.0) * 512) * 100, 0)),
         loop.forecastIcons,
         loop.forecastRuleNumber,
         encode_time(loop.timeOfSunrise),
-        encode_time(loop.timeOfSunset)
-    )
+        encode_time(loop.timeOfSunset),
+        b'\n\r'
+    ))
 
-    packed += '\n\r'
+    if include_crc:
+        crc = CRC.calculate_crc(result)
+        packed_crc = struct.pack(CRC.FORMAT, crc)
 
-    crc = CRC.calculate_crc(packed)
-    packed_crc = struct.pack(CRC.FORMAT, crc)
+        result.extend(packed_crc)
 
-    return packed + packed_crc
+    return result

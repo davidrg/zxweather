@@ -34,7 +34,7 @@ class DavisTests(unittest.TestCase):
 
         self.assertEqual(tracker.args[0], '\n')
 
-        self.station.dataReceived('\r\n')
+        self.station.data_received('\r\n')
 
         self.assertEqual(self.station._state, STATE_AWAKE)
 
@@ -57,7 +57,7 @@ class DavisTests(unittest.TestCase):
         self.assertEqual(self.station._lps_packets_remaining, 3)
 
         # Then the hardware responds with an ACK.
-        self.station.dataReceived(self.station._ACK)
+        self.station.data_received('\x06')
         self.assertTrue(self.station._lps_acknowledged)
 
         # Then the hardware responds with a new LOOP2 packet every 2.5 seconds.
