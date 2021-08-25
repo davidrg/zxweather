@@ -363,7 +363,7 @@ def serialise_loop(loop, rainCollectorSize=0.2, include_crc=True):
     :param include_crc: Calculate the CRC code and return with the Loop data
     :type include_crc: bool
     :returns: The loop thing as a string
-    :rtype: str
+    :rtype: bytes
     """
 
     loop_format = loop_fmt()

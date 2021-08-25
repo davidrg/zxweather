@@ -36,7 +36,6 @@ class Procedure(object):
         """
         self.finished = Event()
         self._buffer = bytearray()
-        self._str_buffer = ''
         self._handlers = []
         self._state = self._STATE_READY
         self._write = write_callback
@@ -57,11 +56,6 @@ class Procedure(object):
         :type data: bytes
         """
         self._buffer.extend(data)
-
-        if isinstance(data, str):
-            self._str_buffer += data
-        else:
-            self._str_buffer += str(data)
 
         handler = self._handlers[self._state]
         if handler is not None:
@@ -94,7 +88,6 @@ class SequentialProcedure(Procedure):
         # Completely linear!
         self._state += 1
         self._buffer = bytearray()
-        self._str_buffer = ''
 
         if data is not None:
             self._write(data)
@@ -886,17 +879,16 @@ class LpsProcedure(SequentialProcedure):
             return
 
         self._state = self._STATE_READY
-        self._str_buffer = ""
-        self._buffer = bytes()
+        self._buffer = bytearray()
         self._lps_acknowledged = False
 
         if self._lps_packets_remaining <= 0:
             self._lps_packets_remaining = self._request_size
 
         if self._lps_supported:
-            self._transition('LPS 1 ' + str(self._lps_packets_remaining) + '\n')
+            self._transition(b'LPS 1 ' + str(self._lps_packets_remaining).encode('ascii') + b'\n')
         else:
-            self._transition('LOOP ' + str(self._lps_packets_remaining) + '\n')
+            self._transition(b'LOOP ' + str(self._lps_packets_remaining).encode('ascii') + b'\n')
 
     def cancel(self):
         """
@@ -906,9 +898,9 @@ class LpsProcedure(SequentialProcedure):
             # self._log("Loop cancel: not looping, nothing to cancel.")
             return  # Nothing to cancel.
 
-        #self._log("Canceling loop...")
+        # self._log("Canceling loop...")
         self._canceling = True
-        self._write('\n')
+        self._write(b'\n')
 
         if self._call_later is not None:
             self._call_later(3, self._cancel_check)
@@ -935,7 +927,7 @@ class LpsProcedure(SequentialProcedure):
             #       out of the buffer too. If the procedure has been provided
             #       with a call_later function the cancellation will be retried
             #       and that should sort everything out.
-            self._str_buffer = ''
+            self._buffer = bytearray()
             return
 
         if self._lps_packets_remaining <= 0:
@@ -945,7 +937,7 @@ class LpsProcedure(SequentialProcedure):
         self.start()
 
     def _check_if_canceled(self):
-        if self._canceling and self._str_buffer.startswith('\n\r'):
+        if self._canceling and self._buffer.startswith(b'\n\r'):
             self._canceling = False
             self._lps_packets_remaining = 0
             self._state = self._STATE_READY
@@ -958,10 +950,9 @@ class LpsProcedure(SequentialProcedure):
         Handles data while in the LPS state (receiving LOOP packets)
         """
 
-        if not self._lps_acknowledged and self._str_buffer[0:1] == self._ACK:
+        if not self._lps_acknowledged and self._buffer[0:1] == self._ACK:
             self._lps_acknowledged = True
-            self._str_buffer = self._str_buffer[1:]
-            # TODO: Update test_consumes_ack when switching from _str_buffer to _buffer.
+            self._buffer = self._buffer[1:2]
 
         # The LPS command hasn't been acknowledged yet so we're not *really*
         # in LPS mode just yet. Who knows what data we received to end up
@@ -973,7 +964,7 @@ class LpsProcedure(SequentialProcedure):
             # say the attempt to enter LPS mode failed and we'll make another
             # attempt.
             self._log('LPS mode not acknowledged. Retrying...\n'
-                      'Buffer contents is: {0}'.format(to_hex_string(self._str_buffer)))
+                      'Buffer contents is: {0}'.format(to_hex_string(self._buffer)))
             if not self._check_if_canceled():
                 # Don't retry if we've been canceled
                 self.start()
@@ -982,21 +973,21 @@ class LpsProcedure(SequentialProcedure):
         if self._check_if_canceled():
             return
 
-        if len(self._str_buffer) > 98:
-            while len(self._str_buffer) > 98:
+        if len(self._buffer) > 98:
+            while len(self._buffer) > 98:
                 # self._log('LOOP_DEC. BufferLen={0}, Pkt={1}, Buffer={2}'.format(
-                #     len(self._str_buffer), self._lps_packets_remaining,
-                #     toHexString(self._str_buffer)
+                #     len(self._buffer), self._lps_packets_remaining,
+                #     toHexString(self._buffer)
                 # ))
 
                 # We have at least one full LOOP packet
-                packet = self._str_buffer[0:99]
-                self._str_buffer = self._str_buffer[99:]
+                packet = self._buffer[0:99]  # Type: bytes
+                self._buffer = self._buffer[99:]
 
                 self._lps_packets_remaining -= 1
 
                 packet_data = packet[0:97]
-                packet_crc = struct.unpack(CRC.FORMAT, packet[97:])[0]
+                packet_crc = struct.unpack(CRC.FORMAT, packet[97:])[0]  # Type: int
 
                 crc = CRC.calculate_crc(packet_data)
                 if crc != packet_crc:
@@ -1010,7 +1001,7 @@ class LpsProcedure(SequentialProcedure):
                               'This is CRC Error #{4}, last was {5}\n'
                               'Packet data: {2}\nBuffer data: {3}'.format(
                         packet_crc, crc, to_hex_string(packet_data),
-                        to_hex_string(self._str_buffer), self._crc_errors,
+                        to_hex_string(self._buffer), self._crc_errors,
                         last_crc))
                     self._last_crc_error = datetime.datetime.now()
 
@@ -1027,12 +1018,12 @@ class LpsProcedure(SequentialProcedure):
                     # two-byte CRC. If this packet doesn't do that then some of it
                     # was probably lost in transmission and part of it actually
                     # belongs to the next packet.
-                    if packet[-4:-2] != '\n\r':
+                    if packet[-4:-2] != b'\n\r':
                         # the packet is short. Go looking a second packet header.
 
                         self._log('WARNING! End of current packet is corrupt.')
-                        end_of_packet = packet.find('\n\r')
-                        next_packet = packet.find('LOO', end_of_packet)
+                        end_of_packet = packet.find(b'\n\r')
+                        next_packet = packet.find(b'LOO', end_of_packet)
 
                         if next_packet >= 0:
                             self._log("WARNING! Found next packet data within current "
@@ -1040,13 +1031,13 @@ class LpsProcedure(SequentialProcedure):
                                       "bytes short. Attempting to patch up buffer."
                                       .format(next_packet, (99 - next_packet)))
                             next_packet_data = packet[next_packet:]
-                            self._str_buffer = next_packet_data + self._str_buffer
+                            self._buffer = next_packet_data + self._buffer
 
                         # If we didn't find a second packet header then something
                         # is properly wrong. Just restart the LOOP command and
                         # everything *should* be OK.
-                        if len(self._str_buffer) < 3 or \
-                                self._str_buffer[0:3] != "LOO":
+                        if len(self._buffer) < 3 or \
+                                self._buffer[0:3] != b"LOO":
                             self._log('WARNING! Buffer is corrupt. Attempting to '
                                       'recover by restarting LOOP command.')
                             if not self._check_if_canceled():
@@ -1062,7 +1053,7 @@ class LpsProcedure(SequentialProcedure):
                 if self._lps_packets_remaining <= 0 and not self._canceling:
                     self._state = self._STATE_READY
                     self._complete()
-        elif len(self._str_buffer) > 3 and self._str_buffer[0:3] != "LOO":
+        elif len(self._buffer) > 3 and self._buffer[0:3] != b"LOO":
             # The packet buffer is corrupt. It should *always* start with the
             # string "LOO" (as all LOOP packets start with that).
             # It isn't really safe to assume anything about the state of the
@@ -1071,11 +1062,11 @@ class LpsProcedure(SequentialProcedure):
             self._log("WARNING: Buffer contents is invalid. Discarding and "
                       "resetting LOOP process...")
             self._log("Buffer contents: {0}".format(
-                to_hex_string(self._str_buffer)))
+                to_hex_string(self._buffer)))
             self._lpsFaultReset()
             return
-        elif self._str_buffer.find("\n\r") >= 0 or \
-                self._str_buffer[3:].find("LOO") >= 0:
+        elif self._buffer.find(b"\n\r") >= 0 or \
+                self._buffer[3:].find(b"LOO") >= 0:
             # 1. The current packet terminated early (length is <98 and we found
             #    the end-of-packet marker)
             # OR
@@ -1084,7 +1075,7 @@ class LpsProcedure(SequentialProcedure):
             # Either way some data has gone missing and the packet buffer
             # is full of garbage. We'll try to throw out the first (bad) packet.
 
-            next_packet = self._str_buffer.find('LOO', 3)
+            next_packet = self._buffer.find(b'LOO', 3)
             if next_packet >= 0:
                 # Its not safe to try and patch if we're running out of LOOP
                 # packets.
@@ -1100,8 +1091,8 @@ class LpsProcedure(SequentialProcedure):
 
                 self._log("Found second packet in buffer at position {0}. "
                           "Current packet is {1} bytes short.".format(
-                    next_packet, (99 - next_packet)))
-                self._str_buffer = self._str_buffer[next_packet:]
+                                next_packet, (99 - next_packet)))
+                self._buffer = self._buffer[next_packet:]
                 self._lps_packets_remaining -= 1
             else:
                 self._log("End of packet sequence was detected but no "

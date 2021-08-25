@@ -1752,7 +1752,11 @@ class TestDmpProcedure(unittest.TestCase):
         self.assertEqual(0, len(proc.ArchiveRecords))
         self.assertListEqual([], proc.ArchiveRecords)
 
+
 class TestLpsProcedure(unittest.TestCase):
+
+    _ACK = b'\x06'
+
     @staticmethod
     def _make_loop_records(count, rain_collector_size):
         """
@@ -1775,17 +1779,17 @@ class TestLpsProcedure(unittest.TestCase):
             wind_direction = None
 
             if wind_speed > 0:
-                wind_direction = random.choice(_compass_points)
+                wind_direction = int(random.choice(_compass_points))
 
-            stormRain = round(random.uniform(0, 300), 1)
-            stormStartDate = None
-            if stormRain > 0:
+            storm_rain = round(random.uniform(0, 300), 1)
+            storm_start_date = None
+            if storm_rain > 0:
                 end_date = datetime.datetime.now().date()
                 start_date = end_date - datetime.timedelta(days=30)
                 random_days = random.randrange((end_date - start_date).days)
-                stormStartDate = start_date + datetime.timedelta(days=random_days)
+                storm_start_date = start_date + datetime.timedelta(days=random_days)
 
-            l = Loop(barTrend=random.choice(bar_trend_options),
+            x = Loop(barTrend=random.choice(bar_trend_options),
                      nextRecord=int(round(random.uniform(0, 2560), 0)),
                      barometer=round(random.uniform(985.9, 1039.3), 1),
                      insideTemperature=round(random.uniform(-3, 35), 1),
@@ -1828,8 +1832,8 @@ class TestLpsProcedure(unittest.TestCase):
                      rainRate=round(random.uniform(0, 500), 1),
                      UV=round(random.uniform(0, 14), 1),
                      solarRadiation=int(random.uniform(0, 1628)),
-                     stormRain=stormRain,
-                     startDateOfCurrentStorm=stormStartDate,
+                     stormRain=storm_rain,
+                     startDateOfCurrentStorm=storm_start_date,
                      dayRain=round(random.uniform(0, 300), 1),
                      monthRain=round(random.uniform(0, 300), 1),
                      yearRain=round(random.uniform(0, 300), 1),
@@ -1864,7 +1868,7 @@ class TestLpsProcedure(unittest.TestCase):
             # Pass the data through the DMP binary format which will result in
             # Metric -> US Imperial -> Metric conversion. We do this here so
             # we don't trip up any unit tests.
-            d = deserialise_loop(serialise_loop(l, rain_collector_size, False), rain_collector_size)
+            d = deserialise_loop(serialise_loop(x, rain_collector_size, False), rain_collector_size)
             records.append(d)
 
         return records
@@ -1955,7 +1959,7 @@ class TestLpsProcedure(unittest.TestCase):
         proc = LpsProcedure(recv.write, log.log, True, 0.2, 5)
 
         proc.start()
-        self.assertEquals("LPS 1 5\n", recv.read())
+        self.assertEquals(b"LPS 1 5\n", recv.read())
 
     def test_sends_loop_when_lps_not_supported(self):
         recv = WriteReceiver()
@@ -1964,7 +1968,7 @@ class TestLpsProcedure(unittest.TestCase):
         proc = LpsProcedure(recv.write, log.log, False, 0.2, 6)
 
         proc.start()
-        self.assertEquals("LOOP 6\n", recv.read())
+        self.assertEquals(b"LOOP 6\n", recv.read())
 
     def test_consumes_ack(self):
         recv = WriteReceiver()
@@ -1974,8 +1978,8 @@ class TestLpsProcedure(unittest.TestCase):
 
         proc.start()
         # receive: LPS 1 5\n
-        proc.data_received('\x06')
-        self.assertEqual('', proc._str_buffer)
+        proc.data_received(self._ACK)
+        self.assertEqual(b'', proc._buffer)
 
     def test_restarts_on_unexpected_non_ack(self):
         recv = WriteReceiver()
@@ -1984,9 +1988,9 @@ class TestLpsProcedure(unittest.TestCase):
         proc = LpsProcedure(recv.write, log.log, True, 0.2, 5)
 
         proc.start()
-        self.assertEquals("LPS 1 5\n", recv.read())
-        proc.data_received('Hello!')
-        self.assertEquals("LPS 1 5\n", recv.read())
+        self.assertEquals(b"LPS 1 5\n", recv.read())
+        proc.data_received(b'Hello!')
+        self.assertEquals(b"LPS 1 5\n", recv.read())
 
     def test_decodes_one_packet(self):
         recv = WriteReceiver()
@@ -2000,7 +2004,7 @@ class TestLpsProcedure(unittest.TestCase):
 
         proc.start()
         # receive: LPS 1 5\n
-        proc.data_received('\x06')
+        proc.data_received(self._ACK)
         proc.data_received(serialise_loop(record, 0.2))
 
         self.assertEqual(1, len(looper.LoopRecords))
@@ -2018,7 +2022,7 @@ class TestLpsProcedure(unittest.TestCase):
 
         proc.start()
         # receive: LPS 1 5\n
-        proc.data_received('\x06')
+        proc.data_received(self._ACK)
         
         for record in records:
             proc.data_received(serialise_loop(record, 0.2))
@@ -2040,7 +2044,7 @@ class TestLpsProcedure(unittest.TestCase):
 
         proc.start()
         # receive: LPS 1 5\n
-        proc.data_received('\x06')
+        proc.data_received(self._ACK)
 
         for record in records:
             proc.data_received(serialise_loop(record, 0.2))
@@ -2064,7 +2068,7 @@ class TestLpsProcedure(unittest.TestCase):
 
         proc.start()
         # receive: LPS 1 5\n
-        proc.data_received('\x06')
+        proc.data_received(self._ACK)
 
         for record in records:
             self.assertFalse(fd.IsFinished)
@@ -2089,13 +2093,13 @@ class TestLpsProcedure(unittest.TestCase):
 
         proc.start()
         # receive: LPS 1 5\n
-        proc.data_received('\x06')
+        proc.data_received(self._ACK)
 
         serialised_records = [serialise_loop(record, 0.2) for record in records]
 
         # Corrupt record 2 by overwriting some of it with garbage
         rec_2 = serialised_records[2]
-        rec_2 = rec_2[0:50] + 'Hello, World!' + rec_2[63:]
+        rec_2 = rec_2[0:50] + b'Hello, World!' + rec_2[63:]
         serialised_records[2] = rec_2
 
         # and throw away the corrupted record from the list of what we're
@@ -2132,38 +2136,37 @@ class TestLpsProcedure(unittest.TestCase):
         records = TestLpsProcedure._make_loop_records(5, 0.2)
 
         proc.start()
-        self.assertEqual(recv.read(), 'LPS 1 5\n')
-        proc.data_received('\x06')
+        self.assertEqual(recv.read(), b'LPS 1 5\n')
+        proc.data_received(self._ACK)
 
         serialised_records = [serialise_loop(record, 0.2) for record in records]
 
-        print("> one good packet")
+        # one good packet
         self.assertFalse(fd.IsFinished)
         proc.data_received(serialised_records.pop(0))
         self.assertEqual(1, len(looper.LoopRecords))
 
         # Corrupt record 2 by overwriting some of it with garbage
-        rec_2 = serialised_records.pop(0)
-        rec_2 = 'XYZ' + rec_2[5:-2] + "XYZY"
-        print(len(rec_2))
+        rec_2 = bytearray()
+        rec_2.extend(b'XYZ')
+        rec_2.extend(serialised_records.pop(0)[5:-2])
+        rec_2.extend(b'XYZY')
         assert(len(rec_2) == 99)
         del records[1]
 
-        print("> one garbage packet")
+        # one garbage packet
         self.assertFalse(fd.IsFinished)
-        proc.data_received(rec_2)
+        proc.data_received(bytes(rec_2))
         self.assertEqual(1, len(looper.LoopRecords))
-        self.assertEqual(recv.read(), 'LPS 1 3\n')
-        proc.data_received('\x06')
+        self.assertEqual(recv.read(), b'LPS 1 3\n')
+        proc.data_received(self._ACK)
 
         for record in serialised_records:
-            print("> one good packet")
             self.assertFalse(fd.IsFinished)
-            self.assertEqual(recv.read(), '')
+            self.assertEqual(recv.read(), b'')
             proc.data_received(record)
 
-        print("> done")
-        self.assertEqual(recv.read(), '')
+        self.assertEqual(recv.read(), b'')
         self.assertEqual(len(records), len(looper.LoopRecords))
         for i, rec in enumerate(records):
             self._assertLoopEqual(rec, looper.LoopRecords[i], i)
@@ -2187,34 +2190,35 @@ class TestLpsProcedure(unittest.TestCase):
         records = TestLpsProcedure._make_loop_records(5, 0.2)
 
         proc.start()
-        self.assertEqual(recv.read(), 'LPS 1 5\n')
-        proc.data_received('\x06')
+        self.assertEqual(recv.read(), b'LPS 1 5\n')
+        proc.data_received(self._ACK)
 
         serialised_records = [serialise_loop(record, 0.2) for record in records]
 
-        print("> one good packet")
+        # one good packet
         self.assertFalse(fd.IsFinished)
         proc.data_received(serialised_records.pop(0))
         self.assertEqual(1, len(looper.LoopRecords))
-        self.assertEqual(recv.read(), '')
+        self.assertEqual(recv.read(), b'')
 
         # Corrupt record deleting a chunk from the middle
-        rec_2 = serialised_records.pop(0)
-        rec_2 = rec_2[:10] + rec_2[20:]
+        base_rec = serialised_records.pop(0)
+        rec_2 = bytearray()
+        rec_2.extend(base_rec[:10])
+        rec_2.extend(base_rec[20:])
+        rec_2.extend(serialised_records.pop(0))
         del records[1]
 
-        print("> one short packet combined with a good one")
+        # one short packet combined with a good one
         self.assertFalse(fd.IsFinished)
-        proc.data_received(rec_2 + serialised_records.pop(0))
+        proc.data_received(bytes(rec_2))
 
         for record in serialised_records:
-            print("> one good packet")
             self.assertFalse(fd.IsFinished)
-            self.assertEqual(recv.read(), '')
+            self.assertEqual(recv.read(), b'')
             proc.data_received(record)
 
-        print("> done")
-        self.assertEqual(recv.read(), '')
+        self.assertEqual(recv.read(), b'')
         self.assertEqual(len(records), len(looper.LoopRecords))
         for i, rec in enumerate(records):
             self._assertLoopEqual(rec, looper.LoopRecords[i], i)
@@ -2237,37 +2241,38 @@ class TestLpsProcedure(unittest.TestCase):
         records = TestLpsProcedure._make_loop_records(5, 0.2)
 
         proc.start()
-        self.assertEqual(recv.read(), 'LPS 1 5\n')
-        proc.data_received('\x06')
+        self.assertEqual(recv.read(), b'LPS 1 5\n')
+        proc.data_received(self._ACK)
 
         serialised_records = [serialise_loop(record, 0.2) for record in records]
 
-        print("> one good packet")
+        # one good packet
         self.assertFalse(fd.IsFinished)
         proc.data_received(serialised_records.pop(0))
         self.assertEqual(1, len(looper.LoopRecords))
-        self.assertEqual(recv.read(), '')
+        self.assertEqual(recv.read(), b'')
 
         # Corrupt record deleting a chunk from the middle
-        rec_2 = serialised_records.pop(0)
-        rec_2 = rec_2[:10] + rec_2[20:]
+        base_rec = serialised_records.pop(0)
+        rec_2 = bytearray()
+        rec_2.extend(base_rec[:10])
+        rec_2.extend(base_rec[20:])
         del records[1]
 
-        print("> one short packet combined with a good one")
+        # One short packet combined with one good one
         self.assertFalse(fd.IsFinished)
         rec_3 = serialised_records.pop(0)
-        proc.data_received(rec_2 + rec_3[:50])
+        rec_2.extend(rec_3[:50])
+        proc.data_received(bytes(rec_2))
         self.assertEqual(1, len(looper.LoopRecords))
         proc.data_received(rec_3[50:])
 
         for record in serialised_records:
-            print("> one good packet")
             self.assertFalse(fd.IsFinished)
-            self.assertEqual(recv.read(), '')
+            self.assertEqual(recv.read(), b'')
             proc.data_received(record)
 
-        print("> done")
-        self.assertEqual(recv.read(), '')
+        self.assertEqual(recv.read(), b'')
         self.assertEqual(len(records), len(looper.LoopRecords))
         for i, rec in enumerate(records):
             self._assertLoopEqual(rec, looper.LoopRecords[i], i)
@@ -2289,31 +2294,29 @@ class TestLpsProcedure(unittest.TestCase):
         records = TestLpsProcedure._make_loop_records(5, 0.2)
 
         proc.start()
-        self.assertEqual(recv.read(), 'LPS 1 5\n')
-        proc.data_received('\x06')
+        self.assertEqual(recv.read(), b'LPS 1 5\n')
+        proc.data_received(self._ACK)
 
         serialised_records = [serialise_loop(record, 0.2) for record in records]
 
-        print("> one good packet")
+        # one good packet
         self.assertFalse(fd.IsFinished)
         proc.data_received(serialised_records.pop(0))
         self.assertEqual(1, len(looper.LoopRecords))
 
-        print("> Some garbage")
+        # Some garbage
         self.assertFalse(fd.IsFinished)
-        proc.data_received("Hello, World!")
+        proc.data_received(b"Hello, World!")
         self.assertEqual(1, len(looper.LoopRecords))
-        self.assertEqual(recv.read(), 'LPS 1 4\n')
-        proc.data_received('\x06')
+        self.assertEqual(recv.read(), b'LPS 1 4\n')
+        proc.data_received(self._ACK)
 
         for record in serialised_records:
-            print("> one good packet")
             self.assertFalse(fd.IsFinished)
-            self.assertEqual(recv.read(), '')
+            self.assertEqual(recv.read(), b'')
             proc.data_received(record)
 
-        print("> done")
-        self.assertEqual(recv.read(), '')
+        self.assertEqual(recv.read(), b'')
         self.assertEqual(len(records), len(looper.LoopRecords))
         for i, rec in enumerate(records):
             self._assertLoopEqual(rec, looper.LoopRecords[i], i)
@@ -2339,31 +2342,29 @@ class TestLpsProcedure(unittest.TestCase):
         records = TestLpsProcedure._make_loop_records(4, 0.2)
 
         proc.start()
-        self.assertEqual(recv.read(), 'LPS 1 5\n')
-        proc.data_received('\x06')
+        self.assertEqual(recv.read(), b'LPS 1 5\n')
+        proc.data_received(self._ACK)
 
         serialised_records = [serialise_loop(record, 0.2) for record in records]
 
-        print("> one good packet")
+        # one good packet
         self.assertFalse(fd.IsFinished)
         proc.data_received(serialised_records.pop(0))
         self.assertEqual(1, len(looper.LoopRecords))
 
-        print("> Some garbage")
+        # Some garbage
         self.assertFalse(fd.IsFinished)
-        proc.data_received("\n\r")
+        proc.data_received(b"\n\r")
         self.assertEqual(1, len(looper.LoopRecords))
-        self.assertEqual(recv.read(), 'LPS 1 3\n')
-        proc.data_received('\x06')
+        self.assertEqual(recv.read(), b'LPS 1 3\n')
+        proc.data_received(self._ACK)
 
         for record in serialised_records:
-            print("> one good packet")
             self.assertFalse(fd.IsFinished)
-            self.assertEqual(recv.read(), '')
+            self.assertEqual(recv.read(), b'')
             proc.data_received(record)
 
-        print("> done")
-        self.assertEqual(recv.read(), '')
+        self.assertEqual(recv.read(), b'')
         self.assertEqual(len(records), len(looper.LoopRecords))
         for i, rec in enumerate(records):
             self._assertLoopEqual(rec, looper.LoopRecords[i], i)
@@ -2385,31 +2386,29 @@ class TestLpsProcedure(unittest.TestCase):
         records = TestLpsProcedure._make_loop_records(5, 0.2)
 
         proc.start()
-        self.assertEqual(recv.read(), 'LPS 1 5\n')
-        proc.data_received('\x06')
+        self.assertEqual(recv.read(), b'LPS 1 5\n')
+        proc.data_received(self._ACK)
 
         serialised_records = [serialise_loop(record, 0.2) for record in records]
 
-        print("> one good packet")
+        # one good packet
         self.assertFalse(fd.IsFinished)
         proc.data_received(serialised_records.pop(0))
         self.assertEqual(1, len(looper.LoopRecords))
 
-        print("> Some garbage")
+        # Some garbage
         self.assertFalse(fd.IsFinished)
-        proc.data_received("LOO LOO")
+        proc.data_received(b"LOO LOO")
         self.assertEqual(1, len(looper.LoopRecords))
-        self.assertEqual(recv.read(), 'LPS 1 4\n')
-        proc.data_received('\x06')
+        self.assertEqual(recv.read(), b'LPS 1 4\n')
+        proc.data_received(self._ACK)
 
         for record in serialised_records:
-            print("> one good packet")
             self.assertFalse(fd.IsFinished)
-            self.assertEqual(recv.read(), '')
+            self.assertEqual(recv.read(), b'')
             proc.data_received(record)
 
-        print("> done")
-        self.assertEqual(recv.read(), '')
+        self.assertEqual(recv.read(), b'')
         self.assertEqual(len(records), len(looper.LoopRecords))
         for i, rec in enumerate(records):
             self._assertLoopEqual(rec, looper.LoopRecords[i], i)
@@ -2433,35 +2432,35 @@ class TestLpsProcedure(unittest.TestCase):
         records = TestLpsProcedure._make_loop_records(9, 0.2)
 
         proc.start()
-        self.assertEqual(recv.read(), 'LPS 1 10\n')
-        proc.data_received('\x06')
+        self.assertEqual(recv.read(), b'LPS 1 10\n')
+        proc.data_received(self._ACK)
 
         serialised_records = [serialise_loop(record, 0.2) for record in records]
 
-        print("> one good packet")
+        # one good packet
         self.assertFalse(fd.IsFinished)
         proc.data_received(serialised_records.pop(0))
         self.assertEqual(1, len(looper.LoopRecords))
 
-        print("> Some garbage")
+        # Some garbage
         self.assertFalse(fd.IsFinished)
         rec_2 = serialised_records.pop(0)
-        rec_2_a = "LOO " + rec_2[0:50]
+        rec_2_a = bytearray()
+        rec_2_a.extend(b"LOO ")
+        rec_2_a.extend(rec_2[0:50])
         rec_2_b = rec_2[50:]
 
-        proc.data_received(rec_2_a)
+        proc.data_received(bytes(rec_2_a))
         self.assertEqual(1, len(looper.LoopRecords))
         proc.data_received(rec_2_b)
         self.assertEqual(2, len(looper.LoopRecords))
 
         for record in serialised_records:
-            print("> one good packet")
             self.assertFalse(fd.IsFinished)
-            self.assertEqual(recv.read(), '')
+            self.assertEqual(recv.read(), b'')
             proc.data_received(record)
 
-        print("> done")
-        self.assertEqual(recv.read(), '')
+        self.assertEqual(recv.read(), b'')
         self.assertEqual(len(records), len(looper.LoopRecords))
         for i, rec in enumerate(records):
             self._assertLoopEqual(rec, looper.LoopRecords[i], i)
@@ -2481,22 +2480,28 @@ class TestLpsProcedure(unittest.TestCase):
 
         proc.start()
         # receive: LPS 1 5\n
-        proc.data_received('\x06')
+        proc.data_received(self._ACK)
 
         serialised_records = [serialise_loop(record, 0.2) for record in records]
 
         # Corrupt record 2 by overwriting some of it with garbage
-        rec_2 = serialised_records[2]
-        rec_2 = rec_2[0:50] + 'Hello, World!' + rec_2[63:]
-        serialised_records[2] = rec_2
+        base_rec = serialised_records[2]
+        rec_2 = bytearray()
+        rec_2.extend(base_rec[0:50])
+        rec_2.extend(b'Hello, World!')
+        rec_2.extend(base_rec[63:])
+        serialised_records[2] = bytes(rec_2)
 
         # and throw away the corrupted record from the list of what we're
         # expecting back.
         del records[2]
 
-        rec_3 = serialised_records[3]
-        rec_3 = rec_3[0:50] + 'Hello, World!' + rec_3[63:]
-        serialised_records[3] = rec_3
+        base_rec = serialised_records[3]
+        rec_3 = bytearray()
+        rec_3.extend(base_rec[0:50])
+        rec_3.extend(b'Hello, World!')
+        rec_3.extend(base_rec[63:])
+        serialised_records[3] = bytes(rec_3)
 
         # and throw away the corrupted record from the list of what we're
         # expecting back. This ones ID is #2 as well becuase we deleted the last
@@ -2532,32 +2537,29 @@ class TestLpsProcedure(unittest.TestCase):
         records = TestLpsProcedure._make_loop_records(9, 0.2)
 
         proc.start()
-        self.assertEqual(recv.read(), 'LPS 1 10\n')
-        proc.data_received('\x06')
+        self.assertEqual(recv.read(), b'LPS 1 10\n')
+        proc.data_received(self._ACK)
 
         serialised_records = [serialise_loop(record, 0.2) for record in records]
 
-        print("> one good packet")
+        # one good packet
         self.assertFalse(fd.IsFinished)
         proc.data_received(serialised_records.pop(0))
         self.assertEqual(1, len(looper.LoopRecords))
 
-        print("> Some garbage")
+        # Some garbage
         self.assertFalse(fd.IsFinished)
-        proc.data_received("LOO\n\rHELLO!")
+        proc.data_received(b"LOO\n\rHELLO!")
         self.assertEqual(1, len(looper.LoopRecords))
-        self.assertEqual(recv.read(), 'LPS 1 8\n')
-        proc.data_received('\x06')
+        self.assertEqual(recv.read(), b'LPS 1 8\n')
+        proc.data_received(self._ACK)
 
         for record in serialised_records:
-            print("> one good packet")
             self.assertFalse(fd.IsFinished)
-            self.assertEqual(recv.read(), '')
+            self.assertEqual(recv.read(), b'')
             proc.data_received(record)
-            print("Recv pkt: {0}".format(len(looper.LoopRecords)))
 
-        print("> done")
-        self.assertEqual(recv.read(), '')
+        self.assertEqual(recv.read(), b'')
         self.assertEqual(len(records), len(looper.LoopRecords))
         for i, rec in enumerate(records):
             self._assertLoopEqual(rec, looper.LoopRecords[i], i)
@@ -2576,20 +2578,18 @@ class TestLpsProcedure(unittest.TestCase):
         records = TestLpsProcedure._make_loop_records(2, 0.2)
 
         proc.start()
-        self.assertEqual(recv.read(), 'LPS 1 2\n')
-        proc.data_received('\x06')
+        self.assertEqual(recv.read(), b'LPS 1 2\n')
+        proc.data_received(self._ACK)
 
         serialised_records = [serialise_loop(record, 0.2) for record in records]
 
-        print("> one good packet")
         self.assertFalse(fd.IsFinished)
         proc.data_received(serialised_records.pop(0))
         self.assertEqual(1, len(looper.LoopRecords))
 
-        print("> Some garbage")
         self.assertFalse(fd.IsFinished)
-        proc.data_received("LOO\n\rHELLO!")
-        self.assertEqual('', recv.read())
+        proc.data_received(b"LOO\n\rHELLO!")
+        self.assertEqual(b'', recv.read())
         self.assertEqual(1, len(looper.LoopRecords))
         self._assertLoopEqual(records[0], looper.LoopRecords[0], 1)
         self.assertTrue(fd.IsFinished)
@@ -2614,7 +2614,7 @@ class TestLpsProcedure(unittest.TestCase):
 
         proc.start()
         # receive: LPS 1 5\n
-        proc.data_received('\x06')
+        proc.data_received(self._ACK)
 
         for record in records[0:5]:
             proc.data_received(serialise_loop(record, 0.2))
@@ -2628,8 +2628,8 @@ class TestLpsProcedure(unittest.TestCase):
         proc.cancel()
         self.assertFalse(fd.IsFinished)
         self.assertFalse(cd.IsFinished)
-        self.assertEqual('\n', recv.read())
-        proc.data_received("\n\r")
+        self.assertEqual(b'\n', recv.read())
+        proc.data_received(b"\n\r")
         self.assertTrue(cd.IsFinished)
         self.assertFalse(fd.IsFinished)
         self.assertEqual(5, len(looper.LoopRecords))
@@ -2649,18 +2649,18 @@ class TestLpsProcedure(unittest.TestCase):
         records = TestLpsProcedure._make_loop_records(10, 0.2)
 
         proc.cancel()
-        self.assertEqual('', recv.read())
+        self.assertEqual(b'', recv.read())
 
         proc.start()
         # receive: LPS 1 5\n
-        proc.data_received('\x06')
+        proc.data_received(self._ACK)
 
         for record in records:
             proc.data_received(serialise_loop(record, 0.2))
 
         recv.read()  # Clear the receive buffer
         proc.cancel()
-        self.assertEqual('', recv.read())
+        self.assertEqual(b'', recv.read())
 
     def test_does_not_start_if_cancel_is_not_finished(self):
         recv = WriteReceiver()
@@ -2674,15 +2674,13 @@ class TestLpsProcedure(unittest.TestCase):
         proc.finished += fd.finished
         proc.canceled += cd.finished
 
-        records = TestLpsProcedure._make_loop_records(10, 0.2)
-
         proc.start()
         recv.read()  # receive: LPS 1 5\n
-        proc.data_received('\x06')
+        proc.data_received(self._ACK)
         proc.cancel()
         recv.read()  # receive: \n
         proc.start()
-        self.assertEqual('', recv.read())
+        self.assertEqual(b'', recv.read())
 
     def test_does_not_signal_finished_if_cancel_is_incomplete(self):
         # A cancellation request may not be processed immediately as there may
@@ -2705,7 +2703,7 @@ class TestLpsProcedure(unittest.TestCase):
 
         proc.start()
         # receive: LPS 1 10\n
-        proc.data_received('\x06')
+        proc.data_received(self._ACK)
 
         for record in records[0:5]:
             proc.data_received(serialise_loop(record, 0.2))
@@ -2720,7 +2718,7 @@ class TestLpsProcedure(unittest.TestCase):
         proc.cancel()
         self.assertFalse(fd.IsFinished)
         self.assertFalse(cd.IsFinished)
-        self.assertEqual('\n', recv.read())
+        self.assertEqual(b'\n', recv.read())
 
         # Make sure it hasn't taken effect yet...
         self.assertFalse(fd.IsFinished)
@@ -2749,7 +2747,7 @@ class TestLpsProcedure(unittest.TestCase):
         self.assertFalse(cd.IsFinished)
 
         # Confirm the cancellation
-        proc.data_received("\n\r")
+        proc.data_received(b"\n\r")
 
         # And now we should be canceled but not finished.
         self.assertTrue(cd.IsFinished)
@@ -2770,32 +2768,30 @@ class TestLpsProcedure(unittest.TestCase):
         records = TestLpsProcedure._make_loop_records(5, 0.2)
 
         proc.start()
-        self.assertEqual(recv.read(), 'LPS 1 5\n')
-        proc.data_received('\x06')
+        self.assertEqual(recv.read(), b'LPS 1 5\n')
+        proc.data_received(self._ACK)
 
         # Cancel the procedure
         proc.cancel()
-        self.assertEqual(recv.read(), '\n')
+        self.assertEqual(recv.read(), b'\n')
         self.assertFalse(cd.IsFinished)
 
         serialised_records = [serialise_loop(record, 0.2) for record in records]
 
-        print("> one good packet")
         self.assertFalse(fd.IsFinished)
         proc.data_received(serialised_records.pop(0))
         self.assertEqual(1, len(looper.LoopRecords))
 
-        print("> Some garbage")
         self.assertFalse(fd.IsFinished)
-        proc.data_received("LOO LOO")
+        proc.data_received(b"LOO LOO")
         self.assertEqual(1, len(looper.LoopRecords))
         # This would normally trigger a restart. Because we've canceled the
         # procedure this should not happen now.
-        self.assertEqual(recv.read(), '')
+        self.assertEqual(recv.read(), b'')
         self.assertFalse(fd.IsFinished)
         self.assertFalse(cd.IsFinished)
         
-        proc.data_received("\n\r")
+        proc.data_received(b"\n\r")
         self.assertFalse(fd.IsFinished)
         self.assertTrue(cd.IsFinished)
 
@@ -2817,7 +2813,7 @@ class TestLpsProcedure(unittest.TestCase):
                 self.assertEqual(3, delay)
 
                 # This is the initial cancellation request to the console
-                self.assertEqual('\n', recv.read())
+                self.assertEqual(b'\n', recv.read())
                 self.assertFalse(fd.IsFinished)
                 self.assertFalse(cd.IsFinished)
 
@@ -2830,16 +2826,16 @@ class TestLpsProcedure(unittest.TestCase):
             self.assertFalse(cd.IsFinished)
 
             # And then check we got another cancellation request:
-            self.assertEqual('\n', recv.read())
+            self.assertEqual(b'\n', recv.read())
             self.assertFalse(fd.IsFinished)
             self.assertFalse(cd.IsFinished)
 
             # Acknowledge the request.
             # Note that the test will infinitely loop if we don't acknowledge
             # the cancellation before the end of this fake call_later function
-            proc.data_received('\n\r')
+            proc.data_received(b'\n\r')
 
-            self.assertEqual('', recv.read())
+            self.assertEqual(b'', recv.read())
             self.assertFalse(fd.IsFinished)
             self.assertTrue(cd.IsFinished)
 
@@ -2852,7 +2848,7 @@ class TestLpsProcedure(unittest.TestCase):
 
         proc.start()
         # receive: LPS 1 5\n
-        proc.data_received('\x06')
+        proc.data_received(self._ACK)
 
         for record in records[0:5]:
             proc.data_received(serialise_loop(record, 0.2))
@@ -2880,7 +2876,7 @@ class TestLpsProcedure(unittest.TestCase):
 
         proc.start()
         # receive: LPS 1 5\n
-        proc.data_received('\x06')
+        proc.data_received(self._ACK)
 
         for record in records:
             proc.data_received(serialise_loop(record, 0.2))
@@ -2893,7 +2889,7 @@ class TestLpsProcedure(unittest.TestCase):
         records_2 = TestLpsProcedure._make_loop_records(5, 0.2)
         proc.start()
         # receive: LPS 1 5\n
-        proc.data_received('\x06')
+        proc.data_received(self._ACK)
 
         for record in records_2:
             proc.data_received(serialise_loop(record, 0.2))
@@ -2904,4 +2900,3 @@ class TestLpsProcedure(unittest.TestCase):
         self.assertEqual(10, len(looper.LoopRecords))
         for i, record in enumerate(records):
             self._assertLoopEqual(record, looper.LoopRecords[i], i)
-
