@@ -712,14 +712,19 @@ class DmpProcedure(SequentialProcedure):
         if page_count > 0:
             self._transition()
 
-        # Request the console start streaming data to us (at this point we
-        # could instead cancel the download by sending 0x1B)
-        self._write(self._ACK)
-
         if page_count <= 0:
             # Let everyone know we're done.
             self.ArchiveRecords = []  # No archive records.
+
+            # No data to receive. Cancel the op.
+            self._write('\x1B')
+
             self._complete()
+            return
+
+        # Request the console start streaming data to us (at this point we
+        # could instead cancel the download by sending 0x1B)
+        self._write(self._ACK)
 
     def _receive_archive_records(self):
 

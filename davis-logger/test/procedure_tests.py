@@ -1745,6 +1745,7 @@ class TestDmpProcedure(unittest.TestCase):
         proc.data_received(b'\x06')  # ACK
 
         proc.data_received(TestDmpProcedure._page_count(0, 0))
+        proc.data_received(b'\x1B')  # ACK
 
         self.assertTrue(fd.IsFinished)
 
