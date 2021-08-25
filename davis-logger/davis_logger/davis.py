@@ -266,11 +266,12 @@ class DavisWeatherStation(object):
         self._hw_type = procedure.hw_type
         self._station_type = procedure.station_type
         self._lps_supported = procedure.lps_supported
+        self._revision_b_firmware = procedure.revision_b_firmware
 
         # TODO: Move these warnings out of here
         if procedure.station_type not in [16, 17]:
             log.msg("WARNING: Unsupported hardware type '{0}' - correct "
-                    "functionality not guaranteed!".format(self._hw_type))
+                    "functionality unlikely!".format(self._hw_type))
 
         if not procedure.lps_supported:
             if procedure.self_firmware_upgrade_supported:
@@ -283,6 +284,15 @@ class DavisWeatherStation(object):
                         "Your console firmware is not recent enough to support "
                         "PC firmware upgrades - a special firmware upgrade "
                         "device must be obtained.")
+
+        if not procedure.revision_b_firmware:
+            log.msg("WARNING: Antique firmware (Rev. A) detected! This is an "
+                    "untested configuration and correct functionality is not "
+                    "guaranteed. Additionally this implies station hardware is "
+                    "a Vantage Pro - this is not properly supported by "
+                    "zxweather at this time. ISS Reception calculations assume "
+                    "a Vantage Vue or Pro2 and will not be correct for the "
+                    "original Vantage Pro.")
 
         procedure = GetConsoleConfigurationProcedure(self._write)
         self._run_procedure(procedure, self._console_config_ready)

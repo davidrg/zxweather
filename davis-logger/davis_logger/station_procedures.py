@@ -4,7 +4,6 @@ Various procedures for interacting with davis weather stations
 """
 import struct
 import datetime
-from twisted.python import log
 
 from davis_logger.record_types.dmp import encode_date, encode_time, split_page, deserialise_dmp
 from davis_logger.record_types.loop import deserialise_loop
@@ -373,6 +372,7 @@ class GetConsoleInformationProcedure(SequentialProcedure):
         self.version = None  # Type: str
         self.lps_supported = None  # Type: bool
         self.self_firmware_upgrade_supported = None  # Type: bool
+        self.revision_b_firmware = None  # Type: bool
         self.Name = "Get console type & firmware version"
 
     def start(self):
@@ -433,10 +433,12 @@ class GetConsoleInformationProcedure(SequentialProcedure):
             if self.lps_supported is None:
                 v190_date = datetime.date(year=2009, month=12, day=31)
                 ancient_fw_date = datetime.date(year=2005, month=11, day=28)
+                rev_b_date = datetime.date(year=2002, month=4, day=24)
 
                 # Need firmware v1.90 (dated 31-DEC-2009) to support LPS
                 self.lps_supported = self.version_date_d >= v190_date
                 self.self_firmware_upgrade_supported = self.version_date_d >= ancient_fw_date
+                self.revision_b_firmware = self.version_date_d >= rev_b_date
 
             if self.station_type in [16, 17] and self.lps_supported:
                 # NVER is only supported on the Vantage Vue or Vantage Pro2

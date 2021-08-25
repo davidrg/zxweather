@@ -422,6 +422,34 @@ class TestGetConsoleInformationProcedure(unittest.TestCase):
         self.assertIsNotNone(proc.self_firmware_upgrade_supported)
         self.assertTrue(proc.self_firmware_upgrade_supported)
 
+    def test_revision_a_firmware_detected(self):
+        recv = WriteReceiver()
+
+        proc = GetConsoleInformationProcedure(recv.write)
+
+        proc.start()
+        proc.data_received(self._ACK)
+        proc.data_received(bytearray([16]))
+
+        # Firmware dated before 24 April 2002 is revision A.
+        proc.data_received(b'\r\nOK\r\nApr 1 2002\r\n')
+        self.assertIsNotNone(proc.revision_b_firmware)
+        self.assertFalse(proc.revision_b_firmware)
+
+    def test_revision_b_firmware_detected(self):
+        recv = WriteReceiver()
+
+        proc = GetConsoleInformationProcedure(recv.write)
+
+        proc.start()
+        proc.data_received(self._ACK)
+        proc.data_received(bytearray([16]))
+
+        # Firmware dated on or after 24 April 2002 is revision B.
+        proc.data_received(b'\r\nOK\r\nApr 24 2002\r\n')
+        self.assertIsNotNone(proc.revision_b_firmware)
+        self.assertTrue(proc.revision_b_firmware)
+
     def test_non_upgradable_firmware_detected(self):
         recv = WriteReceiver()
 
