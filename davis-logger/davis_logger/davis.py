@@ -5,15 +5,12 @@ Vantage Vue and later firmwares for the Pro2 and Envoy. Firmware pre-1.9 for the
 Vantage Pro2 ought to work too but its untested, as is the Vantage Pro (firmware
 from 24-APR-2002 only - anything earlier certainly won't work)
 """
-import struct
+import time
+
 import datetime
 from twisted.python import log
-from davis_logger.record_types.dmp import encode_date, encode_time, \
-    split_page, deserialise_dmp
-from davis_logger.record_types.loop import deserialise_loop
-from davis_logger.record_types.util import CRC
 from davis_logger.station_procedures import DstSwitchProcedure, GetConsoleInformationProcedure, \
-    GetConsoleConfigurationProcedure, DmpProcedure
+    GetConsoleConfigurationProcedure, DmpProcedure, LpsProcedure
 from davis_logger.util import Event, to_hex_string
 
 __author__ = 'david'
@@ -25,9 +22,9 @@ STATE_SLEEPING = 0
 # for two minutes from the last character sent to the console so act fast.
 STATE_AWAKE = 1
 
-# When the console is busy executing the LPS command. To abort run the wake up
-# procedure.
-STATE_LPS = 2
+# When the console is busy executing the LPS command. Call _cancel_looper to
+# stop until the next procedure finishes or stop_live_data to disable entirely.
+STATE_LOOP = 2
 
 # For generic procedure type things
 STATE_IN_PROCEDURE = 14
@@ -41,53 +38,40 @@ class DavisWeatherStation(object):
     to the station hardware *without buffering*.
     """
 
-    # The ASCII 'ACK' character is used by the console to acknowledge a
-    # recognised command.
-    _ACK = '\x06'
-
-    # The console uses '!' as a NAK character to signal invalid parameters.
-    _NAK = '\x21'  # TODO: Some other software uses \x15 here claiming the
-                   # documentation is wrong. Further investigation required.
-
-    # Used to signal to the console that its response did not pass the CRC
-    # check. Sending this back will make the console resend its last message.
-    _CANCEL = '\x18'
-
-    # Used to cancel the download of further DMP packets.
-    _ESC = '\x1B'
-
-    # Used to signal that the command was recognised. Like ACK I guess.
-    _OK = '\n\rOK\n\r'
-
-    # Used to signal that a long-running command has completed. When the
-    # command is executed the console will respond with OK to signal that it
-    # has started and DONE to signal it has finished.
-    _DONE = 'DONE\n\r'
-
     _max_dst_offset = datetime.timedelta(hours=2)
 
     def __init__(self):
         # Setup events
         self.sendData = Event()
         self.loopDataReceived = Event()
-        self.loopFinished = Event()
         self.InitCompleted = Event()
+
+        self._log_data = False
 
         # This event is raised when samples have finished downloading. The
         # sample records will be passed as a parameter.
         self.dumpFinished = Event()
 
+        self._looper = None
+        self._loop_enable = False
+        self._looper_cancel_callback = None
+
         self._procedure = None
         self._procedure_callback = None
+
+        # Initialise to some big number so the console will initially considered
+        # to be sleeping.
+        self._last_write_time = 500
+        self._wake_buffer = ''
 
         # This table controls which function handles received data in each
         # state.
         self._state_data_handlers = {
-            STATE_SLEEPING: self._sleepingStateDataReceived,
-            STATE_LPS: self._lpsStateDataReceived,
-
+            STATE_SLEEPING: self._sleeping_state_data_received,
+            STATE_LOOP: self._loop_data_received,
             STATE_IN_PROCEDURE: self._procedure_data_received,
         }
+        self._state = STATE_SLEEPING
 
         self._reset_state()
 
@@ -98,33 +82,30 @@ class DavisWeatherStation(object):
         # Initialise other fields.
         self._state = STATE_SLEEPING
 
-        # Fields used by the LPS command.
-        self._lps_packets_remaining = 0
-        self._lps_acknowledged = False
-        self._lps_buffer = ""
-
-        # Fields used by the DMPAFT command
-        self._dmp_timestamp = None
-        self._dmp_buffer = ""
-
         # Misc
         self._wakeRetries = 0
-        self._crc_errors = 0
-        self._last_crc_error = None
 
     def reset(self):
         """
         Resets the data logger after a stall. Current state is wiped and the
         initialise() is called to get everything running again.
         """
+        if self._looper is not None:
+            self._loop_enable = False
+            self._looper.cancel()
+            self._looper = None
+
         self._reset_state()
         self.initialise()
 
-    def dataReceived(self, data):
+    def data_received(self, data):
         """
         Call this with any data the weather station hardware supplies.
         :param data: Weather station data.
         """
+
+        if self._log_data:
+            log.msg("Receive< {0}".format(to_hex_string(data)))
 
         # Hand the data off to the function for the current state.
         if self._state not in self._state_data_handlers:
@@ -134,7 +115,15 @@ class DavisWeatherStation(object):
 
         self._state_data_handlers[self._state](data)
 
-    def setManualDaylightSavingsState(self, new_dst_state, callback=None):
+    def set_manual_daylight_savings_state(self, new_dst_state, callback=None):
+        """
+        Turns manual daylight savings on or off. If the station is currently
+        configured for automatic daylight savings this does nothing.
+        :param new_dst_state: New daylight savings state - on or off
+        :type new_dst_state: bool
+        :param callback: Function to call once the operation has completed
+        :type callback: callable
+        """
         log.msg("Switching DST mode to {0}".format(new_dst_state))
         procedure = DstSwitchProcedure(self._write, new_dst_state)
         self._run_procedure(procedure, lambda proc: callback)
@@ -151,6 +140,23 @@ class DavisWeatherStation(object):
             procedure is supplied as a parameter
         :type finished_callback: Callable
         """
+
+        # Make sure the looper is not running
+        if self._state == STATE_LOOP:
+            assert self._looper is not None
+            # log.msg("Stopping loop to run procedure...")
+
+            # We'll run this function again once the looper has confirmed its
+            # stopped.
+            self._cancel_looper(lambda: self._run_procedure(
+                procedure, finished_callback))
+            return
+
+        if self._procedure is not None:
+            raise Exception(
+                "Procedure of type {0} started while procedure of type {1} is "
+                "still running".format(type(procedure), type(self._procedure)))
+
         self._procedure = procedure
 
         # We don't just attach the finished callback to the procedure finished
@@ -159,16 +165,20 @@ class DavisWeatherStation(object):
         self._procedure_callback = finished_callback
         self._procedure.finished += self._procedure_finished
 
-        self._wakeUp(self._start_procedure)
+        self._wake_up(self._start_procedure)
 
     def _start_procedure(self):
         self._state = STATE_IN_PROCEDURE
+        log.msg("Starting procedure: {0}".format(self._procedure.Name))
         self._procedure.start()
 
     def _procedure_data_received(self, data):
         if self._procedure is not None:
             # Procedures expect bytes - not strings
             if isinstance(data, str):
+                # TODO: Remove this encode attempt once all procedures are
+                #       bytearray/bytes compatible
+                # noinspection PyBroadException
                 try:
                     encoded = data.encode('ascii')
                 except:
@@ -179,7 +189,7 @@ class DavisWeatherStation(object):
                 self._procedure.data_received(data)
 
     def _procedure_finished(self):
-        log.msg("Procedure completed: {0}".format(self._procedure.Name))
+        # log.msg("Procedure completed: {0}".format(self._procedure.Name))
         self._state = STATE_AWAKE
         proc = self._procedure
         self._procedure = None
@@ -191,47 +201,48 @@ class DavisWeatherStation(object):
             self._procedure_callback = None
             cb(proc)
 
-    def getLoopPackets(self, packet_count):
+        if self._loop_enable and self._state != STATE_LOOP:
+            # We were looping before this procedure started. Resume looping.
+            # log.msg("Procedure finished - resuming loop")
+            self.start_live_data()
+
+    def start_live_data(self):
         """
-        Gets the specified number of LOOP packets one every 2.5 seconds. This
-        requires either a Vantage Pro2 with firmware version 1.90 or higher,
-        or a Vantage Vue.
-
-        The loop packets will be broadcast using the loopDataReceived event.
-
-        :param packet_count: The number of loop packets to to receive
-        :type packet_count: int
+        Starts receipt of loop packets. This will emit LOOP packets continuously
+        except when interrupted by other requests. Once an interrupting request
+        has completed LOOP packets will resume.
         """
-        self._lps_packets_remaining = packet_count
+        # log.msg("Starting live data subscription...")
+        self._loop_enable = True
+        if self._state == STATE_LOOP:
+            # log.msg("Already looping")
+            pass
+        elif self._state == STATE_IN_PROCEDURE:
+            # log.msg("Unable to start live data at this time: in procedure. Loop will start when procedure complets.")
+            pass
+        else:
+            self._state = STATE_LOOP
+            self._looper.start()
 
-        self._wakeUp(self._getLoopPacketsCallback)
-
-    def cancelLoop(self):
+    def stop_live_data(self):
         """
-        Cancels the current loop request (if any)
+        Stops receipt of loop packets.
         """
-        self._lps_packets_remaining = 0
-        self._write('\n')
-        self._state = STATE_AWAKE
+        # This will first disable the looper (so it doesn't automatically
+        # restart when a procedure finishes) then tell it to cancel so the
+        # station stops sending LOOP packets
 
-    def _getLoopPacketsCallback(self):
-        self._state = STATE_LPS
-        self._lps_acknowledged = False
+        self._loop_enable = False
+        self._cancel_looper()
 
-        # The LPS command and its associated LOOP2 packets are only supported
-        # on the Vantage Pro2 running firmware 1.9 or higher.
-        #self._write('LPS 1 ' + str(self._lps_packets_remaining) + '\n')
-
-        self._write('LOOP ' + str(self._lps_packets_remaining) + '\n')
-
-    def getSamples(self, timestamp):
+    def get_samples(self, timestamp):
         """
         Gets all new samples (archive records) logged after the supplied
         timestamp.
         :param timestamp: Timestamp to get all samples after
         :type timestamp: datetime.datetime
         """
-
+        log.msg("Getting samples since: {0}".format(timestamp))
         procedure = DmpProcedure(self._write, log.msg, timestamp,
                                  self._rainCollectorSize)
 
@@ -240,6 +251,8 @@ class DavisWeatherStation(object):
             :param proc: DmpProcedure
             :type proc: DmpProcedure
             """
+            assert proc.ArchiveRecords is not None
+
             self.dumpFinished.fire(proc.ArchiveRecords)
 
         self._run_procedure(procedure, _samples_ready)
@@ -300,6 +313,18 @@ class DavisWeatherStation(object):
         self._auto_dst_enabled = procedure.AutoDSTEnabled
         dst_on = procedure.DSTOn
 
+        # Setup the LPS procedure. Apparently there is an undocumented maximum
+        # request size of somewhere around 220. So we'll stick to 200 at a time.
+        # We give it twisteds callLater function so the LpsProcedure can
+        # automatically retry failed cancellations in the event of an error.
+        from twisted.internet import reactor
+        self._looper = LpsProcedure(self._write, log.msg, self._lps_supported,
+                                    self._rainCollectorSize, 200,
+                                    reactor.callLater)
+        self._looper.loopDataReceived += self.loopDataReceived.fire
+        self._looper.finished += self._looper_restart
+        self._looper.canceled += self._looper_canceled
+
         self.InitCompleted.fire(self._station_type, self._hw_type,
                                 self._version, self._version_date,
                                 self._station_time,
@@ -309,16 +334,33 @@ class DavisWeatherStation(object):
                                 dst_on)
 
     def _write(self, data):
-        # TODO: store current time so we know if the console has gone back to
-        # sleep.
+        if self._log_data:
+            log.msg("WRITE> {0}".format(to_hex_string(data)))
+        self._last_write_time = time.time()
         self.sendData.fire(data)
 
-    def _wakeUp(self, callback=None):
+    def _wake_up(self, callback=None):
+        seconds_since_last_write = time.time() - self._last_write_time
+
+        # The console will stay awake for 120 seconds since it last received
+        # a character. To be safe (in case it missed a character) we'll use a
+        # shorter threshold
+        console_sleeping = seconds_since_last_write > 60
+
+        if not console_sleeping:
+            # Console isn't asleep - no need to wake it.
+            self._state = STATE_AWAKE
+            self._wakeRetries = 0
+            if callback is not None:
+                callback()
+            return
+
+        log.msg("Console may be sleeping - attempting to wake...")
+
         # This is so we can tell if the function which will be called later can
         # tell if the wake was successful.
         if self._wakeRetries == 0:
             self._state = STATE_SLEEPING
-            self._wakeRetries = 0
 
         if callback is not None:
             self._wakeCallback = callback
@@ -335,14 +377,18 @@ class DavisWeatherStation(object):
         self._write('\n')
 
         from twisted.internet import reactor
-        reactor.callLater(2, self._wakeCheck)
+        reactor.callLater(2, self._wake_check)
 
-    def _sleepingStateDataReceived(self, data):
+    def _sleeping_state_data_received(self, data):
         """Handles data while in the sleeping state."""
+
+        self._wake_buffer += data
 
         # After a wake request the console will respond with \r\n when it is
         # ready to go.
-        if data == '\n\r':
+        if data.endswith('\n\r'):
+            log.msg("Station is now awake.")
+            self._wake_buffer = ''
             self._state = STATE_AWAKE
             self._wakeRetries = 0
             if self._wakeCallback is not None:
@@ -350,174 +396,52 @@ class DavisWeatherStation(object):
                 self._wakeCallback = None
                 callback()
 
-    def _wakeCheck(self):
+    def _wake_check(self):
         """
         Checks to see if the wake-up was successful. If it is not then it will
         trigger a retry.
         """
         if self._state == STATE_SLEEPING:
             log.msg('WakeCheck: Retry...')
-            self._wakeUp()
+            self._wake_up()
 
-    def _lpsFaultReset(self):
-        """
-        Resets the current LPS command. For when things go badly wrong and there
-        isn't any other safe way to recover.
-        :return:
-        """
-        self._lps_buffer = ""
-        self._state = STATE_AWAKE
-        if self._lps_packets_remaining <= 0:
-            self._lps_packets_remaining = 1
-        self.getLoopPackets(self._lps_packets_remaining)
+    def _looper_restart(self):
+        # This is bound to the loopers finished event. Here we just tell the
+        # looper to go again if it hasn't been disabled.
+        if self._loop_enable:
+            self._looper.start()
 
-    def _lpsStateDataReceived(self, data):
-        """ Handles data while in the LPS state (receiving LOOP packets)
-        """
+    def _loop_data_received(self, data):
+        # TODO: once everything is python3 compatible the state can be wired
+        #       directly to self._looper.data_received
+        assert self._looper is not None
 
-        if not self._lps_acknowledged and data[0] == self._ACK:
-            self._lps_acknowledged = True
-            data = data[1:]
+        if isinstance(data, str):
+            # noinspection PyBroadException
+            try:
+                encoded = data.encode('ascii')
+            except:
+                encoded = data
 
-        # The LPS command hasn't been acknowledged yet so we're not *really*
-        # in LPS mode just yet. Who knows what data we received to end up
-        # here but this is probably bad. We'll just try to enter LPS mode again.
-        if not self._lps_acknowledged:
-            # If we've gotten here that means an attempt has just been made to
-            # enter LPS mode. The current value in _lps_packets_remaining should
-            # be the number of LPS packets originally requested. So We'll just
-            # say the attempt to enter LPS mode failed and we'll make another
-            # attempt.
-            log.msg('WARNING: LPS mode not acknowledged. Retrying...\n'
-                    'Trigger data was: {0}'.format(to_hex_string(data)))
-            self._state = STATE_AWAKE
-            self.getLoopPackets(self._lps_packets_remaining)
-            return
+            self._looper.data_received(encoded)
+        else:
+            self._looper.data_received(data)
 
-        if len(data) > 0:
-            self._lps_buffer += data
+    def _cancel_looper(self, callback=None):
+        # This simply tells the looper to cancel. The looper canceled event
+        # handler will update our current state then run the callback if there
+        # is one.
+        self._looper_cancel_callback = callback
+        self._looper.cancel()
 
-        if len(self._lps_buffer) > 98:
-            # log.msg('LOOP_DEC. BufferLen={0}, Pkt={1}, Buffer={2}'.format(
-            #     len(self._lps_buffer), self._lps_packets_remaining,
-            #     toHexString(self._lps_buffer)
-            # ))
+    def _looper_canceled(self):
+        # This is bound to the looper canceled event and runs whenever the
+        # station confirms the LPS or LOOP command has been canceled.
 
-            # We have at least one full LOOP packet
-            packet = self._lps_buffer[0:99]
-            self._lps_buffer = self._lps_buffer[99:]
+        if self._state == STATE_LOOP:
+            self._state = STATE_SLEEPING
 
-            self._lps_packets_remaining -= 1
-
-            packet_data = packet[0:97]
-            packet_crc = struct.unpack(CRC.FORMAT, packet[97:])[0]
-
-            crc = CRC.calculate_crc(packet_data)
-            if crc != packet_crc:
-                self._crc_errors += 1
-                if self._last_crc_error is None:
-                    last_crc = 'Never'
-                else:
-                    last_crc = str(self._last_crc_error)
-                log.msg('Warning: CRC validation failed for LOOP packet. '
-                        'Discarding. Expected: {0}, got: {1}. '
-                        'This is CRC Error #{4}, last was {5}\n'
-                        'Packet data: {2}\nBuffer data: {3}'.format(
-                        packet_crc, crc, to_hex_string(packet_data),
-                        to_hex_string(self._lps_buffer), self._crc_errors,
-                        last_crc))
-                self._last_crc_error = datetime.datetime.now()
-
-                # Now, at this point its possible a mess may have been made. The
-                # errors I see come through are where some data was lost in
-                # transmission resulting in a very short loop packet. Part of
-                # the next loop packet ends up being stolen by the corrupt one
-                # resulting in all subsequent loop packets being broken too.
-                # So to take care of this situation we will search back through
-                # the bad loop packet looking for the string "LOO" and insert
-                # everything from that point back into the start of the buffer.
-
-                # Every LOOP packet should end with \n\r followed by its
-                # two-byte CRC. If this packet doesn't do that then some of it
-                # was probably lost in transmission and part of it actually
-                # belongs to the next packet.
-                if packet[-4:-2] != '\n\r':
-                    # the packet is short. Go looking a second packet header.
-
-                    log.msg('WARNING! End of current packet is corrupt.')
-                    end_of_packet = packet.find('\n\r')
-                    next_packet = packet.find('LOO', end_of_packet)
-
-                    if next_packet >= 0:
-                        log.msg("WARNING! Found next packet data within current "
-                                "packet at position {0}. Current packet is {1} "
-                                "bytes short. Attempting to patch up buffer."
-                                .format(next_packet, (99 - next_packet)))
-                        next_packet_data = packet[next_packet:]
-                        self._lps_buffer = next_packet_data + self._lps_buffer
-
-                    # If we didn't find a second packet header then something
-                    # is properly wrong. Just restart the LOOP command and
-                    # everything *should* be OK.
-                    if len(self._lps_buffer) < 3 or \
-                            self._lps_buffer[0:3] != "LOO":
-                        log.msg('WARNING! Buffer is corrupt. Attempting to '
-                                'recover by restarting LOOP command.')
-                        self._lpsFaultReset()
-                        return
-
-            else:
-                # CRC checks out. Data should be good
-                loop = deserialise_loop(packet_data, self._rainCollectorSize)
-
-                self.loopDataReceived.fire(loop)
-
-            if self._lps_packets_remaining <= 0:
-                self._state = STATE_AWAKE
-                self.loopFinished.fire()
-        elif len(self._lps_buffer) > 3 and self._lps_buffer[0:3] != "LOO":
-            # The packet buffer is corrupt. It should *always* start with the
-            # string "LOO" (as all LOOP packets start with that).
-            # It isn't really safe to assume anything about the state of the
-            # LOOP command at this point. Best just to reset it and continue
-            # on.
-            log.msg("WARNING: Buffer contents is invalid. Discarding and "
-                    "resetting LOOP process...")
-            log.msg("Buffer contents: {0}".format(
-                to_hex_string(self._lps_buffer)))
-            self._lpsFaultReset()
-            return
-        elif self._lps_buffer.find("\r\n") >= 0 or \
-                self._lps_buffer[3:].find("LOO") >= 0:
-            # 1. The current packet terminated early (length is <98 and we found
-            #    the end-of-packet marker)
-            # OR
-            # 2. We found the start of a second packet in the current packet
-            #    buffer
-            # Either way some data has gone missing and the packet buffer
-            # is full of garbage. We'll try to throw out the first (bad) packet.
-
-            # Its not safe to try and patch if we're running out of LOOP
-            # packets.
-            if self._lps_packets_remaining < 5:
-                log.msg("WARNING: A second packet header was detected in the"
-                        "buffer. Resetting LOOP process...")
-                self._lpsFaultReset()
-                return
-
-            log.msg("WARNING! A second packet header was detected in the "
-                    "buffer. First packet is corrupt. Attempting to fix "
-                    "buffer...")
-
-            next_packet = self._lps_buffer.find('LOO', 3)
-            if next_packet >= 0:
-                log.msg("Found second packet in buffer at position {0}. "
-                        "Current packet is {1} bytes short.".format(
-                        next_packet, (99-next_packet)))
-                self._lps_buffer = self._lps_buffer[next_packet:]
-                self._lps_packets_remaining -= 1
-
-            if len(self._lps_buffer) < 3 or self._lps_buffer[0:3] != "LOO":
-                log.msg("Recovery failed. Resetting LOOP process...")
-                self._lpsFaultReset()
-                return
+        if self._looper_cancel_callback is not None:
+            cb = self._looper_cancel_callback
+            self._looper_cancel_callback = None
+            cb()
