@@ -50,6 +50,8 @@ __author__ = 'david'
 #         'soilMoistures'
 #     )
 # )
+from davis_logger.util import to_hex_string
+
 
 class Dmp(object):
     def __init__(self, dateStamp, timeStamp, timeZone, dateInteger, timeInteger,
@@ -379,7 +381,7 @@ def _serialise_wind_direction_code(value):
     return _compass_points.index(value)
 
 
-def deserialise_dmp(dmp_string, rainCollectorSize=0.2):
+def deserialise_dmp(dmp_string, rainCollectorSize=0.2, rev_b_firmware=True):
     """
     Deserialised a dmp string into a Dmp tuple.
     :param dmp_string: DMP record in string format as sent by the console
@@ -390,20 +392,48 @@ def deserialise_dmp(dmp_string, rainCollectorSize=0.2):
     :rtype: Dmp
     """
 
-    dmp_format = '<HHhhhHHHHHhBBBBBBBBHBB2B2B4BB2B3B4B'
+    dmp_format_a = '<HHhhhHHHHHhBBBBBBBBB4B4B4B2B2BHHB'
+    dmp_format_b = '<HHhhhHHHHHhBBBBBBBBHBB2B2B4BB2B3B4B'
 
-    dateStamp, timeStamp, outsideTemperature, highOutsideTemperature, \
-        lowOutsideTemperature, rainfall, highRainRate, barometer, \
-        solarRadiation, numberOfWindSamples, insideTemperature, \
-        insideHumidity, outsideHumidity, averageWindSpeed, highWindSpeed, \
-        highWindSpeedDirection, prevailingWindDirection, averageUVIndex, ET, \
-        highSolarRadiation, highUVIndex, forecastRule, leafTemperature_1, \
-        leafTemperature_2, leafWetness_1, leafWetness_2, soilTemperature_1, \
-        soilTemperature_2, soilTemperature_3, soilTemperature_4, \
-        downloadRecordType, extraHumidity_1, extraHumidity_2, \
-        extraTemperature_1, extraTemperature_2, extraTemperature_3,\
-        soilMoisture_1, soilMoisture_2, soilMoisture_3, soilMoisture_4 = \
-        struct.unpack(dmp_format, dmp_string)
+    # byte 42 is guaranteed to be 0 for revision B and 0xFF for revision A.
+    is_rev_a = dmp_string[42] == b'\xFF'
+
+    if not is_rev_a:
+        dateStamp, timeStamp, outsideTemperature, highOutsideTemperature, \
+            lowOutsideTemperature, rainfall, highRainRate, barometer, \
+            solarRadiation, numberOfWindSamples, insideTemperature, \
+            insideHumidity, outsideHumidity, averageWindSpeed, highWindSpeed, \
+            highWindSpeedDirection, prevailingWindDirection, averageUVIndex, ET, \
+            highSolarRadiation, highUVIndex, forecastRule, leafTemperature_1, \
+            leafTemperature_2, leafWetness_1, leafWetness_2, soilTemperature_1, \
+            soilTemperature_2, soilTemperature_3, soilTemperature_4, \
+            downloadRecordType, extraHumidity_1, extraHumidity_2, \
+            extraTemperature_1, extraTemperature_2, extraTemperature_3,\
+            soilMoisture_1, soilMoisture_2, soilMoisture_3, soilMoisture_4 = \
+            struct.unpack(dmp_format_b, dmp_string)
+    else:
+        # This has never been tested. It may not work.
+        assert not rev_b_firmware
+        dateStamp, timeStamp, outsideTemperature, highOutsideTemperature, \
+            lowOutsideTemperature, rainfall, highRainRate, barometer, \
+            solarRadiation, numberOfWindSamples, insideTemperature, \
+            insideHumidity, outsideHumidity, averageWindSpeed, highWindSpeed, \
+            highWindSpeedDirection, prevailingWindDirection, averageUVIndex, ET, \
+            reserved_a, soilMoisture_1, soilMoisture_2, soilMoisture_3, soilMoisture_4, \
+            soilTemperature_1, soilTemperature_2, soilTemperature_3, soilTemperature_4, \
+            leafWetness_1, leafWetness_2, leafWetness_3, leafWetness_4, \
+            extraTemperature_1, extraTemperature_2, extraHumidity_1, extraHumidity_2, \
+            reed_closed_count, reed_opened_count, reserved_b \
+                = struct.unpack(dmp_format_a, dmp_string)
+
+        # These fields are unsupported in Rev. A dump records so we'll just
+        # pretend they're null.
+        highSolarRadiation = 32767
+        highUVIndex = 255
+        forecastRule = None
+        leafTemperature_1 = 255
+        leafTemperature_2 = 255
+        extraTemperature_3 = 255
 
     if solarRadiation == 32767:
         solarRadiation = None

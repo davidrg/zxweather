@@ -1218,9 +1218,14 @@ class TestDmpProcedure(unittest.TestCase):
             datetime.datetime(2021, 8, 18, 20, 45), 5, 8, 0.2)
         encoded_records = [serialise_dmp(r) for r in records]
 
-        empty_record = b'\xFF' * 52
-        encoded_records.append(empty_record)
-        encoded_records.append(empty_record)
+        # Not sure if empty fields really are marked as revision B. For the
+        # purpose of the test we'll assume they are.
+        empty_record = bytearray()
+        empty_record.extend(b'\xFF' * 42)
+        empty_record.extend(b'\x00')  # Make sure the record is revision B
+        empty_record.extend(b'\xFF' * 9)
+        encoded_records.append(bytes(empty_record))
+        encoded_records.append(bytes(empty_record))
 
         # Builds a page complete with CRC. Handy!
         page_1 = build_page(
@@ -1414,7 +1419,11 @@ class TestDmpProcedure(unittest.TestCase):
         encoded_records = [serialise_dmp(r) for r in records]
 
         # Stick a null record in slot 4 of the middle page
-        encoded_records.append(b'\xFF' * 52)
+        null_record = bytearray()
+        null_record.extend(b'\xFF' * 42)
+        null_record.extend(b'\x00')  # Make sure the record is revision B
+        null_record.extend(b'\xFF' * 9)
+        encoded_records.append(bytes(null_record))
 
         last_ts = datetime.datetime.combine(
             records[-1].dateStamp, records[-1].timeStamp)

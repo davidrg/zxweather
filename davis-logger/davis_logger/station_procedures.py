@@ -611,7 +611,7 @@ class DmpProcedure(SequentialProcedure):
     _ESC = b'\x1B'
 
     def __init__(self, write_callback, log_callback, from_time,
-                 rain_collector_size):
+                 rain_collector_size, _rev_b_firmware=True):
         """
         Fetches archive records from the station console/envoy
         :param write_callback: Callback to send data to the station
@@ -622,6 +622,8 @@ class DmpProcedure(SequentialProcedure):
         :type from_time: datetime.datetime
         :param rain_collector_size: Rain collector size in millimeters
         :type rain_collector_size: float
+        :param _rev_b_firmware: If the station is using Revision B firmware
+        :type _rev_b_firmware: bool
         """
         super(DmpProcedure, self).__init__(write_callback, log_callback)
 
@@ -629,6 +631,7 @@ class DmpProcedure(SequentialProcedure):
         self._from_time = from_time
         self._rain_collector_size = rain_collector_size
         self._max_dst_offset = datetime.timedelta(hours=2)
+        self._rev_b_firmware = _rev_b_firmware
 
         self.Name = "Get all archive records since: {0}".format(from_time)
 
@@ -753,7 +756,8 @@ class DmpProcedure(SequentialProcedure):
         last_ts = None
 
         for index, record in enumerate(self._dmp_records):
-            decoded = deserialise_dmp(record, self._rain_collector_size)
+            decoded = deserialise_dmp(record, self._rain_collector_size,
+                                      self._rev_b_firmware)
 
             if decoded.dateStamp is None or decoded.timeStamp is None:
                 # An empty record indicates we've gone past the last record

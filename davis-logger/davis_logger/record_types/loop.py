@@ -262,6 +262,12 @@ def deserialise_loop(loop_string, rainCollectorSize=0.2):
     if decoded_uv is not None:
         decoded_uv /= 10.0
 
+    if bar_trend == 80:
+        # Revision A LOOP packet - offset 3 is the letter 'P' instead of the
+        # 3-hour barometer trend. This makes for a header of "LOOP". No bar
+        # trend is available for this station.
+        bar_trend = None
+
     # Now pack all those variables into something a little more workable.
     # We'll to unit conversions, etc, at the same time.
     loop = Loop(

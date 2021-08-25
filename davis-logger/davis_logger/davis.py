@@ -232,7 +232,8 @@ class DavisWeatherStation(object):
         """
         log.msg("Getting samples since: {0}".format(timestamp))
         procedure = DmpProcedure(self._write, log.msg, timestamp,
-                                 self._rainCollectorSize)
+                                 self._rainCollectorSize,
+                                 self._revision_b_firmware)
 
         def _samples_ready(proc):
             """

@@ -70,3 +70,14 @@ class loop_tests(unittest.TestCase):
 
             self.assertDictEqual(decoded._asdict(), decoded2._asdict())
             self.assertEqual(packet, encoded)
+
+    def test_revision_a_packet_has_no_bar_trend(self):
+        packet = self.loop_packets[0]
+
+        rev_a_packet = bytearray()
+        rev_a_packet.extend(b'LOOP')
+        rev_a_packet.extend(packet[4:])
+
+        decoded = deserialise_loop(rev_a_packet[0:97])
+
+        self.assertIsNone(decoded.barTrend)
