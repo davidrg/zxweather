@@ -2661,6 +2661,210 @@ class TestLpsProcedure(unittest.TestCase):
         proc.cancel()
         self.assertEqual('', recv.read())
 
+    def test_does_not_start_if_cancel_is_not_finished(self):
+        recv = WriteReceiver()
+        log = LogReceiver()
+        looper = LoopReceiver()
+        fd = FinishedDetector()
+        cd = FinishedDetector()
+
+        proc = LpsProcedure(recv.write, log.log, True, 0.2, 10)
+        proc.loopDataReceived += looper.receiveLoop
+        proc.finished += fd.finished
+        proc.canceled += cd.finished
+
+        records = TestLpsProcedure._make_loop_records(10, 0.2)
+
+        proc.start()
+        recv.read()  # receive: LPS 1 5\n
+        proc.data_received('\x06')
+        proc.cancel()
+        recv.read()  # receive: \n
+        proc.start()
+        self.assertEqual('', recv.read())
+
+    def test_does_not_signal_finished_if_cancel_is_incomplete(self):
+        # A cancellation request may not be processed immediately as there may
+        # be loop packets still in the buffer to be processed or still incoming
+        # from the station. Once the LOOP has been canceled any further loop
+        # packets shouldn't result in the finished signal being emitted.
+
+        recv = WriteReceiver()
+        log = LogReceiver()
+        looper = LoopReceiver()
+        fd = FinishedDetector()
+        cd = FinishedDetector()
+
+        proc = LpsProcedure(recv.write, log.log, True, 0.2, 10)
+        proc.loopDataReceived += looper.receiveLoop
+        proc.finished += fd.finished
+        proc.canceled += cd.finished
+
+        records = TestLpsProcedure._make_loop_records(10, 0.2)
+
+        proc.start()
+        # receive: LPS 1 10\n
+        proc.data_received('\x06')
+
+        for record in records[0:5]:
+            proc.data_received(serialise_loop(record, 0.2))
+
+        self.assertFalse(fd.IsFinished)
+        self.assertFalse(cd.IsFinished)
+        self.assertEqual(5, len(looper.LoopRecords))
+        for i, record in enumerate(records[0:5]):
+            self._assertLoopEqual(record, looper.LoopRecords[i], i)
+
+        # Cancel the procedure
+        proc.cancel()
+        self.assertFalse(fd.IsFinished)
+        self.assertFalse(cd.IsFinished)
+        self.assertEqual('\n', recv.read())
+
+        # Make sure it hasn't taken effect yet...
+        self.assertFalse(fd.IsFinished)
+        self.assertFalse(cd.IsFinished)
+        self.assertEqual(5, len(looper.LoopRecords))
+
+        # Send the final records
+        for record in records[5:]:
+            proc.data_received(serialise_loop(record, 0.2))
+
+        # Make sure the cancellation still hasn't taken effect as we've not sent
+        # the confirmation \n\r
+        self.assertFalse(cd.IsFinished)
+
+        # The post-cancellation loop packets should still be processed though
+        self.assertEqual(10, len(looper.LoopRecords))
+        for i, record in enumerate(records):
+            self._assertLoopEqual(record, looper.LoopRecords[i], i)
+
+        # And even though all requested loop packets have arrived, the finished
+        # event should not fire because the procedure is in the middle of being
+        # canceled.
+        self.assertFalse(fd.IsFinished)
+
+        # Cancellation shouldn't have taken effect yet either
+        self.assertFalse(cd.IsFinished)
+
+        # Confirm the cancellation
+        proc.data_received("\n\r")
+
+        # And now we should be canceled but not finished.
+        self.assertTrue(cd.IsFinished)
+        self.assertFalse(fd.IsFinished)
+
+    def test_fault_restart_does_not_happen_if_canceled(self):
+        recv = WriteReceiver()
+        log = LogReceiver()
+        looper = LoopReceiver()
+        fd = FinishedDetector()
+        cd = FinishedDetector()
+
+        proc = LpsProcedure(recv.write, log.log, True, 0.2, 5)
+        proc.loopDataReceived += looper.receiveLoop
+        proc.finished += fd.finished
+        proc.canceled += cd.finished
+
+        records = TestLpsProcedure._make_loop_records(5, 0.2)
+
+        proc.start()
+        self.assertEqual(recv.read(), 'LPS 1 5\n')
+        proc.data_received('\x06')
+
+        # Cancel the procedure
+        proc.cancel()
+        self.assertEqual(recv.read(), '\n')
+        self.assertFalse(cd.IsFinished)
+
+        serialised_records = [serialise_loop(record, 0.2) for record in records]
+
+        print("> one good packet")
+        self.assertFalse(fd.IsFinished)
+        proc.data_received(serialised_records.pop(0))
+        self.assertEqual(1, len(looper.LoopRecords))
+
+        print("> Some garbage")
+        self.assertFalse(fd.IsFinished)
+        proc.data_received("LOO LOO")
+        self.assertEqual(1, len(looper.LoopRecords))
+        # This would normally trigger a restart. Because we've canceled the
+        # procedure this should not happen now.
+        self.assertEqual(recv.read(), '')
+        self.assertFalse(fd.IsFinished)
+        self.assertFalse(cd.IsFinished)
+        
+        proc.data_received("\n\r")
+        self.assertFalse(fd.IsFinished)
+        self.assertTrue(cd.IsFinished)
+
+    def test_unacknowledged_cancel_results_in_retry(self):
+        recv = WriteReceiver()
+        log = LogReceiver()
+        looper = LoopReceiver()
+        fd = FinishedDetector()
+        cd = FinishedDetector()
+
+        # TODO: When python3 is the minimum, use the nonlocal keyword instead
+        #       of this silly list.
+        first_pass = [True]
+
+        def _call_later(delay, callback):
+            # TODO: Python3: nonlocal first_pass
+            if first_pass[0]:
+
+                self.assertEqual(3, delay)
+
+                # This is the initial cancellation request to the console
+                self.assertEqual('\n', recv.read())
+                self.assertFalse(fd.IsFinished)
+                self.assertFalse(cd.IsFinished)
+
+                # Let it retry
+                first_pass[0] = False
+                callback()
+                return
+
+            self.assertFalse(fd.IsFinished)
+            self.assertFalse(cd.IsFinished)
+
+            # And then check we got another cancellation request:
+            self.assertEqual('\n', recv.read())
+            self.assertFalse(fd.IsFinished)
+            self.assertFalse(cd.IsFinished)
+
+            # Acknowledge the request.
+            # Note that the test will infinitely loop if we don't acknowledge
+            # the cancellation before the end of this fake call_later function
+            proc.data_received('\n\r')
+
+            self.assertEqual('', recv.read())
+            self.assertFalse(fd.IsFinished)
+            self.assertTrue(cd.IsFinished)
+
+        proc = LpsProcedure(recv.write, log.log, True, 0.2, 10, _call_later)
+        proc.loopDataReceived += looper.receiveLoop
+        proc.finished += fd.finished
+        proc.canceled += cd.finished
+
+        records = TestLpsProcedure._make_loop_records(10, 0.2)
+
+        proc.start()
+        # receive: LPS 1 5\n
+        proc.data_received('\x06')
+
+        for record in records[0:5]:
+            proc.data_received(serialise_loop(record, 0.2))
+
+        self.assertFalse(fd.IsFinished)
+        self.assertFalse(cd.IsFinished)
+        self.assertEqual(5, len(looper.LoopRecords))
+        for i, record in enumerate(records[0:5]):
+            self._assertLoopEqual(record, looper.LoopRecords[i], i)
+
+        proc.cancel()
+        self.assertTrue(cd.IsFinished)
+
     def test_can_be_restarted(self):
         recv = WriteReceiver()
         log = LogReceiver()

@@ -650,7 +650,7 @@ class DmpProcedure(SequentialProcedure):
 
     def _send_start_time(self):
         if self._buffer != self._ACK:
-            self._log('Warning: Expected ACK')
+            self._log('Warning: Expected ACK. Buffer: {0}'.format(to_hex_string(self._buffer)))
             # TODO: What should we do here? Retry? Signal failure?
             return
 
@@ -827,9 +827,15 @@ class LpsProcedure(SequentialProcedure):
     _STATE_RECEIVING = 2
 
     def __init__(self, write_callback, log_callback, lps_supported,
-                 rain_collector_size, packet_count):
+                 rain_collector_size, packet_count, call_later=None):
         """
-        Fetches archive records from the station console/envoy
+        Fetches archive records from the station console/envoy.
+
+        The optional call_later parameter allows the procedure to automatically
+        retry the cancel operation in the event of failure. If a call_later
+        function is not supplied you need to take care of retrying
+        cancellations.
+
         :param write_callback: Callback to send data to the station
         :type write_callback: Callable
         :param log_callback: Callback to produce log messages
@@ -840,11 +846,15 @@ class LpsProcedure(SequentialProcedure):
         :type rain_collector_size: float
         :param packet_count: Number of packets to request
         :type packet_count: int
+        :param call_later: Function that can be used to call another function
+                           after some delay. Such as twisteds reactor.callLater.
+        :type call_later: callable
         """
         super(LpsProcedure, self).__init__(write_callback, log_callback)
 
         self.loopDataReceived = Event()
 
+        self._call_later = call_later
         self._rain_collector_size = rain_collector_size
         self._lps_supported = lps_supported
         self._request_size = packet_count
@@ -868,6 +878,11 @@ class LpsProcedure(SequentialProcedure):
 
     def start(self):
         """Starts the procedure."""
+
+        if self._canceling:
+            # Don't try to start if we're in the middle of being canceled.
+            return
+
         self._state = self._STATE_READY
         self._str_buffer = ""
         self._buffer = bytes()
@@ -883,16 +898,24 @@ class LpsProcedure(SequentialProcedure):
 
     def cancel(self):
         """
-        Cancels the current LOOP process and raises the finished event.
+        Cancels the current LOOP process and raises the canceled event.
         """
         if self._state == self._STATE_READY:
             self._log("Loop cancel: not looping, nothing to cancel.")
             return  # Nothing to cancel.
 
-        self._log("Loop canceled.")
-        self._lps_packets_remaining = 0
+        self._log("Canceling loop...")
         self._canceling = True
         self._write('\n')
+
+        if self._call_later is not None:
+            self._call_later(3, self._cancel_check)
+
+    def _cancel_check(self):
+        if self._canceling:
+            # Cancel hasn't completed after 3 seconds. Something probably went
+            # wrong - perhaps the \n went missing due to line noise. Try again.
+            self.cancel()
 
     def _lpsFaultReset(self):
         """
@@ -900,11 +923,32 @@ class LpsProcedure(SequentialProcedure):
         isn't any other safe way to recover.
         :return:
         """
+        if self._check_if_canceled() or self._canceling:
+            # The LOOP process is being canceled. Don't restart.
+
+            # But do dump any garbage out of the buffer so we can detect the
+            # cancellation confirmation later.
+            # NOTE: Its possible this *may* dump the cancellation confirmation
+            #       out of the buffer too. If the procedure has been provided
+            #       with a call_later function the cancellation will be retried
+            #       and that should sort everything out.
+            self._str_buffer = ''
+            return
+
         if self._lps_packets_remaining <= 0:
             self._log("No more packets to requst - completing.")
             self._complete()
             return
         self.start()
+
+    def _check_if_canceled(self):
+        if self._canceling and self._str_buffer.startswith('\n\r'):
+            self._canceling = False
+            self._lps_packets_remaining = 0
+            self._state = self._STATE_READY
+            self.canceled.fire()
+            return True
+        return False
 
     def _receive_lps_data(self):
         """
@@ -926,14 +970,13 @@ class LpsProcedure(SequentialProcedure):
             # say the attempt to enter LPS mode failed and we'll make another
             # attempt.
             self._log('LPS mode not acknowledged. Retrying...\n'
-                    'Buffer contents is: {0}'.format(to_hex_string(self._str_buffer)))
-            self.start()
+                      'Buffer contents is: {0}'.format(to_hex_string(self._str_buffer)))
+            if not self._check_if_canceled():
+                # Don't retry if we've been canceled
+                self.start()
             return
 
-        if self._canceling and self._str_buffer == '\n\r':
-            self._canceling = False
-            self._state = self._STATE_READY
-            self.canceled.fire()
+        if self._check_if_canceled():
             return
 
         if len(self._str_buffer) > 98:
@@ -1003,7 +1046,8 @@ class LpsProcedure(SequentialProcedure):
                                 self._str_buffer[0:3] != "LOO":
                             self._log('WARNING! Buffer is corrupt. Attempting to '
                                       'recover by restarting LOOP command.')
-                            self._lpsFaultReset()
+                            if not self._check_if_canceled():
+                                self._lpsFaultReset()
                             return
 
                 else:
@@ -1012,7 +1056,7 @@ class LpsProcedure(SequentialProcedure):
 
                     self.loopDataReceived.fire(loop)
 
-                if self._lps_packets_remaining <= 0:
+                if self._lps_packets_remaining <= 0 and not self._canceling:
                     self._state = self._STATE_READY
                     self._complete()
         elif len(self._str_buffer) > 3 and self._str_buffer[0:3] != "LOO":
@@ -1062,4 +1106,5 @@ class LpsProcedure(SequentialProcedure):
                           "Resetting LOOP process...")
                 self._lps_packets_remaining -= 1
                 self._lpsFaultReset()
-                return
+
+        self._check_if_canceled()
