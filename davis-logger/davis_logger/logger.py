@@ -1,6 +1,6 @@
 # coding=utf-8
 """
-Data logger for Davis Vantage Vue weather stations.
+Data logger for Davis Vantage Pro2 and Vue weather stations.
 """
 import csv
 from datetime import datetime, timedelta, time

@@ -952,7 +952,7 @@ class LpsProcedure(SequentialProcedure):
 
         if not self._lps_acknowledged and self._buffer[0:1] == self._ACK:
             self._lps_acknowledged = True
-            self._buffer = self._buffer[1:2]
+            self._buffer = self._buffer[1:]
 
         # The LPS command hasn't been acknowledged yet so we're not *really*
         # in LPS mode just yet. Who knows what data we received to end up

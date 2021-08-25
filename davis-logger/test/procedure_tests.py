@@ -2010,6 +2010,28 @@ class TestLpsProcedure(unittest.TestCase):
         self.assertEqual(1, len(looper.LoopRecords))
         self._assertLoopEqual(record, looper.LoopRecords[0], 1)
 
+    def test_decodes_one_packet_combined_with_ack(self):
+        recv = WriteReceiver()
+        log = LogReceiver()
+        looper = LoopReceiver()
+
+        proc = LpsProcedure(recv.write, log.log, True, 0.2, 1)
+        proc.loopDataReceived += looper.receiveLoop
+
+        record = TestLpsProcedure._make_loop_records(1, 0.2)[0]
+
+        proc.start()
+        # receive: LPS 1 5\n
+
+        response = bytearray()
+        response.extend(self._ACK)
+        response.extend(serialise_loop(record, 0.2))
+        proc.data_received(bytes(response))
+
+        self.assertEqual(1, len(looper.LoopRecords))
+        self._assertLoopEqual(record, looper.LoopRecords[0], 1)
+
+
     def test_decodes_multiple_packets(self):
         recv = WriteReceiver()
         log = LogReceiver()

@@ -62,13 +62,13 @@ class DavisWeatherStation(object):
         # Initialise to some big number so the console will initially considered
         # to be sleeping.
         self._last_write_time = 500
-        self._wake_buffer = ''
+        self._wake_buffer = bytearray()
 
         # This table controls which function handles received data in each
         # state.
         self._state_data_handlers = {
             STATE_SLEEPING: self._sleeping_state_data_received,
-            STATE_LOOP: self._loop_data_received,
+            STATE_LOOP: None,  # Set when the looper is constructed
             STATE_IN_PROCEDURE: self._procedure_data_received,
         }
         self._state = STATE_SLEEPING
@@ -174,19 +174,7 @@ class DavisWeatherStation(object):
 
     def _procedure_data_received(self, data):
         if self._procedure is not None:
-            # Procedures expect bytes - not strings
-            if isinstance(data, str):
-                # TODO: Remove this encode attempt once all procedures are
-                #       bytearray/bytes compatible
-                # noinspection PyBroadException
-                try:
-                    encoded = data.encode('ascii')
-                except:
-                    encoded = data
-
-                self._procedure.data_received(encoded)
-            else:
-                self._procedure.data_received(data)
+            self._procedure.data_received(data)
 
     def _procedure_finished(self):
         # log.msg("Procedure completed: {0}".format(self._procedure.Name))
@@ -324,6 +312,7 @@ class DavisWeatherStation(object):
         self._looper.loopDataReceived += self.loopDataReceived.fire
         self._looper.finished += self._looper_restart
         self._looper.canceled += self._looper_canceled
+        self._state_data_handlers[STATE_LOOP] = self._looper.data_received
 
         self.InitCompleted.fire(self._station_type, self._hw_type,
                                 self._version, self._version_date,
@@ -374,7 +363,7 @@ class DavisWeatherStation(object):
         if self._wakeRetries > 1:
             log.msg('Wake attempt {0}'.format(self._wakeRetries))
 
-        self._write('\n')
+        self._write(b'\n')
 
         from twisted.internet import reactor
         reactor.callLater(2, self._wake_check)
@@ -382,13 +371,13 @@ class DavisWeatherStation(object):
     def _sleeping_state_data_received(self, data):
         """Handles data while in the sleeping state."""
 
-        self._wake_buffer += data
+        self._wake_buffer.extend(data)
 
         # After a wake request the console will respond with \r\n when it is
         # ready to go.
-        if data.endswith('\n\r'):
+        if data.endswith(b'\n\r'):
             log.msg("Station is now awake.")
-            self._wake_buffer = ''
+            self._wake_buffer = bytearray()
             self._state = STATE_AWAKE
             self._wakeRetries = 0
             if self._wakeCallback is not None:
@@ -410,22 +399,6 @@ class DavisWeatherStation(object):
         # looper to go again if it hasn't been disabled.
         if self._loop_enable:
             self._looper.start()
-
-    def _loop_data_received(self, data):
-        # TODO: once everything is python3 compatible the state can be wired
-        #       directly to self._looper.data_received
-        assert self._looper is not None
-
-        if isinstance(data, str):
-            # noinspection PyBroadException
-            try:
-                encoded = data.encode('ascii')
-            except:
-                encoded = data
-
-            self._looper.data_received(encoded)
-        else:
-            self._looper.data_received(data)
 
     def _cancel_looper(self, callback=None):
         # This simply tells the looper to cancel. The looper canceled event
