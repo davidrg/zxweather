@@ -525,6 +525,10 @@ class TestGetConsoleConfigurationProcedure(unittest.TestCase):
     # < ACK
     # < archive interval
     # < CRC (two bytes)         (not currently checked)
+    # > EEBRD 19 10\n           Get station list
+    # < ACK
+    # < 16 bytes of station list
+    # < CRC (two bytes)
     # > EEBRD 12 1\n            Get daylight savings type
     # < ACK
     # < daylight-savings-type
@@ -537,7 +541,7 @@ class TestGetConsoleConfigurationProcedure(unittest.TestCase):
     def test_decodes_current_time(self):
         recv = WriteReceiver()
 
-        proc = GetConsoleConfigurationProcedure(recv.write)
+        proc = GetConsoleConfigurationProcedure(recv.write, False, True)
 
         proc.start()
         self.assertEqual(b'GETTIME\n', recv.Data)
@@ -552,7 +556,7 @@ class TestGetConsoleConfigurationProcedure(unittest.TestCase):
     def test_point_01_inch_rain_gauge(self):
         recv = WriteReceiver()
 
-        proc = GetConsoleConfigurationProcedure(recv.write)
+        proc = GetConsoleConfigurationProcedure(recv.write, False, True)
 
         proc.start()
         proc.data_received(b'\x06')  # ACK
@@ -567,7 +571,7 @@ class TestGetConsoleConfigurationProcedure(unittest.TestCase):
     def test_point02_mm_rain_gauge(self):
         recv = WriteReceiver()
 
-        proc = GetConsoleConfigurationProcedure(recv.write)
+        proc = GetConsoleConfigurationProcedure(recv.write, False, True)
 
         proc.start()
         proc.data_received(b'\x06')  # ACK
@@ -582,7 +586,7 @@ class TestGetConsoleConfigurationProcedure(unittest.TestCase):
     def test_point_01_mm_rain_gauge(self):
         recv = WriteReceiver()
 
-        proc = GetConsoleConfigurationProcedure(recv.write)
+        proc = GetConsoleConfigurationProcedure(recv.write, False, True)
 
         proc.start()
         proc.data_received(b'\x06')  # ACK
@@ -598,7 +602,7 @@ class TestGetConsoleConfigurationProcedure(unittest.TestCase):
         recv = WriteReceiver()
 
         def test_interval(interval):
-            proc = GetConsoleConfigurationProcedure(recv.write)
+            proc = GetConsoleConfigurationProcedure(recv.write, False, True)
 
             proc.start()
             proc.data_received(b'\x06')  # ACK
@@ -619,10 +623,190 @@ class TestGetConsoleConfigurationProcedure(unittest.TestCase):
         for option in interval_options:
             test_interval(option)
 
+    def test_decodes_vp2_station_list(self):
+        # This test supplies a station list with a variety of transmitter types
+        # and checks they're all decoded properly
+        recv = WriteReceiver()
+
+        proc = GetConsoleConfigurationProcedure(recv.write, False, True)
+
+        test_data = bytearray()
+        test_data.extend(b'\x00\xFF\x04\xFF\x06\xFF\x07\xFF\x08\xFF\x83\x00\xA2\x1F\xF1\xF1')
+        test_data.extend(struct.pack(CRC.FORMAT, CRC.calculate_crc(bytes(test_data))))
+
+        expected_stations = [
+            GetConsoleConfigurationProcedure.Station(
+                tx_id=0, repeater_id=None, type='ISS',
+                humidity_sensor_id=None, temperature_sensor_id=None),
+            GetConsoleConfigurationProcedure.Station(
+                tx_id=1, repeater_id=None, type='Wireless Anemometer station',
+                humidity_sensor_id=None, temperature_sensor_id=None),
+            GetConsoleConfigurationProcedure.Station(
+                tx_id=2, repeater_id=None, type='Leaf station',
+                humidity_sensor_id=None, temperature_sensor_id=None),
+            GetConsoleConfigurationProcedure.Station(
+                tx_id=3, repeater_id=None, type='Soil station',
+                humidity_sensor_id=None, temperature_sensor_id=None),
+            GetConsoleConfigurationProcedure.Station(
+                tx_id=4, repeater_id=None, type='Soil/Leaf Station',
+                humidity_sensor_id=None, temperature_sensor_id=None),
+            GetConsoleConfigurationProcedure.Station(
+                tx_id=5, repeater_id='A', type='Temperature/Humidity station',
+                humidity_sensor_id=0, temperature_sensor_id=0),
+            GetConsoleConfigurationProcedure.Station(
+                tx_id=6, repeater_id='C', type='Humidity only station',
+                humidity_sensor_id=1, temperature_sensor_id=None),
+            GetConsoleConfigurationProcedure.Station(
+                tx_id=7, repeater_id='H', type='Temperature only station',
+                humidity_sensor_id=None, temperature_sensor_id=1),
+        ]
+
+        proc.start()
+        proc.data_received(b'\x06')  # ACK
+        proc.data_received(b'\x0f\x15\x06\x0e\x08r\t\xea')  # Time
+        proc.data_received(b'\x06')  # ACK
+        proc.data_received(b'\x10\x121')  # Rain gauge size (0.2mm)
+        proc.data_received(b'\x06')  # ACK
+        recv.read()
+        proc.data_received(b'\x05P\xa5')  # 5 minutes
+        self.assertEqual(b'EEBRD 19 10\n', recv.read())
+        proc.data_received(b'\x06')  # ACK
+        proc.data_received(test_data)
+
+        self.maxDiff = None
+        self.assertListEqual(expected_stations, proc.ConfiguredStations)
+
+    def test_decodes_vue_station_list(self):
+        # The Vue only supports three types of transmitter:
+        #   * The Vantage Vue ISS (type 0x1)
+        #   * A wireless anemometer (type 0x4)
+        #   * The Vantage Pro2 ISS (type 0x5)
+        # All others should be ignored.
+        recv = WriteReceiver()
+
+        proc = GetConsoleConfigurationProcedure(recv.write, True, True)
+
+        test_data = bytearray()
+        test_data.extend(b'\x00\xFF\x04\xFF\x05\xFF\x07\xFF\x08\xFF\x83\x00\xA2\x1F\xF1\xF1')
+        test_data.extend(struct.pack(CRC.FORMAT, CRC.calculate_crc(bytes(test_data))))
+
+        expected_stations = [
+            GetConsoleConfigurationProcedure.Station(
+                tx_id=0, repeater_id=None, type='ISS - Vantage Vue',
+                humidity_sensor_id=None, temperature_sensor_id=None),
+            GetConsoleConfigurationProcedure.Station(
+                tx_id=1, repeater_id=None, type='Wireless Anemometer station',
+                humidity_sensor_id=None, temperature_sensor_id=None),
+            GetConsoleConfigurationProcedure.Station(
+                tx_id=2, repeater_id=None, type='ISS - Vantage Pro2',
+                humidity_sensor_id=None, temperature_sensor_id=None)
+        ]
+
+        proc.start()
+        proc.data_received(b'\x06')  # ACK
+        proc.data_received(b'\x0f\x15\x06\x0e\x08r\t\xea')  # Time
+        proc.data_received(b'\x06')  # ACK
+        proc.data_received(b'\x10\x121')  # Rain gauge size (0.2mm)
+        proc.data_received(b'\x06')  # ACK
+        recv.read()
+        proc.data_received(b'\x05P\xa5')  # 5 minutes
+        self.assertEqual(b'EEBRD 19 10\n', recv.read())
+        proc.data_received(b'\x06')  # ACK
+        proc.data_received(test_data)
+
+        self.maxDiff = None
+        self.assertListEqual(expected_stations, proc.ConfiguredStations)
+
+    def test_skips_disabled_stations(self):
+        # Transmitter type 0xA (No station/OFF) should be ignored
+        recv = WriteReceiver()
+
+        proc = GetConsoleConfigurationProcedure(recv.write, False, True)
+
+        test_data = bytearray()
+        test_data.extend(b'\x00\xff\xfa\xff\xfa\xff\xfa\xff\xfa\xff\xfa\xff\xfa\xff\xfa\xff')
+        test_data.extend(struct.pack(CRC.FORMAT, CRC.calculate_crc(bytes(test_data))))
+
+        expected_stations = [
+            GetConsoleConfigurationProcedure.Station(
+                tx_id=0, repeater_id=None, type='ISS',
+                humidity_sensor_id=None, temperature_sensor_id=None)
+        ]
+
+        proc.start()
+        proc.data_received(b'\x06')  # ACK
+        proc.data_received(b'\x0f\x15\x06\x0e\x08r\t\xea')  # Time
+        proc.data_received(b'\x06')  # ACK
+        proc.data_received(b'\x10\x121')  # Rain gauge size (0.2mm)
+        proc.data_received(b'\x06')  # ACK
+        recv.read()
+        proc.data_received(b'\x05P\xa5')  # 5 minutes
+        self.assertEqual(b'EEBRD 19 10\n', recv.read())
+        proc.data_received(b'\x06')  # ACK
+        proc.data_received(test_data)
+
+        self.maxDiff = None
+        self.assertListEqual(expected_stations, proc.ConfiguredStations)
+
+    def test_non_temp_hum_stations_have_no_temp_hum_sensor_id(self):
+        # Only Temperature, Humidity and Temperature/Humidity stations should
+        # have temperature or humidity sensor IDs set. They should be None for
+        # everything else.
+
+        recv = WriteReceiver()
+
+        proc = GetConsoleConfigurationProcedure(recv.write, False, True)
+
+        test_data = bytearray()
+        test_data.extend(b'\x00\x11\x04\x11\x06\x11\x07\x11\x08\x11\x83\x00\xA2\x11\xF1\x11')
+        test_data.extend(struct.pack(CRC.FORMAT, CRC.calculate_crc(bytes(test_data))))
+
+        expected_stations = [
+            GetConsoleConfigurationProcedure.Station(
+                tx_id=0, repeater_id=None, type='ISS',
+                humidity_sensor_id=None, temperature_sensor_id=None),
+            GetConsoleConfigurationProcedure.Station(
+                tx_id=1, repeater_id=None, type='Wireless Anemometer station',
+                humidity_sensor_id=None, temperature_sensor_id=None),
+            GetConsoleConfigurationProcedure.Station(
+                tx_id=2, repeater_id=None, type='Leaf station',
+                humidity_sensor_id=None, temperature_sensor_id=None),
+            GetConsoleConfigurationProcedure.Station(
+                tx_id=3, repeater_id=None, type='Soil station',
+                humidity_sensor_id=None, temperature_sensor_id=None),
+            GetConsoleConfigurationProcedure.Station(
+                tx_id=4, repeater_id=None, type='Soil/Leaf Station',
+                humidity_sensor_id=None, temperature_sensor_id=None),
+            GetConsoleConfigurationProcedure.Station(
+                tx_id=5, repeater_id='A', type='Temperature/Humidity station',
+                humidity_sensor_id=0, temperature_sensor_id=0),
+            GetConsoleConfigurationProcedure.Station(
+                tx_id=6, repeater_id='C', type='Humidity only station',
+                humidity_sensor_id=1, temperature_sensor_id=None),
+            GetConsoleConfigurationProcedure.Station(
+                tx_id=7, repeater_id='H', type='Temperature only station',
+                humidity_sensor_id=None, temperature_sensor_id=1),
+        ]
+
+        proc.start()
+        proc.data_received(b'\x06')  # ACK
+        proc.data_received(b'\x0f\x15\x06\x0e\x08r\t\xea')  # Time
+        proc.data_received(b'\x06')  # ACK
+        proc.data_received(b'\x10\x121')  # Rain gauge size (0.2mm)
+        proc.data_received(b'\x06')  # ACK
+        recv.read()
+        proc.data_received(b'\x05P\xa5')  # 5 minutes
+        self.assertEqual(b'EEBRD 19 10\n', recv.read())
+        proc.data_received(b'\x06')  # ACK
+        proc.data_received(test_data)
+
+        self.maxDiff = None
+        self.assertListEqual(expected_stations, proc.ConfiguredStations)
+
     def test_auto_dst(self):
         recv = WriteReceiver()
 
-        proc = GetConsoleConfigurationProcedure(recv.write)
+        proc = GetConsoleConfigurationProcedure(recv.write, False, True)
 
         proc.start()
         proc.data_received(b'\x06')  # ACK
@@ -631,6 +815,9 @@ class TestGetConsoleConfigurationProcedure(unittest.TestCase):
         proc.data_received(b'\x10\x121')  # Rain gauge size (0.2mm)
         proc.data_received(b'\x06')  # ACK
         proc.data_received(b'\x05P\xa5')  # 5 minutes
+        # Station list:
+        proc.data_received(b'\x06\x00\xff\xfa\xff\xfa\xff\xfa\xff\xfa\xff\xfa'
+                           b'\xff\xfa\xff\xfa\xff\x9a\x06')
         self.assertEqual(b'EEBRD 12 1\n', recv.Data)  # Get DST Mode
         proc.data_received(b'\x06')  # ACK
         proc.data_received(b'\x00\x00\x00')  # Auto DST = 0
@@ -641,7 +828,7 @@ class TestGetConsoleConfigurationProcedure(unittest.TestCase):
         recv = WriteReceiver()
         fd = FinishedDetector()
 
-        proc = GetConsoleConfigurationProcedure(recv.write)
+        proc = GetConsoleConfigurationProcedure(recv.write, False, True)
         proc.finished += fd.finished
 
         proc.start()
@@ -657,6 +844,10 @@ class TestGetConsoleConfigurationProcedure(unittest.TestCase):
         proc.data_received(b'\x06')  # ACK
         self.assertFalse(fd.IsFinished)
         proc.data_received(b'\x05P\xa5')  # 5 minutes
+        self.assertFalse(fd.IsFinished)
+        # Station list:
+        proc.data_received(b'\x06\x00\xff\xfa\xff\xfa\xff\xfa\xff\xfa\xff\xfa'
+                           b'\xff\xfa\xff\xfa\xff\x9a\x06')
         self.assertFalse(fd.IsFinished)
         proc.data_received(b'\x06')  # ACK
         self.assertFalse(fd.IsFinished)
@@ -668,7 +859,7 @@ class TestGetConsoleConfigurationProcedure(unittest.TestCase):
     def test_manual_dst(self):
         recv = WriteReceiver()
 
-        proc = GetConsoleConfigurationProcedure(recv.write)
+        proc = GetConsoleConfigurationProcedure(recv.write, False, True)
 
         proc.start()
         proc.data_received(b'\x06')  # ACK
@@ -677,6 +868,9 @@ class TestGetConsoleConfigurationProcedure(unittest.TestCase):
         proc.data_received(b'\x10\x121')  # Rain gauge size (0.2mm)
         proc.data_received(b'\x06')  # ACK
         proc.data_received(b'\x05P\xa5')  # 5 minutes
+        # Station list:
+        proc.data_received(b'\x06\x00\xff\xfa\xff\xfa\xff\xfa\xff\xfa\xff\xfa'
+                           b'\xff\xfa\xff\xfa\xff\x9a\x06')
         self.assertEqual(b'EEBRD 12 1\n', recv.Data)  # Get DST Mode
         proc.data_received(b'\x06')  # ACK
         proc.data_received(b'\x01\x10!')  # Manual DST = 1
@@ -685,7 +879,7 @@ class TestGetConsoleConfigurationProcedure(unittest.TestCase):
     def test_manual_dst_checks_dst_status(self):
         recv = WriteReceiver()
 
-        proc = GetConsoleConfigurationProcedure(recv.write)
+        proc = GetConsoleConfigurationProcedure(recv.write, False, True)
 
         proc.start()
         proc.data_received(b'\x06')  # ACK
@@ -694,6 +888,9 @@ class TestGetConsoleConfigurationProcedure(unittest.TestCase):
         proc.data_received(b'\x10\x121')  # Rain gauge size (0.2mm)
         proc.data_received(b'\x06')  # ACK
         proc.data_received(b'\x05P\xa5')  # 5 minutes
+        # Station list:
+        proc.data_received(b'\x06\x00\xff\xfa\xff\xfa\xff\xfa\xff\xfa\xff\xfa'
+                           b'\xff\xfa\xff\xfa\xff\x9a\x06')
         proc.data_received(b'\x06')  # ACK
         proc.data_received(b'\x01\x10!')  # Manual DST = 1
         self.assertEqual(b'EEBRD 13 1\n', recv.Data)  # Get manual DST ON
@@ -701,7 +898,7 @@ class TestGetConsoleConfigurationProcedure(unittest.TestCase):
     def test_manual_dst_on(self):
         recv = WriteReceiver()
 
-        proc = GetConsoleConfigurationProcedure(recv.write)
+        proc = GetConsoleConfigurationProcedure(recv.write, False, True)
 
         proc.start()
         proc.data_received(b'\x06')  # ACK
@@ -710,6 +907,9 @@ class TestGetConsoleConfigurationProcedure(unittest.TestCase):
         proc.data_received(b'\x10\x121')  # Rain gauge size (0.2mm)
         proc.data_received(b'\x06')  # ACK
         proc.data_received(b'\x05P\xa5')  # 5 minutes
+        # Station list:
+        proc.data_received(b'\x06\x00\xff\xfa\xff\xfa\xff\xfa\xff\xfa\xff\xfa'
+                           b'\xff\xfa\xff\xfa\xff\x9a\x06')
         proc.data_received(b'\x06')  # ACK
         proc.data_received(b'\x01\x10!')  # Manual DST = 1
         self.assertEqual(b'EEBRD 13 1\n', recv.Data)  # Get manual DST ON
@@ -720,7 +920,7 @@ class TestGetConsoleConfigurationProcedure(unittest.TestCase):
     def test_manual_dst_off(self):
         recv = WriteReceiver()
 
-        proc = GetConsoleConfigurationProcedure(recv.write)
+        proc = GetConsoleConfigurationProcedure(recv.write, False, True)
 
         proc.start()
         proc.data_received(b'\x06')  # ACK
@@ -729,6 +929,9 @@ class TestGetConsoleConfigurationProcedure(unittest.TestCase):
         proc.data_received(b'\x10\x121')  # Rain gauge size (0.2mm)
         proc.data_received(b'\x06')  # ACK
         proc.data_received(b'\x05P\xa5')  # 5 minutes
+        # Station list:
+        proc.data_received(b'\x06\x00\xff\xfa\xff\xfa\xff\xfa\xff\xfa\xff\xfa'
+                           b'\xff\xfa\xff\xfa\xff\x9a\x06')
         proc.data_received(b'\x06')  # ACK
         proc.data_received(b'\x01\x10!')  # Manual DST = 1
         self.assertEqual(b'EEBRD 13 1\n', recv.Data)  # Get manual DST ON
@@ -740,7 +943,7 @@ class TestGetConsoleConfigurationProcedure(unittest.TestCase):
         recv = WriteReceiver()
         fd = FinishedDetector()
 
-        proc = GetConsoleConfigurationProcedure(recv.write)
+        proc = GetConsoleConfigurationProcedure(recv.write, False, True)
         proc.finished += fd.finished
 
         proc.start()
@@ -756,6 +959,10 @@ class TestGetConsoleConfigurationProcedure(unittest.TestCase):
         proc.data_received(b'\x06')  # ACK
         self.assertFalse(fd.IsFinished)
         proc.data_received(b'\x05P\xa5')  # 5 minutes
+        self.assertFalse(fd.IsFinished)
+        # Station list:
+        proc.data_received(b'\x06\x00\xff\xfa\xff\xfa\xff\xfa\xff\xfa\xff\xfa'
+                           b'\xff\xfa\xff\xfa\xff\x9a\x06')
         self.assertFalse(fd.IsFinished)
         proc.data_received(b'\x06')  # ACK
         self.assertFalse(fd.IsFinished)

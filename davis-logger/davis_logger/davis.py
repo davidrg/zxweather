@@ -295,7 +295,10 @@ class DavisWeatherStation(object):
                     "a Vantage Vue or Pro2 and will not be correct for the "
                     "original Vantage Pro.")
 
-        procedure = GetConsoleConfigurationProcedure(self._write)
+        procedure = GetConsoleConfigurationProcedure(
+            self._write,
+            procedure.station_type == procedure.STATION_TYPE_VANTAGE_VUE,
+            procedure.revision_b_firmware)
         self._run_procedure(procedure, self._console_config_ready)
 
     def _console_config_ready(self, procedure):
@@ -310,6 +313,7 @@ class DavisWeatherStation(object):
         self._rainCollectorSize = procedure.RainSizeMM
         self._archive_interval = procedure.ArchiveIntervalMinutes
         self._auto_dst_enabled = procedure.AutoDSTEnabled
+        self._station_list = procedure.ConfiguredStations
         dst_on = procedure.DSTOn
 
         # Setup the LPS procedure. Apparently there is an undocumented maximum
@@ -331,7 +335,8 @@ class DavisWeatherStation(object):
                                 self._rainCollectorSizeName,
                                 self._archive_interval,
                                 self._auto_dst_enabled,
-                                dst_on)
+                                dst_on,
+                                self._station_list)
 
     def _write(self, data):
         if self._log_data:

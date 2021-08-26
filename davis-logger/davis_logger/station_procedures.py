@@ -3,6 +3,8 @@
 Various procedures for interacting with davis weather stations
 """
 import struct
+from collections import namedtuple
+
 import datetime
 
 from davis_logger.record_types.dmp import encode_date, encode_time, split_page, deserialise_dmp
@@ -346,6 +348,11 @@ class GetConsoleInformationProcedure(SequentialProcedure):
     _STATE_RECEIVE_VERSION_NUMBER = 4
     _STATE_COMPLETE = 6
 
+    # We only really care about these two types of stations - all the others
+    # almost certainly won't work so what type they are doesn't matter.
+    STATION_TYPE_VANTAGE_PRO = 16
+    STATION_TYPE_VANTAGE_VUE = 17
+
     _MONTHS = [
         'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct',
         'Nov', 'Dec'
@@ -408,9 +415,9 @@ class GetConsoleInformationProcedure(SequentialProcedure):
                 self.hw_type = "Energy Enviromonitor"
             elif self.station_type == 6:
                 self.hw_type = "Health Enviromonitor"
-            elif self.station_type == 16:
+            elif self.station_type == self.STATION_TYPE_VANTAGE_PRO:
                 self.hw_type = "Vantage Pro, Vantage Pro2"
-            elif self.station_type == 17:
+            elif self.station_type == self.STATION_TYPE_VANTAGE_VUE:
                 self.hw_type = "Vantage Vue"
                 self.lps_supported = True
                 self.self_firmware_upgrade_supported = True
@@ -465,10 +472,54 @@ class GetConsoleConfigurationProcedure(SequentialProcedure):
     _STATE_RECEIVE_TIME = 2
     _STATE_RECEIVE_RAIN_SIZE = 3
     _STATE_RECEIVE_ARCHIVE_INTERVAL = 4
-    _STATE_RECEIVE_AUTO_DST_ENABLED = 5
-    _STATE_RECEIVE_MANUAL_DST_STATUS = 6
+    _STATE_RECEIVE_STATION_LIST = 5
+    _STATE_RECEIVE_AUTO_DST_ENABLED = 6
+    _STATE_RECEIVE_MANUAL_DST_STATUS = 7
 
-    def __init__(self, write_callback):
+    Station = namedtuple('Station',
+                         ['tx_id', 'repeater_id', 'type', 'humidity_sensor_id',
+                          'temperature_sensor_id'])
+
+    _VP2_STATION_TYPES = [
+        "ISS",
+        "Temperature only station",
+        "Humidity only station",
+        "Temperature/Humidity station",
+        "Wireless Anemometer station",
+        "Rain station",
+        "Leaf station",
+        "Soil station",
+        "Soil/Leaf Station",
+        "SensorLink Station",
+        "Disabled"
+    ]
+
+    _VUE_STATION_TYPES = [
+        "ISS - Vantage Vue",
+        "",
+        "",
+        "",
+        "Wireless Anemometer station",
+        "ISS - Vantage Pro2",
+        "",
+        "",
+        "",
+        "",
+        "Disabled"
+    ]
+
+    _REPEATERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
+
+    def __init__(self, write_callback, is_vantage_vue, is_revision_b_firmware):
+        """
+
+        :param write_callback: Function to send data to the weather station
+        :param is_vantage_vue: If the weather station is a Vantage Vue rather
+                               than a Pro or Pro2
+        :type is_vantage_vue: bool
+        :param is_revision_b_firmware: If the station is using Revision B firmware
+        :type is_revision_b_firmware: bool
+        """
         super(GetConsoleConfigurationProcedure, self).__init__(write_callback)
 
         self.CurrentStationTime = None
@@ -476,6 +527,10 @@ class GetConsoleConfigurationProcedure(SequentialProcedure):
         self.RainSizeString = "Unknown"
         self.RainSizeMM = None
         self.ArchiveIntervalMinutes = None
+        self.ConfiguredStations = []
+
+        self._is_vue = is_vantage_vue
+        self._revision_b_firmware = is_revision_b_firmware
 
         # If daylight savings mode is automatic or manual
         self.AutoDSTEnabled = None
@@ -490,6 +545,7 @@ class GetConsoleConfigurationProcedure(SequentialProcedure):
             self._STATE_RECEIVE_TIME: self._receive_time,
             self._STATE_RECEIVE_RAIN_SIZE: self._receive_rain_size,
             self._STATE_RECEIVE_ARCHIVE_INTERVAL: self._receive_archive_interval,
+            self._STATE_RECEIVE_STATION_LIST: self._receive_station_list,
             self._STATE_RECEIVE_AUTO_DST_ENABLED: self._receive_auto_dst_enabled,
             self._STATE_RECEIVE_MANUAL_DST_STATUS: self._daylight_savings_status_received
         }
@@ -545,6 +601,62 @@ class GetConsoleConfigurationProcedure(SequentialProcedure):
 
             self.ArchiveIntervalMinutes = self._buffer[1]
 
+            # Read the station list
+            self._buffer = bytearray()
+            self._transition(b"EEBRD 19 10\n")
+
+    def _receive_station_list(self):
+        if len(self._buffer) == 19:
+            assert self._buffer[0:1] == self._ACK
+
+            station_list_bytes = self._buffer[1:-2]
+            crc, = struct.unpack(CRC.FORMAT, self._buffer[-2:])
+            calculated_crc = CRC.calculate_crc(station_list_bytes)
+            assert crc == calculated_crc
+
+            for i in range(0, 16)[::2]:
+                byte_a = station_list_bytes[i]
+                byte_b = station_list_bytes[i + 1]
+                repeater_id = (byte_a & 0xF0) >> 4
+                transmitter_id = i / 2
+                transmitter_type_id = byte_a & 0x0F
+                hum_sensor_id = (byte_b & 0xF0) >> 4
+                temp_sensor_id = byte_b & 0x0F
+
+                if transmitter_type_id == 0x0A:
+                    continue  # Disabled
+
+                repeater = None
+                if repeater_id >= 8:
+                    repeater = self._REPEATERS[repeater_id-8]
+
+                if self._is_vue:
+                    transmitter_types = self._VUE_STATION_TYPES
+                else:
+                    transmitter_types = self._VP2_STATION_TYPES
+
+                transmitter_type = transmitter_types[transmitter_type_id]
+
+                if len(transmitter_type) == 0:
+                    continue  # Invalid transmitter type for this station
+
+                if hum_sensor_id == 15 or transmitter_type_id not in (2, 3):
+                    hum_sensor_id = None
+
+                if temp_sensor_id == 15 or transmitter_type_id not in (1, 3):
+                    temp_sensor_id = None
+
+                self.ConfiguredStations.append(
+                    self.Station(
+                        tx_id=transmitter_id,
+                        repeater_id=repeater,
+                        type=transmitter_type,
+                        humidity_sensor_id=hum_sensor_id,
+                        temperature_sensor_id=temp_sensor_id
+                    )
+                )
+
+            # Read the Auto/Manual DST setting
             self._buffer = bytearray()
             self._transition(b"EEBRD 12 1\n")
 

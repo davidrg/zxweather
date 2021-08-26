@@ -96,7 +96,7 @@ class DavisLoggerProtocol(Protocol):
 
     def _init_completed(self, station_type, hardware_type, version, version_date,
                         station_time, rain_collector_size_name, archive_interval,
-                        auto_dst_on, dst_on):
+                        auto_dst_on, dst_on, station_list):
 
         log.msg('Station Type: {0} - {1}'.format(station_type, hardware_type))
 
@@ -106,6 +106,25 @@ class DavisLoggerProtocol(Protocol):
         log.msg('Archive Interval: {0} minutes'.format(archive_interval))
         log.msg('Station Auto DST Enabled: {0}'.format(auto_dst_on))
         log.msg('Station Manual Daylight Savings - DST On: {0}'.format(dst_on))
+
+        receiving_from = "Receiving from:"
+        for station in station_list:
+            via = ""
+            if station.repeater_id is not None:
+                via = " via repeater {0}.".format(station.repeater_id)
+
+            temp_hum = ""
+            if station.humidity_sensor_id is not None and station.temperature_sensor_id is not None:
+                temp_hum = " (extra temp sensor {0}, humidity {1})".format(
+                    station.temperature_sensor_id, station.humidity_sensor_id)
+            elif station.humidity_sensor_id is not None:
+                temp_hum = " (extra humidity sensor {0})".format(station.humidity_sensor_id)
+            elif station.temperature_sensor_id is not None:
+                temp_hum = " (extra temperature sensor {0})".format(station.temperature_sensor_id)
+
+            receiving_from += "\nID {id}: {type}{temphum}{via}".format(
+                id=station.tx_id, type=station.type, via=via, temphum=temp_hum)
+        log.msg(receiving_from)
 
         if archive_interval != 5:
             log.msg('WARNING: Archive interval should be set to\n5 minutes. '
