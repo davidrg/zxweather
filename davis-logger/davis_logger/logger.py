@@ -33,7 +33,8 @@ class DavisLoggerProtocol(Protocol):
 
     def __init__(self, database_pool, station_id, latest_date, latest_time,
                  sample_error_file, auto_dst, time_zone, latest_ts,
-                 database_live_data_enabled, mq_publisher):
+                 database_live_data_enabled, mq_publisher, archive_interval,
+                 station_config_json):
         self.station = DavisWeatherStation()
 
         self._auto_dst = auto_dst
@@ -41,6 +42,8 @@ class DavisLoggerProtocol(Protocol):
         self._latest_ts = latest_ts
         self._database_live_data_enabled = database_live_data_enabled
         self._mq_publisher = mq_publisher
+        self._db_archive_interval = archive_interval
+        self._station_config_json = station_config_json
 
         # Setup the watchdog. This will give the data logger a kick if it stalls
         # (this can happen sometimes when data gets lost due to noise on the
@@ -90,23 +93,17 @@ class DavisLoggerProtocol(Protocol):
         log.msg('Logger started.')
         log.msg('Latest date: {0} - Latest time: {1} - Station: {2}'.format(
             self._latest_date, self._latest_time, self._station_id))
-        # self.station.getLoopPackets(5)
 
         self.station.initialise()
 
-    def _init_completed(self, station_type, hardware_type, version, version_date,
-                        station_time, rain_collector_size_name, archive_interval,
-                        auto_dst_on, dst_on, station_list):
-
-        log.msg('Station Type: {0} - {1}'.format(station_type, hardware_type))
-
-        log.msg('Firmware Version: {0} ({1})'.format(version_date, version))
-        log.msg('Station Time: {0}'.format(station_time))
-        log.msg('Rain Collector Size: {0}'.format(rain_collector_size_name))
-        log.msg('Archive Interval: {0} minutes'.format(archive_interval))
-        log.msg('Station Auto DST Enabled: {0}'.format(auto_dst_on))
-        log.msg('Station Manual Daylight Savings - DST On: {0}'.format(dst_on))
-
+    def _check_configured_sensors(self, station_list):
+        """
+        Compares the sensors that are (or probably are) being received by the
+        console or envoy to those that are enabled in the database.
+        :param station_list: List of stations/transmitters configured on the
+                             console or envoy.
+        """
+        sensors_present = []
         receiving_from = "Receiving from:"
         for station in station_list:
             via = ""
@@ -122,9 +119,135 @@ class DavisLoggerProtocol(Protocol):
             elif station.temperature_sensor_id is not None:
                 temp_hum = " (extra temperature sensor {0})".format(station.temperature_sensor_id)
 
+            if "Soil" in station.type:
+                sensors_present.append("soil_moisture")
+
+            if "Leaf" in station.type:
+                sensors_present.append("leaf_wetness")
+
+            if station.humidity_sensor_id is not None \
+                    and station.humidity_sensor_id < 2:
+                # zxweather only supports two extra humidity sensors.
+                sensors_present.append("extra_humidity_{0}".format(
+                    station.humidity_sensor_id + 1))
+
+            if station.temperature_sensor_id is not None \
+                and station.temperature_sensor_id < 3:
+                # zxweather only supports three extra temperature sensors
+                sensors_present.append("extra_humidity_{0}".format(
+                    station.humidity_sensor_id + 1))
+
             receiving_from += "\nID {id}: {type}{temphum}{via}".format(
                 id=station.tx_id, type=station.type, via=via, temphum=temp_hum)
         log.msg(receiving_from)
+
+        sensor_names = {
+            "extra_humidity_1": "Extra humidity #1",
+            "extra_humidity_2": "Extra humidity #2",
+            "extra_temperature_1": "Extra temperature #1",
+            "extra_temperature_2": "Extra temperature #2",
+            "extra_temperature_3": "Extra temperature #3",
+            "leaf_wetness": "One or more leaf wetness sensors",
+            "soil_moisture": "One or more soil moisture sensors"
+        }
+
+        # We don't really care if parsing the station config json fails as this
+        # is just a helpful sanity check - if sensor config is wrong it doesn't
+        # actually affect the logger, it may just mean extra sensor data isn't
+        # visible in the UI.
+        # noinspection PyBroadException
+        try:
+            config = json.loads(self._station_config_json)["sensor_config"]
+
+            enabled_sensors = []
+            for k in config:
+                is_enabled = config[k]["enabled"]
+                if not is_enabled:
+                    continue
+                if k in ("extra_humidity_1", "extra_humidity_2",
+                         "extra_temperature_1", "extra_temperature_2",
+                         "extra_temperature_3"):
+                    enabled_sensors.append(k)
+                elif k in ("leaf_wetness_1", "leaf_wetness_2"):
+                    enabled_sensors.append("leaf_wetness")
+                elif k in ("soil_moisture_1", "soil_moisture_2",
+                           "soil_moisture_3", "soil_moisture_4"):
+                    enabled_sensors.append("soil_moisture")
+
+            # Now lets see if the configuration on the console matches the
+            # database.
+            console_only = list(set(sensors_present) - set(enabled_sensors))
+            configured_only = list(set(enabled_sensors) - set(sensors_present))
+
+            console_only_msg = None
+            for sensor_id in console_only:
+                if console_only_msg is None:
+                    console_only_msg = \
+                        "The following may be available on the console or " \
+                        "envoy but are not configured in the database:"
+                console_only_msg += "\n\t- {0}".format(sensor_names[sensor_id])
+            if console_only_msg is not None:
+                console_only_msg += \
+                    "\nData for these sensors, if present, will still be " \
+                    "logged but will not be visible in the UI until they have " \
+                    "been configured in the database."
+
+            db_only_msg = None
+            for sensor_id in configured_only:
+                if db_only_msg is None:
+                    db_only_msg = \
+                        "The following are configured in the database but do " \
+                        "not appear to be available from the console or envoy:"
+                db_only_msg += "\n\t- {0}".format(sensor_names[sensor_id])
+
+            sensor_config_msg = "Sensor config in the database looks reasonable."
+            if db_only_msg is not None or console_only_msg is not None:
+                sensor_config_msg = "Sensor configuration check:"
+                if console_only_msg is not None:
+                    sensor_config_msg += "\n" + console_only_msg
+                if db_only_msg is not None:
+                    if console_only_msg is not None:
+                        sensor_config_msg += "\n"
+                    sensor_config_msg += "\n" + db_only_msg
+
+            log.msg(sensor_config_msg)
+
+        except:
+            pass  # Guess no sensor config check log message. Oh well, we tried.
+
+    def _init_completed(self, station_type, hardware_type, version, version_date,
+                        station_time, rain_collector_size_name, archive_interval,
+                        auto_dst_on, dst_on, station_list):
+
+        log.msg('Station Type: {0} - {1}'.format(station_type, hardware_type))
+
+        log.msg('Firmware Version: {0} ({1})'.format(version_date, version))
+        log.msg('Station Time: {0}'.format(station_time))
+        log.msg('Rain Collector Size: {0}'.format(rain_collector_size_name))
+        log.msg('Archive Interval: {0} minutes'.format(archive_interval))
+        log.msg('Station Auto DST Enabled: {0}'.format(auto_dst_on))
+        log.msg('Station Manual Daylight Savings - DST On: {0}'.format(dst_on))
+
+        self._check_configured_sensors(station_list)
+
+        if archive_interval * 60 != self._db_archive_interval:
+            log.msg('**** CONFIGURATION ERROR ****\nConsole archive interval '
+                    '({0} seconds) does not match the database\nsetting for '
+                    'this station ({1} seconds). This *will* cause incorrect\n'
+                    'functionality in a number of areas. You *must* correct '
+                    'the database\nsetting or change the archive interval on '
+                    'the weather station console\nor envoy.'.format(
+                        archive_interval*60, self._db_archive_interval))
+            log.msg("Unable to safely proceed - logger stopped. Correct "
+                    "configuration error and try again.")
+            try:
+                reactor.stop()
+            except ReactorNotRunning:
+                # Don't care. We wanted it stopped, turns out it already is
+                # that or its not yet started in which case there isn't
+                # anything much we can do to terminate yet.
+                pass
+            return
 
         if archive_interval != 5:
             log.msg('WARNING: Archive interval should be set to\n5 minutes. '
@@ -553,6 +676,9 @@ class DavisService(service.Service):
         self.auto_dst = auto_dst
         self.time_zone = time_zone
 
+        self._station_config_json = None
+        self._sample_interval = None
+
         self._mq_host = mq_host
         self._mq_port = mq_port
         self._mq_exchange = mq_exchange
@@ -655,7 +781,8 @@ class DavisService(service.Service):
             self.database_pool, self._station_id, self._latest_date,
             self._latest_time, self.sample_error_file, self.auto_dst,
             self.time_zone, self._latest_ts, self._live_available,
-            self._mq_publisher)
+            self._mq_publisher, self._sample_interval,
+            self._station_config_json)
 
         self.sp = SerialPort(logger,
                              self.serial_port,
@@ -696,8 +823,7 @@ class DavisService(service.Service):
     @defer.inlineCallbacks
     def _check_db(self):
         """
-        Checks the database is compatible
-        :return:
+        Checks the database is compatible and gets a few other details
         """
         schema_version = yield self._get_schema_version()
         log.msg("Database schema version: {0}".format(schema_version))
@@ -734,13 +860,15 @@ class DavisService(service.Service):
                     pass
 
         result = yield self.database_pool.runQuery(
-            "select archived, st.code as hw_type from station s "
+            "select archived, st.code as hw_type, sample_interval, station_config from station s "
             "inner join station_type st on s.station_type_id = st.station_type_id "
             "where upper(s.code) = upper(%s)",
             (self.station_code,))
 
         archived = result[0][0]
         hw_type = result[0][1].upper()
+        self._sample_interval = result[0][2]
+        self._station_config_json = result[0][3]
 
         fail = False
         if archived:
