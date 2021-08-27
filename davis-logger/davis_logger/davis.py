@@ -44,6 +44,7 @@ class DavisWeatherStation(object):
         # Setup events
         self.sendData = Event()
         self.loopDataReceived = Event()
+        self.loop2DataReceived = Event()
         self.InitCompleted = Event()
 
         self._log_data = False
@@ -325,6 +326,7 @@ class DavisWeatherStation(object):
                                     self._rainCollectorSize, 200,
                                     reactor.callLater)
         self._looper.loopDataReceived += self.loopDataReceived.fire
+        self._looper.loop2DataReceived += self.loop2DataReceived.fire
         self._looper.finished += self._looper_restart
         self._looper.canceled += self._looper_canceled
         self._state_data_handlers[STATE_LOOP] = self._looper.data_received
@@ -336,7 +338,8 @@ class DavisWeatherStation(object):
                                 self._archive_interval,
                                 self._auto_dst_enabled,
                                 dst_on,
-                                self._station_list)
+                                self._station_list,
+                                self._lps_supported)
 
     def _write(self, data):
         if self._log_data:

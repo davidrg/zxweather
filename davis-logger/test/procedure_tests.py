@@ -9,7 +9,8 @@ import unittest
 
 from davis_logger.record_types.dmp import Dmp, encode_date, encode_time, build_page, serialise_dmp, _compass_points, \
     deserialise_dmp
-from davis_logger.record_types.loop import Loop, serialise_loop, deserialise_loop
+from davis_logger.record_types.loop import Loop, serialise_loop, deserialise_loop, Loop2, serialise_loop2, \
+    deserialise_loop2
 from davis_logger.record_types.util import CRC
 from davis_logger.station_procedures import DstSwitchProcedure, GetConsoleInformationProcedure, \
     GetConsoleConfigurationProcedure, DmpProcedure, LpsProcedure
@@ -2196,6 +2197,189 @@ class TestLpsProcedure(unittest.TestCase):
             rec2 = deserialise_loop(serialise_loop(rec, include_crc=False))
             self._assertLoopEqual(rec, rec2, i)
 
+    def _make_loop2_records(count, rain_collector_size):
+        """
+        Creates the specified number of Loop2 records populated with random data.
+
+        :param count: Number of records to generate
+        :type count: int
+        :param rain_collector_size: Rain collector size (in mm)
+        :type rain_collector_size: float
+        :return: List of Loop2 records
+        :rtype: List of Loop2
+        """
+        records = []
+
+        bar_trend_options = [-60, -20, -0, 20, 60]
+        forecast_icon_options = [8, 6, 2, 3, 18, 19, 7, 22, 23]
+
+        for i in range(0, count):
+            wind_speed = random.uniform(0, 22)
+            wind_direction = None
+
+            if wind_speed > 0:
+                wind_direction = int(random.choice(_compass_points))
+
+            wind_gust = wind_speed = random.uniform(0, 22)
+            gust_direction = None
+            if wind_gust > 0:
+                gust_direction = int(random.choice(_compass_points))
+
+            storm_rain = round(random.uniform(0, 300), 1)
+            storm_start_date = None
+            if storm_rain > 0:
+                end_date = datetime.datetime.now().date()
+                start_date = end_date - datetime.timedelta(days=30)
+                random_days = random.randrange((end_date - start_date).days)
+                storm_start_date = start_date + datetime.timedelta(days=random_days)
+
+            x = Loop2(barTrend=random.choice(bar_trend_options),
+                      barometer=round(random.uniform(985.9, 1039.3), 1),
+                      insideTemperature=round(random.uniform(-3, 35), 1),
+                      insideHumidity=int(random.uniform(0, 100)),
+                      outsideTemperature=round(random.uniform(-3, 35), 1),
+                      windSpeed=wind_speed,
+                      averageWindSpeed10min=random.uniform(0, 22),
+                      windDirection=wind_direction,
+                      outsideHumidity=int(random.uniform(0, 100)),
+                      rainRate=round(random.uniform(0, 500), 1),
+                      UV=round(random.uniform(0, 14), 1),
+                      solarRadiation=int(random.uniform(0, 1628)),
+                      stormRain=storm_rain,
+                      startDateOfCurrentStorm=storm_start_date,
+                      dayRain=round(random.uniform(0, 300), 1),
+                      dayET=round(random.uniform(0, 10), 1),
+
+                      # These are unique to the Loop2 packet
+                      averageWindSpeed2min=random.uniform(0, 22),
+                      windGust10m=wind_gust,
+                      windGust10mDirection=gust_direction,
+                      dewPoint=round(random.uniform(-3, 35), 1),
+                      heatIndex=round(random.uniform(-3, 35), 1),
+                      windChill=round(random.uniform(-3, 35), 1),
+                      thswIndex=round(random.uniform(-3, 35), 1),
+                      last15minRain=round(random.uniform(0, 300), 1),
+                      lastHourRain=round(random.uniform(0, 300), 1),
+                      last24hourRain=round(random.uniform(0, 300), 1),
+
+                      # This field is apparently 2 (NOAA Bar Reduction) for the VP2
+                      barometricReductionMethod=2,
+                      userBarometricOffset=round(random.uniform(985.9, 1039.3), 1),
+                      barometricCalibrationNumber=round(random.uniform(985.9, 1039.3), 1),
+                      barometricSensorRaw=round(random.uniform(985.9, 1039.3), 1),
+                      absoluteBarometricPressure=round(random.uniform(985.9, 1039.3), 1),
+                      altimeterSetting=round(random.uniform(985.9, 1039.3), 1),
+
+                      # These are useless but we've got them here so we can round-trip real
+                      # data from a VP2 console through the serialise function
+                      next10mWindSpeedGraphPointer=0,
+                      next15mWindSpeedGraphPointer=0,
+                      nextHourlyWindSpeedGraphPointer=0,
+                      nextDailyWindSpeedGraphPointer=0,
+                      nextMinuteRainGraphPointer=0,
+                      nextRainStormGraphPointer=0,
+                      indexToMinuteWithinHour=0,
+                      nextMonthlyRain=0,
+                      nextYearlyRain=0,
+                      nextSeasonalRain=0,
+
+                      # This field seems to count minutes. It increments every
+                      # 30th packet.
+                      undefinedField=0
+                     )
+
+            # Pass the data through the DMP binary format which will result in
+            # Metric -> US Imperial -> Metric conversion. We do this here so
+            # we don't trip up any unit tests.
+            d = deserialise_loop2(serialise_loop2(x, rain_collector_size, False), rain_collector_size)
+            records.append(d)
+
+        return records
+
+    def _assertLoop2Equal(self, a, b, index):
+        """
+        Asserts the two Loop2 records are equal. Floating point values within
+        each Loop2 record are checked using assertAlmostEqual
+        :param a: Loop2 record A
+        :type a: Loop2
+        :param b: Loop2 record B
+        :type b: Loop2
+        :param index: record ID
+        :type index: int
+        """
+
+        def _assert_field_equal(i, field_name, a_value, b_value, places=1):
+            if isinstance(a_value, float):
+                self.assertAlmostEqual(
+                    a_value, b_value,
+                    places=places,
+                    msg="index {0} field {1}:{5} differs to {4} places - a={2}, b={3}".format(
+                        i, field_name, round(a_value, places),
+                        round(b_value, places), places, type(a_value).__name__))
+            else:
+                self.assertEqual(a_value, b_value,
+                                 msg="index {0} field {1}:{4} differs - a={2}, b={3}".format(
+                                     i, field_name, a_value, b_value,
+                                     type(a_value).__name__))
+
+        _assert_field_equal(index, 'barTrend', a.barTrend, b.barTrend)
+        _assert_field_equal(index, 'barometer', a.barometer, b.barometer)
+        _assert_field_equal(index, 'insideTemperature', a.insideTemperature, b.insideTemperature)
+        _assert_field_equal(index, 'insideHumidity', a.insideHumidity, b.insideHumidity)
+        _assert_field_equal(index, 'outsideTemperature', a.outsideTemperature, b.outsideTemperature)
+        _assert_field_equal(index, 'windSpeed', a.windSpeed, b.windSpeed)
+        _assert_field_equal(index, 'averageWindSpeed10min', a.averageWindSpeed10min, b.averageWindSpeed10min)
+        _assert_field_equal(index, 'windDirection', a.windDirection, b.windDirection)
+        _assert_field_equal(index, 'outsideHumidity', a.outsideHumidity, b.outsideHumidity)
+        _assert_field_equal(index, 'rainRate', a.rainRate, b.rainRate)
+        _assert_field_equal(index, 'UV', a.UV, b.UV)
+        _assert_field_equal(index, 'solarRadiation', a.solarRadiation, b.solarRadiation)
+        _assert_field_equal(index, 'stormRain', a.stormRain, b.stormRain)
+        _assert_field_equal(index, 'startDateOfCurrentStorm', a.startDateOfCurrentStorm, b.startDateOfCurrentStorm)
+        _assert_field_equal(index, 'dayRain', a.dayRain, b.dayRain)
+        _assert_field_equal(index, 'dayET', a.dayET, b.dayET)
+        _assert_field_equal(index, 'averageWindSpeed2min', a.averageWindSpeed2min, b.averageWindSpeed2min)
+        _assert_field_equal(index, 'windGust10m', a.windGust10m, b.windGust10m)
+        _assert_field_equal(index, 'windGust10mDirection', a.windGust10mDirection, b.windGust10mDirection)
+        _assert_field_equal(index, 'dewPoint', a.dewPoint, b.dewPoint)
+        _assert_field_equal(index, 'heatIndex', a.heatIndex, b.heatIndex)
+        _assert_field_equal(index, 'windChill', a.windChill, b.windChill)
+        _assert_field_equal(index, 'thswIndex', a.thswIndex, b.thswIndex)
+        _assert_field_equal(index, 'last15minRain', a.last15minRain, b.last15minRain)
+        _assert_field_equal(index, 'lastHourRain', a.lastHourRain, b.lastHourRain)
+        _assert_field_equal(index, 'last24hourRain', a.last24hourRain, b.last24hourRain)
+        _assert_field_equal(index, 'barometricReductionMethod', a.barometricReductionMethod, b.barometricReductionMethod)
+        _assert_field_equal(index, 'userBarometricOffset', a.userBarometricOffset, b.userBarometricOffset)
+        _assert_field_equal(index, 'barometricCalibrationNumber', a.barometricCalibrationNumber, b.barometricCalibrationNumber)
+        _assert_field_equal(index, 'barometricSensorRaw', a.barometricSensorRaw, b.barometricSensorRaw)
+        _assert_field_equal(index, 'absoluteBarometricPressure', a.absoluteBarometricPressure, b.absoluteBarometricPressure)
+        _assert_field_equal(index, 'altimeterSetting', a.altimeterSetting, b.altimeterSetting)
+        _assert_field_equal(index, 'next10mWindSpeedGraphPointer', a.next10mWindSpeedGraphPointer, b.next10mWindSpeedGraphPointer)
+        _assert_field_equal(index, 'next15mWindSpeedGraphPointer', a.next15mWindSpeedGraphPointer, b.next15mWindSpeedGraphPointer)
+        _assert_field_equal(index, 'nextHourlyWindSpeedGraphPointer', a.nextHourlyWindSpeedGraphPointer, b.nextHourlyWindSpeedGraphPointer)
+        _assert_field_equal(index, 'nextDailyWindSpeedGraphPointer', a.nextDailyWindSpeedGraphPointer, b.nextDailyWindSpeedGraphPointer)
+        _assert_field_equal(index, 'nextMinuteRainGraphPointer', a.nextMinuteRainGraphPointer, b.nextMinuteRainGraphPointer)
+        _assert_field_equal(index, 'nextRainStormGraphPointer', a.nextRainStormGraphPointer, b.nextRainStormGraphPointer)
+        _assert_field_equal(index, 'indexToMinuteWithinHour', a.indexToMinuteWithinHour, b.indexToMinuteWithinHour)
+        _assert_field_equal(index, 'nextMonthlyRain', a.nextMonthlyRain, b.nextMonthlyRain)
+        _assert_field_equal(index, 'nextYearlyRain', a.nextYearlyRain, b.nextYearlyRain)
+        _assert_field_equal(index, 'nextSeasonalRain', a.nextSeasonalRain, b.nextSeasonalRain)
+        _assert_field_equal(index, 'undefinedField', a.undefinedField, b.undefinedField)
+
+    def test_loop2_serialise_round_trip(self):
+        """
+        This test is to check we can encode and decode a Loop2 record and not find
+        any differences in any fields with a precision of 1dp.
+
+        This is mostly to test the _assertLoop2Equal test function that is used
+        by many of the other tests in this TestCase.
+        """
+        count = 500
+        records = TestLpsProcedure._make_loop2_records(count, 0.2)
+        for i, rec in enumerate(records):
+            rec2 = deserialise_loop2(serialise_loop2(rec, include_crc=False))
+            self._assertLoop2Equal(rec, rec2, i)
+
     def test_sends_lps_when_supported(self):
         recv = WriteReceiver()
         log = LogReceiver()
@@ -2203,7 +2387,7 @@ class TestLpsProcedure(unittest.TestCase):
         proc = LpsProcedure(recv.write, log.log, True, 0.2, 5)
 
         proc.start()
-        self.assertEquals(b"LPS 1 5\n", recv.read())
+        self.assertEquals(b"LPS 3 5\n", recv.read())
 
     def test_sends_loop_when_lps_not_supported(self):
         recv = WriteReceiver()
@@ -2232,17 +2416,19 @@ class TestLpsProcedure(unittest.TestCase):
         proc = LpsProcedure(recv.write, log.log, True, 0.2, 5)
 
         proc.start()
-        self.assertEquals(b"LPS 1 5\n", recv.read())
+        self.assertEquals(b"LPS 3 5\n", recv.read())
         proc.data_received(b'Hello!')
-        self.assertEquals(b"LPS 1 5\n", recv.read())
+        self.assertEquals(b"LPS 3 5\n", recv.read())
 
-    def test_decodes_one_packet(self):
+    def test_decodes_one_loop_packet(self):
         recv = WriteReceiver()
         log = LogReceiver()
-        looper = LoopReceiver()
+        looper1 = LoopReceiver()
+        looper2 = LoopReceiver()
 
         proc = LpsProcedure(recv.write, log.log, True, 0.2, 1)
-        proc.loopDataReceived += looper.receiveLoop
+        proc.loopDataReceived += looper1.receiveLoop
+        proc.loop2DataReceived += looper2.receiveLoop
 
         record = TestLpsProcedure._make_loop_records(1, 0.2)[0]
 
@@ -2251,8 +2437,30 @@ class TestLpsProcedure(unittest.TestCase):
         proc.data_received(self._ACK)
         proc.data_received(serialise_loop(record, 0.2))
 
-        self.assertEqual(1, len(looper.LoopRecords))
-        self._assertLoopEqual(record, looper.LoopRecords[0], 1)
+        self.assertEqual(1, len(looper1.LoopRecords))
+        self._assertLoopEqual(record, looper1.LoopRecords[0], 1)
+        self.assertEqual(0, len(looper2.LoopRecords))
+
+    def test_decodes_one_loop2_packet(self):
+        recv = WriteReceiver()
+        log = LogReceiver()
+        looper1 = LoopReceiver()
+        looper2 = LoopReceiver()
+
+        proc = LpsProcedure(recv.write, log.log, True, 0.2, 1)
+        proc.loopDataReceived += looper1.receiveLoop
+        proc.loop2DataReceived += looper2.receiveLoop
+
+        record = TestLpsProcedure._make_loop2_records(1, 0.2)[0]
+
+        proc.start()
+        # receive: LPS 1 5\n
+        proc.data_received(self._ACK)
+        proc.data_received(serialise_loop2(record, 0.2))
+
+        self.assertEqual(1, len(looper2.LoopRecords))
+        self._assertLoop2Equal(record, looper2.LoopRecords[0], 1)
+        self.assertEqual(0, len(looper1.LoopRecords))
 
     def test_decodes_one_packet_combined_with_ack(self):
         recv = WriteReceiver()
@@ -2275,14 +2483,15 @@ class TestLpsProcedure(unittest.TestCase):
         self.assertEqual(1, len(looper.LoopRecords))
         self._assertLoopEqual(record, looper.LoopRecords[0], 1)
 
-
-    def test_decodes_multiple_packets(self):
+    def test_decodes_multiple_loop_packets(self):
         recv = WriteReceiver()
         log = LogReceiver()
-        looper = LoopReceiver()
+        looper1 = LoopReceiver()
+        looper2 = LoopReceiver()
 
         proc = LpsProcedure(recv.write, log.log, True, 0.2, 10)
-        proc.loopDataReceived += looper.receiveLoop
+        proc.loopDataReceived += looper1.receiveLoop
+        proc.loop2DataReceived += looper2.receiveLoop
 
         records = TestLpsProcedure._make_loop_records(10, 0.2)
 
@@ -2293,10 +2502,100 @@ class TestLpsProcedure(unittest.TestCase):
         for record in records:
             proc.data_received(serialise_loop(record, 0.2))
 
-        self.assertEqual(len(records), len(looper.LoopRecords))
+        self.assertEqual(len(records), len(looper1.LoopRecords))
         
         for i, record in enumerate(records):
-            self._assertLoopEqual(record, looper.LoopRecords[i], i)
+            self._assertLoopEqual(record, looper1.LoopRecords[i], i)
+
+        # Make sure nothing was misdetected as a loop2 packet
+        self.assertEqual(0, len(looper2.LoopRecords))
+
+    def test_decodes_multiple_loop2_packets(self):
+        recv = WriteReceiver()
+        log = LogReceiver()
+        looper1 = LoopReceiver()
+        looper2 = LoopReceiver()
+
+        proc = LpsProcedure(recv.write, log.log, True, 0.2, 10)
+        proc.loopDataReceived += looper1.receiveLoop
+        proc.loop2DataReceived += looper2.receiveLoop
+
+        records = TestLpsProcedure._make_loop2_records(10, 0.2)
+
+        proc.start()
+        # receive: LPS 1 5\n
+        proc.data_received(self._ACK)
+
+        for record in records:
+            proc.data_received(serialise_loop2(record, 0.2))
+
+        self.assertEqual(len(records), len(looper2.LoopRecords))
+
+        for i, record in enumerate(records):
+            self._assertLoop2Equal(record, looper2.LoopRecords[i], i)
+
+        # Make sure nothing was misdetected as a loop packet
+        self.assertEqual(0, len(looper1.LoopRecords))
+
+    def test_decodes_mix_of_loop_packets(self):
+        # Sends 5 each of LOOP1 and LOOP2 alternating between the two and checks
+        # the packets all ended up in the right place.
+        recv = WriteReceiver()
+        log = LogReceiver()
+        looper1 = LoopReceiver()
+        looper2 = LoopReceiver()
+
+        proc = LpsProcedure(recv.write, log.log, True, 0.2, 10)
+        proc.loopDataReceived += looper1.receiveLoop
+        proc.loop2DataReceived += looper2.receiveLoop
+
+        records1 = TestLpsProcedure._make_loop_records(5, 0.2)
+        records2 = TestLpsProcedure._make_loop2_records(5, 0.2)
+
+        proc.start()
+        # receive: LPS 3 5\n
+        proc.data_received(self._ACK)
+
+        for i, record in enumerate(records1):
+            proc.data_received(serialise_loop(record, 0.2))
+            proc.data_received(serialise_loop2(records2[i], 0.2))
+
+        self.assertEqual(len(records1), len(looper1.LoopRecords))
+
+        for i, record in enumerate(records1):
+            self._assertLoopEqual(record, looper1.LoopRecords[i], i)
+
+        self.assertEqual(len(records2), len(looper2.LoopRecords))
+
+        for i, record in enumerate(records2):
+            self._assertLoop2Equal(record, looper2.LoopRecords[i], i)
+
+    def test_unexpected_packet_type_discarded(self):
+        recv = WriteReceiver()
+        log = LogReceiver()
+        looper1 = LoopReceiver()
+        looper2 = LoopReceiver()
+
+        proc = LpsProcedure(recv.write, log.log, True, 0.2, 1)
+        proc.loopDataReceived += looper1.receiveLoop
+        proc.loop2DataReceived += looper2.receiveLoop
+
+        record = serialise_loop2(TestLpsProcedure._make_loop2_records(1, 0.2)[0], 0.2, include_crc=False)
+
+        mysterious_record = bytearray()
+        mysterious_record.extend(b'LOO\x00\x02')
+        mysterious_record.extend(record[5:])
+        mysterious_record.extend(struct.pack(CRC.FORMAT,
+                                             CRC.calculate_crc(bytes(mysterious_record))))
+
+        proc.start()
+        # receive: LPS 1 5\n
+        proc.data_received(self._ACK)
+        proc.data_received(bytes(mysterious_record))
+
+        # The mysterious record should be discarded - both lists must be empty.
+        self.assertEqual(0, len(looper2.LoopRecords))
+        self.assertEqual(0, len(looper1.LoopRecords))
 
     def test_additional_packets_after_requested_count_are_ignored(self):
         recv = WriteReceiver()
@@ -2402,7 +2701,7 @@ class TestLpsProcedure(unittest.TestCase):
         records = TestLpsProcedure._make_loop_records(5, 0.2)
 
         proc.start()
-        self.assertEqual(recv.read(), b'LPS 1 5\n')
+        self.assertEqual(recv.read(), b'LPS 3 5\n')
         proc.data_received(self._ACK)
 
         serialised_records = [serialise_loop(record, 0.2) for record in records]
@@ -2424,7 +2723,7 @@ class TestLpsProcedure(unittest.TestCase):
         self.assertFalse(fd.IsFinished)
         proc.data_received(bytes(rec_2))
         self.assertEqual(1, len(looper.LoopRecords))
-        self.assertEqual(recv.read(), b'LPS 1 3\n')
+        self.assertEqual(recv.read(), b'LPS 3 3\n')
         proc.data_received(self._ACK)
 
         for record in serialised_records:
@@ -2456,7 +2755,7 @@ class TestLpsProcedure(unittest.TestCase):
         records = TestLpsProcedure._make_loop_records(5, 0.2)
 
         proc.start()
-        self.assertEqual(recv.read(), b'LPS 1 5\n')
+        self.assertEqual(recv.read(), b'LPS 3 5\n')
         proc.data_received(self._ACK)
 
         serialised_records = [serialise_loop(record, 0.2) for record in records]
@@ -2507,7 +2806,7 @@ class TestLpsProcedure(unittest.TestCase):
         records = TestLpsProcedure._make_loop_records(5, 0.2)
 
         proc.start()
-        self.assertEqual(recv.read(), b'LPS 1 5\n')
+        self.assertEqual(recv.read(), b'LPS 3 5\n')
         proc.data_received(self._ACK)
 
         serialised_records = [serialise_loop(record, 0.2) for record in records]
@@ -2560,7 +2859,7 @@ class TestLpsProcedure(unittest.TestCase):
         records = TestLpsProcedure._make_loop_records(5, 0.2)
 
         proc.start()
-        self.assertEqual(recv.read(), b'LPS 1 5\n')
+        self.assertEqual(recv.read(), b'LPS 3 5\n')
         proc.data_received(self._ACK)
 
         serialised_records = [serialise_loop(record, 0.2) for record in records]
@@ -2574,7 +2873,7 @@ class TestLpsProcedure(unittest.TestCase):
         self.assertFalse(fd.IsFinished)
         proc.data_received(b"Hello, World!")
         self.assertEqual(1, len(looper.LoopRecords))
-        self.assertEqual(recv.read(), b'LPS 1 4\n')
+        self.assertEqual(recv.read(), b'LPS 3 4\n')
         proc.data_received(self._ACK)
 
         for record in serialised_records:
@@ -2608,7 +2907,7 @@ class TestLpsProcedure(unittest.TestCase):
         records = TestLpsProcedure._make_loop_records(4, 0.2)
 
         proc.start()
-        self.assertEqual(recv.read(), b'LPS 1 5\n')
+        self.assertEqual(recv.read(), b'LPS 3 5\n')
         proc.data_received(self._ACK)
 
         serialised_records = [serialise_loop(record, 0.2) for record in records]
@@ -2622,7 +2921,7 @@ class TestLpsProcedure(unittest.TestCase):
         self.assertFalse(fd.IsFinished)
         proc.data_received(b"\n\r")
         self.assertEqual(1, len(looper.LoopRecords))
-        self.assertEqual(recv.read(), b'LPS 1 3\n')
+        self.assertEqual(recv.read(), b'LPS 3 3\n')
         proc.data_received(self._ACK)
 
         for record in serialised_records:
@@ -2652,7 +2951,7 @@ class TestLpsProcedure(unittest.TestCase):
         records = TestLpsProcedure._make_loop_records(5, 0.2)
 
         proc.start()
-        self.assertEqual(recv.read(), b'LPS 1 5\n')
+        self.assertEqual(recv.read(), b'LPS 3 5\n')
         proc.data_received(self._ACK)
 
         serialised_records = [serialise_loop(record, 0.2) for record in records]
@@ -2666,7 +2965,7 @@ class TestLpsProcedure(unittest.TestCase):
         self.assertFalse(fd.IsFinished)
         proc.data_received(b"LOO LOO")
         self.assertEqual(1, len(looper.LoopRecords))
-        self.assertEqual(recv.read(), b'LPS 1 4\n')
+        self.assertEqual(recv.read(), b'LPS 3 4\n')
         proc.data_received(self._ACK)
 
         for record in serialised_records:
@@ -2698,7 +2997,7 @@ class TestLpsProcedure(unittest.TestCase):
         records = TestLpsProcedure._make_loop_records(9, 0.2)
 
         proc.start()
-        self.assertEqual(recv.read(), b'LPS 1 10\n')
+        self.assertEqual(recv.read(), b'LPS 3 10\n')
         proc.data_received(self._ACK)
 
         serialised_records = [serialise_loop(record, 0.2) for record in records]
@@ -2803,7 +3102,7 @@ class TestLpsProcedure(unittest.TestCase):
         records = TestLpsProcedure._make_loop_records(9, 0.2)
 
         proc.start()
-        self.assertEqual(recv.read(), b'LPS 1 10\n')
+        self.assertEqual(recv.read(), b'LPS 3 10\n')
         proc.data_received(self._ACK)
 
         serialised_records = [serialise_loop(record, 0.2) for record in records]
@@ -2817,7 +3116,7 @@ class TestLpsProcedure(unittest.TestCase):
         self.assertFalse(fd.IsFinished)
         proc.data_received(b"LOO\n\rHELLO!")
         self.assertEqual(1, len(looper.LoopRecords))
-        self.assertEqual(recv.read(), b'LPS 1 8\n')
+        self.assertEqual(recv.read(), b'LPS 3 8\n')
         proc.data_received(self._ACK)
 
         for record in serialised_records:
@@ -2844,7 +3143,7 @@ class TestLpsProcedure(unittest.TestCase):
         records = TestLpsProcedure._make_loop_records(2, 0.2)
 
         proc.start()
-        self.assertEqual(recv.read(), b'LPS 1 2\n')
+        self.assertEqual(recv.read(), b'LPS 3 2\n')
         proc.data_received(self._ACK)
 
         serialised_records = [serialise_loop(record, 0.2) for record in records]
@@ -3034,7 +3333,7 @@ class TestLpsProcedure(unittest.TestCase):
         records = TestLpsProcedure._make_loop_records(5, 0.2)
 
         proc.start()
-        self.assertEqual(recv.read(), b'LPS 1 5\n')
+        self.assertEqual(recv.read(), b'LPS 3 5\n')
         proc.data_received(self._ACK)
 
         # Cancel the procedure

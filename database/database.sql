@@ -98,6 +98,7 @@ CREATE TABLE sample
   wind_chill real, -- Calculated wind chill
   apparent_temperature real, -- Calculated apparent temperature.
   absolute_pressure real, -- Absolute pressure
+  mean_sea_level_pressure real, -- Mean sea level pressure
   average_wind_speed real, -- Average Wind Speed.
   gust_wind_speed real, -- Gust wind speed.
   wind_direction integer, -- Wind Direction in degrees
@@ -117,6 +118,7 @@ COMMENT ON COLUMN sample.temperature IS 'Temperature outside in degrees Celsius'
 COMMENT ON COLUMN sample.dew_point IS 'Calculated dew point in degrees Celsius. Use the dew_point function to calculate. Calculated automatically by a trigger on insert.';
 COMMENT ON COLUMN sample.wind_chill IS 'Calculated wind chill in degrees Celsius. Use the wind_chill function to calculate. Calculated automatically by a trigger on insert.';
 COMMENT ON COLUMN sample.apparent_temperature IS 'Calculated apparent temperature in degrees Celsius. Use the apparent_temperature to calculate. Calculated automatically by a trigger on insert.';
+COMMENT ON COLUMN sample.mean_sea_level_pressure IS 'Mean sea level pressure in hPa';
 COMMENT ON COLUMN sample.absolute_pressure IS 'Absolute pressure in hPa';
 COMMENT ON COLUMN sample.average_wind_speed IS 'Average Wind Speed in m/s.';
 COMMENT ON COLUMN sample.gust_wind_speed IS 'Gust wind speed in m/s.';
@@ -490,6 +492,7 @@ CREATE TABLE live_data
   wind_chill real, -- Calculated wind chill
   apparent_temperature real, -- Calculated apparent temperature.
   absolute_pressure real, -- Absolute pressure
+  mean_sea_level_pressure real, -- MSL pressure
   average_wind_speed real, -- Average Wind Speed.
   gust_wind_speed real, -- Gust wind speed.
   wind_direction integer -- Wind Direction.
@@ -505,6 +508,7 @@ COMMENT ON COLUMN live_data.dew_point IS 'Calculated dew point in degrees Celsiu
 COMMENT ON COLUMN live_data.wind_chill IS 'Calculated wind chill in degrees Celsius. Use the wind_chill function to calculate. Calculated automatically by a trigger on insert.';
 COMMENT ON COLUMN live_data.apparent_temperature IS 'Calculated apparent temperature in degrees Celsius. Use the apparent_temperature to calculate. Calculated automatically by a trigger on insert.';
 COMMENT ON COLUMN live_data.absolute_pressure IS 'Absolute pressure in hPa';
+COMMENT ON COLUMN live_data.mean_sea_level_pressure IS 'Mean sea level pressure in hPa';
 COMMENT ON COLUMN live_data.average_wind_speed IS 'Average Wind Speed in m/s.';
 COMMENT ON COLUMN live_data.gust_wind_speed IS 'Gust wind speed in m/s.';
 COMMENT ON COLUMN live_data.wind_direction IS 'Wind Direction.';
@@ -523,6 +527,15 @@ create table davis_live_data (
   forecast_rule_id int,
   uv_index numeric(3,1),
   solar_radiation int,
+  altimeter_setting real,
+
+  -- A few computed values that can be a bit of a pain to compute on the fly
+  average_wind_speed_2m real,
+  average_wind_speed_10m real,
+  gust_wind_speed_10m real,
+  gust_wind_direction_10m integer,
+  heat_index real,
+  thsw_index real,
 
   -- Extra sensors. To populate all of these you'll need:
   --    1x 6345 Leaf/Soil transmitter setup as a leaf wetness station
@@ -561,7 +574,13 @@ comment on column davis_live_data.forecast_icon is 'Forecast icon';
 comment on column davis_live_data.forecast_rule_id is 'Current forecast rule. See davis_forecast_rule table for values';
 comment on column davis_live_data.uv_index is 'Latest UV index reading';
 comment on column davis_live_data.solar_radiation is 'Latest solar radiation reading in watt/meter squared';
-
+comment on column davis_live_data.altimeter_setting is 'Altimeter setting in hPa';
+comment on column davis_live_data.average_wind_speed_2m is 'Average wind speed over the last 2 minutes in meters per second';
+comment on column davis_live_data.average_wind_speed_10m is 'Average wind speed over the last 10 minutes in meters per second';
+comment on column davis_live_data.gust_wind_speed_10m is 'Maximum wind gust in the last 10 minutes in meters per second';
+comment on column davis_live_data.gust_wind_direction_10m is 'Direction of maximum wind gust in the last 10 minutes';
+comment on column davis_live_data.heat_index is 'Heat index in degrees celsius';
+comment on column davis_live_data.thsw_index is 'Temperature-Humidity-Sun-Wind index in degrees celsius';
 comment on column davis_live_data.leaf_wetness_1 is 'First leaf wetness. Range is 0-15 (0=dry, 15=wet)';
 comment on column davis_live_data.leaf_wetness_2 is 'Second leaf wetness. Range is 0-15 (0=dry, 15=wet)';
 comment on column davis_live_data.leaf_temperature_1 is 'First leaf temperature';

@@ -76,6 +76,12 @@ IS 'Ensure the indoor relative humidity is in the range 0-100';
 -- Timestamp really can't be nullable
 alter table sample alter column time_stamp set not null;
 
+alter table sample add column mean_sea_level_pressure real;
+COMMENT ON COLUMN sample.mean_sea_level_pressure IS 'Mean sea level pressure in hPa';
+
+alter table live_data add column mean_sea_level_pressure real;
+COMMENT ON COLUMN live_data.mean_sea_level_pressure IS 'Mean sea level pressure in hPa';
+
 -- New sort order column on station table.
 alter table station add column sort_order integer;
 comment on column station.sort_order is 'The order in which stations should be presented to the user';
@@ -584,6 +590,15 @@ create table davis_live_data (
   forecast_rule_id int,
   uv_index numeric(3,1),
   solar_radiation int,
+  altimeter_setting real,
+
+  -- A few computed values that can be a bit of a pain to compute on the fly
+  average_wind_speed_2m real,
+  average_wind_speed_10m real,
+  gust_wind_speed_10m real,
+  gust_wind_direction_10m integer,
+  heat_index real,
+  thsw_index real,
 
     -- Extra sensors. To populate all of these you'll need:
   --    1x 6345 Leaf/Soil transmitter setup as a leaf wetness station
@@ -622,6 +637,13 @@ comment on column davis_live_data.forecast_icon is 'Forecast icon';
 comment on column davis_live_data.forecast_rule_id is 'Current forecast rule. See davis_forecast_rule table for values';
 comment on column davis_live_data.uv_index is 'Latest UV index reading';
 comment on column davis_live_data.solar_radiation is 'Latest solar radiation reading in watt/meter squared';
+comment on column davis_live_data.altimeter_setting is 'Altimeter setting in hPa';
+comment on column davis_live_data.average_wind_speed_2m is 'Average wind speed over the last 2 minutes in meters per second';
+comment on column davis_live_data.average_wind_speed_10m is 'Average wind speed over the last 10 minutes in meters per second';
+comment on column davis_live_data.gust_wind_speed_10m is 'Maximum wind gust in the last 10 minutes in meters per second';
+comment on column davis_live_data.gust_wind_direction_10m is 'Direction of maximum wind gust in the last 10 minutes';
+comment on column davis_live_data.heat_index is 'Heat index in degrees celsius';
+comment on column davis_live_data.thsw_index is 'Temperature-Humidity-Sun-Wind index in degrees celsius';
 comment on column davis_live_data.leaf_wetness_1 is 'First leaf wetness. Range is 0-15 (0=dry, 15=wet)';
 comment on column davis_live_data.leaf_wetness_2 is 'Second leaf wetness. Range is 0-15 (0=dry, 15=wet)';
 comment on column davis_live_data.leaf_temperature_1 is 'First leaf temperature';
@@ -639,6 +661,7 @@ comment on column davis_live_data.extra_humidity_2 is 'Second extra humidity sen
 comment on column davis_live_data.extra_temperature_1 is 'First extra temperature sensor';
 comment on column davis_live_data.extra_temperature_2 is 'Second extra temperature';
 comment on column davis_live_data.extra_temperature_3 is 'Third extra temperature sensor';
+
 
 create table sample_gap (
     sample_gap_id serial not null primary key,

@@ -26,6 +26,9 @@ __author__ = 'david'
 
 # Classic style class is required by twisted - not something we can fix.
 # noinspection PyClassicStyleClass
+from davis_logger.record_types.loop import Loop, Loop2, LiveData
+
+
 class DavisLoggerProtocol(Protocol):
     """
     Bridges communications with the weather station and handles logging data.
@@ -44,6 +47,7 @@ class DavisLoggerProtocol(Protocol):
         self._mq_publisher = mq_publisher
         self._db_archive_interval = archive_interval
         self._station_config_json = station_config_json
+        self._live_data = None
 
         # Setup the watchdog. This will give the data logger a kick if it stalls
         # (this can happen sometimes when data gets lost due to noise on the
@@ -62,6 +66,7 @@ class DavisLoggerProtocol(Protocol):
 
         # This is fired when ever a loop packet arrives
         self.station.loopDataReceived += self._loop_packet_received
+        self.station.loop2DataReceived += self._loop2_packet_received
 
         # Called when ever new samples are ready (the DMPAFT / getSamples()
         # command has finished).
@@ -217,7 +222,7 @@ class DavisLoggerProtocol(Protocol):
 
     def _init_completed(self, station_type, hardware_type, version, version_date,
                         station_time, rain_collector_size_name, archive_interval,
-                        auto_dst_on, dst_on, station_list):
+                        auto_dst_on, dst_on, station_list, loop2_enabled):
 
         log.msg('Station Type: {0} - {1}'.format(station_type, hardware_type))
 
@@ -227,6 +232,7 @@ class DavisLoggerProtocol(Protocol):
         log.msg('Archive Interval: {0} minutes'.format(archive_interval))
         log.msg('Station Auto DST Enabled: {0}'.format(auto_dst_on))
         log.msg('Station Manual Daylight Savings - DST On: {0}'.format(dst_on))
+        log.msg('LOOP2 data available: {0}'.format(loop2_enabled))
 
         self._check_configured_sensors(station_list)
 
@@ -277,6 +283,8 @@ class DavisLoggerProtocol(Protocol):
             # that doesn't do anything.
             self._dst_switcher = NullDstSwitcher()
 
+        self._live_data = LiveData(not loop2_enabled)
+
         # Bring the database up-to-date
         self._lastRecord = -1
         self.station.start_live_data()
@@ -295,6 +303,9 @@ class DavisLoggerProtocol(Protocol):
             log.msg('New Page. Fetch Samples...')
             self._lastRecord = next_rec
             self._fetch_samples()
+
+    def _loop2_packet_received(self, loop2):
+        self._publish_live(loop2)
 
     def _samples_arrived(self, sample_list):
         if len(sample_list) == 0:
@@ -386,9 +397,10 @@ class DavisLoggerProtocol(Protocol):
         base_query = """
             insert into sample(download_timestamp, time_stamp,
                 indoor_relative_humidity, indoor_temperature, relative_humidity,
-                temperature, absolute_pressure, average_wind_speed,
-                gust_wind_speed, wind_direction, rainfall, station_id)
-            values(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                temperature, absolute_pressure, mean_sea_level_pressure,
+                average_wind_speed, gust_wind_speed, wind_direction, rainfall, 
+                station_id)
+            values(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             returning sample_id
                 """
 
@@ -431,6 +443,10 @@ class DavisLoggerProtocol(Protocol):
                                 sample.insideTemperature,
                                 sample.outsideHumidity,
                                 sample.outsideTemperature,
+                                # TODO: Remove the absolute pressure column from
+                                #       the query once everything has been
+                                #       updated.
+                                sample.barometer,
                                 sample.barometer,
                                 sample.averageWindSpeed,
                                 sample.highWindSpeed,
@@ -489,24 +505,32 @@ by a change in time zone due to daylight savings.""".format(e.pgerror))
 
     def _publish_live(self, loop):
 
+        if isinstance(loop, Loop2):
+            self._live_data.update_loop2(loop)
+        else:
+            self._live_data.update_loop(loop)
+
+        if not self._live_data.ready:
+            return  # Not ready yet.
+
         if self._mq_publisher is not None:
-            self._mq_publisher.publish_live(loop)
+            self._mq_publisher.publish_live(self._live_data)
 
         if self._database_live_data_enabled:
-            self._store_live(loop)
+            self._store_live()
 
-    def _store_live(self, loop):
+    def _store_live(self):
         """
-        :param loop:
-        :type loop: davis_logger.record_types.loop.Loop
-        :return:
+        Updates the database live data tables with the latest weather data.
         """
+
         query = """update live_data
                 set download_timestamp = %s,
                     indoor_relative_humidity = %s,
                     indoor_temperature = %s,
                     relative_humidity = %s,
                     temperature = %s,
+                    mean_sea_level_pressure = %s,
                     absolute_pressure = %s,
                     average_wind_speed = %s,
                     gust_wind_speed = %s,
@@ -518,14 +542,15 @@ by a change in time zone due to daylight savings.""".format(e.pgerror))
             query,
             (
                 datetime.now(),  # Download TS
-                loop.insideHumidity,
-                loop.insideTemperature,
-                loop.outsideHumidity,
-                loop.outsideTemperature,
-                loop.barometer,
-                loop.windSpeed,
+                self._live_data.insideHumidity,
+                self._live_data.insideTemperature,
+                self._live_data.outsideHumidity,
+                self._live_data.outsideTemperature,
+                self._live_data.barometer,
+                self._live_data.absoluteBarometricPressure,  # Loop2 only
+                self._live_data.windSpeed,
                 None,  # Gust wind speed isn't supported for live data
-                loop.windDirection,
+                self._live_data.windDirection,
                 self._station_id
             )
         )
@@ -542,6 +567,9 @@ by a change in time zone due to daylight savings.""".format(e.pgerror))
                     forecast_rule_id = %s,
                     uv_index = %s,
                     solar_radiation = %s,
+                    average_wind_speed_10m = %s,
+                    
+                    -- Loop1 only values
                     leaf_wetness_1 = %s, 
                     leaf_wetness_2 = %s, 
                     leaf_temperature_1 = %s, 
@@ -558,41 +586,61 @@ by a change in time zone due to daylight savings.""".format(e.pgerror))
                     extra_humidity_2 = %s, 
                     extra_temperature_1 = %s, 
                     extra_temperature_2 = %s, 
-                    extra_temperature_3 = %s
+                    extra_temperature_3 = %s,
+                    
+                    -- Loop2 only values
+                    average_wind_speed_2m = %s,
+                    gust_wind_speed_10m = %s,
+                    gust_wind_direction_10m = %s,
+                    heat_index = %s,
+                    thsw_index = %s,
+                    altimeter_setting = %s
                 where station_id = %s
                 """
 
         self._database_pool.runOperation(
             query,
             (
-                loop.barTrend,
-                loop.rainRate,
-                loop.stormRain,
-                loop.startDateOfCurrentStorm,
-                loop.transmitterBatteryStatus,
-                loop.consoleBatteryVoltage,
-                loop.forecastIcons,
-                loop.forecastRuleNumber,
-                loop.UV,
-                loop.solarRadiation,
-                loop.leafWetness[0],
-                loop.leafWetness[1],
-                loop.leafTemperatures[0],
-                loop.leafTemperatures[1],
-                loop.soilMoistures[0],
-                loop.soilMoistures[1],
-                loop.soilMoistures[2],
-                loop.soilMoistures[3],
-                loop.soilTemperatures[0],
-                loop.soilTemperatures[1],
-                loop.soilTemperatures[2],
-                loop.soilTemperatures[3],
-                loop.extraHumidities[0],
-                loop.extraHumidities[1],
-                loop.extraTemperatures[0],
-                loop.extraTemperatures[1],
-                loop.extraTemperatures[2],
+                self._live_data.barTrend,
+                self._live_data.rainRate,
+                self._live_data.stormRain,
+                self._live_data.startDateOfCurrentStorm,
+                self._live_data.transmitterBatteryStatus,    # Loop1 only
+                self._live_data.consoleBatteryVoltage,    # Loop1 only
+                self._live_data.forecastIcons,    # Loop1 only
+                self._live_data.forecastRuleNumber,  # Loop1 only
+                self._live_data.UV,
+                self._live_data.solarRadiation,
+                self._live_data.averageWindSpeed10min,
 
+                # Loop1
+                self._live_data.leafWetness[0],
+                self._live_data.leafWetness[1],
+                self._live_data.leafTemperatures[0],
+                self._live_data.leafTemperatures[1],
+                self._live_data.soilMoistures[0],
+                self._live_data.soilMoistures[1],
+                self._live_data.soilMoistures[2],
+                self._live_data.soilMoistures[3],
+                self._live_data.soilTemperatures[0],
+                self._live_data.soilTemperatures[1],
+                self._live_data.soilTemperatures[2],
+                self._live_data.soilTemperatures[3],
+                self._live_data.extraHumidities[0],
+                self._live_data.extraHumidities[1],
+                self._live_data.extraTemperatures[0],
+                self._live_data.extraTemperatures[1],
+                self._live_data.extraTemperatures[2],
+
+                # Loop2
+                self._live_data.averageWindSpeed2min,
+                self._live_data.windGust10m,
+                self._live_data.windGust10mDirection,
+                self._live_data.heatIndex,
+                self._live_data.thswIndex,
+                self._live_data.altimeterSetting,
+
+                # Station ID
                 self._station_id
             )
         )
@@ -643,16 +691,12 @@ class MQPublisher(object):
     def publish_live(self, loop_data):
         """
         Publishes the live data to the message broker.
+        :param loop_data: Object providing a combined view of the latest Loop
+                          and Loop2 packets
+        :type loop_data: LiveData
         """
 
-        loop_dict = loop_data._asdict()
-
-        # Convert times and dates to strings.
-        loop_dict["timeOfSunrise"] = loop_dict["timeOfSunrise"].isoformat()
-        loop_dict["timeOfSunset"] = loop_dict["timeOfSunset"].isoformat()
-
-        if loop_dict["startDateOfCurrentStorm"] is not None:
-            loop_dict["startDateOfCurrentStorm"] = loop_dict["startDateOfCurrentStorm"].isoformat()
+        loop_dict = loop_data.to_dict()
 
         routing_key = self._key_prefix + "live"
         self._channel.basic_publish(self._exchange, routing_key,

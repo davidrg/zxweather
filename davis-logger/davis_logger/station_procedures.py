@@ -8,7 +8,8 @@ from collections import namedtuple
 import datetime
 
 from davis_logger.record_types.dmp import encode_date, encode_time, split_page, deserialise_dmp
-from davis_logger.record_types.loop import deserialise_loop
+from davis_logger.record_types.loop import deserialise_loop, PACKET_TYPE_LOOP, get_packet_type, PACKET_TYPE_LOOP2, \
+    deserialise_loop2
 from davis_logger.record_types.util import CRC
 from davis_logger.util import Event, to_hex_string
 
@@ -966,6 +967,7 @@ class LpsProcedure(SequentialProcedure):
         super(LpsProcedure, self).__init__(write_callback, log_callback)
 
         self.loopDataReceived = Event()
+        self.loop2DataReceived = Event()
 
         self._call_later = call_later
         self._rain_collector_size = rain_collector_size
@@ -1004,7 +1006,8 @@ class LpsProcedure(SequentialProcedure):
             self._lps_packets_remaining = self._request_size
 
         if self._lps_supported:
-            self._transition(b'LPS 1 ' + str(self._lps_packets_remaining).encode('ascii') + b'\n')
+            # Ask for LOOP and LOOP2 packets
+            self._transition(b'LPS 3 ' + str(self._lps_packets_remaining).encode('ascii') + b'\n')
         else:
             self._transition(b'LOOP ' + str(self._lps_packets_remaining).encode('ascii') + b'\n')
 
@@ -1164,9 +1167,21 @@ class LpsProcedure(SequentialProcedure):
 
                 else:
                     # CRC checks out. Data should be good
-                    loop = deserialise_loop(packet_data, self._rain_collector_size)
 
-                    self.loopDataReceived.fire(loop)
+                    packet_type = get_packet_type(packet_data)
+                    if packet_type == PACKET_TYPE_LOOP or \
+                            not self._lps_supported:
+                        # Its a loop1 packet - either because thats what the
+                        # packet type field says or because the station only
+                        # supports sending loop1 packets.
+                        loop = deserialise_loop(packet_data, self._rain_collector_size)
+                        self.loopDataReceived.fire(loop)
+                    elif packet_type == PACKET_TYPE_LOOP2:
+                        loop2 = deserialise_loop2(packet_data, self._rain_collector_size)
+                        self.loop2DataReceived.fire(loop2)
+                    else:
+                        self._log("WARNING: Unexpected LOOP packet "
+                                  "type {0} - discarding.".format(packet_type))
 
                 if self._lps_packets_remaining <= 0 and not self._canceling:
                     self._state = self._STATE_READY
