@@ -228,6 +228,45 @@ def _float_decode_2dp(value):
     """
     return value / 100.0
 
+
+def _sample_et_encode(value):
+    """
+    Encodes evapotranspiration from a davis weather station sample as a one byte
+    integer.
+
+    >>> _sample_et_encode(5.4102)
+    213
+    >>>
+
+    :param value: Input float
+    :type value: float
+    :return: An integer representing the evapotranspiration
+    :rtype: int
+    """
+
+    # Even though zxweather uses metric here we're encoding it as inches*1000.
+    # This is only because that's how the Davis console/envoy packs ET data into
+    # a single byte. This makes 0.255 inches the maximum value we could expect
+    # to encounter and also the maximum precision we'll ever encounter.
+    return int(round((value / 25.4)*1000, 0))
+
+
+def _sample_et_decode(value):
+    """
+    Decodes evapotranspiration from a davis weather station that was encoded as
+    a one byte integer
+
+    >>> _sample_et_decode(213)
+    5.4102
+    >>>
+
+    :param value: integer value representing evapotranspiration
+    :type value: int
+    :return: Float value
+    :rtype: float
+    """
+    return (value / 1000.0) * 25.4
+
 _INT_8 = "b"
 _U_INT_8 = "B"
 _INT_16 = "h"
@@ -588,13 +627,8 @@ _davis_sample_fields = [
      _U_INT_16_NULL),
     (20, "average_uv_index", _U_INT_8, _float_encode, _float_decode,
      _U_INT_8_NULL),
-
-    # TODO: This is WRONG. Example ET values:
-    #           0.0508, 0.1016, 0.17779999999999999, 0.1016, 0.1016, 0.2032,
-    #           0.127, 0.0508, 0.0508, 0.0254, 0.0762
-    #       ET needs to be encoded as *1000 probably. As it currently is it will
-    #       always be rounding the numbers to zero and doing basically nothing.
-    (21, "evapotranspiration", _U_INT_32, None, None, _U_INT_32_NULL),
+    (21, "evapotranspiration", _U_INT_8, _sample_et_encode, _sample_et_decode,
+        None),  # Evapotranspiration should never be null - is either 0 or some value
     (22, "high_solar_radiation", _U_INT_16, None, None, _U_INT_16_NULL),
     (23, "high_uv_index", _U_INT_8, _float_encode, _float_decode,
      _U_INT_8_NULL),
