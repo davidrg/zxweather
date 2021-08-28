@@ -33,3 +33,4 @@ test.tac
 *_test.tac
 *.rej
 *.cache
+_trial_temp/
