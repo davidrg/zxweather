@@ -2197,6 +2197,7 @@ class TestLpsProcedure(unittest.TestCase):
             rec2 = deserialise_loop(serialise_loop(rec, include_crc=False))
             self._assertLoopEqual(rec, rec2, i)
 
+    @staticmethod
     def _make_loop2_records(count, rain_collector_size):
         """
         Creates the specified number of Loop2 records populated with random data.

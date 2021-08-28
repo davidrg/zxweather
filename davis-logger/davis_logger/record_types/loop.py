@@ -300,7 +300,6 @@ def loop2_fmt():
         ('B', 'Reserved (1 byte)'),  # Filled with 0xFF
         ('H', 'Wind direction'),
 
-        # 0.1mph resolution rather than 1mph resolution as in LOOP1
         ('H', 'Average wind speed, 10m'),
         ('H', 'Average wind speed, 2m'),
         ('H', '10m Wind Gust'),
@@ -696,9 +695,7 @@ def deserialise_loop2(loop2_string, rain_collector_size=0.2):
         outsideTemperature=deserialise_16bit_temp(outside_temperature),
         windSpeed=mph_to_ms(wind_speed),
 
-        # The doc says this is at 0.1mph resolution. It is apparently wrong:
-        # https://www.wxforum.net/index.php?topic=22399.0
-        averageWindSpeed10min=mph_to_ms(average_wind_speed_10m),
+        averageWindSpeed10min=mph_to_ms(average_wind_speed_10m / 10.0),
         windDirection=wind_direction,
         outsideHumidity=undash_8bit(outside_humidity),
         rainRate=rain_rate * rain_collector_size,
@@ -712,7 +709,10 @@ def deserialise_loop2(loop2_string, rain_collector_size=0.2):
         dayET=inch_to_mm(day_et * 1000),
 
         # These are unique to the Loop2 packet
-        averageWindSpeed2min=mph_to_ms(average_wind_speed_2m),
+        averageWindSpeed2min=mph_to_ms(average_wind_speed_2m / 10.0),
+
+        # The doc says this is at 0.1mph resolution. It is apparently wrong:
+        #       https://www.wxforum.net/index.php?topic=22399.0
         windGust10m=mph_to_ms(wind_gust_10m),
         windGust10mDirection=wind_gust_direction_10m,
         dewPoint=_255_dashed_16bit_temp(dew_point),
@@ -806,10 +806,11 @@ def serialise_loop2(loop2, rain_collector_size=0.2, include_crc=True):
         0xFF,  # 1-byte reserved
         loop2.windDirection,
 
+        int(round(ms_to_mph(loop2.averageWindSpeed10min) * 10.0, 0)),
+        int(round(ms_to_mph(loop2.averageWindSpeed2min) * 10.0, 0)),
+
         # The doc says these are at 0.1mph resolution. It is apparently wrong:
-        # https://www.wxforum.net/index.php?topic=22399.0
-        int(round(ms_to_mph(loop2.averageWindSpeed10min), 0)),
-        int(round(ms_to_mph(loop2.averageWindSpeed2min), 0)),
+        #       https://www.wxforum.net/index.php?topic=22399.0
         int(round(ms_to_mph(loop2.windGust10m), 0)),
         loop2.windGust10mDirection,
         0x7FFF,  # 2-byte reserved
@@ -888,6 +889,7 @@ class LiveData(object):
         self.ready = False
         self._loop1_received = False
         self._loop2_received = loop1_only
+        self._loop1_only = loop1_only
 
         # Shared
         self.barTrend = None
@@ -1033,7 +1035,6 @@ class LiveData(object):
         self.insideHumidity = loop.insideHumidity
         self.outsideTemperature = loop.outsideTemperature
         self.windSpeed = loop.windSpeed
-        self.averageWindSpeed10min = loop.averageWindSpeed10min
         self.windDirection = loop.windDirection
         self.outsideHumidity = loop.outsideHumidity
         self.rainRate = loop.rainRate
@@ -1056,6 +1057,13 @@ class LiveData(object):
         self._loop1_received = True
         self.lastUpdateType = 1
         self._update_shared(loop)
+
+        if self._loop1_only:
+            # This field is available at a higher resolution in the LOOP2
+            # packet. So the field isn't alternating between high and low
+            # resolution every 2 seconds we'll just ignore the LOOP1 value
+            # unless LOOP2 is unavailable.
+            self.averageWindSpeed10min = loop.averageWindSpeed10min
 
         # Loop1 Only
         self.nextRecord = loop.nextRecord
@@ -1090,6 +1098,11 @@ class LiveData(object):
         self._loop2_received = True
         self.lastUpdateType = 2
         self._update_shared(loop2)
+
+        # While this field is available in the LOOP1 packet its at lower
+        # resolution (1mph vs 0.1mph). So when both LOOP1 and LOOP2 are
+        # available the value in the LOOP1 packet will be ignored.
+        self.averageWindSpeed10min = loop2.averageWindSpeed10min
 
         # Loop2 Only
         self.averageWindSpeed2min = loop2.averageWindSpeed2min
