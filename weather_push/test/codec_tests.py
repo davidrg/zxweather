@@ -42,19 +42,28 @@ DAVIS_LIVE = {
     "temperature": 9.3,  # 4  C
     "humidity": 83,  # 5  C
     "pressure": 913.4,  # 6  C
-    "average_wind_speed": 34.1,  # 7  C
-    "gust_wind_speed": 98.5,  # 8  C
-    "wind_direction": 256,  # 9  C
-    "bar_trend": 6,  # 10
-    "rain_rate": 123,  # 11
-    "storm_rain": 985,  # 12
-    "current_storm_start_date": 7981,  # 13    2015-09-13
-    "transmitter_battery": 2,  # 14
-    "console_battery_voltage": 5.9,  # 15
-    "forecast_icon": 7,  # 16
-    "forecast_rule_id": 10,  # 17
-    "uv_index": 9,  # 18
-    "solar_radiation": 1043,  # 19
+    "msl_pressure": 800.1, # 7 C
+    "average_wind_speed": 34.1,  # 8  C
+    "gust_wind_speed": 98.5,  # 9  C
+    "wind_direction": 256,  # 10  C
+    # 11 - reserved for future timestamp field
+    "bar_trend": 6,  # 12
+    "rain_rate": 123,  # 13
+    "storm_rain": 985,  # 14
+    "current_storm_start_date": 7981,  # 15    2015-09-13
+    "transmitter_battery": 2,  # 16
+    "console_battery_voltage": 5.9,  # 17
+    "forecast_icon": 7,  # 18
+    "forecast_rule_id": 10,  # 19
+    "uv_index": 9,  # 20
+    "solar_radiation": 1043,  # 21
+    "average_wind_speed_2m": 5.3,  # 22
+    "average_wind_speed_10m": 3.1,  # 23
+    "gust_wind_speed_10m": 10.9,  # 24
+    "gust_wind_direction_10m": 213,  # 25
+    "heat_index": 10.8,  # 26
+    "thsw_index": 11.2,  # 27
+    "altimeter_setting": 914,  # 28
     "extra_fields": {  # 31    C (all fields)
         "leaf_wetness_1": 12,
         "leaf_wetness_2": 8,
@@ -84,6 +93,7 @@ DAVIS_SAMPLE = {
     "temperature": 9.3,  # C
     "humidity": 83,  # C
     "pressure": 913.4,  # C
+    "msl_pressure": 800.1,  # C
     "average_wind_speed": 34.1,  # C
     "gust_wind_speed": 98.5,  # C
     "wind_direction": 256,  # C
@@ -1611,7 +1621,7 @@ class FieldIDListTests(unittest.TestCase):
 
         # These live fields aren't in a sample so will always be included when encoding against
         # a sample.
-        expected_result = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+        expected_result = [12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28]
         expected_subfields_result = {
             "extra_fields": []
         }
@@ -1629,7 +1639,7 @@ class FieldIDListTests(unittest.TestCase):
 
         # These live fields aren't in a sample so will always be included when encoding against
         # a sample.
-        expected_result = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 31]
+        expected_result = [12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 31]
         expected_subfields_result = {
             "extra_fields": [1]
         }
@@ -1648,7 +1658,7 @@ class FieldIDListTests(unittest.TestCase):
 
         # These live fields aren't in a sample so will always be included when encoding against
         # a sample.
-        expected_result = [4, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 31]
+        expected_result = [4, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 31]
         expected_subfields_result = {
             "extra_fields": [1]
         }
@@ -1872,6 +1882,13 @@ class LiveDataFieldOptionsTests(unittest.TestCase):
                 self._live_field_id_for_name("console_battery_voltage"),
                 self._live_field_id_for_name("forecast_icon"),
                 self._live_field_id_for_name("uv_index"),
+                self._live_field_id_for_name("average_wind_speed_2m"),
+                self._live_field_id_for_name("average_wind_speed_10m"),
+                self._live_field_id_for_name("gust_wind_speed_10m"),
+                self._live_field_id_for_name("gust_wind_direction_10m"),
+                self._live_field_id_for_name("heat_index"),
+                self._live_field_id_for_name("thsw_index"),
+                self._live_field_id_for_name("altimeter_setting"),
 
                 # And these because their IDs don't match (one day the encoder should be made smarter
                 self._live_field_id_for_name("forecast_rule_id"),
@@ -1880,10 +1897,10 @@ class LiveDataFieldOptionsTests(unittest.TestCase):
             "Only temperature and sample_diff_timestamp should be sent in sample diff option")
         self.assertEqual(
             sample_diff_option[2],
-            21,
-            "Encoded size should be 21 (2 for temperature, 4 for sample diff timestamp, 15 for live-unique fields)")
-        self.assertEqual(sample_diff_option[3], all_fields_size-21,
-                         "Savings should be all fields minus 21 bytes for sample diff option")
+            35,
+            "Encoded size should be 35 (2 for temperature, 4 for sample diff timestamp, 22 for live-unique fields)")
+        self.assertEqual(sample_diff_option[3], all_fields_size-35,
+                         "Savings should be all fields minus 35 bytes for sample diff option")
         self.assertDictEqual(sample_diff_option[4], {'extra_fields': []},
                              "Sample diff option should send no subfields as none have changed")
 
@@ -1951,6 +1968,13 @@ class LiveDataFieldOptionsTests(unittest.TestCase):
                 self._live_field_id_for_name("console_battery_voltage"),
                 self._live_field_id_for_name("forecast_icon"),
                 self._live_field_id_for_name("uv_index"),
+                self._live_field_id_for_name("average_wind_speed_2m"),
+                self._live_field_id_for_name("average_wind_speed_10m"),
+                self._live_field_id_for_name("gust_wind_speed_10m"),
+                self._live_field_id_for_name("gust_wind_direction_10m"),
+                self._live_field_id_for_name("heat_index"),
+                self._live_field_id_for_name("thsw_index"),
+                self._live_field_id_for_name("altimeter_setting"),
 
                 # And these because their IDs don't match (one day the encoder should be made smarter
                 self._live_field_id_for_name("forecast_rule_id"),
@@ -1960,11 +1984,11 @@ class LiveDataFieldOptionsTests(unittest.TestCase):
         )
         self.assertEqual(
             sample_diff_option[2],
-            24,
-            "Difference should be 24 bytes (4 bytes for subfield header, 1 byte for soil moisture subfield, "
-            "4 bytes for sample timestamp, 15 bytes for live-unique fields)"
+            38,
+            "Difference should be 38 bytes (4 bytes for subfield header, 1 byte for soil moisture subfield, "
+            "4 bytes for sample timestamp, 29 bytes for live-unique fields)"
         )
-        self.assertEqual(sample_diff_option[3], all_fields_size-24,
+        self.assertEqual(sample_diff_option[3], all_fields_size-38,
                          "Savings should be all fields minus 24 bytes for live diff option")
         self.assertDictEqual(sample_diff_option[4], {"extra_fields": [5]},  # 5 = soil_moisture_1
                              "Only soil_moisture_1 subfield should be sent")
@@ -1996,6 +2020,14 @@ class LiveDataFieldOptionsTests(unittest.TestCase):
                 self._live_field_id_for_name("console_battery_voltage"),
                 self._live_field_id_for_name("forecast_icon"),
                 self._live_field_id_for_name("uv_index"),
+
+                self._live_field_id_for_name("average_wind_speed_2m"),
+                self._live_field_id_for_name("average_wind_speed_10m"),
+                self._live_field_id_for_name("gust_wind_speed_10m"),
+                self._live_field_id_for_name("gust_wind_direction_10m"),
+                self._live_field_id_for_name("heat_index"),
+                self._live_field_id_for_name("thsw_index"),
+                self._live_field_id_for_name("altimeter_setting"),
 
                 # And these because their IDs don't match (one day the encoder should be made smarter
                 self._live_field_id_for_name("forecast_rule_id"),
@@ -2144,6 +2176,16 @@ class LiveDataEncodeTests(unittest.TestCase):
         live["forecast_rule_id"] = 1
         live["solar_radiation"] = 1
 
+        # Plus these too!
+        live["average_wind_speed_2m"] = 1
+        live["average_wind_speed_10m"] = 1
+        live["gust_wind_speed_10m"] = 1
+        live["gust_wind_direction_10m"] = 1
+        live["heat_index"] = 1
+        live["thsw_index"] = 1
+        live["altimeter_setting"] = 1
+
+        # TODO: still necessary?
         # Then we'll change 3 bytes in the previous live record making sample-diff cheaper
         prev_live["temperature"] = 2
         prev_live["humidity"] = 2
@@ -2160,7 +2202,7 @@ class LiveDataEncodeTests(unittest.TestCase):
         all_fields_size = calculate_encoded_size(all_fields, all_subfields, DAVIS_HW_TYPE, True)
 
         self.assertEqual(encoded,
-                         struct.pack("!LbHHHBHBBBH",
+                         struct.pack("!LbHHHBHBBBHHHHHhhH",
                                      timestamp_encode(live["sample_diff_timestamp"]),
                                      live["bar_trend"],
                                      _float_encode(live["rain_rate"]),
@@ -2171,7 +2213,14 @@ class LiveDataEncodeTests(unittest.TestCase):
                                      live["forecast_icon"],
                                      live["forecast_rule_id"],
                                      _float_encode(live["uv_index"]),
-                                     live["solar_radiation"]
+                                     live["solar_radiation"],
+                                     _float_encode(live["average_wind_speed_2m"]),
+                                     _float_encode(live["average_wind_speed_10m"]),
+                                     _float_encode(live["gust_wind_speed_10m"]),
+                                     live["gust_wind_direction_10m"],
+                                     _float_encode_2dp(live["heat_index"]),
+                                     _float_encode_2dp(live["thsw_index"]),
+                                     _float_encode(live["altimeter_setting"]),
                                      ),
                          "encoded value should consist of only live unique fields and sample TS")
         self.assertListEqual(
@@ -2188,12 +2237,22 @@ class LiveDataEncodeTests(unittest.TestCase):
                 self._live_field_id_for_name("forecast_rule_id"),
                 self._live_field_id_for_name("uv_index"),
                 self._live_field_id_for_name("solar_radiation"),
+                self._live_field_id_for_name("average_wind_speed_2m"),
+                self._live_field_id_for_name("average_wind_speed_10m"),
+                self._live_field_id_for_name("gust_wind_speed_10m"),
+                self._live_field_id_for_name("gust_wind_direction_10m"),
+                self._live_field_id_for_name("heat_index"),
+                self._live_field_id_for_name("thsw_index"),
+                self._live_field_id_for_name("altimeter_setting"),
             ]),
             "Field IDs list should have only live-unique fields and sample-ts")
         self.assertEqual(encode_results[0], all_fields_size,
                          "Uncompressed size is all fields size")
-        self.assertEqual(encode_results[1], all_fields_size-19,
-                         "Saving is the size is all fields minus 19")
+
+        # 33 is the size of the live unique fields that can't be encoded aginst
+        # the sample (the list of fields we're struct.packing above)
+        self.assertEqual(encode_results[1], all_fields_size-33,
+                         "Saving is the size is all fields minus 33")
         self.assertEqual(encode_results[2], "sample-diff",
                          "Sample-diff is the smallest option in this very contrived scenario")
 
@@ -2208,18 +2267,21 @@ class LiveDataEncodeTests(unittest.TestCase):
         all_subfields = all_live_field_ids[DAVIS_HW_TYPE.upper()][1]
         all_fields_size = calculate_encoded_size(all_fields, all_subfields, DAVIS_HW_TYPE, True)
 
+        print(repr(all_fields))
+
         all_live_fields = struct.pack(
-            "!BhhBHHHHbHHHBHBBBHLbbhhbbbbhhhhhhhbb",
-            # ^^^^^^^^^^^^^^^^^^^^ ^ ^   ^   ^  ^
-            # ||THP||DBRS||C||US|| | SM  |   |  |
-            # |IT |GW   |TB|FR  || LT    |   |  EH
-            # IH  AW    SD FI   |LW      ST  ET
-            #                   Subfields Header
+            "!BhhBHHHHHbHHHBHBBBHHHHHhhHLbbhhbbbbhhhhhhhbb",
+            # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ ^ ^   ^   ^  ^
+            # ||THPP||DBRS||C||USAAGGHTA|| | SM  |   |  |
+            # |IT   |GW   |TB|FR WWWWIHL|| LT    |   |  EH
+            # IH    AW    SD FI  2TTT ST|LW      ST  ET
+            #                       D WI\Subfields Header
             live["indoor_humidity"],
             _float_encode_2dp(live["indoor_temperature"]),
             _float_encode_2dp(live["temperature"]),
             live["humidity"],
             _float_encode(live["pressure"]),
+            _float_encode(live["msl_pressure"]),
             _float_encode(live["average_wind_speed"]),
             _float_encode(live["gust_wind_speed"]),
             live["wind_direction"],
@@ -2233,6 +2295,13 @@ class LiveDataEncodeTests(unittest.TestCase):
             live["forecast_rule_id"],
             _float_encode(live["uv_index"]),
             live["solar_radiation"],
+            _float_encode(live["average_wind_speed_2m"]),
+            _float_encode(live["average_wind_speed_10m"]),
+            _float_encode(live["gust_wind_speed_10m"]),
+            live["gust_wind_direction_10m"],
+            _float_encode_2dp(live["heat_index"]),
+            _float_encode_2dp(live["thsw_index"]),
+            _float_encode(live["altimeter_setting"]),
             set_field_ids(range(1, 18)),
             live["extra_fields"]["leaf_wetness_1"],
             live["extra_fields"]["leaf_wetness_2"],
@@ -2268,6 +2337,7 @@ class LiveDataEncodeTests(unittest.TestCase):
                 self._live_field_id_for_name("temperature"),
                 self._live_field_id_for_name("humidity"),
                 self._live_field_id_for_name("pressure"),
+                self._live_field_id_for_name("msl_pressure"),
                 self._live_field_id_for_name("average_wind_speed"),
                 self._live_field_id_for_name("gust_wind_speed"),
                 self._live_field_id_for_name("wind_direction"),
@@ -2283,6 +2353,13 @@ class LiveDataEncodeTests(unittest.TestCase):
                 self._live_field_id_for_name("forecast_rule_id"),
                 self._live_field_id_for_name("uv_index"),
                 self._live_field_id_for_name("solar_radiation"),
+                self._live_field_id_for_name("average_wind_speed_2m"),
+                self._live_field_id_for_name("average_wind_speed_10m"),
+                self._live_field_id_for_name("gust_wind_speed_10m"),
+                self._live_field_id_for_name("gust_wind_direction_10m"),
+                self._live_field_id_for_name("heat_index"),
+                self._live_field_id_for_name("thsw_index"),
+                self._live_field_id_for_name("altimeter_setting"),
                 self._live_field_id_for_name("extra_fields"),
             ]),
             "Field IDs should have everything but live-sequence and sample-ts")
@@ -2663,17 +2740,18 @@ class SampleEncodeTests(unittest.TestCase):
         all_fields_size = calculate_encoded_size(all_fields, all_subfields, DAVIS_HW_TYPE, False)
 
         expected_result = struct.pack(
-            "!BhhBHHHHHHHhhhHBHBLHBBLbbhhbbbbhhhhhhhbb",
-            # ^^^^^^^^^^^^^^^^^^^^^^^^ ^ ^   ^   ^  ^
-            # ||T||||DR|||L|||GU|||F|LW| SM  ST  ET EH
-            # |IT|||GW ||HT||WSC||HU|  LT
-            # IH HPAW  |RD |SR  |HSR|
-            #          RT  HRR  EVA Subfield HDR
+            "!BhhBHHHHHHHHhhhHBHBLHBBLbbhhbbbbhhhhhhhbb",
+            # ^^^^^^^^^^^^^^^^^^^^^^^^^ ^ ^   ^   ^  ^
+            # ||T||M||DR|||L|||GU|||F|LW| SM  ST  ET EH
+            # |IT||S|GW ||HT||WSC||HU|  LT
+            # IH HPLAW  |RD |SR  |HSR|
+            #      P   RT  HRR  EVA Subfield HDR
             sample["indoor_humidity"],
             _float_encode_2dp(sample["indoor_temperature"]),
             _float_encode_2dp(sample["temperature"]),
             sample["humidity"],
             _float_encode(sample["pressure"]),
+            _float_encode(sample["msl_pressure"]),
             _float_encode(sample["average_wind_speed"]),
             _float_encode(sample["gust_wind_speed"]),
             sample["wind_direction"],

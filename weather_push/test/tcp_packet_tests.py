@@ -180,6 +180,7 @@ class WeatherDataPacketTests(unittest.TestCase):
         "temperature": 9.3,  # 4  C
         "humidity": 83,  # 5  C
         "pressure": 913.4,  # 6  C
+        "msl_pressure": 900,  # C
         "average_wind_speed": 34.1,  # 7  C
         "gust_wind_speed": 98.5,  # 8  C
         "wind_direction": 256,  # 9  C
@@ -193,6 +194,7 @@ class WeatherDataPacketTests(unittest.TestCase):
         "temperature": 9.3,  # C
         "humidity": 83,  # C
         "pressure": 913.4,  # C
+        "msl_pressure": 900,  # C
         "average_wind_speed": 34.1,  # C
         "gust_wind_speed": 98.5,  # C
         "wind_direction": 256,  # C
@@ -207,6 +209,7 @@ class WeatherDataPacketTests(unittest.TestCase):
         "temperature": 9.3,  # C
         "humidity": 83,  # C
         "pressure": 913.4,  # C
+        "msl_pressure": 900,  # C
         "average_wind_speed": 34.1,  # C
         "gust_wind_speed": 98.5,  # C
         "wind_direction": 256,  # C
@@ -228,19 +231,28 @@ class WeatherDataPacketTests(unittest.TestCase):
         "temperature": 9.3,  # 4  C
         "humidity": 83,  # 5  C
         "pressure": 913.4,  # 6  C
-        "average_wind_speed": 34.1,  # 7  C
-        "gust_wind_speed": 98.5,  # 8  C
-        "wind_direction": 256,  # 9  C
-        "bar_trend": 6,  # 10
-        "rain_rate": 123,  # 11
-        "storm_rain": 985,  # 12
-        "current_storm_start_date": date(year=2015, month=9, day=13),  # 13    2015-09-13
-        "transmitter_battery": 2,  # 14
-        "console_battery_voltage": 5.9,  # 15
-        "forecast_icon": 7,  # 16
-        "forecast_rule_id": 10,  # 17
-        "uv_index": 9,  # 18
-        "solar_radiation": 1043,  # 19
+        "msl_pressure": 900,  # 7 C
+        "average_wind_speed": 34.1,  # 8  C
+        "gust_wind_speed": 98.5,  # 9  C
+        "wind_direction": 256,  # 10  C
+        # 11 - reserved for future timestamp field
+        "bar_trend": 6,  # 12
+        "rain_rate": 123,  # 13
+        "storm_rain": 985,  # 14
+        "current_storm_start_date": date(year=2015, month=9, day=13),  # 15    2015-09-13
+        "transmitter_battery": 2,  # 16
+        "console_battery_voltage": 5.9,  # 17
+        "forecast_icon": 7,  # 18
+        "forecast_rule_id": 10,  # 19
+        "uv_index": 9,  # 20
+        "solar_radiation": 1043,  # 21
+        "average_wind_speed_2m": 5.3,  # 22
+        "average_wind_speed_10m": 3.1,  # 23
+        "gust_wind_speed_10m": 10.9,  # 24
+        "gust_wind_direction_10m": 213,  # 25
+        "heat_index": 10.8,  # 26
+        "thsw_index": 11.2,  # 27
+        "altimeter_setting": 914,  # 28
         "extra_fields": {  # 31    C (all fields)
             "leaf_wetness_1": 12,  # 1
             "leaf_wetness_2": 8,  # 2
@@ -270,6 +282,7 @@ class WeatherDataPacketTests(unittest.TestCase):
         "temperature": 9.3,  # C
         "humidity": 83,  # C
         "pressure": 913.4,  # C
+        "msl_pressure": 900,  # C
         "average_wind_speed": 34.1,  # C
         "gust_wind_speed": 98.5,  # C
         "wind_direction": 256,  # C

@@ -290,11 +290,11 @@ _U_INT_32_NULL = 4294967295
 _davis_extra_fields = [
     # Num, name, type, encode conversion function, decode conversion function
     (0, None, None, None, None, None),
-    (1, "leaf_wetness_1", _INT_8, None, None, _INT_8_NULL), # values 0-15 in steps of 1
+    (1, "leaf_wetness_1", _INT_8, None, None, _INT_8_NULL),  # values 0-15 in steps of 1
     (2, "leaf_wetness_2", _INT_8, None, None, _INT_8_NULL),
     (3, "leaf_temperature_1", _INT_16, _float_encode, _float_decode, _INT_16_NULL),
     (4, "leaf_temperature_2", _INT_16, _float_encode, _float_decode, _INT_16_NULL),
-    (5, "soil_moisture_1", _U_INT_8, None, None, _U_INT_8_NULL), # values 0-200 in steps of 1
+    (5, "soil_moisture_1", _U_INT_8, None, None, _U_INT_8_NULL),  # values 0-200 in steps of 1
     (6, "soil_moisture_2", _U_INT_8, None, None, _U_INT_8_NULL),
     (7, "soil_moisture_3", _U_INT_8, None, None, _U_INT_8_NULL),
     (8, "soil_moisture_4", _U_INT_8, None, None, _U_INT_8_NULL),
@@ -305,7 +305,7 @@ _davis_extra_fields = [
     (13, "extra_temperature_1", _INT_16, _float_encode, _float_decode, _INT_16_NULL),
     (14, "extra_temperature_2", _INT_16, _float_encode, _float_decode, _INT_16_NULL),
     (15, "extra_temperature_3", _INT_16, _float_encode, _float_decode, _INT_16_NULL),
-    (16, "extra_humidity_1", _INT_8, None, None, _INT_8_NULL), # Values 0-100 in steps of 1
+    (16, "extra_humidity_1", _INT_8, None, None, _INT_8_NULL),  # Values 0-100 in steps of 1
     (17, "extra_humidity_2", _INT_8, None, None, _INT_8_NULL),
     (18, None, None, None, None, None),
     (19, None, None, None, None, None),
@@ -344,13 +344,13 @@ _generic_live_fields = [
      _INT_16_NULL),
     (5, "humidity", _U_INT_8, None, None, _U_INT_8_NULL),
     (6, "pressure", _U_INT_16, _float_encode, _float_decode, _U_INT_16_NULL),
-    (7, "average_wind_speed", _U_INT_16, _float_encode, _float_decode,
+    (7, "msl_pressure", _U_INT_16, _float_encode, _float_decode, _U_INT_16_NULL),
+    (8, "average_wind_speed", _U_INT_16, _float_encode, _float_decode,
      _U_INT_16_NULL),
-    (8, "gust_wind_speed", _U_INT_16, _float_encode, _float_decode,
+    (9, "gust_wind_speed", _U_INT_16, _float_encode, _float_decode,
      _U_INT_16_NULL),
-    (9, "wind_direction", _U_INT_16, None, None, _U_INT_16_NULL),
-    (10, None, None, None, None, None),  # hardware: davis
-    (11, None, None, None, None, None),  # hardware: davis
+    (10, "wind_direction", _U_INT_16, None, None, _U_INT_16_NULL),
+    (11, None, None, None, None, None),  # RESERVED for future timestamp field
     (12, None, None, None, None, None),  # hardware: davis
     (13, None, None, None, None, None),  # hardware: davis
     (14, None, None, None, None, None),  # hardware: davis
@@ -359,18 +359,18 @@ _generic_live_fields = [
     (17, None, None, None, None, None),  # hardware: davis
     (18, None, None, None, None, None),  # hardware: davis
     (19, None, None, None, None, None),  # hardware: davis
-    (20, None, None, None, None, None),
-    (21, None, None, None, None, None),
-    (22, None, None, None, None, None),
-    (23, None, None, None, None, None),
-    (24, None, None, None, None, None),
-    (25, None, None, None, None, None),
-    (26, None, None, None, None, None),
-    (27, None, None, None, None, None),
-    (28, None, None, None, None, None),
+    (20, None, None, None, None, None),  # hardware: davis
+    (21, None, None, None, None, None),  # hardware: davis
+    (22, None, None, None, None, None),  # hardware: davis
+    (23, None, None, None, None, None),  # hardware: davis
+    (24, None, None, None, None, None),  # hardware: davis
+    (25, None, None, None, None, None),  # hardware: davis
+    (26, None, None, None, None, None),  # hardware: davis
+    (27, None, None, None, None, None),  # hardware: davis
+    (28, None, None, None, None, None),  # hardware: davis
     (29, None, None, None, None, None),
     (30, None, None, None, None, None),
-    (31, None, None, None, None, None),
+    (31, None, None, None, None, None),  # hardware: davis (subfield)
 ]
 
 # TODO: hide away the subfield header size stuff somewhere to make it easier to
@@ -398,35 +398,72 @@ _davis_live_fields = [                                      # Update Frequency
     _generic_live_fields[3],  # indoor temperature
     _generic_live_fields[4],  # temperature                   10 seconds
     _generic_live_fields[5],  # humidity                      50 seconds
-    _generic_live_fields[6],  # pressure
-    _generic_live_fields[7],  # average wind speed            2.5 seconds
-    _generic_live_fields[8],  # gust wind speed               Not used by Davis stations.
-    _generic_live_fields[9],  # wind direction                2.5 seconds
-    (10, "bar_trend", _INT_8, None, None, _INT_8_NULL),
-    (11, "rain_rate", _U_INT_16, _float_encode, _float_decode, _U_INT_16_NULL),
-    (12, "storm_rain", _U_INT_16, _float_encode, _float_decode, _U_INT_16_NULL),        # Every 10 seconds?
-    (13, "current_storm_start_date", _U_INT_16, _date_encode, _date_decode,
-     _U_INT_16_NULL),
-    (14, "transmitter_battery", _U_INT_8, None, None, _U_INT_8_NULL),
-    (15, "console_battery_voltage", _U_INT_16, _float_encode, _float_decode,
-     _U_INT_16_NULL),
-    (16, "forecast_icon", _U_INT_8, None, None, _U_INT_8_NULL),
-    (17, "forecast_rule_id", _U_INT_8, None, None, _U_INT_8_NULL),
-    (18, "uv_index", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),            # Every 50 seconds
-    (19, "solar_radiation", _U_INT_16, None, None, _U_INT_16_NULL),                     # Every 50 seconds
-    (20, None, None, None, None, None),
-    (21, None, None, None, None, None),
-    (22, None, None, None, None, None),
-    (23, None, None, None, None, None),
-    (24, None, None, None, None, None),
-    (25, None, None, None, None, None),
-    (26, None, None, None, None, None),
-    (27, None, None, None, None, None),
-    (28, None, None, None, None, None),
+    _generic_live_fields[6],  # absolute pressure. Comes from loop2 packets only.
+    _generic_live_fields[7],  # mean sea level pressure
+    _generic_live_fields[8],  # average wind speed            2.5 seconds
+    _generic_live_fields[9],  # gust wind speed               Not used by Davis stations.
+    _generic_live_fields[10],  # wind direction               2.5 seconds
+    _generic_live_fields[11],  # reserved for future timestamp field
+    (12, "bar_trend", _INT_8, None, None, _INT_8_NULL),
+    (13, "rain_rate", _U_INT_16, _float_encode, _float_decode, _U_INT_16_NULL),
+    (14, "storm_rain", _U_INT_16, _float_encode, _float_decode, _U_INT_16_NULL),        # Every 10 seconds?
+    (15, "current_storm_start_date", _U_INT_16, _date_encode, _date_decode,
+        _U_INT_16_NULL),
+    (16, "transmitter_battery", _U_INT_8, None, None, _U_INT_8_NULL),
+    (17, "console_battery_voltage", _U_INT_16, _float_encode, _float_decode,
+        _U_INT_16_NULL),
+    (18, "forecast_icon", _U_INT_8, None, None, _U_INT_8_NULL),
+    (19, "forecast_rule_id", _U_INT_8, None, None, _U_INT_8_NULL),
+    (20, "uv_index", _U_INT_8, _float_encode, _float_decode, _U_INT_8_NULL),            # Every 50 seconds
+    (21, "solar_radiation", _U_INT_16, None, None, _U_INT_16_NULL),                     # Every 50 seconds
+    (22, "average_wind_speed_2m", _U_INT_16, _float_encode, _float_decode,      # Loop2
+        _U_INT_16_NULL),
+    (23, "average_wind_speed_10m", _U_INT_16, _float_encode, _float_decode,
+        _U_INT_16_NULL),
+    (24, "gust_wind_speed_10m", _U_INT_16, _float_encode, _float_decode,        # Loop2
+        _U_INT_16_NULL),
+    (25, "gust_wind_direction_10m", _U_INT_16, None, None, _U_INT_16_NULL),     # Loop2
+    (26, "heat_index", _INT_16, _float_encode_2dp, _float_decode_2dp,           # Loop2
+        _INT_16_NULL),
+    (27, "thsw_index", _INT_16, _float_encode_2dp, _float_decode_2dp,           # Loop2
+        _INT_16_NULL),
+    (28, "altimeter_setting", _U_INT_16, _float_encode, _float_decode,          # Loop2
+        _U_INT_16_NULL),
     (29, None, None, None, None, None),
     (30, None, None, None, None, None),
     (31, "extra_fields", _SUB_FIELDS, _davis_extra_fields, None, None),
 ]
+
+# Davis live fields not currently transmitted:
+#   Loop1:  Next Record     Month Rain      Year Rain       Month ET
+#           Year ET         Inside Alarms   Rain Alarms     Outside Alarms
+#           Ext. TH Alarms  L&S Alarms      Sunrise Time    Sunset Time
+#   Loop2:  Dew Point       Wind Chill      Last 15m Rain   Last 1h Rain
+#           Last 24h Rain   Barometer reduction method      User barometer offset
+#           Barometer calibration number    Barometer sensor raw reading
+#
+# Of these, there is little point in transmitting:
+#   * Dew Point, Wind Chill - easily calculated
+#   * Barometer reduction method - this is a constant value. 2 for a VP2.
+#   * User barometer offset - this is a constant value set by the user
+#   * Barometric calibration number - another constant number
+#   * Next record - only really useful internally to the data logger to know
+#                   when new data is available
+#
+# The 7 Rain and evapotranspiration totals might be useful to transmit some day
+#   as they're a bit of a pain to keep up-to-date in a live data setting.
+#   Problem is any component relying on them would then be davis-specific and
+#   additionally the values are maintained by the console so may not always
+#   agree with the database.
+#
+# The alarms could be transmitted if there was a scenario where the data was
+#   useful for some purpose. But probably it would be best if zxweather had
+#   its own alarms functionality rather than relying on the console.
+#
+# There is currently space for:
+#       2 additional fields in the base live data record
+#      14 additional fields in the extra_fields subfield
+
 
 _live_fields = {
     "GENERIC": _generic_live_fields,
@@ -437,10 +474,11 @@ _live_fields = {
 # List of all field IDs for each station type. This does not include the diff
 # id fields.
 all_live_field_ids = {
-    "GENERIC": (range(2, 10), None),
-    "FOWH1080": (range(2, 10), None),
+    "GENERIC": (range(2, 11), None),
+    "FOWH1080": (range(2, 11), None),
     "DAVIS": (
-        range(2, 20) + [31],
+        # Skip field 11 - its not currently used.
+        range(2, 11) + range(12, 29) + [31],
         {
             "extra_fields": range(1, 18)
         }
@@ -456,11 +494,11 @@ _generic_sample_fields = [
     _generic_live_fields[4],  # temperature
     _generic_live_fields[5],  # humidity
     _generic_live_fields[6],  # pressure
-    _generic_live_fields[7],  # average wind speed
-    _generic_live_fields[8],  # gust wind speed
-    _generic_live_fields[9],  # wind direction
-    (10, "rainfall", _U_INT_16, _float_encode, _float_decode, _U_INT_16_NULL),
-    (11, None, None, None, None, None),  # hardware: davis, wh1080
+    _generic_live_fields[7],  # mean sea level pressure
+    _generic_live_fields[8],  # average wind speed
+    _generic_live_fields[9],  # gust wind speed
+    _generic_live_fields[10],  # wind direction
+    (11, "rainfall", _U_INT_16, _float_encode, _float_decode, _U_INT_16_NULL),
     (12, None, None, None, None, None),  # hardware: davis, wh1080
     (13, None, None, None, None, None),  # hardware: davis, wh1080
     (14, None, None, None, None, None),  # hardware: davis, wh1080
@@ -492,18 +530,18 @@ _wh1080_sample_fields = [
     _generic_sample_fields[4],  # temperature
     _generic_sample_fields[5],  # humidity
     _generic_sample_fields[6],  # pressure
-    _generic_sample_fields[7],  # average wind speed
-    _generic_sample_fields[8],  # gust wind speed
-    _generic_sample_fields[9],  # wind direction
-    _generic_sample_fields[10],  # rainfall
-    (11, "sample_interval", _U_INT_8, None, None, _U_INT_8_NULL),  # minutes
-    (12, "record_number", _U_INT_16, None, None, _U_INT_16_NULL),
-    (13, "last_in_batch", _BOOL, None, None, None),
-    (14, "invalid_data", _BOOL, None, None, None),
-    (15, "wh1080_wind_direction", "3s", None, None, '\xFF\xFF\xFF'),
-    (16, "total_rain", _U_INT_32, _float_encode, _float_decode, _U_INT_32_NULL),
-    (17, "rain_overflow", _BOOL, None, None, None),
-    (18, None, None, None, None, None),
+    _generic_sample_fields[7],  # mean sea level pressure
+    _generic_sample_fields[8],  # average wind speed
+    _generic_sample_fields[9],  # gust wind speed
+    _generic_sample_fields[10],  # wind direction
+    _generic_sample_fields[11],  # rainfall
+    (12, "sample_interval", _U_INT_8, None, None, _U_INT_8_NULL),  # minutes
+    (13, "record_number", _U_INT_16, None, None, _U_INT_16_NULL),
+    (14, "last_in_batch", _BOOL, None, None, None),
+    (15, "invalid_data", _BOOL, None, None, None),
+    (16, "wh1080_wind_direction", "3s", None, None, '\xFF\xFF\xFF'),
+    (17, "total_rain", _U_INT_32, _float_encode, _float_decode, _U_INT_32_NULL),
+    (18, "rain_overflow", _BOOL, None, None, None),
     (19, None, None, None, None, None),
     (20, None, None, None, None, None),
     (21, None, None, None, None, None),
@@ -531,30 +569,36 @@ _davis_sample_fields = [
     _generic_sample_fields[4],  # temperature
     _generic_sample_fields[5],  # humidity
     _generic_sample_fields[6],  # pressure
-    _generic_sample_fields[7],  # average wind speed
-    _generic_sample_fields[8],  # gust wind speed
-    _generic_sample_fields[9],  # wind direction
-    _generic_sample_fields[10],  # rainfall
-    (11, "record_time", _U_INT_16, None, None, None),
-    (12, "record_date", _U_INT_16, None, None, None),
-    (13, "high_temperature", _INT_16, _float_encode_2dp, _float_decode_2dp,
+    _generic_sample_fields[7],  # mean sea level pressure
+    _generic_sample_fields[8],  # average wind speed
+    _generic_sample_fields[9],  # gust wind speed
+    _generic_sample_fields[10],  # wind direction
+    _generic_sample_fields[11],  # rainfall
+    (12, "record_time", _U_INT_16, None, None, None),
+    (13, "record_date", _U_INT_16, None, None, None),
+    (14, "high_temperature", _INT_16, _float_encode_2dp, _float_decode_2dp,
      _INT_16_NULL),
-    (14, "low_temperature", _INT_16, _float_encode_2dp, _float_decode_2dp,
+    (15, "low_temperature", _INT_16, _float_encode_2dp, _float_decode_2dp,
      _INT_16_NULL),
-    (15, "high_rain_rate", _INT_16, _float_encode, _float_decode,
+    (16, "high_rain_rate", _INT_16, _float_encode, _float_decode,
      _INT_16_NULL),
-    (16, "solar_radiation", _U_INT_16, None, None, _U_INT_16_NULL),
-    (17, "wind_sample_count", _U_INT_8, None, None, _U_INT_8_NULL),
-    (18, "gust_wind_direction", _U_INT_16, _float_encode, _float_decode,
+    (17, "solar_radiation", _U_INT_16, None, None, _U_INT_16_NULL),
+    (18, "wind_sample_count", _U_INT_8, None, None, _U_INT_8_NULL),
+    (19, "gust_wind_direction", _U_INT_16, _float_encode, _float_decode,
      _U_INT_16_NULL),
-    (19, "average_uv_index", _U_INT_8, _float_encode, _float_decode,
+    (20, "average_uv_index", _U_INT_8, _float_encode, _float_decode,
      _U_INT_8_NULL),
-    (20, "evapotranspiration", _U_INT_32, None, None, _U_INT_32_NULL),
-    (21, "high_solar_radiation", _U_INT_16, None, None, _U_INT_16_NULL),
-    (22, "high_uv_index", _U_INT_8, _float_encode, _float_decode,
+
+    # TODO: This is WRONG. Example ET values:
+    #           0.0508, 0.1016, 0.17779999999999999, 0.1016, 0.1016, 0.2032,
+    #           0.127, 0.0508, 0.0508, 0.0254, 0.0762
+    #       ET needs to be encoded as *1000 probably. As it currently is it will
+    #       always be rounding the numbers to zero and doing basically nothing.
+    (21, "evapotranspiration", _U_INT_32, None, None, _U_INT_32_NULL),
+    (22, "high_solar_radiation", _U_INT_16, None, None, _U_INT_16_NULL),
+    (23, "high_uv_index", _U_INT_8, _float_encode, _float_decode,
      _U_INT_8_NULL),
-    (23, "forecast_rule_id", _U_INT_8, None, None, _U_INT_8_NULL),
-    (24, None, None, None, None, None),
+    (24, "forecast_rule_id", _U_INT_8, None, None, _U_INT_8_NULL),
     (25, None, None, None, None, None),
     (26, None, None, None, None, None),
     (27, None, None, None, None, None),
@@ -573,10 +617,10 @@ _sample_fields = {
 # List of all sample field IDs for each hardware type. This does not include
 # the diff id field
 all_sample_field_ids = {
-    "GENERIC": (range(2, 11), None),
-    "FOWH1080": (range(2, 18), None),
+    "GENERIC": (range(2, 12), None),
+    "FOWH1080": (range(2, 19), None),
     "DAVIS": (
-        range(2, 24) + [31],
+        range(2, 25) + [31],
         {
             "extra_fields": range(1, 18)
         }
@@ -587,10 +631,10 @@ all_sample_field_ids = {
 # field ID, same field name, same data type, etc. Its used for sending live
 # records as a set of differences against a sample.
 common_live_sample_field_ids = {
-    "GENERIC": (range(1, 10), None),
-    "FOWH1080": (range(1, 10), None),
+    "GENERIC": (range(1, 11), None),
+    "FOWH1080": (range(1, 11), None),
     "DAVIS": (
-        range(1, 10) + [31],
+        range(1, 11) + [31],
         {
             "extra_fields": range(1, 18)
         }
@@ -601,8 +645,10 @@ common_live_sample_field_ids = {
 def get_sample_field_definitions(hw_type):
     return _sample_fields[hw_type.upper()]
 
+
 def get_live_field_definitions(hw_type):
     return _live_fields[hw_type.upper()]
+
 
 def _encode_dict(data_dict, field_definitions, field_ids, subfield_ids):
     """
