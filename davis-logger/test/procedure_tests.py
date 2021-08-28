@@ -2212,8 +2212,7 @@ class TestLpsProcedure(unittest.TestCase):
         records = []
 
         bar_trend_options = [-60, -20, -0, 20, 60]
-        forecast_icon_options = [8, 6, 2, 3, 18, 19, 7, 22, 23]
-
+        
         for i in range(0, count):
             wind_speed = random.uniform(0, 22)
             wind_direction = None
