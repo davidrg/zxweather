@@ -262,6 +262,7 @@ class ZxweatherShellProtocol(BaseShell, recvline.HistoricRecvLine):
 
         # Install key handler to take care of ^C
         self.keyHandlers['\x03'] = self.handle_CTRL_C
+        self.keyHandlers['\x04'] = self.handle_CTRL_D
 
     def connectionLost(self, reason):
         """
@@ -294,6 +295,17 @@ class ZxweatherShellProtocol(BaseShell, recvline.HistoricRecvLine):
             if self.dispatcher.environment["term_mode"] == TERM_CRT:
                 self.terminal.write("\033[7m EXIT \033[m\r\n")
             self.terminateProcess()
+
+    def handle_CTRL_D(self):
+        """
+        Tries to kill any running process. If there are no running processes the
+        user is logged out
+        """
+        if self.input_mode != INPUT_SHELL:
+            if self.current_command is not None:
+                self.handle_CTRL_C()
+        else:
+            self.logout()
 
     def handle_RETURN(self):
         """
