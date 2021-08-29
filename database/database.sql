@@ -853,6 +853,10 @@ select data.date_stamp,
        max(data.min_absolute_pressure_ts) as min_absolute_pressure_ts,
        data.max_absolute_pressure,
        max(data.max_absolute_pressure_ts) as max_absolute_pressure_ts,
+       data.min_sea_level_pressure,
+       max(data.min_sea_level_pressure_ts) as min_sea_level_pressure_ts,
+       data.max_sea_level_pressure,
+       max(data.max_sea_level_pressure_ts) as max_sea_level_pressure_ts,
        data.min_apparent_temperature,
        max(data.min_apparent_temperature_ts) as min_apparent_temperature_ts,
        data.max_apparent_temperature,
@@ -884,6 +888,10 @@ from (
          case when s.absolute_pressure = dr.max_absolute_pressure then s.time_stamp else NULL end as max_absolute_pressure_ts,
          dr.min_absolute_pressure,
          case when s.absolute_pressure = dr.min_absolute_pressure then s.time_stamp else NULL end as min_absolute_pressure_ts,
+         dr.max_sea_level_pressure,
+         case when s.mean_sea_level_pressure = dr.max_sea_level_pressure then s.time_stamp else NULL end as max_sea_level_pressure_ts,
+         dr.min_sea_level_pressure,
+         case when s.mean_sea_level_pressure = dr.min_sea_level_pressure then s.time_stamp else NULL end as min_sea_level_pressure_ts,
          dr.max_apparent_temperature,
          case when s.apparent_temperature = dr.max_apparent_temperature then s.time_stamp else NULL end as max_apparent_temperature_ts,
          dr.min_apparent_temperature,
@@ -914,6 +922,8 @@ from (
            max(s.average_wind_speed) as "max_average_wind_speed",
            min(s.absolute_pressure) as "min_absolute_pressure",
            max(s.absolute_pressure) as "max_absolute_pressure",
+           min(s.mean_sea_level_pressure) as "min_sea_level_pressure",
+           max(s.mean_sea_level_pressure) as "max_sea_level_pressure",
            min(s.apparent_temperature) as "min_apparent_temperature",
            max(s.apparent_temperature) as "max_apparent_temperature",
            min(s.wind_chill) as "min_wind_chill",
@@ -933,6 +943,7 @@ from (
   where ( s.gust_wind_speed = dr.max_gust_wind_speed
           or s.average_wind_speed = dr.max_average_wind_speed
           or s.absolute_pressure in (dr.max_absolute_pressure, dr.min_absolute_pressure)
+          or s.mean_sea_level_pressure in (dr.max_sea_level_pressure, dr.min_sea_level_pressure)
           or s.apparent_temperature in (dr.max_apparent_temperature, dr.min_apparent_temperature)
           or s.wind_chill in (dr.max_wind_chill, dr.min_wind_chill)
           or s.dew_point in (dr.max_dew_point, dr.min_dew_point)
@@ -946,6 +957,8 @@ from (
           data.max_average_wind_speed,
           data.max_absolute_pressure,
           data.min_absolute_pressure,
+          data.max_sea_level_pressure,
+          data.min_sea_level_pressure,
           data.min_apparent_temperature,
           data.max_apparent_temperature,
           data.max_wind_chill,
@@ -973,6 +986,10 @@ select data.date_stamp,
        max(data.min_absolute_pressure_ts) as min_absolute_pressure_ts,
        data.max_absolute_pressure,
        max(data.max_absolute_pressure_ts) as max_absolute_pressure_ts,
+       data.min_sea_level_pressure,
+       max(data.min_sea_level_pressure_ts) as min_sea_level_pressure_ts,
+       data.max_sea_level_pressure,
+       max(data.max_sea_level_pressure_ts) as max_sea_level_pressure_ts,
        data.min_apparent_temperature,
        max(data.min_apparent_temperature_ts) as min_apparent_temperature_ts,
        data.max_apparent_temperature,
@@ -1004,6 +1021,10 @@ from (
          case when s.absolute_pressure = dr.max_absolute_pressure then s.time_stamp else NULL end as max_absolute_pressure_ts,
          dr.min_absolute_pressure,
          case when s.absolute_pressure = dr.min_absolute_pressure then s.time_stamp else NULL end as min_absolute_pressure_ts,
+         dr.max_sea_level_pressure,
+         case when s.mean_sea_level_pressure = dr.max_sea_level_pressure then s.time_stamp else NULL end as max_sea_level_pressure_ts,
+         dr.min_sea_level_pressure,
+         case when s.mean_sea_level_pressure = dr.min_sea_level_pressure then s.time_stamp else NULL end as min_sea_level_pressure_ts,
          dr.max_apparent_temperature,
          case when s.apparent_temperature = dr.max_apparent_temperature then s.time_stamp else NULL end as max_apparent_temperature_ts,
          dr.min_apparent_temperature,
@@ -1034,6 +1055,8 @@ from (
            max(s.average_wind_speed) as "max_average_wind_speed",
            min(s.absolute_pressure) as "min_absolute_pressure",
            max(s.absolute_pressure) as "max_absolute_pressure",
+           min(s.mean_sea_level_pressure) as "min_sea_level_pressure",
+           max(s.mean_sea_level_pressure) as "max_sea_level_pressure",
            min(s.apparent_temperature) as "min_apparent_temperature",
            max(s.apparent_temperature) as "max_apparent_temperature",
            min(s.wind_chill) as "min_wind_chill",
@@ -1053,6 +1076,7 @@ from (
   where ( s.gust_wind_speed = dr.max_gust_wind_speed
           or s.average_wind_speed = dr.max_average_wind_speed
           or s.absolute_pressure in (dr.max_absolute_pressure, dr.min_absolute_pressure)
+          or s.mean_sea_level_pressure in (dr.max_sea_level_pressure, dr.min_sea_level_pressure)
           or s.apparent_temperature in (dr.max_apparent_temperature, dr.min_apparent_temperature)
           or s.wind_chill in (dr.max_wind_chill, dr.min_wind_chill)
           or s.dew_point in (dr.max_dew_point, dr.min_dew_point)
@@ -1066,6 +1090,8 @@ group by data.date_stamp,
         data.max_average_wind_speed,
         data.max_absolute_pressure,
         data.min_absolute_pressure,
+        data.min_sea_level_pressure,
+        data.max_sea_level_pressure,
         data.min_apparent_temperature,
         data.max_apparent_temperature,
         data.max_wind_chill,
@@ -1092,6 +1118,10 @@ select data.year_stamp,
        max(data.min_absolute_pressure_ts) as min_absolute_pressure_ts,
        data.max_absolute_pressure,
        max(data.max_absolute_pressure_ts) as max_absolute_pressure_ts,
+       data.min_sea_level_pressure,
+       max(data.min_sea_level_pressure_ts) as min_sea_level_pressure_ts,
+       data.max_sea_level_pressure,
+       max(data.max_sea_level_pressure_ts) as max_sea_level_pressure_ts,
        data.min_apparent_temperature,
        max(data.min_apparent_temperature_ts) as min_apparent_temperature_ts,
        data.max_apparent_temperature,
@@ -1123,6 +1153,10 @@ from (
           case when s.absolute_pressure = dr.max_absolute_pressure then s.time_stamp else NULL end as max_absolute_pressure_ts,
           dr.min_absolute_pressure,
           case when s.absolute_pressure = dr.min_absolute_pressure then s.time_stamp else NULL end as min_absolute_pressure_ts,
+          dr.max_sea_level_pressure,
+          case when s.mean_sea_level_pressure = dr.max_sea_level_pressure then s.time_stamp else NULL end as max_sea_level_pressure_ts,
+          dr.min_sea_level_pressure,
+          case when s.mean_sea_level_pressure = dr.min_sea_level_pressure then s.time_stamp else NULL end as min_sea_level_pressure_ts,
           dr.max_apparent_temperature,
           case when s.apparent_temperature = dr.max_apparent_temperature then s.time_stamp else NULL end as max_apparent_temperature_ts,
           dr.min_apparent_temperature,
@@ -1154,6 +1188,8 @@ from (
                     max(s.average_wind_speed) as "max_average_wind_speed",
                     min(s.absolute_pressure) as "min_absolute_pressure",
                     max(s.absolute_pressure) as "max_absolute_pressure",
+                    min(s.mean_sea_level_pressure) as "min_sea_level_pressure",
+                    max(s.mean_sea_level_pressure) as "max_sea_level_pressure",
                     min(s.apparent_temperature) as "min_apparent_temperature",
                     max(s.apparent_temperature) as "max_apparent_temperature",
                     min(s.wind_chill) as "min_wind_chill",
@@ -1173,6 +1209,7 @@ from (
 where ( s.gust_wind_speed = dr.max_gust_wind_speed
         or s.average_wind_speed = dr.max_average_wind_speed
         or s.absolute_pressure in (dr.max_absolute_pressure, dr.min_absolute_pressure)
+        or s.mean_sea_level_pressure in (dr.max_sea_level_pressure, dr.min_sea_level_pressure)
         or s.apparent_temperature in (dr.max_apparent_temperature, dr.min_apparent_temperature)
         or s.wind_chill in (dr.max_wind_chill, dr.min_wind_chill)
         or s.dew_point in (dr.max_dew_point, dr.min_dew_point)
@@ -1186,6 +1223,8 @@ group by data.year_stamp,
         data.max_average_wind_speed,
         data.max_absolute_pressure,
         data.min_absolute_pressure,
+        data.max_sea_level_pressure,
+        data.min_sea_level_pressure,
         data.min_apparent_temperature,
         data.max_apparent_temperature,
         data.max_wind_chill,
