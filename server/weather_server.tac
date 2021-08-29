@@ -39,11 +39,10 @@ broker_exchange = "weather"
 ##############################################################################
 # This protocol allows authenticated interactive read-write access to the
 # server. It allows access to some administrative commands to list sessions,etc
-# and also allows weather data to be uploaded. This protocol must be enabled
-# for the weather-push service.
+# and also allows weather data to be uploaded via the weather-push service.
 
 # If you want SSH Support, turn it on here:
-enable_ssh = True
+enable_ssh = False
 
 # The port number the SSH service listens on
 ssh_port = 4222
@@ -95,17 +94,15 @@ web_socket_port = 81
 web_socket_hostname = 'server.example.com'
 
 
-# Certificate chain (optional)
-web_socket_chain_file = None
-
 ##############################################################################
 #   WebSocket TLS Protocol Configuration #####################################
 ##############################################################################
-# This a secure websocket endpoint using TLS. It is used as a fallback by the
-# web interface to get around badly configured proxy servers.
+# This a secure websocket endpoint using TLS. Its required if you're hosting
+# the web UI over https:// (modern browsers won't allow an https site to connect
+# to an http websocket).
 
 # If this protocol should be enabled
-enable_web_socket_tls = True
+enable_web_socket_tls = False
 
 # The port to listen on
 web_socket_tls_port = 443
@@ -126,6 +123,26 @@ web_socket_tls_hostname = 'server.example.com'
 # want to enable online certificate reloading. Leave set to None to disable
 # this feature (you'll have to restart the service if the certificates change)
 web_socket_tls_certificate_reload_password = None
+
+# With this password you can request the server reload its SSL certificate via
+# a websocket connection with the ssl_reload command. For example, if your ssl
+# reload password is "my-hard-to-guess-password" then the command would be:
+#       ssl_reload my-hard-to-guess-password
+# The easy way to do this is with the reload_certificates.py script:
+#   reload_certificates.py wss://localhost:443/ my-hard-to-guess-password
+# To make it work even if the certificate has expired you can add on this:
+#   --no-ssl-validation
+# To run this automatically whenever letsencrypt renews your certificate, create
+# this file:
+#    /etc/letsencrypt/renewal-hooks/deploy/reload_zxweatherd_cert.sh
+# with the contents (assuming you've got zxweather in /opt/zxweather):
+#   #!/bin/bash
+#
+#   cd /opt/zxweather/server
+#   python2.7 reload_certificates.py wss://weather.zx.net.nz:444/ "41a9dc9e-ebe7-4b03-9f70-8e58076b522d" --no-ssl-validation
+# And make it executable:
+#   chmod +x /etc/letsencrypt/renewal-hooks/deploy/reload_zxweatherd_cert.sh
+
 
 ##############################################################################
 ##############################################################################
@@ -167,7 +184,7 @@ if enable_web_socket_tls:
         'key': web_socket_tls_private_key_file,
         'certificate': web_socket_tls_certificate_file,
         'host': web_socket_tls_hostname,
-        'chain': web_socket_chain_file,
+        'chain': web_socket_tls_chain_file,
         'ssl_reload_password': web_socket_tls_certificate_reload_password
     }
 

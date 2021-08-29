@@ -30,12 +30,14 @@ exchange=weather
 ##############################################################################
 # This protocol allows authenticated interactive read-write access to the
 # server. It allows access to some administrative commands to list sessions,etc
-# and also allows weather data to be uploaded. This protocol must be enabled
-# for the weather-push service.
+# and also allows weather data to be uploaded via the weather-push service.
+# This is less flexible than the proper WeatherPush server but does provide
+# better security. Unless you badly need the better security its better to
+# use the WeatherPush server and leave this disabled.
 [ssh]
 
 # If SSH support should be enabled
-enable=True
+enable=False
 
 # The port the SSH service should listen on
 port=4222
@@ -81,7 +83,7 @@ hostname=server.example.com
 # This a secure websocket endpoint using SSL. It is used as a fallback by the
 # web interface to get around badly configured proxy servers.
 [websocket-ssl]
-enable=True
+enable=False
 port=443
 hostname=server.example.com
 
@@ -97,3 +99,22 @@ certificate_file=server.crt
 # disable online SSL certificate reloading (service will have to be restarted
 # if the certificate changes)
 #ssl_reload_password=
+
+# With this password you can request the server reload its SSL certificate via
+# a websocket connection with the ssl_reload command. For example, if your ssl
+# reload password is "my-hard-to-guess-password" then the command would be:
+#       ssl_reload my-hard-to-guess-password
+# The easy way to do this is with the reload_certificates.py script:
+#   reload_certificates.py wss://localhost:443/ my-hard-to-guess-password
+# To make it work even if the certificate has expired you can add on this:
+#   --no-ssl-validation
+# To run this automatically whenever letsencrypt renews your certificate, create
+# this file:
+#    /etc/letsencrypt/renewal-hooks/deploy/reload_zxweatherd_cert.sh
+# with the contents (assuming you've got zxweather in /opt/zxweather):
+#   #!/bin/bash
+#
+#   cd /opt/zxweather/server
+#   python2.7 reload_certificates.py wss://weather.zx.net.nz:444/ "41a9dc9e-ebe7-4b03-9f70-8e58076b522d" --no-ssl-validation
+# And make it executable:
+#   chmod +x /etc/letsencrypt/renewal-hooks/deploy/reload_zxweatherd_cert.sh
