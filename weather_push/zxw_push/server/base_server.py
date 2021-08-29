@@ -307,6 +307,8 @@ class WeatherPushServerBase(object):
 
                 self._previous_live_record_id[station_id] = sequence_id
 
+        # Its in order. This is the new previous live record ID.
+        self._previous_live_record_id[station_id] = sequence_id
         return True
 
     def _received_live_record(self):
