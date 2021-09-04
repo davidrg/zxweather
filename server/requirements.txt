@@ -1,15 +1,25 @@
-psycopg2
-twisted==16.6.0
-txpostgres==1.5.0
-autobahn==0.5.14
+# Python 2.7 support was dropped in psycopg 2.9
+psycopg2==2.8.6
+
+# 20.3.0 is the last version supporting python 2.7
+twisted==20.3.0
+
+# This is the final version of Autobahn supporting Python 2.7-3.4
+autobahn==19.11.2
+
+# only required if using RabbitMQ. Version 1.1.0 is the last release to support
+# Python 2.7.
+pika==1.1.0
+
+bcrypt
+txpostgres
+pyOpenSSL
 pytz
 python-dateutil
-pyOpenSSL==0.13.1
-pika==0.11.2
 txaio
 cryptography
 pyasn1
 websocket_client==0.57.0
 
 # For windows only
-pywin32
+#pywin32
