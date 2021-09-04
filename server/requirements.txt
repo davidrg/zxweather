@@ -5,7 +5,7 @@ psycopg2==2.8.6
 twisted==20.3.0
 
 # This is the final version of Autobahn supporting Python 2.7-3.4
-autobahn==19.11.2
+autobahn==20.12.3
 
 # only required if using RabbitMQ. Version 1.1.0 is the last release to support
 # Python 2.7.
