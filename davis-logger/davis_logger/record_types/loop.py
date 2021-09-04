@@ -886,6 +886,7 @@ class LiveData(object):
         :type loop1_only: bool
         """
         self.lastUpdateType = None
+        self.lastUpdateTime = None
         self.ready = False
         self._loop1_received = False
         self._loop2_received = loop1_only
@@ -962,6 +963,7 @@ class LiveData(object):
             start_date_of_current_storm = self.startDateOfCurrentStorm.isoformat()
 
         result = {
+            "timestamp": self.lastUpdateTime.isoformat(),
             "barTrend": self.barTrend,
             "barometer": self.barometer,
             "insideTemperature": self.insideTemperature,
@@ -1043,6 +1045,7 @@ class LiveData(object):
         :return:
         """
         # Shared
+        self.lastUpdateTime = datetime.datetime.now()
         self.barTrend = loop.barTrend
         self.barometer = loop.barometer
         self.insideTemperature = loop.insideTemperature
