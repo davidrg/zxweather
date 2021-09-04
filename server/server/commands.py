@@ -812,7 +812,7 @@ class ShowLiveCommand(Command):
 
         self.ready = False
         subscriptions.subscribe(self, self.subscribed_station, True, False,
-                                False, 2)
+                                False, 2, 2)
 
         get_station_info(self.subscribed_station).addCallback(self._setup)
 
