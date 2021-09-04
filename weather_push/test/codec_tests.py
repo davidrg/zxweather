@@ -8,7 +8,7 @@ from zxw_push.common.data_codecs import _encode_dict, _U_INT_16, _U_INT_32, \
     calculate_encoded_size, all_live_field_ids, _davis_live_fields, _davis_sample_fields, encode_live_record, \
     _float_encode, _float_encode_2dp, _date_encode, timestamp_encode, set_field_ids, get_sample_data_field_options, \
     all_sample_field_ids, encode_sample_record, _patch_record, _find_subfield_ids, find_live_subfield_ids, \
-    get_sample_field_definitions
+    get_sample_field_definitions, _sample_et_encode
 
 __author__ = 'david'
 
@@ -107,7 +107,7 @@ DAVIS_SAMPLE = {
     "wind_sample_count": 16,
     "gust_wind_direction": 45,
     "average_uv_index": 11.3,
-    "evapotranspiration": 18456874,
+    "evapotranspiration": 1.3,
     "high_solar_radiation": 1154,
     "high_uv_index": 12,
     "forecast_rule_id": 7,
@@ -2739,8 +2739,9 @@ class SampleEncodeTests(unittest.TestCase):
         all_subfields = all_sample_field_ids[DAVIS_HW_TYPE.upper()][1]
         all_fields_size = calculate_encoded_size(all_fields, all_subfields, DAVIS_HW_TYPE, False)
 
+        # target = 34
         expected_result = struct.pack(
-            "!BhhBHHHHHHHHhhhHBHBLHBBLbbhhbbbbhhhhhhhbb",
+            "!BhhBHHHHHHHHhhhHBHBBHBBLbbhhbbbbhhhhhhhbb",
             # ^^^^^^^^^^^^^^^^^^^^^^^^^ ^ ^   ^   ^  ^
             # ||T||M||DR|||L|||GU|||F|LW| SM  ST  ET EH
             # |IT||S|GW ||HT||WSC||HU|  LT
@@ -2765,7 +2766,7 @@ class SampleEncodeTests(unittest.TestCase):
             sample["wind_sample_count"],
             _float_encode(sample["gust_wind_direction"]),
             _float_encode(sample["average_uv_index"]),
-            sample["evapotranspiration"],
+            _sample_et_encode(sample["evapotranspiration"]),
             sample["high_solar_radiation"],
             _float_encode(sample["high_uv_index"]),
             sample["forecast_rule_id"],

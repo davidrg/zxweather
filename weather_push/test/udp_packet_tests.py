@@ -293,7 +293,7 @@ class WeatherDataUDPPacketTests(unittest.TestCase):
         "wind_sample_count": 16,
         "gust_wind_direction": 45,
         "average_uv_index": 11.3,
-        "evapotranspiration": 18456874,
+        "evapotranspiration": 3.4,
         "high_solar_radiation": 1154,
         "high_uv_index": 12,
         "forecast_rule_id": 7,
