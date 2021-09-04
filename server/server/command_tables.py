@@ -325,8 +325,18 @@ base_syntaxes = [
             )
         ],
         qualifiers=[
-            qualifier(name="live"),
-            qualifier(name="samples"),
+            qualifier(
+                name="live",
+                type="int",
+                default_value=1,
+                value_required=False
+            ),
+            qualifier(
+                name="samples",
+                type="int",
+                default_value=1,
+                value_required=False
+            ),
             qualifier(name="images"),
             qualifier(name="from_timestamp", type="string"),
             qualifier(name="any_order")

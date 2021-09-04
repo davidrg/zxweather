@@ -19,8 +19,9 @@ BaseSampleRecord = namedtuple(
     'BaseSampleRecord',
     (
         'station_code', 'temperature', 'humidity', 'indoor_temperature',
-        'indoor_humidity', 'pressure', 'average_wind_speed', 'gust_wind_speed',
-        'wind_direction', 'rainfall', 'download_timestamp', 'time_stamp'
+        'indoor_humidity', 'pressure', 'msl_pressure', 'average_wind_speed',
+        'gust_wind_speed', 'wind_direction', 'rainfall', 'download_timestamp',
+        'time_stamp'
     )
 )
 
@@ -56,7 +57,8 @@ BaseLiveRecord = namedtuple(
     (
         'station_code', 'download_timestamp', 'indoor_humidity',
         'indoor_temperature', 'temperature', 'humidity', 'pressure',
-        'average_wind_speed', 'gust_wind_speed', 'wind_direction'
+        'msl_pressure', 'average_wind_speed', 'gust_wind_speed',
+        'wind_direction'
     )
 )
 
@@ -67,20 +69,22 @@ DavisLiveRecord = namedtuple(
         'bar_trend', 'rain_rate', 'storm_rain',
         'current_storm_start_date', 'transmitter_battery',
         'console_battery_voltage', 'forecast_icon', 'forecast_rule_id',
-        'uv_index', 'solar_radiation',
-        'leaf_wetness_1', 'leaf_wetness_2', 'leaf_temperature_1',
-        'leaf_temperature_2', 'soil_moisture_1', 'soil_moisture_2',
-        'soil_moisture_3', 'soil_moisture_4', 'soil_temperature_1',
-        'soil_temperature_2', 'soil_temperature_3', 'soil_temperature_4',
-        'extra_temperature_1', 'extra_temperature_2', 'extra_temperature_3',
-        'extra_humidity_1', 'extra_humidity_2'
+        'uv_index', 'solar_radiation', 'average_wind_speed_10m',
+        'average_wind_speed_2m', 'gust_wind_speed_10m', 'gust_wind_direction_10m',
+        'heat_index', 'thsw_index', 'altimeter_setting', 'leaf_wetness_1',
+        'leaf_wetness_2', 'leaf_temperature_1', 'leaf_temperature_2',
+        'soil_moisture_1', 'soil_moisture_2', 'soil_moisture_3',
+        'soil_moisture_4', 'soil_temperature_1', 'soil_temperature_2',
+        'soil_temperature_3', 'soil_temperature_4', 'extra_temperature_1',
+        'extra_temperature_2', 'extra_temperature_3', 'extra_humidity_1',
+        'extra_humidity_2'
     )
 )
 
 StationInfoRecord = namedtuple(
     'StationInfoRecord',
-    ('title','description','sample_interval','live_data_available',
-     'station_type_code','station_type_title', 'station_config'))
+    ('title', 'description', 'sample_interval', 'live_data_available',
+     'station_type_code', 'station_type_title', 'station_config'))
 
 database_pool = None
 
@@ -173,6 +177,7 @@ def _init_hw_cache(data):
     for row in data:
         station_code_hardware_type[row[0].lower()] = row[1].upper()
 
+
 def _prepare_caches():
     """
     Pre-caches station IDs, codes and hardware types types
@@ -187,6 +192,7 @@ def _prepare_caches():
     query = "select lower(s.code) as code, upper(st.code) as hw_code from station s inner join " \
             "station_type st on st.station_type_id = s.station_type_id "
     database_pool.runQuery(query).addCallback(_init_hw_cache)
+
 
 def _get_station_info_dict(result):
 
@@ -239,6 +245,7 @@ where upper(s.code) = upper(%s)
     deferred.addCallback(_get_station_info_dict)
     return deferred
 
+
 def get_station_list():
     """
     Gets a list of all stations in the database.
@@ -250,78 +257,30 @@ def get_station_list():
     deferred = database_pool.runQuery(query)
     return deferred
 
-def get_live_csv(station_code):
+
+def get_live_csv(station_code, format):
     """
     Gets live data for the specified station in CSV format.
     :param station_code: The station code
     :type station_code: str
+    :param format: CSV foromat to get
+    :type format: int
     :returns: A deferred which will supply the data
     :rtype: Deferred
     """
 
-    base_query = """
-select coalesce(round(ld.temperature::numeric, 2)::varchar, 'None') || ',' ||
-       coalesce(round(ld.dew_point::numeric, 2)::varchar, 'None') || ',' ||
-       coalesce(round(ld.apparent_temperature::numeric, 2)::varchar, 'None') || ',' ||
-       coalesce(round(ld.wind_chill::numeric, 2)::varchar, 'None') || ',' ||
-       coalesce(ld.relative_humidity::varchar, 'None') || ',' ||
-       coalesce(round(ld.indoor_temperature::numeric, 2)::varchar, 'None') || ',' ||
-       coalesce(ld.indoor_relative_humidity::varchar, 'None') || ',' ||
-       coalesce(ld.absolute_pressure::varchar, 'None') || ',' ||
-       coalesce(round(ld.average_wind_speed::numeric, 2)::varchar, 'None') || ',' ||
-       coalesce(ld.wind_direction::varchar, 'None') {ext_columns}
-from live_data ld {ext_joins}
-where ld.station_id = %s
-    """
-
-    ext_columns = ''
-    ext_joins = ''
-
-    if get_station_hw_type(station_code) == 'DAVIS':
-        # Davis hardware stores some additional live data in a different table.
-        # We need to join onto that and pull in the columns.
-        ext_columns = """ || ',' ||
-coalesce(dd.bar_trend::varchar, 'None') || ',' ||
-coalesce(dd.rain_rate::varchar, 'None') || ',' ||
-coalesce(dd.storm_rain::varchar, 'None') || ',' ||
-coalesce(dd.current_storm_start_date::varchar, 'None') || ',' ||
-coalesce(dd.transmitter_battery::varchar, 'None') || ',' ||
-coalesce(round(dd.console_battery_voltage::numeric, 2)::varchar, 'None') ||','||
-coalesce(dd.forecast_icon::varchar, 'None') || ',' ||
-coalesce(dd.forecast_rule_id::varchar, 'None') || ',' ||
-coalesce(dd.uv_index::varchar, 'None') || ',' ||
-coalesce(dd.solar_radiation::varchar, 'None') || ',' ||
-coalesce(dd.leaf_wetness_1::varchar, 'None') || ',' ||
-coalesce(dd.leaf_wetness_2::varchar, 'None')  || ',' ||
-coalesce(round(dd.leaf_temperature_1::numeric, 2)::varchar, 'None') || ',' ||
-coalesce(round(dd.leaf_temperature_2::numeric, 2)::varchar, 'None') || ',' ||
-coalesce(dd.soil_moisture_1::varchar, 'None') || ',' ||
-coalesce(dd.soil_moisture_2::varchar, 'None') || ',' ||
-coalesce(dd.soil_moisture_3::varchar, 'None') || ',' ||
-coalesce(dd.soil_moisture_4::varchar, 'None') || ',' ||
-coalesce(round(dd.soil_temperature_1::numeric, 2)::varchar, 'None') || ',' ||
-coalesce(round(dd.soil_temperature_2::numeric, 2)::varchar, 'None') || ',' ||
-coalesce(round(dd.soil_temperature_3::numeric, 2)::varchar, 'None') || ',' ||
-coalesce(round(dd.soil_temperature_4::numeric, 2)::varchar, 'None') || ',' ||
-coalesce(round(dd.extra_temperature_1::numeric, 2)::varchar, 'None') || ',' ||
-coalesce(round(dd.extra_temperature_2::numeric, 2)::varchar, 'None') || ',' ||
-coalesce(round(dd.extra_temperature_3::numeric, 2)::varchar, 'None') || ',' ||
-coalesce(dd.extra_humidity_1::varchar, 'None') || ',' ||
-coalesce(dd.extra_humidity_2::varchar, 'None')
-        """
-        ext_joins = """
-inner join davis_live_data dd on dd.station_id = ld.station_id"""
-
-    query = base_query.format(ext_columns=ext_columns, ext_joins=ext_joins)
-
-    return database_pool.runQuery(query, (station_code_id[station_code.lower()],))
+    return database_pool.runQuery(
+        "select get_live_text_record(%s, %s);",
+        (station_code_id[station_code.lower()], format))
 
 
-def get_sample_csv(station_code, start_time, end_time=None, sample_id=None):
+def get_sample_csv(station_code, record_format, start_time, end_time=None, sample_id=None):
     """
     Gets live data for the specified station in CSV format.
     :param station_code: The station code
     :type station_code: str
+    :param record_format: The format of records to return
+    :type record_format: int
     :param start_time: Obtain all records after this timestamp. If None then
     fetch the latest sample only
     :type start_time: datetime or None.
@@ -334,49 +293,12 @@ def get_sample_csv(station_code, start_time, end_time=None, sample_id=None):
     :rtype: Deferred
     """
 
-    query_cols = """
-select time_stamp,
-       coalesce(round(s.temperature::numeric, 2)::varchar, 'None') || ',' ||
-       coalesce(round(s.dew_point::numeric, 2)::varchar, 'None') || ',' ||
-       coalesce(round(s.apparent_temperature::numeric, 2)::varchar, 'None')||','||
-       coalesce(round(s.wind_chill::numeric, 2)::varchar, 'None') || ',' ||
-       coalesce(s.relative_humidity::varchar, 'None') || ',' ||
-       coalesce(round(s.indoor_temperature::numeric, 2)::varchar, 'None') ||','||
-       coalesce(s.indoor_relative_humidity::varchar, 'None') || ',' ||
-       coalesce(s.absolute_pressure::varchar, 'None') || ',' ||
-       coalesce(round(s.average_wind_speed::numeric, 2)::varchar, 'None') || ','||
-       coalesce(round(s.gust_wind_speed::numeric, 2)::varchar, 'None') || ',' ||
-       coalesce(s.wind_direction::varchar, 'None') || ',' ||
-       coalesce(s.rainfall::varchar, 'None') ||
+    query = "select * from get_sample_text_record(%s, %s, %s, %s, %s);"
 
-       coalesce(',' || round(ds.average_uv_index::numeric, 2)::varchar || ',' ||
-                round(ds.solar_radiation::numeric, 2)::varchar,
-                '')
-from sample s
-left outer join davis_sample ds on ds.sample_id = s.sample_id
-where s.station_id = %s
-        """
-    query_date = """
-and s.time_stamp > %s
-and (%s is null OR s.time_stamp < %s)
-order by s.time_stamp asc
-        """
-    query_ts = " and s.sample_id = %s"
-    query_top = """
-order by s.time_stamp desc
-fetch first 1 rows only
-    """
-
-    if start_time is not None:
-        return database_pool.runQuery(query_cols + query_date,
-            (station_code_id[station_code.lower()], start_time, end_time, end_time))
-    elif sample_id is not None:
-        return database_pool.runQuery(query_cols + query_ts,
-                                      (station_code_id[station_code.lower()],
-                                       sample_id))
-    else:
-        return database_pool.runQuery(query_cols + query_top,
-            (station_code_id[station_code.lower()], ))
+    return database_pool.runQuery(
+        query,
+        (station_code_id[station_code.lower()], record_format, sample_id,
+         start_time, end_time))
 
 
 def get_image_csv(image_id):

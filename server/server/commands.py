@@ -432,7 +432,8 @@ class StreamCommand(Command):
         # Turn data buffering back off so streaming will resume.
         self.buffer_data = False
 
-    def perform_catchup(self, station, start_timestamp, end_timestamp):
+    def perform_catchup(self, station, start_timestamp, end_timestamp,
+                        sample_format):
         """
         Fetches all data from the specified timestamp and returns it.
         :param station: The station to do the catchup for
@@ -444,10 +445,11 @@ class StreamCommand(Command):
         :type end_timestamp: datetime
         """
 
-        get_sample_csv(station, start_timestamp, end_timestamp).addCallback(
+        get_sample_csv(station, sample_format, start_timestamp, end_timestamp).addCallback(
             self._send_catchup)
 
-    def subscribe(self, station, live, samples, images, any_order):
+    def subscribe(self, station, live, samples, images, any_order,
+                  live_format, sample_format):
         """
         Subscribes to a data feed for the specified station
         :param station: Station to subscribe to data for
@@ -460,6 +462,10 @@ class StreamCommand(Command):
         :type images: bool
         :param any_order: Samples can be streamed in any order
         :type any_order: bool
+        :param live_format: Format to deliver live records in
+        :type live_format: int
+        :param sample_format: Format to deliver sample records in
+        :type sample_format: int
         :return: Current time at UTC
         :rtype: datetime
         """
@@ -468,7 +474,8 @@ class StreamCommand(Command):
         self.subscribe_samples = samples
         self.subscribe_images = images
 
-        subscriptions.subscribe(self, station, live, samples, images, any_order)
+        subscriptions.subscribe(self, station, live, samples, images,
+                                live_format, sample_format, any_order)
 
         return datetime.utcnow().replace(tzinfo=pytz.utc)
 
@@ -529,6 +536,24 @@ class StreamCommand(Command):
             self.writeLine("Nothing to stream.")
             return
 
+        live_format = None
+        if stream_live:
+            live_format = self.qualifiers["live"]
+
+            if live_format not in (1, 2):
+                self.writeLine("Error: invalid live record format {0}. "
+                               "Valid options are: 1, 2".format(live_format))
+                return
+
+        sample_format = None
+        if stream_samples:
+            sample_format = self.qualifiers["samples"]
+
+            if sample_format not in (1, 2):
+                self.writeLine("Error: invalid sample record format {0}. "
+                               "Valid options are: 1, 2".format(sample_format))
+                return
+
         if "from_timestamp" in self.qualifiers:
 
             try:
@@ -546,9 +571,9 @@ class StreamCommand(Command):
 
         components = []
         if stream_live:
-            components.append("live")
+            components.append("live (format {0})".format(live_format))
         if stream_samples:
-            components.append("samples")
+            components.append("samples (format {0})".format(sample_format))
         if stream_images:
             components.append("images")
         subset = " and ".join(components)
@@ -566,7 +591,8 @@ class StreamCommand(Command):
         self.buffer_data = True
         subscription_start = self.subscribe(station_code, stream_live,
                                             stream_samples, stream_images,
-                                            stream_samples_in_any_order)
+                                            stream_samples_in_any_order,
+                                            live_format, sample_format)
 
         # If we're supposed to catchup then grab all data for the station
         # from the catchup time through to when we started our subscription.
@@ -574,7 +600,7 @@ class StreamCommand(Command):
         # as the catchup has finished and data buffering gets disabled again.
         if from_timestamp is not None:
             self.perform_catchup(station_code, from_timestamp,
-                                 subscription_start)
+                                 subscription_start, sample_format)
         else:
             # We're not doing a catchup. No need to buffer data.
             self.buffer_data = False
@@ -619,7 +645,6 @@ class ShowLiveCommand(Command):
             self.terminal.cursorPosition(80,25)
             self.terminal.write("\r\n")
 
-
     def live_data(self, data):
         """
         Called when live data is ready
@@ -631,7 +656,8 @@ class ShowLiveCommand(Command):
             return
 
         bits = data.split(',')
-        bits.pop(0) #first one is 'l'
+        bits.pop(0)  #first one is 'l'
+        timestamp = bits.pop(0)
         temperature = bits.pop(0) + " C"
         dew_point = bits.pop(0) + " C"
         apparent_temperature = bits.pop(0) + " C"
@@ -639,7 +665,15 @@ class ShowLiveCommand(Command):
         humidity = bits.pop(0) + "%"
         indoor_temp = bits.pop(0) + " C"
         indoor_humidity = bits.pop(0) + "%"
+
+        # Absolute and median sea level pressure
         pressure = bits.pop(0) + " hPa"
+        msl_pressure = bits.pop(0) + "hPa"
+
+        # If we've got median sea level pressure available, use that. Otherwise
+        # we'll stick with absolute pressure.
+        if not msl_pressure.startswith("None"):
+            pressure = msl_pressure
 
         avg_wind_val = float(bits.pop(0))
         avg_wind = str(avg_wind_val) + " m/s"
@@ -701,7 +735,7 @@ class ShowLiveCommand(Command):
             #forecast_icons = bits.pop(0)
             #forecast_rule = bits.pop(0)
 
-        values.append(str(datetime.now()))
+        values.append(timestamp)
 
         pos = 2
 
@@ -773,12 +807,12 @@ class ShowLiveCommand(Command):
             return
 
         self.subscribed_station = self.parameters[1]
-        self.haltInput() # This doesn't take any user input.
+        self.haltInput()  # This doesn't take any user input.
         self.terminal = self.environment["terminal"]
 
         self.ready = False
         subscriptions.subscribe(self, self.subscribed_station, True, False,
-                                False)
+                                False, 2)
 
         get_station_info(self.subscribed_station).addCallback(self._setup)
 
@@ -932,7 +966,7 @@ class ListStationsCommand(Command):
             if len(name) > name_max_len:
                 name_max_len = len(name)
 
-            stations.append((code,name))
+            stations.append((code, name))
 
         if self.environment["term_mode"] == TERM_CRT:
             format_string = "\033(0\x78\033(B{{0:<{0}}}" \

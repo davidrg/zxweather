@@ -933,6 +933,253 @@ $$ language SQL;
 
 comment on function get_all_sample_gaps(character varying) is 'Finds all gaps in the sample table greater than twice the sample interval for the specified station. Result includes if the gap is known (record present in sample_gap table) and its label if it has one. Gaps less than twice the sample interval are ignored as they''re unlikely to be missing data - just a result of things like clock adjustments';
 
+-- Live CSV formats supported for data subscriptions in the weather server
+create or replace function live_csv_v1(for_station_id integer)
+    returns varchar language plpgsql as $$
+declare
+    result character varying;
+begin
+    select coalesce(round(ld.temperature::numeric, 2)::varchar, 'None') || ',' ||
+           coalesce(round(ld.dew_point::numeric, 2)::varchar, 'None') || ',' ||
+           coalesce(round(ld.apparent_temperature::numeric, 2)::varchar, 'None') || ',' ||
+           coalesce(round(ld.wind_chill::numeric, 2)::varchar, 'None') || ',' ||
+           coalesce(ld.relative_humidity::varchar, 'None') || ',' ||
+           coalesce(round(ld.indoor_temperature::numeric, 2)::varchar, 'None') || ',' ||
+           coalesce(ld.indoor_relative_humidity::varchar, 'None') || ',' ||
+           coalesce(ld.absolute_pressure::varchar, 'None') || ',' ||
+           coalesce(round(ld.average_wind_speed::numeric, 2)::varchar, 'None') || ',' ||
+           coalesce(ld.wind_direction::varchar, 'None') ||
+           case when st.code = 'DAVIS' then ',' ||
+                    coalesce(dd.bar_trend::varchar, 'None') || ',' ||
+                    coalesce(dd.rain_rate::varchar, 'None') || ',' ||
+                    coalesce(dd.storm_rain::varchar, 'None') || ',' ||
+                    coalesce(dd.current_storm_start_date::varchar, 'None') || ',' ||
+                    coalesce(dd.transmitter_battery::varchar, 'None') || ',' ||
+                    coalesce(round(dd.console_battery_voltage::numeric, 2)::varchar, 'None') ||','||
+                    coalesce(dd.forecast_icon::varchar, 'None') || ',' ||
+                    coalesce(dd.forecast_rule_id::varchar, 'None') || ',' ||
+                    coalesce(dd.uv_index::varchar, 'None') || ',' ||
+                    coalesce(dd.solar_radiation::varchar, 'None') || ',' ||
+                    coalesce(dd.leaf_wetness_1::varchar, 'None') || ',' ||
+                    coalesce(dd.leaf_wetness_2::varchar, 'None')  || ',' ||
+                    coalesce(round(dd.leaf_temperature_1::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(dd.leaf_temperature_2::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(dd.soil_moisture_1::varchar, 'None') || ',' ||
+                    coalesce(dd.soil_moisture_2::varchar, 'None') || ',' ||
+                    coalesce(dd.soil_moisture_3::varchar, 'None') || ',' ||
+                    coalesce(dd.soil_moisture_4::varchar, 'None') || ',' ||
+                    coalesce(round(dd.soil_temperature_1::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(dd.soil_temperature_2::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(dd.soil_temperature_3::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(dd.soil_temperature_4::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(dd.extra_temperature_1::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(dd.extra_temperature_2::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(dd.extra_temperature_3::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(dd.extra_humidity_1::varchar, 'None') || ',' ||
+                    coalesce(dd.extra_humidity_2::varchar, 'None')
+                else '' end
+           into result
+    from live_data ld
+    inner join station stn on stn.station_id = ld.station_id
+    inner join station_type st on stn.station_type_id = st.station_type_id
+    left outer join davis_live_data dd on stn.station_id = dd.station_id
+    where ld.station_id = for_station_id;
+
+    return result;
+    end;
+$$;
+comment on function live_csv_v1 is 'Gets version 1 of the live CSV format compatible with the desktop client up to September 2021.';
+
+
+create or replace function live_csv_v2(for_station_id integer)
+    returns varchar language plpgsql as $$
+declare
+    result character varying;
+begin
+    select to_char(ld.download_timestamp, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') || ',' ||
+           coalesce(round(ld.temperature::numeric, 2)::varchar, 'None') || ',' ||
+           coalesce(round(ld.dew_point::numeric, 2)::varchar, 'None') || ',' ||
+           coalesce(round(ld.apparent_temperature::numeric, 2)::varchar, 'None') || ',' ||
+           coalesce(round(ld.wind_chill::numeric, 2)::varchar, 'None') || ',' ||
+           coalesce(ld.relative_humidity::varchar, 'None') || ',' ||
+           coalesce(round(ld.indoor_temperature::numeric, 2)::varchar, 'None') || ',' ||
+           coalesce(ld.indoor_relative_humidity::varchar, 'None') || ',' ||
+           coalesce(ld.absolute_pressure::varchar, 'None') || ',' ||
+           coalesce(ld.mean_sea_level_pressure::varchar, 'None') || ',' ||
+           coalesce(round(ld.average_wind_speed::numeric, 2)::varchar, 'None') || ',' ||
+           coalesce(ld.wind_direction::varchar, 'None') ||
+           case when st.code = 'DAVIS' then ',' ||
+                    coalesce(dd.bar_trend::varchar, 'None') || ',' ||
+                    coalesce(dd.rain_rate::varchar, 'None') || ',' ||
+                    coalesce(dd.storm_rain::varchar, 'None') || ',' ||
+                    coalesce(dd.current_storm_start_date::varchar, 'None') || ',' ||
+                    coalesce(dd.transmitter_battery::varchar, 'None') || ',' ||
+                    coalesce(round(dd.console_battery_voltage::numeric, 2)::varchar, 'None') ||','||
+                    coalesce(dd.forecast_icon::varchar, 'None') || ',' ||
+                    coalesce(dd.forecast_rule_id::varchar, 'None') || ',' ||
+                    coalesce(dd.uv_index::varchar, 'None') || ',' ||
+                    coalesce(dd.solar_radiation::varchar, 'None') || ',' ||
+                    coalesce(round(dd.average_wind_speed_2m::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(dd.average_wind_speed_10m::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(dd.gust_wind_speed_10m::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(dd.gust_wind_direction_10m::varchar, 'None') || ',' ||
+                    coalesce(round(dd.heat_index::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(dd.thsw_index::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(dd.altimeter_setting::varchar, 'None') || ',' ||
+                    coalesce(dd.leaf_wetness_1::varchar, 'None') || ',' ||
+                    coalesce(dd.leaf_wetness_2::varchar, 'None')  || ',' ||
+                    coalesce(round(dd.leaf_temperature_1::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(dd.leaf_temperature_2::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(dd.soil_moisture_1::varchar, 'None') || ',' ||
+                    coalesce(dd.soil_moisture_2::varchar, 'None') || ',' ||
+                    coalesce(dd.soil_moisture_3::varchar, 'None') || ',' ||
+                    coalesce(dd.soil_moisture_4::varchar, 'None') || ',' ||
+                    coalesce(round(dd.soil_temperature_1::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(dd.soil_temperature_2::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(dd.soil_temperature_3::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(dd.soil_temperature_4::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(dd.extra_temperature_1::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(dd.extra_temperature_2::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(dd.extra_temperature_3::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(dd.extra_humidity_1::varchar, 'None') || ',' ||
+                    coalesce(dd.extra_humidity_2::varchar, 'None')
+                else '' end
+          into result
+    from live_data ld
+    inner join station stn on stn.station_id = ld.station_id
+    inner join station_type st on stn.station_type_id = st.station_type_id
+    left outer join davis_live_data dd on stn.station_id = dd.station_id
+    where ld.station_id = for_station_id;
+
+    return result;
+    end;
+$$;
+comment on function live_csv_v2 is 'Gets version 2 of the live CSV format which adds a timestamp, sea level pressure and some extra values for Davis weather stations';
+
+
+create or replace function get_live_text_record(station_id integer, format integer)
+    returns varchar language plpgsql as $$
+begin
+    return case when format = 1 then live_csv_v1(station_id)
+                when format = 2 then live_csv_v2(station_id)
+                else 'unsupported format - supported formats are: 1, 2'
+    end;
+end;
+$$;
+comment on function get_live_text_record is 'Gets current live data as a text string such as CSV.';
+
+
+-- Sample CSV formats supported for data subscriptions in the weather server
+create or replace function sample_csv_v1(for_station_id integer,
+        get_sample_id integer, start_time timestamptz, end_time timestamptz)
+    returns table(sample_ts timestamptz, sample_data varchar) language plpgsql as $$
+begin
+    return query
+    select time_stamp,
+           (to_char(s.time_stamp, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') || ',' ||
+           coalesce(round(s.temperature::numeric, 2)::varchar, 'None') || ',' ||
+           coalesce(round(s.dew_point::numeric, 2)::varchar, 'None') || ',' ||
+           coalesce(round(s.apparent_temperature::numeric, 2)::varchar, 'None')||','||
+           coalesce(round(s.wind_chill::numeric, 2)::varchar, 'None') || ',' ||
+           coalesce(s.relative_humidity::varchar, 'None') || ',' ||
+           coalesce(round(s.indoor_temperature::numeric, 2)::varchar, 'None') ||','||
+           coalesce(s.indoor_relative_humidity::varchar, 'None') || ',' ||
+           coalesce(s.absolute_pressure::varchar, 'None') || ',' ||
+           coalesce(round(s.average_wind_speed::numeric, 2)::varchar, 'None') || ','||
+           coalesce(round(s.gust_wind_speed::numeric, 2)::varchar, 'None') || ',' ||
+           coalesce(s.wind_direction::varchar, 'None') || ',' ||
+           coalesce(s.rainfall::varchar, 'None') ||
+           case when st.code = 'DAVIS' then ',' ||
+                    round(ds.average_uv_index::numeric, 2)::varchar || ',' ||
+                    round(ds.solar_radiation::numeric, 2)::varchar
+                else ''
+                end)::Varchar
+    from sample s
+    inner join station stn on stn.station_id = s.station_id
+    inner join station_type st on st.station_type_id = stn.station_type_id
+    left outer join davis_sample ds on ds.sample_id = s.sample_id
+    where s.station_id = for_station_id
+      and (get_sample_id is not null or start_time is not null)
+      and (get_sample_id is null or s.sample_id = get_sample_id)
+      and (start_time is null or (
+          s.time_stamp > start_time
+          and (end_time is null OR s.time_stamp < end_time)
+        ))
+    order by s.time_stamp
+    ;
+
+    end;
+$$;
+comment on function sample_csv_v1 is 'Gets version 1 of the sample CSV format compatible with the desktop client up to September 2021.';
+
+create or replace function sample_csv_v2(for_station_id integer,
+        get_sample_id integer, start_time timestamptz, end_time timestamptz)
+    returns table(sample_ts timestamptz, sample_data varchar) language plpgsql as $$
+begin
+    return query
+    select time_stamp,
+           (to_char(s.time_stamp, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') || ',' ||
+           coalesce(round(s.temperature::numeric, 2)::varchar, 'None') || ',' ||
+           coalesce(round(s.dew_point::numeric, 2)::varchar, 'None') || ',' ||
+           coalesce(round(s.apparent_temperature::numeric, 2)::varchar, 'None')||','||
+           coalesce(round(s.wind_chill::numeric, 2)::varchar, 'None') || ',' ||
+           coalesce(s.relative_humidity::varchar, 'None') || ',' ||
+           coalesce(round(s.indoor_temperature::numeric, 2)::varchar, 'None') ||','||
+           coalesce(s.indoor_relative_humidity::varchar, 'None') || ',' ||
+           coalesce(s.absolute_pressure::varchar, 'None') || ',' ||
+            coalesce(s.mean_sea_level_pressure::varchar, 'None') || ',' ||
+           coalesce(round(s.average_wind_speed::numeric, 2)::varchar, 'None') || ','||
+           coalesce(round(s.gust_wind_speed::numeric, 2)::varchar, 'None') || ',' ||
+           coalesce(s.wind_direction::varchar, 'None') || ',' ||
+           coalesce(s.rainfall::varchar, 'None') ||
+           case when st.code = 'DAVIS' then ',' ||
+                    coalesce(round(ds.average_uv_index::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(ds.solar_radiation::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(ds.high_temperature::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(ds.low_temperature::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(ds.high_rain_rate::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(ds.wind_sample_count::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(ds.gust_wind_direction::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(ds.evapotranspiration::numeric, 4)::varchar, 'None') || ',' ||
+                    coalesce(round(ds.high_solar_radiation::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(ds.high_uv_index::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(ds.forecast_rule_id::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(ds.leaf_wetness_1::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(ds.leaf_wetness_2::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(ds.leaf_temperature_1::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(ds.leaf_temperature_2::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(ds.soil_moisture_1::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(ds.soil_moisture_2::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(ds.soil_moisture_3::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(ds.soil_moisture_4::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(ds.soil_temperature_1::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(ds.soil_temperature_2::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(ds.soil_temperature_3::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(ds.soil_temperature_4::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(ds.extra_humidity_1::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(ds.extra_humidity_2::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(ds.extra_temperature_1::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(ds.extra_temperature_2::numeric, 2)::varchar, 'None') || ',' ||
+                    coalesce(round(ds.extra_temperature_3::numeric, 2)::varchar, 'None')
+                else ''
+                end)::Varchar
+    from sample s
+    inner join station stn on stn.station_id = s.station_id
+    inner join station_type st on st.station_type_id = stn.station_type_id
+    left outer join davis_sample ds on ds.sample_id = s.sample_id
+    where s.station_id = for_station_id
+      and (get_sample_id is not null or start_time is not null)
+      and (get_sample_id is null or s.sample_id = get_sample_id)
+      and (start_time is null or (
+          s.time_stamp > start_time
+          and (end_time is null OR s.time_stamp < end_time)
+        ))
+    order by s.time_stamp
+    ;
+
+    end;
+$$;
+comment on function sample_csv_v2 is 'Gets version 2 of the sample CSV format which adds mean sea level pressure plus all davis-specific columns.';
 
 ----------------------------------------------------------------------
 -- VIEWS -------------------------------------------------------------

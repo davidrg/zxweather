@@ -2,22 +2,254 @@
 """
 Handles streaming samples around
 """
-from datetime import datetime, timedelta
-
 import math
-import pytz
+
 from server.database import get_live_csv, get_sample_csv, get_station_hw_type, \
     get_image_csv
 
 __author__ = 'david'
 
-subscriptions = {}
-_last_sample_ts = {}
-_latest_live = {}
+subscriptions = dict()
+
+
+class StationSubscriptionManager(object):
+    """
+    Handles subscriptions for a single weather station
+    """
+    def __init__(self, station_code):
+        self._station_code = station_code
+        self._sample_subscribers = dict()
+        self._ordered_sample_subscribers = dict()
+        self._live_subscribers = dict()
+        self._latest_live = dict()
+        self._image_subscribers = []
+        self._last_sample_ts = dict()
+
+    def subscribe(self, subscriber, live, samples, images,
+                  samples_in_any_order=False, live_format=1, sample_format=1):
+        """
+        Adds subscriptions for the specified subscriber.
+
+        Note that if samples must be delivered in order then any out-of-order
+        samples will be discarded - they won't be buffered and delivered later.
+
+        :param subscriber:
+        :param live: Receive live data
+        :type live: bool
+        :param samples: Receive new samples
+        :type samples: bool
+        :param images: Receive new image notifications
+        :type images: bool
+        :param samples_in_any_order: If samples can be delivered in any order
+        :type samples_in_any_order: bool
+        :param live_format: Format for live data records
+        :type live_format: int
+        :param sample_format: Format for sample records
+        :type sample_format: int
+        """
+        if live:
+            self.add_live_subscription(subscriber, live_format)
+
+        if samples:
+            self.add_sample_subscription(subscriber, samples_in_any_order, sample_format)
+
+        if images:
+            self.add_image_subscription(subscriber)
+
+    def unsubscribe_all(self, subscriber):
+        """
+        Removes all subscriptions for the specified subscriber
+        """
+        self.remove_live_subscription(subscriber)
+        self.remove_sample_subscription(subscriber)
+        self.remove_image_subscription(subscriber)
+
+    def add_sample_subscription(self, subscriber, any_order, sample_format):
+        """
+        Adds a subscription for samples/archive records.
+
+        If samples must be delivered in order some samples may be missed (they
+        won't be queued so they can be delivered in order)
+
+        :param subscriber: An object to receive new samples
+        :param any_order: If samples can be delivered in any order
+        :type any_order: bool
+        :param sample_format: Format to deliver samples in
+        :type sample_format: int
+        """
+
+        if any_order:
+            if sample_format not in self._sample_subscribers:
+                self._sample_subscribers[sample_format] = []
+
+            if subscriber in self._sample_subscribers[sample_format]:
+                return
+
+            self._sample_subscribers[sample_format].append(subscriber)
+        else:
+            if sample_format not in self._ordered_sample_subscribers:
+                self._ordered_sample_subscribers[sample_format] = []
+
+            if subscriber in self._ordered_sample_subscribers[sample_format]:
+                return
+
+            self._ordered_sample_subscribers[sample_format].append(subscriber)
+
+    def remove_sample_subscription(self, subscriber):
+        """
+        Removes the sample subscription for the specified subscriber
+        :param subscriber: Subscriber to unsubscribe
+        """
+
+        for fmt in self._sample_subscribers.keys():
+            if fmt in self._sample_subscribers:
+                if subscriber in self._sample_subscribers[fmt]:
+                    self._sample_subscribers[fmt].remove(subscriber)
+
+        for fmt in self._ordered_sample_subscribers.keys():
+            if fmt in self._ordered_sample_subscribers:
+                if subscriber in self._ordered_sample_subscribers[fmt]:
+                    self._ordered_sample_subscribers[fmt].remove(subscriber)
+
+    def add_image_subscription(self, subscriber):
+        """
+        Subscribe to new image notifications
+        :param subscriber: Object to receive new image notifications
+        """
+        if subscriber not in self._image_subscribers:
+            self._image_subscribers.append(subscriber)
+
+    def remove_image_subscription(self, subscriber):
+        """
+        Removes the new image subscription for the specified subscriber
+        :param subscriber:
+        """
+        if subscriber in self._image_subscribers:
+            self._image_subscribers.remove(subscriber)
+
+    def add_live_subscription(self, subscriber, record_format):
+        """
+        Adds a live data subscription for the specified subscriber
+        :param subscriber: Subscriber to receive new live data
+        :param record_format: Format the data should be delivered in
+        """
+        if record_format not in self._live_subscribers:
+            self._live_subscribers[record_format] = []
+            self._latest_live[record_format] = None
+
+        if subscriber not in self._live_subscribers[record_format]:
+            self._live_subscribers[record_format].append(subscriber)
+
+            if self._latest_live[record_format] is not None:
+                subscriber.live_data(self._latest_live[record_format])
+
+    def remove_live_subscription(self, subscriber, record_format=None):
+        """
+        Removes the live data subscription of the specified format for the
+        specified subscriber
+        :param subscriber:
+        :param record_format: format to remove the subscription for or None to
+                              remove all subscriptions
+        """
+        if record_format is None:
+            # Remove subscription for all formats
+            for fmt in self._live_subscribers.keys():
+                if subscriber in self._live_subscribers[fmt]:
+                    self._live_subscribers[fmt].remove(subscriber)
+            return
+
+        if record_format not in self._live_subscribers:
+            return
+
+        if subscriber in self._live_subscribers[record_format]:
+            self._live_subscribers[record_format].remove(subscriber)
+
+    def deliver_sample(self, data, record_format):
+        """
+        Delivers a sample to all subscribers
+        :param data: Data to deliver
+        :type data: tuple of timestamp and str
+        :param record_format: Format of the data being delivered
+        :type record_format: int
+        """
+
+        for row in data:
+            csv_data = 's,' + row[1]
+
+            # These subscribers don't care if they get the occasional sample
+            # out-of-order as long as they get all the samples.
+            if record_format in self._sample_subscribers.keys():
+                for subscriber in self._sample_subscribers[record_format]:
+                    subscriber.sample_data(csv_data)
+
+            # if _last_sample_ts[station_code] is not None:
+            #     now = datetime.utcnow().replace(tzinfo=pytz.utc)
+            # 
+            #     # If we've not broadcast anything for the last few hours we don't want
+            #     # to suddenly spam all clients with a hundred records because someone
+            #     # took the data logger back online. If our last broadcast was a few
+            #     # hours ago then reset it to 20 minutes ago
+            #     if _last_sample_ts[station_code] < now - timedelta(hours=4):
+            #         _last_sample_ts[station_code] = now - timedelta(minutes=20)
+
+            if record_format not in self._last_sample_ts:
+                self._last_sample_ts[record_format] = None
+
+            prev_ts = self._last_sample_ts[record_format]
+
+            if prev_ts is None or row[0] > prev_ts:
+                self._last_sample_ts[record_format] = row[0]
+
+                # These subscribers only want sampled where the timestamp is greater
+                # than the timestamp on the previous sample they received.
+                if record_format in self._ordered_sample_subscribers.keys():
+                    for subscriber in self._ordered_sample_subscribers[record_format]:
+                        subscriber.sample_data(csv_data)
+
+    def deliver_image(self, image):
+        """
+        Delivers a new image notification to all subscribers
+        :param image:
+        """
+        for subscriber in self._image_subscribers:
+            subscriber.live_data(image)
+
+    def deliver_live(self, live, record_format):
+        """
+        Delivers live data of the specified format to all subscribers for that
+        format.
+        :param live:
+        :param record_format:
+        """
+        if record_format not in self._live_subscribers:
+            return
+
+        for subscriber in self._live_subscribers[record_format]:
+            subscriber.live_data(live)
+            self._latest_live[record_format] = live
+
+    def enabled_live_record_formats(self):
+        """
+        Gets a list of all subscribed live record formats.
+
+        :rtype: List of int
+        """
+        return [k for k in self._live_subscribers.keys() if len(self._live_subscribers[k]) > 0]
+
+    def enabled_sample_record_formats(self):
+        """
+        Gets a list of all subscribed sample record formats.
+
+        :rtype: set of int
+        """
+        return set([k for k in self._sample_subscribers.keys()
+                    if len(self._sample_subscribers[k]) > 0] +
+                   [k for k in self._ordered_sample_subscribers.keys()
+                    if len(self._ordered_sample_subscribers[k]) > 0])
 
 
 def subscribe(subscriber, station, include_live, include_samples,
-              include_images, any_order=False):
+              include_images, live_format, sample_format, any_order=False):
     """
     Adds a new station data subscription
     :param subscriber: The object that data should be delivered to
@@ -31,31 +263,26 @@ def subscribe(subscriber, station, include_live, include_samples,
                            contain enough data to find the image, they don't
                            include the images themselves.
     :type include_images: bool
+    :param live_format: Live record format
+    :type live_format: int
+    :param sample_format: Sample record format
+    :type sample_format: int
     :param any_order: If samples should be streamed as they're inserted into
                       the database. When OFF out-of-order samples will be
                       ignored entirely
     :type any_order: bool
     """
-    global subscriptions, _latest_live
+    global subscriptions
 
     station = station.lower()
 
     if station not in subscriptions:
-        subscriptions[station] = {"s": [], "sa": [], "l": [], "i": []}
+        subscriptions[station] = StationSubscriptionManager(station)
 
-    if include_live:
-        subscriptions[station]["l"].append(subscriber)
+    mgr = subscriptions[station]  # Type: StationSubscriptionManager
 
-        # Send the most recent sample if we have one.
-        if station in _latest_live:
-            subscriber.live_data(_latest_live[station])
-    if include_samples:
-        if any_order:
-            subscriptions[station]["sa"].append(subscriber)
-        else:
-            subscriptions[station]["s"].append(subscriber)
-    if include_images:
-        subscriptions[station]["i"].append(subscriber)
+    mgr.subscribe(subscriber, include_live, include_samples, include_images,
+                  any_order, live_format, sample_format)
 
 
 def unsubscribe(subscriber, station):
@@ -67,125 +294,40 @@ def unsubscribe(subscriber, station):
     """
     global subscriptions
 
-    station = station.lower()
-
-    if subscriber in subscriptions[station]["s"]:
-        subscriptions[station]["s"].remove(subscriber)
-
-    if subscriber in subscriptions[station]["sa"]:
-        subscriptions[station]["sa"].remove(subscriber)
-
-    if subscriber in subscriptions[station]["l"]:
-        subscriptions[station]["l"].remove(subscriber)
-
-    if subscriber in subscriptions[station]["i"]:
-        subscriptions[station]["i"].remove(subscriber)
-
-
-def deliver_live_data(station, data):
-    """
-    delivers live data to all subscribers
-    :param station: The station this data is for
-    :type station: str
-    :param data: Live data
-    :type data: str
-    """
-    global subscriptions, _latest_live
-
-    station = station.lower()
-
-    _latest_live[station] = data
-
-    if station not in subscriptions:
+    if station.lower() not in subscriptions:
         return
 
-    subscribers = subscriptions[station]["l"]
-
-    for subscriber in subscribers:
-        subscriber.live_data(data)
+    subscriptions[station.lower()].unsubscribe_all(subscriber)
 
 
-def deliver_image_data(station, data):
-    """
-    delivers image data to all subscribers
-    :param station: The station this image is for
-    :type station: str
-    :param data: Image data
-    :type data: str
-    """
+def _station_live_updated_callback(data, record_format, code):
     global subscriptions
-
-    station = station.lower()
-
-    if station not in subscriptions:
-        return
-
-    subscribers = subscriptions[station]["i"]
-
-    for subscriber in subscribers:
-        subscriber.live_data(data)
-
-
-def deliver_sample_data(station, data):
-    """
-    delivers sample data to all subscribers
-    :param station: The station this data is for
-    :type station: str
-    :param data: Sample data
-    :type data: str
-    """
-    global subscriptions
-
-    station = station.lower()
-
-    if station not in subscriptions:
-        return
-
-    subscribers = subscriptions[station]["s"]
-
-    for subscriber in subscribers:
-        subscriber.sample_data(data)
-
-
-def deliver_unordered_sample_data(station, data):
-    """
-    delivers potentially unordered sample data to all subscribers
-    :param station: The station this data is for
-    :type station: str
-    :param data: Sample data
-    :type data: str
-    """
-    global subscriptions
-
-    station = station.lower()
-
-    if station not in subscriptions:
-        return
-
-    subscribers = subscriptions[station]["sa"]
-
-    for subscriber in subscribers:
-        subscriber.sample_data(data)
-
-
-def _station_live_updated_callback(data, code):
 
     code = code.lower()
 
     row = data[0]
 
     dat = "l,{0}".format(row[0])
-    deliver_live_data(code, dat)
+
+    if code not in subscriptions:
+        return
+
+    subscriptions[code].deliver_live(dat, record_format)
 
 
 def _new_image_callback(data):
+    global subscriptions
+
     row = data[0]
     station_code = row[0].lower()
     source_code = row[1].lower()
     type_code = row[2].lower()
-    time_stamp = row[3]  # Timzone is at original local time
+    time_stamp = row[3]  # Timezone is at original local time
     mime_type = row[4]
     id = row[5]
+
+    if station_code not in subscriptions:
+        return
 
     dat = "i,{station_code},{source_code},{type_code},{timestamp}," \
           "{mime_type},{id}".format(
@@ -196,21 +338,56 @@ def _new_image_callback(data):
             mime_type=mime_type,
             id=id)
 
-    deliver_image_data(station_code, dat)
+    # deliver_image_data(station_code, dat)
+    subscriptions[station_code].deliver_image(dat)
 
 
 # Format strings for live data broadcast over RabbitMQ.
-base_live_fmt = "{outsideTemperature},{dewPoint},{apparentTemperature}," \
-                "{windChill},{outsideHumidity},{insideTemperature}," \
-                "{insideHumidity},{barometer},{windSpeed},{windDirection}"
-davis_live_fmt = base_live_fmt + ",{barTrend},{rainRate},{stormRain}," \
-                                 "{startDateOfCurrentStorm}," \
-                                 "{transmitterBatteryStatus}," \
-                                 "{consoleBatteryVoltage},{forecastIcons}," \
-                                 "{forecastRuleNumber},{UV},{solarRadiation}"
+live_formats = {
+    1: {
+        "base": "{outsideTemperature},{dewPoint},{apparentTemperature}," 
+                "{windChill},{outsideHumidity},{insideTemperature}," 
+                "{insideHumidity},{barometer},{windSpeed},{windDirection}",
+        "davis": ",{barTrend},{rainRate},{stormRain},{startDateOfCurrentStorm}," 
+                 "{transmitterBatteryStatus},{consoleBatteryVoltage},"
+                 "{forecastIcons},{forecastRuleNumber},{UV},{solarRadiation},"
+                 "{leafWetness_1},{leafWetness_2},{leafTemperature_1},"
+                 "{leafTemperature_2},{soilMoisture_1},{soilMoisture_2},"
+                 "{soilMoisture_3},{soilMoisture_4},{soilTemperature_1},"
+                 "{soilTemperature_2},{soilTemperature_3},"
+                 "{soilTemperature_4}{extraTemperature_1},"
+                 "{extraTemperature_2},{extraTemperature_3},"
+                 "{extraHumidity_1},{extraHumidity_2}"
+    },
+    2: {
+        "base": "{timestamp},{outsideTemperature},{dewPoint},"
+                "{apparentTemperature},{windChill},{outsideHumidity},"
+                "{insideTemperature},{insideHumidity},"
+                "{absoluteBarometricPressure},{barometer},{windSpeed},"
+                "{windDirection}",
+        "davis": ",{barTrend},{rainRate},{stormRain},{startDateOfCurrentStorm}," 
+                 "{transmitterBatteryStatus},{consoleBatteryVoltage},"
+                 "{forecastIcons},{forecastRuleNumber},{UV},{solarRadiation},"
+                 "{averageWindSpeed2min},{averageWindSpeed10min},{windGust10m},"
+                 "{windGust10mDirection},{heatIndex},{thswIndex},"
+                 "{altimeterSetting}{leafWetness1},{leafWetness2},"
+                 "{leafTemperature1},{leafTemperature2},{soilMoisture1},"
+                 "{soilMoisture2},{soilMoisture3},{soilMoisture4},"
+                 "{soilTemperature1},{soilTemperature2},{soilTemperature3},"
+                 "{soilTemperature4}{extraTemperature1},{extraTemperature2},"
+                 "{extraTemperature3},{extraHumidity1},{extraHumidity2}"
+    }
+}
 
 
 def round_maybe_none_to_2dp(val):
+    """
+    Rounds a float to 2dp if its not None
+    :param val: Value to round
+    :type val: float
+    :return: Value as a 2dp string or None
+    :rtype: str or None
+    """
     if val is None:
         return None
     return "{0:.2f}".format(val)
@@ -307,25 +484,18 @@ def station_live_updated(station_code, data=None):
 
     station_code = station_code.lower()
 
-    if data is None:
-        get_live_csv(station_code).addCallback(_station_live_updated_callback,
-                                               station_code)
-    else:
-        # Encode the data as CSV then fire it off.
-        # The standard format is:
-        # Temperature, DewPoint, ApparentTemperature, WindChill,
-        # RelativeHumidity, IndoorTemperature, IndoorRelativeHumidity,
-        # AbsolutePressure, AverageWindSpeed, WindDirection,
-        #
-        # If the station hardware type is DAVIS we use this format instead:
-        # Temperature, DewPoint, ApparentTemperature, WindChill,
-        # RelativeHumidity, IndoorTemperature, IndoorRelativeHumidity,
-        # AbsolutePressure, AverageWindSpeed, WindDirection,
+    if station_code not in subscriptions:
+        return  # No active subscriptions for the station - ignore it.
 
-        # BarTrend, RainRate, StormRain, CurrentStormStartDate,
-        # TransmitterBattery, ConsoleBattery, ForecastIcon, ForecastRuleId,
-        # UVIndex, SolarRadiation, leafWetnesses, leafTemperatures,
-        # soilMoistures, soilTemperatures, extraTemperatures, extraHumidities
+    if data is None:
+        formats = subscriptions[station_code].enabled_live_record_formats()
+
+        for f in formats:
+            get_live_csv(station_code, f).addCallback(
+                _station_live_updated_callback, f, station_code)
+    else:
+        # Data isn't coming from the database - we've got to format it
+        # ourselves. So encode the data as CSV then fire it off.
 
         # The keys in the data structure don't match the rest of zxweather as
         # the davis logger was the first one to support outputting live data
@@ -343,8 +513,8 @@ def station_live_updated(station_code, data=None):
                 data["windSpeed"],
                 data["outsideHumidity"])
 
-        data["windChill"] = wind_chill(
-                data["outsideTemperature"], data["windSpeed"])
+        # data["windChill"] = wind_chill(
+        #         data["outsideTemperature"], data["windSpeed"])
 
         data["outsideTemperature"] = round_maybe_none_to_2dp(
                 data["outsideTemperature"])
@@ -357,48 +527,47 @@ def station_live_updated(station_code, data=None):
         data["windSpeed"] = round_maybe_none_to_2dp(data["windSpeed"])
         data["barometer"] = round_maybe_none_to_2dp(data["barometer"])
 
-        if get_station_hw_type(station_code) == 'DAVIS':
-            data["consoleBatteryVoltage"] = \
-                round_maybe_none_to_2dp(data["consoleBatteryVoltage"])
+        is_davis = get_station_hw_type(station_code) == 'DAVIS'
 
-            val = davis_live_fmt.format(**data)
-        else:
-            val = base_live_fmt.format(**data)
+        for record_format in subscriptions[station_code].enabled_live_record_formats():
+            base_format = live_formats[record_format]["base"]
+            if is_davis:
+                data["consoleBatteryVoltage"] = \
+                    round_maybe_none_to_2dp(data["consoleBatteryVoltage"])
 
-        # _station_live_updated_callback is expecting the result of a database
-        # query - one row with one column.
-        val = [[val, ], ]
-        _station_live_updated_callback(val, station_code)
+                format_string = base_format + live_formats[record_format]["davis"]
+
+                val = format_string.format(**data)
+            else:
+                val = base_format.format(**data)
+
+            # _station_live_updated_callback is expecting the result of a database
+            # query - one row with one column.
+            val = [[val, ], ]
+            _station_live_updated_callback(val, record_format, station_code)
 
 
 def new_image(image_id):
+    """
+    Called whenever a new image is available in the database
+    :param image_id: ID of the new image
+    :tyep image_id: int
+    """
     # We have the ID of a new image. We need to fetch that images metadata
     # (including the station its source is associated with) then push the
     # notification out.
     get_image_csv(image_id).addCallback(_new_image_callback)
 
 
-def _station_samples_updated_callback(data, code):
-    global _last_sample_ts
+def _station_samples_updated_callback(data, code, record_format):
+    global subscriptions
 
     code = code.lower()
 
-    for row in data:
-        prev_ts = _last_sample_ts[code]
+    if code not in subscriptions:
+        return
 
-        # We use ISO 8601 date formatting for output.
-        csv_data = 's,{0},{1}'.format(row[0], row[1])
-
-        # These subscribers don't care if they get the occasional sample
-        # out-of-order as long as they get all the samples.
-        deliver_unordered_sample_data(code, csv_data)
-
-        if prev_ts is None or row[0] > prev_ts:
-            _last_sample_ts[code] = row[0]
-
-            # These subscribers only want sampled where the timestamp is greater
-            # than the timestamp on the previous sample they received.
-            deliver_sample_data(code, csv_data)
+    subscriptions[code].deliver_sample(data, record_format)
 
 
 def new_station_sample(station_code, sample_id):
@@ -412,24 +581,13 @@ def new_station_sample(station_code, sample_id):
     :return:
     """
 
-    global _last_sample_ts
-
     station_code = station_code.lower()
 
-    if station_code not in _last_sample_ts:
-        _last_sample_ts[station_code] = None
+    if station_code not in subscriptions:
+        return  # No active subscriptions for the station - ignore it
 
-    if _last_sample_ts[station_code] is not None:
-        now = datetime.utcnow().replace(tzinfo=pytz.utc)
+    record_formats = subscriptions[station_code].enabled_sample_record_formats()
 
-        # If we've not broadcast anything for the last few hours we don't want
-        # to suddenly spam all clients with a hundred records because someone
-        # took the data logger back online. If our last broadcast was a few
-        # hours ago then reset it to 20 minutes ago
-        if _last_sample_ts[station_code] < now - timedelta(hours=4):
-            _last_sample_ts[station_code] = now - timedelta(minutes=20)
-
-    get_sample_csv(station_code, None, None, sample_id).addCallback(
-        _station_samples_updated_callback, station_code)
-
-
+    for record_format in record_formats:
+        get_sample_csv(station_code, record_format, None, None, sample_id).addCallback(
+            _station_samples_updated_callback, station_code, record_format)
