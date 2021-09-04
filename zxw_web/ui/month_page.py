@@ -162,8 +162,11 @@ def get_monthly_records(year, month, station_id):
 
     params = dict(date=date(year,month,01), station=station_id)
     monthly_records = db.query("""SELECT date_stamp, total_rainfall, max_gust_wind_speed, max_gust_wind_speed_ts::timestamp,
-   max_average_wind_speed, max_average_wind_speed_ts::timestamp, min_absolute_pressure,
-   min_absolute_pressure_ts::timestamp, max_absolute_pressure, max_absolute_pressure_ts::timestamp,
+   max_average_wind_speed, max_average_wind_speed_ts::timestamp, 
+   coalesce(min_sea_level_pressure, min_absolute_pressure) as min_pressure,
+   coalesce(min_sea_level_pressure_ts, min_absolute_pressure_ts)::timestamp as min_pressure_ts,
+   coalesce(max_sea_level_pressure, max_absolute_pressure) as max_pressure,
+   coalesce(max_sea_level_pressure_ts, max_absolute_pressure_ts)::timestamp as max_pressure_ts,
    min_apparent_temperature, min_apparent_temperature_ts::timestamp, max_apparent_temperature,
    max_apparent_temperature_ts::timestamp, min_wind_chill, min_wind_chill_ts::timestamp,
    max_wind_chill, max_wind_chill_ts::timestamp, min_dew_point, min_dew_point_ts::timestamp,
@@ -250,7 +253,7 @@ def get_month(ui, station, year, month):
             raise web.NotFound()
 
         # Min/Max values for the month
-        records = get_monthly_records(year,month, station_id)
+        records = get_monthly_records(year, month, station_id)
 
     hw_type = get_station_type_code(station_id)
 

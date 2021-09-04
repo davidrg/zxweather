@@ -277,6 +277,7 @@ def live_data(station_id):
                   'wind_chill': data.wind_chill,
                   'apparent_temperature': data.apparent_temperature,
                   'absolute_pressure': data.absolute_pressure,
+                  'msl_pressure': data.mean_sea_level_pressure,
                   'average_wind_speed': data.average_wind_speed,
                   'wind_direction': data.wind_direction,
                   'time_stamp': str(data.time_stamp),
@@ -295,14 +296,42 @@ def live_data(station_id):
                       'wind_chill': sample.wind_chill,
                       'apparent_temperature': sample.apparent_temperature,
                       'pressure': sample.absolute_pressure,
+                      'msl_pressure': sample.mean_sea_level_pressure,
                       'average_wind_speed': sample.average_wind_speed,
                       'gust_wind_speed': sample.gust_wind_speed,
+                      'wind_direction': sample.wind_direction,
                       'rainfall': sample.rainfall,
+                      'high_temperature': sample.high_temperature,
+                      'low_temperature': sample.low_temperature,
+                      'high_rain_rate': sample.high_rain_rate,
                       'solar_radiation': sample.solar_radiation,
-                      'uv_index': float(sample.average_uv_index)
+                      'wind_sample_count': sample.wind_sample_count,
+                      'gust_wind_direction': sample.gust_wind_direction,
+                      'uv_index': float(sample.average_uv_index),
+                      'high_solar_radiation': sample.high_solar_radiation,
+                      'high_uv_index': float(sample.high_uv_index),
+                      'evapotranspiration': sample.evapotranspiration,
+                      'forecast_rule_id': sample.forecast_rule_id,
+                      'leaf_wetness_1': sample.leaf_wetness_1,
+                      'leaf_wetness_2': sample.leaf_wetness_2,
+                      'leaf_temperature_1': sample.leaf_temperature_1,
+                      'leaf_temperature_2': sample.leaf_temperature_2,
+                      'soil_moisture_1': sample.soil_moisture_1,
+                      'soil_moisture_2': sample.soil_moisture_2,
+                      'soil_moisture_3': sample.soil_moisture_3,
+                      'soil_moisture_4': sample.soil_moisture_4,
+                      'soil_temperature_1': sample.soil_temperature_1,
+                      'soil_temperature_2': sample.soil_temperature_2,
+                      'soil_temperature_3': sample.soil_temperature_3,
+                      'soil_temperature_4': sample.soil_temperature_4,
+                      'extra_humidity_1': sample.extra_humidity_1,
+                      'extra_humidity_2': sample.extra_humidity_2,
+                      'extra_temperature_1': sample.extra_temperature_1,
+                      'extra_temperature_2': sample.extra_temperature_2,
+                      'extra_temperature_3': sample.extra_temperature_3,
                   },
                   'images': images
-              }
+                }
 
         if hw_type == 'DAVIS':
 
@@ -320,7 +349,14 @@ def live_data(station_id):
                 'forecast_icon': data.forecast_icon,
                 'forecast_rule': data.forecast_rule_id,
                 'uv_index': uv,
-                'solar_radiation': data.solar_radiation
+                'solar_radiation': data.solar_radiation,
+                'average_wind_speed_2m': data.average_wind_speed_2m,
+                'average_wind_speed_10m': data.average_wind_speed_10m,
+                'gust_wind_speed_10m': data.gust_wind_speed_10m,
+                'gust_wind_direction_10m': data.gust_wind_direction_10m,
+                'heat_index': data.heat_index,
+                'thsw_index': data.thsw_index,
+                'altimeter_setting': data.altimeter_setting
             }
 
             if data.leaf_wetness_1 is not None:
@@ -896,7 +932,7 @@ def make_ascii_live(station_id, filename):
         "dew": coalesce_float(data.dew_point),
         "wchill": data.wind_chill,
         "apptemp": coalesce_float(data.apparent_temperature),
-        "press": data.absolute_pressure,  # TODO: convert to sea level
+        "press": data.pressure,
         "wlatest": coalesce_float(convert_wind_speed(param["windunit"],
                                                      data.average_wind_speed)),
         "beaufortnumber": bft,
@@ -969,10 +1005,10 @@ def make_ascii_live(station_id, filename):
             "wgustTM": convert_wind_speed(param["windunit"],
                                           records.max_gust_wind_speed),
             "TwgustTM": time_fmt(records.max_gust_wind_speed_ts),
-            "pressTH": records.max_absolute_pressure,  # TODO: convert to sea level
-            "TpressTH": time_fmt(records.max_absolute_pressure_ts),
-            "pressTL": records.min_absolute_pressure,  # TODO: convert to sea level
-            "TpressTL": time_fmt(records.min_absolute_pressure_ts),
+            "pressTH": records.max_pressure,
+            "TpressTH": time_fmt(records.max_pressure_ts),
+            "pressTL": records.min_pressure,
+            "TpressTL": time_fmt(records.min_pressure_ts),
             "apptempTH": records.max_apparent_temperature,
             "TapptempTH": time_fmt(records.max_apparent_temperature_ts),
             "apptempTL": records.min_apparent_temperature,
@@ -993,7 +1029,7 @@ def make_ascii_live(station_id, filename):
         trends = get_current_3h_trends(station_id)
         param.update(
             {
-                "presstrendval": add_pos_symbol(trends.absolute_pressure_trend),
+                "presstrendval": add_pos_symbol(trends.pressure_trend),
                 "temptrend": add_pos_symbol(trends.temperature_trend),
                 "intemptrend": add_pos_symbol(trends.indoor_temperature_trend),
                 "inhumtrend": add_pos_symbol(trends.indoor_humidity_trend),
@@ -1069,9 +1105,9 @@ def make_cumulus_dayfile(station_id):
 
     fmt = "{date},{max_gust_wind_speed},{max_gust_wind_speed_direction}," \
           "{max_gust_wind_speed_ts},{min_temperature},{min_temperature_ts}," \
-          "{max_temperature},{max_temperature_ts},{min_absolute_pressure}," \
-          "{min_absolute_pressure_ts},{max_absolute_pressure}," \
-          "{max_absolute_pressure_ts},{max_rain_rate},{max_rain_rate_ts}," \
+          "{max_temperature},{max_temperature_ts},{min_pressure}," \
+          "{min_pressure_ts},{max_pressure}," \
+          "{max_pressure_ts},{max_rain_rate},{max_rain_rate_ts}," \
           "{total_rainfall},{average_temperature},{wind_run}," \
           "{max_average_wind_speed},{max_average_wind_speed_ts}," \
           "{min_humidity},{min_humidity_ts},{max_humidity}," \
@@ -1095,10 +1131,10 @@ def make_cumulus_dayfile(station_id):
             min_temperature_ts=time_fmt(row.min_temperature_ts),
             max_temperature=row.max_temperature,
             max_temperature_ts=time_fmt(row.max_temperature_ts),
-            min_absolute_pressure=row.min_absolute_pressure,
-            min_absolute_pressure_ts=time_fmt(row.min_absolute_pressure_ts),
-            max_absolute_pressure=row.max_absolute_pressure,
-            max_absolute_pressure_ts=time_fmt(row.max_absolute_pressure_ts),
+            min_pressure=row.min_pressure,
+            min_pressure_ts=time_fmt(row.min_pressure_ts),
+            max_pressure=row.max_pressure,
+            max_pressure_ts=time_fmt(row.max_pressure_ts),
             max_rain_rate=row.max_rain_rate,
             max_rain_rate_ts=time_fmt(row.max_rain_rate_ts),
             total_rainfall=row.total_rainfall,

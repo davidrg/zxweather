@@ -43,6 +43,14 @@ def get_day_records(day, station_id):
         'min_absolute_pressure_ts': str(records.min_absolute_pressure_ts),
         'max_absolute_pressure': records.max_absolute_pressure,
         'max_absolute_pressure_ts': str(records.max_absolute_pressure_ts),
+        'min_sea_level_pressure': records.min_sea_level_pressure,
+        'min_sea_level_pressure_ts': str(records.min_sea_level_pressure_ts),
+        'max_sea_level_pressure': records.max_sea_level_pressure,
+        'max_sea_level_pressure_ts': str(records.max_sea_level_pressure_ts),
+        'min_pressure': records.min_pressure,
+        'min_pressure_ts': str(records.min_pressure_ts),
+        'max_pressure': records.max_pressure,
+        'max_pressure_ts': str(records.max_pressure_ts),
         'min_apparent_temperature': records.min_apparent_temperature,
         'min_apparent_temperature_ts': str(records.min_apparent_temperature_ts),
         'max_apparent_temperature': records.max_apparent_temperature,
@@ -77,6 +85,12 @@ def get_day_records(day, station_id):
     if records.max_absolute_pressure_ts is not None and \
                     records.max_absolute_pressure_ts > age:
         age = records.max_absolute_pressure_ts
+    if records.min_sea_level_pressure_ts is not None and \
+       records.min_sea_level_pressure_ts > age:
+        age = records.min_sea_level_pressure_ts
+    if records.max_sea_level_pressure_ts is not None and \
+       records.max_sea_level_pressure_ts > age:
+        age = records.max_sea_level_pressure_ts
     if records.min_apparent_temperature_ts is not None and \
                     records.min_apparent_temperature_ts > age:
         age = records.min_apparent_temperature_ts
@@ -112,8 +126,8 @@ def get_day_records(day, station_id):
 
     json_data = json.dumps(data)
 
-    day_cache_control(age,day, station_id)
-    web.header('Content-Type','application/json')
+    day_cache_control(age, day, station_id)
+    web.header('Content-Type', 'application/json')
     web.header('Content-Length', str(len(json_data)))
     return json_data
 
@@ -168,7 +182,7 @@ def get_day_samples_data(day, station_id):
     :type station_id: int
     :return:
     """
-    params = dict(date = day, station=station_id)
+    params = dict(date=day, station=station_id)
     result = config.db.query("""select s.time_stamp::timestamptz,
                s.temperature,
                s.dew_point,
@@ -176,6 +190,8 @@ def get_day_samples_data(day, station_id):
                s.wind_chill,
                s.relative_humidity,
                s.absolute_pressure,
+               s.mean_sea_level_pressure,
+               coalesce(s.mean_sea_level_pressure, s.absolute_pressure) as pressure,
                s.time_stamp - (st.sample_interval * '1 second'::interval) as prev_sample_time,
                CASE WHEN (s.time_stamp - prev.time_stamp) > ((st.sample_interval * 2) * '1 second'::interval) THEN
                   true
@@ -218,6 +234,8 @@ def get_24hr_samples_data(time, station_id):
                s.wind_chill,
                s.relative_humidity,
                s.absolute_pressure,
+               s.mean_sea_level_pressure,
+               coalesce(s.mean_sea_level_pressure, s.absolute_pressure) as pressure,
                s.time_stamp - (st.sample_interval * '1 second'::interval) as prev_sample_time,
                CASE WHEN (s.time_stamp - prev.time_stamp) > ((st.sample_interval * 2) * '1 second'::interval) THEN
                   true
@@ -255,6 +273,8 @@ def get_7day_samples_data(day, station_id):
            s.wind_chill,
            s.relative_humidity,
            s.absolute_pressure,
+           s.mean_sea_level_pressure,
+           coalesce(s.mean_sea_level_pressure, s.absolute_pressure) as pressure,
            s.time_stamp - (st.sample_interval * '1 second'::interval) as prev_sample_time,
            CASE WHEN (s.time_stamp - prev.time_stamp) > ((st.sample_interval * 2) * '1 second'::interval) THEN
               true
@@ -293,6 +313,8 @@ def get_7day_30mavg_samples_data(day, station_id):
        avg(wind_chill) as wind_chill,
        avg(relative_humidity)::integer as relative_humidity,
        avg(absolute_pressure) as absolute_pressure,
+       avg(mean_sea_level_pressure) as mean_sea_level_pressure,
+       avg(pressure) as pressure,
        min(prev_sample_time) as prev_sample_time,
        bool_or(gap) as gap,
        avg(iq.average_wind_speed) as average_wind_speed,
@@ -309,6 +331,8 @@ from (
                cur.wind_chill,
                cur.relative_humidity,
                cur.absolute_pressure,
+               cur.mean_sea_level_pressure,
+               coalesce(cur.mean_sea_level_pressure, cur.absolute_pressure) as pressure,
                cur.time_stamp - (st.sample_interval * '1 second'::interval) as prev_sample_time,
                CASE WHEN (cur.time_stamp - prev.time_stamp) > ((st.sample_interval * 2) * '1 second'::interval) THEN
                   true
@@ -350,6 +374,8 @@ def get_168hr_30mavg_samples_data(day, station_id):
        avg(wind_chill) as wind_chill,
        avg(relative_humidity)::integer as relative_humidity,
        avg(absolute_pressure) as absolute_pressure,
+       avg(mean_sea_level_pressure) as mean_sea_level_pressure,
+       avg(pressure) as pressure,
        min(prev_sample_time) as prev_sample_time,
        bool_or(gap) as gap,
        avg(iq.average_wind_speed) as average_wind_speed,
@@ -366,6 +392,8 @@ from (
                cur.wind_chill,
                cur.relative_humidity,
                cur.absolute_pressure,
+               cur.mean_sea_level_pressure,
+               coalesce(cur.mean_sea_level_pressure, cur.absolute_pressure) as pressure,
                cur.time_stamp - (st.sample_interval * '1 second'::interval) as prev_sample_time,
                CASE WHEN (cur.time_stamp - prev.time_stamp) > ((st.sample_interval * 2) * '1 second'::interval) THEN
                   true
@@ -1278,11 +1306,12 @@ def get_day_samples_tab_delimited(this_date, station_id):
 
     file_data = '# timestamp\ttemperature\tdew point\tapparent temperature\t' \
                 'wind chill\trelative humidity\tabsolute pressure\t' \
-                'indoor temperature\tindoor relative humidity\trainfall\t' \
-                'average wind speed\tgust wind speed\twind direction\t' \
-                'uv index\tsolar radiation\treception\thigh_temp\tlow_temp\t' \
-                'high_rain_rate\tgust_direction\tevapotranspiration\t' \
-                'high_solar_radiation\thigh_uv_index\tforecast_rule_id'
+                'mean sea level pressure\tindoor temperature\t' \
+                'indoor relative humidity\trainfall\taverage wind speed\t' \
+                'gust wind speed\twind direction\tuv index\tsolar radiation\t' \
+                'reception\thigh_temp\tlow_temp\thigh_rain_rate\t' \
+                'gust_direction\tevapotranspiration\thigh_solar_radiation\t' \
+                'high_uv_index\tforecast_rule_id'
 
     if extra_sensors:
         file_data += '\tsoil_moisture_1\tsoil_moisture_2\tsoil_moisture_3\t' \
@@ -1299,11 +1328,11 @@ def get_day_samples_tab_delimited(this_date, station_id):
 
     format_string = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t{10}\t' \
                     '{11}\t{12}\t{13}\t{14}\t{15}\t{16}\t{17}\t{18}\t{19}\t' \
-                    '{20}\t{21}\t{22}\t{23}'
+                    '{20}\t{21}\t{22}\t{23}\t{24}'
 
     if extra_sensors:
-        format_string += "\t{24}\t{25}\t{26}\t{27}\t{28}\t{29}\t{30}\t{31}\t" \
-                         "{32}\t{33}\t{34}\t{35}\t{36}\t{37}\t{38}\t{39}\t{40}"
+        format_string += "\t{25}\t{26}\t{27}\t{28}\t{29}\t{30}\t{31}\t{32}\t" \
+                         "{33}\t{34}\t{35}\t{36}\t{37}\t{38}\t{39}\t{40}\t{41}"
 
     format_string += "\n"
 
@@ -1328,6 +1357,7 @@ def get_day_samples_tab_delimited(this_date, station_id):
             nullable_str(record.wind_chill),
             nullable_str(record.relative_humidity),
             nullable_str(record.absolute_pressure),
+            nullable_str(record.mean_sea_level_pressure),
             nullable_str(record.indoor_temperature),
             nullable_str(record.indoor_relative_humidity),
             nullable_str(record.rainfall),

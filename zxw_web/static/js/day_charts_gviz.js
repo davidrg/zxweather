@@ -41,7 +41,7 @@ function drawAllLineCharts(data,
     pressure.hideColumns([1,2,3,4,5,7,8,9,10]);
 
     var pressure_options = {
-        title: 'Absolute Pressure (hPa)',
+        title: 'Pressure (hPa)',
         legend: {position: 'none'},
         vAxis: {format: '####'}
     };

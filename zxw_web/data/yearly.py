@@ -233,8 +233,8 @@ def get_daily_records_data(year, station_id):
         min(temperature) as min_temp,
         max(relative_humidity) as max_humid,
         min(relative_humidity) as min_humid,
-        max(absolute_pressure) as max_pressure,
-        min(absolute_pressure) as min_pressure,
+        max(coalesce(mean_sea_level_pressure, absolute_pressure)) as max_pressure,
+        min(coalesce(mean_sea_level_pressure, absolute_pressure)) as min_pressure,
         sum(rainfall) as total_rainfall,
         max(average_wind_speed) as max_average_wind_speed,
         max(gust_wind_speed) as max_gust_wind_speed

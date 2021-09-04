@@ -1000,13 +1000,15 @@ function check_for_date_change() {
 }
 
 function parse_live_data(parts) {
-    if (parts[0] != 'l' || parts.length < 11) {
+    if (parts[0] !== 'l' || parts.length < 13) {
         // Not a live record or not a valid live
         // record (needs at least 12 fields)
         return null;
     }
 
-    var now = new Date();
+    console.log(parts[1]);
+
+    var now = new Date(parts[1]);
     var h = now.getHours();
     var m = now.getMinutes();
     var s = now.getSeconds();
@@ -1015,22 +1017,23 @@ function parse_live_data(parts) {
     if (s < 10) s = '0' + s;
     var time = h + ':' + m + ':' + s;
 
-    var wind = parseFloat(parts[9]);
+    var wind = parseFloat(parts[11]);
     if (wind_speed_kmh) {
         wind = wind * 3.6
     }
 
     var result = {
-        'temperature': parseFloat(parts[1]),
-        'dew_point': parseFloat(parts[2]),
-        'apparent_temperature': parseFloat(parts[3]),
-        'wind_chill': parseFloat(parts[4]),
-        'relative_humidity': parseInt(parts[5]),
-        // Indoor temperature - 6
-        // Indoor humidity - 7
-        'absolute_pressure': parseFloat(parts[8]),
+        'temperature': parseFloat(parts[2]),
+        'dew_point': parseFloat(parts[3]),
+        'apparent_temperature': parseFloat(parts[4]),
+        'wind_chill': parseFloat(parts[5]),
+        'relative_humidity': parseInt(parts[6]),
+        // Indoor temperature - 7
+        // Indoor humidity - 8
+        'absolute_pressure': parseFloat(parts[9]),
+        'msl_pressure': parseFloat(parts[10]),
         'average_wind_speed': wind,
-        'wind_direction': parseInt(parts[10]),
+        'wind_direction': parseInt(parts[12]),
         'hw_type': hw_type,
         'time_stamp': time,
         'age': 0,
@@ -1040,39 +1043,46 @@ function parse_live_data(parts) {
 
     if (hw_type === 'DAVIS') {
 
-        if (parts.length < 21) {
-            // Invalid davis record (needs 20 fields)
+        if (parts.length < 29) {
+            // Invalid davis record (needs 29 fields)
             return null;
         }
 
         result['davis'] = {
-            'bar_trend': parseInt(parts[11]),
-            'rain_rate': parseFloat(parts[12]),
-            'storm_rain': parseFloat(parts[13]),
-            'current_storm_date': parts[14],
-            'tx_batt': parseInt(parts[15]),
-            'console_batt': parseFloat(parts[16]),
-            'forecast_icon': parseInt(parts[17]),
-            'forecast_rule': parseInt(parts[18]),
-            'uv_index': parseFloat(parts[19]),
-            'solar_radiation': parseInt(parts[20]),
-            // leaf wetness 1
-            // leaf wetness 2
-            // leaf temperature 1
-            // leaf temperature 2
-            // soil moisture 1
-            // soil moisture 2
-            // soil moisture 3
-            // soil moisture 4
-            // soil temperature 1
-            // soil temperature 2
-            // soil temperature 3
-            // soil temperature 4
-            // extra temperature 1
-            // extra temperature 2
-            // extra temperature 3
-            // extra humidity 1
-            // extra humidity 2
+            'bar_trend': parseInt(parts[13]),
+            'rain_rate': parseFloat(parts[14]),
+            'storm_rain': parseFloat(parts[15]),
+            'current_storm_date': parts[16],
+            'tx_batt': parseInt(parts[17]),
+            'console_batt': parseFloat(parts[18]),
+            'forecast_icon': parseInt(parts[19]),
+            'forecast_rule': parseInt(parts[20]),
+            'uv_index': parseFloat(parts[21]),
+            'solar_radiation': parseInt(parts[22]),
+            // 23 - average wind speed 2m
+            // 24 - average wind speed 10m
+            // 25 - gust wind speed 10m
+            // 26 - gust wind speed direction 10m
+            // 27 - heat index
+            'thsw_index': parseFloat(parts[28])
+            // 29 - altimeter setting
+            // 30 - leaf wetness 1
+            // 31 - leaf wetness 2
+            // 32 - leaf temperature 1
+            // 33 - leaf temperature 2
+            // 34 - soil moisture 1
+            // 35 - soil moisture 2
+            // 36 - soil moisture 3
+            // 37 - soil moisture 4
+            // 38 - soil temperature 1
+            // 39 - soil temperature 2
+            // 40 - soil temperature 3
+            // 41 - soil temperature 4
+            // 42 - extra temperature 1
+            // 43 - extra temperature 2
+            // 44 - extra temperature 3
+            // 45 - extra humidity 1
+            // 46 - extra humidity 2
         };
 
         if (result['davis']['current_storm_date'] == 'None')
@@ -1261,17 +1271,18 @@ function parse_sample(parts) {
         indoor_temperature: parseNoneableFloat(parts[7]),
         indoor_humidity: parseNoneableInt(parts[8]),
         pressure: parseNoneableFloat(parts[9]),
+        msl_pressure: parseNoneableFloat(parts[10]),
         wind_speed: wind,
         gust_wind_speed: wind_gust,
-        wind_direction: parseNoneableInt(parts[12]),
-        rainfall: parseNoneableFloat(parts[13]),
+        wind_direction: parseNoneableInt(parts[13]),
+        rainfall: parseNoneableFloat(parts[14]),
         uv_index: null,
         solar_radiation: null
     };
 
-    if (hw_type == 'DAVIS' && parts.length > 14) {
-        sample.uv_index = parseNoneableFloat(parts[14]);
-        sample.solar_radiation = parseNoneableFloat(parts[15]);
+    if (hw_type === 'DAVIS' && parts.length > 15) {
+        sample.uv_index = parseNoneableFloat(parts[15]);
+        sample.solar_radiation = parseNoneableFloat(parts[16]);
     }
 
     return sample;
@@ -2010,7 +2021,7 @@ function ws_data_arrived(evt) {
             }
         }
 
-        socket.send('subscribe "' + station_code + '"/live/samples/any_order/images' + catchup + '\n');
+        socket.send('subscribe "' + station_code + '"/live=2/samples=2/any_order/images' + catchup + '\n');
 
         ws_state = 'sub';
         console.log('Subscription started.');
@@ -2318,7 +2329,12 @@ function refresh_live_data(data) {
         var apparent_temp = data['apparent_temperature'].toFixed(1);
         var wind_chill = data['wind_chill'].toFixed(1);
         var dew_point = data['dew_point'].toFixed(1);
-        var absolute_pressure = data['absolute_pressure'].toFixed(1);
+        var pressure = null;
+        if (data['msl_pressure'] != null) {
+            pressure = data['msl_pressure'].toFixed(1);
+        } else {
+            pressure = data['absolute_pressure'].toFixed(1);
+        }
         var wind_speed = data['average_wind_speed'].toFixed(1);
         var hw_type = data['hw_type'];
         var wind_direction = data['wind_direction'];
@@ -2406,7 +2422,7 @@ function refresh_live_data(data) {
         $("#live_apparent_temperature").html(apparent_temp + '°C');
         $("#live_wind_chill").html(wind_chill + '°C');
         $("#live_dew_point").html(dew_point + '°C');
-        $("#live_absolute_pressure").html(absolute_pressure + ' hPa' + bar_trend);
+        $("#live_pressure").html(pressure + ' hPa' + bar_trend);
 
         if (wind_speed_kmh) {
             $("#live_avg_wind_speed").html(wind_speed + ' km/h (' + bft_data[1] + ')');
@@ -2540,10 +2556,10 @@ function reload_records() {
             max_dew_point: data['max_dew_point'],
             max_dew_point_ts: parseTime(data['max_dew_point_ts']),
 
-            min_pressure: data['min_absolute_pressure'],
-            min_pressure_ts: parseTime(data['min_absolute_pressure_ts']),
-            max_pressure: data['max_absolute_pressure'],
-            max_pressure_ts: parseTime(data['max_absolute_pressure_ts']),
+            min_pressure: data['min_pressure'],
+            min_pressure_ts: parseTime(data['min_pressure_ts']),
+            max_pressure: data['max_pressure'],
+            max_pressure_ts: parseTime(data['max_pressure_ts']),
 
             min_humidity: data['min_humidity'],
             min_humidity_ts: parseTime(data['min_humidity_ts']),

@@ -1929,6 +1929,115 @@ begin
 end;
 $$;
 comment on function get_live_text_record is 'Gets sample data as a text string such as CSV.';
+
+create or replace function month_samples_tsv(for_station_id integer,
+                                             month timestamptz,
+                                             broadcast_id integer,
+                                             version integer,
+                                             include_extra_sensors bool)
+    returns table
+            (
+                sample_ts   timestamptz,
+                sample_data varchar
+            )
+    language plpgsql
+as
+$$
+begin
+    return query
+        -- Column headings
+        select date_trunc('month', month) as time_stamp,
+                ('# timestamp	temperature	dew point	apparent temperature	'  ||
+                'wind chill	relative humidity	'  ||
+                case when version = 1 then 'pressure'
+                     else 'absolute pressure	mean sea level pressure'
+                end || chr(9) ||
+                'indoor temperature	indoor relative humidity	rainfall	'  ||
+                'average wind speed	gust wind speed	wind direction	' ||
+                'uv index	solar radiation	reception	high temp	low temp	' ||
+                'high rain rate	gust direction	evapotranspiration	' ||
+                'high solar radiation	high uv index	forecast rule id' ||
+                case when include_extra_sensors then
+                     '	soil moisture 1	soil moisture 2	soil moisture 3	' ||
+                     'soil moisture 4	soil temperature 1	' ||
+                     'soil temperature 2	soil temperature 3	' ||
+                     'soil temperature 4	leaf wetness 1	leaf wetness 2	' ||
+                     'leaf temperature 1	leaf temperature 2	' ||
+                     'extra humidity 1	extra humidity 2	' ||
+                     'extra temperature 1	extra temperature 2	' ||
+                     'extra temperature 3'
+                     else ''
+                end)::varchar
+        union all
+        -- Row data
+        select cur.time_stamp as time_stamp,
+               (
+                   to_char(cur.time_stamp, 'YYYY-MM-DD HH24:MI:SSOF') || chr(9) ||
+                   coalesce(round(cur.temperature::numeric, 2)::varchar, '?') || chr(9) ||
+                   coalesce(round(cur.dew_point::numeric, 1)::varchar, '?') || chr(9) ||
+                   coalesce(round(cur.apparent_temperature::numeric, 1)::varchar, '?') || chr(9) ||
+                   coalesce(round(cur.wind_chill::numeric, 1)::varchar, '?') || chr(9) ||
+                   coalesce(cur.relative_humidity::varchar, '?') || chr(9) ||
+                   case when version = 1 then coalesce(round(coalesce(cur.mean_sea_level_pressure, cur.absolute_pressure)::numeric, 2)::varchar, '?')::varchar
+                        else coalesce(round(cur.absolute_pressure::numeric, 2)::varchar, '?') || chr(9) ||
+                             coalesce(round(cur.mean_sea_level_pressure::numeric, 2)::varchar, '?')
+                   end || chr(9) ||
+                   coalesce(round(cur.indoor_temperature::numeric, 2)::varchar, '?') || chr(9) ||
+                   coalesce(cur.indoor_relative_humidity::varchar, '?') || chr(9) ||
+                   coalesce(round(cur.rainfall::numeric, 1)::varchar, '?') || chr(9) ||
+                   coalesce(round(cur.average_wind_speed::numeric, 2)::varchar, '?') || chr(9) ||
+                   coalesce(round(cur.gust_wind_speed::numeric, 2)::varchar, '?') || chr(9) ||
+                   coalesce(cur.wind_direction::varchar, '?') || chr(9) ||
+                   coalesce(ds.average_uv_index::varchar, '?') || chr(9) ||
+                   coalesce(ds.solar_radiation::varchar, '?') || chr(9) ||
+                   -- Reception:
+                   case when broadcast_id is null then '?'
+                        else coalesce(round((ds.wind_sample_count /
+                               ((s.sample_interval::float) / ((41 + broadcast_id - 1)::float / 16.0)) * 100)::numeric,
+                              1)::varchar, '?')
+                   end::varchar || chr(9) ||
+                   coalesce(round(ds.high_temperature::numeric, 2)::varchar, '?') || chr(9) ||
+                   coalesce(round(ds.low_temperature::numeric, 2)::varchar, '?') || chr(9) ||
+                   coalesce(round(ds.high_rain_rate::numeric, 2)::varchar, '?') || chr(9) ||
+                   coalesce(ds.gust_wind_direction::varchar, '?') || chr(9) ||
+                   coalesce(ds.evapotranspiration::varchar, '?') || chr(9) ||
+                   coalesce(ds.high_solar_radiation::varchar, '?') || chr(9) ||
+                   coalesce(ds.high_uv_index::varchar, '?') || chr(9) ||
+                   coalesce(ds.forecast_rule_id::varchar, '?') ||
+                   case when include_extra_sensors then chr(9) ||
+                           coalesce(ds.soil_moisture_1::varchar, '?') || chr(9) ||
+                           coalesce(ds.soil_moisture_2::varchar, '?') || chr(9) ||
+                           coalesce(ds.soil_moisture_3::varchar, '?') || chr(9) ||
+                           coalesce(ds.soil_moisture_4::varchar, '?') || chr(9) ||
+                           coalesce(round(ds.soil_temperature_1::numeric, 2)::varchar, '?') || chr(9) ||
+                           coalesce(round(ds.soil_temperature_2::numeric, 2)::varchar, '?') || chr(9) ||
+                           coalesce(round(ds.soil_temperature_3::numeric, 2)::varchar, '?') || chr(9) ||
+                           coalesce(round(ds.soil_temperature_4::numeric, 2)::varchar, '?') || chr(9) ||
+                           coalesce(ds.leaf_wetness_1::varchar, '?') || chr(9) ||
+                           coalesce(ds.leaf_wetness_2::varchar, '?') || chr(9) ||
+                           coalesce(round(ds.leaf_temperature_1::numeric, 2) ::varchar, '?') || chr(9) ||
+                           coalesce(round(ds.leaf_temperature_2::numeric, 2)::varchar, '?') || chr(9) ||
+                           coalesce(ds.extra_humidity_1::varchar, '?') || chr(9) ||
+                           coalesce(ds.extra_humidity_2::varchar, '?') || chr(9) ||
+                           coalesce(round(ds.extra_temperature_1::numeric, 2)::varchar, '?') || chr(9) ||
+                           coalesce(round(ds.extra_temperature_2::numeric, 2)::varchar, '?') || chr(9) ||
+                           coalesce(round(ds.extra_temperature_3::numeric, 2) ::varchar, '?')
+                        else ''
+                   end::varchar
+
+               )::varchar as sample_data
+
+        from sample cur
+                 inner join station s on s.station_id = cur.station_id
+                 left outer join davis_sample ds on ds.sample_id = cur.sample_id
+        where date(date_trunc('month', cur.time_stamp)) = date(date_trunc('month', month))
+          and cur.station_id = for_station_id
+        order by time_stamp;
+
+end;
+$$;
+comment on function month_samples_tsv is 'Gets tab-delimited sample data for an entire month. Used by some of the web UIs data endpoints.';
+
 ----------------------------------------------------------------------
 -- TRIGGER FUNCTIONS -------------------------------------------------
 ----------------------------------------------------------------------

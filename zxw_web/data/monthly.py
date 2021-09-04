@@ -10,12 +10,13 @@ import os
 import web
 from web.contrib.template import render_jinja
 from config import db
-import config
-from data.util import outdoor_sample_result_to_datatable, outdoor_sample_result_to_json, daily_records_result_to_datatable, daily_records_result_to_json
+from data.util import outdoor_sample_result_to_datatable, outdoor_sample_result_to_json, \
+    daily_records_result_to_datatable, daily_records_result_to_json
 from database import get_station_id, get_sample_interval, \
-    get_month_data_wp, get_month_data_wp_age, get_extra_sensors_enabled, get_noaa_month_data
+     get_month_data_wp_age, get_extra_sensors_enabled, get_noaa_month_data, get_station_config
 
 __author__ = 'David Goodwin'
+
 
 ### Data URLs:
 # This file provides URLs to access raw data in json format.
@@ -61,7 +62,7 @@ class datatable_json:
 
         # Make sure the month actually exists in the database before we go
         # any further.
-        params = dict(date=date(int(year),int(month),1), station=station_id)
+        params = dict(date=date(int(year), int(month), 1), station=station_id)
         recs = db.query(
             """select 42 from sample
             where date(date_trunc('month',time_stamp)) = $date
@@ -71,13 +72,14 @@ class datatable_json:
             raise web.NotFound()
 
         if dataset == 'samples':
-            return get_month_samples_datatable(int_year,int_month, station_id)
+            return get_month_samples_datatable(int_year, int_month, station_id)
         elif dataset == '30m_avg_samples':
-            return get_30m_avg_month_samples_datatable(int_year,int_month, station_id)
+            return get_30m_avg_month_samples_datatable(int_year, int_month, station_id)
         elif dataset == 'daily_records':
-            return get_daily_records_datatable(int_year,int_month, station_id)
+            return get_daily_records_datatable(int_year, int_month, station_id)
         else:
             raise web.NotFound()
+
 
 class data_json:
     """
@@ -111,7 +113,7 @@ class data_json:
 
         # Make sure the month actually exists in the database before we go
         # any further.
-        params = dict(date=date(int(year),int(month),1), station=station_id)
+        params = dict(date=date(int(year), int(month), 1), station=station_id)
         recs = db.query("""select 42 from sample
         where date(date_trunc('month',time_stamp)) = $date
         and station_id = $station
@@ -120,17 +122,18 @@ class data_json:
             raise web.NotFound()
 
         if dataset == 'samples':
-            return get_month_samples_json(int_year,int_month, station_id)
+            return get_month_samples_json(int_year, int_month, station_id)
         elif dataset == '30m_avg_samples':
-            return get_30m_avg_month_samples_json(int_year,int_month, station_id)
+            return get_30m_avg_month_samples_json(int_year, int_month, station_id)
         elif dataset == 'daily_records':
-            return get_daily_records_json(int_year,int_month, station_id)
+            return get_daily_records_json(int_year, int_month, station_id)
         else:
             raise web.NotFound()
 
 
 class index:
     """Gets an index page for monthly data"""
+
     def GET(self, station, year, month):
         """
         Gets an index page for data sources available at the month level.
@@ -142,7 +145,7 @@ class index:
         :type month: string
         """
         template_dir = os.path.join(os.path.dirname(__file__),
-                                         os.path.join('templates'))
+                                    os.path.join('templates'))
         render = render_jinja(template_dir, encoding='utf-8')
 
         station_id = get_station_id(station)
@@ -170,11 +173,12 @@ class index:
         web.header('Content-Type', 'text/html')
         return render.monthly_data_index(days=days)
 
+
 #
 # Daily records
 #
 
-def get_daily_records_data(year,month, station_id):
+def get_daily_records_data(year, month, station_id):
     """
     Gets daily records data.
     :param year: Year to get records for
@@ -183,14 +187,14 @@ def get_daily_records_data(year,month, station_id):
     :type station_id: int
     :return: Query data
     """
-    params = dict(date = date(year,month,01), station=station_id)
+    params = dict(date=date(year, month, 01), station=station_id)
     query_data = db.query("""select date_trunc('day', time_stamp)::date as time_stamp,
         max(temperature) as max_temp,
         min(temperature) as min_temp,
         max(relative_humidity) as max_humid,
         min(relative_humidity) as min_humid,
-        max(absolute_pressure) as max_pressure,
-        min(absolute_pressure) as min_pressure,
+        max(coalesce(mean_sea_level_pressure, absolute_pressure)) as max_pressure,
+        min(coalesce(mean_sea_level_pressure, absolute_pressure)) as min_pressure,
         sum(rainfall) as total_rainfall,
         max(average_wind_speed) as max_average_wind_speed,
         max(gust_wind_speed) as max_gust_wind_speed
@@ -202,7 +206,8 @@ def get_daily_records_data(year,month, station_id):
 
     return query_data
 
-def get_daily_records_dataset(year,month,output_function, station_id):
+
+def get_daily_records_dataset(year, month, output_function, station_id):
     """
     Gets a daily records dataset at the month level. It is converted to
     JSON format using the supplied output function.
@@ -215,16 +220,17 @@ def get_daily_records_dataset(year,month,output_function, station_id):
     :return:
     """
 
-    query_data = get_daily_records_data(year,month, station_id)
+    query_data = get_daily_records_data(year, month, station_id)
 
     json_data, data_age = output_function(query_data)
 
-    cache_control_headers(station_id,data_age,year,month)
+    cache_control_headers(station_id, data_age, year, month)
     web.header('Content-Type', 'application/json')
     web.header('Content-Length', str(len(json_data)))
     return json_data
 
-def get_daily_records_datatable(year,month, station_id):
+
+def get_daily_records_datatable(year, month, station_id):
     """
     Gets records for each day in the month.
     :param year: Year to get records for
@@ -241,7 +247,8 @@ def get_daily_records_datatable(year,month, station_id):
                                      daily_records_result_to_datatable,
                                      station_id)
 
-def get_daily_records_json(year,month, station_id):
+
+def get_daily_records_json(year, month, station_id):
     """
     Gets daily records for the entire month in a generic JSON format.
     :param year: Year to get records for.
@@ -256,11 +263,12 @@ def get_daily_records_json(year,month, station_id):
                                      daily_records_result_to_json,
                                      station_id)
 
+
 #
 # 30-minute averaged monthly samples
 #
 
-def get_30m_avg_month_samples_data(year,month, station_id):
+def get_30m_avg_month_samples_data(year, month, station_id):
     """
     Gets query data for 30-minute averaged data sets (month level).
     :param year: Data set year
@@ -269,7 +277,7 @@ def get_30m_avg_month_samples_data(year,month, station_id):
     :type station_id: int
     :return: Query data
     """
-    params = dict(date = date(year,month,01), station=station_id)
+    params = dict(date=date(year, month, 1), station=station_id)
     query_data = db.query("""select min(iq.time_stamp) as time_stamp,
        avg(iq.temperature) as temperature,
        avg(iq.dew_point) as dew_point,
@@ -277,6 +285,8 @@ def get_30m_avg_month_samples_data(year,month, station_id):
        avg(wind_chill) as wind_chill,
        avg(relative_humidity)::integer as relative_humidity,
        avg(absolute_pressure) as absolute_pressure,
+       avg(mean_sea_level_puressure) as mean_sea_level_pressure,
+       avg(pressure) as pressure,
        min(prev_sample_time) as prev_sample_time,
        bool_or(gap) as gap,
        avg(iq.average_wind_speed) as average_wind_speed,
@@ -293,6 +303,8 @@ from (
                cur.wind_chill,
                cur.relative_humidity,
                cur.absolute_pressure,
+               cur.mean_sea_level_pressure,
+               coalesce(cur.mean_sea_level_pressure, cur.absolute_pressure) as pressure,
                cur.time_stamp - (st.sample_interval * '1 second'::interval) as prev_sample_time,
                CASE WHEN (cur.time_stamp - prev.time_stamp) > ((st.sample_interval * 2) * '1 second'::interval) THEN
                   true
@@ -316,7 +328,8 @@ order by iq.quadrant asc""", params)
 
     return query_data
 
-def get_30m_avg_month_samples_dataset(year,month,output_function, station_id):
+
+def get_30m_avg_month_samples_dataset(year, month, output_function, station_id):
     """
     Gets a 30-minute averaged monthly samples data set. The data is
     transformed to JSON using the supplied output function.
@@ -329,15 +342,16 @@ def get_30m_avg_month_samples_dataset(year,month,output_function, station_id):
     :return: JSON output.
     """
 
-    query_data = get_30m_avg_month_samples_data(year,month, station_id)
+    query_data = get_30m_avg_month_samples_data(year, month, station_id)
 
     data, data_age = output_function(query_data)
 
-    cache_control_headers(station_id,data_age,year,month)
+    cache_control_headers(station_id, data_age, year, month)
 
-    web.header('Content-Type','application/json')
+    web.header('Content-Type', 'application/json')
     web.header('Content-Length', str(len(data)))
     return data
+
 
 def get_30m_avg_month_samples_datatable(year, month, station_id):
     """
@@ -359,7 +373,8 @@ def get_30m_avg_month_samples_datatable(year, month, station_id):
                                              outdoor_sample_result_to_datatable,
                                              station_id)
 
-def get_30m_avg_month_samples_json(year,month, station_id):
+
+def get_30m_avg_month_samples_json(year, month, station_id):
     """
     Gets outdoor samples for the month as 30-minute averages.
     :param year: Year to get data for
@@ -376,11 +391,12 @@ def get_30m_avg_month_samples_json(year,month, station_id):
                                              outdoor_sample_result_to_json,
                                              station_id)
 
+
 #
 # Monthly samples (full data set)
 #
 
-def get_month_samples_dataset(year,month,output_function, station_id):
+def get_month_samples_dataset(year, month, output_function, station_id):
     """
     Gets samples for the entire month in Googles DataTable format.
     :param year: Year to get data for
@@ -393,8 +409,8 @@ def get_month_samples_dataset(year,month,output_function, station_id):
     :return: JSON data using Googles DataTable structure.
     :rtype: str
     """
-    params = dict(date = date(year,month,01), station=station_id,
-                  sample_interval = get_sample_interval(station_id))
+    params = dict(date=date(year, month, 01), station=station_id,
+                  sample_interval=get_sample_interval(station_id))
     query_data = db.query("""select cur.time_stamp,
        cur.temperature,
        cur.dew_point,
@@ -402,6 +418,8 @@ def get_month_samples_dataset(year,month,output_function, station_id):
        cur.wind_chill,
        cur.relative_humidity,
        cur.absolute_pressure,
+       cur.mean_sea_level_pressure,
+       coalesce(cur.mean_sea_level_pressure, cur.absolute_pressure) as pressure,
        cur.time_stamp - (st.sample_interval * '1 second'::interval) as prev_sample_time,
        CASE WHEN (cur.time_stamp - prev.time_stamp) > ((st.sample_interval * 2) * '1 second'::interval) THEN
           true
@@ -423,13 +441,14 @@ order by cur.time_stamp asc""", params)
 
     data, data_age = output_function(query_data)
 
-    cache_control_headers(station_id,data_age,year,month)
+    cache_control_headers(station_id, data_age, year, month)
 
-    web.header('Content-Type','application/json')
+    web.header('Content-Type', 'application/json')
     web.header('Content-Length', str(len(data)))
     return data
 
-def get_month_samples_datatable(year,month, station_id):
+
+def get_month_samples_datatable(year, month, station_id):
     """
     Gets samples for the entire month in Googles DataTable format.
     :param year: Year to get data for
@@ -446,7 +465,8 @@ def get_month_samples_datatable(year,month, station_id):
                                      outdoor_sample_result_to_datatable,
                                      station_id)
 
-def get_month_samples_json(year,month, station_id):
+
+def get_month_samples_json(year, month, station_id):
     """
     Gets samples for the entire month in a generic JSON format.
     :param year: Year to get data for
@@ -492,7 +512,7 @@ class data_ascii:
 
         # Make sure the month actually exists in the database before we go
         # any further.
-        params = dict(date=date(int(year),int(month),1), station=station_id)
+        params = dict(date=date(int(year), int(month), 1), station=station_id)
         recs = db.query("""select 42 from sample
         where date(date_trunc('month',time_stamp)) = $date
         and station_id = $station
@@ -568,7 +588,7 @@ class data_dat:
 
         # Make sure the month actually exists in the database before we go
         # any further.
-        params = dict(date=date(int(year),int(month),1), station=station_id)
+        params = dict(date=date(int(year), int(month), 1), station=station_id)
         recs = db.query("""select 42 from sample
         where date(date_trunc('month',time_stamp)) = $date
         and station_id = $station
@@ -578,7 +598,11 @@ class data_dat:
 
         if dataset == 'samples':
             result, age = get_month_samples_tab_delimited(int_year, int_month,
-                                                          station_id)
+                                                          station_id, 1)
+            cache_control_headers(station_id, age, int_year, int_month)
+        elif dataset == 'samples_v2':
+            result, age = get_month_samples_tab_delimited(int_year, int_month,
+                                                          station_id, 2)
             cache_control_headers(station_id, age, int_year, int_month)
         else:
             raise web.NotFound()
@@ -632,7 +656,7 @@ class data_dat:
             else:
                 web.header('Expires', rfcformat(now + timedelta(60, 0)))
 
-            #cache_control_headers(station_id, age, int_year, int_month)
+            # cache_control_headers(station_id, age, int_year, int_month)
         else:
             raise web.NotFound()
 
@@ -640,103 +664,37 @@ class data_dat:
         return
 
 
-# This came from weather_plots month_charts module. It could do with a tidy up.
-def get_month_samples_tab_delimited(int_year, int_month, station_id):
-    weather_data = get_month_data_wp(int_year, int_month, station_id)
+def get_month_samples_tab_delimited(int_year, int_month, station_id, version):
+    """
+    Gets a tab-delimited data file containing all data for the requested month.
+    It is available in two versions - version 1 includes median sea level
+    pressure if available, otherwise absolute pressure. Version 2 includes both.
+
+    :param int_year: Year
+    :type int_year: int
+    :param int_month: Month
+    :type int_month: int
+    :param station_id: Station to get data for
+    :type station_id: int
+    :param version: File version
+    :type version: int
+    """
+    station_config = get_station_config(station_id)
+    broadcast_id = None
+    if station_config is not None and 'broadcast_id' in station_config:
+        broadcast_id = station_config['broadcast_id']
 
     extra_sensors = get_extra_sensors_enabled(station_id)
 
-    file_data = '# timestamp\ttemperature\tdew point\tapparent temperature\t' \
-                'wind chill\trelative humidity\tabsolute pressure\t' \
-                'indoor temperature\tindoor relative humidity\trainfall\t' \
-                'average wind speed\tgust wind speed\twind direction\t' \
-                'uv index\tsolar radiation\treception\thigh_temp\tlow_temp\t' \
-                'high_rain_rate\tgust_direction\tevapotranspiration\t' \
-                'high_solar_radiation\thigh_uv_index\tforecast_rule_id'
+    results = db.query("""
+    select max(sample_ts) as max_ts, 
+           string_agg(sample_data, chr(10)) as file_data 
+    from month_samples_tsv($station, $month, $broadcast_id, $version, $extra_sensors)""",
+                       dict(station=station_id, month=date(year=int_year, month=int_month, day=1),
+                            broadcast_id=broadcast_id, version=version, extra_sensors=extra_sensors))
 
-    if extra_sensors:
-        file_data += '\tsoil_moisture_1\tsoil_moisture_2\tsoil_moisture_3\t' \
-                     'soil_moisture_4\tsoil_temperature_1\t' \
-                     'soil_temperature_2\tsoil_temperature_3\t' \
-                     'soil_temperature_4\tleaf_wetness_1\tleaf_wetness_2\t' \
-                     'leaf_temperature_1\tleaf_temperature_2\t' \
-                     'extra_humidity_1\textra_humidity_2\t' \
-                     'extra_temperature_1\textra_temperature_2\t' \
-                     'extra_temperature_3'
-    file_data += "\n"
-
-    format_string = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t{10}' \
-                    '\t{11}\t{12}\t{13}\t{14}\t{15}\t{16}\t{17}\t{18}\t{19}\t' \
-                    '{20}\t{21}\t{22}\t{23}'
-
-    if extra_sensors:
-        format_string += "\t{24}\t{25}\t{26}\t{27}\t{28}\t{29}\t{30}\t{31}\t" \
-                         "{32}\t{33}\t{34}\t{35}\t{36}\t{37}\t{38}\t{39}\t{40}"
-
-    format_string += "\n"
-
-    max_ts = None
-
-    def nullable_str(val):
-        if val is None:
-            return '?'
-        return str(val)
-
-    for record in weather_data:
-        if max_ts is None:
-            max_ts = record.time_stamp
-
-        if record.time_stamp > max_ts:
-            max_ts = record.time_stamp
-
-        row = [
-            str(record.time_stamp),
-            nullable_str(record.temperature),
-            nullable_str(record.dew_point),
-            nullable_str(record.apparent_temperature),
-            nullable_str(record.wind_chill),
-            nullable_str(record.relative_humidity),
-            nullable_str(record.absolute_pressure),
-            nullable_str(record.indoor_temperature),
-            nullable_str(record.indoor_relative_humidity),
-            nullable_str(record.rainfall),
-            nullable_str(record.average_wind_speed),
-            nullable_str(record.gust_wind_speed),
-            nullable_str(record.wind_direction),
-            nullable_str(record.uv_index),
-            nullable_str(record.solar_radiation),
-            nullable_str(record.reception),
-            nullable_str(record.high_temperature),
-            nullable_str(record.low_temperature),
-            nullable_str(record.high_rain_rate),
-            nullable_str(record.gust_wind_direction),
-            nullable_str(record.evapotranspiration),
-            nullable_str(record.high_solar_radiation),
-            nullable_str(record.high_uv_index),
-            nullable_str(record.forecast_rule_id)
-        ]
-
-        if extra_sensors:
-            row = row + [
-                nullable_str(record.soil_moisture_1),
-                nullable_str(record.soil_moisture_2),
-                nullable_str(record.soil_moisture_3),
-                nullable_str(record.soil_moisture_4),
-                nullable_str(record.soil_temperature_1),
-                nullable_str(record.soil_temperature_2),
-                nullable_str(record.soil_temperature_3),
-                nullable_str(record.soil_temperature_4),
-                nullable_str(record.leaf_wetness_1),
-                nullable_str(record.leaf_wetness_2),
-                nullable_str(record.leaf_temperature_1),
-                nullable_str(record.leaf_temperature_2),
-                nullable_str(record.extra_humidity_1),
-                nullable_str(record.extra_humidity_2),
-                nullable_str(record.extra_temperature_1),
-                nullable_str(record.extra_temperature_2),
-                nullable_str(record.extra_temperature_3),
-            ]
-
-        file_data += format_string.format(*row)
+    row = results[0]
+    max_ts = row.max_ts
+    file_data = row.file_data
 
     return file_data, max_ts

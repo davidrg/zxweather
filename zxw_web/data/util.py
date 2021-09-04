@@ -41,7 +41,7 @@ def outdoor_sample_result_to_datatable(query_data):
     Converts a query on the sample table to DataTable-compatible JSON.
 
     Expected columns are time_stamp, temperature, dew_point,
-    apparent_temperature, wind_chill, relative_humidity, absolute_pressure,
+    apparent_temperature, wind_chill, relative_humidity, pressure,
     prev_sample_time, gap.
 
     :param query_data: Result from the query
@@ -65,8 +65,8 @@ def outdoor_sample_result_to_datatable(query_data):
             {'id': 'humidity',
              'label': 'Humidity',
              'type': 'number'},
-            {'id': 'abspressure',
-             'label': 'Absolute Pressure',
+            {'id': 'pressure',
+             'label': 'Pressure',
              'type': 'number'},
             {'id': 'avgws',
              'label': 'Average Wind Speed',
@@ -92,7 +92,8 @@ def outdoor_sample_result_to_datatable(query_data):
 
         # Handle gaps in the dataset
         if record.gap:
-            rows.append({'c': [{'v': datetime_to_js_date(record.prev_sample_time)},
+            rows.append({'c': [
+                    {'v': datetime_to_js_date(record.prev_sample_time)},
                     {'v': None},
                     {'v': None},
                     {'v': None},
@@ -103,24 +104,25 @@ def outdoor_sample_result_to_datatable(query_data):
                     {'v': None},
                     {'v': None},
                     {'v': None},
-            ]
+                ]
             })
 
         uv = None
         if record.uv_index is not None:
             uv = float(record.uv_index)
 
-        rows.append({'c': [{'v': datetime_to_js_date(record.time_stamp)},
-                {'v': record.temperature},
-                {'v': record.dew_point},
-                {'v': record.apparent_temperature},
-                {'v': record.wind_chill},
-                {'v': record.relative_humidity},
-                {'v': record.absolute_pressure},
-                {'v': record.average_wind_speed},
-                {'v': record.gust_wind_speed},
-                {'v': uv},
-                {'v': record.solar_radiation},
+        rows.append({'c': [
+            {'v': datetime_to_js_date(record.time_stamp)},
+            {'v': record.temperature},
+            {'v': record.dew_point},
+            {'v': record.apparent_temperature},
+            {'v': record.wind_chill},
+            {'v': record.relative_humidity},
+            {'v': record.pressure},  # MSL pressure if available, else abs pressure.
+            {'v': record.average_wind_speed},
+            {'v': record.gust_wind_speed},
+            {'v': uv},
+            {'v': record.solar_radiation},
         ]
         })
 
@@ -177,7 +179,7 @@ def outdoor_sample_result_to_json(query_data):
                 record.apparent_temperature,
                 record.wind_chill,
                 record.relative_humidity,
-                record.absolute_pressure,
+                record.pressure,  # This is MSL pressure if available, otherwise abs pressure.
                 record.average_wind_speed,
                 record.gust_wind_speed,
                 uv,
@@ -347,10 +349,10 @@ def daily_records_result_to_datatable(query_data):
              'label': 'Minimum Relative Humidity',
              'type': 'number'},
             {'id': 'max_pressure',
-             'label': 'Maximum Absolute Pressure',
+             'label': 'Maximum Pressure',
              'type': 'number'},
             {'id': 'min_pressure',
-             'label': 'Minimum Absolute Pressure',
+             'label': 'Minimum Pressure',
              'type': 'number'},
             {'id': 'total_rainfall',
              'label': 'Total Rainfall',
@@ -383,16 +385,17 @@ def daily_records_result_to_datatable(query_data):
     #            ]
     #            })
 
-        rows.append({'c': [{'v': datetime_to_js_date(record.time_stamp)},
-                {'v': record.max_temp},
-                {'v': record.min_temp},
-                {'v': record.max_humid},
-                {'v': record.min_humid},
-                {'v': record.max_pressure},
-                {'v': record.min_pressure},
-                {'v': record.total_rainfall},
-                {'v': record.max_average_wind_speed},
-                {'v': record.max_gust_wind_speed}
+        rows.append({'c': [
+            {'v': datetime_to_js_date(record.time_stamp)},
+            {'v': record.max_temp},
+            {'v': record.min_temp},
+            {'v': record.max_humid},
+            {'v': record.min_humid},
+            {'v': record.max_pressure},
+            {'v': record.min_pressure},
+            {'v': record.total_rainfall},
+            {'v': record.max_average_wind_speed},
+            {'v': record.max_gust_wind_speed}
         ]
         })
 

@@ -342,6 +342,12 @@ def get_daily_records(date, station_id):
     daily_records = db.query("""SELECT date_stamp, total_rainfall, max_gust_wind_speed, max_gust_wind_speed_ts::time,
    max_average_wind_speed, max_average_wind_speed_ts::time, min_absolute_pressure,
    min_absolute_pressure_ts::time, max_absolute_pressure, max_absolute_pressure_ts::time,
+   min_sea_level_pressure, min_sea_level_pressure_ts::time, max_sea_level_pressure,
+   max_sea_level_pressure_ts::time,
+   coalesce(min_sea_level_pressure, min_absolute_pressure) as min_pressure,
+   coalesce(min_sea_level_pressure_ts, min_absolute_pressure_ts)::time as min_pressure_ts,
+   coalesce(max_sea_level_pressure, max_absolute_pressure) as max_pressure,
+   coalesce(max_sea_level_pressure_ts, max_absolute_pressure_ts)::time as max_pressure_ts,
    min_apparent_temperature, min_apparent_temperature_ts::time, max_apparent_temperature,
    max_apparent_temperature_ts::time, min_wind_chill, min_wind_chill_ts::time,
    max_wind_chill, max_wind_chill_ts::time, min_dew_point, min_dew_point_ts::time,
@@ -583,41 +589,6 @@ def get_sample_range(station_id):
     return record.min_ts, record.max_ts
 
 
-
-# def get_latest_sample(station_id):
-#     """
-#     Returns the most recent sample for the specified station
-#     :param station_id: ID of the station to get the most recent sample for
-#     :return: Sample data
-#     """
-#     query = """
-# select s.sample_id,
-#        s.time_stamp,
-#        s.indoor_relative_humidity as indoor_humidity,
-#        s.indoor_temperature,
-#        s.relative_humidity as humidity,
-#        s.temperature,
-#        s.dew_point,
-#        s.wind_chill,
-#        s.apparent_temperature,
-#        s.absolute_pressure as pressure,
-#        s.average_wind_speed,
-#        s.gust_wind_speed,
-#        s.rainfall,
-#        ds.solar_radiation,
-#        ds.average_uv_index as uv_index
-# from sample s
-# left outer join davis_sample ds on ds.sample_id = s.sample_id
-# where s.station_id = $station_id
-#   and s.time_stamp = (select max(time_stamp) from sample where station_id = $station_id)
-#     """
-#     result = db.query(query, station_id=station_id)[0]
-#     if len(result):
-#         return result[0]
-#     else:
-#         return None
-
-
 def get_images_in_last_minute(station_id):
     query = """
 select i.image_id,
@@ -656,7 +627,7 @@ def get_live_data(station_id):
 
     if get_live_data_available(station_id):
         # No need to filter or anything - live_data only contains one record.
-        base_query = """
+        query = """
             select ld.download_timestamp::time as time_stamp,
                    ld.download_timestamp::date as date_stamp,
                    ld.relative_humidity,
@@ -665,28 +636,28 @@ def get_live_data(station_id):
                    ld.wind_chill,
                    ld.apparent_temperature,
                    ld.absolute_pressure,
+                   ld.mean_sea_level_pressure,
+                   coalesce(ld.mean_sea_level_pressure, ld.absolute_pressure) as pressure,
                    ld.average_wind_speed,
                    ld.wind_direction,
-                   extract('epoch' from (now() - ld.download_timestamp)) as age
-                   {ext_columns}
-            from live_data ld{ext_joins}
-            where ld.station_id = $station"""
-
-        ext_columns = ''
-        ext_joins = ''
-
-        if hw_type == 'DAVIS':
-            ext_columns = """,
-                   dd.bar_trend,
-                   dd.rain_rate,
-                   dd.storm_rain,
-                   dd.current_storm_start_date,
-                   dd.transmitter_battery,
-                   dd.console_battery_voltage,
-                   dd.forecast_icon,
-                   dd.forecast_rule_id,
-                   dd.uv_index,
+                   extract('epoch' from (now() - ld.download_timestamp)) as age,
+                   dd.bar_trend, 
+                   dd.rain_rate, 
+                   dd.storm_rain, 
+                   dd.current_storm_start_date, 
+                   dd.transmitter_battery, 
+                   dd.console_battery_voltage, 
+                   dd.forecast_icon, 
+                   dd.forecast_rule_id, 
+                   dd.uv_index, 
                    dd.solar_radiation,
+                   dd.average_wind_speed_2m,
+                   dd.average_wind_speed_10m,
+                   dd.gust_wind_speed_10m,
+                   dd.gust_wind_direction_10m,
+                   dd.heat_index,
+                   dd.thsw_index,
+                   dd.altimeter_setting,
                    dd.leaf_wetness_1,
                    dd.leaf_wetness_2,
                    dd.leaf_temperature_1,
@@ -703,12 +674,12 @@ def get_live_data(station_id):
                    dd.extra_humidity_2,
                    dd.extra_temperature_1,
                    dd.extra_temperature_2,
-                   dd.extra_temperature_3"""
-
-            ext_joins = """
-            inner join davis_live_data dd on dd.station_id = ld.station_id """
-
-        query = base_query.format(ext_columns=ext_columns, ext_joins=ext_joins)
+                   dd.extra_temperature_3
+            from live_data ld
+            inner join station stn on stn.station_id = ld.station_id
+            inner join station_type st on st.station_type_id = stn.station_type_id
+            left outer join davis_live_data dd on stn.station_id = dd.station_id
+            where ld.station_id = $station"""
 
         result = db.query(query, dict(station=station_id))
         if len(result):
@@ -725,43 +696,60 @@ def get_live_data(station_id):
         # Fetch the latest data for today
         query = """
                 select s.time_stamp::time as time_stamp,
+                    s.time_stamp::date as date_stamp,
                     s.relative_humidity,
                     s.temperature,
                     s.dew_point,
                     s.wind_chill,
                     s.apparent_temperature,
                     s.absolute_pressure,
+                    s.mean_sea_level_pressure,
+                    coalesce(s.mean_sea_level_pressure, s.absolute_pressure) as pressure,
                     s.average_wind_speed,
                     s.wind_direction,
-                    extract('epoch' from (now() - s.download_timestamp)) as age
-                    {ext_columns}
-                from sample s {ext_joins}
+                    extract('epoch' from (now() - s.download_timestamp)) as age,
+                    0 as bar_trend,
+                    ds.high_rain_rate as rain_rate,
+                    0 as storm_rain,
+                    null as current_storm_start_date,
+                    0 as transmitter_battery,
+                    0 as console_battery_voltage,
+                    0 as forecast_icon,
+                    ds.forecast_rule_id,
+                    ds.average_uv_index as uv_index,
+                    ds.solar_radiation,
+                    null as average_wind_speed_2m,
+                    null as average_wind_speed_10m,
+                    null as gust_wind_speed_10m,
+                    null as gust_wind_direction_10m,
+                    null as heat_index,
+                    null as thsw_index,
+                    null as altimeter_setting,
+                    ds.leaf_wetness_1,
+                    ds.leaf_wetness_2,
+                    ds.leaf_temperature_1,
+                    ds.leaf_temperature_2,
+                    ds.soil_moisture_1,
+                    ds.soil_moisture_2,
+                    ds.soil_moisture_3,
+                    ds.soil_moisture_4,
+                    ds.soil_temperature_1,
+                    ds.soil_temperature_2,
+                    ds.soil_temperature_3,
+                    ds.soil_temperature_4,
+                    ds.extra_humidity_1,
+                    ds.extra_humidity_2,
+                    ds.extra_temperature_1,
+                    ds.extra_temperature_2,
+                    ds.extra_temperature_3
+                from sample s
+                inner join station stn on stn.station_id = s.station_id
+                inner join station_type st on st.station_type_id = stn.station_type_id
+                left outer join davis_sample ds on ds.sample_id = s.sample_id
                 where date(s.time_stamp) = $date
                 and s.station_id = $station
                 order by s.time_stamp desc
                 limit 1"""
-
-        ext_columns = ""
-        ext_joins = ""
-
-        if hw_type == 'DAVIS':
-            ext_columns = """,
-            0 as bar_trend,
-            ds.high_rain_rate as rain_rate,
-            0 as storm_rain,
-            null as current_storm_start_date,
-            0 as transmitter_battery,
-            0 as console_battery_voltage,
-            0 as forecast_icon,
-            ds.forecast_rule_id,
-            ds.average_uv_index as uv_index,
-            ds.solar_radiation
-            """
-            ext_joins = """
-            inner join davis_sample ds on ds.sample_id = s.sample_id
-            """
-
-        query = query.format(ext_columns=ext_columns, ext_joins=ext_joins)
 
         current_data = db.query(query, params)[0]
         current_data_ts = current_data.time_stamp
@@ -961,8 +949,6 @@ def get_extra_sensors_enabled(station_id):
     return False
 
 
-
-
 def get_stations():
     """
     Gets a list of station code,name pairs for all stations in the database.
@@ -995,6 +981,7 @@ def get_station_message(station_id):
 
 
     return result.message, result.ts
+
 
 def get_site_name(station_id):
     """
@@ -1465,6 +1452,7 @@ def get_latest_sample(station_id):
            s.wind_chill,
            s.apparent_temperature,
            s.absolute_pressure,
+           s.mean_sea_level_pressure,
            s.average_wind_speed,
            s.gust_wind_speed,
            s.wind_direction,
@@ -1474,11 +1462,37 @@ def get_latest_sample(station_id):
            ds.low_temperature,
            ds.high_rain_rate,
            ds.solar_radiation,
+           
            ds.wind_sample_count,
            ds.gust_wind_direction,
+           
            ds.average_uv_index,
            ds.high_solar_radiation,
            ds.high_uv_index,
+           ds.high_temperature,
+           ds.low_temperature,
+           ds.high_rain_rate,
+           ds.evapotranspiration,
+           ds.forecast_rule_id,
+           
+           ds.leaf_wetness_1,
+           ds.leaf_wetness_2,
+           ds.leaf_temperature_1,
+           ds.leaf_temperature_2,
+           ds.soil_moisture_1,
+           ds.soil_moisture_2,
+           ds.soil_moisture_3,
+           ds.soil_moisture_4,
+           ds.soil_temperature_1,
+           ds.soil_temperature_2,
+           ds.soil_temperature_3,
+           ds.soil_temperature_4,
+           ds.extra_humidity_1,
+           ds.extra_humidity_2,
+           ds.extra_temperature_1,
+           ds.extra_temperature_2,
+           ds.extra_temperature_3,
+
            s.sample_id
     from sample s
     left outer join davis_sample ds on ds.sample_id = s.sample_id
@@ -1522,7 +1536,9 @@ select s.station_id,
        (s.dew_point - s3h.dew_point) / 3 as dew_point_trend,
        (s.wind_chill - s3h.wind_chill) / 3 as wind_chill_trend,
        (s.apparent_temperature - s3h.apparent_temperature) / 3 as apparent_temperature_trend,
-       (s.absolute_pressure - s3h.absolute_pressure) / 3 as absolute_pressure_trend
+       (s.absolute_pressure - s3h.absolute_pressure) / 3 as absolute_pressure_trend,
+       (s.mean_sea_level_pressure - s3h.mean_sea_level_pressure) / 3 as mean_sea_level_pressure_trend,
+       (coalesce(s.mean_sea_level_pressure, s.absolute_pressure) - coalesce(s3h.mean_sea_level_pressure, s3h.absolute_pressure)) / 3 as mean_pressure_trend
 from sample s
 left outer join sample s3h on s3h.station_id = s.station_id and s3h.time_stamp = s.time_stamp - '3 hours'::interval
 where s.station_id = $station
@@ -1596,10 +1612,10 @@ select dr.date_stamp,
        dr.min_temperature_ts,
        dr.max_temperature,
        dr.max_temperature_ts,
-       dr.min_absolute_pressure,
-       dr.min_absolute_pressure_ts,
-       dr.max_absolute_pressure,
-       dr.max_absolute_pressure_ts,
+       coalesce(dr.min_sea_level_pressure,dr.min_absolute_pressure) as min_pressure,
+       coalesce(dr.min_sea_level_pressure_ts,dr.min_absolute_pressure_ts) as min_pressure_ts,
+       coalesce(dr.max_sea_level_pressure,dr.max_absolute_pressure) as max_pressure,
+       coalesce(dr.max_sea_level_pressure_ts,dr.max_absolute_pressure_ts) as max_pressure_ts,
        coalesce(ds_rrr.max_rain_rate, 0) as max_rain_rate,
        ds_rrr.max_rain_rate_ts,
        dr.total_rainfall,
@@ -1741,80 +1757,6 @@ order by dr.date_stamp
     return result
 
 
-# Query used by weather_plot for the month data set. Copied here as the desktop
-# client also uses this dataset for over-the-internet operation. This version
-# has gap detection removed as the desktop client figures this out itself
-def get_month_data_wp(year, month, station_id):
-    query = """
-select cur.time_stamp,
-       round(cur.temperature::numeric, 2) as temperature,
-       round(cur.dew_point::numeric, 1) as dew_point,
-       round(cur.apparent_temperature::numeric, 1) as apparent_temperature,
-       round(cur.wind_chill::numeric,1) as wind_chill,
-       cur.relative_humidity,
-       round(cur.absolute_pressure::numeric,2) as absolute_pressure,
-       round(cur.indoor_temperature::numeric,2) as indoor_temperature,
-       cur.indoor_relative_humidity,
-       round(cur.rainfall::numeric, 1) as rainfall,
-       round(cur.average_wind_speed::numeric,2) as average_wind_speed,
-       round(cur.gust_wind_speed::numeric,2) as gust_wind_speed,
-       cur.wind_direction,
-       cur.time_stamp - (s.sample_interval * '1 second'::interval) as prev_sample_time,
-       ds.average_uv_index as uv_index,
-       ds.solar_radiation,
-       
-       case when $broadcast_id is null then null
-       --                                  |----- Max wireless packets calculation -----------------------|
-       else round((ds.wind_sample_count / ((s.sample_interval::float) /((41+$broadcast_id-1)::float /16.0 )) * 100)::numeric,1)::float 
-       end as reception,
-       round(ds.high_temperature::numeric, 2) as high_temperature,
-       round(ds.low_temperature::numeric, 2) as low_temperature,
-       round(ds.high_rain_rate::numeric, 2) as high_rain_rate,
-       ds.gust_wind_direction,
-       ds.evapotranspiration,
-       ds.high_solar_radiation,
-       ds.high_uv_index,
-       ds.forecast_rule_id,
-       
-       -- Extra sensors
-       ds.soil_moisture_1,
-       ds.soil_moisture_2,
-       ds.soil_moisture_3,
-       ds.soil_moisture_4,
-       round(ds.soil_temperature_1::numeric, 2) as soil_temperature_1,
-       round(ds.soil_temperature_2::numeric, 2) as soil_temperature_2,
-       round(ds.soil_temperature_3::numeric, 2) as soil_temperature_3,
-       round(ds.soil_temperature_4::numeric, 2) as soil_temperature_4,
-       ds.leaf_wetness_1,
-       ds.leaf_wetness_2,
-       round(ds.leaf_temperature_1::numeric, 2) as leaf_temperature_1,
-       round(ds.leaf_temperature_2::numeric, 2) as leaf_temperature_2,
-       ds.extra_humidity_1,
-       ds.extra_humidity_2,
-       round(ds.extra_temperature_1::numeric, 2) as extra_temperature_1,
-       round(ds.extra_temperature_2::numeric, 2) as extra_temperature_2,
-       round(ds.extra_temperature_3::numeric, 2) as extra_temperature_3
-from sample cur
-inner join station s on s.station_id = cur.station_id
-left outer join davis_sample ds on ds.sample_id = cur.sample_id
-where date(date_trunc('month',cur.time_stamp)) = $date
-  and cur.station_id = $station
-order by cur.time_stamp asc
-        """
-
-    # TODO: Integrate this get_station_config call into the query when our
-    # minimum PostgreSQL version supports JSON
-    station_config = get_station_config(station_id)
-    broadcast_id = None
-    if station_config is not None and 'broadcast_id' in station_config:
-        broadcast_id = station_config['broadcast_id']
-
-    params = dict(station=station_id, date=date(year=year,month=month,day=1),
-                  broadcast_id=broadcast_id)
-
-    return db.query(query, params)
-
-
 def get_month_data_wp_age(year, month, station_id):
     query = """
 select max(cur.time_stamp) as max_ts
@@ -1843,6 +1785,7 @@ def get_day_data_wp(date, station_id):
        round(cur.wind_chill::numeric,1) as wind_chill,
        cur.relative_humidity,
        round(cur.absolute_pressure::numeric,2) as absolute_pressure,
+       round(cur.mean_sea_level_pressure::numeric,2) as mean_sea_level_pressure,
        round(cur.indoor_temperature::numeric,2) as indoor_temperature,
        cur.indoor_relative_humidity,
        round(cur.rainfall::numeric, 1) as rainfall,

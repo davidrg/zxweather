@@ -41,8 +41,8 @@
                         </tr>
                         <tr>
                             <td>Barometer</td>
-                            <td id="ap_min">{% if data.records and data.records.min_absolute_pressure %}{{ data.records.min_absolute_pressure|round(1) }} hPa at {{ data.records.min_absolute_pressure_ts }}{% else %}--{% endif %}</td>
-                            <td id="ap_max">{% if data.records and data.records.max_absolute_pressure %}{{ data.records.max_absolute_pressure|round(1) }} hPa at {{ data.records.max_absolute_pressure_ts }}{% else %}--{% endif %}</td>
+                            <td id="ap_min">{% if data.records and data.records.min_pressure %}{{ data.records.min_pressure|round(1) }} hPa at {{ data.records.min_pressure_ts }}{% else %}--{% endif %}</td>
+                            <td id="ap_max">{% if data.records and data.records.max_pressure %}{{ data.records.max_pressure|round(1) }} hPa at {{ data.records.max_pressure_ts }}{% else %}--{% endif %}</td>
                         </tr>
                         <tr>
                             <td>Gust Wind Speed</td>

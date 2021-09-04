@@ -40,7 +40,7 @@ function drawRecordsLineCharts(record_data,
     pressure.hideColumns([1,2,3,4,7,8,9]);
 
     var pressure_options = {
-        title: 'Absolute Pressure (hPa)',
+        title: 'Pressure (hPa)',
         legend: {position: 'bottom'}
     };
     var pressure_chart = new google.visualization.LineChart(

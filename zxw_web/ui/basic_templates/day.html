@@ -42,7 +42,7 @@
         </tr>
         <tr bgcolor="blanchedalmond">
             <td>Barometer</td>
-            <td>{{ data.current_data.absolute_pressure|round(1) }} hPa</td>
+            <td>{{ data.current_data.pressure|round(1) }} hPa</td>
         </tr>
         <tr bgcolor="blanchedalmond">
             <td>Wind Speed</td>
@@ -109,8 +109,8 @@
         </tr>
         <tr bgcolor="blanchedalmond">
             <td>Barometer</td>
-            <td>{{ data.records.min_absolute_pressure|round(1) }} hPa at {{ data.records.min_absolute_pressure_ts }}</td>
-            <td>{{ data.records.max_absolute_pressure|round(1) }} hPa at {{ data.records.max_absolute_pressure_ts }}</td>
+            <td>{{ data.records.min_pressure|round(1) }} hPa at {{ data.records.min_pressure_ts }}</td>
+            <td>{{ data.records.max_pressure|round(1) }} hPa at {{ data.records.max_pressure_ts }}</td>
         </tr>
         <tr>
             <td bgcolor="blanchedalmond">Gust Wind Speed</td>
