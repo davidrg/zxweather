@@ -13,6 +13,8 @@ from twisted.python import log
 
 __author__ = 'david'
 
+station_code_id = dict()
+
 # For uploading only - missing sample_id, station_id, dew_point, wind_chill
 # and apparent_temperature.
 BaseSampleRecord = namedtuple(
@@ -162,8 +164,6 @@ def _check_db():
 
 def _init_station_id_cache(data):
     global station_code_id
-
-    station_code_id = {}
 
     for row in data:
         station_code_id[row[0].lower()] = row[1]
