@@ -3,7 +3,7 @@ psycopg2
 twisted==16.4.1
 txpostgres==1.5.0
 python-dateutil
-pyOpenSSL==0.13.1
+pyOpenSSL==17.5.0
 service_identity
 astral==1.3
 
