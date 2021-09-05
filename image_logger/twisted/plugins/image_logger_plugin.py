@@ -1,6 +1,9 @@
 # coding=utf-8
-import ConfigParser
-from zope.interface import implements
+try:
+    from ConfigParser import ConfigParser
+except ImportError:
+    from configparser import ConfigParser
+from zope.interface import implementer
 from datetime import datetime
 
 from twisted.python import usage
@@ -18,12 +21,13 @@ class Options(usage.Options):
     ]
 
 
+@implementer(IServiceMaker, IPlugin)
 class ZXWPushClientServiceMaker(object):
     """
     Creates the Image Logger service. Or, rather, prepares it from the
     supplied command-line arguments.
     """
-    implements(IServiceMaker, IPlugin)
+
     tapname = "image_logger"
     description = "Service for logging images from an IP Camera to the " \
                   "weather database"
@@ -35,7 +39,7 @@ class ZXWPushClientServiceMaker(object):
         S_SCHEDULE = 'schedule'
         S_CAMERA = 'camera'
 
-        config = ConfigParser.ConfigParser()
+        config = ConfigParser()
         config.read([filename])
 
         dsn = config.get(S_DATABASE, 'dsn')

@@ -11,9 +11,9 @@ from twisted.python import log
 from twisted.web.client import Agent, WebClientContextFactory
 from twisted.web.http_headers import Headers
 
-from database import DatabaseReceiver, Database
-from mq_receiver import RabbitMqReceiver
-from readbody import readBody
+from .database import DatabaseReceiver, Database
+from .mq_receiver import RabbitMqReceiver
+from .readbody import readBody
 
 # License: GPLv3 (Astral incompatible with GPLv2)
 
@@ -253,8 +253,8 @@ class ImageLoggerService(service.Service):
             agent = Agent(reactor, context_factory)
 
             response = yield agent.request(
-                'GET',
-                self._camera_url,
+                b'GET',
+                self._camera_url.encode('latin1'),
                 Headers({'User-Agent': ['zxweather image-logger']}),
                 None
             )
@@ -283,7 +283,8 @@ class ImageLoggerService(service.Service):
                                                  content_type)
                 log.msg("Database reconnected and image stored")
         except Exception as e:
-            log.msg("Failed to capture or store image: {0}".format(e.message))
+            log.msg("Failed to capture or store image: {0}".format(e))
+            raise e
 
     def _schedule_logging_start(self):
         """

@@ -8,7 +8,7 @@ from twisted.internet import reactor
 from twisted.internet.error import ReactorNotRunning
 from twisted.python import log
 from twisted.internet.defer import inlineCallbacks, returnValue
-from util import Event
+from .util import Event
 import psycopg2
 from psycopg2.extras import DictConnection as Psycopg2DictConn
 from txpostgres import txpostgres
