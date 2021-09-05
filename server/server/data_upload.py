@@ -311,7 +311,7 @@ class UploadCommand(Command):
 
     def _result_handler(self, result):
 
-        if isinstance(result, basestring):
+        if isinstance(result, str):
             # Its an error message
             self.writeLine(result)
         else:
