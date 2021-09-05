@@ -2,7 +2,7 @@
 """
 The ZXCL Command Processor and basic shell
 """
-from parser import Parser
+from .parser import Parser
 
 # These are the command table key constants.
 from server.zxcl.command_table import K_PARAMETER_PROMPT, \

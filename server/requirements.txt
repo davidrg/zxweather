@@ -1,15 +1,18 @@
-# Python 2.7 support was dropped in psycopg 2.9
-psycopg2==2.8.6
+# Python 2.7 support was dropped in psycopg 2.9.
+psycopg2>=2.8.6
 
-# 20.3.0 is the last version supporting python 2.7
-twisted==20.3.0
+# 20.3.0 is the last version supporting python 2.7. v21.2.0 works fine on python3
+twisted>=20.3.0
 
-# This is the final version of Autobahn supporting Python 2.7-3.4
-autobahn==19.11.2
+# 19.11.2 is the final version of Autobahn supporting Python 2.7-3.4 but its
+# got a known security flaw that isn't fixed until 20.12.3. So if you're on
+# Python 3.5 or newer its better to run something more recent. Version 21.3.1
+# is known to work fine at least.
+autobahn>=19.11.2
 
-# only required if using RabbitMQ. Version 1.1.0 is the last release to support
-# Python 2.7.
-pika==1.1.0
+# Only required if using RabbitMQ. Version 1.1.0 is the last release to support
+# Python 2.7. Pika 1.2.0 is known to work on Python 3.
+pika>=1.1.0
 
 bcrypt
 txpostgres
@@ -19,7 +22,9 @@ python-dateutil
 txaio
 cryptography
 pyasn1
-websocket_client==0.57.0
+
+# This is used only by the reload_certificates.py script.
+websocket_client>=0.57.0
 
 # For windows only
-#pywin32
+# pywin32

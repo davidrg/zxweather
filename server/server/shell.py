@@ -64,6 +64,7 @@ class Dispatcher(object):
          - halt_input_callback
          - resume_input_callback
         :param command: The command string to process.
+        :type command: str
         :return: A new partial function which can be called to finish building
         an executable command
         :rtype: partial
@@ -73,11 +74,8 @@ class Dispatcher(object):
         try:
             handler, params, qualifiers = self.processor.process_command(command)
         except Exception as e:
-            if e.message is not None:
-                self.warning_handler("Error: " + e.message)
-                return None
-            else:
-                raise e
+            self.warning_handler("Error: " + str(e))
+            return None
 
         if handler is None:
             # nothing to do.
@@ -105,11 +103,11 @@ class BaseShell(object):
             lambda prompt: self.commandProcessorPrompter(prompt),
             lambda warning: self.commandProcessorWarning(warning)
         )
-        self.prompt = ["$ ", "_ "]
+        self.prompt = [b"$ ", b"_ "]
         self.prompt_number = 0
         self.input_mode = INPUT_SHELL
         self.current_command = None
-        self.line_partial = ""
+        self.line_partial = bytearray()
 
         self.dispatcher.environment["f_logout"] = lambda: self.logout()
         self.dispatcher.environment["prompt"] = self.prompt
@@ -131,7 +129,7 @@ class BaseShell(object):
             # off.
             self.dispatcher.environment["term_mode"] = TERM_BASIC
             self.dispatcher.environment["term_echo"] = False
-            self.dispatcher.environment["prompt"][0] = "_ok\n"
+            self.dispatcher.environment["prompt"][0] = b"_ok\n"
 
         self.dispatcher.environment["protocol"] = protocol
 
@@ -217,10 +215,10 @@ class BaseShell(object):
 
     def processLine(self, line):
         if self.input_mode == INPUT_SHELL:
-            self.executeCommand(line)
+            self.executeCommand(line.decode('latin1'))
         elif self.input_mode == INPUT_COMMAND:
             if self.current_command is not None:
-                self.current_command.lineReceived(line)
+                self.current_command.lineReceived(line.decode('latin1'))
 
     def processOutput(self, value):
         pass
@@ -242,6 +240,7 @@ class BaseShell(object):
     def showPrompt(self):
         pass
 
+
 class ZxweatherShellProtocol(BaseShell, recvline.HistoricRecvLine):
     """
     The zxweather shell.
@@ -253,6 +252,18 @@ class ZxweatherShellProtocol(BaseShell, recvline.HistoricRecvLine):
         super(ZxweatherShellProtocol, self).__init__(user, protocol)
         self.ps = (self.prompt[0], self.prompt[1])
 
+    def write(self, string):
+        """
+        Writes the specified string to the terminal
+        :param string: String to write
+        :type string: str or bytes
+        """
+
+        if isinstance(string, bytes):
+            self.terminal.write(string)
+        else:
+            self.terminal.write(string.encode('latin1'))
+
     def connectionMade(self):
         """
         Called when a new connection is made by a client.
@@ -261,8 +272,8 @@ class ZxweatherShellProtocol(BaseShell, recvline.HistoricRecvLine):
         self.dispatcher.environment["terminal"] = self.terminal
 
         # Install key handler to take care of ^C
-        self.keyHandlers['\x03'] = self.handle_CTRL_C
-        self.keyHandlers['\x04'] = self.handle_CTRL_D
+        self.keyHandlers[b'\x03'] = self.handle_CTRL_C
+        self.keyHandlers[b'\x04'] = self.handle_CTRL_D
 
     def connectionLost(self, reason):
         """
@@ -285,7 +296,7 @@ class ZxweatherShellProtocol(BaseShell, recvline.HistoricRecvLine):
         self.lineBufferIndex += 1
 
         if self.dispatcher.environment["term_echo"]:
-            self.terminal.write(ch)
+            self.write(ch)
 
     def handle_CTRL_C(self):
         """
@@ -293,7 +304,7 @@ class ZxweatherShellProtocol(BaseShell, recvline.HistoricRecvLine):
         """
         if self.input_mode != INPUT_SHELL:
             if self.dispatcher.environment["term_mode"] == TERM_CRT:
-                self.terminal.write("\033[7m EXIT \033[m\r\n")
+                self.write("\033[7m EXIT \033[m\r\n")
             self.terminateProcess()
 
     def handle_CTRL_D(self):
@@ -315,25 +326,27 @@ class ZxweatherShellProtocol(BaseShell, recvline.HistoricRecvLine):
         """
         # From HistoricRecvLine
         if self.lineBuffer:
-            self.historyLines.append(''.join(self.lineBuffer))
+            self.historyLines.append(b''.join(self.lineBuffer))
             self.historyPosition = len(self.historyLines)
 
         # From RecvLine
-        line = ''.join(self.lineBuffer)
+        line = b''.join(self.lineBuffer)
         self.lineBuffer = []
         self.lineBufferIndex = 0
         self.terminal.nextLine()
 
         # Handle the continuation - character if we're in SHELL mode.
-        if line.endswith("-") and self.input_mode == INPUT_SHELL:
-            self.line_partial += line[:-1]
-            if not self.line_partial.endswith(" "):
-                self.line_partial += " "
+        if line.endswith(b"-") and self.input_mode == INPUT_SHELL:
+            self.line_partial.extend(line[:-1])
+            if not self.line_partial.endswith(b" "):
+                self.line_partial += b" "
             self.prompt_number = 1
             self.showPrompt()
         else:
-            line = self.line_partial + line
-            self.line_partial = ""
+            result = bytearray()
+            result.extend(self.line_partial)
+            result.extend(line)
+            self.line_partial = bytearray()
             self.prompt_number = 0
             self.lineReceived(line)
 
@@ -341,7 +354,7 @@ class ZxweatherShellProtocol(BaseShell, recvline.HistoricRecvLine):
         """
         Shows the command prompt.
         """
-        self.terminal.write(self.prompt[self.prompt_number])
+        self.write(self.prompt[self.prompt_number])
 
     def lineReceived(self, line):
         """
@@ -370,7 +383,7 @@ class ZxweatherShellProtocol(BaseShell, recvline.HistoricRecvLine):
         warning has occurred.
         :param warning: The warning or error text.
         """
-        self.terminal.write(warning)
+        self.write(warning)
         self.terminal.nextLine()
 
     def processOutput(self, text):
@@ -378,12 +391,12 @@ class ZxweatherShellProtocol(BaseShell, recvline.HistoricRecvLine):
         Called when a process wants to output text.
         :param text: Text to output.
         """
-        self.terminal.write(text)
+        self.write(text)
 
     def logout(self):
         """
         Logs the user out.
         """
-        self.terminal.write("bye.")
+        self.write("bye.")
         self.terminal.nextLine()
         self.terminal.loseConnection()

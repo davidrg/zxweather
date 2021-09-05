@@ -17,6 +17,7 @@ __author__ = 'david'
 TERM_CRT = 0
 TERM_BASIC = 1
 
+
 class ShowUserCommand(Command):
     """
     Shows the currently logged in user. Operated through the SHOW USER
@@ -54,6 +55,7 @@ class SetClientCommand(Command):
             version_info
         )
 
+
 class SetPromptCommand(Command):
     """
     Allows the user to change the prompt.
@@ -63,6 +65,7 @@ class SetPromptCommand(Command):
         prompt = self.parameters[1]
 
         self.environment["prompt"][0] = prompt
+
 
 class SetTerminalCommand(Command):
     """
@@ -560,7 +563,7 @@ class StreamCommand(Command):
                 from_timestamp = dateutil.parser.parse(
                         self.qualifiers["from_timestamp"])
             except Exception as e:
-                self.writeLine("Error: {0}".format(e.message))
+                self.writeLine("Error: {0}".format(str(e)))
                 return
 
             now = datetime.utcnow().replace(tzinfo=pytz.utc)
@@ -684,7 +687,7 @@ class ShowLiveCommand(Command):
         else:
             wind_direction_val = int(bits.pop(0))
 
-            index = ((wind_direction_val * 100 + 1125) % 36000) / 2250
+            index = int(((wind_direction_val * 100 + 1125) % 36000) / 2250)
 
             wind_direction = str(wind_direction_val) + " degrees (" + \
                 self.wind_directions[index] + ")"

@@ -31,6 +31,15 @@ string_regex_v = re.compile(r'"((\\"|[^"])*)"$')
 #    |   ('+'|'-')? ('0'..'9')+ ('e'|'E') ('+'|'-')? ('0'..'9')+
 #    ;
 
+
+# Ref: https://stackoverflow.com/questions/14820429/how-do-i-decodestring-escape-in-python3
+def string_escape(s, encoding='utf-8'):
+    return (s.encode('latin1')          # To bytes, required by 'unicode-escape'
+             .decode('unicode-escape')  # Perform the actual octal-escaping decode
+             .encode('latin1')          # 1:1 mapping back to bytes
+             .decode(encoding))         # Decode original encoding
+
+
 class Token(object):
     """
     A token
@@ -207,7 +216,7 @@ class Lexer(object):
                     string_value = match.group(1)
 
                     # Handle escape sequences
-                    string_value = string_value.decode('string_escape')
+                    string_value = string_escape(string_value)
 
                     pos = self._pointer
                     self._consume_count(match.end())

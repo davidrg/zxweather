@@ -1,10 +1,14 @@
 # coding=utf-8
-import ConfigParser
+try:
+    from ConfigParser import ConfigParser
+except ImportError:
+    from configparser import ConfigParser
+
 from server.zxweatherd import getServerService
 
 __author__ = 'david'
 
-from zope.interface import implements
+from zope.interface import implementer
 
 from twisted.python import usage
 from twisted.plugin import IPlugin
@@ -17,12 +21,13 @@ class Options(usage.Options):
     ]
 
 
+@implementer(IServiceMaker, IPlugin)
 class ZXWServerServiceMaker(object):
     """
     Creates the zxweather WeatherPush service. Or, rather, prepares it from the
     supplied command-line arguments.
     """
-    implements(IServiceMaker, IPlugin)
+
     tapname = "weather_server"
     description = "Service for providing access to weather data"
     options = Options
@@ -36,7 +41,7 @@ class ZXWServerServiceMaker(object):
         S_DATABASE = 'database'
         S_BROKER = 'message_broker'
 
-        config = ConfigParser.ConfigParser()
+        config = ConfigParser()
         config.read([filename])
 
         ssh_config = None

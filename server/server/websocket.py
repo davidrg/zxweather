@@ -124,11 +124,13 @@ class WebSocketShellProtocol(WebSocketServerProtocol, BaseShell):
             pass
 
         BaseShell.__init__(self, None, "websocket")
-        self._buffer = ""
+        self._buffer = bytearray()
         self._ssl_context_factory = ssl_context_factory
         self._ssl_reload_password = ssl_reload_password
+        self._disconnected = False
 
     def connectionLost(self, reason):
+        self._disconnected = True
         super(WebSocketShellProtocol, self).connectionLost(reason)
 
         self.terminateProcess()
@@ -137,26 +139,29 @@ class WebSocketShellProtocol(WebSocketServerProtocol, BaseShell):
     def onMessage(self, msg, binary):
 
         if binary:
-            return # We don't do binary.
+            return  # We don't do binary.
 
-        for char in msg:
-            if char == '\x03':
+        msg_bytes = [msg[i:i+1] for i in range(len(msg))]
+
+        # TODO: this needs to iterate as bytes, not ints
+        for char in msg_bytes:
+            if char == b'\x03':
 
                 # ^C was sent. Terminate the process.
                 self.terminateProcess()
             else:
-                self._buffer += char
+                self._buffer.extend(bytes(char))
 
-            if len(self._buffer) > 0 and self._buffer[-1:] == "\n":
+            if len(self._buffer) > 0 and self._buffer[-1:] == b"\n":
                 self.processLine(self._buffer)
-                self._buffer = ""
+                self._buffer = bytearray()
 
         if len(self._buffer) > 0:
             self.processLine(self._buffer)
-            self._buffer = ""
+            self._buffer = bytearray()
 
     def processLine(self, line):
-        if line.lower().startswith("ssl_reload "):
+        if line.lower().startswith(b"ssl_reload "):
             if self._ssl_context_factory is None:
                 self.processOutput("ERROR: Not an SSL WebSocket")
                 log.msg("Error: Can not reload SSL context - not an SSL WebSocket")
@@ -174,13 +179,23 @@ class WebSocketShellProtocol(WebSocketServerProtocol, BaseShell):
         else:
             super(WebSocketShellProtocol, self).processLine(line)
 
+    def _write(self, string):
+        if self._disconnected:
+            # Not connected. Don't try sending - it will just result in errors.
+            return
+
+        if isinstance(string, bytes):
+            self.sendMessage(string, False)
+        else:
+            self.sendMessage(string.encode('latin1'), False)
+
     def commandProcessorWarning(self, warning):
         """
         Called when the command processor gets annoyed.
         :param warning: Warning text
         :type warning: str
         """
-        self.sendMessage(warning + "\n", False)
+        self._write(warning + "\n")
 
     def logout(self):
         """
@@ -193,14 +208,14 @@ class WebSocketShellProtocol(WebSocketServerProtocol, BaseShell):
         Called when the command wants to send output.
         :param value: Output data
         """
-        self.sendMessage(value, False)
+        self._write(value)
 
     def showPrompt(self):
         """
         Outputs the prompt string.
         :return:
         """
-        self.sendMessage(self.prompt[self.prompt_number])
+        self._write(self.prompt[self.prompt_number])
 
     def sendServerStatus(self, redirectUrl = None, redirectAfter = 0):
         """

@@ -11,18 +11,18 @@ from twisted.conch import  avatar, interfaces as conch_interfaces
 from twisted.conch.ssh import factory, session
 from twisted.conch.insults import insults
 from twisted.cred.checkers import FilePasswordDB
-from zope.interface import implements
+from zope.interface import implementer
 
 from server.shell import ZxweatherShellProtocol
 
 
+@implementer(conch_interfaces.ISession)
 class ZxwAvatar(avatar.ConchUser):
-    implements(conch_interfaces.ISession)
 
     def __init__(self, username):
         avatar.ConchUser.__init__(self)
         self.username = username
-        self.channelLookup.update({'session':session.SSHSession})
+        self.channelLookup.update({b'session':session.SSHSession})
         self._server_protocol = None
 
     def openShell(self, protocol):
@@ -57,14 +57,20 @@ class ZxwAvatar(avatar.ConchUser):
         """ Lets the shell know the session is dead. """
         self._server_protocol.connectionLost(None)
 
+    def eofReceived(self):
+        # This is here otherwise we get an error on disconnect.
+        pass
+
+
+@implementer(cred_portal.IRealm)
 class ZxwRealm(object):
-    implements(cred_portal.IRealm)
 
     def requestAvatar(self, avatarId, mind, *interfaces):
         if conch_interfaces.IConchUser in interfaces:
             return interfaces[0], ZxwAvatar(avatarId), lambda: None
         else:
             raise Exception("Invalid interface requested in ZxwRealm")
+
 
 def getSSHService(port, private_key_file, public_key_file, passwords_file):
     """
@@ -87,8 +93,8 @@ def getSSHService(port, private_key_file, public_key_file, passwords_file):
         publicKey = Key.fromString(data=str(publicBlob))
 
     sshFactory = factory.SSHFactory()
-    sshFactory.privateKeys = {'ssh-rsa': privateKey}
-    sshFactory.publicKeys = {'ssh-rsa': publicKey}
+    sshFactory.privateKeys = {b'ssh-rsa': privateKey}
+    sshFactory.publicKeys = {b'ssh-rsa': publicKey}
     sshFactory.portal = cred_portal.Portal(ZxwRealm())
     sshFactory.portal.registerChecker(FilePasswordDB(passwords_file))
 
