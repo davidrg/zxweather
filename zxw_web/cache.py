@@ -96,7 +96,7 @@ def year_cache_control(year, station_id):
     :param station_id: The ID of the weather station to work with
     :type station_id: int
     """
-    params = dict(date=date(year, 01, 01), station = station_id)
+    params = dict(date=date(year, 1, 1), station = station_id)
     age_data = db.query(
         "select max(time_stamp) as max_ts from sample where "
         "date_trunc('year', time_stamp) = $date "
@@ -114,7 +114,7 @@ def month_cache_control(year, month, station_id):
     :param station_id: The ID of the weather station to work with
     :type station_id: int
     """
-    params = dict(date=date(year, month, 01), station=station_id)
+    params = dict(date=date(year, month, 1), station=station_id)
     age_data = db.query(
         "select max(time_stamp) as max_ts from sample where "
         "date_trunc('month', time_stamp) = $date "

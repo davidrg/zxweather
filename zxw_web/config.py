@@ -76,8 +76,12 @@ def load_settings():
     global video_cache_directory, max_thumbnail_cache_size, max_video_cache_size
     global cache_expiry_access_time, report_settings, wind_speed_kmh
 
-    import ConfigParser
-    config = ConfigParser.ConfigParser()
+    try:
+        from ConfigParser import ConfigParser
+    except ImportError:
+        from configparser import ConfigParser
+
+    config = ConfigParser()
     config.read(['config.cfg', 'zxw_web/config.cfg', '/etc/zxweather/web.cfg',
                  '/etc/zxweather.cfg'])
 

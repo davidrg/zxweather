@@ -173,7 +173,7 @@ class overlay_file:
         :raise: web.NotFound if the file does not exist.
         """
         if not os.path.exists(filename):
-            print "static file {0} not found".format(filename)
+            print("static file {0} not found".format(filename))
             raise web.NotFound()
 
         #filename = os.path.basename(full_filename)
@@ -209,7 +209,7 @@ class overlay_file:
         :param pathname: Local file to stream
         :return:
         """
-        print "GET: " + pathname
+        print("GET: {0}".format(pathname))
         overlay_file.file_headers(pathname)
 
         f = open(pathname, 'rb')

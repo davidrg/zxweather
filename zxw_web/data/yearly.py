@@ -227,7 +227,7 @@ def get_daily_records_data(year, station_id):
     :type station_id: int
     :return: daily records query data
     """
-    params = dict(date = date(year,01,01), station=station_id)
+    params = dict(date = date(year, 1, 1), station=station_id)
     query_data = db.query("""select date_trunc('day', time_stamp)::date as time_stamp,
         max(temperature) as max_temp,
         min(temperature) as min_temp,

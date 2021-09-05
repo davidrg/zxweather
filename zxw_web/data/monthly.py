@@ -187,7 +187,7 @@ def get_daily_records_data(year, month, station_id):
     :type station_id: int
     :return: Query data
     """
-    params = dict(date=date(year, month, 01), station=station_id)
+    params = dict(date=date(year, month, 1), station=station_id)
     query_data = db.query("""select date_trunc('day', time_stamp)::date as time_stamp,
         max(temperature) as max_temp,
         min(temperature) as min_temp,
@@ -282,10 +282,10 @@ def get_30m_avg_month_samples_data(year, month, station_id):
        avg(iq.temperature) as temperature,
        avg(iq.dew_point) as dew_point,
        avg(iq.apparent_temperature) as apparent_temperature,
-       avg(wind_chill) as wind_chill,
-       avg(relative_humidity)::integer as relative_humidity,
-       avg(absolute_pressure) as absolute_pressure,
-       avg(mean_sea_level_puressure) as mean_sea_level_pressure,
+       avg(iq.wind_chill) as wind_chill,
+       avg(iq.relative_humidity)::integer as relative_humidity,
+       avg(iq.absolute_pressure) as absolute_pressure,
+       avg(iq.mean_sea_level_pressure) as mean_sea_level_pressure,
        avg(pressure) as pressure,
        min(prev_sample_time) as prev_sample_time,
        bool_or(gap) as gap,
@@ -409,7 +409,7 @@ def get_month_samples_dataset(year, month, output_function, station_id):
     :return: JSON data using Googles DataTable structure.
     :rtype: str
     """
-    params = dict(date=date(year, month, 01), station=station_id,
+    params = dict(date=date(year, month, 1), station=station_id,
                   sample_interval=get_sample_interval(station_id))
     query_data = db.query("""select cur.time_stamp,
        cur.temperature,

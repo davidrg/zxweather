@@ -160,7 +160,7 @@ def get_monthly_records(year, month, station_id):
     :raise: web.NotFound() if there is no data for the year/month.
     """
 
-    params = dict(date=date(year,month,01), station=station_id)
+    params = dict(date=date(year, month, 1), station=station_id)
     monthly_records = db.query("""SELECT date_stamp, total_rainfall, max_gust_wind_speed, max_gust_wind_speed_ts::timestamp,
    max_average_wind_speed, max_average_wind_speed_ts::timestamp, 
    coalesce(min_sea_level_pressure, min_absolute_pressure) as min_pressure,

@@ -504,8 +504,9 @@ def image_sources_by_date(station_id):
 
     rows = get_image_sources_by_date(station_id)
 
-    for row in rows:
-        result[row.date_stamp.isoformat()] = row.image_source_codes.split(',')
+    if rows is not None:
+        for row in rows:
+            result[row.date_stamp.isoformat()] = row.image_source_codes.split(',')
 
     # TODO: cache control?
     web.header('Content-Type', 'application/json')
@@ -810,7 +811,7 @@ class data_ascii:
 
             # One particular client appears to require an ETag
             m = hashlib.md5()
-            m.update(result)
+            m.update(result.encode('utf8'))
             web.header("ETag", '"' + m.hexdigest() + '"')
 
         web.header("Content-Type", "text/plain")

@@ -26,7 +26,7 @@ def path_split(path):
     :rtype: []
     """
     components = path.split('/')
-    components = filter(is_not_empty,components)
+    components = list(filter(is_not_empty, components))
     return components
 
 def path_join(path):

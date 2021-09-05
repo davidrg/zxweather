@@ -34,14 +34,14 @@ Installation is not easy. Proper install documentation hasn't been updated since
 
 ## Future Plans
 
- - Port to Python 3 now that Python 2.7 is no longer available in Debian stable
+ - Port remaining components to Python 3 now that Python 2.7 is no longer available in Debian stable
  - Fix the known bugs and finish off a stable documented release that people can run if its useful to them.
- - The Web UI really needs rewriting as part of its port to python 3. I'd like to switch from webpy to Flask as its web framework while I'm at it and overhaull the templates, etc.
+ - The Web UI really needs rewriting. I'd like to switch from webpy to Flask as its web framework while I'm at it and overhaull the templates, etc.
  - The desktop app needs a heavy refactoring. Its grown fairly organically over the last several years and its code has become quite a mess. A clean up is long over due and should allow some new features I've got in mind to be supported once its done.
 
 ## Current Limitations
 
-- Much of the software currently requires Python 2.7 which is now out of support so getting this from a linux distributions package repository may be difficult. A python3 port is currently in progress but it may be a while before its finished and "stable".
+- Some of the software currently requires Python 2.7 which is now out of support so getting this from a linux distributions package repository may be difficult.
 - The Web Interface is fairly inflexible at the moment. The JavaScript is fairly tightly coupled to the templates so customing it isn't really realistic. There are plans to fix this (see: future plans, web UI rewrite)
 - This software primarily deals in data using metric units. Support for US units is limited to the desktop interface. The web interface may get support too some day but its not really a priority as most of the world uses metric.
 - Supporting new types of weather stations that have more sensors than something like the FineOffset WH1080 is quite difficult at the moment. The way extra sensors are stored in the database and handled through-out the rest of the software needs to be improved somewhat. This will be fixed eventually.

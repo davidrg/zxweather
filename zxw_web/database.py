@@ -1538,6 +1538,7 @@ select s.station_id,
        (s.apparent_temperature - s3h.apparent_temperature) / 3 as apparent_temperature_trend,
        (s.absolute_pressure - s3h.absolute_pressure) / 3 as absolute_pressure_trend,
        (s.mean_sea_level_pressure - s3h.mean_sea_level_pressure) / 3 as mean_sea_level_pressure_trend,
+       coalesce((s.mean_sea_level_pressure - s3h.mean_sea_level_pressure) / 3, (s.absolute_pressure - s3h.absolute_pressure) / 3) as pressure_trend,
        (coalesce(s.mean_sea_level_pressure, s.absolute_pressure) - coalesce(s3h.mean_sea_level_pressure, s3h.absolute_pressure)) / 3 as mean_pressure_trend
 from sample s
 left outer join sample s3h on s3h.station_id = s.station_id and s3h.time_stamp = s.time_stamp - '3 hours'::interval
