@@ -8,7 +8,7 @@ from davis_logger.logger import DavisService
 
 __author__ = 'david'
 
-from zope.interface import implements, implementer
+from zope.interface import implementer
 
 from twisted.python import usage
 from twisted.plugin import IPlugin
