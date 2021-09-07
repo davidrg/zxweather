@@ -1,5 +1,3 @@
-import sys
-
 from datetime import date
 from gnuplot import plot_graph, plot_rainfall
 
@@ -67,7 +65,7 @@ def charts_1_day(cur, dest_dir, plot_date, station_code, output_format,
        round(cur.apparent_temperature::numeric, 1),
        round(cur.wind_chill::numeric,1),
        cur.relative_humidity,
-       round(cur.absolute_pressure::numeric,2),
+       round(coalesce(cur.mean_sea_level_pressure, cur.absolute_pressure)::numeric,2),
        round(cur.indoor_temperature::numeric,2),
        cur.indoor_relative_humidity,
        round(cur.rainfall::numeric, 1),
@@ -92,17 +90,18 @@ inner join station s on s.station_id = cur.station_id
 left outer join davis_sample ds on ds.sample_id = cur.sample_id
 where date(cur.time_stamp) = %s
   and lower(s.code) = lower(%s)
-order by cur.time_stamp asc""", (plot_date, station_code,))
+order by cur.time_stamp""", (plot_date, station_code,))
         weather_data = cur.fetchall()
 
         # Write the data file for gnuplot
         file_data = [
             '# timestamp\ttemperature\tdew point\tapparent temperature\twind chill'
-            '\trelative humidity\tabsolute pressure\tindoor temperature\t'
+            '\trelative humidity\tpressure\tindoor temperature\t'
             'indoor relative humidity\trainfall\taverage wind speed\t'
             'gust wind speed\twind direction\tuv index\tsolar radiation\n']
 
-        FORMAT_STRING = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t{10}\t{11}\t{12}\t{13}\t{14}\n'
+        FORMAT_STRING = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t' \
+                        '{10}\t{11}\t{12}\t{13}\t{14}\n'
         for record in weather_data:
             # Handle missing data.
             if record[COL_PREV_SAMPLE_MISSING]:
@@ -181,12 +180,12 @@ where date(cur.time_stamp) = %s
                    height=height,
                    x_range=x_range,
                    lines=[{'filename': data_filename,
-                           'xcol': FIELD_TIMESTAMP, # Time
-                           'ycol': FIELD_TEMPERATURE, # Temperature
+                           'xcol': FIELD_TIMESTAMP,  # Time
+                           'ycol': FIELD_TEMPERATURE,  # Temperature
                            'title': "Temperature"},
                           {'filename': data_filename,
-                           'xcol': FIELD_TIMESTAMP, # Time
-                           'ycol': FIELD_DEW_POINT, # Dew Point
+                           'xcol': FIELD_TIMESTAMP,  # Time
+                           'ycol': FIELD_DEW_POINT,  # Dew Point
                            'title': "Dew Point"}],
                    output_format=output_format)
 
@@ -202,12 +201,12 @@ where date(cur.time_stamp) = %s
                    height=height,
                    x_range=x_range,
                    lines=[{'filename': data_filename,
-                           'xcol': FIELD_TIMESTAMP, # Time
-                           'ycol': FIELD_APPARENT_TEMP, # Apparent temperature
+                           'xcol': FIELD_TIMESTAMP,  # Time
+                           'ycol': FIELD_APPARENT_TEMP,  # Apparent temperature
                            'title': "Apparent Temperature"},
                           {'filename': data_filename,
-                           'xcol': FIELD_TIMESTAMP, # Time
-                           'ycol': FIELD_WIND_CHILL, # Wind Chill
+                           'xcol': FIELD_TIMESTAMP,  # Time
+                           'ycol': FIELD_WIND_CHILL,  # Wind Chill
                            'title': "Wind Chill"}],
                    output_format=output_format)
 
@@ -226,7 +225,7 @@ where date(cur.time_stamp) = %s
                    x_range=x_range,
                    lines=[{'filename': data_filename,
                            'xcol': FIELD_TIMESTAMP, # Time
-                           'ycol': FIELD_REL_HUMIDITY, # Humidity
+                           'ycol': FIELD_REL_HUMIDITY,  # Humidity
                            'title': "Relative Humidity"}],
                    output_format=output_format)
 
@@ -244,8 +243,8 @@ where date(cur.time_stamp) = %s
                    yrange=(0, 100),
                    x_range=x_range,
                    lines=[{'filename': data_filename,
-                           'xcol': FIELD_TIMESTAMP, # Time
-                           'ycol': FIELD_INDOOR_REL_HUMIDITY, # Indoor Humidity
+                           'xcol': FIELD_TIMESTAMP,  # Time
+                           'ycol': FIELD_INDOOR_REL_HUMIDITY,  # Indoor Humidity
                            'title': "Relative Humidity"}],
                    output_format=output_format)
 
@@ -255,15 +254,15 @@ where date(cur.time_stamp) = %s
             output_filename = dest_dir + 'pressure_large'
         plot_graph(output_filename,
                    xdata_time=True,
-                   title="Absolute Pressure",
-                   ylabel="Absolute Pressure (hPa)",
+                   title="Pressure",
+                   ylabel="Pressure (hPa)",
                    key=False,
                    width=width,
                    height=height,
                    x_range=x_range,
                    lines=[{'filename': data_filename,
-                           'xcol': FIELD_TIMESTAMP, # Time
-                           'ycol': FIELD_ABS_PRESSURE, # Absolute Pressure
+                           'xcol': FIELD_TIMESTAMP,  # Time
+                           'ycol': FIELD_ABS_PRESSURE,  # Absolute Pressure
                            'title': "Absolute Pressure"}],
                    output_format=output_format)
 
@@ -280,8 +279,8 @@ where date(cur.time_stamp) = %s
                    height=height,
                    x_range=x_range,
                    lines=[{'filename': data_filename,
-                           'xcol': FIELD_TIMESTAMP, # Time
-                           'ycol': FIELD_INDOOR_TEMP, # Indoor Temperature
+                           'xcol': FIELD_TIMESTAMP,  # Time
+                           'ycol': FIELD_INDOOR_TEMP,  # Indoor Temperature
                            'title': "Temperature"}],
                    output_format=output_format)
 
@@ -299,7 +298,7 @@ where date(cur.time_stamp) = %s
                        height=height,
                        x_range=x_range,
                        lines=[{'filename': data_filename,
-                               'xcol': FIELD_TIMESTAMP, # Time
+                               'xcol': FIELD_TIMESTAMP,  # Time
                                'ycol': FIELD_SOLAR_RADIATION,
                                'title': "Solar Radiation"}],
                        output_format=output_format)
@@ -318,7 +317,7 @@ where date(cur.time_stamp) = %s
                        height=height,
                        x_range=x_range,
                        lines=[{'filename': data_filename,
-                               'xcol': FIELD_TIMESTAMP, # Time
+                               'xcol': FIELD_TIMESTAMP,  # Time
                                'ycol': FIELD_UV_INDEX,
                                'title': "UV Index"}],
                        output_format=output_format)
@@ -345,7 +344,7 @@ def rainfall_1_day(cur, dest_dir, plot_date, station_code, output_format):
     where date(s.time_stamp) = %s
       and lower(st.code) = lower(%s)
     group by extract(hour from s.time_stamp)
-    order by extract(hour from s.time_stamp) asc
+    order by extract(hour from s.time_stamp)
     """, (plot_date, station_code,))
     rainfall_data = cur.fetchall()
 
@@ -456,7 +455,7 @@ def charts_7_days(cur, dest_dir, plot_date, station_code, output_format,
        round(s.apparent_temperature::numeric, 1),
        round(s.wind_chill::numeric,1),
        s.relative_humidity,
-       round(s.absolute_pressure::numeric,2),
+       round(coalesce(s.mean_sea_level_pressure, s.absolute_pressure)::numeric,2),
        round(s.indoor_temperature::numeric,2),
        s.indoor_relative_humidity,
        round(s.rainfall::numeric, 1),
@@ -483,16 +482,17 @@ inner join sample prev on prev.station_id = s.station_id
 inner join station st on st.station_id = s.station_id
 left outer join davis_sample ds on ds.sample_id = s.sample_id
 where lower(st.code) = lower(%s)
-order by s.time_stamp asc
+order by s.time_stamp
 """, (plot_date, station_code,))
         temperature_data = cur.fetchall()
 
         # Write the data file for gnuplot
         file_data = [
             '# timestamp\ttemperature\tdew point\tapparent temperature\twind chill'
-            '\trelative humidity\tabsolute pressure\tindoor temperature'
+            '\trelative humidity\tpressure\tindoor temperature'
             '\tindoor relative humidity\trainfall\taverage wind speed\tgust wind speed\twind direction\tuv index\tsolar radiation\n']
-        FORMAT_STRING = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t{10}\t{11}\t{12}\t{13}\t{14}\n'
+        FORMAT_STRING = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t' \
+                        '{10}\t{11}\t{12}\t{13}\t{14}\n'
         for record in temperature_data:
             # Handle missing data.
             if record[COL_PREV_SAMPLE_MISSING]:
@@ -536,7 +536,6 @@ order by s.time_stamp asc
         x_range = (str(weather_data[0]),
                    str(weather_data[1]))
 
-
     for large in [True, False]:
         # Create both large and regular versions of each plot.
         if output_format == "txt":
@@ -576,12 +575,12 @@ order by s.time_stamp asc
                    height=height,
                    x_range=x_range,
                    lines=[{'filename': data_filename,
-                           'xcol': FIELD_TIMESTAMP, # Time
-                           'ycol': FIELD_TEMPERATURE, # Temperature
+                           'xcol': FIELD_TIMESTAMP,  # Time
+                           'ycol': FIELD_TEMPERATURE,  # Temperature
                            'title': "Temperature"},
                           {'filename': data_filename,
-                           'xcol': FIELD_TIMESTAMP, # Time
-                           'ycol': FIELD_DEW_POINT, # Dew Point
+                           'xcol': FIELD_TIMESTAMP,  # Time
+                           'ycol': FIELD_DEW_POINT,  # Dew Point
                            'title': "Dew Point"}],
                    output_format=output_format)
 
@@ -600,12 +599,12 @@ order by s.time_stamp asc
                    height=height,
                    x_range=x_range,
                    lines=[{'filename': data_filename,
-                           'xcol': FIELD_TIMESTAMP, # Time
-                           'ycol': FIELD_APPARENT_TEMP, # Apparent temperature
+                           'xcol': FIELD_TIMESTAMP,  # Time
+                           'ycol': FIELD_APPARENT_TEMP,  # Apparent temperature
                            'title': "Apparent Temperature"},
                           {'filename': data_filename,
-                           'xcol': FIELD_TIMESTAMP, # Time
-                           'ycol': FIELD_WIND_CHILL, # Wind Chill
+                           'xcol': FIELD_TIMESTAMP,  # Time
+                           'ycol': FIELD_WIND_CHILL,  # Wind Chill
                            'title': "Wind Chill"}],
                    output_format=output_format)
 
@@ -626,8 +625,8 @@ order by s.time_stamp asc
                    yrange=(0, 100),
                    x_range=x_range,
                    lines=[{'filename': data_filename,
-                           'xcol': FIELD_TIMESTAMP, # Time
-                           'ycol': FIELD_REL_HUMIDITY, # Humidity
+                           'xcol': FIELD_TIMESTAMP,  # Time
+                           'ycol': FIELD_REL_HUMIDITY,  # Humidity
                            'title': "Relative Humidity"}],
                    output_format=output_format)
 
@@ -648,8 +647,8 @@ order by s.time_stamp asc
                    yrange=(0, 100),
                    x_range=x_range,
                    lines=[{'filename': data_filename,
-                           'xcol': FIELD_TIMESTAMP, # Time
-                           'ycol': FIELD_INDOOR_REL_HUMIDITY, # Indoor Humidity
+                           'xcol': FIELD_TIMESTAMP,  # Time
+                           'ycol': FIELD_INDOOR_REL_HUMIDITY,  # Indoor Humidity
                            'title': "Relative Humidity"}],
                    output_format=output_format)
 
@@ -669,8 +668,8 @@ order by s.time_stamp asc
                    height=height,
                    x_range=x_range,
                    lines=[{'filename': data_filename,
-                           'xcol': FIELD_TIMESTAMP, # Time
-                           'ycol': FIELD_ABS_PRESSURE, # Absolute Pressure
+                           'xcol': FIELD_TIMESTAMP,  # Time
+                           'ycol': FIELD_ABS_PRESSURE,  # Absolute Pressure
                            'title': "Absolute Pressure"}],
                    output_format=output_format)
 
@@ -690,8 +689,8 @@ order by s.time_stamp asc
                    height=height,
                    x_range=x_range,
                    lines=[{'filename': data_filename,
-                           'xcol': FIELD_TIMESTAMP, # Time
-                           'ycol': FIELD_INDOOR_TEMP, # Indoor Temperature
+                           'xcol': FIELD_TIMESTAMP,  # Time
+                           'ycol': FIELD_INDOOR_TEMP,  # Indoor Temperature
                            'title': "Temperature"}],
                    output_format=output_format)
 
@@ -750,9 +749,7 @@ def rainfall_7_day(cur, dest_dir, plot_date, station_code, output_format):
 
     :param cur: Database cursor
     :param dest_dir: Directory to write images to
-    :param day: Day to chart for
-    :param month: Month to chart for
-    :param year: Year to chart for
+    :param plot_date: Date to plot
     :param station_code: The code for the station to plot data for
     :type station_code: str
     :param output_format: The output format (eg, "pngcairo")
@@ -770,7 +767,7 @@ inner join (select max(time_stamp) as ts, station_id from sample
        and s.time_stamp >= (max_ts.ts - (604800 * '1 second'::interval))
   where lower(st.code) = lower(%s)
     group by date_trunc('hour', s.time_stamp)
-    order by date_trunc('hour', s.time_stamp) asc
+    order by date_trunc('hour', s.time_stamp)
     """, (plot_date, station_code,))
     rainfall_data = cur.fetchall()
 

@@ -69,7 +69,7 @@ def month_charts(cur, dest_dir, month, year, station_code, output_format,
        round(cur.apparent_temperature::numeric, 1),
        round(cur.wind_chill::numeric,1),
        cur.relative_humidity,
-       round(cur.absolute_pressure::numeric,2),
+       round(coalesce(cur.mean_sea_level_pressure, cur.absolute_pressure)::numeric,2),
        round(cur.indoor_temperature::numeric,2),
        cur.indoor_relative_humidity,
        round(cur.rainfall::numeric, 1),
@@ -95,7 +95,7 @@ inner join station s on s.station_id = cur.station_id
 left outer join davis_sample ds on ds.sample_id = cur.sample_id
 where date(date_trunc('month',cur.time_stamp)) = %s
   and lower(s.code) = lower(%s)
-order by cur.time_stamp asc""", (date(year, month, 1), station_code))
+order by cur.time_stamp""", (date(year, month, 1), station_code))
 
         weather_data = cur.fetchall()
 
@@ -105,7 +105,8 @@ order by cur.time_stamp asc""", (date(year, month, 1), station_code))
             '\trelative humidity\tabsolute pressure\tindoor temperature'
             '\tindoor relative humidity\trainfall\taverage wind speed\tgust wind speed\twind direction\tuv index\tsolar radiation\n']
 
-        FORMAT_STRING = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t{10}\t{11}\t{12}\t{13}\t{14}\n'
+        FORMAT_STRING = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t' \
+                        '{10}\t{11}\t{12}\t{13}\t{14}\n'
         for record in weather_data:
             # Handle missing data.
             if record[COL_PREV_SAMPLE_MISSING]:
@@ -174,12 +175,12 @@ order by cur.time_stamp asc""", (date(year, month, 1), station_code))
                    height=height,
                    x_range=x_range,
                    lines=[{'filename': data_filename,
-                           'xcol': FIELD_TIMESTAMP, # Time
-                           'ycol': FIELD_TEMPERATURE, # Temperature
+                           'xcol': FIELD_TIMESTAMP,  # Time
+                           'ycol': FIELD_TEMPERATURE,  # Temperature
                            'title': "Temperature"},
                           {'filename': data_filename,
-                           'xcol': FIELD_TIMESTAMP, # Time
-                           'ycol': FIELD_DEW_POINT, # Dew Point
+                           'xcol': FIELD_TIMESTAMP,  # Time
+                           'ycol': FIELD_DEW_POINT,  # Dew Point
                            'title': "Dew Point"}],
                    output_format=output_format)
 
@@ -198,12 +199,12 @@ order by cur.time_stamp asc""", (date(year, month, 1), station_code))
                    height=height,
                    x_range=x_range,
                    lines=[{'filename': data_filename,
-                           'xcol': FIELD_TIMESTAMP, # Time
-                           'ycol': FIELD_APPARENT_TEMP, # Apparent temperature
+                           'xcol': FIELD_TIMESTAMP,  # Time
+                           'ycol': FIELD_APPARENT_TEMP,  # Apparent temperature
                            'title': "Apparent Temperature"},
                           {'filename': data_filename,
-                           'xcol': FIELD_TIMESTAMP, # Time
-                           'ycol': FIELD_WIND_CHILL, # Wind Chill
+                           'xcol': FIELD_TIMESTAMP,  # Time
+                           'ycol': FIELD_WIND_CHILL,  # Wind Chill
                            'title': "Wind Chill"}],
                    output_format=output_format)
 
@@ -224,8 +225,8 @@ order by cur.time_stamp asc""", (date(year, month, 1), station_code))
                    yrange=(0, 100),
                    x_range=x_range,
                    lines=[{'filename': data_filename,
-                           'xcol': FIELD_TIMESTAMP, # Time
-                           'ycol': FIELD_REL_HUMIDITY, # Humidity
+                           'xcol': FIELD_TIMESTAMP,  # Time
+                           'ycol': FIELD_REL_HUMIDITY,  # Humidity
                            'title': "Relative Humidity"}],
                    output_format=output_format)
 
@@ -246,8 +247,8 @@ order by cur.time_stamp asc""", (date(year, month, 1), station_code))
                    yrange=(0, 100),
                    x_range=x_range,
                    lines=[{'filename': data_filename,
-                           'xcol': FIELD_TIMESTAMP, # Time
-                           'ycol': FIELD_INDOOR_REL_HUMIDITY, # Indoor Humidity
+                           'xcol': FIELD_TIMESTAMP,  # Time
+                           'ycol': FIELD_INDOOR_REL_HUMIDITY,  # Indoor Humidity
                            'title': "Relative Humidity"}],
                    output_format=output_format)
 
@@ -260,15 +261,15 @@ order by cur.time_stamp asc""", (date(year, month, 1), station_code))
                    xlabel='Day of Month',
                    x_format='%d',
                    timefmt_is_date=True,
-                   title="Absolute Pressure",
-                   ylabel="Absolute Pressure (hPa)",
+                   title="Pressure",
+                   ylabel="Pressure (hPa)",
                    key=False,
                    width=width,
                    height=height,
                    x_range=x_range,
                    lines=[{'filename': data_filename,
-                           'xcol': FIELD_TIMESTAMP, # Time
-                           'ycol': FIELD_ABS_PRESSURE, # Absolute Pressure
+                           'xcol': FIELD_TIMESTAMP,  # Time
+                           'ycol': FIELD_ABS_PRESSURE,  # Absolute Pressure
                            'title': "Absolute Pressure"}],
                    output_format=output_format)
 
@@ -288,8 +289,8 @@ order by cur.time_stamp asc""", (date(year, month, 1), station_code))
                    height=height,
                    x_range=x_range,
                    lines=[{'filename': data_filename,
-                           'xcol': FIELD_TIMESTAMP, # Time
-                           'ycol': FIELD_INDOOR_TEMP, # Indoor Temperature
+                           'xcol': FIELD_TIMESTAMP,  # Time
+                           'ycol': FIELD_INDOOR_TEMP,  # Indoor Temperature
                            'title': "Temperature"}],
                    output_format=output_format)
         # Solar Radiation
@@ -309,7 +310,7 @@ order by cur.time_stamp asc""", (date(year, month, 1), station_code))
                        height=height,
                        x_range=x_range,
                        lines=[{'filename': data_filename,
-                               'xcol': FIELD_TIMESTAMP, # Time
+                               'xcol': FIELD_TIMESTAMP,  # Time
                                'ycol': FIELD_SOLAR_RADIATION,
                                'title': "Solar Radiation"}],
                        output_format=output_format)
@@ -331,7 +332,7 @@ order by cur.time_stamp asc""", (date(year, month, 1), station_code))
                        height=height,
                        x_range=x_range,
                        lines=[{'filename': data_filename,
-                               'xcol': FIELD_TIMESTAMP, # Time
+                               'xcol': FIELD_TIMESTAMP,  # Time
                                'ycol': FIELD_UV_INDEX,
                                'title': "UV Index"}],
                        output_format=output_format)

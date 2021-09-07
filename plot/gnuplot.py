@@ -14,6 +14,11 @@ next_gnuplot = 0
 
 
 def run_plot_script(script):
+    """
+    Runs a gnuplot script
+    :param script: Script to run
+    :type script: bytes
+    """
     global gnuplot_instance, gnuplot_binary, next_gnuplot, gnuplot_count
     if gnuplot_instance is None:
 
@@ -23,10 +28,12 @@ def run_plot_script(script):
             ins = subprocess.Popen([gnuplot_binary], stdin=subprocess.PIPE)
             gnuplot_instance.append(ins)
 
+    to_run = bytearray()
+    to_run.extend(b'reset\n')
+    to_run.extend(script)
+    to_run.extend(b'\n')
 
-    script = "reset\n{0}\n".format(script)
-
-    gnuplot_instance[next_gnuplot].stdin.write(script)
+    gnuplot_instance[next_gnuplot].stdin.write(bytes(to_run))
 
     next_gnuplot += 1
     if next_gnuplot >= gnuplot_count:
@@ -116,11 +123,10 @@ set datafile missing "?"
         else:
             script += "set terminal {0}\n".format(output_format)
 
-
     if title is not None:
         script += 'set title "{0}"\n'.format(title)
 
-    #script += 'set xtics rotate by -45\n'
+    # script += 'set xtics rotate by -45\n'
 
     if xdata_time:
         xdata_is_time = True
@@ -154,8 +160,7 @@ set datafile missing "?"
         script += "set yrange [{0}:{1}]\n".format(yrange[0], yrange[1])
 
     if x_range is not None:
-        script += 'set xrange ["{0}":"{1}"]\n'.format(x_range[0],x_range[1])
-
+        script += 'set xrange ["{0}":"{1}"]\n'.format(x_range[0], x_range[1])
 
     # Override x_format if x data is time and doesn't include the date.
     if xdata_time and not timefmt_is_date:
@@ -170,14 +175,13 @@ set datafile missing "?"
 
             # We format the second column as ($n) so we don't join dots in the
             # case of missing data.
-            script += "'{0}' using {1}:(${2}) title \"{3}\"".format(line['filename'],
-                                                                 line['xcol'], line['ycol'], line['title'])
+            script += "'{0}' using {1}:(${2}) title \"{3}\"".format(
+                line['filename'], line['xcol'], line['ycol'], line['title'])
+
         output_file = open(output_filename + '.plt', 'w+')
         output_file.writelines(script)
         output_file.close()
-        run_plot_script(script)
-        #gnuplot = subprocess.Popen([gnuplot_binary], stdin=subprocess.PIPE)
-        #gnuplot.communicate(script)
+        run_plot_script(script.encode('utf-8'))
 
 
 def plot_rainfall(data_file_name, output_filename, title, width, height, empty,
@@ -189,6 +193,7 @@ def plot_rainfall(data_file_name, output_filename, title, width, height, empty,
     :param title: Chart title
     :param width: Chart width
     :param height: Chart height
+    :param empty: If the plot is empty
     :param columns: Column specification.
     :param output_format: Output format (eg, "pngcairo")
     :type output_format: str
@@ -210,8 +215,8 @@ def plot_rainfall(data_file_name, output_filename, title, width, height, empty,
     script += 'set output "{0}"\n'.format(output_filename)
 
     if output_format in ("txt", "txtwide"):
-        script += 'set terminal dumb size {0}, {1} mono\n'.format(width, height,
-                                                            output_format)
+        script += 'set terminal dumb size {0}, {1} mono\n'.format(
+            width, height, output_format)
     else:
         script += 'set terminal {2} size {0}, {1}\n'.format(width, height,
                                                             output_format)
@@ -237,6 +242,4 @@ def plot_rainfall(data_file_name, output_filename, title, width, height, empty,
     script_file = open(output_filename + '.plt', 'w+')
     script_file.writelines(script)
     script_file.close()
-    run_plot_script(script)
-    #gnuplot = subprocess.Popen([gnuplot_binary], stdin=subprocess.PIPE)
-    #gnuplot.communicate(script)
+    run_plot_script(script.encode('utf-8'))

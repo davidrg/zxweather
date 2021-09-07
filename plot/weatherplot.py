@@ -18,15 +18,15 @@ __author__ = 'David Goodwin'
 
 # TODO: Refactor this entire program. Its a horrible mess.
 
-month_name = {1 : 'january',
-              2 : 'february',
-              3 : 'march',
-              4 : 'april',
-              5 : 'may',
-              6 : 'june',
-              7 : 'july',
-              8 : 'august',
-              9 : 'september',
+month_name = {1: 'january',
+              2: 'february',
+              3: 'march',
+              4: 'april',
+              5: 'may',
+              6: 'june',
+              7: 'july',
+              8: 'august',
+              9: 'september',
               10: 'october',
               11: 'november',
               12: 'december'}
@@ -43,13 +43,11 @@ class StationConfig(object):
             self._has_uv_sensor = False
             self._broadcast_id = None
 
-
     def _load_davis_data(self, config_document):
         self._is_wireless = config_document['is_wireless']
         self._has_solar_sensor = config_document['has_solar_and_uv']
         self._has_uv_sensor = config_document['has_solar_and_uv']
         self._broadcast_id = config_document['broadcast_id']
-        #self._hardware_type = config_document['hardware_type']
 
     @property
     def hardware_type(self):
@@ -72,11 +70,12 @@ class StationConfig(object):
         return self._broadcast_id
 
 
-
 # Handle Ctr;+C nicely.
 def handler(signum, frame):
     print("weatherplot stopped.")
     exit()
+
+
 signal.signal(signal.SIGINT, handler)
 
 
@@ -128,7 +127,7 @@ def plot_day(dest_dir, cur, plot_date, station_code, start_date, output_format,
                   hw_config, write_data)
 
     # Disabled because the graph is fairly unreadable
-    #rainfall_7_day(cur, dest_dir, plot_date, station_code, output_format)
+    # rainfall_7_day(cur, dest_dir, plot_date, station_code, output_format)
 
 
 def plot_month(dest_dir, cur, year, month, station_code, start_date,
@@ -161,7 +160,7 @@ def plot_month(dest_dir, cur, year, month, station_code, start_date,
         print("Skip")
         return
     else:
-        print("") # newline
+        print("")  # newline
 
     dest_dir += month_name[month] + '/'
 
@@ -254,7 +253,7 @@ def plot_for_station(code, cur, dest_dir, start_date, output_format, write_data)
 from sample s
 inner join station st on st.station_id = s.station_id
 where lower(st.code) = lower(%s)
-order by extract(year from s.time_stamp) asc
+order by extract(year from s.time_stamp)
                            """, (code,))
     years = cur.fetchall()
 
@@ -279,6 +278,7 @@ where lower(s.code) = lower(%s)""", (code,))
 
     return final_date
 
+
 def main():
     """
     Program entry point. Parses options, connects to the database and then
@@ -289,13 +289,13 @@ def main():
 
     # Configure and run the option parser
     parser = OptionParser()
-    parser.add_option("-t", "--database",dest="dbname",
+    parser.add_option("-t", "--database", dest="dbname",
                       help="Database name")
     parser.add_option("-n", "--host", dest="hostname",
                       help="PostgreSQL Server Hostname")
-    parser.add_option("-u","--user",dest="username",
+    parser.add_option("-u","--user", dest="username",
                       help="PostgreSQL Username")
-    parser.add_option("-p","--password",dest="password",
+    parser.add_option("-p","--password", dest="password",
                       help="PostgreSQL Password")
     parser.add_option("-d", "--directory", dest="directory",
                       help="Output Directory")
@@ -322,9 +322,8 @@ def main():
 
     (options, args) = parser.parse_args()
 
-
     print("Weather data plotting application v1.2 (zxweather v1.0)")
-    print("\t(C) Copyright David Goodwin, 2012, 2013\n\n")
+    print("\t(C) Copyright David Goodwin, 2012-2021\n\n")
 
     error = False
     if options.station_codes is None or len(options.station_codes) == 0:
@@ -421,12 +420,15 @@ def main():
     plot_dates = {}
     if options.plot_new is not None:
         try:
-            with open(options.plot_new, "r") as update_file:
+            with open(options.plot_new, "rb") as update_file:
                 plot_dates = pickle.load(update_file)
                 if isinstance(plot_dates, date):
                     plot_dates = {}
         except IOError:
             print("Update file does not exist. It will be created.")
+            plot_dates = {}
+        except EOFError:
+            print("Update file is empty or corrupt. It will be recreated.")
             plot_dates = {}
 
     for code in options.station_codes:
@@ -436,7 +438,7 @@ def main():
             else:
                 format_key = "{0}_{1}".format(code, output_format)
             if format_key not in plot_dates:
-                plot_dates[format_key] = date(1900, 01, 01)
+                plot_dates[format_key] = date(1900, 1, 1)
 
             print("Plotting from {0} for station {1}, format {2}".format(
                 code, plot_dates[format_key], output_format))
@@ -460,7 +462,7 @@ def main():
 
                 # Update stored date for next time
                 if options.plot_new is not None:
-                    with open(options.plot_new, "w") as update_file:
+                    with open(options.plot_new, "wb") as update_file:
                         pickle.dump(plot_dates, update_file)
 
         print("Plot completed in {0} seconds".format(time.time() - exec_start))
@@ -476,4 +478,5 @@ def main():
     print("Finished.")
 
 
-if __name__ == "__main__": main()
+if __name__ == "__main__":
+    main()
