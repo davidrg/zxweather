@@ -1,4 +1,4 @@
-twisted==16.4.1
+twisted==20.3.0
 psycopg2
 txpostgres==1.5.0
 
