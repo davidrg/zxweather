@@ -1,6 +1,9 @@
 # coding=utf-8
-import ConfigParser
-from zope.interface import implements
+try:
+    from ConfigParser import ConfigParser
+except ImportError:
+    from configparser import ConfigParser
+from zope.interface import implementer
 from datetime import datetime
 
 from twisted.python import usage
@@ -18,12 +21,13 @@ class Options(usage.Options):
     ]
 
 
+@implementer(IServiceMaker, IPlugin)
 class TSLoggerServiceMaker(object):
     """
     Creates the Time lapse Logger service. Or, rather, prepares it from the
     supplied command-line arguments.
     """
-    implements(IServiceMaker, IPlugin)
+
     tapname = "time_lapse_logger"
     description = "Service for logging time-lapse videos from an IP Camera to the " \
                   "weather database"
@@ -36,7 +40,7 @@ class TSLoggerServiceMaker(object):
         S_CAMERA = 'camera'
         S_PROCESSING = 'processing'
 
-        config = ConfigParser.ConfigParser()
+        config = ConfigParser()
         config.read([filename])
 
         dsn = config.get(S_DATABASE, 'dsn')

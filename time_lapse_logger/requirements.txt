@@ -1,9 +1,8 @@
-dateutil
 psycopg2
-twisted==16.4.1
-txpostgres==1.5.0
+twisted
+txpostgres
 python-dateutil
-pyOpenSSL==0.13.1
+pyOpenSSL
 service_identity
 astral==1.3
 

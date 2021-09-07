@@ -34,3 +34,5 @@ test.tac
 *.rej
 *.cache
 _trial_temp/
+time_lapse_logger/config.cfg
+image_logger/config.cfg

@@ -18,10 +18,10 @@ from twisted.web.client import Agent, WebClientContextFactory
 from twisted.web.http_headers import Headers
 import dateutil.parser
 
-from database import DatabaseReceiver, Database
-from mq_receiver import RabbitMqReceiver
-from readbody import readBody
-from util import Event
+from .database import DatabaseReceiver, Database
+from .mq_receiver import RabbitMqReceiver
+from .readbody import readBody
+from .util import Event
 
 
 # License: GPLv3 (Astral incompatible with GPLv2)
@@ -558,8 +558,8 @@ class TSLoggerService(service.Service):
                 self._agent = Agent(reactor, context_factory)
 
             response = yield self._agent.request(
-                'GET',
-                self._camera_url,
+                b'GET',
+                self._camera_url.encode('latin1'),
                 Headers({'User-Agent': ['zxweather time-lapse-logger']}),
                 None
             )
@@ -603,7 +603,7 @@ class TSLoggerService(service.Service):
                     "next_image": self._current_image_number
                 }))
         except Exception as e:
-            log.msg("Failed to capture or store image #{1:06}: {0}".format(e.message, self._current_image_number))
+            log.msg("Failed to capture or store image #{1:06}: {0}".format(e, self._current_image_number))
 
     def _schedule_logging_start(self):
         """
