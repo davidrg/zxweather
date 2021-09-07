@@ -1,5 +1,5 @@
 python-dateutil
 psycopg2
 service_identity
-twisted==17.5.0
+twisted==20.3.0
 txpostgres==1.6.0
