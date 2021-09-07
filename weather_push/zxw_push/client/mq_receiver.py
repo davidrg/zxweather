@@ -51,8 +51,12 @@ class RabbitMqReceiver(object):
                 reactor, twisted_connection.TwistedProtocolConnection,
                 parameters)
 
+            def _conn_ready(c):
+                c.ready.addCallback(lambda _: c)
+                return c.ready
+
             d = cc.connectTCP(self._hostname, self._port)
-            d.addCallback(lambda proto: proto.ready)
+            d.addCallback(_conn_ready)
             d.addCallback(self._mq_setup)
 
         except ImportError:
@@ -65,9 +69,11 @@ class RabbitMqReceiver(object):
 
         channel = yield connection.channel()
 
-        yield channel.exchange_declare(exchange=self._exchange, exchange_type='topic')
+        yield channel.exchange_declare(exchange=self._exchange,
+                                       exchange_type='topic')
 
-        result = yield channel.queue_declare(exclusive=True)
+        # '' = no queue name = auto-generate one
+        result = yield channel.queue_declare('', exclusive=True)
 
         queue_name = result.method.queue
 
@@ -85,7 +91,7 @@ class RabbitMqReceiver(object):
         yield channel.basic_qos(prefetch_count=1)
 
         queue_object, consumer_tag = yield channel.basic_consume(
-            queue=queue_name, no_ack=True)
+            queue=queue_name, auto_ack=True)
 
         l = task.LoopingCall(self._read, queue_object)
 

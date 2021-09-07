@@ -1,12 +1,13 @@
-twisted==16.4.1
+twisted
 psycopg2
-txpostgres==1.5.0
+txpostgres
+bcrypt
 
 # optional - only used by the client if image resizing is enabled
 Pillow
 
 # optional - only used by the client if RabbitMQ is configured
-pika==0.11.2
+pika
 
 # optional - only used by the client if pushing data via SSH
 cryptography
