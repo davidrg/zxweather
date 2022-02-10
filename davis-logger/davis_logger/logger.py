@@ -101,6 +101,10 @@ class DavisLoggerProtocol(Protocol):
 
         self.station.initialise()
 
+    def connectionLost(self, reason):
+        log.msg("*** Connection lost ***")
+        log.msg("Connection lost reason: {0}".format(reason))
+
     def _check_configured_sensors(self, station_list):
         """
         Compares the sensors that are (or probably are) being received by the
