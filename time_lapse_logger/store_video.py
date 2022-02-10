@@ -22,7 +22,7 @@ def main():
                         help="Database connection string")
     parser.add_argument("description_file",
                         type=argparse.FileType('r'),
-                        help="Image description jSON file",
+                        help="Image description JSON file",
                         nargs="*")
     parser.add_argument("--clean", dest="clean", action='store_true',
                         help="Remove input files on success")
@@ -100,6 +100,11 @@ Metadata: {7}
                 "where upper(code) = upper(%s)",
                 (image_source,))
     result = cur.fetchone()
+
+    if result is None:
+        print("ERROR: image source '{0}' was not found".format(image_source))
+        return
+
     source_id = result[0]
 
     # Get data type ID
@@ -120,15 +125,20 @@ Metadata: {7}
         "metadata": metadata_data
     }
 
-    # Insert image
-    cur.execute(
-        """insert into image(image_type_id, image_source_id, time_stamp, title,
-                             description, image_data, mime_type, metadata)
-           values(%(type_id)s, %(source_id)s, %(time_stamp)s, %(title)s,
-                  %(description)s, %(data)s, %(mime_type)s, %(metadata)s)
-        """,
-        data
-    )
+    # Insert video
+    try:
+        cur.execute(
+            """insert into image(image_type_id, image_source_id, time_stamp, title,
+                                 description, image_data, mime_type, metadata)
+               values(%(type_id)s, %(source_id)s, %(time_stamp)s, %(title)s,
+                      %(description)s, %(data)s, %(mime_type)s, %(metadata)s)
+            """,
+            data
+        )
+    except psycopg2.errors.UniqueViolation:
+        print("ERROR: An image with timestamp {0} already exists for image source {1}".format(time_stamp, image_source))
+        conn.close()
+        return
 
     conn.commit()
     cur.close()
