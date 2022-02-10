@@ -157,7 +157,7 @@ def _time_decode(binary_val):
     if binary_val >= 0xFFFF or binary_val <= 0:
         return None
 
-    hour = binary_val / 100
+    hour = binary_val // 100
     minute = binary_val - (hour * 100)
 
     return datetime.time(hour=hour, minute=minute)
@@ -517,7 +517,7 @@ all_live_field_ids = {
     "FOWH1080": (range(2, 11), None),
     "DAVIS": (
         # Skip field 11 - its not currently used.
-        range(2, 11) + range(12, 29) + [31],
+        [*range(2, 11), *range(12, 29), 31],
         {
             "extra_fields": range(1, 18)
         }
@@ -654,7 +654,7 @@ all_sample_field_ids = {
     "GENERIC": (range(2, 12), None),
     "FOWH1080": (range(2, 19), None),
     "DAVIS": (
-        range(2, 25) + [31],
+        [*range(2, 25), 31],
         {
             "extra_fields": range(1, 18)
         }
@@ -668,7 +668,7 @@ common_live_sample_field_ids = {
     "GENERIC": (range(1, 11), None),
     "FOWH1080": (range(1, 11), None),
     "DAVIS": (
-        range(1, 11) + [31],
+        [*range(1, 11), 31],
         {
             "extra_fields": range(1, 18)
         }
@@ -1275,7 +1275,7 @@ def get_field_ids_set(field_id_bits):
     []
     >>> get_field_ids_set(1)
     [0]
-    >>> get_field_ids_set(2147483648L)
+    >>> get_field_ids_set(2147483648)
     [31]
     >>> get_field_ids_set(63)
     [0, 1, 2, 3, 4, 5]
@@ -1308,7 +1308,7 @@ def set_field_ids(field_ids):
     >>> set_field_ids([0])
     1
     >>> set_field_ids([31])
-    2147483648L
+    2147483648
     >>> set_field_ids([0,1,2,3,4,5])
     63
 

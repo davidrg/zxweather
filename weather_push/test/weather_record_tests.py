@@ -109,7 +109,7 @@ class LiveDataRecordTests(unittest.TestCase):
         rec.sequence_id = 12345
         rec.field_list = [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27,
                           29, 31]
-        rec.field_data = """This is an automated test of the field data
+        rec.field_data = b"""This is an automated test of the field data
         property. I'm just putting a chunk of text in there now but normally
         there would be binary stuff instead. So lets have some
         binary \xDE\xAD\xBE\xEF"""
@@ -183,11 +183,11 @@ class SampleDataRecordTests(unittest.TestCase):
 
         rec = SampleDataRecord()
         rec.station_id = 123
-        rec.timestamp = datetime(2015, 03, 07, 10, 53, 42)
-        rec.download_timestamp = datetime(2015, 03, 06, 10, 53, 42)
+        rec.timestamp = datetime(2015, 3, 7, 10, 53, 42)
+        rec.download_timestamp = datetime(2015, 3, 6, 10, 53, 42)
         rec.field_list = [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27,
                           29, 31]
-        rec.field_data = """This is an automated test of the field data
+        rec.field_data = b"""This is an automated test of the field data
         property. I'm just putting a chunk of text in there now but normally
         there would be binary stuff instead. So lets have some
         binary \xDE\xAD\xBE\xEF"""

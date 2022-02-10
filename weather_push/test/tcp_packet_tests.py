@@ -373,27 +373,27 @@ class WeatherDataPacketTests(unittest.TestCase):
         rec.station_id = 1  # Davis
         rec.timestamp = datetime(2015, 3, 7, 10, 53, 42)
         rec.download_timestamp = datetime(2015, 3, 6, 10, 53, 42)
-        rec.field_list = range(2, 24) + [31]
-        rec.field_data = str(_encode_dict(
+        rec.field_list = list(range(2, 24)) + [31]
+        rec.field_data = _encode_dict(
             self.DAVIS_SAMPLE,
             get_sample_field_definitions("DAVIS"),
             rec.field_list,
             {
                 "extra_fields": range(1, 18)
             }
-        ))
+        )
         packet.add_record(rec)
 
         rec = LiveDataRecord()
         rec.station_id = 2  # WH1080
         rec.sequence_id = 12345
         rec.field_list = range(2, 10)
-        rec.field_data = str(_encode_dict(
+        rec.field_data = _encode_dict(
             self.GENERIC_LIVE,
             get_live_field_definitions("FOWH1080"),
             rec.field_list,
             None
-        ))
+        )
         packet.add_record(rec)
 
         rec = SampleDataRecord()
@@ -401,19 +401,19 @@ class WeatherDataPacketTests(unittest.TestCase):
         rec.timestamp = datetime(2015, 3, 7, 10, 53, 42)
         rec.download_timestamp = datetime(2015, 3, 6, 10, 53, 42)
         rec.field_list = range(2, 11)
-        rec.field_data = str(_encode_dict(
+        rec.field_data = _encode_dict(
             self.GENERIC_SAMPLE,
             get_sample_field_definitions("GENERIC"),
             rec.field_list,
             None
-        ))
+        )
         packet.add_record(rec)
 
         rec = SampleDataRecord()
         rec.station_id = 1  # Davis
         rec.timestamp = datetime(2015, 3, 7, 10, 53, 42)
         rec.download_timestamp = datetime(2015, 3, 6, 10, 53, 42)
-        rec.field_list = range(2, 24) + [31]
+        rec.field_list = list(range(2, 24)) + [31]
 
         # Stick some record separators in the sample to make sure thats handled properly
         samp = copy.deepcopy(self.DAVIS_SAMPLE)
@@ -422,14 +422,14 @@ class WeatherDataPacketTests(unittest.TestCase):
         samp["record_time"] = 0x1E
         samp["solar_radiation"] = 0x1E
 
-        rec.field_data = str(_encode_dict(
+        rec.field_data = _encode_dict(
             samp,
             get_sample_field_definitions("DAVIS"),
             rec.field_list,
             {
                 "extra_fields": range(1, 18)
             }
-        ))
+        )
         packet.add_record(rec)
 
         rec = SampleDataRecord()
@@ -445,12 +445,12 @@ class WeatherDataPacketTests(unittest.TestCase):
         samp["sample_interval"] = 0x1E
         samp["record_number"] = 0x1E
 
-        rec.field_data = str(_encode_dict(
+        rec.field_data = _encode_dict(
             samp,
             get_sample_field_definitions("FOWH1080"),
             rec.field_list,
             None
-        ))
+        )
         packet.add_record(rec)
 
         # This record contains the end-of-record marker early on in the header.
@@ -459,12 +459,12 @@ class WeatherDataPacketTests(unittest.TestCase):
         rec.station_id = 2  # WH1080
         rec.sequence_id = 0x1E
         rec.field_list = range(2, 10)
-        rec.field_data = str(_encode_dict(
+        rec.field_data = _encode_dict(
             self.GENERIC_LIVE,
             get_live_field_definitions("FOWH1080"),
             rec.field_list,
             None
-        ))
+        )
         packet.add_record(rec)
         return packet
 
@@ -488,7 +488,7 @@ class WeatherDataPacketTests(unittest.TestCase):
         rec.field_list = [4]
         # Given the above field list and hardware type, the field data should
         # be 11 bytes
-        rec.field_data = "12"
+        rec.field_data = b"12"
         self.assertEqual(len(rec.field_data), 2)
         packet.add_record(rec)
 
@@ -682,8 +682,8 @@ class ImageTcpPacketTests(unittest.TestCase):
         description = "-56-description-78-"
         mime_type = "-90-mime-type-12-"
         metadata = "-34-metadata-56-"
-        image_data = "~!@#$%^^&*()\x1E\x00\xDE\xAD\xBE\xEFThis should accept " \
-                     "binary\x00data!@#$%^&"
+        image_data = b"~!@#$%^^&*()\x1E\x00\xDE\xAD\xBE\xEFThis should accept " \
+                     b"binary\x00data!@#$%^&"
 
         input_packet = ImageTCPPacket(type_id, source_id, time, title,
                                       description, mime_type, metadata,
@@ -711,8 +711,8 @@ class ImageTcpPacketTests(unittest.TestCase):
         description = "-56-description-78-"
         mime_type = "-90-mime-type-12-"
         metadata = "-34-metadata-56-"
-        image_data = "~!@#$%^^&*()\x1E\x00\xDE\xAD\xBE\xEFThis should accept " \
-                     "binary\x00data!@#$%^&"
+        image_data = b"~!@#$%^^&*()\x1E\x00\xDE\xAD\xBE\xEFThis should accept " \
+                     b"binary\x00data!@#$%^&"
 
         input_packet = ImageTCPPacket(type_id, source_id, time, title,
                                       description, mime_type, metadata,
@@ -740,8 +740,8 @@ class ImageTcpPacketTests(unittest.TestCase):
         description = ""
         mime_type = "-90-mime-type-12-"
         metadata = "-34-metadata-56-"
-        image_data = "~!@#$%^^&*()\x1E\x00\xDE\xAD\xBE\xEFThis should accept " \
-                     "binary\x00data!@#$%^&"
+        image_data = b"~!@#$%^^&*()\x1E\x00\xDE\xAD\xBE\xEFThis should accept " \
+                     b"binary\x00data!@#$%^&"
 
         input_packet = ImageTCPPacket(type_id, source_id, time, title,
                                       description, mime_type, metadata,
@@ -769,8 +769,8 @@ class ImageTcpPacketTests(unittest.TestCase):
         description = "-56-description-78-"
         mime_type = ""
         metadata = "-34-metadata-56-"
-        image_data = "~!@#$%^^&*()\x1E\x00\xDE\xAD\xBE\xEFThis should accept " \
-                     "binary\x00data!@#$%^&"
+        image_data = b"~!@#$%^^&*()\x1E\x00\xDE\xAD\xBE\xEFThis should accept " \
+                     b"binary\x00data!@#$%^&"
 
         input_packet = ImageTCPPacket(type_id, source_id, time, title,
                                       description, mime_type, metadata,
@@ -798,8 +798,8 @@ class ImageTcpPacketTests(unittest.TestCase):
         description = "-56-description-78-"
         mime_type = "-90-mime-type-12-"
         metadata = ""
-        image_data = "~!@#$%^^&*()\x1E\x00\xDE\xAD\xBE\xEFThis should accept " \
-                     "binary\x00data!@#$%^&"
+        image_data = b"~!@#$%^^&*()\x1E\x00\xDE\xAD\xBE\xEFThis should accept " \
+                     b"binary\x00data!@#$%^&"
 
         input_packet = ImageTCPPacket(type_id, source_id, time, title,
                                       description, mime_type, metadata,
@@ -827,8 +827,8 @@ class ImageTcpPacketTests(unittest.TestCase):
         description = ""
         mime_type = "-90-mime-type-12-"
         metadata = "-34-metadata-56-"
-        image_data = "~!@#$%^^&*()\x1E\x00\xDE\xAD\xBE\xEFThis should accept " \
-                     "binary\x00data!@#$%^&"
+        image_data = b"~!@#$%^^&*()\x1E\x00\xDE\xAD\xBE\xEFThis should accept " \
+                     b"binary\x00data!@#$%^&"
 
         input_packet = ImageTCPPacket(type_id, source_id, time, title,
                                       description, mime_type, metadata,
@@ -856,8 +856,8 @@ class ImageTcpPacketTests(unittest.TestCase):
         description = ""
         mime_type = ""
         metadata = ""
-        image_data = "~!@#$%^^&*()\x1E\x00\xDE\xAD\xBE\xEFThis should accept " \
-                     "binary\x00data!@#$%^&"
+        image_data = b"~!@#$%^^&*()\x1E\x00\xDE\xAD\xBE\xEFThis should accept " \
+                     b"binary\x00data!@#$%^&"
 
         input_packet = ImageTCPPacket(type_id, source_id, time, title,
                                       description, mime_type, metadata,
@@ -885,8 +885,8 @@ class ImageTcpPacketTests(unittest.TestCase):
         description = "-56-description-78-"
         mime_type = "-90-mime-type-12-"
         metadata = "-34-metadata-56-"
-        image_data = "~!@#$%^^&*()\x1E\x00\xDE\xAD\xBE\xEFThis should accept " \
-                     "binary\x00data!@#$%^&"
+        image_data = b"~!@#$%^^&*()\x1E\x00\xDE\xAD\xBE\xEFThis should accept " \
+                     b"binary\x00data!@#$%^&"
 
         input_packet = ImageTCPPacket(type_id, source_id, time, title,
                                       description, mime_type, metadata,

@@ -243,11 +243,13 @@ class StationInfoTCPPacket(TcpPacket):
             packet_data += station.encode()
 
         for image_type in self._image_types:
-            packet_data += struct.pack(self._FMT_CODE_MAP, image_type[0],
+            packet_data += struct.pack(self._FMT_CODE_MAP,
+                                       image_type[0].encode('utf-8'),
                                        image_type[1])
 
         for image_source in self._image_sources:
-            packet_data += struct.pack(self._FMT_CODE_MAP, image_source[0],
+            packet_data += struct.pack(self._FMT_CODE_MAP,
+                                       image_source[0].encode('utf-8'),
                                        image_source[1])
 
         return packet_data
@@ -320,7 +322,7 @@ class StationInfoTCPPacket(TcpPacket):
 
             code, value_id = struct.unpack(self._FMT_CODE_MAP, code_map)
 
-            results.append((code.split("\x00")[0], value_id))
+            results.append((code.split(b"\x00")[0].decode('utf-8'), value_id))
 
             if 0 < len(code_map_data) < code_map_size:
                 log.msg("*** ERROR: Malformed code map record - "
@@ -460,14 +462,14 @@ class WeatherDataTCPPacket(TcpPacket):
         """
         header_data = super(WeatherDataTCPPacket, self).encode()
 
-        packet_data = ''
+        packet_data = b''
 
         if len(self._records) == 1:
             packet_data += self._records[0].encode()
         else:
             for record in self._records:
                 packet_data += record.encode()
-                packet_data += '\x1E'
+                packet_data += b'\x1E'
 
         length_size = struct.calcsize(self._FMT_LENGTH)
 
@@ -508,7 +510,7 @@ class WeatherDataTCPPacket(TcpPacket):
 
     @staticmethod
     def _decode_record(record_data):
-        if record_data[0] == "\x01":
+        if record_data[0:1] == b"\x01":
             # Live record
 
             if len(record_data) < LiveDataRecord.HEADER_SIZE:
@@ -519,7 +521,7 @@ class WeatherDataTCPPacket(TcpPacket):
 
             record = LiveDataRecord()
             record.decode(record_data)
-        elif record_data[0] == "\x02":
+        elif record_data[0:1] == b"\x02":
             # Sample record
 
             if len(record_data) < SampleDataRecord.HEADER_SIZE:
@@ -546,21 +548,21 @@ class WeatherDataTCPPacket(TcpPacket):
 
         data_buffer = self._encoded_records
 
-        record_data = ""
+        record_data = b""
 
         while len(data_buffer) > 0 or len(record_data) > 0:
 
             rs = False
 
             if len(data_buffer) > 0:
-                point = data_buffer.find("\x1E")  # Find record separators
+                point = data_buffer.find(b"\x1E")  # Find record separators
 
                 # Get the records data
                 if point == -1:
                     # No record separator. This packet likely contains
                     # a single record.
                     record_data += data_buffer
-                    data_buffer = ''
+                    data_buffer = b''
                     rs = False
                 else:
                     # Copy the records data from the buffer
@@ -607,7 +609,7 @@ class WeatherDataTCPPacket(TcpPacket):
                     if len(record_data) == calculated_size:
                         # Record decoded!
                         self.add_record(record)
-                        record_data = ""
+                        record_data = b""
                         continue
 
             # ELSE: Its a WeatherDataRecord - this means we don't even have
@@ -621,7 +623,7 @@ class WeatherDataTCPPacket(TcpPacket):
 
             # The record must contain the end of record character as part of
             # its data. Continue on...
-            record_data += "\x1E"
+            record_data += b"\x1E"
 
             # Go around the loop again to add on another chunk of data.
 
@@ -842,10 +844,10 @@ class ImageTCPPacket(TcpPacket):
         self._image_type_id = image_type_id
         self._image_source_id = image_source_id
         self._timestamp = timestamp_encode(timestamp)
-        self._title = title
-        self._description = description
-        self._mime_type = mime_type
-        self._metadata = metadata
+        self._title = title.encode('utf-8')
+        self._description = description.encode('utf-8')
+        self._mime_type = mime_type.encode('utf-8')
+        self._metadata = metadata.encode('utf-8')
         self._image_data = image_data
 
     @property
@@ -881,8 +883,8 @@ class ImageTCPPacket(TcpPacket):
         return self._image_data
 
     def encode(self):
-        text_section = self._title + '\x1E' + \
-            self._description + '\x1E' + self._mime_type + '\x1E' + \
+        text_section = self._title + b'\x1E' + \
+            self._description + b'\x1E' + self._mime_type + b'\x1E' + \
             self._metadata
 
         text_length = len(text_section)
@@ -939,11 +941,11 @@ class ImageTCPPacket(TcpPacket):
         #  + mime type
         #  + metadata
 
-        bits = text_data.split('\x1E')
-        self._title = bits[0]
-        self._description = bits[1]
-        self._mime_type = bits[2]
-        self._metadata = bits[3]
+        bits = text_data.split(b'\x1E')
+        self._title = bits[0].decode('utf-8')
+        self._description = bits[1].decode('utf-8')
+        self._mime_type = bits[2].decode('utf-8')
+        self._metadata = bits[3].decode('utf-8')
 
     @staticmethod
     def packet_size_bytes_required():

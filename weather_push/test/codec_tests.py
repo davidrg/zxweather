@@ -25,8 +25,10 @@ def toHexString(string):
 
     result = ""
     for char in string:
-
-        hex_encoded = hex(ord(char))[2:]
+        if isinstance(char, str):
+            hex_encoded = hex(ord(char))[2:]  # Type: str
+        else:
+            hex_encoded = hex(char)
         if len(hex_encoded) == 1:
             hex_encoded = '0' + hex_encoded
 
@@ -2966,7 +2968,7 @@ class FindSubfieldIdsTests(unittest.TestCase):
                         "Subfields should be present")
 
         self.assertListEqual(
-            range(1,18),
+            [*range(1, 18)],
             sorted(subfields["extra_fields"]),
             "All subfield IDs should be present"
         )
@@ -2999,7 +3001,7 @@ class FindSubfieldIdsTests(unittest.TestCase):
         encoded, field_ids, encode_results = encode_live_record(
             live, prev_live, sample, DAVIS_HW_TYPE, False)
 
-        subfields = find_live_subfield_ids(encoded[0:len(encoded)/2], field_ids, DAVIS_HW_TYPE)
+        subfields = find_live_subfield_ids(encoded[0:len(encoded)//2], field_ids, DAVIS_HW_TYPE)
 
         self.assertIsNone(subfields,
                          "Result should be None if there was insufficient data to complete search")

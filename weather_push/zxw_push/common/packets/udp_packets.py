@@ -6,6 +6,12 @@ types for TCP and UDP transport protocols.
 from math import log
 import struct
 import datetime
+
+try:
+    from typing import Optional
+except:
+    pass
+
 from twisted.python import log as _log
 
 from zxw_push.common.data_codecs import timestamp_encode, timestamp_decode, find_sample_subfield_ids, \
@@ -284,7 +290,7 @@ class StationInfoResponseUDPPacket(UDPPacket):
 
         # Add on the end of transmission marker to signal there are no more
         # stations in the list
-        packet_data += struct.pack(UDPPacket._FMT_ENDIANNESS + "c", "\x04")
+        packet_data += struct.pack(UDPPacket._FMT_ENDIANNESS + "c", b"\x04")
         return packet_data
 
     def decode(self, packet_data):
@@ -354,7 +360,7 @@ class WeatherDataUDPPacket(UDPPacket):
                                                    authorisation_code)
 
         self._records = []
-        self._encoded_records = None
+        self._encoded_records = None  # type: Optional[bytes]
 
     def add_record(self, record):
         """
@@ -393,9 +399,9 @@ class WeatherDataUDPPacket(UDPPacket):
         else:
             for record in self._records:
                 packet_data += record.encode()
-                packet_data += '\x1E'
+                packet_data += b'\x1E'
 
-        packet_data += '\x04'
+        packet_data += b'\x04'
 
         return packet_data
 
@@ -415,7 +421,7 @@ class WeatherDataUDPPacket(UDPPacket):
 
     @staticmethod
     def _decode_record(record_data):
-        if record_data[0] == "\x01":
+        if record_data[0:1] == b"\x01":
             # Live record
 
             if len(record_data) < LiveDataRecord.HEADER_SIZE:
@@ -426,7 +432,7 @@ class WeatherDataUDPPacket(UDPPacket):
 
             record = LiveDataRecord()
             record.decode(record_data)
-        elif record_data[0] == "\x02":
+        elif record_data[0:1] == b"\x02":
             # Sample record
 
             if len(record_data) < SampleDataRecord.HEADER_SIZE:
@@ -454,14 +460,14 @@ class WeatherDataUDPPacket(UDPPacket):
 
         data_buffer = self._encoded_records
 
-        record_data = ""
+        record_data = b''
 
         while len(data_buffer) > 0:
-            point = data_buffer.find("\x1E")
+            point = data_buffer.find(b"\x1E")
 
             if point == -1:
                 # Not found. Try the end of transmission marker instead
-                point = data_buffer.find("\x04")
+                point = data_buffer.find(b"\x04")
                 if point == -1:
                     _log.msg("** DECODE ERROR: Next record marker not found.")
                     return
@@ -484,7 +490,7 @@ class WeatherDataUDPPacket(UDPPacket):
             record = self._decode_record(record_data)
             if record is None:
                 _log.msg("** DECODE ERROR: Invalid record type ID {0}".format(
-                    ord(record_data[0])))
+                    ord(record_data[0:1])))
                 return
 
             # If it is a live or sample record see if we've got all the data
@@ -517,7 +523,7 @@ class WeatherDataUDPPacket(UDPPacket):
                     if len(record_data) == calculated_size:
                         # Record decoded!
                         self.add_record(record)
-                        record_data = ""
+                        record_data = b""
                         continue
 
             # ELSE: Its a WeatherDataRecord - this means we don't even have
@@ -532,9 +538,9 @@ class WeatherDataUDPPacket(UDPPacket):
             # The record must contain the end of record character as part of
             # its data. Continue on...
             if end_of_transmission:
-                record_data += "\x04"
+                record_data += b"\x04"
             else:
-                record_data += "\x1E"
+                record_data += b"\x1E"
 
             # Go around the loop again to add on another chunk of data.
 
@@ -665,7 +671,7 @@ class SampleAcknowledgementUDPPacket(UDPPacket):
                                 acknowledgement[1], acknowledgement[0])
             #                     Timestamp         station ID
 
-        data += struct.pack(UDPPacket._FMT_ENDIANNESS + "c", "\x04")
+        data += struct.pack(UDPPacket._FMT_ENDIANNESS + "c", b"\x04")
 
         return data
 

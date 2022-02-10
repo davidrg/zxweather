@@ -299,16 +299,17 @@ class LiveDataRecord(WeatherRecord):
         """
         Encodes the live data record and returns its binary representation
         """
-        packed = super(LiveDataRecord, self).encode()
+        packed = bytearray()
+        packed.extend(super(LiveDataRecord, self).encode())
 
-        packed += struct.pack(self._RECORD_HEADER,
-                              self.station_id,
-                              self.sequence_id,
-                              self._fields)
+        packed.extend(struct.pack(self._RECORD_HEADER,
+                                  self.station_id,
+                                  self.sequence_id,
+                                  self._fields))
 
-        packed += self._field_data
+        packed.extend(self._field_data)
 
-        return packed
+        return bytes(packed)
 
     def decode(self, data):
         """
@@ -442,17 +443,18 @@ class SampleDataRecord(WeatherRecord):
         :return: Binary representation of this object
         :rtype: bytearray
         """
-        packed = super(SampleDataRecord, self).encode()
+        packed = bytearray()
+        packed.extend(super(SampleDataRecord, self).encode())
 
-        packed += struct.pack(self._RECORD_HEADER,
-                              self.station_id,
-                              timestamp_encode(self._timestamp),
-                              timestamp_encode(self._download_timestamp),
-                              self._fields)
+        packed.extend(struct.pack(self._RECORD_HEADER,
+                                  self.station_id,
+                                  timestamp_encode(self._timestamp),
+                                  timestamp_encode(self._download_timestamp),
+                                  self._fields))
 
-        packed += self._field_data
+        packed.extend(self._field_data)
 
-        return packed
+        return bytes(packed)
 
     def decode(self, data):
         """
@@ -546,7 +548,7 @@ class StationInfoRecord(object):
 
     def encode(self):
         return struct.pack(self._STATION_FMT,
-                           self._station_code,
+                           self._station_code.encode("utf-8"),
                            self._hardware_type_id,
                            self._station_id)
 
@@ -554,7 +556,7 @@ class StationInfoRecord(object):
         self._station_code, self._hardware_type_id, self._station_id = \
             struct.unpack(self._STATION_FMT, data)
 
-        self._station_code = self._station_code.split("\x00")[0]
+        self._station_code = self._station_code.split(b"\x00")[0].decode("utf-8")
 
     @staticmethod
     def size():
@@ -563,6 +565,10 @@ class StationInfoRecord(object):
     def __str__(self):
         t = (self.station_code, self._hardware_type_id, self._station_id)
         return str(t)
+
+    def __repr__(self):
+        return "StationInfoRecord(station_code='{0}', hardware_type_id={1}, station_id={2})".format(
+            self._station_code, self._hardware_type_id, self._station_id)
 
     def __eq__(self, other):
         if other.station_code == self.station_code and \
