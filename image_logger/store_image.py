@@ -116,7 +116,6 @@ def main():
         return
 
     source_id = result[0]
-    print("Image source {0} ID {1}".format(image_source, source_id))
 
     # Get data type ID
     cur.execute("select image_type_id from image_type "
