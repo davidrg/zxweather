@@ -143,7 +143,14 @@ def get_sys_config_json():
         'zxweatherd_raw_port': config.zxweatherd_raw_port,
         'site_name': get_site_name(None),
         'stations': get_full_station_info(not config.hide_coordinates),
-        'image_type_sort': config.image_type_sort
+        'image_type_sort': config.image_type_sort,
+        'v': 20220210  # API version date
     }
+
+    # API Versions
+    #   20220210    Adds:
+    #                   - 'v' key on sysconfig.json
+    #                   - gaps.json at station level
+    #                   - samples_v2.dat at month level
 
     return json.dumps(sys_config)
