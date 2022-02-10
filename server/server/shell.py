@@ -199,7 +199,7 @@ class BaseShell(object):
         try:
             self.current_command.execute()
         except Exception as e:
-            print(e.message)
+            print(str(e))
             self.processOutput("Command failed\n")
             self.processFinished()
 
