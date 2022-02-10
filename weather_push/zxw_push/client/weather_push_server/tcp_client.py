@@ -58,7 +58,7 @@ class WeatherPushProtocol(protocol.Protocol, WeatherPushClientBase):
         self._authentication_retries = 0
 
         # Data receive buffer
-        self._receive_buffer = ''
+        self._receive_buffer = b''
 
         # If we've failed to authenticate with the server.
         self._authentication_failed = False
@@ -163,18 +163,20 @@ class WeatherPushProtocol(protocol.Protocol, WeatherPushClientBase):
         self._image_source_ids = dict()
         self._image_source_codes = dict()
 
+        log.msg("Image types:-")
         for image_type in station_list_packet.image_types:
             type_code = image_type[0]
             type_id = image_type[1]
             self._image_type_ids[type_code] = type_id
-            self._image_type_codes[type_id] = type_code
+            self._image_type_codes[type_id] = type_code.upper()
             log.msg("\t- image type {0} id {1}".format(type_code, type_id))
 
+        log.msg("Image sources:-")
         for image_source in station_list_packet.image_sources:
             source_code = image_source[0]
             source_id = image_source[1]
             self._image_source_ids[source_code] = source_id
-            self._image_source_codes[source_id] = source_code
+            self._image_source_codes[source_id] = source_code.upper()
             log.msg("\t- image source {0} id {1}".format(source_code,
                                                          source_id))
 
@@ -206,8 +208,18 @@ class WeatherPushProtocol(protocol.Protocol, WeatherPushClientBase):
         metadata = image['metadata']
         data = image['image_data']
 
-        image_type_id = self._image_type_ids[type_code]
-        image_source_id = self._image_source_ids[source_code]
+        if source_code not in self._image_source_ids:
+            log.msg("ERROR: image source {0} is unknown to remote. Image can "
+                    "not be sent. Run admin-tool on remote database to add "
+                    "image source.".format(source_code))
+            return
+
+        if type_code not in self._image_type_ids:
+            log.msg("ERROR: image type {0} is unknown to remote. Image can not be sent.".format(type_code))
+            return
+
+        image_type_id = self._image_type_ids[type_code.upper()]
+        image_source_id = self._image_source_ids[source_code.upper()]
 
         # Only resize the image if:
         #   -> Image resizing is returned on
@@ -239,7 +251,7 @@ class WeatherPushProtocol(protocol.Protocol, WeatherPushClientBase):
 
         packet = ImageTCPPacket(image_type_id, image_source_id, time_stamp,
                                 title, description, mime_type, metadata,
-                                str(data))
+                                data)
 
         self._send_packet(packet)
 

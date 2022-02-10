@@ -1,3 +1,3 @@
 __author__ = 'david'
 
-from udp_client import WeatherPushDatagramClient
+from .udp_client import WeatherPushDatagramClient

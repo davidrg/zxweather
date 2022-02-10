@@ -582,6 +582,9 @@ class WeatherDatabase(BaseClientDatabase):
     def _fetch_station_images(self, station_code):
         log.msg("Fetching images for {0}...".format(station_code))
 
+        # TODO: We really should have a list of image sources known to the remote
+        #       end and only send images for those sources.
+
         query = """
         select i.image_id,
                upper(it.code) as image_type_code,

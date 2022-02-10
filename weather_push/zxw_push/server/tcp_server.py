@@ -34,7 +34,7 @@ class WeatherPushTcpServer(protocol.Protocol, WeatherPushServerBase):
         self._image_source_code_id = dict()
         self._image_source_id_code = dict()
 
-        self._receive_buffer = ''
+        self._receive_buffer = bytearray()
 
         self._authenticated = False
 
@@ -57,7 +57,7 @@ class WeatherPushTcpServer(protocol.Protocol, WeatherPushServerBase):
         :param data: Received data
         """
 
-        self._receive_buffer += data
+        self._receive_buffer.extend(data)
 
         if not self._ready:
             reactor.callLater(1, self.dataReceived, "")

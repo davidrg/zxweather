@@ -295,6 +295,9 @@ class ServerDatabase(object):
             defer.returnValue(False)
             return
 
+        if metadata == '':
+            metadata = None
+
         query = """
         insert into image(image_type_id, image_source_id, time_stamp, title,
                           description, image_data, mime_type, metadata)

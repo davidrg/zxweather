@@ -905,7 +905,7 @@ class ImageTCPPacket(TcpPacket):
 
         packet_data += text_section
 
-        packet_data += self._image_data
+        packet_data += bytes(self._image_data)
 
         assert(len(packet_data) == total_length)
 
