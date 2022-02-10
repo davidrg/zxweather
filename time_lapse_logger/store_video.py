@@ -10,6 +10,7 @@ import argparse
 import imghdr
 import json
 import mimetypes
+import os
 
 import psycopg2
 
@@ -23,6 +24,8 @@ def main():
                         type=argparse.FileType('r'),
                         help="Image description jSON file",
                         nargs="*")
+    parser.add_argument("--clean", dest="clean", action='store_true',
+                        help="Remove input files on success")
 
     args = parser.parse_args()
 
@@ -37,6 +40,17 @@ def main():
         store_image(args.dsn, data["source"], data["type"], data["time"],
                     data["title"], data["description"], data["mime"],
                     image_file, data["metadata"])
+
+        if args.clean:
+            print("Cleaning inputs...")
+            print("Image: {0}".format(image_file))
+            os.remove(image_file)
+            if os.path.excists(data["metadata"]):
+                print("Meta: {0}".format(data["metadata"]))
+                os.remove(data["metadata"])
+            print("Desc: {0}".format(desc.name))
+            os.remove(desc.name)
+            print("done.")
 
 
 def store_image(dsn, image_source, image_type_code, time_stamp, title,
