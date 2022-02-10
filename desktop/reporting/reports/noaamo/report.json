@@ -5,8 +5,6 @@
 	"default_time_span": "this_month",
 	"criteria_ui": "criteria.ui",
 	"supported_weather_stations": ["generic"],
-  "debug_mode": true,
-
 	"queries": {
 		"daily": {
             "db": {
