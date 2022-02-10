@@ -649,7 +649,7 @@ class GetConsoleConfigurationProcedure(SequentialProcedure):
 
                 self.ConfiguredStations.append(
                     self.Station(
-                        tx_id=transmitter_id,
+                        tx_id=int(transmitter_id),
                         repeater_id=repeater,
                         type=transmitter_type,
                         humidity_sensor_id=hum_sensor_id,
