@@ -2968,7 +2968,7 @@ class FindSubfieldIdsTests(unittest.TestCase):
                         "Subfields should be present")
 
         self.assertListEqual(
-            [*range(1, 18)],
+            list(range(1, 18)),
             sorted(subfields["extra_fields"]),
             "All subfield IDs should be present"
         )

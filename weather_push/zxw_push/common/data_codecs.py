@@ -517,7 +517,7 @@ all_live_field_ids = {
     "FOWH1080": (range(2, 11), None),
     "DAVIS": (
         # Skip field 11 - its not currently used.
-        [*range(2, 11), *range(12, 29), 31],
+        list(range(2, 11)) + list(range(12, 29)) + [31],
         {
             "extra_fields": range(1, 18)
         }
@@ -654,7 +654,7 @@ all_sample_field_ids = {
     "GENERIC": (range(2, 12), None),
     "FOWH1080": (range(2, 19), None),
     "DAVIS": (
-        [*range(2, 25), 31],
+        list(range(2, 25)) + [31],
         {
             "extra_fields": range(1, 18)
         }
@@ -668,7 +668,7 @@ common_live_sample_field_ids = {
     "GENERIC": (range(1, 11), None),
     "FOWH1080": (range(1, 11), None),
     "DAVIS": (
-        [*range(1, 11), 31],
+        list(range(1, 11)) + [31],
         {
             "extra_fields": range(1, 18)
         }
