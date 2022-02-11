@@ -1,8 +1,10 @@
 # Python 2.7 support was dropped in psycopg 2.9
 psycopg2==2.8.6
 
-# 20.3.0 is the last version supporting python 2.7
-twisted==20.3.0
+# 20.3.0 is the last version supporting python 2.7. On python 3 try to use a
+# recent version with better security. 22.1.0 is the highest tested at this
+# time.
+twisted>=20.3.0
 pytz
 pyserial
 pyopenssl
