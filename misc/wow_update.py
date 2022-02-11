@@ -28,6 +28,10 @@ In your site config page on the WOW site you should set your pressure settings
 under Site Data Preferences to:
   Pressure (At Station): Hecto Pascal
   Mean Sea-Level Pressure: Not Captured
+if you're using a FineOffset WH1080. If you're using a Davis weather station,
+set it to:
+  Pressure (At Station): Not Captured
+  Mean Sea-Level Pressure: Hecto Pascal
 """
 from collections import OrderedDict
 from urllib import urlencode
@@ -133,7 +137,7 @@ class Data(object):
         self.tempf = self._c_to_f(data.temperature)
         self.rainin = self._mm_to_inch(data.rainfall_60_minutes)
         self.dailyrainin = self._mm_to_inch(data.day_rainfall)
-        self.baromin = self._mb_to_inhg(data.absolute_pressure)
+        self.baromin = self._mb_to_inhg(data.pressure)
         self.timestamp = data.time_stamp
 
     @staticmethod
@@ -169,7 +173,7 @@ select to_char(s.time_stamp at time zone 'gmt', 'YYYY-MM-DD HH24:MI:SS') as time
        s.temperature,
        hour_rain.rainfall as rainfall_60_minutes,
        day_rain.rainfall as day_rainfall,
-       s.absolute_pressure
+       coalesce(s.mean_sea_level_pressure, s.absolute_pressure) as pressure
 from sample s
 inner join station st on st.station_id = s.station_id
 left outer join davis_sample ds on ds.sample_id = s.sample_id
