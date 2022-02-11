@@ -637,7 +637,7 @@ class data_dat:
         int_year = int(year)
         int_month = int(month)
 
-        if dataset == 'samples':
+        if dataset in ('samples', 'samples_v2'):
             # TODO: this really needs to not involve the database in any way.
             age = get_month_data_wp_age(int_year, int_month, station_id)
 
