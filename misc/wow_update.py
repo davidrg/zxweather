@@ -34,10 +34,14 @@ set it to:
   Mean Sea-Level Pressure: Hecto Pascal
 """
 from collections import OrderedDict
-from urllib import urlencode
 import psycopg2
 from psycopg2.extras import NamedTupleCursor
 import requests
+
+try:
+    from urllib.parse import urlencode
+except ImportError:
+    from urllib import urlencode
 
 __author__ = 'david'
 
@@ -58,8 +62,12 @@ class Config(object):
     ]
 
     def __init__(self):
-        import ConfigParser
-        config = ConfigParser.ConfigParser()
+        try:
+            from ConfigParser import ConfigParser
+        except ImportError:
+            from configparser import ConfigParser
+
+        config = ConfigParser()
         config.read(self._config_file_locations)
 
         self.stations = []
