@@ -89,6 +89,7 @@ def export_samples(con, dest_dir, station, start, end):
             s.relative_humidity,
             s.temperature,
             s.absolute_pressure,
+            s.mean_sea_level_pressure,
             s.average_wind_speed,
             s.gust_wind_speed,
             s.wind_direction,
@@ -126,16 +127,16 @@ def export_samples(con, dest_dir, station, start, end):
     row_format = "{station_code}\t{download_timestamp}\t{time_stamp}\t" \
                  "{indoor_relative_humidity}\t{indoor_temperature}\t" \
                  "{relative_humidity}\t{temperature}\t{absolute_pressure}\t" \
-                 "{average_wind_speed}\t{gust_wind_speed}\t{wind_direction}\t" \
-                 "{rainfall}\t{record_time}\t{record_date}\t" \
-                 "{high_temperature}\t{low_temperature}\t{high_rain_rate}\t" \
-                 "{solar_radiation}\t{wind_sample_count}\t" \
-                 "{gust_wind_direction}\t{average_uv_index}\t" \
-                 "{evapotranspiration}\t{high_solar_radiation}\t" \
-                 "{high_uv_index}\t{forecast_rule_id}\t" \
-                 "{sample_interval}\t{record_number}\t{last_in_batch}\t" \
-                 "{invalid_data}\t{wh_wind_direction}\t{total_rain}\t" \
-                 "{rain_overflow}\n"
+                 "{mean_sea_level_pressure}\t{average_wind_speed}\t" \
+                 "{gust_wind_speed}\t{wind_direction}\t{rainfall}\t" \
+                 "{record_time}\t{record_date}\t{high_temperature}\t" \
+                 "{low_temperature}\t{high_rain_rate}\t{solar_radiation}\t" \
+                 "{wind_sample_count}\t{gust_wind_direction}\t" \
+                 "{average_uv_index}\t{evapotranspiration}\t" \
+                 "{high_solar_radiation}\t{high_uv_index}\t" \
+                 "{forecast_rule_id}\t{sample_interval}\t{record_number}\t" \
+                 "{last_in_batch}\t{invalid_data}\t{wh_wind_direction}\t" \
+                 "{total_rain}\t{rain_overflow}\n"
 
     print("Query...")
 
@@ -172,7 +173,8 @@ def export_samples(con, dest_dir, station, start, end):
             data_file.write("#station_code\tdownload_timestamp\ttime_stamp\t"
                             "indoor_relative_humidity\tindoor_temperature\t"
                             "relative_humidity\ttemperature\t"
-                            "absolute_pressure\taverage_wind_speed\t"
+                            "absolute_pressure\tmean_sea_level_pressure\t"
+                            "average_wind_speed\t"
                             "gust_wind_speed\twind_direction\trainfall\t"
                             "record_time\trecord_date\thigh_temperature\t"
                             "low_temperature\thigh_rain_rate\t"
@@ -195,30 +197,31 @@ def export_samples(con, dest_dir, station, start, end):
             relative_humidity=row[5],
             temperature=row[6],
             absolute_pressure=row[7],
-            average_wind_speed=row[8],
-            gust_wind_speed=row[9],
-            wind_direction=row[10],
-            rainfall=row[11],
-            record_time=row[12],
-            record_date=row[13],
-            high_temperature=row[14],
-            low_temperature=row[15],
-            high_rain_rate=row[16],
-            solar_radiation=row[17],
-            wind_sample_count=row[18],
-            gust_wind_direction=row[19],
-            average_uv_index=row[20],
-            evapotranspiration=row[21],
-            high_solar_radiation=row[22],
-            high_uv_index=row[23],
-            forecast_rule_id=row[24],
-            sample_interval=row[25],
-            record_number=row[26],
-            last_in_batch=row[27],
-            invalid_data=row[28],
-            wh_wind_direction=row[29],
-            total_rain=row[30],
-            rain_overflow=row[31]))
+            mean_sea_level_perssure=row[8],
+            average_wind_speed=row[9],
+            gust_wind_speed=row[10],
+            wind_direction=row[11],
+            rainfall=row[12],
+            record_time=row[13],
+            record_date=row[14],
+            high_temperature=row[15],
+            low_temperature=row[16],
+            high_rain_rate=row[17],
+            solar_radiation=row[18],
+            wind_sample_count=row[19],
+            gust_wind_direction=row[20],
+            average_uv_index=row[21],
+            evapotranspiration=row[22],
+            high_solar_radiation=row[23],
+            high_uv_index=row[24],
+            forecast_rule_id=row[25],
+            sample_interval=row[26],
+            record_number=row[27],
+            last_in_batch=row[28],
+            invalid_data=row[29],
+            wh_wind_direction=row[30],
+            total_rain=row[31],
+            rain_overflow=row[32]))
     cur.close()
     data_file.close()
     return stations
