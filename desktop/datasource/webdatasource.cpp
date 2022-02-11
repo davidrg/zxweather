@@ -865,7 +865,8 @@ void WebDataSource::updateStation(QString title, QString description, QString ty
                                   bool solar, int davis_broadcast_id,
                                   ExtraColumns extraColumns,
                                   QMap<ExtraColumn, QString> extraColumnNames,
-                                  bool archived, QDateTime archivedTime, QString archivedMessage) {
+                                  bool archived, QDateTime archivedTime,
+                                  QString archivedMessage, unsigned int apiLevel) {
 
     this->extraColumns = extraColumns;
     this->extraColumnName = extraColumnNames;
@@ -875,7 +876,7 @@ void WebDataSource::updateStation(QString title, QString description, QString ty
     WebCacheDB::getInstance().updateStation(
                 stationURL(), title, description, type_code, interval, latitude, longitude,
                 altitude, solar, davis_broadcast_id, extraColumnNames, archived, archivedTime,
-                archivedMessage);
+                archivedMessage, apiLevel);
 }
 
 void WebDataSource::finishedCaching() {

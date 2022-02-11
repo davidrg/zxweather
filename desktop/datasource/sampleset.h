@@ -27,6 +27,9 @@ typedef struct _SampleSet {
 
     // Pressure
     QVector<double> pressure;
+    QVector<double> absolutePressure;
+    QVector<double> meanSeaLevelPressure;
+
     QVector<double> rainfall;
 
     // Wind speed
@@ -110,6 +113,8 @@ typedef struct _Sample {
 
     // Pressure / rain
     double pressure;
+    double meanSeaLevelPressure;
+
     double rainfall;
 
     // Wind
@@ -164,6 +169,8 @@ inline UnitConversions::unit_t SampleColumnUnits(StandardColumn column) {
     case SC_IndoorHumidity:
         return U_HUMIDITY;
     case SC_Pressure:
+    case SC_AbsolutePressure:
+    case SC_MeanSeaLevelPressure:
         return U_HECTOPASCALS;
     case SC_Rainfall:
     case SC_Evapotranspiration:

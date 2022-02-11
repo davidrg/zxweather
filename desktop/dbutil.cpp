@@ -55,6 +55,8 @@ DatabaseCompatibility DbUtil::checkDatabaseCompatibility(QSqlDatabase db) {
          *  -> Davis weather stations
          *  -> A few extra bits of station info (lat/long/alt/station config)
          *  -> Images
+         *  -> Samples - app now assumes the mean_sea_level_pressure column is
+         *     available
          * Given the v2 schema was only used by zxweather v0.2 which was never
          * in production for long we don't bother to support its database. The
          * V3 schema is backwards compatible with the V2 schema (and zxweather

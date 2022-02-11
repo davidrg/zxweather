@@ -19,11 +19,13 @@ public:
     /** Constucts a new AbstractWebTask
      *
      * @param baseUrl The base URL for the web interface
+     * @param apiLevel The API Level being used by the web interface
      * @param stationCode Station Code for the weather station being used
      * @param select If the data should be selected out at the end or if we're just priming the cache DB.
      * @param ds Parent data source that this task is doing work for
      */
     explicit RangeRequestWebTask(QString baseUrl,
+                                 unsigned int apiLevel,
                                  QString stationCode,
                                  request_data_t requestData,
                                  bool select,
@@ -71,6 +73,7 @@ private:
     QHash<QString, QDate> _urlMonths;
 
     int _sampleInterval;
+    unsigned int _apiLevel;
 
 #ifdef PARALLEL_HEAD
     int _awaitingUrls;
@@ -81,8 +84,9 @@ private:
     bool processRangeResponse(QString data);
     bool buildUrlListAndQueue();
 
-    static void getURLList(QString baseURL, QDateTime startTime, QDateTime endTime,
-                    QStringList& urlList, QStringList& nameList, QList<QDate> &months);
+    static void getURLList(QString baseURL, unsigned int api_level, QDateTime startTime,
+                           QDateTime endTime, QStringList& urlList, QStringList& nameList,
+                           QList<QDate> &months);
 
     void queueDownloadTasks(bool forceDownload);
 

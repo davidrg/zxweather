@@ -71,6 +71,7 @@
         <file alias="v6.sql">resources/v6_upgrade.sql</file>
         <file alias="v7.sql">resources/v7_upgrade.sql</file>
         <file alias="v8.sql">resources/v8_upgrade.sql</file>
+        <file alias="v9.sql">resources/v9_upgrade.sql</file>
     </qresource>
     <qresource prefix="/images/config_wizard">
         <file alias="logo">resources/config_wizard/zxwd_logo_temp.png</file>

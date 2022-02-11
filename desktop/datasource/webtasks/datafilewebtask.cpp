@@ -16,6 +16,13 @@
 #define qQNaN std::numeric_limits<double>::quiet_NaN
 #endif
 
+QMap<QString, enum DataFileWebTask::DataFileColumn> DataFileWebTask::labelColumns;
+
+// When processing the data file columns for optional sensors may in the
+// future be omitted from the data file. This macro makes it easy to check
+// for the columns presence before fetching its value.
+#define APPEND_OPT_NULLABLE_DOUBLE(column, destination) if (columnPositions.contains(column)) destination.append(nullableDouble(values.at(columnPositions[column])));
+
 DataFileWebTask::DataFileWebTask(QString baseUrl, QString stationCode,
                                  request_data_t requestData, QString name,
                                  QString url, bool forceDownload,
@@ -27,6 +34,80 @@ DataFileWebTask::DataFileWebTask(QString baseUrl, QString stationCode,
     _downloadingDataset = false; // We check the cache first.
     _forceDownload = forceDownload;
     _sampleInterval = sampleInterval;
+
+    // TODO: Once Qt 5.2 and C++11 are the minimum use an initialiser list instead.
+    // ref: https://stackoverflow.com/questions/8157625/how-do-i-populate-values-of-a-static-qmap-in-c-qt
+    if (labelColumns.isEmpty()) {
+        labelColumns["timestamp"] = DFC_TimeStamp;
+        labelColumns["temperature"] = DFC_Temperature;
+        labelColumns["dew point"] = DFC_DewPoint;
+        labelColumns["apparent temperature"] = DFC_ApparentTemperature;
+        labelColumns["wind chill"] = DFC_WindChill;
+        labelColumns["relative humidity"] = DFC_RelHumidity;
+        labelColumns["absolute pressure"] = DFC_AbsolutePressure;
+        labelColumns["mean sea level pressure"] = DFC_MSLPressure;
+        labelColumns["indoor temperature"] = DFC_IndoorTemperature;
+        labelColumns["indoor relative humidity"] = DFC_IndoorRelHumidity;
+        labelColumns["rainfall"] = DFC_Rainfall;
+        labelColumns["average wind speed"] = DFC_AvgWindSpeed;
+        labelColumns["gust wind speed"] = DFC_GustWindSpeed;
+        labelColumns["wind direction"] = DFC_WindDirection;
+        labelColumns["uv index"] = DFC_UVIndex;
+        labelColumns["solar radiation"] = DFC_SolarRadiation;
+        labelColumns["reception"] = DFC_Reception;
+        labelColumns["high temp"] = DFC_HighTemp;
+        labelColumns["low temp"] = DFC_LowTemp;
+        labelColumns["high rain rate"] = DFC_HighRainRate;
+        labelColumns["gust direction"] = DFC_GustDirection;
+        labelColumns["evapotranspiration"] = DFC_Evapotranspiration;
+        labelColumns["high solar radiation"] = DFC_HighSolarRadiation;
+        labelColumns["high uv index"] = DFC_HighUVIndex;
+        labelColumns["forecast rule id"] = DFC_ForecastRuleID;
+        labelColumns["soil moisture 1"] = DFC_SoilMoisture1;
+        labelColumns["soil moisture 2"] = DFC_SoilMoisture2;
+        labelColumns["soil moisture 3"] = DFC_SoilMoisture3;
+        labelColumns["soil moisture 4"] = DFC_SoilMoisture4;
+        labelColumns["soil temperature 1"] = DFC_SoilTemperature1;
+        labelColumns["soil temperature 2"] = DFC_SoilTemperature2;
+        labelColumns["soil temperature 3"] = DFC_SoilTemperature3;
+        labelColumns["soil temperature 4"] = DFC_SoilTemperature4;
+        labelColumns["leaf wetness 1"] = DFC_LeafWetness1;
+        labelColumns["leaf wetness 2"] = DFC_LeafWetness2;
+        labelColumns["leaf temperature 1"] = DFC_LeafTemperature1;
+        labelColumns["leaf temperature 2"] = DFC_LeafTemperature2;
+        labelColumns["extra humidity 1"] = DFC_ExtraHumidity1;
+        labelColumns["extra humidity 2"] = DFC_ExtraHumidity2;
+        labelColumns["extra temperature 1"] = DFC_ExtraTemperature1;
+        labelColumns["extra temperature 2"] = DFC_ExtraTemperature2;
+        labelColumns["extra temperature 3"] = DFC_ExtraTemperature3;
+
+        // samples.dat uses slightly different column labels than samples_v2.dat (api >= 20220210)
+        labelColumns["high_temp"] = DFC_HighTemp;
+        labelColumns["low_temp"] = DFC_LowTemp;
+        labelColumns["high_rain_rate"] = DFC_HighRainRate;
+        labelColumns["gust_direction"] = DFC_GustDirection;
+        labelColumns["high_solar_radiation"] = DFC_HighSolarRadiation;
+        labelColumns["high_uv_index"] = DFC_HighUVIndex;
+        labelColumns["forecast_rule_id"] = DFC_ForecastRuleID;
+        labelColumns["soil_moisture_1"] = DFC_SoilMoisture1;
+        labelColumns["soil_moisture_2"] = DFC_SoilMoisture2;
+        labelColumns["soil_moisture_3"] = DFC_SoilMoisture3;
+        labelColumns["soil_moisture_4"] = DFC_SoilMoisture4;
+        labelColumns["soil_temperature_1"] = DFC_SoilTemperature1;
+        labelColumns["soil_temperature_2"] = DFC_SoilTemperature2;
+        labelColumns["soil_temperature_3"] = DFC_SoilTemperature3;
+        labelColumns["soil_temperature_4"] = DFC_SoilTemperature4;
+        labelColumns["leaf_wetness_1"] = DFC_LeafWetness1;
+        labelColumns["leaf_wetness_2"] = DFC_LeafWetness2;
+        labelColumns["leaf_temperature_1"] = DFC_LeafTemperature1;
+        labelColumns["leaf_temperature_2"] = DFC_LeafTemperature2;
+        labelColumns["extra_humidity_1"] = DFC_ExtraHumidity1;
+        labelColumns["extra_humidity_2"] = DFC_ExtraHumidity2;
+        labelColumns["extra_temperature_1"] = DFC_ExtraTemperature1;
+        labelColumns["extra_temperature_2"] = DFC_ExtraTemperature2;
+        labelColumns["extra_temperature_3"] = DFC_ExtraTemperature3;
+
+    }
 }
 
 void DataFileWebTask::beginTask() {
@@ -139,10 +220,30 @@ void DataFileWebTask::downloadRequestFinished(QNetworkReply *reply) {
 
     qDebug() << "Download completed for" << _name << "[" << _url << "]";
 
+    QMap<enum DataFileWebTask::DataFileColumn, int> columnPositions;
+
     while (!reply->atEnd()) {
         QString line = reply->readLine().trimmed();
-        if (!line.startsWith("#"))
+        if (!line.startsWith("#")) {
             fileData.append(line);
+        } else if (columnPositions.isEmpty()) {
+            // Build the column list. We skip over the first character
+            // as its just a '#' and we don't care about that. We then
+            // trim the string in case there is a space between the #
+            // and the first column label.
+            QStringList columnList = line.mid(1).trimmed().split('\t');
+            for (int i = 0; i < columnList.length(); i++) {
+                QString column = columnList[i];
+
+                if (!labelColumns.contains(column)) {
+                    qDebug() << "Unrecognised column" << column << " - ignoring";
+                    continue;
+                }
+
+                enum DataFileColumn dfc = labelColumns[column];
+                columnPositions[dfc] = i;
+            }
+        }
     }
 
     qDebug() << "File contains" << fileData.count() << "records.";
@@ -161,7 +262,7 @@ void DataFileWebTask::downloadRequestFinished(QNetworkReply *reply) {
     }
 
     data_file_t dataFile = loadDataFile(fileData, lastModified, size,
-                                        cacheStats);
+                                        cacheStats, columnPositions);
 
     emit subtaskChanged(QString(tr("Caching data for %1")).arg(_name));
 
@@ -186,9 +287,10 @@ double nullableDouble(QString v) {
     return qQNaN();
 }
 
-data_file_t DataFileWebTask::loadDataFile(QStringList fileData,
-                                        QDateTime lastModified, int fileSize,
-                                        cache_stats_t cacheStats) {
+data_file_t DataFileWebTask::loadDataFile(
+        QStringList fileData, QDateTime lastModified, int fileSize,
+        cache_stats_t cacheStats,
+        QMap<enum DataFileWebTask::DataFileColumn, int> columnPositions) {
     emit subtaskChanged(QString(tr("Processing data for %1")).arg(_name));
 
     bool stationArchived = WebCacheDB::getInstance().stationIsArchived(_stationDataUrl);
@@ -222,19 +324,28 @@ data_file_t DataFileWebTask::loadDataFile(QStringList fileData,
     bool gapDetected = false;
     QDateTime startContiguousTo, endContiguousFrom;
 
+    int lineNumber = 0;
     while (!fileData.isEmpty()) {
+        lineNumber++;
         QString line = fileData.takeFirst();
 #if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
-        QStringList parts = line.split(QRegularExpression("\\s+"));
+        QStringList parts = line.split('\t');
 #else
-        QStringList parts = line.split(QRegExp("\\s+"));
+        QStringList parts = line.split('\t');
 #endif
 
-        if (parts.count() < 11) continue; // invalid record.
+        if (parts.count() < columnPositions.count()) {
+            qDebug() << "Data file" << _url
+                     << "record" << lineNumber
+                     << "is invalid - found " << parts.count()
+                     << "columns when the colum list specifies"
+                     << columnPositions.count()
+                     << ". line will be ignored.";
+            continue; // invalid record.
+        }
 
         // Build timestamp
-        QString tsString = parts.takeFirst();
-        tsString += " " + parts.takeFirst();
+        QString tsString = parts.at(columnPositions[DFC_TimeStamp]);
         QDateTime timestamp = QDateTime::fromString(tsString, Qt::ISODate);
 
         if (startTime.isNull()) {
@@ -411,6 +522,7 @@ data_file_t DataFileWebTask::loadDataFile(QStringList fileData,
     cols.extra = ALL_EXTRA_COLUMNS;
     ReserveSampleSetSpace(samples, size, cols);
 
+
     while (!timeStamps.isEmpty()) {
 
         auto timestamp = TO_UNIX_TIME(timeStamps.takeFirst());
@@ -419,76 +531,78 @@ data_file_t DataFileWebTask::loadDataFile(QStringList fileData,
 
         QStringList values = sampleParts.takeFirst();
 
-        samples.temperature.append(nullableDouble(values.takeFirst()));
-        samples.dewPoint.append(nullableDouble(values.takeFirst()));
-        samples.apparentTemperature.append(nullableDouble(values.takeFirst()));
-        samples.windChill.append(nullableDouble(values.takeFirst()));
-        samples.humidity.append(nullableDouble(values.takeFirst()));
-        samples.pressure.append(nullableDouble(values.takeFirst()));
-        samples.indoorTemperature.append(nullableDouble(values.takeFirst()));
-        samples.indoorHumidity.append(nullableDouble(values.takeFirst()));
-        samples.rainfall.append(nullableDouble(values.takeFirst()));
-        samples.averageWindSpeed.append(nullableDouble(values.takeFirst()));
-        samples.gustWindSpeed.append(nullableDouble(values.takeFirst()));
+        samples.temperature.append(nullableDouble(values.at(columnPositions[DFC_Temperature])));
+        samples.dewPoint.append(nullableDouble(values.at(columnPositions[DFC_DewPoint])));
+        samples.apparentTemperature.append(nullableDouble(values.at(columnPositions[DFC_ApparentTemperature])));
+        samples.windChill.append(nullableDouble(values.at(columnPositions[DFC_WindChill])));
+        samples.humidity.append(nullableDouble(values.at(columnPositions[DFC_RelHumidity])));
+        samples.absolutePressure.append(nullableDouble(values.at(columnPositions[DFC_AbsolutePressure])));
 
-        QVariant val = values.takeFirst();
+        APPEND_OPT_NULLABLE_DOUBLE(DFC_MSLPressure, samples.meanSeaLevelPressure);
+
+        samples.indoorTemperature.append(nullableDouble(values.at(columnPositions[DFC_IndoorTemperature])));
+        samples.indoorHumidity.append(nullableDouble(values.at(columnPositions[DFC_IndoorRelHumidity])));
+        samples.rainfall.append(nullableDouble(values.at(columnPositions[DFC_Rainfall])));
+        samples.averageWindSpeed.append(nullableDouble(values.at(columnPositions[DFC_AvgWindSpeed])));
+        samples.gustWindSpeed.append(nullableDouble(values.at(columnPositions[DFC_GustWindSpeed])));
+
+        QVariant val = values.at(columnPositions[DFC_WindDirection]);
         if (val != "None")
             samples.windDirection[timestamp] = val.toDouble();
 
         if (_requestData.isSolarAvailable) {
-            samples.uvIndex.append(nullableDouble(values.takeFirst()));
-            samples.solarRadiation.append(nullableDouble(values.takeFirst()));
-        } else {
-            // Throw away solar values
-            values.takeFirst();
-            values.takeFirst();
+            APPEND_OPT_NULLABLE_DOUBLE(DFC_UVIndex, samples.uvIndex);
+            APPEND_OPT_NULLABLE_DOUBLE(DFC_SolarRadiation, samples.solarRadiation);
         }
 
-        samples.reception.append(nullableDouble(values.takeFirst()));
-        samples.highTemperature.append(nullableDouble(values.takeFirst()));
-        samples.lowTemperature.append(nullableDouble(values.takeFirst()));
-        samples.highRainRate.append(nullableDouble(values.takeFirst()));
+        // Optional - potentially missing on cabled stations.
+        APPEND_OPT_NULLABLE_DOUBLE(DFC_Reception, samples.reception);
 
-        QVariant gustDirection = values.takeFirst();
-        if (gustDirection != "None") {
-            samples.gustWindDirection[timestamp] = gustDirection.toDouble();
+        // These are specific to DAVIS stations so may not always be
+        // present
+        APPEND_OPT_NULLABLE_DOUBLE(DFC_HighTemp, samples.highTemperature);
+        APPEND_OPT_NULLABLE_DOUBLE(DFC_LowTemp, samples.lowTemperature);
+        APPEND_OPT_NULLABLE_DOUBLE(DFC_HighRainRate, samples.highRainRate);
+
+        if (columnPositions.contains(DFC_GustDirection)) {
+            QVariant gustDirection = values.at(columnPositions[DFC_GustDirection]);
+            if (gustDirection != "None") {
+                samples.gustWindDirection[timestamp] = gustDirection.toDouble();
+            }
         }
 
-        samples.evapotranspiration.append(nullableDouble(values.takeFirst()));
+        APPEND_OPT_NULLABLE_DOUBLE(DFC_Evapotranspiration, samples.evapotranspiration);
         if (_requestData.isSolarAvailable) {
-            samples.highSolarRadiation.append(nullableDouble(values.takeFirst()));
-            samples.highUVIndex.append(nullableDouble(values.takeFirst()));
-        } else {
-            values.takeFirst();
-            values.takeFirst();
+            APPEND_OPT_NULLABLE_DOUBLE(DFC_HighSolarRadiation, samples.highSolarRadiation);
+            APPEND_OPT_NULLABLE_DOUBLE(DFC_HighUVIndex, samples.highUVIndex);
         }
-        samples.forecastRuleId.append(values.takeFirst().toInt());
 
-        if (values.length() >= 17) {
-            // Extra sensors are present.
-            samples.soilMoisture1.append(nullableDouble(values.takeFirst()));
-            samples.soilMoisture2.append(nullableDouble(values.takeFirst()));
-            samples.soilMoisture3.append(nullableDouble(values.takeFirst()));
-            samples.soilMoisture4.append(nullableDouble(values.takeFirst()));
-
-            samples.soilTemperature1.append(nullableDouble(values.takeFirst()));
-            samples.soilTemperature2.append(nullableDouble(values.takeFirst()));
-            samples.soilTemperature3.append(nullableDouble(values.takeFirst()));
-            samples.soilTemperature4.append(nullableDouble(values.takeFirst()));
-
-            samples.leafWetness1.append(nullableDouble(values.takeFirst()));
-            samples.leafWetness2.append(nullableDouble(values.takeFirst()));
-
-            samples.leafTemperature1.append(nullableDouble(values.takeFirst()));
-            samples.leafTemperature2.append(nullableDouble(values.takeFirst()));
-
-            samples.extraHumidity1.append(nullableDouble(values.takeFirst()));
-            samples.extraHumidity2.append(nullableDouble(values.takeFirst()));
-
-            samples.extraTemperature1.append(nullableDouble(values.takeFirst()));
-            samples.extraTemperature2.append(nullableDouble(values.takeFirst()));
-            samples.extraTemperature3.append(nullableDouble(values.takeFirst()));
+        if (columnPositions.contains(DFC_ForecastRuleID)) {
+            samples.forecastRuleId.append(values.at(columnPositions[DFC_ForecastRuleID]).toInt());
         }
+
+        APPEND_OPT_NULLABLE_DOUBLE(DFC_SoilMoisture1, samples.soilMoisture1);
+        APPEND_OPT_NULLABLE_DOUBLE(DFC_SoilMoisture2, samples.soilMoisture2);
+        APPEND_OPT_NULLABLE_DOUBLE(DFC_SoilMoisture3, samples.soilMoisture3);
+        APPEND_OPT_NULLABLE_DOUBLE(DFC_SoilMoisture4, samples.soilMoisture4);
+
+        APPEND_OPT_NULLABLE_DOUBLE(DFC_SoilTemperature1, samples.soilTemperature1);
+        APPEND_OPT_NULLABLE_DOUBLE(DFC_SoilTemperature2, samples.soilTemperature2);
+        APPEND_OPT_NULLABLE_DOUBLE(DFC_SoilTemperature3, samples.soilTemperature3);
+        APPEND_OPT_NULLABLE_DOUBLE(DFC_SoilTemperature4, samples.soilTemperature4);
+
+        APPEND_OPT_NULLABLE_DOUBLE(DFC_LeafWetness1, samples.leafWetness1);
+        APPEND_OPT_NULLABLE_DOUBLE(DFC_LeafWetness2, samples.leafWetness2);
+
+        APPEND_OPT_NULLABLE_DOUBLE(DFC_LeafTemperature1, samples.leafTemperature1);
+        APPEND_OPT_NULLABLE_DOUBLE(DFC_LeafTemperature2, samples.leafTemperature2);
+
+        APPEND_OPT_NULLABLE_DOUBLE(DFC_ExtraHumidity1, samples.extraHumidity1);
+        APPEND_OPT_NULLABLE_DOUBLE(DFC_ExtraHumidity2, samples.extraHumidity2);
+
+        APPEND_OPT_NULLABLE_DOUBLE(DFC_ExtraTemperature1, samples.extraTemperature1);
+        APPEND_OPT_NULLABLE_DOUBLE(DFC_ExtraTemperature2, samples.extraTemperature2);
+        APPEND_OPT_NULLABLE_DOUBLE(DFC_ExtraTemperature3, samples.extraTemperature3);
     }
 
     data_file_t dataFile;

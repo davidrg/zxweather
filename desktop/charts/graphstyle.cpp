@@ -53,6 +53,14 @@ GraphStyle::GraphStyle(StandardColumn column) {
         colour = colours.pressure;
         name = tr("Pressure");
         break;
+    case SC_AbsolutePressure:
+        colour = colours.pressure;
+        name = tr("Absolute Pressure");
+        break;
+    case SC_MeanSeaLevelPressure:
+        colour = colours.pressure;
+        name = tr("Mean Sea Level Pressure");
+        break;
     case SC_Rainfall:
         colour = colours.rainfall;
         name = tr("Rainfall");

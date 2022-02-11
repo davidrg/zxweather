@@ -190,6 +190,8 @@ void AbstractAxisTag::setStyle(const GraphStyle &style) {
         case SC_WindChill:
         case SC_DewPoint:
         case SC_Pressure:
+        case SC_AbsolutePressure:
+        case SC_MeanSeaLevelPressure:
         case SC_Rainfall:
         case SC_AverageWindSpeed:
         case SC_GustWindSpeed:

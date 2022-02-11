@@ -83,6 +83,7 @@ private:
     bool _isSolarAvailable;
     bool _isWireless;
     hardware_type_t _hwType;
+    unsigned int _apiLevel;
 
     // Cache
     static QString lastSysConfig;

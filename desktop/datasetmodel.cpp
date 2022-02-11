@@ -67,6 +67,12 @@ QVariant DataSetModel::data(const QModelIndex &index, int role) const
         case SC_Pressure:
             value = sampleSet.pressure[row];
             break;
+        case SC_AbsolutePressure:
+            value = sampleSet.absolutePressure[row];
+            break;
+        case SC_MeanSeaLevelPressure:
+            value = sampleSet.meanSeaLevelPressure[row];
+            break;
         case SC_Rainfall:
             value = sampleSet.rainfall[row];
             break;
@@ -367,6 +373,10 @@ QVariant DataSetModel::headerData(int section, Qt::Orientation orientation, int 
             return tr("Indoor Humidity (%1)").arg(unit);
         case SC_Pressure:
             return tr("Pressure (%1)").arg(unit);
+        case SC_AbsolutePressure:
+            return tr("Absolute Pressure (%1)").arg(unit);
+        case SC_MeanSeaLevelPressure:
+            return tr("Mean Sea Level Pressure (%1)").arg(unit);
         case SC_Rainfall:
             return tr("Rainfall (%1)").arg(unit);
         case SC_AverageWindSpeed:
@@ -507,6 +517,12 @@ QList<StandardColumn> DataSetModel::getColumns() {
 
     if (columns.standard.testFlag(SC_Pressure) && !sampleSet.pressure.isEmpty())
         columnList << SC_Pressure;
+
+    if (columns.standard.testFlag(SC_AbsolutePressure) && !sampleSet.absolutePressure.isEmpty())
+        columnList << SC_AbsolutePressure;
+
+    if (columns.standard.testFlag(SC_MeanSeaLevelPressure) && !sampleSet.meanSeaLevelPressure.isEmpty())
+        columnList << SC_MeanSeaLevelPressure;
 
     if (columns.standard.testFlag(SC_Rainfall) && !sampleSet.rainfall.isEmpty())
         columnList << SC_Rainfall;

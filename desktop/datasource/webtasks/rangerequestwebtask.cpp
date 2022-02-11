@@ -31,7 +31,7 @@
 // UI option or the Web UI needs to come up with the headers without getting the
 // database involved.
 
-RangeRequestWebTask::RangeRequestWebTask(QString baseUrl,
+RangeRequestWebTask::RangeRequestWebTask(QString baseUrl, unsigned int apiLevel,
                                          QString stationCode,
                                          request_data_t requestData,
                                          bool select,
@@ -41,6 +41,7 @@ RangeRequestWebTask::RangeRequestWebTask(QString baseUrl,
     _select = select;
     _requestingRange = true;
     _awaitingUrls = 0;
+    _apiLevel = apiLevel;
 }
 
 void RangeRequestWebTask::beginTask() {
@@ -178,14 +179,14 @@ void RangeRequestWebTask::ClearURLCache() {
     RangeRequestWebTask::lastQuery.clear();
 }
 
-void RangeRequestWebTask::getURLList(QString baseURL, QDateTime startTime, QDateTime endTime,
-                QStringList& urlList, QStringList& nameList, QList<QDate>& months) {
+void RangeRequestWebTask::getURLList(QString baseURL, unsigned int api_level, QDateTime startTime,
+    QDateTime endTime, QStringList& urlList, QStringList& nameList, QList<QDate>& months) {
 
 
     QDate startDate = startTime.date();
     QDate endDate = endTime.date();
 
-    qDebug() << "Building URLlist from" << startTime << "to" << endTime;
+    qDebug() << "Building URLlist from" << startTime << "to" << endTime << "for api level" << api_level;
 
     int startYear = startDate.year();
     int startMonth = startDate.month();
@@ -220,7 +221,14 @@ void RangeRequestWebTask::getURLList(QString baseURL, QDateTime startTime, QDate
                     monthName + "/gnuplot_data.dat";
 #else
             QString url = baseURL + QString::number(year) + "/" +
-                    QString::number(month) + "/samples.dat";
+                    QString::number(month);
+            if (api_level >= 20220210) {
+                // V2 separates out absolute and MSL pressure and potentially adds other
+                // columns.
+                url += "/samples_v2.dat";
+            } else {
+                 url += "/samples.dat";
+            }
 #endif
 
             data_file_t cache_info =
@@ -302,12 +310,13 @@ bool RangeRequestWebTask::buildUrlListAndQueue() {
     QList<QDate> monthList;
     RangeRequestWebTask::getURLList(
                 _stationDataUrl,
-               _requestData.startTime,
-               _requestData.endTime,
-               urlList /*OUT*/,
-               nameList /*OUT*/,
-               monthList /*OUT*/
-               );
+                _apiLevel,
+                _requestData.startTime,
+                _requestData.endTime,
+                urlList /*OUT*/,
+                nameList /*OUT*/,
+                monthList /*OUT*/
+                );
 
     qDebug() << "URLs:" << urlList;
     qDebug() << "Names:" << nameList;

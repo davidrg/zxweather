@@ -134,8 +134,10 @@ QString buildColumnList(SampleColumns columns, QString format,
         query += format.arg("indoor_relative_humidity");
     if (columns.standard.testFlag(SC_Humidity))
         query += format.arg("relative_humidity");
-    if (columns.standard.testFlag(SC_Pressure))
+    if (columns.standard.testFlag(SC_AbsolutePressure) || columns.standard.testFlag(SC_Pressure))
         query += format.arg("absolute_pressure");
+    if (columns.standard.testFlag(SC_MeanSeaLevelPressure) || columns.standard.testFlag(SC_Pressure))
+        query += format.arg("mean_sea_level_pressure");
     if (columns.standard.testFlag(SC_AverageWindSpeed))
         query += format.arg("average_wind_speed");
     if (columns.standard.testFlag(SC_GustWindSpeed))
@@ -356,6 +358,10 @@ QString buildSelectForColumns(SampleColumns columns)
     QString query = "select time_stamp";
     query += buildColumnList(columns, ", %1", true, ", %1 ");
 
+    if (columns.standard.testFlag(SC_Pressure)) {
+        query += ", coalesce(mean_sea_level_pressure, absolute_pressure) as pressure ";
+    }
+
     return query;
 }
 
@@ -406,10 +412,19 @@ QString buildGroupedSelect(SampleColumns columns, AggregateFunction function, Ag
             query += buildColumnList(nonSummables, ", avg(iq.%1) as %1 ", false);
         }
 
+        // Pressure is handled specially
+        if (nonSummables.standard.testFlag(SC_Pressure)) {
+            query += ", avg(coalesce(iq.mean_sea_level_pressure, iq.absolute_pressure)) as pressure ";
+        }
+
     } else {
         SampleColumns cols = columns;
         cols.standard = columns.standard & ~SC_Timestamp;
         query += buildColumnList(cols, QString(", %1(iq.%2) as %2 ").arg(fn).arg("%1"), false);
+
+        if (cols.standard.testFlag(SC_Pressure)) {
+            query += QString(", %1(coalesce(iq.mean_sea_level_pressure, iq.absolute_pressure)) as pressure ").arg(fn);
+        }
     }
 
     // Start of subquery 'iq'
@@ -431,7 +446,7 @@ QString buildGroupedSelect(SampleColumns columns, AggregateFunction function, Ag
     // from the current sample where as special columns (such as those unique
     // to davis hardware or columns whose value is computed) need to be included
     // in their self-qualified form in this column list. Davis-specific columns
-    // will expect to come from relation 'ds'.
+    // will expect to come from relation 'ds'.    
     query += buildColumnList(columns, ", cur.%1 ", true, ", %1 ");
 
     // Rest of subquery 'iq'
@@ -474,6 +489,10 @@ QString buildGroupedSelect(SampleColumns columns, AggregateFunction function, Ag
         // And just leave the non-summables alone.
         if (nonSummables.standard != SC_NoColumns || nonSummables.extra != EC_NoColumns) {
             outer_query += buildColumnList(nonSummables, ", grouped.%1 as %1 ", false);
+        }
+
+        if (nonSummables.standard.testFlag(SC_Pressure)) {
+            outer_query += ", grouped.pressure as pressure ";
         }
 
         outer_query += " from (" + query + ") as grouped order by grouped.time_stamp asc";
@@ -832,7 +851,15 @@ void DatabaseDataSource::fetchSamples(SampleColumns columns,
 
         if (columns.standard.testFlag(SC_Pressure))
             samples.pressure.append(nullableVariantDouble(
+                        record.value("pressure")));
+
+        if (columns.standard.testFlag(SC_AbsolutePressure))
+            samples.absolutePressure.append(nullableVariantDouble(
                         record.value("absolute_pressure")));
+
+        if (columns.standard.testFlag(SC_MeanSeaLevelPressure))
+            samples.meanSeaLevelPressure.append(nullableVariantDouble(
+                        record.value("mean_sea_level_pressure")));
 
         if (columns.standard.testFlag(SC_Rainfall))
             samples.rainfall.append(nullableVariantDouble(record.value("rainfall")));

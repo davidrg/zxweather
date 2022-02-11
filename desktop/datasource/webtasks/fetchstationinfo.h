@@ -60,6 +60,7 @@ public:
                                   QMap<ExtraColumn, QString> *columnNames,
                                   ExtraColumns* enabledColumns);
 
+
 public slots:
     /** Called when a network reply for a request this task submitted has
      * been received.
@@ -80,6 +81,7 @@ private:
     bool _have_gap_data;
     QString _sysconfig_url;
     QString _gaps_url;
+    unsigned int _api_level;
 };
 
 #endif // FETCHSTATIONINFO_H

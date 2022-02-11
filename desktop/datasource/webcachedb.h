@@ -267,7 +267,7 @@ public:
     void updateStation(QString url, QString title, QString description, QString type_code,
                        int interval, float latitude, float longitude, float altitude,
                        bool solar, int davis_broadcast_id,
-                       QMap<ExtraColumn, QString> extraColumnNames, bool archived, QDateTime archivedTime, QString archivedMessage);
+                       QMap<ExtraColumn, QString> extraColumnNames, bool archived, QDateTime archivedTime, QString archivedMessage, unsigned int apiLevel);
 
 
     /** Updates the list of known permanent data gaps for the specified

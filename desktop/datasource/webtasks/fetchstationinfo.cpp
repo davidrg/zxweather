@@ -25,6 +25,10 @@ FetchStationInfoWebTask::FetchStationInfoWebTask(QString baseUrl, QString statio
 void FetchStationInfoWebTask::beginTask() {
     QNetworkRequest sysConfigRequest(_sysconfig_url);
     emit httpGet(sysConfigRequest);
+
+    // We could check API level >= 20220210 to be sure gaps.json is available
+    // but its faster just to do it in parallel and let a 404 tell is the Web UI
+    // is too old.
     QNetworkRequest gapsRequest(_gaps_url);
     emit httpGet(gapsRequest);
 }
@@ -107,6 +111,11 @@ bool FetchStationInfoWebTask::processSysConfigResponse(QByteArray responseData) 
 
     qDebug() << "Parsing SYSCONFIG data";
 
+    _api_level = 0;
+    if (result.contains("v")) {
+        _api_level = result["v"].toUInt();
+    }
+
     QVariantList stations = result["stations"].toList();
     foreach (QVariant station, stations) {
         QVariantMap stationData = station.toMap();
@@ -183,7 +192,8 @@ bool FetchStationInfoWebTask::processSysConfigResponse(QByteArray responseData) 
                     extraColumnNames,
                     isArchived,
                     archivedTime,
-                    archivedMessage
+                    archivedMessage,
+                    _api_level
             );
 
             return true;

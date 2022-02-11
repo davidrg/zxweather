@@ -109,6 +109,7 @@ void WebCacheDB::openDatabase() {
             if (!runUpgradeScript(6, ":/cache_db/v6.sql", filename)) return; // v5 -> v6
             if (!runUpgradeScript(7, ":/cache_db/v7.sql", filename)) return; // v6 -> v7
             if (!runUpgradeScript(8, ":/cache_db/v8.sql", filename)) return; // v7 -> v8
+            if (!runUpgradeScript(9, ":/cache_db/v9.sql", filename)) return; // v8 -> v9
 
         } else {
             emit criticalError(tr("Failed to determine version of cache database"));
@@ -441,7 +442,7 @@ void WebCacheDB::cacheDataSet(SampleSet samples,
 
     // First up, grab the list of samples that are missing from the database.
     QVariantList timestamps, temperature, dewPoint, apparentTemperature,
-            windChill, indoorTemperature, humidity, indoorHumidity, pressure,
+            windChill, indoorTemperature, humidity, indoorHumidity, absolutePressure,
             rainfall, stationIds, dataFileIds, averageWindSpeeds,
             gustWindSpeeds, windDirections, solarRadiations, uvIndexes,
             receptions, highTemperatures, lowTemperatures, highRainRates,
@@ -451,7 +452,22 @@ void WebCacheDB::cacheDataSet(SampleSet samples,
             soilTemperature3, soilTemperature4, leafWetness1, leafWetness2,
             leafTemperature1, leafTemperature2, extraTemperature1,
             extraTemperature2, extraTemperature3, extraHumidity1,
-            extraHumidity2;
+            extraHumidity2, mslPressures;
+
+    // This depends on the station
+    bool mslPressureEnabled = !samples.meanSeaLevelPressure.isEmpty();
+
+    // These are (at the moment) all specific to DAVIS hardware.
+//    bool uvIndexEnabled = !samples.uvIndex.isEmpty();
+//    bool solarRadiationEnabled = !samples.solarRadiation.isEmpty();
+    bool receptionEnabled = !samples.reception.isEmpty();
+    bool highTempEnabled = !samples.highTemperature.isEmpty();
+    bool lowTempEnabled = !samples.lowTemperature.isEmpty();
+    bool highRainRateEnabled = !samples.highRainRate.isEmpty();
+//    bool evapotranspirationsEnabled = !samples.evapotranspiration.isEmpty();
+//    bool highSolarRadiationEnabled = !samples.highSolarRadiation.isEmpty();
+//    bool highUVIndexEnabled = !samples.highUVIndex.isEmpty();
+    bool forecastRuleEnabled = !samples.forecastRuleId.isEmpty();
 
     bool soilMoisture1Enabled = !samples.soilMoisture1.isEmpty();
     bool soilMoisture2Enabled = !samples.soilMoisture2.isEmpty();
@@ -487,6 +503,8 @@ void WebCacheDB::cacheDataSet(SampleSet samples,
         stationIds << stationId;   // Kinda pointless but the API wants it.
         dataFileIds << dataFileId; // Likewise
 
+        // These columns are mandatory for all weather station hardware types so will
+        // always be present.
         timestamps.append(timestamp);
         temperature.append(nullableDouble(samples.temperature.at(i)));
         dewPoint.append(nullableDouble(samples.dewPoint.at(i)));
@@ -495,15 +513,28 @@ void WebCacheDB::cacheDataSet(SampleSet samples,
         indoorTemperature.append(nullableDouble(samples.indoorTemperature.at(i)));
         humidity.append(nullableDouble(samples.humidity.at(i)));
         indoorHumidity.append(nullableDouble(samples.indoorHumidity.at(i)));
-        pressure.append(nullableDouble(samples.pressure.at(i)));
+        absolutePressure.append(nullableDouble(samples.absolutePressure.at(i)));
         rainfall.append(nullableDouble(samples.rainfall.at(i)));
         averageWindSpeeds.append(nullableDouble(samples.averageWindSpeed.at(i)));
         gustWindSpeeds.append(nullableDouble(samples.gustWindSpeed.at(i)));
-        receptions.append(nullableDouble(samples.reception.at(i)));
-        highTemperatures.append(nullableDouble(samples.highTemperature.at(i)));
-        lowTemperatures.append(nullableDouble(samples.lowTemperature.at(i)));
-        highRainRates.append(nullableDouble(samples.highRainRate.at(i)));
-        forecastRuleIds.append(samples.forecastRuleId.at(i));
+
+        if (mslPressureEnabled) mslPressures.append(samples.meanSeaLevelPressure.at(i));
+        else mslPressures.append(QVariant(QVariant::Double));
+
+        if (receptionEnabled) receptions.append(nullableDouble(samples.reception.at(i)));
+        else receptions.append(QVariant(QVariant::Double));
+
+        if (highTempEnabled) highTemperatures.append(nullableDouble(samples.highTemperature.at(i)));
+        else highTemperatures.append(QVariant(QVariant::Double));
+
+        if (lowTempEnabled) lowTemperatures.append(nullableDouble(samples.lowTemperature.at(i)));
+        else lowTemperatures.append(QVariant(QVariant::Double));
+
+        if (highRainRateEnabled) highRainRates.append(nullableDouble(samples.highRainRate.at(i)));
+        else highRainRates.append(QVariant(QVariant::Double));
+
+        if (forecastRuleEnabled) forecastRuleIds.append(samples.forecastRuleId.at(i));
+        else forecastRuleIds.append(0); // TODO: this shouldn't be zero.
 
         if (soilMoisture1Enabled) soilMoisture1.append(samples.soilMoisture1.at(i));
         else soilMoisture1.append(QVariant(QVariant::Double));
@@ -613,9 +644,10 @@ void WebCacheDB::cacheDataSet(SampleSet samples,
                     "soil_temperature_1, soil_temperature_2, soil_temperature_3, soil_temperature_4, "
                     "leaf_wetness_1, leaf_wetness_2, leaf_temperature_1, leaf_temperature_2, "
                     "extra_temperature_1, extra_temperature_2, extra_temperature_3, "
-                    "extra_humidity_1, extra_humidity_2) "
+                    "extra_humidity_1, extra_humidity_2, mean_sea_level_pressure) "
                     "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
-                    "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+                    "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
+                    "?, ?, ?, ?, ?, ?, ?);");
         query.addBindValue(stationIds);
         query.addBindValue(timestamps);
         query.addBindValue(temperature);
@@ -623,7 +655,7 @@ void WebCacheDB::cacheDataSet(SampleSet samples,
         query.addBindValue(apparentTemperature);
         query.addBindValue(windChill);
         query.addBindValue(humidity);
-        query.addBindValue(pressure);
+        query.addBindValue(absolutePressure);
         query.addBindValue(indoorTemperature);
         query.addBindValue(indoorHumidity);
         query.addBindValue(rainfall);
@@ -659,6 +691,7 @@ void WebCacheDB::cacheDataSet(SampleSet samples,
         query.addBindValue(extraTemperature3);
         query.addBindValue(extraHumidity1);
         query.addBindValue(extraHumidity2);
+        query.addBindValue(mslPressures);
         if (!query.execBatch()) {
             qWarning() << "Sample insert failed: " << query.lastError();
         } else {
@@ -1377,8 +1410,13 @@ QString WebCacheDB::buildColumnList(SampleColumns columns, QString format) {
         query += format.arg("indoor_relative_humidity");
     if (columns.standard.testFlag(SC_Humidity))
         query += format.arg("relative_humidity");
-    if (columns.standard.testFlag(SC_Pressure))
+    // SC_Pressure is computed from both absolute_pressure and mean_sea_level_pressure
+    // so when SC_Pressure is requested we need to ensure those two columns
+    // are included so that aggregated queries work properly.
+    if (columns.standard.testFlag(SC_AbsolutePressure) || columns.standard.testFlag(SC_Pressure))
         query += format.arg("absolute_pressure");
+    if (columns.standard.testFlag(SC_MeanSeaLevelPressure) || columns.standard.testFlag(SC_Pressure))
+        query += format.arg("mean_sea_level_pressure");
     if (columns.standard.testFlag(SC_AverageWindSpeed))
         query += format.arg("average_wind_speed");
     if (columns.standard.testFlag(SC_GustWindSpeed))
@@ -1457,6 +1495,10 @@ QString WebCacheDB::buildSelectForColumns(SampleColumns columns)
     cols.extra = columns.extra;
 
     selectPart += buildColumnList(cols, ", %1");
+
+    if (columns.standard.testFlag(SC_Pressure)) {
+        selectPart += ", coalesce(mean_sea_level_pressure, absolute_pressure) as pressure";
+    }
 
     return selectPart;
 }
@@ -1537,6 +1579,8 @@ QSqlQuery WebCacheDB::buildBasicSelectQuery(SampleColumns columns) {
              "and time_stamp >= :start_time and time_stamp <= :end_time"
              " order by time_stamp asc";
 
+    qDebug() << "WCDB Simple Select: " << sql;
+
     QSqlQuery query(sampleCacheDb);
     query.prepare(sql);
     return query;
@@ -1593,11 +1637,21 @@ QString WebCacheDB::buildAggregatedSelect(SampleColumns columns,
         if (nonSummables.standard != SC_NoColumns || nonSummables.extra != EC_NoColumns) {
             query += buildColumnList(nonSummables, ", avg(iq.%1) as %1 ");
         }
+
+        // Handle SC_pressure specially
+        if (nonSummables.standard.testFlag(SC_Pressure)) {
+            query += ", avg(coalesce(iq.mean_sea_level_pressure, iq.absolute_pressure)) as pressure ";
+        }
     } else {
         SampleColumns cols;
         cols.standard = columns.standard & ~SC_Timestamp;
         cols.extra = columns.extra;
         query += buildColumnList(cols, QString(", %1(iq.%2) as %2 ").arg(fn).arg("%1"));
+
+        // Handle SC_pressure specially
+        if (cols.standard.testFlag(SC_Pressure)) {
+            query += QString(", %1(coalesce(iq.mean_sea_level_pressure, iq.absolute_pressure)) as pressure ").arg(fn);
+        }
     }
 
     query += " from (select ";
@@ -1662,6 +1716,8 @@ QSqlQuery WebCacheDB::buildAggregatedSelectQuery(SampleColumns columns,
     QString qry = buildAggregatedSelect(columns,
                                         aggregateFunction,
                                         groupType);
+
+    qDebug() << "WCDB Aggregated Select:" << qry;
 
     QSqlQuery query(sampleCacheDb);
     query.prepare(qry);
@@ -1854,7 +1910,13 @@ SampleSet WebCacheDB::retrieveDataSet(QString stationUrl,
                 samples.indoorHumidity.append(nullableVariantDouble(record.value("indoor_relative_humidity")));
 
             if (columns.standard.testFlag(SC_Pressure))
-                samples.pressure.append(nullableVariantDouble(record.value("absolute_pressure")));
+                samples.pressure.append(nullableVariantDouble(record.value("pressure")));
+
+            if (columns.standard.testFlag(SC_AbsolutePressure))
+                samples.absolutePressure.append(nullableVariantDouble(record.value("absolute_pressure")));
+
+            if (columns.standard.testFlag(SC_MeanSeaLevelPressure))
+                samples.meanSeaLevelPressure.append(nullableVariantDouble(record.value("mean_sea_level_pressure")));
 
             if (columns.standard.testFlag(SC_Rainfall)) {
                 double value = nullableVariantDouble(record.value("rainfall"));
@@ -2058,7 +2120,7 @@ void WebCacheDB::updateStation(QString url, QString title, QString description,
                                int davis_broadcast_id,
                                QMap<ExtraColumn, QString> extraColumnNames,
                                bool archived, QDateTime archivedTime,
-                               QString archivedMessage) {
+                               QString archivedMessage, unsigned int apiLevel) {
     if (!ready) {
         return;
     }
@@ -2080,16 +2142,39 @@ void WebCacheDB::updateStation(QString url, QString title, QString description,
     qDebug() << "Updating station info for" << url;
 
     int stationId = getStationId(url);
-
+    station_info_t info = getStationInfo(url);
 
     QSqlQuery query(sampleCacheDb);
+
+    if (info.apiLevel == 0 && apiLevel >= 20220210) {
+        // 20220210 marks mean sea level pressure and absolute pressure being
+        // stored separately. We don't know what sort of data we're currently
+        // storing for this station so we need to dump the whole lot.
+
+        qDebug() << "Station API level has changed from 0 - need to drop samples due to ABS/MSL pressure separation...";
+
+        query.prepare("delete from sample where station_id = :station_id");
+        query.bindValue(":station_id", stationId);
+        if (!query.exec()) {
+            qWarning() << "Failed to drop samples for station! Error:" << query.lastError().databaseText();
+        } else {
+            query.prepare("delete from data_file where station = :station_id");
+            query.bindValue(":station_id", stationId);
+            if (!query.exec()) {
+                qWarning() << "Failed to drop data files for station! Error:" << query.lastError().databaseText();
+            } else {
+                qDebug() << "Sample cache cleared successfully for station!";
+            }
+        }
+    }
+
     query.prepare("update station set title = :title, description = :description, "
                   "station_type_id = (select station_type_id from station_type where lower(code) = :type_code), "
                   "sample_interval = :interval, "
                   "latitude = :latitude, longitude = :longitude, altitude = :altitude, "
                   "solar_available = :solar, davis_broadcast_id = :broadcast_id,  "
                   "archived = :archived, archived_time = :archived_time, "
-                  "archived_message = :archived_message "
+                  "archived_message = :archived_message, api_level = :api_level "
                   "where station_id = :station_id");
     query.bindValue(":title", title);
     query.bindValue(":description", description);
@@ -2121,6 +2206,7 @@ void WebCacheDB::updateStation(QString url, QString title, QString description,
     query.bindValue(":archived", archived);
     query.bindValue(":archived_time", TO_UNIX_TIME(archivedTime));
     query.bindValue(":archived_message", archivedMessage);
+    query.bindValue(":api_level", apiLevel);
 
     if (!query.exec()) {
         qWarning() << "Failed to update station config! Error:" << query.lastError().databaseText();
@@ -2376,7 +2462,8 @@ station_info_t WebCacheDB::getStationInfo(QString url) {
 
     QSqlQuery query(sampleCacheDb);
     query.prepare("select s.title, s.description, s.latitude, s.longitude, "
-                  "s.altitude, s.solar_available, s.davis_broadcast_id, st.code as type_code "
+                  "s.altitude, s.solar_available, s.davis_broadcast_id, "
+                  "st.code as type_code, s.api_level "
                   "from station s inner join station_type st on st.station_type_id = s.station_type_id "
                   "where s.code = :url");
     query.bindValue(":url", url);
@@ -2396,6 +2483,8 @@ station_info_t WebCacheDB::getStationInfo(QString url) {
             info.altitude = query.record().value("altitude").toFloat();
             info.hasSolarAndUV = query.record().value("solar_available").toBool();
 
+            info.apiLevel = query.record().value("api_level").toUInt();
+
             QVariant broadcastId = query.record().value("davis_broadcast_id");
             info.isWireless = !broadcastId.isNull() && broadcastId.toInt() != -1;
 
@@ -2410,7 +2499,6 @@ station_info_t WebCacheDB::getStationInfo(QString url) {
                 qWarning() << "Unrecognised hardware type code" << typeCode << ". Treating has GENERIC.";
                 info.hardwareType = HW_GENERIC;
             }
-
         }
     }
 

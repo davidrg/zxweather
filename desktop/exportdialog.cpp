@@ -233,6 +233,14 @@ void ExportDialog::samplesReady(SampleSet samples)
             double value = samples.pressure.at(i);
             if (imperial) value = hectopascalsToInchesOfMercury(value);
             rowData.append(dstr(value));
+        } if (columns.standard.testFlag(SC_AbsolutePressure)) {
+            double value = samples.absolutePressure.at(i);
+            if (imperial) value = hectopascalsToInchesOfMercury(value);
+            rowData.append(dstr(value));
+        } if (columns.standard.testFlag(SC_MeanSeaLevelPressure)) {
+            double value = samples.meanSeaLevelPressure.at(i);
+            if (imperial) value = hectopascalsToInchesOfMercury(value);
+            rowData.append(dstr(value));
         } if (columns.standard.testFlag(SC_Rainfall)) {
             double value = samples.rainfall.at(i);
             if (imperial) value = millimetersToInches(value);
@@ -384,6 +392,10 @@ QString ExportDialog::getHeaderRow(SampleColumns columns) {
         columnNames.append(tr("Indoor Humidity (%)"));
     if (columns.standard.testFlag(SC_Pressure))
          columnNames.append(tr("Pressure (%1)").arg(imperial ? unitString(U_INCHES_OF_MERCURY) : unitString(U_HECTOPASCALS)));
+    if (columns.standard.testFlag(SC_AbsolutePressure))
+        columnNames.append(tr("Absolute Pressure (%1)").arg(imperial ? unitString(U_INCHES_OF_MERCURY) : unitString(U_HECTOPASCALS)));
+    if (columns.standard.testFlag(SC_MeanSeaLevelPressure))
+        columnNames.append(tr("Mean Sea Level Pressure (%1)").arg(imperial ? unitString(U_INCHES_OF_MERCURY) : unitString(U_HECTOPASCALS)));
     if (columns.standard.testFlag(SC_Rainfall))
         columnNames.append(tr("Rainfall (%1)").arg(imperial ? unitString(U_INCHES) : unitString(U_MILLIMETERS)));
     if (columns.standard.testFlag(SC_AverageWindSpeed))

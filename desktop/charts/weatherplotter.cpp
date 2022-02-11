@@ -313,6 +313,8 @@ AxisType WeatherPlotter::axisTypeForColumn(StandardColumn column) {
         return AT_HUMIDITY;
 
     case SC_Pressure:
+    case SC_MeanSeaLevelPressure:
+    case SC_AbsolutePressure:
         return AT_PRESSURE;
 
     case SC_Rainfall:
@@ -401,6 +403,8 @@ QVector<double> WeatherPlotter::samplesForColumn(StandardColumn column, SampleSe
     case SC_WindChill:
     case SC_DewPoint:
     case SC_Pressure:
+    case SC_AbsolutePressure:
+    case SC_MeanSeaLevelPressure:
     case SC_Rainfall:
     case SC_HighRainRate:
     case SC_Evapotranspiration:
@@ -675,6 +679,9 @@ void WeatherPlotter::addGraphs(QMap<dataset_id_t, SampleSet> sampleSets)
         if (ds.columns.standard.testFlag(SC_Pressure))
             addGenericGraph(ds, SC_Pressure, samples);
             //addPressureGraph(samples);
+
+        if (ds.columns.standard.testFlag(SC_AbsolutePressure))
+            addGenericGraph(ds, SC_AbsolutePressure, samples);
 
         if (ds.columns.standard.testFlag(SC_Rainfall))
             addRainfallGraph(ds, samples, SC_Rainfall); // keep
@@ -1231,6 +1238,12 @@ void WeatherPlotter::removeGraphs(dataset_id_t dataSetId, SampleColumns columns)
 
     if (columns.standard.testFlag(SC_Pressure))
         columnList << SC_Pressure;
+
+    if (columns.standard.testFlag(SC_AbsolutePressure))
+        columnList << SC_AbsolutePressure;
+
+    if (columns.standard.testFlag(SC_MeanSeaLevelPressure))
+        columnList << SC_MeanSeaLevelPressure;
 
     if (columns.standard.testFlag(SC_Rainfall))
         columnList << SC_Rainfall;

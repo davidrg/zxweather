@@ -17,6 +17,7 @@ typedef struct _station_info_t {
     bool hasSolarAndUV;
     bool isValid;
     hardware_type_t hardwareType;
+    unsigned int apiLevel;  /*!< API level for remote stations */
 } station_info_t;
 
 typedef struct _sample_range_t {

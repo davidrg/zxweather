@@ -38,6 +38,12 @@ void ReserveSampleSetSpace(SampleSet& samples, int size, SampleColumns columns)
     if (columns.standard.testFlag(SC_Pressure))
         samples.pressure.reserve(size);
 
+    if (columns.standard.testFlag(SC_AbsolutePressure))
+        samples.absolutePressure.reserve(size);
+
+    if (columns.standard.testFlag(SC_MeanSeaLevelPressure))
+        samples.meanSeaLevelPressure.reserve(size);
+
     if (columns.standard.testFlag(SC_Rainfall))
         samples.rainfall.reserve(size);
 
@@ -156,6 +162,9 @@ void AppendNullSample(SampleSet &samples, SampleColumns columns, QDateTime time)
         samples.indoorHumidity.append(qQNaN());
 
     if (columns.standard.testFlag(SC_Pressure))
+        samples.pressure.append(qQNaN());
+
+    if (columns.standard.testFlag(SC_MeanSeaLevelPressure))
         samples.pressure.append(qQNaN());
 
     if (columns.standard.testFlag(SC_Rainfall))

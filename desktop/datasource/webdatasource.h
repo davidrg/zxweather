@@ -129,7 +129,7 @@ private:
                        bool solar, int davis_broadcast_id,
                        ExtraColumns extraColumns,
                        QMap<ExtraColumn, QString> extraColumnNames,
-                       bool archived, QDateTime archivedTime, QString archivedMessage);
+                       bool archived, QDateTime archivedTime, QString archivedMessage, unsigned int apiLevel);
 
     QString stationURL() const;
 

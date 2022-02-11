@@ -52,6 +52,7 @@ void FetchSamplesWebTask::beginTask() {
         _isSolarAvailable = stationInfo.hasSolarAndUV;
         _isWireless = stationInfo.isWireless;
         _stationName = stationInfo.title;
+        _apiLevel = stationInfo.apiLevel;
 
         finishWork();
     } else {
@@ -107,7 +108,7 @@ void FetchSamplesWebTask::finishWork() {
     request.hwType = _hwType;
 
     RangeRequestWebTask* task = new RangeRequestWebTask(
-                _baseUrl, _stationCode, request, _select, _dataSource);
+                _baseUrl, _apiLevel, _stationCode, request, _select, _dataSource);
     emit queueTask(task);
     emit finished();
 }

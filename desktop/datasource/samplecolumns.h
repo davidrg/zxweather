@@ -15,6 +15,8 @@
 
 #include "aggregate.h"
 
+// We could really really do with a 64bit qflags!
+
 enum StandardColumn {
     SC_NoColumns           = 0x00000000,
     SC_Timestamp           = 0x00000001,
@@ -25,7 +27,7 @@ enum StandardColumn {
     SC_DewPoint            = 0x00000020,
     SC_Humidity            = 0x00000040,
     SC_IndoorHumidity      = 0x00000080,
-    SC_Pressure            = 0x00000100,
+    SC_Pressure            = 0x00000100,    // MSL pressure if available, else absolute.
     SC_Rainfall            = 0x00000200,
     SC_AverageWindSpeed    = 0x00000400,
     SC_GustWindSpeed       = 0x00000800,
@@ -40,8 +42,10 @@ enum StandardColumn {
     SC_Evapotranspiration  = 0x00100000,    // Vantage Pro2+
     SC_HighSolarRadiation  = 0x00200000,    // Vantage Pro2+
     SC_HighUVIndex         = 0x00400000,    // Vantage Pro2+
-    SC_ForecastRuleId      = 0x00800000     // Davis
-    // Space for 8 more columns
+    SC_ForecastRuleId      = 0x00800000,    // Davis
+    SC_AbsolutePressure    = 0x01000000,    // Absolute pressure. May be null if the station doesn't support this.
+    SC_MeanSeaLevelPressure= 0x02000000     // Relative pressure. May be null if the station doesn't support this.
+    // Space for 6 more columns
 };
 Q_DECLARE_FLAGS(StandardColumns, StandardColumn)
 
@@ -84,7 +88,7 @@ typedef struct _sample_column {
     SC_SolarRadiation | SC_UV_Index | SC_Reception | SC_HighTemperature | \
     SC_LowTemperature | SC_HighRainRate | SC_GustWindDirection | \
     SC_Evapotranspiration | SC_HighSolarRadiation | SC_HighUVIndex | \
-    SC_ForecastRuleId )
+    SC_ForecastRuleId | SC_MeanSeaLevelPressure | SC_AbsolutePressure )
 
 #define ALL_EXTRA_COLUMNS (EC_LeafWetness1 | EC_LeafWetness2 | EC_LeafTemperature1 | \
     EC_LeafTemperature2 | EC_SoilMoisture1 | EC_SoilMoisture2 | EC_SoilMoisture3 | \
@@ -110,7 +114,7 @@ typedef struct _sample_column {
     | SC_HighSolarRadiation | SC_HighUVIndex)
 
 #define OTHER_COLUMNS (SC_Pressure | SC_Rainfall | SC_HighRainRate | \
-    SC_Reception)
+    SC_Reception | SC_MeanSeaLevelPressure | SC_AbsolutePressure)
 
 #define SOIL_COLUMNS (EC_SoilMoisture1 | EC_SoilMoisture2 | \
     EC_SoilMoisture3 | EC_SoilMoisture4 | EC_SoilTemperature1 | \

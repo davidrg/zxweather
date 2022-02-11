@@ -95,6 +95,10 @@ DataSet decodeDataSet(QUrl url) {
             ds.columns.standard |= SC_IndoorHumidity;
         } else if (col == "pressure") {
             ds.columns.standard |= SC_Pressure;
+        } else if (col == "abspressure") {
+            ds.columns.standard |= SC_AbsolutePressure;
+        } else if (col == "mslpressure") {
+            ds.columns.standard |= SC_MeanSeaLevelPressure;
         } else if (col == "rainfall") {
             ds.columns.standard |= SC_Rainfall;
         } else if (col == "average_wind_speed") {
