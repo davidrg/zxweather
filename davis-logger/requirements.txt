@@ -2,7 +2,7 @@
 psycopg2==2.8.6
 
 # 20.3.0 is the last version supporting python 2.7
-twisted==20.3.0
+twisted==22.1.0
 pytz
 pyserial
 pyopenssl
