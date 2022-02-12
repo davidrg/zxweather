@@ -38,6 +38,7 @@ class WeatherPushDatagramClientInstance(WeatherPushServerBase):
     @defer.inlineCallbacks
     def start(self):
         yield self._get_stations(None)
+        self._ready = True
 
     def packet_received(self, packet):
         if isinstance(packet, StationInfoRequestUDPPacket):
