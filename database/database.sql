@@ -1816,7 +1816,7 @@ begin
            coalesce(s.relative_humidity::varchar, 'None') || ',' ||
            coalesce(round(s.indoor_temperature::numeric, 2)::varchar, 'None') ||','||
            coalesce(s.indoor_relative_humidity::varchar, 'None') || ',' ||
-           coalesce(s.absolute_pressure::varchar, 'None') || ',' ||
+           coalesce(s.mean_sea_level_pressure, s.absolute_pressure::varchar, 'None') || ',' ||
            coalesce(round(s.average_wind_speed::numeric, 2)::varchar, 'None') || ','||
            coalesce(round(s.gust_wind_speed::numeric, 2)::varchar, 'None') || ',' ||
            coalesce(s.wind_direction::varchar, 'None') || ',' ||
