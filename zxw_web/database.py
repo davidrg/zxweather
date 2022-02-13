@@ -1451,6 +1451,7 @@ def get_latest_sample(station_id):
            s.dew_point,
            s.wind_chill,
            s.apparent_temperature,
+           coalesce(s.mean_sea_level_pressure, s.absolute_pressure) as pressure,
            s.absolute_pressure,
            s.mean_sea_level_pressure,
            s.average_wind_speed,

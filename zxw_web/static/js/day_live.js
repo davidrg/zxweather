@@ -1258,6 +1258,11 @@ function parse_sample(parts) {
         }
     }
 
+    var absPressure = parseNoneableFloat(parts[9]);
+    var mslPressure = parseNoneableFloat(parts[10]);
+
+    var pressure = mslPressure != null ? mslPressure : absPressure;
+
     // Note - samples are also constructed in build_average_point_for_ts()
     var sample = {
         // record type  // 0
@@ -1270,8 +1275,7 @@ function parse_sample(parts) {
         humidity: parseNoneableInt(parts[6]),
         indoor_temperature: parseNoneableFloat(parts[7]),
         indoor_humidity: parseNoneableInt(parts[8]),
-        pressure: parseNoneableFloat(parts[9]),
-        msl_pressure: parseNoneableFloat(parts[10]),
+        pressure: pressure;
         wind_speed: wind,
         gust_wind_speed: wind_gust,
         wind_direction: parseNoneableInt(parts[13]),
