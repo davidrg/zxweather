@@ -1275,7 +1275,7 @@ function parse_sample(parts) {
         humidity: parseNoneableInt(parts[6]),
         indoor_temperature: parseNoneableFloat(parts[7]),
         indoor_humidity: parseNoneableInt(parts[8]),
-        pressure: pressure;
+        pressure: pressure,
         wind_speed: wind,
         gust_wind_speed: wind_gust,
         wind_direction: parseNoneableInt(parts[13]),
