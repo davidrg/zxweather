@@ -67,6 +67,10 @@ namespace UnitConversions {
         operator int() const;
         operator float() const;
         operator QString() const;
+        operator =(float v);
+        operator =(double v);
+        operator =(int v);
+        operator =(const UnitValue &other);
 
     private:
         union {

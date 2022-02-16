@@ -5,6 +5,8 @@
 #include <QObject>
 #include <QCoreApplication>
 
+#define tr(x) QCoreApplication::translate("UnitConversions", x)
+
 UnitConversions::UnitValue::UnitValue(const UnitValue &other) {
     isInt = other.isInt;
     if (isInt) {
@@ -100,6 +102,33 @@ UnitConversions::UnitValue::operator QString() const {
     }
 }
 
+UnitConversions::UnitValue::operator =(float v) {
+    value.floatValue = v;
+    isInt = false;
+}
+
+UnitConversions::UnitValue::operator =(double v) {
+    value.floatValue = v;
+    isInt = false;
+}
+
+UnitConversions::UnitValue::operator =(int v) {
+    value.intValue = v;
+    isInt = true;
+}
+
+UnitConversions::UnitValue::operator =(const UnitValue &other) {
+    this->isInt = other.isInt;
+    if (this->isInt) {
+        value.intValue = other.value.intValue;
+    } else {
+        value.floatValue = other.value.floatValue;
+    }
+
+    unit = other.unit;
+}
+
+
 int UnitConversions::metersPerSecondtoBFT(double ms) {
     if (ms < 0.3)
         return 0;
@@ -133,31 +162,31 @@ int UnitConversions::metersPerSecondtoBFT(double ms) {
 QString UnitConversions::bftToString(int bft) {
     switch (bft) {
     case 0:
-        return QCoreApplication::translate("UnitConversions", "calm");
+        return tr("calm");
     case 1:
-        return QCoreApplication::translate("UnitConversions", "light air");
+        return tr("light air");
     case 2:
-        return QCoreApplication::translate("UnitConversions", "light breeze");
+        return tr("light breeze");
     case 3:
-        return QCoreApplication::translate("UnitConversions", "gentle breeze");
+        return tr("gentle breeze");
     case 4:
-        return QCoreApplication::translate("UnitConversions", "moderate breeze");
+        return tr("moderate breeze");
     case 5:
-        return QCoreApplication::translate("UnitConversions", "fresh breeze");
+        return tr("fresh breeze");
     case 6:
-        return QCoreApplication::translate("UnitConversions", "strong breeze");
+        return tr("strong breeze");
     case 7:
-        return QCoreApplication::translate("UnitConversions", "high wind, near gale");
+        return tr("high wind, near gale");
     case 8:
-        return QCoreApplication::translate("UnitConversions", "gale, fresh gale");
+        return tr("gale, fresh gale");
     case 9:
-        return QCoreApplication::translate("UnitConversions", "strong gale");
+        return tr("strong gale");
     case 10:
-        return QCoreApplication::translate("UnitConversions", "storm, whole gale");
+        return tr("storm, whole gale");
     case 11:
-        return QCoreApplication::translate("UnitConversions", "violent storm");
+        return tr("violent storm");
     case 12:
-        return QCoreApplication::translate("UnitConversions", "hurricane");
+        return tr("hurricane");
     default:
         return "";
     }
@@ -192,15 +221,15 @@ QString UnitConversions::windDirectionToCompassPoint(int windDirection) {
 QString UnitConversions::davisBarometerTrendLabel(int trend) {
     switch (trend) {
     case -60:
-        return QCoreApplication::translate("UnitConversions", "falling rapidly");
+        return tr("falling rapidly");
     case -20:
-        return QCoreApplication::translate("UnitConversions", "falling slowly");
+        return tr("falling slowly");
     case 0:
-        return QCoreApplication::translate("UnitConversions", "steady");
+        return tr("steady");
     case 20:
-        return QCoreApplication::translate("UnitConversions", "rising slowly");
+        return tr("rising slowly");
     case 60:
-        return QCoreApplication::translate("UnitConversions", "rising rapidly");
+        return tr("rising rapidly");
     default:
         return "";
     }
@@ -303,47 +332,47 @@ UnitConversions::unit_t UnitConversions::metricToImperial(UnitConversions::unit_
 QString UnitConversions::unitString(UnitConversions::unit_t unit) {
     switch(unit) {
     case U_METERS_PER_SECOND:
-        return QCoreApplication::translate("UnitConversions", "m/s");
+        return tr("m/s");
     case U_KILOMETERS_PER_HOUR:
-        return QCoreApplication::translate("UnitConversions", "km/h");
+        return tr("km/h");
     case U_MILES_PER_HOUR:
-        return QCoreApplication::translate("UnitConversions", "mph");
+        return tr("mph");
     case U_CELSIUS:
         return TEMPERATURE_SYMBOL;
     case U_FAHRENHEIT:
         return IMPERIAL_TEMPERATURE_SYMBOL;
     case U_HECTOPASCALS:
-        return QCoreApplication::translate("UnitConversions", "hPa");
+        return tr("hPa");
     case U_INCHES_OF_MERCURY:
-        return QCoreApplication::translate("UnitConversions", "inHg");
+        return tr("inHg");
     case U_MILLIMETERS:
-        return QCoreApplication::translate("UnitConversions", "mm");
+        return tr("mm");
     case U_CENTIMETERS:
-        return QCoreApplication::translate("UnitConversions", "cm");
+        return tr("cm");
     case U_INCHES:
-        return QCoreApplication::translate("UnitConversions", "in");
+        return tr("in");
     case U_MILLIMETERS_PER_HOUR:
-        return QCoreApplication::translate("UnitConversions", "mm/h");
+        return tr("mm/h");
     case U_CENTIMETERS_PER_HOUR:
-        return QCoreApplication::translate("UnitConversions", "cm/h");
+        return tr("cm/h");
     case U_INCHES_PER_HOUR:
-        return QCoreApplication::translate("UnitConversions", "in/h");
+        return tr("in/h");
     case U_WATTS_PER_SQUARE_METER:
-        return QCoreApplication::translate("UnitConversions", "W/m" SQUARED_SYMBOL);
+        return tr("W/m" SQUARED_SYMBOL);
     case U_UV_INDEX:
         return ""; // No special units for UV Index
     case U_HUMIDITY:
-        return QCoreApplication::translate("UnitConversions", "%");
+        return tr("%");
     case U_DEGREES:
         return DEGREE_SYMBOL;
     case U_VOLTAGE:
-        return QCoreApplication::translate("UnitConversions", "V");
+        return tr("V");
     case U_CENTIBAR:
-        return QCoreApplication::translate("UnitConversions", "cbar");
+        return tr("cbar");
     case U_LEAF_WETNESS:
         return ""; // no special units for leaf wentess
     case U_KNOTS:
-        return QCoreApplication::translate("UnitConversions", "kn");
+        return tr("kn");
     case U_UNKNOWN:
     default:
         return "";
