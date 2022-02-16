@@ -133,7 +133,7 @@ LiveDataSet LiveBuffer::decodeLiveDataSet(QString row) {
 
     LiveDataSet result;
 
-    qDebug() << parts.length() << parts;
+//    qDebug() << parts.length() << parts;
 
     if (parts.length() < 41) {
         qDebug() << "invalid row";
