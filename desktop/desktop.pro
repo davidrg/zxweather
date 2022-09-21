@@ -80,6 +80,29 @@ greaterThan(QT_MAJOR_VERSION, 4) {
     message("Unable to test for multimedia support under Qt 4 - assuming its available and enabling.")
 }
 
+################
+# Unix Install #
+################
+# So that 'make install' does something.
+
+unix {
+    isEmpty(PREFIX) {
+        PREFIX = /usr/local
+    }
+    target.path = $$PREFIX/bin
+    shortcutfiles.files = resources/linux/zxweather.desktop
+    shortcutfiles.path = $$PREFIX/share/applications
+    icon.files = resources/linux/zxweather.png
+    icon.path = $$PREFIX/share/icons/hicolor/32x32/apps
+
+    INSTALLS += shortcutfiles
+    INSTALLS += icon
+    INSTALLS += target
+
+    DISTFILES += resources/linux/zxweather.desktop \
+        resources/linux/zxweather.png
+}
+
 #################################
 # ECPG support for DB Live Data #
 #################################

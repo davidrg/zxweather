@@ -80,14 +80,15 @@ jobs:
           retention-days: 7
   Desktop-Linux:
     name: Linux Build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     steps:
       - name: Check out repository code
         uses: actions/checkout@v2
-      - name: Install PostgreSQL build dependencies
+      - name: Install Build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install libecpg-dev
+          # gstreamer1.0-plugins-base is needed only for building the AppImage
+          sudo apt-get install libecpg-dev gstreamer1.0-plugins-base
       - name: Install Qt
         uses: jurplel/install-qt-action@v2
         with:
@@ -108,11 +109,28 @@ jobs:
           cd ${{ github.workspace }}
           mkdir build_out
           cd build_out
-          qmake ../desktop
+          qmake PREFIX=/usr ../desktop
       - name: Build
         run: |
           cd ${{ github.workspace }}/build_out
           make -j 2
+      - name: Make distribution (AppImage)
+        run: |
+          cd ${{ github.workspace }}/build_out
+          export VERSION=m5+
+          make INSTALL_ROOT=appdir -j2 install ; find appdir/
+          wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
+          chmod a+x linuxdeployqt-continuous-x86_64.AppImage
+          ./linuxdeployqt-continuous-x86_64.AppImage appdir/usr/share/applications/*.desktop -appimage -verbose=2
+          find ./*.AppImage          
+      - name: Upload AppImage
+        uses: actions/upload-artifact@v2.2.4
+        with:
+          name: zxweather-m5+-x86_64.AppImage
+          path: ${{ github.workspace }}/build_out/zxweather-m5+-x86_64.AppImage
+          if-no-files-found: error
+          retention-days: 7
+
 #       - name: Make distribution
 #         run: |
 #           set PATH=%IQTA_TOOLS%\mingw730_32\bin\;%PATH%
